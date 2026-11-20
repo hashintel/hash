@@ -22,14 +22,14 @@ The editor and the [preview](layer:ui.preview) both mount it, so it imports noth
 
 ## Interface
 
-| Name | File | Use it to |
-| --- | --- | --- |
-| `SDCPNView` | `sdcpn-view.tsx` | Mount the canvas. `onControllerChange` receives the controller. |
-| `CanvasController` | `canvas-renderer.ts` | Move the viewport from outside (`setViewport`, `zoomIn`, `zoomOut`, `fitView`, `frameSceneAfterRender`), read where it will rest (`getRestViewport`) and convert a screen point (`screenToScene`). |
-| `useCanvasController` | `canvas-renderer.ts` | Read the controller inside the renderer. |
-| `useCanvasInteractions` | `use-canvas-interactions.ts` | Turn a renderer's gestures into selection, moves, connections and drops. |
-| `usePlaceTokenLabel`, `useTransitionFrame` | `canvas-frame-store.tsx` | Read one item's value of the viewed frame, by id. |
-| `useIsHovered` | `canvas-pointer.ts` | Ask whether the pointer is on one node or line. |
+| Name                                       | File                         | Use it to                                                                                                                                                                                          |
+| ------------------------------------------ | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SDCPNView`                                | `sdcpn-view.tsx`             | Mount the canvas. `onControllerChange` receives the controller.                                                                                                                                    |
+| `CanvasController`                         | `canvas-renderer.ts`         | Move the viewport from outside (`setViewport`, `zoomIn`, `zoomOut`, `fitView`, `frameSceneAfterRender`), read where it will rest (`getRestViewport`) and convert a screen point (`screenToScene`). |
+| `useCanvasController`                      | `canvas-renderer.ts`         | Read the controller inside the renderer.                                                                                                                                                           |
+| `useCanvasInteractions`                    | `use-canvas-interactions.ts` | Turn a renderer's gestures into selection, moves, connections and drops.                                                                                                                           |
+| `usePlaceTokenLabel`, `useTransitionFrame` | `canvas-frame-store.tsx`     | Read one item's value of the viewed frame, by id.                                                                                                                                                  |
+| `useIsHovered`                             | `canvas-pointer.ts`          | Ask whether the pointer is on one node or line.                                                                                                                                                    |
 
 ## Data flow
 
@@ -43,13 +43,13 @@ A user drags a node:
 
 ## What renders
 
-| Gesture | Nodes and arcs that render |
-| --- | --- |
-| Select | The nodes whose selected state or focus changed, and their arcs |
-| Hover | The state tooltip of the place under the pointer, at once. After the pointer rests, the nodes whose focus changed. |
-| Drag frame | The dragged nodes and their arcs |
-| Pan, zoom | No node and no arc: React Flow writes one transform on the viewport element. An open place state tooltip renders on each frame, because it reads `useViewport`. |
-| Playback frame | The places, transitions and arcs whose value moved |
+| Gesture        | Nodes and arcs that render                                                                                                                                      |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Select         | The nodes whose selected state or focus changed, and their arcs                                                                                                 |
+| Hover          | The state tooltip of the place under the pointer, at once. After the pointer rests, the nodes whose focus changed.                                              |
+| Drag frame     | The dragged nodes and their arcs                                                                                                                                |
+| Pan, zoom      | No node and no arc: React Flow writes one transform on the viewport element. An open place state tooltip renders on each frame, because it reads `useViewport`. |
+| Playback frame | The places, transitions and arcs whose value moved                                                                                                              |
 
 The focus of a node or an arc is its `CanvasNodeFocus` or `CanvasArcFocus` in `canvas-focus.ts`: how it relates to the hovered or selected items.
 The pointer rests after 150 ms with no move above 2 px, and a hover changes focus only while the `highlightOnHover` setting is on. A place with visualizer code reaches the scene before the rest, so its visualizer shows at once.

@@ -25,9 +25,7 @@ import { ErrorTrackerContext } from "../../../../react/error-tracker-context";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { AssistantPanelTitle } from "../../../plugins/assistant-panel-title";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
-import {
-  useAssistantPanel,
-} from "../../../plugins/plugin-assistant";
+import { useAssistantPanel } from "../../../plugins/plugin-assistant";
 import { renderPlugins } from "../../../plugins/plugins-test-harness";
 import { AssistantCommands, EditorAssistantPanel } from "./editor-assistant";
 

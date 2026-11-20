@@ -22,15 +22,15 @@ mounted below `SimulatorsProvider`, and above `EventPlaybackProvider` and
 
 ## Interface
 
-| To                                    | Read                                                                                                                                                                                                     |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Start, pause or rewind                | `play`, `pause` and `stop` of `EventPlaybackContext`, which call `initialize`, `run` and `pause` of `SimulationContext`                                                                                  |
-| Discard the run                       | `reset` of `SimulationContext`                                                                                                                                                                           |
-| Change what the next run computes     | `setInitialMarking`, `setParameterValue`, `setMode`, `setRuns`, `setMaxTime`, `selectSimulator`, `setSimulatorParameter`, `setSelectedScenarioId`, `setAdHocScenario`, `setScenarioParameterValue`       |
-| Show where it stands                  | `state`, `error`; `totalFramesStore` for a run                                                                                                                                                           |
-| Show the state of a run at a time     | `currentFrameReader` of `ExecutionFrameSourceContext`                                                                                                                                                    |
-| Show the metrics of an experiment     | `stochasticRun.reader`                                                                                                                                                                                   |
-| Show the viewed time                  | `useEventPlaybackFrame`                                                                                                                                                                                  |
+| To                                | Read                                                                                                                                                                                               |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start, pause or rewind            | `play`, `pause` and `stop` of `EventPlaybackContext`, which call `initialize`, `run` and `pause` of `SimulationContext`                                                                            |
+| Discard the run                   | `reset` of `SimulationContext`                                                                                                                                                                     |
+| Change what the next run computes | `setInitialMarking`, `setParameterValue`, `setMode`, `setRuns`, `setMaxTime`, `selectSimulator`, `setSimulatorParameter`, `setSelectedScenarioId`, `setAdHocScenario`, `setScenarioParameterValue` |
+| Show where it stands              | `state`, `error`; `totalFramesStore` for a run                                                                                                                                                     |
+| Show the state of a run at a time | `currentFrameReader` of `ExecutionFrameSourceContext`                                                                                                                                              |
+| Show the metrics of an experiment | `stochasticRun.reader`                                                                                                                                                                             |
+| Show the viewed time              | `useEventPlaybackFrame`                                                                                                                                                                            |
 
 A frame is the state one event of a run recorded, and `totalFramesStore`
 counts them. The viewed frame is the state at the viewed time, which a

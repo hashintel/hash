@@ -19,16 +19,16 @@ are higher than on a machine with a GPU.
 The count is the number of component renders React reports for one gesture, on
 React's profiling build, with every node on screen.
 
-| Gesture | Before | After |
-| --- | ---: | ---: |
-| Select a node | 8,055 | 369 |
-| Select another node | 8,279 | 512 |
-| Hover a node | 13,130 | 164 |
-| Drag a node | 67,945 | 1,316 |
-| Pan | 13,686 | 381 |
-| Zoom | 2,260 | 118 |
-| Open a panel | 160 | 36 |
-| Deselect | 2,173 | 31 |
+| Gesture             | Before | After |
+| ------------------- | -----: | ----: |
+| Select a node       |  8,055 |   369 |
+| Select another node |  8,279 |   512 |
+| Hover a node        | 13,130 |   164 |
+| Drag a node         | 67,945 | 1,316 |
+| Pan                 | 13,686 |   381 |
+| Zoom                |  2,260 |   118 |
+| Open a panel        |    160 |    36 |
+| Deselect            |  2,173 |    31 |
 
 ## What a gesture costs
 
@@ -36,15 +36,15 @@ Script time is the main-thread time spent in JavaScript during the gesture. A
 late frame is one that took more than 20 ms. Each value is the median of six
 samples on the production build, with every node on screen.
 
-| Gesture | Script before | Script after | Late frames before | Late frames after | Longest frame before | Longest frame after |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Select a node | 220 ms | 112 ms | 6 | 6 | 275 ms | 192 ms |
-| Select another node | 173 ms | 57 ms | 3 | 1 | 166 ms | 91 ms |
-| Hover a node | 224 ms | 50 ms | 6 | 1 | 50 ms | 42 ms |
-| Drag a node | 1,078 ms | 355 ms | 27 | 7 | 117 ms | 50 ms |
-| Pan | 375 ms | 205 ms | 8 | 7 | 125 ms | 102 ms |
-| Zoom | 103 ms | 69 ms | 0 | 0 | 17 ms | 17 ms |
-| Deselect | 47 ms | 16 ms | 0 | 0 | 17 ms | 15 ms |
+| Gesture             | Script before | Script after | Late frames before | Late frames after | Longest frame before | Longest frame after |
+| ------------------- | ------------: | -----------: | -----------------: | ----------------: | -------------------: | ------------------: |
+| Select a node       |        220 ms |       112 ms |                  6 |                 6 |               275 ms |              192 ms |
+| Select another node |        173 ms |        57 ms |                  3 |                 1 |               166 ms |               91 ms |
+| Hover a node        |        224 ms |        50 ms |                  6 |                 1 |                50 ms |               42 ms |
+| Drag a node         |      1,078 ms |       355 ms |                 27 |                 7 |               117 ms |               50 ms |
+| Pan                 |        375 ms |       205 ms |                  8 |                 7 |               125 ms |              102 ms |
+| Zoom                |        103 ms |        69 ms |                  0 |                 0 |                17 ms |               17 ms |
+| Deselect            |         47 ms |        16 ms |                  0 |                 0 |                17 ms |               15 ms |
 
 Zoomed in to where the labels read, the script times fall by about the same
 share. Loading the net is no faster: the page is ready after 1.1 s and holds
@@ -107,10 +107,10 @@ that uses every core moves the times by more than a change does.
 Each of these changes what the canvas draws or which library version it runs
 on, so none is part of the rules above.
 
-| Change | What it would cost |
-| --- | --- |
-| Draw simpler nodes when zoomed out | Labels and token counts disappear below a zoom level |
-| Render only the nodes on screen (`onlyRenderVisibleElements`) | Nodes mount and unmount while panning |
-| Promote the viewport to its own layer (`will-change`) | Text is rastered at one scale and blurs during a zoom |
-| Mount the Definitions view on first use | Its first opening takes longer |
-| Upgrade React Flow | A behaviour check of every gesture against the new version |
+| Change                                                        | What it would cost                                         |
+| ------------------------------------------------------------- | ---------------------------------------------------------- |
+| Draw simpler nodes when zoomed out                            | Labels and token counts disappear below a zoom level       |
+| Render only the nodes on screen (`onlyRenderVisibleElements`) | Nodes mount and unmount while panning                      |
+| Promote the viewport to its own layer (`will-change`)         | Text is rastered at one scale and blurs during a zoom      |
+| Mount the Definitions view on first use                       | Its first opening takes longer                             |
+| Upgrade React Flow                                            | A behaviour check of every gesture against the new version |

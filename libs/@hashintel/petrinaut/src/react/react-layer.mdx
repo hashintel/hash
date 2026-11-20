@@ -40,12 +40,12 @@ between them. When it plays a run it adds `NotificationsProvider`,
 
 ## How state reaches a component
 
-| The state                                        | Is read with                                                                                           | Renders the reader                                               |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| A context value that changes rarely              | `use` of the context                                                                                   | When any field of the value changes                              |
-| A store of Core, or a store a context hands out  | `useStore`, `useStoreSelector`                                                                         | When the store's value changes                                   |
-| A part of a value that changes often             | `useEditorState`, `useUserSettings`, `usePetrinautDefinitionSelector`, `usePetrinautNavigationState`   | When that part changes, as `select-from-context.test.tsx` holds  |
-| The size or the position of a panel              | A Motion value written to the element, as [Panel geometry](doc:react.state/panel-sizes) describes     | Never                                                            |
+| The state                                       | Is read with                                                                                         | Renders the reader                                              |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| A context value that changes rarely             | `use` of the context                                                                                 | When any field of the value changes                             |
+| A store of Core, or a store a context hands out | `useStore`, `useStoreSelector`                                                                       | When the store's value changes                                  |
+| A part of a value that changes often            | `useEditorState`, `useUserSettings`, `usePetrinautDefinitionSelector`, `usePetrinautNavigationState` | When that part changes, as `select-from-context.test.tsx` holds |
+| The size or the position of a panel             | A Motion value written to the element, as [Panel geometry](doc:react.state/panel-sizes) describes    | Never                                                           |
 
 The editor state, the user settings, the document and the location change on
 most interactions, so each has a hook that takes a selector. The viewed time
@@ -57,20 +57,20 @@ owner.
 
 ## Which hook to call
 
-| To                                         | Call                                                                |
-| ------------------------------------------ | ------------------------------------------------------------------- |
-| Read part of the document                  | `usePetrinautDefinitionSelector`                                    |
-| Edit the document                          | `usePetrinautMutations`, `usePetrinautCommands`                     |
-| Ask whether editing is allowed             | `useIsReadOnly`, `useReadOnlyReason`                                |
-| Read or change the editor's state          | `useEditorState`, `useEditorFields`, `useEditorActions`             |
-| Ask whether one item is selected           | `useIsSelected`                                                     |
-| Read or save a setting                     | `useUserSettings`, `useUserSettingsFields`                          |
-| Read or change the location                | `usePetrinautNavigationState`, `usePetrinautNavigate`               |
-| Select an item and open its panel          | `useRevealInEditor`                                                 |
-| Register a command                         | `useCommand`                                                        |
-| Read a Core store                          | `usePetrinautInstance`, then `useStore`                             |
-| Read the latest value in a handler         | `useLatest`, `useStableCallback`                                    |
-| Measure an element                         | `useElementSize`, `useElementOnScreen`                              |
+| To                                 | Call                                                    |
+| ---------------------------------- | ------------------------------------------------------- |
+| Read part of the document          | `usePetrinautDefinitionSelector`                        |
+| Edit the document                  | `usePetrinautMutations`, `usePetrinautCommands`         |
+| Ask whether editing is allowed     | `useIsReadOnly`, `useReadOnlyReason`                    |
+| Read or change the editor's state  | `useEditorState`, `useEditorFields`, `useEditorActions` |
+| Ask whether one item is selected   | `useIsSelected`                                         |
+| Read or save a setting             | `useUserSettings`, `useUserSettingsFields`              |
+| Read or change the location        | `usePetrinautNavigationState`, `usePetrinautNavigate`   |
+| Select an item and open its panel  | `useRevealInEditor`                                     |
+| Register a command                 | `useCommand`                                            |
+| Read a Core store                  | `usePetrinautInstance`, then `useStore`                 |
+| Read the latest value in a handler | `useLatest`, `useStableCallback`                        |
+| Measure an element                 | `useElementSize`, `useElementOnScreen`                  |
 
 ## Rules
 

@@ -328,13 +328,13 @@ initial-state body and wrapped override expressions.
 
 ## Who owns what
 
-| Layer | What it owns |
-| --- | --- |
-| [`core.simulation.authoring.adhoc`](layer:core.simulation.authoring.adhoc) | The state shapes, the transitions between row kinds, synthesis, labels, the action schemas and the pure reducer |
-| [`core.lsp`](layer:core.lsp) | One wrapped virtual document per non-empty `AdHocSlot`, and the `temp/adhoc/*` session protocol in the worker |
-| [`ui.adhoc-form`](layer:ui.adhoc-form) | The sections, the LSP session, the error map, the undo history, the token table, the in-place cell editor and the dependency highlight |
-| [`ui.spreadsheet-kit`](layer:ui.spreadsheet-kit) | The table shell, gutter cells and their menus, and the trailing add-lines |
-| [`ui.worksheet`](layer:ui.worksheet) | The keyboard flow: each grid or header owns its arrows, and an edge move focuses the next one in DOM order. Also the row-selection model, `useRowSelection`. |
+| Layer                                                                      | What it owns                                                                                                                                                 |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`core.simulation.authoring.adhoc`](layer:core.simulation.authoring.adhoc) | The state shapes, the transitions between row kinds, synthesis, labels, the action schemas and the pure reducer                                              |
+| [`core.lsp`](layer:core.lsp)                                               | One wrapped virtual document per non-empty `AdHocSlot`, and the `temp/adhoc/*` session protocol in the worker                                                |
+| [`ui.adhoc-form`](layer:ui.adhoc-form)                                     | The sections, the LSP session, the error map, the undo history, the token table, the in-place cell editor and the dependency highlight                       |
+| [`ui.spreadsheet-kit`](layer:ui.spreadsheet-kit)                           | The table shell, gutter cells and their menus, and the trailing add-lines                                                                                    |
+| [`ui.worksheet`](layer:ui.worksheet)                                       | The keyboard flow: each grid or header owns its arrows, and an edge move focuses the next one in DOM order. Also the row-selection model, `useRowSelection`. |
 
 Three places mount the form. Simulation Settings embeds it through
 `renderLayout`, and [`react.simulation`](layer:react.simulation) synthesizes

@@ -21,16 +21,16 @@ It owns no document state and no geometry: the [editor state](layer:react.state)
 
 ## What mounts when
 
-| Region | Mounted | Visible |
-| --- | --- | --- |
-| `TopBar` | Always | Always |
-| `SimulateViewTabs`, `SimulateView` | `globalMode` is `simulate` | While mounted |
-| Canvas workspace | `globalMode` is `edit` or `actual` | `actual`, or `editViewMode` is `canvas` |
-| `NotebookView` | `globalMode` is `edit` or `actual` | `edit` and `editViewMode` is `definitions` |
-| `BottomBar` | Always | `actual`, or `edit` on the canvas |
-| `LeftSideBar` | With the canvas workspace | `isLeftSidebarOpen` or `isSearchOpen` |
-| `PropertiesPanel` | With the canvas workspace | `usePanelTarget` returns a kind other than `none` |
-| `BottomPanel` | With the canvas workspace | `isBottomPanelOpen` |
+| Region                             | Mounted                            | Visible                                           |
+| ---------------------------------- | ---------------------------------- | ------------------------------------------------- |
+| `TopBar`                           | Always                             | Always                                            |
+| `SimulateViewTabs`, `SimulateView` | `globalMode` is `simulate`         | While mounted                                     |
+| Canvas workspace                   | `globalMode` is `edit` or `actual` | `actual`, or `editViewMode` is `canvas`           |
+| `NotebookView`                     | `globalMode` is `edit` or `actual` | `edit` and `editViewMode` is `definitions`        |
+| `BottomBar`                        | Always                             | `actual`, or `edit` on the canvas                 |
+| `LeftSideBar`                      | With the canvas workspace          | `isLeftSidebarOpen` or `isSearchOpen`             |
+| `PropertiesPanel`                  | With the canvas workspace          | `usePanelTarget` returns a kind other than `none` |
+| `BottomPanel`                      | With the canvas workspace          | `isBottomPanelOpen`                               |
 
 A region that is mounted and not visible sits in a hidden `Activity`: React keeps its state and removes its effects.
 
