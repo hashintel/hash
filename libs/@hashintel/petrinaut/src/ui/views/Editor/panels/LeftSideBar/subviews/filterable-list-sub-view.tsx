@@ -66,7 +66,8 @@ const listItemRowStyle = cva({
 
     /* The action button shows on hover, while the row or the button holds
        focus, or while its menu is open. Hidden with `display` so it takes no
-       width until shown. */
+       width until shown. A row's menu is mounted only where one of those can
+       hold, see `menuRows` below. */
     "& [data-row-action]": {
       display: "none",
     },
@@ -291,6 +292,17 @@ const FilterableListContent = <T extends FilterableListItem>({
   );
   // The Shift-range anchor: the item the last plain selection landed on.
   const [anchorId, setAnchorId] = useState<string | null>(null);
+  // The rows whose menu is mounted: the one last pointed at and the one last
+  // focused, which are the only two that can show a menu. A menu is a few
+  // dozen components that render again whenever the editor's state changes,
+  // and a list has one row per item of the net.
+  //
+  // Neither is cleared when the pointer or focus leaves. An open menu draws
+  // its items outside the row, and must outlive the pointer moving onto them.
+  const [menuRows, setMenuRows] = useState<{
+    pointed: string | null;
+    focused: string | null;
+  }>({ pointed: null, focused: null });
   const targets = useRef<Map<string, HTMLElement>>(new Map());
 
   const visibleRows = visibleRowsOf(items, collapsedGroups);
@@ -436,7 +448,8 @@ const FilterableListContent = <T extends FilterableListItem>({
       item.renderGroupAction ? (
         <item.renderGroupAction />
       ) : null
-    ) : RenderRowMenu ? (
+    ) : RenderRowMenu &&
+      (menuRows.pointed === item.id || menuRows.focused === item.id) ? (
       <RenderRowMenu item={item} />
     ) : null;
 
@@ -453,9 +466,19 @@ const FilterableListContent = <T extends FilterableListItem>({
         }
         onClick={(event) => onRowClick(event, row)}
         onKeyDown={onRowKeyDown(row)}
+        onPointerEnter={() => {
+          if (menuRows.pointed !== item.id) {
+            setMenuRows({ ...menuRows, pointed: item.id });
+          }
+        }}
         onFocus={(event) => {
-          // Focus bubbles: the row reports its own position, its action
-          // button reports through the cell.
+          // Focus bubbles, from the row's action button and from an open
+          // menu's items as well.
+          if (menuRows.focused !== item.id) {
+            setMenuRows({ ...menuRows, focused: item.id });
+          }
+          // The row reports its own position, its action button reports
+          // through the cell.
           if (event.target === event.currentTarget) {
             onFocusTarget(rowTarget);
           }
