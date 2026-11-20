@@ -66,6 +66,8 @@ import {
 } from "./durable-agents-server/user-input";
 import { recordVersionLoad } from "./durable-agents-server/version-load";
 
+import type { InputRequest } from "./durable-agents-server/shared/input-entry";
+
 export type {
   ConversationSeed,
   CrashLoopingTask,
@@ -310,10 +312,12 @@ export const createDurableAgentsServer = (
         // Pi refuses a request ID of another submission type with an untyped error; this is its check.
         if (existing !== undefined)
           return existing.type === "input" ? existing.id : undefined;
+        const request: InputRequest = { requestId: input.requestId };
         const submitted = await root.submit(tx, {
           type: "input",
           content: input.content,
-          entry: input.entry,
+          // The entry keeps its request ID, which history names its message by.
+          entry: { ...input.entry, data: { ...input.entry.data, ...request } },
           requestId: input.requestId,
           whenBusy: "followUp",
         });

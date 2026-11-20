@@ -142,6 +142,7 @@ describe("P3: a custom input entry kind", () => {
         body: "contextual",
         userText: "Add a dryer.",
         submissionContext,
+        requestId: "user-2",
       });
     } finally {
       await server.close();

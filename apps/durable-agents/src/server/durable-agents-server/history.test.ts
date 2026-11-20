@@ -181,7 +181,7 @@ const entryOfKind = (entries: readonly EntryRecord[], kind: string) => {
 
 const userText = "Call the net Laundry line.";
 const comments = [
-  { id: "comment-1", records: ["N1"], quote: "a dryer", text: "Not a dryer." },
+  { id: "n1", records: ["N1"], quote: "a dryer", text: "Not a dryer." },
 ];
 
 test("a reopened conversation's messages are the live stream's: the user's words, browser output from details, notes and comments as their own parts, prune writes hidden", async () => {
@@ -294,17 +294,14 @@ test("a reopened conversation's messages are the live stream's: the user's words
     context,
   );
 
-  // A Ledger-comment turn, as admission places it.
-  const commentTurn = await root.submit(
-    {
-      type: "input",
-      content: "<brunch.ledger-comments>…</brunch.ledger-comments>",
-      entry: { kind: "brunch.ledger-comments", data: { comments } },
-      requestId: "user-2",
-    },
-    context,
+  // A Ledger-comment turn, as the panel's comment bar sends it.
+  await drain(
+    await send(chat.transport, {
+      id: "user-2",
+      role: "user",
+      parts: [{ type: "text", text: JSON.stringify({ comments }) }],
+    }),
   );
-  expect((await commentTurn.wait(context)).status).toBe("done");
 
   const entries = await entriesOf(chat);
   const userEntry = entryOfKind(entries, "brunch.user");
@@ -316,11 +313,12 @@ test("a reopened conversation's messages are the live stream's: the user's words
   const { status, cacheControl, messages } = await chat.history();
   expect(status).toBe(200);
   expect(cacheControl).toBe("no-store");
+  // Each input under its request ID: the message ID the client sent, or the hand-edit report's.
   expect(messages?.map(({ id, role }) => ({ id, role }))).toEqual([
-    { id: `durable:user:${userEntry.id}`, role: "user" },
+    { id: "user-1", role: "user" },
     { id: `durable:${userEntry.id}`, role: "assistant" },
-    { id: `durable:user:${betweenNote?.id}`, role: "user" },
-    { id: `durable:user:${commentEntry.id}`, role: "user" },
+    { id: "brunch.hand-edit:e2:0", role: "user" },
+    { id: "user-2", role: "user" },
     { id: `durable:${commentEntry.id}`, role: "assistant" },
   ]);
   const [user, response, noteMessage, commentMessage, commentResponse] =
@@ -368,7 +366,26 @@ test("a reopened conversation's messages are the live stream's: the user's words
   ]);
 });
 
-test("an old pi.user input shows its text beside a brunch.user input's words", async () => {
+test("a reopened user message resent follows its first run, and starts no other", async () => {
+  const chat = openChat([fauxAssistantMessage("Hello.")]);
+  const first = await drain(
+    await send(chat.transport, {
+      id: "user-1",
+      role: "user",
+      parts: [{ type: "text", text: userText }],
+    }),
+  );
+  const { messages } = await chat.history();
+  const [reopened, response] = messages ?? [];
+  if (reopened === undefined) throw new Error("No user message.");
+
+  const resent = await drain(await send(chat.transport, reopened));
+  expect(resent).toEqual(first);
+  expect(await reduce(resent)).toEqual(response);
+  expect((await chat.history()).messages).toEqual(messages);
+});
+
+test("an old pi.user input, admitted under no message ID the history knows, keeps its entry's ID", async () => {
   const chat = openChat([
     fauxAssistantMessage("Hello."),
     fauxAssistantMessage("Again."),
@@ -396,7 +413,7 @@ test("an old pi.user input shows its text beside a brunch.user input's words", a
       .map(({ id, parts }) => ({ id, parts })),
   ).toEqual([
     {
-      id: `durable:user:${entryOfKind(entries, "brunch.user").id}`,
+      id: "user-1",
       parts: [{ type: "text", text: userText, state: "done" }],
     },
     {

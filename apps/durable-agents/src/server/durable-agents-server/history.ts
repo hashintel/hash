@@ -2,11 +2,14 @@
  * `GET /chat/:id/messages`: a conversation's history as AI SDK `UIMessage[]`,
  * built from its stored entries, for a panel that opens a conversation.
  *
- * - An input entry is a user message `durable:user:<entry ID>`: a
- *   `brunch.user` entry shows the user's words, `data.userText`, never the
- *   host context the model read with them; a `brunch.ledger-comments` entry
- *   is a `data-brunch-ledger-comments` part with the entry's `data`; any
- *   other input shows its text.
+ * - An input entry is a user message named by its request ID, the message
+ *   ID the client sent, so a reopened list holds the IDs the client sent and
+ *   a resent message follows its first run; an input admitted otherwise
+ *   (an old `pi.user`) is `durable:user:<entry ID>`. A `brunch.user` entry
+ *   shows the user's words, `data.userText`, never the host context the
+ *   model read with them; a `brunch.ledger-comments` entry is a
+ *   `data-brunch-ledger-comments` part with the entry's `data`; any other
+ *   input shows its text.
  * - The entries after an input, up to the next one, are its response
  *   `durable:<input entry ID>`, projected by the live stream's own writer
  *   (`projectResponseEntries`) and reduced by AI SDK's own reducer, so a
@@ -15,7 +18,8 @@
  *   inside it as a `data-brunch-hand-edit` part.
  * - A hand-edit note outside every response (between turns, or after a
  *   response's last output) is a user message of its own with only that
- *   part, as the model read it as a user message.
+ *   part, as the model read it as a user message, named by its report's
+ *   request ID.
  * - Everything else is hidden: prune writes (the tool results they edit
  *   show their stored output), compaction summaries, resets, prompt entries.
  *
@@ -31,9 +35,10 @@ import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 
 import { brunchSignals } from "@hashintel/brunch-agent";
 
+import { handEditRequestId } from "../../browser-call/hand-edit";
 import { handEditEntryKind } from "../../net-state/visible-net-view";
 import { userWords } from "../../shared/brunch-user-entry";
-import { isInputEntry } from "./shared/input-entry";
+import { inputRequestId, isInputEntry } from "./shared/input-entry";
 import {
   handEditPartId,
   handEditPartType,
@@ -48,19 +53,38 @@ import type { Handler } from "hono";
 /** The UI part a Ledger-comment turn is shown as, with the entry's `data` (`{ comments }`). */
 export const ledgerCommentsPartType = "data-brunch-ledger-comments";
 
-/** The ID of the user message an entry is shown as. */
+/** The ID of the user message an entry is shown as when it keeps no request ID. */
 export const userMessageId = (entry: EntryId) => `durable:user:${entry}`;
 
 /** Entries read per page. */
 const pageSize = 500;
 
+/** A hand-edit note's request ID, from the report its data names. */
+const noteRequestId = (note: EntryRecord): string | undefined => {
+  const { data } = note;
+  return typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data) &&
+    typeof data.reportId === "string"
+    ? handEditRequestId(data.reportId)
+    : undefined;
+};
+
+/** An input entry's data as the panel sent it, without the request ID admission added. */
+const sentData = ({ data }: EntryRecord) => {
+  if (typeof data !== "object" || data === null || Array.isArray(data))
+    return data ?? null;
+  const { requestId: _requestId, ...sent } = data;
+  return sent;
+};
+
 const inputMessage = (entry: EntryRecord): UIMessage => {
-  const id = userMessageId(entry.id);
+  const id = inputRequestId(entry) ?? userMessageId(entry.id);
   if (entry.kind === brunchSignals.ledgerComments)
     return {
       id,
       role: "user",
-      parts: [{ type: ledgerCommentsPartType, data: entry.data ?? null }],
+      parts: [{ type: ledgerCommentsPartType, data: sentData(entry) }],
     };
   return {
     id,
@@ -77,7 +101,7 @@ const inputMessage = (entry: EntryRecord): UIMessage => {
 };
 
 const noteMessage = (note: EntryRecord): UIMessage => ({
-  id: userMessageId(note.id),
+  id: noteRequestId(note) ?? userMessageId(note.id),
   role: "user",
   parts: [
     {

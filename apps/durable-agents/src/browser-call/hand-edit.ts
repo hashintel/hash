@@ -42,6 +42,10 @@ export const handEditReportId = ({
   seq,
 }: Pick<HandEditReportBody, "episode" | "seq">): string => `${episode}:${seq}`;
 
+/** The request ID a report's note is written under. */
+export const handEditRequestId = (reportId: HandEditData["reportId"]) =>
+  `${handEditEntryKind}:${reportId}`;
+
 /** The note's write, under the report's request ID, so a retried report is admitted once. */
 export const handEditWrite = (
   { episode, seq, revision }: HandEditReportBody,
@@ -51,7 +55,7 @@ export const handEditWrite = (
   const data: HandEditData = { episode, reportId, revision };
   return {
     type: "write",
-    requestId: `${handEditEntryKind}:${reportId}`,
+    requestId: handEditRequestId(reportId),
     entry: {
       kind: handEditEntryKind,
       data,
