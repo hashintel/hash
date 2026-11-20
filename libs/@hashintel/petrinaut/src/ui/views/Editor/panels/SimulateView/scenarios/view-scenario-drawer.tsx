@@ -24,7 +24,7 @@ const migrationNoteStyle = css({
   margin: "[0]",
 });
 
-export const perPlaceMigrationNote =
+const perPlaceMigrationNote =
   "Saving stores this scenario in the form's format.";
 
 /**

@@ -14,12 +14,8 @@ import {
   LanguageClientContext,
 } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { codeScenarioNotice } from "./ad-hoc-scenario-authoring";
 import { CreateScenarioDrawer } from "./create-scenario-drawer";
-import {
-  perPlaceMigrationNote,
-  ViewScenarioDrawer,
-} from "./view-scenario-drawer";
+import { ViewScenarioDrawer } from "./view-scenario-drawer";
 
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { Scenario, SDCPN } from "@hashintel/petrinaut-core";
@@ -209,6 +205,11 @@ const sdcpnContextValue: SDCPNContextValue = {
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   getItemType: () => null,
 };
+
+const perPlaceMigrationNote =
+  "Saving stores this scenario in the form's format.";
+const codeScenarioNotice =
+  /^This scenario defines its initial state as code, shown here read-only\./;
 
 const inEditor = (panel: ReactNode) => (
   <LanguageClientContext value={DEFAULT_LANGUAGE_CLIENT_CONTEXT}>
