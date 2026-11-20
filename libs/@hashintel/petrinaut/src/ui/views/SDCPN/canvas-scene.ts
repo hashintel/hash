@@ -215,6 +215,8 @@ export type CanvasSceneInput = {
   libraries: ResolvedLibraries;
   /** The worst problem of each of the net's fusions. */
   fusionStatuses: ReadonlyMap<string, FusionStatus>;
+  /** How each transition of the net gives its rate. */
+  lambdaTypes: ReadonlyMap<string, CanvasTransitionNode["lambdaType"]>;
   extensions: PetrinautExtensionSettings;
   dimensions: RenderNodeDimensions;
   dragPreview: CanvasDragPreview;
@@ -280,11 +282,42 @@ const buildFusionLinks = ({
   });
 };
 
+/**
+ * How each transition of `net` gives its rate, or "none" where the net's
+ * extensions leave it none. It depends on the net alone, and Core reads
+ * every place of the net for each transition: work it out once per net, not
+ * once per scene.
+ */
+export const transitionLambdaTypes = (
+  net: ActiveNetDefinition,
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+  libraries: ResolvedLibraries,
+): CanvasSceneInput["lambdaTypes"] =>
+  new Map(
+    net.transitions.map((transition) => {
+      const availability = getTransitionLogicAvailability(
+        transition,
+        sdcpn,
+        extensions,
+        net,
+        libraries,
+      );
+      return [
+        transition.id,
+        availability.lambda
+          ? getEffectiveTransitionLambdaType(transition, availability)
+          : "none",
+      ];
+    }),
+  );
+
 export const buildCanvasScene = ({
   net,
   sdcpn,
   libraries,
   fusionStatuses,
+  lambdaTypes,
   extensions,
   dimensions,
   dragPreview,
@@ -335,13 +368,6 @@ export const buildCanvasScene = ({
   }
 
   for (const transition of net.transitions) {
-    const logicAvailability = getTransitionLogicAvailability(
-      transition,
-      sdcpn,
-      extensions,
-      net,
-      libraries,
-    );
     nodes.push({
       kind: "transition",
       id: transition.id,
@@ -349,9 +375,7 @@ export const buildCanvasScene = ({
       ...dimensions.transition,
       ...positionOf(transition, dragPreview),
       ...interaction(transition.id),
-      lambdaType: logicAvailability.lambda
-        ? getEffectiveTransitionLambdaType(transition, logicAvailability)
-        : "none",
+      lambdaType: lambdaTypes.get(transition.id) ?? "none",
     });
   }
 

@@ -12,11 +12,44 @@ import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useUserSettingsFields } from "../../../react/state/user-settings-context";
 import { useStore } from "../../../react/use-store";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
-import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
+import {
+  buildCanvasScene,
+  transitionLambdaTypes,
+  type CanvasScene,
+} from "./canvas-scene";
 import { fusionStatuses } from "./fusion-links";
 import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
 
+import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 import type { CanvasPointer } from "./canvas-pointer";
+import type {
+  PetrinautExtensionSettings,
+  ResolvedLibraries,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
+
+/**
+ * What the scene takes from the net alone: who neighbours whom, the worst
+ * problem of each fusion and how each transition gives its rate. A hook of
+ * its own, so that each is kept while the net is: a value built inside
+ * `useCanvasScene` and handed to the scene is built again with it, for every
+ * drag frame, selection and settled hover.
+ */
+const useNetIndex = (
+  sdcpn: SDCPN,
+  net: ActiveNetDefinition,
+  activeComponentId: string | null,
+  libraries: ResolvedLibraries,
+  extensions: PetrinautExtensionSettings,
+) => {
+  // The compiler takes a hook that calls no hook only when asked.
+  "use memo";
+  return {
+    adjacency: buildNetAdjacency(net),
+    statuses: fusionStatuses(sdcpn, net, activeComponentId, libraries),
+    lambdaTypes: transitionLambdaTypes(net, sdcpn, extensions, libraries),
+  };
+};
 
 /**
  * The scene for the active net, as the editor currently shows it. Takes the
@@ -30,9 +63,8 @@ export const useCanvasScene = (
   const { activeNet, activeComponentId } = use(ActiveNetContext);
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
-  // By name: the scene is built again whenever this hook's component
-  // renders, and the editor context and the settings also change with each
-  // panel that opens.
+  // By name: the editor context and the settings also change with each
+  // panel that opens, and a new value here builds a new scene.
   const {
     selection,
     keptOpenVisualizerPlaceIds,
@@ -49,6 +81,13 @@ export const useCanvasScene = (
   const { compactNodes, highlightOnHover } = useUserSettingsFields(
     "compactNodes",
     "highlightOnHover",
+  );
+  const { adjacency, statuses, lambdaTypes } = useNetIndex(
+    petriNetDefinition,
+    activeNet,
+    activeComponentId,
+    libraries,
+    extensions,
   );
 
   /*
@@ -74,6 +113,10 @@ export const useCanvasScene = (
     setSettledHoverId(nextHoverId);
   }
 
+  // With the highlight off, the neighbourhood answers to the selection
+  // alone, and a hover that settles builds no scene.
+  const focusHoverId = highlightOnHover ? settledHoverId : null;
+
   // The hover reaches the scene before it settles only where that shows at
   // once: on a place with a visualizer. The pointer crossing any other node
   // leaves every input of the scene as it was, and no scene is built.
@@ -83,15 +126,6 @@ export const useCanvasScene = (
       ? null
       : hoveredId;
 
-  // Indexed and checked on the net alone, so the compiler holds both across
-  // the renders a hover causes and only redoes them when the net changes.
-  const adjacency = buildNetAdjacency(activeNet);
-  const statuses = fusionStatuses(
-    petriNetDefinition,
-    activeNet,
-    activeComponentId,
-    libraries,
-  );
   const selectedIds = new Set(selection.keys());
 
   return buildCanvasScene({
@@ -99,15 +133,14 @@ export const useCanvasScene = (
     sdcpn: petriNetDefinition,
     libraries,
     fusionStatuses: statuses,
+    lambdaTypes,
     extensions,
     dimensions: compactNodes ? compactNodeDimensions : classicNodeDimensions,
     dragPreview,
     selectedIds,
-    // With the highlight off, the neighbourhood answers to the selection
-    // alone.
     focus: resolveCanvasFocus({
       adjacency,
-      hoveredId: highlightOnHover ? settledHoverId : null,
+      hoveredId: focusHoverId,
       selectedIds,
     }),
     keptOpenVisualizerIds: keptOpenVisualizerPlaceIds,

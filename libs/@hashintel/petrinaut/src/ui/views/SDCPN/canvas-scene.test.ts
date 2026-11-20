@@ -12,7 +12,11 @@ import {
 
 import { logisticsLibrary } from "../../libraries-story-fixtures";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
-import { buildCanvasScene, type CanvasSceneInput } from "./canvas-scene";
+import {
+  buildCanvasScene,
+  transitionLambdaTypes,
+  type CanvasSceneInput,
+} from "./canvas-scene";
 import { countReads } from "./count-reads.test-helpers";
 import { arcStrokeColor } from "./styles/type-colors";
 
@@ -70,6 +74,7 @@ const input: CanvasSceneInput = {
   sdcpn,
   libraries: new Map(),
   fusionStatuses: new Map(),
+  lambdaTypes: new Map(),
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   dimensions: compactNodeDimensions,
   dragPreview: new Map(),
@@ -103,6 +108,21 @@ describe("buildCanvasScene", () => {
       kind: "transition",
       position: { x: transitionX, y: transitionY },
       ...compactNodeDimensions.transition,
+    });
+  });
+
+  it("labels a transition with how the net's index says it gives its rate", () => {
+    const lambdaTypes = transitionLambdaTypes(
+      input.net,
+      sdcpn,
+      DEFAULT_PETRINAUT_EXTENSIONS,
+      new Map(),
+    );
+    const { nodes } = buildCanvasScene({ ...input, lambdaTypes });
+
+    expect([...lambdaTypes]).toEqual([["t1", "predicate"]]);
+    expect(nodes.find((node) => node.id === "t1")).toMatchObject({
+      lambdaType: "predicate",
     });
   });
 
