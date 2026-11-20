@@ -8,8 +8,9 @@ The simulation module is split into five boundaries:
 
 - `api.ts` defines the public Core contract. Consumers receive
   `SimulationFrameReader` and summary state, not engine storage objects.
-- `authoring/scenario/` compiles scenario inputs (`new Function` with
-  same-realm hardening from `authoring/sandbox.ts`). Dynamics, lambdas,
+- `authoring/scenario/` compiles scenario inputs through the HIR interpreter
+  (`src/hir/interpret.ts`); the ad-hoc form's constant values are parsed by
+  `src/hir/parse-expression.ts` and interpreted the same way. Dynamics, lambdas,
   kernels, and metrics are compiled solely through the HIR pipeline
   (`src/hir/README.md`) into
   `SimulationInput.hirArtifacts` — produced off-engine (LSP worker) and

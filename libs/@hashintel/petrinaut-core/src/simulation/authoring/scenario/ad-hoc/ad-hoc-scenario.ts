@@ -43,16 +43,18 @@
  * values don't use `i`/`count` are legal there.
  */
 
+import { walkHir } from "../../../../hir/hir";
+import { interpretHirExpr } from "../../../../hir/interpret";
+import { parseHirExpression } from "../../../../hir/parse-expression";
 import { toPetrinautId } from "../../../../petrinaut-id";
-import { isDangerousRecordKey } from "../../../../validation/record-keys";
-import { runSandboxed, SHADOWED_GLOBALS } from "../../sandbox";
-import { range } from "../helpers";
+import {
+  createUserKeyedRecord,
+  defineOwn,
+  getOwn,
+  isDangerousRecordKey,
+} from "../../../../validation/record-keys";
 
-// The helpers in scope for the module's own constant evaluation (bounds,
-// exposed defaults, place totals). The synthesized scenario itself runs
-// through the HIR interpreter, which binds `range` natively.
-const SCENARIO_HELPERS: Record<string, unknown> = { range };
-
+import type { HirValue } from "../../../../hir/interpret";
 import type {
   PetrinautOptimizationManifest,
   PetrinautOptimizationDomain,
@@ -358,7 +360,7 @@ const RESERVED_NAMES = new Set([
   "scenario",
   "i",
   "count",
-  ...Object.keys(SCENARIO_HELPERS),
+  "range",
   ..."break case catch class const continue debugger default delete do else enum export extends false finally for function if import in instanceof new null return super switch this throw true try typeof var void while with yield let static await".split(
     " ",
   ),
@@ -412,51 +414,59 @@ function referencedNames(expression: string): Set<string> {
   return names;
 }
 
-// -- Sandbox evaluation for bounds, defaults and totals ---------------------------
-
-const HELPER_NAMES = Object.keys(SCENARIO_HELPERS);
-const HELPER_VALUES = Object.values(SCENARIO_HELPERS);
-
-function freeze<T extends Record<string, unknown>>(record: T): T {
-  return Object.freeze(Object.assign(Object.create(null), record)) as T;
-}
+// -- Constant evaluation for bounds, defaults and totals ------------------------
 
 /**
- * Evaluates one expression as raw JavaScript with best-effort hardening.
- * Synthesis runs synchronously, where HIR lowering (which
- * needs the TypeScript compiler, worker-only in the browser) is unavailable.
- * The non-optimized top-level Variables are in scope as `scenario.<name>`,
- * built in declaration order so later Variables may read earlier ones. Used
- * for bound expressions (which must resolve to constants at synthesis time),
- * for generated parameters' preview defaults, and for place totals.
+ * Evaluates one expression to a constant. The text is parsed into HIR by
+ * `parseHirExpression` (synthesis runs synchronously while the form renders,
+ * where the TypeScript lowering, worker-only in the browser, is unavailable)
+ * and run by the HIR interpreter, so no text from the form executes as
+ * JavaScript. The non-optimized top-level Variables are in scope as
+ * `scenario.<name>`, evaluated in declaration order so later Variables may
+ * read earlier ones; a Variable that does not evaluate fails only the
+ * expressions that read it. Used for bound expressions (which must resolve
+ * to constants at synthesis time), for generated parameters' preview
+ * defaults, and for place totals. Throws with a readable message when the
+ * expression does not parse or evaluate.
  */
 function evaluateConstant(
   expression: string,
   parameters: Record<string, number | boolean>,
   variables: readonly { name: string; expression: string }[],
 ): unknown {
-  const assignments = variables
-    .map(
-      ({ name, expression: value }) =>
-        `__adhocVars[${JSON.stringify(name)}] = (${value});`,
-    )
-    .join("\n");
-  const body = [
-    `"use strict"; var ${SHADOWED_GLOBALS};`,
-    `const __adhocVars = {};`,
-    `{`,
-    `  const scenario = __adhocVars;`,
-    assignments,
-    `}`,
-    `return (function (scenario) { return (${expression}); })(__adhocVars);`,
-  ].join("\n");
-  // eslint-disable-next-line no-new-func,typescript-eslint/no-implied-eval -- intentional: user-authored expressions in the shared hardened sandbox (see sandbox.ts)
-  const fn = new Function("parameters", "scenario", ...HELPER_NAMES, body) as (
-    ...args: unknown[]
-  ) => unknown;
-  return runSandboxed(() =>
-    fn(freeze(parameters), freeze({}), ...HELPER_VALUES),
-  );
+  const scenario = createUserKeyedRecord<number | boolean>();
+  const failures = createUserKeyedRecord<string>();
+  const evaluate = (source: string): HirValue => {
+    const parsed = parseHirExpression(source);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostic.message);
+    }
+    walkHir(parsed.expr, (node) => {
+      const failure =
+        node.kind === "scenarioRef" ? getOwn(failures, node.name) : undefined;
+      if (failure !== undefined) {
+        throw new Error(failure);
+      }
+    });
+    return interpretHirExpr(parsed.expr, new Map(), { parameters, scenario });
+  };
+  for (const variable of variables) {
+    let failure: string | undefined;
+    try {
+      const value = evaluate(variable.expression);
+      if (typeof value === "number" || typeof value === "boolean") {
+        defineOwn(scenario, variable.name, value);
+      } else {
+        failure = `\`scenario.${variable.name}\` is not a number or boolean.`;
+      }
+    } catch (error) {
+      failure = `\`scenario.${variable.name}\`: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    if (failure !== undefined) {
+      defineOwn(failures, variable.name, failure);
+    }
+  }
+  return evaluate(expression);
 }
 
 function netParameterDefaults(

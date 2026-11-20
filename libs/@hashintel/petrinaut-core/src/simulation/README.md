@@ -28,7 +28,6 @@ initialization, later document mutations do not affect the active simulation.
 - `authoring/metric/`: user-authored metric compilation.
 - `authoring/scenario/`: user-authored scenario compilation.
 - `authoring/user-code/`: engine user-code compilation helpers.
-- `authoring/sandbox.ts`: shared same-realm hardening helpers.
 - `engine/`: internal SDCPN build/step execution engine.
 - `worker/`: worker protocol and runtime entrypoint.
 

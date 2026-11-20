@@ -70,9 +70,10 @@ the viewed time:
 | Initial-state editor                         | `getPlaceTokens` during a run; the provider's `initialMarking` otherwise                                      |
 | Metrics (timeline)                           | compiled metric fn against `buildMetricState(reader, places, types)` — evaluated on the main thread per frame |
 
-User place visualizers are compiled in this package
-(`src/ui/lib/compile-visualizer.ts`, Babel + classic React runtime) — the one
-authoring surface that is inherently React (users write JSX).
+User place visualizers lower to the view HIR in core and are rendered in
+this package (`src/ui/lib/render-visualizer-hir.ts` interprets the tree into
+React elements) — the one authoring surface that is inherently React (users
+write JSX).
 
 ## Experiments (Monte Carlo)
 
