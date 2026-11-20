@@ -23,8 +23,6 @@ import { EditorMenu } from "./editor-menu";
 import { RunningExperimentsPopover } from "./running-experiments-popover";
 import { VersionHistoryButton } from "./version-history-button";
 
-import type { ExperimentRecord } from "../../../../../react/experiments/context";
-
 const topBarStyle = css({
   display: "flex",
   alignItems: "center",
@@ -89,12 +87,10 @@ const ignoreTitle = () => {};
 
 interface TopBarProps {
   hideNetManagementControls?: "all" | "except-title";
-  onRunningExperimentClick?: (experiment: ExperimentRecord) => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
   hideNetManagementControls,
-  onRunningExperimentClick,
 }) => {
   const { globalMode, isLeftSidebarOpen } = useEditorFields(
     "globalMode",
@@ -167,9 +163,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       )}
 
       <div className={rightSectionStyle}>
-        <RunningExperimentsPopover
-          onExperimentClick={onRunningExperimentClick}
-        />
+        <RunningExperimentsPopover />
         <VersionHistoryButton />
         <PluginToolbarItems place="top-bar-end" />
       </div>

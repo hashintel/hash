@@ -105,20 +105,12 @@ const EditorViewContent = ({
     "globalMode",
     "editViewMode",
   );
-  const { navigateTo, toggleAiAssistant } = useEditorActions();
+  const { toggleAiAssistant } = useEditorActions();
   const composesOnly = useComposesOnly();
   const assistant = useEditorAssistant();
 
   const [isEmptyNetPromptDismissed, setEmptyNetPromptDismissed] =
     useState(false);
-
-  function handleRunningExperimentClick(experimentId: string) {
-    navigateTo({
-      globalMode: "simulate",
-      simulateViewMode: "experiments",
-      simulateDrawer: { type: "view-experiment", experimentId },
-    });
-  }
 
   return (
     <>
@@ -136,12 +128,7 @@ const EditorViewContent = ({
       <UserSettings />
       <SelectionCleanup />
 
-      <TopBar
-        hideNetManagementControls={hideNetManagementControls}
-        onRunningExperimentClick={(experiment) =>
-          handleRunningExperimentClick(experiment.id)
-        }
-      />
+      <TopBar hideNetManagementControls={hideNetManagementControls} />
 
       <Stack direction="row" className={rowContainerStyle}>
         {globalMode === "simulate" && <SimulateViewTabs />}
