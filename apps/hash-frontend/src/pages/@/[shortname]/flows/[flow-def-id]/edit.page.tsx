@@ -425,6 +425,12 @@ const FlowEditor = ({
             flowRuns={flowRuns}
             onRetry={retryFlowRuns}
             getRunPath={getRunPath}
+            runner={{
+              webId,
+              editorState,
+              saveRefusedReason,
+              onRun: runFlow,
+            }}
           />
         )
       ) : (

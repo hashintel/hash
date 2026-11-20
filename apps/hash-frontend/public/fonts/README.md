@@ -3,3 +3,5 @@
 Some of these fonts are used in our MUI theme (search for the filenames to find the css loading them).
 
 `Shantell` and `IBMPlex` are a [dependency of TLDraw](https://docs.tldraw.dev/docs/ucg/usage#assets) as of May 2023.
+
+`JetBrainsMono-Variable.woff2` is the Latin subset of `@fontsource-variable/jetbrains-mono` (OFL-1.1), for run IDs in the flow editor.
