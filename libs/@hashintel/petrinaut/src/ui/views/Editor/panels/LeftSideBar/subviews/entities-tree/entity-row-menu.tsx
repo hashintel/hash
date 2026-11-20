@@ -5,7 +5,7 @@ import { useEditorState } from "../../../../../../../react/state/editor-context"
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { useCodeNavigation } from "../../../../../../monaco/code-navigation-context";
 
-import type { EntityItem } from "./use-entity-tree-items";
+import type { EntityItem } from "./entity-groups";
 
 /** The ellipsis menu of an entity's row: its code sections and Delete. Draws nothing where it has no entry. */
 export const EntityRowMenu: React.FC<Pick<EntityItem, "id" | "type">> = ({

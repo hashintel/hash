@@ -10,21 +10,19 @@ import {
   useIsSelected,
 } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import {
-  DifferentialEquationIcon,
-  ParameterIcon,
-  PlaceFilledIcon,
-  TokenTypeIcon,
-  TransitionFilledIcon,
-} from "../../../../../constants/entity-icons";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusMember } from "../../../../../worksheet/use-focus-member";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
+import {
+  entityGroups,
+  entityIcons,
+  selectionItemOf,
+} from "./entities-tree/entity-groups";
 import { SearchQueryContext } from "./search-query-context";
 
 import type { FocusStop } from "../../../../../worksheet/use-focus-stops";
-import type { SelectionItem } from "@hashintel/petrinaut-core";
-import type { ComponentType, ReactNode } from "react";
+import type { EntityItem } from "./entities-tree/entity-groups";
+import type { ReactNode } from "react";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -131,81 +129,18 @@ const emptyResultsStyle = css({
 const ICON_SIZE = 12;
 const DEFAULT_ICON_COLOR = "#9ca3af";
 
-// -- Search item types --------------------------------------------------------
-
-interface SearchableItem {
-  id: string;
-  name: string;
-  category: string;
-  icon: ComponentType<{ size: number }>;
-  iconColor?: string;
-  selectionItem: SelectionItem;
-}
+/** What the search calls an entity of each type, at the right of its row. */
+const categories: Record<EntityItem["type"], string> = {
+  place: "Node",
+  transition: "Node",
+  type: "Type",
+  differentialEquation: "Equation",
+  parameter: "Parameter",
+};
 
 interface SearchResult {
-  item: SearchableItem;
+  item: EntityItem;
   highlighted: ReactNode;
-}
-
-function useSearchableItems(): SearchableItem[] {
-  const {
-    petriNetDefinition: {
-      places,
-      transitions,
-      types,
-      differentialEquations,
-      parameters,
-    },
-    extensions,
-  } = use(SDCPNContext);
-
-  return [
-    ...places.map((p) => ({
-      id: p.id,
-      name: p.name || `Place ${p.id}`,
-      category: "Node",
-      icon: PlaceFilledIcon,
-      selectionItem: { type: "place" as const, id: p.id },
-    })),
-    ...transitions.map((t) => ({
-      id: t.id,
-      name: t.name || `Transition ${t.id}`,
-      category: "Node",
-      icon: TransitionFilledIcon,
-      selectionItem: { type: "transition" as const, id: t.id },
-    })),
-    ...(extensions.colors
-      ? types.map((t) => ({
-          id: t.id,
-          name: t.name,
-          category: "Type",
-          icon: TokenTypeIcon,
-          iconColor: t.displayColor,
-          selectionItem: { type: "type" as const, id: t.id },
-        }))
-      : []),
-    ...(extensions.colors && extensions.dynamics
-      ? differentialEquations.map((eq) => ({
-          id: eq.id,
-          name: eq.name,
-          category: "Equation",
-          icon: DifferentialEquationIcon,
-          selectionItem: {
-            type: "differentialEquation" as const,
-            id: eq.id,
-          },
-        }))
-      : []),
-    ...(extensions.parameters
-      ? parameters.map((p) => ({
-          id: p.id,
-          name: p.name,
-          category: "Parameter",
-          icon: ParameterIcon,
-          selectionItem: { type: "parameter" as const, id: p.id },
-        }))
-      : []),
-  ];
 }
 
 // -- Components ---------------------------------------------------------------
@@ -231,6 +166,7 @@ const SearchResultRowBody: React.FC<{
   tabIndex: 0 | -1;
 }> = ({ elementId, result: { item, highlighted }, tabIndex }) => {
   const isSelected = useIsSelected(item.id);
+  const TypeIcon = entityIcons[item.type];
 
   return (
     <div
@@ -244,10 +180,10 @@ const SearchResultRowBody: React.FC<{
         className={resultIconStyle}
         style={{ color: item.iconColor ?? DEFAULT_ICON_COLOR }}
       >
-        <item.icon size={ICON_SIZE} />
+        <TypeIcon size={ICON_SIZE} />
       </span>
       <span className={resultNameStyle}>{highlighted}</span>
-      <span className={resultCategoryStyle}>{item.category}</span>
+      <span className={resultCategoryStyle}>{categories[item.type]}</span>
     </div>
   );
 };
@@ -292,7 +228,7 @@ const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({
   });
 
   /** The result whose row an event came from. */
-  const itemAt = (target: EventTarget): SearchableItem | undefined => {
+  const itemAt = (target: EventTarget): EntityItem | undefined => {
     const row =
       target instanceof Element ? target.closest("[role=option]") : null;
     return row
@@ -309,14 +245,14 @@ const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({
       onClick={(event) => {
         const item = itemAt(event.target);
         if (item) {
-          selectItem(item.selectionItem);
+          selectItem(selectionItemOf(item));
         }
       }}
       onFocus={(event) => {
         const item = itemAt(event.target);
         if (item) {
           onFocusTarget({ stopId: item.id, column: 0 });
-          selectItem(item.selectionItem);
+          selectItem(selectionItemOf(item));
         }
       }}
       onKeyDown={(event) => {
@@ -327,7 +263,7 @@ const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           event.stopPropagation();
-          selectItem(item.selectionItem);
+          selectItem(selectionItemOf(item));
           return;
         }
         onStopsKeyDown({ stopId: item.id, column: 0 })(event);
@@ -346,8 +282,12 @@ const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({
 };
 
 export const SearchContent: React.FC = () => {
-  const allItems = useSearchableItems();
+  // The root net's entities, whichever net is open.
+  const { petriNetDefinition, extensions } = use(SDCPNContext);
   const { query } = use(SearchQueryContext);
+  const allItems = entityGroups(petriNetDefinition, extensions).flatMap(
+    (group) => group.children,
+  );
 
   const trimmed = query.trim();
   const results: SearchResult[] =

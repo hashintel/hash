@@ -18,7 +18,7 @@ import {
 import { EntityList } from "./entity-list";
 
 import type { EditorContextValue } from "../../../../../../../react/state/editor-context";
-import type { EntityGroup, EntityItem } from "./use-entity-tree-items";
+import type { EntityGroup, EntityItem } from "./entity-groups";
 import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
 

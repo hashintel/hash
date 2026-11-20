@@ -4,16 +4,10 @@ import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { useIsSelected } from "../../../../../../../react/state/editor-context";
-import {
-  DifferentialEquationIcon,
-  ParameterIcon,
-  PlaceFilledIcon,
-  TokenTypeIcon,
-  TransitionFilledIcon,
-} from "../../../../../../constants/entity-icons";
+import { entityIcons } from "./entity-groups";
 import { EntityRowMenu } from "./entity-row-menu";
 
-import type { EntityItem } from "./use-entity-tree-items";
+import type { EntityItem } from "./entity-groups";
 import type { ComponentType, ReactNode } from "react";
 
 const rowStyle = cva({
@@ -134,17 +128,6 @@ const parameterVarNameStyle = css({
 
 /** An entity's row sits one level below its group's header. */
 const entityIndent = { paddingLeft: 20 };
-
-const entityIcons: Record<
-  EntityItem["type"],
-  ComponentType<{ size: number }>
-> = {
-  place: PlaceFilledIcon,
-  transition: TransitionFilledIcon,
-  type: TokenTypeIcon,
-  differentialEquation: DifferentialEquationIcon,
-  parameter: ParameterIcon,
-};
 
 /** Asks the list to mount a row's menu, for the row under the pointer and for the row that holds focus. */
 export type ShowRowMenu = (request: ["pointed" | "focused", string]) => void;

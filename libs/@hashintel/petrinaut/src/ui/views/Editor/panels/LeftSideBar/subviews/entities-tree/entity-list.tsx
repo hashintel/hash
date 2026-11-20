@@ -5,11 +5,12 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { focusLands } from "../../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../../worksheet/use-focus-stops";
+import { selectionItemOf } from "./entity-groups";
 import { EntityRow, GroupRow } from "./entity-rows";
 
 import type { FocusStop } from "../../../../../../worksheet/use-focus-stops";
-import type { EntityGroup, EntityItem } from "./use-entity-tree-items";
-import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
+import type { EntityGroup, EntityItem } from "./entity-groups";
+import type { SelectionMap } from "@hashintel/petrinaut-core";
 
 const listContainerStyle = css({
   display: "flex",
@@ -41,11 +42,6 @@ const emptyMessageIndent = { paddingLeft: 20 };
 type Row = EntityItem | EntityGroup;
 
 const isGroup = (row: Row): row is EntityGroup => "children" in row;
-
-const selectionItemOf = ({ type, id }: EntityItem): SelectionItem => ({
-  type,
-  id,
-});
 
 /** Whether an event came from a row's action button, and not from the row. */
 const isInRowAction = (target: EventTarget): boolean =>
