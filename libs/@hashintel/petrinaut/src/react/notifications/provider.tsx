@@ -5,7 +5,8 @@ import {
   type AddNotificationInput,
   type NotificationsContextValue,
 } from "./context";
-import { NotificationsToaster, notificationsToaster } from "./toaster";
+import { notificationsToaster } from "./notifications-toaster";
+import { NotificationsToaster } from "./toaster";
 
 const DEFAULT_NOTIFICATION_DURATION_MS = 3000;
 

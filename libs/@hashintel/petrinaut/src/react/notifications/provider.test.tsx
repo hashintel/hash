@@ -13,8 +13,8 @@ import { use } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { NotificationsContext } from "./context";
+import { notificationsToaster } from "./notifications-toaster";
 import { NotificationsProvider } from "./provider";
-import { notificationsToaster } from "./toaster";
 
 afterEach(() => {
   cleanup();
