@@ -11,6 +11,7 @@ import {
   normalizeSweepSelection,
   pointSweepSelection,
   SWEEP_AXIS_STEPS,
+  sweepPointFor,
   sweepRunFraction,
 } from "./parameter-grid";
 
@@ -214,6 +215,25 @@ describe("selections and regions", () => {
         y: { from: -3, to: 9 },
       }),
     ).toEqual({ x: { from: 3, to: 3 }, y: { from: 1, to: 1 } });
+  });
+});
+
+describe("sweepPointFor", () => {
+  const axes: ExperimentParameterAxis[] = [
+    { identifier: "rate", min: 0, max: 1, stepCount: 50, integer: false },
+    { identifier: "days", min: 2, max: 20, stepCount: 18, integer: true },
+  ];
+
+  it("quantizes a suggestion onto the sweep's positions", () => {
+    expect(sweepPointFor(axes, { rate: 0.503, days: 7.4 })).toEqual({
+      rate: { from: 25, to: 25 },
+      days: { from: 5, to: 5 },
+    });
+  });
+
+  it("refuses a suggestion missing an axis or with a boolean", () => {
+    expect(sweepPointFor(axes, { rate: 0.5 })).toBeNull();
+    expect(sweepPointFor(axes, { rate: 0.5, days: true })).toBeNull();
   });
 });
 

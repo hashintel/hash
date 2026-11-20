@@ -4,10 +4,6 @@ import { lowerConstraint } from "@hashintel/petrinaut-core/hir";
 import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core/optimization";
 
 import {
-  sweepPointFor,
-  type ExperimentParameterAxis,
-} from "../../experiments/parameter-grid";
-import {
   sirConstrainedOptimizationInput,
   sirOptimizationInput,
   sirOptimizationMetric,
@@ -19,6 +15,7 @@ import {
   snappedSweepValues,
 } from "./create-sweep-trial-evaluator";
 
+import type { ExperimentParameterAxis } from "../../experiments/parameter-grid";
 import type {
   PetrinautOptimizationManifest,
   PetrinautOptimizationTrialRequest,
@@ -54,20 +51,6 @@ const request = (
     seeds: [42],
     signal: { aborted } as AbortSignal,
   }) as PetrinautOptimizationTrialRequest;
-
-describe("sweepPointFor", () => {
-  it("quantizes a suggestion onto the sweep's positions", () => {
-    expect(sweepPointFor([RATE, DAYS], { rate: 0.503, days: 7.4 })).toEqual({
-      rate: { from: 25, to: 25 },
-      days: { from: 5, to: 5 },
-    });
-  });
-
-  it("refuses a suggestion missing an axis or with a boolean", () => {
-    expect(sweepPointFor([RATE, DAYS], { rate: 0.5 })).toBeNull();
-    expect(sweepPointFor([RATE, DAYS], { rate: 0.5, days: true })).toBeNull();
-  });
-});
 
 describe("createSweepTrialEvaluator", () => {
   it("leaves final refinement to the host", async () => {
