@@ -18,7 +18,6 @@ import {
   describeMetricView,
   ExperimentMetricTimeline,
   MetricViewMenu,
-  type MetricViewSettings,
 } from "../experiments/experiment-metric-timeline";
 import {
   CHART_CARD_GRID_GAP,
@@ -49,13 +48,76 @@ export type MetricTile = {
 /** The plot's height inside an experiment's metric cards; the smallest the axes and labels fit in. */
 export const METRIC_PLOT_HEIGHT = 220;
 
-/** "large" spans the grid's full row and two of its rows; "default" is one cell. */
-type MetricCardSize = "default" | "large";
-
 const largeTileStyle = css({
   gridColumn: "[1 / -1]",
   gridRow: "[span 2]",
 });
+
+/**
+ * One card. It holds its own view choice and size, so changing either
+ * renders this card alone. Large spans the grid's full row and two of its
+ * rows.
+ */
+const MetricTileCard = ({
+  tile,
+  timeDomain,
+  contentEpoch,
+  plotHeight,
+  largePlotHeight,
+  tone,
+}: {
+  tile: MetricTile;
+  timeDomain: readonly [number, number];
+  contentEpoch: string;
+  plotHeight: number;
+  largePlotHeight: number;
+  tone: ChartCardTone;
+}) => {
+  const [settings, setSettings] = useState(DEFAULT_METRIC_VIEW_SETTINGS);
+  const [large, setLarge] = useState(false);
+  const view = describeMetricView(settings, tile.outputType);
+  const tilePlotHeight = large ? largePlotHeight : plotHeight;
+  const sizeLabel = large ? "Shrink" : "Enlarge";
+
+  return (
+    <ChartCard
+      title={tile.title}
+      subtitle={
+        tile.metricName === null ? view : `${tile.metricName} · ${view}`
+      }
+      actions={
+        <>
+          <MetricViewMenu
+            outputType={tile.outputType}
+            value={settings}
+            onChange={setSettings}
+          />
+          <Button
+            iconName={large ? "collapse" : "expand"}
+            variant="ghost"
+            size="xs"
+            aria-pressed={large}
+            aria-label={sizeLabel}
+            tooltip={sizeLabel}
+            onClick={() => setLarge(!large)}
+          />
+        </>
+      }
+      bodyHeight={tilePlotHeight}
+      tone={tone}
+      className={large ? largeTileStyle : undefined}
+    >
+      <ExperimentMetricTimeline
+        frames={tile.frames}
+        settings={settings}
+        expectedOutputType={tile.outputType}
+        timeDomain={timeDomain}
+        contentEpoch={contentEpoch}
+        plotHeight={tilePlotHeight}
+      />
+    </ChartCard>
+  );
+};
 
 export const MetricTiles = ({
   tiles,
@@ -79,10 +141,6 @@ export const MetricTiles = ({
   /** Cards after the timelines, in the same grid. */
   children?: ReactNode;
 }) => {
-  const [settingsById, setSettingsById] = useState<
-    Record<string, MetricViewSettings>
-  >({});
-  const [sizeById, setSizeById] = useState<Record<string, MetricCardSize>>({});
   const rowHeight = chartCardHeight({ bodyHeight: plotHeight });
   // Two rows and the gap between them, less the card's own chrome.
   const largePlotHeight = chartCardBodyHeight(
@@ -91,62 +149,17 @@ export const MetricTiles = ({
 
   return (
     <ChartCardGrid minColumnWidth={CHART_CARD_MIN_WIDTH} rowHeight={rowHeight}>
-      {tiles.map((tile) => {
-        const settings = settingsById[tile.id] ?? DEFAULT_METRIC_VIEW_SETTINGS;
-        const view = describeMetricView(settings, tile.outputType);
-        const large = (sizeById[tile.id] ?? "default") === "large";
-        const tilePlotHeight = large ? largePlotHeight : plotHeight;
-        const sizeLabel = large ? "Shrink" : "Enlarge";
-        return (
-          <ChartCard
-            key={tile.id}
-            title={tile.title}
-            subtitle={
-              tile.metricName === null ? view : `${tile.metricName} · ${view}`
-            }
-            actions={
-              <>
-                <MetricViewMenu
-                  outputType={tile.outputType}
-                  value={settings}
-                  onChange={(next) =>
-                    setSettingsById((previous) => ({
-                      ...previous,
-                      [tile.id]: next,
-                    }))
-                  }
-                />
-                <Button
-                  iconName={large ? "collapse" : "expand"}
-                  variant="ghost"
-                  size="xs"
-                  aria-pressed={large}
-                  aria-label={sizeLabel}
-                  tooltip={sizeLabel}
-                  onClick={() =>
-                    setSizeById((previous) => ({
-                      ...previous,
-                      [tile.id]: large ? "default" : "large",
-                    }))
-                  }
-                />
-              </>
-            }
-            bodyHeight={tilePlotHeight}
-            tone={tone}
-            className={large ? largeTileStyle : undefined}
-          >
-            <ExperimentMetricTimeline
-              frames={tile.frames}
-              settings={settings}
-              expectedOutputType={tile.outputType}
-              timeDomain={timeDomain}
-              contentEpoch={contentEpoch}
-              plotHeight={tilePlotHeight}
-            />
-          </ChartCard>
-        );
-      })}
+      {tiles.map((tile) => (
+        <MetricTileCard
+          key={tile.id}
+          tile={tile}
+          timeDomain={timeDomain}
+          contentEpoch={contentEpoch}
+          plotHeight={plotHeight}
+          largePlotHeight={largePlotHeight}
+          tone={tone}
+        />
+      ))}
       {children}
     </ChartCardGrid>
   );
