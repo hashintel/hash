@@ -1,3 +1,8 @@
+/**
+ * @layerRoot ui.sub-view
+ * @role The descriptor a panel lists for each view it shows, and the two containers that render one as a collapsible section or as a tab
+ */
+
 import type { ComponentType, ReactNode } from "react";
 
 /**

@@ -1,3 +1,8 @@
+/**
+ * @layerRoot ui.views.editor.bottom-panel
+ * @role Shows diagnostics, compilation, simulation settings and the timeline of a run or a recording as tabs under the canvas
+ */
+
 import { use, useEffect } from "react";
 
 import { Button } from "@hashintel/ds-components";

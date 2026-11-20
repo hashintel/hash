@@ -1,3 +1,8 @@
+/**
+ * @layerRoot ui.views.editor.simulate
+ * @role Lists the scenarios, metrics and experiments of a net, with the drawers that create one and show its results
+ */
+
 import { SegmentedControl } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 

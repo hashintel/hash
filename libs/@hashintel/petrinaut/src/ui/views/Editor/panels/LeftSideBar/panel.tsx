@@ -1,3 +1,8 @@
+/**
+ * @layerRoot ui.views.editor.left-sidebar
+ * @role Lists the entities, the nets, the library components and the search results of a document as sections in the left panel
+ */
+
 import { use } from "react";
 
 import { css, cva, cx } from "@hashintel/ds-helpers/css";

@@ -1,3 +1,8 @@
+/**
+ * @layerRoot ui.dev
+ * @role Tools only stories and benchmarks use: a net tiled to a chosen size, and the token encoding playground
+ */
+
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 /** The gap between two copies, in canvas units. */
