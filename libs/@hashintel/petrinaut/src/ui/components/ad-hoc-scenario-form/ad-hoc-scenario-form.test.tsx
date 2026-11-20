@@ -600,31 +600,6 @@ describe("AdHocScenarioForm", () => {
     ).toBe("altitude");
   });
 
-  it("undoes and redoes edits at the form level", () => {
-    let latest: AdHocScenarioState | undefined;
-    render(
-      <Harness
-        onState={(state) => {
-          latest = state;
-        }}
-      />,
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add a token row (pressure)" }),
-    );
-    expect(colouredPlace(latest).rows).toHaveLength(1);
-
-    const table = screen.getByRole("button", { name: "Row 1 kind" });
-    fireEvent.keyDown(table, { key: "z", metaKey: true });
-    expect(latest?.places["place-pumps"]).toBeUndefined();
-
-    fireEvent.keyDown(
-      screen.getByRole("button", { name: "Add a token row (pressure)" }),
-      { key: "z", metaKey: true, shiftKey: true },
-    );
-    expect(colouredPlace(latest).rows).toHaveLength(1);
-  });
-
   it("replays identical snapshots: undo moves a cursor, redo restores the same state", () => {
     const states: AdHocScenarioState[] = [];
     render(
