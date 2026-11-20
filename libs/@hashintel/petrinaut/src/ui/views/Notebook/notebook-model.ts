@@ -393,7 +393,7 @@ export function buildConnectionIndex(
  * output of the same transition, for instance — is a cycle through the centre
  * and lands in `bidirectional` rather than being drawn twice.
  */
-export type NodeNeighbourhood = {
+type NodeNeighbourhood = {
   dependencies: NodeRef[];
   dependents: NodeRef[];
   bidirectional: NodeRef[];
@@ -429,7 +429,7 @@ export function buildNodeNeighbourhood(
   };
 }
 
-export type NetGraphNodeKind = "place" | "transition";
+type NetGraphNodeKind = "place" | "transition";
 
 export type NetGraphNode = {
   id: string;

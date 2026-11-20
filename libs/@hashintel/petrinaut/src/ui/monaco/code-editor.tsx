@@ -161,7 +161,10 @@ const placeholderStyle = css({
 
 // -- Props --------------------------------------------------------------------
 
-export type CodeEditorProps = Omit<EditorProps, "theme"> & {
+export type CodeEditorProps = Omit<
+  EditorProps,
+  "theme" | "keepCurrentModel"
+> & {
   tooltip?: string;
   /** Render as a single-line expression input */
   singleLine?: boolean;
@@ -260,7 +263,7 @@ const CodeEditorInner: React.FC<
     monacoInstance: Monaco,
   ) => {
     editorRef.current = editorInstance;
-    if (!props.keepCurrentModel) releaseReplacedModels(editorInstance);
+    releaseReplacedModels(editorInstance);
     setEditorFocused(false);
     setEditorMounted(true);
 

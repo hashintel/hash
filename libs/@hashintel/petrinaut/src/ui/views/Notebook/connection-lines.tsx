@@ -58,7 +58,7 @@ type Geometry = {
   rightLines: Line[];
 };
 
-export interface ConnectionLinesProps {
+interface ConnectionLinesProps {
   /**
    * The positioned (`position: relative`) element containing the cell rows;
    * row positions are measured against it and the overlay fills it.

@@ -142,7 +142,7 @@ const truncate = (name: string, maxChars: number): string =>
 const cornerRadius = (node: NetGraphNode): number =>
   node.kind === "place" ? NET_NODE_HEIGHT / 2 : 3;
 
-export interface NetGraphViewProps {
+interface NetGraphViewProps {
   graph: NetGraph;
   /** The selected place or transition, or null when nothing relevant is selected. */
   selectedId: string | null;

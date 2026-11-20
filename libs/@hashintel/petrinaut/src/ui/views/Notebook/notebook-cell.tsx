@@ -242,7 +242,7 @@ const CellCodeBlock: React.FC<{
 };
 
 /** One focusable line inside an expanded cell body, in visual order. */
-export type CellBodyPart = {
+type CellBodyPart = {
   id: string;
   /**
    * Focusable cells on this line, left to right. 1 means the whole line is
@@ -325,7 +325,7 @@ export const partStopId = (cellId: string, partId: string): string =>
   `${cellId} ${partId}`;
 
 /** What an expanded body needs to enrol its parts in the focus flow. */
-export type BodyPartContext = {
+type BodyPartContext = {
   /** Accessors for the part's stop; `column` defaults to the line's first. */
   focusFor: (partId: string, column?: number) => CellRowFocus;
   stopIdFor: (partId: string) => string;
@@ -1334,7 +1334,7 @@ export type CellRowActions = {
   focusSearch: () => void;
 };
 
-export interface NotebookCellProps {
+interface NotebookCellProps {
   cellId: string;
   kind: NotebookCellKind;
   iconColor: string | undefined;
@@ -1356,7 +1356,7 @@ export interface NotebookCellProps {
   children: React.ReactNode;
 }
 
-export interface CellRowFocus {
+interface CellRowFocus {
   /** 0 for the list's one tabbable row, -1 for the rest (roving tab stop). */
   tabIndex: 0 | -1;
   /** Reports row focus, keeping selection and the roving stop in step. */

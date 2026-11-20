@@ -36,7 +36,7 @@ const prefersReducedMotion = (): boolean =>
   typeof window !== "undefined" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export interface NetGraphTransition {
+interface NetGraphTransition {
   /** Ref callback for a node's outer group, which carries the animation offset. */
   nodeRef: (id: string) => (element: SVGGElement | null) => void;
   /** Ref callback for an edge path, whose `d` is rewritten while animating. */

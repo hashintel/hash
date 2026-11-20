@@ -241,7 +241,7 @@ const ConnectionNodeLists: React.FC<{
 };
 
 /** Everything the whole-net diagram needs to draw and highlight itself. */
-export type ExplorerGraph = {
+type ExplorerGraph = {
   net: NetGraph;
   /** The selected place or transition, or null for any other selection. */
   selectedId: string | null;
@@ -252,7 +252,7 @@ export type ExplorerGraph = {
   focusId: string | null;
 };
 
-export interface GraphExplorerProps {
+interface GraphExplorerProps {
   /** The whole net as a graph of places and transitions. */
   graph: ExplorerGraph;
   /** Connections for the selected cell, or null when nothing is selected. */
