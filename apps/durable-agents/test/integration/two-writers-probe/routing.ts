@@ -440,6 +440,7 @@ const runScenario = async (scenario: Scenario) => {
         conversationId!,
         toolCallId,
         context,
+        Date.now,
       );
       if (claim === undefined) throw new Error("Not claimable.");
       return claim;
@@ -458,6 +459,7 @@ const runScenario = async (scenario: Scenario) => {
           output: { applied: true, title: claim.input.title ?? null },
         },
         context,
+        Date.now,
       );
       if (outcome !== "settled") throw new Error(`Finish: ${outcome}.`);
     });

@@ -176,13 +176,13 @@ const viewOf = (
 export const createBrowserCallRouter = ({
   resolveHarness,
   issueWaitMs = defaultIssueWaitMs,
-  now = Date.now,
+  now,
 }: {
   readonly resolveHarness: ResolveHarness;
   /** How long a claim for a call not yet issued waits for it; `defaultIssueWaitMs` when omitted. */
   readonly issueWaitMs?: number;
   /** The same clock passed to the Harness (wall clock in production). */
-  readonly now?: () => number;
+  readonly now: () => number;
 }): Hono => {
   const router = new Hono();
   const conversationId = ROOT_CONVERSATION_ID;

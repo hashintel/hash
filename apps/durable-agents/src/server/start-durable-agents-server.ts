@@ -186,6 +186,7 @@ export const startDurableAgentsServer = async (
     models: options.models,
     agent: { ...agent, model: options.model },
     settings: options.settings,
+    now: Date.now,
     // Before scheduling resumes, so no request after a reopen offers the placeholder Save.
     afterBind: installBoundSave,
     clientToolNames,

@@ -80,6 +80,7 @@ const openChat = ({
   models.setProvider(faux.provider);
   const stores = new Map<string, OwnedStorage>();
   const server = createDurableAgentsServer({
+    now: Date.now,
     openStorage: async (conversationId) => {
       const existing = stores.get(conversationId);
       if (existing !== undefined) return existing;

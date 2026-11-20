@@ -218,7 +218,7 @@ export const createDurableAgentsServer = (
   const context = options.context ?? BACKGROUND_CONTEXT;
   const limits = { ...defaultServerLimits, ...options.limits };
   const requestSlots = createRequestSlots(limits.maxConcurrentRequests);
-  const now = options.now ?? Date.now;
+  const { now } = options;
   const turns = createAbandonedTurns({
     timeoutMs: limits.abandonedTurnMs,
     now,

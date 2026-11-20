@@ -82,6 +82,7 @@ const answer = async (
     conversationId,
     toolCallId,
     context,
+    Date.now,
   );
   if (claim === undefined) throw new Error(`${toolCallId} was not claimable.`);
   const proof = {
@@ -96,8 +97,15 @@ const answer = async (
       harness,
       { ...proof, disposition: "failed" },
       context,
+      Date.now,
     );
-  else await finishBrowserCall(harness, { ...proof, ...result }, context);
+  else
+    await finishBrowserCall(
+      harness,
+      { ...proof, ...result },
+      context,
+      Date.now,
+    );
 };
 
 const serverTools = defineExtension({

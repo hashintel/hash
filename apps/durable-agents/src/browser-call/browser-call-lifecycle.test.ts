@@ -371,6 +371,7 @@ const answerWithoutRing = async (
     conversationId,
     toolCallId,
     context,
+    Date.now,
   );
   await harness.commit(async (tx) => {
     const record = (await tx.doc(BrowserCallsDoc, conversationId)).calls[
@@ -421,8 +422,14 @@ const retryOutcome = (
         harness,
         { ...proofOf, output: { applied: true } },
         context,
+        Date.now,
       )
-    : failBrowserCall(harness, { ...proofOf, disposition: "failed" }, context);
+    : failBrowserCall(
+        harness,
+        { ...proofOf, disposition: "failed" },
+        context,
+        Date.now,
+      );
 
 describe.each(["finished", "failed"] as const)(
   "a %s call whose turn is aborted before it is collected",
@@ -497,6 +504,7 @@ test("a collected failure is delivered once: a retried report is acknowledged wi
       root.id,
       toolCallId,
       context,
+      Date.now,
     );
     const failure = {
       conversationId: root.id,
@@ -506,12 +514,16 @@ test("a collected failure is delivered once: a retried report is acknowledged wi
       canonicalInput: claimed!.input,
       disposition: "unstarted" as const,
     };
-    expect(await failBrowserCall(harness, failure, context)).toBe("failed");
+    expect(await failBrowserCall(harness, failure, context, Date.now)).toBe(
+      "failed",
+    );
     expect((await submission.wait(context)).status).toBe("done");
     expect((await record())?.status).toBe("failure-settled");
     expect(await resultText()).toEqual([browserCallUnstartedRefusal]);
 
-    expect(await failBrowserCall(harness, failure, context)).toBe("failed");
+    expect(await failBrowserCall(harness, failure, context, Date.now)).toBe(
+      "failed",
+    );
     expect((await record())?.status).toBe("failure-settled");
   } finally {
     await harness.close(context);
@@ -534,7 +546,8 @@ test.each([
     const { harness, root, submission, record, resultText } =
       await openWaitingCall();
     try {
-      if (claim) await claimBrowserCall(harness, root.id, toolCallId, context);
+      if (claim)
+        await claimBrowserCall(harness, root.id, toolCallId, context, Date.now);
       await harness.abortTask((await record())!.doorbell as TaskId, context);
       expect((await submission.wait(context)).status).toBe("done");
       expect((await record())?.status).toBe("stopped");
@@ -581,7 +594,13 @@ test("a storage failure on the wake's abort mark fails the Session, and nothing 
   const { harness, root, record } = await openWaitingCall(storage);
   doorbell = (await record())!.doorbell!;
   const abortTask = vi.spyOn(harness, "abortTask");
-  const claimed = await claimBrowserCall(harness, root.id, toolCallId, context);
+  const claimed = await claimBrowserCall(
+    harness,
+    root.id,
+    toolCallId,
+    context,
+    Date.now,
+  );
 
   expect(
     await finishBrowserCall(
@@ -595,6 +614,7 @@ test("a storage failure on the wake's abort mark fails the Session, and nothing 
         output: { applied: true },
       },
       context,
+      Date.now,
     ),
   ).toBe("settled");
   const closed = await harness.closed;
@@ -616,6 +636,7 @@ test.each(["finish", "fail"] as const)(
         root.id,
         toolCallId,
         context,
+        Date.now,
       );
       const proofOf = {
         conversationId: root.id,
@@ -628,11 +649,17 @@ test.each(["finish", "fail"] as const)(
       const sweep = withBrowserClaimDecision(harness, () => decision.promise);
       const answering =
         outcome === "finish"
-          ? finishBrowserCall(harness, { ...proofOf, output: null }, context)
+          ? finishBrowserCall(
+              harness,
+              { ...proofOf, output: null },
+              context,
+              Date.now,
+            )
           : failBrowserCall(
               harness,
               { ...proofOf, disposition: "failed" },
               context,
+              Date.now,
             );
       await sleep(50);
       expect((await record())?.status).toBe("claimed");

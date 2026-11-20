@@ -330,6 +330,7 @@ export const serve = async (config: ServeConfig) => {
           request.callId,
           { claimant: request.claimant, binding: request.binding },
           context,
+          Date.now,
         );
       }
       case "start": {
@@ -340,6 +341,7 @@ export const serve = async (config: ServeConfig) => {
           request.callId,
           { capability: request.capability, binding: request.binding },
           context,
+          Date.now,
         );
       }
       case "finish": {
@@ -357,6 +359,7 @@ export const serve = async (config: ServeConfig) => {
             metadata: request.metadata,
           } as BrowserCallResult,
           context,
+          Date.now,
         );
       }
       case "verify": {

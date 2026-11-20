@@ -486,6 +486,7 @@ describe("the query_basis tool", () => {
       conversationId,
       toolCallId,
       context,
+      Date.now,
     );
     if (claim === undefined)
       throw new Error(`${toolCallId} was not claimable.`);
@@ -501,6 +502,7 @@ describe("the query_basis tool", () => {
         metadata,
       },
       context,
+      Date.now,
     );
   };
 

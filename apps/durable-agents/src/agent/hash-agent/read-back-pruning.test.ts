@@ -225,6 +225,7 @@ const answer = async (
     conversationId,
     toolCallId,
     context,
+    Date.now,
   );
   if (claim === undefined) throw new Error(`${toolCallId} was not claimable.`);
   const proof = {
@@ -239,12 +240,14 @@ const answer = async (
       harness,
       { ...proof, disposition: "failed" },
       context,
+      Date.now,
     );
   else
     await finishBrowserCall(
       harness,
       { ...proof, output: browser.output, metadata: browser.metadata },
       context,
+      Date.now,
     );
 };
 

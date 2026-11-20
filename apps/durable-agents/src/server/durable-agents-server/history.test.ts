@@ -70,6 +70,7 @@ const openChat = (responses: FauxResponseStep[]) => {
   models.setProvider(faux.provider);
   const stores = new Map<string, OwnedStorage>();
   const server = createDurableAgentsServer({
+    now: Date.now,
     openStorage: async (conversationId) => {
       const storage =
         stores.get(conversationId) ??
@@ -217,7 +218,13 @@ test("a reopened conversation's messages are the live stream's: the user's words
     // eslint-disable-next-line no-await-in-loop
     const { harness, root } = await chat.conversation();
     // eslint-disable-next-line no-await-in-loop
-    const claim = await claimBrowserCall(harness, root.id, toolCallId, context);
+    const claim = await claimBrowserCall(
+      harness,
+      root.id,
+      toolCallId,
+      context,
+      Date.now,
+    );
     if (claim !== undefined) {
       claimed = { harness, root, claim };
       break;
@@ -244,6 +251,7 @@ test("a reopened conversation's messages are the live stream's: the user's words
       output: browserOutput,
     },
     context,
+    Date.now,
   );
   const liveChunks = await live;
   const liveResponse = await reduce(liveChunks);

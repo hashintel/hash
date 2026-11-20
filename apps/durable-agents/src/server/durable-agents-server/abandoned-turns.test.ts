@@ -83,7 +83,7 @@ const runDiscardingTurn = async (harness: Harness, root: Conversation) => {
   await vi.waitFor(async () => {
     expect(typeof (await record())?.doorbell).toBe("number");
   });
-  await claimBrowserCall(harness, root.id, discardedCallId, context);
+  await claimBrowserCall(harness, root.id, discardedCallId, context, Date.now);
   await harness.commit(async (tx) => {
     const call = (await tx.doc(BrowserCallsDoc, root.id)).calls[
       discardedCallId
@@ -154,6 +154,7 @@ const openWaitingTurn = async ({ afterDiscardingTurn = false } = {}) => {
   ]);
   const conversations = createConversationRegistry(
     {
+      now: Date.now,
       openStorage: async () => storage,
       // One initially absent conversation is created; afterwards only `ifOwned` reads it.
       storageExists: async () => false,
@@ -184,6 +185,7 @@ const openWaitingTurn = async ({ afterDiscardingTurn = false } = {}) => {
 
     vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
     const turns = createAbandonedTurns({
+      now: Date.now,
       timeoutMs,
       ifOwned: async (conversationId) => {
         const conversation = await conversations.ifOwned(conversationId);
@@ -337,6 +339,7 @@ test("a sweep between a call's collection and its tool result does not abort the
   });
   const conversations = createConversationRegistry(
     {
+      now: Date.now,
       openStorage: async () => storage,
       storageExists: async () => false,
       createRegistry: () => {
@@ -376,7 +379,13 @@ test("a sweep between a call's collection and its tool result does not abort the
     await vi.waitFor(async () => {
       expect(typeof (await record())?.doorbell).toBe("number");
     });
-    const claimed = await claimBrowserCall(harness, root.id, callId, context);
+    const claimed = await claimBrowserCall(
+      harness,
+      root.id,
+      callId,
+      context,
+      Date.now,
+    );
     await finishBrowserCall(
       harness,
       {
@@ -388,6 +397,7 @@ test("a sweep between a call's collection and its tool result does not abort the
         output: { applied: true },
       },
       context,
+      Date.now,
     );
     await toolReturned.promise;
     expect((await record())?.status).toBe("settled");

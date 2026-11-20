@@ -68,10 +68,10 @@ export type ConversationRegistryOptions = {
   readonly settings?: HarnessOptions["settings"];
   /**
    * The Harness clock (`HarnessOptions.now`), which browser-call expiries are
-   * on; `Date.now` when omitted. The browser-call routes and the abandoned
-   * turn sweep compare expiries on the same clock.
+   * on. The browser-call routes and the abandoned turn sweep compare expiries
+   * on the same clock.
    */
-  readonly now?: HarnessOptions["now"];
+  readonly now: NonNullable<HarnessOptions["now"]>;
   /**
    * Runs on every open, once the host binding is bound and the root is known,
    * before scheduling resumes: where a host installs into the Harness's
@@ -246,7 +246,7 @@ export const createConversationRegistry = (
         models: options.models,
         registry,
         settings: enforcedSettings(options.settings),
-        ...(options.now === undefined ? {} : { now: options.now }),
+        now: options.now,
         onReport: (report) => options.onReport?.(conversationId, report),
       },
       context,

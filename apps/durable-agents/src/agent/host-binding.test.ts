@@ -136,6 +136,7 @@ describe("the host binding", () => {
     const openRegistry = () =>
       createConversationRegistry(
         {
+          now: Date.now,
           openStorage: async (): Promise<OwnedStorage> =>
             Object.assign(await openNodeSqliteStorage(file), {
               isOwner: async () => true,

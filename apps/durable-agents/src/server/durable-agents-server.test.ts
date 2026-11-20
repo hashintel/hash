@@ -130,6 +130,7 @@ const openChat = ({
   models.setProvider(faux.provider);
   const storage = memoryConversations();
   const server = createDurableAgentsServer({
+    now: Date.now,
     openStorage: storage.openStorage,
     storageExists: storage.storageExists,
     createRegistry: () => {
@@ -219,7 +220,13 @@ const claimAsBrowser = async (
     // eslint-disable-next-line no-await-in-loop
     const { harness, root } = await openConversation(server);
     // eslint-disable-next-line no-await-in-loop
-    const claim = await claimBrowserCall(harness, root.id, toolCallId, context);
+    const claim = await claimBrowserCall(
+      harness,
+      root.id,
+      toolCallId,
+      context,
+      Date.now,
+    );
     if (claim !== undefined) return { harness, root, claim };
     // eslint-disable-next-line no-await-in-loop
     await sleep(5);
@@ -240,6 +247,7 @@ const actAsBrowser = async (server: ReturnType<typeof openChat>["server"]) => {
       output: browserOutput,
     },
     context,
+    Date.now,
   );
 };
 
@@ -963,6 +971,7 @@ describe("POST /chat reads only the last message's id, role and text parts", () 
         storage.openStorage,
       );
       const server = createDurableAgentsServer({
+        now: Date.now,
         storageExists,
         openStorage,
         createRegistry,
@@ -1232,6 +1241,7 @@ test.each([true, false])(
           output: browserOutput,
         },
         context,
+        Date.now,
       );
       await stream.drain();
       await expectFlueTurn(stream.chunks);
@@ -1273,6 +1283,7 @@ test("settling a held claim lets the sweep reconsider a later unclaimed call", a
       output: browserOutput,
     },
     context,
+    Date.now,
   );
   await eventually(async () => {
     const call = (await harness.snapshot(BrowserCallsDoc, root.id, context))
@@ -1336,6 +1347,7 @@ test("a claimed browser call keeps an unwatched turn alive", async () => {
       output: browserOutput,
     },
     context,
+    Date.now,
   );
   await reattached.drain();
   expect(reattached.chunks.at(-1)).toEqual({

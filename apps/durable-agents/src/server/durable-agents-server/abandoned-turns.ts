@@ -29,7 +29,7 @@ export type AbandonedTurnsOptions = {
   ) => Promise<OpenConversation | undefined>;
   readonly context: Context;
   /** The clock browser call expiries are on: the Harness clock. */
-  readonly now?: () => number;
+  readonly now: () => number;
 };
 
 /**
@@ -68,7 +68,7 @@ const maxTimeoutMs = 2 ** 31 - 1;
 const recheckMs = 1_000;
 
 export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
-  const now = options.now ?? Date.now;
+  const { now } = options;
   /** Attached streams per conversation. */
   const streams = new Map<string, number>();
   const timers = new Map<string, NodeJS.Timeout>();

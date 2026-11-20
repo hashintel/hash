@@ -321,6 +321,7 @@ describe.each(cases)("fork to a new owner on $name", (storageCase) => {
             call.toolCallId,
             claimant,
             context,
+            Date.now,
           )
         ).status,
       ).toBe("not-issued");
@@ -359,6 +360,7 @@ describe.each(cases)("fork to a new owner on $name", (storageCase) => {
         call.toolCallId,
         { ...claimant, claimant: "tab-alice" },
         context,
+        Date.now,
       );
       if (claimed.status !== "claimed") throw new Error(claimed.status);
       const proof = {
@@ -372,6 +374,7 @@ describe.each(cases)("fork to a new owner on $name", (storageCase) => {
           call.toolCallId,
           proof,
           context,
+          Date.now,
         ),
       ).toBe("started");
       expect(
@@ -396,6 +399,7 @@ describe.each(cases)("fork to a new owner on $name", (storageCase) => {
             metadata: { documentRevision: { before: "revision-1" } },
           },
           context,
+          Date.now,
         ),
       ).toBe("settled");
       const sourceSettled = await turn.wait(context);
