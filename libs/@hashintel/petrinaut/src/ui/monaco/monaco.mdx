@@ -39,7 +39,7 @@ A user types one character in a place's visualizer code:
 
 **The model is the source of truth while the editor has focus.** Writing a controlled value into a focused editor moves the caret to the end. The tests in `code-editor-activity.test.tsx` cover typing in one view while another is hidden, and coming back to it.
 
-**An editor inside a hidden `Activity` is disposed.** React removes the effects of a hidden `Activity`, and the editor instance lives in one. A collapsed section keeps its editor through `retainOnCollapse`, which [Sub-views](doc:ui/sub-views) describes.
+**An editor inside a hidden `Activity` is disposed.** React removes the effects of a hidden `Activity`, and the editor instance lives in one. A collapsed section keeps its editor through `retainOnCollapse`, which [Sub-views](doc:ui.sub-view/sub-views) describes.
 
 **The warm-up creates one editor and never competes with a real one.** `warmEditor` waits for the code font and an idle callback, creates a hidden editor, and disposes it on the next frame. It does nothing when an editor is already open, or in a browser without `document.fonts` or `requestIdleCallback`. `warm-editor.test.ts` holds this.
 
