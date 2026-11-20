@@ -7,13 +7,11 @@ import {
   createUserKeyedRecord,
   defaultTokenAttributeValue,
   getOwn,
+  mergeParameterValues,
 } from "@hashintel/petrinaut-core";
 
 import { ExecutionFrameSourceContext } from "../../../react/execution-frame/context";
-import {
-  mergeParameterValues,
-  useDefaultParameterValues,
-} from "../../../react/hooks/use-default-parameter-values";
+import { useDefaultParameterValues } from "../../../react/hooks/use-default-parameter-values";
 import { SimulationContext } from "../../../react/simulation/context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import {

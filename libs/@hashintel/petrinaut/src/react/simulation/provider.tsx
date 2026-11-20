@@ -13,6 +13,7 @@ import {
   runContinuityOf,
   experimentSamplePeriod,
   compileScenario,
+  deriveDefaultParameterValues,
   type AdHocScenarioState,
   type EventSimulation,
   type ReadableStore,
@@ -21,7 +22,6 @@ import {
   type CompiledScenarioResult,
 } from "@hashintel/petrinaut-core";
 
-import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import {
