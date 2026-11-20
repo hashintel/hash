@@ -1,0 +1,25 @@
+# Hand-written; rendered by the arch-docs build. React components use the
+# purple palette, stores the blue one, Monaco objects the grey one.
+direction: down
+
+provider: "MonacoProvider\nloads Monaco once per page" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+warm: "warmEditor\none temporary editor when idle" {style.fill: "#f2f2f2"; style.stroke: "#6b6b6b"}
+sync: "DiagnosticsSync, CompletionSync,\nHoverSync, SignatureHelpSync" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+section: "Code section\nstays mounted while collapsed" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+editor: "CodeEditor\none native editor" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+model: "Model per document URI\nshared between editors" {style.fill: "#f2f2f2"; style.stroke: "#6b6b6b"}
+document: "Document handle\nevery keystroke" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+snapshot: "Definition store\nthe snapshot the UI renders" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+client: "Language client\nworker" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+provider -> warm: "schedules"
+provider -> sync: "mounts"
+provider -> editor: "resolves the module"
+section -> editor: "mounts"
+editor -> model: "attaches by path"
+editor -> document: "calls onChange"
+document -> snapshot: "publishes after a quiet period"
+snapshot -> editor: "sets value while not focused"
+sync -> client: "asks for completion and hover"
+client -> sync: "sends diagnostics"
+sync -> model: "sets markers"

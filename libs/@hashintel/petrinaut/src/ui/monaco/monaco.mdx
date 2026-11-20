@@ -1,0 +1,52 @@
+---
+title: Monaco
+description: The Monaco layer wires the Monaco editor to the language server for authoring user code.
+sidebar_order: 10
+---
+
+The Monaco layer wires the Monaco editor to the language server for authoring user code.
+It owns the one load of Monaco, the `CodeEditor` component, the life of text models, and the adapters that carry diagnostics, completion, hover and signature help between a model and the [language client](layer:react.lsp).
+
+![One provider loads Monaco, each CodeEditor attaches to the model of its document URI, and the document receives every keystroke](./monaco-lifecycle.d2)
+
+## Entry point
+
+`MonacoProvider` in `ui/monaco/provider.tsx` starts the import of Monaco when it first renders and keeps the promise for the life of the page. It mounts the four sync components and schedules `warmEditor`.
+
+`CodeEditor` in `ui/monaco/code-editor.tsx` waits for that promise in state, with no Suspense boundary, and shows a dimmed label until the module and the native editor are ready.
+
+## Interface
+
+| Name | Use it to |
+| --- | --- |
+| `CodeEditor` | Edit one document. `path` names its URI, `value` and `onChange` carry the text. |
+| `singleLine`, `onSubmit`, `onEscape` | Use the editor as a one-line expression input. |
+| `mountSelection` | Say where the caret lands when the editor mounts. |
+| `getDocumentUri` | Build the URI of a piece of user code, the same one the language server uses. |
+| `CodeNavigationProvider` | Open the section that holds a function and focus its editor. |
+
+## Data flow
+
+A user types one character in a place's visualizer code:
+
+1. Monaco changes the model of that URI and `CodeEditor` calls `onChange`. The caller writes the text to the document handle at once.
+2. The React layer delays the snapshot that the UI renders until typing has paused for 120 ms, or 500 ms have passed. A pointer press, a blur, Tab, Escape and any shortcut with a modifier publish it at once. Only visualizer code is delayed, and every other edit publishes as before.
+3. While the editor has focus, `CodeEditor` withholds `value`, so a snapshot that is one keystroke behind never overwrites the model.
+4. `CompletionSync` sends the current text of the model to the language client before it asks for completions. `DiagnosticsSync` writes the diagnostics of each URI to the model as markers.
+
+## Rules
+
+**Every editor on a document passes the `path` of that document.** Monaco keeps one model per URI, and two editors on one URI share its text and markers. When an editor moves to another path, `releaseReplacedModels` disposes the model it left, unless another editor is attached. `release-replaced-models.test.ts` holds this.
+
+**The model is the source of truth while the editor has focus.** Writing a controlled value into a focused editor moves the caret to the end. The tests in `code-editor-activity.test.tsx` cover typing in one view while another is hidden, and coming back to it.
+
+**A section that holds an editor stays mounted while collapsed.** Creating a native editor costs more than keeping one. The section sets `retainOnCollapse`, described in the sub-views guide beside `ui/components/sub-view/types.ts`. An editor inside a hidden `Activity` is still disposed, because React removes its effects.
+
+**The warm-up creates one editor and never competes with a real one.** `warmEditor` waits for the code font and an idle callback, creates a hidden editor, and disposes it on the next frame. It does nothing when an editor is already open. `warm-editor.test.ts` holds this.
+
+## Pitfalls
+
+- Passing `dimension` at construction, measured from the parent just before, did not shorten the first open.
+- `contain: paint` on the editor can clip the completion and hover popups, and did not shorten the open either.
+- Animating a property that changes the editor's size makes Monaco lay out on every frame. Animate the surrounding panel with `transform`, and change paddings and margins in one step.
+- `CodeEditor` replaces the `onMount` it gives the adapter through a ref, because the adapter keeps the first callback when an `Activity` shows the editor again.

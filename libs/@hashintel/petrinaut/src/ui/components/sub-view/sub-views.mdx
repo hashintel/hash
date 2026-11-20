@@ -54,7 +54,7 @@ A plugin's `bottomPanelViews` entry never becomes a `SubView`. `usePluginBottomP
 
 **The maximize animation changes `transform` and `clip-path` only.** The section is laid out once at the size of the container, then moved and clipped, so its content is not laid out again on each frame. The test "animates how the section is drawn in both directions" in `vertical-sub-views-container.test.tsx` holds this.
 
-**A section that holds a code editor sets `retainOnCollapse`.** Creating a Monaco editor costs more than keeping one, so a visited section keeps its editor while collapsed. The test "retains visited code while collapsed" in the same file holds this.
+**A section that holds a code editor sets `retainOnCollapse`.** Creating a Monaco editor costs more than keeping one, so a visited section keeps its editor while collapsed. The test "retains visited code while collapsed" in the same file holds this. See [Monaco](doc:ui.monaco/monaco).
 
 ## Pitfalls
 
