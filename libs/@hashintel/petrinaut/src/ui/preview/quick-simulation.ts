@@ -8,7 +8,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import type { SimulationCompiler } from "../../react/simulation/provider";
-import type { SimulationParameterBoundsByIdentifier } from "../views/shared/simulation-parameter-bounds";
+import type { SimulationParameterBoundsByIdentifier } from "./simulation-parameter-bounds";
 
 /** Build-time simulation inputs supplied by an embed host. */
 export type PetrinautPreviewQuickSimulation = {

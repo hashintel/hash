@@ -8,8 +8,8 @@ import { SimulationContext } from "../../react/simulation/context";
 import { useUserSettings } from "../../react/state/user-settings-context";
 import { EventSimulationControls } from "../views/Editor/components/BottomBar/event-simulation-controls";
 import { EventTimeline } from "../views/Editor/panels/BottomPanel/subviews/event-timeline/content";
-import { SimulationScenarioControls } from "../views/shared/simulation-scenario-controls";
 import { floatingBarStyle } from "./floating-bar-style";
+import { SimulationScenarioControls } from "./simulation-scenario-controls";
 
 import type { PetrinautPreviewQuickSimulation } from "./quick-simulation";
 

@@ -9,12 +9,12 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePetrinautDefinitionSelector } from "../../../react/hooks/use-document";
-import { SimulationContext } from "../../../react/simulation/context";
-import { useSDCPNState } from "../../../react/state/sdcpn-context";
-import { ScrollFade } from "../../components/scroll-fade";
-import { Slider } from "../../components/slider";
-import { useScrollOverflow } from "../../hooks/use-scroll-overflow";
+import { usePetrinautDefinitionSelector } from "../../react/hooks/use-document";
+import { SimulationContext } from "../../react/simulation/context";
+import { useSDCPNState } from "../../react/state/sdcpn-context";
+import { ScrollFade } from "../components/scroll-fade";
+import { Slider } from "../components/slider";
+import { useScrollOverflow } from "../hooks/use-scroll-overflow";
 import { clampSimulationParameterValue } from "./simulation-parameter-bounds";
 
 import type {
