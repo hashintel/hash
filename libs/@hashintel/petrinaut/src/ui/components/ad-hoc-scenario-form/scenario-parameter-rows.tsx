@@ -8,8 +8,6 @@
  * fixing it.
  */
 
-import { use } from "react";
-
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useFocusGrid } from "../../worksheet/use-focus-grid";
@@ -23,7 +21,7 @@ import {
 import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
 import { adHocVariableKey } from "./dependency-highlight";
 import {
-  AdHocFormContext,
+  useAdHocForm,
   adHocIntervalSelection,
   adHocSelectionApplies,
   adHocSelectionText,
@@ -50,8 +48,7 @@ interface ScenarioParameterRowsProps {
 export const ScenarioParameterRows: React.FC<ScenarioParameterRowsProps> = ({
   variables,
 }) => {
-  const { highlight, selection, setFocusedValue, dispatch } =
-    use(AdHocFormContext);
+  const { highlight, selection, setFocusedValue, dispatch } = useAdHocForm();
   const { register, onKeyDown, attach } = useFocusGrid();
   const withToggles = adHocIntervalSelection(selection);
 

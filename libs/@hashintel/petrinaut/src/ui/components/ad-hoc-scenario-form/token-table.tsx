@@ -19,7 +19,7 @@
  * opens its editor, Escape closes it.
  */
 
-import { use, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -55,7 +55,7 @@ import {
 } from "../spreadsheet-kit/form-table";
 import { GutterCell } from "../spreadsheet-kit/gutter-cell";
 import { PhantomLine } from "../spreadsheet-kit/phantom-line";
-import { AdHocFormContext, adHocIntervalSelection } from "./form-context";
+import { useAdHocForm, adHocIntervalSelection } from "./form-context";
 import { ValueEditor } from "./value-editor";
 
 // A background image, not a solid color, so it composites over row tints.
@@ -145,7 +145,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   colour,
   state,
 }) => {
-  const { mode, selection, setFocusedValue, dispatch } = use(AdHocFormContext);
+  const { mode, selection, setFocusedValue, dispatch } = useAdHocForm();
   // Run mode: cells and gutters stay focusable and walkable, but nothing
   // edits and no rows are added or removed.
   const readOnly = mode === "run";

@@ -23,7 +23,7 @@ export interface AdHocHighlight {
   slotKeys: ReadonlySet<string>;
 }
 
-export const EMPTY_AD_HOC_HIGHLIGHT: AdHocHighlight = {
+const EMPTY_AD_HOC_HIGHLIGHT: AdHocHighlight = {
   variableKeys: new Set(),
   parameterIds: new Set(),
   slotKeys: new Set(),

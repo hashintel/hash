@@ -11,7 +11,7 @@
  * worksheet member past the edges.
  */
 
-import { use, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { Icon, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -37,7 +37,7 @@ import { PhantomLine } from "../spreadsheet-kit/phantom-line";
 import { TextCell } from "../spreadsheet-kit/text-cell";
 import { adHocVariableKey } from "./dependency-highlight";
 import {
-  AdHocFormContext,
+  useAdHocForm,
   adHocIntervalSelection,
   adHocSelectionApplies,
   adHocSelectionText,
@@ -88,7 +88,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   variables,
 }) => {
   const { errorFor, selection, highlight, setFocusedValue, dispatch } =
-    use(AdHocFormContext);
+    useAdHocForm();
   // The trailing toggle column: the interval toggle (Optimize or Sweep) on
   // every numeric Variable; "Scenario Parameter" on top-level Variables only
   // in expose mode (a per-place Variable is a per-row intermediate — nothing

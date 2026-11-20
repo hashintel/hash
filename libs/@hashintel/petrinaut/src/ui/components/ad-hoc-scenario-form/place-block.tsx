@@ -8,14 +8,14 @@
  * uncoloured place is a header plus one full-width count cell.
  */
 
-import { use, useState } from "react";
+import { useState } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useFocusHeader } from "../../worksheet/use-focus-member";
 import { tableContainerStyle } from "../spreadsheet-kit/form-table";
-import { AdHocFormContext } from "./form-context";
+import { useAdHocForm } from "./form-context";
 import { TokenTable } from "./token-table";
 import { ValueEditor } from "./value-editor";
 import { VariableRows } from "./variable-rows";
@@ -192,7 +192,7 @@ const PlaceBlockContents: React.FC<ColouredPlaceBlockProps> = ({
   colour,
   state,
 }) => {
-  const { mode } = use(AdHocFormContext);
+  const { mode } = useAdHocForm();
   return (
     <>
       {/* Run mode shows no auxiliary Variables — they are the saved
@@ -214,7 +214,7 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   colour,
   state,
 }) => {
-  const { placeTotal, dense } = use(AdHocFormContext);
+  const { placeTotal, dense } = useAdHocForm();
   // The dense embedding (quick simulation) starts places collapsed: the
   // panel reads as an overview, one line per place.
   const [collapsed, setCollapsed] = useState(dense);
@@ -296,7 +296,7 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
   place,
   state,
 }) => {
-  const { mode } = use(AdHocFormContext);
+  const { mode } = useAdHocForm();
   const target = { kind: "count" as const, placeId: place.id, row: null };
   // The count cell is a single-element member: vertical arrows leave to the
   // neighbouring member, horizontal ones cross into a sibling column.

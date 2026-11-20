@@ -4,8 +4,6 @@
  * form's spreadsheet grammar and keyboard grid.
  */
 
-import { use } from "react";
-
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { emptyAdHocValue } from "@hashintel/petrinaut-core";
 
@@ -19,7 +17,7 @@ import {
 } from "../spreadsheet-kit/form-table";
 import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
 import {
-  AdHocFormContext,
+  useAdHocForm,
   adHocIntervalSelection,
   adHocSelectionApplies,
   adHocSelectionText,
@@ -65,7 +63,7 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
     highlight,
     setFocusedValue,
     dispatch,
-  } = use(AdHocFormContext);
+  } = useAdHocForm();
   const { register, onKeyDown, attach } = useFocusGrid();
 
   const entryFor = (parameterId: string): AdHocNetParameter =>

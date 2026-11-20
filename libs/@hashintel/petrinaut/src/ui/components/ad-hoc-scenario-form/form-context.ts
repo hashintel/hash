@@ -10,9 +10,7 @@
  *   through `adHocSlotKey`.
  */
 
-import { createContext } from "react";
-
-import { EMPTY_AD_HOC_HIGHLIGHT } from "./dependency-highlight";
+import { createContext, use } from "react";
 
 import type { AdHocFocusTarget, AdHocHighlight } from "./dependency-highlight";
 import type {
@@ -133,19 +131,13 @@ export interface AdHocFormServices {
   };
 }
 
-export const AdHocFormContext = createContext<AdHocFormServices>({
-  mode: "author",
-  expressionFor: () => undefined,
-  dispatch: () => {},
-  synthesisContext: { netParameters: [], places: [], types: [] },
-  selection: "none",
-  errorFor: () => undefined,
-  uriFor: () => "",
-  labelFor: () => "",
-  placeTotal: () => ({ resolved: true, total: 0 }),
-  highlight: EMPTY_AD_HOC_HIGHLIGHT,
-  setFocusedValue: () => {},
-  formatExpression: () => Promise.resolve(null),
-  dense: false,
-  overlayKeyDown: { capture: () => {}, bubble: () => {} },
-});
+export const AdHocFormContext = createContext<AdHocFormServices | null>(null);
+
+/** The services of the form the caller renders in. */
+export const useAdHocForm = (): AdHocFormServices => {
+  const services = use(AdHocFormContext);
+  if (!services) {
+    throw new Error("useAdHocForm must be called inside AdHocScenarioForm");
+  }
+  return services;
+};

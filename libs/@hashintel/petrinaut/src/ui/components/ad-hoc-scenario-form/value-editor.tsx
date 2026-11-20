@@ -16,7 +16,6 @@
 
 import { Portal } from "@ark-ui/react/portal";
 import {
-  use,
   useEffect,
   useEffectEvent,
   useId,
@@ -45,7 +44,7 @@ import {
 import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
 import { sameAdHocFocusTarget } from "./dependency-highlight";
 import {
-  AdHocFormContext,
+  useAdHocForm,
   adHocSelectionApplies,
   adHocSelectionText,
 } from "./form-context";
@@ -431,7 +430,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     dispatch,
     overlayKeyDown,
     expressionFor,
-  } = use(AdHocFormContext);
+  } = useAdHocForm();
   const triggerPlaceholder =
     placeholder ?? (kind === "count" ? "0" : adHocNeutralExpression(kind));
   const label = labelFor(target);
