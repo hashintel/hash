@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { SortMenu, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 
 import { StatusActionButton } from "../../shared/action-buttons";
 import { PlanningWarningIndicator } from "../../shared/planning-warning-indicator";
@@ -26,6 +27,7 @@ import * as threshold from "./shared/table-styles";
 import type { SiteNode } from "../../shared/types";
 import type { OpportunityKind, SiteOpportunity } from "./opportunities";
 import type { SortDir, SortKey } from "./shared/row-types";
+import type { ReactNode } from "react";
 
 // Caps its own height to ~the viewport and scrolls internally: the header band
 // stays pinned (flexShrink:0) and the table body scrolls beneath it. `minH:0`
@@ -248,7 +250,7 @@ interface OpportunitiesTableProps {
    * Filter controls for the card header: inline right of the title while no
    * filter is active, on their own row beneath it once one is.
    */
-  filterBar?: React.ReactNode;
+  filterBar?: ReactNode;
   /** Whether any filter chip is active (drives the filter bar's placement). */
   filtersActive?: boolean;
   revealSectionRequest?: {
@@ -281,22 +283,14 @@ function sectionClass(kind: OpportunityKind): string {
 
 const CaretIcon = ({ className }: { className?: string }) => {
   return (
-    <svg
+    <StaticHashIcon
       width="10"
       height="10"
-      viewBox="0 0 10 10"
       fill="none"
       className={className}
       aria-hidden="true"
-    >
-      <path
-        d="M2.5 3.75 5 6.25l2.5-2.5"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+      name="chevronDown"
+    />
   );
 };
 

@@ -1,16 +1,17 @@
-import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { Box, Stack, Typography } from "@mui/material";
 import { bindDialog } from "material-ui-popup-state/hooks";
 import { Fragment } from "react";
 
 import {
   Button,
-  FontAwesomeIcon,
+  HashInlineIcon,
   IconButton,
   Modal,
 } from "@hashintel/design-system";
 
 import type { PopupState } from "material-ui-popup-state/hooks";
+
+const faClose = { icon: "close" } as const;
 
 type CountItemProps = { label: string; count: number };
 
@@ -96,7 +97,7 @@ export const DeleteExpectedValueModal = ({
             sx={{ position: "absolute", top: 16, right: 16 }}
             onClick={onClose}
           >
-            <FontAwesomeIcon icon={faClose} />
+            <HashInlineIcon icon={faClose} />
           </IconButton>
         </Box>
         <Box sx={{ padding: 3 }}>

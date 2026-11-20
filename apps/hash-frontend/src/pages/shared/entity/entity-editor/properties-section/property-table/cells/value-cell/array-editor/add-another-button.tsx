@@ -1,8 +1,8 @@
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
-
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { Button } from "../../../../../../../../../shared/ui";
+
+const faPlus = { icon: "plus" } as const;
 
 export const AddAnotherButton = ({
   onClick,
@@ -17,7 +17,7 @@ export const AddAnotherButton = ({
       size="small"
       variant="tertiary_quiet"
       fullWidth
-      startIcon={<FontAwesomeIcon icon={faPlus} />}
+      startIcon={<HashInlineIcon icon={faPlus} />}
       sx={{
         justifyContent: "flex-start",
         borderRadius: 0,

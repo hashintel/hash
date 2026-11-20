@@ -1,4 +1,3 @@
-import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   FormControlLabel,
@@ -11,7 +10,7 @@ import {
 import { useId, useState } from "react";
 
 import {
-  FontAwesomeIcon,
+  HashInlineIcon,
   IconButton,
   IconDiagramNestedLight,
 } from "@hashintel/design-system";
@@ -32,6 +31,8 @@ import type {
 import type { SxProps, Theme } from "@mui/material";
 import type { ReactNode } from "react";
 
+const faCircleInfo = { icon: "info" } as const;
+
 type Layout = "byType" | "byVersion";
 
 const secondaryTextSx: SxProps<Theme> = ({ palette }) => ({
@@ -47,7 +48,7 @@ const InfoButton = ({ label, text }: { label: string; text: ReactNode }) => (
       size="small"
       sx={({ palette }) => ({ color: palette.gray[70] })}
     >
-      <FontAwesomeIcon icon={faCircleInfo} sx={{ fontSize: 14 }} />
+      <HashInlineIcon icon={faCircleInfo} sx={{ fontSize: 14 }} />
     </IconButton>
   </Tooltip>
 );

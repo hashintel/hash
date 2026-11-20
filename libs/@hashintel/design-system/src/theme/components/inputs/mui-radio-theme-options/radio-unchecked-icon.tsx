@@ -1,4 +1,4 @@
-import { SvgIcon } from "@mui/material";
+import { HashSvgIcon } from "../../../../hash-svg-icon";
 
 import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
@@ -8,7 +8,7 @@ export const RadioUncheckedIcon: FunctionComponent<SvgIconProps> = ({
   ...otherProps
 }) => {
   return (
-    <SvgIcon
+    <HashSvgIcon
       {...otherProps}
       sx={[
         ({ palette }) => ({
@@ -19,11 +19,8 @@ export const RadioUncheckedIcon: FunctionComponent<SvgIconProps> = ({
         }),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
-      viewBox="0 0 16 16"
       fill="none"
-    >
-      <circle cx="8" cy="8" r="8" fill="#C1CFDE" />
-      <circle cx="8" cy="8" r="7" fill="white" />
-    </SvgIcon>
+      icon="place"
+    />
   );
 };

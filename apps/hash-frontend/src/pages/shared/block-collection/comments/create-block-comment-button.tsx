@@ -1,8 +1,7 @@
-import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { Box, Popper } from "@mui/material";
 import { useCallback, useState } from "react";
 
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { HashInlineIcon, IconButton } from "@hashintel/design-system";
 
 import { useBlockView } from "../block-view";
 import styles from "../style.module.css";
@@ -10,6 +9,8 @@ import { CreateBlockComment } from "./create-block-comment";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
+
+const faComment = { icon: "message" } as const;
 
 type CreateBlockCommentButtonProps = {
   blockEntityId: EntityId | null;
@@ -43,7 +44,7 @@ export const CreateBlockCommentButton: FunctionComponent<
           transition: ({ transitions }) => transitions.create("opacity"),
         }}
       >
-        <FontAwesomeIcon icon={faComment} />
+        <HashInlineIcon icon={faComment} />
       </IconButton>
 
       <Popper

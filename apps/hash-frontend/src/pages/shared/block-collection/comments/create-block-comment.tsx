@@ -1,8 +1,7 @@
-import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { Box } from "@mui/material";
 import { useState } from "react";
 
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { HashInlineIcon, IconButton } from "@hashintel/design-system";
 
 import { useCreateComment } from "../../../../components/hooks/use-create-comment";
 import { usePageContext } from "../page-context";
@@ -12,6 +11,8 @@ import styles from "./style.module.css";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { FunctionComponent } from "react";
+
+const faComment = { icon: "message" } as const;
 
 type CreateBlockCommentProps = {
   blockEntityId: EntityId | null;
@@ -59,7 +60,7 @@ export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
           color: palette.gray[50],
         })}
       >
-        <FontAwesomeIcon icon={faComment} />
+        <HashInlineIcon icon={faComment} />
       </IconButton>
 
       <CommentTextField

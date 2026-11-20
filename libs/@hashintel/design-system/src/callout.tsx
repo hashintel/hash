@@ -1,14 +1,13 @@
-import {
-  faCircleInfo,
-  faTriangleExclamation,
-  faWarning,
-} from "@fortawesome/free-solid-svg-icons";
 import { Stack, Typography } from "@mui/material";
 
-import { FontAwesomeIcon } from "./fontawesome-icon";
+import { HashInlineIcon } from "./hash-svg-icon";
 
 import type { SxProps, Theme } from "@mui/material";
 import type { PropsWithChildren, ReactNode } from "react";
+
+const faCircleInfo = { icon: "info" } as const;
+const faTriangleExclamation = { icon: "warning" } as const;
+const faWarning = { icon: "warning" } as const;
 
 type CalloutProps = {
   children: ReactNode;
@@ -47,7 +46,7 @@ export const Callout = ({
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      <FontAwesomeIcon
+      <HashInlineIcon
         icon={
           type === "warning"
             ? faWarning

@@ -1,4 +1,3 @@
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { Box, Stack } from "@mui/material";
 import { useMemo, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
@@ -7,7 +6,7 @@ import {
   AlertModal,
   Button,
   EntityTypeIcon,
-  FontAwesomeIcon,
+  HashInlineIcon,
   LinkTypeIcon,
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
@@ -23,6 +22,8 @@ import { useFilterTypeOptions } from "./shared/use-filter-type-options";
 import type { EntityTypeEditorFormData } from "../shared/form-types";
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import type { ReactElement } from "react";
+
+const faPlus = { icon: "plus" } as const;
 
 type ModalData = {
   callback?: () => void;
@@ -282,7 +283,7 @@ export const InheritanceRow = ({
             variant="secondary_quiet"
           >
             ADD TYPE{" "}
-            <FontAwesomeIcon
+            <HashInlineIcon
               icon={faPlus}
               sx={{
                 display: "flex",

@@ -1,10 +1,9 @@
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { Box, TableBody, TableHead, TableRow, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
 import { useRouter } from "next/router";
 import { useRef } from "react";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { PeopleGroupIcon } from "../../../shared/icons/people-group-icon";
 import { Button } from "../../../shared/ui/button";
@@ -16,6 +15,8 @@ import { SettingsTableCell } from "../shared/settings-table-cell";
 import { OrgRow } from "./index.page/org-row";
 
 import type { NextPageWithLayout } from "../../../shared/layout";
+
+const faPlus = { icon: "plus" } as const;
 
 const OrganizationListPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -41,7 +42,7 @@ const OrganizationListPage: NextPageWithLayout = () => {
             variant="tertiary"
           >
             Create organization
-            <FontAwesomeIcon
+            <HashInlineIcon
               icon={faPlus}
               sx={({ palette }) => ({ fill: palette.gray[50], ml: 3 })}
             />

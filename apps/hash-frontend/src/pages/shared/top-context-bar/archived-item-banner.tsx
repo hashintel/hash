@@ -1,10 +1,9 @@
 import { useMutation } from "@apollo/client";
-import { faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, Container, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
 import { useCallback, useMemo } from "react";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { useArchivePage } from "../../../components/hooks/use-archive-page";
 import { useUsers } from "../../../components/hooks/use-users";
@@ -28,6 +27,8 @@ import type {
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
+
+const faRotateRight = { icon: "rotate" } as const;
 
 type ArchivedItemBannerProps = {
   item:
@@ -206,7 +207,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
               },
             })}
             startIcon={
-              <FontAwesomeIcon
+              <HashInlineIcon
                 sx={{
                   fontSize: 14,
                   color: ({ palette }) => palette.gray[50],

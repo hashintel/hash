@@ -1,8 +1,7 @@
-import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 
-import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { Chip, HashInlineIcon, IconButton } from "@hashintel/design-system";
 
 import { WhiteChip } from "../../../@/[shortname]/shared/white-chip";
 import { SectionWrapper } from "../../section-wrapper";
@@ -12,6 +11,8 @@ import { PropertyTable } from "./properties-section/property-table";
 import { useRows } from "./properties-section/property-table/use-rows";
 
 import type { FunctionComponent } from "react";
+
+const faMagnifyingGlass = { icon: "search" } as const;
 
 export const PropertiesSection: FunctionComponent<{
   hideSectionHeading?: boolean;
@@ -52,7 +53,7 @@ export const PropertiesSection: FunctionComponent<{
               onClick={() => setShowSearch(true)}
               sx={{ color: ({ palette }) => palette.gray[60] }}
             >
-              <FontAwesomeIcon icon={faMagnifyingGlass} />
+              <HashInlineIcon icon={faMagnifyingGlass} />
             </IconButton>
           </Stack>
         </Stack>

@@ -1,15 +1,9 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  faCheck,
-  faClose,
-  faPencil,
-  faTrash,
-} from "@fortawesome/free-solid-svg-icons";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, Divider, Stack, Typography } from "@mui/material";
 import { useRef, useState } from "react";
 
+import { HashSvgIcon } from "@hashintel/design-system";
 import {
   formatDataValue,
   getMergedDataTypeSchema,
@@ -25,6 +19,15 @@ import { ValueChip } from "./value-chip";
 import type { SortableItem } from "./types";
 import type { JsonValue } from "@blockprotocol/core";
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
+import type { ComponentProps } from "react";
+
+const faCheck = { icon: "check" } as const;
+const faClose = { icon: "close" } as const;
+const faPencil = { icon: "pencil" } as const;
+const faTrash = { icon: "trash" } as const;
+const DragIndicatorIcon = (
+  props: Omit<ComponentProps<typeof HashSvgIcon>, "icon">,
+) => <HashSvgIcon {...props} icon="gripVertical" />;
 
 interface SortableRowProps {
   item: SortableItem;

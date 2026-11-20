@@ -1,11 +1,10 @@
-import { faSmile } from "@fortawesome/free-regular-svg-icons";
 import { useState } from "react";
 
 import {
   incrementOntologyTypeVersion,
   type OntologyTypeVersion,
 } from "@blockprotocol/type-system";
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 import { useEntityTypeFormState } from "@hashintel/type-editor";
 
 import { PencilSimpleLine } from "../../../shared/icons/svg";
@@ -18,6 +17,8 @@ import { useFreezeScrollWhileTransitioning } from "../shared/use-freeze-scroll-w
 
 import type { ButtonProps } from "../../../shared/ui/button";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
+
+const faSmile = { icon: "smile" } as const;
 
 const useFrozenValue = <T extends string | number | boolean | object>(
   value: T,
@@ -82,7 +83,7 @@ export const EditBarTypeEditor = ({
           hideConfirm={!!errorMessage}
           icon={
             frozenIsDraft ? (
-              <FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />
+              <HashInlineIcon icon={faSmile} sx={{ fontSize: 14 }} />
             ) : (
               <PencilSimpleLine />
             )

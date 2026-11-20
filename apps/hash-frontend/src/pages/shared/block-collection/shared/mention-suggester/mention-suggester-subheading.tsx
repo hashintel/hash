@@ -1,8 +1,4 @@
 import {
-  faChevronLeft,
-  faChevronRight,
-} from "@fortawesome/free-solid-svg-icons";
-import {
   ListItem,
   ListItemButton,
   listItemButtonClasses,
@@ -10,10 +6,13 @@ import {
   listItemTextClasses,
 } from "@mui/material";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import type { BoxProps } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren } from "react";
+
+const faChevronLeft = { icon: "chevronLeft" } as const;
+const faChevronRight = { icon: "chevronRight" } as const;
 
 export const MentionSuggesterSubheading: FunctionComponent<
   PropsWithChildren & {
@@ -55,7 +54,7 @@ export const MentionSuggesterSubheading: FunctionComponent<
       ]}
     >
       {onClick && chevronDirection === "left" ? (
-        <FontAwesomeIcon
+        <HashInlineIcon
           icon={faChevronLeft}
           className="chevron-left"
           sx={{
@@ -67,7 +66,7 @@ export const MentionSuggesterSubheading: FunctionComponent<
       ) : null}
       {children}
       {onClick && chevronDirection === "right" ? (
-        <FontAwesomeIcon
+        <HashInlineIcon
           icon={faChevronRight}
           className="chevron-right"
           sx={{

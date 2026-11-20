@@ -1,5 +1,6 @@
 import { Icon, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 
 import { formatNumber } from "../cost";
 import { countNoun, countTooltip } from "../observation-labels";
@@ -189,22 +190,14 @@ export const DeltaIcon = ({
 
 export const ClockIcon = () => {
   return (
-    <svg
+    <StaticHashIcon
       width="10"
       height="10"
-      viewBox="0 0 12 12"
       fill="none"
       className={iconShrink}
       aria-hidden="true"
-    >
-      <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2" />
-      <path
-        d="M6 3.5V6L7.5 7.5"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-    </svg>
+      name="clock"
+    />
   );
 };
 

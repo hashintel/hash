@@ -1,4 +1,3 @@
-import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { ListItemIcon, ListItemText } from "@mui/material";
 import {
   bindFocus,
@@ -16,11 +15,13 @@ import {
   useState,
 } from "react";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { MenuItem } from "../../../../shared/ui";
 
 import type { ReactElement, RefObject } from "react";
+
+const faChevronRight = { icon: "chevronRight" } as const;
 
 type BlockContextMenuItemProps = {
   closeMenu: () => void;
@@ -89,7 +90,7 @@ export const BlockContextMenuItem = forwardRef<
         <ListItemText primary={title} />
         {subMenu ? (
           <>
-            <FontAwesomeIcon
+            <HashInlineIcon
               icon={faChevronRight}
               sx={({ palette }) => ({
                 ml: "auto",

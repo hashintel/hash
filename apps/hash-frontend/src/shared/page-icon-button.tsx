@@ -1,7 +1,6 @@
-import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { useCallback } from "react";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useDefaultState } from "../components/hooks/use-default-state";
@@ -15,6 +14,8 @@ import type { SizeVariant } from "./icon-variant-sizes";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type { SxProps, Theme } from "@mui/material";
 import type { MouseEventHandler } from "react";
+
+const faFile = { icon: "file" } as const;
 
 type PageIconButtonProps = {
   entityId: EntityId;
@@ -63,7 +64,7 @@ export const PageIconButton = ({
             }}
           />
         ) : (
-          <FontAwesomeIcon
+          <HashInlineIcon
             icon={faFile}
             sx={(theme) => ({
               fontSize: `${iconVariantSizes[size].font}px !important`,

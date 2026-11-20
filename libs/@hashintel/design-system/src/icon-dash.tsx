@@ -1,18 +1,16 @@
-import { SvgIcon } from "@mui/material";
+import { HashSvgIcon } from "./hash-svg-icon";
 
 import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 export const DashIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
-    <SvgIcon
+    <HashSvgIcon
       width="512"
       height="512"
-      viewBox="0 0 512 512"
       fill="none"
       {...props}
-    >
-      <path d="M0 256c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32z" />
-    </SvgIcon>
+      icon="dashSolid"
+    />
   );
 };

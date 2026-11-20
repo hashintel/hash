@@ -1,15 +1,16 @@
-import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
 import { Stack, svgIconClasses, Tooltip, Typography } from "@mui/material";
 
 import {
   ArrowRightRegularIcon,
-  FontAwesomeIcon,
+  HashInlineIcon,
 } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
 
 import { ChipIconButton } from "./chip-icon-button";
 
 import type { OntologyTypeVersion } from "@blockprotocol/type-system";
+
+const faArrowsRotate = { icon: "rotate" } as const;
 
 type VersionUpgradeIndicatorProps = {
   currentVersion: OntologyTypeVersion;
@@ -48,7 +49,7 @@ export const VersionUpgradeIndicator = ({
         },
       }}
     >
-      <FontAwesomeIcon
+      <HashInlineIcon
         icon={faArrowsRotate}
         sx={{
           height: 12,

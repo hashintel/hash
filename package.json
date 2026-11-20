@@ -27,7 +27,9 @@
     "brunch:persona": "node --experimental-strip-types apps/brunch-agent/evals/persona/launch.ts",
     "changeset:publish": "yarn changeset publish",
     "changeset:version": "yarn changeset version && YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn",
+    "check:icon-assets": "node scripts/generate-icon-assets.mjs --check",
     "codegen": "CARGO_TERM_PROGRESS_WHEN=never turbo codegen",
+    "codegen:icon-assets": "node scripts/generate-icon-assets.mjs",
     "compose": "touch .env.local && docker compose --file infra/compose/compose.yml --profile dev --profile observability --env-file .env --env-file .env.development --env-file .env.local",
     "create-block": "yarn workspace @local/repo-chores exe scripts/create-block.ts",
     "dev": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-api' --filter '@apps/hash-frontend' --",
@@ -82,10 +84,13 @@
   },
   "devDependencies": {
     "@changesets/cli": "patch:@changesets/cli@npm%3A3.0.3#~/.yarn/patches/@changesets-cli-npm-3.0.3-37da92ed6c.patch",
+    "@hashintel/ds-icons": "workspace:*",
     "@yarnpkg/types": "^4.0.1",
     "lefthook": "2.2.0",
     "npm-run-all2": "8.0.4",
-    "oxfmt": "0.71.0"
+    "oxfmt": "0.71.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
   },
   "resolutions": {
     "@anthropic-ai/bedrock-sdk/@anthropic-ai/sdk": "0.74.0",

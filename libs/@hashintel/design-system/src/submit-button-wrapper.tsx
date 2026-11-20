@@ -1,8 +1,4 @@
 import {
-  faCircleExclamation,
-  faWarning,
-} from "@fortawesome/free-solid-svg-icons";
-import {
   Box,
   Collapse,
   styled,
@@ -12,9 +8,12 @@ import {
 } from "@mui/material";
 import { forwardRef } from "react";
 
-import { FontAwesomeIcon } from "./fontawesome-icon";
+import { HashInlineIcon } from "./hash-svg-icon";
 
 import type { BoxProps, TooltipProps } from "@mui/material";
+
+const faCircleExclamation = { icon: "error" } as const;
+const faWarning = { icon: "warning" } as const;
 
 const DisabledTooltip = styled(({ className, ...props }: TooltipProps) => (
   <Tooltip {...props} classes={{ popper: className }} />
@@ -63,7 +62,7 @@ export const SubmitButtonWrapper = forwardRef(
                   },
                 }}
               >
-                <FontAwesomeIcon sx={{}} icon={faWarning} />
+                <HashInlineIcon sx={{}} icon={faWarning} />
               </Box>
               <Typography variant="smallTextLabels" fontWeight={500} flex={1}>
                 {helperText}
@@ -83,7 +82,7 @@ export const SubmitButtonWrapper = forwardRef(
         {children}
         <Collapse in={Boolean(helperText)}>
           <Box display="flex" alignItems="center" mt={1}>
-            <FontAwesomeIcon
+            <HashInlineIcon
               sx={({ palette }) => ({
                 mr: 1,
                 color: palette.orange[50],

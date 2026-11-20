@@ -1,4 +1,3 @@
-import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   InputAdornment,
@@ -9,7 +8,7 @@ import {
 } from "@mui/material";
 import { useCallback, useEffect, useRef } from "react";
 
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { HashInlineIcon, IconButton } from "@hashintel/design-system";
 
 import { SearchIcon } from "../../../icons";
 import {
@@ -18,6 +17,8 @@ import {
 } from "../../../keyboard-shortcuts-context";
 
 import type { FunctionComponent } from "react";
+
+const faXmark = { icon: "close" } as const;
 
 const ClearSearchIcon: FunctionComponent<{
   clearSearch: () => void;
@@ -37,7 +38,7 @@ const ClearSearchIcon: FunctionComponent<{
     >
       <Tooltip title="Clear search" placement="right">
         <IconButton size="small" unpadded onClick={clearSearch}>
-          <FontAwesomeIcon icon={faXmark} />
+          <HashInlineIcon icon={faXmark} />
         </IconButton>
       </Tooltip>
     </Box>

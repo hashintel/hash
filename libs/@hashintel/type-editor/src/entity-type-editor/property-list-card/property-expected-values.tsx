@@ -1,7 +1,7 @@
 import { chipClasses, Tooltip } from "@mui/material";
 import { Stack } from "@mui/system";
 
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import { Chip, HashInlineIcon } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
 
 import { useCustomizationSettings } from "../../shared/customization-context";
@@ -94,7 +94,7 @@ export const PropertyExpectedValues = ({
               }
             }}
             icon={
-              <FontAwesomeIcon
+              <HashInlineIcon
                 icon={{
                   icon: expectedValueOption.icon,
                 }}

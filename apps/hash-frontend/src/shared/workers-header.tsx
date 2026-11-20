@@ -1,7 +1,6 @@
-import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, Container, Stack, Typography } from "@mui/material";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { TopContextBar } from "../pages/shared/top-context-bar";
 import { BoltLightIcon } from "./icons/bolt-light-icon";
@@ -9,6 +8,8 @@ import { BoltLightIcon } from "./icons/bolt-light-icon";
 import type { Breadcrumb } from "../pages/shared/breadcrumbs";
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import type { FunctionComponent, ReactElement } from "react";
+
+const faAngleRight = { icon: "chevronRight" } as const;
 
 type WorkersHeaderProps = {
   endElement?: ReactElement;
@@ -80,7 +81,7 @@ export const WorkersHeader = ({
                 </Typography>
                 {sideTitle ? (
                   <>
-                    <FontAwesomeIcon
+                    <HashInlineIcon
                       icon={faAngleRight}
                       sx={({ palette }) => ({
                         fontSize: 16,

@@ -1,4 +1,3 @@
-import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
 import { Menu } from "@mui/material";
 import {
   bindMenu,
@@ -7,12 +6,14 @@ import {
 } from "material-ui-popup-state/hooks";
 import { useMemo } from "react";
 
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { HashInlineIcon, IconButton } from "@hashintel/design-system";
 
 import { ContextBarActionsContext } from "./context-bar-actions-context";
 
 import type { MenuItemProps } from "../../../shared/ui/menu-item";
 import type { FunctionComponent, ReactElement } from "react";
+
+const faEllipsisVertical = { icon: "ellipsisVertical" } as const;
 
 export const ContextBarActionsDropdown: FunctionComponent<{
   children: ReactElement<MenuItemProps> | ReactElement<MenuItemProps>[];
@@ -29,7 +30,7 @@ export const ContextBarActionsDropdown: FunctionComponent<{
   return (
     <ContextBarActionsContext.Provider value={contextBarActionsContextValue}>
       <IconButton {...bindTrigger(popupState)}>
-        <FontAwesomeIcon icon={faEllipsisVertical} />
+        <HashInlineIcon icon={faEllipsisVertical} />
       </IconButton>
       <Menu
         {...bindMenu(popupState)}

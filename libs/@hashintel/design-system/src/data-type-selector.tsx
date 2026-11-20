@@ -13,7 +13,7 @@ import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 
 import { GRID_CLICK_IGNORE_CLASS } from "./constants";
 import { getIconForDataType } from "./data-type-icons";
-import { FontAwesomeIcon } from "./fontawesome-icon";
+import { HashInlineIcon } from "./hash-svg-icon";
 import { IconButton } from "./icon-button";
 import { CaretDownSolidIcon } from "./icon-caret-down-solid";
 import { CheckIcon } from "./icon-check";
@@ -86,7 +86,7 @@ const DataTypeLabel = (props: {
       disableInteractive
     >
       <Stack direction="row" alignItems="center">
-        <FontAwesomeIcon
+        <HashInlineIcon
           icon={{ icon }}
           sx={{
             fill: ({ palette }) =>

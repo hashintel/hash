@@ -317,7 +317,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
         {/*  renderOption={(optProps, opt) => { */}
         {/*    return ( */}
         {/*      <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}> */}
-        {/*        <FontAwesomeIcon */}
+        {/*        <HashInlineIcon */}
         {/*          icon={{ icon: getExpectedValueDisplay(opt!).icon }} */}
         {/*          sx={(theme) => ({ color: theme.palette.gray[50] })} */}
         {/*        /> */}

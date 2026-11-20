@@ -1,12 +1,18 @@
 import { useState } from "react";
-import { MdKeyboardCommandKey } from "react-icons/md";
 
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 import {
   definePetrinautPlugin,
   type PluginHook,
 } from "@hashintel/petrinaut/ui/plugin";
 
 import { CommandPalette } from "./plugin/command-palette";
+
+import type { ComponentProps } from "react";
+
+const MdKeyboardCommandKey = (
+  props: Omit<ComponentProps<typeof StaticHashIcon>, "name">,
+) => <StaticHashIcon {...props} name="command" />;
 
 const CommandPalettePlugin = definePetrinautPlugin({
   id: "website.command-palette",

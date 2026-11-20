@@ -1,13 +1,14 @@
-import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, Collapse, Typography } from "@mui/material";
 
 import {
-  FontAwesomeIcon,
+  HashInlineIcon,
   IconButton,
   LoadingSpinner,
 } from "@hashintel/design-system";
 
 import type { FunctionComponent, ReactNode } from "react";
+
+const faChevronRight = { icon: "chevronRight" } as const;
 
 type NavLinkProps = {
   children?: ReactNode;
@@ -80,7 +81,7 @@ export const NavLink: FunctionComponent<NavLinkProps> = ({
             color: palette.gray[70],
           })}
         >
-          <FontAwesomeIcon
+          <HashInlineIcon
             sx={({ transitions }) => ({
               transform: expanded ? `rotate(90deg)` : "none",
               transition: transitions.create("transform"),

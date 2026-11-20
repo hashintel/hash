@@ -1,5 +1,3 @@
-import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
-import { faClose, faList } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   buttonClasses,
@@ -11,12 +9,7 @@ import {
 import uniqueId from "lodash.uniqueid";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import {
-  Button,
-  Chip,
-  faCube,
-  FontAwesomeIcon,
-} from "@hashintel/design-system";
+import { Button, Chip, faCube, HashInlineIcon } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
 
 import { getDefaultExpectedValue } from "../../shared/default-expected-value";
@@ -27,6 +20,10 @@ import { ObjectExpectedValueBuilder } from "./shared/object-expected-value-build
 import type { ExpectedValueSelectorFormValues } from "./shared/expected-value-selector-form-values";
 import type { ChipProps } from "@hashintel/design-system";
 import type { FunctionComponent } from "react";
+
+const faCircleQuestion = { icon: "help" } as const;
+const faClose = { icon: "close" } as const;
+const faList = { icon: "list" } as const;
 
 const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   borderColor,
@@ -113,7 +110,7 @@ export const CustomExpectedValueBuilder: FunctionComponent = () => {
               placement="top"
               classes={{ popper: fluidFontClassName }}
             >
-              <FontAwesomeIcon
+              <HashInlineIcon
                 icon={faCircleQuestion}
                 sx={{ fontSize: 12, color: ({ palette }) => palette.gray[40] }}
               />
@@ -139,7 +136,7 @@ export const CustomExpectedValueBuilder: FunctionComponent = () => {
                 transition: transitions.create("color"),
               },
             })}
-            endIcon={<FontAwesomeIcon icon={faClose} />}
+            endIcon={<HashInlineIcon icon={faClose} />}
             variant="tertiary_quiet"
           >
             CANCEL
@@ -177,7 +174,7 @@ export const CustomExpectedValueBuilder: FunctionComponent = () => {
               <Button
                 size="small"
                 variant="tertiary"
-                endIcon={<FontAwesomeIcon icon={{ icon: faCube }} />}
+                endIcon={<HashInlineIcon icon={{ icon: faCube }} />}
                 onClick={() => {
                   const id = uniqueId();
 
@@ -216,7 +213,7 @@ export const CustomExpectedValueBuilder: FunctionComponent = () => {
               <Button
                 size="small"
                 variant="tertiary"
-                endIcon={<FontAwesomeIcon icon={faList} />}
+                endIcon={<HashInlineIcon icon={faList} />}
                 onClick={() => {
                   const id = uniqueId();
 

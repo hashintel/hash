@@ -1,8 +1,7 @@
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { Box } from "@mui/material";
 
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import { Chip, HashInlineIcon } from "@hashintel/design-system";
 import { customColors } from "@hashintel/design-system/theme";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
@@ -13,8 +12,10 @@ import { InteractableManager } from "../../components/grid/utils/interactable-ma
 
 import type { DrawChipWithIconProps } from "../../components/grid/utils/draw-chip-with-icon";
 import type { Interactable } from "../../components/grid/utils/interactable-manager/types";
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
+import type { HashIconDefinition } from "@hashintel/design-system";
+
+const faAsterisk = { icon: "asterisk" } as const;
 
 export type ChipCellColor = "blue" | "gray" | "white";
 export type ChipCellVariant = "outlined" | "filled";
@@ -26,7 +27,7 @@ export interface ChipCellProps {
     icon?: DrawChipWithIconProps["icon"];
     iconFill?: DrawChipWithIconProps["iconFill"];
     onClick?: () => void;
-    faIconDefinition?: Pick<IconDefinition, "icon">;
+    faIconDefinition?: Pick<HashIconDefinition, "icon">;
     suffix?: string;
   }[];
   color?: ChipCellColor;
@@ -175,7 +176,7 @@ export const createRenderChipCell = (params?: {
                 label={text}
                 color={color === "white" ? "gray" : color}
                 variant={variant}
-                icon={<FontAwesomeIcon icon={faIconDefinition ?? faAsterisk} />}
+                icon={<HashInlineIcon icon={faIconDefinition ?? faAsterisk} />}
               />
             ))}
           </Box>

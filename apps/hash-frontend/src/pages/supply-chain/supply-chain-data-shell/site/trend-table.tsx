@@ -1,5 +1,6 @@
 import { Icon, SortMenu } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 
 import { StatusActionButton } from "../../shared/action-buttons";
 import { getCategoryColor } from "../../shared/categories";
@@ -34,6 +35,7 @@ import * as threshold from "./shared/table-styles";
 import { useStepTableView } from "./shared/use-step-table-view";
 
 import type { SiteNode } from "../../shared/types";
+import type { ReactNode } from "react";
 
 const prevValue = css({ color: "fg.subtle" });
 const trendWrap = css({
@@ -55,20 +57,13 @@ const sampleTooltip = css({
 
 const EqualsIcon = () => {
   return (
-    <svg
+    <StaticHashIcon
       width="12"
       height="12"
-      viewBox="0 0 12 12"
       fill="none"
       aria-hidden="true"
-    >
-      <path
-        d="M2.5 4.5h7M2.5 7.5h7"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-      />
-    </svg>
+      name="equals"
+    />
   );
 };
 const TrendValue = ({
@@ -141,9 +136,9 @@ export const TrendTable = ({
   statusHistory?: StatusStore;
   onStatus: (node: SiteNode, title: string) => void;
   /** Filter controls rendered in the card's pinned header band. */
-  filterBar?: React.ReactNode;
+  filterBar?: ReactNode;
   /** Tab cluster rendered on the header band's leading side. */
-  headerTabs?: React.ReactNode;
+  headerTabs?: ReactNode;
   /** Whether any filter chip is active (drives the filter bar's placement). */
   filtersActive?: boolean;
 }) => {

@@ -1,14 +1,15 @@
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { Box, Stack, Typography } from "@mui/material";
 import { useFieldArray, useFormContext } from "react-hook-form";
 
-import { Button, FontAwesomeIcon } from "@hashintel/design-system";
+import { Button, HashInlineIcon } from "@hashintel/design-system";
 
 import { FilterRow } from "./query-form/filter-row";
 import { useReadonlyContext } from "./readonly-context";
 
 import type { FormValues } from "./types";
 import type { EntityType, PropertyType } from "@blockprotocol/type-system";
+
+const faPlus = { icon: "plus" } as const;
 
 interface QueryFormProps {
   entityTypes: EntityType[];
@@ -60,7 +61,7 @@ export const QueryForm = ({ entityTypes, propertyTypes }: QueryFormProps) => {
             variant="tertiary_quiet"
             size="xs"
             startIcon={
-              <FontAwesomeIcon
+              <HashInlineIcon
                 icon={faPlus}
                 sx={{ color: ({ palette }) => palette.gray[80] }}
               />

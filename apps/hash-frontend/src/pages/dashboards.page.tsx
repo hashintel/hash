@@ -1,5 +1,4 @@
 import { useMutation, useQuery } from "@apollo/client";
-import { Add as AddIcon } from "@mui/icons-material";
 import {
   Box,
   Card,
@@ -19,7 +18,7 @@ import {
   getRoots,
 } from "@blockprotocol/graph/stdlib";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import { TextField } from "@hashintel/design-system";
+import { HashSvgIcon, TextField } from "@hashintel/design-system";
 import {
   deserializeQueryEntitySubgraphResponse,
   HashEntity,
@@ -64,6 +63,11 @@ import type {
   DashboardProperties,
 } from "@local/hash-isomorphic-utils/system-types/dashboard";
 import type { DashboardItem } from "@local/hash-isomorphic-utils/system-types/dashboarditem";
+import type { ComponentProps } from "react";
+
+const AddIcon = (props: Omit<ComponentProps<typeof HashSvgIcon>, "icon">) => (
+  <HashSvgIcon {...props} icon="plus" />
+);
 
 type DashboardListItem = {
   entityId: EntityId;

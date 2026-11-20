@@ -55,8 +55,7 @@
   },
   "dependencies": {
     "@blockprotocol/type-system": "workspace:*",
-    "@fortawesome/free-regular-svg-icons": "6.7.2",
-    "@fortawesome/free-solid-svg-icons": "6.7.2",
+    "@hashintel/ds-icons": "workspace:*",
     "clsx": "2.1.1",
     "echarts": "6.1.0",
     "react-loading-skeleton": "3.5.0"

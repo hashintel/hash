@@ -1,4 +1,3 @@
-import { faPlus, faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   Autocomplete,
   autocompleteClasses,
@@ -7,10 +6,13 @@ import {
 } from "@mui/material";
 import { useRef, useState } from "react";
 
-import { FontAwesomeIcon, TextField } from "@hashintel/design-system";
+import { HashInlineIcon, TextField } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
 
 import type { AutocompleteProps } from "@mui/material";
+
+const faPlus = { icon: "plus" } as const;
+const faSearch = { icon: "search" } as const;
 
 type CustomExpectedValueSelectorProps<T> = {
   inputLabel: string;
@@ -110,7 +112,7 @@ export const CustomExpectedValueSelector = <
                 },
               }),
               endAdornment: (
-                <FontAwesomeIcon
+                <HashInlineIcon
                   icon={expanded ? faSearch : faPlus}
                   sx={{
                     fontSize: 14,

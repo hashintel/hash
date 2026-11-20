@@ -1,8 +1,14 @@
 import * as Sentry from "@sentry/react";
-import { MdBugReport } from "react-icons/md";
 
 import { css } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 import { definePetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
+
+import type { ComponentProps } from "react";
+
+const MdBugReport = (
+  props: Omit<ComponentProps<typeof StaticHashIcon>, "name">,
+) => <StaticHashIcon {...props} name="bug" />;
 
 const feedbackButtonStyle = css({
   backgroundColor: "purple.a85 !important",

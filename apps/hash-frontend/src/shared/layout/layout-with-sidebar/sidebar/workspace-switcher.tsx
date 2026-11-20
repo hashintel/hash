@@ -1,4 +1,3 @@
-import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Divider,
@@ -16,13 +15,15 @@ import {
 } from "material-ui-popup-state/hooks";
 import { useMemo } from "react";
 
-import { Avatar, FontAwesomeIcon } from "@hashintel/design-system";
+import { Avatar, HashInlineIcon } from "@hashintel/design-system";
 
 import { useLogoutFlow } from "../../../../components/hooks/use-logout-flow";
 import { useAuthenticatedUser } from "../../../../pages/shared/auth-info-context";
 import { getImageUrlFromEntityProperties } from "../../../../pages/shared/get-file-properties";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
 import { Button, MenuItem } from "../../../ui";
+
+const faChevronDown = { icon: "chevronDown" } as const;
 
 export const WorkspaceSwitcher = () => {
   const popupState = usePopupState({
@@ -142,7 +143,7 @@ export const WorkspaceSwitcher = () => {
           >
             {activeWorkspace.name}
           </Typography>
-          <FontAwesomeIcon
+          <HashInlineIcon
             icon={faChevronDown}
             sx={{ fontSize: 12, color: ({ palette }) => palette.gray[70] }}
           />

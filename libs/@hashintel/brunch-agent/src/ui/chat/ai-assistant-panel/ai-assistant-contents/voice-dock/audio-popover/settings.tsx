@@ -9,6 +9,7 @@ import {
   Slider,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 
 import { SpeakerIcon } from "../speaker-icon";
 
@@ -198,17 +199,12 @@ export const AudioSettings = ({
                   </span>
                 ) : (
                   settings.voicePreview === "playing" && (
-                    <svg
+                    <StaticHashIcon
                       aria-hidden="true"
                       width="14"
                       height="14"
-                      viewBox="0 0 14 14"
-                      fill="currentColor"
-                    >
-                      <rect x="1" y="5" width="2" height="4" rx="1" />
-                      <rect x="6" y="1" width="2" height="12" rx="1" />
-                      <rect x="11" y="3" width="2" height="8" rx="1" />
-                    </svg>
+                      name="signal"
+                    />
                   )
                 )}
               </span>

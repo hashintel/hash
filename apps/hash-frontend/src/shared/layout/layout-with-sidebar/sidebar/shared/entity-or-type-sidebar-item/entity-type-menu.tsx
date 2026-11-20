@@ -1,4 +1,3 @@
-import { faAdd, faLink, faList } from "@fortawesome/free-solid-svg-icons";
 import { Menu } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state/hooks";
 import { useState } from "react";
@@ -15,6 +14,10 @@ import { SidebarMenuItem } from "./shared/sidebar-menu-item";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import type { FunctionComponent } from "react";
+
+const faAdd = { icon: "plus" } as const;
+const faLink = { icon: "link" } as const;
+const faList = { icon: "list" } as const;
 
 type EntityTypeMenuProps = {
   entityTypeId: VersionedUrl;

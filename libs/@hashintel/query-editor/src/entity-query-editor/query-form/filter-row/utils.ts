@@ -1,12 +1,12 @@
 import { faAsterisk, faDiagramSubtask } from "@hashintel/design-system";
 
 import type { FilterType, PropertyOperator, TypeOperator } from "../../types";
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { HashIconDefinition } from "@hashintel/design-system";
 
 export const filterTypes: {
   type: FilterType;
 
-  icon: IconDefinition["icon"];
+  icon: HashIconDefinition["icon"];
 }[] = [
   { type: "Type", icon: faAsterisk },
   { type: "Property", icon: faDiagramSubtask },

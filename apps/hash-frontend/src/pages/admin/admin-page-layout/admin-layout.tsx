@@ -1,9 +1,8 @@
-import { faPerson } from "@fortawesome/free-solid-svg-icons";
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { type PropsWithChildren, useEffect, useMemo } from "react";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { LayoutWithSidebar } from "../../../shared/layout/layout-with-sidebar";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
@@ -11,6 +10,8 @@ import { SettingsSidebar } from "../../shared/settings-layout/settings-sidebar";
 import { TopContextBar } from "../../shared/top-context-bar";
 
 import type { SidebarItemData } from "../../shared/settings-layout/settings-sidebar";
+
+const faPerson = { icon: "person" } as const;
 
 const containerSx = {
   maxWidth: { lg: 1240, xl: 1400 },
@@ -24,7 +25,7 @@ const menuItems: SidebarItemData[] = [
     activeIfPathStartsWith: "/admin/users/",
     pageTitle: "Manage users",
     href: "/admin/users",
-    icon: <FontAwesomeIcon icon={faPerson} />,
+    icon: <HashInlineIcon icon={faPerson} />,
   },
 ];
 

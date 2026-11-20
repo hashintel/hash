@@ -1,7 +1,6 @@
-import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, ButtonBase, Typography } from "@mui/material";
 
-import { EntityOrTypeIcon, FontAwesomeIcon } from "@hashintel/design-system";
+import { EntityOrTypeIcon, HashInlineIcon } from "@hashintel/design-system";
 
 import { ArrowUpRightRegularIcon } from "../../../../../shared/icons/arrow-up-right-regular-icon";
 import {
@@ -17,6 +16,8 @@ import {
 import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
 import type { BoxProps, ButtonBaseProps, Theme } from "@mui/material";
 import type { HTMLAttributes, ReactNode, Ref } from "react";
+
+const faChevronRight = { icon: "chevronRight" } as const;
 
 /** The white card around a table, which scrolls sideways when the page is narrow, and the grid its rows share, with the open column added on the right. */
 export const TableCard = ({
@@ -167,7 +168,7 @@ const ExpandChevron = ({ expanded }: { expanded: boolean }) => (
       color: palette.gray[60],
     })}
   >
-    <FontAwesomeIcon
+    <HashInlineIcon
       icon={faChevronRight}
       sx={({ transitions }) => ({
         fontSize: 10,

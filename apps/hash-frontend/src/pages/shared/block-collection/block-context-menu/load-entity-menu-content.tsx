@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   InputAdornment,
@@ -12,7 +11,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
-  FontAwesomeIcon,
+  HashInlineIcon,
   LoadingSpinner,
   TextField,
 } from "@hashintel/design-system";
@@ -36,6 +35,9 @@ import type {
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import type { FunctionComponent } from "react";
+
+const faAsterisk = { icon: "asterisk" } as const;
+const faSearch = { icon: "search" } as const;
 
 type LoadEntityMenuContentProps = {
   blockEntityId: EntityId | null;
@@ -157,7 +159,7 @@ export const LoadEntityMenuContent: FunctionComponent<
             inputRef: searchInputRef,
             startAdornment: (
               <InputAdornment position="start">
-                <FontAwesomeIcon icon={faSearch} />
+                <HashInlineIcon icon={faSearch} />
               </InputAdornment>
             ),
 
@@ -185,7 +187,7 @@ export const LoadEntityMenuContent: FunctionComponent<
               }}
             >
               <ListItemIcon>
-                <FontAwesomeIcon icon={faAsterisk} />
+                <HashInlineIcon icon={faAsterisk} />
               </ListItemIcon>
               <Tooltip title={JSON.stringify(entity.properties, undefined, 2)}>
                 <ListItemText

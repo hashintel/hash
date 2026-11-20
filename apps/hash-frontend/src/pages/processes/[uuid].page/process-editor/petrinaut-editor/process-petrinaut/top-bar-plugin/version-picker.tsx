@@ -1,4 +1,3 @@
-import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   ButtonBase,
@@ -13,11 +12,13 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { MenuItem } from "../../../../../../../shared/ui/menu-item";
 
 import type { RevisionSummary } from "../../../petrinaut-editor";
+
+const faChevronDown = { icon: "chevronDown" } as const;
 
 /**
  * Locale is left `undefined` so `Intl.DateTimeFormat` picks up the browser's
@@ -163,7 +164,7 @@ export const VersionPicker = ({
         )}
         {isDirty && <DraftBadge />}
         {revisions.length > 0 && (
-          <FontAwesomeIcon
+          <HashInlineIcon
             icon={faChevronDown}
             sx={({ palette }) => ({
               fontSize: 10,

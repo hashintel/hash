@@ -1,4 +1,3 @@
-import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Divider,
@@ -19,7 +18,7 @@ import { FormProvider, useForm, useFormContext } from "react-hook-form";
 
 import {
   Button,
-  FontAwesomeIcon,
+  HashInlineIcon,
   IconButton,
   Modal,
   TextField,
@@ -43,6 +42,8 @@ import type {
   Ref,
 } from "react";
 import type { DeepPartial, DefaultValues } from "react-hook-form";
+
+const faClose = { icon: "close" } as const;
 
 type TypeFormSubmitProps = Omit<
   ButtonProps,
@@ -354,7 +355,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
           })}
           disabled={isSubmitting}
         >
-          <FontAwesomeIcon icon={faClose} />
+          <HashInlineIcon icon={faClose} />
         </IconButton>
       </Box>
       <Box

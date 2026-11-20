@@ -114,14 +114,14 @@ Show or hide the **overview minimap** in the top-right corner of the canvas. The
 
 ### Petricon
 
-In the **Viewport** section, **Petricon** is on by default and provides Petrinaut's
-custom icons for entities, playback, zoom, and navigation. Saved preferences are preserved. The pack includes the
+In the **Viewport** section, **Petricon** is on by default and provides animated
+HASH icons for entities, playback, zoom, and navigation. Saved preferences are preserved. The pack includes the
 sidebar toggle, main menu, pan hand and compact selection arrow, add-place and add-transition
 buttons, settings gears, editing actions, diagnostics, simulation and data views,
 and assistant and voice controls, including icons inside shared menus and forms.
-Checkbox marks and loading indicators keep their default appearance.
-The change applies immediately, and turning it off
-restores the default icons.
+Checkbox marks and loading indicators also use HASH symbols.
+The change applies immediately. Turning Petricon off uses static drawings in the
+same style.
 
 **Add Place** and **Add Transition** show a plain circle and square. Hover over
 either button to reveal a plus at the bottom-right of its shape; the plus disappears

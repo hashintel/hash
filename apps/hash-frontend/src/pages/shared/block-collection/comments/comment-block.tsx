@@ -1,12 +1,3 @@
-import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
-import {
-  faChevronDown,
-  faChevronUp,
-  faEllipsisVertical,
-  faLink,
-  faPencil,
-  faTrash,
-} from "@fortawesome/free-solid-svg-icons";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { isEqual } from "lodash";
@@ -16,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   Avatar,
-  FontAwesomeIcon,
+  HashInlineIcon,
   IconButton,
   LoadingSpinner,
 } from "@hashintel/design-system";
@@ -37,14 +28,22 @@ import styles from "./style.module.css";
 
 import type { PageComment } from "../../../../components/hooks/use-page-comments";
 import type { EntityId } from "@blockprotocol/type-system";
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { HashIconDefinition } from "@hashintel/design-system";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { FunctionComponent, ReactNode } from "react";
 
+const faCheckCircle = { icon: "circleCheck" } as const;
+const faChevronDown = { icon: "chevronDown" } as const;
+const faChevronUp = { icon: "chevronUp" } as const;
+const faEllipsisVertical = { icon: "ellipsisVertical" } as const;
+const faLink = { icon: "link" } as const;
+const faPencil = { icon: "pencil" } as const;
+const faTrash = { icon: "trash" } as const;
+
 type ToggleTextExpandedButtonProps = {
   label: ReactNode;
-  icon: IconDefinition;
+  icon: HashIconDefinition;
   onClick: () => void;
 };
 
@@ -66,7 +65,7 @@ export const ToggleTextExpandedButton: FunctionComponent<
     onClick={onClick}
   >
     {label}
-    <FontAwesomeIcon icon={icon} sx={{ fontSize: 12, ml: 0.75 }} />
+    <HashInlineIcon icon={icon} sx={{ fontSize: 12, ml: 0.75 }} />
   </Button>
 );
 
@@ -231,7 +230,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
                   })}
                   disabled={resolveCommentLoading}
                 >
-                  <FontAwesomeIcon
+                  <HashInlineIcon
                     icon={faCheckCircle}
                     sx={{ fontSize: "18px !important" }}
                   />
@@ -250,7 +249,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               color: ({ palette }) => palette.gray[40],
             }}
           >
-            <FontAwesomeIcon icon={faEllipsisVertical} />
+            <HashInlineIcon icon={faEllipsisVertical} />
           </IconButton>
         </Tooltip>
       </Box>
@@ -341,7 +340,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               editable ? (
                 <PencilSlashIcon sx={{ fontSize: 16 }} />
               ) : (
-                <FontAwesomeIcon icon={faPencil} />
+                <HashInlineIcon icon={faPencil} />
               )
             }
             onClick={() => {
@@ -354,7 +353,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         ) : null}
         <CommentBlockMenuItem
           title="Copy Link"
-          icon={<FontAwesomeIcon icon={faLink} />}
+          icon={<HashInlineIcon icon={faLink} />}
           // @todo Commented implement functionality
           onClick={() => {
             commentMenuPopupState.close();
@@ -363,7 +362,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         {authenticatedUser.accountId === commentCreatedById ? (
           <CommentBlockMenuItem
             title="Delete Comment"
-            icon={<FontAwesomeIcon icon={faTrash} />}
+            icon={<HashInlineIcon icon={faTrash} />}
             onClick={() => {
               setDeleteConfirmationDialogOpen(true);
               commentMenuPopupState.close();

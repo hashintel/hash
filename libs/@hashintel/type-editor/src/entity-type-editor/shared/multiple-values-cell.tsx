@@ -1,4 +1,3 @@
-import { faEdit } from "@fortawesome/free-regular-svg-icons";
 import {
   Box,
   Checkbox,
@@ -23,7 +22,7 @@ import {
 
 import {
   addPopperPositionClassPopperModifier,
-  FontAwesomeIcon,
+  HashInlineIcon,
   getInputProps,
   inputLabelProps,
   popperPlacementPopperNoRadius,
@@ -35,6 +34,8 @@ import { useIsReadonly } from "../../shared/read-only-context";
 import type { EntityTypeEditorFormData } from "../../shared/form-types";
 import type { BoxProps } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
+
+const faEdit = { icon: "pencil" } as const;
 
 const useFrozenValue = <T extends ReactNode>(
   value: T,
@@ -298,7 +299,7 @@ export const MultipleValuesCell = ({
               in={hovered || multipleValuesMenuOpen}
               orientation="horizontal"
             >
-              <FontAwesomeIcon
+              <HashInlineIcon
                 icon={faEdit}
                 sx={(theme) => ({
                   fontSize: "13px",

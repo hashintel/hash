@@ -1,4 +1,3 @@
-import { faList } from "@fortawesome/free-solid-svg-icons";
 import {
   Checkbox,
   TableBody,
@@ -24,7 +23,7 @@ import {
 
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import {
-  FontAwesomeIcon,
+  HashInlineIcon,
   PropertyTypeIcon,
   StyledPlusCircleIcon,
 } from "@hashintel/design-system";
@@ -63,6 +62,8 @@ import type { PropertyTypeFormValues } from "./property-list-card/shared/propert
 import type { TypeSelectorType } from "./shared/insert-property-field/type-selector";
 import type { InsertTypeFieldProps } from "./shared/insert-type-field";
 import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
+
+const faList = { icon: "list" } as const;
 
 export const REQUIRED_CELL_WIDTH = 100;
 
@@ -360,7 +361,7 @@ export const PropertyListCard = () => {
                 });
               }
         }
-        icon={<FontAwesomeIcon icon={faList} sx={{ fontSize: 24 }} />}
+        icon={<HashInlineIcon icon={faList} sx={{ fontSize: 24 }} />}
         headline={isReadonly ? <>No properties defined</> : <>Add a property</>}
         description={
           <>
