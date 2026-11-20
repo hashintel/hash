@@ -26,30 +26,23 @@ export type PetrinautPresentationCapabilities = {
   blurredChrome: boolean;
 };
 
-const PRESENTATION_CAPABILITIES: Record<
+const editorCapabilities: PetrinautPresentationCapabilities = {
+  showMutationActions: true,
+  showSourceCode: true,
+  showCustomVisualizers: true,
+  showViewportSettings: true,
+  showMinimap: true,
+  compactControls: false,
+  panelsOverlayCanvas: true,
+  blurredChrome: true,
+};
+
+const presentationCapabilities: Record<
   PetrinautPresentationProfile,
   PetrinautPresentationCapabilities
 > = {
-  editor: {
-    showMutationActions: true,
-    showSourceCode: true,
-    showCustomVisualizers: true,
-    showViewportSettings: true,
-    showMinimap: true,
-    compactControls: false,
-    panelsOverlayCanvas: true,
-    blurredChrome: true,
-  },
-  review: {
-    showMutationActions: false,
-    showSourceCode: true,
-    showCustomVisualizers: true,
-    showViewportSettings: true,
-    showMinimap: true,
-    compactControls: false,
-    panelsOverlayCanvas: true,
-    blurredChrome: true,
-  },
+  editor: editorCapabilities,
+  review: { ...editorCapabilities, showMutationActions: false },
   preview: {
     showMutationActions: false,
     showSourceCode: false,
@@ -63,15 +56,13 @@ const PRESENTATION_CAPABILITIES: Record<
 };
 
 const PetrinautPresentationContext =
-  createContext<PetrinautPresentationCapabilities>(
-    PRESENTATION_CAPABILITIES.editor,
-  );
+  createContext<PetrinautPresentationCapabilities>(editorCapabilities);
 
 export const PetrinautPresentationProvider = ({
   profile,
   children,
 }: PropsWithChildren<{ profile: PetrinautPresentationProfile }>) => (
-  <PetrinautPresentationContext value={PRESENTATION_CAPABILITIES[profile]}>
+  <PetrinautPresentationContext value={presentationCapabilities[profile]}>
     {children}
   </PetrinautPresentationContext>
 );
