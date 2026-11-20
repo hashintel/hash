@@ -230,9 +230,9 @@ export const StudySteps = ({
   const bestTrial = optimization.best?.trial;
 
   return (
-    <div className={stepsStyle} data-study-steps>
+    <div className={stepsStyle}>
       {/* The hint's row is reserved, so the 201st step moves nothing. */}
-      <span className={stepHintStyle} data-steps-hint>
+      <span className={stepHintStyle}>
         {trials.length > DISPLAYED_STEPS
           ? `Showing the latest ${DISPLAYED_STEPS} of ${trials.length} received steps.`
           : ""}

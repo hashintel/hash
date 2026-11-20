@@ -23,7 +23,7 @@ import type { MetricFrame } from "../shared/metric-frames";
  */
 export type YCeiling = { value: number };
 
-export type ChartShape = {
+type ChartShape = {
   outputType: MetricFrame["outputType"];
   aggregateRuns: boolean;
   runAggregation: RunAggregation;

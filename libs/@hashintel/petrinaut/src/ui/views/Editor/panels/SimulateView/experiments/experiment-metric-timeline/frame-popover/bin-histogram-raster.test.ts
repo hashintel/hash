@@ -95,16 +95,13 @@ describe("rasterizeBins", () => {
       300,
     );
 
-    expect(columns.map((column) => column.valueFrom)).toEqual([0, 1, 2]);
     expect(columns.map((column) => column.count)).toEqual([1, 2, 3]);
   });
 
   it("draws a single bin one unit wide", () => {
     const { columns, domainMin, domainMax } = rasterizeBins([[7, 4]], 60);
 
-    expect(columns).toEqual([
-      { left: 0, right: 60, count: 4, binCount: 1, valueFrom: 7, valueTo: 7 },
-    ]);
+    expect(columns).toEqual([{ left: 0, right: 60, count: 4, binCount: 1 }]);
     expect(domainMin).toBe(6.5);
     expect(domainMax).toBe(7.5);
   });

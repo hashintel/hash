@@ -134,13 +134,6 @@ const noteStyle = css({
   color: "neutral.s80",
 });
 
-const VERDICT_WORD: Record<StepVerdict, string> = {
-  clear: "clear",
-  limited: "limited",
-  infeasible: "infeasible",
-  unconstrained: "unconstrained",
-};
-
 /**
  * The step the card describes beneath the headline: the latest step whose
  * event landed. Null before any step.
@@ -155,7 +148,7 @@ export const describedStep = (
   );
 
 /** The step line's parts: the verdict word, the `Step 12: limited` head and what follows it. */
-export type DescribedStep = {
+type DescribedStep = {
   verdict: StepVerdict;
   head: string;
   /** The infeasible draw's constraint; the binding rate as `51 / 60 runs passed · 85% · Queue under 10`; a state other than complete; null when the head says it all. */
@@ -168,7 +161,7 @@ export const describeStep = (
   alpha: number,
 ): DescribedStep => {
   const verdict = stepVerdict(trial, alpha);
-  const head = `Step ${trial.trial + 1}: ${VERDICT_WORD[verdict]}`;
+  const head = `Step ${trial.trial + 1}: ${verdict}`;
   if (verdict === "infeasible") {
     return {
       verdict,
@@ -228,7 +221,7 @@ export const StudyConstraintsCard = ({
       bodyHeight={plotHeight}
       tone={tone}
     >
-      <div className={bodyStyle} data-constraint-summary>
+      <div className={bodyStyle}>
         <div className={headlineStyle}>
           <span className={headlineValueStyle}>
             {formatRate(rates.stepsClear, rates.stepsSimulated)}

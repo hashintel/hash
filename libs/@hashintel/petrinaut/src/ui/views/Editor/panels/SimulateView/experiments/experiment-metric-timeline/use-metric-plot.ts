@@ -27,8 +27,6 @@ import type { FramePick } from "./use-metric-plot/frame-scrubbing";
 import type { YCeiling } from "./use-metric-plot/plot-options";
 import type { RefObject } from "react";
 
-export type { FramePick } from "./use-metric-plot/frame-scrubbing";
-
 const UPlot = uPlot;
 /** Below this the axes and labels no longer fit. */
 const MIN_PLOT_HEIGHT = 220;

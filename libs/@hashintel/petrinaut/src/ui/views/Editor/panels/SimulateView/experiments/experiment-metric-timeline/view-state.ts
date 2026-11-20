@@ -42,7 +42,7 @@ export const DEFAULT_METRIC_VIEW_SETTINGS: MetricViewSettings = {
   timeAggregation: "mean",
 };
 
-export type MetricViewState = {
+type MetricViewState = {
   displayMode: MetricDisplayMode;
   /** The percentile-lines legend is shown under the chart. */
   showsBandLegend: boolean;

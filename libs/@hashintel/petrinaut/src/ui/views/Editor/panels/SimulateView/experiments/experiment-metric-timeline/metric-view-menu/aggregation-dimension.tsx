@@ -39,7 +39,7 @@ type AggregationMode = "trace" | "aggregate";
 const typedKeys = <Key extends string>(record: Record<Key, string>): Key[] =>
   Object.keys(record) as Key[];
 
-export type AggregationDimensionProps<
+type AggregationDimensionProps<
   Trace extends string,
   Statistic extends string,
 > = {

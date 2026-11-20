@@ -21,7 +21,7 @@
  */
 
 /** One drawn rectangle: a pixel span and the samples that fall in it. */
-export type HistogramColumn = {
+type HistogramColumn = {
   /** Left edge in plot pixels, inclusive. */
   left: number;
   /** Right edge in plot pixels, exclusive; always greater than `left`. */
@@ -30,13 +30,9 @@ export type HistogramColumn = {
   count: number;
   /** How many bins merged here; 1 when the column has a pixel to itself. */
   binCount: number;
-  /** Lowest bin value in the column. */
-  valueFrom: number;
-  /** Highest bin value in the column. */
-  valueTo: number;
 };
 
-export type HistogramRaster = {
+type HistogramRaster = {
   columns: HistogramColumn[];
   /**
    * The tallest column's samples-per-bin (`count / binCount`), which is the
@@ -104,7 +100,6 @@ export function rasterizeBins(
     if (previous && (edge <= previous.right || previous.right >= plotWidth)) {
       previous.count += frequency;
       previous.binCount += 1;
-      previous.valueTo = value;
       continue;
     }
     const left = previous?.right ?? 0;
@@ -113,8 +108,6 @@ export function rasterizeBins(
       right: Math.min(plotWidth, Math.max(edge, left + 1)),
       count: frequency,
       binCount: 1,
-      valueFrom: value,
-      valueTo: value,
     });
   }
 

@@ -97,7 +97,7 @@ const aggregateNumberStyle = css({
 });
 
 const BandLegend = () => (
-  <div className={legendStyle} data-band-legend>
+  <div className={legendStyle}>
     {distributionBandLegend.map((item) => (
       <span key={item.label} className={legendItemStyle}>
         <span

@@ -22,12 +22,6 @@ import type {
 import type { PointerPosition } from "./shared/pointer-position";
 import type { CSSProperties, RefObject } from "react";
 
-type FramePopoverPosition = {
-  x: number;
-  y: number;
-  placement: "above" | "below";
-};
-
 const POPOVER_WIDTH = 340;
 const POPOVER_MAX_HEIGHT = 248;
 const POPOVER_MARGIN = 10;
@@ -106,7 +100,7 @@ function clamp(value: number, min: number, max: number): number {
 function popoverPositionFor(
   pointer: PointerPosition,
   popoverHeight: number,
-): FramePopoverPosition {
+): { x: number; y: number } {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const width = Math.min(
@@ -125,16 +119,13 @@ function popoverPositionFor(
   const canFitBelow =
     pointer.clientY + POPOVER_OFFSET + height <=
     viewportHeight - POPOVER_MARGIN;
-  const placement = canFitBelow ? "below" : "above";
-  const preferredY =
-    placement === "below"
-      ? pointer.clientY + POPOVER_OFFSET
-      : pointer.clientY - POPOVER_OFFSET - height;
+  const preferredY = canFitBelow
+    ? pointer.clientY + POPOVER_OFFSET
+    : pointer.clientY - POPOVER_OFFSET - height;
 
   return {
     x: clamp(pointer.clientX + POPOVER_OFFSET, POPOVER_MARGIN, maxX),
     y: clamp(preferredY, POPOVER_MARGIN, maxY),
-    placement,
   };
 }
 
@@ -226,7 +217,6 @@ export const FramePopover = ({
       <div
         ref={popoverRef}
         className={popoverStyle}
-        data-placement={position.placement}
         role="dialog"
         aria-label={
           frame.outputType === "distribution"

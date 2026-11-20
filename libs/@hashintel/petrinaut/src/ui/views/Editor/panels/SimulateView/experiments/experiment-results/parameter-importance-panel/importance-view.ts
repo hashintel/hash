@@ -16,7 +16,7 @@ const LONG_STUDY_TRIALS = 100;
 /** Pearson needs this many completed steps before it says anything. */
 const MIN_CORRELATION_TRIALS = 3;
 
-export type ImportanceRow = {
+type ImportanceRow = {
   identifier: string;
   /** PED-ANOVA share of relative importance for reaching the best steps; null while none was received. */
   importance: number | null;
@@ -24,7 +24,7 @@ export type ImportanceRow = {
   correlation: number | null;
 };
 
-export type ImportanceView = {
+type ImportanceView = {
   /** Descending importance, with unestimated parameters last. */
   rows: readonly ImportanceRow[];
   /** Whether PED-ANOVA can rank the study at all: it needs two or more optimized parameters. */

@@ -36,7 +36,7 @@ describe("blendHeatmapGrids", () => {
       [0, 1],
       [0.2, 0.8],
     ]);
-    const blended = blendHeatmapGrids(previous, next, 0.5);
+    const blended = blendHeatmapGrids(previous, next);
     // Column 0 existed before: halfway between the two pictures.
     expect(blended.densities[0]).toBeCloseTo(0.5);
     expect(blended.densities[2]).toBeCloseTo(0.5);
@@ -56,7 +56,7 @@ describe("blendHeatmapGrids", () => {
       valueMin: 0,
       valueMax: 2,
     };
-    const blended = blendHeatmapGrids(previous, next, 0.5);
+    const blended = blendHeatmapGrids(previous, next);
     expect(blended.densities[0]).toBeCloseTo(0.5); // previous 1 at value 0
     expect(blended.densities[1]).toBeCloseTo(0); // previous 0 at value 1
     expect(blended.densities[2]).toBeCloseTo(0.5); // no previous, next only
@@ -81,7 +81,7 @@ describe("blendHeatmapGrids", () => {
       valueMin: 6.5,
       valueMax: 7.5,
     };
-    expect(blendHeatmapGrids(previous, next, 0.5).densities[0]).toBeCloseTo(1);
+    expect(blendHeatmapGrids(previous, next).densities[0]).toBeCloseTo(1);
   });
 });
 
