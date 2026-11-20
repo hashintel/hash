@@ -510,7 +510,10 @@ const createdFocus = (subjectEntityId: EntityId, webId: string) => ({
     entityTypeIds: [focusTypeId],
     webId,
     linkData: {
-      leftEntityId: expect.stringMatching(new RegExp(`^${webId}~`, "u")),
+      leftEntityId: expect.toSatisfy(
+        (id: string) => id.startsWith(`${webId}~`),
+        `an entity id in the web ${webId}`,
+      ),
       rightEntityId: subjectEntityId,
     },
   }),
@@ -906,4 +909,20 @@ test("the result keeps its identity while the open conversation, as read, is unc
   const first = result.current;
   rerender({ subjectEntityId: processId });
   expect(result.current).toBe(first);
+});
+
+test("the result keeps its identity when the draft is saved and the read is unchanged", async () => {
+  const { result, rerender } = renderConversation(draftId, false);
+  const draft = result.current;
+
+  rerender({ subjectEntityId: draftId, subjectSaved: true });
+  await settle();
+  expect(result.current.start).toBe(draft.start);
+  expect(result.current.replace).toBe(draft.replace);
+  expect(result.current).toBe(draft);
+
+  // A message sent after the save is written at once.
+  act(() => result.current.start("after-save"));
+  await settle();
+  expect(graph.writes).toEqual(created("after-save", draftId, processWebId));
 });

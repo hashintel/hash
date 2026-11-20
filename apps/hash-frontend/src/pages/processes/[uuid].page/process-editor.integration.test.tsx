@@ -1948,7 +1948,10 @@ test("a conversation started on a draft is written at its first save, in the dra
   expect(observed.brunchMounts).toBe(mounts);
   expect(graph.conversations).toEqual([
     expect.objectContaining({
-      entityId: expect.stringMatching(new RegExp(`^${webId}~`, "u")),
+      entityId: expect.toSatisfy(
+        (id: string) => id.startsWith(`${webId}~`),
+        `an entity id in the web ${webId}`,
+      ),
       properties: expect.objectContaining({
         [conversationIdUrl]: "draft-conversation",
       }),

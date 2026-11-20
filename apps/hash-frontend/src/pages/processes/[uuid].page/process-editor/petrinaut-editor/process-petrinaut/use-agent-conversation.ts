@@ -320,6 +320,12 @@ export const useAgentConversation = ({
           }
         }
       }
+      // The link gets a new id on each attempt, so if one lands but its
+      // answer is lost, the next creates a second, identical link. That is
+      // harmless: the read returns conversations, not links, so the
+      // conversation still opens once. A fixed id would instead have a retry
+      // refused for a taken id, which can't be told from a real failure, and
+      // could mark a conversation done that was never linked.
       const linked = await createEntity({
         variables: {
           entityTypeIds: [focusLinkTypeId],
@@ -390,9 +396,20 @@ export const useAgentConversation = ({
     new Map<EntityId, { source: string; conversationId: string }[]>(),
   );
 
+  /**
+   * The subject known to be saved, if any, read by {@link record} so that
+   * saving a draft doesn't give the returned object a new identity. It is
+   * updated before the effect below writes the draft's conversations; a
+   * message recorded before then waits in {@link unsaved} for that effect.
+   */
+  const savedSubject = useRef(subjectSaved ? subjectEntityId : null);
+  useEffect(() => {
+    savedSubject.current = subjectSaved ? subjectEntityId : null;
+  }, [subjectSaved, subjectEntityId]);
+
   const record = useCallback(
     (source: string, conversationId: string) => {
-      if (subjectSaved) {
+      if (savedSubject.current === subjectEntityId) {
         enqueue(source, conversationId);
         return;
       }
@@ -402,7 +419,7 @@ export const useAgentConversation = ({
       }
       unsaved.current.set(subjectEntityId, intents);
     },
-    [subjectSaved, subjectEntityId, enqueue],
+    [subjectEntityId, enqueue],
   );
 
   // Once the draft is saved, its conversations are written at once, in order.
