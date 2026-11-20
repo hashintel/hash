@@ -22,6 +22,9 @@ const portalLayerStyle = css({
 });
 
 const preview: Preview = {
+  parameters: {
+    options: { storySort: { order: ["Editor", "Components", "States"] } },
+  },
   decorators: [
     (Story) => {
       const portalContainerRef = useRef<HTMLDivElement>(null);
