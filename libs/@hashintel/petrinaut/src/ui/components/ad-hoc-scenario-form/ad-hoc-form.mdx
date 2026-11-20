@@ -4,7 +4,6 @@ description: How the one scenario form turns an inline Initial State + Parameter
 sidebar_order: 10
 ---
 
-import { Lanes } from "@diagrams/lanes";
 import { Pipeline } from "@diagrams/pipeline";
 import { Sequence } from "@diagrams/sequence";
 
@@ -329,105 +328,26 @@ initial-state body and wrapped override expressions.
 
 ## Who owns what
 
-<Lanes
-  title="The component split"
-  lanes={[
-    {
-      title: "core.simulation.authoring.adhoc",
-      accent: "core",
-      boxes: [
-        {
-          label: "ad-hoc-scenario.ts",
-          note: "Shapes, transitions (toggle / share / row kind), synthesis, slots, labels, place totals",
-        },
-        {
-          label: "ad-hoc-actions.ts",
-          note: "The action schemas, the pure reducer, rename-with-rewrite and duplication helpers, coalescing keys",
-        },
-      ],
-    },
-    {
-      title: "core.lsp",
-      accent: "core",
-      boxes: [
-        {
-          label: "generateAdHocSessionFiles",
-          note: "One wrapped virtual document per non-empty slot",
-        },
-        {
-          label: "temp/adhoc/* protocol",
-          note: "Session lifecycle in the worker, mirroring scenario sessions",
-        },
-      ],
-    },
-    {
-      title: "ui.adhoc-form",
-      accent: "ui",
-      boxes: [
-        {
-          label: "ad-hoc-scenario-form.tsx",
-          note: "Sections, the LSP session, the error map, the AdHocFormContext provider (dispatch included)",
-        },
-        {
-          label: "use-form-history.ts",
-          note: "The dispatch + snapshot-stack undo model described above",
-        },
-        {
-          label: "token-table.tsx",
-          note: "The spreadsheet: gutter kind menu, strips, shared columns, totals",
-        },
-        {
-          label: "value-editor.tsx",
-          note: "The in-place cell editor: Monaco, bounds, the mode's toggle pill",
-        },
-        {
-          label: "ui.spreadsheet-kit",
-          note: "The state-agnostic building blocks the three tables compose: the table shell, gutter cells with their menu choreography, the trailing add-lines, the row-selection model",
-        },
-        {
-          label: "ui.worksheet",
-          note: "Zone registry: each grid or header owns its arrows; an edge move focuses the next zone in DOM order, skipping collapsed ones",
-        },
-        {
-          label: "dependency-highlight.ts",
-          note: "Pure reference extraction: the rows a focused expression reads, and the cells reading a focused Variable or Parameter",
-        },
-        {
-          label: "variable-rows / parameter-rows / place-block / form-table",
-          note: "Rows at both scopes, collapsible place blocks, the shared spreadsheet style grammar",
-        },
-      ],
-    },
-    {
-      title: "Consumers",
-      accent: "ui",
-      boxes: [
-        {
-          label: "Simulation Settings (inline)",
-          note: "Quick simulation embeds the form through renderLayout — Variables and Parameters in the left column, Initial state in the right; react.simulation synthesizes and compiles on every change, so errors surface live",
-        },
-        {
-          label: "Create-experiment drawer",
-          note: "react.experiments compiles it at experiment start",
-        },
-        {
-          label: "Create-experiment drawer (sweeps)",
-          note: "Swept fields become the experiment's parameter axes",
-        },
-        {
-          label: "Scenario drawers",
-          note: 'Create and edit save the state as initialState.type "adhoc"; the edit drawer seeds through adHocStateFromScenario, showing a code scenario\'s body read-only',
-        },
-      ],
-    },
-  ]}
-/>
+| Layer | What it owns |
+| --- | --- |
+| [`core.simulation.authoring.adhoc`](layer:core.simulation.authoring.adhoc) | The state shapes, the transitions between row kinds, synthesis, slots and labels, the action schemas and the pure reducer |
+| [`core.lsp`](layer:core.lsp) | One wrapped virtual document per non-empty slot, and the `temp/adhoc/*` session protocol in the worker |
+| [`ui.adhoc-form`](layer:ui.adhoc-form) | The sections, the LSP session, the error map, the undo history, the token table, the in-place cell editor and the dependency highlight |
+| [`ui.spreadsheet-kit`](layer:ui.spreadsheet-kit) | The table shell, gutter cells and their menus, the trailing add-lines and the row-selection model |
+| [`ui.worksheet`](layer:ui.worksheet) | The keyboard flow: each grid or header owns its arrows, and an edge move focuses the next one in DOM order |
 
-`AdHocFormContext` is the internal seam: the form provides the whole editing
-state, the `dispatch` write path, the net context, the selection mode, the
-LSP session id, per-slot error/URI lookup, the dependency highlight, and the
-focused-value reporter, so the components beneath carry only their own value
-and location.
+Three places mount the form. Simulation Settings embeds it through
+`renderLayout`, and [`react.simulation`](layer:react.simulation) synthesizes
+and compiles on every change. The Create Experiment drawer hands the state to
+[`react.experiments`](layer:react.experiments), which compiles it at experiment
+start and turns swept fields into parameter axes. The scenario drawers save the
+state as `initialState.type "adhoc"`.
+
+`AdHocFormContext` is what the form gives the components beneath it: the
+`dispatch` write path, the net context, the selection mode, the error and the
+URI of each slot, the labels, the place totals, the dependency highlight and
+the focused-value reporter. A component beneath reads it with `useAdHocForm`
+and carries only its own value and location.
 
 ## Mounting the form
 
@@ -463,7 +383,7 @@ would render.
 The form runs its own LSP session against `LanguageClientContext`; with the
 default no-op client (tests, stories without the provider) it degrades to
 synthesis-only validation. The Create Experiment drawer's constraint rows
-(`create-experiment-drawer/constraints/`) follow the same pattern with
+(`create-experiment-drawer/constraints-section.tsx`) follow the same pattern with
 `temp/constraint/*` sessions: one per row, keyed by the draft id, carrying
 the selected scenario's parameters so `scenario.*` resolves in every row.
 State is plain data — hold it wherever the consumer
