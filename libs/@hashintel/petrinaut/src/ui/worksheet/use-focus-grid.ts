@@ -27,6 +27,8 @@ export interface FocusGrid {
     row: number,
     column: number,
   ) => (element: HTMLElement | null) => void;
+  /** Focuses the cell at a position; false when none took focus. */
+  focus: (row: number, column: number) => boolean;
   onKeyDown: (row: number, column: number) => React.KeyboardEventHandler;
   /** Reports the cell that gained focus; wire to every cell's onFocus. */
   onFocusCell: (row: number, column: number) => void;
@@ -214,6 +216,7 @@ export function useFocusGrid(): FocusGrid {
 
   return {
     register,
+    focus: (row, column) => focusLands(cells.current.get(cellKey(row, column))),
     onKeyDown,
     onFocusCell: (row, column) => {
       setTabbable((current) =>

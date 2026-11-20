@@ -11,7 +11,7 @@
  * worksheet member past the edges.
  */
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import { Icon, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -98,9 +98,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
     (selection === "expose" && placeId === null)
       ? selection
       : null;
-  const { register, onKeyDown, attach } = useFocusGrid();
-  const gutterRefs = useRef(new Map<number, HTMLButtonElement>());
-  const phantomRef = useRef<HTMLButtonElement | null>(null);
+  const { register, focus, onKeyDown, attach } = useFocusGrid();
   // Gutter focus selects the whole row; the selection highlight follows it.
   const rowSelection = useRowSelection();
   // The add-line selects on the first click and materializes on the second.
@@ -136,12 +134,10 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   const deleteVariable = (index: number) => {
     dispatch({ type: "deleteVariable", placeId, index });
     const remaining = variables.length - 1;
+    // The gutter of the row that took the place; the add-line, which is
+    // row 0 then, when no variable is left.
     setTimeout(() => {
-      if (remaining > 0) {
-        gutterRefs.current.get(Math.min(index, remaining - 1))?.focus();
-      } else {
-        phantomRef.current?.focus();
-      }
+      focus(Math.max(0, Math.min(index, remaining - 1)), 0);
     }, 0);
   };
 
@@ -211,14 +207,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                   }
                   onOpenMenu={(anchor) => rowSelection.openMenu(index, anchor)}
                   onCloseMenu={rowSelection.closeMenu}
-                  buttonRef={(element) => {
-                    register(index, 0)(element);
-                    if (element) {
-                      gutterRefs.current.set(index, element);
-                    } else {
-                      gutterRefs.current.delete(index);
-                    }
-                  }}
+                  buttonRef={register(index, 0)}
                   onFocus={() => {
                     rowSelection.setFocusedRow(index);
                     setFocusedValue(target);
@@ -385,7 +374,6 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
           >
             <button
               ref={(element) => {
-                phantomRef.current = element;
                 for (const column of PHANTOM_COLUMNS) {
                   register(variables.length, column)(element);
                 }
