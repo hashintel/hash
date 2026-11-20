@@ -510,13 +510,7 @@ export const experimentResultsModel = (
               ),
           }
         : null,
-    after:
-      study === null ? null : (
-        <StudySteps
-          optimization={study}
-          bestTrial={study.best?.trial ?? null}
-        />
-      ),
+    after: study === null ? null : <StudySteps optimization={study} />,
     footer: (
       <>
         {canCancel ? (

@@ -700,10 +700,8 @@ describe("experimentResultsModel with a study", () => {
     expect(cards[0]).toBeNull();
     expect(propsOf<{ plotHeight: number }>(cards[1]).plotHeight).toBe(220);
     expect(
-      propsOf<{ bestTrial: number | null; optimization: OptimizationRecord }>(
-        running.after,
-      ),
-    ).toMatchObject({ bestTrial: 2, optimization: { id: "study" } });
+      propsOf<{ optimization: OptimizationRecord }>(running.after),
+    ).toMatchObject({ optimization: { id: "study" } });
   });
 
   it("keeps the objective strip under the sliders beside the study's cards", () => {
