@@ -11,8 +11,10 @@
 
 extern crate alloc;
 
-#[expect(dead_code, reason = "the stage frame is the first caller")]
+#[expect(dead_code, reason = "Capture is the first caller of the stage frame")]
 mod run;
+#[cfg_attr(not(test), expect(dead_code, reason = "Capture is the first caller"))]
+mod stage;
 #[cfg_attr(
     not(test),
     expect(
@@ -25,6 +27,7 @@ mod storage;
 mod testing;
 
 pub use self::{
-    run::{RunId, StartError, StartInput, start},
+    run::{RunId, Stage, StartError, StartInput, start},
+    stage::StageError,
     storage::{IntegrationNamespace, S3Bucket, Storage, StorageError},
 };

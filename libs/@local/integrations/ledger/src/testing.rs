@@ -1,13 +1,36 @@
 use hash_crypto::Secret;
+use hash_integrations_definition::Definition;
 use testcontainers::{
     ContainerAsync, ImageExt as _,
     core::{CmdWaitFor, ExecCommand},
     runners::AsyncRunner as _,
 };
 use testcontainers_modules::minio::MinIO;
+use time::OffsetDateTime;
+use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
 
-use crate::{IntegrationNamespace, S3Bucket};
+use crate::{IntegrationNamespace, RunId, S3Bucket, StartInput, Storage, start};
+
+/// The example definition of the `aviation` connector.
+const AVIATION: &str = include_str!("../../definition/examples/aviation.yaml");
+
+/// Starts `run` of the `aviation` example in `storage`.
+pub(crate) async fn started(storage: &Storage, run: RunId) {
+    let definition =
+        Definition::from_yaml(AVIATION).expect("the example should be a valid definition");
+    let input = StartInput {
+        run,
+        web: WebId::new(Uuid::from_u128(0x0000_0000_0000_4000_8000_0000_0000_0001)),
+        actor: ActorEntityUuid::new(Uuid::from_u128(0x0000_0000_0000_4000_8000_0000_0000_0002)),
+        definition: AVIATION.into(),
+        id_namespace: None,
+        submitted_at: OffsetDateTime::UNIX_EPOCH,
+    };
+    start(storage, &definition, input)
+        .await
+        .expect("should start the run");
+}
 
 /// Starts MinIO with an empty `captures` bucket and returns it with its API port.
 pub(crate) async fn minio() -> (ContainerAsync<MinIO>, u16) {
