@@ -229,7 +229,8 @@ const EntityRowBody: React.FC<EntityRowProps> = ({
  */
 export const EntityRow = memo(EntityRowBody);
 
-const GroupRowBody: React.FC<{
+/** The header row of a group of entities, which collapses and expands it. */
+export const GroupRow: React.FC<{
   elementId: string;
   id: string;
   name: string;
@@ -268,6 +269,3 @@ const GroupRowBody: React.FC<{
     ) : null}
   </div>
 );
-
-/** The header row of a group of entities, which collapses and expands it. `memo` as for {@link EntityRow}. */
-export const GroupRow = memo(GroupRowBody);
