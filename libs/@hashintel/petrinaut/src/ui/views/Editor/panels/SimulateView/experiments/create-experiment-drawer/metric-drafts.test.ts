@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 
+import { DiagnosticSeverity, type SDCPN } from "@hashintel/petrinaut-core";
+
+import { getMetricDocumentUri } from "../../../../../../monaco/editor-paths";
 import {
   buildMetricSpecs,
   createDefaultMetricDraft,
   type ExperimentMetricDraft,
   metricKindPatch,
+  summarizeMetricDraftLspErrors,
 } from "./metric-drafts";
-
-import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const place = (id: string, name: string): SDCPN["places"][number] => ({
   id,
@@ -166,5 +168,53 @@ describe("buildMetricSpecs", () => {
     ],
   ])("refuses %s with the reason the footer shows", (_case, drafts, reason) => {
     expect(() => buildMetricSpecs(drafts, sdcpn)).toThrow(reason);
+  });
+});
+
+describe("summarizeMetricDraftLspErrors", () => {
+  const errorsOf = (sessionId: string, ...messages: string[]) =>
+    [
+      getMetricDocumentUri(sessionId),
+      messages.map((message) => ({
+        message,
+        severity: DiagnosticSeverity.Error,
+      })),
+    ] as const;
+
+  it("names the first custom-code metric with an error, and skips a built-in metric's session", () => {
+    expect(
+      summarizeMetricDraftLspErrors(
+        new Map([
+          errorsOf("built-in", "A built-in metric's code is not read"),
+          errorsOf("ratio", "Property 'Missing' does not exist."),
+        ]),
+        [
+          draft({ label: "Ignored", metricSessionId: "built-in" }),
+          draft({
+            kind: "expression",
+            label: "Infection ratio",
+            metricSessionId: "ratio",
+          }),
+        ],
+      ),
+    ).toBe(
+      "Metric \"Infection ratio\" has 1 code diagnostic: Property 'Missing' does not exist.",
+    );
+  });
+
+  it("uses a fallback label and the plural for two errors without a message", () => {
+    expect(
+      summarizeMetricDraftLspErrors(new Map([errorsOf("blank", "", "")]), [
+        draft({ kind: "expression", label: "   ", metricSessionId: "blank" }),
+      ]),
+    ).toBe('Metric "Untitled metric" has 2 code diagnostics.');
+  });
+
+  it("is null when no custom-code metric has an error", () => {
+    expect(
+      summarizeMetricDraftLspErrors(new Map([errorsOf("other", "Elsewhere")]), [
+        draft({ kind: "expression", label: "Valid", metricSessionId: "mine" }),
+      ]),
+    ).toBeNull();
   });
 });

@@ -2,6 +2,7 @@
  * A metric of the Create Experiment form as plain data: the draft a row
  * edits, its labels, and the specs the experiment is created with.
  */
+import { summarizeMetricLspErrors } from "../../metrics/metric-lsp";
 import { MODEL_METRIC_VALUE_PREFIX } from "../../metrics/metric-picker-options";
 
 import type { ExperimentMetricSpecInput } from "../../../../../../../react/experiments/context";
@@ -275,3 +276,29 @@ export function buildMetricSpecs(
     }
   });
 }
+
+/**
+ * The footer's sentence for the first custom-code metric whose code has
+ * errors, as the language client reports them now; null when none has.
+ */
+export const summarizeMetricDraftLspErrors = (
+  diagnosticsByUri: Parameters<typeof summarizeMetricLspErrors>[0],
+  drafts: readonly ExperimentMetricDraft[],
+): string | null => {
+  for (const draft of drafts) {
+    if (draft.kind !== "expression") {
+      continue;
+    }
+    const { count, firstMessage } = summarizeMetricLspErrors(
+      diagnosticsByUri,
+      draft.metricSessionId,
+    );
+    if (count > 0) {
+      const label = draft.label.trim() || "Untitled metric";
+      return `Metric "${label}" has ${count} code diagnostic${
+        count === 1 ? "" : "s"
+      }${firstMessage ? `: ${firstMessage}` : "."}`;
+    }
+  }
+  return null;
+};

@@ -15,7 +15,6 @@ import {
 import { SectionList } from "../../../../../components/section";
 import { FocusControls } from "../../../../../worksheet/focus-controls";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
-import { summarizeMetricLspErrors } from "../metrics/metric-lsp";
 import { SimulationPanel } from "../shared/simulation-panel";
 import {
   type ConstraintDraftsState,
@@ -23,7 +22,6 @@ import {
 } from "./create-experiment-drawer/constraint-drafts";
 import { summarizeConstraintLspErrors } from "./create-experiment-drawer/constraint-lsp";
 import { ConstraintsSection } from "./create-experiment-drawer/constraints-section";
-import { getExperimentMetricDiagnosticError } from "./create-experiment-drawer/experiment-metric-lsp-validation";
 import { ExperimentSection } from "./create-experiment-drawer/experiment-section";
 import {
   EMPTY_EXPERIMENT_SIMULATOR,
@@ -38,6 +36,7 @@ import {
 import {
   buildMetricSpecs,
   type ExperimentMetricDraft,
+  summarizeMetricDraftLspErrors,
 } from "./create-experiment-drawer/metric-drafts";
 import { MetricsSection } from "./create-experiment-drawer/metrics-section";
 import { ScenarioSection } from "./create-experiment-drawer/scenario-section";
@@ -136,16 +135,9 @@ export const CreateExperimentDrawer = ({
     context: adHocFormContext,
   });
 
-  // Each custom-code metric's errors, as the language client reports them now.
-  const metricDiagnosticError = getExperimentMetricDiagnosticError(
-    metricDrafts.map((draft) => ({
-      kind: draft.kind,
-      label: draft.label,
-      lspDiagnostics: summarizeMetricLspErrors(
-        diagnosticsByUri,
-        draft.metricSessionId,
-      ),
-    })),
+  const metricDiagnosticError = summarizeMetricDraftLspErrors(
+    diagnosticsByUri,
+    metricDrafts,
   );
   const metricFormError =
     metricDrafts.length === 0
