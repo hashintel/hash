@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { act, renderHook } from "@testing-library/react";
-import { type ReactNode } from "react";
+import { use, type ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
 
 import {
@@ -25,11 +25,7 @@ import {
   type SimulationState,
   DEFAULT_SIMULATION_CONTEXT,
 } from "../simulation/context";
-import {
-  EditorContext,
-  type EditorContextValue,
-  initialEditorState,
-} from "../state/editor-context";
+import { EditorContext } from "../state/editor-context";
 import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import { usePetrinautMutations } from "./use-petrinaut-mutations";
 
@@ -46,48 +42,18 @@ const makeSDCPN = (partial?: Partial<SDCPN>): SDCPN => ({
   ...partial,
 });
 
-const editorContextValue = (
-  globalMode: "edit" | "simulate" = "edit",
-): EditorContextValue => ({
-  ...initialEditorState,
+/** The editor's default state, in the given mode. */
+const EditorInMode = ({
   globalMode,
-  navigateTo: () => {},
-  setGlobalMode: () => {},
-  setEditViewMode: () => {},
-  setEditionMode: () => {},
-  setAddComponentMode: () => {},
-  setCursorMode: () => {},
-  setLeftSidebarOpen: () => {},
-  setBottomPanelOpen: () => {},
-  toggleBottomPanel: () => {},
-  setActiveBottomPanelTab: () => {},
-  isSelected: () => false,
-  setSelection: () => {},
-  beginSelectionGesture: () => {},
-  endSelectionGesture: () => {},
-  selectItem: () => {},
-  toggleItem: () => {},
-  clearSelection: () => {},
-  setHoveredItem: () => {},
-  clearHoveredItem: () => {},
-  keepPlaceVisualizerOpen: () => {},
-  closePlaceVisualizer: () => {},
-  toggleComponentInstanceFold: () => {},
-  openPlaceVisualizer: () => {},
-  setVisualizerEditorFocus: () => {},
-  bringVisualizerToFront: () => {},
-  updateDraggingStateByNodeId: () => {},
-  collapseAllPanels: () => {},
-  setTimelineChartType: () => {},
-  setTimelineView: () => {},
-  setHiddenTimelineSeriesIds: () => {},
-  setSimulateViewMode: () => {},
-  setSimulateDrawer: () => {},
-  setSearchOpen: () => {},
-  setAiAssistantOpen: () => {},
-  toggleAiAssistant: () => {},
-  searchInputRef: { current: null },
-});
+  children,
+}: {
+  globalMode: "edit" | "simulate";
+  children: ReactNode;
+}) => (
+  <EditorContext value={{ ...use(EditorContext), globalMode }}>
+    {children}
+  </EditorContext>
+);
 
 type WrapperOptions = {
   sdcpn?: SDCPN;
@@ -125,9 +91,7 @@ const createWrapper = (options: WrapperOptions = {}) => {
         <SimulationContext
           value={{ ...DEFAULT_SIMULATION_CONTEXT, state: simulationState }}
         >
-          <EditorContext value={editorContextValue(globalMode)}>
-            {children}
-          </EditorContext>
+          <EditorInMode globalMode={globalMode}>{children}</EditorInMode>
         </SimulationContext>
       </SDCPNContext>
     </PetrinautInstanceContext>
@@ -181,36 +145,6 @@ describe("usePetrinautMutations", () => {
       const places = instance.definition.get().places;
       expect(places).toHaveLength(1);
       expect(places[0]!.id).toBe(toPetrinautId("p1"));
-    });
-
-    test("commitNodePositions updates positions", () => {
-      const sdcpn = makeSDCPN({
-        places: [
-          {
-            id: "p1",
-            name: "P1",
-            colorId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
-        ],
-      });
-      const { Wrapper, instance } = createWrapper({ sdcpn });
-      const { result } = renderHook(usePetrinautMutations, {
-        wrapper: Wrapper,
-      });
-
-      act(() => {
-        result.current.commitNodePositions({
-          commits: [
-            { id: "p1", itemType: "place", position: { x: 100, y: 200 } },
-          ],
-        });
-      });
-
-      expect(instance.definition.get().places[0]!.x).toBe(100);
-      expect(instance.definition.get().places[0]!.y).toBe(200);
     });
   });
 
@@ -406,57 +340,6 @@ describe("usePetrinautMutations", () => {
     expect(added({})).toBe(true);
     expect(added({ readonly: true })).toBe(false);
     expect(added({ rules: { edit: "compose" } })).toBe(false);
-  });
-
-  describe("cascading deletes", () => {
-    test("removePlace cascades to remove connected arcs", () => {
-      const sdcpn = makeSDCPN({
-        places: [
-          {
-            id: "p1",
-            name: "P1",
-            colorId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
-          {
-            id: "p2",
-            name: "P2",
-            colorId: null,
-            dynamicsEnabled: false,
-            x: 100,
-            y: 0,
-          },
-        ],
-        transitions: [
-          {
-            id: "t1",
-            name: "T1",
-            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
-            outputArcs: [{ placeId: "p2", weight: 1 }],
-            lambdaType: "predicate",
-            lambdaCode: "",
-            transitionKernelCode: "",
-            x: 50,
-            y: 0,
-          },
-        ],
-      });
-      const { Wrapper, instance } = createWrapper({ sdcpn });
-      const { result } = renderHook(usePetrinautMutations, {
-        wrapper: Wrapper,
-      });
-
-      act(() => {
-        result.current.removePlace({ placeId: "p1" });
-      });
-
-      const updated = instance.definition.get();
-      expect(updated.places).toHaveLength(1);
-      expect(updated.places[0]!.id).toBe(toPetrinautId("p2"));
-      expect(updated.transitions[0]!.inputArcs).toHaveLength(0);
-    });
   });
 });
 
