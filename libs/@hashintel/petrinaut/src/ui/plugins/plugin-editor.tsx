@@ -36,7 +36,10 @@ import { OptimizationsContext } from "../../react/optimizations/context";
 import { ActiveNetContext } from "../../react/state/active-net-context";
 import { useReadOnlyReason } from "../../react/state/use-read-only-reason";
 import { createAccessFamilies } from "./plugin-access";
-import { useCanvasControllerRegistration } from "./plugin-editor/use-canvas-controller-registration";
+import {
+  type CanvasRegistration,
+  createCanvasRegistration,
+} from "./plugin-editor/canvas-registration";
 
 import type { ExperimentRecord } from "../../react/experiments/context";
 import type { PetrinautNavigationState } from "../../react/navigation";
@@ -46,8 +49,6 @@ import type {
   PluginErrors,
   PluginNotifications,
 } from "./plugin-access";
-
-type CanvasRegistration = ReturnType<typeof useCanvasControllerRegistration>;
 
 /** Editor state from the editor's providers, as one render sees it. */
 interface PluginEditorSnapshot {
@@ -210,7 +211,7 @@ const PluginEditorSync = ({
  */
 export const PluginEditorProvider = ({ children }: { children: ReactNode }) => {
   const instance = useCoreInstance();
-  const canvas = useCanvasControllerRegistration();
+  const [canvas] = useState(createCanvasRegistration);
   const snapshot = usePluginEditorSnapshot();
   const [editor, setEditor] = useState(() =>
     createPluginEditor(0, instance, canvas, snapshot),
