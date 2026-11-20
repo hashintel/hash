@@ -13,8 +13,6 @@ import { useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   classicRunVariables,
-  classicScenarioRunState,
-  compileScenario,
   createUserKeyedRecord,
 } from "@hashintel/petrinaut-core";
 
@@ -29,6 +27,7 @@ import { Section } from "../../../../../../components/section";
 import { StackedSections } from "../../../../../../components/stacked-sections";
 import { scenarioExpressions } from "../../../../../shared/scenario-expressions";
 import { scenarioRunInputs } from "./experiment-scenario-inputs";
+import { computedStatePreview } from "./experiment-scenario-run/computed-state-preview";
 
 import type { ExperimentParameterInput } from "../../../../../../../react/experiments/parameter-grid";
 import type { ScenarioRunInput } from "./experiment-scenario-inputs";
@@ -155,97 +154,9 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
     }
   };
 
-  // The materialized preview, computed only while its sub-section is open.
-  // "Computed parameters" are the RESOLVED values compilation produces
-  // (defaults, overrides, and ad-hoc entries applied), not the raw override
-  // expressions — every net parameter shows the concrete value the runs use.
-  const computed = (() => {
-    if (!computedOpen) {
-      return null;
-    }
-    if (hirState.error !== null) {
-      return {
-        ready: false as const,
-        notice: `The state preview could not be compiled: ${hirState.error}`,
-      };
-    }
-    if (hirState.hir === null) {
-      return { ready: false as const, notice: "Computing the state preview…" };
-    }
-    // A fixed input previews as given. A swept one previews at the start of
-    // its range — the first combination the sweep runs — and the notice
-    // says so, since the panel promises the exact state each run starts
-    // with and a swept parameter has one per combination.
-    const previewValues = createUserKeyedRecord<string>();
-    const sweptAtStart: string[] = [];
-    for (const [identifier, input] of Object.entries(inputs)) {
-      if (input.mode === "fixed") {
-        previewValues[identifier] = input.value;
-      } else {
-        previewValues[identifier] = String(input.min);
-        sweptAtStart.push(`${identifier} = ${input.min}`);
-      }
-    }
-    const numericValues = createUserKeyedRecord<number>();
-    for (const [identifier, value] of Object.entries(previewValues)) {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) {
-        numericValues[identifier] = parsed;
-      }
-    }
-    const outcome = compileScenario(
-      scenario,
-      hirState.hir,
-      context.netParameters,
-      context.places,
-      context.types,
-      { scenarioParameterValues: numericValues },
-    );
-    if (!outcome.ok) {
-      return {
-        ready: false as const,
-        notice: `The state preview could not be computed: ${outcome.errors
-          .map((error) => error.message)
-          .join(" · ")}`,
-      };
-    }
-    const materialized = classicScenarioRunState(
-      scenario,
-      outcome.result.initialState,
-      { places: context.places, types: context.types },
-      previewValues,
-    );
-    const notices = [
-      sweptAtStart.length > 0
-        ? `Swept parameters shown at the start of their ranges: ${sweptAtStart.join(", ")}`
-        : null,
-      materialized.truncated.length > 0
-        ? `Preview truncated: ${materialized.truncated
-            .map(
-              (cut) =>
-                `${cut.placeName} shows ${cut.shown} of ${cut.total} rows`,
-            )
-            .join(" · ")}`
-        : null,
-    ].filter((notice) => notice !== null);
-    return {
-      ready: true as const,
-      notice: notices.length > 0 ? notices.join(" · ") : null,
-      places: materialized.state.places,
-      netParameters: context.netParameters.flatMap((parameter) => {
-        const resolved = outcome.result.parameterValues[parameter.variableName];
-        return resolved === undefined
-          ? []
-          : [
-              {
-                parameterId: parameter.id,
-                expression: resolved,
-                optimize: null,
-              },
-            ];
-      }),
-    };
-  })();
+  const computed = computedOpen
+    ? computedStatePreview({ hirState, scenario, inputs, context })
+    : null;
 
   const renderState: AdHocScenarioState = {
     variables: run?.variables ?? [],
