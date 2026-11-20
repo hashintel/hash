@@ -4,7 +4,7 @@ direction: down
 
 vars: {
   d2-legend: {
-    a -> b: renders through React
+    a -> b: passes data or calls
     a -> b: writes each frame {style.stroke-dash: 3}
     a.style.opacity: 0
     b.style.opacity: 0
@@ -25,11 +25,11 @@ interactions: "useCanvasInteractions\nactions that keep their identity" {style.f
 
 net -> scene: "derives nodes and arcs"
 selection -> scene: "marks selected nodes"
-pointer -> scene: "hover at rest, drag preview"
+pointer -> scene: "hover, drag preview"
 scene -> elements: "maps to nodes and edges"
 elements -> flow: "same object for an unchanged node"
 flow -> items: "renders the changed ones"
-frames -> items: "notifies one id"
+frames -> items: "each reads its own value by id"
 flow -> pane: "pan and zoom transform" {style.stroke-dash: 3}
 flow -> interactions: "reports gestures"
 interactions -> selection: "sets on a click or a box"
