@@ -148,12 +148,7 @@ export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
       style={{ bottom: BOTTOM_BAR_GAP }}
     >
       <div ref={barRef} data-bottom-bar className={bottomBarStyle}>
-        <BottomBarCollapseContext
-          value={{
-            isCollapsed: layout.isCollapsed,
-            reportGroupWidth: layout.reportGroupWidth,
-          }}
-        >
+        <BottomBarCollapseContext value={layout}>
           <GlassSegment>
             <CursorModeDropdown />
             {hasEditionGroup && (
