@@ -1,0 +1,68 @@
+---
+title: The canvas
+description: The canvas renders the active net as an interactive graph, with node and arc interaction.
+sidebar_order: 10
+---
+
+The canvas renders the active net as an interactive graph, with node and arc interaction.
+It owns the scene, the pointer state, the per-frame simulation values and the gestures. The editor and the [preview](layer:ui.preview) both mount it, so it reads nothing from the editor shell.
+
+![A gesture changes one store, the scene is derived again, and React Flow renders the nodes whose object changed](./canvas-flow.d2)
+
+## Entry point
+
+`SDCPNView` in `ui/views/SDCPN/sdcpn-view.tsx` composes four parts, in this order:
+
+1. `useCanvasScene` builds a `CanvasScene`: plain data that says what to draw and holds no React Flow type.
+2. `CanvasPointerContext` carries the hover and the drag preview of this canvas.
+3. `CanvasFrameStoreProvider` holds the values of the viewed simulation frame. It is keyed by net, so a new net starts with an empty store.
+4. `ReactFlowCanvas`, the [React Flow renderer](layer:ui.views.canvas.react-flow), draws the scene and publishes a `CanvasController`.
+
+## Interface
+
+| Name | Use it to |
+| --- | --- |
+| `SDCPNView` | Mount the canvas. `onControllerChange` receives the controller. |
+| `CanvasController` | Move the viewport from outside: `setViewport`, `fitView`, `zoomIn`, `screenToScene`. |
+| `useCanvasController` | Read the controller inside the renderer. |
+| `useCanvasInteractions` | Turn a renderer's gestures into selection, moves, connections and drops. |
+| `usePlaceTokenLabel`, `useTransitionFrame` | Read one item's value of the viewed frame, by id. |
+| `useIsHovered` | Ask whether the pointer is on one node or line. |
+
+## Data flow
+
+A user drags a node:
+
+1. React Flow reports position changes. `useApplyNodeChanges` passes them to `moveNodes`, which writes the snapped positions to `dragPreview` in the canvas pointer.
+2. `useCanvasScene` derives the scene again with the previewed positions.
+3. `useReactFlowElements` maps the scene to nodes and edges, and `useStableItems` returns the previous object for each item whose content is the same.
+4. React Flow renders the dragged nodes and their arcs.
+5. On release, `dropNodes` commits the positions in one document mutation and clears the preview in the same tick.
+
+## What renders
+
+| Gesture | Nodes and arcs that render |
+| --- | --- |
+| Select | The nodes whose selected state or focus role changed, and their arcs |
+| Hover | None until the pointer rests, then the nodes whose focus role changed |
+| Drag frame | The dragged nodes and their arcs |
+| Pan, zoom | None. React Flow writes one transform on the viewport element. |
+| Playback frame | The places and transitions whose value moved |
+
+`benchmarks/monaco-performance/canvas-scale.mjs` measures each gesture on a net of about 500 nodes and, with `details=1`, lists who rendered.
+
+## Rules
+
+**A handler given to `ReactFlow` keeps its identity.** React Flow renders every node and arc when a handler prop is a new function. `useCanvasInteractions` returns its actions through `useStableActions`, and each action reads the latest state when called. `use-stable-actions.test.ts` holds this.
+
+**An unchanged node or edge is the same object, and an unchanged list the same array.** React Flow renders an item for a new object and walks every item for a new array. `use-stable-items.test.ts` and the test "preserves unaffected nodes and arcs when focus changes" in `use-react-flow-elements.test.tsx` hold this.
+
+**A value that changes per playback frame is read by id from the frame store.** A frame moves one number per place and per transition, and a scene rebuild for each frame would compare every node. The test "re-renders only the items whose values moved" in `canvas-frame-store.test.tsx` holds this.
+
+**Hover and drag preview stay in `CanvasPointer`.** A pointer move then renders the canvas and no panel. `use-canvas-scene.test.tsx` covers the hover delay and the drag.
+
+## Pitfalls
+
+- `useStableItems` reads a ref during render and opts out of the React Compiler with `"use no memo"`. It compares against the previous render's objects, which no effect can do in time. Keep scene items plain data: the comparison handles primitives, plain objects and arrays only.
+- A new field on a scene node that changes on every render gives every node a new object, and every node renders.
+- An action from `useCanvasInteractions` is for an event. Calling one during render reads state of an earlier render.
