@@ -67,14 +67,19 @@ const typedHint = (question: OfferedQuestion) =>
 
 /**
  * The questions the latest reply asks, when it is the last
- * thing said: nothing has answered it and it wasn't stopped.
+ * thing said: nothing has answered it, and it was neither stopped nor
+ * failed, even if its offer went through before the turn ended.
  */
 export const currentOffer = (messages: readonly PetrinautAiMessage[]) => {
   // Host system notes can trail the turn they annotate.
   const message = messages.findLast(
     (each) => each.role !== "system" && !isSpokenLine(each),
   );
-  if (message?.role !== "assistant" || message.metadata?.stopped === true)
+  if (
+    message?.role !== "assistant" ||
+    message.metadata?.stopped === true ||
+    message.metadata?.failed === true
+  )
     return undefined;
   const offer = offerIn(message.parts);
   return offer && { messageId: message.id, offer };
