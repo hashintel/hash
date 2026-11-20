@@ -1,6 +1,6 @@
 # Milestone 8: Prepare, incremental
 
-### What it adds
+## What it adds
 
 Stage 2 for incremental updates. It takes the capture file of a run and leaves the run's entity changes in the sync table, an issues file, and the `prepare` part of `run.json`.
 
@@ -15,7 +15,7 @@ Capture ──► [ Prepare, incremental ] ──► Send
 
 **Decided in:** `../plan.md`, step 3, "Prepare, for incremental updates" and "How a stage writes".
 
-### Size
+## Size
 
 |           | Lines   |                                                                                              |
 | --------- | ------- | -------------------------------------------------------------------------------------------- |
@@ -26,7 +26,7 @@ Capture ──► [ Prepare, incremental ] ──► Send
 
 The plan estimated 740. The issues file as JSON lines (D3) saved 55 lines. The check of this batch added about 45: which failures are permanent, the workspace settings, and the source's key in staging. Several tables per run (D14) added 20.
 
-### Interface
+## Interface
 
 One function is called from outside the stage:
 
@@ -37,7 +37,7 @@ pub async fn prepare_incremental(storage: &Storage, run: RunId) -> Result<(), Re
 
 Everything it calls from other milestones is in `contracts.md`: `stage::begin` and `end`, `Storage::download` and `upload`, the `Workspace` functions, `derive_entity_id` and `derive_link_id`, `SinkRow`, and `sync_table::write`.
 
-### Pseudo code
+## Pseudo code
 
 **`stage/prepare/incremental/mod.rs`: the entry function** (new, 130 lines)
 
@@ -225,7 +225,7 @@ pub(super) async fn write(storage, run, scratch: &Path, issues: &[Issue]) -> Res
 
 `Issue` is `engine`'s `PlanIssue` with its two cases as one struct of plain values. `ConversionFailure` and `FailureReason` of milestone 7 cannot be written as JSON, and stay as they are: the issue takes the reason as its text.
 
-### Source table
+## Source table
 
 | New file                        | Item                                                                                             | Comes from                                                                                                                    | Kind    | Lines |
 | ------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ------- | ----- |
@@ -241,7 +241,7 @@ pub(super) async fn write(storage, run, scratch: &Path, issues: &[Issue]) -> Res
 
 Adapted 370, new 380, total 750.
 
-### Tests
+## Tests
 
 **The test definition** is the aviation example as it is: two tables, aircraft and airfields, and a link from an aircraft to its home airfield. The link needs no join. An aircraft row holds the key of its airfield, and an entity id is derived from the entity type and that key alone, so the link's far end is known without reading the airfields table.
 
@@ -261,12 +261,12 @@ Tests 3 and 4 need a MinIO container, because they write the sync table. Test 1 
 
 Not tested on their own: `captured_tables`, `run_pipelines`, `collect_changes` and the writing of the issues file. Tests 3 and 4 go through all of them.
 
-### What was stripped
+## What was stripped
 
 - The source checks for row counts, empty and unique columns in staging: 56 lines of `check_assertions`, with two tests.
 - `GraphPlan`, `FinishedPlan`, `PlannedWrite` and `Payload` from `engine/graph/plan/mod.rs`: about 190 lines. The plan no longer holds encoded requests and no longer refuses a second write to an entity.
 
-### Open points
+## Open points
 
 - **Fact:** `_op` and `_seq` are read from a row's values by their position. `SinkRow` has no function for them and gets none.
 - **Fact, to be shown by the adapted `staging_composite_keys`:** `_seq` is DuckDB's `rowid` of the loaded capture table. It follows the order of the file as long as the file is loaded in one piece, which `load_capture` does.

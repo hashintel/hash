@@ -1,6 +1,6 @@
 # Milestone 3: Stage frame and Capture
 
-### What it adds
+## What it adds
 
 Two things. The frame: how every stage starts, ends and fails, written once. And Capture, the first stage, which stores the capture file in the bucket. After this milestone a run can be started and captured, and the two later stages have their frame.
 
@@ -13,7 +13,7 @@ start ──► [ Capture ] ──► Prepare ──► Send
 
 **Decided in:** `../plan.md`, step 3, "How a stage writes" and "Capture"; step 4, "Errors".
 
-### Size
+## Size
 
 |           | Lines   |                                                  |
 | --------- | ------- | ------------------------------------------------ |
@@ -24,11 +24,11 @@ start ──► [ Capture ] ──► Prepare ──► Send
 
 The plan estimated 325. One error type for all stages replaced an error type per stage. Several tables per run (D14) added 10 lines.
 
-### Interface
+## Interface
 
 In `contracts.md`: `Stage`, `StageError`, `begin`, `end`, and `capture(storage, run, files)`.
 
-### Pseudo code
+## Pseudo code
 
 **`stage/mod.rs`: what every stage does the same way** (new, 110 lines)
 
@@ -124,7 +124,7 @@ pub(super) fn rows(file: &Path) -> Result<u64, Report<StageError>> {
 
 This is the first half of `SourceCapture::open` in `engine`. The rows of the file are not read.
 
-### Source table
+## Source table
 
 | New file                  | Item                                                           | Comes from                                                                                                     | Kind    | Lines |
 | ------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------- | ----- |
@@ -133,7 +133,7 @@ This is the first half of `SourceCapture::open` in `engine`. The rows of the fil
 | `stage/capture/mod.rs`    | `capture`, `store`                                             | none. Labs `engine/source_capture.rs:76-180`, `capture_sources`, does the same job for sources it reads itself | new     | 100   |
 | `stage/capture/footer.rs` | `rows`                                                         | `engine/capture.rs:51-60`, `SourceCapture::open` (10 of its 21 lines)                                          | adapted | 35    |
 
-### Tests
+## Tests
 
 All new, on the in-memory store. Five tests:
 
@@ -145,11 +145,11 @@ All new, on the in-memory store. Five tests:
 
 Tests 4 and 5 test the frame with a stage's steps replaced by a fixed result. They are the tests for Prepare's and Send's start and end too.
 
-### What was stripped
+## What was stripped
 
 From `engine/capture.rs`: copying a file on the local disk, publishing it without overwriting, syncing the directory, and the nine-variant `CaptureError` (about 120 of its 154 lines, with its two tests). From `engine`: the source readers, as `../plan.md`, step 2, lists.
 
-### Open points
+## Open points
 
 - **Chosen:** two small constructors, `permanent` and `retryable`, so that a failure site is one line.
 - **Chosen:** the failure codes are fixed texts named where the failure happens. There is no enum of all codes. Capture has one, `capture_file_invalid`, for a file that is missing or is not Parquet. The message says which.

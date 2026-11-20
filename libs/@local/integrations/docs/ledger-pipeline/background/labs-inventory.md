@@ -1,5 +1,7 @@
 # Labs inventory for the four-stage pipeline
 
+<!-- markdownlint-disable MD029 MD038 -->
+
 Source: `pocs/integrations_rs` in the labs repository at `40a8d14`. All paths below are relative to that directory. The design it is mapped onto is `libs/@local/integrations/docs/pipeline/00-overview.md` in the monorepo.
 
 Conventions:
@@ -247,7 +249,7 @@ All live.
 pub fn sort_pipelines(pipelines: &[Pipeline]) -> Result<Vec<&Pipeline>, String>
 ```
 
-Errors, each prefixed `Topology error: `: duplicate pipeline source (`:21-29`); duplicate step ID across pipelines, branches included (`:36-41`); duplicate definition checkpoint name (`:44-51`); `dependsOn` itself (`:62-66`); `dependsOn` an undeclared pipeline (`:71-76`); `inputs` its own checkpoint (`:82-86`); `inputs` a checkpoint no pipeline produces (`:91-96`). Edges come from `dependsOn` and from `inputs`. A source of kind `Checkpoint` adds no edge (see Part D item 19).
+Errors, each prefixed `Topology error:`: duplicate pipeline source (`:21-29`); duplicate step ID across pipelines, branches included (`:36-41`); duplicate definition checkpoint name (`:44-51`); `dependsOn` itself (`:62-66`); `dependsOn` an undeclared pipeline (`:71-76`); `inputs` its own checkpoint (`:82-86`); `inputs` a checkpoint no pipeline produces (`:91-96`). Edges come from `dependsOn` and from `inputs`. A source of kind `Checkpoint` adds no edge (see Part D item 19).
 
 **`kahn`**, `:107-149`. Kahn's algorithm. Pipelines with no open dependency keep declaration order. A cycle is an error that lists the remaining sources. **`linearize`**, `:151-162`, flattens branches.
 
