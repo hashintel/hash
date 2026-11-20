@@ -107,6 +107,9 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
       aria-disabled={disabled}
       draggable={draggable}
       onDragStart={onDragStart}
+      // Safari reaches a button with Tab, and focuses it on a click, only
+      // when its tabindex is set.
+      tabIndex={0}
       {...rest}
     >
       {children}
