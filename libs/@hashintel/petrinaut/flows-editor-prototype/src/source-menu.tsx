@@ -306,6 +306,8 @@ type SourceGroup = {
     glyph?: React.ReactElement;
     /** The glyph is a person's avatar: it replaces the tile. */
     avatar?: boolean;
+    /** A plain row: text only, no tile or slot. */
+    plain?: boolean;
     /** A step's own hue on its tile (AP G77: step tiles keep their hue). */
     tint?: React.CSSProperties;
     selected?: boolean;
@@ -358,6 +360,7 @@ const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<TiledItem>> =>
       icon: item.icon,
       glyph: item.glyph,
       avatar: item.avatar,
+      plain: item.plain,
       tint: item.tint,
       selected: item.selected,
       suffix: item.suffix,
@@ -524,6 +527,9 @@ export const SourceMenu = ({
   onTypeValue: onTypeValueProp,
   typedChoices: typedChoicesProp = [],
   typedGroupLabel,
+  typedPlain = false,
+  typedFirst = false,
+  dataType,
   hideSearch = false,
   focusRef,
   searchAlways = false,
@@ -546,6 +552,12 @@ export const SourceMenu = ({
   typedChoices?: TypedChoice[];
   /** The heading over the typed choices, e.g. "Entity types". */
   typedGroupLabel?: string;
+  /** The typed choices are plain rows (text only), the field's own options. */
+  typedPlain?: boolean;
+  /** The typed choices come first, above the item's properties. */
+  typedFirst?: boolean;
+  /** The one data type the field takes when its input does not say ("Email" for Sender address). */
+  dataType?: string;
   hideSearch?: boolean;
   /** Keeps focus here while the menu is open (the field being typed in, for "@" search). */
   focusRef?: React.RefObject<HTMLElement | null>;
@@ -585,7 +597,7 @@ export const SourceMenu = ({
   // MOCK: the engine has no data types yet, so a field that takes one is known by its format ("email", "url"), or a URL
   // field by its label.
   const wantedDataType =
-    input.format === "email" ? "Email" : input.format === "url" || input.label === "URL" ? "URL" : undefined;
+    dataType ?? (input.format === "email" ? "Email" : input.format === "url" || input.label === "URL" ? "URL" : undefined);
   // The data types the graph gives the property a Read entity step reads; any other output has none to compare.
   const dataTypesOf = (option: SourceOption): readonly string[] | undefined => {
     if (option.source.kind !== "step-output") {
@@ -765,7 +777,8 @@ export const SourceMenu = ({
                   <PersonAvatar name={choice.label} row />
                 ) : undefined,
               avatar: typedGroupLabel === "People",
-              icon: iconsEverywhere
+              plain: typedPlain,
+              icon: iconsEverywhere && !typedPlain
                 ? typedGroupLabel === "People"
                   ? undefined
                   : kinds.includes("EntityId")
@@ -876,6 +889,9 @@ export const SourceMenu = ({
         ]
       : []),
   ];
+  if (typedFirst) {
+    allGroups.sort((left, right) => Number(right.id === "typed") - Number(left.id === "typed"));
+  }
   // Inside a For each with item properties to pick, the "No earlier step gives…" rows would only add noise.
   const fullGroups =
     propertyItems.length > 0

@@ -93,6 +93,10 @@ export const tiledRowsStyle = css({
   "& [role=menuitem]:has([data-menu-row=two][data-sys])": {
     "--selectable-list-item-padding-y": "3px",
   },
+  // A plain row (no tile) is 28 px.
+  "& [role=menuitem]:has([data-menu-row][data-sys][data-plain])": {
+    "--selectable-list-item-padding-y": "4px",
+  },
   // A one-line row's 24 px tile starts on the same 16 px edge as the two-line rows' 32 px tiles (12 Nov).
   "& [data-row-slot]": { justifyContent: "flex-start" },
   "& [role=menuitem]:has([data-menu-row]) + [role=menuitem]": {
@@ -389,8 +393,11 @@ export const MenuRow = ({
   tint,
   tiles,
   avatar = false,
+  plain = false,
   legacy = false,
 }: {
+  /** A plain row: text only, no tile or slot (a field's own options). */
+  plain?: boolean;
   /** Keep the 32 px tile layout from before SYS-TILE-32 (the Add trigger kind menu). */
   legacy?: boolean;
   /** The icon is a person's avatar: drawn at tile size with no tile behind it. */
@@ -416,8 +423,9 @@ export const MenuRow = ({
       data-menu-row={twoLine ? "two" : "one"}
       data-lines={lines}
       data-sys={sys ? "" : undefined}
+      data-plain={plain ? "" : undefined}
     >
-      {avatar ? (
+      {plain ? null : avatar ? (
         <span className={avatarSlotStyle} aria-hidden="true">
           {glyph}
         </span>
@@ -466,6 +474,8 @@ export type TiledItem = MenuItem & {
   glyph?: React.ReactElement;
   /** The glyph is a person's avatar: it replaces the tile. */
   avatar?: boolean;
+  /** A plain row: text only, no tile or slot. */
+  plain?: boolean;
   /** `?pickercolour=` takes only: see `MenuRow`. */
   tint?: React.CSSProperties;
   /** A DS tooltip right of the menu while the row is hovered (the Add step menu's description and inputs → outputs). */
@@ -502,7 +512,7 @@ export const tileMenu = (
   const tiles = lines === "value" ? valueTiles : undefined;
   const tiled = always || tiles !== undefined || rows.some(hasDescription);
   const convert = (item: TiledItem): MenuItem => {
-    const { glyph, avatar, tint, tooltip, ...rest } = item;
+    const { glyph, avatar, plain, tint, tooltip, ...rest } = item;
     const withTooltip = (row: React.ReactNode) =>
       tooltip ? (
         <Tooltip
@@ -549,6 +559,7 @@ export const tileMenu = (
           tint={tint}
           tiles={tiles}
           avatar={avatar}
+          plain={plain}
           legacy={legacy}
         />,
       ),

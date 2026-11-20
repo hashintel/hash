@@ -57,12 +57,13 @@ import {
   mockEntityTypes,
   mockFiles,
   mockPeopleEmails,
+  mockSenders,
 } from "./mock-graph";
 import { PropertyName, PropertyPath } from "./property-path";
 import { RefChipText, refLook, RefPath, refText } from "./ref-path";
 import { OpenMenu } from "./open-menu";
 import { describeSource, getSourceShape, sourceOptions } from "./shapes";
-import { entityChoices, SearchHeader, SourceMenu } from "./source-menu";
+import { entityChoices, SearchHeader, SourceMenu, type TypedChoice } from "./source-menu";
 import {
   errorTextStyle,
   firstAndMore,
@@ -287,6 +288,21 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
       setInputSource(current, step.stepId, input.name, next),
     );
 
+  // Send email's Sender address: its own options and the source groups share one dropdown, with no "@" button.
+  const isSender =
+    step.actionDefinitionId === "sendEmail" && input.name === "senderAddress";
+  const senderChoices: TypedChoice[] = isSender
+    ? mockSenders.map((sender) => ({
+        label: sender.text,
+        source: {
+          kind: "constant",
+          payload: { kind: "Text", value: sender.value },
+        },
+        selected:
+          source?.kind === "constant" && source.payload.value === sender.value,
+      }))
+    : [];
+
   const menu = open ? (
     <SourceMenu
       anchor={anchorRef}
@@ -307,8 +323,21 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
           : undefined
       }
       typedChoices={
-        kinds.includes("EntityId") && !typedKind ? entityChoices() : []
+        isSender
+          ? senderChoices
+          : kinds.includes("EntityId") && !typedKind
+            ? entityChoices()
+            : []
       }
+      {...(isSender
+        ? {
+            typedGroupLabel: "Connected addresses",
+            typedPlain: true,
+            typedFirst: true,
+            dataType: "Email",
+            hideSearch: true,
+          }
+        : {})}
     />
   ) : null;
 
@@ -327,6 +356,26 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
           <RefField source={source} stepId={step.stepId} />
         </SourceSelectTrigger>
         <SourceLine source={source} />
+        {menu}
+      </div>
+    );
+  }
+
+  if (isSender) {
+    const current = mockSenders.find(
+      (sender) => source?.kind === "constant" && sender.value === source.payload.value,
+    );
+    return (
+      <div ref={anchorRef}>
+        <button
+          type="button"
+          className={selectTriggerStyle}
+          aria-label={input.label}
+          onClick={() => setOpen(true)}
+        >
+          <span>{current?.text ?? "Choose an address"}</span>
+          <Icon name="chevronDown" size="sm" />
+        </button>
         {menu}
       </div>
     );
