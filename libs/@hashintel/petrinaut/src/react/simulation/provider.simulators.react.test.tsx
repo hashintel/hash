@@ -362,6 +362,37 @@ describe("SimulationProvider on a registered simulator", () => {
     });
   });
 
+  it("discards the run when another scenario comes into effect", async () => {
+    const handle = makeHandle();
+    const simulator = makeSimulator({
+      id: "test.first",
+      needsHirTrees: false,
+      start: () => Promise.resolve({ ok: true, handle }),
+    });
+    const { getValue } = renderProvider([simulator.registration], {
+      ...sdcpn,
+      scenarios: [
+        {
+          id: "busy",
+          name: "Busy",
+          scenarioParameters: [],
+          parameterOverrides: {},
+          initialState: { type: "per_place", content: {} },
+        },
+      ],
+    });
+
+    act(() => getValue().setSelectedScenarioId(null));
+    await act(() => getValue().initialize({ seed: 1 }));
+    expect(getValue().eventSimulation?.status).toBe(handle.status);
+
+    act(() => getValue().setSelectedScenarioId("busy"));
+    expect(handle.dispose).toHaveBeenCalledTimes(1);
+    expect(simulator.disposed).toHaveBeenCalledTimes(1);
+    expect(getValue().eventSimulation).toBeNull();
+    expect(getValue().selectedScenarioId).toBe("busy");
+  });
+
   it("ends the run and releases its simulator when the provider unmounts", async () => {
     const handle = makeHandle();
     const simulator = makeSimulator({
