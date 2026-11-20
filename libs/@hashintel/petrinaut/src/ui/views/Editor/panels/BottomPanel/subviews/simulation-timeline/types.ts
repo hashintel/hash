@@ -34,6 +34,4 @@ export interface StreamingStore {
   columns: number[][];
   /** Current frame count in the columns */
   length: number;
-  /** Revision counter, incremented on every append to trigger React updates */
-  revision: number;
 }

@@ -18,7 +18,6 @@ function createEmptyStore(series: TimelineSeriesMeta[]): StreamingStore {
     series,
     columns: [[], ...series.map(() => [])],
     length: 0,
-    revision: 0,
   };
 }
 
@@ -27,13 +26,11 @@ function resetStore(store: StreamingStore, series: TimelineSeriesMeta[]): void {
     series,
     columns: [[], ...series.map(() => [])],
     length: 0,
-    revision: store.revision + 1,
   });
 }
 
 interface StreamingStoreSnapshot {
   store: StreamingStore;
-  revision: number;
 }
 
 interface StreamingStoreController {
@@ -53,16 +50,10 @@ function createStreamingStoreController(
 ): StreamingStoreController {
   const listeners = new Set<() => void>();
   const store = createEmptyStore(series);
-  let snapshot: StreamingStoreSnapshot = {
-    store,
-    revision: store.revision,
-  };
+  let snapshot: StreamingStoreSnapshot = { store };
 
   const notify = () => {
-    snapshot = {
-      store,
-      revision: store.revision,
-    };
+    snapshot = { store };
     for (const listener of listeners) {
       listener();
     }
@@ -97,7 +88,6 @@ function createStreamingStoreController(
       }
 
       store.length = timeCol.length;
-      store.revision++;
       notify();
     },
   };
