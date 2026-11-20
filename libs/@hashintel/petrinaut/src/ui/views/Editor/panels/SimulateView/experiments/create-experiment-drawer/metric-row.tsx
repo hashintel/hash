@@ -14,13 +14,13 @@ import { LanguageClientContext } from "../../../../../../../react/lsp/context";
 import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../../monaco/editor-paths";
-import { useMetricLspSession } from "../../metrics/use-metric-lsp-session";
 import { summarizeMetricLspErrors } from "../../metrics/metric-lsp";
 import {
   getMetricKindIcon,
   MODEL_METRIC_VALUE_PREFIX,
   type MetricKindGroup,
 } from "../../metrics/metric-picker-options";
+import { useMetricLspSession } from "../../metrics/use-metric-lsp-session";
 import { fieldStyle, labelStyle } from "./form-field-styles";
 import {
   getMetricLabel,
@@ -277,6 +277,7 @@ export const ExperimentMetricRow = ({
     >
       {metric.kind === "expression" ? (
         <ExperimentMetricLspSession
+          key={metric.metricSessionId}
           code={metric.code}
           metricSessionId={metric.metricSessionId}
         />

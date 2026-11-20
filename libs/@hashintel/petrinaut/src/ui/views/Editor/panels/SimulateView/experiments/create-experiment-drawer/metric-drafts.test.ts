@@ -51,12 +51,21 @@ const draft = (
 
 describe("metricKindPatch", () => {
   it("fills an expression from the model metric the value names", () => {
-    expect(metricKindPatch(draft(), "model:backlog", sdcpn)).toEqual({
+    const { metricSessionId, ...rest } =
+      metricKindPatch(
+        draft({ metricSessionId: "replaced" }),
+        "model:backlog",
+        sdcpn,
+      ) ?? {};
+
+    expect(rest).toEqual({
       kind: "expression",
       code: "return 1;",
       sourceMetricId: "backlog",
       label: "Backlog",
     });
+    expect(metricSessionId).toBeTypeOf("string");
+    expect(metricSessionId).not.toBe("replaced");
   });
 
   it("is null for a model metric that no longer exists", () => {

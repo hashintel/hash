@@ -1347,13 +1347,22 @@ describe("CreateExperimentDrawer metric selection", () => {
   );
   it("blocks Run and names the metric while its code has an error", async () => {
     const languageClient = makeLanguageClient();
+    const sdcpnContextValue = {
+      ...sirSdcpnContextValue,
+      petriNetDefinition: {
+        ...sirSdcpnContextValue.petriNetDefinition,
+        metrics: [{ id: "first", name: "First metric", code: "return 1;" }],
+      },
+    };
     const { rerender } = render(
-      <TestProviders languageClient={languageClient} />,
+      <TestProviders
+        languageClient={languageClient}
+        sdcpnContextValue={sdcpnContextValue}
+      />,
     );
     fireEvent.click(await screen.findByRole("button", { name: /Add metric/ }));
-    fireEvent.change(screen.getByLabelText("Metric type"), {
-      target: { value: "expression" },
-    });
+    const metricType = screen.getByLabelText("Metric type");
+    fireEvent.change(metricType, { target: { value: "expression" } });
     expect(submitButton().disabled).toBe(false);
 
     const session = vi.mocked(languageClient.initializeMetricSession).mock
@@ -1380,6 +1389,7 @@ describe("CreateExperimentDrawer metric selection", () => {
     rerender(
       <TestProviders
         languageClient={{ ...languageClient, diagnosticsByUri }}
+        sdcpnContextValue={sdcpnContextValue}
       />,
     );
 
@@ -1394,6 +1404,11 @@ describe("CreateExperimentDrawer metric selection", () => {
       ),
     ).toBeTruthy();
     expect(submitButton().disabled).toBe(true);
+
+    // The language worker has not answered for the model metric's code yet.
+    fireEvent.change(metricType, { target: { value: "model:first" } });
+    expect(screen.queryByText(/Property 'Missing' does not exist/)).toBeNull();
+    expect(submitButton().disabled).toBe(false);
   });
 });
 

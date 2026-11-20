@@ -171,6 +171,9 @@ export const metricKindPatch = (
       kind: "expression",
       code: modelMetric.code,
       sourceMetricId: modelMetric.id,
+      // A new language session, so that the diagnostics of the code this one
+      // replaces are not read as its own until the worker answers.
+      metricSessionId: crypto.randomUUID(),
       label: canReplaceMetricLabel(metric.label, sdcpn)
         ? modelMetric.name
         : metric.label,
