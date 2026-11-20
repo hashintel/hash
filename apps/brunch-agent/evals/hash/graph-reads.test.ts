@@ -76,13 +76,15 @@ const readCurrent = async (execute: BrowserToolExecutor, input: unknown) => {
   return envelope.output;
 };
 
+const nextPage = "WyIyMDI2LTEwLTI2Iiwib3JkZXIiXQ";
+
 test.each([true, false])(
-  "the entity read describes the inventory's completeness with truncated=%s",
-  async (truncated) => {
+  "the entity read says whether an inventory page is partial, and how to read on, with a next page=%s",
+  async (partial) => {
     const output = {
       entityTypes: [{ entityTypeId: orderTypeId, title: "Order" }],
       propertyTypes: [],
-      entities: Array.from({ length: 1_000 }, (_, index) => ({
+      entities: Array.from({ length: 100 }, (_, index) => ({
         entityId: `${webId}~00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
         editionId: `order-edition-${index}`,
         webId,
@@ -91,18 +93,80 @@ test.each([true, false])(
         draft: false,
         matched: true,
       })),
-      ...(truncated ? { truncated: true as const } : {}),
+      ...(partial ? { cursor: nextPage } : {}),
     };
     const execute: BrowserToolExecutor = async () => ({ output });
     const current = await readCurrent(execute, {
       entityTypes: [orderTypeId],
       traversalDepth: 0,
+      limit: 100,
     });
 
-    expect(current).toContain("entities: 1000");
-    expect(current.includes("More may match than shown")).toBe(truncated);
+    const [count, next] = current.split("\n");
+    expect(count).toBe("entities: 100");
+    expect(next === undefined ? false : next.includes("more may match")).toBe(
+      partial,
+    );
+    expect(
+      current.includes(`repeat the same read with cursor: ${nextPage}`),
+    ).toBe(partial);
   },
 );
+
+test("a whole inventory page too large to show is refused, keeping none of it and no cursor, with a limit that would fit", async () => {
+  const output = {
+    entityTypes: [{ entityTypeId: orderTypeId, title: "Order" }],
+    propertyTypes: [],
+    entities: Array.from({ length: 1_000 }, (_, index) => ({
+      entityId: `${webId}~00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+      editionId: `order-edition-${index}`,
+      webId,
+      entityTypeIds: [orderTypeId],
+      properties: {},
+      draft: false,
+      matched: true,
+    })),
+    cursor: nextPage,
+  };
+  const execute: BrowserToolExecutor = async () => ({ output });
+  const current = await readCurrent(execute, {
+    entityTypes: [orderTypeId],
+    traversalDepth: 0,
+  });
+
+  const [refused, held, narrow, smallerLimit, ...rest] = current.split("\n");
+  expect(refused).toMatch(
+    /^Refused: this read's text would be about [\d,]+ tokens, over the 20,000 a read may show, so none of it is shown and it gives no cursor\.$/u,
+  );
+  expect(held).toBe(
+    "It held 1,000 entities: 1,000 matched and 0 reached by links.",
+  );
+  expect(narrow).toBe(
+    "Narrow it, then repeat it from the same cursor if it had one, so no match is skipped:",
+  );
+  const limit = Number(
+    /^- a smaller limit, such as (\d+), then read the rest page by page$/u.exec(
+      smallerLimit ?? "",
+    )?.[1],
+  );
+  expect(limit).toBeGreaterThan(0);
+  expect(limit).toBeLessThan(1_000);
+  expect(rest).toEqual([
+    "- filters by entityTypes, webIds or entityIds",
+    "- for a large value, { entityId, path } in fullValuesFor, to read only the part you need",
+  ]);
+  expect(current).not.toContain(nextPage);
+  expect(current).not.toContain("entityId:");
+
+  // A page of the suggested limit fits.
+  const page = await readCurrent(
+    async () => ({
+      output: { ...output, entities: output.entities.slice(0, limit) },
+    }),
+    { entityTypes: [orderTypeId], traversalDepth: 0, limit },
+  );
+  expect(page.split("\n")[0]).toBe(`entities: ${limit}`);
+});
 
 test("the entity read preserves the link when the customer read returns no visible record", async () => {
   const execute = vi.fn<BrowserToolExecutor>(async (call) => ({

@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
 import {
+  hashEntityReadMaxLimit,
   hashEntityReadMaxTraversalDepth,
   parseHashEntityCountInput,
   parseHashEntityReadInput,
@@ -60,6 +61,24 @@ test("an entity read names values to show by entity id, or by entity id and a pa
     );
   expect(() => parseHashEntityReadInput({ fullValuesFor: [] })).toThrow(
     /Invalid length/u,
+  );
+});
+
+test("an entity read pages by a limit of 1 to the maximum and an opaque cursor", () => {
+  for (const limit of [1, hashEntityReadMaxLimit])
+    expect(parseHashEntityReadInput({ limit, cursor: "next" })).toEqual({
+      limit,
+      cursor: "next",
+    });
+  const limitMessage =
+    "limit is how many matched entities one page holds: a whole number from 1 to 1,000. Omit it for 100.";
+  for (const limit of [0, hashEntityReadMaxLimit + 1, 2.5, "10"])
+    expect(() => parseHashEntityReadInput({ limit })).toThrow(limitMessage);
+  expect(() => parseHashEntityReadInput({ cursor: "" })).toThrow(
+    /Invalid length/u,
+  );
+  expect(() => parseHashEntityReadInput({ cursor: ["a"] })).toThrow(
+    /Invalid type/u,
   );
 });
 

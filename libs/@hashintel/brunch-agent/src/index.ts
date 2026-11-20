@@ -19,8 +19,10 @@ export * from "./client-tools";
 export {
   hashEntityCountInputSchema,
   hashEntityCountResultSchema,
+  hashEntityReadDefaultLimit,
   hashEntityReadDefaultTraversalDepth,
   hashEntityReadInputSchema,
+  hashEntityReadMaxLimit,
   hashEntityReadMaxTraversalDepth,
   hashEntityReadResultSchema,
   hashEntityTypeReadInputSchema,
