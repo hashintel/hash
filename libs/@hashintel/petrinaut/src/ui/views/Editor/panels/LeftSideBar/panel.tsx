@@ -89,7 +89,6 @@ export const LeftSideBar: React.FC = () => {
   const composesOnly = useComposesOnly();
   const isCompositionInterfaceOn = useIsCompositionInterfaceOn();
 
-  // The sidebar is visible when explicitly opened OR when search is active
   const isVisible = isOpen || isSearchOpen;
 
   const sidebarSubViews = leftSidebarSubViews({
