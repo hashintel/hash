@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen } from "@testing-library/react";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 
 import {
@@ -667,6 +667,42 @@ test.each([null, { type: "metric", id: "metric-a" }] as const)(
     view.unmount();
   },
 );
+
+test("compares a navigation made in the layout phase with the state of that commit", () => {
+  const onNavigate = vi.fn<PetrinautNavigationController["onNavigate"]>();
+  // As a plugin that is told of the new location in the layout phase and
+  // answers at once: keep the editor out of Simulate.
+  const KeepsEditMode = () => {
+    const { navigate, state } = usePetrinautNavigation();
+    useLayoutEffect(() => {
+      if (state.mode === "simulate") {
+        navigate({ mode: "edit" }, { cause: "user", action: "mode" });
+      }
+    }, [navigate, state.mode]);
+    return null;
+  };
+  const Host = () => {
+    const [state, setState] = useState(defaultPetrinautNavigationState);
+    return (
+      <PetrinautNavigationProvider controller={{ state, onNavigate }}>
+        <KeepsEditMode />
+        {/* The host moves by itself, as on the browser's Back button. */}
+        <button
+          type="button"
+          onClick={() => setState({ ...state, mode: "simulate" })}
+        >
+          Back
+        </button>
+      </PetrinautNavigationProvider>
+    );
+  };
+
+  const view = render(<Host />);
+  fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+  expect(onNavigate).toHaveBeenCalledTimes(1);
+  view.unmount();
+});
 
 describe.each([true, false])("with a host in control: %s", (controlled) => {
   const Host = ({ children }: { children: React.ReactNode }) => {

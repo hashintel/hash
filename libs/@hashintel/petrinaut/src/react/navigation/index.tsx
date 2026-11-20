@@ -241,6 +241,15 @@ const resolveNavigationUpdate = (
   };
 };
 
+/**
+ * Runs `commit` first in the layout phase of a commit: a leaf before the
+ * provider's children, so its layout effect runs before any of theirs.
+ */
+const CommitLocation = ({ commit }: { commit: () => void }) => {
+  useLayoutEffect(commit);
+  return null;
+};
+
 export const PetrinautNavigationProvider = ({
   children,
   controller,
@@ -255,8 +264,10 @@ export const PetrinautNavigationProvider = ({
       selection: canonicalizeSelection(initialState?.selection ?? []),
     }));
   const state = controller?.state ?? uncontrolledState;
-  // What `navigate` reads, written at every commit. It closes over nothing a
-  // render changes, so it is one function for the provider's life.
+  // What `navigate` reads, written first in the layout phase of every commit,
+  // so a layout effect below that navigates is compared with that commit.
+  // `navigate` closes over nothing a render changes: it is one function for
+  // the provider's life.
   const latestRef = useRef<{
     state: PetrinautNavigationState;
     controller: PetrinautNavigationController | undefined;
@@ -289,7 +300,7 @@ export const PetrinautNavigationProvider = ({
   const freshnessTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
-  useLayoutEffect(() => {
+  const commitLocation = () => {
     const { visits } = latestRef.current;
     const visit = visits[state.simulateView];
     latestRef.current = {
@@ -315,7 +326,7 @@ export const PetrinautNavigationProvider = ({
     if (optimistic && !petrinautNavigationStatesMatch(optimistic.base, state)) {
       optimisticRef.current = null;
     }
-  });
+  };
 
   const navigate: PetrinautNavigationContextValue["navigate"] = (
     update,
@@ -385,6 +396,7 @@ export const PetrinautNavigationProvider = ({
   return (
     <PetrinautNavigationPublishedContext value={published}>
       <PetrinautNavigationContext value={value}>
+        <CommitLocation commit={commitLocation} />
         {children}
       </PetrinautNavigationContext>
     </PetrinautNavigationPublishedContext>
