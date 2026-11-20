@@ -609,36 +609,40 @@ const launchPersona = async ({
         await verifyGuidanceResume(manifest, host.guidance);
         let logged = false;
         try {
-          const result = await submitPersonaBrowserTurn(personaPage, utterance, {
-            session,
-            signal: AbortSignal.any([turn.signal, stop.signal]),
-            onAllowedEdit: (edit) => appendAllowedDestructiveEdit(run, edit),
-            onAdmission: async (admitted, receipt, sent) => {
-              activeAdmission = { client: sessionClient(admitted), receipt };
-              // Each submission carries the browser's current cookies.
-              if (session !== undefined) session = admitted;
-              // Later admissions in the same turn are browser-tool continuations.
-              if (logged) return;
-              logged = true;
-              // Brunch has the utterance; a failed log write must not read as unadmitted.
-              turn.admitted(sent);
-              if (turn.opening) {
-                session = admitted;
-                // Retained even if the reply fails; resume needs the identity.
-                await writeFile(
-                  join(run, "session.json"),
-                  personaSessionFileText(admitted),
-                  { mode: 0o600 },
-                );
-              }
-              await appendAdmittedUtterance(run, {
-                source: turn.opening ? "opening" : "persona",
-                message: sent,
-                submissionId: receipt.submissionId,
-                personaAgent: agentSettings,
-              });
+          const result = await submitPersonaBrowserTurn(
+            personaPage,
+            utterance,
+            {
+              session,
+              signal: AbortSignal.any([turn.signal, stop.signal]),
+              onAllowedEdit: (edit) => appendAllowedDestructiveEdit(run, edit),
+              onAdmission: async (admitted, receipt, sent) => {
+                activeAdmission = { client: sessionClient(admitted), receipt };
+                // Each submission carries the browser's current cookies.
+                if (session !== undefined) session = admitted;
+                // Later admissions in the same turn are browser-tool continuations.
+                if (logged) return;
+                logged = true;
+                // Brunch has the utterance; a failed log write must not read as unadmitted.
+                turn.admitted(sent);
+                if (turn.opening) {
+                  session = admitted;
+                  // Retained even if the reply fails; resume needs the identity.
+                  await writeFile(
+                    join(run, "session.json"),
+                    personaSessionFileText(admitted),
+                    { mode: 0o600 },
+                  );
+                }
+                await appendAdmittedUtterance(run, {
+                  source: turn.opening ? "opening" : "persona",
+                  message: sent,
+                  submissionId: receipt.submissionId,
+                  personaAgent: agentSettings,
+                });
+              },
             },
-          });
+          );
           // Brunch has replied: the persona gets the reply even when the
           // evidence could not be refreshed, which is reported here instead.
           await writeProofArtifacts(join(run, "evidence"), result.snapshot)
