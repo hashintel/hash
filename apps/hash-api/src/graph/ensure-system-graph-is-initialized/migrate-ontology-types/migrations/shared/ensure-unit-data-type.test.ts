@@ -15,8 +15,8 @@ import {
 } from "../../../../ontology/primitive/data-type";
 import { createSystemDataTypeIfNotExists } from "../../util";
 import { commonUnitGroups } from "../035-add-common-unit-data-types/common-unit-groups";
+import { scaledConversion } from "./conversions";
 import { ensureUnitDataType } from "./ensure-unit-data-type";
-import { scaledConversion } from "./shared/conversions";
 
 import type { BaseUrl, DataTypeWithMetadata } from "@blockprotocol/type-system";
 
