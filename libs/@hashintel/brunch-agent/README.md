@@ -35,11 +35,3 @@ The agents themselves, their guidance, Flue tools and evaluations live in [`apps
 ```sh
 turbo run test:unit --filter @hashintel/brunch-agent
 ```
-
-## HASH graph views
-
-`src/hash/graph-views.ts` is a candidate under evaluation in FE-2122, not yet mounted by either runtime. It presents HASH graph reads as four views the model chooses between by how much it needs to see: `survey` (kinds of entity and link in a web, with counts), `profile` (what a set of entities is like and how it connects), `details` (up to 20 entities in full) and `tabular` (many entities as CSV rows). Each view projects the page's read result into plain data that TOON or CSV writes out; a view larger than its bound is refused with its counts and how to narrow it, never cut, and matched entities' ids are never dropped from a view that lists them.
-
-Entity tabular does not traverse: linked entities appear as ids in link columns, and joining them takes a second read. `follow`, naming link types whose targets get tables in the same read, is deferred until evaluation shows two-read joins are costly; the comment on `projectEntityTabular` gives the measurements behind that.
-
-The survey needs counts over a whole web. HASH's page has no read for that yet: `summarizeEntities` counts entities by type, but not links by their endpoints' types.

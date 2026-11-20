@@ -6965,23 +6965,19 @@ __metadata:
     "@pandacss/dev": "npm:1.11.1"
     "@testing-library/dom": "npm:10.4.1"
     "@testing-library/react": "npm:16.3.2"
-    "@toon-format/toon": "npm:4.4.0"
     "@tsconfig/bases": "catalog:"
     "@types/node": "catalog:"
-    "@types/papaparse": "npm:5.3.16"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
     "@vitejs/plugin-react": "npm:6.1.1"
     "@whatwg-node/server": "npm:0.10.18"
     ai: "npm:6.0.286"
-    gpt-tokenizer: "npm:3.2.0"
     jsdom: "npm:24.1.3"
     md-pen: "npm:1.2.0"
     monaco-editor: "npm:0.55.1"
     oxc-transform-react: "npm:0.152.0"
     oxlint: "catalog:"
     oxlint-tsgolint: "catalog:"
-    papaparse: "npm:5.5.3"
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
     react-icons: "npm:5.5.0"
@@ -17024,13 +17020,6 @@ __metadata:
   version: 0.3.0
   resolution: "@tokenizer/token@npm:0.3.0"
   checksum: 10c0/7ab9a822d4b5ff3f5bca7f7d14d46bdd8432528e028db4a52be7fbf90c7f495cc1af1324691dda2813c6af8dc4b8eb29de3107d4508165f9aa5b53e7d501f155
-  languageName: node
-  linkType: hard
-
-"@toon-format/toon@npm:4.4.0":
-  version: 4.4.0
-  resolution: "@toon-format/toon@npm:4.4.0"
-  checksum: 10c0/821d093a319f69571b9fae73c392e504c125f7a6d533a2e4825a02cce0fdce76b5966d585d41688277aafa42a61a37f5a50a6a53074471e764c33bb1568e4916
   languageName: node
   linkType: hard
 
