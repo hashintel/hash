@@ -4,21 +4,17 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { createDeferredSubView } from "./deferred-sub-view";
 
-import type { SubView } from "./types";
-
 afterEach(cleanup);
 
 it("shares the pending load and immediately renders preloaded content and actions", async () => {
   const loaded = {
-    id: "code",
-    title: "Code",
     component: () => <div>Editor</div>,
-    renderHeaderAction: () => <button type="button">Format</button>,
+    headerAction: () => <button type="button">Format</button>,
   };
-  let resolve: (subView: SubView) => void = () => {};
+  let resolve: (parts: typeof loaded) => void = () => {};
   const load = vi.fn(
     () =>
-      new Promise<SubView>((done) => {
+      new Promise<typeof loaded>((done) => {
         resolve = done;
       }),
   );

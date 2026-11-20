@@ -2,11 +2,13 @@ import { useSyncExternalStore } from "react";
 
 import type { SubView } from "./types";
 
+type LoadedParts = Pick<SubView, "component" | "headerAction">;
+
 type DeferredSubViewOptions = Omit<
   SubView,
   "component" | "headerAction" | "renderHeaderAction"
 > & {
-  load: () => Promise<SubView>;
+  load: () => Promise<LoadedParts>;
   hasHeaderAction?: boolean;
 };
 
@@ -16,7 +18,7 @@ export const createDeferredSubView = ({
   hasHeaderAction = false,
   ...descriptor
 }: DeferredSubViewOptions): SubView & { preload: () => void } => {
-  let result: { subView?: SubView; error?: unknown } = {};
+  let result: { loaded?: LoadedParts; error?: unknown } = {};
   let loading = false;
   const listeners = new Set<() => void>();
   const getSnapshot = () => result;
@@ -28,7 +30,7 @@ export const createDeferredSubView = ({
     if (loading) return;
     loading = true;
     void load().then(
-      (subView) => publish({ subView }),
+      (loaded) => publish({ loaded }),
       (error: unknown) => publish({ error }),
     );
   };
@@ -40,19 +42,18 @@ export const createDeferredSubView = ({
       listeners.delete(listener);
     };
   };
-  const useSubView = () => {
+  const useLoaded = () => {
     const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
     if ("error" in snapshot) throw snapshot.error;
-    return snapshot.subView;
+    return snapshot.loaded;
   };
   const Content = () => {
-    const Component = useSubView()?.component;
+    const Component = useLoaded()?.component;
     return Component ? <Component /> : null;
   };
   const HeaderAction = () => {
-    const subView = useSubView();
-    const Loaded = subView?.headerAction;
-    return Loaded ? <Loaded /> : (subView?.renderHeaderAction?.() ?? null);
+    const Action = useLoaded()?.headerAction;
+    return Action ? <Action /> : null;
   };
 
   return {
