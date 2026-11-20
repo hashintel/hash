@@ -25,11 +25,7 @@
 
 import { useRef, useState } from "react";
 
-import {
-  type FocusDirection,
-  type FocusEntry,
-  type FocusFold,
-} from "./focus-flow";
+import { arrowDirection, type FocusEntry, type FocusFold } from "./focus-flow";
 import { useFocusMember } from "./use-focus-member";
 
 export type FocusStop =
@@ -152,19 +148,7 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
   const onKeyDown =
     (position: FocusStopTarget): React.KeyboardEventHandler =>
     (event) => {
-      const target = event.target as HTMLElement;
-      const inTextField =
-        target.tagName === "INPUT" || target.tagName === "TEXTAREA";
-      const direction: FocusDirection | null =
-        event.key === "ArrowDown"
-          ? "down"
-          : event.key === "ArrowUp"
-            ? "up"
-            : event.key === "ArrowRight" && !inTextField
-              ? "right"
-              : event.key === "ArrowLeft" && !inTextField
-                ? "left"
-                : null;
+      const direction = arrowDirection(event);
       if (direction === null) {
         return;
       }

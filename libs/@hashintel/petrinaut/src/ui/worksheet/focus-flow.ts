@@ -25,6 +25,27 @@ export const focusForward = (direction: FocusDirection): boolean =>
   direction === "down" || direction === "right";
 
 /**
+ * The direction an arrow key asks for. Null for any other key, and for a
+ * horizontal arrow in a text field, where it moves the caret.
+ */
+export const arrowDirection = (
+  event: React.KeyboardEvent,
+): FocusDirection | null => {
+  const target = event.target as HTMLElement;
+  const inTextField =
+    target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+  return event.key === "ArrowDown"
+    ? "down"
+    : event.key === "ArrowUp"
+      ? "up"
+      : event.key === "ArrowRight" && !inTextField
+        ? "right"
+        : event.key === "ArrowLeft" && !inTextField
+          ? "left"
+          : null;
+};
+
+/**
  * How an arriving move lands inside a member: the direction it travels
  * (entering downward means arriving at the top), and — under a stack's
  * `entry="aligned"` policy — the position it left from, so a grid can keep

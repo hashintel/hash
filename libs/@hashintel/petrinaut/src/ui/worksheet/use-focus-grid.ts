@@ -19,7 +19,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { focusLands, type FocusDirection, type FocusEntry } from "./focus-flow";
+import { arrowDirection, focusLands, type FocusEntry } from "./focus-flow";
 import { useFocusMember } from "./use-focus-member";
 
 export interface FocusGrid {
@@ -183,19 +183,7 @@ export function useFocusGrid(): FocusGrid {
   const onKeyDown =
     (row: number, column: number): React.KeyboardEventHandler =>
     (event) => {
-      const target = event.target as HTMLElement;
-      const inTextField =
-        target.tagName === "INPUT" || target.tagName === "TEXTAREA";
-      const direction: FocusDirection | null =
-        event.key === "ArrowDown"
-          ? "down"
-          : event.key === "ArrowUp"
-            ? "up"
-            : event.key === "ArrowRight" && !inTextField
-              ? "right"
-              : event.key === "ArrowLeft" && !inTextField
-                ? "left"
-                : null;
+      const direction = arrowDirection(event);
       if (direction === null) {
         return;
       }
