@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { parseDocumentUri } from "../../../../../monaco/editor-paths";
@@ -99,7 +99,7 @@ const DiagnosticsContent: React.FC = () => {
     LanguageClientContext,
   );
   const { petriNetDefinition, getItemType } = use(SDCPNContext);
-  const { navigateTo, selectItem } = use(EditorContext);
+  const { navigateTo, selectItem } = useEditorActions();
   const codeNavigation = useCodeNavigation();
   const {
     state: simulationState,

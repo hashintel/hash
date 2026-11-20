@@ -4,7 +4,8 @@ import { Button, SegmentedControl, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
-  EditorContext,
+  useEditorActions,
+  useEditorState,
   type TimelineChartType,
   type TimelineView,
 } from "../../../../../../../react/state/editor-context";
@@ -75,8 +76,8 @@ function selectValueToView(value: string): TimelineView {
 }
 
 export const TimelineChartTypeSelector: React.FC = () => {
-  const { timelineChartType: chartType, setTimelineChartType: setChartType } =
-    use(EditorContext);
+  const chartType = useEditorState((editor) => editor.timelineChartType);
+  const { setTimelineChartType: setChartType } = useEditorActions();
 
   return (
     <SegmentedControl
@@ -89,7 +90,7 @@ export const TimelineChartTypeSelector: React.FC = () => {
 };
 
 export const TimelineViewPicker: React.FC = () => {
-  const { navigateTo, setSimulateDrawer, setTimelineView } = use(EditorContext);
+  const { navigateTo, setSimulateDrawer, setTimelineView } = useEditorActions();
   const timelineView = useRunTimelineView();
   const {
     extensions,

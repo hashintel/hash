@@ -2,7 +2,10 @@ import { use, useEffect, useRef, useState } from "react";
 
 import { ExecutionFrameSourceContext } from "../../../../../../../react/execution-frame/context";
 import { useElementOnScreen } from "../../../../../../../react/hooks/use-element-on-screen";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorFields,
+} from "../../../../../../../react/state/editor-context";
 import { UPlotChart } from "./chart";
 import { TimelineLegend } from "./legend";
 import { chartAreaStyle, containerStyle } from "./styles";
@@ -20,11 +23,15 @@ export const ActualTimeline: React.FC<{
 
   const {
     hiddenTimelineSeriesIds: hiddenSeries,
-    setHiddenTimelineSeriesIds: setHiddenSeries,
-    setTimelineView,
     timelineChartType: chartType,
     timelineView,
-  } = use(EditorContext);
+  } = useEditorFields(
+    "hiddenTimelineSeriesIds",
+    "timelineChartType",
+    "timelineView",
+  );
+  const { setHiddenTimelineSeriesIds: setHiddenSeries, setTimelineView } =
+    useEditorActions();
   const source = use(ExecutionFrameSourceContext);
 
   // The timeline keeps reading frames and repainting while it is mounted, so

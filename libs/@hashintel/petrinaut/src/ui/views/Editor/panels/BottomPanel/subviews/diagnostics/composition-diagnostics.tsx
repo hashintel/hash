@@ -3,7 +3,7 @@ import { use, useState } from "react";
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { problemTextStyle } from "../../../../../../constants/problem-severity";
 import {
   bulletStyle,
@@ -27,7 +27,7 @@ export const CompositionDiagnostics = ({
   problems: CompositionProblem[];
 }) => {
   const { setActiveComponentId } = use(ActiveNetContext);
-  const { selectItem } = use(EditorContext);
+  const { selectItem } = useEditorActions();
   const [isExpanded, setIsExpanded] = useState(true);
   const countWith = (severity: CompositionProblem["severity"]) =>
     problems.filter((problem) => problem.severity === severity).length;

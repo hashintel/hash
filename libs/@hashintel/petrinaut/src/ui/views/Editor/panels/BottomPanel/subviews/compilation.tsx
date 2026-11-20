@@ -5,7 +5,10 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { analyzeCompilation } from "@hashintel/petrinaut-core/webgpu";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorState,
+} from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
 
@@ -190,7 +193,8 @@ const CompilationContent: React.FC = () => {
   const { extensions, getItemType } = use(SDCPNContext);
   const petriNetDefinition = useExecutableDefinition();
   const { requestHirArtifacts } = use(LanguageClientContext);
-  const { selection, selectItem } = use(EditorContext);
+  const selection = useEditorState((editor) => editor.selection);
+  const { selectItem } = useEditorActions();
 
   const [report, setReport] = useState<CompilationReport | null>(null);
   const [error, setError] = useState<string | null>(null);

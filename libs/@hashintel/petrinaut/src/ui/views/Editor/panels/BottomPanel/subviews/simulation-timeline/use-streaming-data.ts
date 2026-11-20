@@ -18,7 +18,7 @@ import { fingerprintHirCompilationInput } from "@hashintel/petrinaut-core/hir-ru
 
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
+import { useEditorState } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "./series-config";
 
@@ -280,7 +280,7 @@ export function useStreamingData(
     petriNetDefinition: { places, types, transitions, metrics },
   } = use(SDCPNContext);
   const colorsEnabled = extensions.colors;
-  const { timelineView } = use(EditorContext);
+  const timelineView = useEditorState((editor) => editor.timelineView);
 
   const selectedMetric =
     timelineView.kind === "metric"

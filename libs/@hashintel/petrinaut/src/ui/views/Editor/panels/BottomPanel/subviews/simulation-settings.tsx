@@ -14,7 +14,7 @@ import {
 
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { useScenarioHir } from "../../../../../../react/simulation/use-scenario-hir";
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import {
   AdHocScenarioForm,
@@ -219,7 +219,7 @@ const NO_SCENARIO = "__none__";
  * scenario selected, in run mode for a saved scenario.
  */
 const SimulationSettingsContent: React.FC = () => {
-  const { navigateTo, setSimulateDrawer } = use(EditorContext);
+  const { navigateTo, setSimulateDrawer } = useEditorActions();
   const {
     extensions,
     petriNetDefinition: { parameters, scenarios, places, types },

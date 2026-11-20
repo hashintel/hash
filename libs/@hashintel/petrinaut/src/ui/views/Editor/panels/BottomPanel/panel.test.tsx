@@ -1,9 +1,9 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, screen } from "@testing-library/react";
-import { use } from "react";
+import { useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { EditorContext } from "../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../react/state/editor-context";
 import { definePetrinautPlugin } from "../../../../plugins/define-petrinaut-plugin";
 import { renderPlugins } from "../../../../plugins/plugins-test-harness";
 import { BottomPanel } from "./panel";
@@ -21,12 +21,12 @@ vi.hoisted(() => {
 
 afterEach(cleanup);
 
-/** The editor's own state, with the bottom panel open. */
-const WithPanelOpen = ({ children }: { children: ReactNode }) => (
-  <EditorContext value={{ ...use(EditorContext), isBottomPanelOpen: true }}>
-    {children}
-  </EditorContext>
-);
+/** Opens the bottom panel of the editor it is rendered in. */
+const WithPanelOpen = ({ children }: { children: ReactNode }) => {
+  const { setBottomPanelOpen } = useEditorActions();
+  useEffect(() => setBottomPanelOpen(true), [setBottomPanelOpen]);
+  return children;
+};
 
 const notesPlugin = definePetrinautPlugin(
   {

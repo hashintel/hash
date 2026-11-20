@@ -5,7 +5,7 @@ import { placeCountMetricId } from "@hashintel/petrinaut-core";
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
 import { useElementOnScreen } from "../../../../../../../react/hooks/use-element-on-screen";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
+import { useEditorState } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { buildPerPlaceSeriesConfig } from "../simulation-timeline/series-config/per-place";
 import { placeMeanTimeline } from "./stochastic-series";
@@ -25,7 +25,7 @@ const getNoFrames = () => NO_FRAMES;
 export const StochasticTimeline: React.FC<{ showLegend?: boolean }> = ({
   showLegend = true,
 }) => {
-  const { timelineChartType: chartType } = use(EditorContext);
+  const chartType = useEditorState((editor) => editor.timelineChartType);
   const {
     extensions,
     petriNetDefinition: { places, types },

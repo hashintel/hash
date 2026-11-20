@@ -4,7 +4,7 @@ import { ADAPTIVE_SIMULATOR_ID } from "@hashintel/petrinaut-core";
 
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import {
-  EditorContext,
+  useEditorState,
   type TimelineView,
 } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
@@ -34,7 +34,7 @@ export const useSolverErrorAvailable = (): boolean => {
  * itself is kept, so it returns when it applies again.
  */
 export const useRunTimelineView = (): TimelineView => {
-  const { timelineView } = use(EditorContext);
+  const timelineView = useEditorState((editor) => editor.timelineView);
   const { extensions } = use(SDCPNContext);
   const solverErrorAvailable = useSolverErrorAvailable();
 

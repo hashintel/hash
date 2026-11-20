@@ -7,12 +7,13 @@ import { ActualModeContext } from "../../../../../react/actual-mode-context";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import {
   type BottomPanelTab,
-  EditorContext,
+  useEditorActions,
+  useEditorFields,
 } from "../../../../../react/state/editor-context";
 import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { useUserSettingsFields } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
   HorizontalTabPanel,
@@ -125,12 +126,18 @@ const getBottomPanelSubViews = ({
 export const BottomPanel: React.FC = () => {
   const {
     isBottomPanelOpen: isOpen,
-    setBottomPanelOpen,
     activeBottomPanelTab: activeTab,
+    globalMode,
+  } = useEditorFields(
+    "isBottomPanelOpen",
+    "activeBottomPanelTab",
+    "globalMode",
+  );
+  const {
+    setBottomPanelOpen,
     setActiveBottomPanelTab: setActiveTab,
     toggleBottomPanel,
-    globalMode,
-  } = use(EditorContext);
+  } = useEditorActions();
   const { shown } = usePanelPresence();
   // Still sliding out, where a closed panel is not kept mounted.
   const isInView = useReading(() => shown.bottomPanel.get() > 0);
@@ -139,7 +146,11 @@ export const BottomPanel: React.FC = () => {
     keepPanelsMounted,
     showCompilationOutput,
     setBottomPanelHeight: saveHeight,
-  } = use(UserSettingsContext);
+  } = useUserSettingsFields(
+    "keepPanelsMounted",
+    "showCompilationOutput",
+    "setBottomPanelHeight",
+  );
   const composesOnly = useComposesOnly();
 
   // Simulation state for conditional subviews
