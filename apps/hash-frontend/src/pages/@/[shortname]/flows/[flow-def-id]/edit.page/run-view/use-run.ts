@@ -16,7 +16,11 @@ import type {
 } from "../../../../../../../graphql/api-types.gen";
 import type { StepRunMark } from "../shared/step-states";
 import type { ApolloError } from "@apollo/client";
-import type { EntityId, Timestamp } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  EntityUuid,
+  Timestamp,
+} from "@blockprotocol/type-system";
 import type { FlowRunStepRunState } from "@local/hash-isomorphic-utils/flows/step-runs";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -47,6 +51,8 @@ export type Run =
       live: boolean;
       /** Why the last check for the run's new events failed, while it keeps checking. */
       checkFailure: string | null;
+      /** The schedule that started it, or `null` for a run started by hand. */
+      flowScheduleId: EntityUuid | null;
     };
 
 const isNotFound = (error: ApolloError) =>
@@ -206,5 +212,6 @@ export const useRun = ({
     waitingOnPerson: steps.waitingOnPerson,
     live,
     checkFailure: events.checkFailure ?? null,
+    flowScheduleId: run.flowScheduleId ?? null,
   };
 };

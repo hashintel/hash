@@ -1,6 +1,12 @@
 import { ApolloError, useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import {
   entityIdFromComponents,
@@ -25,6 +31,7 @@ import {
   flowDefinitionsQuery,
   useFlowDefinitionToEdit,
 } from "../../../../shared/use-flow-definitions";
+import { useFlowSchedules } from "../../../../shared/use-flow-schedules";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { Canvas } from "./edit.page/canvas";
 import { FlowNotEditable } from "./edit.page/flow-not-editable";
@@ -33,6 +40,7 @@ import { LogsView } from "./edit.page/logs-view";
 import { generateRunViewPath, parseRunParam } from "./edit.page/run-path";
 import { RunView } from "./edit.page/run-view";
 import { findStep } from "./edit.page/shared/find-step";
+import { toScheduleTriggerRow } from "./edit.page/shared/flow-triggers";
 import { sidePanelWidth } from "./edit.page/shared/side-panel";
 import { useFlowRuns } from "./edit.page/shared/use-flow-runs";
 import { StepPanel } from "./edit.page/step-panel";
@@ -53,7 +61,8 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../../../../shared/layout";
 import type { FlowDefinitionToEdit } from "../../../../shared/use-flow-definitions";
-import type { CanvasHandle } from "./edit.page/canvas";
+import type { CanvasHandle, CanvasSelection } from "./edit.page/canvas";
+import type { FlowSchedules } from "./edit.page/shared/flow-triggers";
 import type { StepPanelSubject } from "./edit.page/step-panel";
 import type { FlowEditorView } from "./edit.page/top-bar";
 import type { JsonObject } from "@blockprotocol/core";
@@ -124,6 +133,12 @@ const getRefusalReason = (error: unknown) =>
         ({ extensions }) => extensions.code === "BAD_REQUEST",
       )?.message
     : undefined;
+
+const noSelection: CanvasSelection = {
+  stepIds: [],
+  start: false,
+  trigger: null,
+};
 
 const FlowEditor = ({
   flowDefinitionEntityId,
@@ -204,6 +219,22 @@ const FlowEditor = ({
   const editorState = useSyncExternalStore(editor.subscribe, editor.getState);
   const { flowDefinition } = editorState;
 
+  const {
+    schedulesByEntityUuid,
+    loaded: schedulesLoaded,
+    error: schedulesError,
+  } = useFlowSchedules({ flowDefinitionEntityId });
+  /* A flow isn't shown as having no schedules before that's known. */
+  const schedules = useMemo(
+    (): FlowSchedules =>
+      schedulesLoaded
+        ? Array.from(schedulesByEntityUuid.values(), toScheduleTriggerRow)
+        : schedulesError
+          ? "unavailable"
+          : "loading",
+    [schedulesByEntityUuid, schedulesLoaded, schedulesError],
+  );
+
   /*
    * Replacing the editor after a conflict remounts the run form and the canvas, e.g. closing a run form filled in for
    * the flow as it was, and clears the selection.
@@ -211,53 +242,42 @@ const FlowEditor = ({
   const [session, setSession] = useState<{
     editor: typeof editor;
     key: number;
-    selectedStepIds: string[];
-    startSelected: boolean;
+    selection: CanvasSelection;
     focusRequest: { stepId: string } | null;
-  }>({
-    editor,
-    key: 0,
-    selectedStepIds: [],
-    startSelected: false,
-    focusRequest: null,
-  });
+  }>({ editor, key: 0, selection: noSelection, focusRequest: null });
 
   if (session.editor !== editor) {
     setSession({
       editor,
       key: session.key + 1,
-      selectedStepIds: [],
-      startSelected: false,
+      selection: noSelection,
       focusRequest: null,
     });
   }
 
-  const { selectedStepIds, startSelected, focusRequest } = session;
+  const { selection, focusRequest } = session;
   const canvasRef = useRef<CanvasHandle>(null);
-  const setSelection = ({
-    stepIds,
-    start,
-  }: {
-    stepIds: string[];
-    start: boolean;
-  }) =>
-    setSession((current) => ({
-      ...current,
-      selectedStepIds: stepIds,
-      startSelected: start,
-    }));
+  const setSelection = (nextSelection: CanvasSelection) =>
+    setSession((current) => ({ ...current, selection: nextSelection }));
 
-  const [selectedStepId] = selectedStepIds;
+  const [selectedStepId] = selection.stepIds;
+  const selectedCount =
+    selection.stepIds.length +
+    (selection.start ? 1 : 0) +
+    (selection.trigger === null ? 0 : 1);
+  /* Only one thing selected opens a panel. */
   const panelSubject: StepPanelSubject | null =
-    startSelected && selectedStepIds.length === 0
-      ? { start: true }
-      : /* A selection can briefly outlive its step, e.g. one just deleted: no panel then. */
-        !startSelected &&
-          selectedStepId !== undefined &&
-          selectedStepIds.length === 1 &&
-          findStep(flowDefinition.steps, selectedStepId)
-        ? { stepId: selectedStepId }
-        : null;
+    selectedCount !== 1
+      ? null
+      : selection.trigger !== null
+        ? { triggers: true }
+        : selection.start
+          ? { start: true }
+          : /* A selection can briefly outlive its step, e.g. one just deleted: no panel then. */
+            selectedStepId !== undefined &&
+              findStep(flowDefinition.steps, selectedStepId)
+            ? { stepId: selectedStepId }
+            : null;
 
   /* For-each steps collapsed in the Steps tab and on the canvas. */
   const [collapsedStepIds, setCollapsedStepIds] = useState(
@@ -290,8 +310,7 @@ const FlowEditor = ({
 
     setSession((current) => ({
       ...current,
-      selectedStepIds: [stepId],
-      startSelected: false,
+      selection: { ...noSelection, stepIds: [stepId] },
       focusRequest: { stepId },
     }));
   };
@@ -417,6 +436,7 @@ const FlowEditor = ({
             flowRunEntityId={flowRunEntityId}
             flowDefinitionEntityId={flowDefinitionEntityId}
             currentDefinition={flowDefinition}
+            schedules={schedules}
             onBackToLogs={() => showView("logs")}
           />
         ) : (
@@ -430,7 +450,7 @@ const FlowEditor = ({
         <div className={editorBody}>
           <LeftPanel
             steps={flowDefinition.steps}
-            selectedStepIds={selectedStepIds}
+            selectedStepIds={selection.stepIds}
             onStepClick={selectAndFocusStep}
             collapsedGroupIds={collapsedStepIds}
             onToggleGroup={toggleCollapsed}
@@ -477,19 +497,24 @@ const FlowEditor = ({
               key={session.key}
               ref={canvasRef}
               editor={editor}
-              selectedStepIds={selectedStepIds}
-              startSelected={startSelected}
+              selectedStepIds={selection.stepIds}
+              startSelected={selection.start}
+              selectedTrigger={selection.trigger}
               onSelectionChange={setSelection}
               focusRequest={focusRequest}
               collapsedStepIds={collapsedStepIds}
               onToggleCollapsed={toggleCollapsed}
               coveredRight={panelSubject ? sidePanelWidth : 0}
+              schedules={schedules}
             />
             {panelSubject && (
               <StepPanel
                 editor={editor}
                 subject={panelSubject}
-                onSelectStart={() => setSelection({ stepIds: [], start: true })}
+                schedules={schedules}
+                onSelectStart={() =>
+                  setSelection({ ...noSelection, start: true })
+                }
                 onSelectStep={selectAndFocusStep}
               />
             )}

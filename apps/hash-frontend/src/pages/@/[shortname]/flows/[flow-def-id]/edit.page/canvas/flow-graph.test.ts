@@ -1,22 +1,29 @@
 import { describe, expect, it } from "vitest";
 
 import { actionStep, flowWith } from "../shared/step-fixtures";
-import { getFlowGraph, getStepNodeId, startNodeId } from "./flow-graph";
+import {
+  getFlowGraph,
+  getStepNodeId,
+  getTriggerNodeId,
+  startNodeId,
+} from "./flow-graph";
 import { collapsedForEachSize } from "./sizes";
 
-import type { ForEachLayout } from "./flow-graph";
+import type { ForEachLayout, TriggerCard } from "./flow-graph";
 import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 const graphOf = (
   steps: StepDefinition<string>[],
   forEachLayouts = new Map<string, ForEachLayout>(),
   collapsedStepIds = new Set<string>(),
+  triggers: TriggerCard[] = [],
 ) =>
   getFlowGraph({
     flowDefinition: flowWith(steps),
     problemsByStepId: new Map(),
     forEachLayouts,
     collapsedStepIds,
+    triggers,
   });
 
 const linesOf = (graph: ReturnType<typeof graphOf>) =>
@@ -239,5 +246,76 @@ describe("getFlowGraph", () => {
       x: 100 - 200 - 64,
       y: 80,
     });
+  });
+
+  it("stacks the triggers left of Start, centred on it and leading into it, fixed in place", () => {
+    const triggers: TriggerCard[] = [
+      { kind: "manual", line: "On", on: true },
+      { kind: "schedule", line: "1 paused", on: false },
+    ];
+    const graph = graphOf(
+      [actionStep("first", { position: { x: 500, y: 100 } })],
+      new Map(),
+      new Set(),
+      triggers,
+    );
+
+    /* Start is at (236, 100); a card is 200 by 59, with a gap of 64 across and 16 down between triggers. */
+    expect(graph.nodes.slice(0, 2)).toEqual([
+      {
+        id: getTriggerNodeId("manual"),
+        type: "trigger",
+        position: { x: 236 - 200 - 64, y: 100 - (59 + 16) / 2 },
+        data: triggers[0],
+        draggable: false,
+        deletable: false,
+        connectable: false,
+      },
+      {
+        id: getTriggerNodeId("schedule"),
+        type: "trigger",
+        position: { x: 236 - 200 - 64, y: 100 + (59 + 16) / 2 },
+        data: triggers[1],
+        draggable: false,
+        deletable: false,
+        connectable: false,
+      },
+    ]);
+    expect(
+      graph.edges.filter(({ target }) => target === startNodeId),
+    ).toMatchObject([
+      {
+        source: getTriggerNodeId("manual"),
+        data: { kind: "trigger", ghost: true },
+        deletable: false,
+        selectable: false,
+      },
+      {
+        source: getTriggerNodeId("schedule"),
+        data: { kind: "trigger", ghost: true },
+        deletable: false,
+        selectable: false,
+      },
+    ]);
+  });
+
+  it("draws the trigger that started a run with a solid line into Start", () => {
+    const graph = graphOf(
+      [actionStep("first", { position: { x: 500, y: 100 } })],
+      new Map(),
+      new Set(),
+      [
+        {
+          kind: "schedule",
+          line: "Monthly review",
+          on: true,
+          run: { mark: { state: "done", items: null }, featured: false },
+        },
+      ],
+    );
+
+    expect(
+      graph.edges.find(({ target }) => target === startNodeId)?.data,
+    ).toEqual({ kind: "trigger", ghost: false });
   });
 });
