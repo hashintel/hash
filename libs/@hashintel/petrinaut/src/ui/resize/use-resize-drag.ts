@@ -2,7 +2,7 @@
  * @layerRoot ui.resize
  * @role Drag-resize primitives — the mouse-drag hook and the edge handle built on it
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useLatest } from "../../react/hooks/use-latest";
 
@@ -49,41 +49,31 @@ export const useResizeDrag = ({
 }: UseResizeDragOptions) => {
   const [isResizing, setIsResizing] = useState(false);
   const startPosRef = useRef(0);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
   const onDragRef = useLatest(onDrag);
   const onDragEndRef = useLatest(onDragEnd);
 
-  const handleMouseDown = useCallback(
-    (event: React.MouseEvent) => {
-      event.preventDefault();
-      setIsResizing(true);
-      startPosRef.current =
-        direction === "vertical" ? event.clientY : event.clientX;
-    },
-    [direction],
-  );
-
-  const handleMouseMove = useCallback(
-    (event: MouseEvent) => {
-      const currentPos =
-        direction === "vertical" ? event.clientY : event.clientX;
-      onDragRef.current(currentPos - startPosRef.current);
-    },
-    [direction, onDragRef],
-  );
-
-  const handleMouseUp = useCallback(() => {
-    setIsResizing(false);
-    onDragEndRef.current?.();
-  }, [onDragEndRef]);
+  const handleMouseDown = (event: React.MouseEvent) => {
+    event.preventDefault();
+    setIsResizing(true);
+    startPosRef.current =
+      direction === "vertical" ? event.clientY : event.clientX;
+  };
 
   useEffect(() => {
     if (!isResizing) {
       return;
     }
 
+    const handleMouseMove = (event: MouseEvent) => {
+      const currentPos =
+        direction === "vertical" ? event.clientY : event.clientX;
+      onDragRef.current(currentPos - startPosRef.current);
+    };
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      onDragEndRef.current?.();
+    };
     const overlay = createOverlay(direction);
-    overlayRef.current = overlay;
 
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
@@ -92,9 +82,8 @@ export const useResizeDrag = ({
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
       overlay.remove();
-      overlayRef.current = null;
     };
-  }, [isResizing, direction, handleMouseMove, handleMouseUp]);
+  }, [isResizing, direction, onDragRef, onDragEndRef]);
 
   return { isResizing, handleMouseDown };
 };
