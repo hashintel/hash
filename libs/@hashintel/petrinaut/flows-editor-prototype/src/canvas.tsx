@@ -41,7 +41,6 @@ import {
   findStep,
   flaggedOutputsOf,
   flattenSteps,
-  removeStep,
   startSubtitle,
   stepTitle,
   updateStep,
@@ -2883,7 +2882,7 @@ const useCanvasMenuItems = (
   flowId: string | undefined,
   onCopied: () => void,
 ): Array<ItemOrGroup<MenuItem>> => {
-  const { document, setDocument, setUi } = useEditor();
+  const { document, setDocument, setUi, deleteSteps } = useEditor();
   const dropWires = (
     keep: (wire: (typeof document.wires)[number]) => boolean,
   ) => {
@@ -2986,18 +2985,8 @@ const useCanvasMenuItems = (
               text: "Delete step",
               icon: "trash",
               onClick: () => {
-                setDocument((current) => removeStep(current, menu.stepId));
-                setUi((current) => ({
-                  ...current,
-                  canvasMenu: null,
-                  selectedId:
-                    current.selectedId === menu.stepId
-                      ? null
-                      : current.selectedId,
-                  selectedIds: (current.selectedIds ?? []).filter(
-                    (id) => id !== menu.stepId,
-                  ),
-                }));
+                setUi((current) => ({ ...current, canvasMenu: null }));
+                deleteSteps([menu.stepId]);
               },
             },
           ],
@@ -3148,7 +3137,7 @@ export const FlowCanvas = ({
   /** Hand pans on drag; Select drags a selection box (and pans with the middle or right button). */
   mode?: "select" | "hand";
 }) => {
-  const { document, setDocument, ui, setUi } = useEditor();
+  const { document, setDocument, ui, setUi, deleteSteps } = useEditor();
   const runView = useRunView();
   // A run, or a past version open from the version menu (V6), is read-only.
   const viewingVersion = useLocation().query.has("version");
@@ -3723,21 +3712,7 @@ export const FlowCanvas = ({
         }));
       }}
       // Delete / Backspace deletes the selected steps; a step's right-click menu has Delete step too.
-      onNodesDelete={(deleted) => {
-        const ids = deleted.map((node) => node.id);
-        setDocument((current) =>
-          ids.reduce((next, id) => removeStep(next, id), current),
-        );
-        setUi((current) => ({
-          ...current,
-          selectedId: ids.includes(current.selectedId ?? "")
-            ? null
-            : current.selectedId,
-          selectedIds: (current.selectedIds ?? []).filter(
-            (id) => !ids.includes(id),
-          ),
-        }));
-      }}
+      onNodesDelete={(deleted) => deleteSteps(deleted.map((node) => node.id))}
       onEdgesDelete={(deleted) =>
         setDocument((current) => ({
           ...current,

@@ -604,7 +604,7 @@ export const SourceMenu = ({
   /** The For each list menu (Figma J2 · C1): a search row, then the earlier steps in flow order, each with its list. */
   listsOnly?: boolean;
 }) => {
-  const { document, setDocument, setUi } = useEditor();
+  const { document, setDocument, setUi, announce } = useEditor();
   const [search, setSearch] = useState("");
   // Groups opened past their first rows with "Show more".
   const [expanded, setExpanded] = useState<string[]>([]);
@@ -675,6 +675,8 @@ export const SourceMenu = ({
     // The field now reads the new step's entities, shown as its chip; the canvas pans to the step and flashes it.
     onPick({ kind: "step-output", stepId: lookupId, outputName: "entities" });
     setUi((ui) => ({ ...ui, openField: null, flashId: lookupId }));
+    // The step is added at once; the toast's Undo takes it and the reference to it back out.
+    announce("Find entities added", document, undefined);
   };
 
   const phrase = kindPhrase(kinds, input.array);

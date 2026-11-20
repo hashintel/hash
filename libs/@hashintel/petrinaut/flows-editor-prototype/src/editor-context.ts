@@ -112,6 +112,10 @@ export type EditorContextValue = {
   ui: EditorUi;
   setUi: (update: (ui: EditorUi) => EditorUi) => void;
   validation: ReturnType<typeof validateDocument>;
+  /** Delete steps with the recovery rules: one goes at once with an Undo toast, several ask first. */
+  deleteSteps: (ids: string[]) => void;
+  /** An Undo toast for a change just made: `before` is the document to go back to, `after`, when given, the one to redo. */
+  announce: (text: string, before: EditorDocument, after?: EditorDocument) => void;
 };
 
 export const EditorContext = createContext<EditorContextValue | null>(null);

@@ -42,7 +42,6 @@ import {
   itemName,
   stepLabel,
   findTrigger,
-  removeStep,
   removeTrigger,
   updateStep,
   updateTrigger,
@@ -815,7 +814,7 @@ const PanelHeader = ({
   /** Shown in the description's place, in the same ink, while the description is empty. */
   defaultDescription?: string;
 }) => {
-  const { setDocument, setUi } = useEditor();
+  const { setDocument, setUi, deleteSteps } = useEditor();
   const onDelete = trigger
     ? trigger.id === START_ID
       ? null
@@ -824,10 +823,7 @@ const PanelHeader = ({
           setUi((ui) => ({ ...ui, selectedId: START_ID, triggerId: null }));
         }
     : stepId
-      ? () => {
-          setDocument((document) => removeStep(document, stepId));
-          setUi((ui) => ({ ...ui, selectedId: null }));
-        }
+      ? () => deleteSteps([stepId])
       : null;
   const what = trigger ? "trigger" : "step";
   const second = subtitle ? (
@@ -2356,7 +2352,7 @@ const multiRowStyle = css({
  * sit in, the steps as the Steps list draws them, then Disconnect all and Delete 3 steps.
  */
 const MultiSelectPanel = ({ ids }: { ids: string[] }) => {
-  const { document, setDocument, setUi } = useEditor();
+  const { document, setDocument, deleteSteps } = useEditor();
   const found = ids
     .map((id) => findStep(document, id))
     .filter((entry) => entry !== undefined);
@@ -2417,19 +2413,7 @@ const MultiSelectPanel = ({ ids }: { ids: string[] }) => {
         <Button
           size="sm"
           variant="subtle"
-          onClick={() => {
-            setDocument((current) =>
-              [...selected].reduce(
-                (next, stepId) => removeStep(next, stepId),
-                current,
-              ),
-            );
-            setUi((current) => ({
-              ...current,
-              selectedId: null,
-              selectedIds: [],
-            }));
-          }}
+          onClick={() => deleteSteps([...selected])}
         >
           {`Delete ${count} steps`}
         </Button>

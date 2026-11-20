@@ -54,7 +54,8 @@ import {
   VersionButton,
 } from "./versions";
 
-import { type EditorDocument, findStep, stepLabel } from "./document";
+import { type EditorDocument, findStep, removeStep, START_ID, stepLabel } from "./document";
+import { deleteUsedTake, namedToastText, type StepUse, stepsUsing, usedDialogBody } from "./step-delete";
 import { getCatalogEntry, inputLabels } from "./catalog";
 
 const rootStyle = css({
@@ -308,6 +309,80 @@ export const Editor = ({
       ? asked
       : null;
   const [notice, setNotice] = useState<string | null>(null);
+  // Recovery (ledger L1019): a toast with Undo for a deleted step or an added Find entities step; Cmd+Z and
+  // Cmd+Shift+Z / Cmd+Y do the same. One step back, for these two actions only.
+  const [undoToast, setUndoToast] = useState<{ text: string; onUndo: () => void } | null>(null);
+  const recovery = useRef<{ undo?: () => void; redo?: () => void }>({});
+  const [deleteAsk, setDeleteAsk] = useState<{ ids: string[]; uses: StepUse[] } | null>(null);
+  const deleteUsed = deleteUsedTake(location.query);
+  const announce = (text: string, before: EditorDocument, after?: EditorDocument) => {
+    const steps: { undo?: () => void; redo?: () => void } = {};
+    steps.undo = () => {
+      setDocumentState(() => before);
+      recovery.current = after ? { redo: steps.redo } : {};
+      setUndoToast(null);
+    };
+    steps.redo = () => {
+      if (after) {
+        setDocumentState(() => after);
+      }
+      recovery.current = { undo: steps.undo };
+    };
+    recovery.current = { undo: steps.undo };
+    setUndoToast({ text, onUndo: () => steps.undo?.() });
+  };
+  const clearSelection = (ids: string[]) =>
+    setUiState((current) => ({
+      ...current,
+      canvasMenu: null,
+      selectedId: ids.includes(current.selectedId ?? "") ? null : current.selectedId,
+      selectedIds: (current.selectedIds ?? []).filter((id) => !ids.includes(id)),
+    }));
+  const performDelete = (ids: string[], text: string | null) => {
+    const before = document;
+    const after = ids.reduce((next, id) => removeStep(next, id), before);
+    setDocumentState(() => after);
+    clearSelection(ids);
+    if (text) {
+      announce(text, before, after);
+    }
+  };
+  /** One step goes at once with a toast (or asks first when others use it); several ask first. */
+  const deleteSteps = (requested: string[]) => {
+    const ids = [...new Set(requested)].filter((id) => id !== START_ID && findStep(document, id));
+    if (ids.length === 0) {
+      return;
+    }
+    if (ids.length > 1) {
+      setDeleteAsk({ ids, uses: [] });
+      return;
+    }
+    const uses = stepsUsing(document, ids);
+    if (uses.length > 0 && deleteUsed === "ask") {
+      setDeleteAsk({ ids, uses });
+      return;
+    }
+    performDelete(ids, deleteUsed === "named" ? namedToastText(uses) : "Step deleted");
+  };
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || isTyping(event.target)) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key === "z" && !event.shiftKey && recovery.current.undo) {
+        event.preventDefault();
+        recovery.current.undo();
+        setUndoToast(null);
+      } else if (((key === "z" && event.shiftKey) || key === "y") && recovery.current.redo) {
+        event.preventDefault();
+        recovery.current.redo();
+        setUndoToast(null);
+      }
+    };
+    globalThis.addEventListener("keydown", onKey);
+    return () => globalThis.removeEventListener("keydown", onKey);
+  });
   // ?confirm=dialog: ⋮ › Archive asks first.
   const confirmTake = useConfirmTake();
   const [archiveAsk, setArchiveAsk] = useState(false);
@@ -471,6 +546,8 @@ export const Editor = ({
     ui,
     setUi: (update: (current: EditorUi) => EditorUi) => setUiState(update),
     validation,
+    deleteSteps,
+    announce,
   };
 
   return (
@@ -758,6 +835,36 @@ export const Editor = ({
               </header>
               {notice ? (
                 <Toast text={notice} onDone={() => setNotice(null)} />
+              ) : null}
+              {undoToast ? (
+                <Toast
+                  key={undoToast.text}
+                  text={undoToast.text}
+                  action="Undo"
+                  onAction={undoToast.onUndo}
+                  onDone={() => setUndoToast(null)}
+                />
+              ) : null}
+              {deleteAsk ? (
+                <ConfirmDialog
+                  title={
+                    deleteAsk.ids.length > 1
+                      ? `Delete ${deleteAsk.ids.length} steps?`
+                      : `Delete ${stepLabel(findStep(document, deleteAsk.ids[0]!)!.step)}?`
+                  }
+                  body={
+                    deleteAsk.uses.length > 0
+                      ? usedDialogBody(deleteAsk.uses)
+                      : "Their connections go with them."
+                  }
+                  action={deleteAsk.ids.length > 1 ? `Delete ${deleteAsk.ids.length} steps` : "Delete step"}
+                  onClose={() => setDeleteAsk(null)}
+                  onConfirm={() => {
+                    const ids = deleteAsk.ids;
+                    setDeleteAsk(null);
+                    performDelete(ids, ids.length === 1 ? "Step deleted" : null);
+                  }}
+                />
               ) : null}
               {archiveAsk ? (
                 <ConfirmDialog
