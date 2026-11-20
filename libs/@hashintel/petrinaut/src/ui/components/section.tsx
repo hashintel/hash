@@ -172,7 +172,6 @@ interface SectionProps {
   onOpenChange?: (open: boolean) => void;
   /** Unmounts the content while collapsed (default keeps it mounted). */
   unmountOnCollapse?: boolean;
-  renderHeaderAction?: () => ReactNode;
   children: ReactNode;
 }
 
@@ -185,7 +184,6 @@ export const Section = ({
   defaultOpen = true,
   onOpenChange,
   unmountOnCollapse = false,
-  renderHeaderAction,
   children,
 }: SectionProps) => {
   const [expanded, setOpen] = useState(defaultOpen);
@@ -223,7 +221,6 @@ export const Section = ({
   ) => (
     <div className={headerRowStyle}>
       {headerLeft(renderTitle)}
-      {renderHeaderAction && <div>{renderHeaderAction()}</div>}
       <Collapsible.Trigger className={triggerButtonStyle} asChild>
         <Button
           ref={header.attach}
@@ -273,10 +270,7 @@ export const Section = ({
   return (
     <div data-section className={cx(sectionStyle, sectionGapStyle)}>
       <div className={headerStyle} data-section-header>
-        <div className={headerRowStyle}>
-          {headerLeft()}
-          {renderHeaderAction && <div>{renderHeaderAction()}</div>}
-        </div>
+        <div className={headerRowStyle}>{headerLeft()}</div>
       </div>
       {/* Without children the wrapper would leave about 20px of dead space. */}
       {children === null ? null : (
