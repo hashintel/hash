@@ -1,10 +1,10 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { type ReactNode, use, useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { Button, HelpTooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { UserSettingsContext } from "../../react/state/user-settings-context";
+import { useUserSettings } from "../../react/state/user-settings-context";
 import { useFocusHeader } from "../worksheet/use-focus-member";
 import { PointerHelpTooltip } from "./pointer-help-tooltip";
 import { StackedSectionHeader, StackedSections } from "./stacked-sections";
@@ -254,7 +254,7 @@ export const Section = ({
     </div>
   );
 
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
 
   const renderHeaderContent = (
     renderTitle?: (text: string, className: string) => ReactNode,

@@ -9,7 +9,7 @@ import {
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { UserSettingsContext } from "../../react/state/user-settings-context";
+import { useUserSettings } from "../../react/state/user-settings-context";
 import { FocusControls } from "../worksheet/focus-controls";
 import { ScrollFade } from "./scroll-fade";
 
@@ -85,7 +85,7 @@ export const StackedSections: React.FC<{
   const scrollRef = useRef<HTMLElement | null>(null);
   const [positions, setPositions] = useState<HeaderPosition[]>([]);
   const [trailingSpace, setTrailingSpace] = useState(0);
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
 
   useLayoutEffect(() => {
     const root = rootRef.current;
@@ -294,7 +294,7 @@ export const StackedSectionHeader: React.FC<{
   const id = useId();
   const stack = use(StackContext);
   const position = stack?.positions.find((entry) => entry.id === id);
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const title = (text: string, titleClassName?: string) =>
     stack ? (
       <FocusControls axis="horizontal">
