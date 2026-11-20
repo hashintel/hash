@@ -14,6 +14,7 @@ The [coverage table](coverage-map.md) records each item, its property type, and 
 A unit data type constrains a value and defines its conversions. A property type identifies what the value means. For example:
 
 - Thermodynamic Entropy and Heat Capacity reuse joules per kelvin.
+- Temperature reading properties use the existing Temperature family. Migration 035 supplies a separate Temperature Difference family with scale-only conversions for signed intervals.
 - Information Entropy uses shannons, hartleys, or nats, separately from thermodynamic entropy and binary storage.
 - Mass Fraction, Mole Fraction, and Volume Fraction share bounded fraction representations while retaining their different bases.
 - Characteristic numbers are properties using the existing dimensionless ratio units. They do not each introduce a new data type.
@@ -71,7 +72,6 @@ These need explicit models or validation support. A structured property is a sto
 - **9-33 and 9-34:** pressure-based and concentration-based equilibrium constants have units whose exponents depend on reaction stoichiometry. A fixed unit data type would be misleading. Standard Equilibrium Constant is available as a dimensionless property; the reaction and standard states belong in the surrounding model.
 - Parts **1 and 2** specify general conventions and mathematical notation. This migration does not turn operators, notation rules, or physical laws into property types.
 - Withdrawn part 14 and unpublished work on further parts are not added as if they were published quantity catalogues.
-- Temperature-difference semantics still need a point-versus-difference conversion contract. Existing temperature reading types are reused; no duplicate “Kelvin Temperature Difference” data type is introduced.
 
 ## Sources and editions
 
