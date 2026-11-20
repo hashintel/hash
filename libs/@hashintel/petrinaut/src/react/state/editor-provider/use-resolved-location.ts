@@ -1,6 +1,6 @@
 import { use, useEffect } from "react";
 
-import { usePetrinautNavigation } from "../../navigation";
+import { usePetrinautNavigation } from "../../navigation/navigation";
 import { resolveNavigatedItems } from "../../navigation/resolve-navigated-ids";
 import { SDCPNContext } from "../sdcpn-context";
 

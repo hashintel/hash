@@ -6,7 +6,7 @@ import {
   ExperimentsContext,
 } from "../../../../../../react/experiments/context";
 import { buildSweepOptimizationInput } from "../../../../../../react/experiments/sweep-optimization";
-import { PetrinautNavigationProvider } from "../../../../../../react/navigation";
+import { PetrinautNavigationProvider } from "../../../../../../react/navigation/navigation-provider";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
 import {
   foldBestTrial,

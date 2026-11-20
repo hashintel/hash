@@ -42,7 +42,7 @@ import { noSlots, PetrinautSlotsContext } from "./slots-context";
 import { EditorView } from "./views/Editor/editor-view";
 import { PetrinautPresentationProvider } from "./views/shared/presentation-provider";
 
-import type { PetrinautNavigationController } from "../react/navigation";
+import type { PetrinautNavigationController } from "../react/navigation/navigation";
 import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
 import type { PetrinautSlots } from "./types/petrinaut-slots";
 import type { PetrinautPresentationProfile } from "./views/shared/presentation-context";

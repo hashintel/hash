@@ -23,7 +23,7 @@ import { LanguageClientContext } from "../lsp/context";
 import {
   openPetrinautSimulationResource,
   usePetrinautNavigation,
-} from "../navigation";
+} from "../navigation/navigation";
 import { NotificationsContext } from "../notifications/context";
 import { findSimulator, SimulatorsContext } from "../simulators/context";
 import { SDCPNContext } from "../state/sdcpn-context";

@@ -10,10 +10,8 @@ import {
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  defaultPetrinautNavigationState,
-  PetrinautNavigationProvider,
-} from "../../../../react/navigation";
+import { defaultPetrinautNavigationState } from "../../../../react/navigation/navigation";
+import { PetrinautNavigationProvider } from "../../../../react/navigation/navigation-provider";
 import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
@@ -21,7 +19,7 @@ import {
 import { PetrinautPresentationProvider } from "../../../views/shared/presentation-provider";
 import { VerticalSubViewsContainer } from "./vertical-sub-views-container";
 
-import type { PetrinautNavigationController } from "../../../../react/navigation";
+import type { PetrinautNavigationController } from "../../../../react/navigation/navigation";
 import type { SubView } from "../types";
 import type { ComponentProps } from "react";
 

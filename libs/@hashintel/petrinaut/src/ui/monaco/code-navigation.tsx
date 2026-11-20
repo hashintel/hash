@@ -5,7 +5,7 @@ import {
   getTransitionLogicAvailability,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautNavigate } from "../../react/navigation";
+import { usePetrinautNavigate } from "../../react/navigation/navigation";
 import { ActiveNetContext } from "../../react/state/active-net-context";
 import { CompositionContext } from "../../react/state/composition-context";
 import { useEditorActions } from "../../react/state/editor-context";

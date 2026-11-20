@@ -2,7 +2,7 @@ import {
   simulateDrawerToNavigationOverlay,
   simulateDrawerToNavigationResource,
   type PetrinautNavigationState,
-} from "../../navigation";
+} from "../../navigation/navigation";
 import {
   type createSelectionNavigator,
   selectionToNavigation,

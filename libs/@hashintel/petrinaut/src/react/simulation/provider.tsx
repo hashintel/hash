@@ -28,7 +28,7 @@ import {
   LanguageClientContext,
   type LanguageClientContextValue,
 } from "../lsp/context";
-import { usePetrinautNavigation } from "../navigation";
+import { usePetrinautNavigation } from "../navigation/navigation";
 import { NotificationsContext } from "../notifications/context";
 import { usePublished } from "../select-from-context";
 import {

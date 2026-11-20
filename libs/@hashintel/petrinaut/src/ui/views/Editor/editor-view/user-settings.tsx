@@ -4,7 +4,7 @@ import { useCommand } from "../../../../react/commands/command-registry";
 import {
   usePetrinautNavigate,
   usePetrinautNavigationState,
-} from "../../../../react/navigation";
+} from "../../../../react/navigation/navigation";
 import { UserSettingsDialog } from "./user-settings/user-settings-dialog";
 
 export const UserSettings = () => {

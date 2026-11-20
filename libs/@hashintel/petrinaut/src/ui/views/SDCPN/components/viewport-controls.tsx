@@ -4,7 +4,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   usePetrinautNavigate,
   usePetrinautNavigationState,
-} from "../../../../react/navigation";
+} from "../../../../react/navigation/navigation";
 import { useEditorActions } from "../../../../react/state/editor-context";
 import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";

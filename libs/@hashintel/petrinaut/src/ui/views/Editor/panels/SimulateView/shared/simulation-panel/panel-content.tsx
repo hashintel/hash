@@ -2,7 +2,7 @@ import { use, useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePetrinautNavigationState } from "../../../../../../../react/navigation";
+import { usePetrinautNavigationState } from "../../../../../../../react/navigation/navigation";
 import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
 import {
   PanelContext,

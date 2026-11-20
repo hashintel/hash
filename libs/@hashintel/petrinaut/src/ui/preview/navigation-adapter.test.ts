@@ -1,13 +1,13 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { defaultPetrinautNavigationState } from "../../react/navigation";
+import { defaultPetrinautNavigationState } from "../../react/navigation/navigation";
 import {
   createPreviewNavigationAdapter,
   toPreviewNavigationState,
   type PetrinautPreviewNavigationState,
 } from "./navigation-adapter";
 
-import type { PetrinautNavigationController } from "../../react/navigation";
+import type { PetrinautNavigationController } from "../../react/navigation/navigation";
 
 describe("Preview navigation adapter", () => {
   test("pins editor-only state while preserving Preview state", () => {

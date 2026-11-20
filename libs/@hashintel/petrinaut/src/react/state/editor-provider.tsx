@@ -5,7 +5,7 @@ import { useLatest } from "../hooks/use-latest";
 import {
   navigationResourceToSimulateDrawer,
   usePetrinautNavigation,
-} from "../navigation";
+} from "../navigation/navigation";
 import { usePublished } from "../select-from-context";
 import {
   type AssistantPlacement,

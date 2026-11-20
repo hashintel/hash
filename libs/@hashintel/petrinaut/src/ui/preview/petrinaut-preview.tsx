@@ -29,10 +29,8 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { ActualModeContext } from "../../react/actual-mode-context";
-import {
-  PetrinautNavigationProvider,
-  type PetrinautNavigationController,
-} from "../../react/navigation";
+import { type PetrinautNavigationController } from "../../react/navigation/navigation";
+import { PetrinautNavigationProvider } from "../../react/navigation/navigation-provider";
 import { NotificationsProvider } from "../../react/notifications/provider";
 import {
   PetrinautCanvasProvider,

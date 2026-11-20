@@ -15,7 +15,7 @@ import {
   usePetrinautNavigate,
   simulateDrawerToNavigationResource,
   simulateDrawerToNavigationOverlay,
-} from "../../../../../../react/navigation";
+} from "../../../../../../react/navigation/navigation";
 import {
   EditorContext,
   type EditorContextValue,

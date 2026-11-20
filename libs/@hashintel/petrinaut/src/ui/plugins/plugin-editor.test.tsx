@@ -9,7 +9,7 @@ import { LanguageClientContext } from "../../react/lsp/context";
 import {
   defaultPetrinautNavigationState,
   type PetrinautNavigationIntent,
-} from "../../react/navigation";
+} from "../../react/navigation/navigation";
 import { EditorContext } from "../../react/state/editor-context";
 import { useStore } from "../../react/use-store";
 import {

@@ -14,11 +14,11 @@ import {
   type Petrinaut,
 } from "@hashintel/petrinaut-core";
 
-import { petrinautNavigationStatesMatch } from "../../react/navigation";
+import { petrinautNavigationStatesMatch } from "../../react/navigation/navigation";
 import { createAccessFamilies } from "./plugin-access";
 
 import type { ExperimentRecord } from "../../react/experiments/context";
-import type { PetrinautNavigationState } from "../../react/navigation";
+import type { PetrinautNavigationState } from "../../react/navigation/navigation";
 import type {
   AccessFamilies,
   PluginEditorState,

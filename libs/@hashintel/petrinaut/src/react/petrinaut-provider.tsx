@@ -1,10 +1,8 @@
 import { ExperimentHostProvider } from "./experiment-host/provider";
 import { ExperimentsProvider } from "./experiments/provider";
 import { LanguageClientProvider } from "./lsp/provider";
-import {
-  PetrinautNavigationProvider,
-  type PetrinautNavigationController,
-} from "./navigation";
+import { type PetrinautNavigationController } from "./navigation/navigation";
+import { PetrinautNavigationProvider } from "./navigation/navigation-provider";
 import { NotificationsProvider } from "./notifications/provider";
 import { OptimizationsProvider } from "./optimizations/provider";
 import {

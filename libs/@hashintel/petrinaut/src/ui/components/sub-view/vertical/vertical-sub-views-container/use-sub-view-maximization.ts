@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   usePetrinautNavigate,
   usePetrinautNavigationState,
-} from "../../../../../react/navigation";
+} from "../../../../../react/navigation/navigation";
 
 import type { SubView } from "../../types";
 

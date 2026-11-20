@@ -17,7 +17,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { CommandRegistryProvider } from "../../../../react/commands/command-registry";
-import { PetrinautNavigationProvider } from "../../../../react/navigation";
+import { PetrinautNavigationProvider } from "../../../../react/navigation/navigation-provider";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
 import { nextFrame } from "../../../lib/readings.test-helpers";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
@@ -28,7 +28,7 @@ import { UserSettings } from "./user-settings";
 import type {
   PetrinautNavigationState,
   PetrinautSettingsSection,
-} from "../../../../react/navigation";
+} from "../../../../react/navigation/navigation";
 import type { PetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import type { ReactNode } from "react";
 

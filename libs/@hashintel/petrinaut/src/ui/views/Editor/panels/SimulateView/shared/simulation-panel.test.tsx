@@ -11,10 +11,8 @@ import {
 import { useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 
-import {
-  PetrinautNavigationProvider,
-  usePetrinautNavigation,
-} from "../../../../../../react/navigation";
+import { usePetrinautNavigation } from "../../../../../../react/navigation/navigation";
+import { PetrinautNavigationProvider } from "../../../../../../react/navigation/navigation-provider";
 import {
   defaultUserSettingsContextValue,
   UserSettingsContext,

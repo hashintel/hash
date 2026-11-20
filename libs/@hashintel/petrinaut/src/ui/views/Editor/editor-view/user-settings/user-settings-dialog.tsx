@@ -27,7 +27,7 @@ import { PluginsSection } from "./user-settings-dialog/plugins-section";
 import { SettingsHeading } from "./user-settings-dialog/settings-heading";
 import { SettingsPanel } from "./user-settings-dialog/settings-panel";
 
-import type { PetrinautSettingsSection } from "../../../../../react/navigation";
+import type { PetrinautSettingsSection } from "../../../../../react/navigation/navigation";
 import type { IconName } from "@hashintel/ds-components";
 
 const settingsDialogStyles = {

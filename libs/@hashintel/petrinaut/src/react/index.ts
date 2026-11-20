@@ -40,12 +40,12 @@ export {
   defaultPetrinautNavigationState,
   openPetrinautComponent,
   openPetrinautSimulationResource,
-  PetrinautNavigationProvider,
   petrinautNavigationStatesMatch,
   usePetrinautNavigate,
   usePetrinautNavigation,
   usePetrinautNavigationState,
-} from "./navigation";
+} from "./navigation/navigation";
+export { PetrinautNavigationProvider } from "./navigation/navigation-provider";
 export type {
   PetrinautNavigationAction,
   PetrinautNavigationController,
@@ -53,13 +53,13 @@ export type {
   PetrinautNavigationHistoryPolicy,
   PetrinautNavigationIntent,
   PetrinautNavigationOverlay,
-  PetrinautNavigationProviderProps,
   PetrinautNavigationState,
   PetrinautNavigationUpdate,
   PetrinautNavigationUpdater,
   PetrinautSimulateResource,
   PetrinautSettingsSection,
-} from "./navigation";
+} from "./navigation/navigation";
+export type { PetrinautNavigationProviderProps } from "./navigation/navigation-provider";
 // The vocabularies two navigation fields are drawn from. A host encoding the
 // location into a router needs to spell them, and to fail its own build when
 // either gains a member.

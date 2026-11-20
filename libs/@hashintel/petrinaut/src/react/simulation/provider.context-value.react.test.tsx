@@ -21,7 +21,7 @@ import {
   LanguageClientContext,
   type LanguageClientContextValue,
 } from "../lsp/context";
-import { PetrinautNavigationProvider } from "../navigation";
+import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
 import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import { SimulationContext, type SimulationContextValue } from "./context";
 import { SimulationProvider } from "./provider";

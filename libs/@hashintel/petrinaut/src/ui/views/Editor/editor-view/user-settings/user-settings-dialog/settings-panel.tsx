@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { ScrollFade } from "../../../../../components/scroll-fade";
 import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
 
-import type { PetrinautSettingsSection } from "../../../../../../react/navigation";
+import type { PetrinautSettingsSection } from "../../../../../../react/navigation/navigation";
 import type { ReactNode, RefObject } from "react";
 
 const scrollAreaStyle = css({

@@ -24,7 +24,7 @@ vi.mock("./views/Editor/editor-view", async () => {
     import("react"),
     import("../react/net-management-context"),
     import("./views/Editor/components/TopBar/top-bar"),
-    import("../react/navigation"),
+    import("../react/navigation/navigation"),
   ]);
 
   return {
@@ -89,7 +89,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { defaultPetrinautNavigationState } from "../react/navigation";
+import { defaultPetrinautNavigationState } from "../react/navigation/navigation";
 import { Petrinaut } from "./petrinaut";
 import {
   definePetrinautPlugin,

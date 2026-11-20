@@ -5,7 +5,7 @@ import { sirModel } from "@hashintel/petrinaut-core/examples";
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
 import { ExperimentsProvider } from "../../../../../../react/experiments/provider";
 import { LanguageClientProvider } from "../../../../../../react/lsp/provider";
-import { PetrinautNavigationProvider } from "../../../../../../react/navigation";
+import { PetrinautNavigationProvider } from "../../../../../../react/navigation/navigation-provider";
 import { NotificationsProvider } from "../../../../../../react/notifications/provider";
 import { SimulatorsProvider } from "../../../../../../react/simulators/provider";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";

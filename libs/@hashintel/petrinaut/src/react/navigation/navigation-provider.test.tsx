@@ -9,17 +9,17 @@ import {
   navigationResourceToSimulateDrawer,
   openPetrinautComponent,
   openPetrinautSimulationResource,
-  PetrinautNavigationProvider,
   petrinautNavigationStatesMatch,
   simulateDrawerToNavigationOverlay,
   simulateDrawerToNavigationResource,
   usePetrinautNavigation,
-} from ".";
+} from "./navigation";
+import { PetrinautNavigationProvider } from "./navigation-provider";
 
 import type {
   PetrinautNavigationController,
   PetrinautNavigationState,
-} from ".";
+} from "./navigation";
 
 describe("Petrinaut navigation", () => {
   test("clears an expanded SubView when its item or component changes", () => {

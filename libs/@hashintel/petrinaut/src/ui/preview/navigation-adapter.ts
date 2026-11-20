@@ -2,7 +2,7 @@ import {
   defaultPetrinautNavigationState,
   type PetrinautNavigationController,
   type PetrinautNavigationState,
-} from "../../react/navigation";
+} from "../../react/navigation/navigation";
 
 /** The app-location subset supported by the compact Preview. */
 export type PetrinautPreviewNavigationState = Pick<

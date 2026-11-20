@@ -8,7 +8,7 @@
 
 import { inlineImports, resolvedLibraries } from "@hashintel/petrinaut-core";
 
-import { petrinautNavigationStatesMatch } from "../../react/navigation";
+import { petrinautNavigationStatesMatch } from "../../react/navigation/navigation";
 import {
   formatReadOnlyReason,
   mutationBlockedBy,
@@ -26,7 +26,7 @@ import type {
   PetrinautNavigationIntent,
   PetrinautNavigationState,
   PetrinautNavigationUpdate,
-} from "../../react/navigation";
+} from "../../react/navigation/navigation";
 import type { AddNotificationInput } from "../../react/notifications/context";
 import type {
   ApplyAutoLayoutResult,

@@ -3,7 +3,7 @@ import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useElementSize } from "../../../../react/hooks/use-element-size";
-import { usePetrinautNavigationState } from "../../../../react/navigation";
+import { usePetrinautNavigationState } from "../../../../react/navigation/navigation";
 import { useComposesOnly } from "../../../../react/state/use-composes-only";
 import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { ResizeHandle } from "../../../resize/resize-handle";

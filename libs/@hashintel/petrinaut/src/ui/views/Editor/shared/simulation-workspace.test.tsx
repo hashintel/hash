@@ -3,10 +3,8 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
-import {
-  PetrinautNavigationProvider,
-  usePetrinautNavigation,
-} from "../../../../react/navigation";
+import { usePetrinautNavigation } from "../../../../react/navigation/navigation";
+import { PetrinautNavigationProvider } from "../../../../react/navigation/navigation-provider";
 import { CompositionContext } from "../../../../react/state/composition-context";
 import { SimulationPanel } from "../panels/SimulateView/shared/simulation-panel";
 import { SimulationWorkspace } from "./simulation-workspace";

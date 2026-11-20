@@ -15,10 +15,10 @@ import {
 
 import {
   defaultPetrinautNavigationState,
-  PetrinautNavigationProvider,
   type PetrinautNavigationController,
   type PetrinautNavigationState,
-} from "../navigation";
+} from "../navigation/navigation";
+import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
 import { ActiveNetContext } from "./active-net-context";
 import {
   useAssistantPlacement,

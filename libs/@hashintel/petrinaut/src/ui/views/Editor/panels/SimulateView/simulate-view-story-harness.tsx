@@ -17,7 +17,7 @@ import {
 import { ExperimentsProvider } from "../../../../../react/experiments/provider";
 import { useLatest } from "../../../../../react/hooks/use-latest";
 import { LanguageClientProvider } from "../../../../../react/lsp/provider";
-import { PetrinautNavigationProvider } from "../../../../../react/navigation";
+import { PetrinautNavigationProvider } from "../../../../../react/navigation/navigation-provider";
 import {
   NetManagementContext,
   type NetManagement,

@@ -6,7 +6,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   usePetrinautNavigate,
   usePetrinautNavigationState,
-} from "../../../../../../../react/navigation";
+} from "../../../../../../../react/navigation/navigation";
 import { PanelContext } from "./panel-context";
 import { isSimulateFullscreen, panelSimulateView } from "./panel-navigation";
 

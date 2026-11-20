@@ -27,10 +27,8 @@ import {
 } from "@hashintel/petrinaut-core/hir";
 
 import { LanguageClientContext } from "../lsp/context";
-import {
-  PetrinautNavigationProvider,
-  usePetrinautNavigation,
-} from "../navigation";
+import { usePetrinautNavigation } from "../navigation/navigation";
+import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
 import {
   NotificationsContext,
   type AddNotificationInput,
@@ -52,7 +50,7 @@ import {
 import { ExperimentsProvider } from "./provider";
 
 import type { LanguageClientContextValue } from "../lsp/context";
-import type { PetrinautNavigationState } from "../navigation";
+import type { PetrinautNavigationState } from "../navigation/navigation";
 import type {
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,

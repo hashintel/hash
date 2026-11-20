@@ -5,7 +5,7 @@ import {
   type SelectionItem,
 } from "@hashintel/petrinaut-core";
 
-import type { PetrinautNavigationState } from "./index";
+import type { PetrinautNavigationState } from "./navigation";
 
 // Ids resolve as written first: a custom handle may keep ids it never converted.
 

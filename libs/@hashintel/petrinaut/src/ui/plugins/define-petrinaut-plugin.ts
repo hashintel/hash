@@ -10,7 +10,7 @@
  * the manifest declares, and returns the contributions it declares.
  */
 
-import type { PetrinautSettingsSection } from "../../react/navigation";
+import type { PetrinautSettingsSection } from "../../react/navigation/navigation";
 import type { PluginBottomPanelTab } from "../../react/state/editor-context";
 import type { AccessApi, PluginAccess } from "./plugin-access";
 import type { ReactNode, Ref } from "react";

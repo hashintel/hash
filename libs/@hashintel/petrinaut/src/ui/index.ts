@@ -199,7 +199,7 @@ export type {
   PetrinautNavigationUpdate,
   PetrinautNavigationUpdater,
   PetrinautSimulateResource,
-} from "../react/navigation";
+} from "../react/navigation/navigation";
 
 // SDCPN value-equality check exposed for consumers that need to detect
 // no-op changes outside the handle (e.g. memoising Storybook stories).

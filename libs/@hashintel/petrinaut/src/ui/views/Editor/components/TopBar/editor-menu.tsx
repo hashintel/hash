@@ -8,7 +8,7 @@ import {
   type DocumentFormat,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautNavigate } from "../../../../../react/navigation";
+import { usePetrinautNavigate } from "../../../../../react/navigation/navigation";
 import { NetManagementContext } from "../../../../../react/net-management-context";
 import { CompositionContext } from "../../../../../react/state/composition-context";
 import { useEditorActions } from "../../../../../react/state/editor-context";

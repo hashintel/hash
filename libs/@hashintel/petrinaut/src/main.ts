@@ -34,7 +34,7 @@ export type {
   PetrinautNavigationUpdate,
   PetrinautNavigationUpdater,
   PetrinautSimulateResource,
-} from "./react/navigation";
+} from "./react/navigation/navigation";
 
 export {
   canonicalizePetrinautIds,

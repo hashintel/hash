@@ -1,4 +1,4 @@
-import type { usePetrinautNavigation } from "../../navigation";
+import type { usePetrinautNavigation } from "../../navigation/navigation";
 import type { EditorActions } from "../editor-context";
 import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
 

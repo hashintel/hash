@@ -2,7 +2,10 @@ import { use, useEffect, type ReactNode } from "react";
 
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
-import { openPetrinautComponent, usePetrinautNavigation } from "../navigation";
+import {
+  openPetrinautComponent,
+  usePetrinautNavigation,
+} from "../navigation/navigation";
 import { ActiveNetContext } from "./active-net-context";
 import { SDCPNContext } from "./sdcpn-context";
 import { useComposesOnly } from "./use-composes-only";

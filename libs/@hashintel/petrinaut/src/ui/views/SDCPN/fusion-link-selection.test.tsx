@@ -8,9 +8,9 @@ import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { PetrinautInstanceContext } from "../../../react/instance-context";
 import {
   defaultPetrinautNavigationState,
-  PetrinautNavigationProvider,
   type PetrinautNavigationState,
-} from "../../../react/navigation";
+} from "../../../react/navigation/navigation";
+import { PetrinautNavigationProvider } from "../../../react/navigation/navigation-provider";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { EditorProvider } from "../../../react/state/editor-provider";

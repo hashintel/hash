@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef } from "react";
 import { Chip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import type { PetrinautSettingsSection } from "../../../../../../react/navigation";
+import type { PetrinautSettingsSection } from "../../../../../../react/navigation/navigation";
 
 type HeadingSection = {
   id: PetrinautSettingsSection;
