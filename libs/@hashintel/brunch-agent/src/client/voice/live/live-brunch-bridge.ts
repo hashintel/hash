@@ -3,6 +3,7 @@ import { getToolName, isToolUIPart } from "ai";
 import { newestNonEmptySelection } from "@hashintel/brunch-agent";
 
 import { offerIn } from "../../../conversation/offer-answers";
+import { liveQuestionBlockHeading } from "../../../shared/live-question-block";
 import {
   maxUtteranceTextLength,
   shouldWithholdUtterance,
@@ -1456,10 +1457,13 @@ export class LiveBrunchBridge {
       const recap = source
         ? await mediation.summarize(source, turn.preparation.signal)
         : "";
-      // One append: a commentary append answers its delegation.
-      const summary = [recap, ...questions]
-        .filter((text) => text.trim())
-        .join("\n\n");
+      // One append: a commentary append answers its delegation. The heading
+      // the session instructions name marks where the questions begin.
+      const asked = questions.filter((text) => text.trim());
+      const summary = [
+        ...(recap.trim() ? [recap] : []),
+        ...(asked.length ? [liveQuestionBlockHeading, ...asked] : []),
+      ].join("\n\n");
       while (
         turn.progressOffered &&
         this.#liveAudioMayBePlaying(Date.now()) &&
