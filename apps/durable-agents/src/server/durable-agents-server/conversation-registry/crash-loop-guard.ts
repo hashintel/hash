@@ -26,6 +26,9 @@
  * appends nothing and aborts nothing, and the abort handler runs again on
  * every open. A finite `restartLimit`, and with it Pi's fault, returns once
  * Pi's tools can park instead of holding an invocation while they wait.
+ *
+ * A crash between the entry's commit and the abort leaves the tasks unmarked
+ * but already named: the next open appends nothing and aborts them.
  */
 import {
   type Conversation,
@@ -126,9 +129,10 @@ const lastRecordedLoop = async (root: Conversation, context: Context) => {
  * except a `pi.tool` task that owns a browser call: none while the call is
  * `pending` or `claimed`, and once the call has an outcome, only the
  * restarts since it (all of them on a call that did not record its count).
- * The tasks it reports carry their full count. Returns what it aborted, or
- * `undefined` when it did nothing, as when every such task is marked for
- * abort and the newest `CrashLoopEntry` names it.
+ * The tasks it reports carry their full count. It appends a `CrashLoopEntry`
+ * unless the newest one already names every such task. Returns what it
+ * aborted, or `undefined` when it did nothing, as when every such task is
+ * also marked for abort.
  */
 export const guardCrashLoops = async (
   harness: Harness,
@@ -155,14 +159,9 @@ export const guardCrashLoops = async (
     .map(({ record }) => record)
     .filter((record) => charged(record) >= limit);
   if (offendingRecords.length === 0) return undefined;
-  const recorded = offendingRecords.some(markedForAbort)
-    ? await lastRecordedLoop(root, context)
-    : new Set<number>();
-  if (
-    offendingRecords.every(
-      (record) => markedForAbort(record) && recorded.has(record.id),
-    )
-  )
+  const recorded = await lastRecordedLoop(root, context);
+  const alreadyRecorded = offendingRecords.every(({ id }) => recorded.has(id));
+  if (alreadyRecorded && offendingRecords.every(markedForAbort))
     return undefined;
   const offending = offendingRecords.map((record) => ({
     id: record.id,
@@ -177,20 +176,21 @@ export const guardCrashLoops = async (
         conversationId === root.id && type !== "write",
     )
     .map(({ id }) => id);
-  await root.commit(
-    (tx) =>
-      tx.appendEntry(CrashLoopEntry, root.id, {
-        data: {
-          inputs: [...inputs],
-          tasks: offending.map(({ id, kind, restarts }) => ({
-            id,
-            kind,
-            restarts,
-          })),
-        },
-      }),
-    context,
-  );
+  if (!alreadyRecorded)
+    await root.commit(
+      (tx) =>
+        tx.appendEntry(CrashLoopEntry, root.id, {
+          data: {
+            inputs: [...inputs],
+            tasks: offending.map(({ id, kind, restarts }) => ({
+              id,
+              kind,
+              restarts,
+            })),
+          },
+        }),
+      context,
+    );
   // The run first, so it ends `aborted`; then whatever its abort did not reach, such as background work.
   await root.abort(context);
   for (const { id } of offending) {
