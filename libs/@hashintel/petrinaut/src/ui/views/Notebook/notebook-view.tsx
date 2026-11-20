@@ -292,7 +292,9 @@ const NotebookViewContent = ({ toolbarStart }: NotebookViewProps) => {
       stop.kind === "sparse" ? stop.columns.length : 1,
     ),
   );
-  const listFocus = useFocusStops({
+  // Destructured: the compiler takes what `ref` is given for a ref and would
+  // refuse the calls to `listFocus` during render.
+  const { attach: attachList, ...listFocus } = useFocusStops({
     stops: rowStops,
     columnCount: maxPartColumns,
     focusTarget: ({ stopId, column }) => {
@@ -507,12 +509,9 @@ const NotebookViewContent = ({ toolbarStart }: NotebookViewProps) => {
 
       <div className={bodyStyle}>
         <div className={cellsColumnStyle}>
-          <div className={cellListStyle}>
+          <div ref={attachList} className={cellListStyle}>
             <div
-              ref={(element) => {
-                contentRef.current = element;
-                listFocus.attach(element);
-              }}
+              ref={contentRef}
               className={cellListContentStyle}
               style={{
                 paddingLeft: CONNECTION_GUTTER_WIDTH,
