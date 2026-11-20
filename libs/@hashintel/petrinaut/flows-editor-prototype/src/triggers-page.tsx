@@ -22,6 +22,7 @@ import {
   Button,
   ButtonGroup,
   Checkbox,
+  Dialog,
   NumberInput,
   Icon,
   type IconName,
@@ -44,7 +45,7 @@ import {
   pendingTriggerAdd,
 } from "./flow-triggers";
 import { HashShell } from "./hash-shell";
-import { firstLineIconStyle } from "./menu-rows";
+import { firstLineIconStyle, tileMenu, tiledRowsStyle } from "./menu-rows";
 import { navigate } from "./router";
 import {
   dayLetter,
@@ -321,13 +322,7 @@ const groups: { kind: Kind; label: string }[] = [
 ];
 
 const statusText = (trigger: PageTrigger, on: boolean) =>
-  trigger.failed
-    ? "Failed to activate"
-    : on
-      ? "On"
-      : trigger.kind === "responsive"
-        ? "Paused"
-        : "Off";
+  trigger.failed ? "Failed to activate" : on ? "On" : "Paused";
 
 const metaOf = (trigger: PageTrigger) => `${trigger.web} · ${trigger.version}`;
 
@@ -1321,8 +1316,8 @@ const AddMenu = ({
 }) => (
   <Menu
     position="bottom-end"
-    className={css({ minWidth: "[320px]" })}
-    items={[
+    className={cx(css({ minWidth: "[320px]" }), tiledRowsStyle)}
+    items={tileMenu([
       {
         id: "schedule",
         text: "On a schedule",
@@ -1337,7 +1332,7 @@ const AddMenu = ({
         icon: "cube",
         onClick: () => onPick("responsive"),
       },
-    ]}
+    ])}
     trigger={trigger}
   />
 );
@@ -1411,11 +1406,30 @@ const usePage = (routeFlowId: string | null) => {
   }, []);
   const flip = (id: string, on: boolean) =>
     setData((current) => ({ ...current, on: { ...current.on, [id]: on } }));
+  const [renaming, setRenaming] = useState<string | null>(null);
   const open = (id: string | null) => {
     setDraft(null);
     setConfirming(null);
+    setRenaming(null);
     setOpened(id);
   };
+  // Rename opens the row's edit form and puts the cursor in its Name field.
+  const rename = (id: string) => {
+    open(id);
+    setRenaming(id);
+  };
+  useEffect(() => {
+    if (!renaming) {
+      return;
+    }
+    // After the menu has handed focus back to its button.
+    const timer = setTimeout(() => {
+      globalThis.document
+        .querySelector<HTMLInputElement>('[data-trigger-form] input[aria-label="Name"]')
+        ?.focus();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [renaming]);
   // Esc closes the open trigger or the new one's form (11 Nov convergence A17).
   useEscapeCloses(
     () => {
@@ -1485,6 +1499,7 @@ const usePage = (routeFlowId: string | null) => {
     add,
     opened,
     open,
+    rename,
     confirming,
     setConfirming,
     flowId,
@@ -1919,9 +1934,10 @@ const VersionCell = ({
 
 /** Edit, turn on or off, delete: what the page can already do to a row. */
 const RowMenu = ({ page, row }: { page: Page; row: Row }) => {
+  const [deleting, setDeleting] = useState(false);
   const on = page.on[row.id] ?? false;
-  const offWord =
-    row.kind === "trigger" && row.trigger.kind === "responsive" ? "Pause" : "Turn off";
+  const offWord = row.kind === "trigger" ? "Pause" : "Turn off";
+  const onWord = row.kind === "trigger" ? "Resume" : "Turn on";
   const name = row.kind === "manual" ? `Manual runs for ${row.flow.name}` : row.trigger.label;
   return (
     // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- keeps the menu's clicks off the row
@@ -1930,11 +1946,14 @@ const RowMenu = ({ page, row }: { page: Page; row: Row }) => {
         position="bottom-end"
         items={[
           ...(row.kind === "trigger"
-            ? [{ id: "edit", text: "Edit", onClick: () => page.open(row.id) }]
+            ? [
+                { id: "edit", text: "Edit", onClick: () => page.open(row.id) },
+                { id: "rename", text: "Rename", onClick: () => page.rename(row.id) },
+              ]
             : []),
           {
             id: "flip",
-            text: on ? offWord : "Turn on",
+            text: on ? offWord : onWord,
             onClick: () => {
               // A schedule with a next run asks first, on its opened row (the switch's confirm).
               if (on && row.kind === "trigger" && row.trigger.kind === "schedule" && row.trigger.nextRun) {
@@ -1950,7 +1969,7 @@ const RowMenu = ({ page, row }: { page: Page; row: Row }) => {
                 {
                   id: "delete",
                   text: "Delete",
-                  onClick: () => page.remove(row.id),
+                  onClick: () => setDeleting(true),
                 },
               ]
             : []),
@@ -1966,6 +1985,41 @@ const RowMenu = ({ page, row }: { page: Page; row: Row }) => {
           />
         }
       />
+      {deleting && row.kind === "trigger" ? (
+        <Dialog
+          size="sm"
+          aria-label="Delete this trigger?"
+          onClose={() => setDeleting(false)}
+        >
+          <Dialog.Header
+            title="Delete this trigger?"
+            description={`${row.trigger.label} stops running. Its past runs stay readable.`}
+          />
+          <Dialog.Footer
+            actions={
+              <>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  tone="neutral"
+                  onClick={() => setDeleting(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="solid"
+                  tone="neutral"
+                  data-confirm-action
+                  onClick={() => page.remove(row.id)}
+                >
+                  Delete
+                </Button>
+              </>
+            }
+          />
+        </Dialog>
+      ) : null}
     </span>
   );
 };
