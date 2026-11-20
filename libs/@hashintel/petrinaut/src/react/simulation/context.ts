@@ -89,7 +89,6 @@ export type StochasticRun = {
 };
 
 export type SimulationContextValue = {
-  // State values
   /** Current lifecycle state of the simulation. */
   state: SimulationState;
   /** Error message if state is "Error". */
@@ -194,7 +193,6 @@ export type SimulationContextValue = {
    */
   adHocNetParameters: Parameter[];
 
-  // Actions
   setSelectedScenarioId: (scenarioId: string | null) => void;
   setAdHocScenario: (state: AdHocScenarioState | null) => void;
   setScenarioParameterValue: (identifier: string, value: string) => void;

@@ -193,10 +193,7 @@ export type SimulationProviderProps = React.PropsWithChildren<{
 /**
  * Compiles a run's scenario, or throws its errors as one message. Kept out
  * of `initialize`: a `throw` inside that function's `try`/`catch` is syntax
- * React Compiler does not lower, and the one statement excluded the whole
- * provider from compilation — every render then rebuilt every derived value
- * and re-rendered every consumer of the simulation context, the canvas
- * included.
+ * React Compiler does not lower.
  */
 const compileScenarioForRun = (
   ...args: Parameters<typeof compileScenario>
@@ -314,8 +311,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       EMPTY_STATUS_STORE,
   );
 
-  // When the simulation changes, subscribe to its events stream for errors and
-  // completion notifications.
   useEffect(() => {
     if (!eventSimulation) {
       return;

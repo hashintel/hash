@@ -74,7 +74,6 @@ export const simulatorRefusal = (
 export const defaultSimulatorSelections: SimulatorsContextValue["defaultSelections"] =
   {
     quick: { simulatorId: FIXED_STEP_SIMULATOR_ID },
-    // The step experiments have always started on.
     stochastic: {
       simulatorId: FIXED_STEP_SIMULATOR_ID,
       parameters: { dt: 0.1 },
