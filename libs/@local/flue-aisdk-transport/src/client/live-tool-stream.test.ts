@@ -78,6 +78,36 @@ test("reads fragmented SSE data with ownership headers and no reconnect", async 
   ]);
 });
 
+test("skips the server's heartbeat comments", async () => {
+  const event = {
+    instanceId: "instance-1",
+    kind: "tool-input-start",
+    sequence: 0,
+    submissionId: "submission-1",
+    toolCallId: "call-1",
+    toolName: "lookup",
+    turnId: "turn-1",
+    v: 1,
+  };
+  const events: unknown[] = [];
+
+  await readLiveToolStream({
+    conversationUrl: "https://agent.test/agents/chat/instance-1",
+    onEvent: (received) => events.push(received),
+    options: {
+      fetch: async () =>
+        new Response(
+          `: heartbeat\n\ndata: ${JSON.stringify(event)}\n\n: heartbeat\n\n`,
+        ),
+      headers: {},
+    },
+    signal: new AbortController().signal,
+    submissionId: "submission-1",
+  });
+
+  expect(events).toEqual([event]);
+});
+
 test("fails closed on malformed live events", async () => {
   await expect(
     readLiveToolStream({
