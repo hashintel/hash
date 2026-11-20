@@ -5,7 +5,7 @@ import {
 } from "../../../../react/state/editor-context";
 import { usePluginAssistant } from "../../../plugins/plugin-assistant";
 import { usePluginOverlay } from "../../../plugins/plugins-provider";
-import { AiCtaModal } from "../components/ai-cta-modal";
+import { AiCtaModal } from "./empty-net-prompt/ai-cta-modal";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 

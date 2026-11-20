@@ -26,9 +26,9 @@ import {
   useAutoLayoutAndFrame,
 } from "../../shared/use-auto-layout-and-frame";
 import { useCreateEmptyNet } from "../../shared/use-create-empty-net";
-import { ImportErrorDialog } from "../import-error-dialog";
 import { exampleNets } from "./editor-menu/example-nets";
 import { formatRelativeTime } from "./editor-menu/format-relative-time";
+import { ImportErrorDialog } from "./editor-menu/import-error-dialog";
 import { layOutNet } from "./editor-menu/lay-out-net";
 
 // `white-space` inherits down to the item text, whose `overflow: hidden;

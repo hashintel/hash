@@ -67,7 +67,7 @@ vi.mock("./panels/PropertiesPanel/panel", () => ({
 vi.mock("./panels/BottomPanel/panel", () => ({ BottomPanel: () => null }));
 vi.mock("./components/BottomBar/bottom-bar", () => ({ BottomBar: () => null }));
 vi.mock("./components/TopBar/top-bar", () => ({ TopBar: () => null }));
-vi.mock("./components/ai-cta-modal", () => ({
+vi.mock("./editor-view/empty-net-prompt/ai-cta-modal", () => ({
   AiCtaModal: ({ onSubmit }: { onSubmit: (message: string) => void }) => (
     <button type="button" onClick={() => onSubmit("Build an SIR model")}>
       Send empty-net prompt
