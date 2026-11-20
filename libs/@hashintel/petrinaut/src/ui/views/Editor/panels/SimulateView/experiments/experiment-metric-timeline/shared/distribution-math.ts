@@ -46,14 +46,6 @@ export function meanFromBins(bins: DistributionBins): number | null {
   );
 }
 
-function minFromBins(bins: DistributionBins): number | null {
-  return bins[0]?.[0] ?? null;
-}
-
-function maxFromBins(bins: DistributionBins): number | null {
-  return bins.at(-1)?.[0] ?? null;
-}
-
 export function percentileFromBins(
   bins: DistributionBins,
   fraction: number,
@@ -76,6 +68,14 @@ export function percentileFromBins(
   return bins.at(-1)?.[0] ?? null;
 }
 
+const percentileFraction = {
+  median: 0.5,
+  p10: 0.1,
+  p25: 0.25,
+  p75: 0.75,
+  p90: 0.9,
+};
+
 export function aggregateDistributionBins(
   bins: DistributionBins,
   aggregation: RunAggregation,
@@ -83,20 +83,12 @@ export function aggregateDistributionBins(
   switch (aggregation) {
     case "mean":
       return meanFromBins(bins);
-    case "median":
-      return percentileFromBins(bins, 0.5);
     case "min":
-      return minFromBins(bins);
+      return bins[0]?.[0] ?? null;
     case "max":
-      return maxFromBins(bins);
-    case "p10":
-      return percentileFromBins(bins, 0.1);
-    case "p25":
-      return percentileFromBins(bins, 0.25);
-    case "p75":
-      return percentileFromBins(bins, 0.75);
-    case "p90":
-      return percentileFromBins(bins, 0.9);
+      return bins.at(-1)?.[0] ?? null;
+    default:
+      return percentileFromBins(bins, percentileFraction[aggregation]);
   }
 }
 
