@@ -32,7 +32,7 @@ describe("IconProvider", () => {
     expect(markup).not.toContain("data-custom");
     expect(markup).toContain('data-state="checked"');
     expect(markup).toContain('data-state="indeterminate"');
-    expect(markup).toContain('d="M20 6 9 17l-5-5"');
+    expect(markup).toContain('d="m5 12 4.5 4.5L19 7"');
     expect(markup).toContain('d="M5 12h14"');
   });
 

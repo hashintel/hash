@@ -154,8 +154,11 @@ const BlockContextMenu: ForwardRefRenderFunction<
         title: "Copy Link",
         icon: <HashInlineIcon icon={faLink} />,
         onClick: () => {
+          if (!entityId) {
+            return;
+          }
           const url = new URL(document.location.href);
-          url.hash = getBlockDomId(entityId ?? undefined);
+          url.hash = getBlockDomId(entityId);
           void navigator.clipboard.writeText(url.toString());
         },
       },

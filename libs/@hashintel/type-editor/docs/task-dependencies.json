@@ -13,6 +13,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/ds-icons#build",
         "@local/eslint#build",
         "@local/hash-isomorphic-utils#build"
       ],
@@ -36,6 +37,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/ds-icons#build",
         "@local/eslint#build",
         "@local/hash-isomorphic-utils#build"
       ],
@@ -62,6 +64,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/ds-icons#build",
         "@local/eslint#build",
         "@local/hash-isomorphic-utils#build"
       ],

@@ -6,10 +6,7 @@
       "dependsOn": [
         "@hashintel/ds-components#codegen"
       ],
-      "cache": false,
-      "affectedBy": [
-        "@hashintel/ds-components"
-      ]
+      "cache": false
     }
   }
 }

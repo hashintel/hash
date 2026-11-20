@@ -17,6 +17,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/ds-icons#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/hash-graph-client#build",
@@ -44,6 +45,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/ds-icons#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/hash-graph-client#build",
@@ -71,6 +73,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/ds-icons#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/hash-graph-client#build",
@@ -118,6 +121,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/ds-icons#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/hash-graph-client#build",
@@ -147,6 +151,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/ds-icons#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/hash-graph-client#build",
@@ -174,6 +179,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/ds-icons#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/hash-graph-client#build",
@@ -204,6 +210,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/ds-icons#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/hash-graph-client#build",

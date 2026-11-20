@@ -12,6 +12,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/ds-icons#build",
         "@local/eslint#build"
       ],
       "affectedBy": [
@@ -29,6 +30,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/ds-icons#build",
         "@local/eslint#build"
       ],
       "env": [
@@ -49,6 +51,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/ds-icons#build",
         "@local/eslint#build"
       ],
       "affectedBy": [
