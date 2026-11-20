@@ -3,10 +3,11 @@
  * @role Exposes the core language client to the editor as React context
  */
 
-import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import {
   createLanguageClient,
+  createReadableStore,
   type ReadableStore,
   type DiagnosticsSnapshot,
   type LanguageClient,
@@ -14,7 +15,6 @@ import {
 } from "@hashintel/petrinaut-core";
 import { createLanguageServerWorker } from "@hashintel/petrinaut-core/workers/lsp";
 
-import { createValueStore } from "../create-value-store";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useExecutableDefinition } from "../state/use-executable-definition";
 import { useStore } from "../use-store";
@@ -52,13 +52,9 @@ export const LanguageClientProvider: React.FC<{
    * StrictMode's simulated remount cycle.
    */
   const [clientStore] = useState(() =>
-    createValueStore<LanguageClient | null>(null),
+    createReadableStore<LanguageClient | null>(null),
   );
-  const client = useSyncExternalStore(
-    (listener) => clientStore.subscribe(listener),
-    () => clientStore.getSnapshot(),
-    () => clientStore.getSnapshot(),
-  );
+  const client = useStore(clientStore);
 
   useEffect(() => {
     const c = createLanguageClient({
@@ -67,7 +63,7 @@ export const LanguageClientProvider: React.FC<{
     clientStore.set(c);
     return () => {
       c.dispose();
-      if (clientStore.getSnapshot() === c) {
+      if (clientStore.get() === c) {
         clientStore.set(null);
       }
     };

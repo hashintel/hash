@@ -22,8 +22,6 @@ import { useEffect, useRef, useState, type RefObject } from "react";
  * ```
  */
 export function useElementOnScreen(ref: RefObject<Element | null>): boolean {
-  "use no memo"; // imperative observer management
-
   const [onScreen, setOnScreen] = useState(true);
   const observedRef = useRef<Element | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);

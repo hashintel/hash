@@ -1,14 +1,18 @@
 import { use, useLayoutEffect, useState, type Context } from "react";
-import { useSyncExternalStoreWithSelector } from "use-sync-external-store/with-selector";
 
-import { createValueStore, type ValueStore } from "./create-value-store";
+import {
+  createReadableStore,
+  type ReadableStore,
+} from "@hashintel/petrinaut-core";
+
+import { constantStore, useStoreSelector } from "./use-store";
 
 /**
  * What a provider publishes for its readers by selector: its latest context
  * value. Null where nothing publishes, such as under a test that provides the
  * context on its own.
  */
-export type Published<Value> = ValueStore<Value> | null;
+export type Published<Value> = ReadableStore<Value> | null;
 
 /**
  * Publishes a provider's context value for {@link useSelected}. The provider
@@ -20,8 +24,8 @@ export type Published<Value> = ValueStore<Value> | null;
  * paints. A reader by selector whose part changed renders then, in the same
  * frame as the readers of the context.
  */
-export const usePublished = <Value>(value: Value): ValueStore<Value> => {
-  const [published] = useState(() => createValueStore(value));
+export const usePublished = <Value>(value: Value): ReadableStore<Value> => {
+  const [published] = useState(() => createReadableStore(value));
   useLayoutEffect(() => {
     published.set(value);
   }, [published, value]);
@@ -29,8 +33,7 @@ export const usePublished = <Value>(value: Value): ValueStore<Value> => {
 };
 
 const nothing = Symbol("nothing published");
-const subscribeToNothing = () => () => {};
-const getNothing = (): typeof nothing => nothing;
+const nothingPublished = constantStore<typeof nothing>(nothing);
 
 /**
  * One part of a context value. The reader renders when that part changes,
@@ -50,14 +53,11 @@ export const useSelected = <Value, Selected>(
   select: (value: Value) => Selected,
   isSame?: (previous: Selected, next: Selected) => boolean,
 ): Selected => {
-  const published = use(publishedContext);
-  const selected = useSyncExternalStoreWithSelector<
+  const selected = useStoreSelector<
     Value | typeof nothing,
     Selected | typeof nothing
   >(
-    published ? published.subscribe : subscribeToNothing,
-    published ? published.getSnapshot : getNothing,
-    published ? published.getSnapshot : getNothing,
+    use(publishedContext) ?? nothingPublished,
     (value) => (value === nothing ? nothing : select(value)),
     isSame &&
       ((previous, next) =>

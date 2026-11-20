@@ -1,4 +1,4 @@
-import { use, useMemo } from "react";
+import { use } from "react";
 
 import {
   type DefaultParameterValues,
@@ -26,15 +26,11 @@ export {
  * @returns A record mapping parameter IDs to their default values as numbers or booleans
  */
 export function useDefaultParameterValues(): DefaultParameterValues {
+  "use memo";
   const {
     extensions,
     petriNetDefinition: { parameters },
   } = use(SDCPNContext);
 
-  return useMemo(() => {
-    if (!extensions.parameters) {
-      return {};
-    }
-    return deriveDefaultParameterValues(parameters);
-  }, [extensions.parameters, parameters]);
+  return extensions.parameters ? deriveDefaultParameterValues(parameters) : {};
 }
