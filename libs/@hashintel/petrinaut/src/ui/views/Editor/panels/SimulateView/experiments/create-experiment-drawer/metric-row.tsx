@@ -343,8 +343,8 @@ export const ExperimentMetricRow = ({
               const icon = getMetricKindIcon(value);
               const text =
                 kindGroups
-                  .flatMap((g) => g.items)
-                  .find((it) => it.value === value)?.text ?? value;
+                  .flatMap((group) => group.items)
+                  .find((item) => item.value === value)?.text ?? value;
               return (
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   {icon && <Icon name={icon} size="xs" />}
