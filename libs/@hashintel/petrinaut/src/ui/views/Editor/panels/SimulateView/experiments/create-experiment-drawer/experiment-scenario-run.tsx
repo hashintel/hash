@@ -11,10 +11,6 @@
 import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
-import {
-  classicRunVariables,
-  createUserKeyedRecord,
-} from "@hashintel/petrinaut-core";
 
 import { useScenarioHir } from "../../../../../../../react/simulation/use-scenario-hir";
 import {
@@ -26,7 +22,10 @@ import { OverlayScrollArea } from "../../../../../../components/overlay-scroll-a
 import { Section } from "../../../../../../components/section";
 import { StackedSections } from "../../../../../../components/stacked-sections";
 import { scenarioExpressions } from "../../../../../shared/scenario-expressions";
-import { scenarioRunInputs } from "./experiment-scenario-inputs";
+import {
+  scenarioRunInputs,
+  seedRunVariables,
+} from "./experiment-scenario-inputs";
 import { computedStatePreview } from "./experiment-scenario-run/computed-state-preview";
 
 import type { ExperimentParameterInput } from "../../../../../../../react/experiments/parameter-grid";
@@ -66,36 +65,6 @@ const noticeStyle = css({
   paddingX: "2",
   paddingY: "1.5",
 });
-
-/**
- * The Variables a run form starts from: one per scenario parameter, seeded
- * from the experiment's input for it — a fixed value as the expression, a
- * range as an interval selection — so a reseed keeps every sweep.
- */
-const seedRunVariables = (
-  scenario: Scenario,
-  inputs: Readonly<Record<string, ExperimentParameterInput>>,
-): AdHocVariable[] => {
-  const fixed = createUserKeyedRecord<string>();
-  for (const [identifier, input] of Object.entries(inputs)) {
-    if (input.mode === "fixed") {
-      fixed[identifier] = input.value;
-    }
-  }
-  return classicRunVariables(scenario, fixed).map((variable): AdHocVariable => {
-    const input = inputs[variable.name];
-    return input?.mode === "range"
-      ? {
-          ...variable,
-          optimize: {
-            min: String(input.min),
-            max: String(input.max),
-            scale: "linear",
-          },
-        }
-      : variable;
-  });
-};
 
 interface ExperimentScenarioRunProps {
   scenario: Scenario;

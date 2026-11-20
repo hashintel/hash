@@ -10,6 +10,8 @@
 
 import {
   classicRunParameterValues,
+  classicRunVariables,
+  createUserKeyedRecord,
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
 
@@ -17,6 +19,7 @@ import type { ExperimentParameterInput } from "../../../../../../../react/experi
 import type {
   AdHocScenarioState,
   AdHocSynthesisContext,
+  AdHocVariable,
   Scenario,
 } from "@hashintel/petrinaut-core";
 
@@ -73,3 +76,33 @@ export function scenarioRunInputs(
 
   return inputs;
 }
+
+/**
+ * The Variables a run form starts from: one per scenario parameter, seeded
+ * from the experiment's input for it — a fixed value as the expression, a
+ * range as an interval selection — so a reseed keeps every sweep.
+ */
+export const seedRunVariables = (
+  scenario: Scenario,
+  inputs: Readonly<Record<string, ExperimentParameterInput>>,
+): AdHocVariable[] => {
+  const fixed = createUserKeyedRecord<string>();
+  for (const [identifier, input] of Object.entries(inputs)) {
+    if (input.mode === "fixed") {
+      fixed[identifier] = input.value;
+    }
+  }
+  return classicRunVariables(scenario, fixed).map((variable): AdHocVariable => {
+    const input = inputs[variable.name];
+    return input?.mode === "range"
+      ? {
+          ...variable,
+          optimize: {
+            min: String(input.min),
+            max: String(input.max),
+            scale: "linear",
+          },
+        }
+      : variable;
+  });
+};
