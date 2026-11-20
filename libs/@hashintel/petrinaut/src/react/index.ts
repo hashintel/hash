@@ -10,11 +10,11 @@
 
 // --- Palette commands ---
 export {
-  CommandRegistryProvider,
   useCommand,
   useCommandRegistry,
   useCommands,
 } from "./commands/command-registry";
+export { CommandRegistryProvider } from "./commands/command-registry-provider";
 export { formatShortcutKeys } from "./commands/format-shortcut";
 
 // --- Instance access + low-level adapters ---

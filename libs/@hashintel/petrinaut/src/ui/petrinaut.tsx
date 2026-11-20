@@ -26,10 +26,8 @@ import {
   type SimulatorRegistration,
 } from "@hashintel/petrinaut-core";
 
-import {
-  CommandRegistryProvider,
-  useCommandRegistry,
-} from "../react/commands/command-registry";
+import { useCommandRegistry } from "../react/commands/command-registry";
+import { CommandRegistryProvider } from "../react/commands/command-registry-provider";
 import { PetrinautProvider } from "../react/petrinaut-provider";
 import { ResolvingOverlay } from "./components/resolving-overlay";
 import { Stack } from "./components/stack";

@@ -2,39 +2,15 @@
  * @layerRoot react.commands
  * @role React bindings over the core command registry: the host-owned provider, and the hooks that declare commands and feed a palette
  */
-import {
-  createContext,
-  use,
-  useEffect,
-  useState,
-  useSyncExternalStore,
-} from "react";
-
-import { createCommandRegistry } from "@hashintel/petrinaut-core";
+import { createContext, use, useEffect, useSyncExternalStore } from "react";
 
 import { useLatest } from "../hooks/use-latest";
 
 import type { Command, CommandRegistry } from "@hashintel/petrinaut-core";
-import type { ReactNode } from "react";
 
-const CommandRegistryContext = createContext<CommandRegistry | null>(null);
-
-/**
- * Provides a registry to the tree below. Pass `registry` to share one the
- * host also gives to `createPetrinaut` or to other components; without it
- * the provider creates its own.
- */
-export const CommandRegistryProvider: React.FC<{
-  registry?: CommandRegistry;
-  children: ReactNode;
-}> = ({ registry, children }) => {
-  const [ownRegistry] = useState(() => registry ?? createCommandRegistry());
-  return (
-    <CommandRegistryContext value={registry ?? ownRegistry}>
-      {children}
-    </CommandRegistryContext>
-  );
-};
+export const CommandRegistryContext = createContext<CommandRegistry | null>(
+  null,
+);
 
 /** The ambient registry, or `null` outside a `CommandRegistryProvider`. */
 export function useCommandRegistry(): CommandRegistry | null {

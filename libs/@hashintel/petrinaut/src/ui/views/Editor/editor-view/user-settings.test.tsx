@@ -16,7 +16,7 @@ import {
   createCommandRegistry,
 } from "@hashintel/petrinaut-core";
 
-import { CommandRegistryProvider } from "../../../../react/commands/command-registry";
+import { CommandRegistryProvider } from "../../../../react/commands/command-registry-provider";
 import { PetrinautNavigationProvider } from "../../../../react/navigation/navigation-provider";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
 import { nextFrame } from "../../../lib/readings.test-helpers";

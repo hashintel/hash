@@ -8,7 +8,7 @@ import {
   type PetrinautRules,
 } from "@hashintel/petrinaut-core";
 
-import { CommandRegistryProvider } from "../../../react/commands/command-registry";
+import { CommandRegistryProvider } from "../../../react/commands/command-registry-provider";
 import { NetManagementContext } from "../../../react/net-management-context";
 import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";

@@ -15,7 +15,7 @@ import {
   createPetrinaut,
 } from "@hashintel/petrinaut-core";
 
-import { CommandRegistryProvider } from "../../react/commands/command-registry";
+import { CommandRegistryProvider } from "../../react/commands/command-registry-provider";
 import {
   type ErrorTracker,
   ErrorTrackerContext,
