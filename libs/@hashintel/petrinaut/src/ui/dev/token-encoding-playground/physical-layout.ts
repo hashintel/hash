@@ -10,7 +10,6 @@ import {
 import type {
   ColorElementType,
   StringPoolReader,
-  TokenLayoutField,
   TokenRecord,
   TokenSlotLayout,
 } from "@hashintel/petrinaut-core";
@@ -49,7 +48,7 @@ export type EncodedToken = {
   decoded: TokenRecord;
 };
 
-export function decodeToken(
+function decodeToken(
   layout: TokenSlotLayout,
   buffer: ArrayBuffer,
   stringPool?: StringPoolReader,
@@ -87,41 +86,6 @@ export function encodeToken(
   }
 
   return { buffer, stored, decoded: decodeToken(layout, buffer, stringPool) };
-}
-
-/**
- * Returns one field's bits most-significant first (the "logical" reading
- * order: for f64 that is sign, exponent, mantissa). Multi-byte values are
- * stored little-endian, so the byte walk is reversed. For 16-byte `u64x2`
- * uuid fields (hi lane stored at +8) the reversal starts with the hi lane's
- * most-significant byte, i.e. the logical 128-bit MSB.
- */
-export function getFieldBits(
-  buffer: ArrayBuffer,
-  field: TokenLayoutField,
-): number[] {
-  const bytes = new Uint8Array(buffer, field.byteOffset, field.byteSize);
-  const bits: number[] = [];
-  for (let byteIndex = bytes.length - 1; byteIndex >= 0; byteIndex--) {
-    for (let bit = 7; bit >= 0; bit--) {
-      // eslint-disable-next-line no-bitwise -- bit extraction is the point here
-      bits.push((bytes[byteIndex]! >> bit) & 1);
-    }
-  }
-  return bits;
-}
-
-/** Hex form of the field's stored bytes, most-significant byte first. */
-export function getFieldHex(
-  buffer: ArrayBuffer,
-  field: TokenLayoutField,
-): string {
-  const bytes = new Uint8Array(buffer, field.byteOffset, field.byteSize);
-  let hex = "";
-  for (let byteIndex = bytes.length - 1; byteIndex >= 0; byteIndex--) {
-    hex += bytes[byteIndex]!.toString(16).padStart(2, "0");
-  }
-  return `0x${hex}`;
 }
 
 /**

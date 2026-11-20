@@ -182,22 +182,20 @@ export const encodableDimensions = (
 export function generateTokenDefs(
   dimensions: readonly PlaygroundDimension[],
 ): string {
-  const properties = dimensions
-    .filter((dimension) => IDENTIFIER_RE.test(dimension.name))
-    .map(
-      (dimension) =>
-        // uuid accepts strings too — the encoder coerces via `toUuid`, so the
-        // playground types match what it actually accepts.
-        `  ${dimension.name}: ${
-          dimension.type === "boolean"
-            ? "boolean"
-            : dimension.type === "uuid"
-              ? "bigint | string"
-              : dimension.type === "string"
-                ? "string"
-                : "number"
-        };`,
-    );
+  const properties = dimensions.map(
+    (dimension) =>
+      // uuid accepts strings too — the encoder coerces via `toUuid`, so the
+      // playground types match what it actually accepts.
+      `  ${dimension.name}: ${
+        dimension.type === "boolean"
+          ? "boolean"
+          : dimension.type === "uuid"
+            ? "bigint | string"
+            : dimension.type === "string"
+              ? "string"
+              : "number"
+      };`,
+  );
 
   return [
     "/** One token of the playground colour — edit dimensions on the left. */",
