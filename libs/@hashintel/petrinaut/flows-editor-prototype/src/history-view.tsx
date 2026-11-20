@@ -11,7 +11,7 @@ import {
   type IconName,
   Menu,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { runIdMono, runIdStyled, RunIdText, runLabel } from "./run-id";
 import { runsOf, startRun, stopRun, useAppState } from "./app-store";
@@ -226,6 +226,12 @@ export const menuRowStyle = css({
   },
 });
 
+/** SYS-TILE-32 (20 Nov): a run row with its status mark is 32 px, a 22 px line with 5 px above and below. */
+const runMenuStyle = css({
+  "& [role=menuitem]:has([data-run-menu-row])": { "--selectable-list-item-padding-y": "[5px]" },
+  "& [data-run-menu-row]": { height: "[22px]" },
+});
+
 export const menuTimeStyle = css({
   textStyle: "xs",
   color: "neutral.fg.muted",
@@ -309,7 +315,7 @@ export const RunSwitcher = ({
       .map((candidate) => ({
         id: `run-${candidate.id}`,
         text: (
-          <span className={menuRowStyle}>
+          <span className={menuRowStyle} data-run-menu-row>
             {side === "right" ? null : side === "left" ? (
               <span className={statusSlotStyle} data-status-slot={side}>
                 {runMark(candidate)}
@@ -379,7 +385,7 @@ export const RunSwitcher = ({
       {picker ? (
         <Menu
           position="bottom-start"
-          className={css({ width: "[320px]" })}
+          className={cx(runMenuStyle, css({ width: "[320px]" }))}
           items={
             allRunsFirst ? [allRunsGroup, runsGroup] : [runsGroup, allRunsGroup]
           }

@@ -108,12 +108,8 @@ const componentRules: [string, Record<string, string>][] = [
     `[data-scope="select"][data-part="item"][data-state="checked"]`,
     { "--colors-neutral-a25": "var(--colors-neutral-bg-subtle-active)" },
   ],
-  // A single Select's picked row is Semi Bold beside its fill (ledger 17 Nov, On failure). A multi select's rows have
-  // a checkbox, which keeps its weight.
-  [
-    `[data-scope="select"][data-part="item"][data-state="checked"]:not(:has(> span[class*="bdr_sm"]))`,
-    { "font-weight": "600" },
-  ],
+  // A single Select's picked row has the same weight as its neighbours (GREY-ROW, ledger L1019, 20 Nov: grey fill, no
+  // tick, no bold).
   // No tick on the picked row, and no tick column, in any single Select (Filter row selects: Where, If, Logs).
   [
     `[data-scope="select"][data-part="item"] > span[aria-hidden="true"]:not([class*="bdr_"])`,

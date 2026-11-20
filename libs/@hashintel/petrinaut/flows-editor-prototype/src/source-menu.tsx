@@ -322,6 +322,8 @@ type SourceGroup = {
     disabled?: boolean;
     hint?: string;
     suffix?: React.ReactNode;
+    /** The "@" popover draws these data types as a pill after the name (AT-PILL-24-NEUTRAL). */
+    types?: string[];
     /** Picking it changes the menu instead of closing it ("Show more"). */
     keepOpen?: boolean;
     onPick?: () => void;
@@ -477,6 +479,21 @@ export const SearchHeader = ({
   );
 };
 
+/** The "@" popover's type pill (AT-PILL-24-NEUTRAL): a grey chip right after the name. */
+const typePillStyle = css({
+  flexShrink: 0,
+  marginLeft: "[8px]",
+  paddingX: "[6px]",
+  paddingY: "[1px]",
+  borderRadius: "md",
+  backgroundColor: "neutral.a25",
+  textStyle: "xs",
+  lineHeight: "[16px]",
+  color: "neutral.fg.muted",
+});
+
+const popoverTitleStyle = css({ display: "inline-flex", alignItems: "center", minWidth: "[0]" });
+
 const typeLabelStyle = css({
   flexShrink: 0,
   marginLeft: "auto",
@@ -492,7 +509,7 @@ const TYPE_LABEL_CHARS = 24;
  * A property's data types on the right of its row (DS menu secondary label). As many types as fit are listed; the
  * rest become "+N", and the hover lists them all (Figma 637:23544 A; Aakarsh, 30 Oct: fit what you can, then +N).
  */
-const TypeLabel = ({ types }: { types: string[] }) => {
+const TypeLabel = ({ types, pill = false }: { types: string[]; pill?: boolean }) => {
   let shown = 1;
   while (
     shown < types.length &&
@@ -504,7 +521,7 @@ const TypeLabel = ({ types }: { types: string[] }) => {
   }
   const rest = types.length - shown;
   const label = (
-    <span className={typeLabelStyle}>
+    <span className={pill ? typePillStyle : typeLabelStyle}>
       {types.slice(0, shown).join(", ")}
       {rest > 0 ? ` +${rest}` : ""}
     </span>
@@ -748,6 +765,7 @@ export const SourceMenu = ({
     ),
     hint: `${itemName(document, loopId!)} › ${property.via ? `${property.via} › ` : ""}${property.title} · ${typesOf(property).join(", ")}`,
     suffix: showTypes ? <TypeLabel types={typesOf(property)} /> : undefined,
+    types: showTypes ? typesOf(property) : undefined,
     ...(iconsEverywhere ? typeGlyph(typesOf(property)) : {}),
     selected: currentProperty?.baseUrl === property.baseUrl,
     onPick: () => onPick(itemPropertySource(property.baseUrl)),
@@ -873,7 +891,7 @@ export const SourceMenu = ({
     // With nothing earlier that fits, Earlier steps offers only the way to add one on Start, with no line saying
     // why (Figma J2.21, 3 Nov). The For each list has no such action, so it keeps its line.
     ...(fromSteps && earlier.length > 0
-      ? [{ id: "Earlier steps", label: "Earlier steps", items: earlier }]
+      ? [{ id: "Earlier steps", label: earlier.length === 1 ? undefined : "Earlier steps", items: earlier }]
       : fromSteps && !searching && listsOnly
         ? [
             {
@@ -1037,10 +1055,20 @@ export const SourceMenu = ({
                     {tiledPopover ? (
                       <MenuRow
                         icon={item.glyph ?? item.icon}
-                        title={item.text}
+                        title={
+                          item.types ? (
+                            <span className={popoverTitleStyle}>
+                              {item.text}
+                              <TypeLabel types={item.types} pill />
+                            </span>
+                          ) : (
+                            item.text
+                          )
+                        }
                         description={item.description}
                         tiles={valueTiles}
                         action={item.action}
+                        tint={item.tint}
                       />
                     ) : (
                       <>
@@ -1048,7 +1076,7 @@ export const SourceMenu = ({
                         <span className={rowTextStyle}>{item.text}</span>
                       </>
                     )}
-                    {item.suffix}
+                    {tiledPopover && item.types ? null : item.suffix}
                   </button>
                 ),
               )}

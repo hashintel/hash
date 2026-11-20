@@ -270,13 +270,16 @@ const PathTarget = ({
         prefix={wire ? { iconName: iconOf(wire.target) } : undefined}
         items={items}
         // The menu lists steps only, as tile rows (SYS-TILE-32); no "Ends here" row, the empty select says it.
+        // A row with an icon is 32 px: 2 px above and below the 28 px the Select gives a 22 px tile.
         renderItem={(value) => (
-          <MenuRow
-            icon={iconOf(value)}
-            title={items.find((item) => item.value === value)?.text ?? value}
-            tint={treeTileColor(iconOf(value))}
-            tiles="all"
-          />
+          <span className={css({ display: "block", marginY: "[2px]" })}>
+            <MenuRow
+              icon={iconOf(value)}
+              title={items.find((item) => item.value === value)?.text ?? value}
+              tint={treeTileColor(iconOf(value))}
+              tiles="all"
+            />
+          </span>
         )}
         // A long name loses its middle, not its end, as on If's select; the full name shows on hover.
         renderSelectedItem={(value) => (

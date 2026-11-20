@@ -32,6 +32,8 @@ import {
   runClock,
   suppliers,
 } from "./run-history";
+import { MenuRow } from "./menu-rows";
+import { PersonAvatar } from "./person-avatar";
 import { SearchHeader } from "./source-menu";
 
 export type RunFilterValues = {
@@ -265,9 +267,27 @@ const operatorsOf = (
   const items = [
     ...new Set(runs.flatMap((run) => facetOf(property, run, now))),
   ].map((value) => ({ value, text: facetText(property, value) }));
+  // AV-PHOTO (20 Nov): a person's row shows their 22 px avatar, 2 px above and below so the row is 32 px.
+  const input =
+    property === "by"
+      ? {
+          type: "select" as const,
+          items,
+          renderItem: (value: string) => (
+            <span className={css({ display: "block", marginY: "[2px]" })}>
+              <MenuRow
+                avatar
+                icon={<PersonAvatar name={value} row />}
+                title={facetText(property, value)}
+                tiles="all"
+              />
+            </span>
+          ),
+        }
+      : { type: "select" as const, items };
   return [
-    { key: "is", label: "is", input: { type: "select", items } },
-    { key: "isNot", label: "is not", input: { type: "select", items } },
+    { key: "is", label: "is", input },
+    { key: "isNot", label: "is not", input },
   ];
 };
 

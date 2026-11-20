@@ -48,7 +48,7 @@ import {
   TemplatePreview,
 } from "./inline-chips";
 import { iconPackTake } from "./icon-take";
-import { tileMenu, type TiledItem, tiledRowsStyle } from "./menu-rows";
+import { MenuRow, tileMenu, type TiledItem, tiledRowsStyle } from "./menu-rows";
 import {
   findEntityType,
   findPropertyType,
@@ -1240,6 +1240,22 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
                   ),
               )}
               aria-label={input.label}
+              // AV-PHOTO (20 Nov): people show a 22 px avatar (Maya Patel's photo, others initials); the checkbox stays.
+              renderItem={
+                typeBaseUrl && findEntityType(typeBaseUrl)?.title === "Person"
+                  ? (value) => {
+                      const name = personName(
+                        mockEntities.find((entity) => entity.entityId === value)
+                          ?.label ?? String(value),
+                      );
+                      return (
+                        <span className={css({ display: "block", marginY: "[2px]" })}>
+                          <MenuRow avatar icon={<PersonAvatar name={name} row />} title={name} tiles="all" />
+                        </span>
+                      );
+                    }
+                  : undefined
+              }
               items={mockEntities
                 .filter(
                   (candidate) =>

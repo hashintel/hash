@@ -73,14 +73,16 @@ export const VersionLabel = ({
   </span>
 );
 
+/** A two-line row is 44 px (SYS-TILE-32): a 20 px title and a 16 px line, 2 px apart, 3 px of padding above and below. */
 const menuRowStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "0",
+  gap: "[2px]",
   minWidth: "[0]",
 });
 
 const menuTitleStyle = css({
+  lineHeight: "[20px]",
   display: "inline-flex",
   alignItems: "center",
   gap: "1.5",
@@ -89,6 +91,7 @@ const menuTitleStyle = css({
 
 const menuMetaStyle = css({
   textStyle: "xs",
+  lineHeight: "[16px]",
   color: "neutral.fg.muted",
   whiteSpace: "nowrap",
 });

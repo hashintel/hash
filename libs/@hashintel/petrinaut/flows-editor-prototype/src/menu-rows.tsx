@@ -15,12 +15,11 @@ import { css, cva } from "@hashintel/ds-helpers/css";
  * (ledger 2 Nov), which hung a 14 px icon on the first line. The name is kept so every caller follows it.
  */
 /**
- * Selected row in any single-choice menu (approved parts, 10 Nov): the label is dark Semi Bold beside the active fill,
- * as in the Steps list, so the row still reads as selected while hovered (the DS lightens a hovered selected row to
- * the hover fill). Only the label: times, counts and status words keep their weight.
+ * Selected row in any single-choice menu (GREY-ROW, 20 Nov, ledger L1019): the label is dark and regular weight beside
+ * the grey fill, no tick and no bold. Only the label: times, counts and status words keep their weight.
  */
 export const selectedLabelStyle = css({
-  fontWeight: "semibold",
+  fontWeight: "[inherit]",
   color: "neutral.fg.max",
 });
 
@@ -201,7 +200,7 @@ const actionSlotStyle = css({
   flexShrink: 0,
   alignSelf: "center",
   width: "[22px]",
-  height: "[22px]",
+  height: "[20px]",
   color: "neutral.fg.muted",
   "& svg": {
     width: "[12px]",
