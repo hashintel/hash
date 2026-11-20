@@ -33,7 +33,7 @@ import {
 } from "./document";
 import { useEditor } from "./editor-context";
 import { isMockPayloadKind } from "./mock-action-definitions";
-import { findEntityType, mockEntities } from "./mock-graph";
+import { findEntityType, findPropertyType, mockEntities } from "./mock-graph";
 import {
   MenuRow,
   srcIconsTake,
@@ -582,10 +582,34 @@ export const SourceMenu = ({
       ? typedChoicesProp
       : [];
 
+  // MOCK: the engine has no data types yet, so a field that takes one is known by its format ("email", "url"), or a URL
+  // field by its label.
+  const wantedDataType =
+    input.format === "email" ? "Email" : input.format === "url" || input.label === "URL" ? "URL" : undefined;
+  // The data types the graph gives the property a Read entity step reads; any other output has none to compare.
+  const dataTypesOf = (option: SourceOption): readonly string[] | undefined => {
+    if (option.source.kind !== "step-output") {
+      return option.source.kind === "item" ? undefined : [];
+    }
+    const step = findStep(document, option.source.stepId)?.step;
+    const property = step?.kind === "action" ? step.inputs.property : undefined;
+    const baseUrl =
+      property?.kind === "constant"
+        ? (property.payload.value as { propertyTypeBaseUrl?: string } | null)?.propertyTypeBaseUrl
+        : undefined;
+    return step?.kind === "action" && step.actionDefinitionId === "readEntity"
+      ? (findPropertyType(baseUrl)?.dataTypes ?? [])
+      : [];
+  };
   const options = (
     fromSteps ? sourceOptions(document, stepId, input, entry) : []
   )
     .filter((option) => !listsOnly || option.group === "Earlier steps")
+    // A field that takes one data type lists only outputs of that type (ledger L25).
+    .filter((option) => {
+      const types = wantedDataType ? dataTypesOf(option) : undefined;
+      return !types || (wantedDataType !== undefined && types.includes(wantedDataType));
+    })
     .filter(
       (option) =>
         !text ||
@@ -658,8 +682,6 @@ export const SourceMenu = ({
   const current =
     found?.step.kind === "action" ? found.step.inputs[input.name] : undefined;
   const currentProperty = current ? itemPropertyOf(current) : undefined;
-  // MOCK: the engine has no data types yet, so a URL field is known by its label.
-  const wantedDataType = input.label === "URL" ? "URL" : undefined;
   const fittingProperties =
     listsOnly || !loopId || !itemType || input.array
       ? []
