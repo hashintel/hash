@@ -19,8 +19,8 @@
  * A `row` stop can fold from its first column: see `FocusFold`.
  *
  * Focusing stays the owner's: `focusTarget` receives the wished position
- * and reports whether an element took focus, so ref bookkeeping and
- * nearest-column policies live with the table that owns them.
+ * and reports whether an element took focus. `useStopTargets` keeps the
+ * elements; a nearest-column policy lives with the table that owns it.
  */
 
 import { useRef, useState } from "react";

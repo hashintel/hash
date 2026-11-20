@@ -126,6 +126,8 @@ export const FocusStack: React.FC<FocusStackProps> = ({
   // The stack is itself a member of the stack around it.
   const { attach, moveFrom: leaveStack } = useFocusMember(enterStack);
 
+  // A stable identity for the context value would drop every keystroke's
+  // closure; the compiler memoizes it against its real inputs.
   const group: FocusGroup = {
     register: (memberId, handle) => {
       membersRef.current.set(memberId, handle);
@@ -159,8 +161,6 @@ export const FocusStack: React.FC<FocusStackProps> = ({
       return leaveStack(direction, from);
     },
   };
-  // A stable identity for the context value would drop every keystroke's
-  // closure; the compiler memoizes it against its real inputs.
 
   return (
     <FocusGroupContext value={group}>
