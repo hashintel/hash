@@ -15,7 +15,6 @@ import { CreateScenarioDrawer } from "./create-scenario-drawer";
 
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { Scenario, SDCPN } from "@hashintel/petrinaut-core";
-import type { ReactNode } from "react";
 
 const mutations = vi.hoisted(() => ({
   addScenario: vi.fn(),
@@ -43,60 +42,13 @@ vi.mock("../../../../../monaco/code-editor", () => ({
 }));
 
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@hashintel/ds-components")>();
-  // The real Drawer portals its body somewhere testing-library cannot reach
-  // from this tree; the parts under test are plain children of it.
-  const Drawer = Object.assign(
-    ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    {
-      Header: ({
-        title,
-        description,
-      }: {
-        title: string;
-        description?: string;
-      }) => (
-        <div>
-          <h2>{title}</h2>
-          {description ? <p>{description}</p> : null}
-        </div>
-      ),
-      Body: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-      Footer: ({
-        actions,
-        secondaryActions,
-      }: {
-        actions?: ReactNode;
-        secondaryActions?: ReactNode;
-      }) => (
-        <div>
-          {secondaryActions}
-          {actions}
-        </div>
-      ),
-    },
-  );
+  const [actual, { Select }] = await Promise.all([
+    importOriginal<typeof import("@hashintel/ds-components")>(),
+    import("../shared/ds-control-stubs"),
+  ]);
   // The real Select is an Ark menu jsdom cannot drive; a native select with
   // the same items stands in for the Variable type picker.
-  const Select = ({
-    items,
-    onChange,
-    value,
-  }: {
-    items: readonly { value: string; text: string }[];
-    onChange: (value: string) => void;
-    value: string;
-  }) => (
-    <select value={value} onChange={(event) => onChange(event.target.value)}>
-      {items.map((item) => (
-        <option key={item.value} value={item.value}>
-          {item.text}
-        </option>
-      ))}
-    </select>
-  );
-  return { ...actual, Drawer, Select };
+  return { ...actual, Select };
 });
 
 // jsdom provides neither observer; the scroll fades and the value editor's
