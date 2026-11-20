@@ -1,7 +1,8 @@
 /**
  * `@hashintel/brunch-agent/client`: Brunch's browser runtime, with no React
  * value imports. Exports the Flue adapter, the panel transport and its
- * conversation tracker, the durable agents server's chat transport and stop,
+ * conversation tracker, the durable agents server's chat transport, stop and
+ * browser calls,
  * conversation IDs, the client tool-name sets, canonical speech selection,
  * the OpenAI Realtime session and the Realtime bridge; the rest of
  * `src/client/` is internal. Imports the contracts root by package
@@ -15,8 +16,11 @@ export * from "./client/brunch-panel-transport";
 export * from "./client/conversation/brunch-conversation-id";
 export * from "./client/hand-edits/hand-edit-reporter";
 export * from "./client/successor/request-successor-stop";
+export * from "./client/successor/successor-browser-calls";
 export * from "./client/successor/successor-chat-transport";
+export * from "./client/successor/successor-conversation-state";
 export * from "./client/successor/successor-endpoints";
+export * from "./client/successor/successor-history";
 export * from "./client/tools/brunch-client-tools";
 export * from "./client/voice/live/canonical-speech";
 export * from "./client/voice/realtime/openai-realtime-session";
