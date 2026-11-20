@@ -153,7 +153,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
     setEyeHovered(false);
     setEyeFocused(false);
     closePlaceVisualizer(nodeId);
-    if (hoveredId.getSnapshot() === nodeId) {
+    if (hoveredId.get() === nodeId) {
       hoveredId.set(null);
     }
   };

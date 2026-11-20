@@ -495,7 +495,7 @@ export const useCanvasInteractions = (): CanvasInteractions => {
   };
 
   const moveNodes = (moves: CanvasNodeMove[]) => {
-    const preview = new Map(pointer.dragPreview.getSnapshot());
+    const preview = new Map(pointer.dragPreview.get());
     for (const { id, position } of moves) {
       preview.set(id, snap(position));
     }
@@ -512,7 +512,7 @@ export const useCanvasInteractions = (): CanvasInteractions => {
         : [];
     });
 
-    const preview = pointer.dragPreview.getSnapshot();
+    const preview = pointer.dragPreview.get();
     if (drops.some(({ id }) => preview.has(id))) {
       const remaining = new Map(preview);
       for (const { id } of drops) {

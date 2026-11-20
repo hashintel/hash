@@ -10,11 +10,13 @@ import { CompositionContext } from "../../../react/state/composition-context";
 import { useEditorFields } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useUserSettingsFields } from "../../../react/state/user-settings-context";
+import { useStore } from "../../../react/use-store";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
-import { useValueOf, type CanvasPointer } from "./canvas-pointer";
 import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
 import { fusionStatuses } from "./fusion-links";
 import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
+
+import type { CanvasPointer } from "./canvas-pointer";
 
 /**
  * The scene for the active net, as the editor currently shows it. Takes the
@@ -58,8 +60,8 @@ export const useCanvasScene = (
    * crossed to get there. Dragging settles the grabbed node immediately and
    * keeps it hovered until the drag ends, even when the pointer leaves it.
    */
-  const hoveredId = useValueOf(pointer.hoveredId);
-  const dragPreview = useValueOf(pointer.dragPreview);
+  const hoveredId = useStore(pointer.hoveredId);
+  const dragPreview = useStore(pointer.dragPreview);
   const pointerAtRest = usePointerAtRest(canvasRef);
   const [settledHoverId, setSettledHoverId] = useState(hoveredId);
   const draggedHoverId =
