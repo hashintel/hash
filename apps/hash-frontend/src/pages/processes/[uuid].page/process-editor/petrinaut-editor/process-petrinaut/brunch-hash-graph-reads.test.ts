@@ -9,6 +9,7 @@ import {
   createHashWebReadTool,
   hashEntityCountRequest,
   hashEntityReadRequest,
+  hashEntityReadWebIds,
   hashEntityTypeReadRequest,
   hashReadWebScope,
   type HashWebReadUser,
@@ -57,9 +58,17 @@ const linkEndpoints = [
 
 const oneLinkDeep = [{ edges: forward }, { edges: backward }, ...linkEndpoints];
 
-test("a read with no filters asks for every visible, unarchived entity one link deep, without drafts, with its types resolved", () => {
-  expect(hashEntityReadRequest({})).toMatchObject({
-    filter: { all: notArchived },
+/** The reader's own web and their org's: the entity read's default scope. */
+const readerWebs = ["alice-web", "org-web"];
+const inWebs = (webIds: readonly string[]) => ({
+  any: webIds.map((webId) => ({
+    equal: [{ path: ["webId"] }, { parameter: webId }],
+  })),
+});
+
+test("a read with no filters asks for every visible, unarchived entity in the webs given, one link deep, without drafts, with its types resolved", () => {
+  expect(hashEntityReadRequest({}, readerWebs)).toMatchObject({
+    filter: { all: [inWebs(readerWebs), ...notArchived] },
     traversalPaths: oneLinkDeep,
     includeDrafts: false,
     includePermissions: false,
@@ -69,12 +78,13 @@ test("a read with no filters asks for every visible, unarchived entity one link 
 
 test("each given filter must match, and within one any listed value matches", () => {
   const typeUrl = "https://hash.ai/@alice/types/entity-type/supplier/v/1";
-  const request = hashEntityReadRequest({
+  const input = {
     entityTypes: ["Supplier", typeUrl],
     entityIds: ["alice-web~supplier"],
     webIds: ["alice-web", "org-web"],
     includeDrafts: true,
-  });
+  };
+  const request = hashEntityReadRequest(input, input.webIds);
   expect(request.filter).toEqual({
     all: [
       {
@@ -110,9 +120,10 @@ test("each given filter must match, and within one any listed value matches", ()
 });
 
 test("an entity id that names a draft reads that draft, even when drafts weren't asked for", () => {
-  const request = hashEntityReadRequest({
-    entityIds: ["alice-web~supplier~draft-1"],
-  });
+  const request = hashEntityReadRequest(
+    { entityIds: ["alice-web~supplier~draft-1"] },
+    undefined,
+  );
   expect(request.filter).toEqual({
     all: [
       {
@@ -133,9 +144,10 @@ test("an entity id that names a draft reads that draft, even when drafts weren't
 });
 
 test("an id without a draft part, read beside a draft id, still reads only the live entity", () => {
-  const request = hashEntityReadRequest({
-    entityIds: ["alice-web~supplier~draft-1", "alice-web~product"],
-  });
+  const request = hashEntityReadRequest(
+    { entityIds: ["alice-web~supplier~draft-1", "alice-web~product"] },
+    undefined,
+  );
   expect(request.filter).toEqual({
     all: [
       {
@@ -164,7 +176,7 @@ test("an id without a draft part, read beside a draft id, still reads only the l
 
 test("traversal follows every chain of links as deep as asked, each link in either direction, and a matched link's endpoints", () => {
   const pathsAt = (traversalDepth: number) =>
-    hashEntityReadRequest({ traversalDepth }).traversalPaths;
+    hashEntityReadRequest({ traversalDepth }, readerWebs).traversalPaths;
 
   expect(pathsAt(0)).toEqual([]);
   expect(pathsAt(1)).toEqual(oneLinkDeep);
@@ -192,9 +204,10 @@ test("traversal follows every chain of links as deep as asked, each link in eith
 });
 
 test("traversal at its deepest stays within the graph's limits of 10 paths of 10 edges", () => {
-  const paths = hashEntityReadRequest({
-    traversalDepth: hashEntityReadMaxTraversalDepth,
-  }).traversalPaths;
+  const paths = hashEntityReadRequest(
+    { traversalDepth: hashEntityReadMaxTraversalDepth },
+    readerWebs,
+  ).traversalPaths;
   expect(paths.length).toBeLessThanOrEqual(10);
   for (const { edges } of paths) {
     expect(edges.length).toBeLessThanOrEqual(10);
@@ -205,12 +218,12 @@ test("from A, a chain A → B ← C reaches C at depth 2, and a link read reache
   // The graph follows a path's edges one per step, so C is reached only by a
   // path whose edges are A's link forward then C's link backward.
   expect(
-    hashEntityReadRequest({ traversalDepth: 2 }).traversalPaths,
+    hashEntityReadRequest({ traversalDepth: 2 }, readerWebs).traversalPaths,
   ).toContainEqual({ edges: [...forward, ...backward] });
   for (const traversalDepth of [1, 2, 3]) {
-    expect(hashEntityReadRequest({ traversalDepth }).traversalPaths).toEqual(
-      expect.arrayContaining(linkEndpoints),
-    );
+    expect(
+      hashEntityReadRequest({ traversalDepth }, readerWebs).traversalPaths,
+    ).toEqual(expect.arrayContaining(linkEndpoints));
   }
 });
 
@@ -327,8 +340,28 @@ const runTool = (
       signal,
     } as PetrinautAiAutomaticToolExecuteParams),
   );
-const run = (query: QueryEntitySubgraph, input: unknown) =>
-  runTool(createHashEntityReadTool(query), input);
+/** The user reading: their own web, alice-web, and their org's, org-web. */
+const reader: HashWebReadUser = {
+  accountId: "alice-web" as HashWebReadUser["accountId"],
+  memberOf: [
+    {
+      org: {
+        webId: "org-web" as HashWebReadUser["memberOf"][number]["org"]["webId"],
+        shortname: "org",
+        name: "Org",
+      },
+    },
+  ],
+};
+const run = (
+  query: QueryEntitySubgraph,
+  input: unknown,
+  { signedIn = true }: { signedIn?: boolean } = {},
+) =>
+  runTool(
+    createHashEntityReadTool(query, () => (signedIn ? reader : undefined)),
+    input,
+  );
 
 test("the read runs the request it built and returns each entity from its own edition", async () => {
   const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
@@ -337,7 +370,7 @@ test("the read runs the request it built and returns each entity from its own ed
   const output = await run(query, input);
 
   expect(query).toHaveBeenCalledWith(
-    hashEntityReadRequest(input),
+    hashEntityReadRequest(input, readerWebs),
     expect.any(AbortSignal),
   );
   expect(output).toEqual({
@@ -742,10 +775,13 @@ test("a failed query settles the read with its message, so the agent can tell th
 test("a query that fails because the call was cancelled still rejects", async () => {
   const controller = new AbortController();
   const aborted = new Error("aborted");
-  const tool = createHashEntityReadTool(() => {
-    controller.abort();
-    return Promise.reject(aborted);
-  });
+  const tool = createHashEntityReadTool(
+    () => {
+      controller.abort();
+      return Promise.reject(aborted);
+    },
+    () => reader,
+  );
   await expect(runTool(tool, {}, controller.signal)).rejects.toBe(aborted);
 });
 
@@ -772,7 +808,7 @@ test("the agent's own keys, such as which values it shows in full, are accepted 
     fullValuesFor: ["alice-web~supplier"],
   });
   expect(query).toHaveBeenCalledWith(
-    hashEntityReadRequest(input),
+    hashEntityReadRequest(input, undefined),
     expect.any(AbortSignal),
   );
   expect(output).toEqual(await run(query, input));
@@ -782,6 +818,165 @@ test("an input the agent's contract doesn't allow is refused before any query", 
   const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
   await expect(run(query, { entityTypes: "Supplier" })).rejects.toThrow();
   expect(query).not.toHaveBeenCalled();
+});
+
+/** The filter of the request the read ran. */
+const filterRead = async (input: unknown) => {
+  const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
+  await run(query, input);
+  return query.mock.calls[0]?.[0].filter;
+};
+const supplierIdFilter = {
+  any: [
+    {
+      all: [
+        { equal: [{ path: ["uuid"] }, { parameter: "supplier" }] },
+        { equal: [{ path: ["webId"] }, { parameter: "hash-web" }] },
+        { not: { exists: { path: ["draftId"] } } },
+      ],
+    },
+  ],
+};
+
+test("a read naming no webs or entities reads only the user's own web and each org web, never every web they can see", async () => {
+  expect(await filterRead({})).toEqual({
+    all: [inWebs(["alice-web", "org-web"]), ...notArchived],
+  });
+  expect(await filterRead({ entityTypes: ["Supplier"] })).toEqual({
+    all: [
+      {
+        any: [
+          { equal: [{ path: ["type", "title"] }, { parameter: "Supplier" }] },
+        ],
+      },
+      inWebs(["alice-web", "org-web"]),
+      ...notArchived,
+    ],
+  });
+});
+
+test("a read naming webs reads exactly those, wherever they are", async () => {
+  expect(await filterRead({ webIds: ["hash-web", "hash-web"] })).toEqual({
+    all: [inWebs(["hash-web"]), ...notArchived],
+  });
+});
+
+test("a read by entity ids alone adds no web filter, since each id names its web; with webIds too, both filters must match", async () => {
+  expect(await filterRead({ entityIds: ["hash-web~supplier"] })).toEqual({
+    all: [supplierIdFilter, ...notArchived],
+  });
+  expect(
+    await filterRead({ entityIds: ["hash-web~supplier"], webIds: ["org-web"] }),
+  ).toEqual({
+    all: [supplierIdFilter, inWebs(["org-web"]), ...notArchived],
+  });
+});
+
+test("with no user signed in, a read naming neither webs nor entities settles { error } without a query, and one naming them still runs", async () => {
+  const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
+  await expect(run(query, {}, { signedIn: false })).resolves.toEqual({
+    error: "No user is signed in to HASH.",
+  });
+  await expect(
+    run(query, { entityTypes: ["Supplier"] }, { signedIn: false }),
+  ).resolves.toEqual({ error: "No user is signed in to HASH." });
+  expect(query).not.toHaveBeenCalled();
+
+  expect(hashEntityReadWebIds({ webIds: ["hash-web"] }, undefined)).toEqual({
+    webIds: ["hash-web"],
+  });
+  expect(
+    hashEntityReadWebIds({ entityIds: ["hash-web~supplier"] }, undefined),
+  ).toEqual({});
+});
+
+test("an entity read never runs with an empty web scope, which would filter by no web", () => {
+  expect(() => hashEntityReadRequest({}, [])).toThrow(/can't be empty/u);
+});
+
+/** One matched entity in each of four webs, and links reaching others. */
+const acrossWebs = {
+  queryEntitySubgraph: {
+    ...response.queryEntitySubgraph,
+    subgraph: {
+      roots: ["alice-web~own", "org-web~org", "hash-web~named"].map(
+        (baseId) => ({ baseId, revisionId: "2026-10-26T00:00:00Z" }),
+      ),
+      vertices: Object.fromEntries(
+        [
+          entity({
+            entityId: "alice-web~own",
+            editionId: "e1",
+            properties: {},
+          }),
+          entity({ entityId: "org-web~org", editionId: "e2", properties: {} }),
+          entity({
+            entityId: "hash-web~named",
+            editionId: "e3",
+            properties: {},
+          }),
+          entity({
+            entityId: "stranger-web~reached",
+            editionId: "e4",
+            properties: {},
+          }),
+          entity({
+            entityId: "stranger-web~link",
+            editionId: "e5",
+            properties: {},
+            linkData: {
+              leftEntityId: "alice-web~own",
+              rightEntityId: "stranger-web~reached",
+            },
+          }),
+        ].map((vertex) => [
+          vertex.inner.metadata.recordId.entityId,
+          { "2026-10-26T00:00:00Z": vertex },
+        ]),
+      ),
+      edges: {},
+      temporalAxes: {},
+    },
+  },
+} as unknown as QueryEntitySubgraphQuery;
+
+const externality = async (input: unknown, signedIn = true) =>
+  (
+    (await run(() => Promise.resolve(acrossWebs), input, { signedIn })) as {
+      entities: { entityId: string; matched: boolean; external?: true }[];
+    }
+  ).entities.map(({ entityId, matched, external }) => ({
+    entityId,
+    matched,
+    external,
+  }));
+
+test("every entity outside the user's own and org webs is marked external, whether named, matched in a named web, or reached by links", async () => {
+  const marked = [
+    { entityId: "alice-web~own", matched: true, external: undefined },
+    { entityId: "org-web~org", matched: true, external: undefined },
+    { entityId: "hash-web~named", matched: true, external: true },
+    { entityId: "stranger-web~reached", matched: false, external: true },
+    { entityId: "stranger-web~link", matched: false, external: true },
+  ];
+  expect(
+    await externality({ entityIds: ["alice-web~own", "hash-web~named"] }),
+  ).toEqual(marked);
+  expect(
+    await externality({ webIds: ["alice-web", "org-web", "hash-web"] }),
+  ).toEqual(marked);
+
+  const output = await run(() => Promise.resolve(acrossWebs), {});
+  expect(output).not.toHaveProperty(["entities", 0, "external"]);
+  expect(output).toHaveProperty(["entities", 2, "external"], true);
+});
+
+test("with no user signed in, every entity read by id is external, since none is known to be the user's", async () => {
+  expect(
+    (await externality({ entityIds: ["alice-web~own"] }, false)).every(
+      ({ external }) => external === true,
+    ),
+  ).toBe(true);
 });
 
 const latestOnly = { equal: [{ path: ["version"] }, { parameter: "latest" }] };
@@ -1081,13 +1276,13 @@ test("a count asks for the total, by type with titles and by web, of the entity 
         ...notArchived,
       ],
     },
-    temporalAxes: hashEntityReadRequest({}).temporalAxes,
+    temporalAxes: hashEntityReadRequest({}, readerWebs).temporalAxes,
     ...countFlags,
   });
   // The same type and web filters the entity read builds.
   const typed = { entityTypes: ["Sales Order"], webIds: ["alice-web"] };
   expect(hashEntityCountRequest(typed, typed.webIds).filter).toEqual(
-    hashEntityReadRequest(typed).filter,
+    hashEntityReadRequest(typed, typed.webIds).filter,
   );
 });
 
@@ -1150,7 +1345,7 @@ test("a count naming no webs is limited to the user's own and org webs, and retu
       filter: {
         all: [{ any: [webIs("alice-web"), webIs("acme-web")] }, ...notArchived],
       },
-      temporalAxes: hashEntityReadRequest({}).temporalAxes,
+      temporalAxes: hashEntityReadRequest({}, readerWebs).temporalAxes,
       ...countFlags,
     },
     expect.any(AbortSignal),

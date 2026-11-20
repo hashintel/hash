@@ -99,6 +99,84 @@ const notArchivedFilters: Filter[] = [
   pageOrNotificationNotArchivedFilter,
 ];
 
+/** What the reads need of the signed-in user. */
+export type HashWebReadUser = Pick<
+  User,
+  "accountId" | "shortname" | "displayName"
+> & {
+  memberOf: readonly {
+    org: Pick<User["memberOf"][number]["org"], "webId" | "shortname" | "name">;
+  }[];
+};
+
+const noUserSignedIn: HashReadFailure = {
+  error: "No user is signed in to HASH.",
+};
+
+/** The signed-in user's own web, then each org web they belong to. */
+const websOf = (user: HashWebReadUser): HashWebReadResult["webs"] => [
+  {
+    // A user's web id is their account id.
+    webId: user.accountId,
+    kind: "user" as const,
+    ...(user.shortname === undefined ? {} : { shortname: user.shortname }),
+    ...(user.displayName === undefined ? {} : { name: user.displayName }),
+  },
+  ...user.memberOf.map(({ org }) => ({
+    webId: org.webId,
+    kind: "organization" as const,
+    shortname: org.shortname,
+    name: org.name,
+  })),
+];
+
+/**
+ * The webs a read covers: those its input names (`named`), else the
+ * signed-in user's own web and each org web they belong to (`default`), so a
+ * read that names no web never reaches into HASH's shared webs or other
+ * users'. With no web named and no user signed in, there is nothing to cover.
+ */
+export type HashReadWebScope = {
+  readonly scope: "default" | "named";
+  readonly webIds: readonly string[];
+};
+
+export const hashReadWebScope = (
+  webIds: readonly string[] | undefined,
+  user: HashWebReadUser | undefined,
+): HashReadWebScope | HashReadFailure => {
+  if (webIds !== undefined) {
+    return { scope: "named", webIds: [...new Set(webIds)] };
+  }
+  return user === undefined
+    ? noUserSignedIn
+    : { scope: "default", webIds: websOf(user).map(({ webId }) => webId) };
+};
+
+/**
+ * The webs an entity read is limited to. A read by `entityIds` alone is
+ * limited to none: an entity id names its web, so a named entity is read
+ * wherever it is. Otherwise the read's web scope (`hashReadWebScope`): the
+ * webs named, else the user's own and org webs.
+ */
+export const hashEntityReadWebIds = (
+  input: HashEntityReadInput,
+  user: HashWebReadUser | undefined,
+): { readonly webIds?: readonly string[] } | HashReadFailure => {
+  if (input.entityIds !== undefined && input.webIds === undefined) {
+    return {};
+  }
+  const webScope = hashReadWebScope(input.webIds, user);
+  return "error" in webScope ? webScope : { webIds: webScope.webIds };
+};
+
+/**
+ * The webs whose entities a read returns unmarked: the user's own and their
+ * orgs'. Every other entity is external, and with no user signed in, all are.
+ */
+const ownWebIdsOf = (user: HashWebReadUser | undefined): ReadonlySet<string> =>
+  new Set(user === undefined ? [] : websOf(user).map(({ webId }) => webId));
+
 /** One link from an entity, followed to the entity on its other end. */
 const linkHops: readonly (readonly EntityTraversalEdge[])[] = [
   [
@@ -154,7 +232,8 @@ const hashEntityReadOnlyDrafts = (
 };
 
 /**
- * The `queryEntitySubgraph` request for one read: every given filter must
+ * The `queryEntitySubgraph` request for one read, limited to `webIds` (from
+ * `hashEntityReadWebIds`, never the input's own): every given filter must
  * match. An entity id that names a draft reads that draft, whether or not
  * drafts were asked for; unless they were, an id without a draft part reads
  * only the live entity, and of the drafts the graph returns the read keeps
@@ -162,7 +241,12 @@ const hashEntityReadOnlyDrafts = (
  */
 export const hashEntityReadRequest = (
   input: HashEntityReadInput,
+  webIds: readonly string[] | undefined,
 ): QueryEntitySubgraphRequest => {
+  if (webIds?.length === 0) {
+    // No web filter at all would read every web the user can see.
+    throw new Error("An entity read's web scope can't be empty.");
+  }
   const entityIds = (input.entityIds ?? []).map(
     (entityId) => entityId as EntityId,
   );
@@ -176,7 +260,7 @@ export const hashEntityReadRequest = (
       all: [
         ...entityTypesFilter(input.entityTypes),
         ...anyOf(entityIds.map(entityIdFilter)),
-        ...webIdsFilter(input.webIds),
+        ...webIdsFilter(webIds),
         ...notArchivedFilters,
       ],
     },
@@ -239,10 +323,13 @@ const collectPropertyKeys = (value: unknown, found: Set<string>) => {
  * applies only to the matches, not to the entities reached by following links.
  * Given `onlyDrafts`, retain named drafts and draft links whose endpoint is
  * a named draft, without expanding that set. Other drafts are left out;
- * links to excluded entities keep their endpoint ids.
+ * links to excluded entities keep their endpoint ids. An entity in none of
+ * `ownWebIds`, the user's own and org webs, is marked `external`, however it
+ * was reached.
  */
 export const hashEntityReadResult = (
   response: QueryEntitySubgraphQuery,
+  ownWebIds: ReadonlySet<string>,
   onlyDrafts?: ReadonlySet<EntityId>,
 ): HashEntityReadResult => {
   const { subgraph, closedMultiEntityTypes, definitions, cursor } =
@@ -310,10 +397,12 @@ export const hashEntityReadResult = (
     entities: entities.map(({ entity, closedType }) => {
       const { entityId, editionId } = entity.metadata.recordId;
       const { linkData } = entity;
+      const webId = extractWebIdFromEntityId(entityId);
       return {
         entityId,
         editionId,
-        webId: extractWebIdFromEntityId(entityId),
+        webId,
+        ...(ownWebIds.has(webId) ? {} : { external: true as const }),
         entityTypeIds: entity.metadata.entityTypeIds,
         ...(closedType === undefined
           ? {}
@@ -362,21 +451,31 @@ const settlingQueryFailure = async <Result>(
 };
 
 /**
- * Brunch's HASH entity read, run in the page. An input the agent's contract
- * doesn't allow rejects; a failed query settles `{ error }`.
+ * Brunch's HASH entity read, run in the page, over the webs in scope for the
+ * user signed in when it runs, marking entities outside their webs external.
+ * An input the agent's contract doesn't allow rejects; a failed query, or a
+ * read that names neither webs nor entities with no user to scope to,
+ * settles `{ error }`.
  */
 export const createHashEntityReadTool = (
   queryEntitySubgraph: QueryEntitySubgraph,
+  currentUser: () => HashWebReadUser | undefined,
 ): PetrinautAiAutomaticTool => ({
   toolName: brunchTools.hashQueryEntities,
   inputParser: { parse: parseHashEntityReadInput },
   outputParser: { parse: (value) => value },
   execute: async ({ input, signal }) => {
     const readInput = parseHashEntityReadInput(input);
-    const request = hashEntityReadRequest(readInput);
+    const user = currentUser();
+    const webScope = hashEntityReadWebIds(readInput, user);
+    if ("error" in webScope) {
+      return webScope;
+    }
+    const request = hashEntityReadRequest(readInput, webScope.webIds);
     return settlingQueryFailure(signal, async () =>
       hashEntityReadResult(
         await queryEntitySubgraph(request, signal),
+        ownWebIdsOf(user),
         hashEntityReadOnlyDrafts(readInput),
       ),
     );
@@ -490,65 +589,11 @@ export const createHashEntityTypeReadTool = (
   },
 });
 
-/** What the web read needs of the signed-in user. */
-export type HashWebReadUser = Pick<
-  User,
-  "accountId" | "shortname" | "displayName"
-> & {
-  memberOf: readonly {
-    org: Pick<User["memberOf"][number]["org"], "webId" | "shortname" | "name">;
-  }[];
-};
-
-const noUserSignedIn: HashReadFailure = {
-  error: "No user is signed in to HASH.",
-};
-
-/** The signed-in user's own web, then each org web they belong to. */
-const websOf = (user: HashWebReadUser): HashWebReadResult["webs"] => [
-  {
-    // A user's web id is their account id.
-    webId: user.accountId,
-    kind: "user" as const,
-    ...(user.shortname === undefined ? {} : { shortname: user.shortname }),
-    ...(user.displayName === undefined ? {} : { name: user.displayName }),
-  },
-  ...user.memberOf.map(({ org }) => ({
-    webId: org.webId,
-    kind: "organization" as const,
-    shortname: org.shortname,
-    name: org.name,
-  })),
-];
-
 /** The signed-in user's own web, then each org web they belong to. */
 export const hashWebReadResult = (
   user: HashWebReadUser | undefined,
 ): HashWebReadResult | HashReadFailure =>
   user === undefined ? noUserSignedIn : { webs: websOf(user) };
-
-/**
- * The webs a read covers: those its input names (`named`), else the
- * signed-in user's own web and each org web they belong to (`default`), so a
- * read that names no web never reaches into HASH's shared webs or other
- * users'. With no web named and no user signed in, there is nothing to cover.
- */
-export type HashReadWebScope = {
-  readonly scope: "default" | "named";
-  readonly webIds: readonly string[];
-};
-
-export const hashReadWebScope = (
-  webIds: readonly string[] | undefined,
-  user: HashWebReadUser | undefined,
-): HashReadWebScope | HashReadFailure => {
-  if (webIds !== undefined) {
-    return { scope: "named", webIds: [...new Set(webIds)] };
-  }
-  return user === undefined
-    ? noUserSignedIn
-    : { scope: "default", webIds: websOf(user).map(({ webId }) => webId) };
-};
 
 export type SummarizeEntitiesRequest =
   SummarizeEntitiesQueryVariables["request"];
@@ -702,6 +747,7 @@ export const useBrunchHashGraphReadTools =
                 context: { fetchOptions: { signal } },
               })
             ).data,
+          () => userRef.current,
         ),
         createHashEntityTypeReadTool(
           async (request, signal) =>
