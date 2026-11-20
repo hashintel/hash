@@ -346,6 +346,23 @@ it.each([0.5, 1, 2])(
   },
 );
 
+it("resizes freely with the shared corner resizer at reduced zoom", () => {
+  canvas.viewport.zoom = 0.5;
+  render(panel());
+  const handle = screen.getByRole("button", {
+    name: "Resize Space visualizer from bottom-right",
+  });
+  mockPointerCapture(handle);
+  pointerEvent(handle, "pointerdown");
+  pointerEvent(handle, "pointermove", { clientX: 80, clientY: 10 });
+  pointerEvent(handle, "pointerup", { clientX: 80, clientY: 10 });
+  const visualizer = screen.getByRole("group", {
+    name: "Space state visualizer",
+  });
+  expect(parseFloat(visualizer.style.width)).toBe(440);
+  expect(parseFloat(visualizer.style.height)).toBe(250);
+});
+
 it("drags from the picture without turning the close button into a drag handle", () => {
   const close = vi.fn();
   render(panel(close));
