@@ -132,7 +132,7 @@ export const Section = ({
   action,
   gridClassName,
 }: {
-  title?: string;
+  title?: React.ReactNode;
   children: React.ReactNode;
   action?: React.ReactNode;
   /** Spacing a panel sets for its own rows (Send email's 16 px between fields). */

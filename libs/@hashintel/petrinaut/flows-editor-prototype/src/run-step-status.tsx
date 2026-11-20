@@ -313,12 +313,15 @@ export const StepStatusLine = ({
   facts,
   state,
   now,
+  review = false,
 }: {
   stepId: string;
   run: RunRecord;
   facts: RunFacts;
   state: StepRun;
   now: number;
+  /** Inside the Review section, which carries the mark itself: Waiting on, then Asked, with no status line. */
+  review?: boolean;
 }) => {
   const ended = run.kind === "past" || run.stopped !== undefined;
   if (ended && state.state === "notReached") {
@@ -363,14 +366,19 @@ export const StepStatusLine = ({
           : ["Reason", note],
     ),
   ];
+  if (review) {
+    rows.sort((a, b) => Number(b[0] === "Waiting on") - Number(a[0] === "Waiting on"));
+  }
   return (
     <>
-      <StatusLine
-        state={state.state}
-        word={outcome}
-        facts={rest}
-        notes={[]}
-      />
+      {review ? null : (
+        <StatusLine
+          state={state.state}
+          word={outcome}
+          facts={rest}
+          notes={[]}
+        />
+      )}
       {rows.map(([label, value]) => (
         <PropertyRow key={label} label={label}>
           <span className={rowValueStyle}>{value}</span>
@@ -624,3 +632,11 @@ const ItemList = ({
     </div>
   );
 };
+
+/** "Review" and the waiting mark after it: the title of the section that holds a waiting step's status. */
+export const ReviewTitle = () => (
+  <span className={css({ display: "inline-flex", alignItems: "center", gap: "1" })}>
+    Review
+    <RunGlyph state="needsReview" size={24} tooltip />
+  </span>
+);

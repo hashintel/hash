@@ -39,7 +39,7 @@ import {
   useWaitingRun,
 } from "./needs-review";
 import { RunGlyph } from "./run-glyph";
-import { approverName, StatusLine } from "./run-step-status";
+import { approverName, ReviewTitle, StatusLine } from "./run-step-status";
 import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
 import { RunIdText } from "./run-id";
 import {
@@ -896,6 +896,9 @@ const contextLink = (request: R2Request): string | null => {
   return null;
 };
 
+/** A Review row's value: the panel's standard value type, as Inputs rows. */
+const reviewValueStyle = css({ textStyle: "sm", color: "neutral.fg.heading" });
+
 /** 14/22 muted, underlined: a link, not a heading. */
 const contextLinkStyle = css({
   alignSelf: "flex-start",
@@ -931,32 +934,20 @@ const ParityReviewPanel = ({ request }: { request: R2Request }) => {
   const item = itemOf(request);
   const answer = answerOf(request, answers);
   const link = contextLink(request);
-  // With the link under the question, Status only says where the step is: a reason that repeats what was found goes.
-  const reason = (text: string) =>
-    link && request.context.kind === "files" ? [] : [text];
-  const status = (
+  const status = answer ? (
     <Section title="Status">
-      {answer ? (
-        <StatusLine
-          state="done"
-          word="Answered"
-          facts={[`Asked ${request.asked}`]}
-          notes={
-            link && request.context.kind === "files"
-              ? [`${answer.by}, ${answer.at}`]
-              : [`${reasonWithout(request, item)} · ${answer.by}, ${answer.at}`]
-          }
-        />
-      ) : (
-        <StatusLine
-          state="needsReview"
-          word="Needs review"
-          facts={[`Asked ${request.asked}`]}
-          notes={reason(reasonWithout(request, item))}
-        />
-      )}
+      <StatusLine
+        state="done"
+        word="Answered"
+        facts={[`Asked ${request.asked}`]}
+        notes={
+          link && request.context.kind === "files"
+            ? [`${answer.by}, ${answer.at}`]
+            : [`${reasonWithout(request, item)} · ${answer.by}, ${answer.at}`]
+        }
+      />
     </Section>
-  );
+  ) : null;
   const contextLine = link ? (
     <button
       type="button"
@@ -968,6 +959,7 @@ const ParityReviewPanel = ({ request }: { request: R2Request }) => {
       {link}
     </button>
   ) : undefined;
+  const form = <AnswerForm request={request} context={contextLine} />;
   return (
     <div className={css({ display: "contents" })} data-review-panel>
       <RunStepPanel
@@ -976,18 +968,33 @@ const ParityReviewPanel = ({ request }: { request: R2Request }) => {
         status={status}
         question={
           <>
-            {/* The icon sits beside the question's text; the form below it keeps the panel's full width. */}
-            <div
-              className={css({
-                position: "relative",
-                "& [data-review-form] > div:first-child > span:first-child": { paddingRight: "[40px]" },
-              })}
-            >
-              <AnswerForm request={request} context={contextLine} />
-              <span className={css({ position: "absolute", top: "[-6px]", right: "[0]" })}>
-                <InboxButton request={request} />
-              </span>
-            </div>
+            {answer ? (
+              <div
+                className={css({
+                  position: "relative",
+                  "& [data-review-form] > div:first-child > span:first-child": { paddingRight: "[40px]" },
+                })}
+              >
+                {form}
+                <span className={css({ position: "absolute", top: "[-6px]", right: "[0]" })}>
+                  <InboxButton request={request} />
+                </span>
+              </div>
+            ) : (
+              // C · Review holds the status: the waiting mark, who and when, then the question, in one section.
+              <Section
+                title={<ReviewTitle />}
+                action={<InboxButton request={request} />}
+              >
+                <PropertyRow label="Waiting on">
+                  <span className={reviewValueStyle}>{approverName}</span>
+                </PropertyRow>
+                <PropertyRow label="Asked">
+                  <span className={reviewValueStyle}>{request.asked}</span>
+                </PropertyRow>
+                {form}
+              </Section>
+            )}
             <div ref={anchor}>
               {request.context.kind === "entity" || (link && !contextOpen) ? null : (
                 <ContextView

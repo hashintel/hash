@@ -30,6 +30,7 @@ import { runOutputs, StepOutputs } from "./run-outputs";
 import {
   approverName,
   ForEachItems,
+  ReviewTitle,
   StepStatusLine,
 } from "./run-step-status";
 import type { StepInputSource } from "./engine";
@@ -867,7 +868,7 @@ export const RunStepPanel = ({
   history: HistoryValue;
   /** Needs review: the question, pinned under the header above exactly this panel (panel parity, 13 Nov). */
   question?: React.ReactNode;
-  /** Needs review: the question's own Status in place of the step's. */
+  /** Needs review: the question's own Status in place of the step's; null leaves the Status section out. */
   status?: React.ReactNode;
   /** The item the question is about. */
   item?: RunItem;
@@ -929,7 +930,18 @@ export const RunStepPanel = ({
           }
         />
       {question}
-      {status ?? (
+      {status !== undefined ? status : stepId === signOffId && state.state === "needsReview" ? (
+      <Section title={<ReviewTitle />}>
+          <StepStatusLine
+            stepId={stepId}
+            run={run}
+            facts={facts}
+            state={state}
+            now={now}
+            review
+          />
+      </Section>
+      ) : (
       <Section title="Status">
           <StepStatusLine
             stepId={stepId}
