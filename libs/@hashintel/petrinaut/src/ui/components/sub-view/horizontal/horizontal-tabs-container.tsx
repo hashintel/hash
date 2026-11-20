@@ -169,21 +169,6 @@ export const HorizontalTabsHeader: React.FC<{
   );
 };
 
-/**
- * Returns the header action for the currently active tab.
- * Used to render custom actions (like add buttons) in the panel header.
- */
-export const HorizontalTabsHeaderAction: React.FC<{
-  subViews: SubView[];
-  activeTabId: string;
-}> = ({ subViews, activeTabId }) => {
-  const activeSubView =
-    subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
-
-  const HeaderAction = activeSubView?.headerAction;
-  return HeaderAction ? <HeaderAction /> : null;
-};
-
 /** The panel a tab controls: scrolled, and padded unless told otherwise. */
 export const HorizontalTabPanel: React.FC<{
   tabId: string;
@@ -199,27 +184,3 @@ export const HorizontalTabPanel: React.FC<{
     {children}
   </div>
 );
-
-/**
- * Renders just the content portion of the horizontal tabs.
- * Useful when you need to compose the content separately from the tabs header.
- */
-export const HorizontalTabsContent: React.FC<{
-  subViews: SubView[];
-  activeTabId: string;
-}> = ({ subViews, activeTabId }) => {
-  const activeSubView =
-    subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
-
-  if (!activeSubView) {
-    return null;
-  }
-
-  const Component = activeSubView.component;
-
-  return (
-    <HorizontalTabPanel tabId={activeTabId} padded={!activeSubView.noPadding}>
-      <Component />
-    </HorizontalTabPanel>
-  );
-};
