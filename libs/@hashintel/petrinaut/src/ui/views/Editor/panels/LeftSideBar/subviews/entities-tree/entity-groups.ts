@@ -22,9 +22,15 @@ export interface EntityItem {
   variableName?: string;
 }
 
+export type EntityGroupId =
+  | "group-nodes"
+  | "group-types"
+  | "group-equations"
+  | "group-parameters";
+
 /** A collapsible header row of the tree with the entities below it. */
 export interface EntityGroup {
-  id: string;
+  id: EntityGroupId;
   name: string;
   /** Shown in place of the rows while the group has none. */
   emptyGroupMessage: string;
@@ -86,7 +92,7 @@ export const entityGroups = (
   ...(extensions.colors
     ? [
         {
-          id: "group-types",
+          id: "group-types" as const,
           name: "Token Types",
           emptyGroupMessage: "No token types",
           children: types.map((type) => ({
@@ -101,7 +107,7 @@ export const entityGroups = (
   ...(extensions.colors && extensions.dynamics
     ? [
         {
-          id: "group-equations",
+          id: "group-equations" as const,
           name: "Differential Equations",
           emptyGroupMessage: "No differential equations",
           children: differentialEquations.map((equation) => ({
@@ -115,7 +121,7 @@ export const entityGroups = (
   ...(extensions.parameters
     ? [
         {
-          id: "group-parameters",
+          id: "group-parameters" as const,
           name: "Parameters",
           emptyGroupMessage: "No parameters",
           children: parameters.map((parameter) => ({

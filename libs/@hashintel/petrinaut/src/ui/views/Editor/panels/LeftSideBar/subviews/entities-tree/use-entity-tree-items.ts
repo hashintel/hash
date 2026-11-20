@@ -8,12 +8,16 @@ import {
   AddParameterAction,
   AddTypeAction,
 } from "./add-entity-actions";
-import { entityGroups, type EntityGroup } from "./entity-groups";
+import {
+  entityGroups,
+  type EntityGroup,
+  type EntityGroupId,
+} from "./entity-groups";
 
 import type { ComponentType } from "react";
 
 /** The Add button of each group that has one, by the group's id. */
-const addActions: Record<string, ComponentType | undefined> = {
+const addActions: Partial<Record<EntityGroupId, ComponentType>> = {
   "group-types": AddTypeAction,
   "group-equations": AddDifferentialEquationAction,
   "group-parameters": AddParameterAction,

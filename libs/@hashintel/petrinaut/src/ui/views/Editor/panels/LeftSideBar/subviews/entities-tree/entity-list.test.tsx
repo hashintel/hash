@@ -95,7 +95,7 @@ const renderList = (groups: EntityGroup[]) => {
 };
 
 const groupOf = (children: EntityItem[]): EntityGroup => ({
-  id: "group",
+  id: "group-nodes",
   name: "Group",
   emptyGroupMessage: "No rows",
   children,
@@ -224,7 +224,7 @@ describe("entity list keyboard flow", () => {
   it("collapses a group with ArrowLeft and skips its hidden children", () => {
     renderList([
       groupOf([{ id: "child", type: "place", name: "Child" }]),
-      { ...groupOf([]), id: "after", name: "After" },
+      { ...groupOf([]), id: "group-types", name: "After" },
     ]);
 
     focusRow("Group");
