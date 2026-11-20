@@ -31,7 +31,7 @@ Then open `apps/petrinaut-docs/bundle/architecture.md` for the whole model in on
 yarn workspace @apps/petrinaut-docs lint:arch-docs
 ```
 
-Around two seconds, and it needs no `d2`, because it builds the model and reports on it without rendering anything. This is the fastest way to find out whether a declaration you just wrote is valid.
+It needs no `d2`, because it builds the model and reports on it without rendering anything. The first run reads every source file through the TypeScript compiler; later runs reuse the facts it cached. This is the fastest way to find out whether a declaration you just wrote is valid.
 
 ## When a page looks stale
 
