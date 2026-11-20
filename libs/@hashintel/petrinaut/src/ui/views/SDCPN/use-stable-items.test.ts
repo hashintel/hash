@@ -42,6 +42,17 @@ describe("useStableItems", () => {
     expect(result.current[1]).not.toBe(first[1]);
   });
 
+  it("returns the previous list when no item changed", () => {
+    const { result, rerender } = renderStable([item("a", 1), item("b", 2)]);
+    const first = result.current;
+
+    rerender([item("a", 1), item("b", 2)]);
+    expect(result.current).toBe(first);
+
+    rerender([item("b", 2), item("a", 1)]);
+    expect(result.current).not.toBe(first);
+  });
+
   it("does not revive an item that left the list and came back", () => {
     const first = [item("a", 1), item("b", 2)];
     const { result, rerender } = renderStable(first);

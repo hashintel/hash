@@ -1,10 +1,11 @@
 /**
  * Keeps each item of a rebuilt list at the object identity it had last time,
- * for as long as its content is unchanged.
+ * for as long as its content is unchanged, and the list itself for as long as
+ * none of its items changed.
  *
- * The scene is rebuilt on every render, so a hover that re-roles ten nodes
- * hands React Flow a thousand new objects and it re-renders all of them.
- * Holding identity steady lets everything the hover did not touch bail out.
+ * The scene is rebuilt for every hover, selection and drag frame. React Flow
+ * renders a node or an edge for a new object and walks every node and edge
+ * for a new array, so both are held steady where nothing changed.
  */
 
 import { useRef } from "react";
@@ -52,9 +53,8 @@ const isSameContent = (left: unknown, right: unknown): boolean => {
 };
 
 /**
- * The same list, with unchanged items carried over from the previous render.
- * A new array is still returned: the list itself changes whenever any item
- * does, and callers pass it straight on.
+ * The same list, with unchanged items carried over from the previous render,
+ * and the previous list itself when every item was.
  *
  * This is a render-time cache, like the one `useMemo` keeps internally: the
  * previous render's objects are exactly what it has to compare against, so
@@ -72,20 +72,34 @@ export const useStableItems = <Item extends { id: string }>(
 ): Item[] => {
   "use no memo";
 
-  const previous = useRef(new Map<string, Item>());
-  const next = new Map<string, Item>();
+  const previous = useRef<{
+    given: Item[];
+    stable: Item[];
+    byId: Map<string, Item>;
+  }>({ given: [], stable: [], byId: new Map() });
 
   /* eslint-disable react/refs -- see the function-level comment. */
+  const before = previous.current;
+  if (before.given === items) {
+    return before.stable;
+  }
+
+  const byId = new Map<string, Item>();
   const stable = items.map((item) => {
-    const before = previous.current.get(item.id);
-    const kept =
-      before !== undefined && isSameContent(before, item) ? before : item;
-    next.set(item.id, kept);
+    const was = before.byId.get(item.id);
+    const kept = was !== undefined && isSameContent(was, item) ? was : item;
+    byId.set(item.id, kept);
     return kept;
   });
+  const allKept =
+    stable.length === before.stable.length &&
+    stable.every((item, index) => item === before.stable[index]);
 
-  previous.current = next;
+  previous.current = {
+    given: items,
+    stable: allKept ? before.stable : stable,
+    byId,
+  };
+  return previous.current.stable;
   /* eslint-enable react/refs */
-
-  return stable;
 };
