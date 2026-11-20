@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import { liveQuestionBlockHeading } from "../../../shared/live-question-block";
 import { prepareVoiceBrief } from "../../../shared/voice-mediation";
 import { VoiceMediationHistory } from "../history/voice-mediation-history";
 import { LiveBrunchBridge } from "./live-brunch-bridge";
@@ -3498,7 +3499,7 @@ const offerSegments = (messageId = "answer", submissionIds?: string[]) =>
     ...(submissionIds ? { submissionIds } : {}),
   }));
 
-test("offered questions are said whole and in order after the recap, never recapped", async () => {
+test("offered questions follow the recap under the question-block heading, whole and in order, never recapped", async () => {
   const summarize = vi.fn(async () => "Recap.");
   const fixture = setup({
     history: new VoiceMediationHistory("offers"),
@@ -3520,7 +3521,7 @@ test("offered questions are said whole and in order after the recap, never recap
 
   await vi.waitFor(() =>
     expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-      ["Recap.", ...offeredQuestions].join("\n\n"),
+      ["Recap.", liveQuestionBlockHeading, ...offeredQuestions].join("\n\n"),
       "delegation",
     ),
   );
@@ -3530,7 +3531,7 @@ test("offered questions are said whole and in order after the recap, never recap
   );
 });
 
-test("an offer without prose is said whole without a recap", async () => {
+test("an offer without prose is said whole under the question-block heading without a recap", async () => {
   const summarize = vi.fn(async () => "Recap.");
   const fixture = setup({
     history: new VoiceMediationHistory("offer-only"),
@@ -3551,7 +3552,7 @@ test("an offer without prose is said whole without a recap", async () => {
 
   await vi.waitFor(() =>
     expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-      offeredQuestions.join("\n\n"),
+      [liveQuestionBlockHeading, ...offeredQuestions].join("\n\n"),
       null,
     ),
   );
@@ -3630,7 +3631,7 @@ test("snapshot recovery keeps the offer's questions but no other tool", async ()
 
   await vi.waitFor(() =>
     expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-      ["Recap.", ...offeredQuestions].join("\n\n"),
+      ["Recap.", liveQuestionBlockHeading, ...offeredQuestions].join("\n\n"),
       null,
     ),
   );

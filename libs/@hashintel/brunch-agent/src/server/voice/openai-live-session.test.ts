@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
+import { liveQuestionBlockHeading } from "../../shared/live-question-block";
 import { encodeVoiceWords, voiceWordsHeader } from "../../shared/voice-words";
 import { createOpenAILiveSessionHandler } from "./openai-live-session";
 import { createOpenAIVoiceConfigHandler } from "./openai-voice-config";
@@ -104,6 +105,39 @@ test("Live mediation policy requests a brief acknowledgement and a summary, neve
   expect(body.session.instructions).toContain(
     "Partial-answer context is not a completed result",
   );
+});
+
+test("Live delivery policy limits only the recap and asks every question in the marked block in full", async () => {
+  const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+    Response.json({
+      session: { id: "session" },
+      transport: { type: "webrtc", sdp: "v=0\r\no=answer" },
+    }),
+  );
+  await createOpenAILiveSessionHandler({ environment, fetch })(request());
+  const payload = fetch.mock.calls[0]?.[1]?.body;
+  if (typeof payload !== "string") throw new Error("Expected JSON body");
+  const { instructions } = (
+    JSON.parse(payload) as {
+      session: { instructions: string };
+    }
+  ).session;
+  // The short wrap-up no longer swallows supplied questions.
+  expect(instructions).not.toContain("the supplied next action or question");
+  expect(instructions).toContain("This length limit applies to the recap only");
+  // The block is identified by the exact shared heading line.
+  expect(instructions).toContain(
+    `a line that reads exactly "${liveQuestionBlockHeading}"`,
+  );
+  expect(instructions).toContain("never say it aloud");
+  expect(instructions).toContain(
+    "ask every question in the block, in the order supplied, in full",
+  );
+  expect(instructions).toContain("including every alternative it offers");
+  expect(instructions).toContain(
+    "Do not add, guess, merge, reorder, skip or shorten questions or alternatives",
+  );
+  expect(instructions).toContain("not part of the reply");
 });
 
 describe("Live configuration and session creation", () => {
