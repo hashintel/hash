@@ -687,8 +687,8 @@ describe("POST /chat admits a brunch.user input", () => {
         .filter(({ kind }) => kind === "brunch.user")
         .map(({ data }) => data),
     ).toEqual([
-      { body: "contextual", userText, submissionContext },
-      { body: "ordinary", userText: "And a washer." },
+      { body: "contextual", userText, submissionContext, requestId: "user-1" },
+      { body: "ordinary", userText: "And a washer.", requestId: "user-2" },
     ]);
   });
 
@@ -880,16 +880,19 @@ describe("POST /chat records a version load for the version_load section (fold 2
         body: "contextual",
         userText: "Add a dryer.",
         submissionContext: { versionLoad: load1 },
+        requestId: "user-1",
       },
       {
         body: "contextual",
         userText: "And a washer.",
         submissionContext: { versionLoad: load1 },
+        requestId: "user-2",
       },
       {
         body: "contextual",
         userText: "Now a press.",
         submissionContext: { versionLoad: load2 },
+        requestId: "user-3",
       },
     ]);
   });
