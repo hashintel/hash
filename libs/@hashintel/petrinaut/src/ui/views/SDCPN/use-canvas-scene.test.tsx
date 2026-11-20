@@ -112,7 +112,7 @@ describe("canvas hover during dragging", () => {
     advanceTime(1);
     expect(
       result.current.nodes.find((node) => node.id === "input"),
-    ).toMatchObject({ hovered: true, focus: "focused" });
+    ).toMatchObject({ focus: "focused" });
   });
 
   it("offers a place's visualizer before the pointer rests on it", () => {
@@ -121,7 +121,7 @@ describe("canvas hover during dragging", () => {
     hover("pictured");
     expect(
       result.current.nodes.find((node) => node.id === "pictured"),
-    ).toMatchObject({ hovered: false, visualizerActive: true });
+    ).toMatchObject({ focus: "none", visualizerActive: true });
   });
 
   it.each([
@@ -131,19 +131,18 @@ describe("canvas hover during dragging", () => {
     const { result, hover, drag } = renderScene({ hoveredId: "input" });
     movePointer(100);
     hover(id);
-    expect(result.current.nodes.find((node) => node.id === id)).toMatchObject({
-      hovered: false,
-    });
+    expect(
+      result.current.nodes.find((node) => node.id === "input"),
+    ).toMatchObject({ focus: "focused" });
 
     drag(new Map([[id, { x: 110, y: 0 }]]));
     expect(result.current.nodes.find((node) => node.id === id)).toMatchObject({
-      hovered: true,
       focus: "focused",
       dragging: true,
     });
     expect(
-      result.current.nodes.find((node) => node.id === "input"),
-    ).toMatchObject({ hovered: false });
+      result.current.nodes.find((node) => node.id === "input")?.focus,
+    ).not.toBe("focused");
   });
 
   it("keeps the dragged node hovered until drop, then resumes the rest delay", () => {
@@ -156,26 +155,26 @@ describe("canvas hover during dragging", () => {
     advanceTime(150);
     expect(
       result.current.nodes.find((node) => node.id === "input"),
-    ).toMatchObject({ hovered: true, focus: "focused" });
+    ).toMatchObject({ focus: "focused" });
 
     hover("output");
     advanceTime(150);
     expect(
       result.current.nodes.find((node) => node.id === "input"),
-    ).toMatchObject({ hovered: true, focus: "focused" });
+    ).toMatchObject({ focus: "focused" });
 
     movePointer(200);
     drag(new Map());
     expect(
       result.current.nodes.find((node) => node.id === "input"),
-    ).toMatchObject({ hovered: true, dragging: false });
+    ).toMatchObject({ focus: "focused", dragging: false });
     advanceTime(150);
     expect(
       result.current.nodes.find((node) => node.id === "output"),
-    ).toMatchObject({ hovered: true, focus: "focused" });
+    ).toMatchObject({ focus: "focused" });
   });
 
-  it("respects Highlight on hover while still reporting drag hover", () => {
+  it("focuses nothing for a drag while Highlight on hover is off", () => {
     const { result, hover, drag } = renderScene({}, false);
     movePointer(100);
     hover("input");
@@ -183,6 +182,6 @@ describe("canvas hover during dragging", () => {
     expect(result.current.focusActive).toBe(false);
     expect(
       result.current.nodes.find((node) => node.id === "input"),
-    ).toMatchObject({ hovered: true, focus: "none", dragging: true });
+    ).toMatchObject({ focus: "none", dragging: true });
   });
 });

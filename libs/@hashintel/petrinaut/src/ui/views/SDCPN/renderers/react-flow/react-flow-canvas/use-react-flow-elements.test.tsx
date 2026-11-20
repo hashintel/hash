@@ -22,7 +22,6 @@ const nodeBase = {
   label: "Node",
   dragging: false,
   selected: false,
-  hovered: false,
   focus: "none" as const,
 };
 const nodes: CanvasNode[] = [
@@ -254,9 +253,7 @@ describe("arc rendering", () => {
       ...scene,
       focusActive: true,
       nodes: nodes.map((node) =>
-        node.id === "place"
-          ? { ...node, focus: "focused", hovered: true }
-          : { ...node },
+        node.id === "place" ? { ...node, focus: "focused" } : { ...node },
       ),
       arcs: scene.arcs.map((arc) =>
         arc.id === "input" ? { ...arc, focus: "outgoing" } : { ...arc },

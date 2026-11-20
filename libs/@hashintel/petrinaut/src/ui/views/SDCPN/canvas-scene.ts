@@ -58,7 +58,6 @@ type CanvasNodeBase = {
   label: string;
   dragging: boolean;
   selected: boolean;
-  hovered: boolean;
   /** Where this node stands relative to the focused item. */
   focus: CanvasNodeFocus;
 };
@@ -220,8 +219,6 @@ export type CanvasSceneInput = {
   dimensions: RenderNodeDimensions;
   dragPreview: CanvasDragPreview;
   isSelected: (id: string) => boolean;
-  /** The node under the pointer, once the hover has settled. */
-  hoveredId: string | null;
   focus: CanvasFocus;
   /** Places whose state visualizer stays open without a hover. */
   keptOpenVisualizerIds: ReadonlySet<string>;
@@ -292,7 +289,6 @@ export const buildCanvasScene = ({
   dimensions,
   dragPreview,
   isSelected,
-  hoveredId,
   focus,
   keptOpenVisualizerIds,
   activeVisualizerIds,
@@ -300,7 +296,6 @@ export const buildCanvasScene = ({
 }: CanvasSceneInput): CanvasScene => {
   const interaction = (id: string) => ({
     selected: isSelected(id),
-    hovered: hoveredId === id,
     focus: focus.nodeFocus(id),
   });
 

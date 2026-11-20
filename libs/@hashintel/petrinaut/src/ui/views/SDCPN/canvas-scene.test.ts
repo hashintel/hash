@@ -73,7 +73,6 @@ const input: CanvasSceneInput = {
   dimensions: compactNodeDimensions,
   dragPreview: new Map(),
   isSelected: () => false,
-  hoveredId: null,
   focus: resolveCanvasFocus({
     adjacency: buildNetAdjacency({
       ...sdcpn,
@@ -117,11 +116,10 @@ describe("buildCanvasScene", () => {
     });
   });
 
-  it("carries selection, hover and focus roles per item", () => {
+  it("carries selection and focus roles per item", () => {
     const { nodes, arcs } = buildCanvasScene({
       ...input,
       isSelected: (id) => id === "p1",
-      hoveredId: "t1",
       focus: resolveCanvasFocus({
         adjacency: buildNetAdjacency(input.net),
         hoveredId: "t1",
@@ -129,21 +127,10 @@ describe("buildCanvasScene", () => {
       }),
     });
     expect(nodes.find((node) => node.id === "p1")?.selected).toBe(true);
-    expect(nodes.find((node) => node.id === "t1")?.hovered).toBe(true);
     expect(nodes.find((node) => node.id === "t1")?.focus).toBe("focused");
     expect(nodes.find((node) => node.id === "p2")?.focus).toBe("downstream");
     expect(arcs.find((arc) => arc.id === inputArcId)?.focus).toBe("incoming");
     expect(arcs.find((arc) => arc.id === outputArcId)?.focus).toBe("outgoing");
-  });
-
-  it("marks the hovered node even where nothing is focused", () => {
-    // The hover highlight can be turned off, which leaves the focus empty
-    // while the pointer still rests on a node — the state visualizer and the
-    // rest of the hover-driven surfaces still have to see it.
-    const { nodes } = buildCanvasScene({ ...input, hoveredId: "p1" });
-
-    expect(nodes.find((node) => node.id === "p1")?.hovered).toBe(true);
-    expect(nodes.find((node) => node.id === "p1")?.focus).toBe("none");
   });
 
   it("marks a place whose state visualizer is kept open", () => {

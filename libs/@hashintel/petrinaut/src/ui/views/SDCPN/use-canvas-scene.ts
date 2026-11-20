@@ -102,9 +102,8 @@ export const useCanvasScene = (
     dimensions: compactNodes ? compactNodeDimensions : classicNodeDimensions,
     dragPreview,
     isSelected,
-    hoveredId: settledHoverId,
     // With the highlight off, the neighbourhood answers to the selection
-    // alone; the hover still reaches the node it rests on.
+    // alone.
     focus: resolveCanvasFocus({
       adjacency,
       hoveredId: highlightOnHover ? settledHoverId : null,
