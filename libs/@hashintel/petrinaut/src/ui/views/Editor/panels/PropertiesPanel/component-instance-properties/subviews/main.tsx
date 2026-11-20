@@ -1,7 +1,6 @@
 import { use } from "react";
 
 import {
-  Button,
   Form,
   Icon,
   Select,
@@ -30,6 +29,7 @@ import { Section, SectionList } from "../../../../../../components/section";
 import { hintTextStyle } from "../../../../../../constants/hint-text";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { implementationItems } from "../../../implementation-items";
+import { DeleteItemButton } from "../../delete-item-button";
 import { fieldsSectionStyle, itemTitleStyle } from "../../styles";
 import { useComponentInstancePropertiesContext } from "../context";
 
@@ -275,20 +275,11 @@ const ComponentInstanceTitle: React.FC = () => {
 const DeleteComponentInstanceAction: React.FC = () => {
   const { instance } = useComponentInstancePropertiesContext();
   const { removeComponentInstance } = usePetrinautMutations();
-  const isReadOnly = useIsReadOnly();
 
   return (
-    <Button
-      aria-label="Delete component instance"
-      size="sm"
-      variant="ghost"
-      tone="error"
-      iconName="trash"
-      onClick={() => removeComponentInstance({ instanceId: instance.id })}
-      disabled={isReadOnly}
-      tooltip={
-        isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete component instance"
-      }
+    <DeleteItemButton
+      label="Delete component instance"
+      onDelete={() => removeComponentInstance({ instanceId: instance.id })}
     />
   );
 };

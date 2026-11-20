@@ -24,6 +24,7 @@ import { PropertyValue } from "../../../../../../components/property-value";
 import { Section, SectionList } from "../../../../../../components/section";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { DeleteItemButton } from "../../delete-item-button";
 import { fieldsSectionStyle } from "../../styles";
 import { usePlacePropertiesContext } from "../context";
 import { placeTypeChange } from "./place-dynamics/compose-dynamics";
@@ -286,19 +287,13 @@ const PlaceMainContent: React.FC = () => {
 };
 
 const DeletePlaceAction: React.FC = () => {
-  const { place, isReadOnly } = usePlacePropertiesContext();
+  const { place } = usePlacePropertiesContext();
   const { removePlace } = usePetrinautMutations();
 
   return (
-    <Button
-      aria-label="Delete place"
-      size="sm"
-      variant="ghost"
-      tone="error"
-      iconName="trash"
-      onClick={() => removePlace({ placeId: place.id })}
-      disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete place"}
+    <DeleteItemButton
+      label="Delete place"
+      onDelete={() => removePlace({ placeId: place.id })}
     />
   );
 };

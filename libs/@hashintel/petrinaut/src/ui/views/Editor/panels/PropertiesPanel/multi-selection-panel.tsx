@@ -1,14 +1,13 @@
 import { createContext, use } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 const MultipleIcon = () => <Icon name="layer" />;
 
 import { useEditorActions } from "../../../../../react/state/editor-context";
-import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
-import { UI_MESSAGES } from "../../../../constants/ui-messages";
+import { DeleteItemButton } from "./delete-item-button";
 
 import type { PetrinautMutations } from "../../../../../react";
 import type { SubView } from "../../../../components/sub-view/types";
@@ -70,21 +69,15 @@ const MultiSelectionContent: React.FC = () => {
 const DeleteSelectionAction: React.FC = () => {
   const { items, deleteItemsByIds } = useMultiSelectionContext();
   const { clearSelection } = useEditorActions();
-  const isReadOnly = useIsReadOnly();
 
   return (
-    <Button
-      aria-label="Delete selected"
+    <DeleteItemButton
+      label="Delete selected"
       size="xs"
-      variant="ghost"
-      tone="error"
-      iconName="trash"
-      disabled={isReadOnly}
-      onClick={() => {
+      onDelete={() => {
         deleteItemsByIds({ items });
         clearSelection();
       }}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete selected"}
     />
   );
 };

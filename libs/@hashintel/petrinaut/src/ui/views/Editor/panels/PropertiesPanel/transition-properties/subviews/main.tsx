@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { Button, Form } from "@hashintel/ds-components";
+import { Form } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   getArcEndpoint,
@@ -24,7 +24,7 @@ import { DescriptionField } from "../../../../../../components/description-field
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
 import { TransitionIcon } from "../../../../../../constants/entity-icons";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { DeleteItemButton } from "../../delete-item-button";
 import { fieldsSectionStyle } from "../../styles";
 import { useTransitionPropertiesContext } from "../context";
 
@@ -274,19 +274,13 @@ const TransitionMainContent: React.FC = () => {
 };
 
 const DeleteTransitionAction: React.FC = () => {
-  const { transition, isReadOnly } = useTransitionPropertiesContext();
+  const { transition } = useTransitionPropertiesContext();
   const { removeTransition } = usePetrinautMutations();
 
   return (
-    <Button
-      aria-label="Delete transition"
-      size="sm"
-      variant="ghost"
-      tone="error"
-      iconName="trash"
-      onClick={() => removeTransition({ transitionId: transition.id })}
-      disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete transition"}
+    <DeleteItemButton
+      label="Delete transition"
+      onDelete={() => removeTransition({ transitionId: transition.id })}
     />
   );
 };

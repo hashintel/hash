@@ -26,6 +26,7 @@ import { FusionIcon } from "../../../../../constants/entity-icons";
 import { hintTextStyle } from "../../../../../constants/hint-text";
 import { problemTextStyle } from "../../../../../constants/problem-severity";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import { DeleteItemButton } from "../delete-item-button";
 import { fieldsSectionStyle, itemTitleStyle } from "../styles";
 
 import type { SubView } from "../../../../../components/sub-view/types";
@@ -238,21 +239,14 @@ const DeleteFusionAction: React.FC = () => {
   const fusion = useFusion();
   const { removeFusion } = usePetrinautMutations();
   const { clearSelection } = useEditorActions();
-  const isReadOnly = useIsReadOnly();
 
   return (
-    <Button
-      aria-label="Delete fusion"
-      size="sm"
-      variant="ghost"
-      tone="error"
-      iconName="trash"
-      onClick={() => {
+    <DeleteItemButton
+      label="Delete fusion"
+      onDelete={() => {
         removeFusion({ fusionId: fusion.id });
         clearSelection();
       }}
-      disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete fusion"}
     />
   );
 };

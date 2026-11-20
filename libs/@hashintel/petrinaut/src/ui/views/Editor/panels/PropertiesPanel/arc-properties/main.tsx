@@ -1,7 +1,6 @@
 import { createContext, use } from "react";
 
 import {
-  Button,
   Form,
   Icon,
   NumberInput,
@@ -26,6 +25,7 @@ import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { PropertyValue } from "../../../../../components/property-value";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import { DeleteItemButton } from "../delete-item-button";
 import { fieldsSectionStyle } from "../styles";
 
 import type { PetrinautMutations } from "../../../../../../react";
@@ -147,21 +147,14 @@ const DeleteArcAction: React.FC = () => {
   const { transitionId, endpoint, arcDirection, removeArc } =
     useArcPropertiesContext();
   const { clearSelection } = useEditorActions();
-  const isReadOnly = useIsReadOnly();
 
   return (
-    <Button
-      aria-label="Delete arc"
-      size="sm"
-      variant="ghost"
-      tone="error"
-      iconName="trash"
-      onClick={() => {
+    <DeleteItemButton
+      label="Delete arc"
+      onDelete={() => {
         removeArc({ transitionId, arcDirection, endpoint });
         clearSelection();
       }}
-      disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete arc"}
     />
   );
 };
