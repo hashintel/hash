@@ -96,7 +96,7 @@ pub(crate) async fn end(
             .await
             .map_err(|report| from_run(stage, report));
     };
-    if let StageError::Permanent { stage, code } = *report.current_context() {
+    if let StageError::Permanent { code, .. } = *report.current_context() {
         record.failure = Some(Failure {
             stage,
             code: code.into(),
