@@ -12,10 +12,10 @@ export const formatFileSize = (bytes: number) => {
     return `${bytes} ${bytes === 1 ? "byte" : "bytes"}`;
   }
 
-  const exact = Math.floor(Math.log10(bytes) / 3);
-  /* E.g. 999,950 bytes rounds to 1,000 KB, so is 1 MB. */
+  const exponent = Math.floor(Math.log10(bytes) / 3);
+  /* 999,950 bytes would round to "1,000 KB", so it moves up a unit. */
   const step = Math.min(
-    bytes / 1000 ** exact >= 999.95 ? exact + 1 : exact,
+    bytes / 1000 ** exponent >= 999.95 ? exponent + 1 : exponent,
     sizeUnits.length,
   );
 
@@ -37,7 +37,7 @@ const getFileType = ({
   return type?.toUpperCase() ?? "File";
 };
 
-/** A file's type and size, e.g. "PDF · 1.2 MB", and nothing specific to its type, such as a certificate's validity. */
+/** A file's type and size, e.g. "PDF · 1.2 MB". */
 export const getFileMeta = (properties: PropertyObject) => {
   const { fileName, mimeType, fileSize } = getFileProperties(properties);
   const type = getFileType({ fileName, mimeType });

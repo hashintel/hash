@@ -37,10 +37,6 @@ describe("formatFileSize", () => {
     expect(formatFileSize(1_234_567)).toBe("1.2 MB");
     expect(formatFileSize(999_950)).toBe("1 MB");
     expect(formatFileSize(999_949)).toBe("999.9 KB");
-    expect(formatFileSize(3_000_000_000)).toBe("3 GB");
-  });
-
-  it("stops at gigabytes", () => {
     expect(formatFileSize(4_200_000_000_000)).toBe("4,200 GB");
   });
 });

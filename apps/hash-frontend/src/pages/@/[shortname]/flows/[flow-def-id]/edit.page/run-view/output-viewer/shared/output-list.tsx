@@ -246,6 +246,9 @@ export const OutputList = ({
         )
       : undefined;
   const peek = getListPeek(picked.indexes.length);
+  const allFiles = picked.indexes.every((index) =>
+    isFileEntity(entities.entities[index]),
+  );
 
   return (
     <div className={stack}>
@@ -275,13 +278,7 @@ export const OutputList = ({
       {onShowAll && peek.showAll !== null && (
         <ShowAllButton
           count={peek.showAll}
-          noun={
-            picked.indexes.every((index) =>
-              isFileEntity(entities.entities[index]),
-            )
-              ? "files"
-              : getLabel(picked)
-          }
+          noun={allFiles ? "files" : getLabel(picked)}
           onClick={onShowAll}
         />
       )}
