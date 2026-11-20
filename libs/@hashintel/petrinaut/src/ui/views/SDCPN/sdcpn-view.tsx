@@ -10,9 +10,9 @@ import { css } from "@hashintel/ds-helpers/css";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { CanvasFrameStoreProvider } from "./canvas-frame-store";
 import { CanvasPointerContext, createCanvasPointer } from "./canvas-pointer";
-import { canvasRenderers, defaultCanvasRenderer } from "./canvas-renderers";
 import { CursorTooltip } from "./components/cursor-tooltip";
 import { useContainerSize } from "./hooks/util/use-container-size";
+import { ReactFlowCanvas } from "./renderers/react-flow/react-flow-canvas";
 import { useCanvasScene } from "./use-canvas-scene";
 
 import type { CanvasController } from "./canvas-renderer";
@@ -29,7 +29,7 @@ const ignoreControllerChange = (_controller: CanvasController | null) => {};
 
 /**
  * SDCPNView builds the renderer-agnostic scene for the active net and hands
- * it to the active canvas renderer. It measures the canvas container and only
+ * it to the canvas renderer. It measures the canvas container and only
  * mounts the renderer once the size is known, so the net renders centered
  * from its very first frame. Switching to another net remounts the frame
  * store and the renderer under it, so the store holds only the new net's
@@ -46,14 +46,13 @@ export const SDCPNView: React.FC<{
   const { petriNetId } = use(SDCPNContext);
   const [pointer] = useState(createCanvasPointer);
   const scene = useCanvasScene(canvasContainer, pointer);
-  const Renderer = canvasRenderers[defaultCanvasRenderer];
 
   return (
     <div ref={canvasContainer} className={canvasContainerStyle}>
       {containerSize && (
         <CanvasPointerContext value={pointer}>
           <CanvasFrameStoreProvider key={petriNetId}>
-            <Renderer
+            <ReactFlowCanvas
               scene={scene}
               containerSize={containerSize}
               registerController={onControllerChange}

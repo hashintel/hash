@@ -67,7 +67,3 @@ export type CanvasRendererProps = {
 };
 
 export type CanvasRenderer = React.FC<CanvasRendererProps>;
-
-export const canvasRendererNames = ["react-flow"] as const;
-
-export type CanvasRendererName = (typeof canvasRendererNames)[number];
