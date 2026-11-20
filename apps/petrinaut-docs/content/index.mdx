@@ -9,21 +9,24 @@ Coloured Petri Nets (SDCPN). This documentation has two kinds of page, and
 each is maintained in its own way.
 
 **Generated pages** are everything under [Architecture](architecture). Every
-build extracts them from annotations in the source and from the imports
-between files, and CI fails when an annotation and the code disagree. Layer
-sizes and dependency counts come from the code. A generated page that
-disagrees with the code is a bug in the annotations.
+build extracts them from annotations in the source and from the references
+the type checker resolves between files. A reference needs no import: reading
+a property off a value whose type another file declares counts. Layer sizes
+and dependency counts come from the code, and
+`yarn workspace @apps/petrinaut-docs lint:arch-docs` fails when an annotation
+and the code disagree.
 
-**Authored pages** are this one and the guides. They carry the reasons an
-import graph cannot supply: why a boundary sits where it does, which
+**Authored pages** are this one and the guides. They carry the reasons a
+dependency graph cannot supply: why a boundary sits where it does, which
 alternatives were ruled out, which mistakes are easy to make. Nothing checks
 their prose against the code, so they leave to the generated pages what those
 already state.
 
 ## The diagrams
 
-On a generated page, every box is a layer and every arrow is counted from the
-imports between files. There are three kinds of diagram:
+On a generated page, a box is a layer. A solid arrow is counted from the
+references between files, and a dashed arrow is an edge a `@talksTo` tag
+declares. There are three kinds of diagram:
 
 - The [Architecture](architecture) page opens with the **top-level layers**:
   the whole system, with everything below the first level folded into its
@@ -38,7 +41,7 @@ one "further layers" node, and the tables on the page list all of them.
 
 ## Where to start
 
-- [Two execution paths](two-execution-paths): read it before changing anything
+- [Two execution paths](doc:two-execution-paths): read it before changing anything
   in the simulation layers.
 - [Architecture](architecture): the generated map of layers, dependencies and
   boundaries.
@@ -63,10 +66,10 @@ and the costs behind each design choice.
 
 ## Editor internals
 
-How `@hashintel/petrinaut` is put together: what the React layer provides, what
-the UI layer mounts, and what renders when.
+How `@hashintel/petrinaut` is put together: what the React layer provides and
+what the UI layer mounts.
 
-![The host mounts the Petrinaut component, which creates one core instance, mounts the React providers and renders the editor view; the preview mounts the same canvas without the editor view](@diagrams/editor-layers.svg)
+![The host mounts the Petrinaut component, which creates a core instance, mounts the React providers and renders the editor view; the preview creates an instance of its own and mounts the same canvas and panel parts without the editor view](@diagrams/editor-layers.svg)
 
 - [The React layer](doc:react/react-layer): the providers and hooks that mirror
   Core state into React, the order the providers nest in, and which hook to
@@ -91,14 +94,9 @@ the UI layer mounts, and what renders when.
 
 Layer rules in `archinaut.config.ts` hold the directions between these parts.
 `yarn workspace @apps/petrinaut-docs lint:arch-docs` fails on a dependency that
-breaks one.
-
-| Rule                                                                                           | Reason                                                                   |
-| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| [react](layer:react) never depends on [ui](layer:ui).                                          | The providers stay testable without mounting the editor.                 |
-| [The canvas](layer:ui.views.canvas) never depends on [the editor view](layer:ui.views.editor). | The preview draws the canvas outside the editor.                         |
-| [The notebook](layer:ui.views.notebook) never depends on the editor view.                      | A view does not know the shell that mounts it.                           |
-| [The sub-view containers](layer:ui.sub-view) never depend on the editor view.                  | A container renders the descriptors it is given and never names a panel. |
+breaks one. The [Architecture](architecture) page lists every rule with its
+reason under "Enforced rules"; one is that [react](layer:react) never depends
+on [ui](layer:ui).
 
 ## Embedding Petrinaut
 
@@ -123,14 +121,13 @@ server. It has no React, no DOM and no Monaco, so it runs unchanged in Node
 and inside workers.
 
 `@hashintel/petrinaut` is the editor built on top. It splits into a React layer
-that owns state and a UI layer that renders it. The React layer never depends
-on the UI layer, and a layer rule fails the check when it does.
+that owns state and a UI layer that renders it.
 
-`@local/petrinaut-optimizer-core` is the Optuna study logic behind the editor's
-optimizer, in pure Python. The core's browser runtime loads it under Pyodide in
-a worker; the [browser runtime](doc:core.optimization.browser/browser-runtime)
-page covers how a study runs. Its layers and import edges are derived the same
-way as the TypeScript ones.
+`petrinaut-optimizer-core` is the Python package with the Optuna study logic
+behind the editor's optimizer. The core's browser runtime loads it under
+Pyodide in a worker; the
+[browser runtime](doc:core.optimization.browser/browser-runtime) page covers
+how a study runs. It declares one layer, `optimizer-core`.
 
 `@apps/petrinaut-website` is the demo site and the host that embeds the editor.
 Its layers cover the routes, the example catalog, the plugins, and the Vercel
@@ -139,6 +136,3 @@ functions in `api/`. These pages describe how it drives Petrinaut:
 contract, [oEmbed](doc:website.api/embedding) for the embed endpoint, and
 [The demo site's plugins](doc:website.plugins/plugins) for the plugins it gives
 the editor.
-
-To add a package, declare layers in its source; see
-[Declaring layers](doc:maintaining/declaring-layers).
