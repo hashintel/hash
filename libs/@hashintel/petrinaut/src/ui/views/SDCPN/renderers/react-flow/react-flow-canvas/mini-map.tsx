@@ -8,7 +8,7 @@ import { miniMapFocusColor } from "../../../styles/focus";
 import { miniMapPlaceFillColor } from "../../../styles/type-colors";
 
 import type { NodeType } from "./react-flow-types";
-import type { MiniMapNodeProps, MiniMapProps } from "@xyflow/react";
+import type { MiniMapNodeProps } from "@xyflow/react";
 
 const miniMapClassName = css({
   backgroundColor: "white.a95",
@@ -105,7 +105,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({
  * Renders place nodes as circles and transition nodes as rectangles.
  * Positions at the top right, clear of panels over the canvas.
  */
-export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
+export const MiniMap = () => {
   const readInsets = useCanvasInsetsReader();
   // True inset from the canvas edges (react-flow's default 15px panel margin
   // is zeroed below) — matches the viewport controls' offset.
@@ -128,7 +128,8 @@ export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
       }}
     >
       <ReactFlowMiniMap
-        {...props}
+        pannable
+        zoomable
         ariaLabel=""
         className={miniMapClassName}
         style={{

@@ -343,9 +343,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
             minZoom={minZoom}
           >
             <Background gap={SNAP_GRID_SIZE} size={1} />
-            {showMinimap && presentation.showMinimap && (
-              <MiniMap pannable zoomable />
-            )}
+            {showMinimap && presentation.showMinimap && <MiniMap />}
             {!isActualMode && <ViewportControls />}
           </ReactFlow>
         </LinkRewiringContext>
