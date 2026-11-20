@@ -154,7 +154,7 @@ const maxTimeInputStyle = css({
   fontVariantNumeric: "tabular-nums",
 });
 
-export type PlaybackSettingsMenuProps = {
+type PlaybackSettingsMenuProps = {
   allowedSpeeds?: readonly PlaybackSpeed[];
 };
 

@@ -19,7 +19,7 @@ import { ToolbarDivider } from "./toolbar-divider";
 
 import type { PlaybackSpeed } from "@hashintel/petrinaut-core";
 
-export interface EventSimulationControlsProps {
+interface EventSimulationControlsProps {
   disabled?: boolean;
   inComponent?: boolean;
   allowedPlaybackSpeeds?: readonly PlaybackSpeed[];

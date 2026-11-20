@@ -11,7 +11,7 @@ import type {
   SDCPN,
 } from "@hashintel/petrinaut-core";
 
-export type ImplementationItem = {
+type ImplementationItem = {
   /** One string per component, for a picker that holds strings. */
   value: string;
   text: string;
