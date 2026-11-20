@@ -101,7 +101,7 @@
     "@pandacss/core/postcss-selector-parser": "^7.1.6",
     "@pandacss/node/browserslist": "^4.28.7",
     "@pandacss/plugin-lightningcss/browserslist": "^4.28.7",
-    "@playwright/test": "1.58.2",
+    "@playwright/test": "1.65.0",
     "@redocly/openapi-core/js-yaml": "4.3.2",
     "@scalar/json-magic/undici": "7.30.1",
     "@temporalio/proto/protobufjs": "^7.5.8",
