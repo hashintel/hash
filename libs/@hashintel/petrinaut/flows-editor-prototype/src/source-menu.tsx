@@ -314,6 +314,8 @@ type SourceGroup = {
     avatar?: boolean;
     /** A plain row: text only, no tile or slot. */
     plain?: boolean;
+    /** An action row: a bare icon where the tile would be, no second line. */
+    action?: boolean;
     /** A step's own hue on its tile (AP G77: step tiles keep their hue). */
     tint?: React.CSSProperties;
     selected?: boolean;
@@ -370,6 +372,7 @@ const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<TiledItem>> =>
       glyph: item.glyph,
       avatar: item.avatar,
       plain: item.plain,
+      action: item.action,
       tint: item.tint,
       selected: item.selected,
       suffix: item.suffix,
@@ -775,6 +778,54 @@ export const SourceMenu = ({
     propertyItems.length === 0 &&
     !lookupAllowed;
 
+  const actionItems: SourceGroup["items"] = [
+    ...(lookupAllowed && (!searching || "add find entities step".includes(text))
+      ? [
+          {
+            id: "lookup",
+            text: "Add Find entities step",
+            icon: "search" as const,
+            action: true,
+            // Real names and › → · only (outputs playground, "Decided"): the new step, then the step it feeds.
+            hint:
+              !found
+                ? "Adds a Find entities step before this one"
+                : `Find entities → ${stepLabel(found.step)}`,
+            onPick: lookUp,
+          },
+        ]
+      : []),
+    ...(fromSteps && !searching && earlier.length === 0 && !listsOnly
+      ? [
+          {
+            id: "add-flow-input",
+            text: input.array
+              ? "Add a list input on Start"
+              : `Add ${phrase} input on Start`,
+            icon: kinds.includes("Text") ? kindIcon("Text") : ("plus" as const),
+            action: true,
+            onPick: goToStart,
+          },
+        ]
+      : []),
+    // Typing a value by hand, where the port allows it, in the same row grammar.
+    ...(onTypeValue
+      ? [
+          {
+            id: "type-value",
+            text: typeValueLabel,
+            icon: typeValueIcon,
+            action: true,
+            // The DS icon set has no paperclip: an upload row draws lucide's.
+            ...(typeValueIcon === "file"
+              ? { glyph: <Paperclip strokeWidth={iconStroke} /> }
+              : {}),
+            onPick: onTypeValue,
+          },
+        ]
+      : []),
+  ];
+
   /* One model for both renderings: DS Menu groups and items (icon, description, tick). Headers as the team named
      them (22 Oct): Earlier steps, Flow inputs, Lookup in graph. An empty group says why; Flow inputs then offers
      "Add flow input on Start". */
@@ -783,7 +834,8 @@ export const SourceMenu = ({
       ? [
           {
             id: "item-properties",
-            label: currentItemName,
+            // A group of one row (the loop item alone) shows no heading.
+            label: itemRows.length === 1 ? undefined : currentItemName,
             items: itemRows,
           },
         ]
@@ -836,25 +888,7 @@ export const SourceMenu = ({
               ],
             },
           ]
-        : fromSteps &&
-            !searching
-          ? [
-              {
-                id: "Earlier steps",
-                label: "Earlier steps",
-                items: [
-                  {
-                    id: "add-flow-input",
-                    text: input.array
-                      ? "Add a list input on Start"
-                      : `Add ${phrase} input on Start`,
-                    icon: "plus" as const,
-                    onPick: goToStart,
-                  },
-                ],
-              },
-            ]
-          : []),
+        : []),
     // A search that finds nothing says so; with no search there is always the Start action above.
     ...(nothingFits && (searching || !fromSteps)
       ? [
@@ -872,48 +906,8 @@ export const SourceMenu = ({
           },
         ]
       : []),
-    ...(lookupAllowed && (!searching || "find entities".includes(text))
-      ? [
-          {
-            id: "graph",
-            label: "Lookup in graph",
-            items: [
-              {
-                id: "lookup",
-                text: "Find entities",
-                icon: "search" as const,
-                suffix: <Icon name="chevronRight" size="xs" />,
-                // Real names and › → · only (outputs playground, "Decided"): the new step, then the step it feeds.
-                hint:
-                  !found
-                    ? "Adds a Find entities step before this one"
-                    : `Find entities → ${stepLabel(found.step)}`,
-                onPick: lookUp,
-              },
-            ],
-          },
-        ]
-      : []),
-    // Typing a value by hand, where the port allows it, in the same row grammar.
-    ...(onTypeValue
-      ? [
-          {
-            id: "out",
-            items: [
-              {
-                id: "type-value",
-                text: typeValueLabel,
-                icon: typeValueIcon,
-                // The DS icon set has no paperclip: an upload row draws lucide's, on the same tile.
-                ...(typeValueIcon === "file"
-                  ? { glyph: <Paperclip strokeWidth={iconStroke} /> }
-                  : {}),
-                onPick: onTypeValue,
-              },
-            ],
-          },
-        ]
-      : []),
+    // Actions sit together in one last group: no heading, a bare icon in the tile's slot, one line each.
+    ...(actionItems.length > 0 ? [{ id: "actions", items: actionItems }] : []),
   ];
   if (typedFirst) {
     allGroups.sort((left, right) => Number(right.id === "typed") - Number(left.id === "typed"));
@@ -1046,6 +1040,7 @@ export const SourceMenu = ({
                         title={item.text}
                         description={item.description}
                         tiles={valueTiles}
+                        action={item.action}
                       />
                     ) : (
                       <>

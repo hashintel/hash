@@ -193,6 +193,24 @@ const avatarSlotStyle = css({
   height: "[22px]",
 });
 
+/** An action row's bare icon (no tile): 12 px, 1.25 px stroke, the secondary grey, centred in the tile's 22 px slot. */
+const actionSlotStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+  alignSelf: "center",
+  width: "[22px]",
+  height: "[22px]",
+  color: "neutral.fg.muted",
+  "& svg": {
+    width: "[12px]",
+    height: "[12px]",
+    "--icon-size": "12px",
+    strokeWidth: "[1.25px]",
+  },
+});
+
 const rowStyle = css({
   display: "flex",
   alignItems: "center",
@@ -394,10 +412,13 @@ export const MenuRow = ({
   tiles,
   avatar = false,
   plain = false,
+  action = false,
   legacy = false,
 }: {
   /** A plain row: text only, no tile or slot (a field's own options). */
   plain?: boolean;
+  /** An action row: a bare icon in the tile's slot, no tile, at the plain row's height. */
+  action?: boolean;
   /** Keep the 32 px tile layout from before SYS-TILE-32 (the Add trigger kind menu). */
   legacy?: boolean;
   /** The icon is a person's avatar: drawn at tile size with no tile behind it. */
@@ -423,9 +444,13 @@ export const MenuRow = ({
       data-menu-row={twoLine ? "two" : "one"}
       data-lines={lines}
       data-sys={sys ? "" : undefined}
-      data-plain={plain ? "" : undefined}
+      data-plain={plain || action ? "" : undefined}
     >
-      {plain ? null : avatar ? (
+      {plain ? null : action ? (
+        <span className={actionSlotStyle} aria-hidden="true">
+          {glyph}
+        </span>
+      ) : avatar ? (
         <span className={avatarSlotStyle} aria-hidden="true">
           {glyph}
         </span>
@@ -476,6 +501,8 @@ export type TiledItem = MenuItem & {
   avatar?: boolean;
   /** A plain row: text only, no tile or slot. */
   plain?: boolean;
+  /** An action row: a bare icon where the tile would be. */
+  action?: boolean;
   /** `?pickercolour=` takes only: see `MenuRow`. */
   tint?: React.CSSProperties;
   /** A DS tooltip right of the menu while the row is hovered (the Add step menu's description and inputs → outputs). */
@@ -512,7 +539,7 @@ export const tileMenu = (
   const tiles = lines === "value" ? valueTiles : undefined;
   const tiled = always || tiles !== undefined || rows.some(hasDescription);
   const convert = (item: TiledItem): MenuItem => {
-    const { glyph, avatar, plain, tint, tooltip, ...rest } = item;
+    const { glyph, avatar, plain, action, tint, tooltip, ...rest } = item;
     const withTooltip = (row: React.ReactNode) =>
       tooltip ? (
         <Tooltip
@@ -560,6 +587,7 @@ export const tileMenu = (
           tiles={tiles}
           avatar={avatar}
           plain={plain}
+          action={action}
           legacy={legacy}
         />,
       ),
