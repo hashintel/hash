@@ -26,17 +26,18 @@ import {
   MIN_BOTTOM_PANEL_HEIGHT,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
-import {
-  ACTUAL_BOTTOM_PANEL_SUBVIEWS,
-  BOTTOM_PANEL_SUBVIEWS,
-  COMPILATION_SUBVIEWS,
-  SIMULATION_ONLY_SUBVIEWS,
-} from "../../../../constants/ui-subviews";
 import { styleRef, useReading } from "../../../../lib/readings";
 import { usePluginBottomPanelViews } from "../../../../plugins/plugin-outlets";
 import { slideFromEdge } from "../../shared/slide-from-edge";
 import { fallbackBottomPanelTab } from "./fallback-tab";
-import { diagnosticsSubView } from "./subviews/diagnostics";
+import {
+  actualEventsSubView,
+  actualTimelineSubView,
+  compilationSubView,
+  diagnosticsSubView,
+  eventTimelineSubView,
+  simulationSettingsSubView,
+} from "./sub-views";
 
 const glassPanelBaseStyle = css({
   position: "absolute",
@@ -109,11 +110,12 @@ const getBottomPanelSubViews = ({
   composesOnly
     ? [diagnosticsSubView]
     : isActualMode
-      ? ACTUAL_BOTTOM_PANEL_SUBVIEWS
+      ? [actualTimelineSubView, actualEventsSubView]
       : [
-          ...BOTTOM_PANEL_SUBVIEWS,
-          ...(isSimulationActive ? SIMULATION_ONLY_SUBVIEWS : []),
-          ...(showCompilationOutput ? COMPILATION_SUBVIEWS : []),
+          diagnosticsSubView,
+          simulationSettingsSubView,
+          ...(isSimulationActive ? [eventTimelineSubView] : []),
+          ...(showCompilationOutput ? [compilationSubView] : []),
         ];
 
 /**

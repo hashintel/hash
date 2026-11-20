@@ -8,9 +8,6 @@ import {
   TimelineViewPicker,
 } from "../simulation-timeline/header";
 import { useRunTimelineView } from "../simulation-timeline/use-run-timeline-view";
-import { EventTimeline } from "./content";
-
-import type { SubView } from "../../../../../../components/sub-view/types";
 
 const headerActionsStyle = css({
   display: "flex",
@@ -18,7 +15,8 @@ const headerActionsStyle = css({
   gap: "[8px]",
 });
 
-const EventTimelineHeaderActions: React.FC = () => {
+/** The controls the Timeline tab adds to the panel's header. */
+export const EventTimelineHeaderActions: React.FC = () => {
   const timelineView = useRunTimelineView();
   const { mode } = use(SimulationContext);
   // A Stochastic simulation draws one thing, the count of every place
@@ -42,15 +40,4 @@ const EventTimelineHeaderActions: React.FC = () => {
       {stackable ? <TimelineChartTypeSelector /> : null}
     </div>
   );
-};
-
-/** The Timeline tab of a run or a Stochastic simulation. */
-export const eventTimelineSubView: SubView = {
-  id: "simulation-timeline",
-  title: "Timeline",
-  tooltip:
-    "View the simulation over time. Drag to scrub, scroll sideways to pan, pinch or scroll to zoom.",
-  component: EventTimeline,
-  renderHeaderAction: () => <EventTimelineHeaderActions />,
-  noPadding: true,
 };

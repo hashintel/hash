@@ -12,7 +12,6 @@ import {
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import type {
   CompilationItemReport,
   CompilationReport,
@@ -189,7 +188,7 @@ const Group = ({
   </div>
 );
 
-const CompilationContent: React.FC = () => {
+export const CompilationContent: React.FC = () => {
   const { extensions, getItemType } = use(SDCPNContext);
   const petriNetDefinition = useExecutableDefinition();
   const { requestHirArtifacts } = use(LanguageClientContext);
@@ -377,16 +376,4 @@ const CompilationContent: React.FC = () => {
       )}
     </div>
   );
-};
-
-/**
- * SubView definition for Compilation output. Registered only when the
- * `showCompilationOutput` setting is on — see `ui-subviews.ts`.
- */
-export const compilationSubView: SubView = {
-  id: "compilation",
-  title: "Compilation",
-  tooltip:
-    "How this net's code lowered to HIR, and what stops it running on the GPU.",
-  component: CompilationContent,
 };

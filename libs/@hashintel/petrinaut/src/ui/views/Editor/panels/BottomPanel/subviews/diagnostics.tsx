@@ -21,7 +21,6 @@ import {
 } from "./diagnostics/diagnostics-group";
 import { NetClassSummary } from "./diagnostics/net-class-summary";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import type { Diagnostic, SelectionItemType } from "@hashintel/petrinaut-core";
 
 const emptyMessageStyle = css({
@@ -312,20 +311,9 @@ const DiagnosticsContent: React.FC = () => {
 };
 
 /** The Diagnostics tab: the class of the net, then the problems in it. */
-const DiagnosticsPanel: React.FC = () => (
+export const DiagnosticsPanel: React.FC = () => (
   <>
     <NetClassSummary />
     <DiagnosticsContent />
   </>
 );
-
-/**
- * SubView definition for Diagnostics.
- */
-export const diagnosticsSubView: SubView = {
-  id: "diagnostics",
-  title: "Diagnostics",
-  tooltip:
-    "View the class of your net, and the problems in its code and its composition.",
-  component: DiagnosticsPanel,
-};

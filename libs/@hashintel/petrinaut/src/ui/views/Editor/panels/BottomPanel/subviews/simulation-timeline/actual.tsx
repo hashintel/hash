@@ -11,8 +11,6 @@ import { TimelineLegend } from "./legend";
 import { chartAreaStyle, containerStyle } from "./styles";
 import { useStreamingData } from "./use-streaming-data";
 
-import type { SubView } from "../../../../../../components/sub-view/types";
-
 export const ActualTimeline: React.FC<{
   showLegend?: boolean;
 }> = ({ showLegend = true }) => {
@@ -100,13 +98,4 @@ export const ActualTimeline: React.FC<{
       )}
     </div>
   );
-};
-
-export const actualTimelineSubView: SubView = {
-  id: "actual-timeline",
-  title: "Timeline",
-  tooltip:
-    "View the actual execution timeline with compartment time-series. Click/drag to scrub through frames.",
-  component: ActualTimeline,
-  noPadding: true,
 };

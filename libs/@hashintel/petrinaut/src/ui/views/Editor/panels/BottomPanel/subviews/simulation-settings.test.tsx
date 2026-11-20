@@ -19,7 +19,7 @@ import {
 } from "../../../../../../react/simulation/context";
 import { SimulatorsContext } from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { simulationSettingsSubView } from "./simulation-settings";
+import { SimulationSettingsContent as SimulationSettings } from "./simulation-settings";
 
 import type { SimulationContextValue } from "../../../../../../react/simulation/context";
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
@@ -206,8 +206,6 @@ const registrations = [
     neverLoaded,
   ),
 ];
-
-const SimulationSettings = simulationSettingsSubView.component;
 
 const Providers = ({
   simulation,

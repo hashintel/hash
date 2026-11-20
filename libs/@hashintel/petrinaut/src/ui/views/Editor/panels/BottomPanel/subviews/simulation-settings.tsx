@@ -33,7 +33,6 @@ import {
   seedScenarioRunState,
 } from "./scenario-run-state";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
@@ -218,7 +217,7 @@ const NO_SCENARIO = "__none__";
  * a scenario picker, the run settings, and the scenario form — editable with no
  * scenario selected, in run mode for a saved scenario.
  */
-const SimulationSettingsContent: React.FC = () => {
+export const SimulationSettingsContent: React.FC = () => {
   const { navigateTo, setSimulateDrawer } = useEditorActions();
   const {
     extensions,
@@ -787,15 +786,4 @@ const SimulationSettingsContent: React.FC = () => {
       </FocusStack>
     </FocusRoot>
   );
-};
-
-/**
- * SubView definition for Simulation Settings tab.
- */
-export const simulationSettingsSubView: SubView = {
-  id: "simulation-settings",
-  title: "Simulation Settings",
-  tooltip: "Configure simulation parameters and the computation time step.",
-  component: SimulationSettingsContent,
-  noPadding: true,
 };

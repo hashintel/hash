@@ -5,12 +5,14 @@
  * also consume EditorContext, which imports numeric constants from ui.ts.
  */
 
-import { actualEventsSubView } from "../views/Editor/panels/BottomPanel/subviews/actual-events";
-import { compilationSubView } from "../views/Editor/panels/BottomPanel/subviews/compilation";
-import { diagnosticsSubView } from "../views/Editor/panels/BottomPanel/subviews/diagnostics";
-import { eventTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/event-timeline/main";
-import { simulationSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-settings";
-import { actualTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/actual";
+import {
+  actualEventsSubView,
+  actualTimelineSubView,
+  compilationSubView,
+  diagnosticsSubView,
+  eventTimelineSubView,
+  simulationSettingsSubView,
+} from "../views/Editor/panels/BottomPanel/sub-views";
 import {
   componentsSubView,
   entitiesTreeSubView,
