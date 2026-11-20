@@ -29,13 +29,6 @@ export type SimulatorsProviderProps = React.PropsWithChildren<{
    * `createMonteCarloWorker` does. Read once, when the provider mounts.
    */
   experimentWorkerFactory?: WorkerFactory;
-  /**
-   * How many workers an experiment of a built-in simulator splits its runs
-   * across. Defaults to one per logical core minus one. Sharding changes how
-   * quickly an experiment finishes, never what it reports. Read once, when
-   * the provider mounts.
-   */
-  experimentShardCount?: number;
   /** Simulators the host adds after the built-in ones. */
   registrations?: readonly SimulatorRegistration[];
   /**
@@ -96,14 +89,13 @@ export const SimulatorsProvider: React.FC<SimulatorsProviderProps> = ({
   children,
   runWorkerFactory,
   experimentWorkerFactory,
-  experimentShardCount,
   registrations: hostRegistrations,
   defaultSelections,
 }) => {
   const [{ builtIns, experimentWorkers }] = useState(() => {
     // The simulators never inspect the host, so the piece that knows this is
     // a browser states the parallelism.
-    const shardCount = experimentShardCount ?? getDefaultMonteCarloShardCount();
+    const shardCount = getDefaultMonteCarloShardCount();
     const pool = createReusableWorkerFactory(
       experimentWorkerFactory ?? createMonteCarloWorker,
       // A sweep releases its working set at once: two sharded batches, as

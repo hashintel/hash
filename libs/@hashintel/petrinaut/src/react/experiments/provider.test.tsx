@@ -999,10 +999,7 @@ describe("ExperimentsProvider", () => {
           <LanguageClientOverride requestHirArtifacts={undefined}>
             {/* The pool is the simulators provider's: the experiments
                 provider leases from it through the simulator. */}
-            <SimulatorsProvider
-              experimentWorkerFactory={createAutoAckWorker}
-              experimentShardCount={1}
-            >
+            <SimulatorsProvider experimentWorkerFactory={createAutoAckWorker}>
               <ExperimentsProvider>
                 <ExperimentsContextConsumer
                   onContextValue={(value) => {
