@@ -69,7 +69,6 @@ const renderList = (items: TestItem[]) => {
         …
       </button>
     ),
-    emptyMessage: "Nothing here",
   });
   const Component = subView.component;
   const view = render(

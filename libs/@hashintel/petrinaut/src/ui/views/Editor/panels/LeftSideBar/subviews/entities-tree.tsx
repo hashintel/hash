@@ -220,7 +220,6 @@ export const entitiesTreeSubView: SubView = {
       return item.name;
     },
     renderRowMenu: EntityRowMenu,
-    emptyMessage: "No entities yet",
   }),
   main: true,
   alwaysShowHeaderAction: true,

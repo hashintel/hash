@@ -6,7 +6,6 @@ import { generatePetrinautId } from "@hashintel/petrinaut-core";
 import { usePetrinautMutations } from "../../../../../../../react/hooks/use-petrinaut-mutations";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 
@@ -59,27 +58,18 @@ export const AddTypeAction: React.FC = () => {
   const {
     activeNet: { types },
   } = use(ActiveNetContext);
-  const { extensions } = use(SDCPNContext);
   const { addType } = usePetrinautMutations();
   const { selectItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
-
-  const isDisabled = isReadOnly || !extensions.colors;
-  let tooltip = "Add token type";
-  if (isReadOnly) {
-    tooltip = UI_MESSAGES.READ_ONLY_MODE;
-  } else if (!extensions.colors) {
-    tooltip = UI_MESSAGES.EXTENSION_UNAVAILABLE;
-  }
 
   return (
     <Button
       aria-label="Add token type"
       size="xs"
       variant="ghost"
-      disabled={isDisabled}
-      tooltip={tooltip}
+      disabled={isReadOnly}
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add token type"}
       iconName="plus"
       onClick={() => {
         const existingColors = types.map((type) => type.displayColor);

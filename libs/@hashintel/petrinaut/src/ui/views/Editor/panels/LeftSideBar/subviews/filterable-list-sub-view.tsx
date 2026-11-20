@@ -10,13 +10,9 @@ import {
 import { ShortcutTooltip } from "../../../../../keyboard-shortcut";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
-import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { RowActionCell } from "./row-action-cell";
 
-import type {
-  SubView,
-  SubViewResizeConfig,
-} from "../../../../../components/sub-view/types";
+import type { SubView } from "../../../../../components/sub-view/types";
 import type {
   FocusStop,
   FocusStopTarget,
@@ -180,40 +176,27 @@ interface FilterableListItem {
 interface FilterableListSubViewConfig<T extends FilterableListItem> {
   id: string;
   title: string;
-  tooltip?: string;
-  defaultCollapsed?: boolean;
-  resizable?: SubViewResizeConfig;
   useItems: () => T[];
   getSelectionItem: (item: T) => SelectionItem;
-  renderItem: (item: T, isSelected: boolean) => ReactNode;
+  renderItem: (item: T) => ReactNode;
   /** Component to render the row's ellipsis menu. Receives the item as a prop.
    *  Use `RowMenu` helper to render the shared menu chrome. */
   renderRowMenu?: ComponentType<{ item: T }>;
-  emptyMessage: string;
-  renderHeaderAction?: () => ReactNode;
 }
 
-const FilterHeaderAction: React.FC<{
-  renderExtraAction?: () => ReactNode;
-}> = ({ renderExtraAction }) => {
-  const presentation = usePetrinautPresentation();
+const FilterHeaderAction: React.FC = () => {
   const { setSearchOpen } = use(EditorContext);
 
   return (
-    <>
-      <ShortcutTooltip label="Search list" shortcut="mod+f">
-        <Button
-          aria-label="Search list"
-          size="xs"
-          variant="ghost"
-          iconName="search"
-          onClick={() => setSearchOpen(true)}
-        />
-      </ShortcutTooltip>
-      {/* Searching a list is not a mutation, so only the extra action, which
-          is the list's Add button, answers to the presentation. */}
-      {presentation.showMutationActions && renderExtraAction?.()}
-    </>
+    <ShortcutTooltip label="Search list" shortcut="mod+f">
+      <Button
+        aria-label="Search list"
+        size="xs"
+        variant="ghost"
+        iconName="search"
+        onClick={() => setSearchOpen(true)}
+      />
+    </ShortcutTooltip>
   );
 };
 
@@ -274,13 +257,11 @@ const FilterableListContent = <T extends FilterableListItem>({
   getSelectionItem,
   renderItem,
   renderRowMenu: RenderRowMenu,
-  emptyMessage,
 }: {
   items: T[];
   getSelectionItem: (item: T) => SelectionItem;
-  renderItem: (item: T, isSelected: boolean) => ReactNode;
+  renderItem: (item: T) => ReactNode;
   renderRowMenu?: ComponentType<{ item: T }>;
-  emptyMessage: string;
 }) => {
   // By selector: every row of the list renders with this component.
   // `isSelected` is a new function when the selection changes.
@@ -505,7 +486,7 @@ const FilterableListContent = <T extends FilterableListItem>({
               <item.icon size={LIST_ITEM_ICON_SIZE} />
             </span>
           ) : null}
-          <div className={listItemNameStyle}>{renderItem(item, selected)}</div>
+          <div className={listItemNameStyle}>{renderItem(item)}</div>
         </div>
         {action ? (
           <RowActionCell
@@ -534,61 +515,43 @@ const FilterableListContent = <T extends FilterableListItem>({
         }
       }}
     >
-      {items.length === 0 ? (
-        <div className={emptyMessageStyle}>{emptyMessage}</div>
-      ) : (
-        items.map((item) => {
-          const children = item.children as T[] | undefined;
-          if (children === undefined) {
-            return renderRow(item, 0, false);
-          }
-          const collapsed = collapsedGroups.has(item.id);
-          return (
-            <Fragment key={item.id}>
-              {renderRow(item, 0, true)}
-              <div
-                className={groupChildrenStyle}
-                style={{ height: collapsed ? 0 : "auto" }}
-              >
-                {children.length > 0 ? (
-                  children.map((child) => renderRow(child, 1, false))
-                ) : item.emptyGroupMessage ? (
-                  <div
-                    className={emptyMessageStyle}
-                    style={{ paddingLeft: NESTING_INDENT + 4 }}
-                  >
-                    {item.emptyGroupMessage}
-                  </div>
-                ) : null}
-              </div>
-            </Fragment>
-          );
-        })
-      )}
+      {items.map((item) => {
+        const children = item.children as T[] | undefined;
+        if (children === undefined) {
+          return renderRow(item, 0, false);
+        }
+        const collapsed = collapsedGroups.has(item.id);
+        return (
+          <Fragment key={item.id}>
+            {renderRow(item, 0, true)}
+            <div
+              className={groupChildrenStyle}
+              style={{ height: collapsed ? 0 : "auto" }}
+            >
+              {children.length > 0 ? (
+                children.map((child) => renderRow(child, 1, false))
+              ) : item.emptyGroupMessage ? (
+                <div
+                  className={emptyMessageStyle}
+                  style={{ paddingLeft: NESTING_INDENT + 4 }}
+                >
+                  {item.emptyGroupMessage}
+                </div>
+              ) : null}
+            </div>
+          </Fragment>
+        );
+      })}
     </div>
   );
 };
 
-/**
- * A left-sidebar list of selectable items with a search button in its header,
- * an optional extra header action, and per-row menus.
- */
+/** A left-sidebar list of selectable items with a search button in its header and per-row menus. */
 export function createFilterableListSubView<T extends FilterableListItem>(
   config: FilterableListSubViewConfig<T>,
 ): SubView {
-  const {
-    id,
-    title,
-    tooltip,
-    defaultCollapsed,
-    resizable,
-    useItems,
-    getSelectionItem,
-    renderItem,
-    renderRowMenu,
-    emptyMessage,
-    renderHeaderAction: renderExtraAction,
-  } = config;
+  const { id, title, useItems, getSelectionItem, renderItem, renderRowMenu } =
+    config;
 
   const Component: React.FC = () => {
     const items = useItems();
@@ -598,7 +561,6 @@ export function createFilterableListSubView<T extends FilterableListItem>(
         getSelectionItem={getSelectionItem}
         renderItem={renderItem}
         renderRowMenu={renderRowMenu}
-        emptyMessage={emptyMessage}
       />
     );
   };
@@ -606,12 +568,7 @@ export function createFilterableListSubView<T extends FilterableListItem>(
   return {
     id,
     title,
-    tooltip,
     component: Component,
-    renderHeaderAction: () => (
-      <FilterHeaderAction renderExtraAction={renderExtraAction} />
-    ),
-    defaultCollapsed,
-    resizable,
+    renderHeaderAction: () => <FilterHeaderAction />,
   };
 }
