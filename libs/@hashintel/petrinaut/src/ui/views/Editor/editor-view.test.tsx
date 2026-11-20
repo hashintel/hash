@@ -28,9 +28,6 @@ vi.mock("../../../react/hooks/use-element-size", () => ({
 vi.mock("../../../react/state/use-selection-cleanup", () => ({
   useSelectionCleanup: () => {},
 }));
-vi.mock("../../../react/state/use-is-read-only", () => ({
-  useIsReadOnly: () => false,
-}));
 vi.mock("./panels/SimulateView/simulate-view", () => ({
   SimulateViewTabs: () => <nav aria-label="Simulation views" />,
   SimulateView: () => (
