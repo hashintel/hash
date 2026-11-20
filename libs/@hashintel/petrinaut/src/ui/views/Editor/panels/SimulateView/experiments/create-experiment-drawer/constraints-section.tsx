@@ -273,11 +273,7 @@ export const ConstraintsSection = ({
   // The row added last takes focus as its editor mounts; a UI detail the
   // drafts themselves do not carry.
   const [focusRowId, setFocusRowId] = useState<string | null>(null);
-  // Held in state, not in a ref: a handler that reads a ref's map is left
-  // uncached by the compiler, and every row with it.
-  const [editors] = useState(
-    () => new Map<string, editor.IStandaloneCodeEditor>(),
-  );
+  const editorsRef = useRef(new Map<string, editor.IStandaloneCodeEditor>());
   const addButtonRefs = useRef<
     Record<ConstraintSpace, HTMLButtonElement | null>
   >({
@@ -301,7 +297,7 @@ export const ConstraintsSection = ({
     const nextRow = rows[index + 1] ?? rows[index - 1];
     onChange((current) => removeConstraintDraft(current, row.id));
     if (nextRow) {
-      editors.get(nextRow.id)?.focus();
+      editorsRef.current.get(nextRow.id)?.focus();
     } else {
       addButtonRefs.current[row.space]?.focus();
     }
@@ -321,8 +317,8 @@ export const ConstraintsSection = ({
     rowId: string,
     instance: editor.IStandaloneCodeEditor,
   ) => {
-    editors.set(rowId, instance);
-    instance.onDidDispose(() => editors.delete(rowId));
+    editorsRef.current.set(rowId, instance);
+    instance.onDidDispose(() => editorsRef.current.delete(rowId));
   };
 
   return (

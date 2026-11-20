@@ -82,9 +82,7 @@ export const MetricsSection = ({
   // The row added last takes focus at its label as it mounts.
   const [labelFocusId, setLabelFocusId] = useState<string | null>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
-  // Held in state, not in a ref: a handler that reads a ref's map is left
-  // uncached by the compiler, and every row with it.
-  const [triggers] = useState(() => new Map<string, HTMLButtonElement>());
+  const triggersRef = useRef(new Map<string, HTMLButtonElement>());
 
   const kindGroups = createMetricKindGroups(petriNetDefinition);
   const objectiveEnabled = optimizationAvailable && startOptimizerImmediately;
@@ -115,7 +113,7 @@ export const MetricsSection = ({
     const nextMetric = drafts[index + 1] ?? drafts[index - 1];
     onChange((prev) => prev.filter((metric) => metric.id !== metricId));
     if (nextMetric) {
-      triggers.get(nextMetric.id)?.focus();
+      triggersRef.current.get(nextMetric.id)?.focus();
     } else {
       addButtonRef.current?.focus();
     }
@@ -126,9 +124,9 @@ export const MetricsSection = ({
     element: HTMLButtonElement | null,
   ) => {
     if (element) {
-      triggers.set(metricId, element);
+      triggersRef.current.set(metricId, element);
     } else {
-      triggers.delete(metricId);
+      triggersRef.current.delete(metricId);
     }
   };
 
