@@ -19,6 +19,11 @@ import {
   type ReadableStore,
 } from "@hashintel/petrinaut-core";
 
+import {
+  useSelected,
+  useSelectedFields,
+  type Published,
+} from "../select-from-context";
 import { constantStore } from "../use-store";
 
 import type { SimulationMode, SimulatorSelection } from "../simulators/context";
@@ -281,3 +286,34 @@ export const DEFAULT_SIMULATION_CONTEXT: SimulationContextValue = {
 export const SimulationContext = createContext<SimulationContextValue>(
   DEFAULT_SIMULATION_CONTEXT,
 );
+
+/** Where `SimulationProvider` publishes the context value for {@link useSimulationState}. */
+export const SimulationPublishedContext =
+  createContext<Published<SimulationContextValue>>(null);
+
+/**
+ * One part of the simulation's state, or one of its actions. The reader
+ * renders when that part changes, where `use(SimulationContext)` renders it
+ * for every change of the run and of its configuration.
+ *
+ * ```tsx
+ * const isRunning = useSimulationState((simulation) => simulation.state === "Running");
+ * ```
+ */
+export const useSimulationState = <Selected>(
+  select: (simulation: SimulationContextValue) => Selected,
+): Selected =>
+  useSelected(SimulationContext, SimulationPublishedContext, select);
+
+/**
+ * Several fields of the simulation's state and actions, by name, for a reader
+ * that needs more than one. It renders when one of them changes.
+ *
+ * ```tsx
+ * const { mode, setMode } = useSimulationFields("mode", "setMode");
+ * ```
+ */
+export const useSimulationFields = <Key extends keyof SimulationContextValue>(
+  ...keys: Key[]
+): Pick<SimulationContextValue, Key> =>
+  useSelectedFields(SimulationContext, SimulationPublishedContext, keys);
