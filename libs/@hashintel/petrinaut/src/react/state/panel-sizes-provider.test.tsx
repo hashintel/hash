@@ -30,3 +30,14 @@ it("starts the sizes from the saved settings", () => {
   expect(sizes.bottomPanelHeight.get()).toBe(240);
   expect(sizes.aiAssistantWidth.get()).toBe(defaultPanelSizes.aiAssistantWidth);
 });
+
+it("keeps the same values across renders", () => {
+  const { result, rerender } = renderHook(() => usePanelSizes(), {
+    wrapper: PanelSizesProvider,
+  });
+  const first = result.current;
+
+  rerender();
+
+  expect(result.current).toBe(first);
+});
