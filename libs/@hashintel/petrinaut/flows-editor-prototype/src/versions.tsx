@@ -562,6 +562,15 @@ const fixDotStyle = css({
   zIndex: "[1]",
 });
 
+/** Something to fix (PUB-GREY-DOT): the DS disabled colours (button.recipe.ts), but still pressable, so it opens the list. */
+const greyPublishStyle = css({
+  "&[class], &[class]:hover, &[class]:active": {
+    color: "neutral.s20",
+    "--button-bg": "{colors.neutral.s80}",
+    "--button-border-color": "{colors.neutral.s80}",
+  },
+});
+
 /**
  * Publish, per state: V0 and V2 enabled; V1 and V7 off (nothing new to publish); V5 off with the reason; V6 (a past
  * version open) off.
@@ -613,6 +622,7 @@ export const PublishButton = ({
         tone="neutral"
         disabled={disabled}
         tooltip={tooltip}
+        className={opensFixList ? greyPublishStyle : undefined}
         data-publish
         aria-description={toFixCount > 0 ? `${toFixCount} to fix` : undefined}
         ref={publishRef}
