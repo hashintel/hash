@@ -103,7 +103,6 @@ type CanvasActions = {
   applySelectionChanges: (changes: CanvasSelectionChange[]) => void;
   beginSelectionGesture: () => void;
   endSelectionGesture: () => void;
-  clearSelection: () => void;
   /** Drag previews; positions snap when the grid is on. */
   moveNodes: (moves: CanvasNodeMove[]) => void;
   /** Drags that ended; commits the positions and clears the previews. */
@@ -539,7 +538,6 @@ export const useCanvasInteractions = (): CanvasInteractions => {
     applySelectionChanges,
     beginSelectionGesture,
     endSelectionGesture,
-    clearSelection,
     moveNodes,
     dropNodes,
     isValidConnection: (connection) => classify(connection) !== null,

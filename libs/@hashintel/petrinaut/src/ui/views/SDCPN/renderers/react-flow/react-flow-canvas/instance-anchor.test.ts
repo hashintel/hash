@@ -71,7 +71,6 @@ describe("instance anchor", () => {
       focus: "none",
       portDirection: null,
       dynamicsEnabled: false,
-      hasColorType: false,
       hasVisualizer: false,
       visualizerKeptOpen: false,
       visualizerActive: false,

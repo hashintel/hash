@@ -68,7 +68,6 @@ export type CanvasPlaceNode = CanvasNodeBase & {
   /** The direction of the port this place is, `null` for a plain place. */
   portDirection: PortDirection | null;
   dynamicsEnabled: boolean;
-  hasColorType: boolean;
   /** Whether the place defines custom visualizer code. */
   hasVisualizer: boolean;
   /** Whether its visualizer stays open without a hover. */
@@ -199,7 +198,6 @@ export type CanvasScene = {
   nodes: CanvasNode[];
   arcs: CanvasArc[];
   fusions: CanvasFusionLink[];
-  dimensions: RenderNodeDimensions;
   /**
    * Whether anything is focused. Drives the muting of everything outside the
    * neighbourhood from the pane, so a hover leaves the other items untouched.
@@ -336,7 +334,6 @@ export const buildCanvasScene = ({
         : null,
       dynamicsEnabled:
         extensions.colors && extensions.dynamics && place.dynamicsEnabled,
-      hasColorType: (placeType?.elements.length ?? 0) > 0,
       hasVisualizer: place.visualizerCode !== undefined,
       visualizerKeptOpen: keptOpenVisualizerIds.has(place.id),
       visualizerActive: activeVisualizerIds?.has(place.id) ?? false,
@@ -524,5 +521,5 @@ export const buildCanvasScene = ({
     }),
   );
 
-  return { nodes, arcs, fusions, dimensions, focusActive: focus.active };
+  return { nodes, arcs, fusions, focusActive: focus.active };
 };

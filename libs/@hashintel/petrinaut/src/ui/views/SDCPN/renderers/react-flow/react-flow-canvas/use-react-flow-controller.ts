@@ -125,7 +125,6 @@ export const useReactFlowController = ({
   );
 
   const [controller] = useState<CanvasController>(() => ({
-    getViewport: () => frameStateRef.current.reactFlow.getViewport(),
     getRestViewport: () =>
       camera.target() ?? frameStateRef.current.reactFlow.getViewport(),
     setViewport: (viewport, options) => {
@@ -162,8 +161,6 @@ export const useReactFlowController = ({
       }),
     screenToScene: (point) =>
       frameStateRef.current.reactFlow.screenToFlowPosition(point),
-    sceneToScreen: (point) =>
-      frameStateRef.current.reactFlow.flowToScreenPosition(point),
   }));
 
   return { controller, camera };

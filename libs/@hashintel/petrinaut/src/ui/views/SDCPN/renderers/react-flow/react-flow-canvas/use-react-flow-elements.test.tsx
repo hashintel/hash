@@ -32,7 +32,6 @@ const nodes: CanvasNode[] = [
     kind: "place",
     portDirection: null,
     dynamicsEnabled: false,
-    hasColorType: false,
     hasVisualizer: false,
     visualizerKeptOpen: false,
     visualizerActive: false,
@@ -77,7 +76,6 @@ const arcBase: Omit<CanvasArc, "id" | "sourceId" | "targetId"> = {
 const scene: CanvasScene = {
   nodes,
   fusions: [],
-  dimensions: compactNodeDimensions,
   focusActive: false,
   arcs: [
     { ...arcBase, id: "input", sourceId: "place", targetId: "transition" },
@@ -162,7 +160,6 @@ describe("arc rendering", () => {
       const { result } = renderHook(() =>
         useReactFlowElements({
           ...scene,
-          dimensions,
           nodes: nodes.map((node) =>
             node.kind === "transition"
               ? { ...node, ...transitionSize, position: transitionPosition }
