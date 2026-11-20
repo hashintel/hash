@@ -8,7 +8,7 @@
  * the browser-call routes beside it, as `startDurableAgentsServer` does, but
  * with no HASH entry: the conversation and web headers arrive unchecked.
  */
-import { expect, test, vi } from "vitest";
+import { expect, onTestFinished, test, vi } from "vitest";
 
 import {
   brunchHeaders,
@@ -37,9 +37,8 @@ import {
 
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
-type Admission = Awaited<
-  ReturnType<Parameters<typeof createSuccessorBrowserCalls>[0]["admit"]>
->;
+type Admit = Parameters<typeof createSuccessorBrowserCalls>[0]["admit"];
+type Admission = Awaited<ReturnType<Admit>>;
 
 const binding: BrowserContext["binding"] = { conversationId, documentId };
 const titled = { ok: true, title: "Queue" };
@@ -104,7 +103,7 @@ const openTab = (
     metadataFor = () => undefined,
   }: {
     readonly claimant: string;
-    readonly admit?: () => Promise<Admission>;
+    readonly admit?: Admit;
     readonly execute?: (input: unknown) => Promise<unknown>;
     readonly metadataFor?: Parameters<
       typeof createSuccessorBrowserCalls
@@ -349,4 +348,83 @@ test("a call past its deadline ends quietly: nothing runs and nothing is reporte
       .filter(({ url }) => url.includes("/browser-1"))
       .map(({ route, status }) => [route, status]),
   ).toEqual([["claim", 409]]);
+});
+
+test("a tab whose lease check finds the call taken while its approval waits says it is open in another tab", async () => {
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
+  // Only the lease check's interval: the server's own timers run.
+  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+  const server = await openServer([titleCall, fauxAssistantMessage("Titled.")]);
+  const first = openTab(server, {
+    claimant: "tab-1",
+    // The panel's approval is stopped when its call's signal aborts.
+    admit: ({ signal }) =>
+      new Promise((resolve) => {
+        signal.addEventListener(
+          "abort",
+          () =>
+            resolve({
+              admitted: false,
+              output: { applied: false, reason: "Stopped before approval." },
+            }),
+          { once: true },
+        );
+      }),
+  });
+  const { chat, runs } = openChat(server, first);
+  const sent = chat.sendMessage({ text: "Name the net Queue." });
+  await vi.waitFor(() =>
+    expect(
+      server.browserCallRequests().map(({ route, status }) => [route, status]),
+    ).toEqual([["claim", 200]]),
+  );
+
+  // Another tab takes the call and starts it.
+  const executing = gate();
+  const finish = gate();
+  const second = openTab(server, {
+    claimant: "tab-2",
+    execute: async () => {
+      executing.open();
+      await finish.opened;
+      return titled;
+    },
+  });
+  const secondRun = second.run(issuedCall);
+  await executing.opened;
+
+  // Each tab's next lease check: the first tab's claim no longer holds.
+  await vi.advanceTimersByTimeAsync(5_000);
+  await Promise.all(runs);
+  expect(first.executed).toEqual([]);
+  expect(first.browserCalls.openInOtherTabs.getSnapshot()).toEqual(
+    new Set(["browser-1"]),
+  );
+  const leases = server
+    .browserCallRequests()
+    .filter(({ route }) => route === "lease");
+  expect(leases.map(({ status }) => status)).toEqual(
+    expect.arrayContaining([200, 409]),
+  );
+  expect(leases).toHaveLength(2);
+
+  finish.open();
+  await Promise.all([secondRun, sent]);
+  expect(chat.error).toBeUndefined();
+  expect(textOf(chat.messages.at(-1))).toBe("Titled.");
+  expect(second.executed).toEqual([{ title: "Queue" }]);
+  // Only the second tab started the call, and nothing failed it.
+  expect(
+    server
+      .browserCallRequests()
+      .filter(({ route }) => route !== "lease")
+      .map(({ route, status }) => [route, status]),
+  ).toEqual([
+    ["claim", 200],
+    ["claim", 200],
+    ["start", 200],
+    ["result", 200],
+  ]);
 });
