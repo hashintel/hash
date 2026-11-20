@@ -45,14 +45,7 @@ const PlaceInitialStateContent: React.FC = () => {
   const hasSimulationFrames = totalFrames > 0;
 
   if (placeType && placeType.elements.length > 0) {
-    return (
-      <InitialStateEditor
-        key={place.id}
-        place={place}
-        placeType={placeType}
-        readOnly
-      />
-    );
+    return <InitialStateEditor place={place} placeType={placeType} />;
   }
 
   const marking = initialMarking[place.id];

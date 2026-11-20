@@ -55,7 +55,6 @@ const fieldsSectionStyle = css({
 });
 
 interface ArcPropertiesData {
-  arcId: string;
   transitionId: string;
   endpoint: ArcEndpoint;
   arcDirection: "input" | "output";
@@ -263,7 +262,6 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       arcMatchesEndpoint(ia, sourceEndpoint),
     );
     data = {
-      arcId,
       transitionId: targetTransition.id,
       endpoint: sourceEndpoint,
       arcDirection: "input",
@@ -280,7 +278,6 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       arcMatchesEndpoint(oa, targetEndpoint),
     );
     data = {
-      arcId,
       transitionId: sourceTransition.id,
       endpoint: targetEndpoint,
       arcDirection: "output",
