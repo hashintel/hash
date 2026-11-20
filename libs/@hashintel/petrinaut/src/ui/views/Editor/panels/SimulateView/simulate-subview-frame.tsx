@@ -1,6 +1,5 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { Stack } from "../../../../components/stack";
 import { simulationHeaderStyle } from "./shared/simulation-header";
 
 import type { ReactNode } from "react";
@@ -52,12 +51,12 @@ export const SimulateSubviewFrame = ({
   children,
   title,
 }: SimulateSubviewFrameProps) => (
-  <Stack className={mainContainerStyle}>
+  <div className={mainContainerStyle}>
     <div className={cx(simulationHeaderStyle(), headerStyle)}>
       <span className={headerTitleStyle}>{title}</span>
       {action}
     </div>
 
     <div className={contentStyle}>{children}</div>
-  </Stack>
+  </div>
 );

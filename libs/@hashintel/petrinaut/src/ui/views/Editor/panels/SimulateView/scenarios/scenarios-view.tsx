@@ -30,27 +30,6 @@ const scenarioColumns = [
   },
 ] satisfies readonly TableColumn<Scenario>[];
 
-const ScenarioList = ({
-  scenarios,
-  selectedId,
-  onSelect,
-}: {
-  scenarios: Scenario[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}) => {
-  return (
-    <Table
-      columns={scenarioColumns}
-      emptyLabel="No scenarios yet"
-      getRowId={(scenario) => scenario.id}
-      rows={scenarios}
-      selectedRowId={selectedId}
-      onRowSelect={(scenario) => onSelect(scenario.id)}
-    />
-  );
-};
-
 export const ScenariosView = () => {
   const drawer = useEditorState((editor) => editor.simulateDrawer);
   const { setSimulateDrawer: setDrawer } = useEditorActions();
@@ -79,10 +58,17 @@ export const ScenariosView = () => {
         </Button>
       }
     >
-      <ScenarioList
-        scenarios={scenarios}
-        selectedId={drawer.type === "view-scenario" ? drawer.scenarioId : null}
-        onSelect={(id) => setDrawer({ type: "view-scenario", scenarioId: id })}
+      <Table
+        columns={scenarioColumns}
+        emptyLabel="No scenarios yet"
+        getRowId={(scenario) => scenario.id}
+        rows={scenarios}
+        selectedRowId={
+          drawer.type === "view-scenario" ? drawer.scenarioId : null
+        }
+        onRowSelect={(scenario) =>
+          setDrawer({ type: "view-scenario", scenarioId: scenario.id })
+        }
       />
 
       <ViewScenarioDrawer
