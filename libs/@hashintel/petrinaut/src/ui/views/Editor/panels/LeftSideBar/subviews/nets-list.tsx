@@ -5,8 +5,8 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { generatePetrinautId, isInterface } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
+import { usePetrinautDefinitionSelector } from "../../../../../../react/hooks/use-document";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { ComponentGlyph } from "../../../../../components/component-glyph";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
@@ -109,9 +109,9 @@ const renameInputStyle = css({
 });
 
 export const NetsHeaderAction: React.FC = () => {
-  const {
-    petriNetDefinition: { components },
-  } = use(SDCPNContext);
+  const componentCount = usePetrinautDefinitionSelector(
+    (definition) => definition.components?.length ?? 0,
+  );
   const { addComponent } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
@@ -124,10 +124,9 @@ export const NetsHeaderAction: React.FC = () => {
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add component"}
       onClick={() => {
-        const count = (components ?? []).length;
         addComponent({
           id: generatePetrinautId(),
-          name: `Component ${count + 1}`,
+          name: `Component ${componentCount + 1}`,
           places: [],
           transitions: [],
           types: [],
@@ -150,9 +149,9 @@ export const NetNavigationList: React.FC<{
   onSelect?: () => void;
 }> = ({ onSelect }) => {
   const presentation = usePetrinautPresentation();
-  const {
-    petriNetDefinition: { components },
-  } = use(SDCPNContext);
+  const components = usePetrinautDefinitionSelector(
+    (definition) => definition.components,
+  );
   const { activeComponentId, setActiveComponentId } = use(ActiveNetContext);
   const { updateComponent, removeComponent } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();

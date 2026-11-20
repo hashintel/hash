@@ -1,7 +1,7 @@
 import { use } from "react";
 
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
 import { AddDifferentialEquationAction } from "./add-differential-equation-action";
 import { AddParameterAction } from "./add-parameter-action";
@@ -30,7 +30,7 @@ export const useEntityTreeItems = (): EntityGroup[] => {
       parameters,
     },
   } = use(ActiveNetContext);
-  const { extensions } = use(SDCPNContext);
+  const extensions = useSDCPNState((document) => document.extensions);
   const { showMutationActions } = usePetrinautPresentation();
 
   // Adding an entity is a mutation, so a presentation that hides authoring

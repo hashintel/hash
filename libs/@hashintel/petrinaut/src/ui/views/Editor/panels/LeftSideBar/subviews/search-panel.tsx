@@ -9,7 +9,7 @@ import {
   useEditorFields,
   useIsSelected,
 } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusMember } from "../../../../../worksheet/use-focus-member";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
@@ -283,7 +283,10 @@ const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({
 
 export const SearchContent: React.FC = () => {
   // The root net's entities, whichever net is open.
-  const { petriNetDefinition, extensions } = use(SDCPNContext);
+  const petriNetDefinition = useSDCPNState(
+    (document) => document.petriNetDefinition,
+  );
+  const extensions = useSDCPNState((document) => document.extensions);
   const { query } = use(SearchQueryContext);
   const allItems = entityGroups(petriNetDefinition, extensions).flatMap(
     (group) => group.children,
