@@ -1,5 +1,3 @@
-import { css } from "@hashintel/ds-helpers/css";
-
 import { usePanelPresence } from "../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
 import { useUserSettings } from "../../../../react/state/user-settings-context";
@@ -9,23 +7,12 @@ import { docks, type DockName } from "./docks";
 
 import type { ReactNode } from "react";
 
-// Over the canvas and its panels, and out of the pointer's way everywhere
-// but on the separators.
-const layerStyle = css({
-  position: "absolute",
-  inset: "[0]",
-  zIndex: "sticky",
-  pointerEvents: "none",
-});
-
 /** The resizer of one docked panel, around the resizers of the panels inside it. */
 const DockResizer = ({
   panel,
-  className,
   children,
 }: {
   panel: DockName;
-  className?: string;
   children?: ReactNode;
 }) => {
   const dock = docks[panel];
@@ -45,7 +32,6 @@ const DockResizer = ({
       maxSize={dock.maxSize}
       label={dock.label}
       onCommit={saveSize}
-      className={className}
     >
       {children}
     </PanelResizer>
@@ -53,8 +39,8 @@ const DockResizer = ({
 };
 
 /**
- * The separators that resize the panels docked around the canvas, as a layer
- * over them.
+ * The separators that resize the panels docked around the canvas. They fill
+ * the element they are in, which lies over the canvas workspace.
  *
  * The resizers nest the way the panels sit: the left sidebar beside
  * everything else, the bottom panel under what is left, and the properties
@@ -62,7 +48,7 @@ const DockResizer = ({
  * panels.
  */
 export const DockResizers = () => (
-  <DockResizer panel="leftSidebar" className={layerStyle}>
+  <DockResizer panel="leftSidebar">
     <DockResizer panel="bottomPanel">
       <DockResizer panel="propertiesPanel" />
     </DockResizer>

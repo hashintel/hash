@@ -34,7 +34,7 @@ It owns no document state and no geometry: the [editor state](layer:react.state)
 
 A region that is mounted and not visible sits in a hidden `Activity`: React keeps its state and removes its effects.
 
-The three panels are children of the canvas workspace, so they follow its row first. `DockResizers`, a layer over them, holds the separators that resize them: see [Panel geometry outside React state](doc:react.state/panel-sizes). A closed panel stays mounted and is moved out of view, because the user setting `keepPanelsMounted` is true by default. With the setting off, a panel returns null once it is closed and has finished sliding out.
+The three panels are children of the canvas workspace, so they follow its row first. `EditorResizers`, a layer over the editor's row, holds the separators that resize them and the docked assistant: see [Panel geometry outside React state](doc:react.state/panel-sizes). A closed panel stays mounted and is moved out of view, because the user setting `keepPanelsMounted` is true by default. With the setting off, a panel returns null once it is closed and has finished sliding out.
 
 ## Data flow
 

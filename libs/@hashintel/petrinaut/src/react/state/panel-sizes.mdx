@@ -169,16 +169,18 @@ The scripts `geometry.mjs`, `panel-toggles.mjs` and `assistant-dock.mjs` in
 
 ## Resizing a docked panel
 
-`DockResizers` in `ui/views/Editor/shared/dock-resizers.tsx` is a layer over
-the canvas workspace with one separator for each of the left sidebar, the
-Properties panel and the bottom panel. The separators are those of
-`react-resizable-panels`, the library the sections inside a panel resize
-with, so a drag, an arrow key and a touch behave the same in both places.
+`PanelResizer` in `ui/resize/panel-resizer.tsx` resizes a panel whose box
+follows a Motion value. It is a group of `react-resizable-panels`, the
+library the sections inside a panel resize with, so a drag, an arrow key and
+a touch behave the same in both places. The panel is not in the group. An
+empty stand-in the size of the panel is, with the separator on its inner
+edge.
 
-The panels are not in the library's groups: their boxes follow Motion values.
-Each group holds an empty stand-in the size of its panel, and the groups nest
-as the panels sit: the left sidebar beside everything else, the bottom panel
-under what is left, the Properties panel beside the canvas.
+`EditorResizers` in `ui/views/Editor/shared/editor-resizers.tsx` is the one
+layer of them, over the editor's row. The resizers nest as the panels sit:
+the AI assistant beside the workspace, then, while the canvas shows, the
+left sidebar beside everything else, the bottom panel under what is left and
+the Properties panel beside the canvas.
 
 - **A drag leads, and at any other time the stand-in follows.** Each pointer
   move writes the stand-in's size to the panel's Motion value. When a panel
@@ -191,9 +193,14 @@ under what is left, the Properties panel beside the canvas.
 - **A separator has no thickness.** The stand-in is then exactly as large as
   the panel. The strip a pointer grabs and the strip that shows are the
   separator's pseudo-elements.
-- **A panel that is not fully in view has a disabled separator.** The test
-  "stops resizing a panel as soon as it starts to slide out" in
-  `dock-resizers.test.tsx` holds this.
+- **A panel that is not in place has a disabled separator.** A panel that
+  slides is not where its stand-in is, and neither is an assistant that
+  floats. The tests in `dock-resizers.test.tsx` and
+  `editor-resizers.test.tsx` hold this.
+- **The layer has no place in the stacking order of its own.** The docks'
+  separators lie under what floats over the editor, such as the bottom bar
+  and an assistant that is a window. The assistant's separator lies over the
+  docked assistant, whose edge it straddles.
 
 No unit test drags a separator: the library lays its groups out from measured
 sizes, which jsdom does not have.

@@ -66,6 +66,9 @@ interface PanelResizerProps {
   /** Whether a drag paints the panel's border, which lies under the strip. */
   paintsBorder?: boolean;
   className?: string;
+  /** In place of the default stacking of the rest, for the outermost resizer. */
+  restClassName?: string;
+  separatorClassName?: string;
   /** What fills the rest of the group: often the resizer of the next panel in. */
   children?: ReactNode;
 }
@@ -94,6 +97,8 @@ export const PanelResizer = ({
   onCommit,
   paintsBorder = true,
   className,
+  restClassName = restStyle,
+  separatorClassName,
   children,
 }: PanelResizerProps) => {
   const isVertical = edge === "bottom";
@@ -126,8 +131,10 @@ export const PanelResizer = ({
         // A drag leads the panel. Anything else that moved the stand-in,
         // such as a window that shrank or a layout the library kept from
         // before the view was hidden, is undone as far as there is room.
+        // Whole pixels: the library lays out in shares of the group, which
+        // come back as a size just off the pixel the pointer is on.
         if (isDragged(separatorRef.current)) {
-          size.set(inPixels);
+          size.set(Math.round(inPixels));
         } else {
           follow(standInRef.current, separatorRef.current, size);
         }
@@ -140,11 +147,14 @@ export const PanelResizer = ({
       aria-label={label}
       disabled={!isOpen}
       disableDoubleClick
-      className={edgeSeparatorStyle({ edge, paintsBorder })}
+      className={cx(
+        edgeSeparatorStyle({ edge, paintsBorder }),
+        separatorClassName,
+      )}
     />
   );
   const rest = (
-    <Panel className={restStyle} style={{ overflow: "visible" }}>
+    <Panel className={restClassName} style={{ overflow: "visible" }}>
       {children}
     </Panel>
   );
@@ -163,8 +173,9 @@ export const PanelResizer = ({
         // keeps it. The size is read off the layout, which a key press
         // reports before the stand-in has it.
         if (isOpen && isUserInteraction && group && share !== undefined) {
-          const pixels =
-            (share / 100) * (isVertical ? group.height : group.width);
+          const pixels = Math.round(
+            (share / 100) * (isVertical ? group.height : group.width),
+          );
           size.set(pixels);
           onCommit?.(pixels);
         }

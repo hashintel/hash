@@ -24,6 +24,9 @@ export const MIN_LEFT_SIDEBAR_WIDTH = 220;
 export const MAX_LEFT_SIDEBAR_WIDTH = 500;
 
 // Properties Panel — right side (DEFAULT_PROPERTIES_PANEL_WIDTH in react/state/panel-defaults)
+export const MIN_AI_ASSISTANT_WIDTH = 320;
+export const MAX_AI_ASSISTANT_WIDTH = 720;
+
 export const MIN_PROPERTIES_PANEL_WIDTH = 250;
 export const MAX_PROPERTIES_PANEL_WIDTH = 800;
 

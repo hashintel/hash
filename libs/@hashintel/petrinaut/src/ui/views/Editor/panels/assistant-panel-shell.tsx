@@ -19,7 +19,6 @@ import {
   AssistantTitleBarContext,
   useAssistantChoice,
 } from "../../../plugins/plugin-assistant";
-import { ResizeHandle } from "../../../resize/resize-handle";
 import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
 import { slideFromEdge } from "../shared/slide-from-edge";
 import { useFloatingPanel } from "../shared/use-floating-panel";
@@ -51,14 +50,6 @@ const shellStyle = cva({
       },
     },
   },
-});
-
-const resizeAnchorStyle = css({
-  position: "absolute",
-  top: "[0]",
-  bottom: "[0]",
-  left: "[0]",
-  width: "[0]",
 });
 
 const cardStyle = cva({
@@ -330,23 +321,12 @@ export const PluginAssistantPanel = ({
           data-placement={placement}
           style={{ visibility: isOpen || isInView ? undefined : "hidden" }}
         >
-          {isFloating ? (
+          {/* Docked, the panel is resized by `EditorResizers`. */}
+          {isFloating && (
             <FloatingResizeHandles
               label="AI assistant"
               getHandleProps={getResizeHandleProps}
             />
-          ) : (
-            <div className={resizeAnchorStyle}>
-              <ResizeHandle
-                edge="left"
-                appearance="hidden"
-                getSize={() => aiAssistantWidth.get()}
-                onResize={(width) => aiAssistantWidth.set(width)}
-                minSize={320}
-                maxSize={720}
-                label="Resize AI assistant"
-              />
-            </div>
           )}
           <div
             className={cardStyle({ floating: isFloating })}

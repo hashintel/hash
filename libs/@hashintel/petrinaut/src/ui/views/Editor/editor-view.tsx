@@ -40,7 +40,7 @@ import {
   SimulateView,
   SimulateViewTabs,
 } from "./panels/SimulateView/simulate-view";
-import { DockResizers } from "./shared/dock-resizers";
+import { EditorResizers } from "./shared/editor-resizers";
 import { SimulationWorkspace } from "./shared/simulation-workspace";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { EditorCommands } from "./use-editor-commands";
@@ -148,7 +148,6 @@ const EditorViewContent = ({
                     />
                   )}
                   <BottomPanel />
-                  <DockResizers />
                 </Box>
               </Activity>
               {/* An editor that only composes has no Definitions view to keep warm. */}
@@ -183,6 +182,12 @@ const EditorViewContent = ({
           <SimulationCreationDrawer />
         </SimulationWorkspace>
         <EditorAssistantPanel />
+        <EditorResizers
+          canvasShows={
+            globalMode === "actual" ||
+            (globalMode === "edit" && editViewMode === "canvas")
+          }
+        />
       </Stack>
     </>
   );

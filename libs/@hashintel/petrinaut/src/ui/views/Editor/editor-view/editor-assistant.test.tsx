@@ -109,7 +109,6 @@ describe("EditorAssistantPanel", () => {
       (button) => button.getAttribute("aria-label") ?? button.textContent,
     );
     expect(panelButtons).toEqual([
-      "Resize AI assistant",
       "Float AI assistant",
       "Clear test chat",
       "Close AI assistant",
