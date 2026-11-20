@@ -19,7 +19,7 @@ import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { ExperimentalIconProvider } from "../../experimental-icons";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
-import { usePluginAssistant } from "../../plugins/plugin-assistant";
+import { useAssistantChoice } from "../../plugins/plugin-assistant";
 import { useCanvasRegistration } from "../../plugins/plugin-editor";
 import { PluginRoots } from "../../plugins/plugin-outlets";
 import { NotebookView } from "../Notebook/notebook-view";
@@ -107,8 +107,9 @@ const EditorViewContent = ({
   );
   const { toggleAiAssistant } = useEditorActions();
   const composesOnly = useComposesOnly();
-  const assistantPlugin = usePluginAssistant();
-  const hasAssistant = assistantPlugin !== undefined;
+  // Not the running plugin itself, which a streaming chat republishes for
+  // every token.
+  const hasAssistant = useAssistantChoice().shownId !== undefined;
 
   const [isEmptyNetPromptDismissed, setEmptyNetPromptDismissed] =
     useState(false);
@@ -184,12 +185,7 @@ const EditorViewContent = ({
           </Activity>
           <SimulationCreationDrawer />
         </SimulationWorkspace>
-        {assistantPlugin && (
-          <EditorAssistantPanel
-            plugin={assistantPlugin}
-            petriNetId={petriNetId}
-          />
-        )}
+        <EditorAssistantPanel />
       </Stack>
     </>
   );

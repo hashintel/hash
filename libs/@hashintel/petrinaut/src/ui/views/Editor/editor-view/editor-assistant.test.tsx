@@ -27,7 +27,6 @@ import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin"
 import {
   AssistantPanelTitle,
   useAssistantPanel,
-  usePluginAssistant,
 } from "../../../plugins/plugin-assistant";
 import { renderPlugins } from "../../../plugins/plugins-test-harness";
 import { AssistantCommands, EditorAssistantPanel } from "./editor-assistant";
@@ -86,7 +85,6 @@ const brokenPlugin = definePetrinautPlugin(
 
 /** The panel as the editor mounts it, with a button standing in for the toggle. */
 const Editor = () => {
-  const plugin = usePluginAssistant();
   const { setAiAssistantOpen } = use(EditorContext);
 
   return (
@@ -95,7 +93,7 @@ const Editor = () => {
       <button type="button" onClick={() => setAiAssistantOpen(true)}>
         Show AI assistant
       </button>
-      {plugin && <EditorAssistantPanel plugin={plugin} petriNetId="net" />}
+      <EditorAssistantPanel />
     </>
   );
 };

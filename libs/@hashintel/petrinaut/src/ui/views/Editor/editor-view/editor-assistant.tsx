@@ -1,4 +1,5 @@
 import { useCommand } from "../../../../react/commands/command-registry";
+import { useDocumentId } from "../../../../react/hooks/use-document";
 import {
   useEditorActions,
   useEditorState,
@@ -6,23 +7,25 @@ import {
 import {
   PluginAssistantContent,
   useAssistantChoice,
+  usePluginAssistant,
 } from "../../../plugins/plugin-assistant";
 import { PluginAssistantPanel } from "../panels/assistant-panel-shell";
 
-import type { RunningPlugin } from "../../../plugins/plugins-provider";
-
-/** The assistant panel beside the editor, around the plugin's content. */
-export const EditorAssistantPanel = ({
-  plugin,
-  petriNetId,
-}: {
-  plugin: RunningPlugin;
-  petriNetId: string | null;
-}) => {
+/**
+ * The assistant panel beside the editor, around the content of the plugin
+ * whose assistant the editor shows. Nothing while no plugin provides one.
+ */
+export const EditorAssistantPanel = () => {
+  const plugin = usePluginAssistant();
+  const petriNetId = useDocumentId();
   const isAiAssistantOpen = useEditorState(
     (editor) => editor.isAiAssistantOpen,
   );
   const { setAiAssistantOpen } = useEditorActions();
+
+  if (plugin === undefined) {
+    return null;
+  }
 
   return (
     <PluginAssistantPanel
