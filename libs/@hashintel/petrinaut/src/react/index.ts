@@ -42,7 +42,9 @@ export {
   openPetrinautSimulationResource,
   PetrinautNavigationProvider,
   petrinautNavigationStatesMatch,
+  usePetrinautNavigate,
   usePetrinautNavigation,
+  usePetrinautNavigationState,
 } from "./navigation";
 export type {
   PetrinautNavigationAction,

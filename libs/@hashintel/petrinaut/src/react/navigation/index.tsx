@@ -15,6 +15,11 @@ import {
 import { canonicalizeSelection } from "@hashintel/petrinaut-core/selection";
 
 import { ActualModeContext } from "../actual-mode-context";
+import {
+  usePublished,
+  useSelected,
+  type Published,
+} from "../select-from-context";
 
 import type {
   EditorGlobalMode,
@@ -158,6 +163,10 @@ const PetrinautNavigationContext =
     state: defaultPetrinautNavigationState,
     navigate: () => false,
   });
+
+/** Where the provider publishes the location for the readers by part. */
+const PetrinautNavigationPublishedContext =
+  createContext<Published<PetrinautNavigationContextValue>>(null);
 
 type SimulationVisits = Partial<
   Record<
@@ -370,17 +379,51 @@ export const PetrinautNavigationProvider = ({
     return true;
   };
 
+  const value = { controlled: controller != null, navigate, state };
+  const published = usePublished(value);
+
   return (
-    <PetrinautNavigationContext
-      value={{ controlled: controller != null, navigate, state }}
-    >
-      {children}
-    </PetrinautNavigationContext>
+    <PetrinautNavigationPublishedContext value={published}>
+      <PetrinautNavigationContext value={value}>
+        {children}
+      </PetrinautNavigationContext>
+    </PetrinautNavigationPublishedContext>
   );
 };
 
 /** Internal bridge used by state providers; exported for custom React shells. */
 export const usePetrinautNavigation = () => use(PetrinautNavigationContext);
+
+/**
+ * One part of the location. The reader renders when that part changes, where
+ * `usePetrinautNavigation()` renders it for every navigation, a selection
+ * included.
+ *
+ * ```tsx
+ * const overlay = usePetrinautNavigationState((location) => location.overlay);
+ * ```
+ */
+export const usePetrinautNavigationState = <Selected,>(
+  select: (location: Readonly<PetrinautNavigationState>) => Selected,
+): Selected =>
+  useSelected(
+    PetrinautNavigationContext,
+    PetrinautNavigationPublishedContext,
+    (navigation) => select(navigation.state),
+  );
+
+/**
+ * The function that changes the location. It keeps one identity for the
+ * provider's life, so a component that only navigates renders for no
+ * navigation.
+ */
+export const usePetrinautNavigate =
+  (): PetrinautNavigationContextValue["navigate"] =>
+    useSelected(
+      PetrinautNavigationContext,
+      PetrinautNavigationPublishedContext,
+      (navigation) => navigation.navigate,
+    );
 
 const simulateResourceTypeToView = (
   type: PetrinautSimulateResource["type"],
