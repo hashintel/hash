@@ -9,7 +9,7 @@ import {
 /**
  * @vitest-environment jsdom
  */
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CodeEditor } from "./code-editor";
@@ -73,25 +73,23 @@ describe("CodeEditor", () => {
   it.each([true, false])(
     "shows the placeholder after mounting (singleLine: %s)",
     async (singleLine) => {
-      // The inner component suspends on the Monaco module, so the render is
-      // awaited for the module to settle.
+      // The component waits for the Monaco module in an effect, so the
+      // render is awaited for the module to settle.
       await act(async () => {
         render(
           <MonacoContext value={monacoContext}>
-            <Suspense fallback={null}>
-              <CodeEditor
-                singleLine={singleLine}
-                placeholder="Type an expression"
-                value=""
-              />
-            </Suspense>
+            <CodeEditor
+              singleLine={singleLine}
+              placeholder="Type an expression"
+              value=""
+            />
           </MonacoContext>,
         );
       });
 
       // While Monaco mounts, its dimmed label has the row; the placeholder
-      // would land at the same inset and read as two labels. (The Suspense
-      // fallback shows the same label first, so wait for the editor's own.)
+      // would land at the same inset and read as two labels. (The component
+      // shows the same label while the module loads, so wait for the editor's.)
       const loading = await screen.findByTestId("editor-loading");
       expect(loading.textContent).toBe(
         singleLine ? "Loading..." : "Loading editor...",
@@ -112,9 +110,7 @@ describe("CodeEditor", () => {
     await act(async () => {
       render(
         <MonacoContext value={monacoContext}>
-          <Suspense fallback={null}>
-            <CodeEditor value="" onEscape={onEscape} />
-          </Suspense>
+          <CodeEditor value="" onEscape={onEscape} />
           <button type="button">Outside editor</button>
         </MonacoContext>,
       );
