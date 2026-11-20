@@ -75,10 +75,7 @@ import { runEndOf } from "./run-end";
 
 import type { ScenarioHirRequest } from "./use-scenario-hir";
 
-/**
- * Internal state for the simulation provider.
- * Configuration values that aren't managed by the worker.
- */
+/** Configuration values that aren't managed by the worker. */
 type SimulationStateValues = {
   parameterValues: Record<string, string>;
   initialMarking: InitialMarking;
@@ -243,7 +240,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     requireScenario,
   );
 
-  // Configuration state (not managed by the simulation handle)
   const [stateValues, setStateValues] = useState<SimulationStateValues>(() =>
     createInitialStateValues({
       ...initialConfiguration,
@@ -352,7 +348,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     });
   }, [addNotification, stochastic]);
 
-  // Dispose on unmount.
   useEffect(() => {
     return () => {
       initializationGenerationRef.current += 1;
@@ -381,11 +376,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }
   }, [petriNetDefinition, stateValuesRef]);
 
-  //
-  // Actions
-  //
-
-  /** Tears down whichever run is live and clears its handle, synchronously. */
+  /**
+   * Tears down whichever run is live and clears its handle in the ref and in
+   * React state, so a same-tick caller sees it gone.
+   */
   const disposeRuns = (): boolean => {
     const currentEvent = eventSimulationRef.current;
     const currentStochastic = stochasticRef.current;
@@ -618,8 +612,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       throw refusal;
     }
 
-    // Dispose any active simulation before starting a new one. Update both
-    // the ref and React state so same-tick callers see the cleared handle.
     disposeRuns();
     setFailure(null);
 
@@ -843,8 +835,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     requestedScenarioId,
     requireScenario,
   ]);
-  // When a scenario is compiled, override parameterValues and initialMarking
-  // with the scenario's resolved output.
+
   let effectiveParameterValues = extensions.parameters
     ? stateValues.parameterValues
     : {};
@@ -852,8 +843,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   if (compiledScenarioResult) {
     effectiveParameterValues = compiledScenarioResult.parameterValues;
-
-    // Merge compiled scenario initial state on top of manual markings.
     effectiveInitialMarking = {
       ...stateValues.initialMarking,
       ...compiledScenarioResult.initialState,
