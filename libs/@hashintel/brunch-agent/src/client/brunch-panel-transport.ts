@@ -548,8 +548,8 @@ export const createBrunchSuccessorPanelTransport = (
   conversation: SuccessorConversation,
   tracker: BrunchPanelConversationTracker,
   options: BrunchPanelSubmissionOptions & {
-    /** The document the conversation is bound to, sent with every message. */
-    readonly documentId: string;
+    /** The panel's document binding, sent as it is with every message. */
+    readonly binding: BrowserContext["binding"];
     readonly onAdmission?: (
       admission: BrunchPanelAdmission["admission"],
     ) => void;
@@ -557,7 +557,7 @@ export const createBrunchSuccessorPanelTransport = (
 ): PetrinautAiChatTransport => {
   const transport = createSuccessorChatTransport<PetrinautAiMessage>({
     conversation,
-    documentId: options.documentId,
+    binding: options.binding,
   });
   return {
     reconnectToStream: (reconnectOptions) =>

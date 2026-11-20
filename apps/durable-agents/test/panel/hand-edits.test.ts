@@ -26,13 +26,12 @@ import { fauxAssistantMessage } from "../scripted-model";
 import { drain, openPanelTransport, type PanelMessage } from "./panel-chat";
 import {
   answerAsBrowser,
+  binding,
   conversationId,
-  documentId,
   openPanelServer,
 } from "./panel-server";
 
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
-import type { BrowserContext } from "@hashintel/brunch-agent";
 import type { UIMessage } from "ai";
 
 const idleMs = 10;
@@ -66,10 +65,6 @@ const openPanel = async (responses: FauxResponseStep[]) => {
   /** Loses the next answer to a hand-edit report after the server has handled it. */
   let loseNextReportAnswer = false;
   const panel = await openPanelServer(responses, {
-    admitNewConversation: (body) =>
-      body.binding === undefined
-        ? { status: 404, error: "Unknown conversation." }
-        : { binding: body.binding as BrowserContext["binding"] },
     intercept: (url, _init, forward) => {
       if (!url.endsWith(`/${brunchRoutes.handEdits}`) || !loseNextReportAnswer)
         return undefined;
@@ -142,7 +137,7 @@ test("an edit between turns reaches the next turn as a note in history", async (
   const net = handEditedDocument();
   const reporter = createHandEditReporter({
     conversation: panel.conversation,
-    documentId,
+    binding,
     document: net.document,
     idleMs,
   });
@@ -177,7 +172,7 @@ test("a report sent again after its answer was lost leaves one note", async () =
   const net = handEditedDocument();
   const reporter = createHandEditReporter({
     conversation: panel.conversation,
-    documentId,
+    binding,
     document: net.document,
     idleMs,
   });
@@ -211,7 +206,7 @@ test("no report is sent while a Brunch call runs; the edit made during it is rep
   const net = handEditedDocument();
   const reporter = createHandEditReporter({
     conversation: panel.conversation,
-    documentId,
+    binding,
     document: net.document,
     idleMs,
   });
@@ -293,7 +288,7 @@ test("a panel opened after an edit no panel saw reports it at once, against the 
 
   const reporter = createHandEditReporter({
     conversation: panel.conversation,
-    documentId,
+    binding,
     document: net.document,
     idleMs,
     readShown: (signal) => readShownRevision(panel.conversation, signal),
@@ -317,7 +312,7 @@ test("a panel opened on the net the model was last shown reports nothing", async
 
   const reporter = createHandEditReporter({
     conversation: panel.conversation,
-    documentId,
+    binding,
     document: net.document,
     idleMs,
     readShown: (signal) => readShownRevision(panel.conversation, signal),
@@ -339,9 +334,14 @@ test("a report against another document's binding is refused, and the panel stop
   await panel.chat("Model a queue.");
   const net = handEditedDocument();
   const refusals: HandEditRefusal[] = [];
+  const otherBinding = {
+    ...binding,
+    documentId: "net-2",
+    incarnationId: "net-2",
+  };
   const reporter = createHandEditReporter({
     conversation: panel.conversation,
-    documentId: "net-2",
+    binding: otherBinding,
     document: net.document,
     idleMs,
     onRefused: (refusal) => refusals.push(refusal),
@@ -363,7 +363,7 @@ test("a report against another document's binding is refused, and the panel stop
   ).toEqual([
     {
       status: 409,
-      binding: canonicalContent({ conversationId, documentId: "net-2" }),
+      binding: canonicalContent(otherBinding),
     },
   ]);
   expect(notesOf(await panel.history())).toEqual([]);
@@ -374,7 +374,7 @@ test("a report before the conversation exists is dropped, and the first chat ope
   const net = handEditedDocument();
   const reporter = createHandEditReporter({
     conversation: panel.conversation,
-    documentId,
+    binding,
     document: net.document,
     idleMs,
   });

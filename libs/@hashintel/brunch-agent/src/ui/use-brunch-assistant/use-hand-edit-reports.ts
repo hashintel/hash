@@ -9,6 +9,7 @@ import { readShownRevision } from "../../client/hand-edits/shown-revision";
 import { documentRevisionOf } from "../tools/shared/document-revision";
 
 import type { SuccessorConversation } from "../../client/successor/successor-endpoints";
+import type { BrowserContext } from "@hashintel/brunch-agent";
 import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
 
 /**
@@ -20,13 +21,14 @@ import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
  */
 export const useHandEditReports = <Calls extends ReportedBrowserCalls>({
   conversation,
-  documentId,
+  binding,
   handle,
   browserCalls,
   onRefused,
 }: {
   readonly conversation: SuccessorConversation | null;
-  readonly documentId: string | undefined;
+  /** The panel's document binding, the one its chat transport sends. */
+  readonly binding: BrowserContext["binding"] | null;
   /** The bound document's handle, or `null` while it loads. */
   readonly handle: PetrinautDocHandle | null;
   readonly browserCalls: Calls | undefined;
@@ -34,11 +36,11 @@ export const useHandEditReports = <Calls extends ReportedBrowserCalls>({
 }): Calls | undefined => {
   const reporter = useMemo(
     () =>
-      conversation === null || documentId === undefined || handle === null
+      conversation === null || binding === null || handle === null
         ? undefined
         : createHandEditReporter({
             conversation,
-            documentId,
+            binding,
             document: {
               subscribe: (listener) => handle.subscribe(listener),
               revision: () => {
@@ -51,7 +53,7 @@ export const useHandEditReports = <Calls extends ReportedBrowserCalls>({
             readShown: (signal) => readShownRevision(conversation, signal),
             onRefused,
           }),
-    [conversation, documentId, handle, onRefused],
+    [conversation, binding, handle, onRefused],
   );
   useEffect(() => reporter?.start(), [reporter]);
   return useMemo(

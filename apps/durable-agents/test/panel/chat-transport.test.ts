@@ -6,7 +6,7 @@
  *
  * These tests build the server with `createDurableAgentsServer`, not
  * `startDurableAgentsServer`, so no host middleware runs: the conversation
- * header, the web header and the binding arrive unchecked.
+ * and web headers arrive unchecked.
  */
 import { defineExtension } from "@earendil-works/pi-durable";
 import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
@@ -28,8 +28,8 @@ import {
 } from "./panel-chat";
 import {
   answerAsBrowser,
+  binding,
   conversationId,
-  documentId,
   openPanelServer,
 } from "./panel-server";
 
@@ -72,8 +72,8 @@ const expectPanelBody = (body: unknown) => {
   expect(body).toMatchObject({
     trigger: "submit-message",
     messages: [{ role: "user" }],
-    binding: { conversationId, documentId },
   });
+  expect((body as { binding?: unknown }).binding).toEqual(binding);
   const { messages } = body as { messages: unknown[] };
   expect(messages).toHaveLength(1);
   expect(JSON.stringify(body)).not.toContain(

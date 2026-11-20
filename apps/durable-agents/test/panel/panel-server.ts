@@ -1,9 +1,10 @@
 /**
  * The durable agents server as the panel tests open it: built with
  * `createDurableAgentsServer`, in-process over SQLite, with the browser-call
- * routes mounted where `startDurableAgentsServer` mounts them; and the
- * panel's connection to it, recording every request. HASH's entry is left
- * out, so the conversation and web headers arrive unchecked.
+ * routes mounted where `startDurableAgentsServer` mounts them, and a new
+ * conversation admitted and bound as it admits one; and the panel's
+ * connection to it, recording every request. HASH's entry is left out, so
+ * the conversation and web headers arrive unchecked.
  */
 import { access, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -27,7 +28,10 @@ import {
 } from "../../src/browser-call/browser-call";
 import { createBrowserCallRouter } from "../../src/browser-call/browser-call-router";
 import { createDurableAgentsServer } from "../../src/server/durable-agents-server";
-import { browserCallsPrefix } from "../../src/server/start-durable-agents-server";
+import {
+  admitNewConversation as admitByBinding,
+  browserCallsPrefix,
+} from "../../src/server/start-durable-agents-server";
 import { context } from "../platform/support";
 import { scriptedModel } from "../scripted-model";
 
@@ -35,12 +39,19 @@ import type { HostBinding } from "../../src/agent/host-binding";
 import type { OwnedStorage } from "../../src/server/conversation-storage";
 import type { DurableAgentsServerOptions } from "../../src/server/durable-agents-server";
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
+import type { BrowserContext } from "@hashintel/brunch-agent";
 
 export const origin = "http://durable.test";
 export const actorKey = "test-actor";
 export const conversationId = "net-1:construction";
 export const documentId = "net-1";
 export const web = "web-1";
+/** The panel's binding, in the shape `useProcessAgentBinding` gives it. */
+export const binding: BrowserContext["binding"] = {
+  conversationId,
+  documentId,
+  incarnationId: documentId,
+};
 
 const servers: { close: () => Promise<void> }[] = [];
 const directories: string[] = [];
@@ -110,7 +121,7 @@ export const openPanelServer = async (
   {
     directory,
     extensions = () => [],
-    admitNewConversation,
+    admitNewConversation = admitByBinding,
     intercept,
   }: {
     readonly directory?: string;
@@ -136,7 +147,7 @@ export const openPanelServer = async (
     agent: { model },
     clientToolNames: new Set([browserToolName]),
     dynamicClientToolNames: new Set([browserToolName]),
-    ...(admitNewConversation === undefined ? {} : { admitNewConversation }),
+    admitNewConversation,
     context,
   });
   server.app.route(

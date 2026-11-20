@@ -24,10 +24,13 @@ const instanceId = createHash("sha256")
   .update(`${conversation.actorKey}\0${conversation.conversationId}`)
   .digest("hex");
 const handEditsUrl = `http://durable.test/conversations/${instanceId}/browser-calls/hand-edits`;
-const binding = canonicalContent({
+/** The panel's binding, in the shape `useProcessAgentBinding` gives it. */
+const panelBinding = {
   conversationId: conversation.conversationId,
   documentId,
-});
+  incarnationId: documentId,
+};
+const binding = canonicalContent(panelBinding);
 
 const emptyNet: SDCPN = {
   places: [],
@@ -120,7 +123,7 @@ describe("createHandEditReporter", () => {
     const server = serverAnswering(admitted);
     const reporter = createHandEditReporter({
       conversation: { ...conversation, fetch: server.fetch },
-      documentId,
+      binding: panelBinding,
       document: net.document,
       idleMs,
     });
@@ -162,7 +165,7 @@ describe("createHandEditReporter", () => {
     const server = serverAnswering(admitted);
     const reporter = createHandEditReporter({
       conversation: { ...conversation, fetch: server.fetch },
-      documentId,
+      binding: panelBinding,
       document: net.document,
       idleMs,
     });
@@ -187,7 +190,7 @@ describe("createHandEditReporter", () => {
     );
     const reporter = createHandEditReporter({
       conversation: { ...conversation, fetch: server.fetch },
-      documentId,
+      binding: panelBinding,
       document: net.document,
       idleMs,
     });
@@ -216,7 +219,7 @@ describe("createHandEditReporter", () => {
     const server = serverAnswering(admitted);
     const reporter = createHandEditReporter({
       conversation: { ...conversation, fetch: server.fetch },
-      documentId,
+      binding: panelBinding,
       document: net.document,
       idleMs,
     });
@@ -249,7 +252,7 @@ describe("createHandEditReporter", () => {
     const server = serverAnswering(admitted);
     const reporter = createHandEditReporter({
       conversation: { ...conversation, fetch: server.fetch },
-      documentId,
+      binding: panelBinding,
       document: net.document,
       idleMs,
     });
@@ -285,7 +288,7 @@ describe("createHandEditReporter", () => {
     );
     const reporter = createHandEditReporter({
       conversation: { ...conversation, fetch: server.fetch },
-      documentId,
+      binding: panelBinding,
       document: net.document,
       idleMs,
     });
@@ -315,7 +318,7 @@ describe("createHandEditReporter", () => {
       const refusals: unknown[] = [];
       const reporter = createHandEditReporter({
         conversation: { ...conversation, fetch: server.fetch },
-        documentId,
+        binding: panelBinding,
         document: net.document,
         idleMs,
         onRefused: (refusal) => refusals.push(refusal),
@@ -343,7 +346,7 @@ describe("createHandEditReporter", () => {
     const server = serverAnswering(admitted);
     const reporter = createHandEditReporter({
       conversation: { ...conversation, fetch: server.fetch },
-      documentId,
+      binding: panelBinding,
       document: net.document,
       idleMs,
       readShown: async () => "revision-before-the-reload",
@@ -366,7 +369,7 @@ describe("createHandEditReporter", () => {
     const server = serverAnswering(admitted);
     const reporter = createHandEditReporter({
       conversation: { ...conversation, fetch: server.fetch },
-      documentId,
+      binding: panelBinding,
       document: net.document,
       idleMs,
       readShown: async () => net.revision(),
@@ -394,7 +397,7 @@ describe("createHandEditReporter", () => {
     let answerShown: (revision: string | undefined) => void = () => {};
     const reporter = createHandEditReporter({
       conversation: { ...conversation, fetch: server.fetch },
-      documentId,
+      binding: panelBinding,
       document: net.document,
       idleMs,
       readShown: () =>
@@ -422,7 +425,7 @@ describe("createHandEditReporter", () => {
     const server = serverAnswering(admitted);
     const reporter = createHandEditReporter({
       conversation: { ...conversation, fetch: server.fetch },
-      documentId,
+      binding: panelBinding,
       document: net.document,
       idleMs,
       readShown: async () => {
@@ -450,7 +453,7 @@ describe("createHandEditReporter", () => {
     });
     const reporter = createHandEditReporter({
       conversation: { ...conversation, fetch: server.fetch },
-      documentId,
+      binding: panelBinding,
       document: net.document,
       idleMs,
     });

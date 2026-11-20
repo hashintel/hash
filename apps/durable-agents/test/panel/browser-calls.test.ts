@@ -10,11 +10,7 @@
  */
 import { expect, onTestFinished, test, vi } from "vitest";
 
-import {
-  brunchHeaders,
-  canonicalContent,
-  type BrowserContext,
-} from "@hashintel/brunch-agent";
+import { brunchHeaders, canonicalContent } from "@hashintel/brunch-agent";
 import {
   createSuccessorBrowserCalls,
   readSuccessorBrowserCalls,
@@ -28,8 +24,8 @@ import { calls } from "../platform/support";
 import { fauxAssistantMessage } from "../scripted-model";
 import { openPanelChat, textOf } from "./panel-chat";
 import {
+  binding,
   conversationId,
-  documentId,
   openPanelServer,
   type PanelIntercept,
   web,
@@ -40,7 +36,6 @@ import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 type Admit = Parameters<typeof createSuccessorBrowserCalls>[0]["admit"];
 type Admission = Awaited<ReturnType<Admit>>;
 
-const binding: BrowserContext["binding"] = { conversationId, documentId };
 const titled = { ok: true, title: "Queue" };
 
 /** A promise and the function that resolves it. */
@@ -62,13 +57,7 @@ const openServer = async (
   responses: FauxResponseStep[],
   options: { readonly intercept?: PanelIntercept } = {},
 ) => {
-  const server = await openPanelServer(responses, {
-    ...options,
-    // As the production host does, a new conversation's browser calls are bound to the chat's binding.
-    admitNewConversation: (body) => ({
-      binding: body.binding as BrowserContext["binding"],
-    }),
-  });
+  const server = await openPanelServer(responses, options);
   const { endpoints, requests } = server;
   /** The browser-call requests, by the route each names under the call. */
   const browserCallRequests = () =>
