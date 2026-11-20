@@ -27,6 +27,8 @@ export type MockPropertyType = {
    * A property may accept several (Dei, Ciarán, 23 Oct): "Email +1". Defaults to the payload kind's name.
    */
   dataTypes?: string[];
+  /** MOCK: the linked record this value sits inside ("Primary contact" for its Work email), for a path row. */
+  via?: string;
 };
 
 export type MockEntityType = {
@@ -172,10 +174,32 @@ export const mockEntityTypes = [
 export const findEntityType = (baseUrl: string | undefined) =>
   mockEntityTypes.find((type) => type.baseUrl === baseUrl);
 
+/**
+ * MOCK: values of the supplier loop item that the source menu lists for an email field as their own rows, besides its
+ * properties: a direct "Accounts email" and the work and personal email of the linked people (Source menu "Path in the
+ * row", provisional, 20 Nov). Kept out of `properties`, so no property picker lists them.
+ */
+const emailValue = (slug: string, title: string, via?: string): MockPropertyType => ({
+  ...propertyType(slug, title, "Text"),
+  dataTypes: ["Email"],
+  ...(via ? { via } : {}),
+});
+
+export const supplierPathValues: MockPropertyType[] = [
+  emailValue("accounts-email", "Accounts email"),
+  emailValue("primary-contact-work-email", "Work email", "Primary contact"),
+  emailValue("primary-contact-personal-email", "Personal email", "Primary contact"),
+  emailValue("account-manager-work-email", "Work email", "Account manager"),
+  emailValue("account-manager-personal-email", "Personal email", "Account manager"),
+];
+
+/** The supplier properties an email field's menu drops, as the path rows stand in for them. */
+export const supersededByPathValues = ["Contact email", "Contact"];
+
 export const findPropertyType = (baseUrl: string | undefined) =>
-  mockEntityTypes
-    .flatMap((type) => type.properties)
-    .find((property) => property.baseUrl === baseUrl);
+  [...mockEntityTypes.flatMap((type) => type.properties), ...supplierPathValues].find(
+    (property) => property.baseUrl === baseUrl,
+  );
 
 const entity = (
   type: MockEntityType,

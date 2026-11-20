@@ -480,7 +480,7 @@ export const describeSource = (
       const property = itemPropertyOf(source);
       return {
         owner: property ? name : parent ? stepLabel(parent) : "For each",
-        label: property?.title ?? name,
+        label: property ? (property.via ? `${property.via} › ${property.title}` : property.title) : name,
       };
     }
     case "step-output": {

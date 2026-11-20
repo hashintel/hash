@@ -65,7 +65,7 @@ export const refLook = (
     return {
       icon: "rotate",
       step: loop ? stepLabel(loop) : "For each",
-      output: property ? property.title : name,
+      output: property ? (property.via ? `${property.via} › ${property.title}` : property.title) : name,
     };
   }
   return null;

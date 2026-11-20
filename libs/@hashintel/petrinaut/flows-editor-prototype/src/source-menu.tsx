@@ -33,7 +33,13 @@ import {
 } from "./document";
 import { useEditor } from "./editor-context";
 import { isMockPayloadKind } from "./mock-action-definitions";
-import { findEntityType, findPropertyType, mockEntities } from "./mock-graph";
+import {
+  findEntityType,
+  findPropertyType,
+  mockEntities,
+  supersededByPathValues,
+  supplierPathValues,
+} from "./mock-graph";
 import {
   MenuRow,
   srcIconsTake,
@@ -324,6 +330,9 @@ type SourceGroup = {
 const GROUP_ROWS = 4;
 
 const showMoreTextStyle = css({ color: "neutral.fg.muted" });
+
+/** The link name before a path row's value: the muted grey of secondary text. */
+const pathPrefixStyle = css({ color: "neutral.fg.muted" });
 
 /** Every row draws a tile (`?srcicons=a`): rows that had none take a type or kind icon. */
 const iconsEverywhere = valueTiles === "all";
@@ -695,10 +704,20 @@ export const SourceMenu = ({
     found?.step.kind === "action" ? found.step.inputs[input.name] : undefined;
   const currentProperty = current ? itemPropertyOf(current) : undefined;
   const fittingProperties =
-    listsOnly || !loopId || !itemType || input.array
+    listsOnly || !loopId || !itemType || (input.array && !wantedDataType)
       ? []
-      : itemType.properties
+      : [
+          ...itemType.properties,
+          // Values inside a linked record, as their own rows (an email field of a supplier loop only).
+          ...(wantedDataType === "Email" && itemType.title === "Supplier" ? supplierPathValues : []),
+        ]
           .filter((property) => kinds.includes(property.payloadKind))
+          .filter(
+            (property) =>
+              wantedDataType !== "Email" ||
+              itemType.title !== "Supplier" ||
+              !supersededByPathValues.includes(property.title),
+          )
           // A field that takes one data type lists only properties of that type (Figma 637:23544 C; Dei, 23 Oct).
           .filter(
             (property) =>
@@ -713,11 +732,18 @@ export const SourceMenu = ({
     property.dataTypes ?? [kindLabel(property.payloadKind, false)];
   const showTypes =
     new Set(fittingProperties.map((property) => typesOf(property).join()))
-      .size > 1;
+      .size > 1 || fittingProperties.some((property) => property.via);
   const propertyItems = fittingProperties.map((property) => ({
     id: `item-property:${property.baseUrl}`,
-    text: property.title,
-    hint: `${itemName(document, loopId!)} › ${property.title} · ${typesOf(property).join(", ")}`,
+    text: property.via ? (
+      <>
+        <span className={pathPrefixStyle}>{property.via} › </span>
+        {property.title}
+      </>
+    ) : (
+      property.title
+    ),
+    hint: `${itemName(document, loopId!)} › ${property.via ? `${property.via} › ` : ""}${property.title} · ${typesOf(property).join(", ")}`,
     suffix: showTypes ? <TypeLabel types={typesOf(property)} /> : undefined,
     ...(iconsEverywhere ? typeGlyph(typesOf(property)) : {}),
     selected: currentProperty?.baseUrl === property.baseUrl,
@@ -910,6 +936,8 @@ export const SourceMenu = ({
     );
     return searching ||
       listsOnly ||
+      // The path rows list whole: they are the field's values, not a long list to trim.
+      (group.id === "item-properties" && fittingProperties.some((property) => property.via)) ||
       pickedLate ||
       group.items.length <= GROUP_ROWS ||
       expanded.includes(group.id)
