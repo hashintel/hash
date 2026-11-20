@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Link, Phone } from "lucide-react";
+import { Link, Paperclip, Phone } from "lucide-react";
 
 import {
   Icon,
@@ -838,6 +838,10 @@ export const SourceMenu = ({
                 id: "type-value",
                 text: typeValueLabel,
                 icon: typeValueIcon,
+                // The DS icon set has no paperclip: an upload row draws lucide's, on the same tile.
+                ...(typeValueIcon === "file"
+                  ? { glyph: <Paperclip strokeWidth={iconStroke} /> }
+                  : {}),
                 onPick: onTypeValue,
               },
             ],
