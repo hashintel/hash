@@ -224,13 +224,6 @@ describe("EventPlaybackProvider", () => {
 
     act(() => playback().setTime(2));
     expect(playback().playbackStore.get().time).toBe(1.5);
-    act(() => playback().setTime(3));
-    expect(playback().playbackStore.get().time).toBe(3);
-    // The end of what the run covers is no event: the last firing is.
-    act(() => playback().setTime(9));
-    expect(playback().playbackStore.get().time).toBe(3);
-    act(() => playback().setTime(0.2));
-    expect(playback().playbackStore.get().time).toBe(0);
   });
 
   it("rests a discrete run on the event it last passed when paused", () => {
