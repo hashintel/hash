@@ -81,6 +81,8 @@ pub(super) struct PreparedEntityPatch {
 pub(super) struct EntityPatchChanges {
     entity: Entity,
     draft_transition: DraftTransition,
+    /// Whether the patch changes the entity's types.
+    types_changed: bool,
 }
 
 impl EntityPatchChanges {
@@ -98,6 +100,7 @@ impl EntityPatchChanges {
         let Self {
             entity,
             draft_transition,
+            types_changed,
         } = self;
         match (
             SqlEntityEditionProvenance::try_from(entity.metadata.provenance.edition.clone()),
@@ -108,6 +111,7 @@ impl EntityPatchChanges {
                 provenance,
                 property_metadata,
                 draft_transition,
+                types_changed,
             }),
             (provenance, property_metadata) => Err(provenance_violations([
                 provenance.err(),
@@ -123,6 +127,8 @@ pub(super) struct ValidEntityPatchChanges {
     provenance: SqlEntityEditionProvenance,
     property_metadata: Valid<PropertyObjectMetadata>,
     draft_transition: DraftTransition,
+    /// Whether the patch changes the entity's types.
+    types_changed: bool,
 }
 
 pub(super) struct EntityPatchValidation {
@@ -451,6 +457,7 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
                         (false, true) => DraftTransition::Create,
                         (true, false) => DraftTransition::Publish,
                     },
+                    types_changed,
                 },
                 validation: properties.validation,
             },
@@ -532,6 +539,7 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
             provenance,
             property_metadata,
             draft_transition,
+            types_changed,
         } = changes;
         let entity_id = entity.metadata.record_id.entity_id;
         let edition_id = EntityEditionId::new(Uuid::now_v7());
@@ -546,8 +554,11 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         })
         .await
         .change_context(UpdateError)?;
-        self.ensure_conversation_classification(locked_row.entity_edition_id, edition_id)
-            .await?;
+        // An edition of the same types as the one it replaces keeps its classification.
+        if types_changed {
+            self.ensure_conversation_classification(locked_row.entity_edition_id, edition_id)
+                .await?;
+        }
         let (entity_id, temporal_versioning) = match draft_transition {
             DraftTransition::Update => (
                 entity_id,
@@ -606,35 +617,58 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         previous_edition_id: EntityEditionId,
         edition_id: EntityEditionId,
     ) -> Result<(), Report<UpdateError>> {
-        for (base_url, title) in [
+        const CLASSIFICATIONS: [(&str, &str); 2] = [
             (AGENT_CONVERSATION_BASE_URL, "Agent Conversation"),
             (
                 HAS_AGENT_CONVERSATION_FOCUS_BASE_URL,
                 "Has Agent Conversation Focus",
             ),
-        ] {
-            // The edition cache includes both the direct and inherited type base URLs.
-            let unchanged: bool = self
-                .as_client()
-                .query_one(
-                    "SELECT count(*) <> 1
-                       FROM entity_edition_cache
-                      WHERE entity_edition_id IN ($1, $2) AND $3 = ANY(base_urls)",
-                    &[&previous_edition_id, &edition_id, &base_url],
-                )
-                .await
-                .change_context(UpdateError)?
-                .get(0);
-            ensure!(
-                unchanged,
-                Report::new(UpdateError)
-                    .attach_opaque(StatusCode::PermissionDenied)
+        ];
+
+        // The edition cache includes both the direct and inherited type base URLs, so a base URL
+        // in exactly one of the two editions' caches is a type the change adds or removes.
+        let changed = self
+            .as_client()
+            .query(
+                "SELECT base_url
+                   FROM unnest($3::TEXT[]) AS base_url
+                  WHERE (SELECT count(*)
+                           FROM entity_edition_cache
+                          WHERE entity_edition_id IN ($1, $2)
+                            AND base_url = ANY(base_urls)) = 1",
+                &[
+                    &previous_edition_id,
+                    &edition_id,
+                    &CLASSIFICATIONS.map(|(base_url, _)| base_url).as_slice(),
+                ],
+            )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres"
+            ))
+            .await
+            .change_context(UpdateError)?;
+
+        let mut report = None::<Report<UpdateError>>;
+        for row in changed {
+            let base_url: &str = row.get(0);
+            let title = CLASSIFICATIONS
+                .iter()
+                .find_map(|&(classified, title)| (classified == base_url).then_some(title))
+                .unwrap_or(base_url);
+            report = Some(
+                report
+                    .unwrap_or_else(|| {
+                        Report::new(UpdateError).attach_opaque(StatusCode::PermissionDenied)
+                    })
                     .attach(format!(
                         "Entity updates must preserve the {title} classification"
-                    ))
+                    )),
             );
         }
-        Ok(())
+        report.map_or(Ok(()), Err)
     }
 
     /// Starts a new draft history for an existing live entity.

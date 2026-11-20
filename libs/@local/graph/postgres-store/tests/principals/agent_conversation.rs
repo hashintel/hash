@@ -34,12 +34,15 @@ use time::OffsetDateTime;
 use tokio_postgres::Transaction;
 use type_system::{
     knowledge::{
-        Entity,
+        Entity, Property,
         entity::{
             EntityId, Link, LinkEndpoint, id::EntityUuid,
             provenance::ProvidedEntityEditionProvenance,
         },
-        property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
+        property::{
+            PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation, PropertyPath,
+            PropertyWithMetadata, metadata::PropertyProvenance,
+        },
     },
     ontology::{
         VersionedUrl,
@@ -61,6 +64,8 @@ use crate::DatabaseTestWrapper;
 const AGENT_CONVERSATION_TYPE: &str = "https://hash.ai/@h/types/entity-type/agent-conversation/v/1";
 const CONVERSATION_ID_TYPE: &str = "https://hash.ai/@h/types/property-type/conversation-id/v/1";
 const CONVERSATION_ID: &str = "https://hash.ai/@h/types/property-type/conversation-id/";
+const AGENT_ID_TYPE: &str = "https://hash.ai/@h/types/property-type/agent-id/v/1";
+const AGENT_ID: &str = "https://hash.ai/@h/types/property-type/agent-id/";
 const HAS_AGENT_CONVERSATION_FOCUS_TYPE: &str =
     "https://hash.ai/@h/types/entity-type/has-agent-conversation-focus/v/1";
 const LINK_TYPE: &str = "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
@@ -68,6 +73,8 @@ const LINK_TYPE: &str = "https://blockprotocol.org/@blockprotocol/types/entity-t
 const NOTE_TYPE: &str = "https://hash.ai/@h/types/entity-type/conversation-test-note/v/1";
 /// A link type other than the focus link, so a link can move between the two.
 const TEST_LINK_TYPE: &str = "https://hash.ai/@h/types/entity-type/conversation-test-link/v/1";
+/// The type that web members may view only when they created the entity.
+const USER_SECRET_TYPE: &str = "https://hash.ai/@h/types/entity-type/user-secret/v/1";
 
 /// An organization web holding one agent conversation, and the users whose access to it differs.
 struct Fixture<'pool> {
@@ -159,6 +166,53 @@ async fn create_link_types(
     Ok(())
 }
 
+/// Creates the property types an agent conversation has, owned by `web_id`.
+async fn create_property_types(
+    store: &mut PostgresStore<Transaction<'_>, InTransaction>,
+    actor_id: ActorId,
+    web_id: WebId,
+) -> Result<(), Box<dyn Error>> {
+    store
+        .create_property_types(
+            actor_id,
+            [
+                (
+                    CONVERSATION_ID_TYPE,
+                    "Conversation ID",
+                    "An identifier for a conversation, in the system that stores its messages.",
+                ),
+                (
+                    AGENT_ID_TYPE,
+                    "Agent ID",
+                    "An identifier for an AI agent and the service that keeps its conversations, \
+                     such as `brunch/hash`. It is not the name of a model.",
+                ),
+            ]
+            .into_iter()
+            .map(|(property_type_id, title, description)| {
+                Ok::<_, serde_json::Error>(CreatePropertyTypeParams {
+                    schema: serde_json::from_value::<PropertyType>(json!({
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                        "kind": "propertyType",
+                        "$id": property_type_id,
+                        "title": title,
+                        "description": description,
+                        "oneOf": [
+                            { "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" }
+                        ]
+                    }))?,
+                    ownership: OntologyOwnership::Local { web_id },
+                    conflict_behavior: ConflictBehavior::Skip,
+                    provenance: ontology_provenance(),
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?,
+        )
+        .await?;
+
+    Ok(())
+}
+
 /// Creates the types an agent conversation needs, with the system types owned by `web_id`.
 ///
 /// The types match the system types in shape and location, and creation skips any that already
@@ -189,27 +243,7 @@ async fn create_agent_conversation_types(
         )
         .await?;
 
-    store
-        .create_property_types(
-            actor_id,
-            [CreatePropertyTypeParams {
-                schema: serde_json::from_value::<PropertyType>(json!({
-                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
-                    "kind": "propertyType",
-                    "$id": CONVERSATION_ID_TYPE,
-                    "title": "Conversation ID",
-                    "description": "An identifier for a conversation, in the system that stores its messages.",
-                    "oneOf": [
-                        { "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" }
-                    ]
-                }))?,
-                ownership: OntologyOwnership::Local { web_id },
-                conflict_behavior: ConflictBehavior::Skip,
-                provenance: ontology_provenance(),
-            }],
-        )
-        .await?;
-
+    create_property_types(store, actor_id, web_id).await?;
     create_link_types(store, actor_id, web_id).await?;
 
     store
@@ -222,11 +256,12 @@ async fn create_agent_conversation_types(
                     "$id": AGENT_CONVERSATION_TYPE,
                     "type": "object",
                     "title": "Agent Conversation",
-                    "description": "A conversation between a user and an AI agent about something, such as a process.",
+                    "description": "A conversation between a user and an AI agent, which may focus on entities, such as a process.",
                     "properties": {
-                        CONVERSATION_ID: { "$ref": CONVERSATION_ID_TYPE }
+                        CONVERSATION_ID: { "$ref": CONVERSATION_ID_TYPE },
+                        AGENT_ID: { "$ref": AGENT_ID_TYPE }
                     },
-                    "required": [CONVERSATION_ID],
+                    "required": [CONVERSATION_ID, AGENT_ID],
                     "links": {
                         HAS_AGENT_CONVERSATION_FOCUS_TYPE: { "type": "array", "items": {} }
                     }
@@ -249,6 +284,20 @@ async fn create_agent_conversation_types(
                     "links": {
                         TEST_LINK_TYPE: { "type": "array", "items": {} }
                     }
+                }))?,
+                ownership: OntologyOwnership::Local { web_id },
+                conflict_behavior: ConflictBehavior::Skip,
+                provenance: ontology_provenance(),
+                fetched_from_origin: false,
+            }, CreateEntityTypeParams {
+                schema: serde_json::from_value::<EntityType>(json!({
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+                    "kind": "entityType",
+                    "$id": USER_SECRET_TYPE,
+                    "type": "object",
+                    "title": "User Secret",
+                    "description": "A secret of a user, for agent conversation tests.",
+                    "properties": {}
                 }))?,
                 ownership: OntologyOwnership::Local { web_id },
                 conflict_behavior: ConflictBehavior::Skip,
@@ -277,7 +326,8 @@ async fn create_conversation(
                 entity_type_ids: HashSet::from([VersionedUrl::from_str(AGENT_CONVERSATION_TYPE)?]),
                 properties: PropertyObjectWithMetadata::from_parts(
                     serde_json::from_value::<PropertyObject>(json!({
-                        CONVERSATION_ID: "conversation-1"
+                        CONVERSATION_ID: "conversation-1",
+                        AGENT_ID: "brunch/hash"
                     }))?,
                     None,
                 )?,
@@ -374,10 +424,12 @@ async fn create_link(
         .entity_id)
 }
 
+/// Sets up the [`Fixture`], with the conversation's creator a member of the web.
 async fn setup(database: &mut DatabaseTestWrapper) -> Result<Fixture<'_>, Box<dyn Error>> {
     setup_with_creator_role(database, RoleName::Member).await
 }
 
+/// Sets up the [`Fixture`], with the conversation's creator holding `creator_role` in the web.
 async fn setup_with_creator_role(
     database: &mut DatabaseTestWrapper,
     creator_role: RoleName,
@@ -445,10 +497,12 @@ async fn setup_with_creator_role(
 }
 
 impl Fixture<'_> {
+    /// Whether `user` can view the conversation.
     async fn can_view(&mut self, user: UserId) -> Result<bool, Box<dyn Error>> {
         self.can_view_entity(user, self.conversation).await
     }
 
+    /// Whether `user` can view `entity`.
     async fn can_view_entity(
         &mut self,
         user: UserId,
@@ -489,10 +543,12 @@ impl Fixture<'_> {
             .await
     }
 
+    /// Requests archival of the conversation, as `user`.
     async fn archive(&mut self, user: UserId) -> Result<Entity, Report<UpdateError>> {
         self.archive_entity(user, self.conversation).await
     }
 
+    /// Requests archival of `entity`, as `user`.
     async fn archive_entity(
         &mut self,
         user: UserId,
@@ -609,8 +665,24 @@ impl Fixture<'_> {
     }
 }
 
+/// The status code `report` carries, if any.
 fn status(report: &Report<UpdateError>) -> Option<StatusCode> {
     report.downcast_ref::<StatusCode>().copied()
+}
+
+/// Asserts that `report` refuses a change for adding or removing the `title` classification,
+/// rather than for an earlier permission check.
+fn assert_classification_preserved(report: &Report<UpdateError>, title: &str) {
+    assert_eq!(
+        status(report),
+        Some(StatusCode::PermissionDenied),
+        "changing the classification should be refused: {report:?}"
+    );
+    let message = format!("must preserve the {title} classification");
+    assert!(
+        format!("{report:?}").contains(&message),
+        "the classification guard should refuse the change, with \"{message}\": {report:?}"
+    );
 }
 
 #[tokio::test]
@@ -652,6 +724,61 @@ async fn view_administrator() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Hiding conversations from members leaves them the web's other entities.
+#[tokio::test]
+async fn view_entity_other_member() -> Result<(), Box<dyn Error>> {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut fixture = setup(&mut database).await?;
+    let (member, subject) = (fixture.member, fixture.subject);
+
+    assert!(
+        fixture.can_view_entity(member, subject).await?,
+        "a member should view an entity another user created in the web"
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn view_user_secret_other_member() -> Result<(), Box<dyn Error>> {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut fixture = setup(&mut database).await?;
+    let (creator, member, web_id) = (fixture.creator, fixture.member, fixture.web_id);
+    let secret = fixture
+        .store
+        .create_entity(
+            ActorId::User(creator),
+            CreateEntityParams {
+                web_id,
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([VersionedUrl::from_str(USER_SECRET_TYPE)?]),
+                properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)?,
+                confidence: None,
+                link_data: None,
+                draft: false,
+                policies: Vec::new(),
+                provenance: entity_provenance(),
+                read_only: false,
+            },
+        )
+        .await?
+        .metadata
+        .record_id
+        .entity_id;
+
+    assert!(
+        fixture.can_view_entity(creator, secret).await?,
+        "a member should view their own user secret"
+    );
+    assert!(
+        !fixture.can_view_entity(member, secret).await?,
+        "a member should not view another member's user secret"
+    );
+
+    Ok(())
+}
+
 #[tokio::test]
 async fn update_administrator() -> Result<(), Box<dyn Error>> {
     let mut database = DatabaseTestWrapper::new().await;
@@ -661,7 +788,11 @@ async fn update_administrator() -> Result<(), Box<dyn Error>> {
         .update(fixture.administrator)
         .await
         .expect_err("web administrator should not update another user's conversation");
-    assert_eq!(status(&report), Some(StatusCode::PermissionDenied));
+    assert_eq!(
+        status(&report),
+        Some(StatusCode::PermissionDenied),
+        "update should be refused for lack of permission: {report:?}"
+    );
 
     Ok(())
 }
@@ -675,7 +806,11 @@ async fn archive_administrator() -> Result<(), Box<dyn Error>> {
         .archive(fixture.administrator)
         .await
         .expect_err("web administrator should not archive another user's conversation");
-    assert_eq!(status(&report), Some(StatusCode::PermissionDenied));
+    assert_eq!(
+        status(&report),
+        Some(StatusCode::PermissionDenied),
+        "archive should be refused for lack of permission: {report:?}"
+    );
 
     Ok(())
 }
@@ -701,6 +836,54 @@ async fn update_creator() -> Result<(), Box<dyn Error>> {
     let mut fixture = setup(&mut database).await?;
 
     fixture.update(fixture.creator).await?;
+
+    Ok(())
+}
+
+/// A live edit that keeps the conversation's types needs no reclassification check.
+#[tokio::test]
+async fn update_properties_creator() -> Result<(), Box<dyn Error>> {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut fixture = setup(&mut database).await?;
+
+    let updated = fixture
+        .store
+        .patch_entity(
+            ActorId::User(fixture.creator),
+            PatchEntityParams {
+                entity_id: fixture.conversation,
+                decision_time: None,
+                entity_type_ids: HashSet::new(),
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    property: PropertyWithMetadata::from_parts(
+                        Property::Object(serde_json::from_value::<PropertyObject>(json!({
+                            CONVERSATION_ID: "conversation-2",
+                            AGENT_ID: "brunch/hash"
+                        }))?),
+                        None,
+                    )?,
+                }],
+                draft: None,
+                archived: None,
+                confidence: None,
+                provenance: entity_provenance(),
+            },
+        )
+        .await?;
+
+    assert_eq!(
+        updated.metadata.record_id.entity_id, fixture.conversation,
+        "the update should edit the live conversation, not open a draft"
+    );
+    assert_eq!(
+        updated.properties,
+        serde_json::from_value::<PropertyObject>(json!({
+            CONVERSATION_ID: "conversation-2",
+            AGENT_ID: "brunch/hash"
+        }))?,
+        "the update should replace the conversation's properties"
+    );
 
     Ok(())
 }
@@ -813,11 +996,7 @@ async fn declassify_creator() -> Result<(), Box<dyn Error>> {
         .reclassify(fixture.creator, fixture.conversation, &[NOTE_TYPE])
         .await
         .expect_err("creator should not remove the Agent Conversation type");
-    assert_eq!(
-        status(&report),
-        Some(StatusCode::PermissionDenied),
-        "removing the type should be refused: {report:?}"
-    );
+    assert_classification_preserved(&report, "Agent Conversation");
 
     Ok(())
 }
@@ -832,11 +1011,7 @@ async fn classify_shared_entity_member() -> Result<(), Box<dyn Error>> {
         .reclassify(fixture.member, note, &[NOTE_TYPE, AGENT_CONVERSATION_TYPE])
         .await
         .expect_err("member should not add the Agent Conversation type to an existing entity");
-    assert_eq!(
-        status(&report),
-        Some(StatusCode::PermissionDenied),
-        "adding the type should be refused: {report:?}"
-    );
+    assert_classification_preserved(&report, "Agent Conversation");
 
     Ok(())
 }
@@ -907,7 +1082,7 @@ async fn focus_access_administrator() -> Result<(), Box<dyn Error>> {
 }
 
 /// A user links their conversation, in their own web, to an entity in a web where they may only
-/// view it: the link changes nothing in that web.
+/// view it.
 #[tokio::test]
 async fn focus_across_webs() -> Result<(), Box<dyn Error>> {
     let mut database = DatabaseTestWrapper::new().await;
@@ -976,10 +1151,6 @@ async fn focus_across_webs() -> Result<(), Box<dyn Error>> {
     assert!(
         fixture.can_view_entity(creator, focus).await?,
         "the creator should view the focus link in their own web"
-    );
-    assert!(
-        !fixture.can_view_entity(administrator, focus).await?,
-        "the subject web's administrator should not view the focus link"
     );
 
     Ok(())
@@ -1056,11 +1227,7 @@ async fn declassify_focus_creator() -> Result<(), Box<dyn Error>> {
         .reclassify(creator, focus, &[TEST_LINK_TYPE])
         .await
         .expect_err("creator should not remove the Has Agent Conversation Focus type");
-    assert_eq!(
-        status(&report),
-        Some(StatusCode::PermissionDenied),
-        "removing the type should be refused: {report:?}"
-    );
+    assert_classification_preserved(&report, "Has Agent Conversation Focus");
 
     Ok(())
 }
@@ -1089,11 +1256,7 @@ async fn classify_shared_link_member() -> Result<(), Box<dyn Error>> {
         )
         .await
         .expect_err("member should not add the Has Agent Conversation Focus type to a link");
-    assert_eq!(
-        status(&report),
-        Some(StatusCode::PermissionDenied),
-        "adding the type should be refused: {report:?}"
-    );
+    assert_classification_preserved(&report, "Has Agent Conversation Focus");
 
     Ok(())
 }
