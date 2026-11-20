@@ -13,8 +13,10 @@ import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 
 import {
   constraintKindLabels,
+  countBoundsConflict,
   formatConstraintValue,
   isApproxMultiple,
+  numericBoundsConflict,
   satisfiesInherited,
   stringFormatLabels,
 } from "../../constraint-util";
@@ -58,6 +60,7 @@ const BoundControl = ({
   bound,
   min,
   max,
+  invalid,
   onBoundChange,
 }: {
   kind: "minimum" | "maximum";
@@ -65,6 +68,8 @@ const BoundControl = ({
   /** The inherited range: values outside it snap back in on blur */
   min?: number;
   max?: number;
+  /** The pair disagrees — stays typable, submission rejects it with a card error */
+  invalid?: boolean;
   onBoundChange: (bound: NumericBound | undefined) => void;
 }) => {
   const symbols = boundComparatorSymbols[kind];
@@ -124,6 +129,7 @@ const BoundControl = ({
       />
       <NumberInput
         value={bound?.value ?? null}
+        invalid={invalid}
         onChange={(value) => {
           if (value === null) {
             // Clearing keeps the comparator choice for the next number
@@ -159,6 +165,7 @@ const IntegerInput = ({
   value,
   min,
   max,
+  invalid,
   placeholder,
   onValueChange,
 }: {
@@ -166,11 +173,14 @@ const IntegerInput = ({
   /** The inherited range: values outside it snap back in on blur */
   min?: number;
   max?: number;
+  /** The pair disagrees — stays typable, submission rejects it with a card error */
+  invalid?: boolean;
   placeholder: string;
   onValueChange: (value: number | undefined) => void;
 }) => (
   <NumberInput
     value={value ?? null}
+    invalid={invalid}
     onChange={(next) => onValueChange(next ?? undefined)}
     onBlur={() => {
       if (value !== undefined && value !== clampToRange(value, min ?? 0, max)) {
@@ -206,6 +216,22 @@ const ConstraintControl = ({
   inherited: ConstraintValues;
   onValuesChange: (partial: ConstraintValues) => void;
 }) => {
+  // Each pair is judged as the user sees it: an own bound against the other
+  // side's own value, or the inherited one standing in for it
+  const boundsConflict =
+    numericBoundsConflict(
+      values.minimum ?? inherited.minimum,
+      values.maximum ?? inherited.maximum,
+    ) !== null;
+  const lengthsConflict = countBoundsConflict(
+    values.minLength ?? inherited.minLength,
+    values.maxLength ?? inherited.maxLength,
+  );
+  const itemCountsConflict = countBoundsConflict(
+    values.minItems ?? inherited.minItems,
+    values.maxItems ?? inherited.maxItems,
+  );
+
   switch (kind) {
     case "minimum":
       return (
@@ -214,6 +240,7 @@ const ConstraintControl = ({
           bound={values.minimum}
           min={inherited.minimum?.value}
           max={inherited.maximum?.value}
+          invalid={boundsConflict}
           onBoundChange={(minimum) => onValuesChange({ minimum })}
         />
       );
@@ -224,6 +251,7 @@ const ConstraintControl = ({
           bound={values.maximum}
           min={inherited.minimum?.value}
           max={inherited.maximum?.value}
+          invalid={boundsConflict}
           onBoundChange={(maximum) => onValuesChange({ maximum })}
         />
       );
@@ -267,6 +295,7 @@ const ConstraintControl = ({
           value={values.minLength}
           min={inherited.minLength}
           max={inherited.maxLength}
+          invalid={lengthsConflict}
           placeholder="None"
           onValueChange={(minLength) => onValuesChange({ minLength })}
         />
@@ -277,6 +306,7 @@ const ConstraintControl = ({
           value={values.maxLength}
           min={inherited.minLength}
           max={inherited.maxLength}
+          invalid={lengthsConflict}
           placeholder="None"
           onValueChange={(maxLength) => onValuesChange({ maxLength })}
         />
@@ -381,6 +411,7 @@ const ConstraintControl = ({
           value={values.minItems}
           min={inherited.minItems}
           max={inherited.maxItems}
+          invalid={itemCountsConflict}
           placeholder="No minimum"
           onValueChange={(minItems) => onValuesChange({ minItems })}
         />
@@ -391,6 +422,7 @@ const ConstraintControl = ({
           value={values.maxItems}
           min={inherited.minItems}
           max={inherited.maxItems}
+          invalid={itemCountsConflict}
           placeholder="No maximum"
           onValueChange={(maxItems) => onValuesChange({ maxItems })}
         />

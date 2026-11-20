@@ -216,8 +216,6 @@ const useDrawerStackTranslate = (
     };
 
     measure();
-    // A deps re-run removes and re-adds the entry within one task — un-stash
-    // so only a real departure (unmount) leaves its key behind
     if (swapKey) {
       swapKeysDepartedThisFrame.delete(swapKey);
     }
@@ -227,8 +225,6 @@ const useDrawerStackTranslate = (
     return () => {
       observer.disconnect();
       const entry = drawerStackEntries.get(id);
-      // Only an open drawer's departure marks a swap: one that animated closed
-      // (open already false) ended its slot, so a successor should slide in
       if (entry?.open && entry.swapKey) {
         stashDepartedSwapKey(entry.swapKey);
       }

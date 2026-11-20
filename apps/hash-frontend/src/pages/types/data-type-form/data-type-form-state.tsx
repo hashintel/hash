@@ -27,8 +27,10 @@ import {
   activeConstraintKinds,
   collectDescendantTypeTitles,
   constraintValuesFromSchema,
+  countBoundsConflict,
   deriveInheritedConstraints,
   emptyInheritedConstraints,
+  numericBoundsConflict,
   primitiveArmOfUnion,
   satisfiesInherited,
   schemaConstraintsFromValues,
@@ -264,15 +266,18 @@ export const useDataTypeFormState = ({
     fetchPolicy: "network-only",
   });
 
+  // errorPolicy "all" resolves rather than throws on GraphQL errors, so the
+  // save paths' `response.errors` checks can name the type that failed —
+  // multi-type saves (group membership, conversions) touch several
   const [createDataType] = useMutation<
     CreateDataTypeMutation,
     CreateDataTypeMutationVariables
-  >(createDataTypeMutation);
+  >(createDataTypeMutation, { errorPolicy: "all" });
 
   const [updateDataType] = useMutation<
     UpdateDataTypeMutation,
     UpdateDataTypeMutationVariables
-  >(updateDataTypeMutation);
+  >(updateDataTypeMutation, { errorPolicy: "all" });
 
   // A reopened staged draft re-enters the editor in the schema shape the
   // edit path parses — only the fields the form reads need to be real
@@ -701,6 +706,12 @@ export const useDataTypeFormState = ({
   /** Where a breadcrumb close should land once the drawer is done closing */
   const pendingClosePathRef = useRef<string | null>(null);
 
+  /**
+   * Mirrors `hasEdits`, which is computed below from state declared between
+   * here and there — the close handlers only read it on events
+   */
+  const hasEditsRef = useRef(false);
+
   const finishClose = () => {
     onClose();
     const path = pendingClosePathRef.current;
@@ -710,16 +721,24 @@ export const useDataTypeFormState = ({
     }
   };
 
+  const [unsavedChangesDialogOpen, setUnsavedChangesDialogOpen] =
+    useState(false);
+
   /**
    * Closing with staged new members pending puts their fate to the user —
    * they were authored in full, so they're kept or discarded explicitly
-   * rather than silently dropped. The drawer stays open behind the dialog,
-   * so cancelling it lands back in the editor.
+   * rather than silently dropped. Closing with any other unsaved edits asks
+   * for confirmation the same way. The editor stays open behind either
+   * dialog, so cancelling it lands back in the form.
    */
   const requestClose = (navigateTo?: string) => {
     pendingClosePathRef.current = navigateTo ?? null;
     if (atRiskDrafts.length > 0) {
       setAbandonDraftsDialogOpen(true);
+      return;
+    }
+    if (hasEditsRef.current) {
+      setUnsavedChangesDialogOpen(true);
       return;
     }
     finishClose();
@@ -730,6 +749,16 @@ export const useDataTypeFormState = ({
     setKeepDraftsError(null);
     setPendingAllowedTypes(null);
     pendingClosePathRef.current = null;
+  };
+
+  const dismissUnsavedChangesDialog = () => {
+    setUnsavedChangesDialogOpen(false);
+    pendingClosePathRef.current = null;
+  };
+
+  const discardUnsavedChanges = () => {
+    setUnsavedChangesDialogOpen(false);
+    finishClose();
   };
 
   const navigateToCrumb = (path: string) => {
@@ -1454,18 +1483,19 @@ export const useDataTypeFormState = ({
    * overlays too: they portal next to this drawer, so interacting with them
    * reads as an outside click here.
    */
-  const interceptCloseForDrafts = () => {
+  const interceptDrawerClose = () => {
     if (
       extendTypeDrawerOpen ||
       memberDraftDrawerOpen ||
       abandonDraftsDialogOpen ||
+      unsavedChangesDialogOpen ||
       composedRemovalRow !== null ||
       slideStackDepth > mountSlideStackDepthRef.current ||
       dataTypeDrawerDepth > mountDataTypeDrawerDepthRef.current
     ) {
       return false;
     }
-    if (atRiskDrafts.length === 0) {
+    if (atRiskDrafts.length === 0 && !hasEditsRef.current) {
       return true;
     }
     requestClose();
@@ -1642,8 +1672,12 @@ export const useDataTypeFormState = ({
     !isEqual(allowedTypes, initialEntries) ||
     !isEqual(constraintState, initialFormState.constraintState) ||
     !isEqual(conversionRows, initialFormState.conversionRows) ||
+    // Re-staging a member the parent already holds keeps its entry and URL,
+    // so only the draft body betrays the edit
+    !isEqual(stagedMemberDrafts, initialDraft?.memberDrafts ?? []) ||
     groupRowOverrides.size > 0 ||
     newGroupConversionRows.length > 0;
+  hasEditsRef.current = hasEdits;
 
   // Creation needs the required fields: a name, a description, and at least
   // one type (the schema always expresses a value type, so one must be picked)
@@ -2422,12 +2456,15 @@ export const useDataTypeFormState = ({
       return [];
     }
 
+    // Zero steps stay in: an authored one is rejected by validation before
+    // any plan executes, while one stored on a foreign type must round-trip
+    // as a no-op — dropping it would plan its removal from that type, an
+    // update its owner never asked for and this user may not be allowed to
+    // make, failing an otherwise unrelated save
     return conversionRows
       .filter((row) => !row.viaCanonical && !row.formula)
       .flatMap((row) =>
-        row.targetBaseUrl !== null &&
-        row.value !== null &&
-        !(row.value === 0 && (row.operator === "*" || row.operator === "/"))
+        row.targetBaseUrl !== null && row.value !== null
           ? [
               {
                 targetBaseUrl: row.targetBaseUrl,
@@ -2739,6 +2776,39 @@ export const useDataTypeFormState = ({
       nextErrors.constraints = "Multiple of can't be zero";
     }
 
+    // The bound inputs clamp into the inherited range, but nothing stops a
+    // staged pair disagreeing with itself — a range no value satisfies.
+    // Gated to edited constraints: a stored type may already carry such a
+    // pair, which must not block unrelated saves.
+    if (!nextErrors.constraints && constraintState !== initialConstraintState) {
+      const { activeKinds, values } = constraintState;
+      const boundsConflict =
+        activeKinds.includes("minimum") && activeKinds.includes("maximum")
+          ? numericBoundsConflict(values.minimum, values.maximum)
+          : null;
+
+      if (boundsConflict === "exceeds") {
+        nextErrors.constraints = "Minimum can't be greater than maximum";
+      } else if (boundsConflict === "exclusiveEqual") {
+        nextErrors.constraints =
+          "Equal minimum and maximum must both be inclusive to allow a value";
+      } else if (
+        activeKinds.includes("minLength") &&
+        activeKinds.includes("maxLength") &&
+        countBoundsConflict(values.minLength, values.maxLength)
+      ) {
+        nextErrors.constraints =
+          "Minimum length can't be greater than maximum length";
+      } else if (
+        activeKinds.includes("minItems") &&
+        activeKinds.includes("maxItems") &&
+        countBoundsConflict(values.minItems, values.maxItems)
+      ) {
+        nextErrors.constraints =
+          "Minimum items can't be greater than maximum items";
+      }
+    }
+
     // Committed permitted values can fall outside inherited constraints when
     // the parent changes — the graph silently drops them at closure, so the
     // save waits until they're removed. Gated to edited constraints/parents:
@@ -2780,6 +2850,21 @@ export const useDataTypeFormState = ({
         "A list item's multiple-of constraint can't be zero";
     }
 
+    if (
+      !nextErrors.allowedTypes &&
+      listItemSchemas.some((item) => {
+        const itemValues = constraintValuesFromSchema(item);
+        return (
+          numericBoundsConflict(itemValues.minimum, itemValues.maximum) !==
+            null ||
+          countBoundsConflict(itemValues.minLength, itemValues.maxLength)
+        );
+      })
+    ) {
+      nextErrors.allowedTypes =
+        "A list item's minimum can't be greater than its maximum";
+    }
+
     // Scaling by zero collapses every value and its inverse divides by zero
     const zeroStep = (operator: ConversionOperator, value: number | null) =>
       value === 0 && (operator === "*" || operator === "/");
@@ -2812,9 +2897,9 @@ export const useDataTypeFormState = ({
         )
       : [];
 
-    // Together these branches cover the predicate desiredConversionRows
-    // drops rows by — saving would silently discard the offending row
-    // otherwise. Rows left after the card stopped applying are cleared
+    // Zero steps would otherwise be written as a divide-by-zero inverse
+    // pair, and incomplete rows are the ones desiredConversionRows silently
+    // drops. Rows left after the card stopped applying are cleared
     // deliberately (warned on the change).
     const zeroStepRows = [...changedSingleRows, ...stagedGroupRows].filter(
       (row) => zeroStep(row.operator, row.value),
@@ -3424,6 +3509,16 @@ export const useDataTypeFormState = ({
           title:
             "A data type with this URL already exists — it may be archived. Try a different name.",
         });
+      } else if (
+        message.includes("versioned URL but it already existed") &&
+        // A related type racing is already wrapped with the type's name and
+        // its own recovery instruction — keep that message intact
+        !message.includes("related types failed")
+      ) {
+        setErrors({
+          submit:
+            "This data type was changed by someone else while you were editing — close the drawer and reopen it to edit the latest version.",
+        });
       } else {
         setErrors({ submit: message });
       }
@@ -3479,7 +3574,7 @@ export const useDataTypeFormState = ({
     typeFieldHandle,
     groupMembersFieldHandle,
     cancelButtonRef,
-    interceptCloseForDrafts,
+    interceptDrawerClose,
     requestClose,
     navigateToCrumb,
     generateTypeUrlsForUser,
@@ -3532,6 +3627,9 @@ export const useDataTypeFormState = ({
     handleSubmit,
     abandonDraftsDialogOpen,
     dismissAbandonDialog,
+    unsavedChangesDialogOpen,
+    dismissUnsavedChangesDialog,
+    discardUnsavedChanges,
     draftsAtStake,
     abandoningForAllowedTypesChange: pendingAllowedTypes !== null,
     keepingDrafts,

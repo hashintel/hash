@@ -9,9 +9,10 @@ type SlideStackContextData = {
   setSlideContainerRef: (ref: RefObject<HTMLDivElement | null> | null) => void;
   slideContainerRef?: RefObject<HTMLDivElement | null> | null;
   /**
-   * How many slides are open — overlays beneath the stack compare this
-   * against the depth they mounted at to tell their own dismissals from
-   * interactions with a slide stacked above them
+   * How many slides are visibly open (navigating Back keeps forward history,
+   * which doesn't count) — overlays beneath the stack compare this against
+   * the depth they mounted at to tell their own dismissals from interactions
+   * with a slide stacked above them
    */
   slideStackDepth: number;
   /**

@@ -109,6 +109,37 @@ export const kindHasValue = (
 ): boolean =>
   kind === "enum" ? (values.enum ?? []).length > 0 : values[kind] !== undefined;
 
+/**
+ * How a minimum/maximum pair disagrees, if it does: the minimum exceeding
+ * the maximum, or equal bounds where either side is exclusive — both
+ * describe a range no value satisfies.
+ */
+export const numericBoundsConflict = (
+  minimum: NumericBound | undefined,
+  maximum: NumericBound | undefined,
+): "exceeds" | "exclusiveEqual" | null => {
+  if (!minimum || !maximum) {
+    return null;
+  }
+  if (minimum.value > maximum.value) {
+    return "exceeds";
+  }
+  if (
+    minimum.value === maximum.value &&
+    (minimum.exclusive || maximum.exclusive)
+  ) {
+    return "exclusiveEqual";
+  }
+  return null;
+};
+
+/** A length or item-count pair disagrees when the minimum exceeds the maximum */
+export const countBoundsConflict = (
+  minimum: number | undefined,
+  maximum: number | undefined,
+): boolean =>
+  minimum !== undefined && maximum !== undefined && minimum > maximum;
+
 /** Whether two constraint states hold the same value for a kind. */
 export const constraintValueEquals = (
   kind: ConstraintKind,

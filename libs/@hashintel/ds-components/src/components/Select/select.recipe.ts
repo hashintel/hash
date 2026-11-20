@@ -32,6 +32,7 @@ export const selectRecipe = sva({
     "connectRight",
     "connectLeft",
     "list",
+    "formMirror",
   ],
   base: {
     wrapper: {
@@ -224,6 +225,18 @@ export const selectRecipe = sva({
       minWidth:
         "[max(var(--select-list-reference-width), var(--form-min-width)) !important]",
       maxWidth: "[max(var(--select-list-reference-width), 18rem)]",
+    },
+    formMirror: {
+      position: "absolute",
+      width: "[1px]",
+      height: "[1px]",
+      margin: "[-1px]",
+      padding: "0",
+      overflow: "hidden",
+      border: "[0]",
+      clip: "[rect(0 0 0 0)]",
+      whiteSpace: "nowrap",
+      overflowWrap: "[normal]",
     },
   },
   variants: {
@@ -516,8 +529,6 @@ export const selectRecipe = sva({
         },
       },
     },
-    // The arrow's margins double as the trigger's right inset, so hiding it
-    // leaves the text flush against the border — restore a balanced padding
     {
       variant: "default",
       hideArrow: true,

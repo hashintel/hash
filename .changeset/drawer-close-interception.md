@@ -2,4 +2,4 @@
 "@hashintel/ds-components": patch
 ---
 
-`Drawer` accepts `onCloseRequest`, called when a dismissal is requested (close button, `Escape`, swipe, or backdrop) before the exit animation plays — return `false` to keep the drawer open and handle the request yourself.
+`Drawer` and `Dialog` accept `onCloseRequest`, called when a dismissal is requested (close button, `Escape`, backdrop, or the `Drawer`'s swipe) before the exit animation plays — return `false` to keep the overlay open and handle the request yourself.

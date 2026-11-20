@@ -148,11 +148,7 @@ export type ReorderableListProps = {
   children: React.ReactNode;
   /** `card` frames each row; `plain` leaves row styling to the content */
   variant?: "card" | "plain";
-  /**
-   * Where the drag grip sits against the item: `center` centres it over the
-   * item's full height; `top` aligns it with a standard small-control first
-   * row, for items whose content stacks extra rows beneath it.
-   */
+  /** Where the drag grip sits against the item */
   handleAlign?: "center" | "top";
   /** Prevents reordering any item */
   disabled?: boolean;

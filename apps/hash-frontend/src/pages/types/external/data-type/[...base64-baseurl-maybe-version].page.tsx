@@ -5,6 +5,7 @@ import {
   validateVersionedUrl,
 } from "@blockprotocol/type-system";
 
+import { generateLinkParameters } from "../../../../shared/generate-link-parameters";
 import { getLayoutWithSidebar } from "../../../../shared/layout";
 import { DataType } from "../../../shared/data-type";
 import { NotFound } from "../../../shared/not-found";
@@ -38,8 +39,10 @@ const Page: NextPageWithLayout = () => {
       dataTypeBaseUrl={dataTypeBaseUrl}
       key={`${dataTypeBaseUrl}-${requestedVersion?.toString()}`}
       requestedVersion={requestedVersion}
-      onDataTypeUpdated={() => {
-        throw new Error("Unexpected update to external data type");
+      // External types render read-only, so no save arrives here — only the
+      // version menu, which re-opens the page on the picked edition
+      onDataTypeUpdated={(dataType) => {
+        void router.push(generateLinkParameters(dataType.schema.$id).href);
       }}
     />
   );

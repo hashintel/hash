@@ -3,6 +3,7 @@ import { NextSeo } from "next-seo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getEntityTypes, getRoots } from "@blockprotocol/graph/stdlib";
+import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useBlockProtocolQueryEntityTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
@@ -187,6 +188,10 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     [latestDataTypesObject],
   );
 
+  const createdDataTypeLatestEdition = createdDataType
+    ? latestDataTypesObject?.[createdDataType.metadata.recordId.baseUrl]
+    : undefined;
+
   const allTypes = useMemo(
     () =>
       latestNonLinkEntityTypes &&
@@ -333,11 +338,22 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
           mode="edit"
           key={createdDataType.schema.$id}
           dataType={createdDataType}
+          // Only the latest version is editable — switching to an older one
+          // shows it as a record. Strictly-older only: right after a save the
+          // catalogue's latest may briefly trail the just-saved edition.
+          readonly={
+            !!createdDataTypeLatestEdition &&
+            compareOntologyTypeVersions(
+              createdDataType.metadata.recordId.version,
+              createdDataTypeLatestEdition.metadata.recordId.version,
+            ) < 0
+          }
           onClose={() => {
             setCreatedDataType(null);
             setShowCreateDataTypeDrawer(false);
           }}
           onUpdated={setCreatedDataType}
+          onSwitchVersion={setCreatedDataType}
         />
       )}
     </>

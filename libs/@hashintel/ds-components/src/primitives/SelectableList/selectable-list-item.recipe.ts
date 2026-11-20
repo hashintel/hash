@@ -38,9 +38,6 @@ export const styles = sva({
         backgroundColor: "neutral.a35",
         "--item-bg": "{colors.neutral.s35}",
       },
-      // Dimming sits on the row's children, not the row, so the collapse
-      // toggle can keep (or drop) it from its own disabled state — a dimmed
-      // folder row may hold enabled items its chevron still reveals.
       "&[data-disabled]:not([data-loading])": {
         cursor: "default",
       },
@@ -104,8 +101,6 @@ export const styles = sva({
       paddingTop: "[var(--selectable-list-item-padding-y)]",
       paddingBottom: "[var(--selectable-list-item-padding-y)]",
       paddingLeft: "[var(--selectable-list-item-padding-x)]",
-      // Nothing enabled beneath the row: the toggle reads as inert but stays
-      // clickable, so the disabled subtree can still be browsed
       "&[data-subtree-disabled]": {
         opacity: "[0.5]",
       },

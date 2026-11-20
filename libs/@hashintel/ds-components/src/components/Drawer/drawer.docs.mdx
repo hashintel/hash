@@ -605,7 +605,9 @@ export const FooterActionsDemo = () => (
 
 Pass children instead of the structured props to lay out header or footer
 content yourself. A custom header isn't announced as the drawer's name, so add
-an `aria-label` to the drawer.
+an `aria-label` to the drawer. The close button sits beside the custom content
+in a flex row; set `closeButtonLayout="float"` to float it at the inline end
+instead, so the content keeps the full header width and wraps around it.
 
 export const customHeaderFooterDrawerCode = `import { useState } from "react";
 
@@ -991,7 +993,7 @@ Drawer implements the
 
 ### Drawer.Header
 
-<PropsTable of={Drawer.Header} />
+<PropsTable of={Drawer.Header} defaults={{ closeButtonLayout: '"flex"' }} />
 
 ### Drawer.Body
 

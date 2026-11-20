@@ -281,7 +281,9 @@ export const SlideStackProvider = ({
       pushToSlideStack,
       setSlideContainerRef,
       slideContainerRef,
-      slideStackDepth: items.length,
+      // The visible depth: items kept for forward navigation after Back
+      // don't sit above anything, so they must not read as stacked overlays
+      slideStackDepth: Math.min(currentIndex + 1, items.length),
       dataTypeDrawerDepth: dataTypeDrawerIds.length,
     }),
     [
