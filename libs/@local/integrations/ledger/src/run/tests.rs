@@ -1,5 +1,6 @@
 use alloc::collections::BTreeMap;
 
+use hash_integrations_definition::Definition;
 use pretty_assertions::assert_eq;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use type_system::{
@@ -9,16 +10,18 @@ use type_system::{
 use uuid::Uuid;
 
 use super::{
-    RunError, RunId,
+    RunError, RunId, StartError, StartInput,
     current::{self, Current},
     load,
     record::{
         BatchLimits, CapturePart, CapturedFile, FailedEntity, Failure, Input, PreparePart,
         RunRecord, SendPart, Stage,
     },
-    run_file, save,
+    run_file, save, start,
 };
-use crate::Storage;
+use crate::{Storage, storage::CasVersion};
+
+const AVIATION: &str = include_str!("../../../definition/examples/aviation.yaml");
 
 /// A version 4 UUID ending in `n`, as the Graph's ids are.
 const fn id(n: u128) -> Uuid {
@@ -35,9 +38,36 @@ fn input(run: RunId) -> Input {
         actor: ActorEntityUuid::new(id(2)),
         definition: "connector: aviation\n".into(),
         id_namespace: "aviation".into(),
-        submitted_at: OffsetDateTime::parse("2026-07-22T10:00:00Z", &Rfc3339)
-            .expect("should be an RFC 3339 time"),
+        submitted_at: submitted_at(),
     }
+}
+
+fn submitted_at() -> OffsetDateTime {
+    OffsetDateTime::parse("2026-07-22T10:00:00Z", &Rfc3339).expect("should be an RFC 3339 time")
+}
+
+fn aviation() -> Definition {
+    Definition::from_yaml(AVIATION).expect("the example should be a valid definition")
+}
+
+fn start_input(run: RunId) -> StartInput {
+    StartInput {
+        run,
+        web: WebId::new(WEB),
+        actor: ActorEntityUuid::new(id(2)),
+        definition: AVIATION.into(),
+        id_namespace: None,
+        submitted_at: submitted_at(),
+    }
+}
+
+/// The versions of `current.json` and of the run's `run.json`.
+async fn versions(storage: &Storage, run: RunId) -> (Option<CasVersion>, CasVersion) {
+    let (_, current) = current::read(storage)
+        .await
+        .expect("should read current.json");
+    let (_, record) = load(storage, run).await.expect("should load run.json");
+    (current, record)
 }
 
 /// A record of a run whose stages all wrote their part, and whose Send then failed for good.
@@ -197,5 +227,133 @@ async fn complete_frees_the_integration_once() {
         *error.current_context(),
         RunError::NotActive,
         "completing another run should be refused as not active"
+    );
+}
+
+#[tokio::test]
+async fn start_writes_the_run_and_activates_it() {
+    let storage = Storage::memory();
+    let run = RunId(id(10));
+    start(&storage, &aviation(), start_input(run))
+        .await
+        .expect("should start the run");
+
+    let (record, _) = load(&storage, run).await.expect("should load run.json");
+    assert_eq!(
+        record,
+        RunRecord {
+            input: Input {
+                run,
+                web: WebId::new(WEB),
+                connector: "aviation".into(),
+                actor: ActorEntityUuid::new(id(2)),
+                definition: AVIATION.into(),
+                id_namespace: "aviation".into(),
+                submitted_at: submitted_at(),
+            },
+            batch: BatchLimits::default(),
+            capture: None,
+            prepare: None,
+            send: None,
+            failure: None,
+        },
+        "run.json should hold only the input and batch parts, with the connector as id namespace"
+    );
+    assert_eq!(
+        current::read(&storage)
+            .await
+            .expect("should read current.json")
+            .0,
+        Current {
+            active: Some(run),
+            last_completed: None,
+        },
+        "the run should be the active run"
+    );
+}
+
+#[tokio::test]
+async fn start_is_refused_while_a_run_is_active() {
+    let storage = Storage::memory();
+    let (first, second) = (RunId(id(11)), RunId(id(12)));
+    start(&storage, &aviation(), start_input(first))
+        .await
+        .expect("should start the first run");
+
+    let error = start(&storage, &aviation(), start_input(second))
+        .await
+        .expect_err("a second run should not start while the first is active");
+    assert_eq!(
+        *error.current_context(),
+        StartError::RunActive { active: first },
+        "the refusal should name the active run"
+    );
+    let error = load(&storage, second)
+        .await
+        .expect_err("the refused run should have no run.json");
+    assert_eq!(
+        *error.current_context(),
+        RunError::NotFound,
+        "a refused start should write nothing"
+    );
+}
+
+#[tokio::test]
+async fn starting_a_run_again_finishes_or_does_nothing() {
+    let definition = aviation();
+    let run = RunId(id(13));
+
+    let started = Storage::memory();
+    start(&started, &definition, start_input(run))
+        .await
+        .expect("should start the run");
+    let before = versions(&started, run).await;
+    start(&started, &definition, start_input(run))
+        .await
+        .expect("starting a started run again should succeed");
+    assert_eq!(
+        versions(&started, run).await,
+        before,
+        "starting a started run again should write nothing"
+    );
+
+    let interrupted = Storage::memory();
+    save(
+        &interrupted,
+        &RunRecord::new(&definition, start_input(run)),
+        None,
+    )
+    .await
+    .expect("should create run.json");
+    start(&interrupted, &definition, start_input(run))
+        .await
+        .expect("should finish a start that stopped after run.json");
+    assert_eq!(
+        current::read(&interrupted)
+            .await
+            .expect("should read current.json")
+            .0,
+        Current {
+            active: Some(run),
+            last_completed: None,
+        },
+        "the interrupted start should make the run active"
+    );
+
+    let completed = Storage::memory();
+    start(&completed, &definition, start_input(run))
+        .await
+        .expect("should start the run");
+    current::complete(&completed, run)
+        .await
+        .expect("should complete the run");
+    let before = versions(&completed, run).await;
+    start(&completed, &definition, start_input(run))
+        .await
+        .expect("starting a completed run again should succeed");
+    assert_eq!(
+        versions(&completed, run).await,
+        before,
+        "starting a completed run again should write nothing"
     );
 }

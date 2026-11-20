@@ -1,5 +1,6 @@
 pub(crate) mod current;
 mod record;
+mod start;
 #[cfg(test)]
 mod tests;
 
@@ -9,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 pub(crate) use self::record::RunRecord;
+pub use self::start::{StartError, StartInput, start};
 use crate::storage::{CasVersion, Storage};
 
 /// Identifies one run of an integration.
