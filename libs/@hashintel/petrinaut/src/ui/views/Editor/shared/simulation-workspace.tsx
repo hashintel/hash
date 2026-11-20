@@ -1,13 +1,17 @@
-import { useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { motionValue } from "motion";
+import { useLayoutEffect, useState, type ReactNode } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useElementSize } from "../../../../react/hooks/use-element-size";
 import { usePetrinautNavigationState } from "../../../../react/navigation/navigation";
 import { useComposesOnly } from "../../../../react/state/use-composes-only";
 import { useUserSettings } from "../../../../react/state/user-settings-context";
-import { ResizeHandle } from "../../../resize/resize-handle";
+import { bindStyle, styleRef } from "../../../lib/readings";
+import { PanelResizer } from "../../../resize/panel-resizer";
 import { SimulationWorkspaceContext } from "./simulation-workspace-context";
+import { simulationPanelWidth } from "./simulation-workspace/panel-width";
+import { useElementWidth } from "./simulation-workspace/use-element-width";
+import { useHasOpenPanel } from "./simulation-workspace/use-has-open-panel";
 
 const workspaceStyle = css({
   position: "relative",
@@ -20,15 +24,6 @@ const workspaceStyle = css({
 });
 
 const contentStyle = css({
-  "[data-motion=true] > &": {
-    transition: "[margin-right 180ms cubic-bezier(0.16, 1, 0.3, 1)]",
-    "@media (prefers-reduced-motion: reduce)": {
-      transition: "[none]",
-    },
-  },
-  "[data-simulation-workspace]:has([data-resizing=true]) > &": {
-    transition: "[none]",
-  },
   position: "relative",
   display: "flex",
   flex: "[1]",
@@ -38,53 +33,76 @@ const contentStyle = css({
   "&:has(> div > [data-bottom-bar]:hover)": {
     overflow: "visible",
   },
-  ":has(> [data-simulation-panel-slot] > [data-simulation-panel]:not([hidden]):not([data-closing=true])) > &":
-    {
-      marginRight: "[var(--simulation-panel-width)]",
-    },
 });
 
-const panelSlotStyle = css({
-  position: "absolute",
-  top: "[0]",
-  right: "[0]",
-  bottom: "[0]",
-  display: "none",
-  width: "[var(--simulation-panel-width)]",
-  minWidth: "[0]",
-  minHeight: "[0]",
-  "[data-animate=true] > &": {
-    transition: "[width 200ms ease]",
-    "&:has([data-resizing=true])": {
-      transition: "[none]",
-    },
+// The room an open panel takes from the content: as wide as the sizer inside
+// it, times the share of its one column. A transition changes the share and
+// a drag the sizer, so neither is in the other's way.
+const roomStyle = css({
+  display: "grid",
+  flex: "none",
+  gridTemplateColumns: "[0fr]",
+  "[data-panel-open=true] > &": { gridTemplateColumns: "[1fr]" },
+  "[data-motion=true] > &": {
+    transition: "[grid-template-columns 180ms cubic-bezier(0.16, 1, 0.3, 1)]",
     "@media (prefers-reduced-motion: reduce)": {
       transition: "[none]",
     },
   },
-  "&:has(> [data-simulation-panel]:not([hidden]))": {
-    display: "grid",
-  },
-  "[data-fullscreen=true] > &": { width: "full" },
 });
 
-const resizeEdgeStyle = css({
-  display: "none",
+// Lets the column be narrower than the sizer.
+const roomClipStyle = css({
+  minWidth: "[0]",
+  overflow: "hidden",
+});
+
+// Over the workspace, with the slot at its right edge, and out of the
+// pointer's way everywhere but on a panel.
+const slotLayerStyle = css({
   position: "absolute",
-  top: "[0]",
-  bottom: "[0]",
-  left: "[0]",
-  width: "[0]",
-  ":has(> [data-simulation-panel]:not([hidden])) > &": {
-    display: "block",
+  inset: "[0]",
+  display: "flex",
+  justifyContent: "flex-end",
+  pointerEvents: "none",
+});
+
+// The fullscreen slot takes the room left of it as a share that grows. A
+// transition changes the share and a drag the width, as for the room.
+const panelSlotStyle = css({
+  position: "relative",
+  display: "grid",
+  flex: "none",
+  minWidth: "[0]",
+  minHeight: "[0]",
+  "& > *": { pointerEvents: "auto" },
+  "[data-fullscreen=true] > * > &": { flexGrow: "1" },
+  "[data-animate=true] > * > &": {
+    transition: "[flex-grow 200ms ease]",
+    "@media (prefers-reduced-motion: reduce)": {
+      transition: "[none]",
+    },
   },
+});
+
+// Over the workspace and its panel, and out of the pointer's way everywhere
+// but on the separator.
+const resizerLayerStyle = css({
+  position: "absolute",
+  inset: "[0]",
+  zIndex: "sticky",
+  pointerEvents: "none",
 });
 
 export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
-  const workspaceRef = useRef<HTMLDivElement>(null);
-  const workspaceSize = useElementSize(workspaceRef);
+  const [workspace, setWorkspace] = useState<HTMLDivElement | null>(null);
+  const [slot, setSlot] = useState<HTMLDivElement | null>(null);
+  const workspaceWidth = useElementWidth(workspace);
+  const hasOpenPanel = useHasOpenPanel(slot);
   const [preferredWidth, setPreferredWidth] = useState<number | null>(null);
-  const [container, setContainer] = useState<HTMLDivElement | null>(null);
+  // What the panel's elements follow. A drag sets it on every pointer move,
+  // which renders nothing.
+  const [width] = useState(() => motionValue(0));
   // Both read as primitives, so a selection renders no workspace.
   const isSimulationFullscreen = usePetrinautNavigationState(
     (state) =>
@@ -114,54 +132,69 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
       animate: presentation.location === location,
     });
   }
-  const workspaceWidth = workspaceSize?.width ?? 0;
-  const maxWidth = Math.max(
-    0,
-    workspaceWidth - Math.min(280, workspaceWidth * 0.4),
-  );
-  const minWidth = Math.min(440, maxWidth);
-  const panelWidth = Math.max(
+  const {
     minWidth,
-    Math.min(maxWidth, preferredWidth ?? Math.min(960, workspaceWidth * 0.6)),
-  );
+    maxWidth,
+    width: panelWidth,
+  } = simulationPanelWidth(workspaceWidth, preferredWidth);
+
+  // Outside a drag, the panel has the width worked out above. A layout
+  // effect, so the frame that shows a new workspace width or a new choice
+  // shows the panel at its width.
+  useLayoutEffect(() => {
+    width.set(panelWidth);
+  }, [width, panelWidth]);
 
   return (
-    <SimulationWorkspaceContext value={container}>
+    <SimulationWorkspaceContext value={slot}>
       <div
-        ref={workspaceRef}
+        ref={setWorkspace}
         data-simulation-workspace
         data-fullscreen={fullscreen}
         data-motion={showAnimations}
         data-animate={showAnimations && presentation.animate}
-        style={
-          {
-            "--simulation-panel-width":
-              workspaceSize === null ? "min(60%, 960px)" : `${panelWidth}px`,
-          } as CSSProperties
-        }
+        data-panel-open={hasOpenPanel}
         className={workspaceStyle}
       >
         <div inert={fullscreen} className={contentStyle}>
           {children}
         </div>
-        <div
-          ref={setContainer}
-          data-simulation-panel-slot
-          className={panelSlotStyle}
-        >
-          {!fullscreen && (
-            <div className={resizeEdgeStyle}>
-              <ResizeHandle
-                edge="left"
-                label="Resize simulation panel"
-                getSize={() => panelWidth}
-                onResize={setPreferredWidth}
-                minSize={minWidth}
-                maxSize={maxWidth}
-              />
-            </div>
-          )}
+        <div data-simulation-panel-room className={roomStyle}>
+          <div className={roomClipStyle}>
+            <div ref={styleRef({ width })} />
+          </div>
         </div>
+        <div className={slotLayerStyle}>
+          <div
+            ref={(element) => {
+              setSlot(element);
+              return element ? bindStyle(element, { width }) : undefined;
+            }}
+            data-simulation-panel-slot
+            className={panelSlotStyle}
+          />
+        </div>
+        {hasOpenPanel && !fullscreen && (
+          <PanelResizer
+            id="simulationPanel"
+            edge="right"
+            size={width}
+            isOpen
+            minSize={minWidth}
+            maxSize={maxWidth}
+            label="Resize simulation panel"
+            paintsBorder={false}
+            className={resizerLayerStyle}
+            onCommit={(pixels) => {
+              if (Math.abs(pixels - panelWidth) < 0.5) {
+                // A press that moved nothing chose no width.
+                width.set(panelWidth);
+              } else {
+                setPreferredWidth(Math.round(pixels));
+              }
+            }}
+          />
+        )}
       </div>
     </SimulationWorkspaceContext>
   );
