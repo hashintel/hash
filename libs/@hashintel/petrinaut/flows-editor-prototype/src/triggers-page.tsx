@@ -188,8 +188,18 @@ const mockSchedule: ScheduleValues = {
 
 /** Form values the panel's mock has no field for, keyed by its trigger ids. */
 const supplierReviewForm: Record<string, Partial<Values>> = {
-  monthly: { repeat: "Monthly on day 1", at: "09:00" },
-  monday: { repeat: "Weekly on Monday", at: "08:00" },
+  monthly: {
+    repeat: "Monthly on day 1",
+    at: "09:00",
+    name: "Month start review",
+    flowInputs: { reviewMonth: "2026-10-01" },
+  },
+  monday: {
+    repeat: "Weekly on Monday",
+    at: "08:00",
+    name: "Monthly supplier check",
+    flowInputs: { reviewMonth: "2026-10-01" },
+  },
   supplierCreated: { entityType: "Supplier", event: "Is created" },
 };
 
@@ -283,6 +293,7 @@ const seed = () => {
       label: "Every Friday at 17:00",
       repeat: "Weekly on Friday",
       at: "17:00",
+      name: "Friday digest",
       ...(defaultSchedulePage()
         ? {
             schedule: {
@@ -1050,9 +1061,14 @@ const TriggerForm = ({
   const missingInputs = flowInputDefinitions.filter(
     (input) => input.required && !isFilled(values.flowInputs?.[input.name]),
   );
-  const saveBlocked = missingInputs.length > 0;
+  // A schedule's Name is required (FE-2322).
+  const missingFields = [
+    ...(defaultPage && !values.name?.trim() ? ["Name"] : []),
+    ...missingInputs.map((input) => input.label ?? input.name),
+  ];
+  const saveBlocked = missingFields.length > 0;
   const saveTooltip = saveBlocked
-    ? `Fill in ${missingInputs.map((input) => input.label ?? input.name).join(", ")}`
+    ? `Fill in ${missingFields.join(", ")}`
     : undefined;
   const formTake = defaultPage ? "g1" : trigger ? null : scheduleFormTake();
   const [schedule, setSchedule] = useState<ScheduleValues | null>(() => {
@@ -1156,6 +1172,12 @@ const TriggerForm = ({
               onChange={(value) =>
                 setValues((current) => ({ ...current, name: value }))
               }
+              onBlur={() => {
+                // Renaming can't empty a saved name: the previous one comes back.
+                if (trigger?.name && !values.name?.trim()) {
+                  setValues((current) => ({ ...current, name: trigger.name }));
+                }
+              }}
             />
           </>
         ) : null}
@@ -1887,6 +1909,8 @@ const rowsStyle = css({
     _hover: { backgroundColor: "neutral.bg.subtle.hover" },
   },
   "& tr[data-row]:hover [data-row-menu]": { opacity: "1" },
+  // A named trigger's two lines (44 px) grow the row to 70 px.
+  "& tr[data-named] td": { paddingY: "[12.5px]" },
   "& tr[aria-expanded=true] td": {
     backgroundColor: "neutral.bgSolid.surface",
     borderBottomColor: "[transparent]",
@@ -2237,6 +2261,9 @@ const Take2 = ({
                   key={row.id}
                   data-row
                   data-trigger-row={row.id}
+                  data-named={
+                    row.kind === "trigger" && row.trigger.name ? "" : undefined
+                  }
                   {...rowProps(open, () => page.open(open ? null : row.id))}
                 >
                   <td>{row.flow.name}</td>
@@ -2258,9 +2285,26 @@ const Take2 = ({
                           size="sm"
                         />
                       </span>
-                      {row.kind === "manual"
-                        ? "Manual runs"
-                        : row.trigger.label}
+                      {row.kind === "manual" ? (
+                        "Manual runs"
+                      ) : row.trigger.name ? (
+                        // A named trigger: the name, then its schedule in the Web column's muted grey (no gap).
+                        <span
+                          className={css({
+                            display: "flex",
+                            flexDirection: "column",
+                          })}
+                        >
+                          <span>{row.trigger.name}</span>
+                          <span
+                            className={css({ color: "neutral.fg.muted!" })}
+                          >
+                            {row.trigger.label}
+                          </span>
+                        </span>
+                      ) : (
+                        row.trigger.label
+                      )}
                     </span>
                   </td>
                   <td className={css({ color: "neutral.fg.muted!" })}>
