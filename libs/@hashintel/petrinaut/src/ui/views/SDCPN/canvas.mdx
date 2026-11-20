@@ -5,7 +5,7 @@ sidebar_order: 10
 ---
 
 The canvas renders the active net as an interactive graph, with node and arc interaction.
-It owns the scene, the pointer state, the per-frame simulation values and the gestures. The editor and the [preview](layer:ui.preview) both mount it, so it reads nothing from the editor shell.
+It owns the scene, the pointer state, the per-frame simulation values and the gestures. The editor and the [preview](layer:ui.preview) both mount it, so it imports nothing from the [editor shell](layer:ui.views.editor).
 
 ![A gesture changes one store, the scene is derived again, and React Flow renders the nodes whose object changed](./canvas-flow.d2)
 
