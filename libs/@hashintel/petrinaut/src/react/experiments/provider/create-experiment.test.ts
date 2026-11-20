@@ -146,6 +146,15 @@ describe("buildSweepAxes", () => {
     ]);
   });
 
+  it("gives integer parameters one step per integer on narrow intervals", () => {
+    const { axes } = buildSweepAxes(realAndInteger, {
+      count: { mode: "range", min: 0, max: 20 },
+    });
+    expect(axes).toEqual([
+      { identifier: "count", min: 0, max: 20, stepCount: 20, integer: true },
+    ]);
+  });
+
   it("rejects an invalid range with the parameter named", () => {
     expect(() =>
       buildSweepAxes(realAndInteger, {
