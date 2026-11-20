@@ -1,4 +1,10 @@
-import { type RefObject, useLayoutEffect, useMemo, useState } from "react";
+import {
+  type RefObject,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -20,6 +26,10 @@ const dockStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "1.5",
+  // The footer shrinks this, not the composer, when the panel is short.
+  flexShrink: 1,
+  minHeight: "[0]",
+  overflowY: "auto",
 });
 
 const headerStyle = css({
@@ -109,10 +119,12 @@ const AnswerDock = ({
   onStep: (index: number) => void;
   onPick: (option: OfferedOption) => void;
 }) => {
-  const [described, setDescribed] = useState<OfferedOption>();
+  // By question and label, not object: a message refresh reparses the offer.
+  const [described, setDescribed] = useState<string>();
   const question = questions[current];
   if (!question) return null;
   const options = optionsFor(question);
+  const describedKey = (option: OfferedOption) => `${current}:${option.label}`;
   const picked = pickedOption(answer, options);
   const several = questions.length > 1;
 
@@ -120,6 +132,7 @@ const AnswerDock = ({
     <section
       className={dockStyle}
       aria-label="Brunch's questions"
+      data-answer-dock
       data-question-count={questions.length}
     >
       <div className={headerStyle}>
@@ -167,9 +180,9 @@ const AnswerDock = ({
                 variant={option === picked ? "solid" : "subtle"}
                 aria-pressed={option === picked}
                 onClick={() => onPick(option)}
-                onMouseEnter={() => setDescribed(option)}
+                onMouseEnter={() => setDescribed(describedKey(option))}
                 onMouseLeave={() => setDescribed(undefined)}
-                onFocus={() => setDescribed(option)}
+                onFocus={() => setDescribed(describedKey(option))}
                 onBlur={() => setDescribed(undefined)}
               >
                 {option.label}
@@ -188,7 +201,7 @@ const AnswerDock = ({
                       key={option.label}
                       className={noteStyle}
                       data-answer-description={
-                        option === described || undefined
+                        describedKey(option) === described || undefined
                       }
                     >
                       {option.value}
@@ -244,6 +257,23 @@ export const useAnswerDock = ({
     textarea?.focus({ preventScroll: true });
     textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
   }, [focusRequest, inputRef]);
+  // The composer's text answers the offer last shown, even while the dock is
+  // hidden; a reply that brings other questions discards that whole draft
+  // rather than give its text to a question it wasn't written for. A settled
+  // reply without questions leaves the text as an ordinary message.
+  const draftOffer = useRef<{ messageId: string; sent: boolean }>(undefined);
+  useLayoutEffect(() => {
+    if (found === undefined) {
+      if (enabled) draftOffer.current = undefined;
+      return;
+    }
+    const previous = draftOffer.current;
+    if (previous?.messageId === found.messageId) return;
+    draftOffer.current = { messageId: found.messageId, sent: false };
+    if (previous !== undefined && !previous.sent && input !== "") {
+      onInputChange("");
+    }
+  }, [enabled, found, input, onInputChange]);
 
   const state =
     stored.messageId === found?.messageId
@@ -285,13 +315,15 @@ export const useAnswerDock = ({
       if (!last) return step(current + 1);
       if (message === undefined) return;
       setStored({ ...state, answers, sent: true });
+      if (draftOffer.current?.messageId === found.messageId) {
+        draftOffer.current.sent = true;
+      }
       onSend(message);
     },
     /**
      * Whether Send acts though the composer is empty: it moves on from any
-     * question but the last, and sends once something is answered. Otherwise
-     * an empty composer offers Voice, which hides the dock and would leave
-     * the answers already given unsent.
+     * question but the last, and sends once something is answered. Voice then
+     * sits beside Send; the dock keeps its answers while Voice hides it.
      */
     sendable: !last || message !== undefined,
     submitLabel: last

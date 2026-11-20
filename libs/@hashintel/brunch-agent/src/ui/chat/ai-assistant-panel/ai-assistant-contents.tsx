@@ -168,7 +168,11 @@ const composerWrapStyle = css({
   padding: "3",
   borderTop: "[1px solid {colors.neutral.bd.subtle}]",
   backgroundColor: "neutral.s00",
-  flexShrink: 0,
+  // A tall question dock scrolls inside a capped footer, so the composer and
+  // its buttons stay on screen in a short panel.
+  flexShrink: 1,
+  maxHeight: "[60%]",
+  "& > :not([data-answer-dock])": { flexShrink: 0 },
   boxSizing: "border-box",
   minHeight: `[${aiFooterMinHeight}px]`,
   animationName: "[petrinautVoiceSwap]",

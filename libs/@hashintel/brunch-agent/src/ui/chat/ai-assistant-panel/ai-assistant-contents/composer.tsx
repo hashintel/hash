@@ -160,6 +160,7 @@ export const AiAssistantComposer = ({
   const hasInput = input.trim().length > 0;
   const canSubmit = (hasInput || sendable) && !busy && !disabled;
 
+  const offerVoice = !hasInput && voiceModeAvailable && onInputModeChange;
   const action: ComposerAction = busy
     ? {
         disabled: false,
@@ -181,7 +182,7 @@ export const AiAssistantComposer = ({
           type: "submit",
           variant: "solid",
         }
-      : !hasInput && voiceModeAvailable && onInputModeChange
+      : offerVoice
         ? {
             disabled: false,
             glyph: "voice",
@@ -247,6 +248,23 @@ export const AiAssistantComposer = ({
     />
   );
 
+  // Send that acts on an empty composer (moving through docked questions)
+  // takes Voice's place, so Voice stays reachable beside it.
+  const voiceButton = textEntry && canSubmit && !hasInput && offerVoice && (
+    <Button
+      aria-label="Start voice mode"
+      className={composerActionButtonStyle}
+      data-voice-entry
+      onClick={() => offerVoice("voice")}
+      prefix={<AiVoiceModeIcon size={16} />}
+      size="sm"
+      tone="neutral"
+      tooltip="Start voice mode"
+      type="button"
+      variant="subtle"
+    />
+  );
+
   return (
     <form
       onSubmit={(event) => {
@@ -298,7 +316,8 @@ export const AiAssistantComposer = ({
               display: "flex",
               alignItems: "center",
               gap: "1",
-              "& > :last-child": { marginLeft: "auto" },
+              "& > :last-child, & > [data-voice-entry]": { marginLeft: "auto" },
+              "& > [data-voice-entry] + :last-child": { marginLeft: "[0]" },
             })}
             data-brunch
           >
@@ -307,6 +326,7 @@ export const AiAssistantComposer = ({
                 {hint}
               </span>
             )}
+            {voiceButton}
             {actionButton}
           </div>
         )}
