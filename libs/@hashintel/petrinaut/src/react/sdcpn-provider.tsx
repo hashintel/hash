@@ -1,10 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 
-import {
-  ARC_ID_PREFIX,
-  isSelectionTypeAvailableForExtensions,
-} from "@hashintel/petrinaut-core";
-
+import { createItemTypeLookup } from "./sdcpn-provider/item-type-lookup";
 import { createVisualizerDefinitionStore } from "./sdcpn-provider/visualizer-definition-store";
 import { usePublished } from "./select-from-context";
 import {
@@ -61,84 +57,13 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
     };
   }, [definition.store]);
   const petriNetDefinition = useStore(definition.store);
-  const allNets = [
-    petriNetDefinition,
-    ...(petriNetDefinition.components ?? []),
-  ];
 
   const value: SDCPNContextValue = {
     petriNetId: instance.handle.id,
     petriNetDefinition,
     readonly: instance.readonly,
     extensions: instance.extensions,
-    getItemType(id) {
-      // TODO: Selection and elements IDs should be reworked
-      if (id.startsWith(ARC_ID_PREFIX)) {
-        return "arc";
-      }
-
-      if (
-        isSelectionTypeAvailableForExtensions("type", instance.extensions) &&
-        allNets.some((net) => net.types.some((type) => type.id === id))
-      ) {
-        return "type";
-      }
-
-      if (
-        isSelectionTypeAvailableForExtensions(
-          "parameter",
-          instance.extensions,
-        ) &&
-        allNets.some((net) =>
-          net.parameters.some((parameter) => parameter.id === id),
-        )
-      ) {
-        return "parameter";
-      }
-
-      if (
-        isSelectionTypeAvailableForExtensions(
-          "differentialEquation",
-          instance.extensions,
-        ) &&
-        allNets.some((net) =>
-          net.differentialEquations.some((equation) => equation.id === id),
-        )
-      ) {
-        return "differentialEquation";
-      }
-
-      if (allNets.some((net) => net.places.some((place) => place.id === id))) {
-        return "place";
-      }
-
-      if (
-        allNets.some((net) =>
-          net.transitions.some((transition) => transition.id === id),
-        )
-      ) {
-        return "transition";
-      }
-
-      if (
-        allNets.some((net) =>
-          (net.componentInstances ?? []).some((item) => item.id === id),
-        )
-      ) {
-        return "componentInstance";
-      }
-
-      if (
-        isSelectionTypeAvailableForExtensions("fusion", instance.extensions) &&
-        allNets.some((net) =>
-          (net.fusions ?? []).some((fusion) => fusion.id === id),
-        )
-      ) {
-        return "fusion";
-      }
-
-      return null;
-    },
+    getItemType: createItemTypeLookup(petriNetDefinition, instance.extensions),
   };
 
   const published = usePublished(value);
