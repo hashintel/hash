@@ -4,10 +4,10 @@ import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "./series-config";
 
 import type { ExecutionFrameSource } from "../../../../../../../react/execution-frame/context";
+import type { SimulationFrameReader } from "../../../../../../../react/simulation/context";
 import type { TimelineView } from "../../../../../../../react/state/editor-context";
 import type {
   StreamingStore,
-  TimelineFrame,
   TimelineSeriesExtractor,
   TimelineSeriesMeta,
 } from "./types";
@@ -42,7 +42,7 @@ interface StreamingStoreController {
   reset: (series: TimelineSeriesMeta[]) => void;
   resetCurrentSeries: () => void;
   appendFrames: (
-    frames: TimelineFrame[],
+    frames: SimulationFrameReader[],
     extract: TimelineSeriesExtractor,
   ) => void;
 }
