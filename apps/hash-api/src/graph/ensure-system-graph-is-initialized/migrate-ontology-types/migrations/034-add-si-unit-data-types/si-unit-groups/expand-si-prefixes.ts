@@ -1,7 +1,7 @@
 import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 
-import { scaledConversion } from "../shared/conversions";
+import { scaledConversion } from "../../shared/conversions";
 
 import type { SiUnitDefinition } from "../si-unit-groups";
 import type { BaseUrl, Conversions } from "@blockprotocol/type-system";
