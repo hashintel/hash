@@ -768,9 +768,9 @@ export type SummarizeEntities = (
 /**
  * The graph as a count by links reaches it (`runHashEntityJoinCount`): exact
  * counts by `summarizeEntities`, and pages by `queryEntitySubgraph` built as
- * the entity read builds them, with no traversal or drafts. Every call is in
- * `webScope`, the plain count's, and marks entities outside the user's webs
- * external.
+ * the entity read builds them, with no traversal or drafts. Every read by
+ * types is in `webScope`, the plain count's; a read by ids is in any web, as
+ * the entity read's is. Entities outside the user's webs are marked external.
  */
 export const hashJoinGraph = (
   summarizeEntities: SummarizeEntities,
@@ -814,7 +814,10 @@ export const hashJoinGraph = (
         traversalDepth: 0,
         limit,
       },
-      webScope.webIds,
+      // An id names its web, so grouped entities are read wherever they are,
+      // as the entity read reads by id; the counted entities and links stay
+      // in the count's webs.
+      "entityIds" in selector ? undefined : webScope.webIds,
       decoded,
     );
     const read = hashEntityReadResult(

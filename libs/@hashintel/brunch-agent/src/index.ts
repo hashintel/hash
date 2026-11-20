@@ -30,7 +30,6 @@ export {
   hashEntityCountMaxExamples,
   hashEntityCountMaxGroups,
   hashEntityCountMaxJoinEntities,
-  hashEntityCountMaxPathSteps,
   hashEntityCountResultSchema,
   hashEntityReadDefaultLimit,
   hashEntityReadDefaultTraversalDepth,

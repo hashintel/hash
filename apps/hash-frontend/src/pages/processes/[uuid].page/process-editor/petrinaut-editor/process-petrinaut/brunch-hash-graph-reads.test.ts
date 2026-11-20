@@ -1724,7 +1724,7 @@ const joinPage = (
 
 /**
  * Sales orders in acme-web: o1 with nothing delivered, o2 partly and o3
- * fully; o1 and o2 for customer c1, o2 also for c2.
+ * fully; o1 and o2 for customer c1, o2 also for c2, in a partner's web.
  */
 const joinData: Record<string, Record<string, unknown>[]> = {
   "Sales Order": [
@@ -1756,10 +1756,13 @@ const joinData: Record<string, Record<string, unknown>[]> = {
   ].map(([order, customer]) =>
     joinVertex(`acme-web~h-${order}-${customer}`, undefined, {
       leftEntityId: `acme-web~${order}`,
-      rightEntityId: `acme-web~${customer}`,
+      rightEntityId: `${customer === "c2" ? "partner-web" : "acme-web"}~${customer}`,
     }),
   ),
-  ids: [joinVertex("acme-web~c1", "Acme"), joinVertex("acme-web~c2", "Globex")],
+  ids: [
+    joinVertex("acme-web~c1", "Acme"),
+    joinVertex("partner-web~c2", "Globex"),
+  ],
 };
 
 /**
@@ -1857,8 +1860,12 @@ test("a count by links reads every page of the counted type and of each link typ
       includeDrafts: false,
       limit: 1000,
     });
+    // The grouped entities are read by id, in whichever web each id names.
+    const byId = JSON.stringify(request.filter).includes('"uuid"');
     expect(request.filter).toMatchObject({
-      all: expect.arrayContaining([scoped, ...notArchived]),
+      all: byId
+        ? expect.not.arrayContaining([scoped])
+        : expect.arrayContaining([scoped, ...notArchived]),
     });
   }
   // propertyEquals narrows the counted entities, not the links.
@@ -1895,6 +1902,41 @@ test("a count by links reads every page of the counted type and of each link typ
       "alice-web",
       "acme-web",
     ]),
+    expect.any(AbortSignal),
+  );
+});
+
+test("a count grouped by links reads the grouped entities by id in any web, so one in another web is labelled and marked external", async () => {
+  const query = joinQuery();
+  const output = await count(
+    joinSizes,
+    {
+      entityTypes: ["Sales Order"],
+      groupBy: { linkType: "Has Customer", direction: "outgoing" },
+    },
+    { query },
+  );
+  expect(output).toMatchObject({
+    outcome: "counted",
+    webScope: "default",
+    groups: [
+      { entity: { entityId: "acme-web~c1", label: "Acme" }, count: 2 },
+      {
+        entity: { entityId: "partner-web~c2", label: "Globex", external: true },
+        count: 1,
+      },
+      { count: 1 },
+    ],
+  });
+  expect(query).toHaveBeenCalledWith(
+    hashEntityReadRequest(
+      {
+        entityIds: ["acme-web~c1", "partner-web~c2"],
+        traversalDepth: 0,
+        limit: 1000,
+      },
+      undefined,
+    ),
     expect.any(AbortSignal),
   );
 });
