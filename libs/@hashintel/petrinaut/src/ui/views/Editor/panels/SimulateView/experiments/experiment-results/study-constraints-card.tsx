@@ -1,4 +1,3 @@
-import { css } from "@hashintel/ds-helpers/css";
 /**
  * The study's constraints in one card: how many steps are clear across the
  * study as the headline, the latest step's own verdict beneath it, and one
@@ -6,6 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
  * percentage is printed beside the fraction it came from, and every row is
  * reserved so the card never changes shape as steps land.
  */
+import { css } from "@hashintel/ds-helpers/css";
 import { constraintLabel } from "@hashintel/petrinaut-core";
 
 import {
@@ -16,8 +16,8 @@ import {
 } from "../../../../../../../react/optimizations/constraint-rates";
 import { ChartCard, type ChartCardTone } from "../../shared/chart-card";
 import {
-  describedStep,
   describeStep,
+  latestStep,
 } from "./study-constraints-card/describe-step";
 
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
@@ -155,7 +155,7 @@ export const StudyConstraintsCard = ({
   const stateConstraints = constraints.filter(
     (constraint) => constraint.space === "state",
   );
-  const step = describedStep(trials);
+  const step = latestStep(trials);
   const described = step === null ? null : describeStep(input, step, alpha);
   const infeasibleNote =
     rates.infeasibleDraws === 0

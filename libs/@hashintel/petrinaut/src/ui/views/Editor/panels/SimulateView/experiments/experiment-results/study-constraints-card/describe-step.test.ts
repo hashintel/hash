@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { fakeConstrainedStudyInput } from "../../study-fixtures";
-import { describedStep, describeStep } from "./describe-step";
+import { describeStep, latestStep } from "./describe-step";
 
 import type {
   PetrinautOptimizationTrialConstraints,
@@ -78,14 +78,14 @@ describe("describeStep", () => {
   });
 });
 
-describe("describedStep", () => {
+describe("latestStep", () => {
   it("describes the latest step whose event landed, whatever its state, and none before any", () => {
     const pruned = {
       ...trial({ parameters: [], state: [], infeasible: "rate-cap" }, "pruned"),
       trial: 4,
     };
-    expect(describedStep([trial(undefined), pruned])).toBe(pruned);
-    expect(describedStep([pruned, trial(undefined)])).toBe(pruned);
-    expect(describedStep([])).toBeNull();
+    expect(latestStep([trial(undefined), pruned])).toBe(pruned);
+    expect(latestStep([pruned, trial(undefined)])).toBe(pruned);
+    expect(latestStep([])).toBeNull();
   });
 });

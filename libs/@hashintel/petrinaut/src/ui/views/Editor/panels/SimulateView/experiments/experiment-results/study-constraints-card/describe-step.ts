@@ -15,7 +15,7 @@ import type { OptimizationRecord } from "../../../../../../../../react/optimizat
  * The step the card describes beneath the headline: the latest step whose
  * event landed. Null before any step.
  */
-export const describedStep = (
+export const latestStep = (
   trials: OptimizationRecord["trials"],
 ): OptimizationRecord["trials"][number] | null =>
   trials.reduce<OptimizationRecord["trials"][number] | null>(
@@ -25,7 +25,7 @@ export const describedStep = (
   );
 
 /** The step line's parts: the verdict word, the `Step 12: limited` head and what follows it. */
-type DescribedStep = {
+type StepLine = {
   verdict: StepVerdict;
   head: string;
   /** The infeasible draw's constraint; the binding rate as `51 / 60 runs passed · 85% · Queue under 10`; a state other than complete; null when the head says it all. */
@@ -36,7 +36,7 @@ export const describeStep = (
   input: Pick<OptimizationRecord["input"], "constraints">,
   trial: OptimizationRecord["trials"][number],
   alpha: number,
-): DescribedStep => {
+): StepLine => {
   const verdict = stepVerdict(trial, alpha);
   const head = `Step ${trial.trial + 1}: ${verdict}`;
   if (verdict === "infeasible") {
