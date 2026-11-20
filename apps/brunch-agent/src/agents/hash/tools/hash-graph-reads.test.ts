@@ -15,6 +15,7 @@ import {
   hashEntityReadEmptyNote,
   hashEntityReadExternalNote,
   hashEntityReadForModel,
+  hashEntityReadUnreadEndpointNote,
   hashEntityTypeReadForModel,
   hashWebReadForModel,
 } from "./hash-graph-reads.ts";
@@ -435,6 +436,39 @@ test("links, drafts and entities reached by links are marked, and an entity with
       `  linksTo: ${net.entityId}`,
     ].join("\n"),
   );
+});
+
+test("a read that followed links marks a link's end it didn't return as not read, and leaves a returned end unmarked", () => {
+  const link = {
+    ...person,
+    entityId: `${personWebId}~link`,
+    label: undefined,
+    matched: false,
+    linkData: { leftEntityId: person.entityId, rightEntityId: net.entityId },
+  };
+  for (const traversalDepth of [undefined, 1, 3]) {
+    const lines = hashEntityReadForModel(read([person, link]), [], {
+      traversalDepth,
+    }).split("\n");
+    expect(lines).toContain(`  linksFrom: ${person.entityId}`);
+    expect(lines).toContain(
+      `  linksTo: ${net.entityId} (not read: hidden from the user, archived, or a draft left out)`,
+    );
+  }
+});
+
+test("a read at traversalDepth 0 marks no link's ends, since it fetched none", () => {
+  const link = {
+    ...person,
+    entityId: `${personWebId}~link`,
+    label: undefined,
+    linkData: { leftEntityId: person.entityId, rightEntityId: net.entityId },
+  };
+  const text = hashEntityReadForModel(read([link]), [], { traversalDepth: 0 });
+  expect(text).toContain(
+    `  linksFrom: ${person.entityId}\n  linksTo: ${net.entityId}\n`,
+  );
+  expect(text).not.toContain("not read");
 });
 
 test("an entity from a web outside the user's is marked external in its heading, and the read says once what that means", () => {
@@ -987,7 +1021,7 @@ test("chosen properties alone are shown, with only their legend lines; ids, edit
       `  entityId: ${link.entityId}`,
       "  editionId: edition-link",
       `  linksFrom: ${person.entityId}`,
-      `  linksTo: ${net.entityId}`,
+      `  linksTo: ${net.entityId} ${hashEntityReadUnreadEndpointNote}`,
       '  email: ["person@example.com"]',
       '  display_name: "Alice"',
     ].join("\n"),
@@ -1251,7 +1285,7 @@ test("a count by links renders how many qualified of the type, its path, the lar
     'groups, by the entity one "Has Customer" (outgoing) link away (an entity linked to several is counted under each, so these may sum to more than the total):',
     '- 12 "Acme Ltd" entityId: acme-web~c1',
     '- 5 "Globex" entityId: other-web~c9 (external web)',
-    "- 2 entityId: far-web~c7 (not read: outside the webs counted, or hidden from the user)",
+    "- 2 entityId: far-web~c7 (not read: hidden from the user, archived, or a draft left out)",
     "- 1 (none): linked to no such entity",
     "- 110 in 30 more groups",
     "examples (2 of 128):",

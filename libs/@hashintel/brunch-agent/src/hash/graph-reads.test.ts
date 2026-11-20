@@ -226,16 +226,26 @@ test("a count by links takes a where path of one or two steps and a groupBy step
   expect(parseHashEntityCountInput(groupOnly)).toEqual(groupOnly);
 });
 
-test("a count by links refuses a path of no steps or more than two, saying what to do instead", () => {
-  for (const path of [[], [hasLineItem, fulfilledBy, hasCustomer]])
-    expect(() =>
-      parseHashEntityCountInput({
-        entityTypes: ["Sales Order"],
-        where: { path, exists: true },
-      }),
-    ).toThrow(
-      "A path follows 2 links at most: count in two steps, or ask the user to narrow the question.",
-    );
+test("a count by links refuses an empty path, saying how many steps it needs", () => {
+  expect(() =>
+    parseHashEntityCountInput({
+      entityTypes: ["Sales Order"],
+      where: { path: [], exists: true },
+    }),
+  ).toThrow(
+    "A where path needs one or two link steps, each { linkType, direction }.",
+  );
+});
+
+test("a count by links refuses a path of more than two steps, saying what to do instead", () => {
+  expect(() =>
+    parseHashEntityCountInput({
+      entityTypes: ["Sales Order"],
+      where: { path: [hasLineItem, fulfilledBy, hasCustomer], exists: true },
+    }),
+  ).toThrow(
+    "A count follows at most 2 links, so it can't answer a question along a longer path: ask the user to narrow the question, or read the records to answer it.",
+  );
 });
 
 test("a count by links refuses a step without a direction it knows or with an unversioned link type URL", () => {

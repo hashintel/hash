@@ -1,6 +1,9 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { hashEntityCountMaxJoinEntities } from "@hashintel/brunch-agent";
+import {
+  hashEntityCountMaxJoinEntities,
+  hashEntityReadMaxLimit,
+} from "@hashintel/brunch-agent";
 
 import {
   type HashJoinEntity,
@@ -8,7 +11,6 @@ import {
   type HashJoinSelector,
   hashEntityJoinCount,
   hashEntityJoinCountPlan,
-  hashJoinPageSize,
   runHashEntityJoinCount,
 } from "./brunch-hash-graph-count";
 
@@ -180,10 +182,16 @@ const fakeGraph = (
     pageSize = 2,
     sizes,
     failOn,
+    cursorWhenFull = false,
   }: {
     pageSize?: number;
     sizes?: (key: string) => number;
     failOn?: { key: string; page: number };
+    /**
+     * Give a cursor whenever a page is full, as HASH's graph does, so a read
+     * whose size is a multiple of the page fetches one more, empty page.
+     */
+    cursorWhenFull?: boolean;
   } = {},
 ) => {
   const all = [...data.values()].flat();
@@ -209,9 +217,13 @@ const fakeGraph = (
           : (data.get(key) ?? []);
       const start = cursor === undefined ? 0 : Number(cursor);
       const end = start + Math.min(limit, pageSize);
+      const entities = matches.slice(start, end);
+      const more = cursorWhenFull
+        ? entities.length === Math.min(limit, pageSize)
+        : end < matches.length;
       return Promise.resolve({
-        entities: matches.slice(start, end),
-        ...(end < matches.length ? { cursor: String(end) } : {}),
+        entities,
+        ...(more ? { cursor: String(end) } : {}),
       });
     }),
   };
@@ -267,7 +279,7 @@ describe("the paged read", () => {
     });
     // Each page asks for the join's page size, from the cursor the last gave.
     for (const [, limit] of graph.page.mock.calls) {
-      expect(limit).toBe(hashJoinPageSize);
+      expect(limit).toBe(hashEntityReadMaxLimit);
     }
     expect(
       graph.page.mock.calls
@@ -280,7 +292,7 @@ describe("the paged read", () => {
     ).toEqual([undefined, "2", "4"]);
     expect(graph.page).toHaveBeenCalledWith(
       { entityIds: ["c1", "c2"] },
-      hashJoinPageSize,
+      hashEntityReadMaxLimit,
       undefined,
       signal,
     );
@@ -350,7 +362,80 @@ describe("the paged read", () => {
     expect(graph.page).not.toHaveBeenCalled();
   });
 
-  test("a read that grows past the budget part-way stops at the budget, incomplete, with no count", async () => {
+  test("completes a count just under the budget, with full pages read in parallel and an empty last page", async () => {
+    // 9,000 + 9,500 + 1,200 = 19,700: under the budget, but within a page of
+    // it for each read. Sales Order is a multiple of the page, so its last,
+    // empty page is fetched while the other reads are still reading.
+    const many = (count: number, make: (index: number) => HashJoinEntity) =>
+      Array.from({ length: count }, (_, index) => make(index));
+    const graph = fakeGraph(
+      new Map([
+        ["Sales Order", many(9000, (index) => record(`o${index}`))],
+        [
+          "Has Line Item",
+          many(9500, (index) =>
+            link(`li${index}`, `o${index % 9000}`, `i${index}`),
+          ),
+        ],
+        [
+          "Fulfills",
+          many(1200, (index) => link(`f${index}`, `d${index}`, `i${index}`)),
+        ],
+      ]),
+      { pageSize: hashEntityReadMaxLimit, cursorWhenFull: true },
+    );
+    const result = await runHashEntityJoinCount(
+      { ...salesOrders, where: undelivered },
+      "default",
+      graph,
+      signal,
+    );
+    expect(result).toMatchObject({
+      outcome: "counted",
+      ofType: 9000,
+      // Orders o0..o1199 have a fulfilled line item; the rest have none.
+      count: 9000 - 1200,
+      reads: [
+        { role: "counted", entityTypes: ["Sales Order"], entities: 9000 },
+        { role: "link", entityTypes: ["Has Line Item"], entities: 9500 },
+        { role: "link", entityTypes: ["Fulfills"], entities: 1200 },
+      ],
+      // 3 sizes; pages: 10 (the last empty) + 10 + 2.
+      requests: 25,
+    });
+  });
+
+  test("labelling the groups by id doesn't spend the budget the counted entities and links were sized against", async () => {
+    // 9,500 orders and their 9,500 Has Customer links are under the budget;
+    // reading the 9,500 customers by id, for their labels, would pass it if it
+    // counted against the same budget.
+    const many = (count: number, make: (index: number) => HashJoinEntity) =>
+      Array.from({ length: count }, (_, index) => make(index));
+    const graph = fakeGraph(
+      new Map([
+        ["Sales Order", many(9500, (index) => record(`o${index}`))],
+        [
+          "Has Customer",
+          many(9500, (index) => link(`hc${index}`, `o${index}`, `c${index}`)),
+        ],
+        ["Customer", many(9500, (index) => record(`c${index}`, `C${index}`))],
+      ]),
+      { pageSize: hashEntityReadMaxLimit },
+    );
+    const result = await runHashEntityJoinCount(
+      { ...salesOrders, groupBy: hasCustomer },
+      "default",
+      graph,
+      signal,
+    );
+    expect(result).toMatchObject({
+      outcome: "counted",
+      ofType: 9500,
+      count: 9500,
+    });
+  });
+
+  test("reads that grow past the budget part-way stop within a page each of it, incomplete, with no count", async () => {
     // The counted type looked small, but every page is full and gives a cursor.
     const graph = {
       size: vi.fn<HashJoinGraph["size"]>(() => Promise.resolve(1)),
@@ -374,7 +459,7 @@ describe("the paged read", () => {
       outcome: "incomplete",
       webScope: "default",
       reason: expect.stringContaining(
-        "would have read past the 20,000 entities one count may read",
+        "took the reads past the 20,000 entities one count may read: HASH holds more than it did when the count began",
       ),
       reads: [
         {
@@ -393,8 +478,11 @@ describe("the paged read", () => {
     if (result.outcome !== "incomplete") {
       return;
     }
-    expect(result.reads.reduce((sum, { entities }) => sum + entities, 0)).toBe(
-      hashEntityCountMaxJoinEntities,
+    // Each of the two reads may finish the page it is on: one page past at most.
+    const read = result.reads.reduce((sum, { entities }) => sum + entities, 0);
+    expect(read).toBeGreaterThan(hashEntityCountMaxJoinEntities);
+    expect(read).toBeLessThanOrEqual(
+      hashEntityCountMaxJoinEntities + 2 * hashEntityReadMaxLimit,
     );
     expect("count" in result).toBe(false);
   });

@@ -185,7 +185,11 @@ test("the entity read preserves the link when the customer read returns no visib
     entityIds: [orderId],
     traversalDepth: 1,
   });
-  expect(currentOrder).toContain(`linksTo: ${customerId}`);
+  // The read followed links, so the customer it didn't return is marked.
+  expect(currentOrder).toContain(
+    `linksTo: ${customerId} (not read: hidden from the user, archived, or a draft left out)`,
+  );
+  expect(currentOrder).toContain(`linksFrom: ${orderId}\n`);
   expect(currentOrder).not.toContain(`entityId: ${customerId}`);
 
   const currentCustomer = await readCurrent(execute, {
