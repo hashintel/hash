@@ -31,10 +31,6 @@ import { PetrinautOptimizationContext } from "../../../../../../react/optimizati
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { SimulatorsContext } from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import {
-  defaultUserSettings,
-  UserSettingsContext,
-} from "../../../../../../react/state/user-settings-context";
 import { CreateExperimentDrawer } from "./create-experiment-drawer";
 import {
   makeExperiment,
@@ -49,7 +45,6 @@ import type { LanguageClientContextValue } from "../../../../../../react/lsp/con
 import type { OptimizationsContextValue } from "../../../../../../react/optimizations/context";
 import type { SimulatorsContextValue } from "../../../../../../react/simulators/context";
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
-import type { UserSettingsContextValue } from "../../../../../../react/state/user-settings-context";
 import type {
   ConstraintSource,
   LowerConstraintResult,
@@ -58,7 +53,6 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 import type { ConstraintSessionParams } from "@hashintel/petrinaut-core/workers/lsp";
-import type { ReactNode } from "react";
 
 vi.mock("../../../../../monaco/code-editor", () => ({
   CodeEditor: ({
@@ -98,28 +92,6 @@ vi.mock("../../../../../monaco/code-editor", () => ({
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@hashintel/ds-components")>();
-  // The real Drawer portals its body somewhere testing-library cannot reach from
-  // this tree; the parts under test are plain children of it.
-  const Drawer = Object.assign(
-    ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    {
-      Header: () => null,
-      Body: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-      Footer: ({
-        actions,
-        secondaryActions,
-      }: {
-        actions?: ReactNode;
-        secondaryActions?: ReactNode;
-      }) => (
-        <div>
-          {secondaryActions}
-          {actions}
-        </div>
-      ),
-    },
-  );
-
   // The real Select is an Ark menu jsdom cannot drive; a native select with
   // the same items lets a test change the scenario, the metric kind or the
   // objective's metric. The segmented control comes from the shared stubs.
@@ -159,7 +131,7 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   );
   const { SegmentedControl } = await import("../shared/ds-control-stubs");
 
-  return { ...actual, Drawer, Select, SegmentedControl };
+  return { ...actual, Select, SegmentedControl };
 });
 
 /**
@@ -312,32 +284,6 @@ const TestProviders = ({
   optimizationSource?: PetrinautConnectedOptimization | null;
 }) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
-  const settings: UserSettingsContextValue = {
-    ...defaultUserSettings,
-    setShowAnimations: () => {},
-    setKeepPanelsMounted: () => {},
-    setCompactNodes: () => {},
-    setEnableExperimentalIconPack: () => {},
-    setCursorMode: () => {},
-    setIsLeftSidebarOpen: () => {},
-    setLeftSidebarWidth: () => {},
-    setPropertiesPanelWidth: () => {},
-    setIsBottomPanelOpen: () => {},
-    setBottomPanelHeight: () => {},
-    setActiveBottomPanelTab: () => {},
-    setTimelineChartType: () => {},
-    setShowMinimap: () => {},
-    setHighlightOnHover: () => {},
-    setSnapToGrid: () => {},
-    setPartialSelection: () => {},
-    setEnableNetComponents: () => {},
-    setShowCompilationOutput: () => {},
-    setCanvasViewport: () => {},
-    setPluginEnabled: () => {},
-    setAssistantPluginId: () => {},
-    updateSubViewSection: () => {},
-  };
-
   return (
     <PortalContainerContext value={portalContainerRef}>
       <SimulatorsContext value={simulators}>
@@ -365,12 +311,10 @@ const TestProviders = ({
               }}
             >
               <SDCPNContext value={sdcpnContextValue}>
-                <UserSettingsContext value={settings}>
-                  <PetrinautOptimizationContext value={optimizationSource}>
-                    <div ref={portalContainerRef} />
-                    <CreateExperimentDrawer onClose={() => {}} />
-                  </PetrinautOptimizationContext>
-                </UserSettingsContext>
+                <PetrinautOptimizationContext value={optimizationSource}>
+                  <div ref={portalContainerRef} />
+                  <CreateExperimentDrawer onClose={() => {}} />
+                </PetrinautOptimizationContext>
               </SDCPNContext>
             </OptimizationsContext>
           </ExperimentsActionsContext>

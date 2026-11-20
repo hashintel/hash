@@ -72,9 +72,8 @@ vi.mock("./sweep-optimizer", async (importOriginal) => {
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@hashintel/ds-components")>();
-  const { Drawer } = await import("../shared/ds-drawer-stub");
   const stubs = await import("../shared/ds-control-stubs");
-  return { ...actual, ...stubs, Drawer };
+  return { ...actual, ...stubs };
 });
 
 // The contour surface draws on a canvas jsdom cannot host; the card around
