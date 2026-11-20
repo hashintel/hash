@@ -4,7 +4,7 @@ direction: down
 
 vars: {
   d2-legend: {
-    a -> b: renders through React
+    a -> b: passes data or calls
     a -> b: writes each frame {style.stroke-dash: 3}
     a.style.opacity: 0
     b.style.opacity: 0
@@ -21,7 +21,7 @@ editor: "EditorView" {
 
   topbar: "TopBar\ntitle, mode, menu, plugin items" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
   simulate: "SimulateView\nSimulate mode" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
-  canvas: "Canvas workspace\nLeftSideBar, PropertiesPanel,\nSDCPNView, BottomPanel" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  canvas: "Canvas workspace, hidden in Definitions\nLeftSideBar, PropertiesPanel,\nSDCPNView, BottomPanel" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
   notebook: "NotebookView\nDefinitions" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
   bar: "BottomBar\ntools, playback" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
   assistant: "EditorAssistantPanel\ndocked or floating" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
@@ -29,4 +29,5 @@ editor: "EditorView" {
 
 commands -> state: "run actions"
 state -> editor: "decides which regions mount"
+state -> geometry: "animates presence"
 geometry -> editor: "places the panels" {style.stroke-dash: 3}

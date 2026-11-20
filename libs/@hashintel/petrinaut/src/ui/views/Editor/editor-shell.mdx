@@ -4,8 +4,8 @@ description: The editor shell arranges the panels, toolbars and dialogs around t
 sidebar_order: 10
 ---
 
-The editor shell arranges the panels, toolbars and dialogs around the canvas.
-It decides which region is mounted and which is visible. It owns no document state and no geometry: the [editor state](layer:react.state) says what is open, and Motion values say where each panel sits.
+The editor shell arranges the panels, toolbars and dialogs around the canvas, and decides which region is mounted and which is visible.
+It owns no document state and no geometry: the [editor state](layer:react.state) says what is open, and motion values of the Motion library say where each panel sits.
 
 ![Editor state decides which regions mount, and Motion values place the panels without a render](./editor-shell.d2)
 
@@ -13,9 +13,9 @@ It decides which region is mounted and which is visible. It owns no document sta
 
 `EditorView` in `ui/views/Editor/editor-view.tsx` wraps `EditorViewContent` in the code navigation provider and the icon provider. `EditorViewContent` reads `globalMode` and `editViewMode`, then composes, in this order:
 
-1. Leaves that render nothing: `EditorCommands`, `AssistantCommands`, `PluginRoots`, `UserSettings`, `SelectionCleanup`.
+1. Leaves outside the layout. `EditorCommands`, `AssistantCommands` and `SelectionCleanup` render nothing. `PluginRoots` renders the `root` contribution of each running plugin, and `UserSettings` renders `UserSettingsDialog` while that overlay is open.
 2. `TopBar`.
-3. The workspace of the mode: `SimulateView`, or the canvas workspace and `NotebookView`.
+3. `SimulationWorkspace` with the workspace of the mode: `SimulateViewTabs` and `SimulateView`, or `EditViewSelector`, the canvas workspace and `NotebookView`.
 4. `BottomBar` and `SimulationCreationDrawer`.
 5. `EditorAssistantPanel`, when a [plugin](layer:ui.plugins) contributes an assistant.
 
@@ -28,32 +28,37 @@ It decides which region is mounted and which is visible. It owns no document sta
 | Canvas workspace | `globalMode` is `edit` or `actual` | `actual`, or `editViewMode` is `canvas` |
 | `NotebookView` | `globalMode` is `edit` or `actual` | `edit` and `editViewMode` is `definitions` |
 | `BottomBar` | Always | `actual`, or `edit` on the canvas |
-| `LeftSideBar` | `isLeftSidebarOpen` or `isSearchOpen`, or still sliding out | While mounted |
-| `PropertiesPanel` | The selection has a target, or still sliding out | While mounted |
-| `BottomPanel` | `isBottomPanelOpen`, or still sliding out | While mounted |
+| `LeftSideBar` | With the canvas workspace | `isLeftSidebarOpen` or `isSearchOpen` |
+| `PropertiesPanel` | With the canvas workspace | `usePanelTarget` returns a kind other than `none` |
+| `BottomPanel` | With the canvas workspace | `isBottomPanelOpen` |
 
-A region that is mounted and not visible sits in a hidden `Activity`: React keeps its state and removes its effects. The user setting `keepPanelsMounted` keeps the three panels mounted while closed.
+A region that is mounted and not visible sits in a hidden `Activity`: React keeps its state and removes its effects.
+
+The three panels are children of the canvas workspace, so they follow its row first. A closed panel stays mounted and is moved out of view, because the user setting `keepPanelsMounted` is true by default. With the setting off, a panel returns null once it is closed and has finished sliding out.
 
 ## Data flow
 
 A user runs the command that toggles the bottom panel:
 
-1. `useEditorCommands` registered the command with `useCommand`. The [command registry](layer:core.command-registry) runs it, and it calls `toggleBottomPanel` from `useEditorActions`. A command's `shortcut` string is display text: the key handlers in `useEditorCommands` and `useKeyboardShortcuts` bind the keys.
-2. The editor state sets `isBottomPanelOpen`, and the presence value of the panel animates from 0 to 1.
-3. `BottomPanel` and `BottomBar` read `isBottomPanelOpen` by name and render. A region that does not read that field does not render.
+1. `useEditorCommands` registered the command with `useCommand`. The [command registry](layer:core.command-registry) runs it, and it calls `toggleBottomPanel` from `useEditorActions`.
+2. The editor state sets `isBottomPanelOpen`, and `PanelPresenceProvider` animates the presence value of the panel, a motion value that says how far the panel is in view, from 0 to 1.
+3. `BottomPanel` and `BottomBar` read the field with `useEditorFields("isBottomPanelOpen")` and render. A region that does not read that field does not render.
 4. On each frame, `styleRef` writes the `transform` of the panel from the presence value. The canvas insets, the minimap and the bottom bar follow the same value. See [Panel geometry outside React state](doc:react.state/panel-sizes).
 
 ## Rules
 
-**A region reads the fields it draws, with `useEditorFields` or `useEditorState`.** A region that reads the whole editor state renders for every toggle and every selection. `benchmarks/monaco-performance/panel-toggles.mjs` with `details=1` lists the components that render for each toggle.
+**A region reads the fields it draws, with `useEditorFields` or `useEditorState`.** A region that reads the whole editor state renders for every toggle and every selection. `benchmarks/monaco-performance/panel-toggles.mjs`, from the package root, lists with `details=1` the components that render for each toggle. Its header says which build to serve.
 
-**A subscription to state that changes often lives in a leaf that renders nothing.** `EditorCommands` subscribes to undo and redo, which change on every document mutation, and `SelectionCleanup` to the selection. As leaves they render alone and `EditorViewContent` does not.
+**A subscription to state that changes often lives in a leaf of its own.** `EditorCommands` subscribes to undo and redo, which change on every document mutation, and `SelectionCleanup` to the selection. Each leaf renders alone for its subscription.
 
-**Panel size and position never enter React state.** A drag or a slide changes them on every frame. The panels bind them with `styleRef`, and `panel-presence-provider.test.tsx` covers the presence values.
+**Panel size and position never enter React state.** `panel-presence-provider.test.tsx` covers the presence values. Step 4 and the linked page give the reason.
 
-**A list row mounts its menu on demand.** A menu reads editor state and code navigation, so one menu per row renders every row for a toggle. `EntityList` mounts the menu of the row last pointed at and the row last focused. The test "mounts no menu until a row is pointed at or focused" in `entity-list.test.tsx` holds this.
+**A command's `shortcut` string is display text.** The command registry binds no key. `useEditorCommands`, `UserSettings` and `useKeyboardShortcuts` each bind theirs in a `keydown` handler.
+
+**A list row mounts its menu on demand.** A menu reads editor state and code navigation, so one menu per row renders every row for a toggle. `EntityList`, the entities tree of the left sidebar, mounts the menu of the row last pointed at and the row last focused. The test "mounts no menu until a row is pointed at or focused" in `entity-list.test.tsx` holds this.
 
 ## Pitfalls
 
 - A component rendered inside a hidden `Activity` runs no effect. Code that must run in every mode belongs in a leaf at the top of `EditorViewContent`.
+- `useKeyboardShortcuts` runs in `BottomBar`, whose `Activity` is hidden in Simulate mode and in the Definitions view. Its keys do nothing there.
 - `EditorIcons` sits above the view because the icon provider gives every icon a new context value each time it renders.
