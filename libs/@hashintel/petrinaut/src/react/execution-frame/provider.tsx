@@ -118,32 +118,30 @@ export const useActualExecutionFrameSource = (params: {
     scrubbedFrameIndex,
     Math.max(0, totalFrames - 1),
   );
+  const readerAt = (
+    point: (typeof timelinePoints)[number],
+    number: number,
+  ): SimulationFrameReader =>
+    createActualModeTimelineFrameReader({
+      definition: petriNetDefinition,
+      initialState,
+      transitionFirings: actualMode.transitionFirings,
+      transitionFiringTimesMs,
+      point,
+      number,
+    });
   const currentPoint = timelinePoints[currentFrameIndex];
   const currentFrameReader = currentPoint
-    ? createActualModeTimelineFrameReader({
-        definition: petriNetDefinition,
-        initialState,
-        transitionFirings: actualMode.transitionFirings,
-        transitionFiringTimesMs,
-        point: currentPoint,
-        number: currentFrameIndex,
-      })
+    ? readerAt(currentPoint, currentFrameIndex)
     : null;
 
   const getFramesInRange = async (
     startIndex: number,
     endIndex?: number,
   ): Promise<SimulationFrameReader[]> =>
-    timelinePoints.slice(startIndex, endIndex).map((point, offset) =>
-      createActualModeTimelineFrameReader({
-        definition: petriNetDefinition,
-        initialState,
-        transitionFirings: actualMode.transitionFirings,
-        transitionFiringTimesMs,
-        point,
-        number: startIndex + offset,
-      }),
-    );
+    timelinePoints
+      .slice(startIndex, endIndex)
+      .map((point, offset) => readerAt(point, startIndex + offset));
 
   const { source } = actualMode;
   const baselineKey = getSourceBaselineKey(
