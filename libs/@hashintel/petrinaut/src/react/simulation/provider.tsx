@@ -155,29 +155,17 @@ const ZERO_FRAMES_STORE = constantStore(0);
 const EMPTY_STATUS_STORE = constantStore<CoreSimulationState>("Initializing");
 
 /**
- * The editor's lifecycle state for a core {@link CoreSimulationState}:
- * "NotRun" without a handle and while one initializes, "Paused" once it is
- * ready.
+ * The editor's lifecycle state for a run in a core state: "NotRun" while it
+ * initializes, "Paused" once it is ready.
  */
-function mapCoreState(status: CoreSimulationState | null): SimulationState {
-  if (status === null) {
-    return "NotRun";
-  }
-  switch (status) {
-    case "Initializing":
-      return "NotRun";
-    case "Ready":
-      return "Paused";
-    case "Running":
-      return "Running";
-    case "Paused":
-      return "Paused";
-    case "Complete":
-      return "Complete";
-    case "Error":
-      return "Error";
-  }
-}
+const simulationStateOf: Record<CoreSimulationState, SimulationState> = {
+  Initializing: "NotRun",
+  Ready: "Paused",
+  Running: "Running",
+  Paused: "Paused",
+  Complete: "Complete",
+  Error: "Error",
+};
 
 /** Compilation surface consumed by simulation without coupling it to an LSP. */
 export type SimulationCompiler = {
@@ -839,9 +827,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     return Promise.resolve(slice);
   };
 
-  const simulationState = mapCoreState(
-    eventSimulation || stochastic ? coreStatus : null,
-  );
+  const simulationState =
+    eventSimulation || stochastic ? simulationStateOf[coreStatus] : "NotRun";
   // The run's own stores, so the source holds still for as long as the run.
   const playbackSource: PlaybackSource | null = eventSimulation
     ? {
