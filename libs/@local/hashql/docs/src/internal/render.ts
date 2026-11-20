@@ -2,6 +2,7 @@ import {
   Array,
   Effect,
   HashMap,
+  HashSet,
   Match,
   MutableHashMap,
   Option,
@@ -29,7 +30,7 @@ export interface Page {
   readonly output: Output.Output;
 }
 
-/** A directory of the reference and the order of the pages and directories in it, by name, as a host's navigation lists them. */
+/** A directory of the reference and the order of the pages and directories in it, by name, as a host's navigation lists them. The reference's own folder names each entrypoint by its path below it, such as `hashql/Draft`. */
 export interface Folder {
   readonly directory: string;
   readonly pages: readonly string[];
@@ -63,32 +64,54 @@ const fileOf = (
     }),
   );
 
-/** Each directory of `files` with the pages and directories in it, in the order the files first name them. */
-const foldersOf = (files: readonly string[]): readonly Folder[] => {
+/** A page's path in the navigation: its file without `.html`, and a directory's `index` as the directory itself, so the overview's path is empty. */
+const pathOf = (file: string): string =>
+  file.slice(0, -".html".length).replace(/(?:^|\/)index$/u, "");
+
+/** The navigation's page paths, by the kind of page. */
+interface Paths {
+  readonly entrypoints: readonly string[];
+  readonly modules: readonly string[];
+  readonly traits: readonly string[];
+}
+
+/**
+ * The folders that order the pages in a host's navigation.
+ *
+ * The reference's own folder lists the entrypoints, then the traits, and its page is the overview. Every other directory lists the pages and directories in it, in the order the files first name them. It leaves out its index, because the index is the directory's own page. It also leaves out an entrypoint, because the reference's folder lists every entrypoint.
+ */
+const foldersOf = ({
+  entrypoints,
+  modules,
+  traits,
+}: Paths): readonly Folder[] => {
+  const listed = HashSet.fromIterable(entrypoints);
   const folders = MutableHashMap.empty<string, readonly string[]>();
-  for (const file of files) {
-    const components = file.split("/");
-    for (const [index, component] of components.entries()) {
-      const directory = Array.take(components, index).join("/");
-      let name = component;
-      if (index === components.length - 1) {
-        name = component.slice(0, -".html".length);
+  for (const path of modules) {
+    const components = path.split("/");
+    for (const [index, name] of components.entries()) {
+      const child = Array.take(components, index + 1).join("/");
+      if (index > 0 && !HashSet.has(listed, child)) {
+        const directory = Array.take(components, index).join("/");
+        const existing = MutableHashMap.get(folders, directory).pipe(
+          Option.getOrElse(() => []),
+        );
+        MutableHashMap.set(
+          folders,
+          directory,
+          Array.dedupe(Array.append(existing, name)),
+        );
       }
-      const existing = MutableHashMap.get(folders, directory).pipe(
-        Option.getOrElse(() => []),
-      );
-      MutableHashMap.set(
-        folders,
-        directory,
-        Array.dedupe(Array.append(existing, name)),
-      );
     }
   }
 
-  return Array.map(Array.fromIterable(folders), ([directory, pages]) => ({
-    directory,
-    pages,
-  }));
+  return Array.prepend(
+    Array.map(Array.fromIterable(folders), ([directory, pages]) => ({
+      directory,
+      pages,
+    })),
+    { directory: "", pages: Array.appendAll(entrypoints, traits) },
+  );
 };
 
 /** Assigns every file and anchor, prints the code of every page and locates its declarations, after the trees are complete. */
@@ -113,18 +136,23 @@ export const render = Effect.fnUntraced(function* (
       },
     };
   });
-  const files = (type: Tree.Page.Page["type"]): readonly string[] =>
+  const pathsOf = (
+    shown: (tree: Tree.Page.Page) => boolean,
+  ): readonly string[] =>
     pipe(
       pages,
-      Array.filter(({ tree }) => tree.type === type),
-      Array.map(({ file }) => file),
+      Array.filter(({ tree }) => shown(tree)),
+      Array.map(({ file }) => pathOf(file)),
     );
 
   return {
     pages,
-    // The overview comes first and the traits last, as the navigation lists them.
-    folders: foldersOf(
-      Array.flatten([files("overview"), files("module"), files("traits")]),
-    ),
+    folders: foldersOf({
+      entrypoints: pathsOf(
+        (tree) => tree.type === "module" && tree.kind === "entrypoint",
+      ),
+      modules: pathsOf((tree) => tree.type === "module"),
+      traits: pathsOf((tree) => tree.type === "traits"),
+    }),
   } satisfies Pages;
 });
