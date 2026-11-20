@@ -28,10 +28,10 @@ vi.mock("./views/Editor/editor-view", async () => {
   ]);
 
   return {
-    EditorView: ({ titleEditable }: { titleEditable: boolean }) => {
+    EditorView: () => {
       "use no memo"; // The call below has to run on every render.
       onEditorViewRender();
-      const { setTitle, title } = use(NetManagementContext);
+      const { setTitle } = use(NetManagementContext);
       const { state, navigate } = usePetrinautNavigation();
 
       return (
@@ -39,15 +39,7 @@ vi.mock("./views/Editor/editor-view", async () => {
           data-testid="title-capability"
           data-available={setTitle !== undefined}
         >
-          <TopBar
-            actualModeAvailable={false}
-            menuItems={[]}
-            title={title}
-            onTitleChange={setTitle ?? (() => {})}
-            titleEditable={titleEditable}
-            mode="edit"
-            onModeChange={() => {}}
-          />
+          <TopBar menuItems={[]} />
           <button
             type="button"
             onClick={() =>

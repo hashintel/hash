@@ -126,7 +126,7 @@ const EditorAtMode = ({
         isAiAssistantOpen: true,
       }}
     >
-      <EditorView titleEditable />
+      <EditorView />
     </EditorContext.Provider>
   );
 };
@@ -138,7 +138,7 @@ const EditableWorkspace = () => {
     <EditorContext.Provider
       value={{ ...editor, editViewMode, setEditViewMode }}
     >
-      <EditorView titleEditable />
+      <EditorView />
     </EditorContext.Provider>
   );
 };
@@ -190,7 +190,7 @@ describe("EditorView assistant lifecycle", () => {
 
 describe("EditorView empty-net prompt", () => {
   test("opens the panel and hands the message to the plugin assistant's onPrompt", () => {
-    renderPlugins([promptPlugin], <EditorView titleEditable />);
+    renderPlugins([promptPlugin], <EditorView />);
 
     fireEvent.click(
       screen.getByRole("button", { name: "Send empty-net prompt" }),
@@ -203,7 +203,7 @@ describe("EditorView empty-net prompt", () => {
   });
 
   test("hides the prompt while the plugin assistant has no onPrompt", () => {
-    renderPlugins([silentPlugin], <EditorView titleEditable />);
+    renderPlugins([silentPlugin], <EditorView />);
 
     expect(
       screen.queryByRole("button", { name: "Send empty-net prompt" }),

@@ -187,7 +187,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   navigation,
   presentationProfile = "editor",
 }) => {
-  const titleEditable = setTitle !== undefined;
   const portalContainerRef = useRef<HTMLDivElement>(null);
   // Held for as long as the rules say the same: `rules={{ edit: "compose" }}`
   // is a new object on every render, and must not create a new instance.
@@ -242,7 +241,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
               >
                 <EditorView
                   hideNetManagementControls={hideNetManagementControls}
-                  titleEditable={titleEditable}
                 />
               </PetrinautPluginsProvider>
               <ResolvingOverlay />

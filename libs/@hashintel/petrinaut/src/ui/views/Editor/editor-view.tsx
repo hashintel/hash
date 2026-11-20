@@ -33,7 +33,6 @@ import {
 } from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
-import { ActualModeContext } from "../../../react/actual-mode-context";
 import { usePetrinautNavigation } from "../../../react/navigation";
 import { NetManagementContext } from "../../../react/net-management-context";
 import { CompositionContext } from "../../../react/state/composition-context";
@@ -151,8 +150,6 @@ const editViewSelectorSpaceStyle = css({
   flexShrink: "0",
 });
 
-const ignoreTitle = () => {};
-
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&
   sdcpn.transitions.length === 0 &&
@@ -166,13 +163,8 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
  */
 const EditorViewContent = ({
   hideNetManagementControls,
-  titleEditable,
 }: {
-  /**
-   * See {@link TopBar} for the full semantics.
-   */
   hideNetManagementControls?: "all" | "except-title";
-  titleEditable: boolean;
 }) => {
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
   const navigation = usePetrinautNavigation();
@@ -181,7 +173,7 @@ const EditorViewContent = ({
   const isReadOnly = useIsReadOnly();
   // Get data from sdcpn-store
   const { petriNetDefinition, petriNetId } = use(SDCPNContext);
-  const { createNewNet, existingNets, loadPetriNet, title, setTitle } =
+  const { createNewNet, existingNets, loadPetriNet, title } =
     use(NetManagementContext);
   const { libraries } = use(CompositionContext);
   const { applyAutoLayout } = usePetrinautCommands();
@@ -201,12 +193,10 @@ const EditorViewContent = ({
     editViewMode,
     isAiAssistantOpen,
     navigateTo,
-    setGlobalMode,
     clearSelection,
     setAiAssistantOpen,
     toggleAiAssistant,
   } = use(EditorContext);
-  const actualMode = use(ActualModeContext);
   const composesOnly = useComposesOnly();
   const assistant = useEditorAssistant();
 
@@ -581,14 +571,8 @@ const EditorViewContent = ({
 
       {/* Top Bar - always visible */}
       <TopBar
-        actualModeAvailable={actualMode.available}
         menuItems={menuItems}
-        title={title}
-        onTitleChange={setTitle ?? ignoreTitle}
-        titleEditable={titleEditable}
         hideNetManagementControls={hideNetManagementControls}
-        mode={globalMode}
-        onModeChange={setGlobalMode}
         onRunningExperimentClick={(experiment) =>
           handleRunningExperimentClick(experiment.id)
         }
@@ -693,13 +677,11 @@ const EditorIcons = ({ children }: { children: ReactNode }) => {
 
 export const EditorView = ({
   hideNetManagementControls,
-  titleEditable,
 }: React.ComponentProps<typeof EditorViewContent>) => (
   <CodeNavigationProvider>
     <EditorIcons>
       <EditorViewContent
         hideNetManagementControls={hideNetManagementControls}
-        titleEditable={titleEditable}
       />
     </EditorIcons>
   </CodeNavigationProvider>
