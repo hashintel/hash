@@ -8,7 +8,12 @@ import {
   toolingLibrary,
 } from "./libraries-story-fixtures";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
-import { barePetriNet } from "./story-nets";
+import {
+  barePetriNet,
+  colouredDynamicsNet,
+  colouredTokenFlowNet,
+  stochasticTimingNet,
+} from "./story-nets";
 import { pluginsWithOneBroken } from "./story-plugins";
 
 import type { ResolveImport } from "@hashintel/petrinaut-core";
@@ -56,6 +61,41 @@ export const ExtensionsDisabled: Story = {
   render: (args) => (
     <PetrinautStoryProvider key={JSON.stringify(args.capabilities)} {...args} />
   ),
+};
+
+/** A handle that supports token types and nothing else. */
+export const ColouredTokensOnly: Story = {
+  name: "Coloured tokens only",
+  args: {
+    initialTitle: "Coloured tokens only",
+    initialDefinition: colouredTokenFlowNet,
+    hideNetManagementControls: "all",
+    capabilities: {
+      disabledExtensions: ["stochasticity", "dynamics", "parameters"],
+    },
+  },
+};
+
+/** A handle that supports token types and dynamics. */
+export const ColouredTokensWithDynamics: Story = {
+  name: "Coloured tokens with dynamics",
+  args: {
+    initialTitle: "Coloured dynamics",
+    initialDefinition: colouredDynamicsNet,
+    hideNetManagementControls: "all",
+    capabilities: { disabledExtensions: ["stochasticity", "parameters"] },
+  },
+};
+
+/** A handle that supports stochastic rates and nothing else. */
+export const StochasticTimingOnly: Story = {
+  name: "Stochastic timing only",
+  args: {
+    initialTitle: "Stochastic timing",
+    initialDefinition: stochasticTimingNet,
+    hideNetManagementControls: "all",
+    capabilities: { disabledExtensions: ["colors", "dynamics", "parameters"] },
+  },
 };
 
 /** A net with colours and dynamics on a handle that supports neither: their data is kept, and hidden. */

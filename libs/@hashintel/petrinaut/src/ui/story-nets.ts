@@ -63,6 +63,165 @@ export const barePetriNet: SDCPN = {
   differentialEquations: [],
 };
 
+/** Two places of one token type, with a guard and a kernel that read it. */
+export const colouredTokenFlowNet: SDCPN = {
+  places: [
+    {
+      id: "p_queued",
+      name: "Queued",
+      colorId: "type_ticket",
+      dynamicsEnabled: false,
+      x: 120,
+      y: 180,
+      showAsInitialState: true,
+    },
+    {
+      id: "p_processed",
+      name: "Processed",
+      colorId: "type_ticket",
+      dynamicsEnabled: false,
+      x: 520,
+      y: 180,
+    },
+  ],
+  transitions: [
+    {
+      id: "t_process",
+      name: "Process",
+      inputArcs: [{ placeId: "p_queued", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "p_processed", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: `return input.Queued[0].age >= 0;`,
+      transitionKernelCode: `return {
+  Processed: [{ age: input.Queued[0].age + 1 }],
+};`,
+      x: 320,
+      y: 205,
+    },
+  ],
+  types: [
+    {
+      id: "type_ticket",
+      name: "Ticket",
+      iconSlug: "circle",
+      displayColor: "#0f766e",
+      elements: [{ elementId: "ticket_age", name: "age", type: "real" }],
+    },
+  ],
+  parameters: [],
+  differentialEquations: [],
+};
+
+/** A typed place whose tokens follow a differential equation until a guard releases them. */
+export const colouredDynamicsNet: SDCPN = {
+  places: [
+    {
+      id: "p_heating",
+      name: "Heating",
+      colorId: "type_batch",
+      dynamicsEnabled: true,
+      dynamics: [{ differentialEquationId: "de_heat_up" }],
+      x: 120,
+      y: 180,
+      showAsInitialState: true,
+    },
+    {
+      id: "p_ready",
+      name: "Ready",
+      colorId: "type_batch",
+      dynamicsEnabled: false,
+      x: 520,
+      y: 180,
+    },
+  ],
+  transitions: [
+    {
+      id: "t_release",
+      name: "Release",
+      inputArcs: [{ placeId: "p_heating", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "p_ready", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: `return input.Heating[0].temperature >= 80;`,
+      transitionKernelCode: `return {
+  Ready: [{ temperature: input.Heating[0].temperature }],
+};`,
+      x: 320,
+      y: 205,
+    },
+  ],
+  types: [
+    {
+      id: "type_batch",
+      name: "Batch",
+      iconSlug: "circle",
+      displayColor: "#b45309",
+      elements: [
+        { elementId: "temperature", name: "temperature", type: "real" },
+      ],
+    },
+  ],
+  parameters: [],
+  differentialEquations: [
+    {
+      id: "de_heat_up",
+      name: "Heat up",
+      colorId: "type_batch",
+      arity: 1,
+      code: `return { temperature: 5 };`,
+    },
+  ],
+};
+
+/** A source that fires at a rate into an untyped queue. */
+export const stochasticTimingNet: SDCPN = {
+  places: [
+    {
+      id: "p_queue",
+      name: "Queue",
+      colorId: null,
+      dynamicsEnabled: false,
+      x: 260,
+      y: 180,
+      showAsInitialState: true,
+    },
+    {
+      id: "p_served",
+      name: "Served",
+      colorId: null,
+      dynamicsEnabled: false,
+      x: 660,
+      y: 180,
+    },
+  ],
+  transitions: [
+    {
+      id: "t_arrive",
+      name: "Arrive",
+      inputArcs: [],
+      outputArcs: [{ placeId: "p_queue", weight: 1 }],
+      lambdaType: "stochastic",
+      lambdaCode: `return 0.5;`,
+      transitionKernelCode: "",
+      x: 80,
+      y: 205,
+    },
+    {
+      id: "t_serve",
+      name: "Serve",
+      inputArcs: [{ placeId: "p_queue", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "p_served", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: `return true;`,
+      transitionKernelCode: "",
+      x: 460,
+      y: 205,
+    },
+  ],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+};
+
 const place = (
   id: string,
   name: string,
