@@ -49,6 +49,9 @@ export const createEditorActions = ({
     selection: SelectionMap;
   };
 }): EditorActions => {
+  const patch = (changes: Partial<EditorState>) =>
+    setState((prev) => ({ ...prev, ...changes }));
+
   const navigateTo: EditorActions["navigateTo"] = (target) => {
     const drawerChangesOverlay =
       target.simulateDrawer !== undefined &&
@@ -130,33 +133,17 @@ export const createEditorActions = ({
         componentToAdd: mode === "add-component" ? prev.componentToAdd : null,
       })),
     setAddComponentMode: (component) =>
-      setState((prev) => ({
-        ...prev,
-        editionMode: "add-component",
-        componentToAdd: component,
-      })),
-    setCursorMode: (mode) =>
-      setState((prev) => ({ ...prev, cursorMode: mode })),
-    setLeftSidebarOpen: (isOpen) => {
-      setState((prev) => ({
-        ...prev,
-        isLeftSidebarOpen: isOpen,
-      }));
-    },
-    setBottomPanelOpen: (isOpen) => {
-      setState((prev) => ({
-        ...prev,
-        isBottomPanelOpen: isOpen,
-      }));
-    },
+      patch({ editionMode: "add-component", componentToAdd: component }),
+    setCursorMode: (mode) => patch({ cursorMode: mode }),
+    setLeftSidebarOpen: (isOpen) => patch({ isLeftSidebarOpen: isOpen }),
+    setBottomPanelOpen: (isOpen) => patch({ isBottomPanelOpen: isOpen }),
     toggleBottomPanel: () => {
       setState((prev) => ({
         ...prev,
         isBottomPanelOpen: !prev.isBottomPanelOpen,
       }));
     },
-    setActiveBottomPanelTab: (tab) =>
-      setState((prev) => ({ ...prev, activeBottomPanelTab: tab })),
+    setActiveBottomPanelTab: (tab) => patch({ activeBottomPanelTab: tab }),
     isSelected: (id) => read().selection.has(id),
     setSelection,
     beginSelectionGesture,
@@ -174,18 +161,10 @@ export const createEditorActions = ({
         return selection;
       }),
     clearSelection: () => setSelection(new Map()),
-    setHoveredItem: (item: SelectionItem) =>
-      setState((prev) => ({
-        ...prev,
-        hoveredItem: item,
-      })),
-    clearHoveredItem: () =>
-      setState((prev) => ({
-        ...prev,
-        hoveredItem: null,
-      })),
+    setHoveredItem: (item: SelectionItem) => patch({ hoveredItem: item }),
+    clearHoveredItem: () => patch({ hoveredItem: null }),
     openPlaceVisualizer: (placeId: string | null) =>
-      setState((prev) => ({ ...prev, openVisualizerPlaceId: placeId })),
+      patch({ openVisualizerPlaceId: placeId }),
     setVisualizerEditorFocus: (placeId: string, focused: boolean) =>
       setState((previous) => ({
         ...(focused ? raiseVisualizer(previous, placeId) : previous),
@@ -250,19 +229,17 @@ export const createEditorActions = ({
       })),
     collapseAllPanels: () => {
       navigate({ selection: [] }, { cause: "user", action: "selection" });
-      setState((prev) => ({
-        ...prev,
+      patch({
         isLeftSidebarOpen: false,
         isSearchOpen: false,
         isBottomPanelOpen: false,
-      }));
+      });
     },
     setTimelineChartType: (chartType) =>
-      setState((prev) => ({ ...prev, timelineChartType: chartType })),
-    setTimelineView: (view) =>
-      setState((prev) => ({ ...prev, timelineView: view })),
+      patch({ timelineChartType: chartType }),
+    setTimelineView: (view) => patch({ timelineView: view }),
     setHiddenTimelineSeriesIds: (seriesIds) =>
-      setState((prev) => ({ ...prev, hiddenTimelineSeriesIds: seriesIds })),
+      patch({ hiddenTimelineSeriesIds: seriesIds }),
     setSimulateViewMode: (mode) =>
       navigate(
         (current) =>
@@ -277,14 +254,8 @@ export const createEditorActions = ({
         { cause: "user", action: "simulation-view" },
       ),
     setSimulateDrawer: (drawer) => navigateTo({ simulateDrawer: drawer }),
-    setSearchOpen: (isOpen) =>
-      setState((prev) => ({ ...prev, isSearchOpen: isOpen })),
-    setAiAssistantOpen: (isOpen) => {
-      setState((prev) => ({
-        ...prev,
-        isAiAssistantOpen: isOpen,
-      }));
-    },
+    setSearchOpen: (isOpen) => patch({ isSearchOpen: isOpen }),
+    setAiAssistantOpen: (isOpen) => patch({ isAiAssistantOpen: isOpen }),
     toggleAiAssistant: () => {
       setState((prev) => ({
         ...prev,
