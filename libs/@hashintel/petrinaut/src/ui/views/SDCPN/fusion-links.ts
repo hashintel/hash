@@ -26,7 +26,7 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 /** One link of a fusion: from its hub to another of its members. */
-export type FusionLink = {
+type FusionLink = {
   /** Unique per link; the fusion itself is selected by its own id. */
   id: string;
   hub: FusionMember;
@@ -86,7 +86,7 @@ export const fusionStatuses = (
 };
 
 /** What joining two places by a drag does to the net's fusions. */
-export type FusionPlan =
+type FusionPlan =
   /** The fused place would be two places of this net, and it holds one at most. */
   | { kind: "refused" }
   /**

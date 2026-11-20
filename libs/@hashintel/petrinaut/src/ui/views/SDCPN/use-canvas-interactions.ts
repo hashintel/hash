@@ -75,7 +75,7 @@ export type CanvasNodeDrop = { id: string; position: CanvasPoint | null };
 
 export type CanvasSelectionChange = { id: string; selected: boolean };
 
-export type CanvasPaneCursor = "copy" | "grab" | "default";
+type CanvasPaneCursor = "copy" | "grab" | "default";
 
 type CanvasModes = {
   readonly: boolean;

@@ -27,12 +27,15 @@ import type {
   SimulationFrameReader,
   SimulationFrameState,
 } from "../../../react/simulation/context";
-import type { TransitionFrameState } from "./renderers/react-flow/react-flow-canvas/react-flow-types";
 import type {
   CountStatistics,
   ExperimentReader,
   ReadableStore,
 } from "@hashintel/petrinaut-core";
+
+type TransitionFrameState = NonNullable<
+  ReturnType<SimulationFrameReader["getTransitionState"]>
+>;
 
 type FrameSnapshot = {
   reader: SimulationFrameReader | null;
