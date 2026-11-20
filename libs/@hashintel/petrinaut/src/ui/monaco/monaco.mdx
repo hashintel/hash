@@ -23,14 +23,14 @@ It owns the one load of Monaco, the `CodeEditor` component, the life of text mod
 | `singleLine`, `onSubmit`, `onEscape` | Use the editor as a one-line expression input. |
 | `mountSelection` | Say where the caret lands when the editor mounts. |
 | `getDocumentUri` | Build the URI of a piece of user code, the same one the language server uses. |
-| `CodeNavigationProvider` | Open the section that holds a function and focus its editor. |
+| `useCodeNavigation` | Open the section that holds a piece of code and focus its editor. |
 
 ## Data flow
 
 A user types one character in a place's visualizer code:
 
 1. Monaco changes the model of that URI and `CodeEditor` calls `onChange`. The caller writes the text to the document handle at once.
-2. The React layer delays the snapshot that the UI renders until typing has paused for 120 ms, or 500 ms have passed. A pointer press, a blur, Tab, Escape and any shortcut with a modifier publish it at once. Only visualizer code is delayed, and every other edit publishes as before.
+2. The React layer delays the snapshot that the UI renders until typing has paused for 120 ms, or 500 ms have passed. A pointer press, a window blur, Tab, Escape and any key pressed with Cmd or Ctrl publish it at once. Only visualizer code is delayed, and every other edit publishes as before.
 3. While the editor has focus, `CodeEditor` withholds `value`, so a snapshot that is one keystroke behind never overwrites the model.
 4. `CompletionSync` sends the current text of the model to the language client before it asks for completions. `DiagnosticsSync` writes the diagnostics of each URI to the model as markers.
 

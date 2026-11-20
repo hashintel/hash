@@ -330,8 +330,8 @@ initial-state body and wrapped override expressions.
 
 | Layer | What it owns |
 | --- | --- |
-| [`core.simulation.authoring.adhoc`](layer:core.simulation.authoring.adhoc) | The state shapes, the transitions between row kinds, synthesis, slots and labels, the action schemas and the pure reducer |
-| [`core.lsp`](layer:core.lsp) | One wrapped virtual document per non-empty slot, and the `temp/adhoc/*` session protocol in the worker |
+| [`core.simulation.authoring.adhoc`](layer:core.simulation.authoring.adhoc) | The state shapes, the transitions between row kinds, synthesis, labels, the action schemas and the pure reducer |
+| [`core.lsp`](layer:core.lsp) | One wrapped virtual document per non-empty `AdHocSlot`, and the `temp/adhoc/*` session protocol in the worker |
 | [`ui.adhoc-form`](layer:ui.adhoc-form) | The sections, the LSP session, the error map, the undo history, the token table, the in-place cell editor and the dependency highlight |
 | [`ui.spreadsheet-kit`](layer:ui.spreadsheet-kit) | The table shell, gutter cells and their menus, the trailing add-lines and the row-selection model |
 | [`ui.worksheet`](layer:ui.worksheet) | The keyboard flow: each grid or header owns its arrows, and an edge move focuses the next one in DOM order |
@@ -345,7 +345,7 @@ state as `initialState.type "adhoc"`.
 
 `AdHocFormContext` is what the form gives the components beneath it: the
 `dispatch` write path, the net context, the selection mode, the error and the
-URI of each slot, the labels, the place totals, the dependency highlight and
+URI of each `AdHocSlot`, the labels, the place totals, the dependency highlight and
 the focused-value reporter. A component beneath reads it with `useAdHocForm`
 and carries only its own value and location.
 
@@ -386,7 +386,7 @@ synthesis-only validation. The Create Experiment drawer's constraint rows
 (`create-experiment-drawer/constraints-section.tsx`) follow the same pattern with
 `temp/constraint/*` sessions: one per row, keyed by the draft id, carrying
 the selected scenario's parameters so `scenario.*` resolves in every row.
-State is plain data — hold it wherever the consumer
+State is plain data. Hold it wherever the consumer
 already keeps its draft (component state in the drawer, `SimulationContext`
 for quick simulation) and hand `output.scenario` to `compileScenario` when
 the consumer needs it: the drawer compiles at experiment start,
