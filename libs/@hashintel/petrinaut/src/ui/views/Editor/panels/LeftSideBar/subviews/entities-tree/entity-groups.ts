@@ -1,9 +1,9 @@
 import {
   DifferentialEquationIcon,
   ParameterIcon,
-  PlaceFilledIcon,
+  PlaceIcon,
   TokenTypeIcon,
-  TransitionFilledIcon,
+  TransitionIcon,
 } from "../../../../../../constants/entity-icons";
 
 import type { ActiveNetDefinition } from "../../../../../../../react/state/active-net-context";
@@ -43,8 +43,8 @@ export const entityIcons: Record<
   EntityItem["type"],
   ComponentType<{ size: number }>
 > = {
-  place: PlaceFilledIcon,
-  transition: TransitionFilledIcon,
+  place: PlaceIcon,
+  transition: TransitionIcon,
   type: TokenTypeIcon,
   differentialEquation: DifferentialEquationIcon,
   parameter: ParameterIcon,

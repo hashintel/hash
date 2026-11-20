@@ -50,7 +50,3 @@ export const DifferentialEquationIcon = ({ size }: EntityIconProps) => (
 export const FusionIcon = ({ size }: EntityIconProps) => (
   <Icon name="diagramNodes" size={sizeToIconSize(size)} />
 );
-
-/** The names list rows import; the same icons. */
-export const PlaceFilledIcon = PlaceIcon;
-export const TransitionFilledIcon = TransitionIcon;
