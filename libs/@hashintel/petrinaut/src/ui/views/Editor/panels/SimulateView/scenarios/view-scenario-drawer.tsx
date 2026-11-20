@@ -16,7 +16,10 @@ import {
   AdHocScenarioAuthoringBody,
   AdHocScenarioAuthoringFooter,
 } from "./ad-hoc-scenario-authoring";
-import { useAdHocScenarioAuthoring } from "./use-ad-hoc-scenario-authoring";
+import {
+  scenarioFormContext,
+  useAdHocScenarioAuthoring,
+} from "./use-ad-hoc-scenario-authoring";
 
 const migrationNoteStyle = css({
   fontSize: "xs",
@@ -44,29 +47,22 @@ const ViewScenarioContent = ({
 }) => {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { updateScenario } = usePetrinautMutations();
-  // Names of the other scenarios, so this one can keep its current name.
-  const existingScenarioNames = new Set(
-    (petriNetDefinition.scenarios ?? [])
-      .filter((candidate) => candidate.id !== scenario.id)
-      .map((candidate) => candidate.name),
-  );
 
-  // The same context the authoring hook synthesizes against, so an
-  // override the form could not show (a parameter the net no longer has,
-  // or any parameter while the extension is off) is dropped on open rather
-  // than blocking Save.
-  const source = adHocStateFromScenario(scenario, {
-    netParameters: extensions.parameters ? petriNetDefinition.parameters : [],
-    places: petriNetDefinition.places,
-    types: extensions.colors ? petriNetDefinition.types : [],
-  });
+  // The context the authoring hook synthesizes against, so an override the
+  // form could not show (a parameter the net no longer has, or any
+  // parameter while the extension is off) is dropped on open rather than
+  // blocking Save.
+  const source = adHocStateFromScenario(
+    scenario,
+    scenarioFormContext(extensions, petriNetDefinition),
+  );
   const authoring = useAdHocScenarioAuthoring({
     initial: {
       name: scenario.name,
       description: scenario.description ?? "",
       state: source.state,
     },
-    existingScenarioNames,
+    scenarioId: scenario.id,
     ...(source.kind === "code"
       ? {
           code: {

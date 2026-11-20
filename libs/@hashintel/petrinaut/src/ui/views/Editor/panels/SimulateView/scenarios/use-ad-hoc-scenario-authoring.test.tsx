@@ -12,7 +12,11 @@ import { useAdHocScenarioAuthoring } from "./use-ad-hoc-scenario-authoring";
 
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { UseAdHocScenarioAuthoringOptions } from "./use-ad-hoc-scenario-authoring";
-import type { AdHocScenarioState, SDCPN } from "@hashintel/petrinaut-core";
+import type {
+  AdHocScenarioState,
+  Scenario,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
 
 // Petrinaut ids, which the schema a scenario is saved through keeps as they are.
 const queuePlaceId = "00000000-0000-4000-8000-000000000001";
@@ -87,8 +91,16 @@ const Harness = ({
   return null;
 };
 
+const scenarioNamed = (name: string): Scenario => ({
+  id: name,
+  name,
+  scenarioParameters: [],
+  parameterOverrides: {},
+  initialState: { type: "per_place", content: {} },
+});
+
 function renderAuthoring(
-  existingNames: ReadonlySet<string> = new Set(),
+  otherScenarioNames: string[] = [],
   code?: UseAdHocScenarioAuthoringOptions["code"],
 ) {
   const holder: {
@@ -98,11 +110,16 @@ function renderAuthoring(
     holder.current = value;
   };
   render(
-    <SDCPNContext value={sdcpnContextValue}>
-      <Harness
-        options={{ existingScenarioNames: existingNames, code }}
-        onValue={capture}
-      />
+    <SDCPNContext
+      value={{
+        ...sdcpnContextValue,
+        petriNetDefinition: {
+          ...sdcpn,
+          scenarios: otherScenarioNames.map(scenarioNamed),
+        },
+      }}
+    >
+      <Harness options={{ code }} onValue={capture} />
     </SDCPNContext>,
   );
   return holder as { current: ReturnType<typeof useAdHocScenarioAuthoring> };
@@ -134,7 +151,7 @@ describe("useAdHocScenarioAuthoring", () => {
   });
 
   it("blocks saving on a duplicate name or broken state", () => {
-    const authoring = renderAuthoring(new Set(["Morning rush"]));
+    const authoring = renderAuthoring(["Morning rush"]);
     act(() => {
       authoring.current.setName("Morning rush");
       authoring.current.setState(draftState);
@@ -151,7 +168,7 @@ describe("useAdHocScenarioAuthoring", () => {
         { type: "integer" as const, identifier: "base_load", default: 6 },
       ],
     };
-    const authoring = renderAuthoring(new Set(), code);
+    const authoring = renderAuthoring([], code);
     act(() => {
       authoring.current.setName("Constellation");
       authoring.current.setState({ ...draftState, places: {} });
@@ -191,7 +208,7 @@ describe("useAdHocScenarioAuthoring", () => {
         { type: "integer" as const, identifier: "base_load", default: 6 },
       ],
     };
-    const authoring = renderAuthoring(new Set(), code);
+    const authoring = renderAuthoring([], code);
     act(() => {
       authoring.current.setName("Constellation");
       authoring.current.setState({

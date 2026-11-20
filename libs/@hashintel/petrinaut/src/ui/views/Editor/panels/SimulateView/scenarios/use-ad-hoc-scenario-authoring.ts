@@ -14,8 +14,10 @@ import { validateScenarioName } from "./ad-hoc-scenario-authoring/validate-scena
 
 import type {
   AdHocScenarioState,
+  PetrinautExtensionSettings,
   Scenario,
   ScenarioParameter,
+  SDCPN,
 } from "@hashintel/petrinaut-core";
 
 interface AdHocScenarioDraft {
@@ -26,8 +28,8 @@ interface AdHocScenarioDraft {
 
 export interface UseAdHocScenarioAuthoringOptions {
   initial?: Partial<AdHocScenarioDraft>;
-  /** Names of other scenarios; the draft's name must not match any. */
-  existingScenarioNames: ReadonlySet<string>;
+  /** The scenario being edited: it may keep its name, which no other may take. */
+  scenarioId?: string;
   /**
    * A code-mode initial state the form cannot show as blocks. Kept verbatim
    * on save and shown read-only in the Initial state slot; the code reads
@@ -75,6 +77,16 @@ const unexposedCodeVariableErrors = (state: AdHocScenarioState): string[] =>
         `Variable "${name}" cannot be kept with code-defined initial state; turn Scenario Parameter on or delete it.`,
     );
 
+/** What a scenario's form is read against: the net's places, and its parameters and types while their extension is on. */
+export const scenarioFormContext = (
+  extensions: PetrinautExtensionSettings,
+  definition: SDCPN,
+) => ({
+  netParameters: extensions.parameters ? definition.parameters : [],
+  places: definition.places,
+  types: extensions.colors ? definition.types : [],
+});
+
 /**
  * The draft state plus everything the footer needs: the error summary
  * (name validation, synthesis errors, the code's parameter checks, this
@@ -88,9 +100,9 @@ const unexposedCodeVariableErrors = (state: AdHocScenarioState): string[] =>
  */
 export function useAdHocScenarioAuthoring({
   initial,
-  existingScenarioNames,
+  scenarioId,
   code,
-}: UseAdHocScenarioAuthoringOptions) {
+}: UseAdHocScenarioAuthoringOptions = {}) {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { diagnosticsByUri } = use(LanguageClientContext);
 
@@ -106,13 +118,14 @@ export function useAdHocScenarioAuthoring({
   // no-op click; the footer shows it instead.
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const context = {
-    netParameters: extensions.parameters ? petriNetDefinition.parameters : [],
-    places: petriNetDefinition.places,
-    types: extensions.colors ? petriNetDefinition.types : [],
-  };
+  const context = scenarioFormContext(extensions, petriNetDefinition);
+  const otherScenarioNames = new Set(
+    (petriNetDefinition.scenarios ?? [])
+      .filter((other) => other.id !== scenarioId)
+      .map((other) => other.name),
+  );
 
-  const nameError = validateScenarioName(name, existingScenarioNames);
+  const nameError = validateScenarioName(name, otherScenarioNames);
   const synthesized = synthesizeAdHocScenario(state, context);
   const synthesisErrors = synthesized.ok ? [] : synthesized.errors;
   const codeParameterErrors = code
