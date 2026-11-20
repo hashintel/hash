@@ -19,6 +19,7 @@ import { notificationsToaster } from "./toaster";
 afterEach(() => {
   cleanup();
   notificationsToaster.remove();
+  Reflect.deleteProperty(navigator, "clipboard");
   vi.restoreAllMocks();
 });
 
@@ -78,6 +79,11 @@ test("keeps error notifications open while preserving the default for other tone
 });
 
 test("shows a way out only where a notification needs one", async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText },
+  });
   const Trigger = () => {
     const { addNotification } = use(NotificationsContext);
 
@@ -134,7 +140,15 @@ test("shows a way out only where a notification needs one", async () => {
       failure?.querySelector("[aria-label='Close notification']"),
     ).toBeTruthy(),
   );
-  expect(failure?.querySelector("[aria-label='Copy details']")).toBeTruthy();
+  const copyDetails = failure?.querySelector("[aria-label='Copy details']");
+  expect(copyDetails).toBeInstanceOf(HTMLElement);
+
+  fireEvent.click(copyDetails as HTMLElement);
+
+  expect(writeText).toHaveBeenCalledWith("The complete elicitor failure.");
+  await waitFor(() =>
+    expect(failure?.querySelector("[aria-label='Copied']")).toBeTruthy(),
+  );
 });
 
 test("deduplicates a notice and offers its action without stealing focus", async () => {
