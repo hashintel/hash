@@ -157,20 +157,23 @@ const EditorViewContent = ({
                   <BottomPanel />
                 </Box>
               </Activity>
-              <Activity
-                mode={
-                  globalMode === "edit" && editViewMode === "definitions"
-                    ? "visible"
-                    : "hidden"
-                }
-              >
-                <NotebookView
-                  key={petriNetId ?? "no-net"}
-                  toolbarStart={
-                    <div aria-hidden className={editViewSelectorSpaceStyle} />
+              {/* An editor that only composes has no Definitions view to keep warm. */}
+              {!composesOnly && (
+                <Activity
+                  mode={
+                    globalMode === "edit" && editViewMode === "definitions"
+                      ? "visible"
+                      : "hidden"
                   }
-                />
-              </Activity>
+                >
+                  <NotebookView
+                    key={petriNetId ?? "no-net"}
+                    toolbarStart={
+                      <div aria-hidden className={editViewSelectorSpaceStyle} />
+                    }
+                  />
+                </Activity>
+              )}
             </div>
           )}
           <Activity
