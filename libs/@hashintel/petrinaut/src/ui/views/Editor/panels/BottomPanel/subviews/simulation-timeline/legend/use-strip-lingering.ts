@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
+import { useLatest } from "../../../../../../../../react/hooks/use-latest";
+
 /**
  * Grace period after the pointer or focus leaves the selector before
  * just-hidden entries animate out. Returning within the delay keeps them.
@@ -43,12 +45,9 @@ export const useStripLingering = (
     leaving: Set<string>;
   }>({ lingering: new Set(), leaving: new Set() });
 
-  // The release fires from a timeout, so it reads the latest hidden set from
-  // a ref instead of the (possibly stale) closed-over prop.
-  const hiddenSeriesRef = useRef(hiddenSeries);
-  useEffect(() => {
-    hiddenSeriesRef.current = hiddenSeries;
-  });
+  // The release fires from a timeout, so it reads the hidden set of that
+  // moment, not the one of the render that scheduled it.
+  const hiddenSeriesRef = useLatest(hiddenSeries);
 
   const releaseTimeoutRef = useRef<number | null>(null);
 
