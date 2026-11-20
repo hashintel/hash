@@ -20,26 +20,28 @@ graph TD
     9[hash-integrations-definition]
     class 9 root
     10[<a href="../hash_integrations_engine/index.html">hash-integrations-engine</a>]
-    11[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    12[<a href="../error_stack/index.html">error-stack</a>]
-    13[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
-    14[<a href="../hash_integrations_graph_tests/index.html">hash-integrations-graph-tests</a>]
+    11[<a href="../hash_integrations_ledger/index.html">hash-integrations-ledger</a>]
+    12[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    13[<a href="../error_stack/index.html">error-stack</a>]
+    14[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    15[<a href="../hash_integrations_graph_tests/index.html">hash-integrations-graph-tests</a>]
     0 --> 5
-    0 -.-> 13
+    0 -.-> 14
     1 -.-> 2
     1 --> 8
     3 --> 0
     4 --> 3
     4 --> 6
-    4 --> 11
+    4 --> 12
     5 --> 1
-    6 -.-> 13
+    6 -.-> 14
     8 -.-> 7
     8 --> 7
-    8 --> 12
+    8 --> 13
     9 --> 0
     10 --> 4
     10 --> 9
-    11 --> 0
-    13 --> 4
-    14 -.-> 10
+    11 --> 9
+    12 --> 0
+    14 --> 4
+    15 -.-> 10
