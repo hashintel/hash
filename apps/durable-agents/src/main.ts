@@ -49,6 +49,8 @@
  * - a crash-loop abort (`"event": "durable-agents.crash-loop"`);
  * - each of Pi Durable's reports, with its conversation
  *   (`"event": "durable-agents.report"`);
+ * - a stopped conversation's work failing to unwind after its stop answered
+ *   (`"event": "durable-agents.stop-error"`);
  * - an idle pool client's error (`"event": "durable-agents.pool-error"`);
  * - a session check hash-api could not answer, answered 503
  *   (`"event": "durable-agents.session-check"`);
@@ -156,6 +158,16 @@ const server = await startDurableAgentsServer({
       message: `Pi Durable reported ${report.kind}.`,
       conversationId,
       report,
+      error: errorText(error),
+    });
+  },
+  onStopError: (conversationId, error) => {
+    logLine({
+      level: "error",
+      event: "durable-agents.stop-error",
+      message:
+        "A stopped conversation's work failed to unwind after the stop answered.",
+      conversationId,
       error: errorText(error),
     });
   },

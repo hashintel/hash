@@ -19,8 +19,11 @@
  *   If the last run ended in a crash loop, reconnect replays that failed input
  *   under the same message ID, until a newer run starts.
  * - `POST /chat/:id/abort` stops the conversation; AI SDK's `stop()` only
- *   drops the client's fetch, so a client calls it itself. 404 for an unknown
- *   conversation.
+ *   drops the client's fetch, so a client calls it itself. It answers 204
+ *   once the stop is stored (its work marked aborted, queued inputs
+ *   withdrawn), not once that work has unwound: a tool or model call that
+ *   ignores its abort signal unwinds behind the answer, and a failure there
+ *   goes to `onStopError`. 404 for an unknown conversation.
  * - `GET /chat/:id/messages` answers the conversation's history as AI SDK
  *   `UIMessage[]` (`historyHandler`), projected with the live stream's own
  *   options; 404 for an unknown conversation.
@@ -171,6 +174,12 @@ export type DurableAgentsServerOptions = ConversationRegistryOptions & {
    */
   readonly isUnavailable?: (error: unknown) => boolean;
   /**
+   * Told when a stopped conversation's work fails to unwind after the stop
+   * answered, so no request is left to tell; `console.error` when absent.
+   * Not told during `close`, which ends that wait itself.
+   */
+  readonly onStopError?: (conversationId: string, error: unknown) => void;
+  /**
    * How long a turn's stream may go without a byte before it carries an SSE
    * comment heartbeat (`withSseHeartbeat`), so a proxy in front keeps it open
    * while the turn waits; `defaultSseHeartbeatMs` (30 s) when absent.
@@ -297,6 +306,13 @@ export const createDurableAgentsServer = (
   app.use("*", async (ctx, next) =>
     ctx.req.method === "HEAD" ? ctx.body(null, 405) : next(),
   );
+
+  const reportStopError =
+    options.onStopError ??
+    ((conversationId: string, error: unknown) => {
+      // oxlint-disable-next-line no-console -- No request is left to answer with it.
+      console.error(`Stopping conversation ${conversationId} failed:`, error);
+    });
 
   // Hono's own handler, but a request the server could not serve for now is a 503 the client may retry.
   app.onError((error, ctx) => {
@@ -467,13 +483,35 @@ export const createDurableAgentsServer = (
     }
   });
 
-  /** Stop the conversation: withdraw queued inputs and abort its current work. */
+  /** Each stop whose work is still unwinding, so `close` waits for it. */
+  const unwinding = new Set<Promise<void>>();
+  let closing = false;
+
+  /**
+   * Stop the conversation: withdraw queued inputs and abort its current work,
+   * answering once that is stored, while the work unwinds behind the answer.
+   */
   app.post("/chat/:id/abort", async (ctx) => {
-    const conversation = await conversations.acquire(ctx.req.param("id"));
+    const conversationId = ctx.req.param("id");
+    const conversation = await conversations.acquire(conversationId);
     if (conversation === undefined) return ctx.text(unknownConversation, 404);
     const refused = await options.admitConversation?.(conversation, ctx);
     if (refused !== undefined) return refused;
-    await conversation.root.abort(context);
+    const { root } = conversation;
+    // Pi's `abort` puts its commit (the abort marks, the queued inputs
+    // withdrawn) on the Session's line as it is called, then waits for the
+    // conversation to be idle, which a tool or model call that ignores its
+    // signal can hold off indefinitely.
+    const unwound: Promise<void> = root
+      .abort(context)
+      .catch((error: unknown) => {
+        // A close ends the wait with the Harness's closed error.
+        if (!closing) reportStopError(conversationId, error);
+      })
+      .finally(() => unwinding.delete(unwound));
+    unwinding.add(unwound);
+    // A commit after it on the line is delivered once the abort's is stored, and fails if that failed.
+    await root.commit(() => undefined, context);
     return ctx.body(null, 204);
   });
 
@@ -495,8 +533,10 @@ export const createDurableAgentsServer = (
     now,
     requestSlots: { state: requestSlots.state },
     close: async () => {
+      closing = true;
       turns.close();
       await conversations.close();
+      await Promise.all(unwinding);
     },
   };
 };
