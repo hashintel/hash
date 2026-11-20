@@ -79,41 +79,36 @@ const equationSummary = (
   return `${typeName(net, equation.colorId)} · ${places.length} place${places.length === 1 ? "" : "s"}`;
 };
 
-/** What a cell's row shows of its entity. */
+/** What a cell's row shows of its entity beside its name. */
 export const cellPresentation = (
   net: ActiveNetDefinition,
   cell: NotebookCell,
-): { iconColor: string | undefined; name: string; summary: string } => {
+): { iconColor: string | undefined; summary: string } => {
   switch (cell.kind) {
     case "place":
       return {
         iconColor: net.types.find(({ id }) => id === cell.place.colorId)
           ?.displayColor,
-        name: cell.place.name || cell.id,
         summary: placeSummary(net, cell.place),
       };
     case "transition":
       return {
         iconColor: undefined,
-        name: cell.transition.name || cell.id,
         summary: transitionSummary(net, cell.transition),
       };
     case "type":
       return {
         iconColor: cell.color.displayColor,
-        name: cell.color.name || cell.id,
         summary: colorSummary(cell.color),
       };
     case "differentialEquation":
       return {
         iconColor: undefined,
-        name: cell.equation.name || cell.id,
         summary: equationSummary(net, cell.equation),
       };
     case "parameter":
       return {
         iconColor: undefined,
-        name: cell.parameter.name || cell.id,
         summary: parameterSummary(cell.parameter),
       };
   }
