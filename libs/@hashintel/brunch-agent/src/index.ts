@@ -37,18 +37,36 @@ export {
   type HashWebReadResult,
 } from "./hash/graph-reads";
 export {
+  hashSaveDescription,
+  hashSaveForModel,
+  hashSaveUnconfirmedNote,
   hashSaveInputSchema,
   parseHashSaveInput,
   parseHashSaveOutcome,
+  versionLoadNote,
+  type HashSaveForModel,
   type HashSaveOutcome,
 } from "./hash/save";
 export {
+  hashNoNetViewRefusal,
   hashPetrinautPrimaryOperation,
   hashPetrinautTools,
   hashProcessEditorId,
   isHashPetrinautToolName,
+  unknownEditorRefusal,
   type HashPetrinautToolName,
 } from "./hash/petrinaut-tools";
+export {
+  hashEntityReadDescription,
+  hashEntityReadEmptyNote,
+  hashEntityReadForModel,
+  hashEntityTypeReadDescription,
+  hashEntityTypeReadForModel,
+  hashReadFailureForModel,
+  hashWebReadDescription,
+  hashWebReadForModel,
+} from "./hash/graph-reads-for-model";
+export { hashEvidencedDescription } from "./hash/evidenced-description";
 export * from "./ledger";
 export {
   canonicalContent,
@@ -89,6 +107,7 @@ export {
   type PetrinautSubmissionContext,
   type VersionLoad,
 } from "./petrinaut/submission-context";
+export { noNetViewRefusalNaming } from "./petrinaut/no-net-view-refusal";
 export {
   netReaderDescriptions,
   netReaderInputSchema,
@@ -117,6 +136,7 @@ export {
   type SdcpnInitialData,
 } from "./petrinaut/initial-data";
 export {
+  draftPetrinautExperimentDescription,
   draftPetrinautExperimentInputSchema,
   draftPetrinautExperimentOutputSchema,
   type DraftPetrinautExperimentInput,
