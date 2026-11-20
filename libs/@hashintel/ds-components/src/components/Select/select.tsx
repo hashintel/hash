@@ -28,11 +28,15 @@ import {
   type CollapsibleExpansion,
   type CollapsibleFolder,
   type NotCollapsible,
+  collectCollapsibleIds,
   collectSelectedAncestorIds,
   flattenVisibleItems,
   getItemId,
   getVisibleTabbables,
+  toPublicItemId,
+  toRowItemId,
   useCollapsibleExpansion,
+  useNormalizedItems,
 } from "../../primitives/SelectableList/selectable-list-util";
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
@@ -393,10 +397,10 @@ const SelectApiBridge = ({
  */
 const SearchHighlightSync = ({
   search,
-  firstVisibleValue,
+  firstVisibleRowId,
 }: {
   search: string;
-  firstVisibleValue: string | undefined;
+  firstVisibleRowId: string | undefined;
 }) => {
   const select = useSelectContext();
   // Re-sync when the search OR the first match changes (results can arrive
@@ -404,27 +408,27 @@ const SearchHighlightSync = ({
   // plain re-renders — arrow-key navigation must keep its highlight.
   const lastSynced = useRef<{
     search: string;
-    firstVisibleValue: string | undefined;
-  }>({ search: "", firstVisibleValue: undefined });
+    firstVisibleRowId: string | undefined;
+  }>({ search: "", firstVisibleRowId: undefined });
 
   useEffect(() => {
     const last = lastSynced.current;
     if (
       last.search === search &&
-      last.firstVisibleValue === firstVisibleValue
+      last.firstVisibleRowId === firstVisibleRowId
     ) {
       return;
     }
-    lastSynced.current = { search, firstVisibleValue };
+    lastSynced.current = { search, firstVisibleRowId };
     if (search === "") {
       return;
     }
-    if (firstVisibleValue !== undefined) {
-      select.setHighlightValue(firstVisibleValue);
+    if (firstVisibleRowId !== undefined) {
+      select.setHighlightValue(firstVisibleRowId);
     } else {
       select.clearHighlightValue();
     }
-  }, [search, firstVisibleValue, select]);
+  }, [search, firstVisibleRowId, select]);
 
   return null;
 };
@@ -498,6 +502,13 @@ export const Select = <TValue extends string>({
   }, [multiple, value]);
   const hasSelection = selectedValues.length > 0;
 
+  // The machine's collection holds per-occurrence row ids, so the controlled
+  // value hands it each selected value's first occurrence.
+  const machineValues = useMemo<string[]>(
+    () => selectedValues.map((entry) => toRowItemId(entry)),
+    [selectedValues],
+  );
+
   const orphans = useMemo<Array<SelectItem<TValue>>>(
     () =>
       selectedValues
@@ -516,8 +527,9 @@ export const Select = <TValue extends string>({
   }, [items, orphans, loading]);
 
   // The collapsible options' values (those with subItems), wherever they
-  // nest — the set held open while searching, and the rows
-  // ArrowRight/ArrowLeft can toggle.
+  // nest — folder membership for the ArrowRight/ArrowLeft toggle, and whether
+  // the rows reserve a chevron column. The per-occurrence row ids live in
+  // `folderRowIds` below.
   const folderValues = useMemo<ReadonlySet<string>>(
     () =>
       new Set(
@@ -610,8 +622,13 @@ export const Select = <TValue extends string>({
     if (showSearch && search.trim() !== "") {
       return;
     }
+    // The highlighted row id of a duplicated folder carries an internal
+    // per-occurrence suffix; folder membership is tested by its value.
     const highlighted = api.highlightedValue;
-    if (highlighted === null || !folderValues.has(highlighted)) {
+    if (
+      highlighted === null ||
+      !folderValues.has(toPublicItemId(highlighted))
+    ) {
       return;
     }
     const isExpanded = expansion.expandedIds.has(highlighted);
@@ -888,13 +905,17 @@ export const Select = <TValue extends string>({
     [selectableAtMax],
   );
 
-  // The first search match the highlight can land on — must apply the same
-  // effective-disabled rule as the collection (explicit `disabled` plus rows
-  // disabled by `maxItems`), or Enter would target an unselectable row. The
-  // visible tree also keeps non-matching rows for context (a matching row's
-  // folder ancestors, a matching folder's children), which must not take the
-  // highlight — Enter targets the first actual match.
-  const firstVisibleValue = useMemo<TValue | undefined>(() => {
+  // The row id of the first search match the highlight can land on —
+  // occurrences of a duplicated value are counted in the same depth-first
+  // order `normalizeItems` numbers the rows, so the highlight targets the
+  // occurrence that matched, not the value's first row (which may be disabled
+  // or a non-matching folder). Must apply the same effective-disabled rule as
+  // the collection (explicit `disabled` plus rows disabled by `maxItems`), or
+  // Enter would target an unselectable row. The visible tree also keeps
+  // non-matching rows for context (a matching row's folder ancestors, a
+  // matching folder's children), which must not take the highlight — Enter
+  // targets the first actual match.
+  const firstVisibleRowId = useMemo<string | undefined>(() => {
     const isEnabledMatch = (it: MultiSelectItem<TValue>) => {
       if (
         it.disabled ||
@@ -905,7 +926,15 @@ export const Select = <TValue extends string>({
       const label = it.text.toLowerCase();
       return searchTerms.every((term) => label.includes(term));
     };
-    return flattenSelectOptions(visibleItems).find(isEnabledMatch)?.value;
+    const occurrences = new Map<string, number>();
+    for (const it of flattenSelectOptions(visibleItems)) {
+      const seen = occurrences.get(it.value) ?? 0;
+      occurrences.set(it.value, seen + 1);
+      if (isEnabledMatch(it)) {
+        return toRowItemId(it.value, seen);
+      }
+    }
+    return undefined;
   }, [visibleItems, selectableAtMaxSet, searchTerms]);
 
   const selectOnly = useCallback(
@@ -996,13 +1025,26 @@ export const Select = <TValue extends string>({
     searchTerms,
     resolvedEmptyState,
   ]);
+
+  // Duplicate option values (the same value under several folders) get unique
+  // per-occurrence row ids here, shared by the rendered rows and the machine's
+  // collection below, so highlight and expansion act on one row at a time.
+  const normalizedMenuItems = useNormalizedItems(menuItems);
+
+  // The collapsible rows' ids, wherever they nest — the set held open while
+  // searching, and while closed (the collection must cover every option then).
+  const folderRowIds = useMemo<ReadonlySet<string>>(
+    () => collectCollapsibleIds(normalizedMenuItems),
+    [normalizedMenuItems],
+  );
+
   // Expansion state of collapsible folders. Ancestors of the selection start
   // expanded (and re-expand on open, below) so the selection is visible.
   // While searching, every folder on the way to a match must be open for the
   // match to be reachable, so the user's expansion state is overridden (and
   // resumes when the search clears).
   const expansion = useCollapsibleExpansion(
-    menuItems,
+    normalizedMenuItems,
     new Set<string>(selectedValues),
   );
   useEffect(() => {
@@ -1014,9 +1056,9 @@ export const Select = <TValue extends string>({
         ? // Toggling is a no-op while every folder is held open: on screen
           // nothing would change, but the write would silently flip the
           // underlying state, surprising once the search clears.
-          { expandedIds: folderValues, onToggle: () => {} }
+          { expandedIds: folderRowIds, onToggle: () => {} }
         : expansion,
-    [searchTerms, folderValues, expansion],
+    [searchTerms, folderRowIds, expansion],
   );
 
   // The dropdown exits over an animation (see the selectable-list recipe),
@@ -1027,17 +1069,21 @@ export const Select = <TValue extends string>({
   // (exiting) dropdown keeps rendering the last open ones, the search
   // field's text included.
   const [displayedDropdown, setDisplayedDropdown] = useState({
-    menuItems,
+    menuItems: normalizedMenuItems,
     search,
     expansion: effectiveExpansion,
   });
   if (
     isOpen &&
-    (displayedDropdown.menuItems !== menuItems ||
+    (displayedDropdown.menuItems !== normalizedMenuItems ||
       displayedDropdown.search !== search ||
       displayedDropdown.expansion !== effectiveExpansion)
   ) {
-    setDisplayedDropdown({ menuItems, search, expansion: effectiveExpansion });
+    setDisplayedDropdown({
+      menuItems: normalizedMenuItems,
+      search,
+      expansion: effectiveExpansion,
+    });
   }
 
   const collection = useMemo(() => {
@@ -1054,17 +1100,25 @@ export const Select = <TValue extends string>({
       // renders its form options from the collection, which must cover the
       // selection wherever it hides.
       items: flattenVisibleItems(
-        menuItems,
-        isOpen ? effectiveExpansion.expandedIds : folderValues,
+        normalizedMenuItems,
+        isOpen ? effectiveExpansion.expandedIds : folderRowIds,
       ),
       itemToValue: (item) => getItemId(item),
       itemToString: (item) => {
-        const id = getItemId(item);
+        // A duplicate occurrence's row id carries an internal suffix; the
+        // option's value is the consumer-facing id behind it.
+        const id = toPublicItemId(getItemId(item));
         return valueToText.get(id) ?? id;
       },
       isItemDisabled: (item) => !!item.disabled,
     });
-  }, [menuItems, effectiveItems, effectiveExpansion, isOpen, folderValues]);
+  }, [
+    normalizedMenuItems,
+    effectiveItems,
+    effectiveExpansion,
+    isOpen,
+    folderRowIds,
+  ]);
 
   const classes = selectRecipe({
     variant,
@@ -1110,13 +1164,28 @@ export const Select = <TValue extends string>({
   return (
     <ArkSelect.Root
       collection={collection}
-      value={selectedValues}
+      value={machineValues}
       multiple={multiple}
       defaultOpen={defaultOpen}
       closeOnSelect={!multiple}
       onValueChange={({ value: nextValue }) => {
         if (multiple) {
-          const next = nextValue as TValue[];
+          // The machine holds and toggles row ids. A removal translates
+          // directly; a non-first occurrence's row id always reads to the
+          // machine as an addition — even when its value is already selected
+          // — so additions toggle at the value level.
+          let next = selectedValues.filter((entry) =>
+            nextValue.includes(toRowItemId(entry)),
+          );
+          for (const rowId of nextValue) {
+            if (machineValues.includes(rowId)) {
+              continue;
+            }
+            const addedValue = toPublicItemId(rowId) as TValue;
+            next = next.includes(addedValue)
+              ? next.filter((entry) => entry !== addedValue)
+              : [...next, addedValue];
+          }
           if (maxItems !== undefined && next.length > maxItems) {
             return;
           }
@@ -1125,7 +1194,7 @@ export const Select = <TValue extends string>({
         }
         const next = nextValue[0];
         if (next !== undefined) {
-          (onChange as (value: TValue) => void)(next as TValue);
+          (onChange as (value: TValue) => void)(toPublicItemId(next) as TValue);
         }
       }}
       onOpenChange={({ open }) => {
@@ -1139,7 +1208,10 @@ export const Select = <TValue extends string>({
           // Reveal the selection: its collapsed ancestors open with the
           // dropdown, so the selected options are visible from the start.
           expansion.expand?.(
-            collectSelectedAncestorIds(menuItems, new Set(selectedValues)),
+            collectSelectedAncestorIds(
+              normalizedMenuItems,
+              new Set(selectedValues),
+            ),
           );
         } else {
           if (multiple && escapedRef.current) {
@@ -1172,7 +1244,35 @@ export const Select = <TValue extends string>({
       className={cx(classes.wrapper, className)}
       onKeyDownCapture={handleRootKeyDownCapture}
     >
-      <ArkSelect.HiddenSelect ref={inputRef} />
+      {/* Native form participation, replacing ark's hidden select: the
+          machine's value holds internal row ids, so the mirror renders the
+          consumer-facing values that `name` must submit. */}
+      <select
+        multiple={multiple}
+        aria-hidden="true"
+        tabIndex={-1}
+        ref={inputRef}
+        name={name}
+        required={required}
+        disabled={disabled}
+        value={multiple ? selectedValues : (selectedValues[0] ?? "")}
+        onChange={() => {}}
+        className={classes.formMirror}
+        onFocus={() => {
+          // Validation (reportValidity) focuses the invalid control; hand
+          // focus to the trigger so the user can act.
+          internalRef.current?.focus();
+        }}
+      >
+        {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- the deliberately empty "no selection" option of an aria-hidden form mirror */}
+        {!multiple && <option value="" />}
+        {selectedValues.map((selectedValue) => (
+          <option key={selectedValue} value={selectedValue}>
+            {findSelectItem(effectiveItems, selectedValue)?.text ??
+              selectedValue}
+          </option>
+        ))}
+      </select>
       <SelectApiBridge
         onApi={(api) => {
           selectApiRef.current = api;
@@ -1181,7 +1281,7 @@ export const Select = <TValue extends string>({
       {showSearch && (
         <SearchHighlightSync
           search={search}
-          firstVisibleValue={firstVisibleValue}
+          firstVisibleRowId={firstVisibleRowId}
         />
       )}
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <input> */}

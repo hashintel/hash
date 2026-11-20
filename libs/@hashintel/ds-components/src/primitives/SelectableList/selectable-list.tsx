@@ -28,10 +28,11 @@ import {
   isCustomItem,
   isGroup,
   loopSelectionKeyDown,
+  toPublicItemId,
   useCollapsibleExpansion,
   useCollapsibleToggleKeyDown,
   useCustomRowNavigation,
-  useItemsWithCustomIds,
+  useNormalizedItems,
 } from "./selectable-list-util";
 import { contentPaddingPx, styles } from "./selectable-list.recipe";
 
@@ -73,7 +74,7 @@ const NestedMenu = ({
   const portalContainerRef = usePortalContainerRef();
   const parentDepth = use(NestedMenuDepthContext);
   const depth = parentDepth + 1;
-  const normalizedSubItems = useItemsWithCustomIds(subItems);
+  const normalizedSubItems = useNormalizedItems(subItems);
   // The submenu is its own list, with its own collapsible expansion state.
   const expansion = useCollapsibleExpansion(
     normalizedSubItems,
@@ -201,7 +202,9 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
   }
 
   const itemId = getItemId(item);
-  const isSelected = ctx.selectedSet.has(itemId);
+  // Selection matches the consumer-facing id, so when a duplicated id is
+  // selected every occurrence shows it; highlight and expansion stay per-row.
+  const isSelected = ctx.selectedSet.has(toPublicItemId(itemId));
   const isInteractive = !item.disabled && !item.loading;
   const collapsible = isCollapsibleItem(item);
   const expanded = collapsible && ctx.expansion.expandedIds.has(itemId);
@@ -300,7 +303,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
           }
           onSelect={() => {
             if (item.onClick) {
-              item.onClick(itemId);
+              item.onClick(toPublicItemId(itemId));
             } else {
               ctx.expansion.onToggle(itemId);
             }
@@ -351,7 +354,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
 
   const handleSelect = () => {
     if ("onClick" in item && item.onClick) {
-      item.onClick(itemId);
+      item.onClick(toPublicItemId(itemId));
     }
   };
 
@@ -503,7 +506,7 @@ export const SelectableList = ({
   expansion?: CollapsibleExpansion;
 }) => {
   const selectedSet = useMemo(() => new Set(selected ?? []), [selected]);
-  const normalizedItems = useItemsWithCustomIds(items);
+  const normalizedItems = useNormalizedItems(items);
   const internalExpansion = useCollapsibleExpansion(
     normalizedItems,
     selectedSet,

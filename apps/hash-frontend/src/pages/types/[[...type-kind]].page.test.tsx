@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, render, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { makeOntologyTypeVersion } from "@blockprotocol/type-system";
@@ -8,6 +14,7 @@ import { DataTypesContext } from "../shared/data-types-context";
 import { DataTypesLoadError } from "../shared/data-types-load-error";
 import { TypesTable } from "../shared/types-table";
 import TypesPage from "./[[...type-kind]].page";
+import { DataTypeDrawer } from "./data-type-drawer";
 
 import type { DataTypesContextValue } from "../shared/data-types-context";
 import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
@@ -27,7 +34,7 @@ vi.mock("next/router", () => ({
   useRouter: () => ({ isReady: false, query: {}, replace: vi.fn() }),
 }));
 vi.mock("./data-type-drawer", () => ({
-  DataTypeDrawer: () => null,
+  DataTypeDrawer: vi.fn(() => null),
 }));
 vi.mock("@blockprotocol/graph/stdlib", () => ({
   getEntityTypes: () => [],
@@ -54,7 +61,16 @@ vi.mock("../../shared/layout", () => ({ getLayoutWithSidebar: () => null }));
 vi.mock("../../shared/property-types-context", () => ({
   usePropertyTypes: () => ({ propertyTypes: {} }),
 }));
-vi.mock("../shared/create-button", () => ({ CreateButton: () => null }));
+vi.mock("../shared/create-button", () => ({
+  CreateButton: ({
+    children,
+    onClick,
+  }: PropsWithChildren<{ onClick?: () => void }>) => (
+    <button type="button" onClick={onClick}>
+      {children}
+    </button>
+  ),
+}));
 vi.mock("../shared/top-context-bar", () => ({ TopContextBar: () => null }));
 vi.mock("./[[...type-kind]].page/types-page-tabs", () => ({
   TypesPageTabs: () => null,
@@ -167,4 +183,70 @@ describe("data types in the Types listing", () => {
       );
     },
   );
+
+  it("offers version switching on a data type created from the drawer", () => {
+    const versionOne = dataType("repro", "Repro");
+    const versionTwo = dataType("repro", "Repro", 2);
+
+    /** Editions in ascending order, so the last one is the latest */
+    const contextWith = (
+      editions: DataTypeWithMetadata[],
+    ): DataTypesContextValue => ({
+      dataTypes: Object.fromEntries(
+        editions.map((type) => [type.schema.$id, type]),
+      ),
+      latestDataTypes: Object.fromEntries(
+        editions.map((type) => [type.metadata.recordId.baseUrl, type]),
+      ),
+      loading: false,
+      error: null,
+      refetch: vi.fn().mockResolvedValue(undefined),
+      onDataTypeSaved: vi.fn(),
+    });
+
+    const { rerender, getByText } = render(
+      <DataTypesContext.Provider value={contextWith([versionOne])}>
+        <TypesPage currentTab="data-type" />
+      </DataTypesContext.Provider>,
+    );
+
+    fireEvent.click(getByText("Create data type"));
+
+    const createProps = vi.mocked(DataTypeDrawer).mock.lastCall?.[0];
+    if (createProps?.mode !== "create") {
+      throw new Error("Expected the create drawer to open");
+    }
+    act(() => createProps.onCreated(versionOne));
+
+    const editProps = () => {
+      const props = vi.mocked(DataTypeDrawer).mock.lastCall?.[0];
+      if (props?.mode !== "edit") {
+        throw new Error("Expected the edit drawer to be open");
+      }
+      return props;
+    };
+
+    expect(editProps().dataType).toBe(versionOne);
+    expect(editProps().readonly).toBe(false);
+    expect(editProps().onSwitchVersion).toBeDefined();
+
+    // Saving hands back the new latest edition and refreshes the catalogue
+    act(() => editProps().onUpdated(versionTwo));
+    rerender(
+      <DataTypesContext.Provider value={contextWith([versionOne, versionTwo])}>
+        <TypesPage currentTab="data-type" />
+      </DataTypesContext.Provider>,
+    );
+    expect(editProps().dataType).toBe(versionTwo);
+    expect(editProps().readonly).toBe(false);
+
+    // An older edition opens as a read-only record
+    act(() => editProps().onSwitchVersion?.(versionOne));
+    expect(editProps().dataType).toBe(versionOne);
+    expect(editProps().readonly).toBe(true);
+
+    act(() => editProps().onSwitchVersion?.(versionTwo));
+    expect(editProps().dataType).toBe(versionTwo);
+    expect(editProps().readonly).toBe(false);
+  });
 });

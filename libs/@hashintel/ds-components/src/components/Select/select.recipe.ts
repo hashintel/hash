@@ -32,6 +32,7 @@ export const selectRecipe = sva({
     "connectRight",
     "connectLeft",
     "list",
+    "formMirror",
   ],
   base: {
     wrapper: {
@@ -224,6 +225,19 @@ export const selectRecipe = sva({
       minWidth:
         "[max(var(--select-list-reference-width), var(--form-min-width)) !important]",
       maxWidth: "[max(var(--select-list-reference-width), 18rem)]",
+    },
+    // zag's visually-hidden style, for the hidden form-mirror select
+    formMirror: {
+      position: "absolute",
+      width: "[1px]",
+      height: "[1px]",
+      margin: "[-1px]",
+      padding: "0",
+      overflow: "hidden",
+      border: "[0]",
+      clip: "[rect(0 0 0 0)]",
+      whiteSpace: "nowrap",
+      overflowWrap: "[normal]",
     },
   },
   variants: {

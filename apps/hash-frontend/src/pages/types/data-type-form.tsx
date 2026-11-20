@@ -158,7 +158,7 @@ export const DataTypeForm = ({
     typeFieldHandle,
     groupMembersFieldHandle,
     cancelButtonRef,
-    interceptCloseForDrafts,
+    interceptDrawerClose,
     requestClose,
     navigateToCrumb,
     generateTypeUrlsForUser,
@@ -211,6 +211,9 @@ export const DataTypeForm = ({
     handleSubmit,
     abandonDraftsDialogOpen,
     dismissAbandonDialog,
+    unsavedChangesDialogOpen,
+    dismissUnsavedChangesDialog,
+    discardUnsavedChanges,
     draftsAtStake,
     abandoningForAllowedTypesChange,
     keepingDrafts,
@@ -834,13 +837,16 @@ export const DataTypeForm = ({
           swapKey={swapKey}
           shouldCloseOn="closeButtonAndOverlay"
           onClose={onClose}
-          onCloseRequest={interceptCloseForDrafts}
+          onCloseRequest={interceptDrawerClose}
           aria-label={editedDataType ? "Edit data type" : "Create data type"}
           // When editing, focus starts on the footer's Cancel/Close rather than
           // in the name input, which suits a fresh type but not an existing one
           initialFocusRef={editedDataType ? cancelButtonRef : undefined}
         >
-          <Drawer.Header>
+          <Drawer.Header
+            closeButtonLayout="float"
+            className="data-type-editor-header"
+          >
             {openPageAction ? (
               // Floated like the drawer's own close button (an earlier
               // right-float), so it lands directly beside it on the same row
@@ -968,6 +974,7 @@ export const DataTypeForm = ({
             {bodyContent}
           </Drawer.Body>
           <Drawer.Footer
+            className="data-type-editor-footer"
             secondaryActions={
               readonly ? (
                 <Button
@@ -1176,6 +1183,52 @@ export const DataTypeForm = ({
                   Discard
                 </Button>
               </>
+            }
+          />
+        </Dialog>
+      ) : null}
+
+      {unsavedChangesDialogOpen ? (
+        <Dialog
+          size="sm"
+          // Dismissing (the close button, Escape) returns to the still-open
+          // editor; only Discard closes it
+          shouldCloseOn="closeButton"
+          onClose={dismissUnsavedChangesDialog}
+          aria-label={
+            editedDataType
+              ? "Discard unsaved changes?"
+              : "Discard new data type?"
+          }
+        >
+          <Dialog.Header
+            title={
+              editedDataType
+                ? "Discard unsaved changes?"
+                : "Discard new data type?"
+            }
+          />
+          <Dialog.Body>
+            <Typography sx={{ fontSize: 14 }}>
+              {editedDataType
+                ? `Your changes to “${title}” haven’t been saved and will be lost.`
+                : "The new data type hasn’t been saved and will be lost."}
+            </Typography>
+          </Dialog.Body>
+          <Dialog.Footer
+            secondaryActions={
+              <Button variant="subtle" onClick={dismissUnsavedChangesDialog}>
+                Keep editing
+              </Button>
+            }
+            actions={
+              <Button
+                variant="solid"
+                tone="error"
+                onClick={discardUnsavedChanges}
+              >
+                {editedDataType ? "Discard changes" : "Discard"}
+              </Button>
             }
           />
         </Dialog>

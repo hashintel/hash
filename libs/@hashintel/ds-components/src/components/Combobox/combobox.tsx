@@ -25,10 +25,14 @@ import {
   type CollapsibleExpansion,
   type CollapsibleFolder,
   type NotCollapsible,
+  collectCollapsibleIds,
   collectSelectedAncestorIds,
   flattenVisibleItems,
   getItemId,
+  toPublicItemId,
+  toRowItemId,
   useCollapsibleExpansion,
+  useNormalizedItems,
 } from "../../primitives/SelectableList/selectable-list-util";
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { isInteractiveTarget } from "../../util/interactive-target";
@@ -470,19 +474,6 @@ export const Combobox = <TValue extends string>({
     [items, orphanItems],
   );
 
-  // The collapsible options' values (those with subItems), wherever they
-  // nest — the set held open while the typed text filters, and the rows
-  // ArrowRight/ArrowLeft toggle.
-  const folderValues = useMemo<ReadonlySet<string>>(
-    () =>
-      new Set(
-        flattenComboboxOptions(effectiveItems)
-          .filter((option) => option.subItems !== undefined)
-          .map((option) => option.value),
-      ),
-    [effectiveItems],
-  );
-
   const committedValue = multiple ? "" : (value ?? "");
   const committedItem = useMemo(
     () => findComboboxItemByValue(effectiveItems, committedValue),
@@ -662,11 +653,14 @@ export const Combobox = <TValue extends string>({
     [atMaxItems, selectedValues],
   );
 
-  // The first filter match the highlight should land on while filtering.
-  // The visible tree also keeps non-matching rows for context (a matching
-  // row's folder ancestors, a matching folder's children), which arrow
-  // navigation and the multi's autohighlight would reach first — see the
-  // sync below.
+  // The row id of the first filter match the highlight should land on while
+  // filtering — occurrences of a duplicated value are counted in the same
+  // depth-first order `normalizeItems` numbers the rows, so the highlight
+  // targets the occurrence that matched, not the value's first row (which
+  // may be disabled or a non-matching folder). The visible tree also keeps
+  // non-matching rows for context (a matching row's folder ancestors, a
+  // matching folder's children), which arrow navigation and the multi's
+  // autohighlight would reach first — see the sync below.
   const firstFilterMatch = useMemo<string | undefined>(() => {
     if (filterQuery === "" || filterAlgorithm === "none") {
       return undefined;
@@ -688,7 +682,15 @@ export const Combobox = <TValue extends string>({
         ? text.startsWith(query)
         : text.includes(query);
     };
-    return flattenComboboxOptions(visibleOptions).find(isEnabledMatch)?.value;
+    const occurrences = new Map<string, number>();
+    for (const option of flattenComboboxOptions(visibleOptions)) {
+      const seen = occurrences.get(option.value) ?? 0;
+      occurrences.set(option.value, seen + 1);
+      if (isEnabledMatch(option)) {
+        return toRowItemId(option.value, seen);
+      }
+    }
+    return undefined;
   }, [visibleOptions, filterQuery, filterAlgorithm, selectableAtMaxSet]);
 
   const showNewValueOption =
@@ -787,13 +789,26 @@ export const Combobox = <TValue extends string>({
     size,
   ]);
 
+  // Duplicate option values (the same value under several folders) get unique
+  // per-occurrence row ids here, shared by the rendered rows and the machine's
+  // collection below, so highlight and expansion act on one row at a time.
+  const normalizedListItems = useNormalizedItems(listItems);
+
+  // The collapsible rows' ids (those with subItems), wherever they nest — the
+  // set held open while the typed text filters, and the rows
+  // ArrowRight/ArrowLeft toggle.
+  const folderRowIds = useMemo<ReadonlySet<string>>(
+    () => collectCollapsibleIds(normalizedListItems),
+    [normalizedListItems],
+  );
+
   // Expansion state of collapsible folders. Ancestors of the selection start
   // expanded (and re-expand on open, in onOpenChange) so the selection is
   // visible. While the typed text filters the options, every folder on the
   // way to a match must be open for the match to be reachable, so the user's
   // expansion state is overridden (and resumes when the filter clears).
   const expansion = useCollapsibleExpansion(
-    listItems,
+    normalizedListItems,
     new Set<string>(
       multiple ? selectedValues : committedValue === "" ? [] : [committedValue],
     ),
@@ -805,9 +820,9 @@ export const Combobox = <TValue extends string>({
         ? // Toggling is a no-op while every folder is held open: on screen
           // nothing would change, but the write would silently flip the
           // underlying state, surprising once the filter clears.
-          { expandedIds: folderValues, onToggle: () => {} }
+          { expandedIds: folderRowIds, onToggle: () => {} }
         : expansion,
-    [filtering, folderValues, expansion],
+    [filtering, folderRowIds, expansion],
   );
 
   const collection = useMemo(() => {
@@ -818,7 +833,10 @@ export const Combobox = <TValue extends string>({
     // The rows currently rendered, in visual order: folders count (they
     // are highlightable, and Enter toggles them), collapsed children and
     // custom rows don't.
-    const rows = flattenVisibleItems(listItems, effectiveExpansion.expandedIds);
+    const rows = flattenVisibleItems(
+      normalizedListItems,
+      effectiveExpansion.expandedIds,
+    );
     // The single machine re-derives its input text from the collection
     // whenever the committed value changes, stringifying a value the
     // collection lacks to an empty input. A committed option hidden in a
@@ -829,10 +847,10 @@ export const Combobox = <TValue extends string>({
     const hiddenCommitted =
       !multiple &&
       committedItem !== undefined &&
-      !rows.some((row) => getItemId(row) === committedItem.value)
+      !rows.some((row) => getItemId(row) === toRowItemId(committedItem.value))
         ? [
             {
-              id: committedItem.value,
+              id: toRowItemId(committedItem.value),
               text: committedItem.text,
               disabled: true,
               onClick: () => {},
@@ -844,7 +862,9 @@ export const Combobox = <TValue extends string>({
       itemToValue: (item) => getItemId(item),
       // What selecting the item puts into the input
       itemToString: (item) => {
-        const id = getItemId(item);
+        // A duplicate occurrence's row id carries an internal suffix; the
+        // option's value is the consumer-facing id behind it.
+        const id = toPublicItemId(getItemId(item));
         if (id === newValueOptionId) {
           return inputText;
         }
@@ -853,7 +873,7 @@ export const Combobox = <TValue extends string>({
       isItemDisabled: (item) => !!item.disabled,
     });
   }, [
-    listItems,
+    normalizedListItems,
     effectiveItems,
     effectiveExpansion,
     inputText,
@@ -867,12 +887,13 @@ export const Combobox = <TValue extends string>({
   // would "stringify" a committed new value (never in the collection) to an
   // empty input. Single new values live entirely in this wrapper; a multi
   // machine skips that re-derivation, and its committed new values resolve
-  // anyway via the synthetic options above.
+  // anyway via the synthetic options above. The collection holds row ids, so
+  // each value hands the machine its first occurrence's row id.
   const machineValue = useMemo(() => {
     if (multiple) {
-      return selectedValues;
+      return selectedValues.map((entry) => toRowItemId(entry));
     }
-    return committedItem === undefined ? [] : [committedValue];
+    return committedItem === undefined ? [] : [toRowItemId(committedValue)];
   }, [multiple, selectedValues, committedItem, committedValue]);
 
   const combobox = useCombobox({
@@ -922,14 +943,33 @@ export const Combobox = <TValue extends string>({
     },
     onValueChange: ({ value: nextValues }) => {
       if (multiple) {
-        if (nextValues.includes(newValueOptionId)) {
+        if (
+          nextValues.some((rowId) => toPublicItemId(rowId) === newValueOptionId)
+        ) {
           commitTypedText(inputTextRef.current);
           return;
         }
-        if (maxItems !== undefined && nextValues.length > maxItems) {
+        // The machine holds and toggles row ids. A removal translates
+        // directly; a non-first occurrence's row id always reads to the
+        // machine as an addition — even when its value is already selected —
+        // so additions toggle at the value level.
+        const previous = selectedValuesRef.current;
+        let next = previous.filter((entry) =>
+          nextValues.includes(toRowItemId(entry)),
+        );
+        for (const rowId of nextValues) {
+          if (previous.some((entry) => toRowItemId(entry) === rowId)) {
+            continue;
+          }
+          const addedValue = toPublicItemId(rowId);
+          next = next.includes(addedValue)
+            ? next.filter((entry) => entry !== addedValue)
+            : [...next, addedValue];
+        }
+        if (maxItems !== undefined && next.length > maxItems) {
           return;
         }
-        emitMultiChange(nextValues, false);
+        emitMultiChange(next, false);
         if (clearInputOnSelect) {
           setText("");
         }
@@ -939,10 +979,11 @@ export const Combobox = <TValue extends string>({
       if (next === undefined) {
         return;
       }
-      if (next === newValueOptionId) {
+      const nextValue = toPublicItemId(next);
+      if (nextValue === newValueOptionId) {
         commitTypedText(inputTextRef.current);
       } else {
-        commit(next, findComboboxItemByValue(effectiveItems, next));
+        commit(nextValue, findComboboxItemByValue(effectiveItems, nextValue));
       }
     },
     onHighlightChange: ({ highlightedValue }) => {
@@ -962,7 +1003,9 @@ export const Combobox = <TValue extends string>({
               ? []
               : [committedValue],
         );
-        expansion.expand?.(collectSelectedAncestorIds(listItems, selectedNow));
+        expansion.expand?.(
+          collectSelectedAncestorIds(normalizedListItems, selectedNow),
+        );
         return;
       }
       if (reason === "escape-key") {
@@ -1041,18 +1084,18 @@ export const Combobox = <TValue extends string>({
   // render-adjusted (as with lastCommittedText above); a closed (exiting)
   // dropdown keeps rendering the last open ones.
   const [displayedDropdown, setDisplayedDropdown] = useState({
-    listItems,
+    listItems: normalizedListItems,
     filterQuery,
     expansion: effectiveExpansion,
   });
   if (
     combobox.open &&
-    (displayedDropdown.listItems !== listItems ||
+    (displayedDropdown.listItems !== normalizedListItems ||
       displayedDropdown.filterQuery !== filterQuery ||
       displayedDropdown.expansion !== effectiveExpansion)
   ) {
     setDisplayedDropdown({
-      listItems,
+      listItems: normalizedListItems,
       filterQuery,
       expansion: effectiveExpansion,
     });
@@ -1323,7 +1366,7 @@ export const Combobox = <TValue extends string>({
         !hasCaretModifier(event)
       ) {
         const highlighted = highlightedValueRef.current;
-        if (highlighted !== null && folderValues.has(highlighted)) {
+        if (highlighted !== null && folderRowIds.has(highlighted)) {
           const isExpanded = expansion.expandedIds.has(highlighted);
           if (event.key === "ArrowRight" ? !isExpanded : isExpanded) {
             event.preventDefault();

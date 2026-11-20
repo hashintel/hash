@@ -109,17 +109,15 @@ export const DataTypeDrawer = ({
           position: "relative",
           zIndex: ({ zIndex }) => zIndex.modal + 1,
           // The slot recipes carry the layer-polyfill's specificity boost,
-          // hence the !important overrides. The footer takes no className
-          // when given `actions`, so it is addressed as the body's sibling.
+          // hence the !important overrides.
           "& .data-type-editor-body": {
             backgroundColor: "#fbfbfb !important",
           },
-          "& .data-type-editor-body + div": {
+          "& .data-type-editor-footer": {
             backgroundColor: "#fbfbfb !important",
             borderTop: "none !important",
           },
-          // The header — the element directly preceding the body
-          "& div:has(+ .data-type-editor-body)": {
+          "& .data-type-editor-header": {
             borderBottomColor: "var(--colors-neutral-s40) !important",
           },
         }}
@@ -205,6 +203,7 @@ export const DataTypeDrawer = ({
               </Typography>
             </Drawer.Body>
             <Drawer.Footer
+              className="data-type-editor-footer"
               secondaryActions={
                 <Button variant="subtle" onClick={onClose}>
                   Close
@@ -234,6 +233,7 @@ export const DataTypeDrawer = ({
               </Typography>
             </Drawer.Body>
             <Drawer.Footer
+              className="data-type-editor-footer"
               secondaryActions={
                 <Button variant="subtle" onClick={onClose}>
                   Close
@@ -255,6 +255,7 @@ export const DataTypeDrawer = ({
               </Typography>
             </Drawer.Body>
             <Drawer.Footer
+              className="data-type-editor-footer"
               secondaryActions={
                 <Button variant="subtle" onClick={onClose}>
                   Close
@@ -328,6 +329,21 @@ export const DataTypeDrawerById = ({
   const fromContext =
     contextHit && isLiveDataType(contextHit) ? contextHit : null;
 
+  const requestedVersion = componentsFromVersionedUrl(dataTypeId).version;
+
+  /**
+   * The catalogue can trail the graph — a link to an edition published
+   * elsewhere that it hasn't refetched yet. A requested edition it doesn't
+   * hold falls through to the remote fetch rather than being declared missing.
+   */
+  const requestedHeldLocally =
+    fromContext !== null &&
+    (compareOntologyTypeVersions(
+      requestedVersion,
+      fromContext.metadata.recordId.version,
+    ) === 0 ||
+      !!dataTypes?.[dataTypeId]);
+
   const {
     data: remoteData,
     loading: remoteLoading,
@@ -351,7 +367,7 @@ export const DataTypeDrawerById = ({
           traversalPaths: [],
         },
       },
-      skip: fromContext !== null,
+      skip: requestedHeldLocally,
       fetchPolicy: "cache-and-network",
     },
   );
@@ -392,7 +408,6 @@ export const DataTypeDrawerById = ({
   // An explicitly requested version other than the latest opens that stored
   // edition — the catalogue spans all versions, and the remote fetch returns
   // every live one — rather than silently resolving to latest
-  const requestedVersion = componentsFromVersionedUrl(dataTypeId).version;
   const requestedDiffers =
     latestVersion !== null &&
     compareOntologyTypeVersions(requestedVersion, latestVersion) !== 0;
@@ -401,11 +416,11 @@ export const DataTypeDrawerById = ({
     : null;
 
   // A requested edition both sources have settled without is one that never
-  // existed — land on not-found rather than opening the latest edition
+  // existed — land on not-found rather than opening the latest edition.
+  // An edition the catalogue holds never runs the remote fetch, so a
+  // missing one always has the fetch to wait on.
   const requestedVersionMissing =
-    requestedDiffers &&
-    !requestedEdition &&
-    (fromContext !== null ? !!dataTypes : !remoteLoading && !!remoteData);
+    requestedDiffers && !requestedEdition && !remoteLoading && !!remoteData;
 
   const dataType =
     versionOverride === "latest"

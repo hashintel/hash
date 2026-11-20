@@ -14,6 +14,7 @@ import {
   updateDataType,
 } from "../../../graph/ontology/primitive/data-type";
 import { graphQLContextToImpureGraphContext } from "../util";
+import { rethrowWithGraphErrorDetail } from "./data-type/rethrow-with-graph-error-detail";
 
 import type {
   DataTypePermissionsRecord,
@@ -75,55 +76,6 @@ export const findDataTypeConversionTargetsResolver: ResolverFn<
     graphQLContext.authentication,
     { dataTypeIds },
   );
-
-/**
- * The graph wraps every write failure in a generic outer message ("Could not
- * insert into store"), keeping the actual cause — a base-URL collision, an
- * unsatisfiable constraint, a missing parent — as nested source contexts.
- * Surface those so the client can tell the failures apart.
- */
-const rethrowWithGraphErrorDetail = (error: unknown): never => {
-  // Two levels only: the graph's own wrapper and its immediate cause. Deeper
-  // frames carry database diagnostics that must not reach clients.
-  const contexts: string[] = [];
-  const walk = (frames: unknown, depth: number) => {
-    if (!Array.isArray(frames) || depth > 1) {
-      return;
-    }
-    for (const frame of frames) {
-      if (Array.isArray(frame)) {
-        walk(frame, depth);
-      } else if (frame && typeof frame === "object") {
-        if ("context" in frame && typeof frame.context === "string") {
-          contexts.push(frame.context);
-        }
-        if ("sources" in frame) {
-          walk(frame.sources, depth + 1);
-        }
-      }
-    }
-  };
-  if (error && typeof error === "object" && "status" in error) {
-    walk((error.status as { contents?: unknown }).contents, 0);
-  }
-
-  // Frames echoing Postgres diagnostics stay server-side even at the
-  // allowed depth — the driver folds DETAIL/HINT into its error text
-  const postgresDiagnostic =
-    /duplicate key value|violates .{0,30}constraint|\bSQLSTATE\b|\bDETAIL:|\bHINT:|\bKey \(|relation "[^"]*"|syntax error at or near/i;
-  const surfaced = contexts.filter(
-    (context) => !postgresDiagnostic.test(context),
-  );
-
-  // With one context the outer wrapper is all there is — the original error
-  // already says as much, unless it isn't an Error at all
-  if (surfaced.length > (error instanceof Error ? 1 : 0)) {
-    throw new Error(surfaced.join(": "), {
-      cause: error instanceof Error ? error : undefined,
-    });
-  }
-  throw error;
-};
 
 export const createDataTypeResolver: ResolverFn<
   Promise<DataTypeWithMetadata>,

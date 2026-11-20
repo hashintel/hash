@@ -571,7 +571,7 @@ export const ConfirmingADestructiveActionDemo = () => (
 
 ### Custom header and footer
 
-Pass children to `Dialog.Header` or `Dialog.Footer` instead of the structured props for full control of a region. The close button still renders beside a custom header.
+Pass children to `Dialog.Header` or `Dialog.Footer` instead of the structured props for full control of a region. The close button still renders beside a custom header, in a flex row; set `closeButtonLayout="float"` to float it at the inline end instead, so the content keeps the full header width and wraps around it.
 
 export const customRegionsDialogCode = `import { Button, Dialog } from "@hashintel/ds-components";
 
@@ -847,7 +847,7 @@ Dialog implements the [WAI-ARIA modal dialog pattern](https://www.w3.org/WAI/ARI
 
 ### Dialog.Header
 
-<PropsTable of={Dialog.Header} />
+<PropsTable of={Dialog.Header} defaults={{ closeButtonLayout: '"flex"' }} />
 
 ### Dialog.Body
 

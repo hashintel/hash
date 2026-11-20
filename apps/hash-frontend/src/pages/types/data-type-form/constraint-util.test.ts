@@ -5,8 +5,10 @@ import {
   collectDescendantTypeTitles,
   constraintValueEquals,
   constraintValuesFromSchema,
+  countBoundsConflict,
   deriveInheritedConstraints,
   formatConstraintValue,
+  numericBoundsConflict,
   primitiveArmOfUnion,
   schemaConstraintsFromValues,
   sharedParentPrimitive,
@@ -444,5 +446,69 @@ describe("primitiveArmOfUnion", () => {
     expect(
       primitiveArmOfUnion([{ type: "string" }, { type: "number" }]),
     ).toBeNull();
+  });
+});
+
+describe("numericBoundsConflict", () => {
+  it("flags a minimum above the maximum", () => {
+    expect(
+      numericBoundsConflict(
+        { value: 10, exclusive: false },
+        { value: 5, exclusive: false },
+      ),
+    ).toBe("exceeds");
+  });
+
+  it("flags equal bounds when either side is exclusive", () => {
+    expect(
+      numericBoundsConflict(
+        { value: 5, exclusive: true },
+        { value: 5, exclusive: false },
+      ),
+    ).toBe("exclusiveEqual");
+
+    expect(
+      numericBoundsConflict(
+        { value: 5, exclusive: false },
+        { value: 5, exclusive: true },
+      ),
+    ).toBe("exclusiveEqual");
+  });
+
+  it("allows equal inclusive bounds, ordered bounds, and open sides", () => {
+    expect(
+      numericBoundsConflict(
+        { value: 5, exclusive: false },
+        { value: 5, exclusive: false },
+      ),
+    ).toBeNull();
+
+    expect(
+      numericBoundsConflict(
+        { value: 1, exclusive: true },
+        { value: 2, exclusive: true },
+      ),
+    ).toBeNull();
+
+    expect(
+      numericBoundsConflict(undefined, { value: 5, exclusive: false }),
+    ).toBeNull();
+
+    expect(
+      numericBoundsConflict({ value: 5, exclusive: false }, undefined),
+    ).toBeNull();
+  });
+});
+
+describe("countBoundsConflict", () => {
+  it("flags a minimum count above the maximum", () => {
+    expect(countBoundsConflict(4, 2)).toBe(true);
+  });
+
+  it("allows equal, ordered, and open pairs", () => {
+    expect(countBoundsConflict(2, 2)).toBe(false);
+    expect(countBoundsConflict(1, 3)).toBe(false);
+    expect(countBoundsConflict(undefined, 3)).toBe(false);
+    expect(countBoundsConflict(1, undefined)).toBe(false);
   });
 });

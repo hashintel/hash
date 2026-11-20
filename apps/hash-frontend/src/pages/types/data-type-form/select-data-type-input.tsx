@@ -99,7 +99,7 @@ const createNewPseudoNode: DataTypeTreeNode = {
   abstract: false,
   baseUrl: extractBaseUrl(createNewPseudoDataTypeId),
   children: [],
-  description: "Define a new data type extending this one",
+  description: "Define a new data type",
   directParents: [],
   label: {},
   title: "Create a new type",
@@ -125,6 +125,7 @@ const DataTypeOptionContent = ({
   reason,
   onOpen,
   version,
+  linkedDataTypeId,
 }: {
   node: DataTypeTreeNode;
   reason?: DisabledReason | null;
@@ -132,6 +133,11 @@ const DataTypeOptionContent = ({
   onOpen?: () => void;
   /** The referenced version, shown subtly after the name */
   version?: string;
+  /**
+   * The id the href targets — the node may be the latest edition standing in
+   * for a reference pinned to an older version
+   */
+  linkedDataTypeId?: VersionedUrl;
 }) => (
   <Box
     sx={{
@@ -164,7 +170,7 @@ const DataTypeOptionContent = ({
     {onOpen ? (
       <Typography
         component="a"
-        href={generateLinkParameters(node.$id).href}
+        href={generateLinkParameters(linkedDataTypeId ?? node.$id).href}
         onClick={(event) => {
           if (
             event.metaKey ||
@@ -313,40 +319,25 @@ const DataTypePicker = ({
     ? `Create a new type called “${typedName}”`
     : createNewPseudoNode.title;
 
-  const { items, idByItemValue, itemValueById } = useMemo(() => {
-    // A type can appear under several parents; the item value is its path in
-    // the tree, so each occurrence stays unique and highlighting one doesn't
-    // light up the others
-    const idByValue = new Map<string, VersionedUrl>();
-    const firstValueById = new Map<VersionedUrl, string>();
-
-    const mapNode = (
-      node: DataTypeTreeNode,
-      parentPath: string,
-    ): ComboboxItem<string> => {
-      const pathValue = `${parentPath}/${node.$id}`;
-      idByValue.set(pathValue, node.$id);
-      if (!firstValueById.has(node.$id)) {
-        firstValueById.set(node.$id, pathValue);
-      }
-
+  const items = useMemo(() => {
+    // A type can appear under several parents, so the same value can occur
+    // more than once; the dropdown keys hover highlighting and expansion per
+    // occurrence internally.
+    const mapNode = (node: DataTypeTreeNode): ComboboxItem<VersionedUrl> => {
       const base = {
-        value: pathValue,
+        value: node.$id,
         text: node.title,
         disabled: !!getDisabledReason(node),
         selectedStyle: "radio" as const,
       };
 
       return node.children.length > 0
-        ? {
-            ...base,
-            subItems: node.children.map((child) => mapNode(child, pathValue)),
-          }
+        ? { ...base, subItems: node.children.map((child) => mapNode(child)) }
         : base;
     };
 
-    const mapped: ComboboxItem<string>[] = tree.roots.map((root) =>
-      mapNode(root, ""),
+    const mapped: ComboboxItem<VersionedUrl>[] = tree.roots.map((root) =>
+      mapNode(root),
     );
 
     if (onCreateNew) {
@@ -357,30 +348,25 @@ const DataTypePicker = ({
       });
     }
 
-    return {
-      items: mapped,
-      idByItemValue: idByValue,
-      itemValueById: firstValueById,
-    };
+    return mapped;
   }, [tree, getDisabledReason, onCreateNew, createNewTitle]);
 
   return (
-    <Combobox<string>
+    <Combobox<VersionedUrl>
       items={items}
-      value={value ? (itemValueById.get(value) ?? null) : null}
+      value={value}
       onChangeInput={setTypedText}
-      onChange={(itemValue) => {
-        if (itemValue === createNewPseudoDataTypeId) {
+      onChange={(dataTypeId) => {
+        if (dataTypeId === createNewPseudoDataTypeId) {
           onCreateNew?.(typedName);
           return;
         }
-        const dataTypeId = itemValue ? idByItemValue.get(itemValue) : null;
         if (dataTypeId) {
           onPick(dataTypeId);
         }
       }}
-      renderItem={(itemValue) => {
-        if (itemValue === createNewPseudoDataTypeId) {
+      renderItem={(dataTypeId) => {
+        if (dataTypeId === createNewPseudoDataTypeId) {
           return (
             <DataTypeOptionContent
               node={{ ...createNewPseudoNode, title: createNewTitle }}
@@ -388,11 +374,10 @@ const DataTypePicker = ({
           );
         }
 
-        const dataTypeId = idByItemValue.get(itemValue);
-        const node = dataTypeId ? tree.nodeById.get(dataTypeId) : undefined;
+        const node = tree.nodeById.get(dataTypeId);
 
         if (!node) {
-          return itemValue;
+          return dataTypeId;
         }
 
         return (
@@ -1311,6 +1296,9 @@ export const SelectDataTypeInput = ({
                     <DataTypeOptionContent
                       node={node}
                       reason={isDraft ? "New — created on save" : undefined}
+                      linkedDataTypeId={
+                        "dataTypeId" in entry ? entry.dataTypeId : undefined
+                      }
                       version={
                         !isList &&
                         !isGroup &&
