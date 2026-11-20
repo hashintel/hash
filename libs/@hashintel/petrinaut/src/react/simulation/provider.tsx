@@ -99,24 +99,6 @@ const DEFAULT_STOCHASTIC_RUNS = 100;
 /** The end time a Stochastic simulation takes when none was set. */
 const DEFAULT_STOCHASTIC_MAX_TIME = 60;
 
-function createInitialStateValues(options?: {
-  maxTime?: number | null;
-  selectedScenarioId?: string | null;
-}): SimulationStateValues {
-  return {
-    parameterValues: {},
-    initialMarking: {},
-    selectedScenarioId: options?.selectedScenarioId,
-    scenarioParameterValues: {},
-    adHocScenario: null,
-    maxTime: options?.maxTime ?? null,
-    mode: "quick",
-    runs: DEFAULT_STOCHASTIC_RUNS,
-    simulatorIds: { quick: null, stochastic: null },
-    simulatorParameters: {},
-  };
-}
-
 /**
  * Stops a start that a change of configuration overtook while the net was
  * compiling, before a worker is spawned for it.
@@ -237,12 +219,18 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     requireScenario,
   );
 
-  const [stateValues, setStateValues] = useState<SimulationStateValues>(() =>
-    createInitialStateValues({
-      ...initialConfiguration,
-      selectedScenarioId: navigation.state.scenarioId,
-    }),
-  );
+  const [stateValues, setStateValues] = useState<SimulationStateValues>(() => ({
+    parameterValues: {},
+    initialMarking: {},
+    selectedScenarioId: requestedScenarioId,
+    scenarioParameterValues: {},
+    adHocScenario: null,
+    maxTime: initialConfiguration?.maxTime ?? null,
+    mode: "quick",
+    runs: DEFAULT_STOCHASTIC_RUNS,
+    simulatorIds: { quick: null, stochastic: null },
+    simulatorParameters: {},
+  }));
   const stateValuesRef = useLatest(stateValues);
 
   const { mode } = stateValues;
