@@ -1,4 +1,4 @@
-import { Fragment, memo, useRef, useState } from "react";
+import { Fragment, memo, useRef } from "react";
 
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import {
@@ -365,10 +365,10 @@ const WIDGET_SELECTOR =
  * (buttons, checkboxes) act immediately, editable ones (inputs, selects,
  * code editors) take focus so every key belongs to them until Escape.
  */
-const activateOrEngage = (container: HTMLElement | null) => {
-  for (const candidate of container?.querySelectorAll<HTMLElement>(
+const activateOrEngage = (container: HTMLElement) => {
+  for (const candidate of container.querySelectorAll<HTMLElement>(
     `${WIDGET_SELECTOR}, button`,
-  ) ?? []) {
+  )) {
     if (
       candidate instanceof HTMLButtonElement ||
       (candidate instanceof HTMLInputElement && candidate.type === "checkbox")
@@ -401,12 +401,9 @@ const WidgetPart: React.FC<{
   className?: string;
   children: React.ReactNode;
 }> = ({ stopId, focus, column, className, children }) => {
-  const [element, setElement] = useState<HTMLDivElement | null>(null);
-
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- each cell part is a roving focus stop.
     <div
-      ref={setElement}
       data-cell-part={stopId}
       data-part-column={column}
       role="group"
@@ -418,16 +415,17 @@ const WidgetPart: React.FC<{
         }
       }}
       onKeyDown={(event) => {
-        if (event.target !== event.currentTarget) {
+        const part = event.currentTarget;
+        if (event.target !== part) {
           // Keys bubbling out of an engaged widget: Escape disengages, Tab
           // cycles the part's widgets, everything else stays the widget's.
           if (event.key === "Escape") {
             event.preventDefault();
             event.stopPropagation();
-            element?.focus();
-          } else if (event.key === "Tab" && element) {
+            part.focus();
+          } else if (event.key === "Tab") {
             const widgets = [
-              ...element.querySelectorAll<HTMLElement>(WIDGET_SELECTOR),
+              ...part.querySelectorAll<HTMLElement>(WIDGET_SELECTOR),
             ];
             const at = widgets.indexOf(event.target as HTMLElement);
             const next = widgets[at + (event.shiftKey ? -1 : 1)];
@@ -441,7 +439,7 @@ const WidgetPart: React.FC<{
         }
         if (event.key === "Enter") {
           event.preventDefault();
-          activateOrEngage(element);
+          activateOrEngage(part);
         } else if (
           event.key === "ArrowDown" ||
           event.key === "ArrowUp" ||
