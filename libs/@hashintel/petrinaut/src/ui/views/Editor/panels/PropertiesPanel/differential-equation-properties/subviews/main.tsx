@@ -170,13 +170,7 @@ export const DiffEqMainContent: React.FC = () => {
         />
 
         <Form.Field label="Associated Type" size="sm">
-          <PropertyValue
-            text={
-              types.find(
-                (candidate) => candidate.id === differentialEquation.colorId,
-              )?.name
-            }
-          >
+          <PropertyValue text={equationType?.name}>
             <Tooltip
               content={UI_MESSAGES.READ_ONLY_MODE}
               disableTooltip={!isReadOnly}

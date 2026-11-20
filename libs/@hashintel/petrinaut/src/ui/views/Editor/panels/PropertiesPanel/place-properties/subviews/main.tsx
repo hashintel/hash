@@ -1,5 +1,4 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { use } from "react";
 
 import {
   Button,
@@ -14,7 +13,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import { validateEntityName } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
-import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
@@ -85,8 +83,6 @@ export const PlaceMainContent: React.FC = () => {
     place.capacity !== undefined && place.capacity !== null;
 
   const extensions = useSDCPNState((document) => document.extensions);
-  const { activeNet } = use(ActiveNetContext);
-  const { types: availableTypes } = activeNet;
 
   const placeTypeName =
     types.find((candidate) => candidate.id === place.colorId)?.name ?? "None";
@@ -116,7 +112,7 @@ export const PlaceMainContent: React.FC = () => {
         <Section
           title="Accepted token type"
           tooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${
-            availableTypes.length === 0
+            types.length === 0
               ? " You must create a data type in the left-hand sidebar first."
               : ""
           } Tokens in places don't have to carry data, but they need one for dynamics (token data changing over time when in a place); changing the type clears the place's equations.`}
