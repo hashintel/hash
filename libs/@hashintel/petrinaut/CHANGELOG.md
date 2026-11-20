@@ -1,5 +1,84 @@
 # @hashintel/petrinaut
 
+## 0.0.24
+
+### Patch Changes
+
+- Stochastic mode runs on the adaptive simulator. ([#10435](https://github.com/hashintel/hash/pull/10435))
+
+- Add a compact, draggable browser FPS counter with a short history, command-palette access, and a keyboard shortcut. ([#10196](https://github.com/hashintel/hash/pull/10196))
+
+  Bind declared plugin command shortcuts automatically while each command is available.
+
+- Create Experiment picks the simulator that computes the runs, and an experiment names the one that ran. ([#10436](https://github.com/hashintel/hash/pull/10436))
+
+- `PetrinautOptimizationContext` accepts only a connected in-browser optimizer. ([#10287](https://github.com/hashintel/hash/pull/10287))
+
+- The Diagnostics tab reads the class of the net: its time, its colouring and its chance.
+
+- Arcs always attach to node outlines, and the Automatic arc connections and Arc rendering settings are removed. ([#10407](https://github.com/hashintel/hash/pull/10407))
+
+- The canvas glides to keep the selection clear of panels and brings a selected item into view. ([#10418](https://github.com/hashintel/hash/pull/10418))
+
+- Lets users choose the AI assistant when several plugins provide one. ([#10214](https://github.com/hashintel/hash/pull/10214))
+
+- Draws component instances as cards with labelled port pins that fold away when there are many. ([#10419](https://github.com/hashintel/hash/pull/10419))
+
+- Draws a component's own icon and colour on its instances and in the Nets list, set from the component's options. ([#10421](https://github.com/hashintel/hash/pull/10421))
+
+- The place panel lists a place's composed equations in a reorderable table, the type panel its dimensions, and an equation's properties set how many tokens it couples. ([#10409](https://github.com/hashintel/hash/pull/10409))
+
+- Adds a `rules` prop, for an editor that only places and wires the components of the libraries its host offers. ([#10511](https://github.com/hashintel/hash/pull/10511))
+
+- Adds a Document view that shows the document's content and its latest changes in the bottom panel. ([#10526](https://github.com/hashintel/hash/pull/10526))
+
+- The Plugins list in User settings opens and closes a plugin's details with the arrow keys. ([#10526](https://github.com/hashintel/hash/pull/10526))
+
+- Lets users fuse a place with the ports of component instances on the canvas, with the fused place's checks in its properties and in Diagnostics. ([#10310](https://github.com/hashintel/hash/pull/10310))
+
+- Adds `resolveImport` and `libraries` props, a Components panel that lists the libraries on offer, a "Resolving" state while an import loads, and an export with imports inlined. ([#10510](https://github.com/hashintel/hash/pull/10510))
+
+- Adds the SIR Mass-Action Model to the examples menu, and the editor strikes through deprecated `.length` reads. ([#10396](https://github.com/hashintel/hash/pull/10396))
+
+- Adds interface and implementation options to the Nets panel and an implementation picker to instances of an interface. ([#10417](https://github.com/hashintel/hash/pull/10417))
+
+- A plugin can add tabs to the bottom panel. ([#10526](https://github.com/hashintel/hash/pull/10526))
+
+- A plugin can read what the document's handle holds and the changes it reports. ([#10526](https://github.com/hashintel/hash/pull/10526))
+
+- Draws component ports on the side their direction gives them and lets a port declare its direction in its properties. ([#10371](https://github.com/hashintel/hash/pull/10371))
+
+- Removes the `aiAssistant` prop and the built-in AI chat with its `PetrinautAi*` exports: the AI assistant comes from a plugin. ([#10267](https://github.com/hashintel/hash/pull/10267))
+
+- Says "component" where the editor, its navigation state and its API said "subnet", and reads and writes files that list `components`; documents written before keep loading. ([#10534](https://github.com/hashintel/hash/pull/10534))
+
+- Lets the end of a fusion link be dragged to another port or place, or onto the empty canvas to detach it. ([#10509](https://github.com/hashintel/hash/pull/10509))
+
+- Clarify visualizer errors for unsupported CSS functions and external resource references, including values computed during simulation. ([#10381](https://github.com/hashintel/hash/pull/10381))
+
+- Move and resize Canvas visualizers, follow places or fix windows on screen, and edit their code during simulation. ([#10319](https://github.com/hashintel/hash/pull/10319))
+
+- Quick Simulation plays a run by time instead of by frame, and a host that supplies its own simulation worker now passes the event simulation worker. ([#10437](https://github.com/hashintel/hash/pull/10437))
+
+- The mode and simulator of a simulation sit in one picker that opens over Simulation Settings, and a reset returns to Simulation Settings. ([#10438](https://github.com/hashintel/hash/pull/10438))
+
+- Simulation Settings picks the simulator a Quick Simulation runs on and edits its parameters. ([#10433](https://github.com/hashintel/hash/pull/10433))
+
+- Adds a Stochastic mode that computes many runs and shows each place's token count across them on the canvas and the timeline. ([#10434](https://github.com/hashintel/hash/pull/10434))
+
+- The time-based timeline draws token counts and metrics stacked, and the Preview plays a run by time. ([#10432](https://github.com/hashintel/hash/pull/10432))
+
+- Simulations and experiments of an untimed net run step by step, with the playback bar, the timeline and the experiment form counting steps. ([#10443](https://github.com/hashintel/hash/pull/10443))
+
+- A place with no type draws its visualizer, with one token per count. ([#10505](https://github.com/hashintel/hash/pull/10505))
+
+- Add responsive SVG coordinates, full-window backgrounds, and independent scene pan and zoom. ([#10364](https://github.com/hashintel/hash/pull/10364))
+- Updated dependencies:
+  - @hashintel/petrinaut-core@0.0.7
+  - @hashintel/ds-components@0.6.0
+  - @hashintel/ds-helpers@0.3.0
+  - @hashintel/ds-icons@0.1.0
+
 ## 0.0.23
 
 ### Patch Changes
