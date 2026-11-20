@@ -93,34 +93,23 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   onDragStart,
   ref,
   ...rest
-}) => {
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if ((event.key === "Enter" || event.key === " ") && onClick) {
-      event.preventDefault();
-      onClick();
-    }
-  };
-
-  return (
-    <ShortcutTooltip label={tooltip} shortcut={shortcut}>
-      <button
-        ref={ref}
-        type="button"
-        onClick={onClick}
-        onKeyDown={handleKeyDown}
-        className={buttonStyle({ isSelected, isDisabled: disabled })}
-        style={style}
-        aria-label={ariaLabel}
-        aria-expanded={ariaExpanded}
-        aria-pressed={isSelected}
-        aria-disabled={disabled}
-        draggable={draggable}
-        onDragStart={onDragStart}
-        tabIndex={0}
-        {...rest}
-      >
-        {children}
-      </button>
-    </ShortcutTooltip>
-  );
-};
+}) => (
+  <ShortcutTooltip label={tooltip} shortcut={shortcut}>
+    <button
+      ref={ref}
+      type="button"
+      onClick={onClick}
+      className={buttonStyle({ isSelected, isDisabled: disabled })}
+      style={style}
+      aria-label={ariaLabel}
+      aria-expanded={ariaExpanded}
+      aria-pressed={isSelected}
+      aria-disabled={disabled}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      {...rest}
+    >
+      {children}
+    </button>
+  </ShortcutTooltip>
+);
