@@ -28,24 +28,20 @@ async fn storage(s3: bool) -> (Option<ContainerAsync<MinIO>>, Storage) {
     }
 }
 
+const ROOT: &str = "tenants/00000000-0000-0000-0000-000000000001/integrations/\
+                    a290c6f051d0a83cd0663dd31819fb8d9b8fac2705e6e0618c3b0c11142d7477";
+
 #[test]
 fn namespace_is_stable() {
-    let root = "tenants/00000000-0000-0000-0000-000000000001/integrations/\
-                a290c6f051d0a83cd0663dd31819fb8d9b8fac2705e6e0618c3b0c11142d7477";
-
     assert_eq!(
         namespace().root(),
-        root,
-        "the namespace is a storage format"
+        ROOT,
+        "the namespace should not change, because it is a storage format"
     );
-    assert_ne!(
-        IntegrationNamespace::new(
-            Uuid::from_u128(1),
-            &"linear".parse().expect("should be a connector ID")
-        ),
-        namespace(),
-        "each connector of a web should have its own namespace"
-    );
+}
+
+#[test]
+fn s3_namespace_below_prefix() {
     assert_eq!(
         &*Storage::s3(
             S3Bucket {
@@ -58,7 +54,7 @@ fn namespace_is_stable() {
         .bucket()
         .expect("should have a bucket")
         .uri,
-        format!("s3://captures/prefix/{root}"),
+        format!("s3://captures/prefix/{ROOT}"),
         "the namespace should be below the bucket's prefix"
     );
 }
@@ -76,13 +72,10 @@ async fn namespaces_keep_integrations_apart() {
     )
     .expect("should open the bucket");
 
-    assert!(
-        aviation
-            .replace_if("current.json", None, b"aviation".to_vec())
-            .await
-            .expect("should create the file"),
-        "a create under a fresh key should write"
-    );
+    aviation
+        .replace_if("current.json", None, b"aviation".to_vec())
+        .await
+        .expect("should create the file");
     assert_eq!(
         linear
             .read_versioned("current.json")
@@ -90,6 +83,18 @@ async fn namespaces_keep_integrations_apart() {
             .expect("should read the key"),
         None,
         "another integration should not see the file"
+    );
+    let stored = super::s3::open(&bucket(port))
+        .expect("should open the bucket")
+        .get(&Location::from(format!("{ROOT}/current.json")))
+        .await
+        .expect("the file should be stored under the namespace")
+        .bytes()
+        .await
+        .expect("should read the file");
+    assert_eq!(
+        &*stored, b"aviation",
+        "should store the file under the namespace"
     );
 }
 
@@ -133,7 +138,7 @@ async fn files_round_trip(#[case] s3: bool) {
 }
 
 #[tokio::test]
-async fn a_second_upload_replaces_the_first() {
+async fn upload_replaces_existing() {
     let (_minio, storage) = storage(true).await;
     let uploads = TempDir::new().expect("should create a directory");
     let downloads = TempDir::new().expect("should create a directory");
@@ -156,7 +161,7 @@ async fn a_second_upload_replaces_the_first() {
 }
 
 #[tokio::test]
-async fn downloading_a_missing_key_leaves_no_file() {
+async fn download_missing_key() {
     let (_minio, storage) = storage(true).await;
     let downloads = TempDir::new().expect("should create a directory");
 
@@ -175,6 +180,37 @@ async fn downloading_a_missing_key_leaves_no_file() {
         0,
         "should leave the directory empty"
     );
+}
+
+#[tokio::test]
+async fn upload_missing_file() {
+    let directory = TempDir::new().expect("should create a directory");
+
+    let error = Storage::memory()
+        .upload(&directory.path().join("missing.bin"), KEY)
+        .await
+        .expect_err("should fail for a missing file");
+    assert!(
+        matches!(error.current_context(), StorageError::Read),
+        "a missing file should be a read error"
+    );
+}
+
+#[tokio::test]
+async fn download_keeps_inside_directory() {
+    let storage = Storage::memory();
+    let downloads = TempDir::new().expect("should create a directory");
+
+    for key in ["../escape.bin", "runs/../../escape.bin", "/escape.bin"] {
+        let error = storage
+            .download(key, downloads.path())
+            .await
+            .expect_err("should refuse a key that leaves the directory");
+        assert!(
+            matches!(error.current_context(), StorageError::Write),
+            "the key {key} should be a write error"
+        );
+    }
 }
 
 #[tokio::test]
@@ -205,6 +241,14 @@ async fn s3_errors_are_not_missing_files() {
     assert!(
         matches!(error.current_context(), StorageError::Read),
         "a failed download should be a read error"
+    );
+    let error = storage
+        .replace_if(KEY, None, b"bytes".to_vec())
+        .await
+        .expect_err("should fail when the bucket cannot be written");
+    assert!(
+        matches!(error.current_context(), StorageError::Write),
+        "a failed write should be a write error, not a conflict"
     );
 }
 
@@ -268,6 +312,24 @@ async fn replace_if_conditional_put(#[case] s3: bool) {
 async fn versioned_size_limit() {
     let storage = Storage::memory();
     let key = "current.json";
+
+    assert!(
+        storage
+            .replace_if(key, None, vec![b' '; MAX_VERSIONED_BYTES])
+            .await
+            .expect("should write a file at the limit"),
+        "a create under a fresh key should write"
+    );
+    assert!(
+        storage
+            .read_versioned(key)
+            .await
+            .expect("should read a file at the limit")
+            .is_some(),
+        "the file at the limit should exist"
+    );
+
+    let key = "run.json";
     let bytes = vec![b' '; MAX_VERSIONED_BYTES + 1];
 
     let error = storage

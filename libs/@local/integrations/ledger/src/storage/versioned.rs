@@ -8,8 +8,7 @@ use super::{Storage, StorageError};
 /// The largest versioned file that is read or written, in bytes.
 pub(super) const MAX_VERSIONED_BYTES: usize = 16 * 1024 * 1024;
 
-// Origin: `CasVersionV1` in labs `pocs/integrations_rs/src/blob.rs`, without the versioned
-// wrapper and serde.
+// Origin: `CasVersionV1` in labs `pocs/integrations_rs/src/blob.rs`.
 /// The version of a file read by [`Storage::read_versioned`], which [`Storage::replace_if`]
 /// compares before it writes.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,8 +25,8 @@ impl Storage {
     ///
     /// # Errors
     ///
-    /// Returns [`StorageError::Read`] if the file cannot be read or is larger than 16 MiB. A
-    /// larger file is refused before its bytes are downloaded.
+    /// Returns [`StorageError::Read`] if the file cannot be read or is larger than
+    /// [`MAX_VERSIONED_BYTES`]. A larger file is refused before its bytes are downloaded.
     pub(crate) async fn read_versioned(
         &self,
         key: &str,
@@ -54,7 +53,8 @@ impl Storage {
     ///
     /// # Errors
     ///
-    /// Returns [`StorageError::Write`] if `bytes` are larger than 16 MiB or the write fails.
+    /// Returns [`StorageError::Write`] if `bytes` are larger than [`MAX_VERSIONED_BYTES`] or the
+    /// write fails.
     pub(crate) async fn replace_if(
         &self,
         key: &str,

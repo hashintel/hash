@@ -1,6 +1,6 @@
 use std::{
     fs,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 
 use error_stack::{Report, ResultExt as _};
@@ -28,15 +28,15 @@ impl Storage {
     /// Returns [`StorageError::Read`] if the file cannot be read, or [`StorageError::Write`] if
     /// the upload fails.
     pub(crate) async fn upload(&self, path: &Path, key: &str) -> Result<u64, Report<StorageError>> {
+        let mut file = tokio::fs::File::open(path)
+            .await
+            .change_context(StorageError::Read)?;
         let upload = self
             .store
             .put_multipart(&Location::from(key))
             .await
             .change_context(StorageError::Write)?;
         let mut upload = WriteMultipart::new_with_chunk_size(upload, CHUNK_SIZE);
-        let mut file = tokio::fs::File::open(path)
-            .await
-            .change_context(StorageError::Read)?;
         let mut buffer = vec![0; CHUNK_SIZE];
         let mut size = 0_u64;
         let copied: Result<(), Report<StorageError>> = async {
@@ -66,8 +66,7 @@ impl Storage {
         Ok(size)
     }
 
-    // Origin: `ArtifactStore::materialize_guarded` in labs `pocs/integrations_rs/src/blob.rs`,
-    // without its shared cache, eviction locks and disk limits.
+    // Origin: `ArtifactStore::materialize_guarded` in labs `pocs/integrations_rs/src/blob.rs`.
     /// Downloads `key` to the same path under `directory` and returns that path.
     ///
     /// A file already at that path is replaced. A failed download leaves no file behind.
@@ -75,12 +74,19 @@ impl Storage {
     /// # Errors
     ///
     /// Returns [`StorageError::Read`] if `key` is missing or cannot be downloaded, or
-    /// [`StorageError::Write`] if the local file cannot be written.
+    /// [`StorageError::Write`] if `key` would leave `directory` or the local file cannot be
+    /// written.
     pub(crate) async fn download(
         &self,
         key: &str,
         directory: &Path,
     ) -> Result<PathBuf, Report<StorageError>> {
+        if !Path::new(key)
+            .components()
+            .all(|part| matches!(part, Component::Normal(_)))
+        {
+            return Err(Report::new(StorageError::Write));
+        }
         let mut stream = self
             .store
             .get(&Location::from(key))
@@ -101,6 +107,9 @@ impl Storage {
                 .await
                 .change_context(StorageError::Write)?;
         }
+        // `sync_all` drops the error of a write that has not finished, so the last write is
+        // finished first.
+        file.flush().await.change_context(StorageError::Write)?;
         file.sync_all().await.change_context(StorageError::Write)?;
         partial
             .persist(&target)

@@ -1,6 +1,6 @@
 [package]
 name              = "hash-integrations-ledger"
-description       = "Runs an integration's ledger pipeline in stages that keep their state in S3"
+description       = "Keeps the state of an integration's ledger pipeline in S3"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
