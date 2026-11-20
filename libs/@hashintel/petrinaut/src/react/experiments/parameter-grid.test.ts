@@ -105,31 +105,14 @@ describe("buildParameterAxis", () => {
     expect(outcome.ok && outcome.axis.stepCount).toBe(SWEEP_AXIS_STEPS);
   });
 
-  it("rejects boolean parameters", () => {
-    expect(
-      buildParameterAxis(
-        { identifier: "flag", type: "boolean" },
-        { min: 0, max: 1 },
-      ).ok,
-    ).toBe(false);
-  });
-
-  it("rejects ratio intervals outside [0, 1]", () => {
-    expect(
-      buildParameterAxis(
-        { identifier: "share", type: "ratio" },
-        { min: -0.1, max: 0.5 },
-      ).ok,
-    ).toBe(false);
-  });
-
-  it("rejects max <= min", () => {
-    expect(
-      buildParameterAxis(
-        { identifier: "beta", type: "real" },
-        { min: 1, max: 1 },
-      ).ok,
-    ).toBe(false);
+  it.each([
+    ["boolean parameters", "boolean", { min: 0, max: 1 }],
+    ["ratio intervals outside [0, 1]", "ratio", { min: -0.1, max: 0.5 }],
+    ["max <= min", "real", { min: 1, max: 1 }],
+  ] as const)("rejects %s", (_case, type, interval) => {
+    expect(buildParameterAxis({ identifier: "x", type }, interval).ok).toBe(
+      false,
+    );
   });
 });
 
