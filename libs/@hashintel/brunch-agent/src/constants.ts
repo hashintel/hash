@@ -34,6 +34,11 @@ export const brunchTools = {
    */
   appSaveNet: "app_save_net",
   draftPetrinautExperiment: "draft_petrinaut_experiment",
+  /**
+   * HASH's process page counts the entities a filter matches that the
+   * signed-in user may see, by type and by web.
+   */
+  hashCountEntities: "hash_count_entities",
   /** HASH's process page reads entities from the graph as the signed-in user. */
   hashQueryEntities: "hash_query_entities",
   /** HASH's process page reads the entity types the signed-in user can see. */

@@ -21,6 +21,27 @@ export const hashEntityReadDefaultTraversalDepth = 1;
 export const hashEntityReadMaxTraversalDepth = 3;
 
 /**
+ * The most matches the graph returns for one query, entities or types: the
+ * graph server's default query limit. One page of an entity read, or of a
+ * count by links, holds at most this many.
+ */
+export const hashEntityReadMaxLimit = 1000;
+
+/**
+ * How many matched entities a page holds when the model names no limit. Small
+ * enough that a page with its properties usually fits the read's token
+ * budget: at about 130 tokens an entity on the seeded supply-chain data, 100
+ * come to about 13,000. Questions of how many go to the count, not to pages.
+ */
+export const hashEntityReadDefaultLimit = 100;
+
+const formattedMaxLimit = hashEntityReadMaxLimit.toLocaleString("en-US");
+const formattedDefaultLimit =
+  hashEntityReadDefaultLimit.toLocaleString("en-US");
+
+const limitMessage = `limit is how many matched entities one page holds: a whole number from 1 to ${formattedMaxLimit}. Omit it for ${formattedDefaultLimit}.`;
+
+/**
  * List length and id length are deliberately unbounded: the page reads as the
  * signed-in user, and the graph enforces its own limits.
  */
@@ -33,19 +54,82 @@ const identifiersSchemaWith = ({ description }: { description: string }) =>
     ),
   );
 
-const webIdsDescription =
-  "Web ids to read from. An entity belongs to the web of the user or organization that owns it.";
+const propertyBaseUrlPattern = /^https?:\/\/\S+\/$/u;
+const propertyTypeIdPattern = /^https?:\/\/\S+\/v\/[1-9]\d*$/u;
+
+/**
+ * The base URL of a property, named by its base URL or its versioned
+ * propertyTypeId, as `hashPropertySelectorSchema` admits: an entity's
+ * properties are keyed by base URL, whatever version they were saved against.
+ */
+export const hashPropertyBaseUrl = (property: string) =>
+  propertyTypeIdPattern.test(property)
+    ? property.replace(/v\/[1-9]\d*$/u, "")
+    : property;
+
+const propertySelectorMessage =
+  "A property is named by its base URL, ending in /, as in https://hash.ai/@h/types/property-type/name/, or by its versioned propertyTypeId, as in …/property-type/name/v/1: copy one from an entity read's properties legend or an entity type read. A short name such as name holds within one read only, so it isn't accepted.";
+
+/**
+ * One property, by its base URL or its versioned propertyTypeId. A short
+ * name is refused: it is only the name one read gave it.
+ */
+const hashPropertySelectorSchema = v.pipe(
+  v.string(propertySelectorMessage),
+  v.check(
+    (property) =>
+      propertyBaseUrlPattern.test(property) ||
+      propertyTypeIdPattern.test(property),
+    propertySelectorMessage,
+  ),
+);
+
+const propertyValueMessage =
+  "value is the property's value to match exactly: a string, number or boolean, in the type the read showed it (a quoted value is a string, a bare one a number).";
+
+const propertyEqualsSchemaWith = ({ subject }: { subject: string }) =>
+  v.optional(
+    v.pipe(
+      v.array(
+        v.strictObject({
+          property: hashPropertySelectorSchema,
+          value: v.union(
+            [v.string(), v.number(), v.boolean()],
+            propertyValueMessage,
+          ),
+        }),
+      ),
+      v.minLength(1),
+      v.description(
+        `Property values ${subject} must equal, each { property, value }: property is a base URL or versioned propertyTypeId (not a short name); value is a string, number or boolean, matched exactly, with no case folding or partial match, and only in the type it is stored as: "42" doesn't match 42. Every condition must hold, along with the other filters.`,
+      ),
+    ),
+  );
 
 export const hashEntityReadInputSchema = v.strictObject({
   entityTypes: identifiersSchemaWith({
     description:
       "Entity type titles to match, for example `Organization`. A title matches every type with that title, in any web and at any version; a versioned entityTypeId matches that type version only. Entities of any listed type match.",
   }),
-  webIds: identifiersSchemaWith({ description: webIdsDescription }),
+  webIds: identifiersSchemaWith({
+    description: `Web ids to read from, each the web of a user or organization. Omit for the user's own web and their organizations' webs, as ${brunchTools.hashQueryWebs} lists them.`,
+  }),
   entityIds: identifiersSchemaWith({
     description:
-      "Entity ids to read, for example ids returned by an earlier read: `webId~entityUuid`, or `webId~entityUuid~draftId` for a draft. An id with a draft part reads that draft.",
+      "Entity ids to read, as earlier reads gave them: `webId~entityUuid`, or `webId~entityUuid~draftId`, which reads that draft. Each is read in the web it names; given webIds too, an entity must also be in one of them.",
   }),
+  propertyEquals: propertyEqualsSchemaWith({
+    subject: "a matched entity's properties",
+  }),
+  properties: v.optional(
+    v.pipe(
+      v.array(hashPropertySelectorSchema),
+      v.minLength(1),
+      v.description(
+        "Which properties to show for each entity, each a base URL or versioned propertyTypeId (not a short name). Only these are shown and listed in the legend; each entity's entityId, editionId, types and link endpoints are always shown.",
+      ),
+    ),
+  ),
   traversalDepth: v.optional(
     v.pipe(
       v.number(),
@@ -65,10 +149,49 @@ export const hashEntityReadInputSchema = v.strictObject({
       ),
     ),
   ),
-  fullValuesFor: identifiersSchemaWith({
-    description:
-      "Entity ids whose property values to show in full, as JSON, where the result would otherwise summarise a large value. It doesn't change which entities are read: read them by entityIds too.",
-  }),
+  fullValuesFor: v.optional(
+    v.pipe(
+      v.array(
+        v.union([
+          v.pipe(v.string(), v.minLength(1)),
+          v.strictObject({
+            entityId: v.pipe(v.string(), v.minLength(1)),
+            path: v.pipe(
+              v.array(v.pipe(v.string(), v.minLength(1))),
+              v.minLength(1),
+              v.description(
+                'Where the part is: the property\'s name as the read shows it, then the keys or array positions inside its value, for example ["definition_object", "parameters"] or ["definition_object", "places", "0"].',
+              ),
+            ),
+          }),
+        ]),
+      ),
+      v.minLength(1),
+      v.description(
+        "Values to show where the read would otherwise summarise them: an entity id for all that entity's values, or { entityId, path } for one value or part of one. Neither changes which entities are read: read them by entityIds too.",
+      ),
+    ),
+  ),
+  limit: v.optional(
+    v.pipe(
+      v.number(limitMessage),
+      v.integer(limitMessage),
+      v.minValue(1, limitMessage),
+      v.maxValue(hashEntityReadMaxLimit, limitMessage),
+      v.description(
+        `How many matched entities one page holds, from 1 to ${formattedMaxLimit}; entities reached by following links come on top. Defaults to ${formattedDefaultLimit}.`,
+      ),
+    ),
+  ),
+  cursor: v.optional(
+    v.pipe(
+      v.string(),
+      v.minLength(1),
+      v.description(
+        "The cursor a full page gave, copied exactly, to read the next page of the same read; a cursor from another read skips or repeats matches. Omit it to read the first page.",
+      ),
+    ),
+  ),
 });
 
 export type HashEntityReadInput = v.InferOutput<
@@ -96,6 +219,126 @@ export const parseHashEntityTypeReadInput = (
   input: unknown,
 ): HashEntityTypeReadInput => v.parse(hashEntityTypeReadInputSchema, input);
 
+/**
+ * One entity type to count: a title, or a versioned URL. An unversioned type
+ * URL would match nothing, so it is refused with what to give instead.
+ */
+const hashEntityTypeSelectorSchema = v.pipe(
+  v.string(),
+  v.minLength(1),
+  v.check(
+    (selector) =>
+      !/^https?:\/\//u.test(selector) || /\/v\/[1-9]\d*$/u.test(selector),
+    "An entity type URL needs its version, as in …/sales-order/v/1: copy the entityTypeId from a read, or give the type's title instead.",
+  ),
+);
+
+/** The most link steps a count's `where` path follows. */
+const hashEntityCountMaxPathSteps = 2;
+
+/**
+ * The most entities a count by links (`where` or `groupBy`) may read, across
+ * all its pages: the counted entities, the links of each type it follows and
+ * the grouped entities it labels. A count that would read more is refused
+ * before reading them.
+ */
+export const hashEntityCountMaxJoinEntities = 20_000;
+
+/** How many groups a count by links lists, largest first, before summing the rest. */
+export const hashEntityCountMaxGroups = 25;
+
+/** How many qualifying entities a count by links gives as examples. */
+export const hashEntityCountMaxExamples = 3;
+
+const emptyPathMessage =
+  "A where path needs one or two link steps, each { linkType, direction }.";
+
+const pathStepsMessage = `A count follows at most ${hashEntityCountMaxPathSteps} links, so it can't answer a question along a longer path: ask the user to narrow the question, or read the records to answer it.`;
+
+const joinNeedsEntityTypesMessage =
+  'where and groupBy count the entities of a type by their links: name that type in entityTypes, such as ["Sales Order"].';
+
+/** One link followed from an entity, to the entity at the link's other end. */
+const hashEntityCountStepSchema = v.strictObject({
+  linkType: v.pipe(
+    hashEntityTypeSelectorSchema,
+    v.description(
+      "The link entity type to follow: a title such as `Has Customer`, or a versioned entityTypeId.",
+    ),
+  ),
+  direction: v.pipe(
+    v.picklist(["outgoing", "incoming"]),
+    v.description(
+      "outgoing follows links whose left (source) entity is this one to their right (target) entity; incoming follows links whose right (target) entity is this one back to their left (source) entity.",
+    ),
+  ),
+});
+
+export const hashEntityCountInputSchema = v.pipe(
+  v.strictObject({
+    entityTypes: v.optional(
+      v.pipe(
+        v.array(hashEntityTypeSelectorSchema),
+        v.minLength(1),
+        v.description(
+          "Entity types to count, each a title such as `Sales Order`, matching every type with that title at any version, or a versioned entityTypeId, matching that version only. Entities of any listed type are counted. Omit to count every entity, links included; required with where or groupBy.",
+        ),
+      ),
+    ),
+    propertyEquals: propertyEqualsSchemaWith({
+      subject: "a counted entity's properties",
+    }),
+    webIds: identifiersSchemaWith({
+      description: `Web ids to count in. Omit for the user's own web and their organizations' webs, as ${brunchTools.hashQueryWebs} lists them. With where or groupBy, the links followed are read in the same webs; the grouped entities are read by id, in whichever web each is.`,
+    }),
+    where: v.optional(
+      v.pipe(
+        v.strictObject({
+          path: v.pipe(
+            v.array(hashEntityCountStepSchema),
+            v.minLength(1, emptyPathMessage),
+            v.maxLength(hashEntityCountMaxPathSteps, pathStepsMessage),
+            v.description(
+              "One or two link steps from each counted entity, each { linkType, direction }; the second step follows links from the entities the first reached.",
+            ),
+          ),
+          exists: v.pipe(
+            v.boolean(),
+            v.description(
+              "true counts an entity when the path reaches at least one entity; false counts it when the path reaches none.",
+            ),
+          ),
+        }),
+        v.description(
+          "Count only the entities for which a path of links does, or does not, reach some entity. A link reaches its other end even when that entity can't be read.",
+        ),
+      ),
+    ),
+    groupBy: v.optional(
+      v.pipe(
+        hashEntityCountStepSchema,
+        v.description(
+          'Group the counted entities by the entity one link away, such as each sales order\'s customer: { linkType: "Has Customer", direction: "outgoing" }.',
+        ),
+      ),
+    ),
+  }),
+  v.check(
+    ({ entityTypes, where, groupBy }) =>
+      (where === undefined && groupBy === undefined) ||
+      entityTypes !== undefined,
+    joinNeedsEntityTypesMessage,
+  ),
+);
+
+export type HashEntityCountInput = v.InferOutput<
+  typeof hashEntityCountInputSchema
+>;
+
+export const parseHashEntityCountInput = (
+  input: unknown,
+): HashEntityCountInput => v.parse(hashEntityCountInputSchema, input);
+
 export const hashWebReadInputSchema = v.strictObject({});
 
 export const parseHashWebReadInput = (input: unknown) =>
@@ -110,8 +353,9 @@ export const hashReadFailureSchema = v.object({ error: v.string() });
 export type HashReadFailure = v.InferOutput<typeof hashReadFailureSchema>;
 
 /**
- * The graph returns at most a page of matches, and the page reports
- * `truncated` when it stopped there; the reads don't fetch further pages.
+ * The graph returns at most a page of types, and the page reports
+ * `truncated` when it stopped there; the type read doesn't fetch further
+ * pages. The entity read pages by `cursor` instead.
  */
 const truncatedSchema = v.optional(v.literal(true));
 
@@ -122,6 +366,12 @@ const hashEntitySchema = v.object({
   label: v.optional(v.string()),
   editionId: v.string(),
   webId: v.string(),
+  /**
+   * Set when the entity's web is neither the user's own nor one of their
+   * organizations', however it was reached; the page decides, since it knows
+   * the user's webs. Absent from pages that predate it.
+   */
+  external: v.optional(v.literal(true)),
   entityTypeIds: v.array(v.string()),
   properties: v.record(v.string(), v.unknown()),
   draft: v.boolean(),
@@ -146,7 +396,13 @@ export const hashEntityReadResultSchema = v.object({
     v.object({ entityTypeId: v.string(), title: v.string() }),
   ),
   entities: v.array(hashEntitySchema),
-  truncated: truncatedSchema,
+  /**
+   * Set when the page holds as many matches as its limit, so more may match:
+   * where the next page starts, as the page encoded it. Opaque to the agent
+   * and the model, which pass it back unchanged as the next read's `cursor`.
+   * Entities reached by links may appear on more than one page; matches don't.
+   */
+  cursor: v.optional(v.pipe(v.string(), v.minLength(1))),
 });
 
 export type HashEntityReadResult = v.InferOutput<
@@ -178,11 +434,13 @@ export type HashEntityTypeReadResult = v.InferOutput<
   typeof hashEntityTypeReadResultSchema
 >;
 
+const hashWebKindSchema = v.picklist(["user", "organization"]);
+
 export const hashWebReadResultSchema = v.object({
   webs: v.array(
     v.object({
       webId: v.string(),
-      kind: v.picklist(["user", "organization"]),
+      kind: hashWebKindSchema,
       shortname: v.optional(v.string()),
       name: v.optional(v.string()),
     }),
@@ -190,3 +448,130 @@ export const hashWebReadResultSchema = v.object({
 });
 
 export type HashWebReadResult = v.InferOutput<typeof hashWebReadResultSchema>;
+
+const countSchema = v.pipe(v.number(), v.integer(), v.minValue(0));
+
+/**
+ * An exact count of the entities a count's filters match that the signed-in
+ * user may see, by each entity's direct types and by web; it lists none.
+ */
+export const hashEntityCountResultSchema = v.object({
+  count: countSchema,
+  /**
+   * Which webs were counted: the user's own and organization webs when the
+   * input named none (`default`), else the webs it named.
+   */
+  webScope: v.picklist(["default", "named"]),
+  /**
+   * Each direct type a counted entity carries; an entity of several types is
+   * counted under each.
+   */
+  entityTypes: v.array(
+    v.object({
+      entityTypeId: v.string(),
+      title: v.optional(v.string()),
+      count: countSchema,
+    }),
+  ),
+  /** Every web counted in, named where the page knows it, with its count. */
+  webs: v.array(
+    v.object({
+      webId: v.string(),
+      kind: v.optional(hashWebKindSchema),
+      shortname: v.optional(v.string()),
+      name: v.optional(v.string()),
+      count: countSchema,
+    }),
+  ),
+});
+
+export type HashEntityCountResult = v.InferOutput<
+  typeof hashEntityCountResultSchema
+>;
+
+export type HashEntityCountStep = v.InferOutput<
+  typeof hashEntityCountStepSchema
+>;
+
+/**
+ * How many entities a count by links reads, or would read, of one kind: the
+ * counted entities (`counted`, by the input's `entityTypes`), the links of one
+ * type it follows (`link`, by that step's `linkType`), or the grouped entities
+ * it labels (`grouped`).
+ */
+const hashEntityCountJoinReadSchema = v.object({
+  role: v.picklist(["counted", "link", "grouped"]),
+  /** The entity types read: the input's selectors, a title or versioned id each. */
+  entityTypes: v.array(v.string()),
+  entities: countSchema,
+});
+
+/**
+ * A qualifying entity, or a grouped one, as a count by links names it: by id,
+ * with its label where it has one, marked `external` when it is in neither the
+ * user's own web nor one of their organizations'.
+ */
+const hashEntityCountJoinEntitySchema = v.object({
+  entityId: v.string(),
+  label: v.optional(v.string()),
+  external: v.optional(v.literal(true)),
+});
+
+/**
+ * The result of a count by links (`where` or `groupBy`), which the page reads
+ * page by page and joins itself: `counted` with the count; `refused` before
+ * reading, because it would read more than `hashEntityCountMaxJoinEntities`;
+ * or `incomplete`, when a read failed or the budget ran out part-way, which
+ * carries no count, since what was read is not all there is.
+ */
+export const hashEntityCountJoinResultSchema = v.variant("outcome", [
+  v.object({
+    outcome: v.literal("counted"),
+    webScope: v.picklist(["default", "named"]),
+    /** How many entities of the counted types were read. */
+    ofType: countSchema,
+    /** How many of them qualified under `where`, or all of them without it. */
+    count: countSchema,
+    /**
+     * With `groupBy`: the largest groups, most first, each by the entity one
+     * step away, or with no `entity` for those linked to none.
+     */
+    groups: v.optional(
+      v.array(
+        v.object({
+          entity: v.optional(hashEntityCountJoinEntitySchema),
+          /** Set when the grouped entity could not be read by its id (hidden from the user, archived, or a draft), so has no label. */
+          unread: v.optional(v.literal(true)),
+          count: countSchema,
+        }),
+      ),
+    ),
+    /** The groups past those listed: how many, and their counts summed. */
+    otherGroups: v.optional(
+      v.object({ groups: countSchema, count: countSchema }),
+    ),
+    examples: v.array(hashEntityCountJoinEntitySchema),
+    reads: v.array(hashEntityCountJoinReadSchema),
+    requests: countSchema,
+  }),
+  v.object({
+    outcome: v.literal("refused"),
+    webScope: v.picklist(["default", "named"]),
+    /** How many entities of each kind the count would read. */
+    reads: v.array(hashEntityCountJoinReadSchema),
+    requests: countSchema,
+  }),
+  v.object({
+    outcome: v.literal("incomplete"),
+    webScope: v.picklist(["default", "named"]),
+    /** What stopped it, as a sentence. */
+    reason: v.string(),
+    /** What had been read when it stopped. */
+    reads: v.array(hashEntityCountJoinReadSchema),
+    requests: countSchema,
+  }),
+]);
+
+export type HashEntityCountJoinResult = v.InferOutput<
+  typeof hashEntityCountJoinResultSchema
+>;

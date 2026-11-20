@@ -8,6 +8,7 @@ import {
 
 import { brunchTools } from "../constants";
 import {
+  parseHashEntityCountInput,
   parseHashEntityReadInput,
   parseHashEntityTypeReadInput,
   parseHashWebReadInput,
@@ -214,6 +215,7 @@ export const browserExecutedTools: ReadonlyMap<string, BrowserToolDescriptor> =
       hashGraphRead(parseHashEntityTypeReadInput),
     ],
     [brunchTools.hashQueryWebs, hashGraphRead(parseHashWebReadInput)],
+    [brunchTools.hashCountEntities, hashGraphRead(parseHashEntityCountInput)],
     [
       brunchTools.appSaveNet,
       {

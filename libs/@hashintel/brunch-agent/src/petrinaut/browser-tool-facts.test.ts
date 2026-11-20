@@ -194,6 +194,7 @@ describe("what the browser decides about each tool the server issues to it", () 
     [brunchTools.hashQueryEntities, hashRead],
     [brunchTools.hashQueryEntityTypes, hashRead],
     [brunchTools.hashQueryWebs, hashRead],
+    [brunchTools.hashCountEntities, hashRead],
     [
       brunchTools.appSaveNet,
       {

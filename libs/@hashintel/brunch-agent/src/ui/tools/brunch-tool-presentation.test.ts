@@ -105,6 +105,7 @@ describe("Brunch tool presentation", () => {
       "Look up entity types in HASH",
     );
     expect(pending("hash_query_webs")).toBe("List your HASH webs");
+    expect(pending("hash_count_entities")).toBe("Count entities in HASH");
     expect(pending("app_save_net")).toBe("Save the net");
   });
 

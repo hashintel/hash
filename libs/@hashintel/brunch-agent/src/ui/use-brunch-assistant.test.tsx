@@ -758,6 +758,7 @@ test("mounts document-bound Brunch with canonical overrides and the complete sta
       brunchTools.hashQueryEntities,
       brunchTools.hashQueryEntityTypes,
       brunchTools.hashQueryWebs,
+      brunchTools.hashCountEntities,
       brunchTools.appSaveNet,
       ...Object.keys(hashPetrinautTools),
     ].toSorted(),

@@ -173,6 +173,7 @@ describe("HASH's other tool rows", () => {
     ["hash_query_entities", "Looked up entities in HASH"],
     ["hash_query_entity_types", "Looked up entity types in HASH"],
     ["hash_query_webs", "Listed your HASH webs"],
+    ["hash_count_entities", "Counted entities in HASH"],
     ["app_save_net", "Saved the net"],
     ["ledger_query", "Read the Ledger"],
     ["ledger_query_basis", "Checked recorded basis"],

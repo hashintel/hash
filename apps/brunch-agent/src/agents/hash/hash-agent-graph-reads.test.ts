@@ -58,7 +58,7 @@ const faux = fauxProvider({ provider: "faux", models: [{ id: "faux-1" }] });
 const requests: TranscriptContext[] = [];
 const steps: Step[] = [];
 faux.setResponses(
-  Array.from({ length: 40 }, () => (context: TranscriptContext) => {
+  Array.from({ length: 60 }, () => (context: TranscriptContext) => {
     requests.push(structuredClone(context));
     const step = steps.shift();
     if (!step) throw new Error("The script ran out of scripted agent steps.");
@@ -463,7 +463,7 @@ test("the entity type read is offered, issued as a read in a fresh conversation 
       "- Supplier: https://hash.ai/@alice/types/entity-type/supplier/v/1",
       "  description: Someone who supplies parts.",
       "  properties:",
-      "    name: Name",
+      "    name (https://hash.ai/@alice/types/property-type/name/): Name",
       "  links:",
       "    Supplies: https://hash.ai/@alice/types/entity-type/supplies/v/1 -> https://hash.ai/@alice/types/entity-type/product/v/1",
     ].join("\n"),
@@ -492,6 +492,59 @@ test("the web read is offered, issued as a read in a fresh conversation, and the
       "webs: 2",
       '- user "Alice" @alice webId: alice-web',
       '- organization "Acme" @acme webId: org-web',
+    ].join("\n"),
+  );
+});
+
+test("the entity count is offered, issued as a read in a fresh conversation with its filters as given, and the model next sees the page's count", async () => {
+  const input = {
+    entityTypes: ["Sales Order"],
+    webIds: ["alice-web", "org-web"],
+  };
+  const salesOrder = "https://hash.ai/@acme/types/entity-type/sales-order/v/1";
+  const { claim, declared, seen } = await readOnce(
+    brunchTools.hashCountEntities,
+    input,
+    {
+      count: 1234,
+      webScope: "named",
+      entityTypes: [
+        { entityTypeId: salesOrder, title: "Sales Order", count: 1234 },
+      ],
+      webs: [
+        {
+          webId: "alice-web",
+          kind: "user",
+          shortname: "alice",
+          name: "Alice",
+          count: 1200,
+        },
+        {
+          webId: "org-web",
+          kind: "organization",
+          shortname: "acme",
+          name: "Acme",
+          count: 34,
+        },
+      ],
+    },
+  );
+  const { capability: _capability, ...issued } = claim;
+  expect(issued).toEqual({
+    toolName: brunchTools.hashCountEntities,
+    input,
+    binding: claim.binding,
+  });
+  expect(declared).toContain(brunchTools.hashCountEntities);
+  expect(seen).toBe(
+    [
+      "entities: 1234",
+      "webs counted: the webIds named",
+      "by entity type:",
+      `- 1234 Sales Order: ${salesOrder}`,
+      "by web:",
+      '- 1200 user "Alice" @alice webId: alice-web',
+      '- 34 organization "Acme" @acme webId: org-web',
     ].join("\n"),
   );
 });
@@ -525,32 +578,276 @@ test("an entity read asking for an entity's full values is issued as asked, and 
     output,
   );
   expect(compact.seen).toMatch(
-    /definition_object: <object, [\d.]+ KB: 100 places>/,
+    /definition_object: <object, [\d.]+ KB: places [\d.]+ KB>/,
+  );
+
+  // Asking for part of it by path shows that part alone.
+  const pathInput = {
+    entityIds: [net.entityId],
+    fullValuesFor: [
+      { entityId: net.entityId, path: ["definition_object", "places", "7"] },
+    ],
+  };
+  const part = await readOnce(brunchTools.hashQueryEntities, pathInput, output);
+  expect(part.claim.input).toEqual(pathInput);
+  expect(part.seen).toContain(
+    'path ["definition_object","places","7"]: "place-7"',
+  );
+  expect(part.seen).toContain(`entityId: ${net.entityId}`);
+  expect(part.seen).toMatch(/definition_object: <object, /);
+});
+
+test("the type read settled as truncated tells the model more may match than it shows", async () => {
+  const note = "More may match than shown; narrow the filter.";
+  const output = { entityTypes: [supplierType] };
+  const truncated = await readOnce(
+    brunchTools.hashQueryEntityTypes,
+    {},
+    {
+      ...output,
+      truncated: true,
+    },
+  );
+  expect(truncated.seen?.split("\n")[1]).toBe(note);
+
+  const whole = await readOnce(brunchTools.hashQueryEntityTypes, {}, output);
+  expect(whole.seen).not.toContain(note);
+});
+
+test("a full page of the entity read shows the model its cursor, as given, and how to read the next page; the last page says nothing of more", async () => {
+  const pageInput = { ...readInput, limit: 1, cursor: "WyJwcmV2aW91cyJd" };
+  const cursor = "WyIyMDI2LTEwLTI2Iiwic3VwcGxpZXIiXQ";
+  const partial = await readOnce(brunchTools.hashQueryEntities, pageInput, {
+    ...supplierRead,
+    cursor,
+  });
+  // The page gets the limit and cursor exactly as the model gave them.
+  expect(partial.claim.input).toEqual(pageInput);
+  const [count, next, ...rest] = partial.seen?.split("\n") ?? [];
+  expect(count).toBe("entities: 1");
+  expect(next).toBe(
+    `This page is full, so more may match. To read the next page, repeat the same read with cursor: ${cursor}`,
+  );
+  expect(rest.join("\n")).toBe(supplierText.split("\n").slice(1).join("\n"));
+
+  const last = await readOnce(
+    brunchTools.hashQueryEntities,
+    pageInput,
+    supplierRead,
+  );
+  expect(last.seen).toBe(supplierText);
+});
+
+test("an entity read whose text would be too large reaches the model as a refusal, with none of the read and no cursor", async () => {
+  const large = "words ".repeat(20_000);
+  const other = { ...supplier, entityId: "alice-web~other", label: "Other" };
+  const { label: _label, ...unlabelled } = supplier;
+  const link = {
+    ...unlabelled,
+    entityId: "alice-web~link",
+    matched: false,
+    properties: {},
+    linkData: {
+      leftEntityId: supplier.entityId,
+      rightEntityId: other.entityId,
+    },
+  };
+  const nameUrl = "https://hash.ai/@alice/types/property-type/name/";
+  const input = {
+    ...readInput,
+    fullValuesFor: [supplier.entityId, other.entityId],
+  };
+  const cursor = "WyJuZXh0Il0";
+  const { seen } = await readOnce(brunchTools.hashQueryEntities, input, {
+    ...supplierRead,
+    entities: [
+      { ...supplier, properties: { [nameUrl]: large } },
+      { ...other, properties: { [nameUrl]: large } },
+      link,
+    ],
+    cursor,
+  });
+  const lines = seen?.split("\n") ?? [];
+  expect(lines[0]).toMatch(
+    /^Refused: this read's text would be about \d{2,3},\d{3} tokens, over the 20,000 a read may show, so none of it is shown and it gives no cursor\.$/u,
+  );
+  expect(lines.slice(1)).toEqual([
+    "It held 3 entities: 2 matched and 1 reached by links.",
+    "Narrow it, then repeat it from the same cursor if it had one, so no match is skipped:",
+    "- a smaller limit, then read the rest page by page",
+    "- traversalDepth: 0, to leave out the entities reached by links",
+    "- filters by entityTypes, webIds, entityIds or propertyEquals",
+    "- properties, to show only those you need of each entity",
+    "- in fullValuesFor, { entityId, path } for the part of a large value you need, rather than the entity's id",
+  ]);
+  expect(seen).not.toContain(cursor);
+  expect(seen).not.toContain(supplier.entityId);
+});
+
+test("an entity read by a property value, showing chosen properties, is issued as asked, and the model sees only those properties", async () => {
+  const nameUrl = "https://hash.ai/@alice/types/property-type/name/";
+  const cityUrl = "https://hash.ai/@alice/types/property-type/city/";
+  const input = {
+    entityTypes: ["Supplier"],
+    propertyEquals: [{ property: `${nameUrl}v/1`, value: "Acme Parts" }],
+    properties: [nameUrl],
+    traversalDepth: 0,
+  };
+  const { claim, seen } = await readOnce(brunchTools.hashQueryEntities, input, {
+    ...supplierRead,
+    entities: [
+      {
+        ...supplier,
+        properties: { ...supplier.properties, [cityUrl]: "Leeds" },
+      },
+    ],
+  });
+  // The page gets the whole input; it builds the filter, the agent the selection.
+  expect(claim.input).toEqual(input);
+  expect(seen).toBe(supplierText);
+});
+
+test("an entity count by a property value is issued as asked, and the model sees the condition it counted under", async () => {
+  const nameUrl = "https://hash.ai/@alice/types/property-type/name/";
+  const input = {
+    entityTypes: ["Supplier"],
+    propertyEquals: [{ property: nameUrl, value: "Acme Parts" }],
+  };
+  const supplierTypeId =
+    "https://hash.ai/@alice/types/entity-type/supplier/v/1";
+  const { claim, seen } = await readOnce(brunchTools.hashCountEntities, input, {
+    count: 1,
+    webScope: "default",
+    entityTypes: [
+      { entityTypeId: supplierTypeId, title: "Supplier", count: 1 },
+    ],
+    webs: [{ webId: "alice-web", kind: "user", count: 1 }],
+  });
+  expect(claim.input).toEqual(input);
+  expect(seen).toBe(
+    [
+      "entities: 1",
+      "webs counted: the user's own web and their organizations' webs (the default; name webIds to count in others)",
+      `counted where: ${nameUrl} = "Acme Parts"`,
+      "by entity type:",
+      `- 1 Supplier: ${supplierTypeId}`,
+      "by web:",
+      "- 1 user webId: alice-web",
+    ].join("\n"),
   );
 });
 
-test.each([
-  [brunchTools.hashQueryEntities, readInput, supplierRead],
-  [brunchTools.hashQueryEntityTypes, {}, { entityTypes: [supplierType] }],
-])(
-  "%s settled as truncated tells the model more may match than it shows",
-  async (toolName, input, output) => {
-    const note = "More may match than shown; narrow the filter.";
-    const truncated = await readOnce(toolName, input, {
-      ...output,
-      truncated: true,
-    });
-    expect(truncated.seen?.split("\n")[1]).toBe(note);
-
-    const whole = await readOnce(toolName, input, output);
-    expect(whole.seen).not.toContain(note);
+const salesOrdersUndeliveredByCustomer = {
+  entityTypes: ["Sales Order"],
+  where: {
+    path: [
+      { linkType: "Has Line Item", direction: "outgoing" },
+      { linkType: "Fulfills", direction: "incoming" },
+    ],
+    exists: false,
   },
-);
+  groupBy: { linkType: "Has Customer", direction: "outgoing" },
+};
+const salesOrderJoinReads = [
+  { role: "counted", entityTypes: ["Sales Order"], entities: 3 },
+  { role: "link", entityTypes: ["Has Line Item"], entities: 4 },
+  { role: "link", entityTypes: ["Fulfills"], entities: 2 },
+  { role: "link", entityTypes: ["Has Customer"], entities: 3 },
+];
+
+test("an entity count across links is issued to the page as asked, and the model sees how many qualified, by group, with examples", async () => {
+  const { claim, seen } = await readOnce(
+    brunchTools.hashCountEntities,
+    salesOrdersUndeliveredByCustomer,
+    {
+      outcome: "counted",
+      webScope: "default",
+      ofType: 3,
+      count: 1,
+      groups: [
+        { entity: { entityId: "acme-web~c1", label: "Acme" }, count: 1 },
+      ],
+      examples: [{ entityId: "acme-web~o1", label: "SO-1" }],
+      reads: [
+        ...salesOrderJoinReads,
+        { role: "grouped", entityTypes: [], entities: 1 },
+      ],
+      requests: 12,
+    },
+  );
+  expect(claim.input).toEqual(salesOrdersUndeliveredByCustomer);
+  expect(seen?.split("\n")).toEqual([
+    'entities: 1 (of 3 "Sales Order" read)',
+    "webs counted: the user's own web and their organizations' webs (the default; name webIds to count in others)",
+    'where: following "Has Line Item" (outgoing), then Fulfills (incoming) reaches no entity',
+    'groups, by the entity one "Has Customer" (outgoing) link away (an entity linked to several is counted under each, so these may sum to more than the total):',
+    '- 1 "Acme" entityId: acme-web~c1',
+    "examples (1 of 1):",
+    '- "SO-1" entityId: acme-web~o1',
+    'read: 3 "Sales Order", 4 "Has Line Item" links, 2 Fulfills links, 3 "Has Customer" links, 1 grouped entity, in 12 graph requests',
+  ]);
+});
+
+test("an entity count across links that stopped part-way reaches the model as incomplete, with no count", async () => {
+  const { seen } = await readOnce(
+    brunchTools.hashCountEntities,
+    salesOrdersUndeliveredByCustomer,
+    {
+      outcome: "incomplete",
+      webScope: "default",
+      reason:
+        "Reading the Fulfills links failed on page 2: HASH didn't respond in time.",
+      reads: salesOrderJoinReads,
+      requests: 9,
+    },
+  );
+  expect(seen?.split("\n")).toEqual([
+    "Incomplete: no count. Reading the Fulfills links failed on page 2: HASH didn't respond in time.",
+    "What was read is not all there is, so it is not an answer: report no count, group or example from it.",
+    'Read before it stopped: 3 "Sales Order", 4 "Has Line Item" links, 2 Fulfills links, 3 "Has Customer" links, in 9 graph requests.',
+    "Repeat the count; if it stops again, narrow it by webIds or propertyEquals, or tell the user the count couldn't be completed.",
+  ]);
+});
+
+test("an entity count across links without the type it counts never reaches the browser", async () => {
+  const chat = conversation();
+  let rejected: Extract<Message, { role: "toolResult" }> | undefined;
+  steps.push(
+    () =>
+      fauxAssistantMessage(
+        [
+          fauxToolCall(
+            brunchTools.hashCountEntities,
+            { groupBy: salesOrdersUndeliveredByCustomer.groupBy },
+            { id: "c1" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
+    (context) => {
+      rejected = toolResult(context, "c1");
+      return fauxAssistantMessage([fauxText("Name the type.")]);
+    },
+  );
+  const receipt = await chat.send("Count by customer.");
+  await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
+
+  expect(rejected?.isError).toBe(true);
+  expect(
+    claimBrowserCall({
+      agentName: hashAgent.agentName,
+      instanceId: chat.instanceId,
+      toolCallId: "c1",
+      binding: canonicalContent(chat.binding),
+    }),
+  ).toBeUndefined();
+});
 
 test.each([
   [brunchTools.hashQueryEntities, readInput],
   [brunchTools.hashQueryEntityTypes, {}],
   [brunchTools.hashQueryWebs, {}],
+  [brunchTools.hashCountEntities, {}],
 ])(
   "%s settled with the page's error reaches the model as a failed read it can read",
   async (toolName, input) => {

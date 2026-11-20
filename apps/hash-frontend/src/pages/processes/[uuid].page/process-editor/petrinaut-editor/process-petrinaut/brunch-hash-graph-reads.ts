@@ -12,6 +12,8 @@ import {
 } from "@blockprotocol/type-system";
 import {
   brunchTools,
+  type HashEntityCountInput,
+  type HashEntityCountResult,
   type HashEntityReadInput,
   type HashEntityReadResult,
   type HashEntityTypeReadInput,
@@ -19,6 +21,9 @@ import {
   type HashReadFailure,
   type HashWebReadResult,
   hashEntityReadDefaultTraversalDepth,
+  hashEntityReadDefaultLimit,
+  hashPropertyBaseUrl,
+  parseHashEntityCountInput,
   parseHashEntityReadInput,
   parseHashEntityTypeReadInput,
   parseHashWebReadInput,
@@ -38,18 +43,26 @@ import {
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { summarizeEntitiesQuery } from "../../../../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../../../../graphql/queries/ontology/entity-type.queries";
 import { useAuthInfo } from "../../../../../shared/auth-info-context";
+import {
+  type HashJoinGraph,
+  runHashEntityJoinCount,
+} from "./brunch-hash-graph-count";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
   QueryEntityTypesQuery,
   QueryEntityTypesQueryVariables,
+  SummarizeEntitiesQuery,
+  SummarizeEntitiesQueryVariables,
 } from "../../../../../../graphql/api-types.gen";
 import type { User } from "../../../../../../lib/user-and-org";
 import type { PetrinautAiAutomaticTool } from "@hashintel/brunch-agent/ui";
 import type {
+  EntityQueryCursor,
   EntityTraversalEdge,
   EntityTraversalPath,
   Filter,
@@ -61,6 +74,130 @@ const isTypeUrl = (type: string) =>
 
 const anyOf = (filters: Filter[]): Filter[] =>
   filters.length === 0 ? [] : [{ any: filters }];
+
+/**
+ * Entities of any of these types: a title matches every type with that title,
+ * at any version; a type URL matches that version only.
+ */
+const entityTypesFilter = (entityTypes: readonly string[] = []): Filter[] =>
+  anyOf(
+    entityTypes.map((type) => ({
+      equal: [
+        { path: ["type", isTypeUrl(type) ? "versionedUrl" : "title"] },
+        { parameter: type },
+      ],
+    })),
+  );
+
+/**
+ * Entities whose properties hold every one of these values exactly, each
+ * property named by its base URL, or by a versioned id reduced to one: an
+ * entity's properties are keyed by base URL.
+ */
+const propertyEqualsFilter = (
+  propertyEquals: HashEntityReadInput["propertyEquals"] = [],
+): Filter[] =>
+  propertyEquals.map(({ property, value }) => ({
+    equal: [
+      { path: ["properties", hashPropertyBaseUrl(property)] },
+      { parameter: value },
+    ],
+  }));
+
+/** Entities in any of these webs. */
+const webIdsFilter = (webIds: readonly string[] = []): Filter[] =>
+  anyOf(
+    webIds.map((webId) => ({
+      equal: [{ path: ["webId"] }, { parameter: webId }],
+    })),
+  );
+
+/**
+ * Entities archived neither by their metadata flag nor, as pages and
+ * notifications are, by their `archived` property.
+ */
+const notArchivedFilters: Filter[] = [
+  { equal: [{ path: ["archived"] }, { parameter: false }] },
+  pageOrNotificationNotArchivedFilter,
+];
+
+/** What the reads need of the signed-in user. */
+export type HashWebReadUser = Pick<
+  User,
+  "accountId" | "shortname" | "displayName"
+> & {
+  memberOf: readonly {
+    org: Pick<User["memberOf"][number]["org"], "webId" | "shortname" | "name">;
+  }[];
+};
+
+const noUserSignedIn: HashReadFailure = {
+  error: "No user is signed in to HASH.",
+};
+
+/** The signed-in user's own web, then each org web they belong to. */
+const websOf = (user: HashWebReadUser): HashWebReadResult["webs"] => [
+  {
+    // A user's web id is their account id.
+    webId: user.accountId,
+    kind: "user" as const,
+    ...(user.shortname === undefined ? {} : { shortname: user.shortname }),
+    ...(user.displayName === undefined ? {} : { name: user.displayName }),
+  },
+  ...user.memberOf.map(({ org }) => ({
+    webId: org.webId,
+    kind: "organization" as const,
+    shortname: org.shortname,
+    name: org.name,
+  })),
+];
+
+/**
+ * The webs a read covers: those its input names (`named`), else the
+ * signed-in user's own web and each org web they belong to (`default`), so a
+ * read that names no web never reaches into HASH's shared webs or other
+ * users'. With no web named and no user signed in, there is nothing to cover.
+ */
+export type HashReadWebScope = {
+  readonly scope: "default" | "named";
+  readonly webIds: readonly string[];
+};
+
+export const hashReadWebScope = (
+  webIds: readonly string[] | undefined,
+  user: HashWebReadUser | undefined,
+): HashReadWebScope | HashReadFailure => {
+  if (webIds !== undefined) {
+    return { scope: "named", webIds: [...new Set(webIds)] };
+  }
+  return user === undefined
+    ? noUserSignedIn
+    : { scope: "default", webIds: websOf(user).map(({ webId }) => webId) };
+};
+
+/**
+ * The webs an entity read is limited to. A read by `entityIds` alone is
+ * limited to none: an entity id names its web, so a named entity is read
+ * wherever it is. Otherwise the read's web scope (`hashReadWebScope`): the
+ * webs named, else the user's own and org webs.
+ */
+export const hashEntityReadWebIds = (
+  input: HashEntityReadInput,
+  user: HashWebReadUser | undefined,
+): { readonly webIds?: readonly string[] } | HashReadFailure => {
+  if (input.entityIds !== undefined && input.webIds === undefined) {
+    return {};
+  }
+  const webScope = hashReadWebScope(input.webIds, user);
+  return "error" in webScope ? webScope : { webIds: webScope.webIds };
+};
+
+/**
+ * The webs whose entities a read returns unmarked: the user's own and their
+ * orgs'. Every other entity is external, and with no user signed in, all are.
+ */
+const ownWebIdsOf = (user: HashWebReadUser | undefined): ReadonlySet<string> =>
+  new Set(user === undefined ? [] : websOf(user).map(({ webId }) => webId));
 
 /** One link from an entity, followed to the entity on its other end. */
 const linkHops: readonly (readonly EntityTraversalEdge[])[] = [
@@ -117,15 +254,72 @@ const hashEntityReadOnlyDrafts = (
 };
 
 /**
- * The `queryEntitySubgraph` request for one read: every given filter must
- * match. An entity id that names a draft reads that draft, whether or not
- * drafts were asked for; unless they were, an id without a draft part reads
- * only the live entity, and of the drafts the graph returns the read keeps
- * only those named (`hashEntityReadOnlyDrafts`).
+ * The graph's cursor as the opaque text the model passes back: its JSON,
+ * base64url-encoded, so it is one plain word the model copies whole, with no
+ * quotes or brackets to escape or to mistake for structure.
+ */
+export const encodeHashEntityReadCursor = (cursor: EntityQueryCursor) => {
+  const bytes = new TextEncoder().encode(JSON.stringify(cursor));
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/u, "");
+};
+
+const malformedCursor: HashReadFailure = {
+  error:
+    "The cursor isn't one this read gave. Repeat the read without a cursor to start from the first page.",
+};
+
+/**
+ * The graph's cursor back from the text `encodeHashEntityReadCursor` made,
+ * exactly; text that isn't one fails. The graph checks the values inside.
+ */
+export const decodeHashEntityReadCursor = (
+  text: string,
+): EntityQueryCursor | HashReadFailure => {
+  try {
+    if (!/^[A-Za-z0-9_-]+$/u.test(text)) {
+      return malformedCursor;
+    }
+    const binary = atob(text.replaceAll("-", "+").replaceAll("_", "/"));
+    const cursor: unknown = JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(
+        Uint8Array.from(binary, (char) => char.charCodeAt(0)),
+      ),
+    );
+    return Array.isArray(cursor) && cursor.length > 0
+      ? (cursor as EntityQueryCursor)
+      : malformedCursor;
+  } catch {
+    return malformedCursor;
+  }
+};
+
+/**
+ * The `queryEntitySubgraph` request for one page of a read, limited to
+ * `webIds` (from `hashEntityReadWebIds`, never the input's own): every given
+ * filter must match. An entity id that names a draft reads that draft,
+ * whether or not drafts were asked for; unless they were, an id without a
+ * draft part reads only the live entity, and of the drafts the graph returns
+ * the read keeps only those named (`hashEntityReadOnlyDrafts`). The page
+ * holds up to the input's `limit` of matches, by default the most the graph
+ * returns, starting at `cursor`, the input's decoded
+ * (`decodeHashEntityReadCursor`), or else at the first match.
  */
 export const hashEntityReadRequest = (
   input: HashEntityReadInput,
+  webIds: readonly string[] | undefined,
+  cursor?: EntityQueryCursor,
 ): QueryEntitySubgraphRequest => {
+  if (webIds?.length === 0) {
+    // No web filter at all would read every web the user can see.
+    throw new Error("An entity read's web scope can't be empty.");
+  }
   const entityIds = (input.entityIds ?? []).map(
     (entityId) => entityId as EntityId,
   );
@@ -137,22 +331,11 @@ export const hashEntityReadRequest = (
   return {
     filter: {
       all: [
-        ...anyOf(
-          (input.entityTypes ?? []).map((type) => ({
-            equal: [
-              { path: ["type", isTypeUrl(type) ? "versionedUrl" : "title"] },
-              { parameter: type },
-            ],
-          })),
-        ),
+        ...entityTypesFilter(input.entityTypes),
+        ...propertyEqualsFilter(input.propertyEquals),
         ...anyOf(entityIds.map(entityIdFilter)),
-        ...anyOf(
-          (input.webIds ?? []).map((webId) => ({
-            equal: [{ path: ["webId"] }, { parameter: webId }],
-          })),
-        ),
-        { equal: [{ path: ["archived"] }, { parameter: false }] },
-        pageOrNotificationNotArchivedFilter,
+        ...webIdsFilter(webIds),
+        ...notArchivedFilters,
       ],
     },
     temporalAxes: currentTimeInstantTemporalAxes,
@@ -164,14 +347,16 @@ export const hashEntityReadRequest = (
     // The entities' types, closed and resolved, for the titles and
     // descriptions of their types and properties.
     includeEntityTypes: "resolved",
+    limit: input.limit ?? hashEntityReadDefaultLimit,
+    ...(cursor === undefined ? {} : { cursor }),
   };
 };
 
 const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
 
 /**
- * A response carries a cursor when the graph stopped at its limit of matches,
- * so more may match than it returned. The read doesn't follow it.
+ * A type response carries a cursor when the graph stopped at its limit of
+ * matches, so more may match than it returned. The type read doesn't follow it.
  */
 const truncatedWhen = (cursor: unknown) =>
   cursor === undefined || cursor === null ? {} : { truncated: true as const };
@@ -214,10 +399,15 @@ const collectPropertyKeys = (value: unknown, found: Set<string>) => {
  * applies only to the matches, not to the entities reached by following links.
  * Given `onlyDrafts`, retain named drafts and draft links whose endpoint is
  * a named draft, without expanding that set. Other drafts are left out;
- * links to excluded entities keep their endpoint ids.
+ * links to excluded entities keep their endpoint ids. An entity in none of
+ * `ownWebIds`, the user's own and org webs, is marked `external`, however it
+ * was reached. The graph returns a cursor when the page holds as many
+ * matches as its limit, so more may match; the result carries it encoded
+ * (`encodeHashEntityReadCursor`) for the next page's read.
  */
 export const hashEntityReadResult = (
   response: QueryEntitySubgraphQuery,
+  ownWebIds: ReadonlySet<string>,
   onlyDrafts?: ReadonlySet<EntityId>,
 ): HashEntityReadResult => {
   const { subgraph, closedMultiEntityTypes, definitions, cursor } =
@@ -285,10 +475,12 @@ export const hashEntityReadResult = (
     entities: entities.map(({ entity, closedType }) => {
       const { entityId, editionId } = entity.metadata.recordId;
       const { linkData } = entity;
+      const webId = extractWebIdFromEntityId(entityId);
       return {
         entityId,
         editionId,
-        webId: extractWebIdFromEntityId(entityId),
+        webId,
+        ...(ownWebIds.has(webId) ? {} : { external: true as const }),
         entityTypeIds: entity.metadata.entityTypeIds,
         ...(closedType === undefined
           ? {}
@@ -306,7 +498,9 @@ export const hashEntityReadResult = (
             }),
       };
     }),
-    ...truncatedWhen(cursor),
+    ...(cursor === undefined || cursor === null
+      ? {}
+      : { cursor: encodeHashEntityReadCursor(cursor) }),
   };
 };
 
@@ -337,21 +531,39 @@ const settlingQueryFailure = async <Result>(
 };
 
 /**
- * Brunch's HASH entity read, run in the page. An input the agent's contract
- * doesn't allow rejects; a failed query settles `{ error }`.
+ * Brunch's HASH entity read, run in the page, over the webs in scope for the
+ * user signed in when it runs, marking entities outside their webs external.
+ * One call reads one page, from the input's cursor if it has one. An input
+ * the agent's contract doesn't allow rejects; a failed query, a cursor this
+ * read didn't give, or a read that names neither webs nor entities with no
+ * user to scope to, settles `{ error }`.
  */
 export const createHashEntityReadTool = (
   queryEntitySubgraph: QueryEntitySubgraph,
+  currentUser: () => HashWebReadUser | undefined,
 ): PetrinautAiAutomaticTool => ({
   toolName: brunchTools.hashQueryEntities,
   inputParser: { parse: parseHashEntityReadInput },
   outputParser: { parse: (value) => value },
   execute: async ({ input, signal }) => {
     const readInput = parseHashEntityReadInput(input);
-    const request = hashEntityReadRequest(readInput);
+    const cursor =
+      readInput.cursor === undefined
+        ? undefined
+        : decodeHashEntityReadCursor(readInput.cursor);
+    if (cursor !== undefined && "error" in cursor) {
+      return cursor;
+    }
+    const user = currentUser();
+    const webScope = hashEntityReadWebIds(readInput, user);
+    if ("error" in webScope) {
+      return webScope;
+    }
+    const request = hashEntityReadRequest(readInput, webScope.webIds, cursor);
     return settlingQueryFailure(signal, async () =>
       hashEntityReadResult(
         await queryEntitySubgraph(request, signal),
+        ownWebIdsOf(user),
         hashEntityReadOnlyDrafts(readInput),
       ),
     );
@@ -465,43 +677,206 @@ export const createHashEntityTypeReadTool = (
   },
 });
 
-/** What the web read needs of the signed-in user. */
-export type HashWebReadUser = Pick<
-  User,
-  "accountId" | "shortname" | "displayName"
-> & {
-  memberOf: readonly {
-    org: Pick<User["memberOf"][number]["org"], "webId" | "shortname" | "name">;
-  }[];
-};
-
 /** The signed-in user's own web, then each org web they belong to. */
 export const hashWebReadResult = (
   user: HashWebReadUser | undefined,
 ): HashWebReadResult | HashReadFailure =>
-  user === undefined
-    ? { error: "No user is signed in to HASH." }
-    : {
-        webs: [
+  user === undefined ? noUserSignedIn : { webs: websOf(user) };
+
+export type SummarizeEntitiesRequest =
+  SummarizeEntitiesQueryVariables["request"];
+
+/**
+ * The `summarizeEntities` request for one count: the entity read's filters
+ * for types, property values and for not being archived, limited to the webs in scope, with
+ * the total, the count per direct type and its title, and the count per web.
+ * Drafts are not counted.
+ */
+export const hashEntityCountRequest = (
+  input: HashEntityCountInput,
+  webIds: readonly string[],
+): SummarizeEntitiesRequest => ({
+  filter: {
+    all: [
+      ...entityTypesFilter(input.entityTypes),
+      ...propertyEqualsFilter(input.propertyEquals),
+      ...webIdsFilter(webIds),
+      ...notArchivedFilters,
+    ],
+  },
+  temporalAxes: currentTimeInstantTemporalAxes,
+  includeDrafts: false,
+  includeCount: true,
+  includeTypeIds: true,
+  includeTypeTitles: true,
+  includeWebIds: true,
+});
+
+/**
+ * The count, each direct type counted, most first, with its title, and every
+ * web in scope with its count, named where it is the user's own or one of
+ * their orgs'. A response without a count fails the count.
+ */
+export const hashEntityCountResult = (
+  response: SummarizeEntitiesQuery,
+  { scope, webIds }: HashReadWebScope,
+  user: HashWebReadUser | undefined,
+): HashEntityCountResult => {
+  const {
+    count,
+    typeIds = {},
+    typeTitles = {},
+    webIds: webCounts = {},
+  } = response.summarizeEntities;
+  if (count === undefined) {
+    throw new Error("HASH's graph returned a summary without a count.");
+  }
+  const known = new Map(
+    (user === undefined ? [] : websOf(user)).map((web) => [web.webId, web]),
+  );
+  return {
+    count,
+    webScope: scope,
+    entityTypes: Object.entries(typeIds)
+      .map(([entityTypeId, typeCount]) => {
+        const title = typeTitles[entityTypeId as VersionedUrl];
+        return {
+          entityTypeId,
+          ...(title === undefined ? {} : { title }),
+          count: typeCount,
+        };
+      })
+      .sort(
+        (left, right) =>
+          right.count - left.count ||
+          left.entityTypeId.localeCompare(right.entityTypeId),
+      ),
+    webs: webIds.map((webId) => ({
+      ...known.get(webId),
+      webId,
+      count: webCounts[webId as keyof typeof webCounts] ?? 0,
+    })),
+  };
+};
+
+/** Runs one `summarizeEntities` request as the signed-in user. */
+export type SummarizeEntities = (
+  request: SummarizeEntitiesRequest,
+  signal: AbortSignal,
+) => Promise<SummarizeEntitiesQuery>;
+
+/**
+ * The graph as a count by links reaches it (`runHashEntityJoinCount`): exact
+ * counts by `summarizeEntities`, and pages by `queryEntitySubgraph` built as
+ * the entity read builds them, with no traversal or drafts. Every read by
+ * types is in `webScope`, the plain count's; a read by ids is in any web, as
+ * the entity read's is. Entities outside the user's webs are marked external.
+ */
+export const hashJoinGraph = (
+  summarizeEntities: SummarizeEntities,
+  queryEntitySubgraph: QueryEntitySubgraph,
+  webScope: HashReadWebScope,
+  user: HashWebReadUser | undefined,
+): HashJoinGraph => ({
+  size: async (selector, signal) =>
+    hashEntityCountResult(
+      await summarizeEntities(
+        hashEntityCountRequest(
           {
-            // A user's web id is their account id.
-            webId: user.accountId,
-            kind: "user" as const,
-            ...(user.shortname === undefined
+            entityTypes: [...selector.entityTypes],
+            ...(selector.propertyEquals === undefined
               ? {}
-              : { shortname: user.shortname }),
-            ...(user.displayName === undefined
-              ? {}
-              : { name: user.displayName }),
+              : { propertyEquals: selector.propertyEquals }),
           },
-          ...user.memberOf.map(({ org }) => ({
-            webId: org.webId,
-            kind: "organization" as const,
-            shortname: org.shortname,
-            name: org.name,
-          })),
-        ],
-      };
+          webScope.webIds,
+        ),
+        signal,
+      ),
+      webScope,
+      user,
+    ).count,
+  page: async (selector, limit, cursor, signal) => {
+    const decoded =
+      cursor === undefined ? undefined : decodeHashEntityReadCursor(cursor);
+    if (decoded !== undefined && "error" in decoded) {
+      throw new Error(decoded.error);
+    }
+    const request = hashEntityReadRequest(
+      {
+        ...("entityIds" in selector
+          ? { entityIds: [...selector.entityIds] }
+          : {
+              entityTypes: [...selector.entityTypes],
+              ...(selector.propertyEquals === undefined
+                ? {}
+                : { propertyEquals: selector.propertyEquals }),
+            }),
+        traversalDepth: 0,
+        limit,
+      },
+      // An id names its web, so grouped entities are read wherever they are,
+      // as the entity read reads by id; the counted entities and links stay
+      // in the count's webs.
+      "entityIds" in selector ? undefined : webScope.webIds,
+      decoded,
+    );
+    const read = hashEntityReadResult(
+      await queryEntitySubgraph(request, signal),
+      ownWebIdsOf(user),
+    );
+    return {
+      entities: read.entities.filter(({ matched }) => matched),
+      ...(read.cursor === undefined ? {} : { cursor: read.cursor }),
+    };
+  },
+});
+
+/**
+ * Brunch's HASH entity count, run in the page: one `summarizeEntities`
+ * request over the webs in scope, or with `where` or `groupBy` a count by
+ * links (`runHashEntityJoinCount`), read page by page in the same webs and
+ * joined here. An input the agent's contract doesn't allow rejects; a failed
+ * query, or no user to scope to, settles `{ error }`.
+ */
+export const createHashEntityCountTool = (
+  summarizeEntities: SummarizeEntities,
+  currentUser: () => HashWebReadUser | undefined,
+  queryEntitySubgraph: QueryEntitySubgraph,
+): PetrinautAiAutomaticTool => ({
+  toolName: brunchTools.hashCountEntities,
+  inputParser: { parse: parseHashEntityCountInput },
+  outputParser: { parse: (value) => value },
+  execute: async ({ input, signal }) => {
+    const countInput = parseHashEntityCountInput(input);
+    const user = currentUser();
+    const webScope = hashReadWebScope(countInput.webIds, user);
+    if ("error" in webScope) {
+      return webScope;
+    }
+    const { entityTypes } = countInput;
+    if (
+      (countInput.where !== undefined || countInput.groupBy !== undefined) &&
+      entityTypes !== undefined
+    ) {
+      return settlingQueryFailure(signal, () =>
+        runHashEntityJoinCount(
+          { ...countInput, entityTypes },
+          webScope.scope,
+          hashJoinGraph(summarizeEntities, queryEntitySubgraph, webScope, user),
+          signal,
+        ),
+      );
+    }
+    const request = hashEntityCountRequest(countInput, webScope.webIds);
+    return settlingQueryFailure(signal, async () =>
+      hashEntityCountResult(
+        await summarizeEntities(request, signal),
+        webScope,
+        user,
+      ),
+    );
+  },
+});
 
 /**
  * Brunch's HASH web read, run in the page from the signed-in user it already
@@ -528,23 +903,25 @@ export const useBrunchHashGraphReadTools =
     useEffect(() => {
       userRef.current = authenticatedUser;
     }, [authenticatedUser]);
-    return useMemo(
-      () => [
-        createHashEntityReadTool(
-          async (request, signal) =>
-            (
-              await apolloClient.query<
-                QueryEntitySubgraphQuery,
-                QueryEntitySubgraphQueryVariables
-              >({
-                query: queryEntitySubgraphQuery,
-                variables: { request },
-                // Each read reports the editions the graph holds now.
-                fetchPolicy: "network-only",
-                context: { fetchOptions: { signal } },
-              })
-            ).data,
-        ),
+    return useMemo(() => {
+      const queryEntitySubgraph: QueryEntitySubgraph = async (
+        request,
+        signal,
+      ) =>
+        (
+          await apolloClient.query<
+            QueryEntitySubgraphQuery,
+            QueryEntitySubgraphQueryVariables
+          >({
+            query: queryEntitySubgraphQuery,
+            variables: { request },
+            // Each read reports the editions the graph holds now.
+            fetchPolicy: "network-only",
+            context: { fetchOptions: { signal } },
+          })
+        ).data;
+      return [
+        createHashEntityReadTool(queryEntitySubgraph, () => userRef.current),
         createHashEntityTypeReadTool(
           async (request, signal) =>
             (
@@ -560,7 +937,23 @@ export const useBrunchHashGraphReadTools =
             ).data,
         ),
         createHashWebReadTool(() => userRef.current),
-      ],
-      [apolloClient],
-    );
+        createHashEntityCountTool(
+          async (request, signal) =>
+            (
+              await apolloClient.query<
+                SummarizeEntitiesQuery,
+                SummarizeEntitiesQueryVariables
+              >({
+                query: summarizeEntitiesQuery,
+                variables: { request },
+                // Each count reports what the graph holds now.
+                fetchPolicy: "network-only",
+                context: { fetchOptions: { signal } },
+              })
+            ).data,
+          () => userRef.current,
+          queryEntitySubgraph,
+        ),
+      ];
+    }, [apolloClient]);
   };
