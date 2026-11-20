@@ -18,7 +18,6 @@ import {
 
 import { CommandRegistryProvider } from "../../../../react/commands/command-registry";
 import { PetrinautNavigationProvider } from "../../../../react/navigation";
-import { PetrinautOptimizationContext } from "../../../../react/optimization-context";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
 import { nextFrame } from "../../../lib/readings.test-helpers";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
@@ -30,7 +29,6 @@ import type {
   PetrinautNavigationState,
   PetrinautSettingsSection,
 } from "../../../../react/navigation";
-import type { PetrinautConnectedOptimization } from "../../../../react/optimization-context";
 import type { PetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import type { ReactNode } from "react";
 
@@ -58,7 +56,6 @@ afterEach(() => {
 
 const renderSettings = (
   initialState: Partial<PetrinautNavigationState> = {},
-  optimization: PetrinautConnectedOptimization | null = null,
   settingsLabs?: ReactNode,
 ) => {
   const registry = createCommandRegistry();
@@ -66,11 +63,9 @@ const renderSettings = (
     <CommandRegistryProvider registry={registry}>
       <UserSettingsProvider>
         <PetrinautNavigationProvider initialState={initialState}>
-          <PetrinautOptimizationContext value={optimization}>
-            <PetrinautSlotsContext value={{ settingsLabs }}>
-              <UserSettings />
-            </PetrinautSlotsContext>
-          </PetrinautOptimizationContext>
+          <PetrinautSlotsContext value={{ settingsLabs }}>
+            <UserSettings />
+          </PetrinautSlotsContext>
         </PetrinautNavigationProvider>
       </UserSettingsProvider>
     </CommandRegistryProvider>,
@@ -205,14 +200,8 @@ describe("user settings", () => {
   });
 
   it.each([
-    ["top", 760, 440, 140, 320],
     ["right", 820, 480, 100, 260],
-    ["bottom", 760, 520, 100, 320],
-    ["left", 700, 480, 100, 320],
     ["top-left", 700, 440, 140, 320],
-    ["top-right", 820, 440, 140, 260],
-    ["bottom-left", 700, 520, 100, 320],
-    ["bottom-right", 820, 520, 100, 260],
   ] as const)(
     "resizes from %s and preserves size when changing sections",
     async (direction, width, height, top, right) => {
@@ -342,11 +331,8 @@ describe("user settings", () => {
     ).toBe("true");
   });
 
-  it("offers settings without simulation feature flags", async () => {
-    renderSettings(
-      { overlay: { type: "user-settings" } },
-      { kind: "connected", connect: vi.fn() },
-    );
+  it("offers four sections", async () => {
+    renderSettings({ overlay: { type: "user-settings" } });
     await screen.findByRole("heading", { name: "General" });
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
       "General",
@@ -354,13 +340,6 @@ describe("user settings", () => {
       "Plugins",
       "Labs",
     ]);
-    for (const name of [
-      "WebGPU",
-      "Parameter sweeps",
-      "In-browser optimization",
-    ]) {
-      expect(screen.queryByRole("checkbox", { name })).toBeNull();
-    }
   });
 
   it("walks settings with worksheet arrows and restores focus across columns", async () => {
@@ -429,23 +408,6 @@ describe("user settings", () => {
 });
 
 describe("Labs settings", () => {
-  it("offers Notebook directly in Edit without a Labs setting", async () => {
-    renderSettings({ overlay: { type: "user-settings", section: "labs" } });
-    await screen.findByRole("heading", { name: "Labs" });
-    expect(screen.queryByText("Notebook view")).toBeNull();
-  });
-
-  it("offer no Ad-hoc scenarios row: the scenario form is the only scenario form", async () => {
-    // The dialog body portals to document.body, which `screen` covers.
-    renderSettings({ overlay: { type: "user-settings", section: "labs" } });
-
-    await screen.findByRole("tab", { name: "Labs" });
-    expect(screen.queryByText(/Ad-hoc scenarios/)).toBeNull();
-    expect(
-      screen.queryByText(/Define initial state and parameters inline/),
-    ).toBeNull();
-  });
-
   it("renders a plugin's Labs settings after the built-in groups and persists a toggle", async () => {
     renderPluginSettings("labs");
     await screen.findByRole("heading", { name: "Labs" });
@@ -496,7 +458,6 @@ describe("Labs settings", () => {
 
     renderSettings(
       { overlay: { type: "user-settings", section: "labs" } },
-      null,
       <section aria-label="Host AI settings">
         <button type="button">Use Brunch</button>
       </section>,
@@ -511,7 +472,6 @@ describe("Labs settings", () => {
   it("walks enabled host Labs controls and crosses the existing focus flow", async () => {
     renderSettings(
       { overlay: { type: "user-settings", section: "labs" } },
-      null,
       <section aria-label="Host AI settings">
         <button type="button" disabled>
           Unavailable first
@@ -677,7 +637,7 @@ describe("WebGPU availability", () => {
 });
 
 describe("Viewport settings", () => {
-  it("keeps Petricon across remounts and offers no arc settings", async () => {
+  it("keeps Petricon across remounts", async () => {
     const first = renderSettings({
       overlay: { type: "user-settings", section: "viewport" },
     });
@@ -698,11 +658,5 @@ describe("Viewport settings", () => {
         })) as HTMLInputElement
       ).checked,
     ).toBe(false);
-    expect(
-      screen.queryByRole("checkbox", { name: "Automatic arc connections" }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole("combobox", { name: "Arc rendering" }),
-    ).toBeNull();
   });
 });

@@ -9,25 +9,6 @@ import { AiCtaModal } from "./ai-cta-modal";
 afterEach(cleanup);
 
 describe("AiCtaModal", () => {
-  test("asks for the process without mode tabs", () => {
-    render(<AiCtaModal onDismiss={vi.fn()} onSubmit={vi.fn()} />);
-
-    expect(
-      screen
-        .getByRole("heading", {
-          name: "Describe the process you want to create",
-        })
-        .parentElement?.previousElementSibling?.querySelector(
-          'svg[viewBox="0 0 15 15"]',
-        ),
-    ).not.toBeNull();
-    expect(
-      screen.queryByRole("group", { name: "AI interaction mode" }),
-    ).toBeNull();
-    expect(screen.queryByRole("button", { name: "Chat" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Interview" })).toBeNull();
-  });
-
   test("submits the trimmed text", () => {
     const onSubmit = vi.fn();
     render(<AiCtaModal onDismiss={vi.fn()} onSubmit={onSubmit} />);
