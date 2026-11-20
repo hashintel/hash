@@ -89,13 +89,21 @@ import {
   stateConstraintGateSpecs,
 } from "./create-experiment-drawer/lower-constraint-drafts";
 import {
+  buildMetricSpecs,
+  createDefaultMetricDraft,
+  getMetricLabel,
+  getMetricSummaryLabel,
+  metricKindPatch,
+  transitionModeOptions,
+  type ExperimentMetricDraft,
+} from "./create-experiment-drawer/metric-drafts";
+import {
   MetricObjectiveControl,
   OptimizationBudget,
 } from "./create-experiment-drawer/metric-optimization";
 import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
 import {
   areMetricLspDiagnosticSummariesEqual,
-  EMPTY_METRIC_LSP_DIAGNOSTICS,
   getExperimentMetricDiagnosticError,
   type MetricLspDiagnosticSummary,
 } from "./experiment-metric-lsp-validation";
@@ -111,7 +119,6 @@ import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "./sweep-optimizer";
 import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
 import type {
   AdHocScenarioState,
-  MonteCarloMetricSpec,
   Scenario,
   SDCPN,
 } from "@hashintel/petrinaut-core";
@@ -277,22 +284,6 @@ const DEFAULT_RUN_COUNT = "1000";
 // The form has no seed field: every experiment it creates draws from this one.
 const experimentSeed = 1;
 const DEFAULT_MAX_TIME = "180";
-const DEFAULT_METRIC_CODE = `/**
-* Custom metric code that will be run on each frame.
-* It must \`return\` a single finite number.
-*
-* The only thing in scope is \`state\`, a snapshot of the current frame:
-*   state.places["Place Name"].count   -> number of tokens in a place
-*   state.places["Place Name"].tokens  -> array of token objects (for colored places)
-*
-* Reference places by their exact name. Use bracket access for names
-* with spaces, e.g. state.places["Work In Progress"].
-*
-* --- Example: the sum of tokens in two places ---
-* return state.places["Susceptible"].count + state.places["Infected"].count;
-*/
-
-return 0;`;
 const EMPTY_SCENARIOS: readonly Scenario[] = [];
 
 function getDefaultScenarioSelection(scenarios: readonly Scenario[]): string {
@@ -322,198 +313,6 @@ function createScenarioOptions(scenarios: readonly Scenario[]) {
     })),
     { value: NO_SCENARIO_VALUE, text: "No scenario" },
   ];
-}
-
-type ExperimentMetricKind =
-  | "placeTokenCountMean"
-  | "transitionFiringCount"
-  | "expression";
-type TransitionFiringMode = NonNullable<
-  Extract<MonteCarloMetricSpec, { kind: "transitionFiringCount" }>["mode"]
->;
-
-type ExperimentMetricDraft = {
-  id: string;
-  kind: ExperimentMetricKind;
-  label: string;
-  expanded: boolean;
-  placeId: string;
-  transitionId: string;
-  transitionMode: TransitionFiringMode;
-  code: string;
-  // Set when this metric was picked from a custom metric defined on the model.
-  sourceMetricId: string | null;
-  metricSessionId: string;
-  lspDiagnostics: MetricLspDiagnosticSummary;
-};
-
-const transitionModeOptions: { value: TransitionFiringMode; text: string }[] = [
-  { value: "firedInThisFrame", text: "Per frame" },
-  { value: "cumulative", text: "Cumulative" },
-];
-
-function getMetricKindLabel(kind: ExperimentMetricKind): string {
-  switch (kind) {
-    case "placeTokenCountMean":
-      return "Place tokens";
-    case "transitionFiringCount":
-      return "Transition firing";
-    case "expression":
-      return "Custom code";
-  }
-}
-
-function getMetricSummaryLabel(
-  metric: ExperimentMetricDraft,
-  sdcpn: SDCPN,
-): string {
-  if (metric.sourceMetricId) {
-    const modelMetric = sdcpn.metrics?.find(
-      (candidate) => candidate.id === metric.sourceMetricId,
-    );
-
-    if (modelMetric) {
-      return modelMetric.name;
-    }
-  }
-
-  return getMetricKindLabel(metric.kind);
-}
-
-const getMetricLabel = (
-  metric: ExperimentMetricDraft,
-  sdcpn: SDCPN,
-): string => {
-  switch (metric.kind) {
-    case "placeTokenCountMean": {
-      const selectedPlace = sdcpn.places.find(
-        (place) => place.id === metric.placeId,
-      );
-      return selectedPlace ? `${selectedPlace.name} tokens` : "Place tokens";
-    }
-    case "transitionFiringCount": {
-      const selectedTransition = sdcpn.transitions.find(
-        (transition) => transition.id === metric.transitionId,
-      );
-      const mode =
-        metric.transitionMode === "cumulative" ? "cumulative" : "per frame";
-      return selectedTransition
-        ? `${selectedTransition.name} firing (${mode})`
-        : "Transition firing";
-    }
-    case "expression":
-      return (
-        sdcpn.metrics?.find(
-          (candidate) => candidate.id === metric.sourceMetricId,
-        )?.name ?? metric.label.trim()
-      );
-  }
-};
-
-function canReplaceMetricLabel(label: string, sdcpn: SDCPN): boolean {
-  const trimmed = label.trim();
-
-  return new Set([
-    "",
-    "Custom metric",
-    ...(sdcpn.metrics ?? []).map((metric) => metric.name),
-  ]).has(trimmed);
-}
-
-function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
-  const place = sdcpn.places[0];
-  const transition = sdcpn.transitions[0];
-  const kind: ExperimentMetricKind = place
-    ? "placeTokenCountMean"
-    : transition
-      ? "transitionFiringCount"
-      : "expression";
-
-  return {
-    id: crypto.randomUUID(),
-    kind,
-    label: "Custom metric",
-    expanded: true,
-    placeId: place?.id ?? "",
-    transitionId: transition?.id ?? "",
-    transitionMode: "firedInThisFrame",
-    code: DEFAULT_METRIC_CODE,
-    sourceMetricId: null,
-    metricSessionId: crypto.randomUUID(),
-    lspDiagnostics: EMPTY_METRIC_LSP_DIAGNOSTICS,
-  };
-}
-
-function buildMetricSpecs(
-  drafts: readonly ExperimentMetricDraft[],
-  sdcpn: SDCPN,
-): ExperimentMetricSpecInput[] {
-  if (drafts.length === 0) {
-    throw new Error("Define at least one metric");
-  }
-
-  return drafts.map((draft, index) => {
-    const label = getMetricLabel(draft, sdcpn);
-
-    if (label === "") {
-      throw new Error(`Metric ${index + 1} needs a label`);
-    }
-
-    const sampledMetricBase = {
-      id: draft.id,
-      label,
-      sampleRuns: "all" as const,
-      runOutput: { type: "distribution" as const },
-    };
-
-    switch (draft.kind) {
-      case "placeTokenCountMean": {
-        if (!sdcpn.places.some((place) => place.id === draft.placeId)) {
-          throw new Error(`Metric "${label}" needs a valid place`);
-        }
-
-        return {
-          ...sampledMetricBase,
-          kind: "placeTokenCountMean",
-          placeId: draft.placeId,
-        };
-      }
-      case "transitionFiringCount": {
-        if (
-          !sdcpn.transitions.some(
-            (transition) => transition.id === draft.transitionId,
-          )
-        ) {
-          throw new Error(`Metric "${label}" needs a valid transition`);
-        }
-
-        return {
-          ...sampledMetricBase,
-          kind: "transitionFiringCount",
-          transitionId: draft.transitionId,
-          mode: draft.transitionMode,
-        };
-      }
-      case "expression": {
-        if (draft.code.trim() === "") {
-          throw new Error(`Metric "${label}" code is required`);
-        }
-
-        // Compilation happens through the HIR when the experiment starts
-        // (the provider attaches the compiled artifact); live validation is
-        // covered by the metric LSP session diagnostics.
-        return {
-          ...sampledMetricBase,
-          kind: "expression",
-          code: draft.code,
-        };
-      }
-      default: {
-        const exhaustive: never = draft.kind;
-        throw new Error(`Unsupported metric type: ${String(exhaustive)}`);
-      }
-    }
-  });
 }
 
 // -- Component ----------------------------------------------------------------
@@ -628,59 +427,10 @@ const ExperimentMetricRow = ({
     onChange(metric.id, patch);
   };
   const handleKindChange = (kindValue: string) => {
-    // A custom metric defined on the model becomes an expression metric
-    // pre-filled with that metric's code and name.
-    if (kindValue.startsWith(MODEL_METRIC_VALUE_PREFIX)) {
-      const modelMetricId = kindValue.slice(MODEL_METRIC_VALUE_PREFIX.length);
-      const modelMetric = sdcpn.metrics?.find(
-        (candidate) => candidate.id === modelMetricId,
-      );
-
-      if (!modelMetric) {
-        return;
-      }
-
-      updateMetric({
-        kind: "expression",
-        code: modelMetric.code,
-        sourceMetricId: modelMetric.id,
-        lspDiagnostics: EMPTY_METRIC_LSP_DIAGNOSTICS,
-        label: canReplaceMetricLabel(metric.label, sdcpn)
-          ? modelMetric.name
-          : metric.label,
-      });
-
-      return;
+    const patch = metricKindPatch(metric, kindValue, sdcpn);
+    if (patch) {
+      updateMetric(patch);
     }
-
-    const nextKind = kindValue as ExperimentMetricKind;
-    const nextLabel = canReplaceMetricLabel(metric.label, sdcpn)
-      ? "Custom metric"
-      : metric.label;
-    const nextPatch: Partial<ExperimentMetricDraft> = {
-      kind: nextKind,
-      label: nextLabel,
-      sourceMetricId: null,
-      lspDiagnostics: EMPTY_METRIC_LSP_DIAGNOSTICS,
-    };
-
-    if (
-      nextKind === "placeTokenCountMean" &&
-      !sdcpn.places.some((place) => place.id === metric.placeId)
-    ) {
-      nextPatch.placeId = sdcpn.places[0]?.id ?? "";
-    }
-
-    if (
-      nextKind === "transitionFiringCount" &&
-      !sdcpn.transitions.some(
-        (transition) => transition.id === metric.transitionId,
-      )
-    ) {
-      nextPatch.transitionId = sdcpn.transitions[0]?.id ?? "";
-    }
-
-    updateMetric(nextPatch);
   };
 
   useLayoutEffect(() => {
