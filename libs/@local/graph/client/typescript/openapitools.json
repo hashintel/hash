@@ -3,6 +3,7 @@
   "spaces": 2,
   "generator-cli": {
     "version": "6.6.0",
+    "storageDir": "~/.cache/openapi-generator-cli",
     "generators": {
       "ts": {
         "generateAliasAsModel": true,

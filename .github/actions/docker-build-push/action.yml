@@ -79,6 +79,20 @@ runs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3.11.1
 
+    - name: Install yq
+      uses: jdx/mise-action@v4.3.0
+      with:
+        # renovate: datasource=github-releases depName=jdx/mise
+        version: 2026.11.5
+        install_args: yq
+        env: false
+      env:
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+
+    - name: Restore OpenAPI Generator
+      id: openapi-generator
+      uses: $/.github/actions/restore-openapi-generator
+
     # Up to two of the three invocations run per job: `validate` on non-push
     # events, or ECR (tags) and/or GHCR (by digest) on push. They share one GHCR
     # registry cache (`CACHE_REF`), so the second is a near-total cache hit.
@@ -95,6 +109,7 @@ runs:
         file: ${{ inputs.DOCKERFILE_LOCATION }}
         platforms: ${{ inputs.PLATFORM }}
         build-args: ${{ inputs.BUILD_ARGS }}
+        build-contexts: ${{ steps.openapi-generator.outputs.cache-hit == 'true' && format('openapi-generator-cli={0}', steps.openapi-generator.outputs.storage-dir) || '' }}
         secrets: |
           GITHUB_TOKEN=${{ inputs.GITHUB_TOKEN }}
         labels: |
@@ -113,6 +128,7 @@ runs:
         file: ${{ inputs.DOCKERFILE_LOCATION }}
         platforms: ${{ inputs.PLATFORM }}
         build-args: ${{ inputs.BUILD_ARGS }}
+        build-contexts: ${{ steps.openapi-generator.outputs.cache-hit == 'true' && format('openapi-generator-cli={0}', steps.openapi-generator.outputs.storage-dir) || '' }}
         secrets: |
           GITHUB_TOKEN=${{ inputs.GITHUB_TOKEN }}
         labels: |
@@ -133,6 +149,7 @@ runs:
         file: ${{ inputs.DOCKERFILE_LOCATION }}
         platforms: ${{ inputs.PLATFORM }}
         build-args: ${{ inputs.BUILD_ARGS }}
+        build-contexts: ${{ steps.openapi-generator.outputs.cache-hit == 'true' && format('openapi-generator-cli={0}', steps.openapi-generator.outputs.storage-dir) || '' }}
         secrets: |
           GITHUB_TOKEN=${{ inputs.GITHUB_TOKEN }}
         labels: |

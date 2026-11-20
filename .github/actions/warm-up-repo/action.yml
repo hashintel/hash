@@ -19,3 +19,32 @@ runs:
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=true
           export YARN_ENABLE_HARDENED_MODE=0
           yarn install --immutable
+
+    - name: Restore OpenAPI Generator
+      id: openapi-generator
+      uses: $/.github/actions/restore-openapi-generator
+
+    # On failure, codegen downloads the generator itself.
+    - name: Download OpenAPI Generator
+      id: openapi-generator-download
+      if: steps.openapi-generator.outputs.storage-dir != '' && steps.openapi-generator.outputs.cache-hit != 'true'
+      continue-on-error: true
+      shell: bash
+      working-directory: libs/@local/graph/client/typescript
+      run: yarn openapi-generator-cli version
+
+    - name: Verify OpenAPI Generator checksum
+      if: steps.openapi-generator-download.outcome == 'success'
+      shell: bash
+      env:
+        VERIFY_JAR: ${{ github.action_path }}/../restore-openapi-generator/verify-jar.sh
+        STORAGE_DIR: ${{ steps.openapi-generator.outputs.storage-dir }}
+        VERSION: ${{ steps.openapi-generator.outputs.version }}
+      run: '"$VERIFY_JAR" "$STORAGE_DIR" "$VERSION"'
+
+    - name: Save OpenAPI Generator
+      if: steps.openapi-generator-download.outcome == 'success'
+      uses: actions/cache/save@v4.3.0
+      with:
+        path: ${{ steps.openapi-generator.outputs.storage-dir }}
+        key: ${{ steps.openapi-generator.outputs.key }}
