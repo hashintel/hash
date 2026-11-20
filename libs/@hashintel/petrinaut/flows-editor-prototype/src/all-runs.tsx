@@ -833,7 +833,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                   colSpan={colsTake ? 9 : statusTake === "c" ? 7 : 6}
                   className={css({ color: "neutral.fg.muted" })}
                 >
-                  No runs match these filters
+                  No runs match
                 </td>
               </tr>
             ) : null}

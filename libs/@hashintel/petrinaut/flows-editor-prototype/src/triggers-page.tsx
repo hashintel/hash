@@ -2408,6 +2408,13 @@ const Take2 = ({
                 </tr>
               </>
             ) : null}
+            {shown.length === 0 && !page.draft && (applied > 0 || search.trim() !== "" || tab !== "all") ? (
+              <tr data-triggers-empty>
+                <td colSpan={6} className={css({ color: "neutral.fg.muted" })}>
+                  No triggers match
+                </td>
+              </tr>
+            ) : null}
             {shown.map((row) => {
               const open = page.opened === row.id;
               const on = page.on[row.id] ?? false;
