@@ -557,6 +557,52 @@ export const assume =
     pipe(expression, toNode, fromResult<T, Value.Inputs<E>>);
 
 /**
+ * Asserts that an expression has the type `type`, which emits the `as` special form.
+ *
+ * The result has the asserted type and keeps the expression's input requirements. The HashQL compiler checks the assertion rather than the SDK, and accepts one that keeps the expression's type or widens it to a supertype, never one that narrows it. Unlike {@link assume}, which changes only the SDK's type, `as` puts the assertion into the program. Call it as `as(expression, type)`, or as `as(type)` inside a `pipe`.
+ *
+ * A construction failure already stored in `expression` or `type` passes through.
+ *
+ * @example <caption>Widen an Integer to a Number.</caption>
+ * ```ts
+ * import assert from "node:assert/strict";
+ * import { JExpr, Program } from "@local/hashql";
+ * import { Result } from "effect";
+ *
+ * const { Expression, Structural } = Program;
+ * const number = Result.getOrThrow(Structural.type(Number));
+ * assert.equal(
+ *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(Expression.as(2n, number)))),
+ *   '["::kernel::special_form::as",{"#literal":2},"::kernel::type::Number"]',
+ * );
+ * ```
+ *
+ * @category Combinators
+ * @since 0.1.0
+ */
+export const as = Function.dual<
+  <T extends Type.Any>(
+    type: TypeExpression.TypeExpression<T>,
+  ) => <E extends Value.Any>(expression: E) => Expression<T, Value.Inputs<E>>,
+  <E extends Value.Any, T extends Type.Any>(
+    expression: E,
+    type: TypeExpression.TypeExpression<T>,
+  ) => Expression<T, Value.Inputs<E>>
+>(
+  2,
+  <E extends Value.Any, T extends Type.Any>(
+    expression: E,
+    type: TypeExpression.TypeExpression<T>,
+  ): Expression<T, Value.Inputs<E>> =>
+    pipe(
+      { value: toNode(expression), type: type[TAST.Node] },
+      Result.all,
+      Result.map(({ value, type }) => new AST.As(value, type)),
+      fromResult<T, Value.Inputs<E>>,
+    ),
+);
+
+/**
  * Constructs a typed host literal with no input requirements.
  *
  * Use a string to construct a string literal rather than a name reference. A host number has the {@link Type.PrimitiveNumber} descriptor even when its emitted syntax is integral. Bigints have the {@link Type.PrimitiveInteger} descriptor. A non-finite number stores a {@link ProgramError.Construction} with the `InvalidExpression` reason, which {@link toJExpr} returns. Objects and arrays need structural construction instead.
@@ -659,11 +705,11 @@ export function input<T extends Type.Any>(
     const ident = yield* AST.decodeInputName(name);
     const node = yield* type[TAST.Node];
     if (defaultValue === undefined) {
-      return yield* AST.validate(new AST.Input(ident, node, undefined));
+      return new AST.Input(ident, node, undefined);
     }
 
     const value = yield* toNode(defaultValue);
-    return yield* AST.validate(new AST.Input(ident, node, value));
+    return new AST.Input(ident, node, value);
   }).pipe(fromResult<T, never>);
 }
 

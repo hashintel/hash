@@ -355,6 +355,31 @@ describe("program", () => {
     );
   });
 
+  test("type_assertion", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const { Number: NumberType } = $.prelude();
+      const foo = $.let("foo", $.as(2n, NumberType));
+      return $.if(true, { then: (branch) => branch.as(foo, NumberType) });
+    });
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::let",
+        "foo",
+        call(
+          "::kernel::special_form::as",
+          literal(2),
+          "::kernel::type::Number",
+        ),
+        call(
+          "::kernel::special_form::if",
+          literal(true),
+          call("::kernel::special_form::as", "foo", "::kernel::type::Number"),
+        ),
+      ),
+    );
+  });
+
   test("construction_failures", () => {
     expect.hasAssertions();
     for (const result of [
@@ -556,6 +581,25 @@ describe("references", () => {
       const alias = $.type("T", BigInt);
       $.type("T", String);
       return $.let("x", 1n, alias);
+    });
+    expect(reason(shadowed)).toStrictEqual(stale("T"));
+  });
+
+  test("as_type", () => {
+    expect.hasAssertions();
+    const asserted = Draft.program({}, ($) => {
+      const count = $.type("Count", BigInt);
+      return $.let("foo", $.as(2n, count));
+    });
+    expect(text(asserted)).toBe(
+      '["::kernel::special_form::type","Count","::kernel::type::Integer",["::kernel::special_form::let","foo",["::kernel::special_form::as",{"#literal":2},"Count"],"foo"]]',
+    );
+
+    // The asserted type names a type binding, which the check follows like any other use.
+    const shadowed = Draft.program({}, ($) => {
+      const alias = $.type("T", BigInt);
+      $.type("T", String);
+      return $.as(1n, alias);
     });
     expect(reason(shadowed)).toStrictEqual(stale("T"));
   });

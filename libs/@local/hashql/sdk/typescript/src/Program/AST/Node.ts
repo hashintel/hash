@@ -1,5 +1,5 @@
 // oxlint-disable import/max-dependencies -- `resolveReferences` reads the scope rule of every node that binds a name
-import { Array, Result, Schema, SchemaParser, pipe } from "effect";
+import { Array, Result } from "effect";
 
 import { fold } from "../../internal/fold.js";
 import * as Referential from "../../internal/referential.js";
@@ -73,26 +73,6 @@ export const compile = (node: Node.Any): JExpr.Expression =>
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the fold fills the syntax one child at a time, so TypeScript cannot see that its lengths match `types` and `children`
       return node.toExpr(types as never, syntax as never);
     },
-  );
-
-const parser = SchemaParser.decodeResult(Schema.toType(JExpr.Schema));
-
-/**
- * Checks a node's syntax against the J-Expr schema and returns the node itself.
- *
- * A builder that assembles syntax from host values, such as a struct's field names or an input's name, validates its node here. Returning the node rather than the decoded syntax keeps the tree the builder made. A schema failure becomes a {@link ProgramError.Construction} with the `InvalidExpression` reason.
- */
-export const validate = (
-  node: Node.Any,
-): Result.Result<Node.Any, ProgramError.Construction> =>
-  pipe(
-    node,
-    compile,
-    parser,
-    Result.mapBoth({
-      onSuccess: () => node,
-      onFailure: (cause) => ProgramError.Construction.invalidExpression(cause),
-    }),
   );
 
 type Task =
