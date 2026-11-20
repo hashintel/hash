@@ -10,6 +10,7 @@
     impl_trait_in_assoc_type,
     macro_metavar_expr_concat,
     const_trait_impl,
+    stmt_expr_attributes,
 
     // Library Features
     allocator_ext,
