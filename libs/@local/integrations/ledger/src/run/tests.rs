@@ -9,7 +9,9 @@ use type_system::{
 use uuid::Uuid;
 
 use super::{
-    RunId, load,
+    RunError, RunId,
+    current::{self, Current},
+    load,
     record::{
         BatchLimits, CapturePart, CapturedFile, FailedEntity, Failure, Input, PreparePart,
         RunRecord, SendPart, Stage,
@@ -103,4 +105,97 @@ async fn run_json_round_trips() {
         .expect("should read run.json")
         .expect("run.json should exist");
     insta::assert_snapshot!(String::from_utf8(bytes).expect("run.json should be UTF-8"));
+}
+
+#[tokio::test]
+async fn activate_refuses_a_stale_version() {
+    let storage = Storage::memory();
+    let (earlier, first, second) = (RunId(id(5)), RunId(id(6)), RunId(id(7)));
+    let (empty, none) = current::read(&storage)
+        .await
+        .expect("should read the missing current.json");
+    assert!(
+        current::activate(&storage, empty, none.as_ref(), earlier)
+            .await
+            .expect("should activate the earlier run"),
+        "the first claim of an integration should create current.json"
+    );
+    current::complete(&storage, earlier)
+        .await
+        .expect("should complete the earlier run");
+
+    // Two starts read the same `current.json`.
+    let (current, version) = current::read(&storage)
+        .await
+        .expect("should read current.json");
+    assert!(
+        current::activate(&storage, current, version.as_ref(), first)
+            .await
+            .expect("should activate the first run"),
+        "the first claim should write"
+    );
+    assert!(
+        !current::activate(&storage, current, version.as_ref(), second)
+            .await
+            .expect("should try to activate the second run"),
+        "a claim with the version read before the first claim should not write"
+    );
+    assert_eq!(
+        current::read(&storage)
+            .await
+            .expect("should read current.json")
+            .0,
+        Current {
+            active: Some(first),
+            last_completed: Some(earlier),
+        },
+        "the refused claim should change nothing"
+    );
+}
+
+#[tokio::test]
+async fn complete_frees_the_integration_once() {
+    let storage = Storage::memory();
+    let (run, other) = (RunId(id(8)), RunId(id(9)));
+    let (empty, none) = current::read(&storage)
+        .await
+        .expect("should read the missing current.json");
+    current::activate(&storage, empty, none.as_ref(), run)
+        .await
+        .expect("should activate the run");
+
+    current::complete(&storage, run)
+        .await
+        .expect("should complete the run");
+    let (completed, version) = current::read(&storage)
+        .await
+        .expect("should read current.json");
+    assert_eq!(
+        completed,
+        Current {
+            active: None,
+            last_completed: Some(run),
+        },
+        "the run should be the last completed run, and no run active"
+    );
+
+    current::complete(&storage, run)
+        .await
+        .expect("a second complete should succeed");
+    assert_eq!(
+        current::read(&storage)
+            .await
+            .expect("should read current.json")
+            .1,
+        version,
+        "a second complete should not write"
+    );
+    let error = current::complete(&storage, other)
+        .await
+        .expect_err("a run current.json does not name should not complete");
+    assert_eq!(
+        *error.current_context(),
+        RunError::NotActive,
+        "completing another run should be refused as not active"
+    );
 }
