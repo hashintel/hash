@@ -3,7 +3,7 @@ import {
   finishBrowserCall,
 } from "../../../src/browser-call/browser-call";
 
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 import type { ConversationId, Harness } from "@earendil-works/pi-durable";
 
 /**
@@ -24,6 +24,7 @@ export const actAsBrowser = async (
     conversationId,
     toolCallId,
     context,
+    Date.now,
   );
   if (claim === undefined) throw new Error("The call could not be claimed.");
   const secondClaim = await claimBrowserCall(
@@ -31,6 +32,7 @@ export const actAsBrowser = async (
     conversationId,
     toolCallId,
     context,
+    Date.now,
   );
   const output = { applied: true, title: claim.input.title ?? null };
   const finished = await finishBrowserCall(
@@ -44,6 +46,7 @@ export const actAsBrowser = async (
       output,
     },
     context,
+    Date.now,
   );
   return {
     claimed: { toolName: claim.toolName, input: claim.input },

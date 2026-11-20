@@ -7,7 +7,7 @@ import {
 
 import { BrowserCallsDoc } from "../../../src/browser-call/browser-call";
 
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 import type { ToolCall } from "@earendil-works/pi-ai";
 
 /**

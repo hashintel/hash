@@ -102,6 +102,8 @@ export const brunchRoutes = {
   hashIdentity: "/agents/hash/identity",
   /** Under an agent instance: where the bound browser claims and settles the calls issued to it. */
   browserCalls: "browser-calls",
+  /** Under an agent instance's browser calls: where the panel reports the user's hand edits. */
+  handEdits: "hand-edits",
   /** Cheap process-liveness probe; dependency readiness is established before listen. */
   health: "/health",
 } as const;

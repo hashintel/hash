@@ -1,0 +1,230 @@
+/**
+ * `query_basis`: why a visible net element exists, from the Ledger records
+ * that name it and the browser calls that changed it. Ported from Brunch's
+ * `apps/brunch-agent/src/agents/shared/query-basis.ts` onto the
+ * conversation's browser-call records and its `LedgerDoc`:
+ *
+ * - the net's changes and views are the records whose browser committed a
+ *   result, settled or discarded with an aborted turn, in issue order
+ *   (`net-changes.ts`), not settled tool parts in message order;
+ * - a change's Ledger revision is the `LedgerDoc` as of the assistant entry
+ *   that issued it (`snapshotAsOf`), not a fold of history cut at its part;
+ * - the selected definition needs a matching current revision in the
+ *   effective context (`visibleNetView`). An edit can outlive the view it
+ *   invalidated, or both can be summarized away. Neither the absence of a
+ *   visible note nor the call's committed result alone proves freshness.
+ *
+ * It runs sequentially (fold 3b): one sequential tool serializes its whole
+ * round in call order, so it answers from the net reads issued before it in
+ * the same response, and never from the ones after.
+ */
+import {
+  type ConversationId,
+  defineExtension,
+  defineTool,
+} from "@earendil-works/pi-durable";
+import { toJsonSchema } from "@valibot/to-json-schema";
+import * as v from "valibot";
+
+import {
+  basisQueryReasons,
+  type BasisQuerySelector,
+  basisQueryTarget,
+  basisTraceForModel,
+  brunchTools,
+  callsForElement,
+  foldCommits,
+  isAppliedChange,
+  latestNetDefinition,
+  type LedgerHistory,
+  namesBasisQueryTarget,
+  queryBasisToolDescription,
+  traceLedger,
+  basisQueryInputSchema,
+} from "@hashintel/brunch-agent";
+
+import {
+  BrowserBindingDoc,
+  BrowserCallsDoc,
+} from "../browser-call/browser-call";
+import { foldLedger, LedgerDoc } from "../ledger";
+import { issuedBefore, type NetCall, netCalls } from "./net-changes";
+import { type VisibleNetView, visibleNetView } from "./visible-net-view";
+
+import type { HostBinding } from "../agent/host-binding";
+import type { Context } from "@earendil-works/chord/context";
+import type { Schema } from "@earendil-works/pi-schema";
+
+export type QueryBasisInput = {
+  /** The browser's settled net calls, in issue order (`netCalls`). */
+  readonly calls: readonly NetCall[];
+  /** The Ledger's history now, with the USER's words on its turns. */
+  readonly ledger: LedgerHistory;
+  /** The conversation's editor binding, as Brunch reports it. */
+  readonly binding: unknown;
+  readonly query: BasisQuerySelector;
+  /** The Ledger revision as of the entry that issued a call. */
+  readonly ledgerRevisionAt: (call: NetCall) => Promise<number | undefined>;
+  /** The model's view now, from its effective context (`visibleNetView`). */
+  readonly netView:
+    | Pick<Extract<VisibleNetView, { state: "current" }>, "state" | "revision">
+    | Pick<Exclude<VisibleNetView, { state: "current" }>, "state">;
+};
+
+export const queryBasis = async (input: QueryBasisInput) => {
+  // The latest read, or the latest change carrying its read-back; a change
+  // after it carried none.
+  const latest = latestNetDefinition(input.calls);
+  const view = latest?.call;
+  const staleRead = (reason: string) => ({
+    binding: input.binding,
+    disposition: "stale-read" as const,
+    reason,
+    target: undefined,
+    readToolCallId: view?.toolCallId,
+    basis: undefined,
+    changes: [],
+  });
+  if (input.netView.state === "stale")
+    return staleRead(basisQueryReasons["stale-hand-edit"]);
+  if (
+    view &&
+    input.calls.some(
+      (call) => isAppliedChange(call) && issuedBefore(view, call),
+    )
+  )
+    return staleRead(basisQueryReasons["stale-read"]);
+  if (
+    latest &&
+    (input.netView.state !== "current" ||
+      input.netView.revision !== latest.revision)
+  )
+    return staleRead(basisQueryReasons["no-current-view"]);
+  const target = latest
+    ? basisQueryTarget(latest.definition, input.query)
+    : undefined;
+  if (!target)
+    return {
+      binding: input.binding,
+      disposition: "not-found" as const,
+      reason: basisQueryReasons["not-found"],
+      target,
+      readToolCallId: latest?.call.toolCallId,
+      basis: undefined,
+      changes: [],
+    };
+  const changes = await Promise.all(
+    callsForElement(input.calls, {
+      kind: input.query.kind,
+      id: target.id,
+      ...(target.arc === undefined ? {} : { arc: target.arc }),
+    }).map(async (call) => ({
+      toolCallId: call.toolCallId,
+      operation: call.toolName,
+      petrinautRevisionId: call.revisionAfter,
+      ledgerRevision: await input.ledgerRevisionAt(call),
+    })),
+  );
+  const trace = traceLedger(foldCommits(input.ledger).state, {
+    netElement: namesBasisQueryTarget(input.query.kind, target),
+  });
+  const declared = trace.reflections.length > 0;
+  return {
+    binding: input.binding,
+    disposition: declared
+      ? ("basis-declared" as const)
+      : ("basis-absent" as const),
+    reason: declared
+      ? basisQueryReasons["basis-declared"]
+      : basisQueryReasons["basis-absent"],
+    target,
+    readToolCallId: latest?.call.toolCallId,
+    basis: declared ? basisTraceForModel(trace) : undefined,
+    changes,
+  };
+};
+
+/** The binding Brunch reports: `BrowserContext["binding"]`, stored as its canonical JSON. */
+const bindingOf = (binding: string | null | undefined): unknown =>
+  binding === null || binding === undefined ? null : JSON.parse(binding);
+
+/**
+ * The model's view of the net now: the conversation's current effective
+ * context through the host, outside any commit. Throws when the host is
+ * unbound, which fails the call as a tool error.
+ */
+const netViewNow = async (
+  host: HostBinding,
+  conversationId: ConversationId,
+  context: Context,
+) =>
+  visibleNetView(
+    await (await host.conversation(conversationId, context)).context(context),
+  );
+
+/** What an agent mounts the basis query as: its tool name and description. */
+export type QueryBasisToolOptions = {
+  readonly name?: string;
+  readonly description?: string;
+};
+
+/**
+ * The basis query over a Harness's host binding: `query_basis` with the
+ * library's description unless the agent names it otherwise, as the HASH
+ * agent mounts it as `ledger_query_basis`.
+ */
+export const createQueryBasisTool = (
+  host: HostBinding,
+  {
+    name = brunchTools.queryBasis,
+    description = queryBasisToolDescription,
+  }: QueryBasisToolOptions = {},
+) =>
+  defineTool({
+    name,
+    description,
+    parameters: (({ $schema: _dialect, ...jsonSchema }) => jsonSchema)(
+      toJsonSchema(basisQueryInputSchema, { errorMode: "ignore" }),
+    ) as Schema<v.InferOutput<typeof basisQueryInputSchema>>,
+    // Reads only.
+    replay: "safe",
+    // Answers from the reads issued before it in the same response (fold 3b).
+    executionMode: "sequential",
+    execute: async (args, api, context) => {
+      const { selector } = v.parse(basisQueryInputSchema, args);
+      const { conversationId } = api;
+      const [records, bound, ledger, netView] = await Promise.all([
+        api.snapshot(BrowserCallsDoc, conversationId, context),
+        api.snapshot(BrowserBindingDoc, conversationId, context),
+        api.snapshot(LedgerDoc, conversationId, context),
+        netViewNow(host, conversationId, context),
+      ]);
+      const result = await queryBasis({
+        netView,
+        calls: netCalls(records?.calls ?? {}),
+        ledger: ledger ?? { messages: [] },
+        binding: bindingOf(bound?.binding),
+        query: selector,
+        ledgerRevisionAt: async ({ issuedEntry }) =>
+          foldLedger(
+            await api.snapshotAsOf(
+              LedgerDoc,
+              conversationId,
+              issuedEntry,
+              context,
+            ),
+          ).revision,
+      });
+      return { output: [{ type: "text", text: JSON.stringify(result) }] };
+    },
+  });
+
+/** The basis query, for an agent that also selects the Ledger and the Petrinaut browser tools. */
+export const queryBasisExtension = (
+  host: HostBinding,
+  options?: QueryBasisToolOptions,
+) =>
+  defineExtension({
+    name: "brunch.query-basis",
+    tools: [createQueryBasisTool(host, options)],
+  });

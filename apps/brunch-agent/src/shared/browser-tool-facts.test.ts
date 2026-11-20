@@ -12,6 +12,7 @@ import {
   browserToolFacts,
   brunchTools,
   canonicalContent,
+  netResultView,
 } from "@hashintel/brunch-agent";
 
 import { createBrunchContextProjection } from "./context-projection.ts";
@@ -21,7 +22,6 @@ import {
   issueBrowserCall,
 } from "./conversation/browser-call-rendezvous.ts";
 import { netCalls } from "./conversation/net-changes.ts";
-import { netResultView } from "./conversation/net-view.ts";
 
 import type { ContextProjectionEntry } from "@flue/runtime";
 import type { FlueConversationSnapshot } from "@flue/sdk";

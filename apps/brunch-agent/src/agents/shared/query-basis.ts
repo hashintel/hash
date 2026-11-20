@@ -3,125 +3,29 @@ import * as v from "valibot";
 
 import {
   basisQueryReasons,
+  basisQueryTarget,
+  basisTraceForModel,
   brunchTools,
-  foldCommits,
-  generatedArcId,
-  namesId,
-  queryBasisToolDescription,
-  traceLedger,
-  vBasisQueryInput,
-} from "@hashintel/brunch-agent";
-import { migrateLegacyComponentKeys } from "@hashintel/petrinaut-core";
-
-import {
   callsForElement,
+  foldCommits,
   isAppliedChange,
   latestNetDefinition,
+  namesBasisQueryTarget,
+  queryBasisToolDescription,
+  traceLedger,
+  basisQueryInputSchema,
+} from "@hashintel/brunch-agent";
+
+import {
   netCalls,
   type NetCall,
-  type NetElement,
 } from "../../shared/conversation/net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type {
-  ArcElement,
   BasisQuerySelector,
   BrowserContext,
-  LedgerTrace,
-  NetElementAddress,
-  NetStructure,
 } from "@hashintel/brunch-agent";
-
-/** A net element the selector can match: by ID, by name, or by its arc's endpoints. */
-type ElementCandidate = Omit<NetElement, "kind"> & { readonly name: string };
-
-/** The root net and each component: places, transitions and their other items can sit in either. */
-const netsOf = (definition: NetStructure) => [
-  definition,
-  ...(definition.components ?? []),
-];
-
-const elements = (
-  definition: NetStructure,
-  kind: BasisQuerySelector["kind"],
-): ElementCandidate[] => {
-  if (kind === "scenario") return definition.scenarios ?? [];
-  if (kind === "metric") return definition.metrics ?? [];
-  if (kind === "component") return definition.components ?? [];
-  return netsOf(definition).flatMap((net) => netElements(net, kind));
-};
-
-const netElements = (
-  net: ReturnType<typeof netsOf>[number],
-  kind: Exclude<
-    BasisQuerySelector["kind"],
-    "scenario" | "metric" | "component"
-  >,
-): ElementCandidate[] => {
-  if (kind === "place") return net.places;
-  if (kind === "transition") return net.transitions;
-  if (kind === "type") return net.types;
-  if (kind === "parameter") return net.parameters;
-  if (kind === "differentialEquation") return net.differentialEquations;
-  if (kind === "componentInstance") return net.componentInstances ?? [];
-  if (kind === "fusion") return net.fusions ?? [];
-  if (kind === "typeElement")
-    return net.types.flatMap((color) =>
-      color.elements.map((element) => ({
-        id: element.elementId,
-        name: element.name,
-      })),
-    );
-  kind satisfies "arc";
-  // An arc is selected by its transition and endpoint, and identified by the ID Petrinaut generates from them.
-  return net.transitions.flatMap((transition) => {
-    const arcElements = (
-      arcDirection: ArcElement["arcDirection"],
-      arcs: readonly Pick<
-        (typeof transition.inputArcs)[number],
-        "endpoint" | "placeId"
-      >[],
-    ) =>
-      arcs.map((arc) => {
-        const placeId =
-          arc.endpoint?.kind === "place"
-            ? arc.endpoint.placeId
-            : (arc.placeId ?? "");
-        const element = { transitionId: transition.id, arcDirection, placeId };
-        return {
-          arc: element,
-          id: generatedArcId(element),
-          name: `${transition.name} ${arcDirection}`,
-        };
-      });
-    return [
-      ...arcElements("input", transition.inputArcs),
-      ...arcElements("output", transition.outputArcs),
-    ];
-  });
-};
-
-/** A record as the model reads it: its ID and fields, with the turn it was recorded in. */
-const recordContent = <Fields extends { address: string }>({
-  address,
-  ...fields
-}: Fields) => ({ id: address, ...fields });
-
-/** The trace as the model reads it: record IDs in place of addresses. */
-const basisContent = (trace: LedgerTrace) => ({
-  reflections: trace.reflections.map(recordContent),
-  obligations: trace.obligations.map(recordContent),
-  claims: trace.claims.map(recordContent),
-  entities: trace.entities.map(recordContent),
-  superseded: trace.superseded,
-  turns: trace.turns,
-});
-
-/** Whether a reflection's net element address names the target, as the document or the model wrote it. */
-const namesTarget =
-  (kind: BasisQuerySelector["kind"], target: Omit<NetElement, "kind">) =>
-  (address: NetElementAddress) =>
-    address.kind === kind && namesId(address.id, target.id);
 
 /** The Ledger revision current when a call was made. */
 const ledgerRevisionAt = (
@@ -145,11 +49,12 @@ export const queryBasis = (input: {
 }) => {
   // The latest read, or the latest change carrying its read-back; a change
   // after it carried none.
-  const latest = latestNetDefinition(input.snapshot);
+  const calls = netCalls(input.snapshot);
+  const latest = latestNetDefinition(calls);
   const view = latest?.call;
   if (
     view &&
-    netCalls(input.snapshot).some(
+    calls.some(
       (call) =>
         isAppliedChange(call) &&
         (call.messageIndex > view.messageIndex ||
@@ -166,25 +71,9 @@ export const queryBasis = (input: {
       basis: undefined,
       changes: [],
     };
-  // A stored view can list its components under `subnets`, as a document
-  // written with that key does: it is read the way a file is.
-  const candidates = latest
-    ? elements(
-        migrateLegacyComponentKeys(latest.definition),
-        input.query.kind,
-      ).filter(
-        (element) =>
-          namesId(input.query.id, element.id) ||
-          (input.query.name !== undefined &&
-            element.name === input.query.name) ||
-          (input.query.kind === "arc" &&
-            element.arc !== undefined &&
-            namesId(input.query.transitionId, element.arc.transitionId) &&
-            input.query.arcDirection === element.arc.arcDirection &&
-            namesId(input.query.placeId, element.arc.placeId)),
-      )
-    : [];
-  const target = candidates.length === 1 ? candidates.at(0) : undefined;
+  const target = latest
+    ? basisQueryTarget(latest.definition, input.query)
+    : undefined;
   if (!target)
     return {
       binding: input.browser.binding,
@@ -195,7 +84,7 @@ export const queryBasis = (input: {
       basis: undefined,
       changes: [],
     };
-  const changes = callsForElement(input.snapshot, {
+  const changes = callsForElement(calls, {
     kind: input.query.kind,
     id: target.id,
     ...(target.arc === undefined ? {} : { arc: target.arc }),
@@ -206,7 +95,7 @@ export const queryBasis = (input: {
     ledgerRevision: ledgerRevisionAt(input.snapshot, call),
   }));
   const trace = traceLedger(foldCommits(input.snapshot).state, {
-    netElement: namesTarget(input.query.kind, target),
+    netElement: namesBasisQueryTarget(input.query.kind, target),
   });
   const declared = trace.reflections.length > 0;
   return {
@@ -219,7 +108,7 @@ export const queryBasis = (input: {
       : basisQueryReasons["basis-absent"],
     target,
     readToolCallId: latest?.call.toolCallId,
-    basis: declared ? basisContent(trace) : undefined,
+    basis: declared ? basisTraceForModel(trace) : undefined,
     changes,
   };
 };
@@ -237,7 +126,7 @@ export const createQueryBasisTool = (options: {
   defineTool({
     name: options.name ?? brunchTools.queryBasis,
     description: queryBasisToolDescription,
-    input: vBasisQueryInput,
+    input: basisQueryInputSchema,
     output: v.custom<ReturnType<typeof queryBasis>>(() => true),
     async run({ data }) {
       return {

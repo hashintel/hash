@@ -3,9 +3,12 @@
  * one Postgres schema per storage. The tables, ID and sequence bookkeeping, and document rules follow SQLite's; where
  * the two differ the comment says why.
  */
-/* oxlint-disable eslint/no-await-in-loop -- A transaction's statements run in order on one client, and a fork walk needs each parent before the next. */
+/* oxlint-disable eslint/no-await-in-loop -- A transaction's statements run in order on one client, a fork walk needs each parent before the next, and a retry follows the attempt before it. */
 import { randomUUID } from "node:crypto";
+import { performance } from "node:perf_hooks";
+import { setTimeout as sleep } from "node:timers/promises";
 
+import { type Context } from "@earendil-works/chord/context";
 import { apply, type Op } from "@earendil-works/chord/delta";
 import {
   type ConversationId,
@@ -46,6 +49,7 @@ import {
   type QueryResultRow,
 } from "pg";
 
+import { isPoolConnectTimeout } from "./postgres-config";
 import {
   createPostgresMigrations,
   createPostgresTables,
@@ -324,11 +328,17 @@ const prepareDocumentActions = (writes: readonly StorageWrite[]) => {
  * One storage owns a schema at a time. Opening takes ownership from whichever storage held it: that storage's next
  * commit fails, which fails its Session, so a process that lost the schema stops writing instead of corrupting it.
  * `readOnly` opens without taking ownership, for a read-only Harness; its commits fail the same way.
+ *
+ * Pi Durable fails the Session on any error a Storage method throws, so the storage retries its own transient failures
+ * for up to `transientRetryMs` after the first one: every read, and a commit that failed before `COMMIT` was sent.
+ * Opening is not retried.
  */
 export const openPostgresStorage = async (options: {
   readonly pool: PoolConfig | Pool;
   readonly schema: string;
   readonly readOnly?: boolean;
+  /** `defaultTransientRetryMs` when absent. */
+  readonly transientRetryMs?: number;
 }): Promise<PostgresStorage> => {
   const tables = createPostgresTables(options.schema);
   const ownsPool = !(options.pool instanceof Pool);
@@ -385,7 +395,14 @@ export const openPostgresStorage = async (options: {
       }
       return Number(metadata.next_id);
     });
-    return new PostgresStorage(pool, tables, nextId, ownerToken, ownsPool);
+    return new PostgresStorage(
+      pool,
+      tables,
+      nextId,
+      ownerToken,
+      ownsPool,
+      options.transientRetryMs ?? defaultTransientRetryMs,
+    );
   } catch (error) {
     if (ownsPool) {
       await pool.end().catch(() => {
@@ -396,24 +413,83 @@ export const openPostgresStorage = async (options: {
   }
 };
 
+/**
+ * How long an operation keeps starting attempts after its first transient failure. A retry holds the Session's line:
+ * at worst one pool wait for the first failure, plus this window, plus one more pool wait for the last attempt.
+ */
+export const defaultTransientRetryMs = 5_000;
+const firstRetryDelayMs = 50;
+const maxRetryDelayMs = 500;
+
+const socketErrorCodes = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EPIPE",
+  "ETIMEDOUT",
+]);
+const brokenConnectionMessages = new Set([
+  "Connection terminated unexpectedly",
+  "Client has encountered a connection error and is not queryable",
+]);
+const endedSessionCodes = new Set(["57P01", "57P02", "57P03", "53300"]);
+
+/**
+ * Whether `error` is a transient failure of the connection rather than of the work: retrying is safe wherever the
+ * failure came before `COMMIT` was sent, since Postgres rolls back a transaction it never got a `COMMIT` for.
+ *
+ * - The pool gave no connection within its wait (`isPoolConnectTimeout`): saturated, or the server did not answer.
+ * - The socket failed: `ECONNREFUSED`, `ECONNRESET`, `EPIPE`, `ETIMEDOUT`, or `pg`'s "Connection terminated
+ *   unexpectedly" and "not queryable" after it.
+ * - The server ended or refused the session: SQLSTATE class `08` (connection exception), `57P01`–`57P03` (shutdown,
+ *   crash, still starting), `53300` (too many connections).
+ *
+ * Nothing else is: a statement Postgres rejected, the ownership fence, missing metadata, or an invalid request.
+ */
+const isTransientFailure = (error: unknown): boolean => {
+  if (isPoolConnectTimeout(error)) return true;
+  if (!(error instanceof Error)) return false;
+  if (brokenConnectionMessages.has(error.message)) return true;
+  const code = (error as { code?: unknown }).code;
+  return (
+    typeof code === "string" &&
+    (socketErrorCodes.has(code) ||
+      endedSessionCodes.has(code) ||
+      code.startsWith("08"))
+  );
+};
+
+/** Ignores a checked-out client's connection error, which also rejects its pending query; unheard, it would crash. */
+const ignoreClientError = () => {};
+
+/**
+ * Run `run` in one transaction on a pool client. `onCommit` runs as `COMMIT` is about to be sent: from then on the
+ * transaction's outcome is unknown when the call rejects.
+ */
 const inTransaction = async <T>(
   pool: Pool,
   begin: string,
   run: (client: PoolClient) => Promise<T>,
+  onCommit: () => void = () => {},
 ): Promise<T> => {
   const client = await pool.connect();
+  client.on("error", ignoreClientError);
+  const release = (destroy?: boolean) => {
+    client.removeListener("error", ignoreClientError);
+    client.release(destroy);
+  };
   try {
     await client.query(begin);
     const result = await run(client);
+    onCommit();
     await client.query("COMMIT");
-    client.release();
+    release();
     return result;
   } catch (error) {
     try {
       await client.query("ROLLBACK");
-      client.release();
+      release();
     } catch {
-      client.release(true);
+      release(true);
     }
     throw error;
   }
@@ -433,24 +509,56 @@ export class PostgresStorage implements Storage {
     private readonly ownerToken: string | undefined,
     /** False when the caller passed a pool it shares and ends itself. */
     private readonly ownsPool: boolean,
+    private readonly transientRetryMs: number,
   ) {}
 
   /**
    * Commit `batches` in one transaction, each with its own seq. Each batch is checked before it writes anything, against
    * the state the earlier ones left; the first one Durable's rules refuse ends the call and the transaction commits the
    * ones before it. A database failure rejects the call and rolls all of it back. As in SQLite, no savepoints: the
-   * checks run before the writes.
+   * checks run before the writes. A transient failure before `COMMIT` was sent runs the transaction again, ownership
+   * check included; one after rejects, its outcome unknown.
    */
   async commit(
     batches: readonly (readonly StorageWrite[])[],
     receive: (index: number, seq: Seq) => void,
-    _context: unknown,
+    context: Context,
   ): Promise<CommitResult> {
     return this.admit(async () => {
-      const seqs: Seq[] = [];
-      let refused: { error: unknown } | undefined;
-      let candidateNextId = this.nextId;
-      await inTransaction(this.pool, "BEGIN", async (client) => {
+      let commitSent = false;
+      const { seqs, refused, candidateNextId } = await this.retrying(
+        () => {
+          commitSent = false;
+          return this.commitOnce(batches, () => {
+            commitSent = true;
+          });
+        },
+        (error) => !commitSent && isTransientFailure(error),
+        context,
+      );
+      this.nextId = Math.max(this.nextId, candidateNextId);
+      // `COMMIT` returned: the stored batches are durable.
+      for (const [index, seq] of seqs.entries()) {
+        receive(index, seq);
+      }
+      return refused === undefined
+        ? { stored: seqs.length }
+        : { stored: seqs.length, refused: refused.error };
+    });
+  }
+
+  /** One attempt at `commit()`'s transaction. */
+  private async commitOnce(
+    batches: readonly (readonly StorageWrite[])[],
+    onCommit: () => void,
+  ) {
+    const seqs: Seq[] = [];
+    let refused: { error: unknown } | undefined;
+    let candidateNextId = this.nextId;
+    await inTransaction(
+      this.pool,
+      "BEGIN",
+      async (client) => {
         // The row lock serializes commits, and opens taking ownership, across processes.
         const metadata = await get<{
           next_id: string;
@@ -510,16 +618,10 @@ export class PostgresStorage implements Storage {
             [String(Math.max(Number(metadata.next_id), candidateNextId)), next],
           );
         }
-      });
-      this.nextId = Math.max(this.nextId, candidateNextId);
-      // `COMMIT` returned: the stored batches are durable.
-      for (const [index, seq] of seqs.entries()) {
-        receive(index, seq);
-      }
-      return refused === undefined
-        ? { stored: seqs.length }
-        : { stored: seqs.length, refused: refused.error };
-    });
+      },
+      onCommit,
+    );
+    return { seqs, refused, candidateNextId };
   }
 
   async mintId<I extends Id<string>>(): Promise<I> {
@@ -532,18 +634,18 @@ export class PostgresStorage implements Storage {
 
   async conversation(
     id: ConversationId,
-    _context: unknown,
+    context: Context,
   ): Promise<ConversationRecord | undefined> {
-    return this.admit(() => this.readConversation(id));
+    return this.read(context, () => this.readConversation(id));
   }
 
   async scanConversations(
     query: ConversationQuery,
     limit: number,
     cursor: Cursor | undefined,
-    _context: unknown,
+    context: Context,
   ): Promise<Page<ConversationRecord, Cursor>> {
-    return this.admit(async () => {
+    return this.read(context, async () => {
       const start = scanStart(query, cursor, "ascending");
       const params: unknown[] = [];
       const scan = scanSql(params, start);
@@ -570,18 +672,18 @@ export class PostgresStorage implements Storage {
     });
   }
 
-  entry(id: EntryId, context: unknown): Promise<StoredEntry | undefined>;
+  entry(id: EntryId, context: Context): Promise<StoredEntry | undefined>;
   entry(
     conversationId: ConversationId,
     id: EntryId,
-    context: unknown,
+    context: Context,
   ): Promise<StoredEntry | undefined>;
   async entry(
     idOrConversationId: number,
     idOrContext: unknown,
-    context?: unknown,
+    context?: Context,
   ): Promise<StoredEntry | undefined> {
-    return this.admit(async () => {
+    return this.read(context ?? (idOrContext as Context), async () => {
       const id =
         context === undefined
           ? idFromNumber<EntryId>(idOrConversationId)
@@ -628,9 +730,9 @@ export class PostgresStorage implements Storage {
   async findLatestHeadMarker(
     conversationId: ConversationId,
     atOrBeforeEntryId: EntryId | undefined,
-    _context: unknown,
+    context: Context,
   ): Promise<HeadMarker | undefined> {
-    return this.admit(async () => {
+    return this.read(context, async () => {
       let conversation: ConversationRecord | undefined =
         await this.knownConversation(conversationId);
       let upper: number | undefined = atOrBeforeEntryId;
@@ -662,9 +764,9 @@ export class PostgresStorage implements Storage {
     query: EntryQuery,
     limit: number,
     cursor: Cursor | undefined,
-    _context: unknown,
+    context: Context,
   ): Promise<Page<EntryRecord, Cursor>> {
-    return this.admit(async () => {
+    return this.read(context, async () => {
       const { order, after } = scanStart(query, cursor, "descending");
       // Each segment is one conversation of the fork chain, capped by the fork point of the conversation below it.
       const segments: { conversationId: ConversationId; upper?: number }[] = [];
@@ -726,8 +828,8 @@ export class PostgresStorage implements Storage {
     });
   }
 
-  async task(id: TaskId, _context: unknown): Promise<StoredTask | undefined> {
-    return this.admit(async () => {
+  async task(id: TaskId, context: Context): Promise<StoredTask | undefined> {
+    return this.read(context, async () => {
       const row = await get<{ record: string }>(
         this.pool,
         `SELECT record FROM ${this.tables.tasks} WHERE id = $1`,
@@ -741,9 +843,9 @@ export class PostgresStorage implements Storage {
     query: TaskQuery,
     limit: number,
     cursor: Cursor | undefined,
-    _context: unknown,
+    context: Context,
   ): Promise<Page<StoredTask, Cursor>> {
-    return this.admit(async () => {
+    return this.read(context, async () => {
       const start = scanStart(query, cursor, "ascending");
       const params: unknown[] = [];
       const scan = scanSql(params, start);
@@ -779,9 +881,9 @@ export class PostgresStorage implements Storage {
 
   async submission(
     id: SubmissionId,
-    _context: unknown,
+    context: Context,
   ): Promise<SubmissionRecord | undefined> {
-    return this.admit(async () => {
+    return this.read(context, async () => {
       const row = await get<{ record: string }>(
         this.pool,
         `SELECT record FROM ${this.tables.submissions} WHERE id = $1`,
@@ -797,9 +899,9 @@ export class PostgresStorage implements Storage {
     query: SubmissionQuery,
     limit: number,
     cursor: Cursor | undefined,
-    _context: unknown,
+    context: Context,
   ): Promise<Page<SubmissionRecord, Cursor>> {
-    return this.admit(async () => {
+    return this.read(context, async () => {
       const start = scanStart(query, cursor, "ascending");
       const params: unknown[] = [];
       const scan = scanSql(params, start);
@@ -827,9 +929,9 @@ export class PostgresStorage implements Storage {
   async submissionByRequest(
     conversationId: ConversationId,
     requestId: string,
-    _context: unknown,
+    context: Context,
   ): Promise<SubmissionRecord | undefined> {
-    return this.admit(async () => {
+    return this.read(context, async () => {
       const row = await get<{ record: string }>(
         this.pool,
         `SELECT record FROM ${this.tables.submissions} WHERE conversation_id = $1 AND request_id = $2`,
@@ -844,9 +946,9 @@ export class PostgresStorage implements Storage {
   async findDocument(
     address: DocumentAddress,
     at: DocumentPoint,
-    _context: unknown,
+    context: Context,
   ): Promise<DocumentRecord | undefined> {
-    return this.admit(async () => {
+    return this.read(context, async () => {
       const params: unknown[] = [];
       const row = await get<{ record: string }>(
         this.pool,
@@ -864,10 +966,10 @@ export class PostgresStorage implements Storage {
   async document(
     id: DocumentId,
     at: DocumentPoint,
-    _context: unknown,
+    context: Context,
   ): Promise<StoredDocument | undefined> {
     // The record and revision queries must observe one committed state; a commit between them can replace the base.
-    return this.admit(() =>
+    return this.read(context, () =>
       inTransaction(
         this.pool,
         "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY",
@@ -880,9 +982,9 @@ export class PostgresStorage implements Storage {
     query: DocumentQuery,
     limit: number,
     cursor: Cursor | undefined,
-    _context: unknown,
+    context: Context,
   ): Promise<Page<DocumentRecord, Cursor>> {
-    return this.admit(async () => {
+    return this.read(context, async () => {
       const after = cursor?.after;
       if (
         after !== undefined &&
@@ -931,6 +1033,26 @@ export class PostgresStorage implements Storage {
     return this.closing;
   }
 
+  /**
+   * Whether this storage still owns its schema: one read of the owner token, without a lock. A host checks it before
+   * serving from a Harness's memory, which a later opener's commits never reach. A read-only storage never owns.
+   * Not retried: no Session fails with it, and a host answers its transient failure as unavailable.
+   */
+  async isOwner(): Promise<boolean> {
+    const ownerToken = this.ownerToken;
+    if (ownerToken === undefined) return false;
+    return this.admit(async () => {
+      const metadata = await get<{ owner_token: string | null }>(
+        this.pool,
+        `SELECT owner_token FROM ${this.tables.durableMetadata} WHERE singleton = 1`,
+      );
+      if (metadata === undefined) {
+        throw new Error("Durable Postgres metadata is missing");
+      }
+      return metadata.owner_token === ownerToken;
+    });
+  }
+
   /** Run one operation; `close()` waits for admitted operations so none reaches an ended pool. */
   private async admit<T>(operation: () => Promise<T>): Promise<T> {
     this.assertOpen();
@@ -940,6 +1062,51 @@ export class PostgresStorage implements Storage {
     } finally {
       if (--this.admitted === 0) {
         this.drained?.();
+      }
+    }
+  }
+
+  /** Run one read, retried on a transient failure; a read has no durable effect, so any attempt may be repeated. */
+  private read<T>(
+    context: Context | undefined,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    return this.admit(() =>
+      this.retrying(operation, isTransientFailure, context),
+    );
+  }
+
+  /**
+   * Run `attempt` until it succeeds, or until it fails with an error `retryable` refuses, `transientRetryMs` after its
+   * first failure, once the caller is cancelled or once the storage is closing; then reject with the last error. The
+   * window starts at the first failure rather than the first attempt, since a pool wait can outlast it.
+   */
+  private async retrying<T>(
+    attempt: () => Promise<T>,
+    retryable: (error: unknown) => boolean,
+    context: Context | undefined,
+  ): Promise<T> {
+    const signal = context?.abortSignal;
+    let deadline: number | undefined;
+    for (let delayMs = firstRetryDelayMs; ;) {
+      try {
+        return await attempt();
+      } catch (error) {
+        deadline ??= performance.now() + this.transientRetryMs;
+        if (
+          !retryable(error) ||
+          this.closed ||
+          signal?.aborted === true ||
+          performance.now() + delayMs >= deadline
+        ) {
+          throw error;
+        }
+        try {
+          await sleep(delayMs, undefined, { signal });
+        } catch {
+          throw error;
+        }
+        delayMs = Math.min(delayMs * 2, maxRetryDelayMs);
       }
     }
   }

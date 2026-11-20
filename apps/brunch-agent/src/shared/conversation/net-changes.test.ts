@@ -1,15 +1,14 @@
 import { expect, test } from "vitest";
 
-import { generatedArcId } from "@hashintel/brunch-agent";
+import {
+  generatedArcId,
+  isAppliedChange,
+  latestNetDefinition,
+} from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { queryBasis } from "../../agents/shared/query-basis.ts";
-import {
-  isAppliedChange,
-  latestNetDefinition,
-  latestCanonicalNetReadBefore,
-  netCalls,
-} from "./net-changes.ts";
+import { latestCanonicalNetReadBefore, netCalls } from "./net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
@@ -391,7 +390,9 @@ test("a filtered net read counts as the latest net read", () => {
     ...snapshot,
     messages: [...snapshot.messages, outline],
   } as FlueConversationSnapshot;
-  expect(latestNetDefinition(withOutline)?.call.toolCallId).toBe("outline");
+  expect(latestNetDefinition(netCalls(withOutline))?.call.toolCallId).toBe(
+    "outline",
+  );
 });
 
 test("a filtered net read is not the canonical read an experiment draft needs", () => {

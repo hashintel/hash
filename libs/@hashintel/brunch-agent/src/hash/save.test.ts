@@ -7,6 +7,7 @@ import {
   parseHashSaveInput,
   parseHashSaveOutcome,
   versionLoadNote,
+  versionLoadSectionText,
 } from "./save";
 
 test("a save names the open document and nothing else", () => {
@@ -100,5 +101,16 @@ test("the version-load note is pinned", () => {
     }),
   ).toMatchInlineSnapshot(
     `"Host note: The user loaded the version saved at 2026-10-24T01:00:00.000Z; later saves build on it."`,
+  );
+});
+
+test("the version-load section text is pinned", () => {
+  expect(
+    versionLoadSectionText({
+      id: "version",
+      decisionTime: "2026-10-24T01:00:00.000Z",
+    }),
+  ).toMatchInlineSnapshot(
+    `"The user loaded the version saved at 2026-10-24T01:00:00.000Z; saves build on it."`,
   );
 });
