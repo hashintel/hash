@@ -4,7 +4,6 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import {
   getDocumentUri,
   getPlaceDynamicsEquationIds,
-  placeUsesDifferentialEquation,
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../react/hooks/use-petrinaut-mutations";
@@ -17,12 +16,7 @@ import { useDraftField } from "../../hooks/use-draft-field";
 import { CodeEditor } from "../../monaco/code-editor";
 import { focusLands } from "../../worksheet/focus-flow";
 import { CELL_KIND_ICONS, CELL_KIND_LABELS } from "./cell-kinds";
-import {
-  arcPlaceId,
-  placeName,
-  transitionInputPlaceIds,
-  transitionOutputPlaceIds,
-} from "./notebook-model";
+import { arcPlaceId, placeName } from "./notebook-model";
 
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 import type { CodeEditorProps } from "../../monaco/code-editor";
@@ -240,89 +234,6 @@ const CellCodeBlock: React.FC<{
     />
   );
 };
-
-/** One focusable line inside an expanded cell body, in visual order. */
-type CellBodyPart = {
-  id: string;
-  /**
-   * Focusable cells on this line, left to right. 1 means the whole line is
-   * one full-width focus target; more means horizontal arrows walk the
-   * line's cells individually (an arc's place, weight and type).
-   */
-  columns: number;
-};
-
-const bodyPart = (id: string, columns = 1): CellBodyPart => ({
-  id,
-  columns,
-});
-
-/**
- * The focusable parts an expanded cell contributes to the list's focus flow,
- * in the order the body renders them, with the cells each line exposes. Must
- * stay in step with the body components below: a declared part with no
- * matching `data-cell-part` element is a stop arrows can never land on, and
- * a declared column with no matching cell falls back to the line's first.
- */
-export function cellBodyParts(
-  cell: NotebookCellModel,
-  net: ActiveNetDefinition,
-): CellBodyPart[] {
-  switch (cell.kind) {
-    case "transition": {
-      const { transition } = cell;
-      const arcParts = (
-        prefix: string,
-        targets: (string | null)[],
-        columns: number,
-      ): CellBodyPart[] =>
-        targets.flatMap((target, index) =>
-          target === null ? [] : [bodyPart(`${prefix}-${index}`, columns)],
-        );
-      return [
-        bodyPart("name"),
-        // Input arcs expose place, weight and type; outputs have no type.
-        ...arcParts("in", transition.inputArcs.map(arcPlaceId), 3),
-        ...arcParts("out", transition.outputArcs.map(arcPlaceId), 2),
-        bodyPart("code-lambda"),
-        bodyPart("code-kernel"),
-      ];
-    }
-    case "place": {
-      const { place } = cell;
-      const hasEquationCell =
-        place.dynamicsEnabled && net.differentialEquations.length > 0;
-      return [
-        bodyPart("name"),
-        bodyPart("type"),
-        bodyPart("dynamics", hasEquationCell ? 2 : 1),
-        ...(place.isPort ? [bodyPart("port")] : []),
-        ...(place.visualizerCode?.trim() ? [bodyPart("code-visualizer")] : []),
-      ];
-    }
-    case "type":
-      return [
-        bodyPart("name"),
-        bodyPart("display-color"),
-        ...cell.color.elements.map((element) =>
-          bodyPart(`field-${element.elementId}`, 2),
-        ),
-      ];
-    case "differentialEquation":
-      return [bodyPart("name"), bodyPart("type"), bodyPart("code")];
-    case "parameter":
-      return [
-        bodyPart("name"),
-        bodyPart("variable-name"),
-        bodyPart("type"),
-        bodyPart("default-value"),
-      ];
-  }
-}
-
-/** The stop id a body part contributes to the list's focus flow. */
-export const partStopId = (cellId: string, partId: string): string =>
-  `${cellId} ${partId}`;
 
 /** What an expanded body needs to enrol its parts in the focus flow. */
 type BodyPartContext = {
@@ -604,66 +515,6 @@ const BodyCodeBlock: React.FC<{
     <CellCodeBlock code={code} path={path} onChange={onChange} />
   </WidgetPart>
 );
-
-const typeName = (net: ActiveNetDefinition, colorId: string | null): string => {
-  if (colorId === null) {
-    return "untyped";
-  }
-  const color = net.types.find(({ id }) => id === colorId);
-  return color?.name ?? colorId;
-};
-
-const placeSummary = (net: ActiveNetDefinition, place: Place): string => {
-  const parts = [typeName(net, place.colorId)];
-  const equationIds = place.dynamicsEnabled
-    ? getPlaceDynamicsEquationIds(place)
-    : [];
-  if (equationIds.length > 0) {
-    const names = equationIds.map(
-      (equationId) =>
-        net.differentialEquations.find(({ id }) => id === equationId)?.name ??
-        equationId,
-    );
-    parts.push(`d/dt: ${names.join(" + ")}`);
-  }
-  if (place.isPort) {
-    parts.push("port");
-  }
-  return parts.join(" · ");
-};
-
-const transitionSummary = (
-  net: ActiveNetDefinition,
-  transition: Transition,
-): string => {
-  const inputs = transitionInputPlaceIds(transition).map((id) =>
-    placeName(net, id),
-  );
-  const outputs = transitionOutputPlaceIds(transition).map((id) =>
-    placeName(net, id),
-  );
-  return `${inputs.join(", ") || "∅"} → ${outputs.join(", ") || "∅"}`;
-};
-
-const colorSummary = (color: Color): string =>
-  color.elements.length === 0
-    ? "no fields"
-    : color.elements
-        .map((element) => `${element.name}: ${element.type}`)
-        .join(", ");
-
-const parameterSummary = (parameter: Parameter): string =>
-  `${parameter.variableName} = ${parameter.defaultValue} (${parameter.type})`;
-
-const equationSummary = (
-  net: ActiveNetDefinition,
-  equation: DifferentialEquation,
-): string => {
-  const places = net.places.filter((place) =>
-    placeUsesDifferentialEquation(place, equation.id),
-  );
-  return `${typeName(net, equation.colorId)} · ${places.length} place${places.length === 1 ? "" : "s"}`;
-};
 
 /** A labelled line of a body, as one full-width part of the focus flow. */
 const FieldRow: React.FC<{
@@ -1233,46 +1084,6 @@ const HighlightedName: React.FC<{
 };
 
 const CELL_ICON_SIZE = 12;
-
-/** What a cell's row shows of its entity. */
-export const cellPresentation = (
-  net: ActiveNetDefinition,
-  cell: NotebookCellModel,
-): { iconColor: string | undefined; name: string; summary: string } => {
-  switch (cell.kind) {
-    case "place":
-      return {
-        iconColor: net.types.find(({ id }) => id === cell.place.colorId)
-          ?.displayColor,
-        name: cell.place.name || cell.id,
-        summary: placeSummary(net, cell.place),
-      };
-    case "transition":
-      return {
-        iconColor: undefined,
-        name: cell.transition.name || cell.id,
-        summary: transitionSummary(net, cell.transition),
-      };
-    case "type":
-      return {
-        iconColor: cell.color.displayColor,
-        name: cell.color.name || cell.id,
-        summary: colorSummary(cell.color),
-      };
-    case "differentialEquation":
-      return {
-        iconColor: undefined,
-        name: cell.equation.name || cell.id,
-        summary: equationSummary(net, cell.equation),
-      };
-    case "parameter":
-      return {
-        iconColor: undefined,
-        name: cell.parameter.name || cell.id,
-        summary: parameterSummary(cell.parameter),
-      };
-  }
-};
 
 export const CellBody: React.FC<{
   net: ActiveNetDefinition;

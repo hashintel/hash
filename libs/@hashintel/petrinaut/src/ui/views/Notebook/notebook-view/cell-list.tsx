@@ -5,14 +5,11 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useLatest } from "../../../../react/hooks/use-latest";
 import { focusLands } from "../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../worksheet/use-focus-stops";
-import { CONNECTION_GUTTER_WIDTH, ConnectionLines } from "../connection-lines";
-import {
-  CellBody,
-  cellBodyParts,
-  cellPresentation,
-  NotebookCell,
-  partStopId,
-} from "../notebook-cell";
+import { CONNECTION_GUTTER_WIDTH } from "../connection-gutter";
+import { ConnectionLines } from "../connection-lines";
+import { CellBody, NotebookCell } from "../notebook-cell";
+import { cellBodyParts, partStopId } from "../notebook-cell/cell-body-parts";
+import { cellPresentation } from "../notebook-cell/cell-summary";
 
 import type { ActiveNetDefinition } from "../../../../react/state/active-net-context";
 import type { FocusStop } from "../../../worksheet/use-focus-stops";

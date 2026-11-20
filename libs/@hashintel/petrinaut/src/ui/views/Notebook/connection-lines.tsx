@@ -2,12 +2,7 @@ import { useEffect, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-/**
- * Width reserved on each side of the cell list for connection lines. The cell
- * list content wrapper must pad its rows by this amount so the lines have
- * empty space to run through.
- */
-export const CONNECTION_GUTTER_WIDTH = 32;
+import { CONNECTION_GUTTER_WIDTH } from "./connection-gutter";
 
 /** Horizontal distance between the row edge and where a line attaches. */
 const EDGE_INSET = 4;

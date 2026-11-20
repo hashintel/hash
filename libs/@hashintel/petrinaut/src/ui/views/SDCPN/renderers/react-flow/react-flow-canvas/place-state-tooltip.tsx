@@ -16,7 +16,7 @@ import {
 } from "../../../../../../react/state/editor-context";
 import { useUserSettings } from "../../../../../../react/state/user-settings-context";
 import { useStoreSelector } from "../../../../../../react/use-store";
-import { useCodeNavigation } from "../../../../../monaco/code-navigation";
+import { useCodeNavigation } from "../../../../../monaco/code-navigation-context";
 import { getDocumentUri } from "../../../../../monaco/editor-paths";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { VisualizerLoading } from "../../../../shared/visualizer-loading";

@@ -18,7 +18,8 @@ import {
   UserSettingsContext,
 } from "../../react/state/user-settings-context";
 import { PetrinautPresentationProvider } from "../views/shared/presentation-context";
-import { CodeNavigationProvider, useCodeNavigation } from "./code-navigation";
+import { CodeNavigationProvider } from "./code-navigation";
+import { useCodeNavigation } from "./code-navigation-context";
 
 import type { PropsWithChildren } from "react";
 

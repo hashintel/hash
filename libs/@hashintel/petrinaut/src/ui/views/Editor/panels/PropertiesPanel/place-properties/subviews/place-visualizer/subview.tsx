@@ -13,7 +13,7 @@ import { useEditorActions } from "../../../../../../../../react/state/editor-con
 import { SDCPNContext } from "../../../../../../../../react/state/sdcpn-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
-import { useCodeNavigation } from "../../../../../../../monaco/code-navigation";
+import { useCodeNavigation } from "../../../../../../../monaco/code-navigation-context";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
 import { CodeTemplateMenu } from "../../../code-template-menu";
 import { codeSectionStyle } from "../../../styles";

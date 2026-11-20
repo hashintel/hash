@@ -7,7 +7,7 @@ import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
-import { useCodeNavigation } from "../../../../../monaco/code-navigation";
+import { useCodeNavigation } from "../../../../../monaco/code-navigation-context";
 import { useCompositionProblems } from "../../../shared/use-composition-problems";
 import { CompositionDiagnostics } from "./diagnostics/composition-diagnostics";
 import { countOf } from "./diagnostics/count-of";

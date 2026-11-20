@@ -1,4 +1,4 @@
-import { createContext, use, useState } from "react";
+import { use, useState } from "react";
 
 import {
   getEffectiveTransitionLambdaType,
@@ -12,36 +12,11 @@ import { useEditorActions } from "../../react/state/editor-context";
 import { useSDCPNState } from "../../react/state/sdcpn-context";
 import { useUserSettingsFields } from "../../react/state/user-settings-context";
 import { usePetrinautPresentation } from "../views/shared/presentation-context";
+import { CodeNavigationContext } from "./code-navigation-context";
 import { getDocumentUri } from "./editor-paths";
 
-import type { SelectionItem } from "@hashintel/petrinaut-core";
+import type { CodeEntry, CodeNavigation } from "./code-navigation-context";
 import type { PropsWithChildren } from "react";
-
-type CodeEntry = {
-  path: string;
-  label: string;
-  selection: SelectionItem;
-  panel: string;
-  section: string;
-};
-
-type CodeNavigation = {
-  enabled: boolean;
-  entries: CodeEntry[];
-  open: (path: string, options?: { maximize?: boolean }) => void;
-  focusRequest: { path: string } | null;
-  acknowledgeFocus: (path: string) => void;
-};
-
-const CodeNavigationContext = createContext<CodeNavigation>({
-  enabled: false,
-  entries: [],
-  open: () => {},
-  focusRequest: null,
-  acknowledgeFocus: () => {},
-});
-
-export const useCodeNavigation = () => use(CodeNavigationContext);
 
 export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
   const navigate = usePetrinautNavigate();
