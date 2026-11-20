@@ -6,7 +6,7 @@ import { runClockOf } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
 import { OverlayScrollArea } from "../../../../../components/overlay-scroll-area";
 import {
   overlayScrollDrawerBodyStyle,
@@ -83,7 +83,10 @@ export const CreateExperimentDrawer = ({
 }: {
   onClose: () => void;
 }) => {
-  const { petriNetDefinition, extensions } = use(SDCPNContext);
+  const petriNetDefinition = useSDCPNState(
+    (document) => document.petriNetDefinition,
+  );
+  const extensions = useSDCPNState((document) => document.extensions);
   // An untimed net's runs count steps: the form asks for a step to end at,
   // and shows no parameter of how a simulator advances time.
   const clock = runClockOf(petriNetDefinition, extensions);

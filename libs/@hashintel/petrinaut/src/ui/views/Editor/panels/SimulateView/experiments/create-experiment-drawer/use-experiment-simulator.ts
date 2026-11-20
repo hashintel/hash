@@ -9,7 +9,7 @@ import {
   findSimulator,
   SimulatorsContext,
 } from "../../../../../../../react/simulators/context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { useExecutableDefinition } from "../../../../../../../react/state/use-executable-definition";
 import { useGpuAvailability } from "../../shared/use-gpu-availability";
 import {
@@ -39,7 +39,7 @@ export const useExperimentSimulator = ({
   /** The metrics the GPU would have to compute; null while they are incomplete. */
   metricSpecs: readonly ExperimentMetricSpecInput[] | null;
 }) => {
-  const { extensions } = use(SDCPNContext);
+  const extensions = useSDCPNState((document) => document.extensions);
   const executableDefinition = useExecutableDefinition();
   const simulators = use(SimulatorsContext);
   const gpu = useGpuAvailability({
