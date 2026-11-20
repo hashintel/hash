@@ -1,0 +1,18 @@
+---
+source: libs/@local/integrations/engine/tests/pipeline.rs
+expression: render_prepared(&definition).await
+---
+sink-airfields
+ICAO | FIELD_NAME
+ESSA | Arlanda
+ESSB | Bromma
+
+sink-aircraft
+TAIL | EMPTY_MASS | MASS_UNIT | FIRST_FLIGHT | MODEL
+N100 | 69000 | LB | 1957-07-15 | L-1049
+SE-XXX | 8030 | KG | 1946-04-02 | DC-3
+
+aircraft-based-at
+TAIL | HOME_BASE
+N100 | ESSA
+SE-XXX | ESSA

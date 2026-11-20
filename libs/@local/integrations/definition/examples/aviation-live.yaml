@@ -1,0 +1,202 @@
+# Loads scheduled airline arrivals at Heathrow from FlightAware AeroAPI into flights, airports and
+# airlines, and links each flight to the airports it takes off from and lands at and to the airline
+# that operates it. The pipelines are those of `flightaware.yaml`, which runs on inline rows
+# instead.
+#
+# Running it needs:
+# - an AeroAPI key stored as a User Secret, with that entity's UUID in place of the placeholder
+#   `secretEntityUuid` below;
+# - a way to run a definition: nothing submits a definition as a run yet, and nothing writes the
+#   prepared entities and links to the Graph.
+#
+# Compared with the live run in the labs proof of concept, it cannot yet:
+# - limit the request to a window around the current time (labs used `start` 12 hours back and
+#   `end` 1 hour ahead), so AeroAPI's default window applies;
+# - follow AeroAPI's next-page links, which are relative to `/aeroapi`, so it reads one page.
+connector: flightaware
+
+vars:
+  HASH: https://hash.ai/@h/types
+  BLOCKPROTOCOL: https://blockprotocol.org/@blockprotocol/types
+
+sources:
+  arrivals:
+    primaryKey: [fa_flight_id]
+    coverage: partial
+    rest:
+      url: https://aeroapi.flightaware.com/aeroapi/airports/EGLL/flights/scheduled_arrivals
+      params:
+        type: Airline
+        max_pages: "1"
+      auth:
+        type: header
+        name: x-apikey
+        secretEntityUuid: 00000000-0000-4000-8000-000000000000
+      resultsField: scheduled_arrivals
+
+pipelines:
+  entities:
+    - source: arrivals
+      steps:
+        - id: cleanup
+          sql: >
+            SELECT * FROM input WHERE ident_iata IS NOT NULL AND fa_flight_id IS NOT NULL
+
+        - id: extract
+          branches:
+            - - id: norm-airports
+                sql: |
+                  SELECT DISTINCT ON (icaoCode)
+                    _op, _key, icaoCode, name, iataCode, timezone, city
+                  FROM (
+                    SELECT _op, _key,
+                      origin->>'code_icao' AS icaoCode,
+                      origin->>'name' AS name,
+                      origin->>'code_iata' AS iataCode,
+                      origin->>'timezone' AS timezone,
+                      origin->>'city' AS city
+                    FROM input WHERE origin->>'code_icao' IS NOT NULL
+                    UNION ALL
+                    SELECT _op, _key,
+                      destination->>'code_icao' AS icaoCode,
+                      destination->>'name' AS name,
+                      destination->>'code_iata' AS iataCode,
+                      destination->>'timezone' AS timezone,
+                      destination->>'city' AS city
+                    FROM input WHERE destination->>'code_icao' IS NOT NULL
+                  ) airports
+
+              - id: write-airports
+                sink:
+                  entityType: ${HASH}/entity-type/airport/v/1
+                  entityId: icaoCode
+                  properties:
+                    ${BLOCKPROTOCOL}/property-type/name/v/1: name
+                    ${HASH}/property-type/icao-code/v/1: icaoCode
+                    ${HASH}/property-type/iata-code/v/1: iataCode
+                    ${HASH}/property-type/timezone/v/1: timezone
+                    ${HASH}/property-type/city/v/1: city
+
+            - - id: norm-airlines
+                sql: |
+                  SELECT DISTINCT ON (icaoCode) _op, _key, icaoCode, iataCode, name
+                  FROM (
+                    SELECT _op, _key,
+                      operator_icao AS icaoCode,
+                      operator_iata AS iataCode,
+                      COALESCE(operator, operator_icao, operator_iata) AS name
+                    FROM input WHERE operator_icao IS NOT NULL
+                  ) airlines
+
+              - id: write-airlines
+                sink:
+                  entityType: ${HASH}/entity-type/airline/v/1
+                  entityId: icaoCode
+                  properties:
+                    ${BLOCKPROTOCOL}/property-type/name/v/1: name
+                    ${HASH}/property-type/icao-code/v/1: icaoCode
+                    ${HASH}/property-type/iata-code/v/1: iataCode
+
+            - - id: norm-flights
+                sql: |
+                  SELECT
+                    _op, _key,
+                    fa_flight_id AS flightId,
+                    ident_iata AS flightNumber,
+                    ident_icao AS icaoCode,
+                    ident_iata AS iataCode,
+                    type AS flightType,
+                    CASE
+                      WHEN cancelled THEN 'Cancelled'
+                      WHEN diverted THEN 'Diverted'
+                      WHEN actual_on IS NOT NULL THEN 'Landed'
+                      WHEN actual_off IS NOT NULL OR actual_out IS NOT NULL THEN 'Active'
+                      ELSE 'Scheduled'
+                    END AS flightStatus,
+                    COALESCE(
+                      scheduled_out, scheduled_off,
+                      actual_out, actual_off, scheduled_in, scheduled_on
+                    )::DATE::VARCHAR AS flightDate,
+                    origin->>'code_icao' AS originIcao,
+                    destination->>'code_icao' AS destIcao,
+                    operator_icao AS airlineIcao,
+                    gate_origin AS departGate,
+                    terminal_origin AS departTerminal,
+                    actual_runway_off AS departRunway,
+                    departure_delay AS departDelay,
+                    scheduled_out AS departSchedGate,
+                    actual_out AS departActGate,
+                    scheduled_off AS departSchedRunway,
+                    actual_off AS departActRunway,
+                    gate_destination AS arriveGate,
+                    terminal_destination AS arriveTerminal,
+                    actual_runway_on AS arriveRunway,
+                    baggage_claim AS arriveBaggage,
+                    arrival_delay AS arriveDelay,
+                    scheduled_in AS arriveSchedGate,
+                    actual_in AS arriveActGate,
+                    scheduled_on AS arriveSchedRunway,
+                    actual_on AS arriveActRunway
+                  FROM input
+
+              - id: write-flights
+                sink:
+                  entityType: ${HASH}/entity-type/flight/v/1
+                  entityId: flightId
+                  properties:
+                    ${HASH}/property-type/flight-number/v/1: flightNumber
+                    ${HASH}/property-type/icao-code/v/1: icaoCode
+                    ${HASH}/property-type/iata-code/v/1: iataCode
+                    ${HASH}/property-type/flight-type/v/1: flightType
+                    ${HASH}/property-type/flight-status/v/1: flightStatus
+                    ${HASH}/property-type/flight-date/v/1: flightDate
+
+              - id: save-flights
+                checkpoint: flightaware/flights
+
+  links:
+    - id: flight-takes-off-from
+      checkpoint: flightaware/flights
+      steps:
+        - id: with-origin
+          sql: SELECT * FROM input WHERE originIcao IS NOT NULL
+      from: { entityType: "${HASH}/entity-type/flight/v/1", column: flightId }
+      to: { entityType: "${HASH}/entity-type/airport/v/1", column: originIcao }
+      linkType: ${HASH}/entity-type/takes-off-from/v/1
+      properties:
+        ${HASH}/property-type/gate/v/1: departGate
+        ${HASH}/property-type/terminal/v/1: departTerminal
+        ${HASH}/property-type/runway/v/1: departRunway
+        ${HASH}/property-type/delay-in-seconds/v/1: departDelay
+        ${HASH}/property-type/scheduled-gate-time/v/1: departSchedGate
+        ${HASH}/property-type/actual-gate-time/v/1: departActGate
+        ${HASH}/property-type/scheduled-runway-time/v/1: departSchedRunway
+        ${HASH}/property-type/actual-runway-time/v/1: departActRunway
+
+    - id: flight-lands-at
+      checkpoint: flightaware/flights
+      steps:
+        - id: with-destination
+          sql: SELECT * FROM input WHERE destIcao IS NOT NULL
+      from: { entityType: "${HASH}/entity-type/flight/v/1", column: flightId }
+      to: { entityType: "${HASH}/entity-type/airport/v/1", column: destIcao }
+      linkType: ${HASH}/entity-type/lands-at/v/1
+      properties:
+        ${HASH}/property-type/gate/v/1: arriveGate
+        ${HASH}/property-type/terminal/v/1: arriveTerminal
+        ${HASH}/property-type/runway/v/1: arriveRunway
+        ${HASH}/property-type/baggage-claim/v/1: arriveBaggage
+        ${HASH}/property-type/delay-in-seconds/v/1: arriveDelay
+        ${HASH}/property-type/scheduled-gate-time/v/1: arriveSchedGate
+        ${HASH}/property-type/actual-gate-time/v/1: arriveActGate
+        ${HASH}/property-type/scheduled-runway-time/v/1: arriveSchedRunway
+        ${HASH}/property-type/actual-runway-time/v/1: arriveActRunway
+
+    - id: flight-operated-by
+      checkpoint: flightaware/flights
+      steps:
+        - id: with-airline
+          sql: SELECT * FROM input WHERE airlineIcao IS NOT NULL
+      from: { entityType: "${HASH}/entity-type/flight/v/1", column: flightId }
+      to: { entityType: "${HASH}/entity-type/airline/v/1", column: airlineIcao }
+      linkType: ${HASH}/entity-type/operated-by/v/1
