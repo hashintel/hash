@@ -29,8 +29,6 @@ export interface EntityGroup {
   children: EntityItem[];
 }
 
-export type EntityTreeItem = EntityItem | EntityGroup;
-
 export const useEntityTreeItems = (): EntityGroup[] => {
   const {
     activeNet: {

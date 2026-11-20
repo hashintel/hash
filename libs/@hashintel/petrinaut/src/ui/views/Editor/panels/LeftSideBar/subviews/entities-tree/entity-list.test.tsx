@@ -10,12 +10,36 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { EditorContext } from "../../../../../../../react/state/editor-context";
+import { usePublished } from "../../../../../../../react/select-from-context";
+import {
+  EditorContext,
+  EditorPublishedContext,
+} from "../../../../../../../react/state/editor-context";
 import { EntityList } from "./entity-list";
 
 import type { EditorContextValue } from "../../../../../../../react/state/editor-context";
-import type { EntityTreeItem } from "./use-entity-tree-items";
+import type { EntityGroup, EntityItem } from "./use-entity-tree-items";
 import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
+import type { ReactNode } from "react";
+
+// An entity row reads its selection once each time it renders.
+const rowRenders = vi.hoisted(() => ({ count: 0 }));
+vi.mock(
+  "../../../../../../../react/state/editor-context",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("../../../../../../../react/state/editor-context")
+      >();
+    return {
+      ...actual,
+      useIsSelected: (id: string) => {
+        rowRenders.count += 1;
+        return actual.useIsSelected(id);
+      },
+    };
+  },
+);
 
 // What a row's menu holds is its own; the list decides which rows mount one.
 vi.mock("./entity-row-menu", () => ({
@@ -32,7 +56,9 @@ afterEach(cleanup);
 const makeSelectionStub = () => {
   let selection: SelectionMap = new Map();
   const value = {
-    isSelected: (id: string) => selection.has(id),
+    get selection() {
+      return selection;
+    },
     selectItem: (item: SelectionItem) => {
       selection = new Map([[item.id, item]]);
     },
@@ -58,15 +84,22 @@ const makeSelectionStub = () => {
   return { value, selectedIds: () => [...selection.keys()].sort() };
 };
 
-const renderList = (items: EntityTreeItem[]) => {
+const renderList = (groups: EntityGroup[]) => {
   const stub = makeSelectionStub();
   const view = render(
     <EditorContext value={stub.value}>
-      <EntityList items={items} />
+      <EntityList groups={groups} />
     </EditorContext>,
   );
   return { ...stub, view };
 };
+
+const groupOf = (children: EntityItem[]): EntityGroup => ({
+  id: "group",
+  name: "Group",
+  emptyGroupMessage: "No rows",
+  children,
+});
 
 const focusRow = (name: string): HTMLElement => {
   const target = screen.getByText(name).closest("[role='option']");
@@ -84,10 +117,12 @@ const key = (pressed: string, init?: { shiftKey?: boolean }) => {
   fireEvent.keyDown(document.activeElement!, { key: pressed, ...init });
 };
 
-const FLAT_ITEMS: EntityTreeItem[] = [
-  { id: "a", type: "place", name: "Alpha" },
-  { id: "b", type: "place", name: "Beta" },
-  { id: "c", type: "place", name: "Gamma" },
+const ONE_GROUP = [
+  groupOf([
+    { id: "a", type: "place", name: "Alpha" },
+    { id: "b", type: "place", name: "Beta" },
+    { id: "c", type: "place", name: "Gamma" },
+  ]),
 ];
 
 const rowOf = (name: string): HTMLElement => {
@@ -103,13 +138,13 @@ const menuButtonOf = (name: string) =>
 
 describe("filterable list row menus", () => {
   it("mounts no menu until a row is pointed at or focused", () => {
-    renderList(FLAT_ITEMS);
+    renderList(ONE_GROUP);
 
     expect(screen.queryAllByLabelText("Row menu")).toHaveLength(0);
   });
 
   it("mounts the menu of the row under the pointer, and moves it with the pointer", () => {
-    renderList(FLAT_ITEMS);
+    renderList(ONE_GROUP);
 
     fireEvent.pointerEnter(rowOf("Beta"));
     expect(menuButtonOf("Beta")).not.toBeNull();
@@ -121,7 +156,7 @@ describe("filterable list row menus", () => {
   });
 
   it("keeps the menu of the row that holds focus while the pointer is on another", () => {
-    renderList(FLAT_ITEMS);
+    renderList(ONE_GROUP);
 
     fireEvent.pointerEnter(rowOf("Alpha"));
     const button = menuButtonOf("Alpha");
@@ -141,7 +176,7 @@ describe("filterable list row menus", () => {
 
 describe("filterable list keyboard flow", () => {
   it("is one tab stop with a roving tabindex over real rows", () => {
-    const { view } = renderList(FLAT_ITEMS);
+    const { view } = renderList(ONE_GROUP);
 
     expect(view.container.querySelectorAll("[tabindex='0']")).toHaveLength(1);
     focusRow("Beta");
@@ -149,7 +184,7 @@ describe("filterable list keyboard flow", () => {
   });
 
   it("selects as arrows move, and extends a range with Shift", () => {
-    const { selectedIds } = renderList(FLAT_ITEMS);
+    const { selectedIds } = renderList(ONE_GROUP);
 
     focusRow("Alpha");
     key("Enter");
@@ -165,7 +200,7 @@ describe("filterable list keyboard flow", () => {
   });
 
   it("reaches the row menu with ArrowRight and returns with ArrowLeft", () => {
-    renderList(FLAT_ITEMS);
+    renderList(ONE_GROUP);
 
     const row = focusRow("Alpha");
     key("ArrowRight");
@@ -178,13 +213,8 @@ describe("filterable list keyboard flow", () => {
 
   it("collapses a group with ArrowLeft and skips its hidden children", () => {
     renderList([
-      {
-        id: "group",
-        name: "Group",
-        emptyGroupMessage: "No rows",
-        children: [{ id: "child", type: "place", name: "Child" }],
-      },
-      { id: "after", type: "place", name: "After" },
+      groupOf([{ id: "child", type: "place", name: "Child" }]),
+      { ...groupOf([]), id: "after", name: "After" },
     ]);
 
     focusRow("Group");
@@ -196,5 +226,61 @@ describe("filterable list keyboard flow", () => {
     key("ArrowRight");
     key("ArrowDown");
     expect(document.activeElement?.textContent).toContain("Child");
+  });
+});
+
+describe("entity list renders", () => {
+  const places = Array.from({ length: 50 }, (_, index) => ({
+    id: `p${index}`,
+    type: "place" as const,
+    name: `Place ${index}`,
+  }));
+  const groups = [groupOf(places)];
+
+  /** The editor as its provider gives it out: the context, and its value published for readers by selector. */
+  const Editor = ({
+    selectedId,
+    children,
+  }: {
+    selectedId: string;
+    children: ReactNode;
+  }) => {
+    const value = {
+      ...makeSelectionStub().value,
+      selection: new Map([[selectedId, { type: "place", id: selectedId }]]),
+    } as EditorContextValue;
+    return (
+      <EditorPublishedContext value={usePublished(value)}>
+        <EditorContext value={value}>{children}</EditorContext>
+      </EditorPublishedContext>
+    );
+  };
+
+  it("renders the two rows whose selected state changes when the selection moves", () => {
+    const list = <EntityList groups={groups} />;
+    const view = render(<Editor selectedId="p1">{list}</Editor>);
+    expect(rowOf("Place 1").getAttribute("aria-selected")).toBe("true");
+
+    rowRenders.count = 0;
+    view.rerender(<Editor selectedId="p2">{list}</Editor>);
+
+    expect(rowOf("Place 1").getAttribute("aria-selected")).toBe("false");
+    expect(rowOf("Place 2").getAttribute("aria-selected")).toBe("true");
+    expect(rowRenders.count).toBe(2);
+  });
+
+  it("renders the two rows whose menu comes and goes when the pointer moves", () => {
+    render(
+      <Editor selectedId="p1">
+        <EntityList groups={groups} />
+      </Editor>,
+    );
+    fireEvent.pointerEnter(rowOf("Place 7"));
+
+    rowRenders.count = 0;
+    fireEvent.pointerEnter(rowOf("Place 9"));
+
+    expect(menuButtonOf("Place 9")).not.toBeNull();
+    expect(rowRenders.count).toBe(2);
   });
 });

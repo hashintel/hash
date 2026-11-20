@@ -23,6 +23,6 @@ export const EntitiesHeaderAction: React.FC = () => {
 
 /** The entities of the active net: its nodes, and its token types, equations and parameters where the document has them. */
 export const EntitiesTree: React.FC = () => {
-  const items = useEntityTreeItems();
-  return <EntityList items={items} />;
+  const groups = useEntityTreeItems();
+  return <EntityList groups={groups} />;
 };

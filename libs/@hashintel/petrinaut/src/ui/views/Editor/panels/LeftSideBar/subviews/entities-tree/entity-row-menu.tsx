@@ -8,8 +8,9 @@ import { useCodeNavigation } from "../../../../../../monaco/code-navigation";
 import type { EntityItem } from "./use-entity-tree-items";
 
 /** The ellipsis menu of an entity's row: its code sections and Delete. Draws nothing where it has no entry. */
-export const EntityRowMenu: React.FC<{ item: EntityItem }> = ({
-  item: { id, type },
+export const EntityRowMenu: React.FC<Pick<EntityItem, "id" | "type">> = ({
+  id,
+  type,
 }) => {
   const { removeType, removeDifferentialEquation, removeParameter } =
     usePetrinautMutations();
