@@ -4,7 +4,7 @@ import type { SubView } from "./types";
 
 type DeferredSubViewOptions = Omit<
   SubView,
-  "component" | "renderHeaderAction"
+  "component" | "headerAction" | "renderHeaderAction"
 > & {
   load: () => Promise<SubView>;
   hasHeaderAction?: boolean;
@@ -48,11 +48,16 @@ export const createDeferredSubView = ({
     const Component = useSubView()?.component;
     return Component ? <Component /> : null;
   };
-  const HeaderAction = () => useSubView()?.renderHeaderAction?.() ?? null;
+  const HeaderAction = () => {
+    const subView = useSubView();
+    const Loaded = subView?.headerAction;
+    return Loaded ? <Loaded /> : (subView?.renderHeaderAction?.() ?? null);
+  };
 
   return {
     ...descriptor,
     component: Content,
+    headerAction: hasHeaderAction ? HeaderAction : undefined,
     renderHeaderAction: hasHeaderAction ? () => <HeaderAction /> : undefined,
     preload,
   };

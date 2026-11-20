@@ -453,6 +453,17 @@ const SubViewContent: React.FC<{ subView: SubView; visible: boolean }> = ({
   );
 };
 
+// A descriptor names its header parts as components. The header below still
+// takes render functions, which the two helpers build until it takes the
+// components themselves.
+const titleRendererOf = ({ titleComponent: Title, renderTitle }: SubView) =>
+  Title ? () => <Title /> : renderTitle;
+
+const headerActionRendererOf = ({
+  headerAction: HeaderAction,
+  renderHeaderAction,
+}: SubView) => (HeaderAction ? () => <HeaderAction /> : renderHeaderAction);
+
 interface SubViewHeaderProps {
   id: string;
   title: string;
@@ -745,14 +756,14 @@ export const VerticalSubViewsContainer: React.FC<
                   tooltip={subView.tooltip}
                   icon={subView.icon}
                   main={isMain || fillsContainer}
-                  renderTitle={subView.renderTitle}
+                  renderTitle={titleRendererOf(subView)}
                   isExpanded={fillsContainer || isExpanded}
                   onToggle={() => toggleSection(subView)}
                   renderHeaderAction={
                     subView.headerActionMutates &&
                     !presentation.showMutationActions
                       ? undefined
-                      : subView.renderHeaderAction
+                      : headerActionRendererOf(subView)
                   }
                   alwaysShowHeaderAction={subView.alwaysShowHeaderAction}
                   parentTitle={parentTitle}

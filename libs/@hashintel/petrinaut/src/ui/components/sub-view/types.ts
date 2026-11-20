@@ -31,9 +31,12 @@ export interface SubView {
   /** The component to render for this subview */
   component: ComponentType;
   /**
-   * Optional render function for the header right side (e.g., add button).
-   * Only used in vertical (collapsible) layout.
+   * What the right side of the header shows, such as an add button. A
+   * component, so the descriptor holds no function of its own and can live in
+   * a `.ts` file beside the components it points at.
    */
+  headerAction?: ComponentType;
+  /** @deprecated Being replaced by {@link SubView.headerAction}. */
   renderHeaderAction?: () => ReactNode;
   /**
    * Whether the header action creates, deletes or clears something. A
@@ -58,9 +61,11 @@ export interface SubView {
    */
   main?: boolean;
   /**
-   * Optional custom render for the title area of a main subview header.
-   * When provided, replaces the static title text. Only used when `main` is true.
+   * What a main subview's header shows in place of the static title text.
+   * Only used when `main` is true.
    */
+  titleComponent?: ComponentType;
+  /** @deprecated Being replaced by {@link SubView.titleComponent}. */
   renderTitle?: () => ReactNode;
   /**
    * Whether the section can be collapsed by clicking the header.
