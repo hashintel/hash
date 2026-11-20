@@ -15,7 +15,8 @@ export interface CanonicalSpeechSegment {
   /**
    * `assistant-offer` is one question an `offer_answers` call asks, said whole
    * (choice alternatives included) rather than recapped; `assistant-question`
-   * is the whole finalized turn Realtime replays.
+   * is what Realtime replays: the turn's offered questions, or for a turn
+   * that asks in prose alone, its whole finalized text.
    */
   readonly source: "assistant-offer" | "assistant-question" | "assistant-text";
   /**
@@ -100,19 +101,29 @@ export const selectCanonicalSpeech = (
 
     // The reply only leads into its questions; they are asked in the offer,
     // which Voice has no dock to show.
-    for (const [index, question] of (
-      offerIn(message.parts)?.questions ?? []
-    ).entries()) {
+    const offered = (offerIn(message.parts)?.questions ?? []).map(
+      spokenQuestion,
+    );
+    for (const [index, question] of offered.entries()) {
       segments.push(
         createSegment(
           message.id,
           `question:${index}`,
           "assistant-offer",
-          spokenQuestion(question),
+          question,
         ),
       );
     }
 
+    if (offered.length > 0) {
+      questionSegment = createSegment(
+        message.id,
+        "question:offer",
+        "assistant-question",
+        offered.join("\n\n"),
+      );
+      continue;
+    }
     const turnText = finalizedTurnText(message);
     if (turnText !== undefined) {
       questionSegment = createSegment(

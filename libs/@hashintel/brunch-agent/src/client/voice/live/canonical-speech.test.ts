@@ -312,9 +312,21 @@ describe("canonical speech selection", () => {
         text: "Quarantined shipment? Stays counted as open; Drops out until released.",
       },
     ]);
-    expect(withOffer.questionSegment).toEqual(
-      speechOf([reply, commit]).questionSegment,
+    expect(
+      withOffer.questionSegment?.text,
+      "Repeat question replays the offered questions, though the turn ends in tools.",
+    ).toBe(
+      "Quarantined shipment? Stays counted as open; Drops out until released.",
     );
+    const closing = {
+      type: "text" as const,
+      text: "Take your time.",
+      state: "done" as const,
+    };
+    expect(
+      speechOf([reply, offer, commit, closing]).questionSegment?.text,
+      "Prose after the tools doesn't replace the offered questions.",
+    ).toBe(withOffer.questionSegment?.text);
   });
 
   test("keeps finalized-turn identity stable across hydration", () => {
