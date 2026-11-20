@@ -195,7 +195,6 @@ export const DiffEqMainContent: React.FC = () => {
                 }))}
                 placeholder="Select a type"
                 size="sm"
-                disabled={isReadOnly}
                 renderItem={(value) => {
                   const type = types.find((tp) => tp.id === value);
                   return (
@@ -226,7 +225,6 @@ export const DiffEqMainContent: React.FC = () => {
                 onChange={handleArityChange}
                 items={arityItems(differentialEquation.arity)}
                 size="sm"
-                disabled={isReadOnly}
               />
             </Tooltip>
           </PropertyValue>

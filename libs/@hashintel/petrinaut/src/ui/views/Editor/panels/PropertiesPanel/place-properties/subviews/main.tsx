@@ -161,7 +161,6 @@ export const PlaceMainContent: React.FC = () => {
                     </div>
                   );
                 }}
-                disabled={isReadOnly}
               />
             </Tooltip>
           </PropertyValue>

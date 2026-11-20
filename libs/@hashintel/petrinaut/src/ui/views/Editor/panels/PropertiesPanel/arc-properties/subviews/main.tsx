@@ -74,7 +74,6 @@ export const ArcMainContent: React.FC = () => {
                   value: value as InputArc["type"],
                   text,
                 }))}
-                disabled={isReadOnly}
               />
             </Tooltip>
           </PropertyValue>
@@ -96,7 +95,6 @@ export const ArcMainContent: React.FC = () => {
                 });
               }
             }}
-            disabled={isReadOnly}
           />
         </PropertyValue>
       </Form.Field>
