@@ -1,0 +1,23 @@
+# Hand-written; rendered by the arch-docs build. Sources in the code are
+# grey, the two commands orange, what a reader opens blue.
+direction: right
+
+annotations: "Annotations\n@layerRoot, @role, @talksTo" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+imports: "Imports between files" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+guide: "Guide\n.mdx beside the code" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+figure: "Diagram\n.d2 beside the guide" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+
+check: "archinaut check" {style.fill: "#fdeedc"; style.stroke: "#b5762f"}
+build: "archinaut build" {style.fill: "#fdeedc"; style.stroke: "#b5762f"}
+
+page: "Generated layer page\nrole, files, dependencies, guides" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+site: "Docs site" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+annotations -> page: "declare the layer of"
+imports -> page: "become the dependencies on"
+guide -> page: "is listed under Guides on"
+figure -> guide: illustrates
+guide -> check: "has its links resolved by"
+guide -> build: "is compiled by"
+figure -> build: "is rendered by"
+page -> site: "is published on"

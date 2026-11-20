@@ -1,6 +1,6 @@
 ---
 title: Working on these docs
-description: How this site is produced, and the three pages you need to change it.
+description: How this site is produced, and the pages to read before changing it.
 sidebar_order: 2
 ---
 
@@ -12,16 +12,19 @@ the covered packages (`@hashintel/petrinaut-core`, `@hashintel/petrinaut`,
 joined against the real import graph. Editing a
 generated page does nothing: the next build replaces it.
 
-Three pages cover what follows from that.
+These pages cover what follows from that.
 
-- **[Declaring layers](doc:maintaining/declaring-layers)** — the annotations
+- **[Declaring layers](doc:maintaining/declaring-layers)**: the annotations
   that put a folder on the map, where to write them, and what the build refuses
   to accept.
-- **[Running locally](doc:maintaining/running-locally)** — building the docs,
+- **[Running locally](doc:maintaining/running-locally)**: building the docs,
   reading them without a server, and what to do when a page looks stale.
-- **[Previewing changes](doc:maintaining/previewing-changes)** — how a PR
+- **[Previewing changes](doc:maintaining/previewing-changes)**: how a PR
   preview highlights the pages and blocks the branch changed, and how that
   comparison is built.
+- **[Writing a layer guide](doc:maintaining/writing-a-guide)**: the template a
+  guide about one layer follows, what it leaves to the generated pages, and
+  what the build checks in it.
 
 Pages like this one are hand-written. They live in
 `apps/petrinaut-docs/content/` and are optional: the generator

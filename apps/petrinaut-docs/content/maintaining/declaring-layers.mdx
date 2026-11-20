@@ -55,8 +55,8 @@ inbound links, and every descendant id has to move with it.
 Add it to `packages` in
 [`archinaut.config.ts`](https://github.com/hashintel/hash/blob/main/apps/petrinaut-docs/archinaut.config.ts),
 declare a root layer in its source, and rebuild. Build configuration outside the
-package's source directory is deliberately excluded — it configures the build, it
-is not part of the design.
+package's source directory is excluded, because it configures the build and is
+no part of the design.
 
 ## What CI will hold you to
 
@@ -98,7 +98,8 @@ comes from the location, so an `attachTo` key is an error. Link to other
 pages by name rather than by path: `[text](layer:core.simulation.engine)` for
 a generated page, `[text](doc:core.simulation/memory-model)` for a guide,
 named by its layer and file stem. A target that does not resolve fails the
-check.
+check. [Writing a layer guide](doc:maintaining/writing-a-guide) has the
+template a guide follows.
 
 Pages about the documentation itself, like this one, belong to no layer and
 stay under `apps/petrinaut-docs/content/`, where the slug is the
@@ -212,9 +213,9 @@ graph:
 }
 ```
 
-Add one only when the code already satisfies it — a rule is a statement of fact
-that CI keeps true, not an aspiration. Check first with a build; if there are
-existing violations, either fix them in the same change or leave the rule out.
+Add one only when the code already satisfies it: a rule is a statement of fact
+that CI keeps true. Run the check first; if the code breaks the rule, either
+fix the code in the same change or leave the rule out.
 
 ## Declaring a protocol edge
 
