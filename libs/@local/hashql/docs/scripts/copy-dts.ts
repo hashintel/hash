@@ -18,6 +18,18 @@ const PackageJson = Schema.fromJsonString(
   }),
 );
 
+/** A declaration map as TypeScript writes it. Each source is relative to `sourceRoot`, which is relative to the map's own directory. */
+const DeclarationMap = Schema.fromJsonString(
+  Schema.Struct({
+    version: Schema.Finite,
+    file: Schema.String,
+    sourceRoot: Schema.String,
+    sources: Schema.Array(Schema.String),
+    names: Schema.Array(Schema.String),
+    mappings: Schema.String,
+  }),
+);
+
 /** One `[entrypoint, declaration file]` pair per entrypoint, as `src/Generation.ts` reads it. */
 const Roots = Schema.fromJsonString(
   Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
@@ -30,6 +42,14 @@ const copy = Effect.gen(function* () {
   const sdk = path.join(import.meta.dirname, "..", "..", "sdk", "typescript");
   const dist = path.join(sdk, "dist");
   const generated = path.join(import.meta.dirname, "..", ".generated");
+  const repository = path.join(
+    import.meta.dirname,
+    "..",
+    "..",
+    "..",
+    "..",
+    "..",
+  );
 
   // A module the SDK renamed or removed would otherwise linger from an earlier copy.
   yield* fs.remove(generated, { recursive: true, force: true });
@@ -44,6 +64,35 @@ const copy = Effect.gen(function* () {
       return pipe(
         fs.makeDirectory(path.dirname(target), { recursive: true }),
         Effect.andThen(fs.copyFile(path.join(dist, file), target)),
+      );
+    },
+    { discard: true },
+  );
+
+  // A declaration map names its sources relative to itself. Each copy names them from the repository's root. A link to a source file starts there, so a copy means the same in any directory.
+  yield* Effect.forEach(
+    Array.filter(files, (file) => file.endsWith(".d.ts.map")),
+    (file) => {
+      const from = path.dirname(path.join(dist, file));
+
+      return pipe(
+        path.join(dist, file),
+        fs.readFileString,
+        Effect.flatMap(Schema.decodeEffect(DeclarationMap)),
+        Effect.map((map) => ({
+          ...map,
+          sourceRoot: "",
+          sources: Array.map(map.sources, (source) =>
+            path.relative(
+              repository,
+              path.resolve(from, map.sourceRoot, source),
+            ),
+          ),
+        })),
+        Effect.flatMap(Schema.encodeEffect(DeclarationMap)),
+        Effect.flatMap((text) =>
+          fs.writeFileString(path.join(generated, file), text),
+        ),
       );
     },
     { discard: true },

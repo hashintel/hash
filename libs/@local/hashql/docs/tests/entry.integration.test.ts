@@ -241,6 +241,9 @@ layer(Reference.layer({ source: Reference.source }), {
           Array.map(descriptions, ({ applies }) => [name, applies.overloads]),
         ),
       ).toStrictEqual([["input", [1]]]);
+      expect(Reference.page(reference, "pkg/index.html").markdown).toContain(
+        "readonly flag: true;",
+      );
     }),
   );
 
