@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { Group, Panel, Separator } from "react-resizable-panels";
 
 import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { ResizeHandle } from "../../resize/resize-handle";
+import {
+  COARSE_GRAB_SIZE,
+  edgeSeparatorStyle,
+  GRAB_SIZE,
+} from "../../resize/edge-separator-style";
 import { useFocusGrid } from "../../worksheet/use-focus-grid";
 import { CELL_KIND_ICONS, CELL_KIND_LABELS } from "./cell-kinds";
 import { NetGraphView } from "./net-graph";
@@ -34,18 +38,19 @@ const headerActionsStyle = css({
   gap: "1",
 });
 
-/** The graph takes every pixel the lists below don't claim. */
-const graphPaneStyle = css({
+/** The graph above the lists, in what the header leaves of the pane. */
+const splitStyle = css({
   flex: "[1]",
-  minHeight: "[160px]",
+  minHeight: "[0]",
+});
+
+const graphPaneStyle = css({
   display: "flex",
   paddingX: "3",
   paddingBottom: "3",
 });
 
 const listsPaneStyle = css({
-  position: "relative",
-  flexShrink: 0,
   display: "flex",
   flexDirection: "column",
   gap: "3",
@@ -143,6 +148,7 @@ const hintStyle = css({
 
 const NODE_ICON_SIZE = 10;
 
+const MIN_GRAPH_HEIGHT = 160;
 const DEFAULT_LISTS_HEIGHT = 220;
 const MIN_LISTS_HEIGHT = 90;
 const MAX_LISTS_HEIGHT = 640;
@@ -285,9 +291,6 @@ export const GraphExplorer: React.FC<GraphExplorerProps> = ({
   onToggleFocus,
   onNavigate,
 }) => {
-  // How much of the pane the lists claim; the graph fills whatever is left.
-  const [listsHeight, setListsHeight] = useState(DEFAULT_LISTS_HEIGHT);
-
   return (
     <div className={containerStyle}>
       <div className={headerStyle}>
@@ -311,46 +314,61 @@ export const GraphExplorer: React.FC<GraphExplorerProps> = ({
         </div>
       </div>
 
-      <div className={graphPaneStyle}>
-        <NetGraphView
-          graph={graph.net}
-          selectedId={graph.selectedId}
-          dependencyIds={graph.dependencyIds}
-          dependentIds={graph.dependentIds}
-          placeColors={graph.placeColors}
-          focusId={graph.focusId}
-          onNavigate={(node) =>
-            onNavigate({ type: node.kind, id: node.id, name: node.name })
-          }
-        />
-      </div>
+      <Group
+        orientation="vertical"
+        className={splitStyle}
+        style={{ overflow: "visible" }}
+        resizeTargetMinimumSize={{ fine: GRAB_SIZE, coarse: COARSE_GRAB_SIZE }}
+      >
+        <Panel
+          className={graphPaneStyle}
+          style={{ overflow: "visible" }}
+          minSize={MIN_GRAPH_HEIGHT}
+        >
+          <NetGraphView
+            graph={graph.net}
+            selectedId={graph.selectedId}
+            dependencyIds={graph.dependencyIds}
+            dependentIds={graph.dependentIds}
+            placeColors={graph.placeColors}
+            focusId={graph.focusId}
+            onNavigate={(node) =>
+              onNavigate({ type: node.kind, id: node.id, name: node.name })
+            }
+          />
+        </Panel>
 
-      <div className={listsPaneStyle} style={{ height: listsHeight }}>
-        <ResizeHandle
-          edge="top"
-          getSize={() => listsHeight}
-          onResize={setListsHeight}
+        <Separator
+          aria-label="Resize the connection lists"
+          disableDoubleClick
+          className={edgeSeparatorStyle({ edge: "top", paintsBorder: false })}
+        />
+
+        {/* The lists keep their height, and the graph takes what is left. */}
+        <Panel
+          className={listsPaneStyle}
+          defaultSize={DEFAULT_LISTS_HEIGHT}
           minSize={MIN_LISTS_HEIGHT}
           maxSize={MAX_LISTS_HEIGHT}
-          label="Resize the connection lists"
-        />
+          groupResizeBehavior="preserve-pixel-size"
+        >
+          {connections === null ? (
+            <span className={hintStyle}>
+              Select a cell to see what it is connected to.
+            </span>
+          ) : (
+            <>
+              <span className={selectedNameStyle}>{selectedName}</span>
 
-        {connections === null ? (
-          <span className={hintStyle}>
-            Select a cell to see what it is connected to.
-          </span>
-        ) : (
-          <>
-            <span className={selectedNameStyle}>{selectedName}</span>
-
-            <ConnectionNodeLists
-              key={selectedCellId ?? "none"}
-              connections={connections}
-              onNavigate={onNavigate}
-            />
-          </>
-        )}
-      </div>
+              <ConnectionNodeLists
+                key={selectedCellId ?? "none"}
+                connections={connections}
+                onNavigate={onNavigate}
+              />
+            </>
+          )}
+        </Panel>
+      </Group>
     </div>
   );
 };

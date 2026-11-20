@@ -30,3 +30,12 @@ The `.tsx` files render their output and own only view state: expansion and
 search live here, and selection comes from the editor. The graph explorer
 draws the whole net from the arc structure alone and ignores canvas
 positions.
+
+The view is two groups of `react-resizable-panels`: the cells beside the
+explorer, and in the explorer the graph above the connection lists. The
+explorer and the lists keep their size in pixels when the window resizes. The
+library holds both sizes, so neither is React state. The two separators meet
+in a T, and a press there resizes both panes: the library takes it for both
+groups because the explorer's panel is stacked over the separator beside it
+(`explorerColumnStyle`). `edgeSeparatorStyle` in `ui/resize` gives the
+separators the look of the ones that resize the docked panels.

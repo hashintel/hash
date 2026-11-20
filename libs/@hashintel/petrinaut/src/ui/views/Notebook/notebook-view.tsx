@@ -88,15 +88,19 @@ const filterGroupStyle = css({
   marginLeft: "auto",
 });
 
+// The explorer splits into a group of its own, whose separator ends on this
+// group's. Stacked over this group's separator, the library takes a press
+// where the two meet for both.
 const explorerColumnStyle = css({
+  position: "relative",
+  zIndex: "[1]",
   borderLeftWidth: "[1px]",
   borderLeftStyle: "solid",
   borderLeftColor: "neutral.s40",
   backgroundColor: "neutral.s00",
 });
 
-// The strip that shows lies over the explorer's border and over whatever is
-// in the explorer.
+// The strip that shows lies over the explorer's border, so over the explorer.
 const explorerSeparatorStyle = css({
   _after: { zIndex: "sticky" },
 });

@@ -75,6 +75,28 @@ export const edgeSeparatorStyle = cva({
           width: "[5px]",
         },
       },
+      // The top edge of a panel that is in the group itself, in a group that
+      // is in a panel of another. The panel's border is inside its size, so
+      // just under the line, as a border is just right of a `left` line.
+      top: {
+        height: "[0]",
+        // Over the border and the edge of the panel the group is in, so that
+        // this separator crosses the one on that edge.
+        marginLeft: "[calc(var(--grab-size) / -2 - 1px)]",
+        "--line-direction": "to bottom",
+        _before: {
+          insetInline: "[0]",
+          top: "[calc(var(--grab-size) / -2)]",
+          height: "[var(--grab-size)]",
+        },
+        _after: {
+          // From inside that border.
+          left: "[calc(var(--grab-size) / 2 + 1px)]",
+          right: "[0]",
+          top: "[-2px]",
+          height: "[5px]",
+        },
+      },
       bottom: {
         height: "[0]",
         // Over the left sidebar's edge, so that the two separators cross.
