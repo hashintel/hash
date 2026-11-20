@@ -84,7 +84,6 @@ export const GutterMenu: React.FC<GutterMenuProps> = ({
   onClose,
   onDismiss,
 }) => {
-  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const experimentalIcons = useExperimentalIconPackEnabled();
   const focusedOnOpenRef = useRef(false);
   // The Popover focuses this when it opens; the initial item's ref fills it.
@@ -98,9 +97,9 @@ export const GutterMenu: React.FC<GutterMenuProps> = ({
         )
       : checkedIndex;
 
-  const handleMenuKeyDown = (event: React.KeyboardEvent) => {
-    const focusables = itemRefs.current.filter(
-      (item): item is HTMLButtonElement => item !== null && !item.disabled,
+  const handleMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const focusables = Array.from(
+      event.currentTarget.querySelectorAll<HTMLButtonElement>("button:enabled"),
     );
     const activeIndex = focusables.findIndex(
       (item) => item === document.activeElement,
@@ -147,7 +146,6 @@ export const GutterMenu: React.FC<GutterMenuProps> = ({
               <button
                 key={item.id}
                 ref={(element) => {
-                  itemRefs.current[index] = element;
                   if (index === initialIndex) {
                     initialItemRef.current = element;
                     // Focus on first attach too: jsdom never runs the
