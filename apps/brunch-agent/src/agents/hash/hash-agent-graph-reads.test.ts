@@ -737,6 +737,112 @@ test("an entity count by a property value is issued as asked, and the model sees
   );
 });
 
+const salesOrdersUndeliveredByCustomer = {
+  entityTypes: ["Sales Order"],
+  where: {
+    path: [
+      { linkType: "Has Line Item", direction: "outgoing" },
+      { linkType: "Fulfills", direction: "incoming" },
+    ],
+    exists: false,
+  },
+  groupBy: { linkType: "Has Customer", direction: "outgoing" },
+};
+const salesOrderJoinReads = [
+  { role: "counted", entityTypes: ["Sales Order"], entities: 3 },
+  { role: "link", entityTypes: ["Has Line Item"], entities: 4 },
+  { role: "link", entityTypes: ["Fulfills"], entities: 2 },
+  { role: "link", entityTypes: ["Has Customer"], entities: 3 },
+];
+
+test("an entity count across links is issued to the page as asked, and the model sees how many qualified, by group, with examples", async () => {
+  const { claim, seen } = await readOnce(
+    brunchTools.hashCountEntities,
+    salesOrdersUndeliveredByCustomer,
+    {
+      outcome: "counted",
+      webScope: "default",
+      ofType: 3,
+      count: 1,
+      groups: [
+        { entity: { entityId: "acme-web~c1", label: "Acme" }, count: 1 },
+      ],
+      examples: [{ entityId: "acme-web~o1", label: "SO-1" }],
+      reads: [
+        ...salesOrderJoinReads,
+        { role: "grouped", entityTypes: [], entities: 1 },
+      ],
+      requests: 12,
+    },
+  );
+  expect(claim.input).toEqual(salesOrdersUndeliveredByCustomer);
+  expect(seen?.split("\n")).toEqual([
+    'entities: 1 (of 3 "Sales Order" read)',
+    "webs counted: the user's own web and their organizations' webs (the default; name webIds to count in others)",
+    'where: following "Has Line Item" (outgoing), then Fulfills (incoming) reaches no entity',
+    'groups, by the entity one "Has Customer" (outgoing) link away (an entity linked to several is counted under each, so these may sum to more than the total):',
+    '- 1 "Acme" entityId: acme-web~c1',
+    "examples (1 of 1):",
+    '- "SO-1" entityId: acme-web~o1',
+    'read: 3 "Sales Order", 4 "Has Line Item" links, 2 Fulfills links, 3 "Has Customer" links, 1 grouped entity, in 12 graph requests',
+  ]);
+});
+
+test("an entity count across links that stopped part-way reaches the model as incomplete, with no count", async () => {
+  const { seen } = await readOnce(
+    brunchTools.hashCountEntities,
+    salesOrdersUndeliveredByCustomer,
+    {
+      outcome: "incomplete",
+      webScope: "default",
+      reason:
+        "Reading the Fulfills links failed on page 2: HASH didn't respond in time.",
+      reads: salesOrderJoinReads,
+      requests: 9,
+    },
+  );
+  expect(seen?.split("\n")).toEqual([
+    "Incomplete: no count. Reading the Fulfills links failed on page 2: HASH didn't respond in time.",
+    "What was read is not all there is, so it is not an answer: report no count, group or example from it.",
+    'Read before it stopped: 3 "Sales Order", 4 "Has Line Item" links, 2 Fulfills links, 3 "Has Customer" links, in 9 graph requests.',
+    "Repeat the count; if it stops again, narrow it by webIds or propertyEquals, or tell the user the count couldn't be completed.",
+  ]);
+});
+
+test("an entity count across links without the type it counts never reaches the browser", async () => {
+  const chat = conversation();
+  let rejected: Extract<Message, { role: "toolResult" }> | undefined;
+  steps.push(
+    () =>
+      fauxAssistantMessage(
+        [
+          fauxToolCall(
+            brunchTools.hashCountEntities,
+            { groupBy: salesOrdersUndeliveredByCustomer.groupBy },
+            { id: "c1" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
+    (context) => {
+      rejected = toolResult(context, "c1");
+      return fauxAssistantMessage([fauxText("Name the type.")]);
+    },
+  );
+  const receipt = await chat.send("Count by customer.");
+  await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
+
+  expect(rejected?.isError).toBe(true);
+  expect(
+    claimBrowserCall({
+      agentName: hashAgent.agentName,
+      instanceId: chat.instanceId,
+      toolCallId: "c1",
+      binding: canonicalContent(chat.binding),
+    }),
+  ).toBeUndefined();
+});
+
 test.each([
   [brunchTools.hashQueryEntities, readInput],
   [brunchTools.hashQueryEntityTypes, {}],

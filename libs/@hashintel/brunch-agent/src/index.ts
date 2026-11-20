@@ -18,6 +18,11 @@ export * from "./conversation-identity";
 export * from "./client-tools";
 export {
   hashEntityCountInputSchema,
+  hashEntityCountJoinResultSchema,
+  hashEntityCountMaxExamples,
+  hashEntityCountMaxGroups,
+  hashEntityCountMaxJoinEntities,
+  hashEntityCountMaxPathSteps,
   hashEntityCountResultSchema,
   hashEntityReadDefaultLimit,
   hashEntityReadDefaultTraversalDepth,
@@ -36,7 +41,9 @@ export {
   parseHashEntityTypeReadInput,
   parseHashWebReadInput,
   type HashEntityCountInput,
+  type HashEntityCountJoinResult,
   type HashEntityCountResult,
+  type HashEntityCountStep,
   type HashEntityReadInput,
   type HashEntityReadResult,
   type HashEntityTypeReadInput,

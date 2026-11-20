@@ -1,6 +1,9 @@
+import * as v from "valibot";
 import { expect, test } from "vitest";
 
 import {
+  hashEntityCountJoinResultSchema,
+  hashEntityCountResultSchema,
   hashEntityReadMaxLimit,
   hashEntityReadMaxTraversalDepth,
   hashPropertyBaseUrl,
@@ -195,4 +198,124 @@ test("an entity read chooses properties to show by base URL or versioned propert
 test("a versioned propertyTypeId reduces to its base URL; a base URL is its own", () => {
   expect(hashPropertyBaseUrl(`${orderNumber}v/12`)).toBe(orderNumber);
   expect(hashPropertyBaseUrl(orderNumber)).toBe(orderNumber);
+});
+
+const hasLineItem = { linkType: "Has Line Item", direction: "outgoing" };
+const fulfilledBy = { linkType: "Fulfills", direction: "incoming" };
+const hasCustomer = { linkType: "Has Customer", direction: "outgoing" };
+
+test("a count by links takes a where path of one or two steps and a groupBy step, together or apart", () => {
+  const both = {
+    entityTypes: ["Sales Order"],
+    where: { path: [hasLineItem, fulfilledBy], exists: false },
+    groupBy: hasCustomer,
+  };
+  expect(parseHashEntityCountInput(both)).toEqual(both);
+  const whereOnly = {
+    entityTypes: ["Sales Order"],
+    where: { path: [hasCustomer], exists: true },
+  };
+  expect(parseHashEntityCountInput(whereOnly)).toEqual(whereOnly);
+  const groupOnly = {
+    entityTypes: ["Sales Order"],
+    groupBy: {
+      linkType: "https://hash.ai/@acme/types/entity-type/has-customer/v/1",
+      direction: "outgoing",
+    },
+  };
+  expect(parseHashEntityCountInput(groupOnly)).toEqual(groupOnly);
+});
+
+test("a count by links refuses a path of no steps or more than two, saying what to do instead", () => {
+  for (const path of [[], [hasLineItem, fulfilledBy, hasCustomer]])
+    expect(() =>
+      parseHashEntityCountInput({
+        entityTypes: ["Sales Order"],
+        where: { path, exists: true },
+      }),
+    ).toThrow(
+      "A path follows 2 links at most: count in two steps, or ask the user to narrow the question.",
+    );
+});
+
+test("a count by links refuses a step without a direction it knows or with an unversioned link type URL", () => {
+  expect(() =>
+    parseHashEntityCountInput({
+      entityTypes: ["Sales Order"],
+      groupBy: { linkType: "Has Customer", direction: "both" },
+    }),
+  ).toThrow(/Invalid type/u);
+  expect(() =>
+    parseHashEntityCountInput({
+      entityTypes: ["Sales Order"],
+      groupBy: {
+        linkType: "https://hash.ai/@acme/types/entity-type/has-customer/",
+        direction: "outgoing",
+      },
+    }),
+  ).toThrow(/needs its version/u);
+  expect(() =>
+    parseHashEntityCountInput({
+      entityTypes: ["Sales Order"],
+      groupBy: { ...hasCustomer, depth: 1 },
+    }),
+  ).toThrow(/Invalid key/u);
+});
+
+test("a count by links needs the type it counts, and says how to name it", () => {
+  for (const input of [
+    { where: { path: [hasCustomer], exists: false } },
+    { groupBy: hasCustomer },
+  ])
+    expect(() => parseHashEntityCountInput(input)).toThrow(
+      'where and groupBy count the entities of a type by their links: name that type in entityTypes, such as ["Sales Order"].',
+    );
+});
+
+test("a count by links settles as counted, refused or incomplete, and only counted carries a count", () => {
+  const reads = [
+    { role: "counted", entityTypes: ["Sales Order"], entities: 3 },
+    { role: "link", entityTypes: ["Has Customer"], entities: 4 },
+  ];
+  const counted = {
+    outcome: "counted",
+    webScope: "default",
+    ofType: 3,
+    count: 2,
+    groups: [
+      {
+        entity: { entityId: "w~c1", label: "Acme", external: true },
+        count: 2,
+      },
+      { count: 1 },
+    ],
+    otherGroups: { groups: 2, count: 2 },
+    examples: [{ entityId: "w~o1" }],
+    reads,
+    requests: 4,
+  };
+  expect(v.parse(hashEntityCountJoinResultSchema, counted)).toEqual(counted);
+  const refused = {
+    outcome: "refused",
+    webScope: "named",
+    reads,
+    requests: 2,
+  };
+  expect(v.parse(hashEntityCountJoinResultSchema, refused)).toEqual(refused);
+  const incomplete = {
+    outcome: "incomplete",
+    webScope: "default",
+    reason: "Reading Has Customer links failed on page 2.",
+    reads,
+    requests: 3,
+  };
+  expect(v.parse(hashEntityCountJoinResultSchema, incomplete)).toEqual(
+    incomplete,
+  );
+  // A plain count is not a count by links, and the other way round.
+  const plain = { count: 1, webScope: "default", entityTypes: [], webs: [] };
+  expect(v.safeParse(hashEntityCountJoinResultSchema, plain).success).toBe(
+    false,
+  );
+  expect(v.safeParse(hashEntityCountResultSchema, counted).success).toBe(false);
 });

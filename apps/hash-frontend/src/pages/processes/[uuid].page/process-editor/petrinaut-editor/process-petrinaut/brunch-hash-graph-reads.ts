@@ -46,6 +46,10 @@ import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-
 import { summarizeEntitiesQuery } from "../../../../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../../../../graphql/queries/ontology/entity-type.queries";
 import { useAuthInfo } from "../../../../../shared/auth-info-context";
+import {
+  type HashJoinGraph,
+  runHashEntityJoinCount,
+} from "./brunch-hash-graph-count";
 
 import type {
   QueryEntitySubgraphQuery,
@@ -762,13 +766,79 @@ export type SummarizeEntities = (
 ) => Promise<SummarizeEntitiesQuery>;
 
 /**
+ * The graph as a count by links reaches it (`runHashEntityJoinCount`): exact
+ * counts by `summarizeEntities`, and pages by `queryEntitySubgraph` built as
+ * the entity read builds them, with no traversal or drafts. Every call is in
+ * `webScope`, the plain count's, and marks entities outside the user's webs
+ * external.
+ */
+export const hashJoinGraph = (
+  summarizeEntities: SummarizeEntities,
+  queryEntitySubgraph: QueryEntitySubgraph,
+  webScope: HashReadWebScope,
+  user: HashWebReadUser | undefined,
+): HashJoinGraph => ({
+  size: async (selector, signal) =>
+    hashEntityCountResult(
+      await summarizeEntities(
+        hashEntityCountRequest(
+          {
+            entityTypes: [...selector.entityTypes],
+            ...(selector.propertyEquals === undefined
+              ? {}
+              : { propertyEquals: selector.propertyEquals }),
+          },
+          webScope.webIds,
+        ),
+        signal,
+      ),
+      webScope,
+      user,
+    ).count,
+  page: async (selector, limit, cursor, signal) => {
+    const decoded =
+      cursor === undefined ? undefined : decodeHashEntityReadCursor(cursor);
+    if (decoded !== undefined && "error" in decoded) {
+      throw new Error(decoded.error);
+    }
+    const request = hashEntityReadRequest(
+      {
+        ...("entityIds" in selector
+          ? { entityIds: [...selector.entityIds] }
+          : {
+              entityTypes: [...selector.entityTypes],
+              ...(selector.propertyEquals === undefined
+                ? {}
+                : { propertyEquals: selector.propertyEquals }),
+            }),
+        traversalDepth: 0,
+        limit,
+      },
+      webScope.webIds,
+      decoded,
+    );
+    const read = hashEntityReadResult(
+      await queryEntitySubgraph(request, signal),
+      ownWebIdsOf(user),
+    );
+    return {
+      entities: read.entities.filter(({ matched }) => matched),
+      ...(read.cursor === undefined ? {} : { cursor: read.cursor }),
+    };
+  },
+});
+
+/**
  * Brunch's HASH entity count, run in the page: one `summarizeEntities`
- * request over the webs in scope. An input the agent's contract doesn't
- * allow rejects; a failed query, or no user to scope to, settles `{ error }`.
+ * request over the webs in scope, or with `where` or `groupBy` a count by
+ * links (`runHashEntityJoinCount`), read page by page in the same webs and
+ * joined here. An input the agent's contract doesn't allow rejects; a failed
+ * query, or no user to scope to, settles `{ error }`.
  */
 export const createHashEntityCountTool = (
   summarizeEntities: SummarizeEntities,
   currentUser: () => HashWebReadUser | undefined,
+  queryEntitySubgraph: QueryEntitySubgraph,
 ): PetrinautAiAutomaticTool => ({
   toolName: brunchTools.hashCountEntities,
   inputParser: { parse: parseHashEntityCountInput },
@@ -779,6 +849,20 @@ export const createHashEntityCountTool = (
     const webScope = hashReadWebScope(countInput.webIds, user);
     if ("error" in webScope) {
       return webScope;
+    }
+    const { entityTypes } = countInput;
+    if (
+      (countInput.where !== undefined || countInput.groupBy !== undefined) &&
+      entityTypes !== undefined
+    ) {
+      return settlingQueryFailure(signal, () =>
+        runHashEntityJoinCount(
+          { ...countInput, entityTypes },
+          webScope.scope,
+          hashJoinGraph(summarizeEntities, queryEntitySubgraph, webScope, user),
+          signal,
+        ),
+      );
     }
     const request = hashEntityCountRequest(countInput, webScope.webIds);
     return settlingQueryFailure(signal, async () =>
@@ -816,24 +900,25 @@ export const useBrunchHashGraphReadTools =
     useEffect(() => {
       userRef.current = authenticatedUser;
     }, [authenticatedUser]);
-    return useMemo(
-      () => [
-        createHashEntityReadTool(
-          async (request, signal) =>
-            (
-              await apolloClient.query<
-                QueryEntitySubgraphQuery,
-                QueryEntitySubgraphQueryVariables
-              >({
-                query: queryEntitySubgraphQuery,
-                variables: { request },
-                // Each read reports the editions the graph holds now.
-                fetchPolicy: "network-only",
-                context: { fetchOptions: { signal } },
-              })
-            ).data,
-          () => userRef.current,
-        ),
+    return useMemo(() => {
+      const queryEntitySubgraph: QueryEntitySubgraph = async (
+        request,
+        signal,
+      ) =>
+        (
+          await apolloClient.query<
+            QueryEntitySubgraphQuery,
+            QueryEntitySubgraphQueryVariables
+          >({
+            query: queryEntitySubgraphQuery,
+            variables: { request },
+            // Each read reports the editions the graph holds now.
+            fetchPolicy: "network-only",
+            context: { fetchOptions: { signal } },
+          })
+        ).data;
+      return [
+        createHashEntityReadTool(queryEntitySubgraph, () => userRef.current),
         createHashEntityTypeReadTool(
           async (request, signal) =>
             (
@@ -864,8 +949,8 @@ export const useBrunchHashGraphReadTools =
               })
             ).data,
           () => userRef.current,
+          queryEntitySubgraph,
         ),
-      ],
-      [apolloClient],
-    );
+      ];
+    }, [apolloClient]);
   };
