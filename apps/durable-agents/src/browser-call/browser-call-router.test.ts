@@ -437,6 +437,8 @@ describe("browser-call router", () => {
       { method: "POST", body: JSON.stringify({ binding }) },
     );
     expect(invalid.status).toBe(400);
+    expect((await browserOf(app).claim("t".repeat(257))).status).toBe(400);
+    expect((await browserOf(app).claim("t".repeat(256))).status).toBe(200);
     const elsewhere = await app.request(
       `${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}/other/${brunchRoutes.browserCalls}/${toolCallId}`,
       {

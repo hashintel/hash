@@ -100,7 +100,10 @@ export type StartDurableAgentsServerOptions = {
   readonly onReport?: DurableAgentsServerOptions["onReport"];
 };
 
-/** A chat body's `binding`: absent leaves the conversation as it is. */
+/** The longest of a binding's IDs: each is stored in the conversation's binding document. */
+const maxBindingIdLength = 256;
+
+/** A chat body's `binding`: absent leaves the conversation as it is; one with a longer ID is malformed. */
 const bindingOf = (
   body: Readonly<Record<string, unknown>>,
 ): BrowserContext["binding"] | "invalid" | undefined => {
@@ -108,8 +111,12 @@ const bindingOf = (
   const parsed = v.safeParse(sdcpnInitialDataSchema, {
     binding: body.binding,
   });
-  return parsed.success && parsed.output !== undefined
-    ? parsed.output.binding
+  if (!parsed.success || parsed.output === undefined) return "invalid";
+  const { binding } = parsed.output;
+  return Object.values(binding).every(
+    (id) => id === undefined || id.length <= maxBindingIdLength,
+  )
+    ? binding
     : "invalid";
 };
 

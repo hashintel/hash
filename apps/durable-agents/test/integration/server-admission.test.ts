@@ -198,6 +198,13 @@ test("a known conversation refuses a malformed binding with 400 and a different 
       status: 400,
       text: "Expected a Brunch document binding.",
     });
+    const overlong = await server.chat(chatId, "user-2", {
+      binding: { ...binding, documentId: "d".repeat(257) },
+    });
+    expect(overlong).toEqual({
+      status: 400,
+      text: "Expected a Brunch document binding.",
+    });
     const different = await server.chat(chatId, "user-2", {
       binding: bindingFor(chatId),
     });

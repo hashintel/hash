@@ -4,8 +4,9 @@
  * claim rule. Mounted where the server serves a conversation's agent:
  *
  * - `POST <id>/browser-calls/<callId>` claims, with
- *   `browserCallClaimBodySchema`; a claim for a call not yet issued waits up
- *   to `issueWaitMs` for its issue commit before answering 404;
+ *   `browserCallClaimBodySchema` and a claimant of at most 256 characters; a
+ *   claim for a call not yet issued waits up to `issueWaitMs` for its issue
+ *   commit before answering 404;
  * - `POST …/start` says the holder is executing it, with the lease body;
  * - `POST …/lease`, `…/result` and `…/fail` take the library's bodies;
  * - `GET <id>/browser-calls` reads every call's committed record, without its
@@ -51,6 +52,18 @@ import {
   startBrowserCall,
 } from "./browser-call";
 import { reportHandEdit } from "./hand-edit";
+
+/** The longest claimant, a tab's ID, a claim may name: it is stored on the call's record. */
+const maxClaimantLength = 256;
+
+/** The library's claim body, with its claimant bounded. */
+const claimBodySchema = v.object({
+  ...browserCallClaimBodySchema.entries,
+  claimant: v.pipe(
+    browserCallClaimBodySchema.entries.claimant,
+    v.maxLength(maxClaimantLength),
+  ),
+});
 
 /** A start: the claim's proof, as the lease body carries it. */
 export const browserCallStartBodySchema = browserCallLeaseBodySchema;
@@ -239,7 +252,7 @@ export const createBrowserCallRouter = ({
 
   router.post(callRoute, async (request) => {
     request.header("Cache-Control", "no-store");
-    const target = await addressed(request, browserCallClaimBodySchema);
+    const target = await addressed(request, claimBodySchema);
     if ("response" in target) return target.response;
     const claim = () =>
       claimBrowserCallAs(
