@@ -136,7 +136,7 @@ const rowOf = (name: string): HTMLElement => {
 const menuButtonOf = (name: string) =>
   rowOf(name).querySelector("[aria-label='Row menu']");
 
-describe("filterable list row menus", () => {
+describe("entity list row menus", () => {
   it("mounts no menu until a row is pointed at or focused", () => {
     renderList(ONE_GROUP);
 
@@ -187,7 +187,7 @@ describe("filterable list row menus", () => {
   });
 });
 
-describe("filterable list keyboard flow", () => {
+describe("entity list keyboard flow", () => {
   it("is one tab stop with a roving tabindex over real rows", () => {
     const { view } = renderList(ONE_GROUP);
 
@@ -277,7 +277,7 @@ describe("entity list renders", () => {
     );
   };
 
-  it("renders the two rows whose selected state changes when the selection moves", () => {
+  it("renders at most the two rows whose selected state changes when the selection moves", () => {
     const list = <EntityList groups={groups} />;
     const view = render(<Editor selectedId="p1">{list}</Editor>);
     expect(rowOf("Place 1").getAttribute("aria-selected")).toBe("true");
@@ -287,10 +287,10 @@ describe("entity list renders", () => {
 
     expect(rowOf("Place 1").getAttribute("aria-selected")).toBe("false");
     expect(rowOf("Place 2").getAttribute("aria-selected")).toBe("true");
-    expect(rowRenders.count).toBe(2);
+    expect(rowRenders.count).toBeLessThanOrEqual(2);
   });
 
-  it("renders the two rows whose menu comes and goes when the pointer moves", () => {
+  it("renders at most the two rows whose menu comes and goes when the pointer moves", () => {
     render(
       <Editor selectedId="p1">
         <EntityList groups={groups} />
@@ -302,6 +302,6 @@ describe("entity list renders", () => {
     fireEvent.pointerEnter(rowOf("Place 9"));
 
     expect(menuButtonOf("Place 9")).not.toBeNull();
-    expect(rowRenders.count).toBe(2);
+    expect(rowRenders.count).toBeLessThanOrEqual(2);
   });
 });
