@@ -1,9 +1,5 @@
 import { MetricDrawer } from "./metric-drawer";
 
-export const CreateMetricDrawer = ({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) => (open ? <MetricDrawer onClose={onClose} /> : null);
+export const CreateMetricDrawer = ({ onClose }: { onClose: () => void }) => (
+  <MetricDrawer onClose={onClose} />
+);

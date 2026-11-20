@@ -8,12 +8,8 @@ import {
 } from "./ad-hoc-scenario-authoring";
 import { useAdHocScenarioAuthoring } from "./use-ad-hoc-scenario-authoring";
 
-/**
- * The creation drawer's content: the expose-mode scenario form under Name
- * and Description. A child of the drawer so its hook and LSP session mount
- * only while the drawer is open.
- */
-const CreateScenarioContent = ({ onClose }: { onClose: () => void }) => {
+/** The creation drawer: the expose-mode scenario form under Name and Description. */
+export const CreateScenarioDrawer = ({ onClose }: { onClose: () => void }) => {
   const { addScenario } = usePetrinautMutations();
   const authoring = useAdHocScenarioAuthoring();
 
@@ -42,19 +38,4 @@ const CreateScenarioContent = ({ onClose }: { onClose: () => void }) => {
       />
     </SimulationPanel>
   );
-};
-
-interface CreateScenarioDrawerProps {
-  open: boolean;
-  onClose: () => void;
-}
-
-export const CreateScenarioDrawer = ({
-  open,
-  onClose,
-}: CreateScenarioDrawerProps) => {
-  if (!open) {
-    return null;
-  }
-  return <CreateScenarioContent onClose={onClose} />;
 };

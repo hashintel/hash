@@ -224,7 +224,7 @@ const renderDrawer = (scenario: Scenario, onClose?: () => void) =>
   render(viewPanel(scenario, onClose));
 
 const renderCreateDrawer = (onClose = () => {}) =>
-  render(inEditor(<CreateScenarioDrawer open onClose={onClose} />));
+  render(inEditor(<CreateScenarioDrawer onClose={onClose} />));
 
 const createButton = () =>
   screen.getByRole("button", { name: /Create$/ }) as HTMLButtonElement;
@@ -254,13 +254,6 @@ const editValue = async (name: string, expression: string) => {
 };
 
 describe("CreateScenarioDrawer", () => {
-  it("renders nothing while closed", () => {
-    const { container } = render(
-      inEditor(<CreateScenarioDrawer open={false} onClose={() => {}} />),
-    );
-    expect(container.innerHTML).toBe("");
-  });
-
   it("shows the scenario form under the name and description", () => {
     renderCreateDrawer();
 

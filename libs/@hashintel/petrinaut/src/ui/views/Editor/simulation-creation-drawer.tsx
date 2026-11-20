@@ -19,11 +19,11 @@ export const SimulationCreationDrawer = () => {
         {simulateDrawer.type === "create-experiment" ? (
           <CreateExperimentDrawer onClose={closeDrawer} />
         ) : simulateDrawer.type === "create-scenario" ? (
-          <CreateScenarioDrawer open onClose={closeDrawer} />
+          <CreateScenarioDrawer onClose={closeDrawer} />
         ) : null}
       </SimulationPanelPresence>
       {simulateDrawer.type === "create-metric" && (
-        <CreateMetricDrawer open onClose={closeDrawer} />
+        <CreateMetricDrawer onClose={closeDrawer} />
       )}
     </>
   );
