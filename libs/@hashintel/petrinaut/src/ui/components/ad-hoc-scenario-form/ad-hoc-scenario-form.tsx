@@ -269,11 +269,9 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   const placeTotal = createAdHocPlaceTotalResolver(state, context);
 
   const services: AdHocFormServices = {
-    formState: state,
     dispatch,
     synthesisContext: context,
     selection,
-    sessionId,
     uriFor: (slot: AdHocSlot) =>
       getAdHocDocumentUri(sessionId, adHocSlotKey(slot)),
     labelFor,

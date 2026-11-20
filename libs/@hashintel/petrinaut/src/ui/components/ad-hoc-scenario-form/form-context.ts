@@ -2,10 +2,10 @@
  * Everything the form provides to the slots beneath it, so per-slot
  * components carry only their own value and location:
  *
- * - the whole form state and the net context, for attribution labels and
- *   place totals;
+ * - the net context, and the attribution labels and place totals read
+ *   from the whole form state;
  * - what the selection toggle means in this consumer, if it exists at all;
- * - the LSP session the slots' Monaco documents belong to;
+ * - the Monaco document of each slot in the form's LSP session;
  * - per-slot error lookup, joining synthesis errors with LSP diagnostics
  *   through `adHocSlotKey`.
  */
@@ -18,7 +18,6 @@ import type { AdHocFocusTarget, AdHocHighlight } from "./dependency-highlight";
 import type {
   AdHocAction,
   AdHocPlaceTotal,
-  AdHocScenarioState,
   AdHocSlot,
   AdHocSynthesisContext,
   AdHocValueTarget,
@@ -80,8 +79,6 @@ export interface AdHocFormServices {
   /** What the form lets the user change; see {@link AdHocFormMode}. */
   mode: AdHocFormMode;
   expressionFor: (target: AdHocValueTarget) => string | undefined;
-  /** The whole form state, as currently edited. */
-  formState: AdHocScenarioState;
   /**
    * The one write path: every edit is a serializable action applied by the
    * pure reducer in petrinaut-core and recorded as an undo step. A batch of
@@ -92,8 +89,6 @@ export interface AdHocFormServices {
   synthesisContext: AdHocSynthesisContext;
   /** What selecting a value means here; "none" hides the toggles. */
   selection: AdHocFormSelection;
-  /** The ad-hoc LSP session id, or empty when no language client is wired. */
-  sessionId: string;
   /** The first error attached to a slot: a synthesis error, else an LSP diagnostic. */
   errorFor: (slot: AdHocSlot) => string | undefined;
   /** The Monaco document URI for a slot ("" when no session is wired). */
@@ -141,11 +136,9 @@ export interface AdHocFormServices {
 export const AdHocFormContext = createContext<AdHocFormServices>({
   mode: "author",
   expressionFor: () => undefined,
-  formState: { variables: [], netParameters: [], places: {} },
   dispatch: () => {},
   synthesisContext: { netParameters: [], places: [], types: [] },
   selection: "none",
-  sessionId: "",
   errorFor: () => undefined,
   uriFor: () => "",
   labelFor: () => "",
