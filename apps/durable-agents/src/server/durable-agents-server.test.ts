@@ -109,6 +109,8 @@ type ChatOptions = {
   /** Installed beside the browser-call extension. */
   readonly extensions?: readonly Extension[];
   readonly onReport?: DurableAgentsServerOptions["onReport"];
+  readonly admitNewConversation?: DurableAgentsServerOptions["admitNewConversation"];
+  readonly admitChat?: DurableAgentsServerOptions["admitChat"];
 };
 
 /**
@@ -120,6 +122,8 @@ const openChat = ({
   limits,
   extensions = [],
   onReport,
+  admitNewConversation,
+  admitChat,
 }: ChatOptions = {}) => {
   const faux = fauxProvider({
     tokensPerSecond: 300,
@@ -147,6 +151,8 @@ const openChat = ({
     clientToolNames: new Set([browserToolName]),
     limits,
     onReport,
+    admitNewConversation,
+    admitChat,
     context,
   });
   servers.push(server);
@@ -1053,6 +1059,74 @@ test("routes other than POST /chat find an unknown conversation absent and creat
   expect(storage.stores.has(unknown)).toBe(false);
 });
 
+test("only a conversation that was opened gets an abandonment check", async () => {
+  // Distinct from every other timer the server sets, and never due.
+  const sweepMs = 987_654;
+  const set = vi.spyOn(globalThis, "setTimeout");
+  const cleared = vi.spyOn(globalThis, "clearTimeout");
+  /** The abandonment checks scheduled and not cleared. */
+  const pendingChecks = () => {
+    const clearedTimers = new Set(cleared.mock.calls.map(([timer]) => timer));
+    return set.mock.calls.filter(
+      ([, delay], index) =>
+        delay === sweepMs &&
+        !clearedTimers.has(set.mock.results[index]?.value as NodeJS.Timeout),
+    ).length;
+  };
+  const refusals: Record<string, 400 | 404 | 409> = {
+    "refused-400": 400,
+    "refused-404": 404,
+    "refused-409": 409,
+  };
+  const { server, transport } = openChat({
+    responses: [fauxAssistantMessage("Answered.")],
+    limits: { abandonedTurnMs: sweepMs },
+    admitNewConversation: ({ id }) => {
+      const status = typeof id === "string" ? refusals[id] : undefined;
+      return status === undefined ? undefined : { status, error: "Refused." };
+    },
+    admitChat: async (_conversation, body) =>
+      body.refuse === true ? { status: 409, error: "Refused." } : undefined,
+  });
+  const postChat = (body: Record<string, unknown>) =>
+    server.app.request(`${origin}/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        messages: [userMessage],
+        trigger: "submit-message",
+        ...body,
+      }),
+    });
+  try {
+    const stream = await server.app.request(
+      `${origin}/chat/never-posted/stream`,
+    );
+    expect(stream.status).toBe(404);
+    const refused = await Promise.all(
+      Object.keys(refusals).map(async (id) => postChat({ id })),
+    );
+    expect(refused.map(({ status }) => status)).toEqual([400, 404, 409]);
+    expect(pendingChecks()).toBe(0);
+
+    // A followed turn's stream ending schedules its conversation's check.
+    await recorder(await send(transport)).drain();
+    await vi.waitFor(() => expect(pendingChecks()).toBe(1));
+
+    // A refused chat on that conversation clears the check and schedules it again.
+    const scheduled = () =>
+      set.mock.calls.filter(([, delay]) => delay === sweepMs).length;
+    const before = scheduled();
+    const refusedChat = await postChat({ id: chatId, refuse: true });
+    expect(refusedChat.status).toBe(409);
+    expect(scheduled()).toBe(before + 1);
+    expect(pendingChecks()).toBe(1);
+  } finally {
+    set.mockRestore();
+    cleared.mockRestore();
+  }
+});
+
 test("a section that throws is reported once, with the conversation whose Harness ran it", async () => {
   const reports: (readonly [string, Report])[] = [];
   const { transport } = openChat({
@@ -1354,6 +1428,52 @@ test("a claimed browser call keeps an unwatched turn alive", async () => {
     type: "finish",
     finishReason: "stop",
   });
+});
+
+test("a reconnect stops a sweep already in flight before its own acquire returns", async () => {
+  const { server, transport, storage } = openChat({
+    limits: { abandonedTurnMs },
+  });
+  const stream = recorder(await send(transport));
+  await stream.until(({ type }) => type === "tool-input-available");
+  const { harness, root } = await openConversation(server);
+  // Each ownership read waits until the test releases it.
+  const ownershipReads: PromiseWithResolvers<void>[] = [];
+  const store = storage.stores.get(chatId)!;
+  const isOwner = store.isOwner.bind(store);
+  Object.assign(store, {
+    isOwner: async () => {
+      const read = Promise.withResolvers<void>();
+      ownershipReads.push(read);
+      await read.promise;
+      return isOwner();
+    },
+  });
+  try {
+    await stream.cancel();
+
+    // The sweep's ownership read, then the reconnect's, both pending.
+    await vi.waitFor(() => expect(ownershipReads).toHaveLength(1), {
+      timeout: abandonedTurnMs * 10,
+    });
+    const reconnect = server.app.request(`${origin}/chat/${chatId}/stream`);
+    await vi.waitFor(() => expect(ownershipReads).toHaveLength(2));
+
+    // The sweep resumes while the reconnect's acquire is still pending.
+    ownershipReads[0]!.resolve();
+    await sleep(abandonedTurnMs);
+    expect(
+      (await harness.snapshot(LiveDoc, root.id, context))?.run,
+    ).toBeDefined();
+
+    ownershipReads[1]!.resolve();
+    const response = await reconnect;
+    expect(response.status).toBe(200);
+    await response.body?.cancel();
+  } finally {
+    Object.assign(store, { isOwner });
+    for (const read of ownershipReads) read.resolve();
+  }
 });
 
 test("a HEAD request is refused before any route runs, so it follows no turn", async () => {

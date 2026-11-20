@@ -71,6 +71,12 @@ export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
   const { now } = options;
   /** Attached streams per conversation. */
   const streams = new Map<string, number>();
+  /**
+   * The conversations this process has opened (`opened`). A stream attaches
+   * before its request knows whether the conversation exists, so only these
+   * are checked when their last stream ends.
+   */
+  const openedHere = new Set<string>();
   const timers = new Map<string, NodeJS.Timeout>();
   /**
    * The token of each conversation's check in flight. A stream attaching or
@@ -139,7 +145,11 @@ export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
   };
 
   return {
-    /** A client stream follows the conversation; the returned function says it ended. */
+    /**
+     * A client stream follows the conversation, invalidating any check in
+     * flight; the returned function says it ended. The last to end schedules
+     * a check, for a conversation opened here.
+     */
     attach: (conversationId: string) => {
       streams.set(conversationId, (streams.get(conversationId) ?? 0) + 1);
       clear(conversationId);
@@ -154,11 +164,13 @@ export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
           return;
         }
         streams.delete(conversationId);
-        schedule(conversationId, options.timeoutMs);
+        if (openedHere.has(conversationId))
+          schedule(conversationId, options.timeoutMs);
       };
     },
     /** The conversation was opened here: unwatched from now, unless a stream follows it already. */
     opened: (conversationId: string) => {
+      openedHere.add(conversationId);
       invalidate(conversationId);
       if (!watched(conversationId)) schedule(conversationId, options.timeoutMs);
     },
