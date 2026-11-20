@@ -5,10 +5,11 @@ import {
   AgentDoc,
   createRegistry,
   defineExtension,
+  defineTask,
   Harness,
   MemoryStorage,
 } from "@earendil-works/pi-durable";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import { canonicalContent } from "@hashintel/brunch-agent";
 
@@ -207,6 +208,93 @@ test("a stored extension list without the gate keeps exactly its extensions, plu
     ).toEqual([browserCallExtension.name, requestSlotsExtensionName]);
   } finally {
     await conversations.close();
+  }
+});
+
+test("a crash-loop abort is reported even when the rest of the open fails", async () => {
+  const storage = Object.assign(new MemoryStorage(), {
+    isOwner: async () => true,
+    close: async () => {},
+  });
+  const Waiting = defineTask<object, { phase: "run" }, null>({
+    name: "test.waiting",
+    version: 1,
+    initial: () => ({ phase: "run" }),
+    phases: {
+      run: (_task, runtime) =>
+        new Promise<never>((_resolve, reject) => {
+          runtime.signal.addEventListener("abort", () =>
+            reject(new Error("aborted")),
+          );
+        }),
+    },
+    abort: (_task, runtime, abortContext) =>
+      runtime.commit(
+        () => ({ status: "terminal", outcome: { status: "aborted" } }),
+        abortContext,
+      ),
+  });
+  const installAll = () => {
+    const registry = createRegistry();
+    registry.install(defineExtension({ name: "waiting", tasks: [Waiting] }));
+    return registry;
+  };
+  const { models, model } = scriptedModel([]);
+  // The previous owner, still running the task when it crashed.
+  const crashed = await Harness.open(
+    storage,
+    { models, registry: installAll() },
+    context,
+  );
+  const root = await crashed.root(context, { agent: { model } });
+  await root.commit(
+    (tx) => tx.createTask(Waiting, {}, { ownership: { kind: "conversation" } }),
+    context,
+  );
+  crashed.resume();
+  await vi.waitFor(async () => {
+    const { tasks } = await crashed.inspect(context);
+    expect(tasks.map(({ state }) => state.kind)).toEqual(["running"]);
+  });
+
+  const crashLoops: { conversationId: string; kinds: string[] }[] = [];
+  const conversations = createConversationRegistry(
+    {
+      openStorage: async () => storage,
+      storageExists: async () => true,
+      createRegistry: installAll,
+      models,
+      agent: { model },
+    },
+    {
+      maxTurns: 8,
+      crashLoopRestarts: 1,
+      requestSlots: createRequestSlots(1),
+      onCrashLoop: (conversationId, { tasks }) => {
+        crashLoops.push({
+          conversationId,
+          kinds: tasks.map(({ kind }) => kind),
+        });
+      },
+    },
+    context,
+  );
+  try {
+    await expect(
+      conversations.acquire(chatId, () => {
+        throw new Error("recovery failed");
+      }),
+    ).rejects.toThrow("recovery failed");
+    expect(crashLoops).toEqual([
+      { conversationId: chatId, kinds: ["test.waiting"] },
+    ]);
+
+    // The reopen finds the abort done: nothing new to report.
+    expect(await conversations.acquire(chatId)).toBeDefined();
+    expect(crashLoops).toHaveLength(1);
+  } finally {
+    await conversations.close();
+    await crashed.close(context).catch(() => {});
   }
 });
 
