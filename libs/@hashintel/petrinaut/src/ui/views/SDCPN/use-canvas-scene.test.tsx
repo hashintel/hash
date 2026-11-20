@@ -75,7 +75,7 @@ const renderScene = (
   const canvasRef = { current: canvas };
   const pointer = createCanvasPointer();
   pointer.hoveredId.set(initial.hoveredId ?? null);
-  pointer.dragPreview.set(initial.dragPreview ?? {});
+  pointer.dragPreview.set(initial.dragPreview ?? new Map());
   const Wrapper = ({ children }: { children: ReactNode }) => {
     const sdcpn = use(SDCPNContext);
     const activeNet = use(ActiveNetContext);
@@ -135,7 +135,7 @@ describe("canvas hover during dragging", () => {
       hovered: false,
     });
 
-    drag({ [id]: { dragging: true, position: { x: 110, y: 0 } } });
+    drag(new Map([[id, { x: 110, y: 0 }]]));
     expect(result.current.nodes.find((node) => node.id === id)).toMatchObject({
       hovered: true,
       focus: "focused",
@@ -149,7 +149,7 @@ describe("canvas hover during dragging", () => {
   it("keeps the dragged node hovered until drop, then resumes the rest delay", () => {
     const { result, hover, drag } = renderScene({
       hoveredId: "input",
-      dragPreview: { input: { dragging: true, position: { x: 50, y: 0 } } },
+      dragPreview: new Map([["input", { x: 50, y: 0 }]]),
     });
     movePointer(100);
     hover(null);
@@ -165,7 +165,7 @@ describe("canvas hover during dragging", () => {
     ).toMatchObject({ hovered: true, focus: "focused" });
 
     movePointer(200);
-    drag({});
+    drag(new Map());
     expect(
       result.current.nodes.find((node) => node.id === "input"),
     ).toMatchObject({ hovered: true, dragging: false });
@@ -179,7 +179,7 @@ describe("canvas hover during dragging", () => {
     const { result, hover, drag } = renderScene({}, false);
     movePointer(100);
     hover("input");
-    drag({ input: { dragging: true, position: { x: 50, y: 0 } } });
+    drag(new Map([["input", { x: 50, y: 0 }]]));
     expect(result.current.focusActive).toBe(false);
     expect(
       result.current.nodes.find((node) => node.id === "input"),

@@ -206,9 +206,7 @@ export type CanvasScene = {
 };
 
 /** Where each dragged node is shown until its drag ends and commits. */
-export type CanvasDragPreview = Readonly<
-  Record<string, { dragging: boolean; position: CanvasPoint }>
->;
+export type CanvasDragPreview = ReadonlyMap<string, CanvasPoint>;
 
 export type CanvasSceneInput = {
   net: ActiveNetDefinition;
@@ -220,7 +218,7 @@ export type CanvasSceneInput = {
   fusionStatuses: ReadonlyMap<string, FusionStatus>;
   extensions: PetrinautExtensionSettings;
   dimensions: RenderNodeDimensions;
-  draggingStateByNodeId: CanvasDragPreview;
+  dragPreview: CanvasDragPreview;
   isSelected: (id: string) => boolean;
   /** The node under the pointer, once the hover has settled. */
   hoveredId: string | null;
@@ -234,11 +232,11 @@ export type CanvasSceneInput = {
 
 const positionOf = (
   item: { id: string; x: number; y: number },
-  draggingStateByNodeId: CanvasDragPreview,
+  dragPreview: CanvasDragPreview,
 ): { position: CanvasPoint; dragging: boolean } => {
-  const draggingState = draggingStateByNodeId[item.id];
-  return draggingState?.dragging
-    ? { position: draggingState.position, dragging: true }
+  const previewed = dragPreview.get(item.id);
+  return previewed
+    ? { position: previewed, dragging: true }
     : { position: { x: item.x, y: item.y }, dragging: false };
 };
 
@@ -292,7 +290,7 @@ export const buildCanvasScene = ({
   fusionStatuses,
   extensions,
   dimensions,
-  draggingStateByNodeId,
+  dragPreview,
   isSelected,
   hoveredId,
   focus,
@@ -327,7 +325,7 @@ export const buildCanvasScene = ({
       id: place.id,
       label: place.name,
       ...dimensions.place,
-      ...positionOf(place, draggingStateByNodeId),
+      ...positionOf(place, dragPreview),
       ...interaction(place.id),
       portDirection: place.isPort
         ? (ownPortDirections.get(place.id) ?? "inout")
@@ -354,7 +352,7 @@ export const buildCanvasScene = ({
       id: transition.id,
       label: transition.name,
       ...dimensions.transition,
-      ...positionOf(transition, draggingStateByNodeId),
+      ...positionOf(transition, dragPreview),
       ...interaction(transition.id),
       lambdaType: logicAvailability.lambda
         ? getEffectiveTransitionLambdaType(transition, logicAvailability)
@@ -424,7 +422,7 @@ export const buildCanvasScene = ({
       ? getComponentInstanceHeight(dimensions, ports.length)
       : foldedHeight;
     const anchorOffset = foldable ? (height - foldedHeight) / 2 : 0;
-    const { position, dragging } = positionOf(instance, draggingStateByNodeId);
+    const { position, dragging } = positionOf(instance, dragPreview);
     nodes.push({
       kind: "componentInstance",
       id: instance.id,

@@ -21,7 +21,7 @@ export type CanvasPointer = {
 
 export const createCanvasPointer = (): CanvasPointer => ({
   hoveredId: createValueStore<string | null>(null),
-  dragPreview: createValueStore<CanvasDragPreview>({}),
+  dragPreview: createValueStore<CanvasDragPreview>(new Map()),
 });
 
 /** The pointer of the canvas view around; outside one, a pointer nobody reads. */

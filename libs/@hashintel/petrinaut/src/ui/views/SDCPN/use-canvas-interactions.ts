@@ -495,9 +495,9 @@ export const useCanvasInteractions = (): CanvasInteractions => {
   };
 
   const moveNodes = (moves: CanvasNodeMove[]) => {
-    const preview = { ...pointer.dragPreview.getSnapshot() };
+    const preview = new Map(pointer.dragPreview.getSnapshot());
     for (const { id, position } of moves) {
-      preview[id] = { dragging: true, position: snap(position) };
+      preview.set(id, snap(position));
     }
     pointer.dragPreview.set(preview);
   };
@@ -513,13 +513,12 @@ export const useCanvasInteractions = (): CanvasInteractions => {
     });
 
     const preview = pointer.dragPreview.getSnapshot();
-    if (drops.some(({ id }) => id in preview)) {
-      const droppedIds = new Set(drops.map(({ id }) => id));
-      pointer.dragPreview.set(
-        Object.fromEntries(
-          Object.entries(preview).filter(([id]) => !droppedIds.has(id)),
-        ),
-      );
+    if (drops.some(({ id }) => preview.has(id))) {
+      const remaining = new Map(preview);
+      for (const { id } of drops) {
+        remaining.delete(id);
+      }
+      pointer.dragPreview.set(remaining);
     }
 
     if (commits.length > 0) {

@@ -59,14 +59,13 @@ export const useCanvasScene = (
    * keeps it hovered until the drag ends, even when the pointer leaves it.
    */
   const hoveredId = useValueOf(pointer.hoveredId);
-  const draggingStateByNodeId = useValueOf(pointer.dragPreview);
+  const dragPreview = useValueOf(pointer.dragPreview);
   const pointerAtRest = usePointerAtRest(canvasRef);
   const [settledHoverId, setSettledHoverId] = useState(hoveredId);
   const draggedHoverId =
-    hoveredId !== null && draggingStateByNodeId[hoveredId]?.dragging
+    hoveredId !== null && dragPreview.has(hoveredId)
       ? hoveredId
-      : settledHoverId !== null &&
-          draggingStateByNodeId[settledHoverId]?.dragging
+      : settledHoverId !== null && dragPreview.has(settledHoverId)
         ? settledHoverId
         : null;
   const nextHoverId =
@@ -101,7 +100,7 @@ export const useCanvasScene = (
     fusionStatuses: statuses,
     extensions,
     dimensions: compactNodes ? compactNodeDimensions : classicNodeDimensions,
-    draggingStateByNodeId,
+    dragPreview,
     isSelected,
     hoveredId: settledHoverId,
     // With the highlight off, the neighbourhood answers to the selection

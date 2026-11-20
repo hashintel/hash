@@ -71,7 +71,7 @@ const input: CanvasSceneInput = {
   fusionStatuses: new Map(),
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   dimensions: compactNodeDimensions,
-  draggingStateByNodeId: {},
+  dragPreview: new Map(),
   isSelected: () => false,
   hoveredId: null,
   focus: resolveCanvasFocus({
@@ -109,9 +109,7 @@ describe("buildCanvasScene", () => {
   it("follows the drag preview while a node is dragged", () => {
     const { nodes } = buildCanvasScene({
       ...input,
-      draggingStateByNodeId: {
-        p1: { dragging: true, position: { x: 50, y: 60 } },
-      },
+      dragPreview: new Map([["p1", { x: 50, y: 60 }]]),
     });
     expect(nodes.find((node) => node.id === "p1")).toMatchObject({
       position: { x: 50, y: 60 },
@@ -248,9 +246,7 @@ describe("buildCanvasScene", () => {
     // An instance dragged across the hub swaps the ends of its link.
     expect(
       build({
-        draggingStateByNodeId: {
-          right: { dragging: true, position: { x: -900, y: 0 } },
-        },
+        dragPreview: new Map([["right", { x: -900, y: 0 }]]),
       }).fusions.find((link) => link.fusionId === "fusion-right"),
     ).toMatchObject({ sourceId: "right", targetId: "p1" });
     expect(
