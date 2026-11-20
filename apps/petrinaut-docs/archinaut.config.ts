@@ -104,12 +104,16 @@ export default defineConfig({
   ],
 
   /**
-   * Tests, stories, fixtures and ambient declarations are excluded: they
+   * Tests, stories, their helpers and ambient declarations are excluded: they
    * describe the architecture's *use*, not its shape, and including them
-   * inflates every layer's file count with fixtures.
+   * inflates every layer's file count with fixtures. A helper is recognised by
+   * its name: `x.test-helpers.ts`, `x-test-harness.tsx`, `x-stub.tsx`,
+   * `x-fixtures.ts`, `x-story-harness.tsx`, `x-story-provider.tsx` and
+   * `story-x.ts`. A production file that imports one fails the check, because
+   * it then reaches a file no layer claims.
    */
   ignoredFilePattern:
-    /(?:\.(?:test|spec|stories)\.[cm]?[jt]sx?$|\.fixtures\.[cm]?[jt]sx?$|\.d\.ts$|\.config\.[cm]?[jt]s$|\/CHANGELOG\.md$|\/LICENSE[^/]*\.md$)/u,
+    /(?:\.(?:test|spec|stories|fixtures|test-helpers)\.[cm]?[jt]sx?$|-(?:fixtures?|stubs?|test-harness|story-harness|story-provider)\.[cm]?[jt]sx?$|\/story-[^/]+\.[cm]?[jt]sx?$|\.d\.ts$|\.config\.[cm]?[jt]s$|\/CHANGELOG\.md$|\/LICENSE[^/]*\.md$)/u,
 
   /**
    * The bundle is the product; the Starlight site in `apps/petrinaut-docs` and
