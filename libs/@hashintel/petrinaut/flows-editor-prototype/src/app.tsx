@@ -55,7 +55,7 @@ import {
 } from "./versions";
 
 import { type EditorDocument, findStep, stepLabel } from "./document";
-import { getCatalogEntry } from "./catalog";
+import { getCatalogEntry, inputLabels } from "./catalog";
 
 const rootStyle = css({
   position: "relative",
@@ -374,6 +374,23 @@ export const Editor = ({
     ]).size +
     validation.flowLevel.filter((diagnostic) => diagnostic.severity === "error")
       .length;
+  // A missing required input reads "<field label> is empty", the label the step panel shows; other kinds keep the
+  // diagnostic's own text.
+  const reasonOf = (
+    diagnostic: { code?: string; message: string },
+    step: NonNullable<ReturnType<typeof findStep>>["step"],
+  ) => {
+    const inputName = /Required input "([^"]+)"/.exec(diagnostic.message)?.[1];
+    if (diagnostic.code !== "missingInput" || !inputName || step.kind !== "action") {
+      return diagnostic.message;
+    }
+    const input = getCatalogEntry(step.actionDefinitionId)?.inputs.find(
+      (candidate) => candidate.name === inputName,
+    );
+    const label =
+      inputLabels[`${step.actionDefinitionId}.${inputName}`] ?? input?.label;
+    return label ? `${label} is empty` : diagnostic.message;
+  };
   // The steps Run lists when it can't start (missing-broken-run c): each once, with its first error.
   const toFix = [...validation.byStep.entries()].flatMap(([stepId, diagnostics]) => {
     const error = diagnostics.find((diagnostic) => diagnostic.severity === "error");
@@ -390,7 +407,7 @@ export const Editor = ({
         stepId,
         title: stepLabel(found.step),
         icon: (found.step.kind === "for-each" ? "rotate" : (entry?.icon ?? "cube")) as IconName,
-        message: error.message,
+        message: reasonOf(error, found.step),
       },
     ];
   });
