@@ -221,20 +221,18 @@ const FlowEditor = ({
 
   const {
     schedulesByEntityUuid,
-    loading: schedulesLoading,
+    loaded: schedulesLoaded,
     error: schedulesError,
   } = useFlowSchedules({ flowDefinitionEntityId });
   /* A flow isn't shown as having no schedules before that's known. */
   const schedules = useMemo(
     (): FlowSchedules =>
-      schedulesByEntityUuid.size > 0
+      schedulesLoaded
         ? Array.from(schedulesByEntityUuid.values(), toScheduleTriggerRow)
         : schedulesError
           ? "unavailable"
-          : schedulesLoading
-            ? "loading"
-            : [],
-    [schedulesByEntityUuid, schedulesError, schedulesLoading],
+          : "loading",
+    [schedulesByEntityUuid, schedulesLoaded, schedulesError],
   );
 
   /*
