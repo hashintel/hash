@@ -19,6 +19,7 @@ import {
   getFormValuesFromRun,
   getInitialFormValues,
   getRunBlocker,
+  withGivenValues,
 } from "./run-flow/run-form";
 
 import type { RunFormValue, RunFormValues } from "./run-flow/run-form";
@@ -147,7 +148,9 @@ const RunFlowForm = ({
   inputs,
   ranInputs,
   saveRefusedReason,
+  givenValues,
   running,
+  onValueChange,
   onRun,
   onClose,
 }: {
@@ -157,8 +160,11 @@ const RunFlowForm = ({
   inputs: FlowInputDefinition[];
   ranInputs: FlowInputValues | null;
   saveRefusedReason: string | null;
+  /** The values given in the form so far, kept while it's closed. */
+  givenValues: RunFormValues;
   /** Whether a run is starting. */
   running: boolean;
+  onValueChange: (inputName: string, value: RunFormValue) => void;
   onRun: (flowInputs: FlowInputValues) => Promise<void>;
   onClose: () => void;
 }) => {
@@ -167,7 +173,7 @@ const RunFlowForm = ({
       ? getFormValuesFromRun(inputs, ranInputs)
       : { values: getInitialFormValues(inputs), changedInputLabels: [] },
   );
-  const [values, setValues] = useState(initialValues);
+  const values = withGivenValues(initialValues, givenValues);
   const [runError, setRunError] = useState<string | null>(null);
 
   const { flowInputs, missingInputNames } = getFlowInputValues(inputs, values);
@@ -191,9 +197,6 @@ const RunFlowForm = ({
       setRunError(error instanceof Error ? error.message : String(error));
     }
   };
-
-  const setValue = (inputName: string, value: RunFormValue) =>
-    setValues((current): RunFormValues => ({ ...current, [inputName]: value }));
 
   return (
     <Popover
@@ -242,7 +245,7 @@ const RunFlowForm = ({
                     webId={webId}
                     input={input}
                     value={values[input.name]}
-                    onChange={(value) => setValue(input.name, value)}
+                    onChange={(value) => onValueChange(input.name, value)}
                   />
                 ))}
               </Form.Section>
@@ -311,6 +314,8 @@ export const RunFlow = ({
   const [formOpen, setFormOpen] = useState(false);
   /* Here rather than in the form, so Run can't close the form, or start another run, while one is starting. */
   const [running, setRunning] = useState(false);
+  /* Here rather than in the form, so a click on the canvas, which closes the form, doesn't lose what's been given. */
+  const [givenValues, setGivenValues] = useState<RunFormValues>({});
   const blocker = getRunBlocker(editorState);
 
   const run = async (flowInputs: FlowInputValues) => {
@@ -345,7 +350,11 @@ export const RunFlow = ({
           inputs={editorState.flowDefinition.inputs}
           ranInputs={ranInputs}
           saveRefusedReason={saveRefusedReason}
+          givenValues={givenValues}
           running={running}
+          onValueChange={(inputName, value) =>
+            setGivenValues((current) => ({ ...current, [inputName]: value }))
+          }
           onRun={run}
           onClose={() => setFormOpen(false)}
         />
