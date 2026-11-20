@@ -12,6 +12,7 @@ import {
 } from "./node-card";
 import { PlaceStateTooltip } from "./place-state-tooltip";
 import { portPlaceLabels, PortPins } from "./port-pin";
+import { NodeHandles } from "./shared/node-handles";
 
 import type { PlaceNodeType } from "./react-flow-types";
 import type { NodeProps } from "@xyflow/react";
@@ -110,8 +111,14 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             )}
           </>
         }
-        isConnectable={isConnectable}
-      />
+      >
+        <NodeHandles
+          kind="place"
+          width={data.width}
+          height={data.height}
+          isConnectable={isConnectable}
+        />
+      </NodeCard>
     </>
   );
 };

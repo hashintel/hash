@@ -133,7 +133,12 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
           <Icon name="lightning" size="sm" />
         </div>
       </div>
-      <NodeHandles isConnectable={isConnectable} />
+      <NodeHandles
+        kind="transition"
+        width={data.width}
+        height={data.height}
+        isConnectable={isConnectable}
+      />
     </div>
   );
 };

@@ -12,6 +12,7 @@ import {
   NodeCard,
   nodeCardStyle,
 } from "./node-card";
+import { NodeHandles } from "./shared/node-handles";
 import { useTransitionFiringAnimation } from "./use-transition-firing-animation";
 
 import type { TransitionNodeType } from "./react-flow-types";
@@ -101,7 +102,13 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
           <Icon name="lightning" />
         </div>
       }
-      isConnectable={isConnectable}
-    />
+    >
+      <NodeHandles
+        kind="transition"
+        width={data.width}
+        height={data.height}
+        isConnectable={isConnectable}
+      />
+    </NodeCard>
   );
 };

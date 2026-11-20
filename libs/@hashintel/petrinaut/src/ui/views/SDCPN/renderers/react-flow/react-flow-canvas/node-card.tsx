@@ -1,7 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import { NodeHandles } from "./shared/node-handles";
-
 import type { ReactNode } from "react";
 
 export const nodeContainerStyle = css({
@@ -102,8 +100,8 @@ interface NodeCardProps {
   subtitle: string;
   /** Optional badge positioned absolutely on the card (e.g. token count, firing bolt) */
   badge?: ReactNode;
-  /** Whether handles allow new connections */
-  isConnectable: boolean;
+  /** The node's handles, laid over the card */
+  children: ReactNode;
 }
 
 export const NodeCard: React.FC<NodeCardProps> = ({
@@ -114,7 +112,7 @@ export const NodeCard: React.FC<NodeCardProps> = ({
   title,
   subtitle,
   badge,
-  isConnectable,
+  children,
 }) => {
   return (
     <div className={nodeContainerStyle}>
@@ -126,7 +124,7 @@ export const NodeCard: React.FC<NodeCardProps> = ({
         </div>
         {badge}
       </div>
-      <NodeHandles isConnectable={isConnectable} />
+      {children}
     </div>
   );
 };

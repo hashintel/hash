@@ -129,7 +129,12 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
           <PortPins direction={data.portDirection} typeColor={data.typeColor} />
         )}
       </div>
-      <NodeHandles isConnectable={isConnectable} />
+      <NodeHandles
+        kind="place"
+        width={data.width}
+        height={data.height}
+        isConnectable={isConnectable}
+      />
     </div>
   );
 };

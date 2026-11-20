@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 
-import { receivesDrag } from "./node-handles";
+import { receivesDrag } from "./receives-drag";
 
 it("offers a place to the moved end of a fusion link, whatever its other end is", () => {
   // The end that stays is a place: a new connection from a place never ends
