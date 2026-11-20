@@ -11,7 +11,8 @@ import {
 import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { placesWithDynamics } from "./series-config/solver-error";
 
-const PER_PLACE_VIEW: TimelineView = { kind: "per-place" };
+/** The view a timeline draws when the picked one has nothing to show. */
+export const PER_PLACE_VIEW: TimelineView = { kind: "per-place" };
 
 /**
  * Whether a run records the solver's error: only the adaptive simulator

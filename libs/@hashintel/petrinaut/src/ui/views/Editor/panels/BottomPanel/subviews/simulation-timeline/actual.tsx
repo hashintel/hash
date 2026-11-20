@@ -5,14 +5,12 @@ import { useElementOnScreen } from "../../../../../../../react/hooks/use-element
 import {
   useEditorActions,
   useEditorFields,
-  type TimelineView,
 } from "../../../../../../../react/state/editor-context";
 import { UPlotChart } from "./chart";
 import { TimelineLegend } from "./legend";
 import { chartAreaStyle, containerStyle } from "./styles";
+import { PER_PLACE_VIEW } from "./use-run-timeline-view";
 import { useStreamingData } from "./use-streaming-data";
-
-const PER_PLACE_VIEW: TimelineView = { kind: "per-place" };
 
 export const ActualTimeline: React.FC<{
   showLegend?: boolean;
@@ -48,7 +46,7 @@ export const ActualTimeline: React.FC<{
   const store = useStreamingData(
     source,
     pickHasNoData ? PER_PLACE_VIEW : timelineView,
-    { paused: !onScreen },
+    !onScreen,
   );
 
   const [isFollowingLive, setIsFollowingLive] = useState(true);

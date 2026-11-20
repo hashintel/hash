@@ -113,19 +113,15 @@ function createStreamingStoreController(
  *
  * A reported execution carries token counts only, so the view is one of
  * tokens per place, tokens per type and transition firings.
+ *
+ * While `paused` no frame is read. The cursor is kept, so resuming appends
+ * everything that arrived meanwhile in one batch.
  */
 export function useStreamingData(
   source: ExecutionFrameSource,
   timelineView: TimelineView,
-  options?: {
-    /**
-     * Stop reading frames. The cursor is kept, so resuming appends everything
-     * that arrived meanwhile in one batch.
-     */
-    paused?: boolean;
-  },
+  paused: boolean,
 ): StreamingStore {
-  const paused = options?.paused ?? false;
   const colorsEnabled = useSDCPNState((document) => document.extensions.colors);
   const places = usePetrinautDefinitionSelector((net) => net.places);
   const types = usePetrinautDefinitionSelector((net) => net.types);
