@@ -1,0 +1,37 @@
+# Hand-written; rendered by the arch-docs build.
+direction: right
+
+vars: {
+  d2-legend: {
+    a -> b: renders through React
+    a -> b: writes each frame {style.stroke-dash: 3}
+    a.style.opacity: 0
+    b.style.opacity: 0
+  }
+}
+
+classes: {
+  react: {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+}
+
+handler: "Event handler"
+actions: "useEditorActions()\none object per editor" {class: react}
+location: "Location\nmode, view, selection" {class: react}
+state: "Editor state\nlocation and open panels" {class: react}
+part: "useEditorState(select)\nuseEditorFields(names)" {class: react}
+selected: "useIsSelected(id)" {class: react}
+component: "Component"
+row: "List row, canvas node"
+presence: "Panel presence\nMotion values" {class: react}
+element: "Panel element style"
+
+handler -> actions: "calls"
+actions -> location: "navigates"
+actions -> state: "sets open panels"
+location -> state: "is read into"
+state -> part: "notifies"
+part -> component: "renders when the part changes"
+state -> selected: "notifies"
+selected -> row: "renders when its answer flips"
+state -> presence: "animates an opened panel"
+presence -> element: "writes each frame" {style.stroke-dash: 3}

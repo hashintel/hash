@@ -1,0 +1,26 @@
+# Hand-written; rendered by the arch-docs build. React providers use the
+# purple palette, the Core instance the blue one.
+direction: down
+
+classes: {
+  react: {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+  core: {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+}
+
+host: "Host application\nhandle, plugins, navigation"
+petrinaut: "Petrinaut\none Core instance per handle"
+core: "Core instance\nstores, mutations, commands" {class: core}
+document: "PetrinautDocumentProvider\ninstance, host values, undo history,\nuser settings, imports, document" {class: react}
+runtime: "PetrinautProvider\nnavigation, language client, notifications,\nsimulators, simulation, experiments,\noptimizations, experiment host" {class: react}
+canvas: "PetrinautCanvasProvider\nviewport, playback, active net,\npanel sizes, editor state, frame source" {class: react}
+hooks: "Hooks\nuseStore, useEditorState,\nusePetrinautMutations" {class: react}
+ui: "Editor view and plugin hosts"
+
+host -> petrinaut: "passes props"
+petrinaut -> core: "creates"
+petrinaut -> document: "mounts"
+document -> runtime: "wraps"
+runtime -> canvas: "wraps"
+canvas -> ui: "wraps"
+core -> hooks: "notifies"
+hooks -> ui: "render the reader"

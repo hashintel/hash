@@ -1,0 +1,88 @@
+---
+title: The React layer
+description: The contexts, hooks and providers that mirror Core state into React, the order the providers nest in, and which hook to call for what.
+sidebar_order: 5
+---
+
+The React layer is the contexts, hooks and providers that mirror the state of
+a Core instance into React. It renders no editor UI: the
+[UI layer](layer:ui) builds the editor on these hooks, and a host can build
+its own.
+
+![Three groups of providers nest in a fixed order around the editor, and each hook renders its reader when the part it reads changes.](./provider-stack.d2)
+
+## Entry point
+
+`PetrinautProvider` in `petrinaut-provider.tsx` takes a Core instance and
+mounts every provider. It composes three groups, outermost first:
+
+1. `PetrinautDocumentProvider` publishes the instance, what the host owns,
+   the undo history, the user settings, the imports and the document. It
+   starts no worker.
+2. The runtime providers follow: navigation, the language client,
+   notifications, the simulators, the simulation, experiments, optimizations
+   and the experiment host. The navigation provider is keyed by the handle's
+   id, so a switch of net resets the location and every worker below it.
+3. `PetrinautCanvasProvider` publishes what the canvas and the panels need:
+   the saved viewport, playback, the active net, the panel sizes, the editor
+   state and the frame source.
+
+Each group reads the groups above it. The simulation reads the document and
+the location, and the editor state reads the location and the settings. The
+Preview mounts the first and third groups itself. Between them it mounts
+navigation, and a simulation only when it plays a run.
+
+## Three ways state reaches a component
+
+| The state                                        | Is read with                                                                                                           | Renders the reader                |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| A store of Core, or a store a context hands out  | `useStore`, `useStoreSelector`                                                                                         | When the store's value changes    |
+| A part of a context value that changes often     | `useEditorState`, `useUserSettings`, `usePetrinautDefinitionSelector`, `usePetrinautNavigationState`                   | When that part changes            |
+| A value that changes on every frame              | A Motion value written to the element, as [Panel geometry](doc:react.state/panel-sizes) describes                      | Never                             |
+
+[Editor state](layer:react.state) says which state has which owner.
+
+## Which hook to call
+
+| To                                         | Call                                                                |
+| ------------------------------------------ | ------------------------------------------------------------------- |
+| Read part of the document                  | `usePetrinautDefinitionSelector`                                    |
+| Edit the document                          | `usePetrinautMutations`, `usePetrinautCommands`                     |
+| Ask whether editing is allowed             | `useIsReadOnly`, `useReadOnlyReason`                                |
+| Read or change the editor's state          | `useEditorState`, `useEditorFields`, `useEditorActions`             |
+| Ask whether one item is selected           | `useIsSelected`                                                     |
+| Read or save a setting                     | `useUserSettings`, `useUserSettingsFields`                          |
+| Read or change the location                | `usePetrinautNavigationState`, `usePetrinautNavigate`               |
+| Select an item and open its panel          | `useRevealInEditor`                                                 |
+| Register a command                         | `useCommand`                                                        |
+| Read a Core store                          | `usePetrinautInstance`, then `useStore`                             |
+| Read the latest value in a handler         | `useLatest`, `useStableCallback`                                    |
+| Measure an element                         | `useElementSize`, `useElementOnScreen`                              |
+
+## Rules
+
+- **No file of the React layer imports from the UI layer.** The providers
+  are then tested without mounting the editor. Held by the rule `react → ui`
+  in `archinaut.config.ts`, which `archinaut check` runs.
+- **An edit goes through `usePetrinautMutations` or `usePetrinautCommands`.**
+  Both ask the read-only reason and the host's rules first, and show a notice
+  where the edit is refused. `usePetrinautInstance` returns the instance
+  without its mutations, so the type checker holds the rule.
+- **What the host owns is not in the document context.** A host may pass a
+  new title, list of nets or callback on every edit, and almost every
+  component reads `SDCPNContext`. Held by `petrinaut-provider-layers.test.tsx`.
+- **A reader by selector renders when its part changes, and for no other
+  change.** Held by `select-from-context.test.tsx`.
+
+## Pitfalls
+
+- A value built before a hook call and used after it is not memoized by the
+  React Compiler. Call the hooks first, then build each value in one
+  expression.
+- A hook that builds a function, an object or an array and calls no hook but
+  `use` gives a new value on every render. Start it with the directive
+  `"use memo"`, as `useHostRulesFeedback` does.
+- A selector that builds an object or an array returns a new value on every
+  change, and renders its reader each time. Select a field or a primitive.
+- A host that passes a new object as a prop on every render must not create
+  a new Core instance. `Petrinaut` holds `rules` while they say the same.
