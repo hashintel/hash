@@ -4,6 +4,9 @@
  * Every environment variable it reads, with its default:
  *
  * - `PORT` (4323): the port on IPv4 loopback (`127.0.0.1`).
+ * - `DURABLE_AGENTS_TRUST_PROXY` (unset): `true` when a proxy in front sets
+ *   `Host` and `X-Forwarded-Proto`, so request URLs may name them; anything
+ *   else names the listener.
  * - `DURABLE_AGENTS_MODEL` (required): a new conversation's model,
  *   `<provider>/<modelId>` from pi-ai's built-in catalog. Production runs
  *   `openai/gpt-6.1-sol` (H12).
@@ -41,7 +44,9 @@
  * - a crash-loop abort (`"event": "durable-agents.crash-loop"`);
  * - each of Pi Durable's reports, with its conversation
  *   (`"event": "durable-agents.report"`);
- * - an idle pool client's error (`"event": "durable-agents.pool-error"`).
+ * - an idle pool client's error (`"event": "durable-agents.pool-error"`);
+ * - an error the Node adapter answered 500 for
+ *   (`"event": "durable-agents.serve-error"`).
  *
  * SIGTERM and SIGINT stop serving, close every conversation and end the pool.
  */
@@ -102,6 +107,15 @@ pool.on("error", (error) => {
 const server = await startDurableAgentsServer({
   port,
   hostname,
+  trustProxy: process.env.DURABLE_AGENTS_TRUST_PROXY === "true",
+  onServeError: (error) => {
+    logLine({
+      level: "error",
+      event: "durable-agents.serve-error",
+      message: "A request failed outside the app; it was answered 500.",
+      error: errorText(error),
+    });
+  },
   pool,
   models,
   model,

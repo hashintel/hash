@@ -26,7 +26,9 @@
  *
  * Limits come from the environment (`limitsFromEnvironment`) unless given.
  * A request that cannot get a pool connection within the pool's
- * `connectionTimeoutMillis` is answered 503 with `Retry-After`.
+ * `connectionTimeoutMillis` is answered 503 with `Retry-After`. A request
+ * body over `serveNode`'s `defaultMaxBodyBytes` is answered 413 before it is
+ * read.
  */
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import {
@@ -73,8 +75,12 @@ export const browserCallsPrefix = "/conversations";
 export type StartDurableAgentsServerOptions = {
   /** 0 listens on any free port; the result says which. */
   readonly port: number;
-  /** Loopback when absent: the server takes no outside traffic before H7. */
+  /** Loopback when absent. */
   readonly hostname?: string;
+  /** Whether a proxy in front sets `Host` and `X-Forwarded-Proto` (`serveNode`'s `trustProxy`). */
+  readonly trustProxy?: boolean;
+  /** Told each error the Node adapter answered 500 for, outside the app's own handler. */
+  readonly onServeError?: (error: unknown) => void;
   /** The process's one pool; every conversation's schema is opened on it. */
   readonly pool: Pool;
   readonly models: HarnessOptions["models"];
@@ -220,6 +226,8 @@ export const startDurableAgentsServer = async (
   const listener = await serveNode(app.fetch, {
     port: options.port,
     hostname: options.hostname,
+    trustProxy: options.trustProxy,
+    onError: options.onServeError,
   });
   return {
     port: listener.port,

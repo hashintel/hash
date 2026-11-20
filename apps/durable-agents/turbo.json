@@ -4,6 +4,7 @@
     "start": {
       "passThroughEnv": [
         "PORT",
+        "DURABLE_AGENTS_TRUST_PROXY",
         "DURABLE_AGENTS_MODEL",
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
