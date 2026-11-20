@@ -12,6 +12,7 @@
  *   `/lease`, `/result` and `/fail`: the browser half of a waiting call.
  * - `POST /conversations/:id/browser-calls/hand-edits`: the panel's report of
  *   a hand edit, admitted as a `brunch.hand-edit` note the model reads.
+ * - `GET /health`: the process's liveness, outside HASH's entry.
  *
  * A chat request carries its browser's document binding beside the messages
  * (`body: { binding }` on the transport, Brunch's `BrowserContext["binding"]`).
@@ -25,7 +26,7 @@
  * and right after a binding's own commit, before the submission.
  *
  * With `hashEntry`, HASH's entry (`createHashEntry`) runs in front of every
- * route: credentialed CORS, the session actor, the identity route, ownership
+ * route but `/health`: credentialed CORS, the session actor, the identity route, ownership
  * by instance ID and the turn limit on `POST /chat`; a new conversation
  * records its actor and web in its creating commit, and every route that
  * opens a conversation, the browser-call routes included, refuses another.
@@ -47,6 +48,7 @@ import * as v from "valibot";
 
 import {
   type BrowserContext,
+  brunchRoutes,
   canonicalContent,
   sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
@@ -261,6 +263,13 @@ export const startDurableAgentsServer = async (
   // each of them; the server's app keeps its `onError`, so a storage timeout
   // is still a 503.
   const app = new Hono();
+  // Ahead of the entry, so a load balancer's probe needs no session.
+  app.get(brunchRoutes.health, (request) =>
+    request.json({ status: "pass" }, 200, {
+      "cache-control": "no-store",
+      "content-type": "application/health+json",
+    }),
+  );
   entry?.mount(app);
   app.route("/", server.app);
   const listener = await serveNode(app.fetch, {
