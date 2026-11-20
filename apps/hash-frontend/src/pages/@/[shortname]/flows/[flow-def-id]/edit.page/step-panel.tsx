@@ -112,6 +112,24 @@ const newInputTarget: ConnectionTarget = {
   required: true,
 };
 
+const TriggersPanel = ({ schedules }: { schedules: FlowSchedules }) => {
+  /* The panel is inert under the sheet "Show all" opens, so Tab and Esc stay in the sheet. */
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  return (
+    <SidePanel label="Triggers" inert={sheetOpen}>
+      <PanelHeader icon="lightning" tone="neutral" title="Triggers">
+        What can start this flow
+      </PanelHeader>
+      <TriggersPanelBody
+        schedules={schedules}
+        sheetOpen={sheetOpen}
+        onSheetOpenChange={setSheetOpen}
+      />
+    </SidePanel>
+  );
+};
+
 const StartPanel = ({
   editor,
   flowDefinition,
@@ -372,14 +390,7 @@ export const StepPanel = ({
   );
 
   if ("triggers" in subject) {
-    return (
-      <SidePanel label="Triggers">
-        <PanelHeader icon="lightning" tone="neutral" title="Triggers">
-          What can start this flow
-        </PanelHeader>
-        <TriggersPanelBody schedules={schedules} />
-      </SidePanel>
-    );
+    return <TriggersPanel schedules={schedules} />;
   }
 
   if ("start" in subject) {
