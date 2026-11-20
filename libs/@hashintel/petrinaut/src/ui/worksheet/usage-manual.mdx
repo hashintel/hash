@@ -101,6 +101,8 @@ const RatesGrid = ({ rows }: { rows: string[][] }) => {
   portal).
 - Cells register under their `(row, column)` position. Positions may have
   holes; arrows skip positions nothing registered.
+- `focus(row, column)` focuses a registered cell from code, for example the
+  row that takes a deleted row's place. Keep no second map of the elements.
 - Inside an `<input>` or `<textarea>` the horizontal arrows keep moving the
   caret. Only the vertical arrows navigate.
 - A toolbar is a one-row grid: register each button at row `0` and the row
@@ -122,18 +124,15 @@ const stops: FocusStop[] = [
   { id: "shared", kind: "sparse", columns: [1, 2] },
 ];
 
-const targetKey = (target: FocusStopTarget) =>
-  `${target.stopId}:${target.column}`;
-
 const TokenTable = () => {
-  const targets = useRef(new Map<string, HTMLElement>());
+  const { register, focus } = useStopTargets();
   const { attach, onKeyDown, onFocusTarget, tabIndexFor } = useFocusStops({
     stops,
     columnCount: 3,
-    focusTarget: (target) => focusLands(targets.current.get(targetKey(target))),
+    focusTarget: focus,
   });
   // Each focusable part wires, for its own position: FocusStopTarget:
-  //   ref       -> store the element into targets under targetKey(position)
+  //   ref       -> register(position)
   //   tabIndex  -> tabIndexFor(position)
   //   onKeyDown -> onKeyDown(position)
   //   onFocus   -> onFocusTarget(position)
@@ -142,8 +141,10 @@ const TokenTable = () => {
 ```
 
 - `focusTarget` receives a wished position and reports whether an element
-  took focus. Ref bookkeeping and any nearest-column policy stay with the
-  table that owns them.
+  took focus. `useStopTargets` keeps the elements by position: a ref
+  callback that writes the table's own ref, created per row, keeps the
+  compiler from caching the rows. Any nearest-column policy stays with the
+  table that owns it.
 - A `row` stop with `gutter: true` joins the gutter lane. Its gutter part
   wires with `column: "gutter"`; the contract describes the lane's movement.
 - A `full` stop renders one full-width part wired at `column: 0`. The hook
