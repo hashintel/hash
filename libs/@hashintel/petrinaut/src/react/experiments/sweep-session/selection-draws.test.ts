@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { sweepRangeDraws } from "./selection-draws";
+import { sweepBatchSeed, sweepRangeDraws } from "./selection-draws";
+
+describe("sweepBatchSeed", () => {
+  it("keeps the base seed verbatim for the first batch", () => {
+    expect(sweepBatchSeed(42, 0)).toBe(42);
+    expect(sweepBatchSeed(42, 8)).not.toBe(42);
+  });
+});
 
 describe("sweepRangeDraws", () => {
   afterEach(() => {

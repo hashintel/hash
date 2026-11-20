@@ -8,19 +8,9 @@ import type {
   SweepSelection,
 } from "../parameter-grid";
 
-/** Canonical cache key for a point: quantized positions in axis order. */
-export const sweepCellKey = (
-  axes: readonly ExperimentParameterAxis[],
-  position: Readonly<Record<string, number>>,
-): string =>
-  axes
-    .map((axis) => `${axis.identifier}=${position[axis.identifier] ?? 0}`)
-    .join("|");
-
 /**
- * Canonical cache key for a selection. A degenerate range (a point) produces
- * the same key as `sweepCellKey` for its position, so the navigator and the
- * surface sampler share cached point results.
+ * Canonical cache key for a selection: quantized positions in axis order, a
+ * point as `x=2` and a range as `x=0..2`.
  */
 export const sweepSelectionKey = (
   axes: readonly ExperimentParameterAxis[],
@@ -37,18 +27,6 @@ export const sweepSelectionKey = (
         : `${axis.identifier}=${range.from}..${range.to}`;
     })
     .join("|");
-
-/** Concrete parameter values of a point's position tuple. */
-export const sweepCellValues = (
-  axes: readonly ExperimentParameterAxis[],
-  position: Readonly<Record<string, number>>,
-): Record<string, number> => {
-  const values: Record<string, number> = {};
-  for (const axis of axes) {
-    values[axis.identifier] = axisValueAt(axis, position[axis.identifier] ?? 0);
-  }
-  return values;
-};
 
 /** The base seed of the batch whose first run has global index `from`. */
 export const sweepBatchSeed = (seed: number, from: number): number =>

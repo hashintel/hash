@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createSweepSession, sweepBatchSeed } from "./sweep-session";
-import { sweepCellKey, sweepCellValues } from "./sweep-session/selection-draws";
+import { createSweepSession } from "./sweep-session";
+import { sweepBatchSeed } from "./sweep-session/selection-draws";
 
 import type { ExperimentParameterAxis } from "./parameter-grid";
 import type {
@@ -247,22 +247,6 @@ function makeHarness(
     settle,
   };
 }
-
-describe("sweepCellValues / sweepCellKey / sweepBatchSeed", () => {
-  it("maps positions to concrete values, clamped to the axis", () => {
-    expect(sweepCellValues(AXES, { x: 2, y: 5 })).toEqual({ x: 2, y: 20 });
-    expect(sweepCellValues(AXES, {})).toEqual({ x: 0, y: 10 });
-  });
-
-  it("keys cells by positions in axis order", () => {
-    expect(sweepCellKey(AXES, { y: 1, x: 2 })).toBe("x=2|y=1");
-  });
-
-  it("keeps the base seed verbatim for the first batch", () => {
-    expect(sweepBatchSeed(42, 0)).toBe(42);
-    expect(sweepBatchSeed(42, 8)).not.toBe(42);
-  });
-});
 
 describe("createSweepSession", () => {
   it("climbs the ladder on a point selection, folding batches into the cache", async () => {

@@ -52,10 +52,7 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 export type { SweepSelection } from "./parameter-grid";
-export {
-  sweepBatchSeed,
-  sweepSelectionKey,
-} from "./sweep-session/selection-draws";
+export { sweepSelectionKey } from "./sweep-session/selection-draws";
 export type { SweepRunDraws } from "./sweep-session/selection-draws";
 
 /**
