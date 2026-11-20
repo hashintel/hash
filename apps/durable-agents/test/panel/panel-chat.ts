@@ -19,7 +19,7 @@ import {
   type SuccessorConversation,
 } from "@hashintel/brunch-agent/client";
 
-import { conversationId, documentId } from "./panel-server";
+import { binding, conversationId } from "./panel-server";
 
 type PanelTransport = ReturnType<typeof createBrunchSuccessorPanelTransport>;
 
@@ -56,11 +56,11 @@ export class PanelChat extends AbstractChat<PanelMessage> {
   }
 }
 
-/** The panel's transport to `conversation`, bound to the test document, with a tracker of its own. */
+/** The panel's transport to `conversation`, sending the panel's binding, with a tracker of its own. */
 export const openPanelTransport = (conversation: SuccessorConversation) => {
   const tracker = new BrunchPanelConversationTracker();
   const transport = createBrunchSuccessorPanelTransport(conversation, tracker, {
-    documentId,
+    binding,
   });
   return { tracker, transport };
 };

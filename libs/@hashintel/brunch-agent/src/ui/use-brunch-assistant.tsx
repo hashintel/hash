@@ -750,7 +750,7 @@ export const useBrunchAssistant = ({
         conversationTracker,
         {
           ...submission,
-          documentId: processAgentBinding.documentId,
+          binding: processAgentBinding,
           onAdmission,
         },
       );
@@ -911,7 +911,7 @@ export const useBrunchAssistant = ({
   );
   const reportingBrowserTools = useHandEditReports({
     conversation: successorConversation,
-    documentId: processAgentBinding?.documentId,
+    binding: processAgentBinding,
     handle: editor?.handle ?? null,
     browserCalls: inBandBrowserTools,
     onRefused: reportHandEditRefusal,

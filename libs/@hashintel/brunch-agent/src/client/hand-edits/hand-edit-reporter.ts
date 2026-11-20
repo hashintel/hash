@@ -1,4 +1,5 @@
 import {
+  type BrowserContext,
   browserToolFacts,
   canonicalContent,
   type HandEditReportBody,
@@ -83,15 +84,15 @@ const showsNet = (
  */
 export const createHandEditReporter = ({
   conversation,
-  documentId,
+  binding,
   document,
   idleMs = defaultIdleMs,
   readShown,
   onRefused,
 }: {
   readonly conversation: SuccessorConversation;
-  /** The document the conversation is bound to, as its chat binding names it. */
-  readonly documentId: string;
+  /** The panel's document binding, the one its chat transport sends. */
+  readonly binding: BrowserContext["binding"];
   readonly document: HandEditDocument;
   readonly idleMs?: number;
   /**
@@ -101,10 +102,7 @@ export const createHandEditReporter = ({
   readonly readShown?: (signal: AbortSignal) => Promise<string | undefined>;
   readonly onRefused?: (refusal: HandEditRefusal) => void;
 }) => {
-  const binding = canonicalContent({
-    conversationId: conversation.conversationId,
-    documentId,
-  });
+  const boundTo = canonicalContent(binding);
   const request = conversation.fetch ?? globalThis.fetch;
   let endpoints: ReturnType<typeof successorEndpoints> | undefined;
   /** The revision the model was last told of or shown. */
@@ -122,7 +120,7 @@ export const createHandEditReporter = ({
   const nextReport = (revision: string): HandEditReportBody => {
     episode ??= { id: crypto.randomUUID(), nextSeq: 0 };
     const body = {
-      binding,
+      binding: boundTo,
       episode: episode.id,
       seq: episode.nextSeq,
       revision,

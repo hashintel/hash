@@ -8,6 +8,8 @@ import {
   successorHeaders,
 } from "./successor-endpoints";
 
+import type { BrowserContext } from "@hashintel/brunch-agent";
+
 export { SuccessorChatRefusal } from "./successor-chat-transport/successor-chat-refusal";
 
 /**
@@ -23,11 +25,15 @@ export { SuccessorChatRefusal } from "./successor-chat-transport/successor-chat-
  */
 export const createSuccessorChatTransport = <Message extends UIMessage>({
   conversation,
-  documentId,
+  binding,
 }: {
   readonly conversation: SuccessorConversation;
-  /** The document the conversation is bound to, sent with every message. */
-  readonly documentId: string;
+  /**
+   * The panel's document binding, sent as it is with every message: the
+   * server binds a new conversation to it, and the panel's browser calls
+   * and hand-edit reports must name the same one.
+   */
+  readonly binding: BrowserContext["binding"];
 }): ChatTransport<Message> => {
   let endpoints: Promise<SuccessorEndpoints> | undefined;
   const resolveEndpoints = () => {
@@ -62,10 +68,7 @@ export const createSuccessorChatTransport = <Message extends UIMessage>({
           messages: messages.slice(-1),
           trigger,
           ...(messageId === undefined ? {} : { messageId }),
-          binding: {
-            conversationId: conversation.conversationId,
-            documentId,
-          },
+          binding,
         },
       };
     },

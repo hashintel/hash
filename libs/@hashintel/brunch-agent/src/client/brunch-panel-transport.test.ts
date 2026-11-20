@@ -981,6 +981,11 @@ describe("on the durable agents server", () => {
       const body = (init as RequestInit | undefined)?.body;
       return typeof body === "string" ? JSON.parse(body) : undefined;
     });
+  const binding = {
+    conversationId: "conversation-1",
+    documentId: "document-1",
+    incarnationId: "document-1",
+  };
   const transportWith = (
     fetch: typeof globalThis.fetch,
     tracker = new BrunchPanelConversationTracker(),
@@ -989,7 +994,7 @@ describe("on the durable agents server", () => {
     > = {},
   ) =>
     createBrunchSuccessorPanelTransport({ ...conversation, fetch }, tracker, {
-      documentId: "document-1",
+      binding,
       ...options,
     });
   const send = (
@@ -1030,8 +1035,8 @@ describe("on the durable agents server", () => {
     const [body] = chatBodies(fetch);
     expect(body).toMatchObject({
       messages: [{ id: "user-1", role: "user" }],
-      binding: { conversationId: "conversation-1", documentId: "document-1" },
     });
+    expect((body as { binding?: unknown }).binding).toEqual(binding);
     const { messages } = body as { messages: PetrinautAiMessage[] };
     expect(messages).toHaveLength(1);
     const [part] = messages[0]?.parts ?? [];

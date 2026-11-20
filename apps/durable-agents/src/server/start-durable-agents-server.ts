@@ -150,7 +150,7 @@ const unboundConversation: ChatRefusal = {
 };
 
 /** A new conversation needs the binding its browser calls are issued to, which its creating commit writes. */
-const admitNewConversation = (
+export const admitNewConversation = (
   body: Readonly<Record<string, unknown>>,
 ): ChatRefusal | Required<Pick<ConversationSeed, "binding">> => {
   const binding = bindingOf(body);

@@ -12,6 +12,12 @@ const conversation = {
   conversationId: "brunch-construction-v1:net-1:evaluation-I",
   web: "web-1",
 };
+/** The panel's binding, in the shape `useProcessAgentBinding` gives it. */
+const binding = {
+  conversationId: conversation.conversationId,
+  documentId: "net-1",
+  incarnationId: "net-1",
+};
 /** SHA-256 of the actor key and conversation ID, NUL between: the server's instance ID. */
 const instanceId = createHash("sha256")
   .update(`${conversation.actorKey}\0${conversation.conversationId}`)
@@ -85,11 +91,11 @@ const readText = async (stream: ReadableStream<{ type: string }>) => {
 };
 
 describe("sending a message", () => {
-  test("posts the last message to /chat under the instance ID, bound to the document, with the raw ID and web as headers", async () => {
+  test("posts the last message to /chat under the instance ID, with the panel's binding as it is, and the raw ID and web as headers", async () => {
     const wire = fakeFetch(replyResponse);
     const transport = createSuccessorChatTransport({
       conversation: { ...conversation, fetch: wire.fetch },
-      documentId: "net-1",
+      binding,
     });
 
     const stream = await send(transport, [
@@ -108,10 +114,7 @@ describe("sending a message", () => {
       id: instanceId,
       messages: [userMessage("u-1", "Hello.")],
       trigger: "submit-message",
-      binding: {
-        conversationId: conversation.conversationId,
-        documentId: "net-1",
-      },
+      binding,
     });
     expect(wire.headers().get("x-brunch-conversation")).toBe(
       conversation.conversationId,
@@ -128,7 +131,7 @@ describe("sending a message", () => {
     );
     const transport = createSuccessorChatTransport({
       conversation: { ...conversation, fetch: wire.fetch },
-      documentId: "net-1",
+      binding,
     });
 
     await expect(
@@ -150,7 +153,7 @@ describe("sending a message", () => {
     );
     const transport = createSuccessorChatTransport({
       conversation: { ...conversation, fetch: wire.fetch },
-      documentId: "net-2",
+      binding: { ...binding, documentId: "net-2", incarnationId: "net-2" },
     });
 
     await expect(
@@ -176,7 +179,7 @@ describe("sending a message", () => {
       );
       const transport = createSuccessorChatTransport({
         conversation: { ...conversation, fetch: wire.fetch },
-        documentId: "net-1",
+        binding,
       });
 
       const sent = send(transport, [userMessage("u-1", "Hello.")]);
@@ -207,7 +210,7 @@ describe("sending a message", () => {
     const wire = fakeFetch(...Array.from({ length: 20 }, () => busy));
     const transport = createSuccessorChatTransport({
       conversation: { ...conversation, fetch: wire.fetch },
-      documentId: "net-1",
+      binding,
     });
 
     await expect(
@@ -226,7 +229,7 @@ describe("sending a message", () => {
     });
     const transport = createSuccessorChatTransport({
       conversation: { ...conversation, fetch: wire.fetch },
-      documentId: "net-1",
+      binding,
     });
 
     await expect(
@@ -242,7 +245,7 @@ describe("reconnecting", () => {
   const reconnect = (fetch: typeof globalThis.fetch) =>
     createSuccessorChatTransport({
       conversation: { ...conversation, fetch },
-      documentId: "net-1",
+      binding,
     }).reconnectToStream({ chatId: conversation.conversationId });
 
   test("follows the running turn at the instance's stream", async () => {

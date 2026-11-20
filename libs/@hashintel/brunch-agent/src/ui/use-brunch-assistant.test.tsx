@@ -1826,7 +1826,11 @@ describe("on the durable agents server", () => {
       );
     expect(server.body(0)).toMatchObject({
       messages: [{ id: "m1", role: "user" }],
-      binding: { conversationId: conversationId(), documentId: netOneId },
+    });
+    expect((server.body(0) as { binding?: unknown }).binding).toEqual({
+      conversationId: conversationId(),
+      documentId: netOneId,
+      incarnationId: netOneId,
     });
     expect(
       new Headers(server.requests[0]?.init.headers).get("x-brunch-web"),
