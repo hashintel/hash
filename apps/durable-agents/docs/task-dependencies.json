@@ -49,8 +49,14 @@
       ]
     },
     "probe:hash-session": {
-      "dependsOn": [],
-      "cache": false
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
     },
     "probe:load": {
       "dependsOn": [
