@@ -3,8 +3,8 @@ import { use, useRef, useState } from "react";
 import { Button, Icon, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { usePetrinautDefinitionSelector } from "../../react/hooks/use-document";
 import { ActiveNetContext } from "../../react/state/active-net-context";
-import { SDCPNContext } from "../../react/state/sdcpn-context";
 import { NetNavigationList } from "../views/Editor/panels/LeftSideBar/subviews/nets-list";
 
 const popoverWidthStyle = css({
@@ -16,9 +16,7 @@ export const PreviewNetNavigation: React.FC = () => {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const { activeComponentId } = use(ActiveNetContext);
-  const {
-    petriNetDefinition: { components },
-  } = use(SDCPNContext);
+  const components = usePetrinautDefinitionSelector((net) => net.components);
 
   if (!components?.length) {
     return null;

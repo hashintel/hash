@@ -9,8 +9,9 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { usePetrinautDefinitionSelector } from "../../../react/hooks/use-document";
 import { SimulationContext } from "../../../react/simulation/context";
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../react/state/sdcpn-context";
 import { ScrollFade } from "../../components/scroll-fade";
 import { Slider } from "../../components/slider";
 import { useScrollOverflow } from "../../hooks/use-scroll-overflow";
@@ -200,10 +201,11 @@ export type SimulationScenarioControlsProps = {
 export const SimulationScenarioControls: React.FC<
   SimulationScenarioControlsProps
 > = ({ allowNoScenario = true, parameterBounds: boundsByIdentifier }) => {
-  const {
-    extensions,
-    petriNetDefinition: { parameters, scenarios },
-  } = use(SDCPNContext);
+  const parameters = usePetrinautDefinitionSelector((net) => net.parameters);
+  const scenarios = usePetrinautDefinitionSelector((net) => net.scenarios);
+  const parametersEnabled = useSDCPNState(
+    (document) => document.extensions.parameters,
+  );
   const {
     state: simulationState,
     parameterValues,
@@ -221,7 +223,7 @@ export const SimulationScenarioControls: React.FC<
   );
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";
-  const globalParameters = extensions.parameters ? parameters : [];
+  const globalParameters = parametersEnabled ? parameters : [];
   const displayParameters: DisplayParameter[] = selectedScenario
     ? selectedScenario.scenarioParameters.map((parameter) => ({
         key: `scenario-${parameter.identifier}`,
