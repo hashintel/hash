@@ -34,6 +34,8 @@ export type PetrinautAiToolPresentationTone =
 /** What a tool presentation resolver reads. */
 export type PetrinautAiToolPresentationContext = {
   toolName: string;
+  /** The call's ID, when its part has one. */
+  toolCallId?: string;
   state: PetrinautAiToolPresentationState;
   input: unknown;
   output: unknown;

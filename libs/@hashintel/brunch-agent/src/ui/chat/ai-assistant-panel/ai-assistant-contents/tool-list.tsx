@@ -409,6 +409,9 @@ export const toToolRenderItem = (
       : undefined;
   const presentation = resolveToolPresentation?.({
     toolName,
+    ...(typeof part.toolCallId === "string"
+      ? { toolCallId: part.toolCallId }
+      : {}),
     state:
       state === "output-error"
         ? "error"
