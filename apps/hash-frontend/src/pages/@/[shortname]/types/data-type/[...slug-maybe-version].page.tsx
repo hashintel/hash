@@ -1,11 +1,7 @@
 import { GlobalStyles } from "@mui/system";
-import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
 
 import {
-  componentsFromVersionedUrl,
-  currentTimestamp,
   parseOntologyTypeVersion,
   validateVersionedUrl,
 } from "@blockprotocol/type-system";
@@ -18,16 +14,10 @@ import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { getTypeBaseUrl } from "../shared/get-type-base-url";
 
 import type { NextPageWithLayout } from "../../../../../shared/layout";
-import type {
-  ActorEntityUuid,
-  DataTypeWithMetadata,
-  WebId,
-} from "@blockprotocol/type-system";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
 
-  const isDraft = !!router.query.draft;
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
   /**
@@ -57,59 +47,11 @@ const Page: NextPageWithLayout = () => {
     `${number}` | undefined,
   ];
 
-  const dataTypeBaseUrl = !isDraft
-    ? getTypeBaseUrl({
-        slug,
-        namespaceWithAt: shortnameWithAt,
-        kind: "data-type",
-      })
-    : undefined;
-
-  const draftDataType = useMemo(() => {
-    if (router.query.draft) {
-      const dataTypeSchema = JSON.parse(
-        Buffer.from(
-          decodeURIComponent(router.query.draft.toString()),
-          "base64",
-        ).toString("utf8"),
-      );
-
-      const { baseUrl, version } = componentsFromVersionedUrl(
-        dataTypeSchema.$id,
-      );
-
-      return {
-        metadata: {
-          recordId: {
-            baseUrl,
-            version,
-          },
-          temporalVersioning: {
-            transactionTime: {
-              start: {
-                kind: "inclusive",
-                limit: currentTimestamp(),
-              },
-              end: { kind: "unbounded" },
-            },
-          },
-          provenance: {
-            edition: {
-              createdById: "irrelevant-here" as ActorEntityUuid,
-              actorType: "user",
-              origin: {
-                type: "web-app",
-              },
-            },
-          },
-          webId: "irrelevant-here" as WebId,
-        },
-        schema: dataTypeSchema,
-      } satisfies DataTypeWithMetadata;
-    } else {
-      return null;
-    }
-  }, [router.query.draft]);
+  const dataTypeBaseUrl = getTypeBaseUrl({
+    slug,
+    namespaceWithAt: shortnameWithAt,
+    kind: "data-type",
+  });
 
   if (
     requestedVersionString &&
@@ -134,10 +76,8 @@ const Page: NextPageWithLayout = () => {
   return (
     <>
       <DataType
-        webId={routeNamespace.webId}
-        draftNewDataType={draftDataType}
         dataTypeBaseUrl={dataTypeBaseUrl}
-        key={`${draftDataType?.metadata.recordId.baseUrl ?? dataTypeBaseUrl}-${requestedVersion?.toString()}`}
+        key={`${dataTypeBaseUrl}-${requestedVersion?.toString()}`}
         requestedVersion={requestedVersion}
         onDataTypeUpdated={(dataType) => {
           void router.push(generateLinkParameters(dataType.schema.$id).href);

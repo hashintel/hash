@@ -1,15 +1,17 @@
 import { Backdrop, Box, Portal, Slide } from "@mui/material";
 import { createRef, useCallback, useMemo, useRef, useState } from "react";
 
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { useScrollLock } from "@hashintel/ds-components";
 
+import { DataTypeDrawerById } from "../../types/data-type-drawer";
 import { SlideStackContext } from "./context";
-import { DataTypeSlide } from "./data-type-slide";
 import { EntitySlide } from "./entity-slide";
 import { EntityTypeSlide } from "./entity-type-slide";
 import { SlideBackForwardCloseBar } from "./slide-back-forward-close-bar";
 
 import type { SlideItem } from "./types";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   Dispatch,
   FunctionComponent,
@@ -78,9 +80,6 @@ const StackSlide = ({
         />
 
         <Box sx={{ pt: 1, background: ({ palette }) => palette.common.white }}>
-          {item.kind === "dataType" && (
-            <DataTypeSlide dataTypeId={item.itemId} replaceItem={replaceItem} />
-          )}
           {item.kind === "entityType" && (
             <EntityTypeSlide replaceItem={replaceItem} typeUrl={item.itemId} />
           )}
@@ -202,6 +201,15 @@ export const SlideStackProvider = ({
     items: { item: SlideItem; ref: RefObject<HTMLDivElement | null> }[];
   }>({ currentIndex: 0, items: [] });
 
+  /**
+   * Data types open in the editor drawer rather than a slide, wherever the
+   * push originates. Pushes nest: a type opened from inside another type's
+   * drawer stacks a new drawer above it, and closing returns to the one below.
+   */
+  const [dataTypeDrawerIds, setDataTypeDrawerIds] = useState<VersionedUrl[]>(
+    [],
+  );
+
   const [slideContainerRef, setSlideContainerRef] =
     useState<RefObject<HTMLDivElement | null> | null>(null);
 
@@ -212,6 +220,21 @@ export const SlideStackProvider = ({
   const pushToSlideStack = useCallback(
     (uncheckedItem: SlideItem) => {
       const item = rewriteSlideItemOverride?.(uncheckedItem) ?? uncheckedItem;
+
+      if (item.kind === "dataType") {
+        // Pushing the already-open type again would stack an identical
+        // drawer; another version of it swaps the top drawer to that version
+        setDataTypeDrawerIds((prev) => {
+          const top = prev[prev.length - 1];
+          if (!top || extractBaseUrl(top) !== extractBaseUrl(item.itemId)) {
+            return [...prev, item.itemId];
+          }
+          return top === item.itemId
+            ? prev
+            : [...prev.slice(0, -1), item.itemId];
+        });
+        return;
+      }
 
       setItems((prev) => {
         return {
@@ -246,6 +269,9 @@ export const SlideStackProvider = ({
 
   const closeSlideStack = useCallback(() => {
     setItems({ currentIndex: 0, items: [] });
+    // Data types stack as drawers beside the slides — callers dismissing
+    // every overlay (e.g. before navigating) must not strand them
+    setDataTypeDrawerIds([]);
   }, []);
 
   const value = useMemo(
@@ -255,10 +281,13 @@ export const SlideStackProvider = ({
       pushToSlideStack,
       setSlideContainerRef,
       slideContainerRef,
+      slideStackDepth: items.length,
+      dataTypeDrawerDepth: dataTypeDrawerIds.length,
     }),
     [
       closeSlideStack,
       currentIndex,
+      dataTypeDrawerIds.length,
       items,
       pushToSlideStack,
       setSlideContainerRef,
@@ -278,6 +307,24 @@ export const SlideStackProvider = ({
         setItems={setItems}
         slideContainerRef={slideContainerRef}
       />
+      {dataTypeDrawerIds.map((dataTypeDrawerId, index) => (
+        <DataTypeDrawerById
+          // eslint-disable-next-line react/no-array-index-key
+          key={`${index}-${dataTypeDrawerId}`}
+          dataTypeId={dataTypeDrawerId}
+          swapKey={`data-type-editor-${index}`}
+          onClose={() => setDataTypeDrawerIds((prev) => prev.slice(0, index))}
+          // A saved drawer stays open on the saved version wherever it sits
+          // in the stack — the swapped id remounts it on the new baseline
+          onUpdated={(updated) =>
+            setDataTypeDrawerIds((prev) =>
+              prev.map((id, drawerIndex) =>
+                drawerIndex === index ? updated.schema.$id : id,
+              ),
+            )
+          }
+        />
+      ))}
     </SlideStackContext.Provider>
   );
 };

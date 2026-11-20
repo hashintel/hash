@@ -19,13 +19,22 @@ import type { FunctionComponent, ReactNode } from "react";
 export const DsComponentsScope: FunctionComponent<{
   children: ReactNode;
   sx?: SxProps<Theme>;
-}> = ({ children, sx }) => {
+  /**
+   * Set when the scope hosts a ds overlay (Drawer/Dialog) portalled to the
+   * body. The ds backdrop-dedupe rules coordinate sibling
+   * `data-overlay-stack-root` elements, but each scope buries its overlay's
+   * own stack root in a separate wrapper — marking the wrapper restores the
+   * siblinghood, so stacked overlays dim the page once, not cumulatively.
+   */
+  overlayStackRoot?: boolean;
+}> = ({ children, sx, overlayStackRoot }) => {
   const rootRef = useRef<HTMLDivElement>(null);
 
   return (
     <PortalContainerContext.Provider value={rootRef}>
       <Box
         ref={rootRef}
+        data-overlay-stack-root={overlayStackRoot ? "" : undefined}
         className="hash-ds-root"
         // The scoped ds globals paint the document surface (`bg: neutral.s00`)
         // on every `.hash-ds-root`, via a selector the @layer polyfill boosts

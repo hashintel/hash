@@ -621,6 +621,21 @@ export const TypesTable: FunctionComponent<
 
   const theme = useTheme();
 
+  /**
+   * Data types open the editor drawer (the slide stack intercepts dataType
+   * pushes), which resolves the user's per-type permissions and stays
+   * read-only unless they allow editing; entity types open the slide.
+   */
+  const openType = useCallback(
+    (rowKind: TypesTableRow["kind"], typeId: VersionedUrl) => {
+      pushToSlideStack({
+        kind: rowKind === "data-type" ? "dataType" : "entityType",
+        itemId: typeId,
+      });
+    },
+    [pushToSlideStack],
+  );
+
   const createGetCellContent = useCallback(
     (rows: TypesTableRow[]) =>
       ([colIndex, rowIndex]: Item):
@@ -726,13 +741,7 @@ export const TypesTable: FunctionComponent<
                     text: row.title,
                     onClick: isClickable
                       ? () => {
-                          pushToSlideStack({
-                            kind:
-                              row.kind === "data-type"
-                                ? "dataType"
-                                : "entityType",
-                            itemId: row.typeId,
-                          });
+                          openType(row.kind, row.typeId);
                         }
                       : undefined,
                     iconFill: theme.palette.blue[70],
@@ -839,6 +848,7 @@ export const TypesTable: FunctionComponent<
       },
     [
       typesTableColumns,
+      openType,
       pushToSlideStack,
       router,
       theme,

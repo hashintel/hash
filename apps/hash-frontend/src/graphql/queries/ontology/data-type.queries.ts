@@ -24,6 +24,15 @@ export const checkUserPermissionsOnDataTypeQuery = gql`
   }
 `;
 
+export const checkUserPermissionsOnDataTypesQuery = gql`
+  query checkUserPermissionsOnDataTypes($dataTypeIds: [VersionedUrl!]!) {
+    checkUserPermissionsOnDataTypes(dataTypeIds: $dataTypeIds) {
+      dataTypeId
+      permissions
+    }
+  }
+`;
+
 export const createDataTypeMutation = gql`
   mutation createDataType(
     $webId: WebId!

@@ -19,7 +19,6 @@ export type SlideEntityTypeItem = {
 export type SlideDataTypeItem = {
   kind: "dataType";
   itemId: VersionedUrl;
-  onUpdate?: (dataTypeId: VersionedUrl) => void;
 };
 
 export type SlideItem =

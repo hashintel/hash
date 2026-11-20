@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { TextInput } from "../TextInput/text-input";
 import { ReorderableList } from "./reorderable-list";
 
 import type { ReorderableListProps } from "./reorderable-list";
@@ -31,6 +32,31 @@ const rowName = css({
 
 const rowType = css({
   textStyle: "sm",
+  color: "fg.subtle",
+});
+
+const stackedContent = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  flexGrow: "1",
+  minWidth: "0",
+});
+
+const stackedFirstRow = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+});
+
+const stackedInput = css({
+  display: "flex",
+  width: "[160px]",
+  flexShrink: "0",
+});
+
+const rowHint = css({
+  textStyle: "xs",
   color: "fg.subtle",
 });
 
@@ -212,6 +238,69 @@ const StepsList = () => {
   );
 };
 
+const initialConstraintRows = [
+  {
+    id: "minimum",
+    name: "Minimum",
+    value: "0",
+    hint: "Values below this are rejected",
+  },
+  {
+    id: "maximum",
+    name: "Maximum",
+    value: "1000",
+    hint: "Values above this are rejected",
+  },
+  {
+    id: "multiple-of",
+    name: "Multiple of",
+    value: "0.5",
+    hint: "Values must be an even multiple of this",
+  },
+];
+
+/**
+ * Items whose content stacks a hint row beneath an input row: `top` keeps the
+ * grip aligned with the first row instead of floating between the two.
+ */
+const ConstraintsList = ({
+  handleAlign,
+}: Pick<ReorderableListProps, "handleAlign">) => {
+  const [rows, setRows] = useState(initialConstraintRows);
+  const setValue = (id: string, value: string) =>
+    setRows((current) =>
+      current.map((row) => (row.id === id ? { ...row, value } : row)),
+    );
+  return (
+    <ReorderableList
+      aria-label="Number constraints"
+      handleAlign={handleAlign}
+      onChange={(orderedIds) =>
+        setRows((current) => applyOrder(current, orderedIds))
+      }
+    >
+      {rows.map((row) => (
+        <ReorderableList.Item key={row.id} id={row.id} label={row.name}>
+          <div className={stackedContent}>
+            <div className={stackedFirstRow}>
+              <span className={rowName}>{row.name}</span>
+              <span className={stackedInput}>
+                <TextInput
+                  size="sm"
+                  value={row.value}
+                  onChange={(value) => setValue(row.id, value)}
+                  aria-label={`${row.name} value`}
+                />
+              </span>
+            </div>
+            <span className={rowHint}>{row.hint}</span>
+          </div>
+        </ReorderableList.Item>
+      ))}
+    </ReorderableList>
+  );
+};
+
 const meta = {
   title: "Components/ReorderableList",
   component: ReorderableList,
@@ -226,7 +315,8 @@ type Story = StoryObj;
  * and press Space, then the arrow keys, to reorder with the keyboard.
  * `card` frames each row; `plain` leaves row styling to the content.
  * Disabling the list freezes the whole order, while disabling a single item
- * pins that row and leaves the rest draggable.
+ * pins that row and leaves the rest draggable. `handleAlign="top"` keeps the
+ * grip on the first row of items that stack extra rows beneath it.
  */
 export const Default: Story = {
   render: () => (
@@ -253,6 +343,14 @@ export const Default: Story = {
 
       <Example name="In a scrollable container">
         <StepsList />
+      </Example>
+
+      <Example name="Handle aligned center (default)">
+        <ConstraintsList />
+      </Example>
+
+      <Example name="Handle aligned top">
+        <ConstraintsList handleAlign="top" />
       </Example>
     </div>
   ),

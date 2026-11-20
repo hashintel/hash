@@ -363,6 +363,32 @@ export const collapsibleItems: ItemOrGroup<Item>[] = [
       },
     ],
   },
+  // "Trash" holds only disabled items, so its chevron renders disabled; the
+  // disabled "System" row keeps a live chevron for the enabled items inside.
+  {
+    id: "col-trash",
+    text: "Trash",
+    collapsible: true,
+    subItems: [
+      {
+        id: "col-trash-1",
+        text: "Deleted sheet",
+        disabled: true,
+        onClick: noop,
+      },
+      { id: "col-trash-2", text: "Old export", disabled: true, onClick: noop },
+    ],
+  },
+  {
+    id: "col-system",
+    text: "System",
+    collapsible: true,
+    disabled: true,
+    subItems: [
+      { id: "col-logs", text: "Logs", onClick: noop },
+      { id: "col-config", text: "Config", onClick: noop },
+    ],
+  },
   { id: "col-plain", text: "Item after the folders", onClick: noop },
 ];
 

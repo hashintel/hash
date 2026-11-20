@@ -36,7 +36,6 @@ const Page: NextPageWithLayout = () => {
   return (
     <DataType
       dataTypeBaseUrl={dataTypeBaseUrl}
-      isInSlide={false}
       key={`${dataTypeBaseUrl}-${requestedVersion?.toString()}`}
       requestedVersion={requestedVersion}
       onDataTypeUpdated={() => {

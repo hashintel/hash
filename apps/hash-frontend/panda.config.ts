@@ -89,6 +89,7 @@ export default defineConfig({
     "./src/pages/@/*/flows/**/*.{ts,tsx}",
     "./src/pages/shared/filter-bar/filter-chip-pill-chrome.ts",
     "./src/pages/shared/sort-menu-chrome.ts",
+    "./src/pages/types/data-type-form/cards/extends-list-item-css.ts",
   ],
 
   exclude: [],

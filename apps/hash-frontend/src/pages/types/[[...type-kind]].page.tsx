@@ -19,9 +19,13 @@ import { TopContextBar } from "../shared/top-context-bar";
 import { TypesTable } from "../shared/types-table";
 import { tabTitles } from "./[[...type-kind]].page/tab-titles";
 import { TypesPageTabs } from "./[[...type-kind]].page/types-page-tabs";
+import { DataTypeDrawer } from "./data-type-drawer";
 
 import type { NextPageWithLayout } from "../../shared/layout";
-import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
+import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+} from "@blockprotocol/type-system";
 import type { GetServerSideProps } from "next";
 
 type ParsedQueryKindParam =
@@ -36,21 +40,25 @@ type ParsedQueryParams = {
 
 export type TabId = "all" | ParsedQueryKindParam;
 
-const createButtonByTab: Record<TabId, { label: string; href: string } | null> =
-  {
-    all: { label: "Create type", href: "/new/types/entity-type" },
-    "entity-type": {
-      label: "Create entity type",
-      href: "/new/types/entity-type",
-    },
-    "link-type": {
-      label: "Create link type",
-      href: `/new/types/entity-type?extends=${blockProtocolEntityTypes.link.entityTypeId}`,
-    },
-    // TODO(H-773): add the property type creation button
-    "property-type": null,
-    "data-type": { label: "Create data type", href: "/new/types/data-type" },
-  };
+const createButtonByTab: Record<
+  TabId,
+  | { label: string; href: string }
+  | { label: string; opensDataTypeDrawer: true }
+  | null
+> = {
+  all: { label: "Create type", href: "/new/types/entity-type" },
+  "entity-type": {
+    label: "Create entity type",
+    href: "/new/types/entity-type",
+  },
+  "link-type": {
+    label: "Create link type",
+    href: `/new/types/entity-type?extends=${blockProtocolEntityTypes.link.entityTypeId}`,
+  },
+  // TODO(H-773): add the property type creation button
+  "property-type": null,
+  "data-type": { label: "Create data type", opensDataTypeDrawer: true },
+};
 
 type TypesPageProps = {
   currentTab: TabId;
@@ -67,6 +75,21 @@ export const getServerSideProps: GetServerSideProps<
 };
 
 const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
+  const [showCreateDataTypeDrawer, setShowCreateDataTypeDrawer] =
+    useState(false);
+  /** A type created from the drawer, which stays open on it for editing */
+  const [createdDataType, setCreatedDataType] =
+    useState<DataTypeWithMetadata | null>(null);
+
+  // This page serves every tab, so drawer state would survive a tab change
+  // (e.g. navigating back) — the drawer belongs to the data-type tab only
+  useEffect(() => {
+    if (currentTab !== "data-type") {
+      setShowCreateDataTypeDrawer(false);
+      setCreatedDataType(null);
+    }
+  }, [currentTab]);
+
   const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
 
   const [latestEntityTypesByKind, setLatestEntityTypesByKind] = useState<{
@@ -256,7 +279,9 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
             <TypesPageTabs currentTab={currentTab} />
             {createButton ? (
               <CreateButton
-                href={createButton.href}
+                {...("opensDataTypeDrawer" in createButton
+                  ? { onClick: () => setShowCreateDataTypeDrawer(true) }
+                  : { href: createButton.href })}
                 variant="tertiary_quiet"
                 endIcon={<PlusRegularIcon />}
               >
@@ -294,6 +319,27 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
           />
         )}
       </Container>
+      {showCreateDataTypeDrawer && !createdDataType && (
+        <DataTypeDrawer
+          mode="create"
+          onClose={() => setShowCreateDataTypeDrawer(false)}
+          // Creation keeps the drawer open on the created type — the shared
+          // default swapKey swaps the shell's content into the edit view
+          onCreated={setCreatedDataType}
+        />
+      )}
+      {createdDataType && (
+        <DataTypeDrawer
+          mode="edit"
+          key={createdDataType.schema.$id}
+          dataType={createdDataType}
+          onClose={() => {
+            setCreatedDataType(null);
+            setShowCreateDataTypeDrawer(false);
+          }}
+          onUpdated={setCreatedDataType}
+        />
+      )}
     </>
   );
 };
