@@ -1,17 +1,17 @@
 ---
 layer: react.hooks
-role: Hooks the UI and a host call to read and edit the document, and small helpers for handlers and measuring
+role: Hooks the UI calls to read and edit the document, and small helpers for handlers and measuring
 ---
 
-`usePetrinautMutations` and `usePetrinautCommands` are how the UI edits the
-document. Each call asks the read-only reason and the host's rules first, and
-shows a notice where the edit is refused.
+`usePetrinautMutations` and `usePetrinautCommands` edit the document, and
+`usePetrinautDefinitionSelector` reads one part of it. Three hooks serve the
+refusal of an edit: `useMutationRefusal` says why the host's rules would
+refuse a mutation, and `useReadOnlyFeedback` and `useHostRulesFeedback` show
+the notice.
 
-`usePetrinautDefinitionSelector` reads one part of the document, and
-`useRevealInEditor` selects an item and opens the panel that shows it.
+`useRevealInEditor` selects an item, or switches to Simulate and opens a
+scenario, a metric or an experiment in the drawer.
 
-The helpers serve any component: `useLatest` and `useStableCallback` give a
-handler the latest value of a prop, `useElementSize` measures an element, and
-`useElementOnScreen` says whether it is in view.
-
-The guide "The React layer" lists which hook to call for what.
+`useLatest`, `useStableCallback`, `useElementSize` and `useElementOnScreen`
+serve any component. [The React layer](doc:react/react-layer) lists which hook to call
+for what, with the hooks of the other folders.
