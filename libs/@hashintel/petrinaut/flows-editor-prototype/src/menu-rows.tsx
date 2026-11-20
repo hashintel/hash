@@ -156,9 +156,11 @@ const sourceTileStyle = css({
   "&[data-two-line]": { alignSelf: "flex-start", marginTop: "[5px]" },
 });
 
-/** A person's avatar stands where the tile would: 32 px, centred on the row, no tile behind it. */
+/** A person's avatar stands where the tile would: a 22 px circle centred in the tile's 32 px slot, no tile behind it. */
 const avatarSlotStyle = css({
   display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
   flexShrink: 0,
   alignSelf: "center",
   width: "[32px]",
