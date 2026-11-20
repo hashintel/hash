@@ -6,7 +6,12 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { createVisualizerDefinitionStore } from "./sdcpn-provider/visualizer-definition-store";
-import { SDCPNContext, type SDCPNContextValue } from "./state/sdcpn-context";
+import { usePublished } from "./select-from-context";
+import {
+  SDCPNContext,
+  SDCPNPublishedContext,
+  type SDCPNContextValue,
+} from "./state/sdcpn-context";
 import { usePetrinautInstance } from "./use-petrinaut-instance";
 import { useStore } from "./use-store";
 
@@ -136,5 +141,11 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
     },
   };
 
-  return <SDCPNContext value={value}>{children}</SDCPNContext>;
+  const published = usePublished(value);
+
+  return (
+    <SDCPNPublishedContext value={published}>
+      <SDCPNContext value={value}>{children}</SDCPNContext>
+    </SDCPNPublishedContext>
+  );
 };

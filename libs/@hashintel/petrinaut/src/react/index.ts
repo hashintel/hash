@@ -142,6 +142,10 @@ export type {
 } from "./error-tracker-context";
 
 // --- Editing, and whether it is allowed ---
+export {
+  useDocumentId,
+  usePetrinautDefinitionSelector,
+} from "./hooks/use-document";
 export { useIsReadOnly } from "./state/use-is-read-only";
 export {
   formatReadOnlyReason,

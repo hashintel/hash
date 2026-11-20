@@ -7,6 +7,8 @@ import {
   type SelectionItemType,
 } from "@hashintel/petrinaut-core";
 
+import { useSelected, type Published } from "../select-from-context";
+
 /**
  * The open document and what the instance says about it.
  *
@@ -41,3 +43,19 @@ const DEFAULT_CONTEXT_VALUE: SDCPNContextValue = {
 export const SDCPNContext = createContext<SDCPNContextValue>(
   DEFAULT_CONTEXT_VALUE,
 );
+
+/** Where `SDCPNProvider` publishes the context value for {@link useSDCPNState}. */
+export const SDCPNPublishedContext =
+  createContext<Published<SDCPNContextValue>>(null);
+
+/**
+ * One part of the open document's context. The reader renders when that part
+ * changes, where `use(SDCPNContext)` renders it for every edit.
+ *
+ * ```tsx
+ * const readonly = useSDCPNState((document) => document.readonly);
+ * ```
+ */
+export const useSDCPNState = <Selected>(
+  select: (document: SDCPNContextValue) => Selected,
+): Selected => useSelected(SDCPNContext, SDCPNPublishedContext, select);
