@@ -5,7 +5,6 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ExecutionFrameSourceContext } from "../../react/execution-frame/context";
 import { SimulationContext } from "../../react/simulation/context";
-import { ActiveNetContext } from "../../react/state/active-net-context";
 import { useUserSettings } from "../../react/state/user-settings-context";
 import { EventSimulationControls } from "../views/Editor/components/BottomBar/event-simulation-controls";
 import { EventTimeline } from "../views/Editor/panels/BottomPanel/subviews/event-timeline/content";
@@ -146,7 +145,6 @@ export const PreviewSimulationConfiguration = ({
 export const PreviewSimulationPlaybackControls = ({
   allowedPlaybackSpeeds,
 }: Pick<PetrinautPreviewQuickSimulation, "allowedPlaybackSpeeds">) => {
-  const { activeComponentId } = use(ActiveNetContext);
   const { scenarioCompilationErrors } = use(SimulationContext);
   const { totalFrames } = use(ExecutionFrameSourceContext);
   const showAnimations = useUserSettings((settings) => settings.showAnimations);
@@ -167,7 +165,6 @@ export const PreviewSimulationPlaybackControls = ({
               allowedPlaybackSpeeds?.length ? allowedPlaybackSpeeds : undefined
             }
             disabled={scenarioCompilationErrors !== null}
-            inComponent={activeComponentId !== null}
           />
         </div>
       </div>

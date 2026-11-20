@@ -5,7 +5,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
-import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import {
   useEditorActions,
   useEditorFields,
@@ -88,6 +87,15 @@ const GlassSegment = ({ children }: { children: ReactNode }) => (
   </refractive.div>
 );
 
+/**
+ * The canvas shortcuts. A leaf, because they read the selection and the
+ * document, which the bar does not.
+ */
+const CanvasShortcuts = () => {
+  useKeyboardShortcuts();
+  return null;
+};
+
 export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
   const { globalMode, editionMode, isBottomPanelOpen, isAiAssistantOpen } =
     useEditorFields(
@@ -108,8 +116,6 @@ export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
   // (e.g. HIR semantic lints) are informational.
   const { errorDiagnosticsCount } = use(LanguageClientContext);
   const hasDiagnostics = errorDiagnosticsCount > 0;
-  const { activeComponentId } = use(ActiveNetContext);
-  const isInComponent = activeComponentId !== null;
   const isReadOnly = useIsReadOnly();
   const composesOnly = useComposesOnly();
 
@@ -125,8 +131,6 @@ export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
       setEditionMode("cursor");
     }
   }, [globalMode, editionMode, setEditionMode]);
-
-  useKeyboardShortcuts();
 
   const laneRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -147,6 +151,7 @@ export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
       className={bottomBarLaneStyle}
       style={{ bottom: BOTTOM_BAR_GAP }}
     >
+      <CanvasShortcuts />
       <div ref={barRef} data-bottom-bar className={bottomBarStyle}>
         <BottomBarCollapseContext value={layout}>
           <GlassSegment>
@@ -198,10 +203,7 @@ export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
                 {composesOnly ? null : (
                   <>
                     <ToolbarDivider />
-                    <EventSimulationControls
-                      disabled={hasDiagnostics}
-                      inComponent={isInComponent}
-                    />
+                    <EventSimulationControls disabled={hasDiagnostics} />
                   </>
                 )}
               </>

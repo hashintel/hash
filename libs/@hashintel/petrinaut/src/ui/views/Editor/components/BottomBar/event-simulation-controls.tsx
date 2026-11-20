@@ -4,6 +4,7 @@ import { Icon } from "@hashintel/ds-components";
 
 import { EventPlaybackContext } from "../../../../../react/event-playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
+import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { useEditorActions } from "../../../../../react/state/editor-context";
 import { useStoreSelector } from "../../../../../react/use-store";
 import {
@@ -21,7 +22,6 @@ import type { PlaybackSpeed } from "@hashintel/petrinaut-core";
 
 interface EventSimulationControlsProps {
   disabled?: boolean;
-  inComponent?: boolean;
   allowedPlaybackSpeeds?: readonly PlaybackSpeed[];
 }
 
@@ -32,8 +32,9 @@ interface EventSimulationControlsProps {
  */
 export const EventSimulationControls: React.FC<
   EventSimulationControlsProps
-> = ({ disabled = false, inComponent = false, allowedPlaybackSpeeds }) => {
+> = ({ disabled = false, allowedPlaybackSpeeds }) => {
   const experimentalIcons = useExperimentalIconPackEnabled();
+  const inComponent = use(ActiveNetContext).activeComponentId !== null;
   const {
     state: simulationState,
     reset,

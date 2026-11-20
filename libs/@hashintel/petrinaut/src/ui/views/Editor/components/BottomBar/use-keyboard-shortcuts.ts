@@ -23,7 +23,7 @@ import {
 
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 
-export function useKeyboardShortcuts() {
+export const useKeyboardShortcuts = () => {
   const undoRedo = use(UndoRedoContext);
   const { globalMode, selection, hasSelection, isSearchOpen, searchInputRef } =
     useEditorFields(
@@ -234,4 +234,4 @@ export function useKeyboardShortcuts() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
-}
+};
