@@ -78,7 +78,6 @@ const DrawerFromContext = ({
   const { experiments } = use(ExperimentsContext);
   return (
     <ViewExperimentDrawer
-      open
       onClose={() => {}}
       experiment={experiments[0]}
       presentation={presentation}

@@ -118,7 +118,6 @@ export const ExperimentsView = () => {
       />
 
       <ViewExperimentDrawer
-        open={selectedExperiment !== null}
         onClose={closeViewDrawer}
         experiment={selectedExperiment ?? undefined}
       />

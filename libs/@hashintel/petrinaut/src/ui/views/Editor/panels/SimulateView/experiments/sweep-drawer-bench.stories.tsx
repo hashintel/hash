@@ -144,9 +144,7 @@ const Session = ({
   if (!experiment) {
     return <p>Compiling…</p>;
   }
-  return (
-    <ViewExperimentDrawer open onClose={() => {}} experiment={experiment} />
-  );
+  return <ViewExperimentDrawer onClose={() => {}} experiment={experiment} />;
 };
 
 const Wrapper = (props: {

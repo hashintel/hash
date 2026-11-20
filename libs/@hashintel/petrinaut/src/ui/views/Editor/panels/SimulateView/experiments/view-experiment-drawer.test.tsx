@@ -140,7 +140,7 @@ afterEach(() => {
 });
 
 const drawerElement = (experiment: ExperimentRecord) => (
-  <ViewExperimentDrawer open onClose={() => {}} experiment={experiment} />
+  <ViewExperimentDrawer onClose={() => {}} experiment={experiment} />
 );
 
 const renderDrawer = (experiment: ExperimentRecord) =>
@@ -189,11 +189,7 @@ const renderDrawerWithStudies = (
         <OptimizationsContext
           value={makeOptimizationsContextValue(study, overrides)}
         >
-          <ViewExperimentDrawer
-            open
-            onClose={() => {}}
-            experiment={experiment}
-          />
+          <ViewExperimentDrawer onClose={() => {}} experiment={experiment} />
         </OptimizationsContext>
       </SDCPNContext>
     </PetrinautOptimizationContext>,
@@ -225,7 +221,6 @@ describe("ViewExperimentDrawer in the frame", () => {
   it("renders inline results with the same status and no dialog", () => {
     render(
       <ViewExperimentDrawer
-        open
         experiment={sweep}
         onClose={() => {}}
         presentation="inline"
@@ -338,7 +333,6 @@ describe("ViewExperimentDrawer in the frame", () => {
 
     view.rerender(
       <ViewExperimentDrawer
-        open
         onClose={() => {}}
         experiment={{ ...constrained, id: `${constrained.id}-next` }}
       />,
