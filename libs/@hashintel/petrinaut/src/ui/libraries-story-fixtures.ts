@@ -123,6 +123,20 @@ export const createStoryImportResolver =
     });
   };
 
+// Created once: a new resolver or a new list would create a new editor
+// instance on every render, and resolve every import again.
+export const resolveStoryImport = createStoryImportResolver(2500);
+export const offeredLibraries = [
+  logisticsLibrary.id,
+  toolingLibrary.id,
+  missingLibraryId,
+];
+
+/** A resolver over a library the host holds in memory: it resolves at once, with no loader. */
+export const resolveLogistics: ResolveImport = (id) =>
+  id === logisticsLibrary.id ? logisticsLibrary : undefined;
+export const logisticsOnly = [logisticsLibrary.id];
+
 const port = (componentInstanceId: string, portPlaceId: string) => ({
   kind: "componentPort" as const,
   componentInstanceId,

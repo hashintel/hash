@@ -1,11 +1,11 @@
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
-  createStoryImportResolver,
   importingLineNet,
-  logisticsLibrary,
-  missingLibraryId,
-  toolingLibrary,
+  logisticsOnly,
+  offeredLibraries,
+  resolveLogistics,
+  resolveStoryImport,
 } from "./libraries-story-fixtures";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
 import {
@@ -16,7 +16,6 @@ import {
 } from "./story-nets";
 import { pluginsWithOneBroken } from "./story-plugins";
 
-import type { ResolveImport } from "@hashintel/petrinaut-core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 /** States of the editor that its host decides, which no click reaches. */
@@ -110,15 +109,6 @@ export const ExtensionsDisabledOverTheirData: Story = {
   },
 };
 
-// At module scope: a new resolver or a new list would create a new editor
-// instance on every render, and resolve every import again.
-const resolveStoryImport = createStoryImportResolver(2500);
-const offeredLibraries = [
-  logisticsLibrary.id,
-  toolingLibrary.id,
-  missingLibraryId,
-];
-
 /**
  * A document over three imports. Logistics is in memory. Tooling arrives
  * after a moment, and the editor says "Resolving" over a blurred backdrop
@@ -136,11 +126,6 @@ export const Imports: Story = {
     libraries: offeredLibraries,
   },
 };
-
-// A library the host holds in memory: it resolves at once, with no loader.
-const resolveLogistics: ResolveImport = (id) =>
-  id === logisticsLibrary.id ? logisticsLibrary : undefined;
-const logisticsOnly = [logisticsLibrary.id];
 
 /**
  * An empty net in an editor its host keeps to composing, over a library the
