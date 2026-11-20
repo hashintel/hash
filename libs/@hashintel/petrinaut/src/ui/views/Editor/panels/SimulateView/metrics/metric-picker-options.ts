@@ -10,7 +10,7 @@ export type MetricKindGroup = {
   items: SelectItem<string>[];
 };
 
-export function createMetricKindGroups(sdcpn: SDCPN): MetricKindGroup[] {
+export const createMetricKindGroups = (sdcpn: SDCPN): MetricKindGroup[] => {
   const groups: MetricKindGroup[] = [
     {
       id: "built-in",
@@ -41,7 +41,7 @@ export function createMetricKindGroups(sdcpn: SDCPN): MetricKindGroup[] {
   });
 
   return groups;
-}
+};
 
 const METRIC_KIND_ICONS: Record<string, "circle" | "lightning" | "code"> = {
   placeTokenCountMean: "circle",
@@ -49,10 +49,10 @@ const METRIC_KIND_ICONS: Record<string, "circle" | "lightning" | "code"> = {
   [CUSTOM_METRIC_VALUE]: "code",
 };
 
-export function getMetricKindIcon(
+export const getMetricKindIcon = (
   value: string,
-): "circle" | "lightning" | "code" | "function" | undefined {
+): "circle" | "lightning" | "code" | "function" | undefined => {
   return value.startsWith(MODEL_METRIC_VALUE_PREFIX)
     ? "function"
     : METRIC_KIND_ICONS[value];
-}
+};

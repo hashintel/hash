@@ -50,7 +50,7 @@ const MetricDrawerFooter = ({
     summarizeMetricLspErrors(diagnosticsByUri, metricSessionId);
   const hasLspErrors = lspErrorCount > 0;
 
-  const formError = formErrors.find((e) => typeof e === "string") as
+  const formError = formErrors.find((error) => typeof error === "string") as
     | string
     | undefined;
   const hasErrors = !!formError || hasLspErrors;

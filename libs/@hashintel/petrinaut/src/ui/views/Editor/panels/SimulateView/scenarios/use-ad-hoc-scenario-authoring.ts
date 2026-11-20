@@ -98,11 +98,11 @@ export const scenarioFormContext = (
  * `synthesizeAdHocScenario` — those stay the compiler's inputs, so every
  * other consumer of the saved scenario works unchanged.
  */
-export function useAdHocScenarioAuthoring({
+export const useAdHocScenarioAuthoring = ({
   initial,
   scenarioId,
   code,
-}: UseAdHocScenarioAuthoringOptions = {}) {
+}: UseAdHocScenarioAuthoringOptions = {}) => {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { diagnosticsByUri } = use(LanguageClientContext);
 
@@ -192,7 +192,7 @@ export function useAdHocScenarioAuthoring({
     canSave: errorCount === 0,
     scenarioToSave,
   };
-}
+};
 
 export type AdHocScenarioAuthoring = ReturnType<
   typeof useAdHocScenarioAuthoring

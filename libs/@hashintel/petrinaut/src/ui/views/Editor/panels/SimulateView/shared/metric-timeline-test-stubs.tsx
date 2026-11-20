@@ -1,7 +1,7 @@
 /**
- * Module factories for the `vi.mock` calls the study suites share. uPlot
- * cannot mount in jsdom, so the charts are stubs while the card chrome around
- * them (the menu, the subtitle, the tone) stays real.
+ * The module factory for the `vi.mock` call of the experiment panel's suite.
+ * uPlot cannot mount in jsdom, so the timeline is a stub while the card chrome
+ * around it (the menu, the subtitle, the tone) stays real.
  */
 import { vi } from "vitest";
 
