@@ -107,10 +107,10 @@ plugin's `api.settings`. The rows of a plugin that is off or failed are hidden.
 
 ## React Compiler
 
-Plugin code runs without the React Compiler. Compiled, a hook returns the same
-contributions while its inputs hold, so nothing publishes. Uncompiled, it
-returns new contributions on every render of its host, which publishes them
-again and re-renders every outlet.
+A plugin's build decides whether the React Compiler compiles its hook.
+Compiled, a hook returns the same contributions while its inputs hold, so
+nothing publishes. Uncompiled, it returns new contributions on every render of
+its host, which publishes them again and re-renders the outlets that read them.
 
 - `PluginHost` opts out with `"use no memo"`: the hook it calls differs per
   host, which the compiler cannot compile. A host is keyed by its plugin's

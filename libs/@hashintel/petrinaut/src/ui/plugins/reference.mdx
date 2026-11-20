@@ -230,8 +230,7 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
   `PluginExperimentsReader`, `PluginExperiments`, `PluginEditorReader`,
   `PluginEditor`, `PluginErrors`, `PluginNotifications`, `EditResult`,
   `EditRefusal`, `ReadOnlyReason`.
-- Editor state: `PetrinautNavigationState`, `PetrinautNavigationUpdate`,
-  `SelectionItem`, `PetrinautRevealTarget`, `DiagnosticsSnapshot`,
+- Editor state: `SelectionItem`, `PetrinautRevealTarget`, `DiagnosticsSnapshot`,
   `AddNotificationInput`, `ReadableStore`.
 
 ### Hooks
@@ -265,7 +264,6 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
   registers under.
 - `parseDocumentUri(uri)`: the code document a diagnostics key names, as
   `{ itemType, itemId }`, or `null`.
-- `petrinautDocsContent`: the user guide's pages, by name.
 
 ## Error messages
 
@@ -273,7 +271,7 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
 | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `Petrinaut plugin "<id>" is passed twice. Pass each plugin once.`                       | Two plugins in `plugins` share an id. Thrown during render.                                                     |
 | `Plugin id "<id>" is reserved. ...`                                                     | The id is `petrinaut` or starts with `petrinaut.`. Thrown by `definePetrinautPlugin`.                           |
-| `Plugin "<id>" command "<key>" contains a dot. ...`                                     | A command key contains a dot. Thrown by `definePetrinautPlugin`.                                                |
+| `Plugin "<id>" <kind> "<key>" contains a dot. ...`                                      | A command key or a bottom panel view key contains a dot. Thrown by `definePetrinautPlugin`.                     |
 | `Plugin "<id>" setting "<key>" defaults to "<value>", which is not one of its options.` | An enum setting's `default` is outside its `options`, or `options` is empty. Thrown by `definePetrinautPlugin`. |
 | `Plugin "<id>" setting "<key>" rejects <value>.`                                        | `settings.set` with an undeclared key or a value its spec rejects. Thrown by `set`.                             |
 

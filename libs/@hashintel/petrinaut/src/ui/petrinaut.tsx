@@ -101,7 +101,7 @@ export type PetrinautProps = {
    * Controls visibility of net-management UI in the editor's top bar and
    * burger menu.
    *
-   * - [omitted] (default): show the title, includethe "New", "Open", "Import",
+   * - [omitted] (default): show the title, include the "New", "Open", "Import",
    *   and "Load example" menu items in the burger menu.
    * - `"except-title"`: hide the management menu items but keep the title
    *   viewable and editable in the top bar.
