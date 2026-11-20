@@ -49,8 +49,11 @@ import {
   ExperimentsContext,
   type ExperimentsContextValue,
 } from "./context";
-import { buildSweepAxes, ExperimentsProvider } from "./provider";
-import { compileExperimentScenario } from "./provider/create-experiment";
+import { ExperimentsProvider } from "./provider";
+import {
+  buildSweepAxes,
+  compileExperimentScenario,
+} from "./provider/create-experiment";
 
 import type { LanguageClientContextValue } from "../lsp/context";
 import type { PetrinautNavigationState } from "../navigation";

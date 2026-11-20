@@ -63,8 +63,6 @@ import type {
   SweptScenarioCompiler,
 } from "./provider/shared/experiment-request";
 
-export { buildSweepAxes } from "./provider/create-experiment";
-
 type ExperimentHandleRegistration = {
   handle: MonteCarloExperiment;
   off: () => void;
