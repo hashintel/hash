@@ -106,6 +106,7 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
     brunchTools.hashQueryEntities,
     brunchTools.hashQueryEntityTypes,
     brunchTools.hashQueryWebs,
+    brunchTools.hashCountEntities,
     brunchTools.appSaveNet,
   ])
     expect(mounted.tools).not.toContain(name);

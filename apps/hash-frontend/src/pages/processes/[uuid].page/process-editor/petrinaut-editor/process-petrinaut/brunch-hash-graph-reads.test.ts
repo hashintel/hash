@@ -3,19 +3,24 @@ import { expect, test, vi } from "vitest";
 import { hashEntityReadMaxTraversalDepth } from "@hashintel/brunch-agent";
 
 import {
+  createHashEntityCountTool,
   createHashEntityReadTool,
   createHashEntityTypeReadTool,
   createHashWebReadTool,
+  hashEntityCountRequest,
   hashEntityReadRequest,
   hashEntityTypeReadRequest,
+  hashReadWebScope,
   type HashWebReadUser,
   type QueryEntitySubgraph,
   type QueryEntityTypes,
+  type SummarizeEntities,
 } from "./brunch-hash-graph-reads";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntityTypesQuery,
+  SummarizeEntitiesQuery,
 } from "../../../../../../graphql/api-types.gen";
 import type {
   PetrinautAiAutomaticTool,
@@ -998,4 +1003,217 @@ test("the web read lists the signed-in user's own web, then their orgs', from th
   await expect(runTool(tool, {})).resolves.toEqual({
     error: "No user is signed in to HASH.",
   });
+});
+
+const countUser: HashWebReadUser = {
+  accountId: "alice-web" as HashWebReadUser["accountId"],
+  shortname: "alice",
+  displayName: "Alice",
+  memberOf: [
+    {
+      org: {
+        webId:
+          "acme-web" as HashWebReadUser["memberOf"][number]["org"]["webId"],
+        shortname: "acme",
+        name: "Acme",
+      },
+    },
+  ],
+};
+const webIs = (webId: string) => ({
+  equal: [{ path: ["webId"] }, { parameter: webId }],
+});
+const salesOrderTypeId =
+  "https://hash.ai/@acme/types/entity-type/sales-order/v/1";
+const customerTypeId = "https://hash.ai/@acme/types/entity-type/customer/v/2";
+const countFlags = {
+  includeDrafts: false,
+  includeCount: true,
+  includeTypeIds: true,
+  includeTypeTitles: true,
+  includeWebIds: true,
+};
+
+test("a read naming no webs covers the user's own web and each org web; one naming webs covers exactly those", () => {
+  expect(hashReadWebScope(undefined, countUser)).toEqual({
+    scope: "default",
+    webIds: ["alice-web", "acme-web"],
+  });
+  expect(hashReadWebScope(["hash-web", "hash-web"], countUser)).toEqual({
+    scope: "named",
+    webIds: ["hash-web"],
+  });
+  expect(hashReadWebScope(["hash-web"], undefined)).toEqual({
+    scope: "named",
+    webIds: ["hash-web"],
+  });
+  expect(hashReadWebScope(undefined, undefined)).toEqual({
+    error: "No user is signed in to HASH.",
+  });
+});
+
+test("a count asks for the total, by type with titles and by web, of the entity read's unarchived, non-draft matches in the webs given", () => {
+  expect(
+    hashEntityCountRequest({ entityTypes: ["Sales Order", customerTypeId] }, [
+      "alice-web",
+      "acme-web",
+    ]),
+  ).toEqual({
+    filter: {
+      all: [
+        {
+          any: [
+            {
+              equal: [
+                { path: ["type", "title"] },
+                { parameter: "Sales Order" },
+              ],
+            },
+            {
+              equal: [
+                { path: ["type", "versionedUrl"] },
+                { parameter: customerTypeId },
+              ],
+            },
+          ],
+        },
+        { any: [webIs("alice-web"), webIs("acme-web")] },
+        ...notArchived,
+      ],
+    },
+    temporalAxes: hashEntityReadRequest({}).temporalAxes,
+    ...countFlags,
+  });
+  // The same type and web filters the entity read builds.
+  const typed = { entityTypes: ["Sales Order"], webIds: ["alice-web"] };
+  expect(hashEntityCountRequest(typed, typed.webIds).filter).toEqual(
+    hashEntityReadRequest(typed).filter,
+  );
+});
+
+const summary = (
+  summarizeEntities: SummarizeEntitiesQuery["summarizeEntities"],
+): SummarizeEntitiesQuery => ({ summarizeEntities });
+
+const count = (
+  summarizeEntities: SummarizeEntities,
+  input: unknown,
+  { signedIn = true }: { signedIn?: boolean } = {},
+) =>
+  runTool(
+    createHashEntityCountTool(summarizeEntities, () =>
+      signedIn ? countUser : undefined,
+    ),
+    input,
+  );
+
+test("a count naming no webs is limited to the user's own and org webs, and returns each type by count with its title and each web named", async () => {
+  const summarize = vi.fn<SummarizeEntities>(() =>
+    Promise.resolve(
+      summary({
+        count: 1500,
+        typeIds: { [customerTypeId]: 100, [salesOrderTypeId]: 1400 },
+        typeTitles: { [salesOrderTypeId]: "Sales Order" },
+        webIds: {
+          ["alice-web" as HashWebReadUser["accountId"]]: 1500,
+        },
+      }),
+    ),
+  );
+  await expect(count(summarize, {})).resolves.toEqual({
+    count: 1500,
+    webScope: "default",
+    entityTypes: [
+      { entityTypeId: salesOrderTypeId, title: "Sales Order", count: 1400 },
+      { entityTypeId: customerTypeId, count: 100 },
+    ],
+    webs: [
+      {
+        webId: "alice-web",
+        kind: "user",
+        shortname: "alice",
+        name: "Alice",
+        count: 1500,
+      },
+      {
+        webId: "acme-web",
+        kind: "organization",
+        shortname: "acme",
+        name: "Acme",
+        count: 0,
+      },
+    ],
+  });
+  expect(summarize).toHaveBeenCalledTimes(1);
+  expect(summarize).toHaveBeenCalledWith(
+    {
+      filter: {
+        all: [{ any: [webIs("alice-web"), webIs("acme-web")] }, ...notArchived],
+      },
+      temporalAxes: hashEntityReadRequest({}).temporalAxes,
+      ...countFlags,
+    },
+    expect.any(AbortSignal),
+  );
+});
+
+test("a count naming webs counts in exactly those, naming those the user's own or org webs and others by id", async () => {
+  const summarize = vi.fn<SummarizeEntities>(() =>
+    Promise.resolve(summary({ count: 0, typeIds: {}, webIds: {} })),
+  );
+  await expect(
+    count(summarize, { webIds: ["acme-web", "hash-web"] }),
+  ).resolves.toEqual({
+    count: 0,
+    webScope: "named",
+    entityTypes: [],
+    webs: [
+      {
+        webId: "acme-web",
+        kind: "organization",
+        shortname: "acme",
+        name: "Acme",
+        count: 0,
+      },
+      { webId: "hash-web", count: 0 },
+    ],
+  });
+  expect(summarize).toHaveBeenCalledWith(
+    expect.objectContaining({
+      filter: {
+        all: [{ any: [webIs("acme-web"), webIs("hash-web")] }, ...notArchived],
+      },
+    }),
+    expect.any(AbortSignal),
+  );
+});
+
+test("a count settles { error } when its query fails, when the graph returns no count, or when it has no web to count in", async () => {
+  await expect(
+    count(
+      () => Promise.reject(new Error("Response not successful: GraphQL error")),
+      {},
+    ),
+  ).resolves.toEqual({ error: "Response not successful: GraphQL error" });
+  await expect(
+    count(() => Promise.resolve(summary({ typeIds: {} })), {}),
+  ).resolves.toEqual({
+    error: "HASH's graph returned a summary without a count.",
+  });
+  const summarize = vi.fn<SummarizeEntities>();
+  await expect(count(summarize, {}, { signedIn: false })).resolves.toEqual({
+    error: "No user is signed in to HASH.",
+  });
+  expect(summarize).not.toHaveBeenCalled();
+});
+
+test("a count the agent's contract doesn't allow is refused before any query", async () => {
+  const summarize = vi.fn<SummarizeEntities>();
+  await expect(
+    count(summarize, {
+      entityTypes: ["https://hash.ai/@acme/types/entity-type/sales-order/"],
+    }),
+  ).rejects.toThrow(/needs its version/u);
+  await expect(count(summarize, { traversalDepth: 0 })).rejects.toThrow();
+  expect(summarize).not.toHaveBeenCalled();
 });

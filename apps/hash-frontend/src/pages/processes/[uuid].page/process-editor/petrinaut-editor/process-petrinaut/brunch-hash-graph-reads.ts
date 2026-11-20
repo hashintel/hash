@@ -12,6 +12,8 @@ import {
 } from "@blockprotocol/type-system";
 import {
   brunchTools,
+  type HashEntityCountInput,
+  type HashEntityCountResult,
   type HashEntityReadInput,
   type HashEntityReadResult,
   type HashEntityTypeReadInput,
@@ -19,6 +21,7 @@ import {
   type HashReadFailure,
   type HashWebReadResult,
   hashEntityReadDefaultTraversalDepth,
+  parseHashEntityCountInput,
   parseHashEntityReadInput,
   parseHashEntityTypeReadInput,
   parseHashWebReadInput,
@@ -38,6 +41,7 @@ import {
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { summarizeEntitiesQuery } from "../../../../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../../../../graphql/queries/ontology/entity-type.queries";
 import { useAuthInfo } from "../../../../../shared/auth-info-context";
 
@@ -46,6 +50,8 @@ import type {
   QueryEntitySubgraphQueryVariables,
   QueryEntityTypesQuery,
   QueryEntityTypesQueryVariables,
+  SummarizeEntitiesQuery,
+  SummarizeEntitiesQueryVariables,
 } from "../../../../../../graphql/api-types.gen";
 import type { User } from "../../../../../../lib/user-and-org";
 import type { PetrinautAiAutomaticTool } from "@hashintel/brunch-agent/ui";
@@ -61,6 +67,37 @@ const isTypeUrl = (type: string) =>
 
 const anyOf = (filters: Filter[]): Filter[] =>
   filters.length === 0 ? [] : [{ any: filters }];
+
+/**
+ * Entities of any of these types: a title matches every type with that title,
+ * at any version; a type URL matches that version only.
+ */
+const entityTypesFilter = (entityTypes: readonly string[] = []): Filter[] =>
+  anyOf(
+    entityTypes.map((type) => ({
+      equal: [
+        { path: ["type", isTypeUrl(type) ? "versionedUrl" : "title"] },
+        { parameter: type },
+      ],
+    })),
+  );
+
+/** Entities in any of these webs. */
+const webIdsFilter = (webIds: readonly string[] = []): Filter[] =>
+  anyOf(
+    webIds.map((webId) => ({
+      equal: [{ path: ["webId"] }, { parameter: webId }],
+    })),
+  );
+
+/**
+ * Entities archived neither by their metadata flag nor, as pages and
+ * notifications are, by their `archived` property.
+ */
+const notArchivedFilters: Filter[] = [
+  { equal: [{ path: ["archived"] }, { parameter: false }] },
+  pageOrNotificationNotArchivedFilter,
+];
 
 /** One link from an entity, followed to the entity on its other end. */
 const linkHops: readonly (readonly EntityTraversalEdge[])[] = [
@@ -137,22 +174,10 @@ export const hashEntityReadRequest = (
   return {
     filter: {
       all: [
-        ...anyOf(
-          (input.entityTypes ?? []).map((type) => ({
-            equal: [
-              { path: ["type", isTypeUrl(type) ? "versionedUrl" : "title"] },
-              { parameter: type },
-            ],
-          })),
-        ),
+        ...entityTypesFilter(input.entityTypes),
         ...anyOf(entityIds.map(entityIdFilter)),
-        ...anyOf(
-          (input.webIds ?? []).map((webId) => ({
-            equal: [{ path: ["webId"] }, { parameter: webId }],
-          })),
-        ),
-        { equal: [{ path: ["archived"] }, { parameter: false }] },
-        pageOrNotificationNotArchivedFilter,
+        ...webIdsFilter(input.webIds),
+        ...notArchivedFilters,
       ],
     },
     temporalAxes: currentTimeInstantTemporalAxes,
@@ -475,33 +500,166 @@ export type HashWebReadUser = Pick<
   }[];
 };
 
+const noUserSignedIn: HashReadFailure = {
+  error: "No user is signed in to HASH.",
+};
+
+/** The signed-in user's own web, then each org web they belong to. */
+const websOf = (user: HashWebReadUser): HashWebReadResult["webs"] => [
+  {
+    // A user's web id is their account id.
+    webId: user.accountId,
+    kind: "user" as const,
+    ...(user.shortname === undefined ? {} : { shortname: user.shortname }),
+    ...(user.displayName === undefined ? {} : { name: user.displayName }),
+  },
+  ...user.memberOf.map(({ org }) => ({
+    webId: org.webId,
+    kind: "organization" as const,
+    shortname: org.shortname,
+    name: org.name,
+  })),
+];
+
 /** The signed-in user's own web, then each org web they belong to. */
 export const hashWebReadResult = (
   user: HashWebReadUser | undefined,
 ): HashWebReadResult | HashReadFailure =>
-  user === undefined
-    ? { error: "No user is signed in to HASH." }
-    : {
-        webs: [
-          {
-            // A user's web id is their account id.
-            webId: user.accountId,
-            kind: "user" as const,
-            ...(user.shortname === undefined
-              ? {}
-              : { shortname: user.shortname }),
-            ...(user.displayName === undefined
-              ? {}
-              : { name: user.displayName }),
-          },
-          ...user.memberOf.map(({ org }) => ({
-            webId: org.webId,
-            kind: "organization" as const,
-            shortname: org.shortname,
-            name: org.name,
-          })),
-        ],
-      };
+  user === undefined ? noUserSignedIn : { webs: websOf(user) };
+
+/**
+ * The webs a read covers: those its input names (`named`), else the
+ * signed-in user's own web and each org web they belong to (`default`), so a
+ * read that names no web never reaches into HASH's shared webs or other
+ * users'. With no web named and no user signed in, there is nothing to cover.
+ */
+export type HashReadWebScope = {
+  readonly scope: "default" | "named";
+  readonly webIds: readonly string[];
+};
+
+export const hashReadWebScope = (
+  webIds: readonly string[] | undefined,
+  user: HashWebReadUser | undefined,
+): HashReadWebScope | HashReadFailure => {
+  if (webIds !== undefined) {
+    return { scope: "named", webIds: [...new Set(webIds)] };
+  }
+  return user === undefined
+    ? noUserSignedIn
+    : { scope: "default", webIds: websOf(user).map(({ webId }) => webId) };
+};
+
+export type SummarizeEntitiesRequest =
+  SummarizeEntitiesQueryVariables["request"];
+
+/**
+ * The `summarizeEntities` request for one count: the entity read's filters
+ * for types and for not being archived, limited to the webs in scope, with
+ * the total, the count per direct type and its title, and the count per web.
+ * Drafts are not counted.
+ */
+export const hashEntityCountRequest = (
+  input: HashEntityCountInput,
+  webIds: readonly string[],
+): SummarizeEntitiesRequest => ({
+  filter: {
+    all: [
+      ...entityTypesFilter(input.entityTypes),
+      ...webIdsFilter(webIds),
+      ...notArchivedFilters,
+    ],
+  },
+  temporalAxes: currentTimeInstantTemporalAxes,
+  includeDrafts: false,
+  includeCount: true,
+  includeTypeIds: true,
+  includeTypeTitles: true,
+  includeWebIds: true,
+});
+
+/**
+ * The count, each direct type counted, most first, with its title, and every
+ * web in scope with its count, named where it is the user's own or one of
+ * their orgs'. A response without a count fails the count.
+ */
+export const hashEntityCountResult = (
+  response: SummarizeEntitiesQuery,
+  { scope, webIds }: HashReadWebScope,
+  user: HashWebReadUser | undefined,
+): HashEntityCountResult => {
+  const {
+    count,
+    typeIds = {},
+    typeTitles = {},
+    webIds: webCounts = {},
+  } = response.summarizeEntities;
+  if (count === undefined) {
+    throw new Error("HASH's graph returned a summary without a count.");
+  }
+  const known = new Map(
+    (user === undefined ? [] : websOf(user)).map((web) => [web.webId, web]),
+  );
+  return {
+    count,
+    webScope: scope,
+    entityTypes: Object.entries(typeIds)
+      .map(([entityTypeId, typeCount]) => {
+        const title = typeTitles[entityTypeId as VersionedUrl];
+        return {
+          entityTypeId,
+          ...(title === undefined ? {} : { title }),
+          count: typeCount,
+        };
+      })
+      .sort(
+        (left, right) =>
+          right.count - left.count ||
+          left.entityTypeId.localeCompare(right.entityTypeId),
+      ),
+    webs: webIds.map((webId) => ({
+      ...known.get(webId),
+      webId,
+      count: webCounts[webId as keyof typeof webCounts] ?? 0,
+    })),
+  };
+};
+
+/** Runs one `summarizeEntities` request as the signed-in user. */
+export type SummarizeEntities = (
+  request: SummarizeEntitiesRequest,
+  signal: AbortSignal,
+) => Promise<SummarizeEntitiesQuery>;
+
+/**
+ * Brunch's HASH entity count, run in the page: one `summarizeEntities`
+ * request over the webs in scope. An input the agent's contract doesn't
+ * allow rejects; a failed query, or no user to scope to, settles `{ error }`.
+ */
+export const createHashEntityCountTool = (
+  summarizeEntities: SummarizeEntities,
+  currentUser: () => HashWebReadUser | undefined,
+): PetrinautAiAutomaticTool => ({
+  toolName: brunchTools.hashCountEntities,
+  inputParser: { parse: parseHashEntityCountInput },
+  outputParser: { parse: (value) => value },
+  execute: async ({ input, signal }) => {
+    const countInput = parseHashEntityCountInput(input);
+    const user = currentUser();
+    const webScope = hashReadWebScope(countInput.webIds, user);
+    if ("error" in webScope) {
+      return webScope;
+    }
+    const request = hashEntityCountRequest(countInput, webScope.webIds);
+    return settlingQueryFailure(signal, async () =>
+      hashEntityCountResult(
+        await summarizeEntities(request, signal),
+        webScope,
+        user,
+      ),
+    );
+  },
+});
 
 /**
  * Brunch's HASH web read, run in the page from the signed-in user it already
@@ -560,6 +718,22 @@ export const useBrunchHashGraphReadTools =
             ).data,
         ),
         createHashWebReadTool(() => userRef.current),
+        createHashEntityCountTool(
+          async (request, signal) =>
+            (
+              await apolloClient.query<
+                SummarizeEntitiesQuery,
+                SummarizeEntitiesQueryVariables
+              >({
+                query: summarizeEntitiesQuery,
+                variables: { request },
+                // Each count reports what the graph holds now.
+                fetchPolicy: "network-only",
+                context: { fetchOptions: { signal } },
+              })
+            ).data,
+          () => userRef.current,
+        ),
       ],
       [apolloClient],
     );

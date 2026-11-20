@@ -115,6 +115,43 @@ export const parseHashEntityTypeReadInput = (
   input: unknown,
 ): HashEntityTypeReadInput => v.parse(hashEntityTypeReadInputSchema, input);
 
+/**
+ * One entity type to count: a title, or a versioned URL. An unversioned type
+ * URL would match nothing, so it is refused with what to give instead.
+ */
+const hashEntityTypeSelectorSchema = v.pipe(
+  v.string(),
+  v.minLength(1),
+  v.check(
+    (selector) =>
+      !/^https?:\/\//u.test(selector) || /\/v\/[1-9]\d*$/u.test(selector),
+    "An entity type URL needs its version, as in …/sales-order/v/1: copy the entityTypeId from a read, or give the type's title instead.",
+  ),
+);
+
+export const hashEntityCountInputSchema = v.strictObject({
+  entityTypes: v.optional(
+    v.pipe(
+      v.array(hashEntityTypeSelectorSchema),
+      v.minLength(1),
+      v.description(
+        "Entity types to count, each a title such as `Sales Order`, matching every type with that title at any version, or a versioned entityTypeId, matching that version only. Entities of any listed type are counted. Omit to count every entity, links included.",
+      ),
+    ),
+  ),
+  webIds: identifiersSchemaWith({
+    description: `Web ids to count in. Omit to count in the user's own web and their organizations' webs, as ${brunchTools.hashQueryWebs} lists them; name webs to count in others.`,
+  }),
+});
+
+export type HashEntityCountInput = v.InferOutput<
+  typeof hashEntityCountInputSchema
+>;
+
+export const parseHashEntityCountInput = (
+  input: unknown,
+): HashEntityCountInput => v.parse(hashEntityCountInputSchema, input);
+
 export const hashWebReadInputSchema = v.strictObject({});
 
 export const parseHashWebReadInput = (input: unknown) =>
@@ -197,11 +234,13 @@ export type HashEntityTypeReadResult = v.InferOutput<
   typeof hashEntityTypeReadResultSchema
 >;
 
+const hashWebKindSchema = v.picklist(["user", "organization"]);
+
 export const hashWebReadResultSchema = v.object({
   webs: v.array(
     v.object({
       webId: v.string(),
-      kind: v.picklist(["user", "organization"]),
+      kind: hashWebKindSchema,
       shortname: v.optional(v.string()),
       name: v.optional(v.string()),
     }),
@@ -209,3 +248,43 @@ export const hashWebReadResultSchema = v.object({
 });
 
 export type HashWebReadResult = v.InferOutput<typeof hashWebReadResultSchema>;
+
+const countSchema = v.pipe(v.number(), v.integer(), v.minValue(0));
+
+/**
+ * An exact count of the entities a count's filters match that the signed-in
+ * user may see, by each entity's direct types and by web; it lists none.
+ */
+export const hashEntityCountResultSchema = v.object({
+  count: countSchema,
+  /**
+   * Which webs were counted: the user's own and organization webs when the
+   * input named none (`default`), else the webs it named.
+   */
+  webScope: v.picklist(["default", "named"]),
+  /**
+   * Each direct type a counted entity carries; an entity of several types is
+   * counted under each.
+   */
+  entityTypes: v.array(
+    v.object({
+      entityTypeId: v.string(),
+      title: v.optional(v.string()),
+      count: countSchema,
+    }),
+  ),
+  /** Every web counted in, named where the page knows it, with its count. */
+  webs: v.array(
+    v.object({
+      webId: v.string(),
+      kind: v.optional(hashWebKindSchema),
+      shortname: v.optional(v.string()),
+      name: v.optional(v.string()),
+      count: countSchema,
+    }),
+  ),
+});
+
+export type HashEntityCountResult = v.InferOutput<
+  typeof hashEntityCountResultSchema
+>;

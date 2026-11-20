@@ -58,7 +58,7 @@ const faux = fauxProvider({ provider: "faux", models: [{ id: "faux-1" }] });
 const requests: TranscriptContext[] = [];
 const steps: Step[] = [];
 faux.setResponses(
-  Array.from({ length: 40 }, () => (context: TranscriptContext) => {
+  Array.from({ length: 60 }, () => (context: TranscriptContext) => {
     requests.push(structuredClone(context));
     const step = steps.shift();
     if (!step) throw new Error("The script ran out of scripted agent steps.");
@@ -496,6 +496,59 @@ test("the web read is offered, issued as a read in a fresh conversation, and the
   );
 });
 
+test("the entity count is offered, issued as a read in a fresh conversation with its filters as given, and the model next sees the page's count", async () => {
+  const input = {
+    entityTypes: ["Sales Order"],
+    webIds: ["alice-web", "org-web"],
+  };
+  const salesOrder = "https://hash.ai/@acme/types/entity-type/sales-order/v/1";
+  const { claim, declared, seen } = await readOnce(
+    brunchTools.hashCountEntities,
+    input,
+    {
+      count: 1234,
+      webScope: "named",
+      entityTypes: [
+        { entityTypeId: salesOrder, title: "Sales Order", count: 1234 },
+      ],
+      webs: [
+        {
+          webId: "alice-web",
+          kind: "user",
+          shortname: "alice",
+          name: "Alice",
+          count: 1200,
+        },
+        {
+          webId: "org-web",
+          kind: "organization",
+          shortname: "acme",
+          name: "Acme",
+          count: 34,
+        },
+      ],
+    },
+  );
+  const { capability: _capability, ...issued } = claim;
+  expect(issued).toEqual({
+    toolName: brunchTools.hashCountEntities,
+    input,
+    binding: claim.binding,
+  });
+  expect(declared).toContain(brunchTools.hashCountEntities);
+  expect(seen).toBe(
+    [
+      "entities: 1234",
+      "webs counted: the webIds named",
+      "by entity type:",
+      `- 1234 Sales Order: ${salesOrder}`,
+      "by web:",
+      '- 1200 user "Alice" @alice webId: alice-web',
+      '- 34 organization "Acme" @acme webId: org-web',
+    ].join("\n"),
+  );
+});
+
 test("an entity read asking for an entity's full values is issued as asked, and the model next sees the value in full", async () => {
   const definitionUrl =
     "https://hash.ai/@h/types/property-type/definition-object/";
@@ -566,6 +619,7 @@ test.each([
   [brunchTools.hashQueryEntities, readInput],
   [brunchTools.hashQueryEntityTypes, {}],
   [brunchTools.hashQueryWebs, {}],
+  [brunchTools.hashCountEntities, {}],
 ])(
   "%s settled with the page's error reaches the model as a failed read it can read",
   async (toolName, input) => {

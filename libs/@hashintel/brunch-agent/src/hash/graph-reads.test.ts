@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 
 import {
   hashEntityReadMaxTraversalDepth,
+  parseHashEntityCountInput,
   parseHashEntityReadInput,
   parseHashEntityTypeReadInput,
   parseHashWebReadInput,
@@ -23,6 +24,7 @@ test("an entity read follows whole numbers of links, from none up to the maximum
 
 test.each([
   ["entity read", parseHashEntityReadInput, { webIds: ["web"] }, "webIds"],
+  ["entity count", parseHashEntityCountInput, { webIds: ["web"] }, "webIds"],
   [
     "entity type read",
     parseHashEntityTypeReadInput,
@@ -67,3 +69,38 @@ test("a web read takes no input", () => {
     /Invalid key/u,
   );
 });
+
+test("an entity count takes entity types by title or by versioned entityTypeId, in given webs or none", () => {
+  const typed = {
+    entityTypes: [
+      "Sales Order",
+      "https://hash.ai/@acme/types/entity-type/sales-order/v/12",
+    ],
+  };
+  expect(parseHashEntityCountInput(typed)).toEqual(typed);
+  expect(parseHashEntityCountInput({})).toEqual({});
+  expect(() => parseHashEntityCountInput({ entityTypes: [] })).toThrow(
+    /Invalid length/u,
+  );
+  expect(() => parseHashEntityCountInput({ entityTypes: [""] })).toThrow(
+    /Invalid length/u,
+  );
+  expect(() => parseHashEntityCountInput({ traversalDepth: 0 })).toThrow(
+    /Invalid key/u,
+  );
+});
+
+test.each([
+  "https://hash.ai/@acme/types/entity-type/sales-order/",
+  "https://hash.ai/@acme/types/entity-type/sales-order/v/0",
+  "http://localhost:3000/@acme/types/entity-type/sales-order",
+])(
+  "an entity count refuses the unversioned type URL %s, telling the model what to give instead",
+  (entityType) => {
+    expect(() =>
+      parseHashEntityCountInput({ entityTypes: [entityType] }),
+    ).toThrow(
+      "An entity type URL needs its version, as in …/sales-order/v/1: copy the entityTypeId from a read, or give the type's title instead.",
+    );
+  },
+);
