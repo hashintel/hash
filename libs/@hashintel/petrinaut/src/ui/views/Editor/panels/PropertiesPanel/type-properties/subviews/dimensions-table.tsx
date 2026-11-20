@@ -68,7 +68,7 @@ const emptyStyle = css({
 /** Grid columns: 0 gutter, 1 name, 2 type. */
 const PHANTOM_COLUMNS = [0, 1, 2];
 
-export interface DimensionsTableProps {
+interface DimensionsTableProps {
   /** Rows cannot be added, renamed, retyped, reordered or removed. */
   readOnly: boolean;
 }

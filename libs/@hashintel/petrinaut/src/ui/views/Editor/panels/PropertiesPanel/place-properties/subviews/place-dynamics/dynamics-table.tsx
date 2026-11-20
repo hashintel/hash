@@ -104,7 +104,7 @@ const tokensCellStyle = css({
 /** Grid columns: 0 gutter, 1 equation. */
 const PHANTOM_COLUMNS = [0, 1];
 
-export interface DynamicsTableProps {
+interface DynamicsTableProps {
   terms: readonly PlaceDynamicsTerm[];
   /** Every equation of the net, to name the terms. */
   equations: readonly DifferentialEquation[];
