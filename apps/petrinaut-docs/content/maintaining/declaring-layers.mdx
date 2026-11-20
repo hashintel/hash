@@ -22,8 +22,8 @@ role: Runs many simulations with bounded frame memory
 The prose below the frontmatter becomes the layer's page body, so an existing
 folder README needs only the frontmatter added.
 
-For a folder with a barrel entry file and no README, annotate the entry file
-instead:
+For a folder with no README, put the tags in the doc comment at the top of one
+source file of the folder:
 
 ```ts
 /**
@@ -67,8 +67,8 @@ yarn workspace @apps/petrinaut-docs lint:arch-docs
 ```
 
 It fails when a source file no layer covers appears, when a layer id implies an
-ancestor nothing declares, when a dependency violates a declared rule, and when
-the import graph reaches a source file no layer claims.
+ancestor nothing declares, when a `@layerRoot` has no `@role`, when a dependency
+violates a declared rule, and when a `layer:` or `doc:` link does not resolve.
 
 The bundle itself is build output and is git-ignored, so there is nothing to
 regenerate before pushing. Only the annotations are versioned. To read the docs
@@ -202,8 +202,8 @@ needs its own components of those names.
 
 ## Declaring a rule
 
-Rules live in `archinaut.config.ts` and are checked against the real import
-graph:
+Rules live in `archinaut.config.ts` and are checked against the dependency
+graph. A rule that names a layer covers its descendants too:
 
 ```ts
 {
