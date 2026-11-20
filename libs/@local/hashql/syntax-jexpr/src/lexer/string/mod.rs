@@ -4,7 +4,8 @@ use core::{
     simd::{
         Select as _,
         cmp::{SimdPartialEq as _, SimdPartialOrd as _},
-        u8x4, u8x16,
+        num::SimdUint as _,
+        u8x4, u8x16, u16x4,
     },
     str::Utf8Error,
 };
@@ -54,7 +55,6 @@ fn hex_error(source: &mut &[u8]) -> EscapeError {
     EscapeError::Eof
 }
 
-#[expect(clippy::min_ident_chars, clippy::big_endian_bytes)]
 fn hex_quad(source: &mut &[u8]) -> Result<u16, EscapeError> {
     // SIMD here works because we assume that the bytes that we have in the register are correct, we
     // then validate that assumption before we actually emit the result.
@@ -76,12 +76,11 @@ fn hex_quad(source: &mut &[u8]) -> Result<u16, EscapeError> {
         return Err(hex_error(source));
     }
 
-    let [a, b, c, d] = is_decimal
-        .select(decimal, letter + u8x4::splat(10))
-        .to_array();
+    let digits = is_decimal.select(decimal, letter + u8x4::splat(10));
+    let weighted = digits.cast::<u16>() * u16x4::from_array([0x1000, 0x100, 0x10, 1]);
 
     *source = tail;
-    Ok(u16::from_be_bytes([(a << 4) | b, (c << 4) | d]))
+    Ok(weighted.reduce_sum())
 }
 
 const SIMPLE_ESCAPES: [u8; 256] = {
