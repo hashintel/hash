@@ -25,9 +25,6 @@ vi.mock("../../../react", () => ({
 vi.mock("../../../react/hooks/use-element-size", () => ({
   useElementSize: () => ({ width: 1200, height: 800 }),
 }));
-vi.mock("../../../react/state/use-selection-cleanup", () => ({
-  useSelectionCleanup: () => {},
-}));
 vi.mock("./panels/SimulateView/simulate-view", () => ({
   SimulateViewTabs: () => <nav aria-label="Simulation views" />,
   SimulateView: () => (

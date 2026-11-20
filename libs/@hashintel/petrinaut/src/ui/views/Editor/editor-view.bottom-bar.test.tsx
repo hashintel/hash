@@ -25,8 +25,7 @@ vi.mock("./components/TopBar/top-bar", () => ({ TopBar: () => null }));
 vi.mock("./simulation-creation-drawer", () => ({
   SimulationCreationDrawer: () => null,
 }));
-vi.mock("./use-editor-commands", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./use-editor-commands")>()),
+vi.mock("./use-editor-commands", () => ({
   EditorCommands: () => null,
 }));
 
