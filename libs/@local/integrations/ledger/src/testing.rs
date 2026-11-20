@@ -1,5 +1,10 @@
+use alloc::sync::Arc;
+use std::{fs::File, path::Path};
+
+use arrow_array::{ArrayRef, Int64Array, RecordBatch};
 use hash_crypto::Secret;
 use hash_integrations_definition::Definition;
+use parquet::arrow::ArrowWriter;
 use testcontainers::{
     ContainerAsync, ImageExt as _,
     core::{CmdWaitFor, ExecCommand},
@@ -30,6 +35,17 @@ pub(crate) async fn started(storage: &Storage, run: RunId) {
     start(storage, &definition, input)
         .await
         .expect("should start the run");
+}
+
+/// Writes a Parquet file at `path` with one row per id, in the column `id`.
+pub(crate) fn parquet(path: &Path, ids: &[i64]) {
+    let ids: ArrayRef = Arc::new(Int64Array::from(ids.to_vec()));
+    let batch = RecordBatch::try_from_iter([("id", ids)]).expect("should build the rows");
+    let file = File::create(path).expect("should create the Parquet file");
+    let mut writer =
+        ArrowWriter::try_new(file, batch.schema(), None).expect("should open the Parquet writer");
+    writer.write(&batch).expect("should write the rows");
+    writer.close().expect("should finish the Parquet file");
 }
 
 /// Starts MinIO with an empty `captures` bucket and returns it with its API port.
