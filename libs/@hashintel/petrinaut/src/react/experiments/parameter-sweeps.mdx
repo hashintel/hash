@@ -19,7 +19,7 @@ precomputed for cameras nobody is looking through.
 
 A **point** selection runs the experiment at that value. A **range**
 selection runs one stochastic experiment over the ranges: each run carries
-its own drawn value per ranged parameter (`sweepRangeRuns`), low-discrepancy
+its own drawn value per ranged parameter (`sweepRangeDraws`), low-discrepancy
 across the selected value interval, rotated by a seed-derived shift
 (Cranley–Patterson, so draws are unbiased over the seed and each experiment
 seed explores its own sequence) and prefix-stable in the seed, axis, and
@@ -106,7 +106,7 @@ position always means the same runs.
 ## Where the pieces live
 
 `createSweepSession` (`react/experiments/sweep-session.ts`) owns the loop:
-selection, region enumeration, ladder, cache, cancellation. It is
+selection, ladder, cache, cancellation. It is
 backend-agnostic — it consumes an injected `instantiateBatch` returning a
 `MonteCarloExperiment`, so the CPU worker pool and the WebGPU backend behave
 identically. The provider wires that seam: a sweep's first batch runs the same

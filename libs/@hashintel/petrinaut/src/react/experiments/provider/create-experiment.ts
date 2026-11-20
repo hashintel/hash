@@ -366,7 +366,7 @@ export const compileExperimentScenario = async ({
   };
 };
 
-/** A sweep's state before anything computed: the whole space selected. */
+/** A sweep's state before anything computed: the midpoint of every axis selected. */
 const idleSweepState = (
   axes: readonly ExperimentParameterAxis[],
 ): ExperimentSweepState => {

@@ -68,17 +68,17 @@ until something selects (`startComputing: false`).
 Every publish of the session lists the rungs computing right now in its
 `batches` — oldest first, each with its id, its run count and its completed
 runs read from the rung's handle — and the provider stores that list as
-`record.sweepBatches`, which the activity list and the top-bar popover read.
-A session that stopped computing publishes an empty list. Both show the same progress rule: for a sweep, the selected combination's
+`record.sweepBatches`, which the experiment's details read.
+A session that stopped computing publishes an empty list. The activity list and the top-bar popover show the same progress rule: for a sweep, the selected combination's
 sampled runs over the run budget; otherwise simulated time over the
 experiment's max time.
 
 ## Constraints through the sweep
 
 An experiment's constraints are lowered to HIR in the Create Experiment
-drawer (`create-experiment-drawer/constraints/`: the drafts and their
+drawer (`create-experiment-drawer/`: the drafts and their
 transitions in `constraint-drafts.ts`, one LSP session per row in
-`use-constraint-lsp-session.ts`, the lowering and the GPU gate specs in
+`constraints-section/use-constraint-lsp-session.ts`, the lowering and the GPU gate specs in
 `lower-constraint-drafts.ts`, the section in `constraints-section.tsx`) and
 stored on the record with the pass threshold as `constraintPolicy` and the
 scenario's parsed values as `scenarioParameterValues`. They are enforced in
@@ -86,7 +86,7 @@ two places, both outside the study's own code:
 
 - A **parameter constraint** is judged by the sweep evaluator at the snapped
   grid point, before `navigateSweep` is called
-  (`shared/parameter-constraints.ts` interprets the HIR with the net
+  (`react/optimizations/provider/create-sweep-trial-evaluator/parameter-constraints.ts` interprets the HIR with the net
   defaults as `parameters` and the snapped values as `scenario`). An
   infeasible draw is pruned as `Infeasible: <name>`, carries
   `{ parameters, state: [], infeasible }`, and moves nothing: the sweep's
