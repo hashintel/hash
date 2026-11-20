@@ -18,7 +18,10 @@
  */
 import { InboxDoc, LiveDoc } from "@earendil-works/pi-durable";
 
-import { browserToolEnvelopeOf } from "@hashintel/brunch-agent";
+import {
+  browserToolEnvelopeOf,
+  durableHistoryPartTypes,
+} from "@hashintel/brunch-agent";
 
 import { handEditEntryKind } from "../../../net-state/visible-net-view";
 import {
@@ -89,9 +92,6 @@ type ContentPart = AssistantMessage["content"][number];
  * the stored entry, so the history route names it the same.
  */
 export const responseMessageId = (input: EntryId) => `durable:${input}`;
-
-/** The UI part a hand-edit note is shown as, with the note entry's `data`. */
-export const handEditPartType = "data-brunch-hand-edit";
 
 /** The ID of a hand-edit note's data part. */
 export const handEditPartId = (note: EntryId) => `durable:note:${note}`;
@@ -212,7 +212,7 @@ const createResponseWriter = (
   const flushNotes = () => {
     for (const note of pendingNotes.splice(0)) {
       write({
-        type: handEditPartType,
+        type: durableHistoryPartTypes.handEdit,
         id: handEditPartId(note.id),
         data: note.data ?? null,
       });

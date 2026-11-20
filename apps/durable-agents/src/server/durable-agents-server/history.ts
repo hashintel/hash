@@ -50,6 +50,7 @@ import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 import {
   brunchSignals,
   type DurableHistoryMessageMetadata,
+  durableHistoryPartTypes,
   type VersionLoad,
 } from "@hashintel/brunch-agent";
 
@@ -62,7 +63,6 @@ import { inputRequestId, isInputEntry } from "./shared/input-entry";
 import { type QueuedInput, QueuedInputsDoc } from "./shared/queued-inputs-doc";
 import {
   handEditPartId,
-  handEditPartType,
   type ProjectionOptions,
   projectResponseEntries,
 } from "./submission-stream";
@@ -70,9 +70,6 @@ import {
 import type { OpenConversation } from "./conversation-registry";
 import type { Context } from "@earendil-works/chord/context";
 import type { Handler, Context as HonoContext } from "hono";
-
-/** The UI part a Ledger-comment turn is shown as, with the entry's `data` (`{ comments }`). */
-export const ledgerCommentsPartType = "data-brunch-ledger-comments";
 
 /** The ID of the user message an entry is shown as when it keeps no request ID. */
 export const userMessageId = (entry: EntryId) => `durable:user:${entry}`;
@@ -103,7 +100,12 @@ const inputParts = (
   entry: Pick<EntryRecord, "kind" | "data" | "model">,
 ): UIMessage["parts"] =>
   entry.kind === brunchSignals.ledgerComments
-    ? [{ type: ledgerCommentsPartType, data: sentData(entry) }]
+    ? [
+        {
+          type: durableHistoryPartTypes.ledgerComments,
+          data: sentData(entry),
+        },
+      ]
     : [
         {
           type: "text",
@@ -197,7 +199,7 @@ const noteMessage = (note: EntryRecord): UIMessage => ({
   role: "user",
   parts: [
     {
-      type: handEditPartType,
+      type: durableHistoryPartTypes.handEdit,
       id: handEditPartId(note.id),
       data: note.data ?? null,
     },

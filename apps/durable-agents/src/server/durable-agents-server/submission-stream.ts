@@ -35,7 +35,6 @@ import type { UIMessageChunk } from "ai";
 
 export {
   handEditPartId,
-  handEditPartType,
   type ProjectionOptions,
   projectResponseEntries,
   responseMessageId,
