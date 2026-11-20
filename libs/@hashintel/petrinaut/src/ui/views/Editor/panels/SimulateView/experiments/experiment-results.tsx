@@ -406,7 +406,7 @@ export const experimentResultsModel = (
                 status={{
                   computing: sweep.computing,
                   following: following
-                    ? { kind: "following", ...following }
+                    ? { kind: "following", step: following.step }
                     : study === null
                       ? null
                       : {

@@ -488,7 +488,7 @@ describe("experimentResultsModel with the optimizer", () => {
       "Step 5",
     ]);
     expect(navigatorOf(result)).toMatchObject({
-      status: { following: { kind: "following", step: 5, total: 30 } },
+      status: { following: { kind: "following", step: 5 } },
       disabled: true,
     });
   });

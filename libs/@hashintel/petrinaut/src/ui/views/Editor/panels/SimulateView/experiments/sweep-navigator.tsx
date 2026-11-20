@@ -25,7 +25,7 @@ export type SweepNavigatorStatus = {
    * no study was started.
    */
   following:
-    | { kind: "following"; step: number; total: number }
+    | { kind: "following"; step: number }
     | { kind: "settled"; summary: string }
     | null;
   /** Runs finished for the selection so far. */
