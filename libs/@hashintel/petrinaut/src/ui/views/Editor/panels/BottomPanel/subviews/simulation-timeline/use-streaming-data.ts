@@ -16,8 +16,8 @@ import {
 } from "@hashintel/petrinaut-core";
 import { fingerprintHirCompilationInput } from "@hashintel/petrinaut-core/hir-runtime";
 
-import { useSimulationParameters } from "../../../../../../../react/hooks/use-simulation";
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
+import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "./series-config";
@@ -145,7 +145,7 @@ const EMPTY_TIMELINE_METRIC_STATE: TimelineMetricState = {
 export function useTimelineMetric(metric: Metric | null): TimelineMetricState {
   const { requestHirArtifacts } = use(LanguageClientContext);
   const { extensions, petriNetDefinition } = use(SDCPNContext);
-  const { parameterValues } = useSimulationParameters();
+  const { parameterValues } = use(SimulationContext);
   const [state, setState] = useState<TimelineMetricState>(
     EMPTY_TIMELINE_METRIC_STATE,
   );

@@ -141,8 +141,22 @@ export type {
   ErrorTrackerCaptureContext,
 } from "./error-tracker-context";
 
-// --- Public hook surface ---
-export * from "./hooks";
+// --- Editing, and whether it is allowed ---
+export { useIsReadOnly } from "./state/use-is-read-only";
+export {
+  formatReadOnlyReason,
+  useReadOnlyReason,
+  type ReadOnlyReason,
+} from "./state/use-read-only-reason";
+export {
+  usePetrinautMutations,
+  type GuardedPetrinautMutations,
+} from "./hooks/use-petrinaut-mutations";
+export { usePetrinautCommands } from "./hooks/use-petrinaut-commands";
+export type {
+  PetrinautCommands,
+  PetrinautMutations,
+} from "@hashintel/petrinaut-core";
 
 // --- Re-export Core types for convenience ---
 export type {
