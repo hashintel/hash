@@ -1,7 +1,7 @@
-import { use } from "react";
+import { createContext, use } from "react";
 
-import { SimulationContext } from "../simulation/context";
-import { EditorContext } from "./editor-context";
+import { SimulationContext, type SimulationState } from "../simulation/context";
+import { EditorContext, type EditorGlobalMode } from "./editor-context";
 import { SDCPNContext } from "./sdcpn-context";
 import { simulateModeAllowedMutationNames } from "./simulate-mode-allowed-mutation-names";
 
@@ -22,16 +22,16 @@ export type ReadOnlyReason =
   | { kind: "actual-mode" }
   | { kind: "simulation-active"; state: "Running" | "Paused" | "Complete" };
 
-/**
- * Single source of truth for "is the document currently writable" plus a
- * structured reason for refusal. UI consumers that only need a boolean can
- * use {@link useIsReadOnly}, which collapses this to `reason !== null`.
- */
-export const useReadOnlyReason = (): ReadOnlyReason | null => {
-  const { readonly } = use(SDCPNContext);
-  const { globalMode } = use(EditorContext);
-  const { state: simulationState } = use(SimulationContext);
-
+/** The reason for what the document, the editor and the simulation say. */
+export const readOnlyReasonOf = ({
+  readonly,
+  globalMode,
+  simulationState,
+}: {
+  readonly: boolean;
+  globalMode: EditorGlobalMode;
+  simulationState: SimulationState;
+}): ReadOnlyReason | null => {
   if (readonly) {
     return { kind: "host-readonly" };
   }
@@ -49,6 +49,39 @@ export const useReadOnlyReason = (): ReadOnlyReason | null => {
     return { kind: "simulation-active", state: simulationState };
   }
   return null;
+};
+
+/**
+ * The reason as `ReadOnlyReasonProvider` gives it out, or `undefined` where
+ * there is no such provider above.
+ */
+export const ReadOnlyReasonContext = createContext<
+  ReadOnlyReason | null | undefined
+>(undefined);
+
+/**
+ * Single source of truth for "is the document currently writable" plus a
+ * structured reason for refusal. UI consumers that only need a boolean can
+ * use {@link useIsReadOnly}, which collapses this to `reason !== null`.
+ *
+ * Almost every component that edits asks this. It has a context of its own
+ * so that they render when the reason changes, and not with every change of
+ * the editor context, which a panel that opens or a selection makes. It is a
+ * context and not a selector on the editor context because a guard has to
+ * hold in the commit that changes the mode: a layout effect of that commit
+ * that edits the document is refused.
+ */
+export const useReadOnlyReason = (): ReadOnlyReason | null => {
+  const provided = use(ReadOnlyReasonContext);
+  // No provider above: a test or a story that provides the three contexts on
+  // their own. `use` is the one hook that may sit in a condition.
+  return provided === undefined
+    ? readOnlyReasonOf({
+        readonly: use(SDCPNContext).readonly,
+        globalMode: use(EditorContext).globalMode,
+        simulationState: use(SimulationContext).state,
+      })
+    : provided;
 };
 
 /**

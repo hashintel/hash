@@ -1,5 +1,11 @@
 import { createContext, createRef } from "react";
 
+import {
+  useSelected,
+  useSelectedFields,
+  type Published,
+} from "../select-from-context";
+
 import type {
   ComponentReference,
   SelectionItem,
@@ -268,3 +274,37 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
 export const EditorContext = createContext<EditorContextValue>(
   DEFAULT_CONTEXT_VALUE,
 );
+
+/** Where `EditorProvider` publishes the context value for {@link useEditorState}. */
+export const EditorPublishedContext =
+  createContext<Published<EditorContextValue>>(null);
+
+/**
+ * One part of the editor's state, or one of its actions. The reader renders
+ * when that part changes.
+ *
+ * Almost every change in the editor is a change of the editor context: a
+ * panel opening, a selection, a hover. `use(EditorContext)` renders its
+ * reader for each of them. A component with many components below it, or one
+ * of many like it, reads the parts it needs through this hook instead.
+ *
+ * ```tsx
+ * const globalMode = useEditorState((editor) => editor.globalMode);
+ * ```
+ */
+export const useEditorState = <Selected>(
+  select: (editor: EditorContextValue) => Selected,
+): Selected => useSelected(EditorContext, EditorPublishedContext, select);
+
+/**
+ * Several fields of the editor's state and actions, by name, for a reader
+ * that needs more than one. It renders when one of them changes.
+ *
+ * ```tsx
+ * const { cursorMode, selectItem } = useEditorFields("cursorMode", "selectItem");
+ * ```
+ */
+export const useEditorFields = <Key extends keyof EditorContextValue>(
+  ...keys: Key[]
+): Pick<EditorContextValue, Key> =>
+  useSelectedFields(EditorContext, EditorPublishedContext, keys);

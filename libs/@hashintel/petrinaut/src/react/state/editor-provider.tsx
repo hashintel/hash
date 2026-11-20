@@ -8,6 +8,7 @@ import {
   usePetrinautNavigation,
 } from "../navigation";
 import { resolveNavigatedItems } from "../navigation/resolve-navigated-ids";
+import { usePublished } from "../select-from-context";
 import {
   type AssistantPlacement,
   AssistantPlacementContext,
@@ -17,10 +18,12 @@ import {
   type EditorActions,
   EditorContext,
   type EditorContextValue,
+  EditorPublishedContext,
   type EditorState,
   initialEditorState,
 } from "./editor-context";
 import { PanelPresenceProvider } from "./panel-presence-provider";
+import { ReadOnlyReasonProvider } from "./read-only-reason-provider";
 import { SDCPNContext } from "./sdcpn-context";
 import { useComposesOnly } from "./use-composes-only";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
@@ -558,6 +561,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     isSelected,
     searchInputRef,
   };
+  const published = usePublished(contextValue);
 
   // The panels open, close, dock and float by this state. `PanelPresenceProvider`
   // reads it and has Motion animate them.
@@ -568,9 +572,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         setPlacement: setAssistantPlacement,
       }}
     >
-      <EditorContext.Provider value={contextValue}>
-        <PanelPresenceProvider>{children}</PanelPresenceProvider>
-      </EditorContext.Provider>
+      <EditorPublishedContext value={published}>
+        <EditorContext.Provider value={contextValue}>
+          <ReadOnlyReasonProvider>
+            <PanelPresenceProvider>{children}</PanelPresenceProvider>
+          </ReadOnlyReasonProvider>
+        </EditorContext.Provider>
+      </EditorPublishedContext>
     </AssistantPlacementContext>
   );
 };

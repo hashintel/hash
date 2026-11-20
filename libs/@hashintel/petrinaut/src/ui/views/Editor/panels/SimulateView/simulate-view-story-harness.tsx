@@ -25,6 +25,7 @@ import {
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
 import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
 import { OptimizationsProvider } from "../../../../../react/optimizations/provider";
+import { usePublished } from "../../../../../react/select-from-context";
 import { SimulatorsProvider } from "../../../../../react/simulators/provider";
 import {
   SDCPNContext,
@@ -33,6 +34,7 @@ import {
 import {
   type UserSettings,
   UserSettingsContext,
+  UserSettingsPublishedContext,
 } from "../../../../../react/state/user-settings-context";
 import { UserSettingsProvider } from "../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../monaco/provider";
@@ -117,11 +119,14 @@ export const WithUserSettings = ({
   overrides,
   children,
 }: PropsWithChildren<{ overrides: Partial<UserSettings> }>) => {
-  const value = use(UserSettingsContext);
+  const settings = use(UserSettingsContext);
+  const value = { ...settings, ...overrides };
+  // Published as well, for the readers that follow one setting.
+  const published = usePublished(value);
   return (
-    <UserSettingsContext value={{ ...value, ...overrides }}>
-      {children}
-    </UserSettingsContext>
+    <UserSettingsPublishedContext value={published}>
+      <UserSettingsContext value={value}>{children}</UserSettingsContext>
+    </UserSettingsPublishedContext>
   );
 };
 
