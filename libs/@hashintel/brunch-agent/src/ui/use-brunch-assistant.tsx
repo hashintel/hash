@@ -88,6 +88,7 @@ import {
 } from "./tools/brunch-petrinaut-tools";
 import { resolveBrunchToolPresentation } from "./tools/brunch-tool-presentation";
 import { createHashPetrinautSaveTool } from "./tools/hash-petrinaut-save";
+import { useHandEditReports } from "./use-brunch-assistant/use-hand-edit-reports";
 import { useImmutableReplayBaseline } from "./use-brunch-assistant/use-immutable-replay-baseline";
 import { useStopTurnOnLeave } from "./use-brunch-assistant/use-stop-turn-on-leave";
 import { getBrunchVoiceMode } from "./voice/brunch-voice-mode";
@@ -809,6 +810,19 @@ export const useBrunchAssistant = ({
     ],
   );
 
+  const reportHandEditRefusal = useCallback(
+    ({ status, reason }: { status: number; reason: string }) =>
+      reportBrunchFailure("hand-edit-report", new Error(reason), { status }),
+    [reportBrunchFailure],
+  );
+  const reportingBrowserTools = useHandEditReports({
+    conversation: successorConversation,
+    documentId: processAgentBinding?.documentId,
+    handle: editor?.handle ?? null,
+    browserCalls: inBandBrowserTools,
+    onRefused: reportHandEditRefusal,
+  });
+
   const draftInteractiveTool = useMemo(
     () =>
       constructionBrowser && editor && flueClientPromise && inBandBrowserTools
@@ -946,7 +960,7 @@ export const useBrunchAssistant = ({
       // These exact-name tools override the static registry only while a
       // document binding is attached. Every other canonical capability remains
       // on Petrinaut's registry.
-      inBandBrowserTools,
+      inBandBrowserTools: reportingBrowserTools,
       automaticTools: [
         ...(canonicalHostTools?.tools ?? []),
         ...(canonicalHostTools ? (hostTools ?? []) : []),
@@ -955,7 +969,7 @@ export const useBrunchAssistant = ({
       // The automatic tools run against the handle the editor shows.
       ...(editor === null ? {} : { documentHandle: editor.handle }),
       interactiveTools: [
-        ...(inBandBrowserTools ? mutationApprovalTools : []),
+        ...(reportingBrowserTools ? mutationApprovalTools : []),
         ...(draftInteractiveTool ? [draftInteractiveTool] : []),
       ],
       transport: brunchChatTransport,
@@ -1002,7 +1016,6 @@ export const useBrunchAssistant = ({
     highlightChanges,
     hostTools,
     hostSaveTool,
-    inBandBrowserTools,
     interviewBudgetEnabled,
     interviewBudgetLevel,
     interviewBudgetLevelChanges,
@@ -1010,6 +1023,7 @@ export const useBrunchAssistant = ({
     interviewRepliesAsked,
     mapVoiceMessages,
     mutationApprovalTools,
+    reportingBrowserTools,
     requestStop,
     setInterviewBudgetLevel,
     starterChips,
