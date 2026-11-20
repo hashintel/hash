@@ -26,6 +26,18 @@ describe("assessConvergence", () => {
     ).toBe("too-early");
   });
 
+  it("widens the window to a tenth of a long study", () => {
+    // Eleven completed steps of 120 requested: one short of the twelve-step
+    // window. A five-step window would read "improving".
+    expect(
+      assessConvergence(
+        completed([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
+        "maximize",
+        120,
+      ),
+    ).toBe("too-early");
+  });
+
   it("is improving while the best moved inside the window", () => {
     expect(
       assessConvergence(completed([1, 2, 3, 4, 5, 6, 7]), "maximize", 30),
