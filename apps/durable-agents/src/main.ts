@@ -7,6 +7,11 @@
  * - `DURABLE_AGENTS_TRUST_PROXY` (unset): `true` when a proxy in front sets
  *   `Host` and `X-Forwarded-Proto`, so request URLs may name them; anything
  *   else names the listener.
+ * - HASH's entry (`hashEntryFromEnvironment`), both required:
+ *   - `API_ORIGIN`: hash-api's origin, where a request's session cookie is
+ *     checked.
+ *   - `BRUNCH_HASH_CORS_ALLOWED_ORIGINS`: the comma-separated exact origins
+ *     of the HASH pages that may call with their session.
  * - `DURABLE_AGENTS_MODEL` (required): a new conversation's model,
  *   `<provider>/<modelId>` from pi-ai's built-in catalog. Production runs
  *   `openai/gpt-6.1-sol` (H12).
@@ -45,6 +50,8 @@
  * - each of Pi Durable's reports, with its conversation
  *   (`"event": "durable-agents.report"`);
  * - an idle pool client's error (`"event": "durable-agents.pool-error"`);
+ * - a session check hash-api could not answer, answered 503
+ *   (`"event": "durable-agents.session-check"`);
  * - an error the Node adapter answered 500 for
  *   (`"event": "durable-agents.serve-error"`).
  *
@@ -54,6 +61,7 @@ import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import { Pool } from "pg";
 
 import { startDurableAgentsServer } from "./server/start-durable-agents-server";
+import { hashEntryFromEnvironment } from "./server/start-durable-agents-server/hash-entry";
 import {
   poolLimitsFromEnvironment,
   postgresConfigFromEnvironment,
@@ -87,6 +95,7 @@ const logLine = (line: Readonly<Record<string, unknown>>) => {
 const errorText = (error: unknown) =>
   error instanceof Error ? (error.stack ?? error.message) : String(error);
 
+const hashEntry = hashEntryFromEnvironment(process.env);
 const models = builtinModels();
 const model = modelFromEnvironment(models, process.env.DURABLE_AGENTS_MODEL);
 const port = Number(process.env.PORT ?? defaultPort);
@@ -119,6 +128,17 @@ const server = await startDurableAgentsServer({
   pool,
   models,
   model,
+  hashEntry: {
+    ...hashEntry,
+    logWarning: (message, fields) => {
+      logLine({
+        level: "warn",
+        event: "durable-agents.session-check",
+        message,
+        ...fields,
+      });
+    },
+  },
   onCrashLoop: (conversationId, tasks) => {
     logLine({
       level: "warn",

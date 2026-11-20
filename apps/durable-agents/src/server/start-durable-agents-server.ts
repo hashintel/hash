@@ -24,11 +24,17 @@
  * agent's bound Save is installed on every open, before scheduling resumes,
  * and right after a binding's own commit, before the submission.
  *
+ * With `hashEntry`, HASH's entry (`createHashEntry`) runs in front of every
+ * route: credentialed CORS, the session actor, the identity route, ownership
+ * by instance ID and the turn limit on `POST /chat`; a new conversation
+ * records its actor and web in its creating commit, and every route that
+ * opens a conversation, the browser-call routes included, refuses another.
+ *
  * Limits come from the environment (`limitsFromEnvironment`) unless given.
  * A request that cannot get a pool connection within the pool's
  * `connectionTimeoutMillis` is answered 503 with `Retry-After`. A request
  * body over `serveNode`'s `defaultMaxBodyBytes` is answered 413 before it is
- * read.
+ * read, and before the entry, so without CORS headers.
  */
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import {
@@ -64,6 +70,10 @@ import {
   type DurableAgentsServerOptions,
   type OpenConversation,
 } from "./durable-agents-server";
+import {
+  createHashEntry,
+  type HashEntryOptions,
+} from "./start-durable-agents-server/hash-entry";
 import { limitsFromEnvironment } from "./start-durable-agents-server/limits-from-environment";
 import { serveNode } from "./start-durable-agents-server/serve-node";
 
@@ -98,6 +108,11 @@ export type StartDurableAgentsServerOptions = {
   readonly onCrashLoop?: DurableAgentsServerOptions["onCrashLoop"];
   /** Told each of Pi Durable's reports, with the conversation whose Harness made it. */
   readonly onReport?: DurableAgentsServerOptions["onReport"];
+  /**
+   * HASH's entry in front of every route (`createHashEntry`); `null` serves
+   * without it, every request trusted, as a test or probe on loopback does.
+   */
+  readonly hashEntry: HashEntryOptions | null;
 };
 
 /** The longest of a binding's IDs: each is stored in the conversation's binding document. */
@@ -135,7 +150,7 @@ const unboundConversation: ChatRefusal = {
 /** A new conversation needs the binding its browser calls are issued to, which its creating commit writes. */
 const admitNewConversation = (
   body: Readonly<Record<string, unknown>>,
-): ChatRefusal | ConversationSeed => {
+): ChatRefusal | Required<Pick<ConversationSeed, "binding">> => {
   const binding = bindingOf(body);
   if (binding === "invalid") return malformedBinding;
   if (binding === undefined)
@@ -189,6 +204,10 @@ export const startDurableAgentsServer = async (
 ) => {
   const { agent, extensions, clientToolNames, installBoundSave } =
     createHashAgent();
+  const entry =
+    options.hashEntry === null
+      ? undefined
+      : createHashEntry({ ...options.hashEntry, browserCallsPrefix });
   const server = createDurableAgentsServer({
     openStorage: postgresConversationStorage(options.pool),
     storageExists: postgresConversationExists(options.pool),
@@ -207,7 +226,13 @@ export const startDurableAgentsServer = async (
     clientToolNames,
     // The panel runs a static client tool part itself; a browser call runs only through the browser-call routes.
     dynamicClientToolNames: clientToolNames,
-    admitNewConversation,
+    admitNewConversation: (body, request) => {
+      const admission = admitNewConversation(body);
+      return "error" in admission || entry === undefined
+        ? admission
+        : { ...admission, record: entry.recordActor(request) };
+    },
+    admitConversation: entry?.admitConversation,
     admitChat: (conversation, body) =>
       admitBinding(conversation, body, installBoundSave),
     limits: { ...limitsFromEnvironment(process.env), ...options.limits },
@@ -218,19 +243,22 @@ export const startDurableAgentsServer = async (
   server.app.route(
     browserCallsPrefix,
     createBrowserCallRouter({
-      resolveHarness: async (conversationId) =>
-        (await server.conversations.acquire(conversationId))?.harness,
+      resolveHarness: async (conversationId, request) => {
+        const conversation = await server.conversations.acquire(conversationId);
+        if (conversation === undefined) return undefined;
+        return (
+          (await entry?.admitConversation(conversation, request)) ??
+          conversation.harness
+        );
+      },
       now: server.now,
     }),
   );
-  /**
-   * The H7 seam: HASH's entry (credentialed CORS, the body limit, the session
-   * actor, ownership by instance ID, the turn limit on `POST /chat`) mounts
-   * here, as `app.use` before the `route` below, so it runs in front of every
-   * route the process serves: the chat, browser-call and history routes. The
-   * inner app keeps its `onError`, so a storage timeout is still a 503.
-   */
+  // The entry is mounted before the server's routes, so it runs in front of
+  // each of them; the server's app keeps its `onError`, so a storage timeout
+  // is still a 503.
   const app = new Hono();
+  entry?.mount(app);
   app.route("/", server.app);
   const listener = await serveNode(app.fetch, {
     port: options.port,

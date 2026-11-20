@@ -5,6 +5,8 @@
       "passThroughEnv": [
         "PORT",
         "DURABLE_AGENTS_TRUST_PROXY",
+        "API_ORIGIN",
+        "BRUNCH_HASH_CORS_ALLOWED_ORIGINS",
         "DURABLE_AGENTS_MODEL",
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
