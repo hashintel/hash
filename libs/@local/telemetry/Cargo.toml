@@ -24,7 +24,7 @@ tracing-subscriber = { workspace = true, public = true, features = ["std", "ansi
 # Private workspace dependencies
 
 # Private third-party dependencies
-clap                           = { workspace = true, optional = true, features = ["derive", "env"] }
+clap                           = { workspace = true, optional = true, features = ["derive", "env", "string"] }
 derive_more                    = { workspace = true, features = ["display", "error"] }
 opentelemetry-appender-tracing = { workspace = true }
 opentelemetry_sdk              = { workspace = true, features = ["trace", "logs", "metrics", "rt-tokio"] }

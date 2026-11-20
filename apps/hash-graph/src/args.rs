@@ -1,5 +1,5 @@
 use clap::{
-    ColorChoice, CommandFactory as _, FromArgMatches as _, Parser,
+    ColorChoice, Command, CommandFactory as _, FromArgMatches as _, Parser,
     builder::{
         Styles,
         styling::{AnsiColor, Effects},
@@ -35,9 +35,9 @@ pub struct Args {
 }
 
 impl Args {
-    /// Parse the arguments passed to the program.
-    pub fn parse_args() -> Self {
-        let mut matches = Self::command()
+    /// The command the program parses its arguments with.
+    fn cli() -> Command {
+        TracingConfig::with_namespace(Self::command(), "HASH_GRAPH")
             .color(ColorChoice::Auto)
             .styles(
                 Styles::styled()
@@ -49,7 +49,11 @@ impl Args {
                     .valid(AnsiColor::Green.on_default() | Effects::BOLD)
                     .invalid(AnsiColor::Red.on_default() | Effects::BOLD),
             )
-            .get_matches();
+    }
+
+    /// Parse the arguments passed to the program.
+    pub fn parse_args() -> Self {
+        let mut matches = Self::cli().get_matches();
         match Self::from_arg_matches_mut(&mut matches) {
             Ok(args) => args,
             Err(error) => error.format(&mut Self::command()).exit(),
@@ -59,14 +63,12 @@ impl Args {
 
 #[cfg(test)]
 mod tests {
-    use clap::CommandFactory as _;
-
     use super::Args;
 
     #[test]
     fn command_valid() {
         // Fails on what clap otherwise reports only when the server starts, such as two arguments
         // with the same ID.
-        Args::command().debug_assert();
+        Args::cli().debug_assert();
     }
 }

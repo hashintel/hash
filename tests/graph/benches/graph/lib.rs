@@ -36,6 +36,7 @@ use self::scenario::run_scenario_file;
 fn init_tracing(scenario: &str, bench: &str) -> impl Drop {
     TelemetryRegistry::default()
         .with_error_layer()
+        .with_log_level(std::env::var("HASH_GRAPH_LOG_LEVEL").ok())
         .with_console_logging(ConsoleConfig {
             enabled: true,
             format: LogFormat::Pretty,
@@ -75,6 +76,7 @@ fn scenarios(criterion: &mut Criterion) {
 
     let _telemetry_guard = TelemetryRegistry::default()
         .with_error_layer()
+        .with_log_level(std::env::var("HASH_GRAPH_LOG_LEVEL").ok())
         .with_console_logging(ConsoleConfig {
             enabled: true,
             format: LogFormat::Pretty,

@@ -12,7 +12,9 @@ use hash_telemetry::logging::env_filter;
 pub(crate) fn init_logging() {
     let _: Result<_, _> = tracing_subscriber::fmt()
         .with_ansi(true)
-        .with_env_filter(env_filter(None))
+        .with_env_filter(env_filter(
+            std::env::var("HASH_GRAPH_LOG_LEVEL").ok().as_deref(),
+        ))
         .with_file(true)
         .with_line_number(true)
         .with_test_writer()
