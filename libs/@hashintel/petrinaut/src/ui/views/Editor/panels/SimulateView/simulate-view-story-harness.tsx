@@ -29,6 +29,7 @@ import { SimulatorsProvider } from "../../../../../react/simulators/provider";
 import {
   SDCPNContext,
   type SDCPNContextValue,
+  useSDCPNState,
 } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsProvider } from "../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../monaco/provider";
@@ -299,7 +300,9 @@ export const AutoSweepStudy = ({
   study: AutoSweepStudyDescription;
   computeBackend?: ExperimentComputeBackend;
 }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const petriNetDefinition = useSDCPNState(
+    (document) => document.petriNetDefinition,
+  );
   const { title } = use(NetManagementContext);
   const createOptimizedExperiment = useCreateOptimizedExperiment();
   const startRef = useLatest(() =>

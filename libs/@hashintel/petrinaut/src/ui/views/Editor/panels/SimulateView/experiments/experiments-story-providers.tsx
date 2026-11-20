@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { use, useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
   type CreateExperimentInput,
@@ -12,13 +12,12 @@ import { computeBackendOf } from "../../../../../../react/experiments/provider/c
 import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session";
 import { useLatest } from "../../../../../../react/hooks/use-latest";
 import {
-  usePetrinautNavigation,
+  usePetrinautNavigate,
   simulateDrawerToNavigationResource,
   simulateDrawerToNavigationOverlay,
 } from "../../../../../../react/navigation";
 import {
   EditorContext,
-  initialEditorState,
   type EditorContextValue,
   type SimulateDrawerState,
   type SimulateViewMode,
@@ -94,7 +93,7 @@ export function FakeExperimentsProvider({
    */
   restreamOnSelectionChange?: boolean;
 }) {
-  const navigationRef = useLatest(usePetrinautNavigation());
+  const navigateRef = useLatest(usePetrinautNavigate());
   const [experiments, setExperiments] = useState<readonly ExperimentRecord[]>(
     () => initialExperiments,
   );
@@ -268,7 +267,7 @@ export function FakeExperimentsProvider({
   const [actions] = useState<ExperimentsActionsValue>(() => ({
     setSelectedExperimentId: (id) => {
       setSelectedExperimentId(id);
-      navigationRef.current.navigate(
+      navigateRef.current(
         {
           simulateResource: id === null ? null : { type: "experiment", id },
           overlay: null,
@@ -363,7 +362,10 @@ export function FakeEditorProvider({
   children: ReactNode;
   initialSimulateViewMode?: SimulateViewMode;
 }) {
-  const navigation = usePetrinautNavigation();
+  // No editor is above a fake one, so this is the context's default: the
+  // editor's first state, and every action doing nothing.
+  const defaults = use(EditorContext);
+  const navigate = usePetrinautNavigate();
   const [simulateViewMode, setSimulateViewMode] = useState<SimulateViewMode>(
     initialSimulateViewMode,
   );
@@ -374,39 +376,14 @@ export function FakeEditorProvider({
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const value: EditorContextValue = {
-    ...initialEditorState,
+    ...defaults,
     globalMode: "simulate",
     simulateViewMode,
-    navigateTo: () => {},
-    setGlobalMode: () => {},
-    setEditViewMode: () => {},
-    setEditionMode: () => {},
-    setAddComponentMode: () => {},
-    setCursorMode: () => {},
-    setLeftSidebarOpen: () => {},
-    setBottomPanelOpen: () => {},
-    toggleBottomPanel: () => {},
-    setActiveBottomPanelTab: () => {},
-    isSelected: () => false,
-    setSelection: () => {},
-    beginSelectionGesture: () => {},
-    endSelectionGesture: () => {},
-    selectItem: () => {},
-    toggleItem: () => {},
-    clearSelection: () => {},
-    setHoveredItem: () => {},
-    clearHoveredItem: () => {},
-    keepPlaceVisualizerOpen: () => {},
-    closePlaceVisualizer: () => {},
-    toggleComponentInstanceFold: () => {},
-    openPlaceVisualizer: () => {},
-    setVisualizerEditorFocus: () => {},
-    bringVisualizerToFront: () => {},
-    updateDraggingStateByNodeId: () => {},
+    setSimulateViewMode,
     simulateDrawer,
     setSimulateDrawer: (drawer) => {
       setSimulateDrawer(drawer);
-      navigation.navigate(
+      navigate(
         (current) => ({
           ...current,
           simulateResource: simulateDrawerToNavigationResource(drawer, current),
@@ -415,14 +392,6 @@ export function FakeEditorProvider({
         { cause: "user", action: "overlay" },
       );
     },
-    setAiAssistantOpen: () => {},
-    toggleAiAssistant: () => {},
-    collapseAllPanels: () => {},
-    setTimelineChartType: () => {},
-    setTimelineView: () => {},
-    setHiddenTimelineSeriesIds: () => {},
-    setSimulateViewMode,
-    setSearchOpen: () => {},
     searchInputRef,
   };
 
