@@ -19,11 +19,10 @@ import { PetrinautInstanceContext } from "../../../../../../react/instance-conte
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useStore } from "../../../../../../react/use-store";
-import {
-  PetrinautPresentationProvider,
-  type PetrinautPresentationProfile,
-} from "../../../../shared/presentation-context";
+import { PetrinautPresentationProvider } from "../../../../shared/presentation-provider";
 import { NetNavigationList } from "./nets-list";
+
+import type { PetrinautPresentationProfile } from "../../../../shared/presentation-context";
 
 afterEach(cleanup);
 
