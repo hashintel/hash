@@ -27,7 +27,6 @@ const netsListSubView: SubView = {
   component: NetNavigationList,
   headerAction: NetsHeaderAction,
   headerActionMutates: true,
-  defaultCollapsed: false,
 };
 
 const componentsSubView: SubView = {
