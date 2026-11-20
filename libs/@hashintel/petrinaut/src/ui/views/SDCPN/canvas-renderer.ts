@@ -56,7 +56,7 @@ export const useCanvasController = (): CanvasController => {
   return controller;
 };
 
-export type CanvasRendererProps = {
+type CanvasRendererProps = {
   scene: CanvasScene;
   /** Settled size of the canvas container. */
   containerSize: Size;
