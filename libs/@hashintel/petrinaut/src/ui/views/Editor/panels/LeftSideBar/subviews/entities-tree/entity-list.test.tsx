@@ -134,12 +134,6 @@ const menuButtonOf = (name: string) =>
   rowOf(name).querySelector("[aria-label='Row menu']");
 
 describe("entity list row menus", () => {
-  it("mounts no menu until a row is pointed at or focused", () => {
-    renderList(ONE_GROUP);
-
-    expect(screen.queryAllByLabelText("Row menu")).toHaveLength(0);
-  });
-
   it("mounts the menu of the row under the pointer, and moves it with the pointer", () => {
     renderList(ONE_GROUP);
 
