@@ -7,8 +7,6 @@ export { CODE_FONT_FAMILY } from "./fonts";
  *
  * NOTE: This file is imported by panda.config.ts (build-time, Node context).
  * Do not add browser-only or React imports here.
- *
- * NOTE: SubView registries live in ./ui-subviews.ts to avoid import cycles.
  */
 
 // Canvas grid
