@@ -12,7 +12,6 @@ import {
 } from "../../../../../react/state/editor-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
-import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { useUserSettings } from "../../../../../react/state/user-settings-context";
 import {
   AddPlaceIcon,
@@ -68,14 +67,14 @@ const ComponentDropdown = () => {
 };
 
 /**
- * The tools that add nodes to the net. Nothing to offer on a read-only net,
- * where every one of them is refused, nor in an editor that only composes:
- * what it places comes from the Components panel.
+ * The tools that add nodes to the net. Nothing to offer in an editor that
+ * only composes: what it places comes from the Components panel. Nor on a
+ * read-only net, where every one of them is refused: there the bar leaves
+ * them out.
  */
 export const EditionTools = () => {
   const editionMode = useEditorState((editor) => editor.editionMode);
   const { setEditionMode } = useEditorActions();
-  const isReadOnly = useIsReadOnly();
   const { activeComponentId } = use(ActiveNetContext);
   const isRootNet = activeComponentId === null;
   const composesOnly = useComposesOnly();
@@ -84,7 +83,7 @@ export const EditionTools = () => {
     (settings) => settings.enableExperimentalIconPack,
   );
 
-  if (isReadOnly || composesOnly) {
+  if (composesOnly) {
     return null;
   }
 

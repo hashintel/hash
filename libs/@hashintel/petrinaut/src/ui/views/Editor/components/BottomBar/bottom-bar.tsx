@@ -160,7 +160,12 @@ export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
             <CursorModeDropdown />
             {hasEditionGroup && (
               <CollapsibleGroup>
-                <EditionTools />
+                {/* Left out here and not by the tools themselves. Simulate
+                    mode hides the bar, and the net is writable again once
+                    the bar shows. The bar renders then; a reader of the
+                    reason further down does not, for a change that came
+                    while it was hidden. */}
+                {isReadOnly ? null : <EditionTools />}
                 {hasAiAssistant && (
                   <>
                     <ToolbarDivider />
