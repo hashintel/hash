@@ -189,7 +189,7 @@ const renderProvider = (
     holder.current = use(SimulationContext);
     return null;
   };
-  render(
+  const { unmount } = render(
     <SDCPNContext.Provider
       value={{ ...sdcpnContextValue, petriNetDefinition: definition }}
     >
@@ -213,7 +213,7 @@ const renderProvider = (
       </PetrinautNavigationProvider>
     </SDCPNContext.Provider>,
   );
-  return { getValue: () => holder.current!, requestHirArtifacts };
+  return { getValue: () => holder.current!, requestHirArtifacts, unmount };
 };
 
 describe("SimulationProvider on a registered simulator", () => {
@@ -360,6 +360,24 @@ describe("SimulationProvider on a registered simulator", () => {
       simulatorId: "test.first",
       parameters: { step: 0.25 },
     });
+  });
+
+  it("ends the run and releases its simulator when the provider unmounts", async () => {
+    const handle = makeHandle();
+    const simulator = makeSimulator({
+      id: "test.first",
+      needsHirTrees: false,
+      start: () => Promise.resolve({ ok: true, handle }),
+    });
+    const { getValue, unmount } = renderProvider([simulator.registration]);
+
+    await act(() => getValue().initialize({ seed: 1 }));
+    expect(handle.dispose).not.toHaveBeenCalled();
+    expect(simulator.disposed).not.toHaveBeenCalled();
+
+    unmount();
+    expect(handle.dispose).toHaveBeenCalledTimes(1);
+    expect(simulator.disposed).toHaveBeenCalledTimes(1);
   });
 
   it("reports why a simulator refused to start, and starts nothing", async () => {
