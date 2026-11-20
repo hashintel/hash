@@ -27,13 +27,10 @@ import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin"
 import {
   AssistantPanelTitle,
   useAssistantPanel,
+  usePluginAssistant,
 } from "../../../plugins/plugin-assistant";
 import { renderPlugins } from "../../../plugins/plugins-test-harness";
-import {
-  AssistantCommands,
-  EditorAssistantPanel,
-  useEditorAssistant,
-} from "./editor-assistant";
+import { AssistantCommands, EditorAssistantPanel } from "./editor-assistant";
 
 beforeAll(() => {
   vi.stubGlobal(
@@ -89,7 +86,7 @@ const brokenPlugin = definePetrinautPlugin(
 
 /** The panel as the editor mounts it, with a button standing in for the toggle. */
 const Editor = () => {
-  const { plugin } = useEditorAssistant();
+  const plugin = usePluginAssistant();
   const { setAiAssistantOpen } = use(EditorContext);
 
   return (

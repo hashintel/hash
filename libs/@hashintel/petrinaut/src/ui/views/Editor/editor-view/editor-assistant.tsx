@@ -6,31 +6,17 @@ import {
 import {
   PluginAssistantContent,
   useAssistantChoice,
-  usePluginAssistant,
 } from "../../../plugins/plugin-assistant";
 import { PluginAssistantPanel } from "../panels/assistant-panel-shell";
 
-/**
- * The editor's AI assistant: the chosen running plugin's, else the first
- * running one's.
- */
-export const useEditorAssistant = () => {
-  const plugin = usePluginAssistant();
-
-  return {
-    plugin,
-    hasAssistant: plugin !== undefined,
-    /** Takes the empty-net prompt's message for the plugin's assistant. */
-    onPrompt: plugin?.contributions.assistant?.onPrompt,
-  };
-};
+import type { RunningPlugin } from "../../../plugins/plugins-provider";
 
 /** The assistant panel beside the editor, around the plugin's content. */
 export const EditorAssistantPanel = ({
   plugin,
   petriNetId,
 }: {
-  plugin: NonNullable<ReturnType<typeof usePluginAssistant>>;
+  plugin: RunningPlugin;
   petriNetId: string | null;
 }) => {
   const isAiAssistantOpen = useEditorState(

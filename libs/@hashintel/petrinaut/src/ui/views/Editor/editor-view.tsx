@@ -19,6 +19,7 @@ import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { ExperimentalIconProvider } from "../../experimental-icons";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
+import { usePluginAssistant } from "../../plugins/plugin-assistant";
 import { useCanvasRegistration } from "../../plugins/plugin-editor";
 import { PluginRoots } from "../../plugins/plugin-outlets";
 import { NotebookView } from "../Notebook/notebook-view";
@@ -29,7 +30,6 @@ import { EditViewSelector } from "./editor-view/edit-view-selector";
 import {
   AssistantCommands,
   EditorAssistantPanel,
-  useEditorAssistant,
 } from "./editor-view/editor-assistant";
 import { EmptyNetPrompt } from "./editor-view/empty-net-prompt";
 import { UserSettings } from "./editor-view/user-settings";
@@ -107,7 +107,8 @@ const EditorViewContent = ({
   );
   const { toggleAiAssistant } = useEditorActions();
   const composesOnly = useComposesOnly();
-  const assistant = useEditorAssistant();
+  const assistantPlugin = usePluginAssistant();
+  const hasAssistant = assistantPlugin !== undefined;
 
   const [isEmptyNetPromptDismissed, setEmptyNetPromptDismissed] =
     useState(false);
@@ -119,9 +120,7 @@ const EditorViewContent = ({
         onNewNet={
           hideNetManagementControls === undefined ? createEmptyNet : undefined
         }
-        onToggleAiAssistant={
-          assistant.hasAssistant ? toggleAiAssistant : undefined
-        }
+        onToggleAiAssistant={hasAssistant ? toggleAiAssistant : undefined}
       />
       <AssistantCommands />
       <PluginRoots />
@@ -181,13 +180,13 @@ const EditorViewContent = ({
                 : "hidden"
             }
           >
-            <BottomBar hasAiAssistant={assistant.hasAssistant} />
+            <BottomBar hasAiAssistant={hasAssistant} />
           </Activity>
           <SimulationCreationDrawer />
         </SimulationWorkspace>
-        {assistant.plugin && (
+        {assistantPlugin && (
           <EditorAssistantPanel
-            plugin={assistant.plugin}
+            plugin={assistantPlugin}
             petriNetId={petriNetId}
           />
         )}

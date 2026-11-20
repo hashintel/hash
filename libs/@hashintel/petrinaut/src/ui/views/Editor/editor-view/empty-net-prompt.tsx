@@ -3,9 +3,9 @@ import {
   useEditorActions,
   useEditorState,
 } from "../../../../react/state/editor-context";
+import { usePluginAssistant } from "../../../plugins/plugin-assistant";
 import { usePluginOverlay } from "../../../plugins/plugins-provider";
 import { AiCtaModal } from "../components/ai-cta-modal";
-import { useEditorAssistant } from "./editor-assistant";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
@@ -22,7 +22,7 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
  * panel is closed and no plugin covers the canvas.
  */
 export const EmptyNetPrompt = ({ onDismiss }: { onDismiss: () => void }) => {
-  const { onPrompt } = useEditorAssistant();
+  const onPrompt = usePluginAssistant()?.contributions.assistant?.onPrompt;
   const isAiAssistantOpen = useEditorState(
     (editor) => editor.isAiAssistantOpen,
   );
