@@ -748,7 +748,9 @@ const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
             Add trigger
           </Button>
           {/* Stays inside Flows, so no ↗ (11 Nov convergence A19). */}
-          <TextLink onClick={openTriggersPage}>Edit flow triggers</TextLink>
+          <span className={css({ display: "inline-flex", textStyle: "sm" })}>
+            <TextLink onClick={openTriggersPage}>Edit flow triggers</TextLink>
+          </span>
         </span>
       </div>
     </>
@@ -1150,7 +1152,9 @@ const TriggersPanelAtScale = () => {
             Add trigger
           </Button>
           {/* Stays inside Flows, so no ↗ (11 Nov convergence A19). */}
-          <TextLink onClick={openTriggersPage}>Edit flow triggers</TextLink>
+          <span className={css({ display: "inline-flex", textStyle: "sm" })}>
+            <TextLink onClick={openTriggersPage}>Edit flow triggers</TextLink>
+          </span>
         </span>
       </div>
       {sheetGroup ? (
