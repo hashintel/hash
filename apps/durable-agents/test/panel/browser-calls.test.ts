@@ -8,21 +8,7 @@
  * the browser-call routes beside it, as `startDurableAgentsServer` does, but
  * with no HASH entry: the conversation and web headers arrive unchecked.
  */
-import { access, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
-import { createRegistry } from "@earendil-works/pi-durable";
-import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
-import {
-  AbstractChat,
-  type ChatInit,
-  type ChatState,
-  type ChatStatus,
-  type ChatTransport,
-  type UIMessage,
-} from "ai";
-import { afterEach, expect, test, vi } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import {
   brunchHeaders,
@@ -30,108 +16,33 @@ import {
   type BrowserContext,
 } from "@hashintel/brunch-agent";
 import {
-  BrunchPanelConversationTracker,
-  createBrunchSuccessorPanelTransport,
   createSuccessorBrowserCalls,
   readSuccessorBrowserCalls,
-  successorEndpoints,
-  type SuccessorConversation,
 } from "@hashintel/brunch-agent/client";
 
 import {
-  browserCallExtension,
   browserToolName,
   callTtlMs,
 } from "../../src/browser-call/browser-call";
-import { createBrowserCallRouter } from "../../src/browser-call/browser-call-router";
-import { createDurableAgentsServer } from "../../src/server/durable-agents-server";
-import { browserCallsPrefix } from "../../src/server/start-durable-agents-server";
-import { calls, context } from "../platform/support";
-import { fauxAssistantMessage, scriptedModel } from "../scripted-model";
+import { calls } from "../platform/support";
+import { fauxAssistantMessage } from "../scripted-model";
+import { openPanelChat, textOf } from "./panel-chat";
+import {
+  conversationId,
+  documentId,
+  openPanelServer,
+  type PanelIntercept,
+  web,
+} from "./panel-server";
 
-import type { OwnedStorage } from "../../src/server/conversation-storage";
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
-type PanelTransport = ReturnType<typeof createBrunchSuccessorPanelTransport>;
-type PanelMessage =
-  PanelTransport extends ChatTransport<infer Message> ? Message : never;
 type Admission = Awaited<
   ReturnType<Parameters<typeof createSuccessorBrowserCalls>[0]["admit"]>
 >;
 
-const origin = "http://durable.test";
-const conversationId = "net-1:construction";
-const binding: BrowserContext["binding"] = {
-  conversationId,
-  documentId: "net-1",
-};
-const web = "web-1";
+const binding: BrowserContext["binding"] = { conversationId, documentId };
 const titled = { ok: true, title: "Queue" };
-
-const servers: { close: () => Promise<void> }[] = [];
-const directories: string[] = [];
-afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => server.close()));
-  await Promise.all(
-    directories
-      .splice(0)
-      .map((directory) => rm(directory, { recursive: true, force: true })),
-  );
-});
-
-/** `ChatState` over a plain array, as `@ai-sdk/react` keeps one in a ref. */
-class ArrayChatState<Message extends UIMessage> implements ChatState<Message> {
-  public status: ChatStatus = "ready";
-  public error: Error | undefined = undefined;
-  public messages: Message[];
-  public constructor(messages: Message[]) {
-    this.messages = messages;
-  }
-  public pushMessage = (message: Message) => {
-    this.messages = [...this.messages, message];
-  };
-  public popMessage = () => {
-    this.messages = this.messages.slice(0, -1);
-  };
-  public replaceMessage = (index: number, message: Message) => {
-    this.messages = this.messages.with(index, message);
-  };
-  public snapshot = <Value>(value: Value): Value => structuredClone(value);
-}
-
-/** AI SDK's chat, as the panel's `useChat` drives it, without React. */
-class PanelChat extends AbstractChat<PanelMessage> {
-  public constructor({
-    messages = [],
-    ...init
-  }: ChatInit<PanelMessage> & { readonly messages?: PanelMessage[] }) {
-    super({ ...init, state: new ArrayChatState(messages) });
-  }
-}
-
-/** Each conversation in its own SQLite file, owned by this one process. */
-const sqliteConversations = async () => {
-  const directory = await mkdtemp(join(tmpdir(), "panel-browser-calls-"));
-  directories.push(directory);
-  const fileOf = (id: string) => join(directory, `${id}.sqlite`);
-  const opened = new Map<string, Promise<OwnedStorage>>();
-  return {
-    openStorage: (id: string): Promise<OwnedStorage> => {
-      const existing = opened.get(id);
-      if (existing !== undefined) return existing;
-      const storage = openNodeSqliteStorage(fileOf(id)).then((sqlite) =>
-        Object.assign(sqlite, { isOwner: async () => true }),
-      );
-      opened.set(id, storage);
-      return storage;
-    },
-    storageExists: (id: string) =>
-      access(fileOf(id)).then(
-        () => true,
-        () => false,
-      ),
-  };
-};
 
 /** A promise and the function that resolves it. */
 const gate = <Value = void>() => {
@@ -142,15 +53,6 @@ const gate = <Value = void>() => {
   return { open, opened };
 };
 
-type Request = {
-  readonly url: string;
-  readonly method: string;
-  readonly headers: Headers;
-  readonly credentials: RequestCredentials | undefined;
-  readonly body: unknown;
-  readonly status?: number;
-};
-
 /**
  * The server, whose model answers `responses` and calls `setNetTitle`, a
  * dynamic tool the browser runs, with the browser-call routes mounted where
@@ -159,77 +61,16 @@ type Request = {
  */
 const openServer = async (
   responses: FauxResponseStep[],
-  {
-    intercept,
-  }: {
-    readonly intercept?: (
-      url: string,
-      init: RequestInit | undefined,
-      forward: () => Promise<Response>,
-    ) => Promise<Response> | undefined;
-  } = {},
+  options: { readonly intercept?: PanelIntercept } = {},
 ) => {
-  const clock = { now: Date.now() };
-  const now = () => Math.max(clock.now, Date.now());
-  const { models, model } = scriptedModel(responses);
-  const server = createDurableAgentsServer({
-    now,
-    ...(await sqliteConversations()),
-    createRegistry: () => {
-      const registry = createRegistry();
-      registry.install(browserCallExtension);
-      return registry;
-    },
-    models,
-    agent: { model },
-    clientToolNames: new Set([browserToolName]),
-    dynamicClientToolNames: new Set([browserToolName]),
+  const server = await openPanelServer(responses, {
+    ...options,
     // As the production host does, a new conversation's browser calls are bound to the chat's binding.
     admitNewConversation: (body) => ({
       binding: body.binding as BrowserContext["binding"],
     }),
-    context,
   });
-  server.app.route(
-    browserCallsPrefix,
-    createBrowserCallRouter({
-      resolveHarness: async (id) =>
-        (await server.conversations.acquire(id))?.harness,
-      now,
-    }),
-  );
-  servers.push(server);
-  const requests: Request[] = [];
-  const fetch: typeof globalThis.fetch = async (input, init) => {
-    const url = input instanceof Request ? input.url : input.toString();
-    const request = {
-      url,
-      method: init?.method ?? "GET",
-      headers: new Headers(init?.headers),
-      credentials: init?.credentials,
-      body:
-        typeof init?.body === "string"
-          ? (JSON.parse(init.body) as unknown)
-          : undefined,
-    };
-    const forward = async () => server.app.request(url, init);
-    try {
-      const response = await (intercept?.(url, init, forward) ?? forward());
-      requests.push({ ...request, status: response.status });
-      return response;
-    } catch (error) {
-      requests.push(request);
-      throw error;
-    }
-  };
-  const conversation: SuccessorConversation = {
-    endpoint: origin,
-    actorKey: "test-actor",
-    conversationId,
-    web,
-    fetch,
-  };
-  const endpoints = await successorEndpoints(conversation);
+  const { endpoints, requests } = server;
   /** The browser-call requests, by the route each names under the call. */
   const browserCallRequests = () =>
     requests.flatMap((request) =>
@@ -245,13 +86,7 @@ const openServer = async (
           ]
         : [],
     );
-  return {
-    clock,
-    conversation,
-    endpoints,
-    requests,
-    browserCallRequests,
-  };
+  return { ...server, browserCallRequests };
 };
 
 type Server = Awaited<ReturnType<typeof openServer>>;
@@ -305,13 +140,7 @@ const openTab = (
 /** A chat on the conversation whose browser tool calls `tab` runs in band; none runs without one. */
 const openChat = (server: Server, tab?: ReturnType<typeof openTab>) => {
   const runs: Promise<void>[] = [];
-  const chat = new PanelChat({
-    id: conversationId,
-    transport: createBrunchSuccessorPanelTransport(
-      server.conversation,
-      new BrunchPanelConversationTracker(),
-      { documentId: binding.documentId },
-    ),
+  const { chat } = openPanelChat(server.conversation, {
     onToolCall: ({ toolCall }) => {
       if (tab?.browserCalls.has(toolCall.toolName))
         runs.push(tab.run(toolCall));
@@ -319,11 +148,6 @@ const openChat = (server: Server, tab?: ReturnType<typeof openTab>) => {
   });
   return { chat, runs };
 };
-
-const textOf = (message: UIMessage | undefined) =>
-  (message?.parts ?? [])
-    .flatMap((part) => (part.type === "text" ? [part.text] : []))
-    .join("");
 
 const titleCall = calls([browserToolName, "browser-1", { title: "Queue" }]);
 const issuedCall = {
