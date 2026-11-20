@@ -8,7 +8,7 @@ import {
   useAssistantChoice,
   usePluginAssistant,
 } from "../../../plugins/plugin-assistant";
-import { PluginAssistantContent } from "../../../plugins/plugin-assistant-content";
+import { PluginBoundary } from "../../../plugins/plugin-boundary";
 import { PluginAssistantPanel } from "../panels/assistant-panel-shell";
 
 /**
@@ -34,13 +34,14 @@ export const EditorAssistantPanel = () => {
         close: () => setAiAssistantOpen(false),
       }}
     >
-      <PluginAssistantContent
+      <PluginBoundary
         /** A new net or a remounted plugin starts the content afresh. */
         key={`${plugin.instanceKey}:${petriNetId ?? "no-net"}`}
         pluginId={plugin.manifest.id}
+        place="assistant"
       >
         {plugin.contributions.assistant?.content}
-      </PluginAssistantContent>
+      </PluginBoundary>
     </PluginAssistantPanel>
   );
 };
