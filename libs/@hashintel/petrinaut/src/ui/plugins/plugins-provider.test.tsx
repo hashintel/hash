@@ -707,26 +707,6 @@ describe("PetrinautPluginsProvider", () => {
     expect(commandRuns).toHaveLength(4);
   });
 
-  it("skips a button's command while `when` withholds it", () => {
-    const runs = vi.fn();
-    const clicks = vi.fn();
-    const plugin = definePetrinautPlugin({
-      id: "test.withheld",
-      name: "Withheld",
-      commands: { act: { label: "Act" } },
-      buttons: { act: { label: "Act", place: "top-bar-end" } },
-    })({
-      commands: { act: { run: runs, when: false } },
-      buttons: { act: { icon: null, onClick: clicks, command: "act" } },
-    });
-
-    renderPlugins([plugin], <TopBarEnd />);
-    act(() => screen.getByRole("button", { name: "Act" }).click());
-
-    expect(clicks).toHaveBeenCalledOnce();
-    expect(runs).not.toHaveBeenCalled();
-  });
-
   it("puts the first running plugin's read-only action on the notice of a blocked edit, and runs it", async () => {
     const View = () => {
       const explainBlockedEdit = useReadOnlyFeedback();

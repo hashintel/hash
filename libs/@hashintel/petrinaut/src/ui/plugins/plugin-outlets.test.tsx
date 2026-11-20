@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, screen } from "@testing-library/react";
+import { act, cleanup, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { definePetrinautPlugin } from "./define-petrinaut-plugin";
@@ -108,5 +108,25 @@ describe("PluginToolbarItems", () => {
     expect(attach).toHaveBeenCalledWith(button);
     expect(button.classList).toContain("report");
     expect(button.classList).toContain("chrome");
+  });
+
+  it("skips a button's command while `when` withholds it", () => {
+    const runs = vi.fn();
+    const clicks = vi.fn();
+    const plugin = definePetrinautPlugin({
+      id: "test.withheld",
+      name: "Withheld",
+      commands: { act: { label: "Act" } },
+      buttons: { act: { label: "Act", place: "top-bar-end" } },
+    })({
+      commands: { act: { run: runs, when: false } },
+      buttons: { act: { icon: null, onClick: clicks, command: "act" } },
+    });
+
+    renderPlugins([plugin], <PluginToolbarItems place="top-bar-end" />);
+    act(() => screen.getByRole("button", { name: "Act" }).click());
+
+    expect(clicks).toHaveBeenCalledOnce();
+    expect(runs).not.toHaveBeenCalled();
   });
 });
