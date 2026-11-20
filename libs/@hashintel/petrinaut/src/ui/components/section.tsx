@@ -169,15 +169,10 @@ interface SectionProps {
   tooltip?: string;
   collapsible?: boolean;
   defaultOpen?: boolean;
-  /** Controls the collapsible state; leave unset for uncontrolled. */
-  open?: boolean;
   onOpenChange?: (open: boolean) => void;
   /** Unmounts the content while collapsed (default keeps it mounted). */
   unmountOnCollapse?: boolean;
   renderHeaderAction?: () => ReactNode;
-  /** Registers the collapse trigger, e.g. for keyboard navigation. */
-  triggerRef?: (element: HTMLButtonElement | null) => void;
-  onTriggerKeyDown?: React.KeyboardEventHandler;
   children: ReactNode;
 }
 
@@ -188,18 +183,14 @@ export const Section = ({
   tooltip,
   collapsible = false,
   defaultOpen = true,
-  open,
   onOpenChange,
   unmountOnCollapse = false,
   renderHeaderAction,
-  triggerRef,
-  onTriggerKeyDown,
   children,
 }: SectionProps) => {
-  const [internalOpen, setInternalOpen] = useState(defaultOpen);
-  const expanded = open ?? internalOpen;
+  const [expanded, setOpen] = useState(defaultOpen);
   const setExpanded = (next: boolean) => {
-    setInternalOpen(next);
+    setOpen(next);
     onOpenChange?.(next);
   };
   const header = useFocusHeader({
@@ -235,13 +226,13 @@ export const Section = ({
       {renderHeaderAction && <div>{renderHeaderAction()}</div>}
       <Collapsible.Trigger className={triggerButtonStyle} asChild>
         <Button
-          ref={triggerRef ?? header.attach}
+          ref={header.attach}
           size="xs"
           variant="ghost"
           aria-label={`Toggle ${title} section`}
           iconName="chevronUp"
           tooltip="Toggle section"
-          onKeyDown={onTriggerKeyDown ?? header.onHeaderKeyDown}
+          onKeyDown={header.onHeaderKeyDown}
         />
       </Collapsible.Trigger>
     </div>

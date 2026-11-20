@@ -50,7 +50,6 @@ import { LanguageClientContext } from "../../../react/lsp/context";
 import { FocusControls } from "../../worksheet/focus-controls";
 import { FocusStack } from "../../worksheet/focus-stack";
 import { useFocusClearance } from "../../worksheet/use-focus-clearance";
-import { useFocusHeader } from "../../worksheet/use-focus-member";
 import { Section, SectionList } from "../section";
 import { computeAdHocHighlight } from "./dependency-highlight";
 import { AdHocFormContext } from "./form-context";
@@ -157,39 +156,6 @@ export interface AdHocScenarioFormProps {
 export const FormLayoutColumn: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => <FocusStack axis="vertical">{children}</FocusStack>;
-
-/**
- * A Section that participates in the form's keyboard walk: its collapse
- * trigger is a navigation stop, Left collapses, Right expands.
- */
-const NavigableSection: React.FC<{
-  title: string;
-  tooltip: string;
-  children: React.ReactNode;
-  titleAction?: React.ReactNode;
-}> = ({ title, tooltip, children, titleAction }) => {
-  const [open, setOpen] = useState(true);
-  const header = useFocusHeader({
-    collapse: open ? () => setOpen(false) : undefined,
-    expand: open ? undefined : () => setOpen(true),
-  });
-  return (
-    <Section
-      stacked
-      title={title}
-      tooltip={tooltip}
-      collapsible
-      unmountOnCollapse
-      open={open}
-      onOpenChange={setOpen}
-      triggerRef={header.attach}
-      onTriggerKeyDown={header.onHeaderKeyDown}
-      titleAction={titleAction}
-    >
-      {children}
-    </Section>
-  );
-};
 
 export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   state,
@@ -444,29 +410,38 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
         ) : (
           <FocusStack axis="vertical">
             <SectionList stacked>
-              <NavigableSection
+              <Section
+                stacked
+                collapsible
+                unmountOnCollapse
                 title="Variables"
                 tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
               >
                 {variableRows}
-              </NavigableSection>
+              </Section>
 
               {parameterRows ? (
-                <NavigableSection
+                <Section
+                  stacked
+                  collapsible
+                  unmountOnCollapse
                   title="Parameters"
                   tooltip="Override a net parameter's value for this run. Empty keeps its default. Overrides may read the Variables above."
                 >
                   {parameterRows}
-                </NavigableSection>
+                </Section>
               ) : null}
 
-              <NavigableSection
+              <Section
+                stacked
+                collapsible
+                unmountOnCollapse
                 title="Initial state"
                 tooltip="Token counts and values per place. Every value is an expression."
                 titleAction={placesVisibilityControl}
               >
                 {placesList}
-              </NavigableSection>
+              </Section>
             </SectionList>
           </FocusStack>
         )}
