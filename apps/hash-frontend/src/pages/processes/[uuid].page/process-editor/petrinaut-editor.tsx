@@ -30,6 +30,8 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut";
 
+import { brunchAgentOrigin } from "../../../../lib/public-env";
+import { useAuthInfo } from "../../../shared/auth-info-context";
 import { createAgentSave } from "./petrinaut-editor/agent-save";
 import { ProcessPetrinaut } from "./petrinaut-editor/process-petrinaut";
 import {
@@ -40,6 +42,7 @@ import {
   type TopBarState,
   TopBarContext,
 } from "./petrinaut-editor/top-bar-context";
+import { useAgentConversation } from "./petrinaut-editor/use-agent-conversation";
 import { NetExistsError } from "./shared/net-exists-error";
 
 import type { EntityId } from "@blockprotocol/type-system";
@@ -47,6 +50,14 @@ import type {
   ReadBrunchDocumentSaveState,
   VersionLoad,
 } from "@hashintel/brunch-agent/ui";
+
+/**
+ * Names Brunch's HASH agent on the `Agent Conversation` entities it keeps.
+ * It is stored on those entities, so it must not change: a new value would
+ * orphan every conversation recorded under the old one. It is fixed here
+ * rather than built from Brunch's routes for that reason.
+ */
+const brunchAgentId = "brunch/hash";
 
 /**
  * Which net the editor holds: an unsaved draft (with the example it was
@@ -401,6 +412,29 @@ export const PetrinautEditor = ({
     [handle, updateSession],
   );
 
+  /** Whether `entityId` is the open net and saved, as of the latest change. */
+  const isNetSaved = useCallback((entityId: EntityId) => {
+    const mode = liveSessionRef.current?.mode;
+    return mode?.kind === "saved" && mode.entityId === entityId;
+  }, []);
+
+  const { authenticatedUser } = useAuthInfo();
+  /**
+   * The open net's conversation with Brunch. It is read only where Brunch
+   * may be offered: on a net the user may edit, signed in, with Brunch
+   * deployed. A save tells it when a draft's net exists.
+   */
+  const { conversationPointer, subjectSaved } = useAgentConversation({
+    agentId: brunchAgentId,
+    subjectEntityId: session?.mode.entityId ?? null,
+    enabled:
+      !readonly &&
+      brunchAgentOrigin !== null &&
+      authenticatedUser?.accountSignupComplete === true,
+    isSaved: isNetSaved,
+    captureException: errorTracker.captureException,
+  });
+
   /**
    * Submits the open load's net, title and identity as they are when called,
    * returning `null` when no save starts: with no load open, or while a save
@@ -448,6 +482,8 @@ export const PetrinautEditor = ({
             mode: { kind: "saved", entityId: saved.entityId },
             savedSnapshot: snapshot,
           }));
+          // The net exists, whatever is open now.
+          subjectSaved(saved.entityId);
         } catch (error) {
           updateSession(savedHandle, (current) =>
             error instanceof NetExistsError
@@ -459,11 +495,14 @@ export const PetrinautEditor = ({
                 }
               : { ...current, savePending: false },
           );
+          if (error instanceof NetExistsError) {
+            subjectSaved(error.entityId);
+          }
           throw error;
         }
       })();
     },
-    [updateSession],
+    [updateSession, subjectSaved],
   );
 
   /**
@@ -558,7 +597,7 @@ export const PetrinautEditor = ({
           <ProcessPetrinaut
             handle={session.handle}
             entityId={session.mode.entityId}
-            saved={session.mode.kind === "saved"}
+            conversationPointer={conversationPointer}
             readTitle={readTitle}
             hostSave={hostSave}
             versionLoad={session.versionLoad}

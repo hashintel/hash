@@ -26,8 +26,8 @@ import type {
   QueryEntitySubgraphQueryVariables,
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
-import type * as AgentConversationModule from "./process-editor/petrinaut-editor/process-petrinaut/use-agent-conversation";
 import type { TopBarState } from "./process-editor/petrinaut-editor/top-bar-context";
+import type * as AgentConversationModule from "./process-editor/petrinaut-editor/use-agent-conversation";
 import type { PetriNetRevision } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 import type * as ApolloClient from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
@@ -404,13 +404,16 @@ vi.hoisted(() => {
 // The conversation's entities have their own tests; most tests here give
 // Brunch none open.
 vi.mock(
-  "./process-editor/petrinaut-editor/process-petrinaut/use-agent-conversation",
+  "./process-editor/petrinaut-editor/use-agent-conversation",
   async (importOriginal) => {
     const actual = await importOriginal<typeof AgentConversationModule>();
     const conversation = {
-      conversationId: null,
-      start: () => {},
-      replace: () => {},
+      conversationPointer: {
+        conversationId: null,
+        start: () => {},
+        replace: () => {},
+      },
+      subjectSaved: () => {},
     };
     const useStandIn = () => conversation;
     return {
@@ -1995,6 +1998,52 @@ test("two drafts started separately have their own ids, and so their own convers
   expect(second?.uuid).toBeDefined();
   expect(second?.uuid).not.toBe(first?.uuid);
   expect(conversationPointer().conversationId).toBeNull();
+});
+
+test("a conversation started on a draft whose Create another tab beat is written against that net when this tab moves to it", async () => {
+  graph.realConversations = true;
+  await renderRoute(draftUrl);
+  act(() => conversationPointer().start("draft-conversation"));
+  await settle();
+  // Another tab of the same draft creates its net first.
+  graph.nets.set(createdId, graphNet(createdId, "Other tab"));
+
+  pressSave();
+  await settle();
+
+  expect(graph.writes.map(({ kind }) => kind)).toEqual(["create"]);
+  expect(url()).toBe(`/processes/${uuidCreated}`);
+  expect(graph.conversations).toEqual([
+    expect.objectContaining({
+      properties: expect.objectContaining({
+        [conversationIdUrl]: "draft-conversation",
+      }),
+    }),
+  ]);
+  expect(graph.conversationLinks).toEqual([
+    {
+      leftEntityId: graph.conversations[0]?.entityId,
+      rightEntityId: createdId,
+    },
+  ]);
+});
+
+test("a net the user may not edit reads no conversation", async () => {
+  graph.realConversations = true;
+  graph.nets.set(netBId, graphNet(netBId, "B", false));
+  await renderRoute(`/processes/${uuidB}`);
+
+  expect(editor().readonly).toBe(true);
+  expect(
+    [...graph.cache.keys()].filter((key) => key.startsWith("conversations:")),
+  ).toEqual([]);
+
+  // A net the user may edit does.
+  graph.nets.set(netAId, graphNet(netAId, "A"));
+  await reopen(`/processes/${uuidA}`);
+  expect(
+    [...graph.cache.keys()].filter((key) => key.startsWith("conversations:")),
+  ).toHaveLength(1);
 });
 
 test("a draft saved after the user switches workspace is created in the draft's web", async () => {

@@ -18,7 +18,7 @@ import {
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
-} from "../../../../../../graphql/api-types.gen";
+} from "../../../../../graphql/api-types.gen";
 import type * as ApolloClient from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
 
@@ -79,17 +79,15 @@ const graph = vi.hoisted(() => ({
   links: [] as StoredLink[],
   /** The next writes of each kind to fail, in order. */
   writeFailures: [] as WriteFailure[],
-  /** The read is in flight. */
+  /** The read is in flight, including its retries. */
   reading: false,
-  /** How many of the next reads, first or retried, fail. */
+  /** How many of the next reads fail after all their retries. */
   failingReads: 0,
-  /** How many of the next retries resolve without data, as Apollo's can. */
-  emptyRetries: 0,
-  /** The reads whose last attempt failed. */
+  /** The reads that failed after all their retries. */
   failed: new Set<string>(),
   /** The answers this page has had, by read, as Apollo keeps them. */
   answers: new Map<string, unknown>(),
-  queries: [] as { skip: boolean; variables: unknown }[],
+  queries: [] as { skip: boolean; variables: unknown; context: unknown }[],
   writes: [] as {
     kind: "conversation" | "link";
     variables: Record<string, unknown>;
@@ -100,16 +98,10 @@ const graph = vi.hoisted(() => ({
   captureException: vi.fn(),
 }));
 
-vi.mock("@hashintel/petrinaut", async () => {
-  const { createContext } = await import("react");
-  return {
-    ErrorTrackerContext: createContext({
-      captureException: graph.captureException,
-    }),
-  };
-});
+/** The editor around the hook: which subjects it knows to be saved. */
+const editor = { saved: new Set<EntityId>() };
 
-vi.mock("../../../../../shared/auth-info-context", () => ({
+vi.mock("../../../../shared/auth-info-context", () => ({
   // A new object on every render, as the user may be.
   useAuthInfo: () => ({
     authenticatedUser: {
@@ -121,7 +113,7 @@ vi.mock("../../../../../shared/auth-info-context", () => ({
 
 vi.mock("@apollo/client", async (importOriginal) => {
   const original = await importOriginal<typeof ApolloClient>();
-  const { useCallback, useReducer, useRef } = await import("react");
+  const { useEffect } = await import("react");
 
   type Clause = {
     all?: Clause[];
@@ -266,21 +258,35 @@ vi.mock("@apollo/client", async (importOriginal) => {
       }),
     ) as QueryEntitySubgraphQuery;
 
-  const readError = new Error("The read failed");
+  const readError = new Error("The read failed after its retries");
+  /**
+   * As Apollo's, with the retry link: the read is loading through its
+   * retries, and errors only once they are spent, calling `onError` once.
+   */
   const useQuery = (
     _query: unknown,
     {
       skip,
       variables,
-    }: { skip?: boolean; variables: QueryEntitySubgraphQueryVariables },
+      context,
+      onError,
+    }: {
+      skip?: boolean;
+      variables: QueryEntitySubgraphQueryVariables;
+      context?: unknown;
+      onError?: (error: Error) => void;
+    },
   ) => {
-    const [, rerender] = useReducer((count: number) => count + 1, 0);
-    graph.queries.push({ skip: skip ?? false, variables });
+    graph.queries.push({ skip: skip ?? false, variables, context });
     const key = JSON.stringify(variables);
-    const read = () => {
-      // Answered once per read, and the same object after, as Apollo's is: a
-      // write isn't seen until the page reads again.
-      if (!graph.answers.has(key)) {
+    const settled = !skip && !graph.reading;
+    if (settled && !graph.answers.has(key) && !graph.failed.has(key)) {
+      if (graph.failingReads > 0) {
+        graph.failingReads--;
+        graph.failed.add(key);
+      } else {
+        // Answered once per read, and the same object after, as Apollo's
+        // is: a write isn't seen until the page reads again.
         const filter = variables.request.filter as Clause;
         graph.answers.set(
           key,
@@ -291,39 +297,19 @@ vi.mock("@apollo/client", async (importOriginal) => {
           ),
         );
       }
-      return graph.answers.get(key);
-    };
-    const retry = () => {
-      if (graph.failingReads > 0) {
-        graph.failingReads--;
-        return Promise.reject(new Error("The read failed again"));
-      }
-      if (graph.emptyRetries > 0) {
-        graph.emptyRetries--;
-        return Promise.resolve({ data: undefined });
-      }
-      graph.failed.delete(key);
-      const data = read();
-      rerender();
-      return Promise.resolve({ data });
-    };
-    // Stable across renders, as Apollo's is.
-    const latestRetry = useRef(retry);
-    latestRetry.current = retry;
-    const refetch = useCallback(() => latestRetry.current(), []);
-    if (skip || graph.reading) {
-      return { data: undefined, error: undefined, refetch };
     }
-    if (!graph.answers.has(key) && !graph.failed.has(key)) {
-      if (graph.failingReads > 0) {
-        graph.failingReads--;
-        graph.failed.add(key);
+    const error = settled && graph.failed.has(key) ? readError : undefined;
+    useEffect(() => {
+      if (error) {
+        onError?.(error);
       }
+      // Once per failed read, as Apollo calls it.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [error, key]);
+    if (!settled || error) {
+      return { data: undefined, error };
     }
-    if (graph.failed.has(key)) {
-      return { data: undefined, error: readError, refetch };
-    }
-    return { data: read(), error: undefined, refetch };
+    return { data: graph.answers.get(key), error: undefined };
   };
 
   // One mutate function per mutation, stable across renders, as Apollo's is.
@@ -420,7 +406,6 @@ beforeEach(() => {
   graph.writeFailures = [];
   graph.reading = false;
   graph.failingReads = 0;
-  graph.emptyRetries = 0;
   graph.failed.clear();
   graph.answers.clear();
   graph.queries.length = 0;
@@ -428,22 +413,50 @@ beforeEach(() => {
   graph.gate = null;
   graph.nextEntity = 1;
   graph.captureException.mockReset();
+  editor.saved = new Set([processId, otherProcessId, elsewhereProcessId]);
 });
 afterEach(() => {
   cleanup();
 });
 
+const isSaved = (subjectEntityId: EntityId) =>
+  editor.saved.has(subjectEntityId);
+
+/** The hook's latest `subjectSaved`, which the editor's save calls. */
+let subjectSaved: (subjectEntityId: EntityId) => void = () => {};
+
 const renderConversation = (
   subjectEntityId: EntityId = processId,
-  subjectSaved = true,
-) =>
-  renderHook<
-    ReturnType<typeof useAgentConversation>,
-    { subjectEntityId: EntityId; subjectSaved?: boolean }
+  saved = true,
+) => {
+  if (saved) {
+    editor.saved.add(subjectEntityId);
+  }
+  return renderHook<
+    ReturnType<typeof useAgentConversation>["conversationPointer"],
+    { subjectEntityId: EntityId | null; enabled?: boolean }
   >(
-    (props) => useAgentConversation({ agentId, subjectSaved: true, ...props }),
-    { initialProps: { subjectEntityId, subjectSaved } },
+    (props) => {
+      const conversation = useAgentConversation({
+        agentId,
+        enabled: true,
+        isSaved,
+        captureException: graph.captureException,
+        ...props,
+      });
+      subjectSaved = conversation.subjectSaved;
+      return conversation.conversationPointer;
+    },
+    { initialProps: { subjectEntityId } },
   );
+};
+
+/** The editor's save of `subjectEntityId` lands, or finds it saved already. */
+const save = (subjectEntityId: EntityId) =>
+  act(() => {
+    editor.saved.add(subjectEntityId);
+    subjectSaved(subjectEntityId);
+  });
 
 /** Opens the page again, in this browser or another: everything is read afresh. */
 const reload = (subjectEntityId: EntityId = processId) => {
@@ -756,7 +769,7 @@ test("on an unsaved draft nothing is written, however many messages are sent", a
 });
 
 test("when the draft is saved, its conversations are written at once, in the order they were started, each with its link", async () => {
-  const { result, rerender } = renderConversation(draftId, false);
+  const { result } = renderConversation(draftId, false);
   act(() => result.current.start("first"));
   act(() => result.current.replace("second"));
   act(() => result.current.start("second"));
@@ -764,7 +777,7 @@ test("when the draft is saved, its conversations are written at once, in the ord
   expect(graph.writes).toEqual([]);
 
   // Its first save: no message is needed to write them.
-  rerender({ subjectEntityId: draftId, subjectSaved: true });
+  save(draftId);
   await settle();
   expect(graph.writes).toEqual([
     ...created("first", draftId, processWebId),
@@ -781,19 +794,19 @@ test("when the draft is saved, its conversations are written at once, in the ord
   expect(reloaded.current.conversationId).toBe("second");
 });
 
-test("a draft that a Create finds saved by another tab has its conversations written when the editor switches to it", async () => {
+test("a draft that a Create finds saved by another tab has its conversations written when the save says so", async () => {
   // Another tab saved the draft, and started a conversation on it there.
   store("other-tab", {
     subjectEntityId: draftId,
     createdAt: "2026-11-01T00:00:00.000Z",
   });
-  const { result, rerender } = renderConversation(draftId, false);
+  const { result } = renderConversation(draftId, false);
   act(() => result.current.start("this-tab"));
   await settle();
   expect(graph.writes).toEqual([]);
 
   // The Create is refused, and the editor switches to the saved net.
-  rerender({ subjectEntityId: draftId, subjectSaved: true });
+  save(draftId);
   await settle();
   expect(graph.writes).toEqual(created("this-tab", draftId, processWebId));
 
@@ -801,12 +814,12 @@ test("a draft that a Create finds saved by another tab has its conversations wri
   expect(reloaded.current.conversationId).toBe("this-tab");
 });
 
-test("leaving an unsaved draft drops its conversations, which are not written against the next process or the draft later", async () => {
+test("a draft left unsaved keeps its conversations, which are written against it when it is saved later, never against another process", async () => {
   const { result, rerender } = renderConversation(draftId, false);
   act(() => result.current.start("on-draft"));
   await settle();
 
-  rerender({ subjectEntityId: processId, subjectSaved: true });
+  rerender({ subjectEntityId: processId });
   await settle();
   expect(graph.writes).toEqual([]);
 
@@ -814,94 +827,78 @@ test("leaving an unsaved draft drops its conversations, which are not written ag
   await settle();
   expect(graph.writes).toEqual(created("on-process", processId, processWebId));
 
-  // The draft is saved later, as from its URL in another tab: nothing it
-  // had here is written.
-  rerender({ subjectEntityId: draftId, subjectSaved: true });
+  // The draft's save, pending when the user moved on, lands.
+  save(draftId);
   await settle();
-  expect(graph.writes).toHaveLength(2);
+  expect(graph.writes).toEqual([
+    ...created("on-process", processId, processWebId),
+    ...created("on-draft", draftId, processWebId),
+  ]);
 });
 
-test("a read that fails is tried again, and opens what the retry reads", async () => {
-  vi.useFakeTimers();
-  try {
-    store("open");
-    graph.failingReads = 2;
-    const { result } = renderConversation();
-    expect(result.current.conversationId).toBeUndefined();
+test("a draft left unsaved and reopened once saved writes its conversations before its next message's", async () => {
+  const { result, rerender } = renderConversation(draftId, false);
+  act(() => result.current.start("on-draft"));
+  rerender({ subjectEntityId: processId });
 
-    await act(() => vi.advanceTimersByTimeAsync(readRetryDelaysMs[0]));
-    expect(result.current.conversationId).toBeUndefined();
-
-    await act(() => vi.advanceTimersByTimeAsync(readRetryDelaysMs[1]));
-    expect(result.current.conversationId).toBe("open-conversation");
-    expect(graph.captureException).toHaveBeenCalledTimes(2);
-  } finally {
-    vi.useRealTimers();
-  }
+  // Saved meanwhile, as from another tab, and opened again as saved.
+  editor.saved.add(draftId);
+  rerender({ subjectEntityId: draftId });
+  act(() => result.current.replace("reopened"));
+  await settle();
+  expect(graph.writes).toEqual([
+    ...created("on-draft", draftId, processWebId),
+    ...created("reopened", draftId, processWebId),
+  ]);
 });
 
-test("when every retry fails the subject has no open conversation, and its first message creates one", async () => {
-  vi.useFakeTimers();
-  try {
-    store("unreachable");
-    graph.failingReads = 1 + readRetryDelaysMs.length;
-    const { result } = renderConversation();
-
-    for (const delayMs of readRetryDelaysMs) {
-      expect(result.current.conversationId).toBeUndefined();
-      await act(() => vi.advanceTimersByTimeAsync(delayMs));
-    }
-    expect(result.current.conversationId).toBeNull();
-    expect(graph.captureException).toHaveBeenCalledTimes(
-      1 + readRetryDelaysMs.length,
-    );
-
-    act(() => result.current.start("fresh"));
-    await act(() => vi.runAllTimersAsync());
-    expect(graph.writes).toEqual(created("fresh", processId, processWebId));
-  } finally {
-    vi.useRealTimers();
-  }
+test("the read opts into the retry link's retries, after each of its delays", () => {
+  renderConversation();
+  expect(graph.queries.at(-1)?.context).toEqual({
+    retryDelaysMs: readRetryDelaysMs,
+  });
 });
 
-test("a retry that answers without data counts as a failed read", async () => {
-  vi.useFakeTimers();
-  try {
-    store("unreachable");
-    graph.failingReads = 1;
-    graph.emptyRetries = readRetryDelaysMs.length;
-    const { result } = renderConversation();
+test("a read that fails after its retries is reported once, the subject has no open conversation, and its first message creates one", async () => {
+  store("unreachable");
+  graph.failingReads = 1;
+  graph.reading = true;
+  const { result, rerender } = renderConversation();
+  // Still reading, or retrying: nothing binds yet.
+  expect(result.current.conversationId).toBeUndefined();
 
-    for (const delayMs of readRetryDelaysMs) {
-      expect(result.current.conversationId).toBeUndefined();
-      await act(() => vi.advanceTimersByTimeAsync(delayMs));
-    }
-    expect(result.current.conversationId).toBeNull();
-  } finally {
-    vi.useRealTimers();
-  }
+  graph.reading = false;
+  rerender({ subjectEntityId: processId });
+  expect(result.current.conversationId).toBeNull();
+  rerender({ subjectEntityId: processId });
+  expect(graph.captureException).toHaveBeenCalledTimes(1);
+  expect(graph.captureException).toHaveBeenCalledWith(expect.any(Error), {
+    source: "agent-conversation.read",
+  });
+
+  act(() => result.current.start("fresh"));
+  await settle();
+  expect(graph.writes).toEqual(created("fresh", processId, processWebId));
 });
 
-test("a read that fails after a retry succeeded is tried again", async () => {
-  vi.useFakeTimers();
-  try {
-    store("open");
-    graph.failingReads = 1;
-    const { result, rerender } = renderConversation();
-    await act(() => vi.advanceTimersByTimeAsync(readRetryDelaysMs[0]));
-    expect(result.current.conversationId).toBe("open-conversation");
-
-    // Apollo reads again, and that read fails.
-    graph.answers.clear();
-    graph.failingReads = 1;
-    rerender({ subjectEntityId: processId });
-    expect(result.current.conversationId).toBeUndefined();
-
-    await act(() => vi.advanceTimersByTimeAsync(readRetryDelaysMs[0]));
-    expect(result.current.conversationId).toBe("open-conversation");
-  } finally {
-    vi.useRealTimers();
-  }
+test("where the conversation isn't offered, or with no subject, nothing is read", () => {
+  const { rerender } = renderHook<
+    ReturnType<typeof useAgentConversation>,
+    { subjectEntityId: EntityId | null; enabled: boolean }
+  >(
+    (props) =>
+      useAgentConversation({
+        agentId,
+        isSaved,
+        captureException: graph.captureException,
+        ...props,
+      }),
+    { initialProps: { subjectEntityId: processId, enabled: false } },
+  );
+  rerender({ subjectEntityId: null, enabled: true });
+  expect(graph.queries.length).toBeGreaterThan(0);
+  expect(graph.queries.every(({ skip }) => skip)).toBe(true);
+  expect(graph.answers.size).toBe(0);
 });
 
 test("the result keeps its identity while the open conversation, as read, is unchanged", () => {
@@ -914,12 +911,15 @@ test("the result keeps its identity while the open conversation, as read, is unc
 test("the result keeps its identity when the draft is saved and the read is unchanged", async () => {
   const { result, rerender } = renderConversation(draftId, false);
   const draft = result.current;
+  const saveDraft = subjectSaved;
 
-  rerender({ subjectEntityId: draftId, subjectSaved: true });
+  save(draftId);
+  rerender({ subjectEntityId: draftId });
   await settle();
   expect(result.current.start).toBe(draft.start);
   expect(result.current.replace).toBe(draft.replace);
   expect(result.current).toBe(draft);
+  expect(subjectSaved).toBe(saveDraft);
 
   // A message sent after the save is written at once.
   act(() => result.current.start("after-save"));

@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@apollo/client";
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
@@ -7,7 +7,6 @@ import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
-import { ErrorTrackerContext } from "@hashintel/petrinaut";
 import {
   deserializeQueryEntitySubgraphResponse,
   mergePropertyObjectAndMetadata,
@@ -24,25 +23,26 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import {
   createEntityMutation,
   queryEntitySubgraphQuery,
-} from "../../../../../../graphql/queries/knowledge/entity.queries";
-import { useAuthInfo } from "../../../../../shared/auth-info-context";
-import { creatableWebIds } from "../../../draft-query";
+} from "../../../../../graphql/queries/knowledge/entity.queries";
+import { useAuthInfo } from "../../../../shared/auth-info-context";
+import { creatableWebIds } from "../../draft-query";
 
 import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
-} from "../../../../../../graphql/api-types.gen";
+} from "../../../../../graphql/api-types.gen";
 import type { EntityId, EntityUuid, WebId } from "@blockprotocol/type-system";
 import type { BrunchConversationPointer } from "@hashintel/brunch-agent/ui";
+import type { RetryContext } from "@local/hash-isomorphic-utils/create-apollo-client";
 import type { AgentConversation } from "@local/hash-isomorphic-utils/system-types/agentconversation";
 
 const agentIdBaseUrl = systemPropertyTypes.agentId.propertyTypeBaseUrl;
 const focusLinkTypeId =
   systemLinkEntityTypes.hasAgentConversationFocus.linkEntityTypeId;
 
-/** How long each retry of a failed read waits. */
+/** How long each retry of a failed read waits, through Apollo's retry link. */
 export const readRetryDelaysMs = [1_000, 2_000, 4_000] as const;
 
 /**
@@ -83,39 +83,57 @@ type ConversationWrite = {
  *   message, so another browser opens it. The earlier one stays as it is.
  * - While the subject is an unsaved draft, nothing is written: the graph
  *   can't link to an entity that doesn't exist yet. The conversations started
- *   on it are kept here, in order, and written at once when it is saved, so
- *   the open one is still the newest. Leaving the draft unsaved drops them.
+ *   on it are kept here, by subject and in order, and written at once when
+ *   the editor's save says it is saved, so the open one is still the newest.
+ *   A draft left unsaved keeps them: if it is saved later in this page, they
+ *   are written then, against it alone.
  * - A write that fails is tried again by the conversation's next message,
  *   with the same entity: a conversation whose entity was created but not its
  *   link goes on to the link, rather than being left unreachable.
- * - A read that fails, or is retried and answers without data, is tried
- *   again {@link readRetryDelaysMs}`.length` times. If none succeeds, the
- *   subject has no open conversation, so its next message starts one rather
- *   than leaving the agent unusable.
+ * - A read that fails is tried again by Apollo's retry link, after each of
+ *   {@link readRetryDelaysMs}. If none succeeds, the failure is reported and
+ *   the subject has no open conversation, so its next message starts one
+ *   rather than leaving the agent unusable.
  *
  * Each write records the agent, web and subject as they were when it was
  * asked for, and writes run one at a time.
  *
- * Returns a stable object while the open conversation, as read, is unchanged.
+ * Returns the conversation's pointer, a stable object while the open
+ * conversation, as read, is unchanged, and `subjectSaved`, for the editor's
+ * save to call once a subject exists.
  */
 export const useAgentConversation = ({
   agentId,
   subjectEntityId,
-  subjectSaved,
+  enabled,
+  isSaved,
+  captureException,
 }: {
   /** Names the agent and the service that keeps its conversations. */
   agentId: string;
   /**
-   * The entity the conversation focuses on, such as the open process. A
-   * draft's is the one its first save creates.
+   * The entity the conversation focuses on, such as the open process, or
+   * `null` with none open. A draft's is the one its first save creates.
    */
-  subjectEntityId: EntityId;
-  /** The subject exists in the graph: it is not an unsaved draft. */
-  subjectSaved: boolean;
-}): BrunchConversationPointer => {
+  subjectEntityId: EntityId | null;
+  /** The conversation is offered: without it nothing is read. */
+  enabled: boolean;
+  /**
+   * Whether a subject exists in the graph now, rather than being an unsaved
+   * draft. Read when a conversation starts, so it may change without a render.
+   */
+  isSaved: (subjectEntityId: EntityId) => boolean;
+  captureException: (error: unknown, context: { source: string }) => void;
+}): {
+  conversationPointer: BrunchConversationPointer;
+  /**
+   * The editor's save made `subjectEntityId` exist, or found it existing:
+   * its pending conversations are written at once, in order.
+   */
+  subjectSaved: (subjectEntityId: EntityId) => void;
+} => {
   const { authenticatedUser } = useAuthInfo();
   const userId = authenticatedUser?.accountId ?? null;
-  const { captureException } = use(ErrorTrackerContext);
 
   // Keyed by their ids, as the user object may be new on every render.
   const creatableWebsKey = authenticatedUser
@@ -126,7 +144,7 @@ export const useAgentConversation = ({
     [creatableWebsKey],
   );
 
-  const { data, error, refetch } = useQuery<
+  const { data, error } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
@@ -166,14 +184,20 @@ export const useAgentConversation = ({
             {
               equal: [
                 { path: ["outgoingLinks", "rightEntity", "webId"] },
-                { parameter: extractWebIdFromEntityId(subjectEntityId) },
+                {
+                  parameter:
+                    subjectEntityId &&
+                    extractWebIdFromEntityId(subjectEntityId),
+                },
               ],
             },
             {
               equal: [
                 { path: ["outgoingLinks", "rightEntity", "uuid"] },
                 {
-                  parameter: extractEntityUuidFromEntityId(subjectEntityId),
+                  parameter:
+                    subjectEntityId &&
+                    extractEntityUuidFromEntityId(subjectEntityId),
                 },
               ],
             },
@@ -186,45 +210,13 @@ export const useAgentConversation = ({
         includePermissions: false,
       },
     },
-    skip: userId === null,
+    skip: !enabled || userId === null || subjectEntityId === null,
     fetchPolicy: "network-only",
+    context: { retryDelaysMs: readRetryDelaysMs } satisfies RetryContext,
+    // Called once the retries are spent.
+    onError: (readError) =>
+      captureException(readError, { source: "agent-conversation.read" }),
   });
-
-  /** The failed reads of this subject: the first and each retry. */
-  const readKey = `${userId}/${agentId}/${subjectEntityId}`;
-  const [readFailures, setReadFailures] = useState({ readKey, count: 0 });
-  const failedReads = readFailures.readKey === readKey ? readFailures.count : 0;
-
-  useEffect(() => {
-    if (error && failedReads === 0) {
-      captureException(error, { source: "agent-conversation.read" });
-      setReadFailures({ readKey, count: 1 });
-    }
-  }, [error, failedReads, readKey, captureException]);
-
-  useEffect(() => {
-    const delayMs = readRetryDelaysMs[failedReads - 1];
-    if (delayMs === undefined) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      refetch().then(
-        ({ data: retried }) => {
-          // A later failure of this read starts its retries afresh.
-          setReadFailures({
-            readKey,
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- `refetch()` can resolve without `data`
-            count: retried ? 0 : failedReads + 1,
-          });
-        },
-        (retryError: unknown) => {
-          captureException(retryError, { source: "agent-conversation.read" });
-          setReadFailures({ readKey, count: failedReads + 1 });
-        },
-      );
-    }, delayMs);
-    return () => clearTimeout(timer);
-  }, [failedReads, readKey, refetch, captureException]);
 
   /** The conversation ids read, newest first. */
   const readConversationIds = useMemo(() => {
@@ -247,14 +239,13 @@ export const useAgentConversation = ({
       );
   }, [data]);
 
-  const unreadable =
-    readConversationIds === undefined && failedReads > readRetryDelaysMs.length;
-
   // Newest first, so two entities on one subject (two tabs) read as the newest.
-  const openConversationId = unreadable
-    ? null
-    : readConversationIds === undefined
-      ? undefined
+  // A read that failed after its retries has none open.
+  const openConversationId =
+    readConversationIds === undefined
+      ? error
+        ? null
+        : undefined
       : (readConversationIds[0] ?? null);
 
   const [createEntity] = useMutation<
@@ -348,16 +339,16 @@ export const useAgentConversation = ({
   // stays mounted as the user moves between processes, and a write queued on
   // one must not be recorded against the next.
   const enqueue = useCallback(
-    (source: string, conversationId: string) => {
+    (source: string, conversationId: string, subject: EntityId) => {
       if (known.current.has(conversationId)) {
         return;
       }
       known.current.add(conversationId);
-      const subjectWebId = extractWebIdFromEntityId(subjectEntityId);
+      const subjectWebId = extractWebIdFromEntityId(subject);
       const write = unfinished.current.get(conversationId) ?? {
         conversationId,
         agentId,
-        subjectEntityId,
+        subjectEntityId: subject,
         webId:
           userId !== null && !creatableWebs.has(subjectWebId)
             ? userId
@@ -378,14 +369,7 @@ export const useAgentConversation = ({
           });
         });
     },
-    [
-      agentId,
-      subjectEntityId,
-      userId,
-      creatableWebs,
-      writeConversation,
-      captureException,
-    ],
+    [agentId, userId, creatableWebs, writeConversation, captureException],
   );
 
   /**
@@ -396,21 +380,26 @@ export const useAgentConversation = ({
     new Map<EntityId, { source: string; conversationId: string }[]>(),
   );
 
-  /**
-   * The subject known to be saved, if any, read by {@link record} so that
-   * saving a draft doesn't give the returned object a new identity. It is
-   * updated before the effect below writes the draft's conversations; a
-   * message recorded before then waits in {@link unsaved} for that effect.
-   */
-  const savedSubject = useRef(subjectSaved ? subjectEntityId : null);
-  useEffect(() => {
-    savedSubject.current = subjectSaved ? subjectEntityId : null;
-  }, [subjectSaved, subjectEntityId]);
+  const subjectSaved = useCallback(
+    (subject: EntityId) => {
+      const intents = unsaved.current.get(subject) ?? [];
+      unsaved.current.delete(subject);
+      for (const { source, conversationId } of intents) {
+        enqueue(source, conversationId, subject);
+      }
+    },
+    [enqueue],
+  );
 
   const record = useCallback(
     (source: string, conversationId: string) => {
-      if (savedSubject.current === subjectEntityId) {
-        enqueue(source, conversationId);
+      if (subjectEntityId === null) {
+        return;
+      }
+      if (isSaved(subjectEntityId)) {
+        // Any it had while a draft, as when it was saved elsewhere, go first.
+        subjectSaved(subjectEntityId);
+        enqueue(source, conversationId, subjectEntityId);
         return;
       }
       const intents = unsaved.current.get(subjectEntityId) ?? [];
@@ -419,28 +408,8 @@ export const useAgentConversation = ({
       }
       unsaved.current.set(subjectEntityId, intents);
     },
-    [subjectEntityId, enqueue],
+    [subjectEntityId, isSaved, subjectSaved, enqueue],
   );
-
-  // Once the draft is saved, its conversations are written at once, in order.
-  useEffect(() => {
-    const intents = unsaved.current.get(subjectEntityId);
-    if (!subjectSaved || !intents) {
-      return;
-    }
-    unsaved.current.delete(subjectEntityId);
-    for (const { source, conversationId } of intents) {
-      enqueue(source, conversationId);
-    }
-  }, [subjectSaved, subjectEntityId, enqueue]);
-
-  // Leaving a draft unsaved drops its conversations: they are never written.
-  useEffect(() => {
-    const pending = unsaved.current;
-    return () => {
-      pending.delete(subjectEntityId);
-    };
-  }, [subjectEntityId]);
 
   // Called for every message: only the first has anything to write.
   const start = useCallback(
@@ -457,8 +426,9 @@ export const useAgentConversation = ({
     [record],
   );
 
-  return useMemo(
+  const conversationPointer = useMemo(
     () => ({ conversationId: openConversationId, start, replace }),
     [openConversationId, start, replace],
   );
+  return { conversationPointer, subjectSaved };
 };

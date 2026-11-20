@@ -87,15 +87,6 @@ vi.mock("./process-petrinaut/brunch-hash-graph-reads", () => ({
   useBrunchHashGraphReadTools: () => hashGraphReadTools,
 }));
 
-vi.mock("./process-petrinaut/use-agent-conversation", () => {
-  // Stable, as the hook's is while the open conversation is unchanged.
-  const conversation = {
-    conversationId: null,
-    start: () => {},
-    replace: () => {},
-  };
-  return { useAgentConversation: () => conversation };
-});
 vi.mock("./process-petrinaut/top-bar-plugin", () => ({
   topBarPlugin: topBarPluginMarker,
 }));
@@ -134,6 +125,13 @@ const handle = createJsonDocHandle({
 
 const savedEntityId = "web~net" as EntityId;
 
+/** Stable, as the editor's is while the open conversation is unchanged. */
+const conversationPointer = {
+  conversationId: null,
+  start: () => {},
+  replace: () => {},
+};
+
 const captureException = vi.fn<ErrorTracker["captureException"]>();
 
 let identityResponse: () => Promise<Response>;
@@ -171,7 +169,7 @@ const renderEditor = (props: {
       <ProcessPetrinaut
         handle={handle}
         entityId={entityId}
-        saved
+        conversationPointer={conversationPointer}
         readTitle={() => "Net"}
         hostSave={hostSave}
         versionLoad={undefined}
