@@ -138,6 +138,21 @@ const Harness: React.FC<{
   );
 };
 
+/** A host that applies the form's change later than the form's own timer. */
+const LateHost: React.FC<{ initial: AdHocScenarioState }> = ({ initial }) => {
+  const [state, setState] = useState(initial);
+  return (
+    <AdHocScenarioForm
+      state={state}
+      onChange={(next) => {
+        setTimeout(() => setState(next), 20);
+      }}
+      context={context}
+      selection="optimize"
+    />
+  );
+};
+
 const colouredPlace = (state: AdHocScenarioState | undefined) => {
   const place = state?.places["place-pumps"];
   if (place?.kind !== "coloured") {
@@ -877,6 +892,31 @@ describe("AdHocScenarioForm", () => {
       setTimeout(resolve, 0);
     });
     // Focus lands on the add-a-variable line once nothing is left.
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Add a variable (Top-level variables)",
+    );
+  });
+
+  it("keeps focus on the add-a-variable line when the host applies the last delete late", async () => {
+    render(
+      <LateHost
+        initial={{
+          ...EMPTY_AD_HOC_STATE,
+          variables: [
+            { name: "n", type: "integer", expression: "2", optimize: null },
+          ],
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Variable 1 actions" }));
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "Delete variable" }),
+    );
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", { name: "Variable 1 actions" }),
+      ).toBeNull();
+    });
     expect(document.activeElement?.getAttribute("aria-label")).toBe(
       "Add a variable (Top-level variables)",
     );

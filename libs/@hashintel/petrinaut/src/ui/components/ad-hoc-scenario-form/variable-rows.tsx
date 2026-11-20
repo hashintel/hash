@@ -11,7 +11,7 @@
  * worksheet member past the edges.
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Icon, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -99,6 +99,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
       ? selection
       : null;
   const { register, focus, onKeyDown, attach } = useFocusGrid();
+  const addLineRef = useRef<HTMLButtonElement | null>(null);
   // Gutter focus selects the whole row; the selection highlight follows it.
   const rowSelection = useRowSelection();
   // The add-line selects on the first click and materializes on the second.
@@ -134,10 +135,15 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   const deleteVariable = (index: number) => {
     dispatch({ type: "deleteVariable", placeId, index });
     const remaining = variables.length - 1;
-    // The gutter of the row that took the place; the add-line, which is
-    // row 0 then, when no variable is left.
+    // The gutter of the row that took the place. With no variable left, the
+    // add-line: by its element, as its row is 0 only once the host has
+    // applied the delete.
     setTimeout(() => {
-      focus(Math.max(0, Math.min(index, remaining - 1)), 0);
+      if (remaining > 0) {
+        focus(Math.min(index, remaining - 1), 0);
+      } else {
+        addLineRef.current?.focus();
+      }
     }, 0);
   };
 
@@ -374,6 +380,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
           >
             <button
               ref={(element) => {
+                addLineRef.current = element;
                 for (const column of PHANTOM_COLUMNS) {
                   register(variables.length, column)(element);
                 }
