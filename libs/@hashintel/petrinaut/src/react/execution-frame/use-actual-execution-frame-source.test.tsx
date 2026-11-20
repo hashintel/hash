@@ -8,7 +8,7 @@ import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
 import { ActualModeContext } from "../actual-mode-context";
 import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
-import { useActualExecutionFrameSource } from "./provider";
+import { useActualExecutionFrameSource } from "./use-actual-execution-frame-source";
 
 import type { ActualModeContextValue, SDCPN } from "@hashintel/petrinaut-core";
 import type { PropsWithChildren } from "react";
