@@ -241,7 +241,6 @@ export const Section = ({
   if (collapsible) {
     return (
       <Collapsible.Root
-        defaultOpen={defaultOpen}
         open={expanded}
         onOpenChange={(details) => setExpanded(details.open)}
         lazyMount={unmountOnCollapse}

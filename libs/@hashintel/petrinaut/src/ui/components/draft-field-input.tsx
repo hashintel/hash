@@ -12,8 +12,6 @@ type ValidationResult =
 interface DraftFieldInputProps {
   /** Field label, rendered via Form.Field and connected to the input. */
   label: string;
-  /** Optional info tooltip rendered next to the label. */
-  labelTooltip?: string;
   /** Stable identifier of the entity owning this field; switching it discards stale drafts. */
   sourceId: string;
   /** Current canonical value. */
@@ -42,7 +40,6 @@ const monospaceInputStyle = css({
  */
 export const DraftFieldInput: React.FC<DraftFieldInputProps> = ({
   label,
-  labelTooltip,
   sourceId,
   sourceValue,
   validate,
@@ -57,7 +54,6 @@ export const DraftFieldInput: React.FC<DraftFieldInputProps> = ({
   return (
     <Form.Field
       label={label}
-      labelTooltip={labelTooltip}
       size="sm"
       // A read-only field is not a disabled one: its label describes a value
       // the reader can read, so it keeps full contrast.

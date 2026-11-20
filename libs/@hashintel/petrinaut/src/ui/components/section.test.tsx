@@ -31,6 +31,22 @@ describe("Section", () => {
     );
   });
 
+  it("starts collapsed when it is not open by default, and opens on a click", async () => {
+    render(
+      <Section title="Computed state" collapsible defaultOpen={false}>
+        <span>Condition</span>
+      </Section>,
+    );
+    const trigger = screen.getByRole("button", {
+      name: "Toggle Computed state section",
+    });
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(trigger);
+    await waitFor(() =>
+      expect(trigger.getAttribute("aria-expanded")).toBe("true"),
+    );
+  });
+
   it("keeps a focused section below every sticky header", () => {
     render(
       <SectionList>

@@ -29,14 +29,10 @@ const sliderStyle = css({
   },
 });
 
-type SliderProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & {
-  /** Ref to the input element */
-  ref?: React.Ref<HTMLInputElement>;
-};
+type SliderProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type">;
 
-export const Slider: React.FC<SliderProps> = ({ className, ref, ...props }) => (
+export const Slider: React.FC<SliderProps> = ({ className, ...props }) => (
   <input
-    ref={ref}
     type="range"
     className={`${sliderStyle}${className ? ` ${className}` : ""}`}
     {...props}
