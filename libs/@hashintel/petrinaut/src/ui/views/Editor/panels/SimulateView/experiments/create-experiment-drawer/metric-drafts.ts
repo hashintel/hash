@@ -55,16 +55,11 @@ export const transitionModeOptions: {
   { value: "cumulative", text: "Cumulative" },
 ];
 
-function getMetricKindLabel(kind: ExperimentMetricKind): string {
-  switch (kind) {
-    case "placeTokenCountMean":
-      return "Place tokens";
-    case "transitionFiringCount":
-      return "Transition firing";
-    case "expression":
-      return "Custom code";
-  }
-}
+const metricKindLabels: Record<ExperimentMetricKind, string> = {
+  placeTokenCountMean: "Place tokens",
+  transitionFiringCount: "Transition firing",
+  expression: "Custom code",
+};
 
 export function getMetricSummaryLabel(
   metric: ExperimentMetricDraft,
@@ -80,7 +75,7 @@ export function getMetricSummaryLabel(
     }
   }
 
-  return getMetricKindLabel(metric.kind);
+  return metricKindLabels[metric.kind];
 }
 
 export const getMetricLabel = (
