@@ -1,8 +1,37 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { sweepRangeDraws } from "./selection-draws";
 
 describe("sweepRangeDraws", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("draws a batch shorter than one stride in one task, however slow the clock says it was", async () => {
+    let clock = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => {
+      clock += 1000;
+      return clock;
+    });
+    const axis = {
+      identifier: "x",
+      min: 0,
+      max: 2,
+      stepCount: 2,
+      integer: false,
+    };
+    let drawn = false;
+    void sweepRangeDraws(1, [axis], { x: { from: 0, to: 2 } }, 0, 8).then(
+      () => {
+        drawn = true;
+      },
+    );
+
+    await Promise.resolve();
+
+    expect(drawn).toBe(true);
+  });
+
   it("draws every value of an integer axis equally often", async () => {
     const axis = {
       identifier: "n",

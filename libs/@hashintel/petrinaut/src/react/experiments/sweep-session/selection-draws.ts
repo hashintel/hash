@@ -122,7 +122,9 @@ export const sweepRangeDraws = async (
       if (signal?.aborted) {
         throw abortError();
       }
-      if (yielder.shouldYield()) {
+      // Not before the first draw: the loop has held the thread for nothing
+      // yet, so only a stalled machine could show the budget as spent.
+      if (localIndex > 0 && yielder.shouldYield()) {
         await yielder.yieldNow();
       }
     }
