@@ -205,6 +205,7 @@ vi.mock("../../../shared/layout", () => ({
 
 vi.mock("../../../lib/public-env", () => ({
   brunchAgentOrigin: "https://brunch.test",
+  durableAgentsOrigin: null,
 }));
 
 vi.mock("../../shared/auth-info-context", () => ({

@@ -22,3 +22,12 @@ export const SENTRY_ENVIRONMENT =
 export const brunchAgentOrigin: string | null =
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- an empty value means unset
   process.env.NEXT_PUBLIC_HASH_BRUNCH_AGENT_ORIGIN || null;
+
+/**
+ * The durable agents server's origin, or `null` when this deployment has
+ * none. Set, the process page's assistant runs there instead of on the
+ * Brunch server, called the same way.
+ */
+export const durableAgentsOrigin: string | null =
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- an empty value means unset
+  process.env.NEXT_PUBLIC_HASH_DURABLE_AGENTS_ORIGIN || null;

@@ -51,6 +51,11 @@ process.env.NEXT_PUBLIC_API_ORIGIN =
 process.env.NEXT_PUBLIC_HASH_BRUNCH_AGENT_ORIGIN =
   process.env.HASH_BRUNCH_AGENT_ORIGIN ?? "";
 
+// The durable agents server's origin. Set, the process page's assistant runs
+// there instead of on Brunch.
+process.env.NEXT_PUBLIC_HASH_DURABLE_AGENTS_ORIGIN =
+  process.env.HASH_DURABLE_AGENTS_ORIGIN ?? "";
+
 process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN ?? "";
 process.env.NEXT_PUBLIC_ENVIRONMENT = process.env.ENVIRONMENT ?? "";
 process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT =

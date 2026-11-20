@@ -144,6 +144,7 @@ vi.mock("./petrinaut-editor/process-petrinaut/top-bar-plugin", () => ({
 
 vi.mock("../../../../lib/public-env", () => ({
   brunchAgentOrigin: "https://brunch.test",
+  durableAgentsOrigin: null,
 }));
 
 vi.mock("../../../shared/auth-info-context", () => ({
