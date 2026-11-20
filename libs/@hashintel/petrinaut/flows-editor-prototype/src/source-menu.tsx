@@ -634,8 +634,13 @@ export const SourceMenu = ({
       .filter((option) => option.group === group)
       .map((option) => ({
         id: JSON.stringify(option.source),
-        text: listsOnly ? option.ownerLabel : option.label,
-        description: listsOnly ? listName(option) : option.ownerLabel,
+        // Earlier-step rows read step first (decided 18 Nov): the step's name, then the output's name under it.
+        text: listsOnly || group === "Earlier steps" ? option.ownerLabel : option.label,
+        description: listsOnly
+          ? listName(option)
+          : group === "Earlier steps"
+            ? option.label
+            : option.ownerLabel,
         icon: ownerIcon(document, option).icon,
         ...(option.source.kind === "step-output"
           ? { tint: treeTileColor(ownerIcon(document, option).icon) }
