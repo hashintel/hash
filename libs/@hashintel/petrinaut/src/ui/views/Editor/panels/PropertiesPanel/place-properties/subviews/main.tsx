@@ -67,7 +67,7 @@ const typeColorDotStyle = css({
   flexShrink: 0,
 });
 
-const arcStyle = css({
+const typeOptionStyle = css({
   display: "flex",
   gap: "2",
   alignItems: "center",
@@ -146,7 +146,7 @@ export const PlaceMainContent: React.FC = () => {
                 renderItem={(value) => {
                   const type = types.find((tp) => tp.id === value);
                   return (
-                    <div className={arcStyle}>
+                    <div className={typeOptionStyle}>
                       {type?.displayColor && (
                         <div
                           className={typeColorDotStyle}

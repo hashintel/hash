@@ -28,7 +28,7 @@ import { useDiffEqPropertiesContext } from "../context";
 import type { Color, DifferentialEquation } from "@hashintel/petrinaut-core";
 
 // the section fills the panel; the last row (Code) takes the remaining height
-const fieldsSectionStyle = css({
+const equationFieldsStyle = css({
   paddingTop: "3",
   flex: "[1]",
   minHeight: "[0]",
@@ -60,7 +60,7 @@ const confirmHintStyle = css({
   color: "neutral.s80",
 });
 
-const arcStyle = css({
+const typeOptionStyle = css({
   display: "flex",
   gap: "2",
   alignItems: "center",
@@ -155,7 +155,7 @@ export const DiffEqMainContent: React.FC = () => {
 
   return (
     <>
-      <Form.Section className={fieldsSectionStyle}>
+      <Form.Section className={equationFieldsStyle}>
         <DraftFieldInput
           label="Name"
           sourceId={differentialEquation.id}
@@ -192,7 +192,7 @@ export const DiffEqMainContent: React.FC = () => {
                 renderItem={(value) => {
                   const type = types.find((tp) => tp.id === value);
                   return (
-                    <div className={arcStyle}>
+                    <div className={typeOptionStyle}>
                       <div
                         className={colorDotStyle}
                         style={{ backgroundColor: type?.displayColor }}
