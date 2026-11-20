@@ -119,6 +119,13 @@ const chevronStyle = cva({
   },
 });
 
+const emptyGroupStyle = css({
+  pt: "1",
+  px: "1",
+  fontSize: "sm",
+  color: "neutral.s65",
+});
+
 const parameterVarNameStyle = css({
   margin: "0",
   fontSize: "xs",
@@ -267,5 +274,12 @@ export const GroupRow: React.FC<{
         <Action />
       </RowAction>
     ) : null}
+  </div>
+);
+
+/** The message of a group without entities, lined up with the entity rows. */
+export const EmptyGroupRow: React.FC<{ message: string }> = ({ message }) => (
+  <div className={emptyGroupStyle} style={entityIndent}>
+    {message}
   </div>
 );

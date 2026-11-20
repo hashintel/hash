@@ -6,7 +6,7 @@ import { useEditorActions } from "../../../../../../../react/state/editor-contex
 import { focusLands } from "../../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../../worksheet/use-focus-stops";
 import { selectionItemOf } from "./entity-groups";
-import { EntityRow, GroupRow } from "./entity-rows";
+import { EmptyGroupRow, EntityRow, GroupRow } from "./entity-rows";
 
 import type { FocusStop } from "../../../../../../worksheet/use-focus-stops";
 import type { EntityGroup, EntityItem } from "./entity-groups";
@@ -28,16 +28,6 @@ const groupChildrenStyle = css({
   overflow: "hidden",
   transition: "[height 150ms ease-out]",
 });
-
-const emptyMessageStyle = css({
-  pt: "1",
-  px: "1",
-  fontSize: "sm",
-  color: "neutral.s65",
-});
-
-/** Lines an empty group's message up with the entity rows. */
-const emptyMessageIndent = { paddingLeft: 20 };
 
 type Row = EntityItem | EntityGroup;
 
@@ -302,9 +292,7 @@ export const EntityList: React.FC<{ groups: EntityGroup[] }> = ({ groups }) => {
                   />
                 ))
               ) : (
-                <div className={emptyMessageStyle} style={emptyMessageIndent}>
-                  {group.emptyGroupMessage}
-                </div>
+                <EmptyGroupRow message={group.emptyGroupMessage} />
               )}
             </div>
           </Fragment>
