@@ -10,15 +10,6 @@ import { LeftSideBar } from "./panel";
 import type { SubView } from "../../../../components/sub-view/types";
 import type { PetrinautRules } from "@hashintel/petrinaut-core";
 
-// The registry of panels loads the bottom panel's charts too, which ask the
-// screen for its pixel ratio as their module loads.
-vi.hoisted(() =>
-  vi.stubGlobal("matchMedia", () => ({
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  })),
-);
-
 // The panels are told apart by their titles: what each one draws is its own.
 vi.mock(
   "../../../../components/sub-view/vertical/vertical-sub-views-container",

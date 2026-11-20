@@ -11,9 +11,11 @@ import { diagnosticsSubView } from "../views/Editor/panels/BottomPanel/subviews/
 import { eventTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/event-timeline/main";
 import { simulationSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-settings";
 import { actualTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/actual";
-import { componentsSubView } from "../views/Editor/panels/LeftSideBar/subviews/components-panel";
-import { entitiesTreeSubView } from "../views/Editor/panels/LeftSideBar/subviews/entities-tree";
-import { netsListSubView } from "../views/Editor/panels/LeftSideBar/subviews/nets-list";
+import {
+  componentsSubView,
+  entitiesTreeSubView,
+  netsListSubView,
+} from "../views/Editor/panels/LeftSideBar/sub-views";
 
 import type { SubView } from "../components/sub-view/types";
 

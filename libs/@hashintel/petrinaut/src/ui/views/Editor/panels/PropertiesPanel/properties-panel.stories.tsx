@@ -19,7 +19,7 @@ import {
 import { PetrinautProvider } from "../../../../../react/petrinaut-provider";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { MonacoProvider } from "../../../../monaco/provider";
-import { entitiesTreeSubView } from "../LeftSideBar/subviews/entities-tree";
+import { entitiesTreeSubView } from "../LeftSideBar/sub-views";
 import { SelectedItemProperties } from "./selected-item-properties";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";

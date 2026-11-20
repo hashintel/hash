@@ -16,7 +16,6 @@ import { usePetrinautPresentation } from "../../../../shared/presentation-contex
 import { ComponentOptionsPopover } from "./component-options-popover";
 import { RowActionCell } from "./row-action-cell";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import type {
   FocusStop,
   FocusStopTarget,
@@ -109,7 +108,7 @@ const renameInputStyle = css({
   width: "full",
 });
 
-const NetsHeaderAction: React.FC = () => {
+export const NetsHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { components },
   } = use(SDCPNContext);
@@ -433,15 +432,4 @@ export const NetNavigationList: React.FC<{
       )}
     </div>
   );
-};
-
-export const netsListSubView: SubView = {
-  id: "nets-list",
-  title: "Nets",
-  tooltip:
-    "View the root net and the document's components. Mark a component's places as ports, then place instances of it in the root net.",
-  component: NetNavigationList,
-  renderHeaderAction: () => <NetsHeaderAction />,
-  headerActionMutates: true,
-  defaultCollapsed: false,
 };

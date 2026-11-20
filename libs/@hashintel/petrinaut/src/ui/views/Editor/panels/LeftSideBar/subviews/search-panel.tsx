@@ -4,10 +4,6 @@ import { use, useEffect, useRef, useState } from "react";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import type { ComponentType, ReactNode } from "react";
-
-const SearchIcon = () => <Icon name="search" />;
-
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import {
@@ -21,9 +17,9 @@ import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusMember } from "../../../../../worksheet/use-focus-member";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import type { FocusStop } from "../../../../../worksheet/use-focus-stops";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
+import type { ComponentType, ReactNode } from "react";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -214,6 +210,8 @@ function useSearchableItems(): SearchableItem[] {
 
 // -- Components ---------------------------------------------------------------
 
+export const SearchIcon: React.FC = () => <Icon name="search" />;
+
 /**
  * The result rows, one member of the search panel's vertical focus flow:
  * arrows walk the rows and select as they move, and a move off the top edge
@@ -292,7 +290,7 @@ const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({
   );
 };
 
-const SearchContent: React.FC = () => {
+export const SearchContent: React.FC = () => {
   const { searchInputRef } = use(EditorContext);
   const allItems = useSearchableItems();
   const [query, setQuery] = useState("");
@@ -351,7 +349,7 @@ const SearchContent: React.FC = () => {
  * The search input, the first member of the search panel's vertical focus
  * flow: ArrowDown hands focus to the result list below.
  */
-const SearchTitle: React.FC = () => {
+export const SearchTitle: React.FC = () => {
   const { isSearchOpen, searchInputRef } = use(EditorContext);
   const { attach, moveFrom } = useFocusMember(() =>
     focusLands(searchInputRef.current),
@@ -385,7 +383,7 @@ const SearchTitle: React.FC = () => {
   );
 };
 
-const SearchHeaderAction: React.FC = () => {
+export const SearchHeaderAction: React.FC = () => {
   const { setSearchOpen } = use(EditorContext);
 
   return (
@@ -398,15 +396,4 @@ const SearchHeaderAction: React.FC = () => {
       onClick={() => setSearchOpen(false)}
     />
   );
-};
-
-export const searchSubView: SubView = {
-  id: "search",
-  title: "Search",
-  icon: SearchIcon,
-  component: SearchContent,
-  renderTitle: () => <SearchTitle />,
-  renderHeaderAction: () => <SearchHeaderAction />,
-  alwaysShowHeaderAction: true,
-  main: true,
 };

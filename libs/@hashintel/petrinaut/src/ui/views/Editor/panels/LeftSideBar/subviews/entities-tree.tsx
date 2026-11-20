@@ -7,9 +7,7 @@ import { ShortcutTooltip } from "../../../../../keyboard-shortcut";
 import { EntityList } from "./entities-tree/entity-list";
 import { useEntityTreeItems } from "./entities-tree/use-entity-tree-items";
 
-import type { SubView } from "../../../../../components/sub-view/types";
-
-const EntitiesHeaderAction: React.FC = () => {
+export const EntitiesHeaderAction: React.FC = () => {
   const { setSearchOpen } = use(EditorContext);
 
   return (
@@ -26,15 +24,7 @@ const EntitiesHeaderAction: React.FC = () => {
 };
 
 /** The entities of the active net: its nodes, and its token types, equations and parameters where the document has them. */
-const EntitiesTree: React.FC = () => (
-  <EntityList items={useEntityTreeItems()} />
-);
-
-export const entitiesTreeSubView: SubView = {
-  id: "entities-tree",
-  title: "Entities",
-  component: EntitiesTree,
-  headerAction: EntitiesHeaderAction,
-  main: true,
-  alwaysShowHeaderAction: true,
+export const EntitiesTree: React.FC = () => {
+  const items = useEntityTreeItems();
+  return <EntityList items={items} />;
 };

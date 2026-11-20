@@ -1,4 +1,4 @@
-import { use, useMemo } from "react";
+import { use } from "react";
 
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
@@ -15,11 +15,17 @@ import {
   MAX_LEFT_SIDEBAR_WIDTH,
   MIN_LEFT_SIDEBAR_WIDTH,
 } from "../../../../constants/ui";
-import { LEFT_SIDEBAR_SUBVIEWS } from "../../../../constants/ui-subviews";
 import { styleRef, useReading } from "../../../../lib/readings";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { slideFromEdge } from "../../shared/slide-from-edge";
-import { searchSubView } from "./subviews/search-panel";
+import {
+  componentsSubView,
+  entitiesTreeSubView,
+  netsListSubView,
+  searchSubView,
+} from "./sub-views";
+
+const searchSubViews = [searchSubView];
 
 const glassPanelBaseStyle = css({
   position: "absolute",
@@ -115,17 +121,13 @@ export const LeftSideBar: React.FC = () => {
   // The Nets list and the Components panel are part of the composition
   // interface. The Components panel lists the libraries on offer, and is all
   // an editor that only composes has to show.
-  const sidebarSubViews = LEFT_SIDEBAR_SUBVIEWS.filter((subView) => {
-    if (subView.id === "components") {
-      return isCompositionInterfaceOn && offered.length > 0;
-    }
-    if (composesOnly) {
-      return false;
-    }
-    return subView.id !== "nets-list" || isCompositionInterfaceOn;
-  });
-
-  const searchSubViews = useMemo(() => [searchSubView], []);
+  const sidebarSubViews = [
+    ...(composesOnly ? [] : [entitiesTreeSubView]),
+    ...(isCompositionInterfaceOn && !composesOnly ? [netsListSubView] : []),
+    ...(isCompositionInterfaceOn && offered.length > 0
+      ? [componentsSubView]
+      : []),
+  ];
 
   if (!isVisible && !isInView && !keepPanelsMounted) {
     return null;
