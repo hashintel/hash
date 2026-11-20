@@ -19,7 +19,7 @@ import type {
 import type { ContourSurfaceMarker } from "../../../../../../components/contour-surface";
 
 /** Whether the selection is a single point on every axis. */
-export const isPointSelection = (
+const isPointSelection = (
   selection: SweepSelection,
   axes: readonly ExperimentParameterAxis[],
 ): boolean =>

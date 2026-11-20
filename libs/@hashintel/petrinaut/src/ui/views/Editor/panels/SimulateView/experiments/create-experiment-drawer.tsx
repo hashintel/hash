@@ -274,7 +274,8 @@ const errorStyle = css({
 const DEFAULT_EXPERIMENT_NAME = "Experiment";
 const NO_SCENARIO_VALUE = "__none__";
 const DEFAULT_RUN_COUNT = "1000";
-const DEFAULT_SEED = "1";
+// The form has no seed field: every experiment it creates draws from this one.
+const experimentSeed = 1;
 const DEFAULT_MAX_TIME = "180";
 const DEFAULT_METRIC_CODE = `/**
 * Custom metric code that will be run on each frame.
@@ -865,15 +866,11 @@ const ExperimentMetricRow = ({
 
 // -- Drawer -------------------------------------------------------------------
 
-interface CreateExperimentDrawerProps {
-  open: boolean;
-  onClose: () => void;
-}
-
 export const CreateExperimentDrawer = ({
-  open,
   onClose,
-}: CreateExperimentDrawerProps) => {
+}: {
+  onClose: () => void;
+}) => {
   const { petriNetDefinition, extensions } = use(SDCPNContext);
   const executableDefinition = useExecutableDefinition();
   // An untimed net's runs count steps: the form asks for a step to end at,
@@ -894,7 +891,6 @@ export const CreateExperimentDrawer = ({
   >({});
   const [adHocState, setAdHocState] = useState<AdHocScenarioState | null>(null);
   const [runCount, setRunCount] = useState(DEFAULT_RUN_COUNT);
-  const [seed, setSeed] = useState(DEFAULT_SEED);
   const [simulatorDraft, setSimulatorDraft] = useState(
     EMPTY_EXPERIMENT_SIMULATOR,
   );
@@ -1045,7 +1041,7 @@ export const CreateExperimentDrawer = ({
     WEBGPU_FIXED_STEP_SIMULATOR_ID,
   );
   const gpu = useGpuAvailability({
-    enabled: open && webGpuSimulator?.isAvailable() === true,
+    enabled: webGpuSimulator?.isAvailable() === true,
     sdcpn: executableDefinition,
     extensions,
     metricSpecs: draftMetricSpecs,
@@ -1116,7 +1112,6 @@ export const CreateExperimentDrawer = ({
     setParamInputs({});
     setAdHocState(null);
     setRunCount(DEFAULT_RUN_COUNT);
-    setSeed(DEFAULT_SEED);
     setSimulatorDraft(EMPTY_EXPERIMENT_SIMULATOR);
     setMaxTime(DEFAULT_MAX_TIME);
     setMetricDrafts([]);
@@ -1256,7 +1251,7 @@ export const CreateExperimentDrawer = ({
               : null,
           adHocSweeps: adHocSweeping,
           runCount: Number(runCount),
-          seed: Number(seed),
+          seed: experimentSeed,
           dt: experimentSimulator.samplePeriod,
           maxTime: Number(maxTime),
           metricSpecs,
@@ -1288,10 +1283,6 @@ export const CreateExperimentDrawer = ({
       );
     }
   };
-
-  if (!open) {
-    return null;
-  }
 
   return (
     <FocusRoot>

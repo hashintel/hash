@@ -98,7 +98,7 @@ const seedRunVariables = (
   });
 };
 
-export interface ExperimentScenarioRunProps {
+interface ExperimentScenarioRunProps {
   scenario: Scenario;
   /** The net the scenario compiles and renders against. */
   context: AdHocSynthesisContext;

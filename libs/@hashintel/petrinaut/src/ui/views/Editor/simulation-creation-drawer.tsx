@@ -17,7 +17,7 @@ export const SimulationCreationDrawer = () => {
     <>
       <SimulationPanelPresence>
         {simulateDrawer.type === "create-experiment" ? (
-          <CreateExperimentDrawer open onClose={closeDrawer} />
+          <CreateExperimentDrawer onClose={closeDrawer} />
         ) : simulateDrawer.type === "create-scenario" ? (
           <CreateScenarioDrawer open onClose={closeDrawer} />
         ) : null}

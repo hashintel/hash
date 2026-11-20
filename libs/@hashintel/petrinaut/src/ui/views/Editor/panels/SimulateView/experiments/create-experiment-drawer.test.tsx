@@ -371,7 +371,7 @@ const TestProviders = ({
                 <UserSettingsContext value={settings}>
                   <PetrinautOptimizationContext value={optimizationSource}>
                     <div ref={portalContainerRef} />
-                    <CreateExperimentDrawer open onClose={() => {}} />
+                    <CreateExperimentDrawer onClose={() => {}} />
                   </PetrinautOptimizationContext>
                 </UserSettingsContext>
               </SDCPNContext>
