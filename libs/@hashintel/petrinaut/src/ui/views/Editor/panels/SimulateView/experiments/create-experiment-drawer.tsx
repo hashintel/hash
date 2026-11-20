@@ -1,8 +1,7 @@
-import { use, useId, useRef, useState } from "react";
+import { use, useRef, useState } from "react";
 
 import {
   Button,
-  Checkbox,
   Icon,
   LoadingSpinner,
   NumberInput,
@@ -34,7 +33,6 @@ import { Section, SectionList } from "../../../../../components/section";
 import { FocusControls } from "../../../../../worksheet/focus-controls";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
 import { summarizeMetricLspErrors } from "../metrics/metric-lsp";
-import { createMetricKindGroups } from "../metrics/metric-picker-options";
 import { SimulationPanel } from "../shared/simulation-panel";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
 import {
@@ -62,15 +60,9 @@ import {
 } from "./create-experiment-drawer/lower-constraint-drafts";
 import {
   buildMetricSpecs,
-  createDefaultMetricDraft,
-  getMetricLabel,
   type ExperimentMetricDraft,
 } from "./create-experiment-drawer/metric-drafts";
-import {
-  MetricObjectiveControl,
-  OptimizationBudget,
-} from "./create-experiment-drawer/metric-optimization";
-import { ExperimentMetricRow } from "./create-experiment-drawer/metric-row";
+import { MetricsSection } from "./create-experiment-drawer/metrics-section";
 import { describeSweep } from "./create-experiment-drawer/sweep-summary";
 import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
 import { getExperimentMetricDiagnosticError } from "./experiment-metric-lsp-validation";
@@ -94,24 +86,6 @@ const sweepSummaryStyle = css({
   color: "neutral.s80",
   fontVariantNumeric: "tabular-nums",
   "&[data-tone='error']": { color: "red.s100" },
-});
-
-const metricListStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-});
-
-const metricHeaderStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "3",
-});
-
-const metricCountStyle = css({
-  fontSize: "sm",
-  color: "neutral.s80",
 });
 
 const errorStyle = css({
@@ -197,17 +171,9 @@ export const CreateExperimentDrawer = ({
   const [objectiveDraft, setObjectiveDraft] = useState(EMPTY_SWEEP_OBJECTIVE);
   const [startOptimizerImmediately, setStartOptimizerImmediately] =
     useState(false);
-  const objectiveGroupName = useId();
-  const [metricLabelFocusId, setMetricLabelFocusId] = useState<string | null>(
-    null,
-  );
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
-  const addMetricButtonRef = useRef<HTMLButtonElement>(null);
-  // Held in state, not in a ref: a handler that reads a ref's map is left
-  // uncached by the compiler, and every row with it.
-  const [metricTriggers] = useState(() => new Map<string, HTMLButtonElement>());
 
   const effectiveSelectedScenarioId = getEffectiveScenarioSelection(
     scenarios,
@@ -234,7 +200,6 @@ export const CreateExperimentDrawer = ({
   });
 
   const scenarioOptions = createScenarioOptions(scenarios);
-  const metricKindGroups = createMetricKindGroups(petriNetDefinition);
   // Each custom-code metric's errors, as the language client reports them now.
   const metricDiagnosticError = getExperimentMetricDiagnosticError(
     metricDrafts.map((draft) => ({
@@ -359,7 +324,6 @@ export const CreateExperimentDrawer = ({
     setConstraintDrafts(EMPTY_CONSTRAINT_DRAFTS);
     setObjectiveDraft(EMPTY_SWEEP_OBJECTIVE);
     setStartOptimizerImmediately(false);
-    setMetricLabelFocusId(null);
     setError(null);
     setIsSubmitting(false);
   };
@@ -381,50 +345,12 @@ export const CreateExperimentDrawer = ({
     setError(null);
   };
 
-  const handleAddMetric = () => {
-    const nextMetric = createDefaultMetricDraft(petriNetDefinition);
-
-    setError(null);
-    setMetricLabelFocusId(nextMetric.id);
-    setMetricDrafts((prev) => [
-      ...prev.map((metric) => ({ ...metric, expanded: false })),
-      nextMetric,
-    ]);
-  };
-
-  const handleMetricChange = (
-    metricId: string,
-    patch: Partial<ExperimentMetricDraft>,
+  // Every change of the drafts is an edit, which clears the last submit's error.
+  const handleMetricDraftsChange = (
+    update: (drafts: ExperimentMetricDraft[]) => ExperimentMetricDraft[],
   ) => {
     setError(null);
-    setMetricDrafts((prev) =>
-      prev.map((metric) =>
-        metric.id === metricId ? { ...metric, ...patch } : metric,
-      ),
-    );
-  };
-
-  const handleMetricRemove = (metricId: string) => {
-    const index = metricDrafts.findIndex((metric) => metric.id === metricId);
-    const nextMetric = metricDrafts[index + 1] ?? metricDrafts[index - 1];
-    setError(null);
-    setMetricDrafts((prev) => prev.filter((metric) => metric.id !== metricId));
-    if (nextMetric) {
-      metricTriggers.get(nextMetric.id)?.focus();
-    } else {
-      addMetricButtonRef.current?.focus();
-    }
-  };
-
-  const registerMetricTrigger = (
-    metricId: string,
-    element: HTMLButtonElement | null,
-  ) => {
-    if (element) {
-      metricTriggers.set(metricId, element);
-    } else {
-      metricTriggers.delete(metricId);
-    }
+    setMetricDrafts(update);
   };
 
   const handleSubmit = async () => {
@@ -680,103 +606,20 @@ export const CreateExperimentDrawer = ({
                   )}
                 </Section>
 
-                <Section
-                  title={objectiveEnabled ? "Metrics & objective" : "Metrics"}
-                  collapsible
-                  defaultOpen
-                >
-                  <FocusControls>
-                    <div className={metricListStyle}>
-                      {optimizationAvailable ? (
-                        <Checkbox
-                          size="sm"
-                          label="Start optimizer immediately"
-                          value={startOptimizerImmediately}
-                          onChange={setStartOptimizerImmediately}
-                          disabled={isSubmitting}
-                        />
-                      ) : null}
-                      <div className={metricHeaderStyle}>
-                        <span className={metricCountStyle}>
-                          {metricDrafts.length === 0
-                            ? objectiveEnabled
-                              ? "Add a metric to optimize"
-                              : "No experiment metrics"
-                            : `${metricDrafts.length} experiment metric${
-                                metricDrafts.length === 1 ? "" : "s"
-                              }`}
-                        </span>
-                        <Button
-                          variant="subtle"
-                          tone="neutral"
-                          size="sm"
-                          prefix={<Icon name="plus" size="sm" />}
-                          onClick={handleAddMetric}
-                          ref={addMetricButtonRef}
-                        >
-                          Add metric
-                        </Button>
-                      </div>
-
-                      {metricDrafts.map((metric) => (
-                        <ExperimentMetricRow
-                          key={metric.id}
-                          metric={metric}
-                          sdcpn={petriNetDefinition}
-                          kindGroups={metricKindGroups}
-                          autoFocusLabel={metric.id === metricLabelFocusId}
-                          isObjective={
-                            objectiveEnabled && metric.id === objectiveMetricId
-                          }
-                          onChange={handleMetricChange}
-                          onRemove={handleMetricRemove}
-                          registerTrigger={registerMetricTrigger}
-                          footer={
-                            objectiveEnabled ? (
-                              <MetricObjectiveControl
-                                metricId={metric.id}
-                                metricLabel={getMetricLabel(
-                                  metric,
-                                  petriNetDefinition,
-                                )}
-                                groupName={objectiveGroupName}
-                                direction={
-                                  metric.id === objectiveMetricId
-                                    ? objectiveDraft.direction
-                                    : null
-                                }
-                                disabled={isSubmitting}
-                                onSelect={() =>
-                                  setObjectiveDraft((draft) => ({
-                                    ...draft,
-                                    metricId: metric.id,
-                                  }))
-                                }
-                                onDirectionChange={(direction) =>
-                                  setObjectiveDraft((draft) => ({
-                                    ...draft,
-                                    direction,
-                                  }))
-                                }
-                              />
-                            ) : undefined
-                          }
-                        />
-                      ))}
-
-                      {objectiveEnabled && metricDrafts.length > 0 ? (
-                        <OptimizationBudget
-                          steps={objectiveDraft.steps}
-                          error={objectiveError}
-                          onChange={(steps) =>
-                            setObjectiveDraft((draft) => ({ ...draft, steps }))
-                          }
-                          disabled={isSubmitting}
-                        />
-                      ) : null}
-                    </div>
-                  </FocusControls>
-                </Section>
+                <MetricsSection
+                  drafts={metricDrafts}
+                  onChange={handleMetricDraftsChange}
+                  optimizationAvailable={optimizationAvailable}
+                  startOptimizerImmediately={startOptimizerImmediately}
+                  onStartOptimizerImmediatelyChange={
+                    setStartOptimizerImmediately
+                  }
+                  objectiveDraft={objectiveDraft}
+                  objectiveMetricId={objectiveMetricId}
+                  objectiveError={objectiveError}
+                  onObjectiveChange={setObjectiveDraft}
+                  disabled={isSubmitting}
+                />
 
                 {constraintsEnabled ? (
                   <FocusControls>
