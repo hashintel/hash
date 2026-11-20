@@ -17,7 +17,7 @@
 
 import { useRef } from "react";
 
-export const FOCUS_CLEARANCE_PX = 25;
+const FOCUS_CLEARANCE_PX = 25;
 
 /** How long after a pointer press a focus on its target skips the nudge. */
 const POINTER_FOCUS_WINDOW_MS = 500;
@@ -68,7 +68,7 @@ function isScrollable(overflow: string): boolean {
 }
 
 /** Nudges every scrollable ancestor until `target` has its clearance. */
-export function nudgeIntoClearance(
+function nudgeIntoClearance(
   target: HTMLElement,
   margin: number = FOCUS_CLEARANCE_PX,
 ): void {

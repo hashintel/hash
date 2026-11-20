@@ -134,7 +134,7 @@ const stripEditorOptimizedStyle = css({
 const targetKey = ({ stopId, column }: FocusStopTarget): string =>
   `${stopId}:${column}`;
 
-export interface TokenTableProps {
+interface TokenTableProps {
   place: Place;
   colour: Color;
   state: AdHocColouredPlace;

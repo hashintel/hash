@@ -38,7 +38,7 @@ const toggleCellStyle = css({
   textAlign: "center",
 });
 
-export interface ScenarioParameterRowsProps {
+interface ScenarioParameterRowsProps {
   /**
    * The form's top-level Variables, exposed and auxiliary alike; the rows
    * render the exposed ones under their original indices, so value edits

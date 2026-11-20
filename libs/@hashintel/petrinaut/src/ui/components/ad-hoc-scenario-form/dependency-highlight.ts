@@ -69,7 +69,7 @@ const referencePattern =
   /(scenario|parameters)\s*\.\s*([A-Za-z_$][A-Za-z0-9_$]*)|(?<!\.)\b([A-Za-z_$][A-Za-z0-9_$]*)\b/g;
 
 /** Extracts the identifiers an expression references, by vocabulary. */
-export function expressionReferences(expression: string): ExpressionReferences {
+function expressionReferences(expression: string): ExpressionReferences {
   const references: ExpressionReferences = {
     scenario: new Set(),
     parameters: new Set(),

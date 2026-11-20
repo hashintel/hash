@@ -72,7 +72,7 @@ const exposeCellStyle = css({
   textAlign: "center",
 });
 
-export interface VariableRowsProps {
+interface VariableRowsProps {
   scopeLabel: string;
   /** `null` for top-level Variables, the owning place id otherwise. */
   placeId: string | null;

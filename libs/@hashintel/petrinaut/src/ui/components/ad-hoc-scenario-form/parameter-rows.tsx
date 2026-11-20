@@ -53,7 +53,7 @@ const parameterOptimizeCellStyle = css({
   textAlign: "center",
 });
 
-export interface ParameterRowsProps {
+interface ParameterRowsProps {
   entries: AdHocNetParameter[];
 }
 

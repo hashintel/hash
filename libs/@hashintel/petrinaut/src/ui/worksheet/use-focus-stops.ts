@@ -43,7 +43,7 @@ export interface FocusStopTarget {
   column: number | "gutter";
 }
 
-export interface FocusStopsOptions {
+interface FocusStopsOptions {
   /** Ordered stops, top to bottom; rebuilt every render by the owner. */
   stops: FocusStop[];
   columnCount: number;
@@ -60,11 +60,6 @@ export interface FocusStops {
   tabIndexFor: (position: FocusStopTarget) => 0 | -1;
   /** Attach to the table's root element; registered while mounted. */
   attach: (element: HTMLElement | null) => void;
-  /** Carry focus out of the table. Returns whether focus moved. */
-  moveFrom: (
-    direction: FocusDirection,
-    from?: { row: number; column: number },
-  ) => boolean;
 }
 
 const samePosition = (a: FocusStopTarget, b: FocusStopTarget): boolean =>
@@ -304,6 +299,5 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
     },
     tabIndexFor: (position) => (samePosition(tabStop, position) ? 0 : -1),
     attach: setElement,
-    moveFrom,
   };
 }

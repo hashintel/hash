@@ -177,7 +177,7 @@ const countBoxStyle = css({
   minWidth: "[0]",
 });
 
-export interface ColouredPlaceBlockProps {
+interface ColouredPlaceBlockProps {
   place: Place;
   colour: Color;
   state: AdHocColouredPlace;
@@ -287,7 +287,7 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   );
 };
 
-export interface UncolouredPlaceBlockProps {
+interface UncolouredPlaceBlockProps {
   place: Place;
   state: AdHocUncolouredPlace;
 }

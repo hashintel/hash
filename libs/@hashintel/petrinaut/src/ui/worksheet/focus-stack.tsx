@@ -39,7 +39,7 @@ import type { ReactNode } from "react";
 
 const contentsStyle = css({ display: "contents" });
 
-export interface FocusStackProps {
+interface FocusStackProps {
   axis: FocusAxis;
   /** Arrows never carry focus out of this stack, in any direction. */
   contain?: boolean;
@@ -177,7 +177,6 @@ export const FocusStack: React.FC<FocusStackProps> = ({
         ref={setElement}
         className={contentsStyle}
         role="presentation"
-        data-focus-stack={axis}
         onFocus={(event) => {
           // Track which child holds focus, so re-entry restores it. focusin
           // bubbles through display:contents wrappers.
@@ -198,7 +197,7 @@ export const FocusStack: React.FC<FocusStackProps> = ({
   );
 };
 
-export interface FocusRootProps {
+interface FocusRootProps {
   children: ReactNode;
 }
 

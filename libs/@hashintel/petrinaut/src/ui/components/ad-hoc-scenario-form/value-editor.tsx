@@ -219,7 +219,7 @@ const expressionRowStyle = css({
   width: "[100%]",
 });
 
-export interface ValueEditorProps {
+interface ValueEditorProps {
   value: AdHocValue;
   /**
    * The slot's location. Edits dispatch against it — `setExpression`,
