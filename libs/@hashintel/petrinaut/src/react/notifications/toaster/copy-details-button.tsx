@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 
@@ -60,13 +60,6 @@ export const CopyDetailsButton = ({
 }) => {
   const [status, setStatus] = useState<CopyStatus>("idle");
   const feedbackTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  useEffect(
-    () => () => {
-      clearTimeout(feedbackTimeout.current);
-    },
-    [],
-  );
 
   const showFeedback = (nextStatus: Exclude<CopyStatus, "idle">) => {
     clearTimeout(feedbackTimeout.current);
