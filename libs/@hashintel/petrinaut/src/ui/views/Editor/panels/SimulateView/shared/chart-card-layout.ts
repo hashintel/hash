@@ -5,7 +5,7 @@ const CHART_CARD_HEADER_HEIGHT = 53;
 /** The body's padding on each side, in pixels (the `4` spacing token). */
 const CHART_CARD_BODY_PADDING = 16;
 /** The footer's vertical padding on each side plus its hairline, in pixels. */
-export const CHART_CARD_FOOTER_CHROME = 17;
+const CHART_CARD_FOOTER_CHROME = 17;
 /** The card's top and bottom border, in pixels. */
 const CHART_CARD_BORDER = 2;
 
