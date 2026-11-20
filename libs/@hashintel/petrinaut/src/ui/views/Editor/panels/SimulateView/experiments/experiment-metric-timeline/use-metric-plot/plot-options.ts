@@ -41,6 +41,33 @@ const rangeWithBaseline = (min: number, max: number): [number, number] => {
   return [Math.min(0, min), max];
 };
 
+/** What both charts share: no legend, and a cursor that locks in place of a drag to zoom. */
+const baseOptions = (width: number, height: number) => ({
+  width,
+  height,
+  pxAlign: false,
+  cursor: { drag: { x: false, y: false, setScale: false }, lock: true },
+  legend: { show: false },
+});
+
+// uPlot mutates its axis options, so each chart gets its own.
+const xAxis = (): uPlot.Axis => ({
+  show: true,
+  font: "10px system-ui",
+  stroke: "#475569",
+  grid: { stroke: "#f3f4f6", width: 1 },
+  ticks: { stroke: "#cbd5e1", width: 1, size: 6 },
+});
+
+const yAxis = (): uPlot.Axis => ({
+  show: true,
+  size: 54,
+  font: "10px system-ui",
+  stroke: "#999",
+  grid: { stroke: "#f3f4f6", width: 1, dash: [4, 4] },
+  ticks: { stroke: "#e5e7eb", width: 1 },
+});
+
 export const chartOptions = ({
   width,
   height,
@@ -112,44 +139,23 @@ export const chartOptions = ({
   /* eslint-enable no-param-reassign */
 
   return {
-    width,
-    height,
-    pxAlign: false,
+    ...baseOptions(width, height),
     padding: [0, 8, 4, null],
     plugins,
-    cursor: {
-      drag: { x: false, y: false, setScale: false },
-      lock: true,
-    },
-    legend: {
-      show: false,
-    },
     scales: {
       x: timeDomain
         ? { time: false, range: () => [timeDomain[0], timeDomain[1]] }
         : { time: false },
       y: { range: yRange },
     },
-    // uPlot mutates its axis options, so each instance gets its own.
     axes: [
       {
-        show: true,
+        ...xAxis(),
         side: 0,
         size: 26,
-        font: "10px system-ui",
-        stroke: "#475569",
-        grid: { stroke: "#f3f4f6", width: 1 },
-        ticks: { stroke: "#cbd5e1", width: 1, size: 6 },
         values: (_u, vals) => vals.map((value) => `${value}s`),
       },
-      {
-        show: true,
-        size: 54,
-        font: "10px system-ui",
-        stroke: "#999",
-        grid: { stroke: "#f3f4f6", width: 1, dash: [4, 4] },
-        ticks: { stroke: "#e5e7eb", width: 1 },
-      },
+      yAxis(),
     ],
     series,
   };
@@ -165,17 +171,8 @@ export const distributionBarChartOptions = (
   width: number,
   height: number,
 ): uPlot.Options => ({
-  width,
-  height,
-  pxAlign: false,
+  ...baseOptions(width, height),
   padding: [8, 8, 0, null],
-  cursor: {
-    drag: { x: false, y: false, setScale: false },
-    lock: true,
-  },
-  legend: {
-    show: false,
-  },
   scales: {
     x: { time: false, range: (_u, min, max) => [min - 0.75, max + 0.75] },
     y: {
@@ -183,23 +180,7 @@ export const distributionBarChartOptions = (
         Number.isFinite(max) && max > 0 ? [0, max * 1.05] : [0, 1],
     },
   },
-  axes: [
-    {
-      show: true,
-      font: "10px system-ui",
-      stroke: "#475569",
-      grid: { stroke: "#f3f4f6", width: 1 },
-      ticks: { stroke: "#cbd5e1", width: 1, size: 6 },
-    },
-    {
-      show: true,
-      size: 54,
-      font: "10px system-ui",
-      stroke: "#999",
-      grid: { stroke: "#f3f4f6", width: 1, dash: [4, 4] },
-      ticks: { stroke: "#e5e7eb", width: 1 },
-    },
-  ],
+  axes: [xAxis(), yAxis()],
   series: [
     {},
     {
