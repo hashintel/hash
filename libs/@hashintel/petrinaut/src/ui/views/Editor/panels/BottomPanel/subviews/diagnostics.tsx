@@ -11,9 +11,9 @@ import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { parseDocumentUri } from "../../../../../monaco/editor-paths";
 import { useCompositionProblems } from "../../../shared/use-composition-problems";
 import { CompositionDiagnostics } from "./diagnostics/composition-diagnostics";
+import { countOf } from "./diagnostics/count-of";
 import {
   bulletStyle,
-  countOf,
   diagnosticButtonStyle,
   diagnosticItemStyle,
   DiagnosticsGroup,

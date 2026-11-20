@@ -6,7 +6,8 @@ import { Chip, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { SeriesDropdown } from "./legend/series-dropdown";
-import { SeriesStrip, useStripLingering } from "./legend/series-strip";
+import { SeriesStrip } from "./legend/series-strip";
+import { useStripLingering } from "./legend/use-strip-lingering";
 import { legendContainerStyle } from "./styles";
 
 import type { LegendComboboxItem } from "./legend/series-dropdown";
