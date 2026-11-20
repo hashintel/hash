@@ -35,6 +35,7 @@ import {
   planRewire,
   type RewirePlan,
 } from "./fusion-links";
+import { useStableActions } from "./use-stable-actions";
 
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 import type { DraggedNodeKind } from "../shared/canvas-node-drag";
@@ -75,7 +76,7 @@ export type CanvasSelectionChange = { id: string; selected: boolean };
 
 export type CanvasPaneCursor = "copy" | "grab" | "default";
 
-export type CanvasInteractions = {
+type CanvasModes = {
   readonly: boolean;
   /** Clicking the pane places a node or component instance. */
   isAddMode: boolean;
@@ -84,6 +85,14 @@ export type CanvasInteractions = {
   /** Dragging the pane draws a selection box. */
   isSelectMode: boolean;
   paneCursor: CanvasPaneCursor;
+};
+
+/**
+ * What each gesture does. Every function keeps its identity for the life of
+ * the canvas and reads the net and the editor's state when it is called, so
+ * a renderer can hand them to memoized nodes and arcs.
+ */
+type CanvasActions = {
   hoverNode: (node: Pick<CanvasNode, "id" | "kind">) => void;
   hoverLink: (item: CanvasLinkItem) => void;
   clearHover: () => void;
@@ -123,6 +132,8 @@ export type CanvasInteractions = {
     scenePosition: CanvasPoint,
   ) => void;
 };
+
+export type CanvasInteractions = CanvasModes & CanvasActions;
 
 /**
  * Converts a component's free-form display name to a valid PascalCase instance
@@ -524,12 +535,7 @@ export const useCanvasInteractions = (): CanvasInteractions => {
     }
   };
 
-  return {
-    readonly,
-    isAddMode,
-    isPanMode,
-    isSelectMode,
-    paneCursor: isAddMode ? "copy" : isPanMode ? "grab" : "default",
+  const actions = useStableActions<CanvasActions>({
     hoverNode: (node) => setHoveredItem({ type: node.kind, id: node.id }),
     hoverLink: setHoveredItem,
     clearHover: clearHoveredItem,
@@ -550,5 +556,14 @@ export const useCanvasInteractions = (): CanvasInteractions => {
     clickPane,
     dropNode: createNodeAt,
     dropComponent: createComponentInstanceAt,
+  });
+
+  return {
+    readonly,
+    isAddMode,
+    isPanMode,
+    isSelectMode,
+    paneCursor: isAddMode ? "copy" : isPanMode ? "grab" : "default",
+    ...actions,
   };
 };
