@@ -10,121 +10,34 @@
  * `startDurableAgentsServer` composes it; no host middleware runs, so the
  * conversation and web headers arrive unchecked.
  */
-import { access, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
-import { createRegistry, defineExtension } from "@earendil-works/pi-durable";
-import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
-import {
-  AbstractChat,
-  type ChatInit,
-  type ChatState,
-  type ChatStatus,
-  type ChatTransport,
-  type UIMessage,
-} from "ai";
-import { afterEach, expect, test, vi } from "vitest";
+import { defineExtension } from "@earendil-works/pi-durable";
+import { expect, test, vi } from "vitest";
 
 import {
   brunchTools,
-  flueConversationIdWeb,
   foldCommits,
   latestLedgerTurnId,
   ledgerCommentsMessage,
 } from "@hashintel/brunch-agent";
 import {
-  BrunchPanelConversationTracker,
-  createBrunchSuccessorPanelTransport,
   readSuccessorHistory,
   reopenSuccessorConversation,
-  type SuccessorConversation,
 } from "@hashintel/brunch-agent/client";
 
-import {
-  browserCallExtension,
-  browserToolName,
-} from "../../src/browser-call/browser-call";
 import { createLedgerExtension, foldLedger, LedgerDoc } from "../../src/ledger";
-import { createDurableAgentsServer } from "../../src/server/durable-agents-server";
 import { calls, context, fauxToolCall, holdTool } from "../platform/support";
-import { fauxAssistantMessage, scriptedModel } from "../scripted-model";
+import { fauxAssistantMessage } from "../scripted-model";
+import { openPanelChat, type PanelMessage, textOf } from "./panel-chat";
+import {
+  conversationId,
+  openPanelServer,
+  temporaryDirectory,
+} from "./panel-server";
 
-import type { OwnedStorage } from "../../src/server/conversation-storage";
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 import type { JsonObject } from "@earendil-works/pi-durable";
 
-type PanelTransport = ReturnType<typeof createBrunchSuccessorPanelTransport>;
-type PanelMessage =
-  PanelTransport extends ChatTransport<infer Message> ? Message : never;
 type LedgerState = ReturnType<typeof foldCommits>["state"];
-
-const origin = "http://durable.test";
-const conversationId = "net-1:construction";
-const documentId = "net-1";
-
-const servers: { close: () => Promise<void> }[] = [];
-const directories: string[] = [];
-afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => server.close()));
-  await Promise.all(
-    directories
-      .splice(0)
-      .map((directory) => rm(directory, { recursive: true, force: true })),
-  );
-});
-
-/** `ChatState` over a plain array, as `@ai-sdk/react` keeps one in a ref. */
-class ArrayChatState<Message extends UIMessage> implements ChatState<Message> {
-  public status: ChatStatus = "ready";
-  public error: Error | undefined = undefined;
-  public messages: Message[];
-  public constructor(messages: Message[]) {
-    this.messages = messages;
-  }
-  public pushMessage = (message: Message) => {
-    this.messages = [...this.messages, message];
-  };
-  public popMessage = () => {
-    this.messages = this.messages.slice(0, -1);
-  };
-  public replaceMessage = (index: number, message: Message) => {
-    this.messages = this.messages.with(index, message);
-  };
-  public snapshot = <Value>(value: Value): Value => structuredClone(value);
-}
-
-/** AI SDK's chat, as the panel's `useChat` drives it, without React. */
-class PanelChat extends AbstractChat<PanelMessage> {
-  public constructor({
-    messages = [],
-    ...init
-  }: ChatInit<PanelMessage> & { readonly messages?: PanelMessage[] }) {
-    super({ ...init, state: new ArrayChatState(messages) });
-  }
-}
-
-/** Each conversation in its own SQLite file under `directory`, owned by this one process. */
-const sqliteConversations = (directory: string) => {
-  const fileOf = (id: string) => join(directory, `${id}.sqlite`);
-  const opened = new Map<string, Promise<OwnedStorage>>();
-  return {
-    openStorage: (id: string): Promise<OwnedStorage> => {
-      const existing = opened.get(id);
-      if (existing !== undefined) return existing;
-      const storage = openNodeSqliteStorage(fileOf(id)).then((sqlite) =>
-        Object.assign(sqlite, { isOwner: async () => true }),
-      );
-      opened.set(id, storage);
-      return storage;
-    },
-    storageExists: (id: string) =>
-      access(fileOf(id)).then(
-        () => true,
-        () => false,
-      ),
-  };
-};
 
 /**
  * A server over the conversations in `directory`, whose model answers
@@ -136,46 +49,16 @@ const openServer = async (
   responses: FauxResponseStep[],
   tools: readonly ReturnType<typeof holdTool>["tool"][] = [],
 ) => {
-  const { models, model } = scriptedModel(responses);
-  const server = createDurableAgentsServer({
-    now: Date.now,
-    ...sqliteConversations(directory),
-    createRegistry: (host) => {
-      const registry = createRegistry();
-      registry.install(browserCallExtension);
-      registry.install(createLedgerExtension(host));
-      registry.install(
-        defineExtension({ name: "test.held", tools: [...tools] }),
-      );
-      return registry;
-    },
-    models,
-    agent: { model },
-    clientToolNames: new Set([browserToolName]),
-    dynamicClientToolNames: new Set([browserToolName]),
-    context,
+  const { server, conversation, endpoints } = await openPanelServer(responses, {
+    directory,
+    extensions: (host) => [
+      createLedgerExtension(host),
+      defineExtension({ name: "test.held", tools: [...tools] }),
+    ],
   });
-  servers.push(server);
-  const conversation: SuccessorConversation = {
-    endpoint: origin,
-    actorKey: "test-actor",
-    conversationId,
-    web: "web-1",
-    fetch: async (input, init) =>
-      server.app.request(
-        input instanceof Request ? input.url : input.toString(),
-        init,
-      ),
-  };
   /** A panel tab's chat on the conversation, opened on `messages`. */
-  const openChat = (messages: PanelMessage[] = []) => {
-    const transport = createBrunchSuccessorPanelTransport(
-      conversation,
-      new BrunchPanelConversationTracker(),
-      { documentId },
-    );
-    return new PanelChat({ id: conversationId, messages, transport });
-  };
+  const openChat = (messages: PanelMessage[] = []) =>
+    openPanelChat(conversation, { messages }).chat;
   /** The conversation as a tab opening now reads it: its history, through the panel's adapter. */
   const reopen = async () => {
     const history = await readSuccessorHistory(conversation);
@@ -184,9 +67,7 @@ const openServer = async (
   };
   /** The Ledger the server itself recorded for the conversation. */
   const storedLedger = async () => {
-    const open = await server.conversations.acquire(
-      await flueConversationIdWeb(conversation),
-    );
+    const open = await server.conversations.acquire(endpoints.instanceId);
     if (open === undefined) throw new Error("The server has no conversation.");
     return foldLedger(
       await open.harness.snapshot(LedgerDoc, open.root.id, context),
@@ -194,11 +75,6 @@ const openServer = async (
   };
   return { server, openChat, reopen, storedLedger };
 };
-
-const textOf = (message: UIMessage | undefined) =>
-  (message?.parts ?? [])
-    .flatMap((part) => (part.type === "text" ? [part.text] : []))
-    .join("");
 
 /** `state` with each turn's ID replaced by its place among the turns, so Ledgers keyed by different IDs compare. */
 const numberTurns = (state: LedgerState) =>
@@ -246,8 +122,7 @@ const ledgerTurns: FauxResponseStep[] = [
 ];
 
 test("a reopened panel folds the conversation's history to the Ledger it showed before, the one the server recorded", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "panel-history-"));
-  directories.push(directory);
+  const directory = await temporaryDirectory();
   const before = await openServer(directory, ledgerTurns);
   const chat = before.openChat();
   await chat.sendMessage({ text: "Model a dryer." });
@@ -303,8 +178,7 @@ test("a reopened panel folds the conversation's history to the Ledger it showed 
 });
 
 test("a tab reopened on the history mid-turn follows the running turn once, over the history's copy of it", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "panel-history-"));
-  directories.push(directory);
+  const directory = await temporaryDirectory();
   const held = holdTool("check");
   const panel = await openServer(
     directory,

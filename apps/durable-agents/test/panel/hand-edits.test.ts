@@ -9,88 +9,32 @@
  * binding, as `startDurableAgentsServer` does; HASH's entry is left out, so
  * the conversation and web headers arrive unchecked.
  */
-import { access, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
-import { createRegistry } from "@earendil-works/pi-durable";
-import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
-import { afterEach, expect, test, vi } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import { brunchRoutes, canonicalContent } from "@hashintel/brunch-agent";
 import {
-  BrunchPanelConversationTracker,
-  createBrunchSuccessorPanelTransport,
   createHandEditReporter,
   type HandEditRefusal,
-  successorEndpoints,
-  type SuccessorConversation,
 } from "@hashintel/brunch-agent/client";
 
+import { browserToolName } from "../../src/browser-call/browser-call";
+import { calls } from "../platform/support";
+import { fauxAssistantMessage } from "../scripted-model";
+import { drain, openPanelTransport, type PanelMessage } from "./panel-chat";
 import {
-  browserCallExtension,
-  browserToolName,
-  claimBrowserCall,
-  finishBrowserCall,
-} from "../../src/browser-call/browser-call";
-import { createBrowserCallRouter } from "../../src/browser-call/browser-call-router";
-import { createDurableAgentsServer } from "../../src/server/durable-agents-server";
-import { browserCallsPrefix } from "../../src/server/start-durable-agents-server";
-import { calls, context } from "../platform/support";
-import { fauxAssistantMessage, scriptedModel } from "../scripted-model";
+  answerAsBrowser,
+  conversationId,
+  documentId,
+  openPanelServer,
+} from "./panel-server";
 
-import type { OwnedStorage } from "../../src/server/conversation-storage";
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 import type { BrowserContext } from "@hashintel/brunch-agent";
-import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
+import type { UIMessage } from "ai";
 
-type PanelMessage =
-  ReturnType<typeof createBrunchSuccessorPanelTransport> extends ChatTransport<
-    infer Message
-  >
-    ? Message
-    : never;
-
-const origin = "http://durable.test";
-const conversationId = "net-1:construction";
-const documentId = "net-1";
 const idleMs = 10;
-
-const servers: { close: () => Promise<void> }[] = [];
-const directories: string[] = [];
-afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => server.close()));
-  await Promise.all(
-    directories
-      .splice(0)
-      .map((directory) => rm(directory, { recursive: true, force: true })),
-  );
-});
-
-/** Each conversation in its own SQLite file, owned by this one process. */
-const sqliteConversations = async () => {
-  const directory = await mkdtemp(join(tmpdir(), "panel-hand-edits-"));
-  directories.push(directory);
-  const fileOf = (id: string) => join(directory, `${id}.sqlite`);
-  const opened = new Map<string, Promise<OwnedStorage>>();
-  return {
-    openStorage: (id: string): Promise<OwnedStorage> => {
-      const existing = opened.get(id);
-      if (existing !== undefined) return existing;
-      const storage = openNodeSqliteStorage(fileOf(id)).then((sqlite) =>
-        Object.assign(sqlite, { isOwner: async () => true }),
-      );
-      opened.set(id, storage);
-      return storage;
-    },
-    storageExists: (id: string) =>
-      access(fileOf(id)).then(
-        () => true,
-        () => false,
-      ),
-  };
-};
 
 /** The bound document as a list of revisions the user moves through by hand. */
 const handEditedDocument = () => {
@@ -118,69 +62,23 @@ const handEditedDocument = () => {
  * the browser; and the panel's connection to it, recording every request.
  */
 const openPanel = async (responses: FauxResponseStep[]) => {
-  const { models, model } = scriptedModel(responses);
-  const server = createDurableAgentsServer({
-    now: Date.now,
-    ...(await sqliteConversations()),
-    createRegistry: () => {
-      const registry = createRegistry();
-      registry.install(browserCallExtension);
-      return registry;
-    },
-    models,
-    agent: { model },
-    clientToolNames: new Set([browserToolName]),
-    dynamicClientToolNames: new Set([browserToolName]),
+  /** Loses the next answer to a hand-edit report after the server has handled it. */
+  let loseNextReportAnswer = false;
+  const panel = await openPanelServer(responses, {
     admitNewConversation: (body) =>
       body.binding === undefined
         ? { status: 404, error: "Unknown conversation." }
         : { binding: body.binding as BrowserContext["binding"] },
-    context,
-  });
-  servers.push(server);
-  server.app.route(
-    browserCallsPrefix,
-    createBrowserCallRouter({
-      resolveHarness: async (id) =>
-        (await server.conversations.acquire(id))?.harness,
-      now: server.now,
-    }),
-  );
-  const requests: {
-    url: string;
-    body: unknown;
-    status?: number;
-  }[] = [];
-  /** Loses the next answer to a hand-edit report after the server has handled it. */
-  let loseNextReportAnswer = false;
-  const fetch: typeof globalThis.fetch = async (input, init) => {
-    const url = input instanceof Request ? input.url : input.toString();
-    const sent: (typeof requests)[number] = {
-      url,
-      body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined,
-    };
-    requests.push(sent);
-    const response = await server.app.request(url, init);
-    sent.status = response.status;
-    if (url.endsWith(`/${brunchRoutes.handEdits}`) && loseNextReportAnswer) {
+    intercept: (url, _init, forward) => {
+      if (!url.endsWith(`/${brunchRoutes.handEdits}`) || !loseNextReportAnswer)
+        return undefined;
       loseNextReportAnswer = false;
-      throw new TypeError("Failed to fetch");
-    }
-    return response;
-  };
-  const conversation: SuccessorConversation = {
-    endpoint: origin,
-    actorKey: "test-actor",
-    conversationId,
-    web: "web-1",
-    fetch,
-  };
-  const endpoints = await successorEndpoints(conversation);
-  const transport = createBrunchSuccessorPanelTransport(
-    conversation,
-    new BrunchPanelConversationTracker(),
-    { documentId },
-  );
+      return forward().then(() => {
+        throw new TypeError("Failed to fetch");
+      });
+    },
+  });
+  const { transport } = openPanelTransport(panel.conversation);
   let sentMessages = 0;
   /** Send the user's next message and read its turn to the end. */
   const chat = async (text: string) => {
@@ -201,13 +99,11 @@ const openPanel = async (responses: FauxResponseStep[]) => {
     );
   };
   const reports = () =>
-    requests.filter(({ url }) => url === endpoints.handEdits);
+    panel.requests.filter(({ url }) => url === panel.endpoints.handEdits);
   const history = async () =>
-    (await (await fetch(endpoints.messages)).json()) as UIMessage[];
+    (await (await panel.fetch(panel.endpoints.messages)).json()) as UIMessage[];
   return {
-    server,
-    conversation,
-    endpoints,
+    ...panel,
     chat,
     reports,
     history,
@@ -215,18 +111,6 @@ const openPanel = async (responses: FauxResponseStep[]) => {
       loseNextReportAnswer = true;
     },
   };
-};
-
-/** Every chunk of a stream, to its end. */
-const drain = async (stream: ReadableStream<UIMessageChunk>) => {
-  const chunks: UIMessageChunk[] = [];
-  const reader = stream.getReader();
-  for (;;) {
-    // eslint-disable-next-line no-await-in-loop -- Each read follows the last.
-    const { done, value } = await reader.read();
-    if (done) return chunks;
-    chunks.push(value);
-  }
 };
 
 /** The model's answer, keeping the transcript it was sent. */
@@ -341,45 +225,12 @@ test("no report is sent while a Brunch call runs; the edit made during it is rep
   const reported = reporter.reportAround({
     run: async (_call, execute) => {
       await released;
-      const output = await execute({});
-      for (;;) {
-        // eslint-disable-next-line no-await-in-loop -- Each try follows the last.
-        const open = await panel.server.conversations.acquire(
-          panel.endpoints.instanceId,
-        );
-        const claim =
-          open &&
-          // eslint-disable-next-line no-await-in-loop -- Each try follows the last.
-          (await claimBrowserCall(
-            open.harness,
-            open.root.id,
-            "browser-1",
-            context,
-            Date.now,
-          ));
-        if (open && claim) {
-          reportsWhileRunning = panel.reports().length;
-          // eslint-disable-next-line no-await-in-loop -- The loop ends here.
-          await finishBrowserCall(
-            open.harness,
-            {
-              conversationId: open.root.id,
-              toolCallId: "browser-1",
-              toolName: claim.toolName,
-              capability: claim.capability,
-              canonicalInput: claim.input,
-              output: output as Parameters<
-                typeof finishBrowserCall
-              >[1]["output"],
-            },
-            context,
-            Date.now,
-          );
-          return;
-        }
-        // eslint-disable-next-line no-await-in-loop -- Each try follows the last.
-        await sleep(5);
-      }
+      const output = (await execute({})) as Parameters<
+        typeof answerAsBrowser
+      >[2];
+      await answerAsBrowser(panel, "browser-1", output, () => {
+        reportsWhileRunning = panel.reports().length;
+      });
     },
   });
 

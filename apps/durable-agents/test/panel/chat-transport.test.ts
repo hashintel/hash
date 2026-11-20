@@ -8,122 +8,32 @@
  * `startDurableAgentsServer`, so no host middleware runs: the conversation
  * header, the web header and the binding arrive unchecked.
  */
-import { access, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
+import { defineExtension } from "@earendil-works/pi-durable";
+import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
+import { expect, test, vi } from "vitest";
 
-import { createRegistry, defineExtension } from "@earendil-works/pi-durable";
-import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
-import {
-  AbstractChat,
-  type ChatInit,
-  type ChatState,
-  type ChatStatus,
-  type ChatTransport,
-  lastAssistantMessageIsCompleteWithToolCalls,
-  type UIMessage,
-  type UIMessageChunk,
-} from "ai";
-import { afterEach, expect, test, vi } from "vitest";
-
-import { brunchTools, flueConversationIdWeb } from "@hashintel/brunch-agent";
-import {
-  BrunchPanelConversationTracker,
-  createBrunchSuccessorPanelTransport,
-  requestSuccessorStop,
-  successorEndpoints,
-  type SuccessorConversation,
-} from "@hashintel/brunch-agent/client";
+import { brunchTools } from "@hashintel/brunch-agent";
+import { requestSuccessorStop } from "@hashintel/brunch-agent/client";
 import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
 
+import { browserToolName } from "../../src/browser-call/browser-call";
+import { calls, holdTool } from "../platform/support";
+import { fauxAssistantMessage } from "../scripted-model";
 import {
-  browserCallExtension,
-  browserToolName,
-  claimBrowserCall,
-  finishBrowserCall,
-} from "../../src/browser-call/browser-call";
-import { createDurableAgentsServer } from "../../src/server/durable-agents-server";
-import { calls, context, holdTool } from "../platform/support";
-import { fauxAssistantMessage, scriptedModel } from "../scripted-model";
+  drain,
+  openPanelChat,
+  type PanelChat,
+  type PanelMessage,
+  textOf,
+} from "./panel-chat";
+import {
+  answerAsBrowser,
+  conversationId,
+  documentId,
+  openPanelServer,
+} from "./panel-server";
 
-import type { OwnedStorage } from "../../src/server/conversation-storage";
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
-
-type PanelTransport = ReturnType<typeof createBrunchSuccessorPanelTransport>;
-type PanelMessage =
-  PanelTransport extends ChatTransport<infer Message> ? Message : never;
-
-const origin = "http://durable.test";
-const actorKey = "test-actor";
-const conversationId = "net-1:construction";
-const documentId = "net-1";
-const web = "web-1";
-
-const servers: { close: () => Promise<void> }[] = [];
-const directories: string[] = [];
-afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => server.close()));
-  await Promise.all(
-    directories
-      .splice(0)
-      .map((directory) => rm(directory, { recursive: true, force: true })),
-  );
-});
-
-/** `ChatState` over a plain array, as `@ai-sdk/react` keeps one in a ref. */
-class ArrayChatState<Message extends UIMessage> implements ChatState<Message> {
-  public status: ChatStatus = "ready";
-  public error: Error | undefined = undefined;
-  public messages: Message[];
-  public constructor(messages: Message[]) {
-    this.messages = messages;
-  }
-  public pushMessage = (message: Message) => {
-    this.messages = [...this.messages, message];
-  };
-  public popMessage = () => {
-    this.messages = this.messages.slice(0, -1);
-  };
-  public replaceMessage = (index: number, message: Message) => {
-    this.messages = this.messages.with(index, message);
-  };
-  public snapshot = <Value>(value: Value): Value => structuredClone(value);
-}
-
-/** AI SDK's chat, as the panel's `useChat` drives it, without React. */
-class PanelChat extends AbstractChat<PanelMessage> {
-  public constructor({
-    messages = [],
-    ...init
-  }: ChatInit<PanelMessage> & { readonly messages?: PanelMessage[] }) {
-    super({ ...init, state: new ArrayChatState(messages) });
-  }
-}
-
-/** Each conversation in its own SQLite file, owned by this one process. */
-const sqliteConversations = async () => {
-  const directory = await mkdtemp(join(tmpdir(), "panel-chat-transport-"));
-  directories.push(directory);
-  const fileOf = (id: string) => join(directory, `${id}.sqlite`);
-  const opened = new Map<string, Promise<OwnedStorage>>();
-  return {
-    openStorage: (id: string): Promise<OwnedStorage> => {
-      const existing = opened.get(id);
-      if (existing !== undefined) return existing;
-      const storage = openNodeSqliteStorage(fileOf(id)).then((sqlite) =>
-        Object.assign(sqlite, { isOwner: async () => true }),
-      );
-      opened.set(id, storage);
-      return storage;
-    },
-    storageExists: (id: string) =>
-      access(fileOf(id)).then(
-        () => true,
-        () => false,
-      ),
-  };
-};
 
 /**
  * The server, whose model answers `responses` and may call `tools` beside
@@ -134,77 +44,26 @@ const openPanel = async (
   responses: FauxResponseStep[],
   tools: readonly ReturnType<typeof holdTool>["tool"][] = [],
 ) => {
-  const { models, model } = scriptedModel(responses);
-  const server = createDurableAgentsServer({
-    now: Date.now,
-    ...(await sqliteConversations()),
-    createRegistry: () => {
-      const registry = createRegistry();
-      registry.install(browserCallExtension);
-      registry.install(defineExtension({ name: "ledger", tools: [...tools] }));
-      return registry;
-    },
-    models,
-    agent: { model },
-    clientToolNames: new Set([browserToolName]),
-    dynamicClientToolNames: new Set([browserToolName]),
-    context,
+  const panel = await openPanelServer(responses, {
+    extensions: () => [defineExtension({ name: "ledger", tools: [...tools] })],
   });
-  servers.push(server);
-  const requests: { url: string; method: string; body: unknown }[] = [];
-  const fetch: typeof globalThis.fetch = async (input, init) => {
-    const url = input instanceof Request ? input.url : input.toString();
-    requests.push({
-      url,
-      method: init?.method ?? "GET",
-      body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined,
-    });
-    return server.app.request(url, init);
-  };
-  const conversation: SuccessorConversation = {
-    endpoint: origin,
-    actorKey,
-    conversationId,
-    web,
-    fetch,
-  };
-  const instanceId = await flueConversationIdWeb(conversation);
-  const endpoints = await successorEndpoints(conversation);
   /** A panel tab's chat on the conversation, with its own tracker. */
-  const openChat = (messages: PanelMessage[] = []) => {
-    const tracker = new BrunchPanelConversationTracker();
-    const transport = createBrunchSuccessorPanelTransport(
-      conversation,
-      tracker,
-      { documentId },
-    );
-    const chat = new PanelChat({
-      id: conversationId,
+  const openChat = (messages: PanelMessage[] = []) =>
+    openPanelChat(panel.conversation, {
       messages,
-      transport,
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     });
-    return { chat, tracker, transport };
-  };
   const chatPosts = () =>
-    requests.filter(
-      ({ url, method }) => method === "POST" && url === endpoints.chat,
+    panel.requests.filter(
+      ({ url, method }) => method === "POST" && url === panel.endpoints.chat,
     );
   return {
-    server,
-    conversation,
-    instanceId,
-    endpoints,
-    fetch,
+    ...panel,
+    instanceId: panel.endpoints.instanceId,
     openChat,
     chatPosts,
   };
 };
-
-const textOf = (message: UIMessage | undefined) =>
-  (message?.parts ?? [])
-    .flatMap((part) => (part.type === "text" ? [part.text] : []))
-    .join("");
 
 const lastMessage = (chat: PanelChat) => chat.messages.at(-1);
 
@@ -220,59 +79,6 @@ const expectPanelBody = (body: unknown) => {
   expect(JSON.stringify(body)).not.toContain(
     petrinautDiagnosticsContextMessageId,
   );
-};
-
-/** Claim and finish `toolCallId`'s browser call as the panel's in-band call does. */
-const actAsBrowser = async (
-  server: Awaited<ReturnType<typeof openPanel>>["server"],
-  instanceId: string,
-  toolCallId: string,
-  output: Parameters<typeof finishBrowserCall>[1]["output"],
-) => {
-  for (;;) {
-    // eslint-disable-next-line no-await-in-loop -- Each try follows the last.
-    const open = await server.conversations.acquire(instanceId);
-    if (open !== undefined) {
-      const { harness, root } = open;
-      // eslint-disable-next-line no-await-in-loop -- Each try follows the last.
-      const claim = await claimBrowserCall(
-        harness,
-        root.id,
-        toolCallId,
-        context,
-        Date.now,
-      );
-      if (claim !== undefined)
-        return finishBrowserCall(
-          harness,
-          {
-            conversationId: root.id,
-            toolCallId,
-            toolName: claim.toolName,
-            capability: claim.capability,
-            canonicalInput: claim.input,
-            output,
-          },
-          context,
-          Date.now,
-        );
-    }
-    // The tool task issues the call after its assistant entry commits.
-    // eslint-disable-next-line no-await-in-loop -- Each try follows the last.
-    await sleep(5);
-  }
-};
-
-/** Every chunk of a stream, to its end. */
-const drain = async (stream: ReadableStream<UIMessageChunk>) => {
-  const chunks: UIMessageChunk[] = [];
-  const reader = stream.getReader();
-  for (;;) {
-    // eslint-disable-next-line no-await-in-loop -- Each read follows the last.
-    const { done, value } = await reader.read();
-    if (done) return chunks;
-    chunks.push(value);
-  }
 };
 
 test("a first message creates the conversation under its instance ID and streams the answer", async () => {
@@ -438,10 +244,7 @@ test("a browser tool streams as a dynamic part and a server tool as one the serv
     lastAssistantMessageIsCompleteWithToolCalls({ messages: chat.messages }),
   ).toBe(false);
 
-  await actAsBrowser(panel.server, panel.instanceId, "browser-1", {
-    ok: true,
-    title: "Queue",
-  });
+  await answerAsBrowser(panel, "browser-1", { ok: true, title: "Queue" });
   await sent;
 
   expect(chat.error).toBeUndefined();
