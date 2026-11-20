@@ -1,4 +1,6 @@
-# Practical measurement properties
+# Practical measurements
+
+## Properties
 
 | Property                                              | Accepted data type                   |
 | ----------------------------------------------------- | ------------------------------------ |
@@ -104,3 +106,55 @@
 | Surface Radioactive Contamination                     | Activity per Area                    |
 | Airborne Radionuclide Activity Concentration          | Activity per Volume                  |
 | Material Specific Activity                            | Activity per Mass                    |
+| Methane Volume Fraction                               | Bounded Fraction                     |
+| Methane Mole Fraction                                 | Bounded Fraction                     |
+| Oxygen Volume Fraction                                | Bounded Fraction                     |
+| Oxygen Mole Fraction                                  | Bounded Fraction                     |
+| Carbon Monoxide Volume Fraction                       | Bounded Fraction                     |
+| Carbon Monoxide Mole Fraction                         | Bounded Fraction                     |
+| Hydrogen Sulphide Volume Fraction                     | Bounded Fraction                     |
+| Hydrogen Sulphide Mole Fraction                       | Bounded Fraction                     |
+| Sulphur Dioxide Volume Fraction                       | Bounded Fraction                     |
+| Sulphur Dioxide Mole Fraction                         | Bounded Fraction                     |
+| Hydrogen Volume Fraction                              | Bounded Fraction                     |
+| Hydrogen Mole Fraction                                | Bounded Fraction                     |
+| Carbon Dioxide Volume Fraction                        | Bounded Fraction                     |
+| PM1 Mass Concentration                                | Mass Density                         |
+| PM2.5 Mass Concentration                              | Mass Density                         |
+| PM10 Mass Concentration                               | Mass Density                         |
+| Total Suspended Particulate Mass Concentration        | Mass Density                         |
+| Aerosol Particle Number Concentration                 | Number per Volume                    |
+| Radon Activity Concentration                          | Activity per Volume                  |
+| Borehole Absolute Pressure                            | Pressure                             |
+| Borehole Gauge Pressure                               | Pressure                             |
+| Differential Pressure                                 | Pressure                             |
+| Wind Direction                                        | Angle                                |
+| Depth to Groundwater                                  | Length                               |
+| Battery Terminal Voltage                              | Electric Potential Difference        |
+| Measured Supply Voltage                               | Electric Potential Difference        |
+| Instrument Internal Temperature                       | Temperature                          |
+| Pump Current                                          | Electric Current                     |
+| Combustible Gas Level Relative to LEL                 | Percentage of Lower Explosive Limit  |
+| Methane Surface Mass Flux Density                     | Mass Flux Density                    |
+| Methane Emission Mass Flow Rate                       | Mass Flow Rate                       |
+| Methane Gas Screening Value                           | Volume Flow Rate                     |
+| Carbon Dioxide Gas Screening Value                    | Volume Flow Rate                     |
+| Dissolved Methane Mass Concentration                  | Mass Density                         |
+| Atmospheric Pressure Change Rate                      | Pressure Change Rate                 |
+
+## Supporting data types
+
+The conversion column gives the target-unit value for one source unit. LEL values retain their gas and calibration context and have no generic percentage conversion.
+
+| Data type                           | Symbol         | Conversion to reference                     |
+| ----------------------------------- | -------------- | ------------------------------------------- |
+| Microgram per Cubic Meter           | μg/m³          | Kilogram per Cubic Meter × 1e-9             |
+| Milligram per Cubic Meter           | mg/m³          | Kilogram per Cubic Meter × 0.000001         |
+| Reciprocal Cubic Centimeter         | cm⁻³           | Reciprocal Cubic Meter × 1000000            |
+| Litre per Hour                      | L/h            | Cubic Meter per Second × 0.001 ÷ 3600       |
+| Milligram per Square Meter Second   | mg/(m²·s)      | Kilogram per Square Meter Second × 0.000001 |
+| Percentage of Lower Explosive Limit | % LEL          | —                                           |
+| Pressure Change Rate                | Abstract group | —                                           |
+| Pressure Change Rate (Metric)       | Abstract group | —                                           |
+| Pascal per Second                   | Pa/s           | —                                           |
+| Hectopascal per Hour                | hPa/h          | Pascal per Second × 100 ÷ 3600              |

@@ -2,6 +2,7 @@ import { computingAndCommunicationsPropertyTypes } from "./property-types/comput
 import { dimensionsAndCapacityPropertyTypes } from "./property-types/dimensions-and-capacity";
 import { electricityAndEnergyPropertyTypes } from "./property-types/electricity-and-energy";
 import { environmentPropertyTypes } from "./property-types/environment";
+import { environmentalMonitoringPropertyTypes } from "./property-types/environmental-monitoring";
 import { equipmentAndFluidsPropertyTypes } from "./property-types/equipment-and-fluids";
 import { lightSoundAndRadiationPropertyTypes } from "./property-types/light-sound-and-radiation";
 import { transportPropertyTypes } from "./property-types/transport";
@@ -17,6 +18,7 @@ export type MeasurementPropertyType = Omit<
 export const measurementPropertyTypes: MeasurementPropertyType[] = [
   ...dimensionsAndCapacityPropertyTypes,
   ...environmentPropertyTypes,
+  ...environmentalMonitoringPropertyTypes,
   ...electricityAndEnergyPropertyTypes,
   ...equipmentAndFluidsPropertyTypes,
   ...transportPropertyTypes,
