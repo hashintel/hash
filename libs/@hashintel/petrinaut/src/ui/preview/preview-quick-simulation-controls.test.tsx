@@ -46,6 +46,7 @@ describe("PreviewSimulationPlaybackControls", () => {
     expect(panel.getAttribute("data-state")).toBe("collapsed");
     expect(timelineReveal.getAttribute("aria-hidden")).toBe("true");
     const timeline = screen.getByText("Compact event timeline");
+    expect(screen.getByText("Event simulation controls")).toBeDefined();
 
     rerender(
       <ExecutionFrameSourceContext
