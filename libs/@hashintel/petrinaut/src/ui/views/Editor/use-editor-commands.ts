@@ -9,8 +9,7 @@ import {
 import { UndoRedoContext } from "../../../react/state/undo-redo-context";
 import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
-
-export const autoLayoutShortcut = "mod+shift+l";
+import { autoLayoutShortcut } from "./shared/use-auto-layout-and-frame";
 
 /**
  * The editor's palette commands. A no-op unless the host mounted a

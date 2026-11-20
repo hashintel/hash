@@ -1,11 +1,4 @@
-import {
-  createContext,
-  use,
-  useRef,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from "react";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -14,13 +7,7 @@ import { usePetrinautNavigation } from "../../../../react/navigation";
 import { useComposesOnly } from "../../../../react/state/use-composes-only";
 import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { ResizeHandle } from "../../../resize/resize-handle";
-
-const SimulationWorkspaceContext = createContext<
-  HTMLElement | null | undefined
->(undefined);
-
-export const useSimulationWorkspaceContainer = () =>
-  use(SimulationWorkspaceContext);
+import { SimulationWorkspaceContext } from "./simulation-workspace-context";
 
 export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
   const workspaceRef = useRef<HTMLDivElement>(null);

@@ -14,7 +14,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautNavigation } from "../../../../../../react/navigation";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
-import { useSimulationWorkspaceContainer } from "../../../shared/simulation-workspace";
+import { useSimulationWorkspaceContainer } from "../../../shared/simulation-workspace-context";
 import { simulationHeaderStyle } from "./simulation-header";
 import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
 

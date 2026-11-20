@@ -21,9 +21,11 @@ import { exportTikZ } from "../../../../file-io/export-tikz";
 import { importSDCPN } from "../../../../file-io/import-sdcpn";
 import { KeyboardShortcut } from "../../../../keyboard-shortcut";
 import { useCanvasRegistration } from "../../../../plugins/plugin-editor";
-import { useAutoLayoutAndFrame } from "../../shared/use-auto-layout-and-frame";
+import {
+  autoLayoutShortcut,
+  useAutoLayoutAndFrame,
+} from "../../shared/use-auto-layout-and-frame";
 import { useCreateEmptyNet } from "../../shared/use-create-empty-net";
-import { autoLayoutShortcut } from "../../use-editor-commands";
 import { ImportErrorDialog } from "../import-error-dialog";
 import { exampleNets } from "./editor-menu/example-nets";
 import { formatRelativeTime } from "./editor-menu/format-relative-time";
