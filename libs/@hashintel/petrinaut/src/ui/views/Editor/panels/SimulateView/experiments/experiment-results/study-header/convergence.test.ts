@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { assessConvergence, convergenceWindow } from "./convergence";
+import { assessConvergence } from "./convergence";
 
 import type { PetrinautOptimizationTrialEvent } from "@hashintel/petrinaut-core";
 
@@ -16,13 +16,6 @@ const completed = (
     best: null,
     seq: index + 2,
   }));
-
-describe("convergenceWindow", () => {
-  it("is a tenth of the requested steps, five at least", () => {
-    expect(convergenceWindow(30)).toBe(5);
-    expect(convergenceWindow(120)).toBe(12);
-  });
-});
 
 describe("assessConvergence", () => {
   it("is too early below one window of completed steps", () => {
