@@ -75,11 +75,6 @@ const sectionGapStyle = css({
   gap: "2",
 });
 
-const fillHeightSectionStyle = css({
-  flex: "[1]",
-  minHeight: "[0]",
-});
-
 const headerStyle = css({
   "&[data-stack-header]": { paddingY: "1" },
   "&[data-stack-header]::after": { display: "none" },
@@ -110,10 +105,6 @@ const headerRowStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-});
-
-const stickyBandStyle = css({
-  paddingTop: "2",
 });
 
 const contentPaddingStyle = css({
@@ -171,11 +162,6 @@ const collapsibleContentInnerStyle = css({
   pt: "2",
 });
 
-const fillHeightContentStyle = css({
-  flex: "[1]",
-  minHeight: "[0]",
-});
-
 interface SectionProps {
   title: string;
   titleAction?: ReactNode;
@@ -188,21 +174,11 @@ interface SectionProps {
   onOpenChange?: (open: boolean) => void;
   /** Unmounts the content while collapsed (default keeps it mounted). */
   unmountOnCollapse?: boolean;
-  fillHeight?: boolean;
-  renderHeaderLeading?: () => ReactNode;
   renderHeaderAction?: () => ReactNode;
   /** Registers the collapse trigger, e.g. for keyboard navigation. */
   triggerRef?: (element: HTMLButtonElement | null) => void;
   onTriggerKeyDown?: React.KeyboardEventHandler;
-  /**
-   * Rendered inside the sticky header block, under the title row, so it stays
-   * pinned while the section's content scrolls beneath it — a control strip
-   * whose effect the user watches further down (e.g. sweep parameter
-   * controls above streaming charts). Sticks with the title as one unit.
-   */
-  renderStickyBand?: () => ReactNode;
   children: ReactNode;
-  className?: string;
 }
 
 export const Section = ({
@@ -215,14 +191,10 @@ export const Section = ({
   open,
   onOpenChange,
   unmountOnCollapse = false,
-  fillHeight = false,
-  renderHeaderLeading,
   renderHeaderAction,
   triggerRef,
   onTriggerKeyDown,
-  renderStickyBand,
   children,
-  className,
 }: SectionProps) => {
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const expanded = open ?? internalOpen;
@@ -238,7 +210,6 @@ export const Section = ({
     renderTitle?: (text: string, className: string) => ReactNode,
   ) => (
     <div className={headerLeftStyle}>
-      {renderHeaderLeading?.()}
       {renderTitle ? (
         renderTitle(title, titleStyle)
       ) : (
@@ -259,26 +230,21 @@ export const Section = ({
   const renderHeaderContent = (
     renderTitle?: (text: string, className: string) => ReactNode,
   ) => (
-    <>
-      <div className={headerRowStyle}>
-        {headerLeft(renderTitle)}
-        {renderHeaderAction && <div>{renderHeaderAction()}</div>}
-        <Collapsible.Trigger className={triggerButtonStyle} asChild>
-          <Button
-            ref={triggerRef ?? header.attach}
-            size="xs"
-            variant="ghost"
-            aria-label={`Toggle ${title} section`}
-            iconName="chevronUp"
-            tooltip="Toggle section"
-            onKeyDown={onTriggerKeyDown ?? header.onHeaderKeyDown}
-          />
-        </Collapsible.Trigger>
-      </div>
-      {renderStickyBand && (
-        <div className={stickyBandStyle}>{renderStickyBand()}</div>
-      )}
-    </>
+    <div className={headerRowStyle}>
+      {headerLeft(renderTitle)}
+      {renderHeaderAction && <div>{renderHeaderAction()}</div>}
+      <Collapsible.Trigger className={triggerButtonStyle} asChild>
+        <Button
+          ref={triggerRef ?? header.attach}
+          size="xs"
+          variant="ghost"
+          aria-label={`Toggle ${title} section`}
+          iconName="chevronUp"
+          tooltip="Toggle section"
+          onKeyDown={onTriggerKeyDown ?? header.onHeaderKeyDown}
+        />
+      </Collapsible.Trigger>
+    </div>
   );
 
   if (collapsible) {
@@ -290,7 +256,7 @@ export const Section = ({
         lazyMount={unmountOnCollapse}
         unmountOnExit={unmountOnCollapse}
         data-section
-        className={cx(stacked ? stackedSectionStyle : sectionStyle, className)}
+        className={stacked ? stackedSectionStyle : sectionStyle}
       >
         {stacked ? (
           <StackedSectionHeader className={headerStyle}>
@@ -315,37 +281,16 @@ export const Section = ({
   }
 
   return (
-    <div
-      data-section
-      className={cx(
-        sectionStyle,
-        sectionGapStyle,
-        fillHeight && fillHeightSectionStyle,
-        className,
-      )}
-    >
+    <div data-section className={cx(sectionStyle, sectionGapStyle)}>
       <div className={headerStyle} data-section-header>
         <div className={headerRowStyle}>
           {headerLeft()}
           {renderHeaderAction && <div>{renderHeaderAction()}</div>}
         </div>
-        {renderStickyBand && (
-          <div className={stickyBandStyle}>{renderStickyBand()}</div>
-        )}
       </div>
-      {/* A section whose body lives entirely in the sticky band (the sweep
-          navigator) passes null children; rendering the wrapper anyway left
-          ~20px of dead space under it. */}
+      {/* Without children the wrapper would leave about 20px of dead space. */}
       {children === null ? null : (
-        <div
-          className={cx(
-            contentStyle,
-            contentPaddingStyle,
-            fillHeight && fillHeightContentStyle,
-          )}
-        >
-          {children}
-        </div>
+        <div className={cx(contentStyle, contentPaddingStyle)}>{children}</div>
       )}
     </div>
   );

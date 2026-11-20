@@ -129,7 +129,7 @@ const liveRegionStyle = css({
   border: "0",
 });
 
-export type HorizontalTabView = Pick<SubView, "id" | "title" | "tooltip"> & {
+type HorizontalTabView = Pick<SubView, "id" | "title" | "tooltip"> & {
   mark?: React.ReactNode;
   attention?: { count?: number; marker?: boolean };
 };

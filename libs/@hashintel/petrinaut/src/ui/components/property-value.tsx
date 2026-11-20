@@ -19,7 +19,7 @@ const emptyValueStyle = css({
   color: "neutral.s95",
 });
 
-export interface PropertyValueProps {
+interface PropertyValueProps {
   /**
    * The value as the reader should see it. `undefined` and a blank string
    * both render {@link PropertyValueProps.emptyText}.

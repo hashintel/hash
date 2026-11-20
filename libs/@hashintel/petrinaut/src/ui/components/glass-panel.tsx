@@ -53,8 +53,6 @@ interface GlassPanelProps {
   ref?: Ref<HTMLDivElement>;
   /** Additional CSS class name for the content container */
   contentClassName?: string;
-  /** Inline styles for the content container */
-  contentStyle?: CSSProperties;
   /** Configuration for making the panel resizable */
   resizable?: ResizeConfig;
 }
@@ -70,7 +68,6 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
   style,
   ref,
   contentClassName,
-  contentStyle,
   resizable,
 }) => {
   const [isResizing, setIsResizing] = useState(false);
@@ -98,10 +95,7 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
         />
       )}
 
-      <div
-        className={cx(contentContainerStyle, contentClassName)}
-        style={contentStyle}
-      >
+      <div className={cx(contentContainerStyle, contentClassName)}>
         {children}
       </div>
     </div>

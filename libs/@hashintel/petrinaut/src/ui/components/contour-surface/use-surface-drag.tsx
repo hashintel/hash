@@ -17,7 +17,7 @@ export type ContourSurfaceFraction = {
 
 type SurfacePointerEvent = React.PointerEvent<HTMLCanvasElement>;
 
-export type SurfaceDragHandlers = {
+type SurfaceDragHandlers = {
   onPointerDown: (event: SurfacePointerEvent) => void;
   onPointerMove: (event: SurfacePointerEvent) => void;
   onPointerUp: (event: SurfacePointerEvent) => void;

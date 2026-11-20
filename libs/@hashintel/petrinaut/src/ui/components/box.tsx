@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 
-export interface BoxProps {
+interface BoxProps {
   children?: ReactNode;
   className?: string;
   style?: CSSProperties;
