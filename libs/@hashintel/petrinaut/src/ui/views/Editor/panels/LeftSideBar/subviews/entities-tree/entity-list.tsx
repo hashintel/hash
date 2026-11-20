@@ -1,24 +1,32 @@
-import { Fragment, use, useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 
-import { Button, Icon, Menu, type MenuItem } from "@hashintel/ds-components";
+import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
+import { useEditorState } from "../../../../../../../react/state/editor-context";
 import {
-  EditorContext,
-  useEditorState,
-} from "../../../../../../react/state/editor-context";
-import { ShortcutTooltip } from "../../../../../keyboard-shortcut";
-import { focusLands } from "../../../../../worksheet/focus-flow";
-import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
-import { RowActionCell } from "./row-action-cell";
+  DifferentialEquationIcon,
+  ParameterIcon,
+  PlaceFilledIcon,
+  TokenTypeIcon,
+  TransitionFilledIcon,
+} from "../../../../../../constants/entity-icons";
+import { focusLands } from "../../../../../../worksheet/focus-flow";
+import { useFocusStops } from "../../../../../../worksheet/use-focus-stops";
+import { RowActionCell } from "../row-action-cell";
+import { EntityRowMenu } from "./entity-row-menu";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import type {
   FocusStop,
   FocusStopTarget,
-} from "../../../../../worksheet/use-focus-stops";
+} from "../../../../../../worksheet/use-focus-stops";
+import type {
+  EntityGroup,
+  EntityItem,
+  EntityTreeItem,
+} from "./use-entity-tree-items";
 import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType } from "react";
 
 const listContainerStyle = css({
   display: "flex",
@@ -116,8 +124,8 @@ const listItemNameStyle = css({
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  /* renderItem may nest its own lines (e.g. a name with a subtitle); each
-     line truncates the same way plain-text items do. */
+  /* A parameter's row nests two lines, its name and its variable name; each
+     truncates the same way a plain name does. */
   "& *": {
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -161,107 +169,58 @@ const emptyMessageStyle = css({
   color: "neutral.s65",
 });
 
-interface FilterableListItem {
-  id: string;
-  icon?: ComponentType<{ size: number }>;
-  iconColor?: string;
-  /** When present, this item becomes a collapsible group header. */
-  children?: FilterableListItem[];
-  /** Message shown when this group is expanded but has no children. */
-  emptyGroupMessage?: string;
-  /** Optional action component shown on the right side of a group row (e.g. an add button). */
-  renderGroupAction?: ComponentType;
-}
+const parameterVarNameStyle = css({
+  margin: "0",
+  fontSize: "xs",
+  color: "neutral.s85",
+  fontFamily: "mono",
+});
 
-interface FilterableListSubViewConfig<T extends FilterableListItem> {
-  id: string;
-  title: string;
-  useItems: () => T[];
-  getSelectionItem: (item: T) => SelectionItem;
-  renderItem: (item: T) => ReactNode;
-  /** Component to render the row's ellipsis menu. Receives the item as a prop.
-   *  Use `RowMenu` helper to render the shared menu chrome. */
-  renderRowMenu?: ComponentType<{ item: T }>;
-}
-
-const FilterHeaderAction: React.FC = () => {
-  const { setSearchOpen } = use(EditorContext);
-
-  return (
-    <ShortcutTooltip label="Search list" shortcut="mod+f">
-      <Button
-        aria-label="Search list"
-        size="xs"
-        variant="ghost"
-        iconName="search"
-        onClick={() => setSearchOpen(true)}
-      />
-    </ShortcutTooltip>
-  );
+const entityIcons: Record<
+  EntityItem["type"],
+  ComponentType<{ size: number }>
+> = {
+  place: PlaceFilledIcon,
+  transition: TransitionFilledIcon,
+  type: TokenTypeIcon,
+  differentialEquation: DifferentialEquationIcon,
+  parameter: ParameterIcon,
 };
 
-/**
- * Shared row menu chrome. Consumers call hooks in their own `renderRowMenu`
- * component and pass the resulting items here.
- */
-export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
-  if (items.length === 0) {
-    return null;
-  }
-
-  return (
-    <Menu
-      trigger={
-        <Button
-          aria-label="More options"
-          tooltip="More options"
-          size="xxs"
-          variant="ghost"
-          iconName="ellipsis"
-          onClick={(event) => event.stopPropagation()}
-        />
-      }
-      items={items}
-      position="right"
-    />
-  );
+const EntityIcon: React.FC<{ type: EntityItem["type"] }> = ({ type }) => {
+  const TypeIcon = entityIcons[type];
+  return <TypeIcon size={LIST_ITEM_ICON_SIZE} />;
 };
+
+const isGroup = (item: EntityTreeItem): item is EntityGroup =>
+  "children" in item;
+
+const selectionItemOf = ({ type, id }: EntityItem): SelectionItem => ({
+  type,
+  id,
+});
 
 const targetKey = (target: FocusStopTarget): string =>
   `${target.stopId}:${target.column}`;
 
-interface VisibleRow<T> {
-  item: T;
-  isGroup: boolean;
-}
-
 /** The rows the keyboard flow walks, in document order; a collapsed group hides its children. */
-const visibleRowsOf = <T extends FilterableListItem>(
-  items: T[],
+const visibleRowsOf = (
+  items: EntityTreeItem[],
   collapsedGroups: Set<string>,
-): VisibleRow<T>[] =>
-  items.flatMap((item): VisibleRow<T>[] => {
-    const children = item.children as T[] | undefined;
-    if (children === undefined) {
-      return [{ item, isGroup: false }];
-    }
-    const visibleChildren = collapsedGroups.has(item.id) ? [] : children;
-    return [
-      { item, isGroup: true },
-      ...visibleChildren.map((child) => ({ item: child, isGroup: false })),
-    ];
-  });
+): EntityTreeItem[] =>
+  items.flatMap((item) =>
+    isGroup(item) && !collapsedGroups.has(item.id)
+      ? [item, ...item.children]
+      : [item],
+  );
 
-const FilterableListContent = <T extends FilterableListItem>({
+/**
+ * The entities of a net as a list of selectable rows under collapsible group
+ * headers. Arrows walk the rows and select as they move, Shift extends a
+ * range, and a row's menu or a header's action is one ArrowRight away.
+ */
+export const EntityList: React.FC<{ items: EntityTreeItem[] }> = ({
   items,
-  getSelectionItem,
-  renderItem,
-  renderRowMenu: RenderRowMenu,
-}: {
-  items: T[];
-  getSelectionItem: (item: T) => SelectionItem;
-  renderItem: (item: T) => ReactNode;
-  renderRowMenu?: ComponentType<{ item: T }>;
 }) => {
   // By selector: every row of the list renders with this component.
   // `isSelected` is a new function when the selection changes.
@@ -291,7 +250,7 @@ const FilterableListContent = <T extends FilterableListItem>({
 
   const visibleRows = visibleRowsOf(items, collapsedGroups);
   const stops: FocusStop[] = visibleRows.map((row) => ({
-    id: row.item.id,
+    id: row.id,
     kind: "row",
   }));
   const {
@@ -325,13 +284,13 @@ const FilterableListContent = <T extends FilterableListItem>({
     });
   };
 
-  const select = (item: T) => {
-    selectItem(getSelectionItem(item));
+  const select = (item: EntityItem) => {
+    selectItem(selectionItemOf(item));
     setAnchorId(item.id);
   };
 
   const selectRange = (toId: string) => {
-    const ids = visibleRows.map((row) => row.item.id);
+    const ids = visibleRows.map((row) => row.id);
     const toIndex = ids.indexOf(toId);
     if (toIndex === -1) {
       return;
@@ -343,9 +302,8 @@ const FilterableListContent = <T extends FilterableListItem>({
       Math.min(fromIndex, toIndex),
       Math.max(fromIndex, toIndex) + 1,
     )) {
-      if (!row.isGroup) {
-        const entry = getSelectionItem(row.item);
-        selection.set(entry.id, entry);
+      if (!isGroup(row)) {
+        selection.set(row.id, selectionItemOf(row));
       }
     }
     setSelection(selection);
@@ -355,29 +313,29 @@ const FilterableListContent = <T extends FilterableListItem>({
   const selectFocusedRow = (extendRange: boolean) => {
     const landed = visibleRows.find(
       (row) =>
-        targets.current.get(targetKey({ stopId: row.item.id, column: 0 })) ===
+        targets.current.get(targetKey({ stopId: row.id, column: 0 })) ===
         document.activeElement,
     );
-    if (!landed || landed.isGroup) {
+    if (!landed || isGroup(landed)) {
       return;
     }
     if (extendRange) {
-      selectRange(landed.item.id);
+      selectRange(landed.id);
     } else {
-      select(landed.item);
+      select(landed);
     }
   };
 
   const onRowKeyDown =
-    (row: VisibleRow<T>): React.KeyboardEventHandler =>
+    (row: EntityTreeItem): React.KeyboardEventHandler =>
     (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         event.stopPropagation();
-        if (row.isGroup) {
-          toggleGroup(row.item.id);
+        if (isGroup(row)) {
+          toggleGroup(row.id);
         } else {
-          select(row.item);
+          select(row);
         }
         return;
       }
@@ -385,34 +343,34 @@ const FilterableListContent = <T extends FilterableListItem>({
       // other one falls through to the flow (ArrowRight on an expanded group
       // reaches its action button).
       if (
-        row.isGroup &&
+        isGroup(row) &&
         (event.key === "ArrowLeft" || event.key === "ArrowRight")
       ) {
-        const collapsed = collapsedGroups.has(row.item.id);
+        const collapsed = collapsedGroups.has(row.id);
         if (event.key === "ArrowRight" ? collapsed : !collapsed) {
           event.preventDefault();
           event.stopPropagation();
-          toggleGroup(row.item.id);
+          toggleGroup(row.id);
           return;
         }
       }
-      onStopsKeyDown({ stopId: row.item.id, column: 0 })(event);
+      onStopsKeyDown({ stopId: row.id, column: 0 })(event);
       if (event.key === "ArrowUp" || event.key === "ArrowDown") {
         selectFocusedRow(event.shiftKey);
       }
     };
 
-  const onRowClick = (event: React.MouseEvent, row: VisibleRow<T>) => {
+  const onRowClick = (event: React.MouseEvent, row: EntityTreeItem) => {
     event.stopPropagation();
-    if (row.isGroup) {
-      toggleGroup(row.item.id);
+    if (isGroup(row)) {
+      toggleGroup(row.id);
     } else if (event.shiftKey && anchorId !== null) {
-      selectRange(row.item.id);
+      selectRange(row.id);
     } else if (event.metaKey || event.ctrlKey) {
-      toggleItem(getSelectionItem(row.item));
-      setAnchorId(row.item.id);
+      toggleItem(selectionItemOf(row));
+      setAnchorId(row.id);
     } else {
-      select(row.item);
+      select(row);
     }
   };
 
@@ -423,18 +381,17 @@ const FilterableListContent = <T extends FilterableListItem>({
 
   // A collapsed group's children stay mounted for the height animation; they
   // are out of `stops`, so `tabIndexFor` keeps them out of the tab order.
-  const renderRow = (item: T, depth: number, isGroup: boolean) => {
-    const row: VisibleRow<T> = { item, isGroup };
-    const selected = !isGroup && checkIsSelected(item.id);
+  const renderRow = (item: EntityTreeItem, depth: number) => {
+    const group = isGroup(item);
+    const selected = !group && checkIsSelected(item.id);
     const rowTarget: FocusStopTarget = { stopId: item.id, column: 0 };
     const actionTarget: FocusStopTarget = { stopId: item.id, column: 1 };
-    const action = isGroup ? (
-      item.renderGroupAction ? (
-        <item.renderGroupAction />
+    const action = group ? (
+      item.action ? (
+        <item.action />
       ) : null
-    ) : RenderRowMenu &&
-      (menuRows.pointed === item.id || menuRows.focused === item.id) ? (
-      <RenderRowMenu item={item} />
+    ) : menuRows.pointed === item.id || menuRows.focused === item.id ? (
+      <EntityRowMenu item={item} />
     ) : null;
 
     return (
@@ -448,8 +405,8 @@ const FilterableListContent = <T extends FilterableListItem>({
         style={
           depth > 0 ? { paddingLeft: depth * NESTING_INDENT + 4 } : undefined
         }
-        onClick={(event) => onRowClick(event, row)}
-        onKeyDown={onRowKeyDown(row)}
+        onClick={(event) => onRowClick(event, item)}
+        onKeyDown={onRowKeyDown(item)}
         onPointerEnter={() => {
           if (menuRows.pointed !== item.id) {
             setMenuRows({ ...menuRows, pointed: item.id });
@@ -469,7 +426,7 @@ const FilterableListContent = <T extends FilterableListItem>({
         }}
       >
         <div className={listItemContentStyle}>
-          {isGroup ? (
+          {group ? (
             <span
               className={chevronStyle({
                 expanded: !collapsedGroups.has(item.id),
@@ -477,16 +434,24 @@ const FilterableListContent = <T extends FilterableListItem>({
             >
               <Icon name="chevronRight" size="xxs" />
             </span>
-          ) : null}
-          {item.icon ? (
+          ) : (
             <span
               className={listItemIconStyle}
               style={{ color: item.iconColor ?? LIST_ITEM_ICON_COLOR }}
             >
-              <item.icon size={LIST_ITEM_ICON_SIZE} />
+              <EntityIcon type={item.type} />
             </span>
-          ) : null}
-          <div className={listItemNameStyle}>{renderItem(item)}</div>
+          )}
+          <div className={listItemNameStyle}>
+            {!group && item.variableName ? (
+              <div>
+                <div>{item.name}</div>
+                <pre className={parameterVarNameStyle}>{item.variableName}</pre>
+              </div>
+            ) : (
+              item.name
+            )}
+          </div>
         </div>
         {action ? (
           <RowActionCell
@@ -515,60 +480,30 @@ const FilterableListContent = <T extends FilterableListItem>({
         }
       }}
     >
-      {items.map((item) => {
-        const children = item.children as T[] | undefined;
-        if (children === undefined) {
-          return renderRow(item, 0, false);
-        }
-        const collapsed = collapsedGroups.has(item.id);
-        return (
+      {items.map((item) =>
+        isGroup(item) ? (
           <Fragment key={item.id}>
-            {renderRow(item, 0, true)}
+            {renderRow(item, 0)}
             <div
               className={groupChildrenStyle}
-              style={{ height: collapsed ? 0 : "auto" }}
+              style={{ height: collapsedGroups.has(item.id) ? 0 : "auto" }}
             >
-              {children.length > 0 ? (
-                children.map((child) => renderRow(child, 1, false))
-              ) : item.emptyGroupMessage ? (
+              {item.children.length > 0 ? (
+                item.children.map((child) => renderRow(child, 1))
+              ) : (
                 <div
                   className={emptyMessageStyle}
                   style={{ paddingLeft: NESTING_INDENT + 4 }}
                 >
                   {item.emptyGroupMessage}
                 </div>
-              ) : null}
+              )}
             </div>
           </Fragment>
-        );
-      })}
+        ) : (
+          renderRow(item, 0)
+        ),
+      )}
     </div>
   );
 };
-
-/** A left-sidebar list of selectable items with a search button in its header and per-row menus. */
-export function createFilterableListSubView<T extends FilterableListItem>(
-  config: FilterableListSubViewConfig<T>,
-): SubView {
-  const { id, title, useItems, getSelectionItem, renderItem, renderRowMenu } =
-    config;
-
-  const Component: React.FC = () => {
-    const items = useItems();
-    return (
-      <FilterableListContent
-        items={items}
-        getSelectionItem={getSelectionItem}
-        renderItem={renderItem}
-        renderRowMenu={renderRowMenu}
-      />
-    );
-  };
-
-  return {
-    id,
-    title,
-    component: Component,
-    renderHeaderAction: () => <FilterHeaderAction />,
-  };
-}

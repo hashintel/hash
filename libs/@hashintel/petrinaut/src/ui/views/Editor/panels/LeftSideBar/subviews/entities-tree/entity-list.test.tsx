@@ -8,23 +8,25 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { createFilterableListSubView } from "./filterable-list-sub-view";
+import { EditorContext } from "../../../../../../../react/state/editor-context";
+import { EntityList } from "./entity-list";
 
-import type { EditorContextValue } from "../../../../../../react/state/editor-context";
+import type { EditorContextValue } from "../../../../../../../react/state/editor-context";
+import type { EntityTreeItem } from "./use-entity-tree-items";
 import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
 
-afterEach(cleanup);
+// What a row's menu holds is its own; the list decides which rows mount one.
+vi.mock("./entity-row-menu", () => ({
+  EntityRowMenu: () => (
+    <button type="button" aria-label="Row menu">
+      …
+    </button>
+  ),
+}));
 
-interface TestItem {
-  id: string;
-  name: string;
-  children?: TestItem[];
-  emptyGroupMessage?: string;
-  renderGroupAction?: React.ComponentType;
-}
+afterEach(cleanup);
 
 /** A live selection model standing in for the editor's. */
 const makeSelectionStub = () => {
@@ -56,24 +58,11 @@ const makeSelectionStub = () => {
   return { value, selectedIds: () => [...selection.keys()].sort() };
 };
 
-const renderList = (items: TestItem[]) => {
+const renderList = (items: EntityTreeItem[]) => {
   const stub = makeSelectionStub();
-  const subView = createFilterableListSubView<TestItem>({
-    id: "test-list",
-    title: "Test",
-    useItems: () => items,
-    getSelectionItem: (item) => ({ type: "place", id: item.id }),
-    renderItem: (item) => item.name,
-    renderRowMenu: () => (
-      <button type="button" aria-label="Row menu">
-        …
-      </button>
-    ),
-  });
-  const Component = subView.component;
   const view = render(
     <EditorContext value={stub.value}>
-      <Component />
+      <EntityList items={items} />
     </EditorContext>,
   );
   return { ...stub, view };
@@ -95,10 +84,10 @@ const key = (pressed: string, init?: { shiftKey?: boolean }) => {
   fireEvent.keyDown(document.activeElement!, { key: pressed, ...init });
 };
 
-const FLAT_ITEMS: TestItem[] = [
-  { id: "a", name: "Alpha" },
-  { id: "b", name: "Beta" },
-  { id: "c", name: "Gamma" },
+const FLAT_ITEMS: EntityTreeItem[] = [
+  { id: "a", type: "place", name: "Alpha" },
+  { id: "b", type: "place", name: "Beta" },
+  { id: "c", type: "place", name: "Gamma" },
 ];
 
 const rowOf = (name: string): HTMLElement => {
@@ -192,9 +181,10 @@ describe("filterable list keyboard flow", () => {
       {
         id: "group",
         name: "Group",
-        children: [{ id: "child", name: "Child" }],
+        emptyGroupMessage: "No rows",
+        children: [{ id: "child", type: "place", name: "Child" }],
       },
-      { id: "after", name: "After" },
+      { id: "after", type: "place", name: "After" },
     ]);
 
     focusRow("Group");
