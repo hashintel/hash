@@ -231,17 +231,31 @@ export const EntityRow = memo(EntityRowBody);
 
 const GroupRowBody: React.FC<{
   elementId: string;
+  id: string;
   name: string;
   expanded: boolean;
   action: ComponentType | undefined;
   tabIndex: 0 | -1;
-}> = ({ elementId, name, expanded, action: Action, tabIndex }) => (
+  showMenu: ShowRowMenu;
+}> = ({
+  elementId,
+  id,
+  name,
+  expanded,
+  action: Action,
+  tabIndex,
+  showMenu,
+}) => (
   <div
     id={elementId}
     role="option"
     aria-selected={false}
     tabIndex={tabIndex}
     className={rowStyle({ isSelected: false })}
+    // A header has no menu: when it takes the pointer or the focus, the menu
+    // of the row that had it unmounts.
+    onPointerEnter={() => showMenu(["pointed", id])}
+    onFocus={() => showMenu(["focused", id])}
   >
     <span className={chevronStyle({ expanded })}>
       <Icon name="chevronRight" size="xxs" />

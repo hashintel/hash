@@ -274,6 +274,8 @@ export const EntityList: React.FC<{ groups: EntityGroup[] }> = ({ groups }) => {
           <Fragment key={group.id}>
             <GroupRow
               elementId={listId + group.id}
+              id={group.id}
+              showMenu={showMenu}
               name={group.name}
               expanded={expanded}
               action={group.action}

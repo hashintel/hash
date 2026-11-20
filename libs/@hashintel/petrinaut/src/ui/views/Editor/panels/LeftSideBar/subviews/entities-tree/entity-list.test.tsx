@@ -172,6 +172,19 @@ describe("filterable list row menus", () => {
     expect(document.activeElement).toBe(button);
     expect(menuButtonOf("Beta")).not.toBeNull();
   });
+
+  it("unmounts a row's menu when the pointer or the focus moves to a group header", () => {
+    renderList(ONE_GROUP);
+
+    fireEvent.pointerEnter(rowOf("Beta"));
+    fireEvent.pointerEnter(rowOf("Group"));
+    expect(screen.queryAllByLabelText("Row menu")).toHaveLength(0);
+
+    focusRow("Alpha");
+    expect(menuButtonOf("Alpha")).not.toBeNull();
+    focusRow("Group");
+    expect(screen.queryAllByLabelText("Row menu")).toHaveLength(0);
+  });
 });
 
 describe("filterable list keyboard flow", () => {
