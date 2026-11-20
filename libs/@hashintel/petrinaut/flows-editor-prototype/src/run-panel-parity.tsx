@@ -30,7 +30,7 @@ import {
 import { RunGlyph } from "./run-glyph";
 import { AllItemsOutputsLink, RunOutputBody, type RunOutputs } from "./run-outputs";
 import { approverName } from "./run-step-status";
-import { PropertyRow, Section } from "./ui";
+import { kindLabel, PropertyRow, Section } from "./ui";
 
 import type { StepInputSource } from "./engine";
 
@@ -370,7 +370,7 @@ export const ParitySections = ({
           <RunOutputRow stepId={stepId} outputName="messageId" label="Message ID" kind="Text" count={sent}>
             {body("messageId")}
           </RunOutputRow>
-          <RunOutputRow stepId={stepId} outputName="sentAt" label="Sent at" kind="Date Time" count={sent} />
+          <RunOutputRow stepId={stepId} outputName="sentAt" label="Sent at" kind={kindLabel("DateTime")} count={sent} />
         </Outputs>
       </>
     );

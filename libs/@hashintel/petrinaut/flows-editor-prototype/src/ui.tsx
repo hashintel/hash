@@ -67,6 +67,8 @@ export const IconTile = ({
 
 const kindNames: Partial<Record<EditorPayloadKind, string>> = {
   EntityId: "Entity",
+  // The system data type's own title, not "Date Time".
+  DateTime: "DateTime",
   EntityQuery: "Query",
   FilterCondition: "Condition",
   VersionedUrl: "Entity type",

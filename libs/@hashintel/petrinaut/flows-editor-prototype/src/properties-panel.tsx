@@ -1484,12 +1484,12 @@ const inputKindChoices = [
   { value: "Text", text: "Text" },
   { value: "Number", text: "Number" },
   { value: "Date", text: "Date" },
-  { value: "DateTime", text: "Date and time" },
+  { value: "DateTime", text: kindLabel("DateTime") },
   { value: "Duration", text: "Duration" },
   { value: "Boolean", text: "Yes or no" },
   { value: "EntityId", text: "Entity" },
   { value: "VersionedUrl", text: "Entity type" },
-  { value: "EntityId[]", text: "List of entities" },
+  { value: "EntityId[]", text: kindLabel("EntityId", true) },
   { value: "Text[]", text: "List of text" },
 ];
 
