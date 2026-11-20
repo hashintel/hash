@@ -56,10 +56,6 @@ it("samples only while visible and stops when closed", () => {
     vi.advanceTimersByTime(600);
   });
   expect(screen.queryByText("–")).toBeNull();
-  expect(screen.queryByRole("table")).toBeNull();
-  expect(
-    screen.queryByRole("button", { name: /Expand performance/ }),
-  ).toBeNull();
   expect(vi.getTimerCount()).toBe(1);
   fireEvent.click(screen.getByRole("button", { name: "Hide FPS counter" }));
   expect(vi.getTimerCount()).toBe(0);

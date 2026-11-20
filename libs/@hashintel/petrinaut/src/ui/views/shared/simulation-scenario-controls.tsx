@@ -7,7 +7,7 @@ import {
   Select,
   Toggle,
 } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { SimulationContext } from "../../../react/simulation/context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
@@ -52,11 +52,6 @@ const scenarioSelectWrapperStyle = css({
   flex: "1",
   minWidth: "0",
   "& > div > div": { minWidth: "0" },
-});
-
-const actionsStyle = css({
-  display: "flex",
-  flexShrink: "0",
 });
 
 const sectionStyle = css({
@@ -192,10 +187,8 @@ const parameterBounds = (
 };
 
 export type SimulationScenarioControlsProps = {
-  actions?: React.ReactNode;
   allowNoScenario?: boolean;
   parameterBounds?: SimulationParameterBoundsByIdentifier;
-  className?: string;
 };
 
 /**
@@ -206,12 +199,7 @@ export type SimulationScenarioControlsProps = {
  */
 export const SimulationScenarioControls: React.FC<
   SimulationScenarioControlsProps
-> = ({
-  actions,
-  allowNoScenario = true,
-  parameterBounds: boundsByIdentifier,
-  className,
-}) => {
+> = ({ allowNoScenario = true, parameterBounds: boundsByIdentifier }) => {
   const {
     extensions,
     petriNetDefinition: { parameters, scenarios },
@@ -257,7 +245,7 @@ export const SimulationScenarioControls: React.FC<
   ];
 
   return (
-    <div className={cx(rootStyle, className)}>
+    <div className={rootStyle}>
       <div className={scenarioRowStyle}>
         <span className={scenarioLabelStyle}>Scenario</span>
         <div className={scenarioSelectWrapperStyle}>
@@ -306,7 +294,6 @@ export const SimulationScenarioControls: React.FC<
             }}
           />
         </div>
-        {actions && <div className={actionsStyle}>{actions}</div>}
       </div>
 
       {scenarioCompilationErrors && (

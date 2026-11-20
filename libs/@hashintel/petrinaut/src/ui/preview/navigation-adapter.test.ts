@@ -21,7 +21,7 @@ describe("Preview navigation adapter", () => {
         onNavigate: vi.fn(),
       };
 
-    expect(createPreviewNavigationAdapter(controller).state).toEqual({
+    expect(createPreviewNavigationAdapter(controller, "edit").state).toEqual({
       ...defaultPetrinautNavigationState,
       mode: "edit",
       simulateView: "scenarios",
@@ -83,7 +83,7 @@ describe("Preview navigation adapter", () => {
         },
         onNavigate,
       };
-    const adapter = createPreviewNavigationAdapter(controller);
+    const adapter = createPreviewNavigationAdapter(controller, "edit");
     const options = {
       history: "replace" as const,
       intent: { cause: "user", action: "selection" } as const,

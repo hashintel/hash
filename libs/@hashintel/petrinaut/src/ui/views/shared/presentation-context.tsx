@@ -3,7 +3,6 @@ import { createContext, use, type PropsWithChildren } from "react";
 export type PetrinautPresentationProfile = "editor" | "review" | "preview";
 
 export type PetrinautPresentationCapabilities = {
-  profile: PetrinautPresentationProfile;
   /** Show controls whose only purpose is to mutate the authored net. */
   showMutationActions: boolean;
   /** Show authored TypeScript source in property inspectors. */
@@ -32,7 +31,6 @@ const PRESENTATION_CAPABILITIES: Record<
   PetrinautPresentationCapabilities
 > = {
   editor: {
-    profile: "editor",
     showMutationActions: true,
     showSourceCode: true,
     showCustomVisualizers: true,
@@ -43,7 +41,6 @@ const PRESENTATION_CAPABILITIES: Record<
     blurredChrome: true,
   },
   review: {
-    profile: "review",
     showMutationActions: false,
     showSourceCode: true,
     showCustomVisualizers: true,
@@ -54,7 +51,6 @@ const PRESENTATION_CAPABILITIES: Record<
     blurredChrome: true,
   },
   preview: {
-    profile: "preview",
     showMutationActions: false,
     showSourceCode: false,
     showCustomVisualizers: false,

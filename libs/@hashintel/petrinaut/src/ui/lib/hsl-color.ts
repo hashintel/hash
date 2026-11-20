@@ -10,7 +10,7 @@
  * outline: blue.css(0.6) // "hsla(210, 80%, 50%, 0.6)"
  *
  * // Adjust saturation and lightness
- * outline: blue.saturation(60).lightness(70).css(0.5)
+ * outline: blue.saturation(60).lighten(20).css(0.5)
  * ```
  */
 
@@ -22,12 +22,8 @@ interface HslColor {
   /** Lightness (0-100) */
   l: number;
 
-  /** Returns a new color with adjusted hue */
-  hue: (h: number) => HslColor;
   /** Returns a new color with adjusted saturation */
   saturation: (s: number) => HslColor;
-  /** Returns a new color with adjusted lightness */
-  lightness: (l: number) => HslColor;
 
   /** Adjust saturation relative to current value */
   saturate: (delta: number) => HslColor;
@@ -36,8 +32,6 @@ interface HslColor {
 
   /** Returns CSS hsla string with optional alpha */
   css: (alpha?: number) => string;
-  /** Returns CSS hsl string (no alpha) */
-  toString: () => string;
 }
 
 /**
@@ -56,9 +50,7 @@ function hsl(h: number, s: number, l: number): HslColor {
     s: clamp(s, 0, 100),
     l: clamp(l, 0, 100),
 
-    hue: (newH) => hsl(newH, color.s, color.l),
     saturation: (newS) => hsl(color.h, newS, color.l),
-    lightness: (newL) => hsl(color.h, color.s, newL),
 
     saturate: (delta) => hsl(color.h, color.s + delta, color.l),
     lighten: (delta) => hsl(color.h, color.s, color.l + delta),
@@ -67,8 +59,6 @@ function hsl(h: number, s: number, l: number): HslColor {
       alpha === 1
         ? `hsl(${color.h}, ${color.s}%, ${color.l}%)`
         : `hsla(${color.h}, ${color.s}%, ${color.l}%, ${alpha})`,
-
-    toString: () => `hsl(${color.h}, ${color.s}%, ${color.l}%)`,
   };
 
   return color;
