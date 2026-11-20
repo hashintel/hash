@@ -1,16 +1,9 @@
-import * as v from "valibot";
 import { expect, test, vi } from "vitest";
 
 import {
   browserToolEnvelopeOf,
   brunchTools,
-  hashEntityReadInputFor,
-  hashEntityReadResultSchema,
-  parseHashEntityDetailsInput,
-  parseHashEntityProfileInput,
   parseHashEntityReadInput,
-  renderHashEntityDetails,
-  renderHashEntityProfile,
   type ClientToolResult,
 } from "@hashintel/brunch-agent";
 
@@ -83,26 +76,8 @@ const readCurrent = async (execute: BrowserToolExecutor, input: unknown) => {
   return envelope.output;
 };
 
-const readDetails = async (
-  execute: BrowserToolExecutor,
-  toolInput: unknown,
-) => {
-  const input = parseHashEntityDetailsInput(toolInput);
-  const { output } = await execute({
-    toolName: brunchTools.hashQueryEntities,
-    input: hashEntityReadInputFor.details(input),
-    toolCallId: "details-read",
-  });
-  const view = renderHashEntityDetails(
-    v.parse(hashEntityReadResultSchema, output),
-    input,
-  );
-  expect(view.refused).toBe(false);
-  return view.text;
-};
-
 test.each([true, false])(
-  "both formats describe the inventory's completeness with truncated=%s",
+  "the entity read describes the inventory's completeness with truncated=%s",
   async (truncated) => {
     const output = {
       entityTypes: [{ entityTypeId: orderTypeId, title: "Order" }],
@@ -119,56 +94,60 @@ test.each([true, false])(
       ...(truncated ? { truncated: true as const } : {}),
     };
     const execute: BrowserToolExecutor = async () => ({ output });
-    const input = { entityTypes: [orderTypeId], traversalDepth: 0 };
-    const profileInput = parseHashEntityProfileInput(input);
-    const current = await readCurrent(execute, input);
-    const profile = renderHashEntityProfile(output, profileInput);
+    const current = await readCurrent(execute, {
+      entityTypes: [orderTypeId],
+      traversalDepth: 0,
+    });
 
     expect(current).toContain("entities: 1000");
-    expect(profile.refused).toBe(false);
-    expect(profile.text).toContain("matched: 1000");
     expect(current.includes("More may match than shown")).toBe(truncated);
-    expect(profile.text.includes("more may match than this read covers")).toBe(
-      truncated,
-    );
   },
 );
 
-test("both formats preserve the link when the customer read returns no visible record", async () => {
-  const execute: BrowserToolExecutor = async (call) => {
-    const input = parseHashEntityReadInput(call.input);
-    expect(call.toolName).toBe(brunchTools.hashQueryEntities);
-    expect(input.traversalDepth).toBe(1);
-    if (input.entityIds?.includes(orderId)) {
-      expect(input.entityIds).toEqual([orderId]);
-      return { output: orderRead };
-    }
-    expect(input.entityIds).toEqual([customerId]);
-    return { output: { entityTypes: [], propertyTypes: [], entities: [] } };
-  };
+test("the entity read preserves the link when the customer read returns no visible record", async () => {
+  const execute = vi.fn<BrowserToolExecutor>(async (call) => ({
+    output: parseHashEntityReadInput(call.input).entityIds?.includes(orderId)
+      ? orderRead
+      : { entityTypes: [], propertyTypes: [], entities: [] },
+  }));
 
-  const [currentOrder, detailsOrder] = await Promise.all([
-    readCurrent(execute, { entityIds: [orderId], traversalDepth: 1 }),
-    readDetails(execute, { entityIds: [orderId] }),
-  ]);
-
+  const currentOrder = await readCurrent(execute, {
+    entityIds: [orderId],
+    traversalDepth: 1,
+  });
   expect(currentOrder).toContain(`linksTo: ${customerId}`);
   expect(currentOrder).not.toContain(`entityId: ${customerId}`);
-  expect(detailsOrder).toContain("has_customer");
-  expect(detailsOrder).toContain(customerId);
 
-  const [currentCustomer, detailsCustomer] = await Promise.all([
-    readCurrent(execute, { entityIds: [customerId], traversalDepth: 1 }),
-    readDetails(execute, { entityIds: [customerId] }),
-  ]);
+  const currentCustomer = await readCurrent(execute, {
+    entityIds: [customerId],
+    traversalDepth: 1,
+  });
   expect(currentCustomer).toContain(
     "No entities matched that the signed-in user can see",
   );
-  expect(detailsCustomer).toContain(`Not returned: ${customerId}`);
-  expect(detailsCustomer).toContain("hidden from the user");
+
+  expect(
+    execute.mock.calls.map(([call]) => {
+      const { entityIds, traversalDepth } = parseHashEntityReadInput(
+        call.input,
+      );
+      return { toolName: call.toolName, entityIds, traversalDepth };
+    }),
+  ).toEqual([
+    {
+      toolName: brunchTools.hashQueryEntities,
+      entityIds: [orderId],
+      traversalDepth: 1,
+    },
+    {
+      toolName: brunchTools.hashQueryEntities,
+      entityIds: [customerId],
+      traversalDepth: 1,
+    },
+  ]);
 });
 
-test("both formats recover a summarised value from the same entity edition", async () => {
+test("the entity read recovers a summarised value from the same entity edition, whole or by path", async () => {
   const netId = `${webId}~00000000-0000-4000-8000-000000000020`;
   const definitionUrl = "https://example.com/types/property-type/definition/";
   const parameters = [{ name: "Conveyor idle rate", defaultValue: "0.037" }];
@@ -196,40 +175,42 @@ test("both formats recover a summarised value from the same entity edition", asy
     },
   }));
 
-  const [currentSummary, detailsSummary] = await Promise.all([
-    readCurrent(execute, { entityIds: [netId] }),
-    readDetails(execute, { entityIds: [netId] }),
-  ]);
-  for (const summary of [currentSummary, detailsSummary]) {
-    expect(summary).toContain("<object");
-    expect(summary).toContain("fullValuesFor");
-    expect(summary).not.toContain("0.037");
-  }
-  expect(detailsSummary).toContain("parameters");
+  const summary = await readCurrent(execute, { entityIds: [netId] });
+  expect(summary).toContain("<object");
+  expect(summary).toContain("parameters");
+  expect(summary).toContain("fullValuesFor");
+  expect(summary).not.toContain("0.037");
 
   execute.mockClear();
-  const [currentFullValue, detailsByPath] = await Promise.all([
-    readCurrent(execute, { entityIds: [netId], fullValuesFor: [netId] }),
-    readDetails(execute, {
-      entityIds: [netId],
-      fullValuesFor: [{ entityId: netId, path: ["definition", "parameters"] }],
-    }),
-  ]);
+  const path = ["definition", "parameters"];
+  const fullValue = await readCurrent(execute, {
+    entityIds: [netId],
+    fullValuesFor: [netId],
+  });
+  const byPath = await readCurrent(execute, {
+    entityIds: [netId],
+    fullValuesFor: [{ entityId: netId, path }],
+  });
   expect(execute.mock.calls.map(([call]) => call.input)).toEqual([
     expect.objectContaining({ entityIds: [netId], fullValuesFor: [netId] }),
-    expect.objectContaining({ entityIds: [netId], fullValuesFor: [netId] }),
+    expect.objectContaining({
+      entityIds: [netId],
+      fullValuesFor: [{ entityId: netId, path }],
+    }),
   ]);
-  for (const read of [currentFullValue, detailsByPath]) {
+  for (const read of [fullValue, byPath]) {
     expect(read).toContain("conveyor-edition");
     expect(read).toContain("Conveyor idle rate");
     expect(read).toContain("0.037");
   }
-  expect(currentFullValue).toContain("buffer-99");
-  expect(detailsByPath).toContain("definition.parameters");
-  expect(detailsByPath).not.toContain("buffer-99");
+  expect(fullValue).toContain("buffer-99");
+  expect(byPath).toContain(
+    `path ${JSON.stringify(path)}: ${JSON.stringify(parameters)}`,
+  );
+  expect(byPath).not.toContain("buffer-99");
 });
 
-test("both formats preserve separate definitions for a property whose unit changed", async () => {
+test("the entity read preserves separate definitions for a property whose unit changed", async () => {
   const firstId = `${webId}~00000000-0000-4000-8000-000000000030`;
   const secondId = `${webId}~00000000-0000-4000-8000-000000000031`;
   const intervalUrl =
@@ -285,29 +266,18 @@ test("both formats preserve separate definitions for a property whose unit chang
     };
   };
 
-  const input = { entityIds: [firstId, secondId] };
-  const [current, details] = await Promise.all([
-    readCurrent(execute, input),
-    readDetails(execute, input),
-  ]);
-  for (const text of [current, details]) {
-    expect(text).toMatch(/service-interval\/v\/1[^\n]*Measured in days\./u);
-    expect(text).toMatch(/service-interval\/v\/2[^\n]*Measured in weeks\./u);
-    expect(text).toContain(`${machineUrl}v/1`);
-    expect(text).toContain(`${machineUrl}v/2`);
-  }
+  const current = await readCurrent(execute, {
+    entityIds: [firstId, secondId],
+  });
+  expect(current).toMatch(/service-interval\/v\/1[^\n]*Measured in days\./u);
+  expect(current).toMatch(/service-interval\/v\/2[^\n]*Measured in weeks\./u);
+  expect(current).toContain(`${machineUrl}v/1`);
+  expect(current).toContain(`${machineUrl}v/2`);
   expect(current).toContain("Multiple versions are alternatives");
   expect(current).toContain(
     `entityId: ${firstId}\n  editionId: machine-first-edition\n  service_interval: 8`,
   );
   expect(current).toContain(
     `entityId: ${secondId}\n  editionId: machine-second-edition\n  service_interval: 4`,
-  );
-  expect(details).toContain("properties{service_interval}");
-  expect(details).toContain(
-    `${firstId},null,machine-first-edition,machine_v1,8`,
-  );
-  expect(details).toContain(
-    `${secondId},null,machine-second-edition,machine_v2,4`,
   );
 });
