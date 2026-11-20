@@ -13,6 +13,9 @@ import { SDCPNContext } from "../../../../react/state/sdcpn-context";
  * and the bottom bar's indicator counts.
  */
 export const useCompositionProblems = (): CompositionProblem[] => {
+  // `use` alone does not make the compiler take this for a hook. Compiled, it
+  // checks when the document or its imports change, not on every render.
+  "use memo";
   const { petriNetDefinition } = use(SDCPNContext);
   const { imports } = use(CompositionContext);
   return checkComposition(petriNetDefinition, imports);
