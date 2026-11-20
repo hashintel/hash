@@ -2,15 +2,24 @@ import { useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useLatest } from "../../../../react/hooks/use-latest";
 import { focusLands } from "../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../worksheet/use-focus-stops";
 import { CONNECTION_GUTTER_WIDTH, ConnectionLines } from "../connection-lines";
-import { cellBodyParts, NotebookCell, partStopId } from "../notebook-cell";
+import {
+  CellBody,
+  cellBodyParts,
+  cellPresentation,
+  NotebookCell,
+  partStopId,
+} from "../notebook-cell";
 
 import type { ActiveNetDefinition } from "../../../../react/state/active-net-context";
 import type { FocusStop } from "../../../worksheet/use-focus-stops";
+import type { CellRowActions } from "../notebook-cell";
 import type {
   CellConnections,
+  CellRef,
   DependentCount,
   NotebookCell as NotebookCellModel,
 } from "../notebook-model";
@@ -64,7 +73,7 @@ export const CellList = ({
   dependentCounts: Map<string, DependentCount>;
   selectedId: string | null;
   selectedConnections: CellConnections | null;
-  onSelectCell: (cell: NotebookCellModel) => void;
+  onSelectCell: (cell: CellRef) => void;
   onSetCellExpanded: (cellId: string, expanded: boolean) => void;
   /** Selects and focuses a cell by id, listed or not. */
   onNavigateToCell: (cellId: string) => void;
@@ -125,6 +134,18 @@ export const CellList = ({
     },
   });
 
+  const actionsRef = useLatest<CellRowActions>({
+    select: onSelectCell,
+    setExpanded: onSetCellExpanded,
+    focusRow: (cell) => {
+      listFocus.onFocusTarget({ stopId: cell.id, column: 0 });
+      onSelectCell(cell);
+    },
+    navigate: (cellId, event) =>
+      listFocus.onKeyDown({ stopId: cellId, column: 0 })(event),
+    focusSearch: onFocusSearch,
+  });
+
   const revealedSelectionRef = useRef<string | null>(null);
   useEffect(() => {
     if (selectedId === revealedSelectionRef.current) {
@@ -152,44 +173,47 @@ export const CellList = ({
         {cells.length === 0 ? (
           <div className={emptyStyle}>{emptyMessage}</div>
         ) : (
-          cells.map((cell) => (
-            <NotebookCell
-              key={cell.id}
-              net={net}
-              cell={cell}
-              isSelected={cell.id === selectedId}
-              isExpanded={expandedIds.has(cell.id)}
-              isDimmed={matchesById !== null && !matchesById.has(cell.id)}
-              nameMatchIndices={matchesById?.get(cell.id) ?? null}
-              dependentCount={dependentCounts.get(cell.id)}
-              onSelect={() => onSelectCell(cell)}
-              onSetExpanded={(expanded) => onSetCellExpanded(cell.id, expanded)}
-              rowFocus={{
-                tabIndex: listFocus.tabIndexFor({ stopId: cell.id, column: 0 }),
-                onFocus: () => {
-                  listFocus.onFocusTarget({ stopId: cell.id, column: 0 });
-                  onSelectCell(cell);
-                },
-                onNavigate: listFocus.onKeyDown({ stopId: cell.id, column: 0 }),
-              }}
-              bodyParts={{
-                stopIdFor: (partId) => partStopId(cell.id, partId),
-                focusFor: (partId, column = 0) => {
-                  const stopId = partStopId(cell.id, partId);
-                  return {
-                    tabIndex: listFocus.tabIndexFor({ stopId, column }),
-                    onFocus: () => {
-                      listFocus.onFocusTarget({ stopId, column });
-                      onSelectCell(cell);
-                    },
-                    onNavigate: listFocus.onKeyDown({ stopId, column }),
-                  };
-                },
-                navigateToCell: onNavigateToCell,
-              }}
-              onFocusSearch={onFocusSearch}
-            />
-          ))
+          cells.map((cell) => {
+            const dependents = dependentCounts.get(cell.id);
+            return (
+              <NotebookCell
+                key={cell.id}
+                cellId={cell.id}
+                kind={cell.kind}
+                {...cellPresentation(net, cell)}
+                isSelected={cell.id === selectedId}
+                isExpanded={expandedIds.has(cell.id)}
+                isDimmed={matchesById !== null && !matchesById.has(cell.id)}
+                nameMatchIndices={matchesById?.get(cell.id) ?? null}
+                directDependents={dependents?.direct ?? 0}
+                transitiveDependents={dependents?.transitive ?? 0}
+                tabIndex={listFocus.tabIndexFor({ stopId: cell.id, column: 0 })}
+                actionsRef={actionsRef}
+              >
+                {expandedIds.has(cell.id) && (
+                  <CellBody
+                    net={net}
+                    cell={cell}
+                    parts={{
+                      stopIdFor: (partId) => partStopId(cell.id, partId),
+                      focusFor: (partId, column = 0) => {
+                        const stopId = partStopId(cell.id, partId);
+                        return {
+                          tabIndex: listFocus.tabIndexFor({ stopId, column }),
+                          onFocus: () => {
+                            listFocus.onFocusTarget({ stopId, column });
+                            onSelectCell(cell);
+                          },
+                          onNavigate: listFocus.onKeyDown({ stopId, column }),
+                        };
+                      },
+                      navigateToCell: onNavigateToCell,
+                    }}
+                  />
+                )}
+              </NotebookCell>
+            );
+          })
         )}
         <ConnectionLines
           containerRef={contentRef}

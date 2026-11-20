@@ -23,11 +23,7 @@ import { CellList } from "./notebook-view/cell-list";
 import { buildNotebookViewModel } from "./notebook-view/view-model";
 
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
-import type {
-  NodeRef,
-  NotebookCellKind,
-  NotebookCell as NotebookCellModel,
-} from "./notebook-model";
+import type { CellRef, NodeRef, NotebookCellKind } from "./notebook-model";
 import type { CellOrder } from "./notebook-order";
 import type { NotebookViewModel } from "./notebook-view/view-model";
 
@@ -293,10 +289,7 @@ const NotebookViewContent = ({
     }
   };
 
-  const selectCell = (
-    cell: NotebookCellModel,
-    options?: { focus?: boolean },
-  ) => {
+  const selectCell = (cell: CellRef, options?: { focus?: boolean }) => {
     selectItem(cellToSelectionItem(cell));
     if (options?.focus) {
       focusCellRow(cell.id);

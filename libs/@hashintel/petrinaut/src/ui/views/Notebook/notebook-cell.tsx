@@ -1,4 +1,4 @@
-import { Fragment, useRef, useState } from "react";
+import { Fragment, memo, useRef, useState } from "react";
 
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import {
@@ -27,7 +27,8 @@ import {
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 import type { CodeEditorProps } from "../../monaco/code-editor";
 import type {
-  DependentCount,
+  CellRef,
+  NotebookCellKind,
   NotebookCell as NotebookCellModel,
 } from "./notebook-model";
 import type {
@@ -1270,66 +1271,84 @@ const HighlightedName: React.FC<{
 
 const CELL_ICON_SIZE = 12;
 
-const cellPresentation = (
+/** What a cell's row shows of its entity. */
+export const cellPresentation = (
   net: ActiveNetDefinition,
   cell: NotebookCellModel,
-  parts: BodyPartContext,
-): {
-  iconColor: string | undefined;
-  name: string;
-  summary: string;
-  body: React.ReactNode;
-} => {
+): { iconColor: string | undefined; name: string; summary: string } => {
   switch (cell.kind) {
-    case "place": {
-      const color = net.types.find(({ id }) => id === cell.place.colorId);
+    case "place":
       return {
-        iconColor: color?.displayColor,
+        iconColor: net.types.find(({ id }) => id === cell.place.colorId)
+          ?.displayColor,
         name: cell.place.name || cell.id,
         summary: placeSummary(net, cell.place),
-        body: <PlaceBody net={net} place={cell.place} parts={parts} />,
       };
-    }
     case "transition":
       return {
         iconColor: undefined,
         name: cell.transition.name || cell.id,
         summary: transitionSummary(net, cell.transition),
-        body: (
-          <TransitionBody
-            net={net}
-            transition={cell.transition}
-            parts={parts}
-          />
-        ),
       };
     case "type":
       return {
         iconColor: cell.color.displayColor,
         name: cell.color.name || cell.id,
         summary: colorSummary(cell.color),
-        body: <TypeBody color={cell.color} parts={parts} />,
       };
     case "differentialEquation":
       return {
         iconColor: undefined,
         name: cell.equation.name || cell.id,
         summary: equationSummary(net, cell.equation),
-        body: <EquationBody net={net} equation={cell.equation} parts={parts} />,
       };
     case "parameter":
       return {
         iconColor: undefined,
         name: cell.parameter.name || cell.id,
         summary: parameterSummary(cell.parameter),
-        body: <ParameterBody parameter={cell.parameter} parts={parts} />,
       };
   }
 };
 
-export interface NotebookCellProps {
+export const CellBody: React.FC<{
   net: ActiveNetDefinition;
   cell: NotebookCellModel;
+  parts: BodyPartContext;
+}> = ({ net, cell, parts }) => {
+  switch (cell.kind) {
+    case "place":
+      return <PlaceBody net={net} place={cell.place} parts={parts} />;
+    case "transition":
+      return (
+        <TransitionBody net={net} transition={cell.transition} parts={parts} />
+      );
+    case "type":
+      return <TypeBody color={cell.color} parts={parts} />;
+    case "differentialEquation":
+      return <EquationBody net={net} equation={cell.equation} parts={parts} />;
+    case "parameter":
+      return <ParameterBody parameter={cell.parameter} parts={parts} />;
+  }
+};
+
+/** What a row asks of its list. A row reads it in its event handlers only. */
+export type CellRowActions = {
+  select: (cell: CellRef) => void;
+  setExpanded: (cellId: string, expanded: boolean) => void;
+  /** Reports row focus, keeping selection and the roving stop in step. */
+  focusRow: (cell: CellRef) => void;
+  /** Vertical arrow navigation — the keys the row doesn't own itself. */
+  navigate: (cellId: string, event: React.KeyboardEvent) => void;
+  focusSearch: () => void;
+};
+
+export interface NotebookCellProps {
+  cellId: string;
+  kind: NotebookCellKind;
+  iconColor: string | undefined;
+  name: string;
+  summary: string;
   isSelected: boolean;
   isExpanded: boolean;
   /** Row is faded because a search is active and this cell doesn't match. */
@@ -1337,14 +1356,13 @@ export interface NotebookCellProps {
   /** Matched character indices in the name while searching, or null. */
   nameMatchIndices: number[] | null;
   /** How much depends on this cell, shown at the end of the row. */
-  dependentCount: DependentCount | undefined;
-  onSelect: () => void;
-  onSetExpanded: (expanded: boolean) => void;
-  /** The row's slice of the list's worksheet focus flow. */
-  rowFocus: CellRowFocus;
-  /** Enrols the expanded body's parts in the same flow. */
-  bodyParts: BodyPartContext;
-  onFocusSearch: () => void;
+  directDependents: number;
+  transitiveDependents: number;
+  /** 0 for the list's one tabbable row, -1 for the rest (roving tab stop). */
+  tabIndex: 0 | -1;
+  actionsRef: React.RefObject<CellRowActions>;
+  /** The body, while the cell is open. */
+  children: React.ReactNode;
 }
 
 export interface CellRowFocus {
@@ -1356,41 +1374,38 @@ export interface CellRowFocus {
   onNavigate: React.KeyboardEventHandler;
 }
 
-export const NotebookCell: React.FC<NotebookCellProps> = ({
-  net,
-  cell,
+const Cell: React.FC<NotebookCellProps> = ({
+  cellId,
+  kind,
+  iconColor,
+  name,
+  summary,
   isSelected,
   isExpanded,
   isDimmed,
   nameMatchIndices,
-  dependentCount,
-  onSelect,
-  onSetExpanded,
-  rowFocus,
-  bodyParts,
-  onFocusSearch,
+  directDependents,
+  transitiveDependents,
+  tabIndex,
+  actionsRef,
+  children,
 }) => {
   const experimentalIcons = useExperimentalIconPackEnabled();
-  const { iconColor, name, summary, body } = cellPresentation(
-    net,
-    cell,
-    bodyParts,
-  );
-  const KindIcon = CELL_KIND_ICONS[cell.kind];
-  const kindLabel = CELL_KIND_LABELS[cell.kind];
+  const KindIcon = CELL_KIND_ICONS[kind];
+  const kindLabel = CELL_KIND_LABELS[kind];
 
   return (
-    <div data-cell-id={cell.id} className={cellStyle({ isSelected, isDimmed })}>
+    <div data-cell-id={cellId} className={cellStyle({ isSelected, isDimmed })}>
       <div
-        data-cell-row={cell.id}
+        data-cell-row={cellId}
         className={rowStyle}
         role="button"
-        tabIndex={rowFocus.tabIndex}
-        onClick={onSelect}
+        tabIndex={tabIndex}
+        onClick={() => actionsRef.current.select({ id: cellId, kind })}
         onFocus={(event) => {
           // Only the row itself: focus events bubble from the caret button.
           if (event.target === event.currentTarget) {
-            rowFocus.onFocus();
+            actionsRef.current.focusRow({ id: cellId, kind });
           }
         }}
         onKeyDown={(event) => {
@@ -1399,20 +1414,20 @@ export const NotebookCell: React.FC<NotebookCellProps> = ({
             event.target === event.currentTarget
           ) {
             event.preventDefault();
-            onSelect();
+            actionsRef.current.select({ id: cellId, kind });
           } else if (event.key === "ArrowRight") {
             // The row owns the horizontal arrows for expand/collapse, so it
             // never emits horizontal moves into the worksheet flow.
             event.preventDefault();
-            onSetExpanded(true);
+            actionsRef.current.setExpanded(cellId, true);
           } else if (event.key === "ArrowLeft") {
             event.preventDefault();
-            onSetExpanded(false);
+            actionsRef.current.setExpanded(cellId, false);
           } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-            rowFocus.onNavigate(event);
+            actionsRef.current.navigate(cellId, event);
           } else if (event.key === "/") {
             event.preventDefault();
-            onFocusSearch();
+            actionsRef.current.focusSearch();
           }
         }}
       >
@@ -1424,7 +1439,7 @@ export const NotebookCell: React.FC<NotebookCellProps> = ({
           className={caretButtonStyle({ expanded: isExpanded })}
           onClick={(event) => {
             event.stopPropagation();
-            onSetExpanded(!isExpanded);
+            actionsRef.current.setExpanded(cellId, !isExpanded);
           }}
         >
           {experimentalIcons ? (
@@ -1446,16 +1461,20 @@ export const NotebookCell: React.FC<NotebookCellProps> = ({
           <HighlightedName name={name} matchIndices={nameMatchIndices} />
         </span>
         <span className={summaryStyle}>{summary}</span>
-        {dependentCount !== undefined && dependentCount.transitive > 0 && (
+        {transitiveDependents > 0 && (
           <span
             className={countStyle}
-            title={`${dependentCount.direct} direct dependent${dependentCount.direct === 1 ? "" : "s"}, ${dependentCount.transitive} in total`}
+            title={`${directDependents} direct dependent${directDependents === 1 ? "" : "s"}, ${transitiveDependents} in total`}
           >
-            {dependentCount.direct} → {dependentCount.transitive}
+            {directDependents} → {transitiveDependents}
           </span>
         )}
       </div>
-      {isExpanded && <div className={bodyStyle}>{body}</div>}
+      {isExpanded && <div className={bodyStyle}>{children}</div>}
     </div>
   );
 };
+
+// Under `memo` because the compiler memoizes the list as one block: a cell
+// skips an update of its list only through its own props.
+export const NotebookCell = memo(Cell);

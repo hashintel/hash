@@ -27,6 +27,9 @@ export type NotebookCell =
 
 export type NotebookCellKind = NotebookCell["kind"];
 
+/** What identifies a cell, without its entity. */
+export type CellRef = Pick<NotebookCell, "id" | "kind">;
+
 /**
  * Cells in document order — the order entities are stored in the net
  * definition.
@@ -61,7 +64,7 @@ export function buildNotebookCells(net: ActiveNetDefinition): NotebookCell[] {
   ];
 }
 
-export function cellToSelectionItem(cell: NotebookCell): SelectionItem {
+export function cellToSelectionItem(cell: CellRef): SelectionItem {
   return { type: cell.kind, id: cell.id };
 }
 
