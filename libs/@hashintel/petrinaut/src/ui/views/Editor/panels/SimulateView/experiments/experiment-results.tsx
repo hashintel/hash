@@ -135,30 +135,24 @@ const experimentDetailsStats = (
       ? {
           id: "selection",
           label: "Runs sampled",
-          value: {
-            text: `${formatCount(sweep.runsSampled)} / ${runCount} runs`,
-          },
+          text: `${formatCount(sweep.runsSampled)} / ${runCount} runs`,
         }
       : {
           id: "runs",
           label: "Runs",
-          value: {
-            text: progress
-              ? `${formatCount(progress.activeRuns)} active, ${formatCount(progress.completedRuns)} complete`
-              : runCount,
-          },
+          text: progress
+            ? `${formatCount(progress.activeRuns)} active, ${formatCount(progress.completedRuns)} complete`
+            : runCount,
         },
     {
       id: "errors",
       label: "Errors",
-      value: { text: formatCount(progress?.erroredRuns ?? 0) },
+      text: formatCount(progress?.erroredRuns ?? 0),
     },
     {
       id: "time",
       label: inSteps ? "Step" : "Simulation time",
-      value: {
-        text: `${formatPosition(progress?.time ?? settledTime(experiment))} / ${formatPosition(experiment.maxTime)}`,
-      },
+      text: `${formatPosition(progress?.time ?? settledTime(experiment))} / ${formatPosition(experiment.maxTime)}`,
     },
     // Wall-clock, as distinct from the simulated time; it stops once the
     // experiment finishes and is dashed out when stepping never began. The
@@ -170,15 +164,13 @@ const experimentDetailsStats = (
           {
             id: "elapsed",
             label: "Elapsed time",
-            value: {
-              text: (
-                <ElapsedStat
-                  startedAt={experiment.startedAt}
-                  finishedAt={experiment.finishedAt}
-                  active={isExperimentActive(experiment)}
-                />
-              ),
-            },
+            text: (
+              <ElapsedStat
+                startedAt={experiment.startedAt}
+                finishedAt={experiment.finishedAt}
+                active={isExperimentActive(experiment)}
+              />
+            ),
           },
         ]),
   ];
@@ -200,7 +192,7 @@ const studyDetailsStats = (
     {
       id: "steps",
       label: "Steps",
-      value: { text: describeStepProgress(study) },
+      text: describeStepProgress(study),
     },
     ...(rates === null
       ? []
@@ -208,7 +200,7 @@ const studyDetailsStats = (
           {
             id: "steps-clear",
             label: "Steps clear",
-            value: { text: formatRate(rates.stepsClear, rates.stepsSimulated) },
+            text: formatRate(rates.stepsClear, rates.stepsSimulated),
           },
         ]),
   ];

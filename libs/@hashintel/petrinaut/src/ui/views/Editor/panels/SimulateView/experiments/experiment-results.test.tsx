@@ -27,7 +27,6 @@ import {
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
 import type { ComputeBatch } from "../shared/drawer-frame";
-import type { ResultsStat } from "../shared/results-model";
 
 // uPlot reads `matchMedia` as it loads, which jsdom lacks; the model builds
 // the tiles but never renders a timeline.
@@ -77,17 +76,14 @@ const propsOf = <Props,>(node: ReactNode): Props =>
 
 const detailsOf = (result: ReturnType<typeof model>) =>
   propsOf<{
-    stats: readonly Pick<ResultsStat, "id" | "label" | "value">[];
+    stats: readonly { id: string; label: string; text: ReactNode }[];
     batches: readonly ComputeBatch[];
     children: ReactNode;
   }>(result.header.headline);
 
 const statTexts = (experiment: ExperimentRecord) =>
   Object.fromEntries(
-    detailsOf(model(experiment)).stats.map((stat) => [
-      stat.label,
-      stat.value.text,
-    ]),
+    detailsOf(model(experiment)).stats.map((stat) => [stat.label, stat.text]),
   );
 
 /** The navigator's props inside the Parameters card. */
@@ -689,7 +685,7 @@ describe("experimentResultsModel with a study", () => {
       "Steps",
     ]);
     const steps = detailsOf(running).stats.find((stat) => stat.id === "steps")!;
-    expect(steps.value.text).toBe("4 / 30");
+    expect(steps.text).toBe("4 / 30");
     expect(running.header.stats.some((stat) => stat.id === "best")).toBe(false);
     const cards = propsOf<{ children: ReactNode[] }>(
       running.metrics!.cards,
@@ -729,10 +725,9 @@ describe("experimentResultsModel with a study", () => {
     const stepsClear = detailsOf(constrained).stats.find(
       (stat) => stat.id === "steps-clear",
     )!;
-    expect(stepsClear.value.text).toMatch(/^\d+ \/ \d+ · \d+%$/u);
+    expect(stepsClear.text).toMatch(/^\d+ \/ \d+ · \d+%$/u);
     expect(
-      detailsOf(constrained).stats.find((stat) => stat.id === "steps")?.value
-        .text,
+      detailsOf(constrained).stats.find((stat) => stat.id === "steps")?.text,
     ).toBe("4 / 30 · 60 runs each");
     const cards = propsOf<{ children: ReactNode[] }>(
       constrained.metrics!.cards,

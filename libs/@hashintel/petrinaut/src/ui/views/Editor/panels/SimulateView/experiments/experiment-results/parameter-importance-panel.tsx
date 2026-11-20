@@ -7,7 +7,7 @@
  */
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { ChartCard, type ChartCardTone } from "../../shared/chart-card";
+import { ChartCard } from "../../shared/chart-card";
 import {
   describeImportance,
   formatCorrelation,
@@ -120,13 +120,10 @@ const HELP =
 export const ParameterImportancePanel = ({
   optimization,
   plotHeight,
-  tone,
 }: {
   optimization: OptimizationRecord;
   /** The body's height in pixels; the card is exactly as tall as its neighbours. */
   plotHeight: number;
-  /** `paused` reads as paused whatever the floor says; otherwise the floor decides. */
-  tone?: ChartCardTone;
 }) => {
   // Keyed on the five fields a trial event replaces, so the correlations
   // stand while the selection stream re-publishes the record.
@@ -146,7 +143,7 @@ export const ParameterImportancePanel = ({
       subtitle={describeImportance(view)}
       help={`${HELP} At least ${view.floor} completed steps are recommended for this study.`}
       bodyHeight={plotHeight}
-      tone={tone ?? (view.belowFloor ? "muted" : "default")}
+      tone={view.belowFloor ? "muted" : "default"}
     >
       <div
         className={bodyStyle}
