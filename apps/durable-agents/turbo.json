@@ -62,6 +62,9 @@
       "dependsOn": ["^build"],
       "cache": false
     },
+    "probe:hash-session": {
+      "cache": false
+    },
     "probe:postgres-viewer": {
       "dependsOn": ["^build"],
       "cache": false,

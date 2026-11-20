@@ -48,6 +48,10 @@
         "petrinaut-optimizer-core"
       ]
     },
+    "probe:hash-session": {
+      "dependsOn": [],
+      "cache": false
+    },
     "probe:load": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
