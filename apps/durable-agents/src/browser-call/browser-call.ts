@@ -340,12 +340,18 @@ export const holdsTurn = async (
   return tasks.some(({ record }) => owners.has(record.id));
 };
 
-/** The browser committed a result, whether or not its turn received it. */
+/**
+ * A browser result the turn received, or one kept when the turn was
+ * aborted; not one still waiting to be collected (`isAnsweredUncollected`).
+ */
 export const hasCommittedResult = (record: BrowserCallRecord) =>
   record.status === "settled" ||
   (record.status === "discarded" && record.failure === undefined);
 
-/** The browser committed a failure, whether or not its turn received it. */
+/**
+ * A browser failure the turn received, or one kept when the turn was
+ * aborted; not one still waiting to be collected (`isAnsweredUncollected`).
+ */
 export const hasCommittedFailure = (record: BrowserCallRecord) =>
   record.status === "failure-settled" ||
   (record.status === "discarded" && record.failure !== undefined);
