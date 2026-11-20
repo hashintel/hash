@@ -12,6 +12,7 @@
  * MOCK: the flow's triggers. Only the Monthly supplier review has any; every other flow has none, with manual runs
  * off.
  */
+import { Pencil } from "lucide-react";
 import { Fragment, useState } from "react";
 
 import {
@@ -31,6 +32,7 @@ import { TextLink } from "./text-link";
 import { type EditorDocument } from "./document";
 import { useEditor } from "./editor-context";
 import { headerIconStyle } from "./menu-rows";
+import { iconStroke } from "./thin-icons";
 import {
   formatCount,
   ghostLayout,
@@ -476,6 +478,24 @@ export const clearPendingTriggerFilter = () => {
   pendingFilter = null;
 };
 
+let pendingOpen: string | null = null;
+
+/** The Triggers page opens with this trigger's row in its edit form, read when the page mounts. */
+export const pendingTriggerOpen = () => pendingOpen;
+export const clearPendingTriggerOpen = () => {
+  pendingOpen = null;
+};
+
+/** The pencil on an open row: the Triggers page for this flow, the trigger's row open in its edit form. */
+const editOnPage = (rowId: string | undefined) => {
+  const route = parseRoute(globalThis.location.pathname, globalThis.location.search);
+  if (route.page === "editor") {
+    pendingFilter = { flowId: route.flowId, kind: "schedule" };
+  }
+  pendingOpen = rowId ?? null;
+  openTriggersPage();
+};
+
 /** "Show all N" in the editor's panel: the Triggers page for this flow and kind. */
 const showAllOnPage = (kind: FlowTrigger["kind"]) => {
   const route = parseRoute(globalThis.location.pathname, globalThis.location.search);
@@ -866,11 +886,98 @@ const filterOld =
   new URLSearchParams(globalThis.location.search).get("triggerfilter") ===
   "old";
 
-/** One trigger in the panel at scale, and in the sheet "Show all N" opens. */
-const ScaleTriggerRow = ({ row }: { row: ScaleRow }) => (
+/** MOCK: the page's trigger a panel row stands for, so the pencil can open it; the other sample rows have none. */
+const pageTriggerOf: Record<string, string> = {
+  "Every Monday at 08:00": "monday",
+  "1st of every month at 09:00": "monthly",
+};
+
+/** MOCK: the eight read-only lines of an open schedule row. */
+const scheduleLines = (label: string): [string, string, boolean?][] => {
+  const [repeat = label, at = ""] = label.split(" at ");
+  const known: Record<string, { name: string; repeat: string; next: string; version: string; link?: boolean }> = {
+    "Every Monday at 08:00": {
+      name: "Monthly supplier check",
+      repeat: "Every Monday",
+      next: "Mon 23 Nov, 08:00",
+      version: "v4 → v5",
+    },
+    "1st of every month at 09:00": {
+      name: "Month start review",
+      repeat: "Monthly on day 1",
+      next: "1 Dec, 09:00",
+      version: "v5",
+    },
+  };
+  const hit = known[label];
+  return [
+    ["Name", hit?.name ?? label],
+    ["Repeat", hit?.repeat ?? repeat],
+    ["At", at],
+    ["Time zone", "London · GMT"],
+    ["Ends", "Never"],
+    ["Next run", hit?.next ?? "-"],
+    ["Web", "@aakarsh"],
+    ["Flow version", hit?.version ?? "v5"],
+  ];
+};
+
+const pencilStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+  width: "[12px]",
+  height: "[12px]",
+  // The row's 12 px gap less 4 px: 8 px to the status word.
+  marginRight: "[-4px]",
+  padding: "[0]",
+  border: "none",
+  background: "none",
+  cursor: "pointer",
+  color: "neutral.fg.muted",
+});
+
+const openGridStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[118px 1fr]",
+  paddingY: "1",
+  "& > span": {
+    minHeight: "[28px]",
+    display: "flex",
+    alignItems: "center",
+    textStyle: "sm",
+    whiteSpace: "nowrap",
+  },
+});
+
+/** One trigger in the panel at scale, and in the sheet "Show all N" opens. A schedule row in the panel opens in place. */
+const ScaleTriggerRow = ({
+  row,
+  open,
+  onToggle,
+}: {
+  row: ScaleRow;
+  open?: boolean;
+  onToggle?: () => void;
+}) => (
+  <div data-trigger-row={row.id}>
   <div
-    className={cx(rowStyle, css({ cursor: "default" }))}
-    data-trigger-row={row.id}
+    className={cx(rowStyle, css({ cursor: onToggle ? "pointer" : "default" }))}
+    {...(onToggle
+      ? {
+          role: "button",
+          tabIndex: 0,
+          "aria-expanded": Boolean(open),
+          onClick: onToggle,
+          onKeyDown: (event: React.KeyboardEvent) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onToggle();
+            }
+          },
+        }
+      : {})}
   >
     <span
       className={css({
@@ -897,9 +1004,33 @@ const ScaleTriggerRow = ({ row }: { row: ScaleRow }) => (
         </span>
       ) : null}
     </span>
+    {open ? (
+      <button
+        type="button"
+        className={pencilStyle}
+        aria-label="Edit trigger"
+        onClick={(event) => {
+          event.stopPropagation();
+          editOnPage(pageTriggerOf[row.label]);
+        }}
+      >
+        <Pencil size={12} strokeWidth={iconStroke * (16 / 12)} aria-hidden />
+      </button>
+    ) : null}
     <span className={stateStyle}>
       {row.on ? "On" : row.kind === "manual" ? "Off" : "Paused"}
     </span>
+  </div>
+  {open ? (
+    <div className={openGridStyle}>
+      {scheduleLines(row.label).map(([label, value]) => (
+        <Fragment key={label}>
+          <span className={css({ color: "neutral.fg.muted" })}>{label}</span>
+          <span className={css({ color: "neutral.fg.heading" })}>{value}</span>
+        </Fragment>
+      ))}
+    </div>
+  ) : null}
   </div>
 );
 
@@ -915,6 +1046,8 @@ const TriggersPanelAtScale = () => {
   const [filter, setFilter] = useState<ScaleFilter>("all");
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
+  /** The schedule row open in place: one at a time, a second click closes it. */
+  const [openRow, setOpenRow] = useState<string | null>(null);
   /** The group "Show all N" opened in the 640 px sheet (11 Nov ~22:30 overflow pick). */
   const [sheetKind, setSheetKind] = useState<FlowTrigger["kind"] | null>(null);
   const term = query.trim().toLowerCase();
@@ -1098,7 +1231,17 @@ const TriggersPanelAtScale = () => {
                 {group.label} · {formatCount(group.total)}
               </span>
               {rows.map((row) => (
-                <ScaleTriggerRow key={row.id} row={row} />
+                <ScaleTriggerRow
+                  key={row.id}
+                  row={row}
+                  {...(row.kind === "schedule"
+                    ? {
+                        open: openRow === row.id,
+                        onToggle: () =>
+                          setOpenRow(openRow === row.id ? null : row.id),
+                      }
+                    : {})}
+                />
               ))}
               {term === "" && group.total > rows.length ? (
                 <ShowAllRow

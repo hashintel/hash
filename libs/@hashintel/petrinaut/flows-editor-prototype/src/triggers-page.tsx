@@ -46,9 +46,11 @@ import { Select } from "./fill-select";
 import {
   clearPendingTriggerAdd,
   clearPendingTriggerFilter,
+  clearPendingTriggerOpen,
   flowTriggersOf,
   pendingTriggerAdd,
   pendingTriggerFilter,
+  pendingTriggerOpen,
 } from "./flow-triggers";
 import { HashShell } from "./hash-shell";
 import { InputControl, isFilled } from "./run-dialogs";
@@ -1483,7 +1485,7 @@ const usePage = (routeFlowId: string | null) => {
     };
   });
   const [opened, setOpened] = useState<string | null>(() =>
-    add === 3 ? "monday" : (query().get("triggeropen") ?? null),
+    add === 3 ? "monday" : (query().get("triggeropen") ?? pendingTriggerOpen()),
   );
   const [confirming, setConfirming] = useState<string | null>(
     add === 3 ? "monday" : null,
@@ -1500,6 +1502,7 @@ const usePage = (routeFlowId: string | null) => {
   );
   useEffect(() => {
     clearPendingTriggerAdd();
+    clearPendingTriggerOpen();
   }, []);
   const flip = (id: string, on: boolean) =>
     setData((current) => ({ ...current, on: { ...current.on, [id]: on } }));
