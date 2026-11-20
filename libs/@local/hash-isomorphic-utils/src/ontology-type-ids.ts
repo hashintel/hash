@@ -9248,7 +9248,7 @@ export const systemDataTypes = {
     description: "A unit of mass expressed in pennyweights.",
   },
   percentage: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/percentage/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/percentage/v/2",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/percentage/" as BaseUrl,
     title: "Percentage",
