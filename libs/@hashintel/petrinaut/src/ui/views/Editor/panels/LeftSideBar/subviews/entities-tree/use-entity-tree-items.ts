@@ -3,9 +3,11 @@ import { use } from "react";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
-import { AddDifferentialEquationAction } from "./add-differential-equation-action";
-import { AddParameterAction } from "./add-parameter-action";
-import { AddTypeAction } from "./add-type-action";
+import {
+  AddDifferentialEquationAction,
+  AddParameterAction,
+  AddTypeAction,
+} from "./add-entity-actions";
 import { entityGroups, type EntityGroup } from "./entity-groups";
 
 import type { ComponentType } from "react";
