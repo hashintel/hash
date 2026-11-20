@@ -138,7 +138,12 @@ const waitForIssue = async (
   }
 };
 
-/** A call's committed record as a panel replays it: no capability, claimant or tasks. */
+/**
+ * A call's committed record as a panel replays it: no capability, claimant
+ * or tasks, and no `failure`. A failure keeps `output` at `null`, which is
+ * all a panel needs to tell a kept failure from a kept result; any failure
+ * the model received is in history.
+ */
 export type BrowserCallView = Pick<
   BrowserCallRecord,
   | "toolCallId"
