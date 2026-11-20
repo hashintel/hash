@@ -32,6 +32,7 @@ import {
   petrinautContextualUserMessageBody,
   versionLoadSectionText,
 } from "@hashintel/brunch-agent";
+import { sseHeartbeatComment } from "@hashintel/brunch-agent/server";
 
 import { holdTool, textOf } from "../../test/platform/support";
 import {
@@ -113,6 +114,7 @@ type ChatOptions = {
   readonly admitNewConversation?: DurableAgentsServerOptions["admitNewConversation"];
   readonly admitChat?: DurableAgentsServerOptions["admitChat"];
   readonly admitConversation?: DurableAgentsServerOptions["admitConversation"];
+  readonly sseHeartbeatMs?: number;
 };
 
 /**
@@ -127,6 +129,7 @@ const openChat = ({
   admitNewConversation,
   admitChat,
   admitConversation,
+  sseHeartbeatMs,
 }: ChatOptions = {}) => {
   const faux = fauxProvider({
     tokensPerSecond: 300,
@@ -157,6 +160,7 @@ const openChat = ({
     admitNewConversation,
     admitChat,
     admitConversation,
+    sseHeartbeatMs,
     context,
   });
   servers.push(server);
@@ -951,6 +955,70 @@ describe("POST /chat records a version load for the version_load section (fold 2
         "version_load:2",
       ],
     ]);
+  });
+});
+
+describe("SSE heartbeats", () => {
+  /**
+   * A turn that waits on a held tool for `waitMs`: its chunks as AI SDK's
+   * transport reads them, the raw text of its `POST /chat` stream, and the
+   * raw text of a reconnect made while it waits.
+   */
+  const heldTurn = async (sseHeartbeatMs: number, waitMs: number) => {
+    const hold = holdTool();
+    const { server } = openChat({
+      responses: [
+        fauxAssistantMessage(
+          fauxToolCall(hold.tool.name, {}, { id: "hold-1" }),
+          { stopReason: "toolUse" },
+        ),
+        fauxAssistantMessage("Held."),
+      ],
+      extensions: [defineExtension({ name: "probe.hold", tools: [hold.tool] })],
+      sseHeartbeatMs,
+    });
+    let posted: Promise<string> = Promise.resolve("");
+    const transport = new DefaultChatTransport<UIMessage>({
+      api: `${origin}/chat`,
+      fetch: async (input, init) => {
+        const response = await server.app.request(
+          input instanceof Request ? input : String(input),
+          init,
+        );
+        const [forTransport, forTest] = response.body!.tee();
+        posted = new Response(forTest).text();
+        return new Response(forTransport, {
+          status: response.status,
+          headers: response.headers,
+        });
+      },
+    });
+    const turn = recorder(await send(transport));
+    await hold.started;
+    const reconnect = (async () =>
+      (await server.app.request(`${origin}/chat/${chatId}/stream`)).text())();
+    await sleep(waitMs);
+    hold.release();
+    await turn.drain();
+    return {
+      chunks: turn.chunks,
+      posted: await posted,
+      reconnected: await reconnect,
+    };
+  };
+
+  test("a waiting turn's streams carry comment heartbeats, which AI SDK's transport reads past", async () => {
+    const quiet = await heldTurn(60_000, 60);
+    const beating = await heldTurn(5, 60);
+    for (const text of [quiet.posted, quiet.reconnected])
+      expect(text).not.toContain(sseHeartbeatComment);
+    for (const text of [beating.posted, beating.reconnected])
+      expect(text).toContain(sseHeartbeatComment);
+    expect(beating.chunks).toEqual(quiet.chunks);
+    expect(beating.chunks.at(-1)).toEqual({
+      type: "finish",
+      finishReason: "stop",
+    });
   });
 });
 
