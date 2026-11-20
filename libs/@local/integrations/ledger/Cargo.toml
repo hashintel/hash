@@ -12,20 +12,26 @@ authors.workspace = true
 error-stack                  = { workspace = true, public = true, features = ["std"] }
 hash-crypto                  = { workspace = true, public = true }
 hash-integrations-definition = { workspace = true, public = true }
+type-system                  = { workspace = true, public = true }
 
 # Public third-party dependencies
-uuid = { workspace = true, public = true }
+time = { workspace = true, public = true, features = ["formatting", "parsing", "serde"] }
+uuid = { workspace = true, public = true, features = ["serde", "v4"] }
 
 # Private third-party dependencies
 derive_more    = { workspace = true, features = ["display", "error"] }
 futures-util   = { workspace = true }
 hex            = { workspace = true, features = ["alloc"] }
 object_store   = { workspace = true, features = ["aws"] }
+serde          = { workspace = true, features = ["derive"] }
+serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
 tempfile       = { workspace = true }
 tokio          = { workspace = true, features = ["fs", "io-util"] }
 
 [dev-dependencies]
+insta                  = { workspace = true }
+pretty_assertions      = { workspace = true }
 rstest                 = { workspace = true }
 testcontainers         = { workspace = true }
 testcontainers-modules = { workspace = true, features = ["minio"] }

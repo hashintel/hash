@@ -8,12 +8,20 @@
 
 extern crate alloc;
 
+#[expect(dead_code, reason = "the stage frame is the first caller")]
+mod run;
 #[cfg_attr(
     not(test),
-    expect(dead_code, reason = "the run state is the first caller")
+    expect(
+        dead_code,
+        reason = "Capture is the first caller of upload and download"
+    )
 )]
 mod storage;
 #[cfg(test)]
 mod testing;
 
-pub use self::storage::{IntegrationNamespace, S3Bucket, Storage, StorageError};
+pub use self::{
+    run::RunId,
+    storage::{IntegrationNamespace, S3Bucket, Storage, StorageError},
+};
