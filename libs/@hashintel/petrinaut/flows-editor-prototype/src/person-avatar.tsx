@@ -12,6 +12,7 @@ const rowAvatarStyle = css({
   "--avatar-size": "22px",
   fontSize: "[9px]", // token-guard: allow initials fit the 22 px row avatar
   fontWeight: "medium",
+  borderWidth: "[0]",
   backgroundColor: "neutral.a25",
   color: "neutral.fg.muted",
 });

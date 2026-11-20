@@ -304,6 +304,8 @@ type SourceGroup = {
     icon?: IconName;
     /** A type glyph the DS icon set lacks (Link for a URL). */
     glyph?: React.ReactElement;
+    /** The glyph is a person's avatar: it replaces the tile. */
+    avatar?: boolean;
     /** A step's own hue on its tile (AP G77: step tiles keep their hue). */
     tint?: React.CSSProperties;
     selected?: boolean;
@@ -355,6 +357,7 @@ const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<TiledItem>> =>
       description: item.description,
       icon: item.icon,
       glyph: item.glyph,
+      avatar: item.avatar,
       tint: item.tint,
       selected: item.selected,
       suffix: item.suffix,
