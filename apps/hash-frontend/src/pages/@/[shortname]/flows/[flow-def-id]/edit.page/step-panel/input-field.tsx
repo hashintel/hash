@@ -351,7 +351,7 @@ export const InputField = ({
     };
 
     /* Text of a few lines or more is typed in a text area, on a line of its own when it's long or expanded. */
-    const size = typedInKind === "Text" ? getInputSize(input) : "short";
+    const size = getInputSize(input);
     const ownLine = size === "long" || (size === "medium" && expanded);
 
     return (
@@ -360,8 +360,7 @@ export const InputField = ({
         label={label}
         errors={errors.length > 0 ? errors : undefined}
         labelActions={
-          size === "medium" &&
-          !readOnly && (
+          size === "medium" && (
             <Button
               ref={expandButton}
               variant="ghost"
