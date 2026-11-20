@@ -5,9 +5,6 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   classicRunParameterValues,
   classicRunVariables,
-  classicScenarioRunState,
-  compileScenario,
-  createUserKeyedRecord,
   EMPTY_AD_HOC_STATE,
   initialMarkingToAdHocPlaces,
 } from "@hashintel/petrinaut-core";
@@ -32,6 +29,7 @@ import {
   scenarioRunParameterValues,
   seedScenarioRunState,
 } from "./scenario-run-state";
+import { scenarioRunPreview } from "./simulation-settings/scenario-run-preview";
 
 import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
 
@@ -388,102 +386,22 @@ export const SimulationSettingsContent: React.FC = () => {
     }
   };
 
-  const scenarioRunView: {
-    state: AdHocScenarioState;
-    onChange: (next: AdHocScenarioState) => void;
-    notice: string | null;
-    previewReady: boolean;
-  } | null = (() => {
-    if (!selectedScenario || scenarioRun?.scenarioId !== selectedScenario.id) {
-      return null;
-    }
-    const withoutPreview = (notice: string) => ({
-      state: {
-        variables: scenarioRun.state.variables,
-        netParameters: Object.entries(selectedScenario.parameterOverrides).map(
-          ([parameterId, expression]) => ({
-            parameterId,
-            expression,
-            optimize: null,
-          }),
-        ),
-        places: {},
-      },
-      onChange: selectedAdHocScenario
-        ? onScenarioRunChange
-        : onClassicRunChange,
-      notice,
-      previewReady: false,
-    });
-    if (scenarioHir.error !== null) {
-      return withoutPreview(
-        `The initial state preview could not be compiled: ${scenarioHir.error}`,
-      );
-    }
-    if (scenarioHir.hir === null) {
-      return withoutPreview("Compiling the initial state preview…");
-    }
-    const numericValues = createUserKeyedRecord<number>();
-    for (const [identifier, value] of Object.entries(scenarioParameterValues)) {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) {
-        numericValues[identifier] = parsed;
-      }
-    }
-    const outcome = compileScenario(
-      selectedScenario,
-      scenarioHir.hir,
-      globalParameters,
-      places,
-      adHocFormContext.types,
-      { scenarioParameterValues: numericValues },
-    );
-    if (!outcome.ok) {
-      return withoutPreview(
-        `The initial state preview could not be computed: ${outcome.errors
-          .map((error) => error.message)
-          .join(" · ")}`,
-      );
-    }
-    const materialized = classicScenarioRunState(
-      selectedScenario,
-      outcome.result.initialState,
-      { places, types: adHocFormContext.types },
-      scenarioParameterValues,
-    );
-    return {
-      state: {
-        ...materialized.state,
-        variables: scenarioRun.state.variables,
-        netParameters: globalParameters.flatMap((parameter) => {
-          const resolved =
-            outcome.result.parameterValues[parameter.variableName];
-          return resolved === undefined
-            ? []
-            : [
-                {
-                  parameterId: parameter.id,
-                  expression: resolved,
-                  optimize: null,
-                },
-              ];
-        }),
-      },
-      onChange: selectedAdHocScenario
-        ? onScenarioRunChange
-        : onClassicRunChange,
-      notice:
-        materialized.truncated.length > 0
-          ? `Preview truncated: ${materialized.truncated
-              .map(
-                (cut) =>
-                  `${cut.placeName} shows ${cut.shown} of ${cut.total} rows`,
-              )
-              .join(" · ")}`
-          : null,
-      previewReady: true,
-    };
-  })();
+  const scenarioRunView =
+    selectedScenario && scenarioRun?.scenarioId === selectedScenario.id
+      ? {
+          // A selected scenario's form context holds the net's own parameters.
+          ...scenarioRunPreview(
+            selectedScenario,
+            scenarioHir,
+            adHocFormContext,
+            scenarioParameterValues,
+            scenarioRun.state.variables,
+          ),
+          onChange: selectedAdHocScenario
+            ? onScenarioRunChange
+            : onClassicRunChange,
+        }
+      : null;
 
   const scenarioOptions = [
     ...(scenarios ?? []).map((s) => ({ value: s.id, text: s.name })),
