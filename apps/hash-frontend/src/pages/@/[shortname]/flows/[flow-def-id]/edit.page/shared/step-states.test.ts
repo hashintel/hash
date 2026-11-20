@@ -4,7 +4,13 @@ import { generateStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-i
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 import { actionStep } from "./step-fixtures";
-import { getBarSegments, getStepRunMarks } from "./step-states";
+import {
+  getBarSegments,
+  getCardStateText,
+  getShownState,
+  getStepRunMarks,
+  stepStateLabels,
+} from "./step-states";
 
 import type { ItemCounts } from "./step-states";
 import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
@@ -306,6 +312,22 @@ describe("getStepRunMarks", () => {
 
     expect(marks.get("eachSupplier")?.state).toBe("done");
     expect(marks.get("fetch")?.state).toBe("skipped");
+  });
+});
+
+describe("getShownState", () => {
+  it("shows a step not reached as waiting while its run is live, and as skipped once it has ended", () => {
+    expect(stepStateLabels[getShownState("notReached", true)]).toBe("Waiting");
+    expect(stepStateLabels[getShownState("notReached", false)]).toBe("Skipped");
+    expect(getShownState("running", false)).toBe("running");
+  });
+});
+
+describe("getCardStateText", () => {
+  it("says a step done with failures had them, where its label reads as done", () => {
+    expect(stepStateLabels.doneWithFailures).toBe("Done");
+    expect(getCardStateText("doneWithFailures")).toBe("Done with failures");
+    expect(getCardStateText("done")).toBe("Done");
   });
 });
 
