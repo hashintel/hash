@@ -1,253 +1,264 @@
-use std::{fs, path::Path};
+use std::{fs, path::PathBuf};
 
-use hash_crypto::{Secret, digest::Sha256Digest};
-use hash_integrations_definition::{ConnectorId, SourceName};
+use hash_crypto::Secret;
+use object_store::{ObjectStore as _, PutPayload, path::Path as Location};
 use rstest::rstest;
-use serde_json::{Value, json};
 use tempfile::TempDir;
-use testcontainers::{
-    ContainerAsync, ImageExt as _,
-    core::{CmdWaitFor, ExecCommand},
-    runners::AsyncRunner as _,
-};
+use testcontainers::ContainerAsync;
 use testcontainers_modules::minio::MinIO;
 use uuid::Uuid;
 
 use super::{
-    ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactRef, ArtifactStorage, Bound, CasVersion,
-    Format, S3Bucket, artifact::CHUNK_SIZE,
+    IntegrationNamespace, S3Bucket, Storage, StorageError, file::CHUNK_SIZE,
+    versioned::MAX_VERSIONED_BYTES,
 };
-use crate::CaptureRun;
+use crate::testing::{bucket, minio, namespace};
 
+const KEY: &str = "runs/run/capture/items.parquet";
 
-/// Local storage under `directory`, or S3 storage staging there if MinIO runs on `port`.
-fn storage(port: Option<u16>, directory: &Path) -> ArtifactStorage {
-    port.map_or_else(
-        || {
-            ArtifactStorage::local(&directory.join("artifacts"))
-                .expect("should create local storage")
-        },
-        |port| s3_storage(port, directory),
-    )
+/// The in-memory store, or a bucket on a new MinIO container that lives as long as the
+/// returned container.
+async fn storage(s3: bool) -> (Option<ContainerAsync<MinIO>>, Storage) {
+    if s3 {
+        let (minio, port) = minio().await;
+        let storage = Storage::s3(bucket(port), &namespace()).expect("should open the bucket");
+        (Some(minio), storage)
+    } else {
+        (None, Storage::memory())
+    }
 }
 
-fn connector() -> ConnectorId {
-    "aviation".parse().expect("should be a connector ID")
-}
+#[test]
+fn namespace_is_stable() {
+    let root = "tenants/00000000-0000-0000-0000-000000000001/integrations/\
+                a290c6f051d0a83cd0663dd31819fb8d9b8fac2705e6e0618c3b0c11142d7477";
 
-fn namespace(web: Uuid) -> ArtifactNamespace {
-    ArtifactNamespace::new(web, &connector())
+    assert_eq!(
+        namespace().root(),
+        root,
+        "the namespace is a storage format"
+    );
+    assert_ne!(
+        IntegrationNamespace::new(
+            Uuid::from_u128(1),
+            &"linear".parse().expect("should be a connector ID")
+        ),
+        namespace(),
+        "each connector of a web should have its own namespace"
+    );
+    assert_eq!(
+        &*Storage::s3(
+            S3Bucket {
+                uri: "s3://captures/prefix/".into(),
+                ..bucket(9000)
+            },
+            &namespace()
+        )
+        .expect("should open the bucket")
+        .bucket()
+        .expect("should have a bucket")
+        .uri,
+        format!("s3://captures/prefix/{root}"),
+        "the namespace should be below the bucket's prefix"
+    );
 }
 
 #[tokio::test]
-async fn s3_errors_are_not_missing_bindings() {
-    let directory = TempDir::new().expect("should create a directory");
+async fn namespaces_keep_integrations_apart() {
     let (_minio, port) = minio().await;
-    let storage = ArtifactStorage::s3(
-        &S3Bucket {
-            secret: Secret::from_vec(b"wrong".to_vec()),
-            ..bucket(port)
-        },
-        &directory.path().join("staging"),
+    let aviation = Storage::s3(bucket(port), &namespace()).expect("should open the bucket");
+    let linear = Storage::s3(
+        bucket(port),
+        &IntegrationNamespace::new(
+            Uuid::from_u128(1),
+            &"linear".parse().expect("should be a connector ID"),
+        ),
     )
-    .expect("should create S3 storage");
+    .expect("should open the bucket");
 
-    let _report = storage
-        .bound(&capture(run()))
-        .await
-        .expect_err("should fail when the bucket cannot be read");
+    assert!(
+        aviation
+            .replace_if("current.json", None, b"aviation".to_vec())
+            .await
+            .expect("should create the file"),
+        "a create under a fresh key should write"
+    );
+    assert_eq!(
+        linear
+            .read_versioned("current.json")
+            .await
+            .expect("should read the key"),
+        None,
+        "another integration should not see the file"
+    );
 }
 
-/// Writes `bytes` to a new file under `directory` and returns its path.
-fn file(directory: &Path, bytes: &[u8]) -> std::path::PathBuf {
-    let path = directory.join(format!("{}.bin", Uuid::new_v4()));
+/// Writes `bytes` to a new file in `directory` and returns its path.
+fn file(directory: &TempDir, name: &str, bytes: &[u8]) -> PathBuf {
+    let path = directory.path().join(name);
     fs::write(&path, bytes).expect("should write the file");
     path
 }
 
 #[rstest]
-#[case::local(false)]
+#[case::memory(false)]
 #[case::s3(true)]
 #[tokio::test]
-async fn artifacts_round_trip_through_new_staging(#[case] s3: bool) {
-    let directory = TempDir::new().expect("should create a directory");
-    let minio = if s3 { Some(minio().await) } else { None };
-    let port = minio.as_ref().map(|(_, port)| *port);
+async fn files_round_trip(#[case] s3: bool) {
+    let (_minio, storage) = storage(s3).await;
+    let uploads = TempDir::new().expect("should create a directory");
+    let downloads = TempDir::new().expect("should create a directory");
     // Larger than two upload parts, so the upload has several parts and a shorter last one.
     let bytes: Vec<u8> = (0..=u8::MAX).cycle().take(2 * CHUNK_SIZE + 3).collect();
 
-    let artifact = storage(port, directory.path())
-        .publish(
-            &namespace(Uuid::new_v4()).artifacts(),
-            &file(directory.path(), &bytes),
-            Format::Binary,
-        )
+    let size = storage
+        .upload(&file(&uploads, "upload.bin", &bytes), KEY)
         .await
-        .expect("should publish the artifact");
-    assert_eq!(
-        artifact.size(),
-        bytes.len() as u64,
-        "should record the size"
-    );
-    assert_eq!(
-        artifact.sha256(),
-        Sha256Digest::of(&bytes).to_bytes(),
-        "should record the digest"
-    );
+        .expect("should upload the file");
+    assert_eq!(size, bytes.len() as u64, "should return the size");
 
-    let restore = storage(port, directory.path());
-    let staging = restore.stage().expect("should create the run's staging");
-    let path = restore
-        .materialize(&artifact, staging.path())
+    let path = storage
+        .download(KEY, downloads.path())
         .await
-        .expect("should materialize the artifact");
+        .expect("should download the file");
+    assert_eq!(
+        path,
+        downloads.path().join(KEY),
+        "should keep the key's path"
+    );
     assert!(
-        fs::read(path).expect("should read the artifact") == bytes,
-        "should materialize the published bytes"
-    );
-}
-
-#[test]
-fn namespace_keys_are_stable() {
-    let web = Uuid::from_u128(1);
-    let namespace = ArtifactNamespace::new(web, &connector());
-    let root = "tenants/00000000-0000-0000-0000-000000000001/integrations/\
-                a290c6f051d0a83cd0663dd31819fb8d9b8fac2705e6e0618c3b0c11142d7477";
-
-    assert_eq!(
-        namespace
-            .capture(Uuid::from_u128(2), &items(), FINGERPRINT)
-            .to_string(),
-        format!("{root}/captures/00000000-0000-0000-0000-000000000002/items.fingerprint.json"),
-        "the capture key is a storage format"
-    );
-    assert_eq!(
-        namespace.artifacts().to_string(),
-        format!("{root}/artifacts"),
-        "the artifact prefix is a storage format"
-    );
-    assert_eq!(
-        namespace.run(Uuid::from_u128(2)).to_string(),
-        format!("{root}/runs/00000000-0000-0000-0000-000000000002/run.json"),
-        "the run key is a storage format"
-    );
-    assert_eq!(
-        namespace.current().to_string(),
-        format!("{root}/current.json"),
-        "the current run key is a storage format"
-    );
-    assert_ne!(
-        ArtifactNamespace::new(web, &"linear".parse().expect("should be a connector ID")),
-        namespace,
-        "each connector of a web should have its own root"
+        fs::read(path).expect("should read the file") == bytes,
+        "should download the uploaded bytes"
     );
 }
 
 #[tokio::test]
-async fn s3_errors_are_not_missing_or_mismatching_artifacts() {
-    let directory = TempDir::new().expect("should create a directory");
-    let (_minio, port) = minio().await;
-    let artifact = storage(Some(port), directory.path())
-        .publish(
-            &namespace(Uuid::new_v4()).artifacts(),
-            &file(directory.path(), b"{}"),
-            Format::Json,
-        )
+async fn a_second_upload_replaces_the_first() {
+    let (_minio, storage) = storage(true).await;
+    let uploads = TempDir::new().expect("should create a directory");
+    let downloads = TempDir::new().expect("should create a directory");
+
+    for (name, bytes) in [("first.bin", b"first"), ("second.bin", b"other")] {
+        storage
+            .upload(&file(&uploads, name, bytes), KEY)
+            .await
+            .expect("should upload the file");
+        let path = storage
+            .download(KEY, downloads.path())
+            .await
+            .expect("should download the file");
+        assert_eq!(
+            fs::read(path).expect("should read the file"),
+            bytes,
+            "should download the last upload"
+        );
+    }
+}
+
+#[tokio::test]
+async fn downloading_a_missing_key_leaves_no_file() {
+    let (_minio, storage) = storage(true).await;
+    let downloads = TempDir::new().expect("should create a directory");
+
+    let error = storage
+        .download(KEY, downloads.path())
         .await
-        .expect("should publish the artifact");
-    let storage = ArtifactStorage::s3(
-        &S3Bucket {
+        .expect_err("should fail for a missing key");
+    assert!(
+        matches!(error.current_context(), StorageError::Read),
+        "a missing key should be a read error"
+    );
+    assert_eq!(
+        fs::read_dir(downloads.path())
+            .expect("should read the directory")
+            .count(),
+        0,
+        "should leave the directory empty"
+    );
+}
+
+#[tokio::test]
+async fn s3_errors_are_not_missing_files() {
+    let (_minio, port) = minio().await;
+    let downloads = TempDir::new().expect("should create a directory");
+    let storage = Storage::s3(
+        S3Bucket {
             secret: Secret::from_vec(b"wrong".to_vec()),
             ..bucket(port)
         },
-        &directory.path().join("staging"),
+        &namespace(),
     )
-    .expect("should create S3 storage");
+    .expect("should open the bucket");
 
     let error = storage
-        .publish(
-            &namespace(Uuid::new_v4()).artifacts(),
-            &file(directory.path(), b"[]"),
-            Format::Json,
-        )
-        .await
-        .expect_err("should fail when the bucket cannot be reached");
-    assert!(
-        matches!(error.current_context(), ArtifactError::Read),
-        "a failed existence check should be a read error, not a missing artifact"
-    );
-    let error = storage
-        .materialize(&artifact, directory.path())
+        .read_versioned(KEY)
         .await
         .expect_err("should fail when the bucket cannot be read");
     assert!(
-        matches!(error.current_context(), ArtifactError::Read),
-        "a failed download should be a read error, not a mismatch"
+        matches!(error.current_context(), StorageError::Read),
+        "a failed read should be a read error, not a missing file"
+    );
+    let error = storage
+        .download(KEY, downloads.path())
+        .await
+        .expect_err("should fail when the bucket cannot be read");
+    assert!(
+        matches!(error.current_context(), StorageError::Read),
+        "a failed download should be a read error"
     );
 }
 
-fn json_bytes(value: &Value) -> Vec<u8> {
-    serde_json::to_vec(value).expect("should serialize the value")
-}
-
-/// Reads the JSON value at `key` and its version.
-async fn read_json(storage: &ArtifactStorage, key: &ArtifactKey) -> (Value, CasVersion) {
-    let (bytes, version) = storage
-        .read_versioned(key)
-        .await
-        .expect("should read the file")
-        .expect("the file should exist");
-    (
-        serde_json::from_slice(&bytes).expect("should be JSON"),
-        version,
-    )
-}
-
 #[rstest]
-#[case::local(false)]
+#[case::memory(false)]
 #[case::s3(true)]
 #[tokio::test]
 async fn replace_if_conditional_put(#[case] s3: bool) {
-    let directory = TempDir::new().expect("should create a directory");
-    let minio = if s3 { Some(minio().await) } else { None };
-    let port = minio.as_ref().map(|(_, port)| *port);
-    let storage = storage(port, directory.path());
-    let key = namespace(Uuid::new_v4()).current();
-    let first = json!({"generation": 1, "writer": "first"});
-    let second = json!({"generation": 2, "writer": "second"});
+    let (_minio, storage) = storage(s3).await;
+    let key = "current.json";
+    let first = b"first".to_vec();
+    let second = b"second".to_vec();
 
     assert!(
         storage
-            .replace_if(&key, None, json_bytes(&first))
+            .replace_if(key, None, first.clone())
             .await
             .expect("should create the file"),
         "a create under a fresh key should write"
     );
-    let (observed, version) = read_json(&storage, &key).await;
+    let (observed, version) = storage
+        .read_versioned(key)
+        .await
+        .expect("should read the file")
+        .expect("the file should exist");
     assert_eq!(observed, first, "the created value should be readable");
     assert!(
         !storage
-            .replace_if(&key, None, json_bytes(&second))
+            .replace_if(key, None, second.clone())
             .await
             .expect("should try to create the file"),
         "a second create should conflict"
     );
     assert!(
         storage
-            .replace_if(&key, Some(&version), json_bytes(&second))
+            .replace_if(key, Some(&version), second.clone())
             .await
             .expect("should replace the file"),
         "a replace with the current version should write"
     );
     assert!(
         !storage
-            .replace_if(&key, Some(&version), json_bytes(&first))
+            .replace_if(key, Some(&version), first)
             .await
             .expect("should try to replace the file"),
         "a replace with a stale version should conflict"
     );
     assert_eq!(
-        read_json(&storage, &key).await.0,
+        storage
+            .read_versioned(key)
+            .await
+            .expect("should read the file")
+            .expect("the file should exist")
+            .0,
         second,
         "the conflict should keep the second writer's value"
     );
@@ -255,38 +266,38 @@ async fn replace_if_conditional_put(#[case] s3: bool) {
 
 #[tokio::test]
 async fn versioned_size_limit() {
-    let directory = TempDir::new().expect("should create a directory");
-    let storage = storage(None, directory.path());
-    let key = namespace(Uuid::new_v4()).current();
-    let bytes = vec![b' '; 1024 * 1024 + 1];
+    let storage = Storage::memory();
+    let key = "current.json";
+    let bytes = vec![b' '; MAX_VERSIONED_BYTES + 1];
 
     let error = storage
-        .replace_if(&key, None, bytes.clone())
+        .replace_if(key, None, bytes.clone())
         .await
-        .expect_err("should refuse to write more than 1 MiB");
+        .expect_err("should refuse to write more than 16 MiB");
     assert!(
-        matches!(error.current_context(), ArtifactError::Write),
+        matches!(error.current_context(), StorageError::Write),
         "an oversized write should be a write error"
     );
     assert_eq!(
         storage
-            .read_versioned(&key)
+            .read_versioned(key)
             .await
             .expect("should read the key"),
         None,
         "the refused write should leave the key missing"
     );
 
-    let path = directory.path().join("artifacts").join(key.to_string());
-    fs::create_dir_all(path.parent().expect("the key should have a parent"))
-        .expect("should create the key's directory");
-    fs::write(&path, &bytes).expect("should write the file");
-    let error = storage
-        .read_versioned(&key)
+    storage
+        .store
+        .put(&Location::from(key), PutPayload::from(bytes))
         .await
-        .expect_err("should refuse to read more than 1 MiB");
+        .expect("should store the file");
+    let error = storage
+        .read_versioned(key)
+        .await
+        .expect_err("should refuse to read more than 16 MiB");
     assert!(
-        matches!(error.current_context(), ArtifactError::Read),
+        matches!(error.current_context(), StorageError::Read),
         "an oversized read should be a read error"
     );
 }

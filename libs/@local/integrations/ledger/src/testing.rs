@@ -1,10 +1,4 @@
-use std::{fs, path::Path};
-
-use hash_crypto::{Secret, digest::Sha256Digest};
-use hash_integrations_definition::{ConnectorId, SourceName};
-use rstest::rstest;
-use serde_json::{Value, json};
-use tempfile::TempDir;
+use hash_crypto::Secret;
 use testcontainers::{
     ContainerAsync, ImageExt as _,
     core::{CmdWaitFor, ExecCommand},
@@ -13,11 +7,7 @@ use testcontainers::{
 use testcontainers_modules::minio::MinIO;
 use uuid::Uuid;
 
-use super::{
-    ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactRef, ArtifactStorage, Bound, CasVersion,
-    Format, S3Bucket, artifact::CHUNK_SIZE,
-};
-use crate::CaptureRun;
+use crate::{IntegrationNamespace, S3Bucket};
 
 /// Starts MinIO with an empty `captures` bucket and returns it with its API port.
 pub(crate) async fn minio() -> (ContainerAsync<MinIO>, u16) {
@@ -46,9 +36,17 @@ pub(crate) async fn minio() -> (ContainerAsync<MinIO>, u16) {
     (minio, port)
 }
 
+/// The namespace of the `aviation` connector in a fixed web.
+pub(crate) fn namespace() -> IntegrationNamespace {
+    IntegrationNamespace::new(
+        Uuid::from_u128(1),
+        &"aviation".parse().expect("should be a connector ID"),
+    )
+}
+
 pub(crate) fn bucket(port: u16) -> S3Bucket {
     S3Bucket {
-        uri: "s3://captures/tenants".into(),
+        uri: "s3://captures".into(),
         region: "us-east-1".into(),
         endpoint: Some(format!("localhost:{port}").into()),
         use_ssl: false,

@@ -1,30 +1,70 @@
-mod artifact;
-mod bucket;
+mod file;
 mod namespace;
+mod s3;
 #[cfg(test)]
-pub(crate) mod tests;
+mod tests;
+mod versioned;
 
-pub(crate) use self::artifact::Bound;
-pub use self::{
-    artifact::{ArtifactRef, ArtifactRefV1, ArtifactStorage, Format},
-    bucket::S3Bucket,
-    namespace::ArtifactNamespace,
-};
+use alloc::sync::Arc;
 
-/// Reports why an artifact could not be read or stored.
+use error_stack::Report;
+use object_store::ObjectStore;
+
+pub use self::{namespace::IntegrationNamespace, s3::S3Bucket};
+
+/// Reports why a file in the bucket could not be read or written.
 #[derive(Debug, Clone, Copy, derive_more::Display, derive_more::Error)]
-pub enum ArtifactError {
-    #[display("the artifact could not be read")]
+pub enum StorageError {
+    #[display("the file could not be read")]
     Read,
-    #[display("the artifact could not be written")]
+    #[display("the file could not be written")]
     Write,
-    #[display("the artifact does not match its reference")]
-    Mismatch,
 }
 
-/// Where an artifact is stored, relative to the storage root.
-///
-/// Keys are built only by [`ArtifactNamespace`], which is the one place that knows the storage
-/// layout.
-#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
-pub struct ArtifactKey(Box<str>);
+/// One integration's place in the bucket, which holds everything its runs produce.
+#[derive(Debug)]
+pub struct Storage {
+    store: Arc<dyn ObjectStore>,
+    /// The bucket's settings with the namespace in its URI, or `None` for the in-memory store.
+    bucket: Option<S3Bucket>,
+}
+
+impl Storage {
+    /// Opens the place of `namespace` in `bucket`, below the prefix in the bucket's URI.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError::Read`] if the bucket's URI or credentials are invalid.
+    pub fn s3(
+        bucket: S3Bucket,
+        namespace: &IntegrationNamespace,
+    ) -> Result<Self, Report<StorageError>> {
+        let bucket = S3Bucket {
+            uri: format!("{}/{}", bucket.uri.trim_end_matches('/'), namespace.root()).into(),
+            ..bucket
+        };
+        Ok(Self {
+            store: s3::open(&bucket)?,
+            bucket: Some(bucket),
+        })
+    }
+
+    /// The bucket's settings, with the namespace in its URI. The sync table opens its own
+    /// connection with them.
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "the sync table is the first caller")
+    )]
+    pub(crate) const fn bucket(&self) -> Option<&S3Bucket> {
+        self.bucket.as_ref()
+    }
+
+    /// The in-memory store of `object_store`, for tests. It has no bucket.
+    #[cfg(test)]
+    pub(crate) fn memory() -> Self {
+        Self {
+            store: Arc::new(object_store::memory::InMemory::new()),
+            bucket: None,
+        }
+    }
+}
