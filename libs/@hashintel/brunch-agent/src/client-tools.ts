@@ -31,6 +31,7 @@ export {
 } from "./client-tools/client-tool-history";
 export {
   durableHistoryMessageMetadataSchema,
+  durableHistoryPartTypes,
   parseDurableHistoryMessageMetadata,
   type DurableHistoryMessageMetadata,
 } from "./client-tools/durable-history-metadata";
