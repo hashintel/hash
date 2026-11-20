@@ -27,9 +27,8 @@ const propertiesStyle = css({
 });
 
 /**
- * Resolves the editor selection to the existing entity-specific property
- * content. Layout shells (such as the resizable editor panel)
- * intentionally share this component so their entity rendering cannot drift.
+ * The properties of what is selected. The editor's panel and the preview's
+ * panel both render this, so the two cannot drift.
  */
 const SelectedItemPropertiesContent: React.FC = () => {
   const { activeNet: petriNetDefinition } = use(ActiveNetContext);

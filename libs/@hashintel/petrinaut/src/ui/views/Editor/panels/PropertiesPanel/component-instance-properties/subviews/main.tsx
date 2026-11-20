@@ -39,7 +39,6 @@ const paramVarNameStyle = css({
   fontFamily: "mono",
 });
 
-// the compact pre-migration label treatment for the parameter rows
 const paramFieldLabelStyle = css({
   "& :is(label, legend)": {
     fontSize: "xs",

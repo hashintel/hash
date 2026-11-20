@@ -1,7 +1,7 @@
 /**
  * Pure transitions over a place's composed dynamics terms, the list the
- * Composed dynamics subview edits. Each returns a new list; the subview
- * writes it back through `updatePlace`.
+ * Dynamics section edits. Each returns a new list; the section writes it
+ * back through `updatePlace`.
  */
 import { placeUsesDifferentialEquation } from "@hashintel/petrinaut-core";
 

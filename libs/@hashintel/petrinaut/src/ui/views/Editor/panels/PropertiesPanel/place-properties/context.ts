@@ -3,11 +3,9 @@ import { createContext, use } from "react";
 import type { Color, Place } from "@hashintel/petrinaut-core";
 
 interface PlacePropertiesContextValue {
-  /** The currently selected place */
   place: Place;
-  /** The type assigned to the place (if any) */
   placeType: Color | null;
-  /** All available types in the Petri net */
+  /** The net's types; empty while the colours extension is off. */
   types: Color[];
 }
 

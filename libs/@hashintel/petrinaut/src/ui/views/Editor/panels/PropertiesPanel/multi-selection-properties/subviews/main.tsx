@@ -30,7 +30,6 @@ const TYPE_LABELS: Record<string, string> = {
 export const MultiSelectionContent: React.FC = () => {
   const items = use(SelectedItemsContext);
 
-  // Group items by type
   const counts = new Map<string, number>();
   for (const item of items) {
     counts.set(item.type, (counts.get(item.type) ?? 0) + 1);
