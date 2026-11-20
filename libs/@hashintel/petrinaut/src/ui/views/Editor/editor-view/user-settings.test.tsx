@@ -20,6 +20,7 @@ import { CommandRegistryProvider } from "../../../../react/commands/command-regi
 import { PetrinautNavigationProvider } from "../../../../react/navigation";
 import { PetrinautOptimizationContext } from "../../../../react/optimization-context";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
+import { codeEditorThemes } from "../../../monaco/code-editor-themes";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import { renderPlugins } from "../../../plugins/plugins-test-harness";
 import { UserSettings } from "./user-settings";
@@ -354,6 +355,66 @@ describe("user settings", () => {
     }
   });
 
+  it("offers every code editor theme as a card under General and saves the choice", async () => {
+    renderSettings({ overlay: { type: "user-settings", section: "general" } });
+    const picker = await screen.findByRole("radiogroup", { name: "Theme" });
+    const cards = within(picker).getAllByRole("radio");
+    expect(cards.map((card) => card.getAttribute("aria-label"))).toEqual(
+      codeEditorThemes.map((theme) => theme.label),
+    );
+    expect(
+      within(picker)
+        .getByRole("radio", { checked: true })
+        .getAttribute("aria-label"),
+    ).toBe("Petrinaut Light");
+
+    fireEvent.click(within(picker).getByRole("radio", { name: "HASH Light" }));
+    expect(
+      within(picker).getByRole("radio", { name: "HASH Light" }),
+    ).toHaveProperty("ariaChecked", "true");
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
+    ).toMatchObject({ codeEditorTheme: "hash-light" });
+  });
+
+  it("moves the theme selection with Left, Right, Home and End, and leaves Up and Down to the rows", async () => {
+    renderSettings({ overlay: { type: "user-settings", section: "general" } });
+    const picker = await screen.findByRole("radiogroup", { name: "Theme" });
+    const [first, second] = codeEditorThemes;
+    const last = codeEditorThemes.at(-1);
+    const checkedLabel = () =>
+      within(picker)
+        .getByRole("radio", { checked: true })
+        .getAttribute("aria-label");
+
+    const keepPanels = screen.getByRole("checkbox", {
+      name: "Keep panels mounted",
+    });
+    act(() => keepPanels.focus());
+    fireEvent.keyDown(keepPanels, { key: "ArrowDown" });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      first?.label,
+    );
+
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowRight" });
+    expect(checkedLabel()).toBe(second?.label);
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      second?.label,
+    );
+
+    fireEvent.keyDown(document.activeElement!, { key: "End" });
+    expect(checkedLabel()).toBe(last?.label);
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowRight" });
+    expect(checkedLabel()).toBe(first?.label);
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowLeft" });
+    expect(checkedLabel()).toBe(last?.label);
+    fireEvent.keyDown(document.activeElement!, { key: "Home" });
+    expect(checkedLabel()).toBe(first?.label);
+
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(keepPanels);
+  });
+
   it("walks settings with worksheet arrows and restores focus across columns", async () => {
     renderSettings({ overlay: { type: "user-settings" } });
     const general = await screen.findByRole("tab", { name: "General" });
@@ -573,15 +634,15 @@ describe("AI assistant settings", () => {
   it("lets the picker own its keyboard interaction while it is open", async () => {
     renderPluginSettings("general", [chat, composer]);
     const picker = await screen.findByRole("combobox", { name: "Assistant" });
-    const panels = screen.getByRole("checkbox", {
-      name: "Keep panels mounted",
-    });
-    act(() => panels.focus());
-    fireEvent.keyDown(panels, { key: "ArrowDown" });
+    const theme = within(
+      screen.getByRole("radiogroup", { name: "Theme" }),
+    ).getByRole("radio", { checked: true });
+    act(() => theme.focus());
+    fireEvent.keyDown(theme, { key: "ArrowDown" });
     expect(document.activeElement).toBe(picker);
     fireEvent.keyDown(picker, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(panels);
-    fireEvent.keyDown(panels, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(theme);
+    fireEvent.keyDown(theme, { key: "ArrowDown" });
     fireEvent.keyDown(picker, { key: "Enter" });
     await waitFor(() =>
       expect(picker.getAttribute("aria-expanded")).toBe("true"),
@@ -591,7 +652,7 @@ describe("AI assistant settings", () => {
     );
     fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
     expect(screen.getByRole("listbox")).toBeTruthy();
-    expect(document.activeElement).not.toBe(panels);
+    expect(document.activeElement).not.toBe(theme);
     fireEvent.keyDown(document.activeElement!, { key: "Escape" });
     await waitFor(() =>
       expect(picker.getAttribute("aria-expanded")).toBe("false"),
