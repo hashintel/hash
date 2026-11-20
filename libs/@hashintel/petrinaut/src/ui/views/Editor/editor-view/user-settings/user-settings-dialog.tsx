@@ -292,32 +292,16 @@ const SettingRow = ({
 const SettingToggle = ({
   label,
   description,
-  experimental,
   value,
   onChange,
-  disabled,
 }: {
   label: string;
   description: string;
-  experimental?: boolean;
   value: boolean;
   onChange: (value: boolean) => void;
-  disabled?: boolean;
 }) => (
-  <SettingRow
-    label={label}
-    description={description}
-    experimental={experimental}
-  >
-    {(aria) => (
-      <Toggle
-        {...aria}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        size="sm"
-      />
-    )}
+  <SettingRow label={label} description={description}>
+    {(aria) => <Toggle {...aria} value={value} onChange={onChange} size="sm" />}
   </SettingRow>
 );
 
