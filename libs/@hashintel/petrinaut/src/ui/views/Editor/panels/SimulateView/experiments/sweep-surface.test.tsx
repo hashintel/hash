@@ -48,34 +48,49 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   return { ...actual, Select };
 });
 
+/** The `values` field of each render of the plot, in order. */
+const renderedFields: unknown[] = [];
+
 // The contour draws on a canvas jsdom cannot host; this one picks the plot's
-// centre-top when clicked, when the surface lets it pick at all.
+// centre-top when clicked and previews its centre when the pointer moves,
+// when the surface lets it pick at all.
 vi.mock("../../../../../components/contour-surface", async (importOriginal) => {
   const actual =
     await importOriginal<
       typeof import("../../../../../components/contour-surface")
     >();
   const ContourSurface = ({
+    values,
     onPickFraction,
+    onPreviewFraction,
     readOnly = false,
     "aria-label": ariaLabel,
   }: {
+    values: unknown;
     onPickFraction?: (fraction: ContourSurfaceFraction) => void;
+    onPreviewFraction?: (fraction: ContourSurfaceFraction | null) => void;
     readOnly?: boolean;
     "aria-label"?: string;
-  }) => (
-    <button
-      type="button"
-      aria-label={ariaLabel}
-      aria-disabled={readOnly || undefined}
-      data-interactive={onPickFraction ? "" : undefined}
-      onClick={() => onPickFraction?.({ x: 0.5, y: 1 })}
-    />
-  );
+  }) => {
+    renderedFields.push(values);
+    return (
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        aria-disabled={readOnly || undefined}
+        data-interactive={onPickFraction ? "" : undefined}
+        onClick={() => onPickFraction?.({ x: 0.5, y: 1 })}
+        onMouseMove={() => onPreviewFraction?.({ x: 0.5, y: 0.5 })}
+      />
+    );
+  };
   return { ...actual, ContourSurface };
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  renderedFields.length = 0;
+});
 
 const twoAxes = makeParameterSweepExperiment();
 
@@ -147,6 +162,15 @@ describe("SweepSurface picks", () => {
       recovery_days: { from: 18, to: 18 },
       initial_infected: { from: 10, to: 10 },
     });
+  });
+
+  it("reads out the point under the pointer without rebuilding the field", () => {
+    renderSurface(twoAxes);
+
+    fireEvent.mouseMove(screen.getByRole("button", { name: "Sweep surface" }));
+
+    expect(screen.getByText(/transmission_rate = /)).toBeTruthy();
+    expect(new Set(renderedFields).size).toBe(1);
   });
 
   it("only displays while an optimizer drives the sweep", () => {
