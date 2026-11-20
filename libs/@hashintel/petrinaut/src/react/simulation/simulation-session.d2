@@ -7,24 +7,32 @@ classes: {
   core: {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 }
 
-config: "Run configuration\nmarking, parameters, mode, end time" {class: react}
-scenario: "Scenario in effect\nsaved or ad-hoc" {class: react}
-simulators: "SimulatorsContext\nregistrations, worker pool" {class: react}
-start: "initialize({ seed })" {class: react}
-handle: "Run or experiment\nCore handle" {class: core}
+simulators: "SimulatorsContext\nregistrations, default selections" {class: react}
+provider: "SimulationProvider" {
+  class: react
+  config: "Run configuration\nmarking, parameters, mode, end time" {class: react}
+  scenario: "Scenario in effect\nsaved or ad-hoc" {class: react}
+  start: "initialize({ seed })" {class: react}
+}
+run: "EventSimulation\nQuick mode" {class: core}
+experiment: "MonteCarloExperiment\nStochastic mode" {class: core}
 source: "PlaybackSource\ncoverage, status, demand(time)" {class: react}
 playback: "EventPlaybackProvider\nviewed time, frame loop" {class: react}
-recording: "Actual mode stream\nfrom the host" {class: core}
+recording: "Actual mode stream\nfirings from the host" {class: core}
 frames: "ExecutionFrameSource\ncurrent frame reader" {class: react}
 readers: "Canvas, timeline, visualizers"
 
-config -> start: "configures"
-scenario -> start: "overrides marking and parameters"
-simulators -> start: "offers the selected simulator"
-start -> handle: "starts"
-handle -> source: "exposes its stores as"
-playback -> source: "demands viewed time\nplus lead"
-handle -> frames: "records\nevents for"
+provider.config -> provider.start: "configures"
+provider.scenario -> provider.start: "sets marking and parameters of"
+simulators -> provider.start: "offers the selected simulator to"
+playback -> provider.start: "calls on Play"
+provider.start -> run: "starts"
+provider.start -> experiment: "starts"
+run -> source: "exposes its stores as"
+experiment -> source: "exposes its stores as"
+playback -> source: "reads coverage of,\ndemands time of a run from"
+run -> frames: "records\nevents for"
 recording -> frames: "supplies\nfirings to"
-playback -> frames: "sets the\nviewed time of"
-frames -> readers: "feeds"
+playback -> frames: "sets the viewed\ntime of a run in"
+frames -> readers: "feeds frames to"
+experiment -> readers: "feeds metrics to"
