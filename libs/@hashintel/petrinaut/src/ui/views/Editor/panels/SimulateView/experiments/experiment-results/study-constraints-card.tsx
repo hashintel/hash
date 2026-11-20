@@ -9,16 +9,16 @@ import { css } from "@hashintel/ds-helpers/css";
 import { constraintLabel } from "@hashintel/petrinaut-core";
 
 import {
-  bindingStepRate,
   constraintAlpha,
-  constraintNameIn,
   formatRate,
   passThresholdPercent,
-  type StepVerdict,
-  stepVerdict,
   type StudyConstraintRates,
 } from "../../../../../../../react/optimizations/constraint-rates";
 import { ChartCard, type ChartCardTone } from "../../shared/chart-card";
+import {
+  describedStep,
+  describeStep,
+} from "./study-constraints-card/describe-step";
 
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
 
@@ -133,57 +133,6 @@ const noteStyle = css({
   fontSize: "xs",
   color: "neutral.s80",
 });
-
-/**
- * The step the card describes beneath the headline: the latest step whose
- * event landed. Null before any step.
- */
-export const describedStep = (
-  trials: OptimizationRecord["trials"],
-): OptimizationRecord["trials"][number] | null =>
-  trials.reduce<OptimizationRecord["trials"][number] | null>(
-    (latest, trial) =>
-      latest === null || trial.trial > latest.trial ? trial : latest,
-    null,
-  );
-
-/** The step line's parts: the verdict word, the `Step 12: limited` head and what follows it. */
-type DescribedStep = {
-  verdict: StepVerdict;
-  head: string;
-  /** The infeasible draw's constraint; the binding rate as `51 / 60 runs passed · 85% · Queue under 10`; a state other than complete; null when the head says it all. */
-  detail: string | null;
-};
-
-export const describeStep = (
-  input: Pick<OptimizationRecord["input"], "constraints">,
-  trial: OptimizationRecord["trials"][number],
-  alpha: number,
-): DescribedStep => {
-  const verdict = stepVerdict(trial, alpha);
-  const head = `Step ${trial.trial + 1}: ${verdict}`;
-  if (verdict === "infeasible") {
-    return {
-      verdict,
-      head,
-      detail: constraintNameIn(input, trial.constraints?.infeasible ?? ""),
-    };
-  }
-  const binding = bindingStepRate(trial, alpha);
-  if (binding === null) {
-    return {
-      verdict,
-      head,
-      detail: trial.state === "complete" ? null : trial.state,
-    };
-  }
-  const percent = Math.round((binding.runsPassed / binding.runsTotal) * 100);
-  return {
-    verdict,
-    head,
-    detail: `${binding.runsPassed} / ${binding.runsTotal} runs passed · ${percent}% · ${constraintNameIn(input, binding.constraintId)}`,
-  };
-};
 
 export const StudyConstraintsCard = ({
   optimization,
