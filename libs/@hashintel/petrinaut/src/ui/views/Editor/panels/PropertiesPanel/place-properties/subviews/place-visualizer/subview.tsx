@@ -98,14 +98,8 @@ export const VisualizerHeaderAction: React.FC = () => {
   const { updatePlace } = usePetrinautMutations();
   const isReadOnly = useSDCPNState((document) => document.readonly);
 
-  const [savedVisualizerCodeState, setSavedVisualizerCodeState] = useState<{
-    placeId: string;
-    code: string;
-  } | null>(null);
-  const savedVisualizerCode =
-    savedVisualizerCodeState?.placeId === place.id
-      ? savedVisualizerCodeState.code
-      : undefined;
+  // The panel's sections are mounted per place, so this is this place's code.
+  const [savedVisualizerCode, setSavedVisualizerCode] = useState<string>();
 
   const hasVisualizer = place.visualizerCode !== undefined;
 
@@ -132,10 +126,7 @@ export const VisualizerHeaderAction: React.FC = () => {
               });
             } else {
               if (place.visualizerCode) {
-                setSavedVisualizerCodeState({
-                  placeId: place.id,
-                  code: place.visualizerCode,
-                });
+                setSavedVisualizerCode(place.visualizerCode);
               }
               updatePlace({
                 placeId: place.id,
