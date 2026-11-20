@@ -779,7 +779,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   };
 
   const reset: SimulationContextValue["reset"] = () => {
-    initializationGenerationRef.current += 1;
     const sdcpn = petriNetDefinitionRef.current;
     const parameters = extensionsRef.current.parameters ? sdcpn.parameters : [];
     const defaultValues = deriveDefaultParameterValues(parameters);
@@ -789,13 +788,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       parameterValues[key] = String(value);
     }
 
-    disposeRuns();
-    setFailure(null);
-
-    setStateValues((prev) => ({
-      ...prev,
-      parameterValues,
-    }));
+    configure(true, () => ({ parameterValues }));
   };
 
   const getFramesInRange: SimulationContextValue["getFramesInRange"] = (
