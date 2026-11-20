@@ -142,7 +142,7 @@ A floating window keeps its position and size the same way.
 `useFloatingPanel` holds them as Motion values and `bindPanel` is the ref
 that writes them on the window as custom properties.
 
-## Two rules for a write per frame
+## Three rules for a write per frame
 
 - **Write the property on the element that needs it, not a custom property
   on an ancestor.** A custom property is inherited, so the browser restyles
@@ -156,13 +156,11 @@ that writes them on the window as custom properties.
   The separator of a docked panel paints the edge it drags on itself, from
   the attribute the library sets on it, so no rule on the panel looks for it.
 
-:::danger[The Simulate panel follows neither rule]
-`simulation-workspace.tsx` holds the panel's width in `useState` and sets it
-on every pointer move, so a drag renders the workspace each time. It writes
-the width as the custom property `--simulation-panel-width` on the
-workspace, and its styles match `:has([data-resizing=true])`. Moving the
-width to a Motion value belongs to FE-2319.
-:::
+- **Keep a transition off a property that a drag writes.** The transition
+  would ease every step of the drag, and the element would trail the pointer.
+  Where an element both eases and follows a drag, the transition goes on a
+  share and the drag writes the size the share is of, as for the Simulate
+  panel below.
 
 The scripts `geometry.mjs`, `panel-toggles.mjs` and `assistant-dock.mjs` in
 `benchmarks/monaco-performance/` measure a drag, a slide and a dock.
@@ -204,6 +202,51 @@ the Properties panel beside the canvas.
 
 No unit test drags a separator: the library lays its groups out from measured
 sizes, which jsdom does not have.
+
+## Resizing the Simulate panel
+
+`SimulationWorkspace` in `ui/views/Editor/shared/simulation-workspace.tsx`
+shows a scenario, an experiment or a creation form in a panel over the right
+of the editor, and takes the panel's width from the content beside it. The
+width is a Motion value the workspace owns, and a `PanelResizer` laid over
+the workspace resizes it, as for a docked panel.
+
+Two elements follow the width, and each has its `width` written directly: the
+slot the panels render into, and a sizer inside the room. The room is a flex
+item beside the content, so the content gives up what the room takes.
+
+- **A drag leads, and at any other time the width worked out while rendering
+  does.** The workspace keeps the width the user chose in state, and
+  `simulationPanelWidth` fits it into the workspace on each render: the list
+  keeps 280 pixels, and the panel 440 where that leaves room. A layout effect
+  sets the Motion value to the result. A drag sets the Motion value on each
+  pointer move and the choice once, when it ends, so a drag renders the
+  workspace once. `panel-width.test.ts` and `simulation-workspace.test.tsx`
+  hold the widths.
+- **The room and the slot ease a share, and a drag writes the width.** The
+  room opens and closes with the panel, and the slot grows to the whole
+  workspace in fullscreen. The room is a grid whose one column goes from
+  `0fr` to `1fr` of the sizer, and the slot takes the space left of it by a
+  `flex-grow` that goes from 0 to 1. Each transition is on the share, so a
+  drag and an arrow key move both edges in the frame they happen in.
+- **The workspace learns of a panel from its slot.** A panel is rendered
+  into the slot through a portal, from anywhere below the workspace.
+  `useHasOpenPanel` observes the slot's children and says whether one is
+  shown and not closing. The room is open and the resizer mounted while it
+  says yes. `use-has-open-panel.test.tsx` holds this.
+- **The slot is always laid out.** It lets the pointer through everywhere but
+  on a panel. A slot that appeared only once the workspace had rendered
+  again would refuse the focus a panel takes in the commit that adds it.
+- **The resizer is there only beside an open panel.** Without a panel, and
+  in fullscreen, the page has no separator to reach with the pointer or the
+  Tab key.
+- **The workspace's width is read in the render that first has its
+  element.** `useElementWidth` reads the layout as an external store, so no
+  frame shows a panel at a width that was not measured.
+
+The dock resizers are not nested in this resizer's group. Where the bottom
+panel's separator ends on the Simulate panel's, a press resizes the Simulate
+panel alone.
 
 ## Saving
 
