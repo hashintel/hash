@@ -171,6 +171,7 @@ const renderEditor = (props: {
       <ProcessPetrinaut
         handle={handle}
         entityId={entityId}
+        saved
         readTitle={() => "Net"}
         hostSave={hostSave}
         versionLoad={undefined}

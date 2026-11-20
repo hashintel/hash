@@ -495,6 +495,12 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/has/" as BaseUrl,
   },
+  hasAgentConversationFocus: {
+    linkEntityTypeId:
+      "https://hash.ai/@h/types/entity-type/has-agent-conversation-focus/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/has-agent-conversation-focus/" as BaseUrl,
+  },
   hasAvatar: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/has-avatar/v/1",
     linkEntityTypeBaseUrl:
@@ -982,12 +988,6 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/connection-source-name/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/connection-source-name/" as BaseUrl,
-  },
-  contextEntityId: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/context-entity-id/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/context-entity-id/" as BaseUrl,
   },
   conversationId: {
     propertyTypeId:

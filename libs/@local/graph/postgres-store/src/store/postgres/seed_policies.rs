@@ -98,6 +98,12 @@ pub(super) const AGENT_CONVERSATION_BASE_URL: &str =
     "https://hash.ai/@h/types/entity-type/agent-conversation/";
 static AGENT_CONVERSATION: LazyLock<EntityTypeConfig> =
     LazyLock::new(|| EntityTypeConfig::new(AGENT_CONVERSATION_BASE_URL));
+/// Links an agent conversation to an entity it focuses on. It is private to its creator, as the
+/// conversation is, so it has its own type rather than a general one such as `Has Subject`.
+pub(super) const HAS_AGENT_CONVERSATION_FOCUS_BASE_URL: &str =
+    "https://hash.ai/@h/types/entity-type/has-agent-conversation-focus/";
+static HAS_AGENT_CONVERSATION_FOCUS: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new(HAS_AGENT_CONVERSATION_FOCUS_BASE_URL));
 
 static SYNC_LINEAR_DATA_WITH: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
     EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/sync-linear-data-with/")
@@ -637,12 +643,22 @@ fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreati
             web_id: role.web_id,
             filter: match role.name {
                 RoleName::Administrator => EntityResourceFilter::Not {
-                    filter: Box::new(AGENT_CONVERSATION.entity_is_of_base_type()),
+                    filter: Box::new(EntityResourceFilter::Any {
+                        filters: vec![
+                            AGENT_CONVERSATION.entity_is_of_base_type(),
+                            HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
+                        ],
+                    }),
                 },
                 RoleName::Member => EntityResourceFilter::All {
                     filters: vec![
                         EntityResourceFilter::Not {
-                            filter: Box::new(AGENT_CONVERSATION.entity_is_of_base_type()),
+                            filter: Box::new(EntityResourceFilter::Any {
+                                filters: vec![
+                                    AGENT_CONVERSATION.entity_is_of_base_type(),
+                                    HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
+                                ],
+                            }),
                         },
                         EntityResourceFilter::Any {
                             filters: vec![
@@ -689,6 +705,7 @@ fn web_update_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
                             OCCURRED_IN_TEXT.entity_is_of_base_type(),
                             GOOGLE_ACCOUNT.entity_is_of_base_type(),
                             AGENT_CONVERSATION.entity_is_of_base_type(),
+                            HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
                         ],
                     }),
                 },
@@ -715,6 +732,7 @@ fn web_update_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
                             LINEAR_INTEGRATION.entity_is_of_base_type(),
                             SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
                             AGENT_CONVERSATION.entity_is_of_base_type(),
+                            HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
                         ],
                     }),
                 },
@@ -770,6 +788,7 @@ fn web_archive_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCre
                             OCCURRED_IN_TEXT.entity_is_of_base_type(),
                             GOOGLE_ACCOUNT.entity_is_of_base_type(),
                             AGENT_CONVERSATION.entity_is_of_base_type(),
+                            HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
                         ],
                     }),
                 },
@@ -792,6 +811,7 @@ fn web_archive_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCre
                             LINEAR_INTEGRATION.entity_is_of_base_type(),
                             SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
                             AGENT_CONVERSATION.entity_is_of_base_type(),
+                            HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
                         ],
                     }),
                 },
@@ -875,7 +895,12 @@ fn web_conversation_creator_policy(role: &WebRole) -> PolicyCreationParams {
             filter: EntityResourceFilter::All {
                 filters: vec![
                     EntityResourceFilter::CreatedByPrincipal,
-                    AGENT_CONVERSATION.entity_is_of_base_type(),
+                    EntityResourceFilter::Any {
+                        filters: vec![
+                            AGENT_CONVERSATION.entity_is_of_base_type(),
+                            HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
+                        ],
+                    },
                 ],
             },
         })),

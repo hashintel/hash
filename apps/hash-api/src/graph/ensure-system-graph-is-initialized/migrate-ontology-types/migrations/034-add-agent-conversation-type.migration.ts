@@ -1,3 +1,5 @@
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import {
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
@@ -6,15 +8,16 @@ import {
 import type { MigrationFunction } from "../types";
 
 /**
- * Adds `Agent Conversation`: one conversation between a user and an AI agent, which may have been started on an
- * entity, such as a process. The entity holds no messages: the agent's own store keeps those, under the
- * `Conversation ID`. The entity is the conversation's handle in the graph. It says which conversation a user has open
- * where they started it, so that it follows them to another browser, and archiving it says the conversation has ended
- * and its messages may go.
+ * Adds `Agent Conversation`: one conversation between a user and an AI agent, which may focus on entities, such as a
+ * process. The entity holds no messages: the agent's own store keeps those, under the `Conversation ID`. The entity is
+ * the conversation's handle in the graph. It says which conversation a user has open on an entity, so that it follows
+ * them to another browser, and archiving it says the conversation has ended and its messages may go.
  *
  * It is not tied to one agent or one kind of entity: `Agent ID` names the agent and the service that keeps its
- * conversations, and `Context Entity ID` may hold the id of any entity. It is a property rather than a link: it
- * records where the conversation was started, not what it is about.
+ * conversations, and `Has Agent Conversation Focus` links it to any entity it focuses on, in any web.
+ *
+ * The link has its own type, rather than a general one such as `Has Subject`, because the Graph's default policies
+ * keep both the conversation and its focus links private to the user who created them, and they do so by type.
  */
 const migrate: MigrationFunction = async ({
   context,
@@ -51,27 +54,28 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const contextEntityIdPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Context Entity ID",
+  const hasAgentConversationFocusLinkEntityType =
+    await createSystemEntityTypeIfNotExists(context, authentication, {
+      entityTypeDefinition: {
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
+        title: "Has Agent Conversation Focus",
+        inverse: {
+          title: "Focus of Agent Conversation",
+        },
         description:
-          "The ID of the entity that was open where something was started, such as the process a conversation was started on.",
-        possibleValues: [{ primitiveDataType: "text" }],
+          "An entity that an agent conversation focuses on, such as a process. Only for agent conversations: like the conversation, it is private to the user who created it by default.",
+        properties: [],
       },
       webShortname: "h",
       migrationState,
-    },
-  );
+    });
 
   await createSystemEntityTypeIfNotExists(context, authentication, {
     entityTypeDefinition: {
       title: "Agent Conversation",
       titlePlural: "Agent Conversations",
       description:
-        "A conversation between a user and an AI agent, which may have been started on an entity, such as a process.",
+        "A conversation between a user and an AI agent, which may focus on entities, such as a process.",
       properties: [
         {
           propertyType: conversationIdPropertyType.schema.$id,
@@ -81,9 +85,10 @@ const migrate: MigrationFunction = async ({
           propertyType: agentIdPropertyType.schema.$id,
           required: true,
         },
+      ],
+      outgoingLinks: [
         {
-          propertyType: contextEntityIdPropertyType.schema.$id,
-          required: false,
+          linkEntityType: hasAgentConversationFocusLinkEntityType,
         },
       ],
     },

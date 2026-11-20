@@ -159,6 +159,7 @@ const BrunchSession = memo(
     chatEndpoint,
     openDocument,
     processEntityId,
+    processSaved,
     shown,
     hostTools,
     hostSave,
@@ -169,8 +170,10 @@ const BrunchSession = memo(
     /** Brunch's HASH agent. */
     chatEndpoint: string;
     openDocument: BrunchOpenDocument;
-    /** The open net's entity id, which its conversations are started on. */
+    /** The open net's entity id, which its conversations focus on. */
     processEntityId: EntityId;
+    /** The open net is saved, rather than a draft its first save creates. */
+    processSaved: boolean;
     /** The editor shows Brunch's assistant. */
     shown: boolean;
     /**
@@ -189,7 +192,8 @@ const BrunchSession = memo(
   }) => {
     const conversationPointer = useAgentConversation({
       agentId: brunchAgentId,
-      contextEntityId: processEntityId,
+      subjectEntityId: processEntityId,
+      subjectSaved: processSaved,
     });
     const { assistant } = useBrunchAssistant({
       actorKey,
@@ -224,6 +228,7 @@ const BrunchSession = memo(
 export const ProcessPetrinaut = ({
   handle,
   entityId,
+  saved,
   readTitle,
   hostSave,
   versionLoad,
@@ -234,6 +239,8 @@ export const ProcessPetrinaut = ({
   handle: PetrinautDocHandle;
   /** The open net's entity id; a draft's is the one its first save creates. */
   entityId: EntityId;
+  /** The open net is saved, rather than a draft its first save creates. */
+  saved: boolean;
   /** The editor's current title, read when Brunch's tools need it. */
   readTitle: () => string;
   /** The editor's Save, for the agent: what it would do now, and running it. Stable for the handle. */
@@ -282,6 +289,7 @@ export const ProcessPetrinaut = ({
           chatEndpoint={brunchChatEndpoint(brunch.origin)}
           openDocument={openDocument}
           processEntityId={entityId}
+          processSaved={saved}
           shown={brunchShown}
           hostTools={hostTools}
           hostSave={hostSave}

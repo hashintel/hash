@@ -56,8 +56,10 @@ use super::{
     provenance_violations,
 };
 use crate::store::{
-    AsClient, InTransaction, PostgresStore, error::EntityDoesNotExist,
-    postgres::seed_policies::AGENT_CONVERSATION_BASE_URL, validation::StoreProvider,
+    AsClient, InTransaction, PostgresStore,
+    error::EntityDoesNotExist,
+    postgres::seed_policies::{AGENT_CONVERSATION_BASE_URL, HAS_AGENT_CONVERSATION_FOCUS_BASE_URL},
+    validation::StoreProvider,
 };
 
 enum DraftTransition {
@@ -587,43 +589,51 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         Ok(entity)
     }
 
-    /// Refuses a change that adds or removes the Agent Conversation type.
+    /// Refuses a change that adds or removes the Agent Conversation or Has Agent Conversation
+    /// Focus type.
     ///
-    /// Conversations are visible only to their creator, so reclassifying an entity would hide a
-    /// shared entity from its web, or expose a private conversation to it.
+    /// Conversations and their focus links are visible only to their creator, so reclassifying an
+    /// entity would hide a shared entity from its web, or expose a private conversation or link to
+    /// it.
     ///
     /// # Errors
     ///
     /// - [`UpdateError`] with [`StatusCode::PermissionDenied`] if exactly one of the two editions
-    ///   is an Agent Conversation
+    ///   is of one of these types
     /// - [`UpdateError`] if the edition cache can't be read
     async fn ensure_conversation_classification(
         &self,
         previous_edition_id: EntityEditionId,
         edition_id: EntityEditionId,
     ) -> Result<(), Report<UpdateError>> {
-        // The edition cache includes both the direct and inherited type base URLs.
-        let unchanged: bool = self
-            .as_client()
-            .query_one(
-                "SELECT count(*) <> 1
-                   FROM entity_edition_cache
-                  WHERE entity_edition_id IN ($1, $2) AND $3 = ANY(base_urls)",
-                &[
-                    &previous_edition_id,
-                    &edition_id,
-                    &AGENT_CONVERSATION_BASE_URL,
-                ],
-            )
-            .await
-            .change_context(UpdateError)?
-            .get(0);
-        ensure!(
-            unchanged,
-            Report::new(UpdateError)
-                .attach_opaque(StatusCode::PermissionDenied)
-                .attach("Entity updates must preserve the Agent Conversation classification")
-        );
+        for (base_url, title) in [
+            (AGENT_CONVERSATION_BASE_URL, "Agent Conversation"),
+            (
+                HAS_AGENT_CONVERSATION_FOCUS_BASE_URL,
+                "Has Agent Conversation Focus",
+            ),
+        ] {
+            // The edition cache includes both the direct and inherited type base URLs.
+            let unchanged: bool = self
+                .as_client()
+                .query_one(
+                    "SELECT count(*) <> 1
+                       FROM entity_edition_cache
+                      WHERE entity_edition_id IN ($1, $2) AND $3 = ANY(base_urls)",
+                    &[&previous_edition_id, &edition_id, &base_url],
+                )
+                .await
+                .change_context(UpdateError)?
+                .get(0);
+            ensure!(
+                unchanged,
+                Report::new(UpdateError)
+                    .attach_opaque(StatusCode::PermissionDenied)
+                    .attach(format!(
+                        "Entity updates must preserve the {title} classification"
+                    ))
+            );
+        }
         Ok(())
     }
 

@@ -69,8 +69,8 @@ const agentConversationTypeId =
   "https://hash.ai/@h/types/entity-type/agent-conversation/v/1";
 const conversationIdUrl =
   "https://hash.ai/@h/types/property-type/conversation-id/";
-const contextEntityIdUrl =
-  "https://hash.ai/@h/types/property-type/context-entity-id/";
+const focusTypeId =
+  "https://hash.ai/@h/types/entity-type/has-agent-conversation-focus/v/1";
 
 /**
  * The graph behind Apollo: answers queries from its nets as of when they
@@ -108,6 +108,11 @@ const graph = vi.hoisted(() => {
       properties: Record<string, string>;
       createdById: string;
       createdAt: string;
+    }[],
+    /** The conversations' links to the entities they focus on. */
+    conversationLinks: [] as {
+      leftEntityId: EntityId;
+      rightEntityId: EntityId;
     }[],
     writes: [] as {
       kind: "create" | "update";
@@ -494,24 +499,60 @@ vi.mock("@apollo/client", async (importOriginal) => {
   /** The graph's answer to a conversations read, applying its filter. */
   const conversationsAnswer = (filter: string): QueryEntitySubgraphQuery => {
     type Equal = { equal: [{ path: string[] }, { parameter: unknown }] };
-    const { all: clauses } = JSON.parse(filter) as { all: Equal[] };
-    const matching = graph.conversations.filter((conversation) =>
-      clauses.every(({ equal: [{ path }, { parameter }] }) => {
-        const [root, key = ""] = path;
-        const value =
-          root === "webId"
-            ? conversation.entityId.split("~")[0]
-            : root === "type"
-              ? agentConversationTypeId
-              : root === "properties"
-                ? conversation.properties[key]
-                : root === "createdById"
-                  ? conversation.createdById
-                  : root === "archived"
-                    ? false
-                    : undefined;
-        return value === parameter;
-      }),
+    const { all } = JSON.parse(filter) as { all: Equal[] };
+    const isLinkClause = ({ equal: [{ path }] }: Equal) =>
+      path[0] === "outgoingLinks";
+    const clauses = all.filter((clause) => !isLinkClause(clause));
+    // As the graph does, these hold of one and the same link.
+    const linkClauses = all.filter(isLinkClause);
+    const linkValue = (
+      link: (typeof graph.conversationLinks)[number],
+      path: string[],
+    ) => {
+      const [, root, key] = path;
+      if (root === "type") {
+        return focusTypeId;
+      }
+      if (root === "archived") {
+        return false;
+      }
+      if (root === "rightEntity" && key === "webId") {
+        return link.rightEntityId.split("~")[0];
+      }
+      if (root === "rightEntity" && key === "uuid") {
+        return link.rightEntityId.split("~")[1];
+      }
+      throw new Error(`The fake graph can't filter on ${path.join(".")}`);
+    };
+    const linked = (entityId: EntityId) =>
+      linkClauses.length === 0 ||
+      graph.conversationLinks.some(
+        (link) =>
+          link.leftEntityId === entityId &&
+          linkClauses.every(
+            ({ equal: [{ path }, { parameter }] }) =>
+              linkValue(link, path) === parameter,
+          ),
+      );
+    const matching = graph.conversations.filter(
+      (conversation) =>
+        linked(conversation.entityId) &&
+        clauses.every(({ equal: [{ path }, { parameter }] }) => {
+          const [root, key = ""] = path;
+          const value =
+            root === "webId"
+              ? conversation.entityId.split("~")[0]
+              : root === "type"
+                ? agentConversationTypeId
+                : root === "properties"
+                  ? conversation.properties[key]
+                  : root === "createdById"
+                    ? conversation.createdById
+                    : root === "archived"
+                      ? false
+                      : undefined;
+          return value === parameter;
+        }),
     );
     const timeInterval = (createdAt: string) => ({
       start: { kind: "inclusive", limit: createdAt },
@@ -747,6 +788,7 @@ vi.mock("@apollo/client", async (importOriginal) => {
             webId: createdIn,
             entityUuid,
             entityTypeIds,
+            linkData,
           },
         }: {
           variables: {
@@ -754,11 +796,25 @@ vi.mock("@apollo/client", async (importOriginal) => {
             webId?: string;
             entityUuid?: string;
             entityTypeIds?: string[];
+            linkData?: { leftEntityId: EntityId; rightEntityId: EntityId };
           };
         }) => {
+          if (entityTypeIds?.includes(focusTypeId) && linkData) {
+            // As the graph does: a link needs both its entities to exist.
+            if (
+              !graph.conversations.some(
+                ({ entityId }) => entityId === linkData.leftEntityId,
+              ) ||
+              !graph.nets.has(linkData.rightEntityId)
+            ) {
+              throw new Error("The link's entities don't exist");
+            }
+            graph.conversationLinks.push(linkData);
+            return { data: { createEntity: {} } };
+          }
           if (entityTypeIds?.includes(agentConversationTypeId)) {
             const conversationEntityId =
-              `${createdIn}~conversation-${graph.conversations.length + 1}` as EntityId;
+              `${createdIn}~${entityUuid ?? `conversation-${graph.conversations.length + 1}`}` as EntityId;
             graph.conversations.push({
               entityId: conversationEntityId,
               properties: Object.fromEntries(
@@ -889,6 +945,7 @@ beforeEach(() => {
   graph.editableAfterWrite = null;
   graph.realConversations = false;
   graph.conversations.length = 0;
+  graph.conversationLinks.length = 0;
   graph.writes.length = 0;
   workspace.webId = webId;
   router.state.current = { isReady: false, asPath: "", query: {} };
@@ -1867,7 +1924,7 @@ const reopen = async (at: string) => {
   await renderRoute(at);
 };
 
-test("a conversation started on a draft is recorded in the draft's web, carries on through its first save, and opens again after it", async () => {
+test("a conversation started on a draft is written at its first save, in the draft's web, carries on through it, and opens again after it", async () => {
   graph.realConversations = true;
   await renderRoute(draftUrl);
   expect(conversationPointer().conversationId).toBeNull();
@@ -1875,8 +1932,14 @@ test("a conversation started on a draft is recorded in the draft's web, carries 
 
   act(() => conversationPointer().start("draft-conversation"));
   await settle();
+  // The draft's net doesn't exist yet, so nothing is written for it.
+  expect(graph.conversations).toEqual([]);
+
   pressSave();
   await settle();
+  // Written at the save, without waiting for another message.
+  expect(graph.conversations).toHaveLength(1);
+  expect(graph.conversationLinks).toHaveLength(1);
   act(() => conversationPointer().start("draft-conversation"));
   await settle();
 
@@ -1888,16 +1951,21 @@ test("a conversation started on a draft is recorded in the draft's web, carries 
       entityId: expect.stringMatching(new RegExp(`^${webId}~`, "u")),
       properties: expect.objectContaining({
         [conversationIdUrl]: "draft-conversation",
-        [contextEntityIdUrl]: createdId,
       }),
     }),
+  ]);
+  expect(graph.conversationLinks).toEqual([
+    {
+      leftEntityId: graph.conversations[0]?.entityId,
+      rightEntityId: createdId,
+    },
   ]);
 
   await reopen(`/processes/${uuidCreated}`);
   expect(conversationPointer().conversationId).toBe("draft-conversation");
 });
 
-test("a conversation on a draft left unsaved is kept, and its draft's URL opens it again", async () => {
+test("a conversation on a draft left unsaved writes nothing, and its draft's URL reopens with none read, so Brunch derives the first conversation's id again", async () => {
   graph.realConversations = true;
   await renderRoute(draftUrl);
   act(() => conversationPointer().start("left-unsaved"));
@@ -1906,8 +1974,9 @@ test("a conversation on a draft left unsaved is kept, and its draft's URL opens 
   await reopen(draftUrl);
 
   expect(graph.nets.has(createdId)).toBe(false);
-  expect(graph.conversations).toHaveLength(1);
-  expect(conversationPointer().conversationId).toBe("left-unsaved");
+  expect(graph.conversations).toEqual([]);
+  expect(graph.conversationLinks).toEqual([]);
+  expect(conversationPointer().conversationId).toBeNull();
 });
 
 test("two drafts started separately have their own ids, and so their own conversations", async () => {
