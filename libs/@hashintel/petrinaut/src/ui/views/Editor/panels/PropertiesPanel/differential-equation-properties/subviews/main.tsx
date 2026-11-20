@@ -107,7 +107,7 @@ const DeferredDifferentialEquationCodeField = lazy(async () => {
 export const DiffEqMainContent: React.FC = () => {
   const { differentialEquation, types, places } = useDiffEqPropertiesContext();
   const { updateDifferentialEquation } = usePetrinautMutations();
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  // The type the user picked, while the dialog asks to confirm it.
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
   const isReadOnly = useIsReadOnly();
   const presentation = usePetrinautPresentation();
@@ -133,7 +133,6 @@ export const DiffEqMainContent: React.FC = () => {
   const handleTypeChange = (newTypeId: string) => {
     if (placesUsingEquation.length > 0) {
       setPendingTypeId(newTypeId);
-      setShowConfirmDialog(true);
     } else {
       updateDifferentialEquation({
         equationId: differentialEquation.id,
@@ -149,14 +148,10 @@ export const DiffEqMainContent: React.FC = () => {
         update: { colorId: pendingTypeId },
       });
     }
-    setShowConfirmDialog(false);
     setPendingTypeId(null);
   };
 
-  const cancelTypeChange = () => {
-    setShowConfirmDialog(false);
-    setPendingTypeId(null);
-  };
+  const cancelTypeChange = () => setPendingTypeId(null);
 
   return (
     <>
@@ -244,7 +239,7 @@ export const DiffEqMainContent: React.FC = () => {
         )}
       </Form.Section>
 
-      {showConfirmDialog && (
+      {pendingTypeId !== null && (
         <Dialog size="xs" onClose={cancelTypeChange}>
           <Dialog.Header title="Change Associated Type?" />
           <Dialog.Body>
