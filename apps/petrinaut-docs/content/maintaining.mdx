@@ -4,15 +4,15 @@ description: How this site is produced, and the pages to read before changing it
 sidebar_order: 2
 ---
 
-These pages are about the documentation system itself, not about using Petrinaut.
+These pages are about the documentation system itself.
 
 Everything under [Architecture](architecture) is generated from annotations in
 the covered packages (`@hashintel/petrinaut-core`, `@hashintel/petrinaut`,
 `@apps/petrinaut-website`, and the Python package `petrinaut-optimizer-core`),
-joined against the real import graph. Editing a
+joined against the references the type checker resolves between files and the
+edges a `@talksTo` tag declares. `packages` in
+`apps/petrinaut-docs/archinaut.config.ts` names the covered packages. Editing a
 generated page does nothing: the next build replaces it.
-
-These pages cover what follows from that.
 
 - **[Declaring layers](doc:maintaining/declaring-layers)**: the annotations
   that put a folder on the map, where to write them, and what the build refuses
@@ -26,8 +26,7 @@ These pages cover what follows from that.
   guide about one layer follows, what it leaves to the generated pages, and
   what the build checks in it.
 
-Pages like this one are hand-written. They live in
-`apps/petrinaut-docs/content/` and are optional: the generator
-produces a complete bundle with that directory absent. They carry the reasoning
-an import graph cannot supply, and nothing checks them against the code, so they
-avoid restating facts the generated pages already own.
+Hand-written pages live in `apps/petrinaut-docs/content/`, and a guide about
+one layer lives beside that layer's code. They are optional: the generator
+produces a complete bundle without them. The check resolves their `layer:` and
+`doc:` links and their diagram references, and nothing checks their prose.
