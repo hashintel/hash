@@ -20,6 +20,14 @@ const patchedPackages = [
   "@earendil-works/pi-ai",
 ];
 
+/**
+ * The durable agents spike deliberately runs an unpatched newer Pi beside
+ * Brunch's patched one, so its edges are not Brunch's.
+ */
+const isDurableAgentsSpike = (dependent: string) =>
+  dependent === "@apps/durable-agents@workspace:apps/durable-agents" ||
+  dependent.startsWith("@earendil-works/pi-durable@npm:");
+
 type WhyLine = {
   value: string;
   children: Record<string, { locator: string }>;
@@ -36,6 +44,7 @@ const resolvedEdges = async (ident: string) => {
     .filter((line) => line.trim() !== "")
     .flatMap((line) => {
       const { value: dependent, children } = JSON.parse(line) as WhyLine;
+      if (isDurableAgentsSpike(dependent)) return [];
       return Object.values(children).map(({ locator }) => ({
         dependent,
         locator,

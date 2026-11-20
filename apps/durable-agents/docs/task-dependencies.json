@@ -1,0 +1,105 @@
+{
+  "package": "@apps/durable-agents",
+  "dependencies": [
+    "@hashintel/brunch-agent",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "fix:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    },
+    "probe:async-browser-call": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    },
+    "probe:ownership-unit": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    },
+    "probe:postgres-viewer": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    },
+    "probe:two-writers": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    },
+    "proof:browser-call": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    },
+    "test:integration": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    }
+  }
+}
