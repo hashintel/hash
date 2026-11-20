@@ -50,25 +50,16 @@ type MetricViewState = {
   aggregateNumber: number | null;
   plotData: uPlot.AlignedData;
   hasPlotData: boolean;
-  /** A plot is mounted: there is data, or axes to keep up without any. */
-  canPlot: boolean;
 };
 
 export const deriveMetricViewState = ({
   frames,
   outputType,
   settings,
-  keepsAxesWhileEmpty,
 }: {
   frames: readonly MetricFrame[];
   outputType: MetricFrame["outputType"];
   settings: MetricViewSettings;
-  /**
-   * A pinned time domain draws real axes with no data at all, so the chart
-   * mounts before the first frame streams and nothing shifts when data
-   * lands; an empty re-stream keeps the plot mounted the same way.
-   */
-  keepsAxesWhileEmpty: boolean;
 }): MetricViewState => {
   const {
     aggregateRuns,
@@ -116,14 +107,12 @@ export const deriveMetricViewState = ({
           distributionView,
           timeTrace,
         );
-  const hasPlotData = plotData[0]!.length > 0;
   return {
     displayMode,
     showsBandLegend,
     aggregateNumber,
     plotData,
-    hasPlotData,
-    canPlot: displayMode !== "number" && (hasPlotData || keepsAxesWhileEmpty),
+    hasPlotData: plotData[0]!.length > 0,
   };
 };
 

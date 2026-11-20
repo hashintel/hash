@@ -122,10 +122,10 @@ export const ExperimentMetricTimeline = ({
    */
   expectedOutputType?: MetricFrame["outputType"];
   /**
-   * Pins the x axis to this time window (typically `[0, maxTime]`). Without
-   * it the axis fits the streamed frames and rescales as they arrive.
+   * The time window the x axis is pinned to (typically `[0, maxTime]`): the
+   * chart draws its axes before the first frame and never rescales in time.
    */
-  timeDomain?: readonly [number, number];
+  timeDomain: readonly [number, number];
   /**
    * Identity of what the frames represent (a sweep's selection key). A
    * change crossfades the previous picture out instead of cutting.
@@ -148,15 +148,7 @@ export const ExperimentMetricTimeline = ({
   }
   const outputType =
     latestFrame?.outputType ?? lastOutputType ?? expectedOutputType ?? "scalar";
-  const timeDomainStart = timeDomain?.[0];
-  const timeDomainEnd = timeDomain?.[1];
-  const view = deriveMetricViewState({
-    frames,
-    outputType,
-    settings,
-    keepsAxesWhileEmpty:
-      timeDomainStart !== undefined && timeDomainEnd !== undefined,
-  });
+  const view = deriveMetricViewState({ frames, outputType, settings });
   const selectedFrame = selection ? selectedFrameFrom(frames, selection) : null;
 
   return (
@@ -175,15 +167,14 @@ export const ExperimentMetricTimeline = ({
           <MetricPlot
             chartRootRef={chartRootRef}
             size={size}
-            canPlot={view.canPlot}
             displayMode={view.displayMode}
             outputType={outputType}
             aggregateRuns={settings.aggregateRuns}
             runAggregation={settings.runAggregation}
             distributionView={settings.distributionView}
             timeTrace={settings.timeTrace}
-            timeDomainStart={timeDomainStart}
-            timeDomainEnd={timeDomainEnd}
+            timeDomainStart={timeDomain[0]}
+            timeDomainEnd={timeDomain[1]}
             frames={frames}
             plotData={view.plotData}
             contentEpoch={contentEpoch}

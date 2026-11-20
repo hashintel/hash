@@ -29,8 +29,8 @@ type ChartShape = {
   runAggregation: RunAggregation;
   distributionView: DistributionView;
   timeTrace: TimeTrace;
-  /** Pins the x axis; without it the axis grows with the data. */
-  timeDomain: readonly [number, number] | undefined;
+  /** The time window the x axis is pinned to. */
+  timeDomain: readonly [number, number];
 };
 
 const rangeWithBaseline = (min: number, max: number): [number, number] => {
@@ -143,9 +143,7 @@ export const chartOptions = ({
     padding: [0, 8, 4, null],
     plugins,
     scales: {
-      x: timeDomain
-        ? { time: false, range: () => [timeDomain[0], timeDomain[1]] }
-        : { time: false },
+      x: { time: false, range: () => [timeDomain[0], timeDomain[1]] },
       y: { range: yRange },
     },
     axes: [

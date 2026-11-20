@@ -67,7 +67,6 @@ const applyContent = (
 export const useMetricPlot = ({
   chartRootRef,
   size,
-  canPlot,
   displayMode,
   outputType,
   aggregateRuns,
@@ -83,15 +82,14 @@ export const useMetricPlot = ({
 }: {
   chartRootRef: RefObject<HTMLDivElement | null>;
   size: PlotSize | null;
-  canPlot: boolean;
   displayMode: MetricDisplayMode;
   outputType: MetricFrame["outputType"];
   aggregateRuns: boolean;
   runAggregation: RunAggregation;
   distributionView: DistributionView;
   timeTrace: TimeTrace;
-  timeDomainStart: number | undefined;
-  timeDomainEnd: number | undefined;
+  timeDomainStart: number;
+  timeDomainEnd: number;
   frames: readonly MetricFrame[];
   plotData: uPlot.AlignedData;
   /**
@@ -178,7 +176,7 @@ export const useMetricPlot = ({
     }
     const root = chartRootRef.current;
     const initialSize = sizeRef.current;
-    if (!root || !hasSize || !initialSize || !canPlot) {
+    if (!root || !hasSize || !initialSize) {
       return;
     }
     const { width, height } = plotSize(initialSize);
@@ -199,10 +197,7 @@ export const useMetricPlot = ({
               runAggregation,
               distributionView,
               timeTrace,
-              timeDomain:
-                timeDomainStart !== undefined && timeDomainEnd !== undefined
-                  ? [timeDomainStart, timeDomainEnd]
-                  : undefined,
+              timeDomain: [timeDomainStart, timeDomainEnd],
             },
             getFrames: () => contentRef.current.frames,
             yCeiling: yCeilingRef.current.ceiling,
@@ -230,7 +225,6 @@ export const useMetricPlot = ({
     };
   }, [
     aggregateRuns,
-    canPlot,
     chartRootRef,
     displayMode,
     distributionView,
