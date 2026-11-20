@@ -1,0 +1,91 @@
+---
+title: The life of a run
+description: How the React layer configures a run, starts it on a simulator, plays it back and hands its frames to the canvas and the timeline.
+sidebar_order: 10
+---
+
+`SimulationProvider` owns the run configuration, starts runs and experiments
+on the selected simulator, and mirrors their handles into React. It computes
+nothing: a simulator from [the simulators layer](layer:react.simulators)
+computes, [event playback](layer:react.event-playback) moves the viewed time,
+and [the execution frame source](layer:react.execution-frame) hands frames to
+the views.
+
+![A run starts from the configuration, and playback decides how far it computes. The views read frames without knowing whether a run or a recording made them.](./simulation-session.d2)
+
+## Entry point
+
+`SimulationProvider` in `provider.tsx` publishes `SimulationContext`. It is
+mounted below `SimulatorsProvider` and the language client, and above
+`EventPlaybackProvider` and `ExecutionFrameProvider`.
+
+## Interface
+
+| To                                    | Read                                                                                                                                 |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Start, pause or rewind a run          | `play`, `pause` and `stop` of `EventPlaybackContext`, which call `initialize`, `run` and `pause` of `SimulationContext`              |
+| Discard the run                       | `reset` of `SimulationContext`                                                                                                       |
+| Change what the next run computes     | `setInitialMarking`, `setParameterValue`, `setMode`, `setMaxTime`, `selectSimulator`, `setAdHocScenario`                             |
+| Show where the run stands             | `state`, `error`, `totalFramesStore`                                                                                                 |
+| Show the state at the viewed time     | `currentFrameReader` of `ExecutionFrameSourceContext`                                                                                |
+| Show the viewed time                  | `useEventPlaybackFrame`                                                                                                              |
+
+A view reads a frame through `SimulationFrameReader`: `getPlaceTokenCount`
+and `getPlaceTokens` for a place, `getTransitionState` for a transition.
+
+## Data flow
+
+Pressing Play with no run:
+
+1. `play` of `EventPlaybackContext` calls `initialize` with
+   `PETRINAUT_DEFAULT_SEED`.
+2. `initialize` takes the configuration as it stands. A selected scenario, or
+   the ad-hoc one, is compiled and overrides the marking and the parameter
+   values.
+3. The language client compiles the net's code, and the selected simulator
+   is assessed with the request. It starts an `EventSimulation` in Quick mode
+   and a `MonteCarloExperiment` in Stochastic mode.
+4. The provider keeps the handle in state and reads its status with
+   `useStore`. `playbackSource` exposes the handle's coverage, its status and
+   `demand`.
+5. `EventPlaybackProvider` advances the viewed time once per animation frame
+   and demands the viewed time plus the lead of the play mode.
+   `EVENT_PLAY_MODE_LEAD` gives the lead. The mode `viewOnly` demands
+   nothing, so the run computes nothing more.
+6. `ExecutionFrameProvider` publishes the state at the viewed time. In Actual
+   mode it publishes the frame of the host's recording through the same
+   `ExecutionFrameSource`.
+
+`reset` ends the run and puts the parameter values back to their defaults. It
+keeps `initialMarking`, which configures the next run. Experiments started
+from the Simulate view take another path, for the reason given in
+[Two execution paths](doc:two-execution-paths).
+
+## Rules
+
+- **A render that changed nothing gives the same `SimulationContext` value.**
+  The canvas, the bars and the panels read this context, so a new value
+  renders all of them. Held by `provider.context-value.react.test.tsx`.
+- **A setter that changes what the live run reflects discards the run.** The
+  views would otherwise show a run of another configuration. Held by
+  `provider.simulators.react.test.tsx`.
+- **Play pressed during a start joins that start.** A second `initialize`
+  supersedes the first and compiles the net again. Held by
+  `event-playback/provider.test.tsx`.
+- **Playback demands the viewed time plus the lead, and nothing in
+  `viewOnly`.** The lead bounds how far the worker computes ahead of what is
+  viewed. Held by `event-playback/provider.test.tsx`.
+
+## Pitfalls
+
+- A component that calls `useEventPlaybackFrame` renders on every animation
+  frame while playing. Call it in the component that shows the time or the
+  state at it, and in no component above.
+- The event count and the viewed time are stores, `totalFramesStore` and
+  `playbackStore`. A component that needs one subscribes with `useStore`;
+  the context value does not change when they do.
+- `initialize` resolves `false` when a change of configuration overtook the
+  start. The caller then has no run to play.
+- A `throw` inside a `try` block is syntax the React Compiler does not
+  compile, and one such statement excludes the whole provider.
+  `compileScenarioForRun` keeps the `throw` outside `initialize`.
