@@ -12,12 +12,9 @@ petrinaut: "Petrinaut\none Core instance per handle, readonly,\nresolveImport, l
 core: "Core instance\nstores, mutations, commands" {class: core}
 provider: "PetrinautProvider" {
   class: react
-  document: "PetrinautDocumentProvider\ninstance, host values, undo history,\nuser settings, imports, document" {class: react}
+  doc: "PetrinautDocumentProvider\ninstance, host values, undo history,\nuser settings, imports, document" {class: react}
   runtime: "Runtime providers\nnavigation, language client, notifications,\nsimulators, simulation, experiments,\noptimizations, experiment host" {class: react}
   canvas: "PetrinautCanvasProvider\nviewport, playback, active net,\npanel sizes, editor state, frame source" {class: react}
-
-  document -> runtime: "wraps"
-  runtime -> canvas: "wraps"
 }
 hooks: "Hooks\nuseStore, useEditorState,\nusePetrinautMutations" {class: react}
 ui: "Editor view and plugin hosts"
@@ -25,7 +22,9 @@ ui: "Editor view and plugin hosts"
 host -> petrinaut: "passes props to"
 petrinaut -> core: "creates"
 petrinaut -> provider: "mounts"
-core -> provider.document: "is published by"
+core -> provider.doc: "is published by"
+provider.doc -> provider.runtime: "wraps"
+provider.runtime -> provider.canvas: "wraps"
 provider.canvas -> ui: "wraps, with the\nUI providers between"
 core -> hooks: "notifies"
 hooks -> ui: "render the reader in"

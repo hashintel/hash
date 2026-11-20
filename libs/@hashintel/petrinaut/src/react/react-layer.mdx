@@ -8,7 +8,7 @@ The React layer is the contexts, hooks and providers that mirror the state of
 a Core instance into React. It renders no editor UI: the
 [UI layer](layer:ui) builds the editor on these hooks.
 
-![`PetrinautProvider` nests three groups of providers in a fixed order around the editor.](./provider-stack.d2)
+![One provider nests three groups of providers in a fixed order around the editor, and the hooks read what they publish.](./provider-stack.d2)
 
 ## Entry point
 
