@@ -541,6 +541,8 @@ const StepSettings = ({
         size="sm"
         items={[{ value: "stop", text: "Stop the run" }]}
         renderItem={() => selectedLabel("Stop the run", true)}
+        // The chosen value reads like the neighbouring selects': plain, not the menu row's selected label.
+        renderSelectedItem={() => "Stop the run"}
         value="stop"
         onChange={() => {}}
       />
