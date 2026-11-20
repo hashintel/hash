@@ -33,9 +33,11 @@ import * as v from "valibot";
 
 import {
   brunchRoutes,
+  browserCallClaimBodySchema,
   browserCallFailureBodySchema,
   browserCallLeaseBodySchema,
   browserCallResultBodySchema,
+  handEditReportBodySchema,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -48,24 +50,11 @@ import {
   renewBrowserCall,
   startBrowserCall,
 } from "./browser-call";
-import {
-  handEditReportBodySchema,
-  handEditsRoute,
-  reportHandEdit,
-} from "./hand-edit";
-
-/** A claim: the claiming tab's ID and its canonical editor binding. Not yet in `@hashintel/brunch-agent`. */
-export const browserCallClaimBodySchema = v.object({
-  claimant: v.pipe(v.string(), v.minLength(1)),
-  binding: v.string(),
-});
+import { reportHandEdit } from "./hand-edit";
 
 /** A start: the claim's proof, as the lease body carries it. */
 export const browserCallStartBodySchema = browserCallLeaseBodySchema;
 
-export type BrowserCallClaimBody = v.InferOutput<
-  typeof browserCallClaimBodySchema
->;
 export type BrowserCallStartBody = v.InferOutput<
   typeof browserCallStartBodySchema
 >;
@@ -228,7 +217,7 @@ export const createBrowserCallRouter = ({
 
   // Before the claim route, which would otherwise take `hand-edits` for a call ID.
   router.post(
-    `/:conversationId/${brunchRoutes.browserCalls}/${handEditsRoute}`,
+    `/:conversationId/${brunchRoutes.browserCalls}/${brunchRoutes.handEdits}`,
     async (request) => {
       request.header("Cache-Control", "no-store");
       const target = await addressed(request, handEditReportBodySchema);

@@ -8,10 +8,12 @@ export {
   browserCallEndedWithoutResult,
   browserCallStaleRefusal,
   browserCallUnstartedRefusal,
+  browserCallClaimBodySchema,
   browserCallFailureBodySchema,
   browserCallLeaseBodySchema,
   browserCallResultBodySchema,
   type BrowserCallClaim,
+  type BrowserCallClaimBody,
   type BrowserCallFailureBody,
   type BrowserCallFailureDisposition,
   type BrowserCallLeaseBody,
@@ -27,6 +29,10 @@ export {
   clientToolHistoryFrom,
   type ClientToolHistoryResult,
 } from "./client-tools/client-tool-history";
+export {
+  handEditReportBodySchema,
+  type HandEditReportBody,
+} from "./client-tools/hand-edit-reports";
 export { projectBrunchMessageMetadata } from "./client-tools/message-metadata";
 
 export const SWEEP_TOOL_NAME = toolName("sweep");

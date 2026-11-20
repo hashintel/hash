@@ -13,8 +13,6 @@
  * `postTools` or `final` boundary. `visibleNetView` reads it: the latest note
  * after the model's view makes the view stale when it names another revision.
  */
-import * as v from "valibot";
-
 import {
   handEditEntryKind,
   renderHandEditNote,
@@ -29,23 +27,7 @@ import type {
   SubmissionId,
   SubmissionRecord,
 } from "@earendil-works/pi-durable";
-
-/** The route segment under a conversation's browser calls: `<id>/browser-calls/hand-edits`. Not yet in `brunchRoutes`. */
-export const handEditsRoute = "hand-edits";
-
-/**
- * A report: the reporting tab's canonical editor binding, the edit episode
- * it belongs to, the report's position in it, and the document's revision.
- * The episode is bounded because it enters the note's request ID.
- */
-export const handEditReportBodySchema = v.object({
-  binding: v.string(),
-  episode: v.pipe(v.string(), v.minLength(1), v.maxLength(128)),
-  seq: v.pipe(v.number(), v.integer(), v.minValue(0)),
-  revision: v.pipe(v.string(), v.minLength(1)),
-});
-
-export type HandEditReport = v.InferOutput<typeof handEditReportBodySchema>;
+import type { HandEditReportBody } from "@hashintel/brunch-agent";
 
 /** The note entry's `data`. */
 export type HandEditData = {
@@ -58,11 +40,11 @@ export type HandEditData = {
 export const handEditReportId = ({
   episode,
   seq,
-}: Pick<HandEditReport, "episode" | "seq">): string => `${episode}:${seq}`;
+}: Pick<HandEditReportBody, "episode" | "seq">): string => `${episode}:${seq}`;
 
 /** The note's write, under the report's request ID, so a retried report is admitted once. */
 export const handEditWrite = (
-  { episode, seq, revision }: HandEditReport,
+  { episode, seq, revision }: HandEditReportBody,
   timestamp: number,
 ): SubmissionDraft => {
   const reportId = handEditReportId({ episode, seq });
@@ -100,7 +82,7 @@ export type HandEditOutcome =
 export const reportHandEdit = async (
   harness: Harness,
   conversationId: ConversationId,
-  report: HandEditReport,
+  report: HandEditReportBody,
   context: Context,
 ): Promise<HandEditOutcome> => {
   const conversation = await harness.conversation(conversationId, context);
