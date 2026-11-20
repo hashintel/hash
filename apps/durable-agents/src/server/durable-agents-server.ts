@@ -27,6 +27,13 @@
  * - Any `HEAD` request is answered 405, on these routes and on any mounted
  *   on `app` later.
  *
+ * Each SSE stream (`POST /chat`'s and a reconnect's) carries a comment
+ * heartbeat after `sseHeartbeatMs` without a byte, between events, so the
+ * proxies in front (Cloudflare closes a response after 125 s of silence)
+ * keep a turn's stream open while it waits on the user or a browser call.
+ * AI SDK's parser skips comments; a heartbeat is not a watcher, and a
+ * stream's end or cancel stops it.
+ *
  * Each conversation is its own Harness on its own storage (see
  * `createConversationRegistry`), checked to still own that storage before
  * every request. The server's limits (`DurableAgentsServerLimits`) bound a
@@ -42,9 +49,12 @@ import {
   createUIMessageStreamResponse,
   type TextUIPart,
   type UIMessage,
+  type UIMessageChunk,
 } from "ai";
 import { type Context as HonoContext, Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
+
+import { withSseHeartbeat } from "@hashintel/brunch-agent/server";
 
 import { createAbandonedTurns } from "./durable-agents-server/abandoned-turns";
 import {
@@ -160,6 +170,12 @@ export type DurableAgentsServerOptions = ConversationRegistryOptions & {
    * `Retry-After` instead of 500.
    */
   readonly isUnavailable?: (error: unknown) => boolean;
+  /**
+   * How long a turn's stream may go without a byte before it carries an SSE
+   * comment heartbeat (`withSseHeartbeat`), so a proxy in front keeps it open
+   * while the turn waits; `defaultSseHeartbeatMs` (30 s) when absent.
+   */
+  readonly sseHeartbeatMs?: number;
   readonly context?: Context;
 };
 
@@ -294,6 +310,12 @@ export const createDurableAgentsServer = (
     return ctx.text("Internal Server Error", 500);
   });
 
+  /** A UI message stream as SSE, with heartbeats while it is quiet. */
+  const streamResponse = (stream: ReadableStream<UIMessageChunk>) =>
+    withSseHeartbeat(createUIMessageStreamResponse({ stream }), {
+      intervalMs: options.sseHeartbeatMs,
+    });
+
   /** A client stream of `submission`, counted as watching the conversation until it ends. */
   const follow = async (
     { root }: OpenConversation,
@@ -301,8 +323,8 @@ export const createDurableAgentsServer = (
     signal: AbortSignal,
     detach: () => void,
   ) =>
-    createUIMessageStreamResponse({
-      stream: await followSubmission(
+    streamResponse(
+      await followSubmission(
         root,
         submission,
         projection,
@@ -310,7 +332,7 @@ export const createDurableAgentsServer = (
         detach,
         signal,
       ),
-    });
+    );
 
   /** Admit the last user message, once per message id, and stream its answer. */
   app.post("/chat", async (ctx) => {
@@ -430,7 +452,7 @@ export const createDurableAgentsServer = (
           await stream.cancel();
           return ctx.body(null, 204);
         }
-        return createUIMessageStreamResponse({ stream });
+        return streamResponse(stream);
       }
       const response = await follow(
         conversation,
