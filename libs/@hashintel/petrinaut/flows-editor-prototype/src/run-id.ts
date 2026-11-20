@@ -64,7 +64,6 @@ export const runLabel = (run: Pick<RunRecord, "id">, take = runIdTake()) =>
 export const runIdMono = (take = runIdTake()) => take === "c" || take === "d";
 
 const monoStyle = css({
-  fontFamily: "mono",
   fontSize: "[0.92em]",
   letterSpacing: "[0]",
 });

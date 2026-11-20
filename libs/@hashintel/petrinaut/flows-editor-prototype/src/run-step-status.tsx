@@ -186,7 +186,7 @@ export const StatusLine = ({
         <span className={wordStyle}>{word}</span>
         {facts
           .filter(Boolean)
-          .map((fact) => ` · ${fact}`)
+          .map((fact) => `, ${fact}`)
           .join("")}
       </span>
     </span>

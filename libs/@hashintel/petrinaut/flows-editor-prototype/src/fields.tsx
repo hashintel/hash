@@ -473,7 +473,7 @@ const editorClass = css({
   },
   "&:empty::before": {
     content: "attr(data-placeholder)",
-    color: "neutral.fg.muted.disabled",
+    color: "neutral.s90",
   },
 });
 
@@ -982,7 +982,7 @@ const typeInlineStyle = css({
   background: "[transparent]",
   textStyle: "sm",
   color: "neutral.fg.heading",
-  "&::placeholder": { color: "neutral.fg.subtle" },
+  "&::placeholder": { color: "neutral.fg.muted" },
 });
 
 /** "+N" after the first chip: hover lists the rest, click shows them all. */

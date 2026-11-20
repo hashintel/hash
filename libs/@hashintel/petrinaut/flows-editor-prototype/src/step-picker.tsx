@@ -157,7 +157,7 @@ const searchStyle = css({
     background: "[transparent]",
     textStyle: "sm",
     color: "neutral.fg.heading",
-    _placeholder: { color: "neutral.fg.subtle" },
+    _placeholder: { color: "neutral.fg.muted" },
   },
   "&[data-size=lg]": {
     height: "[48px]",

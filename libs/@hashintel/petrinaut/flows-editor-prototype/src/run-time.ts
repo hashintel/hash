@@ -56,7 +56,7 @@ export const runLength = (run: RunRecord, now: number) =>
 export const shortTime = (run: RunRecord, now: number) => {
   const word = liveWord(run, now);
   if (word) {
-    return `${word} · ${runLength(run, now)}`;
+    return `${word}, ${runLength(run, now)}`;
   }
   const { day, time } = parts(run);
   return day === "Today" ? time : day === "Yesterday" ? `${day} ${time}` : day;
@@ -71,13 +71,13 @@ export const startTime = (run: RunRecord) => {
 /** t2's faint tail on a live run: "Running · 2m 14s". */
 export const liveTail = (run: RunRecord, now: number) => {
   const word = liveWord(run, now);
-  return word ? `${word} · ${runLength(run, now)}` : null;
+  return word ? `${word}, ${runLength(run, now)}` : null;
 };
 
-/** t3: duration first, then when it started (5 Nov, L424): "1m 52s · Today, 08:15", "12 s · 5 Nov, 14:02". */
+/** t3: duration first, then when it started (5 Nov, L424): "1m 52s, Today, 08:15", "12 s, 5 Nov, 14:02" (no dots in fact chains, L1068). */
 export const startedLine = (run: RunRecord, now: number) => {
   const length = runLength(run, now);
-  const line = length ? `${length} · ${run.when}` : run.when;
-  // A run waiting on a person says so (11 Nov convergence A13): "Needs review · 3m 20s · Today, 10:42".
-  return outcomeOf(run, now) === "needsReview" ? `${outcomeLabel.needsReview} · ${line}` : line;
+  const line = length ? `${length}, ${run.when}` : run.when;
+  // A run waiting on a person says so (11 Nov convergence A13): "Needs review, 3m 20s, Today, 10:42".
+  return outcomeOf(run, now) === "needsReview" ? `${outcomeLabel.needsReview}, ${line}` : line;
 };

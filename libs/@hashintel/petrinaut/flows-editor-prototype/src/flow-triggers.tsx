@@ -422,6 +422,14 @@ const groupLabelStyle = css({
   paddingY: "2",
 });
 
+/** A section heading on the Triggers page ("Manual", "Schedules · 14"): 14 px medium. */
+const groupHeadingStyle = css({
+  textStyle: "sm",
+  fontWeight: "medium",
+  color: "neutral.fg.muted",
+  paddingY: "2",
+});
+
 const rowStyle = css({
   display: "flex",
   alignItems: "center",
@@ -1216,7 +1224,7 @@ const TriggersPanelAtScale = () => {
         ) : null}
         {showManual ? (
           <div className={css({ display: "flex", flexDirection: "column" })}>
-            <span className={groupLabelStyle}>Manual</span>
+            <span className={groupHeadingStyle}>Manual</span>
             <ScaleTriggerRow row={manualRow} />
           </div>
         ) : null}
@@ -1231,7 +1239,7 @@ const TriggersPanelAtScale = () => {
               key={group.kind}
               className={css({ display: "flex", flexDirection: "column" })}
             >
-              <span className={groupLabelStyle}>
+              <span className={groupHeadingStyle}>
                 {group.label} · {formatCount(group.total)}
               </span>
               {rows.map((row) => (

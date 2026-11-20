@@ -33,7 +33,7 @@ import {
   statusText,
   triggerLabel,
 } from "./run-history";
-import { runId, RunIdsIn, runLabel } from "./run-id";
+import { runId, RunIdsIn, RunIdText, runLabel } from "./run-id";
 import { clockText } from "./run-time";
 import { selectedLabel } from "./menu-rows";
 import { ShowAllRow } from "./show-all-row";
@@ -758,7 +758,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                       color: "neutral.fg.heading",
                     })}
                   >
-                    Run <span className={css({ fontFamily: "mono" })}>{runId(run, "b")}</span> · {run.when}
+                    Run <RunIdText run={run} take="b" copyable /> · {run.when}
                   </td>
                 )}
                 <td>
@@ -989,7 +989,6 @@ const StatValue = ({ stat, className }: { stat: Stat; className: string }) => {
     <button
       type="button"
       className={cx(className, statLinkStyle)}
-      style={stat.color ? { color: stat.color } : undefined}
       onClick={stat.onOpen}
       data-stat-value
     >

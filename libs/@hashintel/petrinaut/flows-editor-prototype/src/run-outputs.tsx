@@ -1917,7 +1917,7 @@ export const groupsCount = (groups: OutputGroup[]) =>
         ? `${groupSize(group)} failed`
         : plural(groupSize(group), groupLabel[group.type][0]),
     )
-    .join(" · ");
+    .join(", ");
 
 /** An entity list as groups, one per type, each with only its type's columns. */
 const entityGroups = (

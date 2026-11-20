@@ -430,7 +430,7 @@ export const selectTriggerStyle = css({
     whiteSpace: "nowrap",
   },
   "& > svg": { color: "neutral.fg.muted", flexShrink: 0 },
-  "&[data-placeholder]": { color: "neutral.fg.subtle" },
+  "&[data-placeholder]": { color: "neutral.fg.muted" },
   _hover: { borderColor: "neutral.bd.strong" },
   _focusVisible: { outline: "[2px solid var(--flows-sel-border)]" },
 });
@@ -638,7 +638,7 @@ export const descriptionInputStyle = css({
   outline: "none",
   cursor: "text",
   transition: "[background-color 0.1s ease-in-out]",
-  _placeholder: { color: "neutral.fg.muted.disabled" },
+  _placeholder: { color: "neutral.s90" },
   "&:hover:not(:focus)": { backgroundColor: "neutral.bg.subtle.hover" },
   // figma-ds ToggleableTextInput focus (9018:6856): the hover fill plus a faint 2 px ring; nothing moves.
   _focus: {

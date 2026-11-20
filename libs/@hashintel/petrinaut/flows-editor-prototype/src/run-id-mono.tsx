@@ -1,5 +1,5 @@
 /**
- * Run IDs in JetBrains Mono, Petrinaut's mono (#lib-designsystem, 9 Nov: use the app's existing mono). `?runidmono=`
+ * Run IDs in the UI font, Inter (ledger L1021, 20 Nov; they were JetBrains Mono from 9 Nov). `?runidmono=`
  * picks a styling take; unset keeps today's IDs. Every take shows 4 characters and sets the size in em, so it follows
  * the text around it (13/14 or 12/14 of a 14 px row). Take c was a with another font, so it now shows a.
  *
@@ -18,8 +18,6 @@ import { type MouseEvent, type PointerEvent, useEffect, useState } from "react";
 
 import { Icon, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-
-import { CODE_FONT_FAMILY } from "../../src/ui/constants/fonts";
 
 import { Toast } from "./ds-parts/toast";
 
@@ -54,9 +52,6 @@ export const runIdMonoTake = (): RunIdMonoTake | null => {
   }
   return value && value in monoSpecs ? (value as RunIdMonoTake) : null;
 };
-
-// JetBrains Mono is loaded in main.tsx, as Petrinaut loads it.
-const monoFont = CODE_FONT_FAMILY;
 
 const wrapStyle = css({
   display: "inline-flex",
@@ -122,7 +117,7 @@ export const runIdCopyTake = (): RunIdCopyTake | null => {
 
 const hoverWrapStyle = css({
   display: "inline-flex",
-  alignItems: "center",
+  alignItems: "baseline",
   // DS xs button: 4 px between label and icon (Aakarsh, 10 Nov).
   gap: "1",
   verticalAlign: "middle",
@@ -149,6 +144,7 @@ const hoverWrapStyle = css({
 });
 
 const hoverButtonStyle = css({
+  alignSelf: "center",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -244,7 +240,6 @@ export const MonoRunId = ({
   const spec = monoSpecs[monoTake];
   const [toast, setToast] = useState<string | null>(null);
   const style = {
-    fontFamily: monoFont,
     fontSize: `${(spec.size / 14).toFixed(3)}em`,
     fontWeight: spec.weight,
     letterSpacing: spec.tracking,

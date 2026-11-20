@@ -257,7 +257,11 @@ export type StarCopy = "s1" | "s2" | "s3";
 
 export const useStarCopy = (): StarCopy | null => {
   const value = useLocation().query.get("starcopy");
-  return value === "s1" || value === "s2" || value === "s3" ? value : null;
+  if (value === "today") {
+    return null;
+  }
+  // Picked: "Add to Featured outputs" / "Remove from Featured outputs" (s2) unless a take is asked for.
+  return value === "s1" || value === "s3" ? value : "s2";
 };
 
 /**

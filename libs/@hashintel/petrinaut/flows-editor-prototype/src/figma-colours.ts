@@ -110,6 +110,10 @@ const componentRules: [string, Record<string, string>][] = [
   ],
   // A single Select's picked row has the same weight as its neighbours (GREY-ROW, ledger L1019, 20 Nov: grey fill, no
   // tick, no bold).
+  // Placeholder text is #8D8D8D (Salt s90) everywhere (ledger L992); the DS draws it in s80 (#BBBBBB).
+  [`input:not([class*="heading"])::placeholder`, { color: "var(--colors-neutral-s90)" }],
+  [`textarea:not([class*="heading"])::placeholder`, { color: "var(--colors-neutral-s90)" }],
+  [`[data-placeholder-shown]`, { color: "var(--colors-neutral-s90)" }],
   // No tick on the picked row, and no tick column, in any single Select (Filter row selects: Where, If, Logs).
   [
     `[data-scope="select"][data-part="item"] > span[aria-hidden="true"]:not([class*="bdr_"])`,
