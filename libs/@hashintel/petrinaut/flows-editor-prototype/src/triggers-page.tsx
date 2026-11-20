@@ -633,6 +633,7 @@ const DateButton = ({
         aria-label={label}
         iconName="calendar"
         iconPosition="left"
+        className={css({ whiteSpace: "nowrap", flexShrink: 0 })}
         onClick={() => setOpen((current) => !current)}
       >
         {`${dayNames[weekday(date)]?.slice(0, 3)} ${date.getUTCDate()} ${date.toLocaleString("en-GB", { month: "short", timeZone: "UTC" })} ${date.getUTCFullYear()}`}
