@@ -248,6 +248,9 @@ export const BottomPanel: React.FC = () => {
 
       {/* Scrollable content: a plugin's, or the component of an own tab */}
       <HorizontalTabPanel
+        // A new element between a plugin's tab and an own one, so the scroll
+        // offset of the one does not carry over to the other.
+        key={activePluginView ? "plugin" : "own"}
         tabId={renderedActiveTab}
         padded={!activeSubView?.noPadding}
       >

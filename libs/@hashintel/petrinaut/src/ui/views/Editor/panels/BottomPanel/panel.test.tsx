@@ -156,6 +156,16 @@ describe("BottomPanel", () => {
     expect(screen.getByRole("button", { name: "Clear notes" })).toBeTruthy();
   });
 
+  it("starts an own tab at the top after a scrolled tab of a plugin", () => {
+    renderPlugins([notesPlugin], view);
+    fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
+    screen.getByRole("tabpanel").scrollTop = 40;
+
+    fireEvent.click(screen.getByRole("tab", { name: "Diagnostics" }));
+
+    expect(screen.getByRole("tabpanel").scrollTop).toBe(0);
+  });
+
   it("returns to its first tab when the plugin of the active one stops", () => {
     const { rerender } = renderPlugins([notesPlugin], view);
     fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
