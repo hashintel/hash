@@ -763,7 +763,7 @@ const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
 
 type ScaleRow = {
   id: string;
-  kind: FlowTrigger["kind"];
+  kind: FlowTrigger["kind"] | "manual";
   label: string;
   /** The web it runs in, when it isn't this one. */
   web?: string;
@@ -861,7 +861,7 @@ const ScaleTriggerRow = ({ row }: { row: ScaleRow }) => (
         color: "neutral.fg.muted",
       })}
     >
-      <Icon name={iconFor[row.kind]} size="sm" />
+      <Icon name={row.kind === "manual" ? kindIcon.manual : iconFor[row.kind]} size="sm" />
     </span>
     <span
       className={css({
@@ -880,7 +880,9 @@ const ScaleTriggerRow = ({ row }: { row: ScaleRow }) => (
         </span>
       ) : null}
     </span>
-    <span className={stateStyle}>{row.on ? "On" : "Paused"}</span>
+    <span className={stateStyle}>
+      {row.on ? "On" : row.kind === "manual" ? "Off" : "Paused"}
+    </span>
   </div>
 );
 
@@ -891,14 +893,8 @@ const showAllNoun: Record<FlowTrigger["kind"], string> = {
 };
 
 const TriggersPanelAtScale = () => {
-  const { setUi } = useEditor();
-  // The flow's own Manual switch, so the Manual ghost reads what the panel shows.
+  // Manual runs is a read-only row; its state is the flow's own switch.
   const manual = useFlowTriggers().manual;
-  const setManual = (on: boolean) =>
-    setUi((current) => ({
-      ...current,
-      triggerSwitches: { ...current.triggerSwitches, manual: on },
-    }));
   const [filter, setFilter] = useState<ScaleFilter>("all");
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
@@ -922,10 +918,16 @@ const TriggersPanelAtScale = () => {
       total: term === "" ? totalOf(group.kind) : rows.length,
     };
   });
-  const matches = shownGroups.reduce(
-    (sum, group) => sum + group.rows.length,
-    0,
-  );
+  const manualRow: ScaleRow = {
+    id: "manual",
+    kind: "manual",
+    label: "Manual runs",
+    on: manual,
+  };
+  const showManual = keeps(manualRow);
+  const matches =
+    shownGroups.reduce((sum, group) => sum + group.rows.length, 0) +
+    (showManual ? 1 : 0);
   const sheetGroup = shownGroups.find((group) => group.kind === sheetKind);
   const filterControl = (
     <SegmentedControl<ScaleFilter>
@@ -978,37 +980,6 @@ const TriggersPanelAtScale = () => {
             What can start this flow
           </span>
         </span>
-      </div>
-      <div
-        className={cx(
-          blockStyle,
-          css({ display: "flex", alignItems: "center", gap: "3" }),
-        )}
-      >
-        <span
-          className={css({
-            flex: "1",
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.5",
-          })}
-        >
-          <span
-            className={css({ textStyle: "sm", color: "neutral.fg.heading" })}
-          >
-            Manual runs
-          </span>
-          <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
-            Show a Run button on this flow
-          </span>
-        </span>
-        <span className={stateStyle}>{manual ? "On" : "Off"}</span>
-        <Toggle
-          size="sm"
-          aria-label="Manual runs"
-          value={manual}
-          onChange={setManual}
-        />
       </div>
       <div
         className={cx(
@@ -1089,6 +1060,12 @@ const TriggersPanelAtScale = () => {
         {filterOld ? (
           <span className={css({ paddingY: "1" })}>{filterControl}</span>
         ) : null}
+        {showManual ? (
+          <div className={css({ display: "flex", flexDirection: "column" })}>
+            <span className={groupLabelStyle}>Manual</span>
+            <ScaleTriggerRow row={manualRow} />
+          </div>
+        ) : null}
         {shownGroups.map((group) => {
           if (group.rows.length === 0) {
             return null;
@@ -1139,11 +1116,12 @@ const TriggersPanelAtScale = () => {
             paddingTop: "2",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
           })}
         >
+          {/* The button's own 9 px padding comes off, so its + sits on the rows' icon edge. */}
           <Button
             size="sm"
+            className={css({ marginLeft: "[-9px]" })}
             variant="ghost"
             tone="neutral"
             iconName="plus"
@@ -1151,10 +1129,6 @@ const TriggersPanelAtScale = () => {
           >
             Add trigger
           </Button>
-          {/* Stays inside Flows, so no ↗ (11 Nov convergence A19). */}
-          <span className={css({ display: "inline-flex", textStyle: "sm" })}>
-            <TextLink onClick={openTriggersPage}>Edit flow triggers</TextLink>
-          </span>
         </span>
       </div>
       {sheetGroup ? (
