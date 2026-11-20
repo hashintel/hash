@@ -115,7 +115,7 @@ test("a confirmation offer lists the dock's Yes option in JSON and printed repli
       v: 1,
       conversationId: "conversation",
       offset: "1",
-      settlements: [],
+      settlements: [{ submissionId: "sub_3", outcome: "completed" }],
       messages: [
         {
           id: "assistant",
@@ -166,4 +166,49 @@ test("a confirmation offer lists the dock's Yes option in JSON and printed repli
   expect(JSON.parse(encodePersonaRecord(reply))).toMatchObject({
     questions: [{ kind: "confirm", options: [{ label: "Yes" }] }],
   });
+});
+
+test("a turn's questions include those a continuation recorded under another submission", () => {
+  const offer = (toolCallId: string, label: string) => ({
+    type: "dynamic-tool" as const,
+    toolCallId,
+    toolName: "offer_answers",
+    state: "output-available" as const,
+    input: { questions: [{ kind: "open", label, text: `${label}?` }] },
+    output: { ok: true },
+  });
+  const message = (
+    id: string,
+    purpose: "user" | "assistant",
+    submissionId: string,
+    parts: object[],
+  ) => ({
+    id,
+    role: purpose,
+    purpose,
+    display: "visible" as const,
+    submissionId,
+    parts,
+  });
+  const questions = offeredQuestionsOf(
+    {
+      v: 1,
+      conversationId: "conversation",
+      offset: "1",
+      settlements: [
+        { submissionId: "sub_1", outcome: "completed" },
+        { submissionId: "sub_2", outcome: "completed" },
+      ],
+      messages: [
+        message("user", "user", "sub_1", [
+          { type: "text", text: "We plan weekly." },
+        ]),
+        message("reply", "assistant", "sub_1", [offer("offer-1", "Demand")]),
+        message("continuation", "user", "sub_2", []),
+        message("more", "assistant", "sub_2", [offer("offer-2", "Supply")]),
+      ],
+    } as Parameters<typeof offeredQuestionsOf>[0],
+    ["sub_1"],
+  );
+  expect(questions.map(({ label }) => label)).toEqual(["Demand", "Supply"]);
 });

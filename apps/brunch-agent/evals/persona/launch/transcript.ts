@@ -1,53 +1,8 @@
-import { petrinautUserMessageText } from "@hashintel/brunch-agent";
-
 import { formatAskedQuestions } from "../shared/format-persona-questions.ts";
-import { personaQuestionsIn } from "../shared/offered-questions.ts";
+import { personaTurnsOf, visibleTextOf } from "../shared/persona-turns.ts";
 
 import type { PersonaTranscriptEntry } from "../rpc-protocol.ts";
-import type {
-  FlueConversationMessage,
-  FlueConversationSnapshot,
-} from "@flue/sdk";
-
-/** The prose a message shows the persona, if it is one the transcript keeps. */
-const visibleEntry = (
-  message: FlueConversationMessage,
-): PersonaTranscriptEntry | undefined => {
-  if (message.purpose !== "user" && message.purpose !== "assistant")
-    return undefined;
-  const rawText = message.parts
-    .flatMap((part) => (part.type === "text" ? [part.text] : []))
-    .join("\n\n")
-    .trim();
-  const text =
-    message.purpose === "user" ? petrinautUserMessageText(rawText) : rawText;
-  if (!text) return undefined;
-  return { speaker: message.purpose === "user" ? "user" : "brunch", text };
-};
-
-/**
- * Whether every submission behind a turn's messages settled as completed:
- * its own submission and any browser-tool continuation. A failed, stopped
- * or unsettled turn docked nothing the persona could answer.
- */
-const completed = (
-  turn: readonly FlueConversationMessage[],
-  snapshot: FlueConversationSnapshot,
-) => {
-  const submissionIds = new Set(
-    turn.flatMap(({ submissionId }) => (submissionId ? [submissionId] : [])),
-  );
-  return (
-    submissionIds.size > 0 &&
-    turn.every(({ settlement }) => settlement === undefined) &&
-    [...submissionIds].every(
-      (submissionId) =>
-        snapshot.settlements.find(
-          (settlement) => settlement.submissionId === submissionId,
-        )?.outcome === "completed",
-    )
-  );
-};
+import type { FlueConversationSnapshot } from "@flue/sdk";
 
 /**
  * The visible prose each side typed. Under a completed turn's last reply,
@@ -56,18 +11,15 @@ const completed = (
  */
 export const personaTranscriptFrom = (
   snapshot: FlueConversationSnapshot,
-): PersonaTranscriptEntry[] => {
-  // A turn runs from one persona message to the next; continuations add no text.
-  const turns: FlueConversationMessage[][] = [[]];
-  for (const message of snapshot.messages) {
-    if (message.purpose === "user" && visibleEntry(message)) turns.push([]);
-    turns.at(-1)!.push(message);
-  }
-  return turns.flatMap((turn) => {
-    const entries = turn.flatMap((message) => visibleEntry(message) ?? []);
-    const questions = completed(turn, snapshot)
-      ? personaQuestionsIn(turn.flatMap(({ parts }) => parts))
-      : [];
+): PersonaTranscriptEntry[] =>
+  personaTurnsOf(snapshot).flatMap(({ messages, questions }) => {
+    const entries = messages.flatMap((message): PersonaTranscriptEntry[] => {
+      const text = visibleTextOf(message);
+      if (text === undefined) return [];
+      return [
+        { speaker: message.purpose === "user" ? "user" : "brunch", text },
+      ];
+    });
     if (questions.length === 0) return entries;
     const asked = formatAskedQuestions(questions);
     const reply = entries.findLastIndex(({ speaker }) => speaker === "brunch");
@@ -77,4 +29,3 @@ export const personaTranscriptFrom = (
       text: `${entries[reply]!.text}\n\n${asked}`,
     });
   });
-};

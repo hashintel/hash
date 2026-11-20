@@ -20,7 +20,7 @@ import {
   petrinautUserMessageText,
 } from "@hashintel/brunch-agent";
 
-import { personaQuestionsIn } from "./shared/offered-questions.ts";
+import { personaTurnsOf } from "./shared/persona-turns.ts";
 
 import type { PersonaQuestion } from "./rpc-protocol.ts";
 import type { ConversationIdentity } from "@hashintel/brunch-agent";
@@ -123,21 +123,22 @@ export const allowDestructiveEdits = async (
 };
 
 /**
- * The questions a settled turn docked on the composer: every question its
- * offers named, merged as the panel merges them.
+ * The questions a settled turn docked on the composer: every question the
+ * offers of its whole turn named, continuations included, merged as the
+ * panel merges them.
  */
 export const offeredQuestionsOf = (
   snapshot: FlueConversationSnapshot,
   submissionIds: readonly string[],
 ): PersonaQuestion[] =>
-  personaQuestionsIn(
-    snapshot.messages
-      .filter(
+  personaTurnsOf(snapshot)
+    .filter(({ messages }) =>
+      messages.some(
         ({ submissionId }) =>
           submissionId !== undefined && submissionIds.includes(submissionId),
-      )
-      .flatMap(({ parts }) => parts),
-  );
+      ),
+    )
+    .flatMap(({ questions }) => questions);
 
 /**
  * Give each docked question its answer the way a person would: a click on
@@ -183,12 +184,19 @@ const fillDockedAnswers = async (page: Page, answers: readonly string[]) => {
       // eslint-disable-next-line no-await-in-loop -- As above.
       else await composer.fill(text);
     }
-    if (index < answers.length - 1)
+    if (index < answers.length - 1) {
       // Send moves on, whether or not this question was answered.
       // eslint-disable-next-line no-await-in-loop -- As above.
       await page
         .getByRole("button", { name: "Continue to next question", exact: true })
         .click();
+      // The next pick must find the next question's options, not these.
+      // eslint-disable-next-line no-await-in-loop -- As above.
+      await expect(dock).toContainText(
+        `Question ${index + 2}/${answers.length}`,
+        { timeout: 5_000 },
+      );
+    }
   }
 };
 
