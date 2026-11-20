@@ -466,22 +466,42 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       );
     };
 
-  const setAdHocScenario: SimulationContextValue["setAdHocScenario"] = (
-    adHocScenario,
-  ) => {
-    if (stateValuesRef.current.adHocScenario !== adHocScenario) {
+  /**
+   * Changes the configuration. A change the live run does not reflect
+   * discards it; each setter says whether its change is one.
+   */
+  const configure = (
+    discardsRun: boolean,
+    patch: (previous: SimulationStateValues) => Partial<SimulationStateValues>,
+  ): void => {
+    if (discardsRun) {
       invalidateSimulationForConfigurationChange();
     }
-    setStateValues((prev) => ({ ...prev, adHocScenario }));
+    setStateValues((previous) => ({ ...previous, ...patch(previous) }));
   };
+
+  const setAdHocScenario: SimulationContextValue["setAdHocScenario"] = (
+    adHocScenario,
+  ) =>
+    configure(stateValuesRef.current.adHocScenario !== adHocScenario, () => ({
+      adHocScenario,
+    }));
 
   const setScenarioParameterValue: SimulationContextValue["setScenarioParameterValue"] =
     (identifier, value) => {
-      if (
-        stateValuesRef.current.scenarioParameterValues[identifier] !== value
-      ) {
-        invalidateSimulationForConfigurationChange();
-      }
+      configure(
+        stateValuesRef.current.scenarioParameterValues[identifier] !== value,
+        (previous) => ({
+          selectedScenarioId:
+            requestedScenarioId === undefined
+              ? effectiveSelectedScenarioId
+              : requestedScenarioId,
+          scenarioParameterValues: {
+            ...previous.scenarioParameterValues,
+            [identifier]: value,
+          },
+        }),
+      );
 
       if (
         requestedScenarioId === undefined &&
@@ -492,92 +512,52 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
           { cause: "normalization", action: "scenario" },
         );
       }
-
-      setStateValues((prev) => ({
-        ...prev,
-        selectedScenarioId:
-          requestedScenarioId === undefined
-            ? effectiveSelectedScenarioId
-            : requestedScenarioId,
-        scenarioParameterValues: {
-          ...prev.scenarioParameterValues,
-          [identifier]: value,
-        },
-      }));
     };
 
   const setInitialMarking: SimulationContextValue["setInitialMarking"] = (
     placeId,
     marking,
-  ) => {
-    invalidateSimulationForConfigurationChange();
-
-    setStateValues((prev) => {
-      return {
-        ...prev,
-        initialMarking: {
-          ...prev.initialMarking,
-          [placeId]: marking,
-        },
-      };
-    });
-  };
+  ) =>
+    configure(true, (previous) => ({
+      initialMarking: { ...previous.initialMarking, [placeId]: marking },
+    }));
 
   const setParameterValue: SimulationContextValue["setParameterValue"] = (
     parameterId,
     value,
-  ) => {
-    if (stateValuesRef.current.parameterValues[parameterId] !== value) {
-      invalidateSimulationForConfigurationChange();
-    }
+  ) =>
+    configure(
+      stateValuesRef.current.parameterValues[parameterId] !== value,
+      (previous) => ({
+        parameterValues: { ...previous.parameterValues, [parameterId]: value },
+      }),
+    );
 
-    setStateValues((prev) => ({
-      ...prev,
-      parameterValues: {
-        ...prev.parameterValues,
-        [parameterId]: value,
-      },
-    }));
-  };
-
-  const setMaxTime: SimulationContextValue["setMaxTime"] = (maxTime) => {
-    if (stateValuesRef.current.maxTime !== maxTime) {
-      invalidateSimulationForConfigurationChange();
-    }
-
-    setStateValues((prev) => ({ ...prev, maxTime }));
-  };
+  const setMaxTime: SimulationContextValue["setMaxTime"] = (maxTime) =>
+    configure(stateValuesRef.current.maxTime !== maxTime, () => ({ maxTime }));
 
   const selectSimulator: SimulationContextValue["selectSimulator"] = (
     simulatorId,
-  ) => {
-    if (simulatorSelectionRef.current.simulatorId !== simulatorId) {
-      invalidateSimulationForConfigurationChange();
-    }
+  ) =>
+    configure(
+      simulatorSelectionRef.current.simulatorId !== simulatorId,
+      (previous) => ({
+        simulatorIds: {
+          ...previous.simulatorIds,
+          [previous.mode]: simulatorId,
+        },
+      }),
+    );
 
-    setStateValues((prev) => ({
-      ...prev,
-      simulatorIds: { ...prev.simulatorIds, [prev.mode]: simulatorId },
+  const setMode: SimulationContextValue["setMode"] = (nextMode) =>
+    configure(stateValuesRef.current.mode !== nextMode, () => ({
+      mode: nextMode,
     }));
-  };
-
-  const setMode: SimulationContextValue["setMode"] = (nextMode) => {
-    if (stateValuesRef.current.mode !== nextMode) {
-      invalidateSimulationForConfigurationChange();
-    }
-
-    setStateValues((prev) => ({ ...prev, mode: nextMode }));
-  };
 
   const setRuns: SimulationContextValue["setRuns"] = (runs) => {
-    if (!Number.isInteger(runs) || runs < 1) {
-      return;
+    if (Number.isInteger(runs) && runs >= 1) {
+      configure(stateValuesRef.current.runs !== runs, () => ({ runs }));
     }
-    if (stateValuesRef.current.runs !== runs) {
-      invalidateSimulationForConfigurationChange();
-    }
-
-    setStateValues((prev) => ({ ...prev, runs }));
   };
 
   const keepStochasticRun: SimulationContextValue["keepStochasticRun"] = () => {
@@ -606,18 +586,16 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const setSimulatorParameter: SimulationContextValue["setSimulatorParameter"] =
     (key, value) => {
       const { simulatorId, parameters } = simulatorSelectionRef.current;
-      if (parameters[key] !== value) {
-        invalidateSimulationForConfigurationChange();
-      }
-
-      setStateValues((prev) => {
-        const parametersKey = simulatorParametersKey(prev.mode, simulatorId);
+      configure(parameters[key] !== value, (previous) => {
+        const parametersKey = simulatorParametersKey(
+          previous.mode,
+          simulatorId,
+        );
         return {
-          ...prev,
           simulatorParameters: {
-            ...prev.simulatorParameters,
+            ...previous.simulatorParameters,
             [parametersKey]: {
-              ...prev.simulatorParameters[parametersKey],
+              ...previous.simulatorParameters[parametersKey],
               [key]: value,
             },
           },
