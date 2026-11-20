@@ -64,13 +64,11 @@ export const composableEquations = (
   place: Pick<Place, "colorId" | "dynamics">,
   equations: readonly DifferentialEquation[],
 ): DifferentialEquation[] =>
-  place.colorId === null
-    ? []
-    : equations.filter(
-        (equation) =>
-          equation.colorId === place.colorId &&
-          !placeUsesDifferentialEquation(place, equation.id),
-      );
+  equations.filter(
+    (equation) =>
+      equation.colorId === place.colorId &&
+      !placeUsesDifferentialEquation(place, equation.id),
+  );
 
 /**
  * The update a change of the place's type implies, or `null` for the same
