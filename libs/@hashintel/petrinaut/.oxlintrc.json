@@ -127,6 +127,7 @@
         "reset": false
       }
     ],
+    "react/only-export-components": ["error", { "allowConstantExport": true }],
     "react/static-components": "error",
     "react/use-memo": "error",
     "react/void-use-memo": "error",
@@ -216,6 +217,12 @@
       "files": ["src/**/*.stories.tsx", ".storybook/**/*.{ts,tsx}"],
       "rules": {
         "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["src/**/*-test-harness.tsx", "benchmarks/**/*.tsx"],
+      "rules": {
+        "react/only-export-components": "off"
       }
     },
     {
