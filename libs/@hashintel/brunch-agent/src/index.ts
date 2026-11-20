@@ -35,6 +35,7 @@ export {
   hashEntityReadResultSchema,
   hashEntityTypeReadInputSchema,
   hashEntityTypeReadResultSchema,
+  hashPropertyBaseUrl,
   hashReadFailureSchema,
   hashWebReadInputSchema,
   hashWebReadResultSchema,

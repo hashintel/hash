@@ -782,10 +782,24 @@ test("a read whose text would be too large is refused whole, with its size, coun
     "Narrow it, then repeat it from the same cursor if it had one, so no match is skipped:",
     "- a smaller limit, then read the rest page by page",
     "- traversalDepth: 0, to leave out the entities reached by links",
-    "- filters by entityTypes, webIds or entityIds",
+    "- filters by entityTypes, webIds, entityIds or propertyEquals",
+    "- properties, to show only those you need of each entity",
     "- in fullValuesFor, { entityId, path } for the part of a large value you need, rather than the entity's id",
   ]);
   expect(text).not.toContain("WyJ4Il0");
+});
+
+test("a refused read that already chose properties is advised to choose fewer", () => {
+  const huge = {
+    ...person,
+    properties: { [displayName]: "x ".repeat(30_000) },
+  };
+  const text = hashEntityReadForModel(read([huge]), [huge.entityId], {
+    properties: [displayName],
+  });
+  expect(text.split("\n")).toContain(
+    "- fewer properties, showing only those you need",
+  );
 });
 
 test("a read within the budget is shown whole, however many entities it holds", () => {
@@ -936,6 +950,102 @@ test("webs render one line each, with their ids", () => {
   );
 });
 
+test("chosen properties alone are shown, with only their legend lines; ids, edition, types and link endpoints always are", () => {
+  const link = {
+    ...person,
+    entityId: `${personWebId}~link`,
+    label: undefined,
+    editionId: "edition-link",
+    matched: false,
+    linkData: { leftEntityId: person.entityId, rightEntityId: net.entityId },
+  };
+  const text = hashEntityReadForModel(read([person, link]), [], {
+    // A versioned id chooses the property its base URL keys.
+    properties: [`${property("email")}v/1`, displayName],
+  });
+  expect(text).toBe(
+    [
+      "entities: 2 (1 reached by links)",
+      "properties:",
+      `  email (${property("email")}v/1): Email — An email address`,
+      `  display_name (${displayName}v/1): Display Name`,
+      "entity types:",
+      `  User: ${personTypeId}`,
+      "entities:",
+      '- User "Alice"',
+      `  entityId: ${person.entityId}`,
+      `  editionId: ${person.editionId}`,
+      '  email: ["person@example.com"]',
+      '  display_name: "Alice"',
+      "- User (linked)",
+      `  entityId: ${link.entityId}`,
+      "  editionId: edition-link",
+      `  linksFrom: ${person.entityId}`,
+      `  linksTo: ${net.entityId}`,
+      '  email: ["person@example.com"]',
+      '  display_name: "Alice"',
+    ].join("\n"),
+  );
+});
+
+test("a chosen property an entity lacks is absent from it; one no entity carries is named once", () => {
+  const text = hashEntityReadForModel(read([person, net]), [], {
+    properties: [property("title"), property("sales-order-number")],
+  });
+  const lines = text.split("\n");
+  expect(lines).toContain(
+    `No entity read carries these chosen properties: ${property("sales-order-number")}`,
+  );
+  // Only the person carries none of the chosen ones; the net shows its title.
+  expect(lines.slice(lines.indexOf("entities:") + 1)).toEqual([
+    '- User "Alice"',
+    `  entityId: ${person.entityId}`,
+    `  editionId: ${person.editionId}`,
+    '- Petri Net "Supply Chain"',
+    `  entityId: ${net.entityId}`,
+    `  editionId: ${net.editionId}`,
+    '  title: "Supply Chain"',
+  ]);
+  // No legend: none of the read's definitions is for a chosen property.
+  expect(lines).not.toContain("properties:");
+  expect(text).not.toContain("definition_object");
+});
+
+test("a path into a property not chosen is still shown, named by its base URL", () => {
+  const text = hashEntityReadForModel(
+    read([net]),
+    [
+      {
+        entityId: net.entityId,
+        path: [property("definition-object"), "parameters", "0"],
+      },
+    ],
+    { properties: [property("title")] },
+  );
+  expect(text.split("\n").slice(-2)).toEqual([
+    '  title: "Supply Chain"',
+    `  path ${JSON.stringify([property("definition-object"), "parameters", "0"])}: ${JSON.stringify(definition.parameters[0])}`,
+  ]);
+});
+
+test("a read by property values that matched nothing says which values, and that a value matches only in its stored type", () => {
+  expect(
+    hashEntityReadForModel(read([]), [], {
+      propertyEquals: [
+        {
+          property: `${property("sales-order-number")}v/1`,
+          value: "1000000283",
+        },
+        { property: property("is-paid"), value: false },
+      ],
+    }).split("\n"),
+  ).toEqual([
+    hashEntityReadEmptyNote,
+    `matched where: ${property("sales-order-number")} = "1000000283", ${property("is-paid")} = false`,
+    'A value matches only exactly and in the type it is stored as: "42" doesn\'t match 42.',
+  ]);
+});
+
 const salesOrderTypeId =
   "https://hash.ai/@acme/types/entity-type/sales-order/v/1";
 const customerTypeId = "https://hash.ai/@acme/types/entity-type/customer/v/2";
@@ -1017,6 +1127,49 @@ test("a count of nothing says nothing matched that the user can see", () => {
       "No entities matched that the signed-in user can see. One may still exist but be hidden from them, archived, a draft, or filed under another type title or web.",
     ].join("\n"),
   );
+});
+
+test("a count by property values states the conditions it counted under, and when it counted none, that values match only in their stored type", () => {
+  const orderNumber = property("sales-order-number");
+  const propertyEquals = [{ property: `${orderNumber}v/1`, value: 283 }];
+  expect(
+    hashEntityCountForModel(
+      {
+        count: 1,
+        webScope: "default",
+        entityTypes: [
+          { entityTypeId: salesOrderTypeId, title: "Sales Order", count: 1 },
+        ],
+        webs: [{ webId: "alice-web", kind: "user", count: 1 }],
+      },
+      propertyEquals,
+    ).split("\n"),
+  ).toEqual([
+    "entities: 1",
+    "webs counted: the user's own web and their organizations' webs (the default; name webIds to count in others)",
+    `counted where: ${orderNumber} = 283`,
+    "by entity type:",
+    `- 1 Sales Order: ${salesOrderTypeId}`,
+    "by web:",
+    "- 1 user webId: alice-web",
+  ]);
+  expect(
+    hashEntityCountForModel(
+      {
+        count: 0,
+        webScope: "named",
+        entityTypes: [],
+        webs: [{ webId: "alice-web", count: 0 }],
+      },
+      propertyEquals,
+    )
+      .split("\n")
+      .slice(2),
+  ).toEqual([
+    `counted where: ${orderNumber} = 283`,
+    "No entities matched that the signed-in user can see. One may still exist but be hidden from them, archived, a draft, or filed under another type title or web.",
+    'A value matches only exactly and in the type it is stored as: "42" doesn\'t match 42.',
+  ]);
 });
 
 test("a count in an unknown shape fails the read rather than reaching the model", () => {

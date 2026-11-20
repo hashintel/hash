@@ -22,6 +22,7 @@ import {
   type HashWebReadResult,
   hashEntityReadDefaultTraversalDepth,
   hashEntityReadDefaultLimit,
+  hashPropertyBaseUrl,
   parseHashEntityCountInput,
   parseHashEntityReadInput,
   parseHashEntityTypeReadInput,
@@ -83,6 +84,21 @@ const entityTypesFilter = (entityTypes: readonly string[] = []): Filter[] =>
       ],
     })),
   );
+
+/**
+ * Entities whose properties hold every one of these values exactly, each
+ * property named by its base URL, or by a versioned id reduced to one: an
+ * entity's properties are keyed by base URL.
+ */
+const propertyEqualsFilter = (
+  propertyEquals: HashEntityReadInput["propertyEquals"] = [],
+): Filter[] =>
+  propertyEquals.map(({ property, value }) => ({
+    equal: [
+      { path: ["properties", hashPropertyBaseUrl(property)] },
+      { parameter: value },
+    ],
+  }));
 
 /** Entities in any of these webs. */
 const webIdsFilter = (webIds: readonly string[] = []): Filter[] =>
@@ -312,6 +328,7 @@ export const hashEntityReadRequest = (
     filter: {
       all: [
         ...entityTypesFilter(input.entityTypes),
+        ...propertyEqualsFilter(input.propertyEquals),
         ...anyOf(entityIds.map(entityIdFilter)),
         ...webIdsFilter(webIds),
         ...notArchivedFilters,
@@ -667,7 +684,7 @@ export type SummarizeEntitiesRequest =
 
 /**
  * The `summarizeEntities` request for one count: the entity read's filters
- * for types and for not being archived, limited to the webs in scope, with
+ * for types, property values and for not being archived, limited to the webs in scope, with
  * the total, the count per direct type and its title, and the count per web.
  * Drafts are not counted.
  */
@@ -678,6 +695,7 @@ export const hashEntityCountRequest = (
   filter: {
     all: [
       ...entityTypesFilter(input.entityTypes),
+      ...propertyEqualsFilter(input.propertyEquals),
       ...webIdsFilter(webIds),
       ...notArchivedFilters,
     ],

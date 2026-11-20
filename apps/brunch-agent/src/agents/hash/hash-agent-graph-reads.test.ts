@@ -676,11 +676,65 @@ test("an entity read whose text would be too large reaches the model as a refusa
     "Narrow it, then repeat it from the same cursor if it had one, so no match is skipped:",
     "- a smaller limit, then read the rest page by page",
     "- traversalDepth: 0, to leave out the entities reached by links",
-    "- filters by entityTypes, webIds or entityIds",
+    "- filters by entityTypes, webIds, entityIds or propertyEquals",
+    "- properties, to show only those you need of each entity",
     "- in fullValuesFor, { entityId, path } for the part of a large value you need, rather than the entity's id",
   ]);
   expect(seen).not.toContain(cursor);
   expect(seen).not.toContain(supplier.entityId);
+});
+
+test("an entity read by a property value, showing chosen properties, is issued as asked, and the model sees only those properties", async () => {
+  const nameUrl = "https://hash.ai/@alice/types/property-type/name/";
+  const cityUrl = "https://hash.ai/@alice/types/property-type/city/";
+  const input = {
+    entityTypes: ["Supplier"],
+    propertyEquals: [{ property: `${nameUrl}v/1`, value: "Acme Parts" }],
+    properties: [nameUrl],
+    traversalDepth: 0,
+  };
+  const { claim, seen } = await readOnce(brunchTools.hashQueryEntities, input, {
+    ...supplierRead,
+    entities: [
+      {
+        ...supplier,
+        properties: { ...supplier.properties, [cityUrl]: "Leeds" },
+      },
+    ],
+  });
+  // The page gets the whole input; it builds the filter, the agent the selection.
+  expect(claim.input).toEqual(input);
+  expect(seen).toBe(supplierText);
+});
+
+test("an entity count by a property value is issued as asked, and the model sees the condition it counted under", async () => {
+  const nameUrl = "https://hash.ai/@alice/types/property-type/name/";
+  const input = {
+    entityTypes: ["Supplier"],
+    propertyEquals: [{ property: nameUrl, value: "Acme Parts" }],
+  };
+  const supplierTypeId =
+    "https://hash.ai/@alice/types/entity-type/supplier/v/1";
+  const { claim, seen } = await readOnce(brunchTools.hashCountEntities, input, {
+    count: 1,
+    webScope: "default",
+    entityTypes: [
+      { entityTypeId: supplierTypeId, title: "Supplier", count: 1 },
+    ],
+    webs: [{ webId: "alice-web", kind: "user", count: 1 }],
+  });
+  expect(claim.input).toEqual(input);
+  expect(seen).toBe(
+    [
+      "entities: 1",
+      "webs counted: the user's own web and their organizations' webs (the default; name webIds to count in others)",
+      `counted where: ${nameUrl} = "Acme Parts"`,
+      "by entity type:",
+      `- 1 Supplier: ${supplierTypeId}`,
+      "by web:",
+      "- 1 user webId: alice-web",
+    ].join("\n"),
+  );
 });
 
 test.each([
