@@ -13,7 +13,6 @@ import {
   parseArcId,
   parseArcEndpointKey,
   placeArcEndpoint,
-  resolveComponent,
   type ArcEndpoint,
   type InputArc,
   type SDCPN,
@@ -26,6 +25,7 @@ import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { PropertyValue } from "../../../../../components/property-value";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import { portLabel, resolvePort } from "../arc-endpoint";
 import { DeleteItemButton } from "../delete-item-button";
 import { fieldsSectionStyle } from "../styles";
 
@@ -197,27 +197,14 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       : null;
   };
 
-  const endpointName = (endpoint: ArcEndpoint): string => {
-    if (endpoint.kind === "place") {
-      return (
-        petriNetDefinition.places.find((place) => place.id === endpoint.placeId)
-          ?.name ?? "Unknown place"
-      );
-    }
-
-    const instance = (petriNetDefinition.componentInstances ?? []).find(
-      ({ id }) => id === endpoint.componentInstanceId,
-    );
-    const component = instance
-      ? resolveComponent(fullSdcpn, instance.component, libraries)
-      : undefined;
-    const port = component?.places.find(
-      (place) => place.id === endpoint.portPlaceId,
-    );
-    return `${instance?.name ?? "Unknown component"}.${
-      port?.name ?? "Unknown port"
-    }`;
-  };
+  const endpointName = (endpoint: ArcEndpoint): string =>
+    endpoint.kind === "place"
+      ? (petriNetDefinition.places.find(
+          (place) => place.id === endpoint.placeId,
+        )?.name ?? "Unknown place")
+      : portLabel(
+          resolvePort(endpoint, petriNetDefinition, fullSdcpn, libraries),
+        );
 
   const sourceEndpoint = endpointFromId(sourceId);
   const targetEndpoint = endpointFromId(targetId);

@@ -6,7 +6,6 @@ import {
   getArcEndpoint,
   getArcEndpointKey,
   getArcEndpointPlaceId,
-  resolveComponent,
   type ArcEndpoint,
   validateDisplayName,
 } from "@hashintel/petrinaut-core";
@@ -24,6 +23,7 @@ import {
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
+import { portLabel, resolvePort } from "../../arc-endpoint";
 import { DeleteItemButton } from "../../delete-item-button";
 import { fieldsSectionStyle } from "../../styles";
 import { useTransitionPropertiesContext } from "../context";
@@ -33,43 +33,51 @@ const emptyArcMessageStyle = css({
   color: "neutral.fg.muted",
 });
 
-export const TransitionMainContent: React.FC = () => {
+const arcSides = {
+  input: {
+    title: "Input Arcs",
+    arcsKey: "inputArcs",
+    emptyMessage: "Connect inputs to the transition's left side.",
+  },
+  output: {
+    title: "Output Arcs",
+    arcsKey: "outputArcs",
+    emptyMessage: "Connect outputs to the transition's right side.",
+  },
+} as const;
+
+/** The arcs on one side of the transition: what each touches and its weight. */
+const ArcsSection: React.FC<{ direction: "input" | "output" }> = ({
+  direction,
+}) => {
   const { transition, types } = useTransitionPropertiesContext();
-  const { updateTransition, updateArcWeight, updateArcPlace, removeArc } =
+  const { updateArcWeight, updateArcPlace, removeArc } =
     usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
   const { activeNet } = use(ActiveNetContext);
-  const { places } = activeNet;
   const { petriNetDefinition: fullSdcpn } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
+  const { title, arcsKey, emptyMessage } = arcSides[direction];
+  const arcs = transition[arcsKey];
+  const { places } = activeNet;
 
-  const toPlaceOption = (pl: (typeof places)[number]): PlaceOption => ({
-    id: pl.id,
-    name: pl.name,
-    color: pl.colorId
-      ? types.find((tp) => tp.id === pl.colorId)?.displayColor
-      : undefined,
-  });
+  const typeColor = (colorId: string | null) =>
+    colorId
+      ? types.find((type) => type.id === colorId)?.displayColor
+      : undefined;
 
-  const getAvailableInputPlaces = (currentPlaceId: string): PlaceOption[] => {
-    const usedIds = new Set(
-      transition.inputArcs
-        .map((arc) => getArcEndpointPlaceId(arc))
-        .filter((placeId): placeId is string => placeId !== null)
-        .filter((placeId) => placeId !== currentPlaceId),
-    );
-    return places.filter((pl) => !usedIds.has(pl.id)).map(toPlaceOption);
-  };
-
-  const getAvailableOutputPlaces = (currentPlaceId: string): PlaceOption[] => {
-    const usedIds = new Set(
-      transition.outputArcs
-        .map((arc) => getArcEndpointPlaceId(arc))
-        .filter((placeId): placeId is string => placeId !== null)
-        .filter((placeId) => placeId !== currentPlaceId),
-    );
-    return places.filter((pl) => !usedIds.has(pl.id)).map(toPlaceOption);
-  };
+  // An arc can move to its own place or to one no arc of this side touches.
+  const usedPlaceIds = new Set(arcs.map((arc) => getArcEndpointPlaceId(arc)));
+  const availablePlaces = (currentPlaceId: string): PlaceOption[] =>
+    places
+      .filter(
+        (place) => place.id === currentPlaceId || !usedPlaceIds.has(place.id),
+      )
+      .map((place) => ({
+        id: place.id,
+        name: place.name,
+        color: typeColor(place.colorId),
+      }));
 
   const endpointDetails = (
     endpoint: ArcEndpoint,
@@ -78,62 +86,78 @@ export const TransitionMainContent: React.FC = () => {
       const place = places.find(
         (candidate) => candidate.id === endpoint.placeId,
       );
-      const type = place?.colorId
-        ? types.find((candidate) => candidate.id === place.colorId)
-        : undefined;
       return {
         id: endpoint.placeId,
         label: place?.name ?? endpoint.placeId,
-        color: type?.displayColor,
+        color: typeColor(place?.colorId ?? null),
         placeId: endpoint.placeId,
       };
     }
 
-    const instance = activeNet.componentInstances.find(
-      ({ id }) => id === endpoint.componentInstanceId,
+    const { instance, component, port } = resolvePort(
+      endpoint,
+      activeNet,
+      fullSdcpn,
+      libraries,
     );
-    const component = instance
-      ? resolveComponent(fullSdcpn, instance.component, libraries)
-      : undefined;
-    const port = component?.places.find(
-      (place) => place.id === endpoint.portPlaceId,
-    );
-    const color = port?.colorId
-      ? component?.types.find((type) => type.id === port.colorId)?.displayColor
-      : undefined;
     return {
       id: getArcEndpointKey(endpoint),
-      label: `${instance?.name ?? "Unknown component"}.${
-        port?.name ?? "Unknown port"
-      }`,
-      color,
+      label: portLabel({ instance, port }),
+      color: port?.colorId
+        ? component?.types.find((type) => type.id === port.colorId)
+            ?.displayColor
+        : undefined,
       placeId: null,
     };
   };
 
-  const handleInputArcPlaceChange = (
-    oldPlaceId: string,
-    newPlaceId: string,
-  ) => {
-    updateArcPlace({
-      transitionId: transition.id,
-      arcDirection: "input",
-      oldPlaceId,
-      newPlaceId,
-    });
-  };
+  return (
+    <Section title={title} collapsible>
+      {arcs.length === 0 ? (
+        <div className={emptyArcMessageStyle}>{emptyMessage}</div>
+      ) : (
+        <ArcList>
+          {arcs.map((arc) => {
+            const endpoint = getArcEndpoint(arc);
+            const { id, label, color, placeId } = endpointDetails(endpoint);
+            const target = {
+              transitionId: transition.id,
+              arcDirection: direction,
+            };
+            return (
+              <ArcItem
+                key={id}
+                placeId={id}
+                label={label}
+                color={color}
+                weight={arc.weight}
+                disabled={isReadOnly}
+                availablePlaces={placeId ? availablePlaces(placeId) : undefined}
+                onPlaceChange={(newPlaceId) =>
+                  placeId
+                    ? updateArcPlace({
+                        ...target,
+                        oldPlaceId: placeId,
+                        newPlaceId,
+                      })
+                    : undefined
+                }
+                onWeightChange={(weight) => {
+                  updateArcWeight({ ...target, endpoint, weight });
+                }}
+                onDelete={() => removeArc({ ...target, endpoint })}
+              />
+            );
+          })}
+        </ArcList>
+      )}
+    </Section>
+  );
+};
 
-  const handleOutputArcPlaceChange = (
-    oldPlaceId: string,
-    newPlaceId: string,
-  ) => {
-    updateArcPlace({
-      transitionId: transition.id,
-      arcDirection: "output",
-      oldPlaceId,
-      newPlaceId,
-    });
-  };
+export const TransitionMainContent: React.FC = () => {
+  const { transition } = useTransitionPropertiesContext();
+  const { updateTransition } = usePetrinautMutations();
 
   return (
     <SectionList>
@@ -163,105 +187,8 @@ export const TransitionMainContent: React.FC = () => {
         />
       </Form.Section>
 
-      <Section title="Input Arcs" collapsible>
-        {transition.inputArcs.length === 0 ? (
-          <div className={emptyArcMessageStyle}>
-            Connect inputs to the transition's left side.
-          </div>
-        ) : (
-          <ArcList>
-            {transition.inputArcs.map((arc) => {
-              const endpoint = getArcEndpoint(arc);
-              const details = endpointDetails(endpoint);
-              return (
-                <ArcItem
-                  key={details.id}
-                  placeId={details.id}
-                  label={details.label}
-                  color={details.color}
-                  weight={arc.weight}
-                  disabled={isReadOnly}
-                  availablePlaces={
-                    details.placeId
-                      ? getAvailableInputPlaces(details.placeId)
-                      : undefined
-                  }
-                  onPlaceChange={(newPlaceId) =>
-                    details.placeId
-                      ? handleInputArcPlaceChange(details.placeId, newPlaceId)
-                      : undefined
-                  }
-                  onWeightChange={(weight) => {
-                    updateArcWeight({
-                      transitionId: transition.id,
-                      arcDirection: "input",
-                      endpoint,
-                      weight,
-                    });
-                  }}
-                  onDelete={() =>
-                    removeArc({
-                      transitionId: transition.id,
-                      arcDirection: "input",
-                      endpoint,
-                    })
-                  }
-                />
-              );
-            })}
-          </ArcList>
-        )}
-      </Section>
-
-      <Section title="Output Arcs" collapsible>
-        {transition.outputArcs.length === 0 ? (
-          <div className={emptyArcMessageStyle}>
-            Connect outputs to the transition's right side.
-          </div>
-        ) : (
-          <ArcList>
-            {transition.outputArcs.map((arc) => {
-              const endpoint = getArcEndpoint(arc);
-              const details = endpointDetails(endpoint);
-              return (
-                <ArcItem
-                  key={details.id}
-                  placeId={details.id}
-                  label={details.label}
-                  color={details.color}
-                  weight={arc.weight}
-                  disabled={isReadOnly}
-                  availablePlaces={
-                    details.placeId
-                      ? getAvailableOutputPlaces(details.placeId)
-                      : undefined
-                  }
-                  onPlaceChange={(newPlaceId) =>
-                    details.placeId
-                      ? handleOutputArcPlaceChange(details.placeId, newPlaceId)
-                      : undefined
-                  }
-                  onWeightChange={(weight) => {
-                    updateArcWeight({
-                      transitionId: transition.id,
-                      arcDirection: "output",
-                      endpoint,
-                      weight,
-                    });
-                  }}
-                  onDelete={() =>
-                    removeArc({
-                      transitionId: transition.id,
-                      arcDirection: "output",
-                      endpoint,
-                    })
-                  }
-                />
-              );
-            })}
-          </ArcList>
-        )}
-      </Section>
+      <ArcsSection direction="input" />
+      <ArcsSection direction="output" />
     </SectionList>
   );
 };
