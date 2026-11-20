@@ -638,7 +638,7 @@ const Gallery = () => {
 };
 
 const meta = {
-  title: "Petrinaut/Petricon",
+  title: "Components/Icons",
   id: "petrinaut-experimental-icon-pack",
   component: Gallery,
   parameters: { layout: "fullscreen" },

@@ -10,7 +10,7 @@ import {
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
-  title: "Components / ContourSurface",
+  title: "Components/ContourSurface",
   parameters: { layout: "centered" },
 } satisfies Meta;
 

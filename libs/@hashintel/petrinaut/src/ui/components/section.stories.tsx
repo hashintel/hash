@@ -5,7 +5,7 @@ import { Section, SectionList } from "./section";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
-  title: "Components / Section",
+  title: "Components/Section",
   parameters: {
     layout: "centered",
   },

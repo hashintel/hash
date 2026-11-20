@@ -114,7 +114,7 @@ const LspFrame = ({ children }: { children: ReactNode }) => (
 // -- Meta ---------------------------------------------------------------------
 
 const meta = {
-  title: "Components / CodeEditor",
+  title: "Components/CodeEditor",
   component: CodeEditor,
   parameters: {
     layout: "padded",

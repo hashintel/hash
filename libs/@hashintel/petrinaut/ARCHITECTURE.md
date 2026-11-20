@@ -109,7 +109,7 @@ small JSON metric frames.
 ## Dev tooling
 
 The **token encoding playground** (`src/ui/dev/token-encoding-playground/`,
-Storybook: _Dev / Token Encoding Playground_) visualizes the core's packed
+Storybook: _Components / Token encoding playground_) visualizes the core's packed
 token layout bit-by-bit; it reuses `computeTokenSlotLayout` and the token
 value codec from the core, and scopes Monaco's built-in TypeScript service to
 its own mount so it never shadows the SDCPN LSP.

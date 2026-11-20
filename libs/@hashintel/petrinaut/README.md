@@ -342,7 +342,7 @@ exclamation mark, and cross. The editor badge slides its count out from behind
 the icon through a gradient mask and resizes smoothly as the count appears,
 disappears, or gains digits. Motion settings apply to the entire badge.
 
-The **Petrinaut / Petricon / Catalog** story includes search,
+The **Components / Icons / Catalog** story includes search,
 weight and size controls, outline/filled comparison, and a fallback example. Its
 motion playground includes experiment and scenario controls, sidebar, settings, menu, playback, microphone, and diagnostics
 state transitions, replay, looping, combined effects, layer timing, selection

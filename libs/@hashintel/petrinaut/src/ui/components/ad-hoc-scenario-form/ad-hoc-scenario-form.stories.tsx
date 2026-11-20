@@ -19,7 +19,7 @@ import type { AdHocFormSelection } from "./form-context";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
-  title: "Components / AdHocScenarioForm",
+  title: "Components/AdHocScenarioForm",
   parameters: {
     layout: "padded",
   },

@@ -10,7 +10,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
  * booleans, alignment padding).
  */
 const meta = {
-  title: "Dev / Token Encoding Playground",
+  title: "Components/Token encoding playground",
   parameters: {
     layout: "padded",
   },
