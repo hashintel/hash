@@ -14,12 +14,7 @@ import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-c
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { DockedPanel } from "../../shared/docked-panel";
-import {
-  componentsSubView,
-  entitiesTreeSubView,
-  netsListSubView,
-  searchSubView,
-} from "./sub-views";
+import { leftSidebarSubViews, searchSubView } from "./sub-views";
 import { SearchQueryProvider } from "./subviews/search-panel";
 
 const searchSubViews = [searchSubView];
@@ -97,16 +92,11 @@ export const LeftSideBar: React.FC = () => {
   // The sidebar is visible when explicitly opened OR when search is active
   const isVisible = isOpen || isSearchOpen;
 
-  // The Nets list and the Components panel are part of the composition
-  // interface. The Components panel lists the libraries on offer, and is all
-  // an editor that only composes has to show.
-  const sidebarSubViews = [
-    ...(composesOnly ? [] : [entitiesTreeSubView]),
-    ...(isCompositionInterfaceOn && !composesOnly ? [netsListSubView] : []),
-    ...(isCompositionInterfaceOn && offered.length > 0
-      ? [componentsSubView]
-      : []),
-  ];
+  const sidebarSubViews = leftSidebarSubViews({
+    composesOnly,
+    compositionInterfaceOn: isCompositionInterfaceOn,
+    offersLibraries: offered.length > 0,
+  });
 
   return (
     <DockedPanel

@@ -38,6 +38,25 @@ export const componentsSubView: SubView = {
   component: ComponentsPanel,
 };
 
+/**
+ * The sub-views the sidebar lists. The Nets list and the Components panel are
+ * part of the composition interface. The Components panel lists the libraries
+ * on offer, and is all an editor that only composes has to show.
+ */
+export const leftSidebarSubViews = ({
+  composesOnly,
+  compositionInterfaceOn,
+  offersLibraries,
+}: {
+  composesOnly: boolean;
+  compositionInterfaceOn: boolean;
+  offersLibraries: boolean;
+}): SubView[] => [
+  ...(composesOnly ? [] : [entitiesTreeSubView]),
+  ...(compositionInterfaceOn && !composesOnly ? [netsListSubView] : []),
+  ...(compositionInterfaceOn && offersLibraries ? [componentsSubView] : []),
+];
+
 export const searchSubView: SubView = {
   id: "search",
   title: "Search",
