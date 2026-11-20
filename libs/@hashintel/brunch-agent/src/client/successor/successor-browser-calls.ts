@@ -53,7 +53,13 @@ const successorBrowserCallSchema = v.object({
   toolName: v.string(),
   input: v.unknown(),
   status: v.picklist(browserCallStatuses),
-  /** What the browser posted; `null` before it posted a result. */
+  /**
+   * What the browser posted; `null` before it posted a result. A failure
+   * keeps none, so a `discarded` call's `null` is a kept failure: every
+   * net tool answers with an object. The view carries no failure itself,
+   * as nothing here acts on one: a failed call is never run again, and
+   * history shows any failure the model received.
+   */
   output: jsonValueSchema,
   metadata: jsonValueSchema,
   expiresAt: v.number(),
