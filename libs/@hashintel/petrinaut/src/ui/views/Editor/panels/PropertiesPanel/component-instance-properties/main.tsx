@@ -1,11 +1,8 @@
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { ComponentInstancePropertiesContext } from "./context";
-import { componentInstanceMainContentSubView } from "./subviews/main";
+import { componentInstanceSubViews } from "./sub-views";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import type { Component, ComponentInstance } from "@hashintel/petrinaut-core";
-
-const subViews: SubView[] = [componentInstanceMainContentSubView];
 
 export const ComponentInstanceProperties: React.FC<{
   instance: ComponentInstance;
@@ -14,7 +11,7 @@ export const ComponentInstanceProperties: React.FC<{
   <ComponentInstancePropertiesContext value={{ instance, component }}>
     <VerticalSubViewsContainer
       name="component-instance-properties"
-      subViews={subViews}
+      subViews={componentInstanceSubViews}
     />
   </ComponentInstancePropertiesContext>
 );

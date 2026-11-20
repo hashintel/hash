@@ -24,19 +24,16 @@ import {
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
-import { TransitionIcon } from "../../../../../../constants/entity-icons";
 import { DeleteItemButton } from "../../delete-item-button";
 import { fieldsSectionStyle } from "../../styles";
 import { useTransitionPropertiesContext } from "../context";
-
-import type { SubView } from "../../../../../../components/sub-view/types";
 
 const emptyArcMessageStyle = css({
   fontSize: "xs",
   color: "neutral.fg.muted",
 });
 
-const TransitionMainContent: React.FC = () => {
+export const TransitionMainContent: React.FC = () => {
   const { transition, types } = useTransitionPropertiesContext();
   const { updateTransition, updateArcWeight, updateArcPlace, removeArc } =
     usePetrinautMutations();
@@ -269,7 +266,7 @@ const TransitionMainContent: React.FC = () => {
   );
 };
 
-const DeleteTransitionAction: React.FC = () => {
+export const DeleteTransitionAction: React.FC = () => {
   const { transition } = useTransitionPropertiesContext();
   const { removeTransition } = usePetrinautMutations();
 
@@ -279,20 +276,4 @@ const DeleteTransitionAction: React.FC = () => {
       onDelete={() => removeTransition({ transitionId: transition.id })}
     />
   );
-};
-
-export const transitionMainContentSubView: SubView = {
-  id: "transition-main-content",
-  title: "Transition",
-  icon: TransitionIcon,
-  main: true,
-  component: TransitionMainContent,
-  renderHeaderAction: () => <DeleteTransitionAction />,
-  headerActionMutates: true,
-  alwaysShowHeaderAction: true,
-  resizable: {
-    minHeight: 100,
-    maxHeight: 1200,
-    defaultHeight: 300,
-  },
 };

@@ -19,14 +19,12 @@ import { usePetrinautMutations } from "../../../../../../../react";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { PropertyValue } from "../../../../../../components/property-value";
-import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
 import { CodeTemplateMenu } from "../../code-template-menu";
 import { tokenCountLabel } from "../../token-count-label";
 import { useDiffEqPropertiesContext } from "../context";
 
-import type { SubView } from "../../../../../../components/sub-view/types";
 import type { Color, DifferentialEquation } from "@hashintel/petrinaut-core";
 
 // the section fills the panel; the last row (Code) takes the remaining height
@@ -106,7 +104,7 @@ const DeferredDifferentialEquationCodeField = lazy(async () => {
   return { default: DifferentialEquationCodeField };
 });
 
-const DiffEqMainContent: React.FC = () => {
+export const DiffEqMainContent: React.FC = () => {
   const { differentialEquation, types, places } = useDiffEqPropertiesContext();
   const { updateDifferentialEquation } = usePetrinautMutations();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -301,7 +299,7 @@ const DiffEqMainContent: React.FC = () => {
   );
 };
 
-const DiffEqCodeAction: React.FC = () => {
+export const DiffEqCodeAction: React.FC = () => {
   const { differentialEquation, types } = useDiffEqPropertiesContext();
   const { updateDifferentialEquation } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
@@ -331,16 +329,4 @@ const DiffEqCodeAction: React.FC = () => {
       }}
     />
   );
-};
-
-export const diffEqMainContentSubView: SubView = {
-  id: "diff-eq-main-content",
-  fullWidthCodeEditor: true,
-  title: "Differential Equation",
-  icon: DifferentialEquationIcon,
-  main: true,
-  component: DiffEqMainContent,
-  renderHeaderAction: () => <DiffEqCodeAction />,
-  headerActionMutates: true,
-  alwaysShowHeaderAction: true,
 };

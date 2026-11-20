@@ -9,7 +9,7 @@ import { EditorContext } from "../../../../../../../../react/state/editor-contex
 import { ReadOnlyReasonContext } from "../../../../../../../../react/state/use-read-only-reason";
 import { selectedRowCellStyle } from "../../../../../../../components/spreadsheet-kit/form-table";
 import { PlacePropertiesContext } from "../../context";
-import { placeDynamicsSubView } from "./subview";
+import { PlaceDynamicsContent, PlaceDynamicsHeaderActions } from "./subview";
 
 import type {
   Color,
@@ -62,8 +62,6 @@ const initialPlace: Place = {
   y: 0,
 };
 
-const Content = placeDynamicsSubView.component;
-
 const Harness = ({
   place: startingPlace = initialPlace,
   equations: netEquations = equations,
@@ -111,8 +109,8 @@ const Harness = ({
             <PlacePropertiesContext
               value={{ place, placeType: satellite, types: [satellite] }}
             >
-              {placeDynamicsSubView.renderHeaderAction?.()}
-              <Content />
+              <PlaceDynamicsHeaderActions />
+              <PlaceDynamicsContent />
             </PlacePropertiesContext>
           </ReadOnlyReasonContext>
         </PetrinautInstanceContext>

@@ -19,7 +19,6 @@ import { CodeTemplateMenu } from "../../../code-template-menu";
 import { codeSectionStyle } from "../../../styles";
 import { useTransitionPropertiesContext } from "../../context";
 
-import type { SubView } from "../../../../../../../components/sub-view/types";
 import type {
   Color,
   InputArc,
@@ -85,7 +84,7 @@ const createTransitionArcPlaceResolver = (
   };
 };
 
-const ResultsHeaderAction: React.FC = () => {
+export const ResultsHeaderAction: React.FC = () => {
   const { logicAvailability, transition, types } =
     useTransitionPropertiesContext();
   const { updateTransition } = usePetrinautMutations();
@@ -161,7 +160,7 @@ const ResultsHeaderAction: React.FC = () => {
   );
 };
 
-const TransitionResultsContent: React.FC = () => {
+export const TransitionResultsContent: React.FC = () => {
   const { transition } = useTransitionPropertiesContext();
   const { updateTransition } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
@@ -188,20 +187,4 @@ const TransitionResultsContent: React.FC = () => {
       />
     </div>
   );
-};
-
-export const transitionResultsSubView: SubView = {
-  id: "transition-results",
-  canMaximize: true,
-  title: "Transition Results",
-  defaultCollapsed: true,
-  tooltip:
-    "This function determines the data for output tokens, optionally based on the input token data and any global parameters defined.",
-  component: TransitionResultsContent,
-  renderHeaderAction: () => <ResultsHeaderAction />,
-  resizable: {
-    minHeight: 300,
-    maxHeight: 1200,
-    defaultHeight: 500,
-  },
 };

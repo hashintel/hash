@@ -7,14 +7,11 @@ import {
 import { usePetrinautMutations } from "../../../../../../../react";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { ParameterIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { fieldsSectionStyle } from "../../styles";
 import { useParameterPropertiesContext } from "../context";
 
-import type { SubView } from "../../../../../../components/sub-view/types";
-
-const ParameterMainContent: React.FC = () => {
+export const ParameterMainContent: React.FC = () => {
   const { parameter } = useParameterPropertiesContext();
   const { updateParameter } = usePetrinautMutations();
   const isDisabled = useIsReadOnly();
@@ -69,12 +66,4 @@ const ParameterMainContent: React.FC = () => {
       </Form.Field>
     </Form.Section>
   );
-};
-
-export const parameterMainContentSubView: SubView = {
-  id: "parameter-main-content",
-  title: "Parameter",
-  icon: ParameterIcon,
-  main: true,
-  component: ParameterMainContent,
 };

@@ -7,16 +7,13 @@ import { ColorSelect } from "../../../../../../components/color-select";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { SectionList } from "../../../../../../components/section";
-import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
 import { fieldsSectionStyle } from "../../styles";
 import { useTypePropertiesContext } from "../context";
 import { DimensionsTable } from "./dimensions-table";
 
-import type { SubView } from "../../../../../../components/sub-view/types";
-
-const TypeMainContent: React.FC = () => {
+export const TypeMainContent: React.FC = () => {
   const { type } = useTypePropertiesContext();
   const { updateType } = usePetrinautMutations();
   const isDisabled = useIsReadOnly();
@@ -83,12 +80,4 @@ const TypeMainContent: React.FC = () => {
       </Form.Section>
     </SectionList>
   );
-};
-
-export const typeMainContentSubView: SubView = {
-  id: "type-main-content",
-  title: "Type",
-  icon: TokenTypeIcon,
-  main: true,
-  component: TypeMainContent,
 };

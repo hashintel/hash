@@ -23,15 +23,12 @@ import { DescriptionField } from "../../../../../../components/description-field
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { PropertyValue } from "../../../../../../components/property-value";
 import { Section, SectionList } from "../../../../../../components/section";
-import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { DeleteItemButton } from "../../delete-item-button";
 import { fieldsSectionStyle } from "../../styles";
 import { usePlacePropertiesContext } from "../context";
 import { placeTypeChange } from "./place-dynamics/compose-dynamics";
 import { PortDirectionField } from "./port-direction-field";
-
-import type { SubView } from "../../../../../../components/sub-view/types";
 
 const relatedActionsStyle = css({
   display: "flex",
@@ -78,11 +75,7 @@ const arcStyle = css({
   alignItems: "center",
 });
 
-/**
- * Main content section for the Place properties panel.
- * Rendered as a headerless SubView at the top of the proportional layout.
- */
-const PlaceMainContent: React.FC = () => {
+export const PlaceMainContent: React.FC = () => {
   const { place, types } = usePlacePropertiesContext();
   const { updatePlace } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
@@ -289,7 +282,7 @@ const PlaceMainContent: React.FC = () => {
   );
 };
 
-const DeletePlaceAction: React.FC = () => {
+export const DeletePlaceAction: React.FC = () => {
   const { place } = usePlacePropertiesContext();
   const { removePlace } = usePetrinautMutations();
 
@@ -299,15 +292,4 @@ const DeletePlaceAction: React.FC = () => {
       onDelete={() => removePlace({ placeId: place.id })}
     />
   );
-};
-
-export const placeMainContentSubView: SubView = {
-  id: "place-main-content",
-  title: "Place",
-  icon: PlaceIcon,
-  main: true,
-  component: PlaceMainContent,
-  renderHeaderAction: () => <DeletePlaceAction />,
-  headerActionMutates: true,
-  alwaysShowHeaderAction: true,
 };

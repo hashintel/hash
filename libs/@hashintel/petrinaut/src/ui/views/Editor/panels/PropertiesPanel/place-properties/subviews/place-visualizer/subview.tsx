@@ -19,7 +19,6 @@ import { CodeTemplateMenu } from "../../../code-template-menu";
 import { codeSectionStyle } from "../../../styles";
 import { usePlacePropertiesContext } from "../../context";
 
-import type { SubView } from "../../../../../../../components/sub-view/types";
 import type { editor } from "monaco-editor";
 
 const messageStyle = css({
@@ -35,7 +34,7 @@ const headerActionsStyle = css({
   gap: "1",
 });
 
-const PlaceVisualizerContent: React.FC = () => {
+export const PlaceVisualizerContent: React.FC = () => {
   const { place } = usePlacePropertiesContext();
   const { updatePlace } = usePetrinautMutations();
   const { readonly } = use(SDCPNContext);
@@ -94,7 +93,7 @@ const PlaceVisualizerContent: React.FC = () => {
   );
 };
 
-const VisualizerHeaderAction: React.FC = () => {
+export const VisualizerHeaderAction: React.FC = () => {
   const { place, types } = usePlacePropertiesContext();
   const { updatePlace } = usePetrinautMutations();
   const { readonly: isReadOnly } = use(SDCPNContext);
@@ -167,21 +166,4 @@ const VisualizerHeaderAction: React.FC = () => {
       )}
     </div>
   );
-};
-
-export const placeVisualizerSubView: SubView = {
-  id: "place-visualizer",
-  canMaximize: true,
-  title: "Visualizer",
-  tooltip:
-    "Custom visualization of tokens in this place, defined by visualizer code.",
-  component: PlaceVisualizerContent,
-  renderHeaderAction: () => <VisualizerHeaderAction />,
-  alwaysShowHeaderAction: true,
-  defaultCollapsed: true,
-  resizable: {
-    minHeight: 200,
-    maxHeight: 1200,
-    defaultHeight: 300,
-  },
 };

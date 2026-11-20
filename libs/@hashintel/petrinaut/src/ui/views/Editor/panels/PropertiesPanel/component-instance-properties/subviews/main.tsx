@@ -33,8 +33,6 @@ import { DeleteItemButton } from "../../delete-item-button";
 import { fieldsSectionStyle, itemTitleStyle } from "../../styles";
 import { useComponentInstancePropertiesContext } from "../context";
 
-import type { SubView } from "../../../../../../components/sub-view/types";
-
 const paramVarNameStyle = css({
   fontSize: "xs",
   color: "neutral.s90",
@@ -176,7 +174,7 @@ const ComponentField: React.FC = () => {
   );
 };
 
-const ComponentInstanceMainContent: React.FC = () => {
+export const ComponentInstanceMainContent: React.FC = () => {
   const { instance, component } = useComponentInstancePropertiesContext();
   const { updateComponentInstance } = usePetrinautMutations();
   const componentParameters = component?.parameters ?? [];
@@ -264,7 +262,11 @@ const ComponentInstanceMainContent: React.FC = () => {
   );
 };
 
-const ComponentInstanceTitle: React.FC = () => {
+export const ComponentInstanceIcon: React.FC<{ size: number }> = ({ size }) => (
+  <Icon name="cube" size={size === 12 ? "xs" : "sm"} />
+);
+
+export const ComponentInstanceTitle: React.FC = () => {
   const { component } = useComponentInstancePropertiesContext();
   return (
     <span className={itemTitleStyle}>
@@ -273,7 +275,7 @@ const ComponentInstanceTitle: React.FC = () => {
   );
 };
 
-const DeleteComponentInstanceAction: React.FC = () => {
+export const DeleteComponentInstanceAction: React.FC = () => {
   const { instance } = useComponentInstancePropertiesContext();
   const { removeComponentInstance } = usePetrinautMutations();
 
@@ -283,16 +285,4 @@ const DeleteComponentInstanceAction: React.FC = () => {
       onDelete={() => removeComponentInstance({ instanceId: instance.id })}
     />
   );
-};
-
-export const componentInstanceMainContentSubView: SubView = {
-  id: "component-instance-main-content",
-  title: "Component Instance",
-  icon: ({ size }) => <Icon name="cube" size={size === 12 ? "xs" : "sm"} />,
-  main: true,
-  renderTitle: () => <ComponentInstanceTitle />,
-  component: ComponentInstanceMainContent,
-  renderHeaderAction: () => <DeleteComponentInstanceAction />,
-  headerActionMutates: true,
-  alwaysShowHeaderAction: true,
 };

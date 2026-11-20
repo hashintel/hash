@@ -5,7 +5,7 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
 import { PlacePropertiesContext } from "../../context";
-import { placeInitialStateSubView } from "./subview";
+import { PlaceInitialStateContent, StateHeaderAction } from "./subview";
 
 import type { Color, Place } from "@hashintel/petrinaut-core";
 
@@ -34,7 +34,6 @@ const color: Color = {
   displayColor: "#3366ff",
   elements: [{ elementId: "value", name: "value", type: "real" }],
 };
-const StateContent = placeInitialStateSubView.component;
 
 const Harness = ({
   typed,
@@ -55,8 +54,8 @@ const Harness = ({
       <PlacePropertiesContext
         value={{ place, placeType: typed ? color : null, types: [color] }}
       >
-        {placeInitialStateSubView.renderHeaderAction?.()}
-        <StateContent />
+        <StateHeaderAction />
+        <PlaceInitialStateContent />
       </PlacePropertiesContext>
     </SimulationContext>
   );

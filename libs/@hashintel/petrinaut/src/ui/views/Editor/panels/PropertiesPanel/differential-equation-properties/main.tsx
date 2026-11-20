@@ -1,6 +1,6 @@
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { DiffEqPropertiesContext } from "./context";
-import { diffEqMainContentSubView } from "./subviews/main";
+import { diffEqMainSubView } from "./sub-views";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
@@ -20,8 +20,8 @@ export const DifferentialEquationProperties: React.FC<
 > = ({ differentialEquation, types, places }) => {
   const subViews: SubView[] = [
     {
-      ...diffEqMainContentSubView,
-      title: `${diffEqMainContentSubView.title} ${differentialEquation.name}`,
+      ...diffEqMainSubView,
+      title: `${diffEqMainSubView.title} ${differentialEquation.name}`,
     },
   ];
 

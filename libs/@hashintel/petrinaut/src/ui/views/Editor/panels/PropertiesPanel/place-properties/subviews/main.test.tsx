@@ -23,11 +23,10 @@ import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { CodeNavigationProvider } from "../../../../../../monaco/code-navigation";
 import { PlacePropertiesContext } from "../context";
-import { placeMainContentSubView } from "./main";
+import { PlaceMainContent } from "./main";
 
 afterEach(cleanup);
 
-const PlaceMainContent = placeMainContentSubView.component;
 const initialPlace: Place = {
   id: "place-1",
   name: "Orders",

@@ -15,8 +15,6 @@ import { CodeTemplateMenu } from "../../../code-template-menu";
 import { codeSectionStyle } from "../../../styles";
 import { useTransitionPropertiesContext } from "../../context";
 
-import type { SubView } from "../../../../../../../components/sub-view/types";
-
 const segmentGroupContainerStyle = css({
   marginTop: "[8px]",
   marginBottom: "[8px]",
@@ -38,7 +36,7 @@ const infoBoxStyle = css({
   marginBottom: "[8px]",
 });
 
-const FiringTimeHeaderAction: React.FC = () => {
+export const FiringTimeHeaderAction: React.FC = () => {
   const { logicAvailability, transition } = useTransitionPropertiesContext();
   const { updateTransition } = usePetrinautMutations();
   const globalMode = useEditorState((editor) => editor.globalMode);
@@ -67,7 +65,7 @@ const FiringTimeHeaderAction: React.FC = () => {
   );
 };
 
-const TransitionFiringTimeContent: React.FC = () => {
+export const TransitionFiringTimeContent: React.FC = () => {
   const { logicAvailability, transition } = useTransitionPropertiesContext();
   const { updateTransition } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
@@ -140,20 +138,4 @@ const TransitionFiringTimeContent: React.FC = () => {
       />
     </div>
   );
-};
-
-export const transitionFiringTimeSubView: SubView = {
-  id: "transition-firing-time",
-  canMaximize: true,
-  title: "Firing Time",
-  defaultCollapsed: true,
-  tooltip:
-    "Define the rate at or conditions under which this transition will fire, optionally based on each set of input tokens' data (where input tokens have types).",
-  component: TransitionFiringTimeContent,
-  renderHeaderAction: () => <FiringTimeHeaderAction />,
-  resizable: {
-    minHeight: 250,
-    maxHeight: 1200,
-    defaultHeight: 300,
-  },
 };

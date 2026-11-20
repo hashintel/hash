@@ -12,8 +12,6 @@ import { usePlacePropertiesContext } from "../../context";
 import { composableEquations } from "./compose-dynamics";
 import { DynamicsTable } from "./dynamics-table";
 
-import type { SubView } from "../../../../../../../components/sub-view/types";
-
 const hintStyle = css({
   fontSize: "[12px]",
   color: "neutral.s95",
@@ -31,7 +29,7 @@ const contentStyle = css({
  * The equations composed into the selected place's dynamics, in the order
  * they are applied; their derivatives are summed every step.
  */
-const PlaceDynamicsContent: React.FC = () => {
+export const PlaceDynamicsContent: React.FC = () => {
   const { place } = usePlacePropertiesContext();
   const { updatePlace } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
@@ -79,7 +77,7 @@ const PlaceDynamicsContent: React.FC = () => {
 };
 
 /** The header's switch that runs or pauses the place's equations. */
-const PlaceDynamicsHeaderActions: React.FC = () => {
+export const PlaceDynamicsHeaderActions: React.FC = () => {
   const { place } = usePlacePropertiesContext();
   const { updatePlace } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
@@ -104,19 +102,4 @@ const PlaceDynamicsHeaderActions: React.FC = () => {
       />
     </Tooltip>
   );
-};
-
-/**
- * SubView definition for a place's dynamics. Requires
- * PlacePropertiesProvider in the component tree.
- */
-export const placeDynamicsSubView: SubView = {
-  id: "place-dynamics",
-  title: "Dynamics",
-  tooltip:
-    "The differential equations that move this place's tokens while it holds them, applied in order with their derivatives summed. An equation over several tokens is applied to every combination of that many tokens. Drag a row's gutter, or press Alt with an arrow key, to reorder.",
-  component: PlaceDynamicsContent,
-  renderHeaderAction: () => <PlaceDynamicsHeaderActions />,
-  headerActionMutates: true,
-  alwaysShowHeaderAction: true,
 };
