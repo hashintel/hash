@@ -3,6 +3,7 @@
  *
  * Every operation that emits a value checks its requirements, including discarded let initializers and nested callback bodies. This policy belongs to the program boundary rather than Context: the constructor implementation can accept more values than a particular program permits.
  *
+ * @since 0.1.0
  * @module
  */
 import type * as Expression from "../Program/Expression.js";
@@ -17,7 +18,10 @@ import type { ReadonlyRecord } from "effect/Record";
 /**
  * An input schema maps each program input's name to its type, as a type expression or structural shorthand.
  *
- * `BigInt`, `Number`, `String` and `Boolean` denote the primitive types, and records and arrays of definitions denote structs and tuples, as in `$.type`. Every enumerable own string key becomes an input handle. A symbol key cannot name an input, so TypeScript rejects one.
+ * `BigInt`, `Number`, `String` and `Boolean` denote the primitive types, and records and arrays of definitions denote structs and tuples, as in {@link @local/hashql/Draft#Context.Context."type" | `$.type`}. Every enumerable own string key becomes an input handle. A symbol key cannot name an input, so TypeScript rejects one.
+ *
+ * @category Inputs
+ * @since 0.1.0
  */
 export type Inputs = ReadonlyRecord<string, Structural.Definition>;
 
@@ -35,7 +39,7 @@ type TypeInputs<I extends Inputs> = {
  * ```ts
  * import { Program } from "@local/hashql";
  * import type { Type } from "@local/hashql";
- * import { program } from "@local/hashql/draft";
+ * import { program } from "@local/hashql/Draft";
  * import { Result } from "effect";
  *
  * const built = Result.getOrThrow(
@@ -56,10 +60,18 @@ type TypeInputs<I extends Inputs> = {
  *   return $.literal(true);
  * });
  * ```
+ *
+ * @category Inputs
+ * @since 0.1.0
  */
 export type Requirements<I extends Inputs> = Input.Conservative<TypeInputs<I>>;
 
-/** The input handle for the schema key `K` with the definition `D`, which references that input and requires `K`. */
+/**
+ * The input handle for the schema key `K` with the definition `D`, which references that input and requires `K`.
+ *
+ * @category Inputs
+ * @since 0.1.0
+ */
 export type Handle<
   K extends PropertyKey,
   D extends Structural.Definition,
@@ -72,6 +84,9 @@ export type Handle<
  * The frozen record a program callback receives as its second argument, holding one input handle per schema key.
  *
  * Each handle emits an input reference without a default at every use.
+ *
+ * @category Inputs
+ * @since 0.1.0
  */
 export type Handles<I extends Inputs> = {
   readonly [K in keyof I]: Handle<K, I[K]>;
@@ -94,7 +109,10 @@ type Mismatches<S, I> = I extends unknown
 /**
  * Accepts input requirements when the schema record `S` declares each of them with the same semantic type.
  *
- * It evaluates to `unknown`, which leaves an intersection unchanged, when every host-side alternative of the requirements fits. Otherwise it evaluates to `never`, which rejects the value it constrains. An input used with a default still needs a declaration. Erased requirements, such as those of `Expression.Expression.Any` or `Expression.Value.Any`, never fit, because they cannot show which inputs they need.
+ * It evaluates to `unknown`, which leaves an intersection unchanged, when every host-side alternative of the requirements fits. Otherwise it evaluates to `never`, which rejects the value it constrains. An input used with a default still needs a declaration. Erased requirements, such as those of {@link Expression.Expression.Any} or {@link Expression.Value.Any}, never fit, because they cannot show which inputs they need.
+ *
+ * @category Inputs
+ * @since 0.1.0
  */
 export type Check<S, I> = [I] extends [never]
   ? never
@@ -106,14 +124,19 @@ export type Check<S, I> = [I] extends [never]
 /** Checks the inputs the expression `E` requires against the schema record `I`, as {@link Check} does. */
 type Accept<I, E> = Check<I, Expression.Value.Inputs<E>>;
 
-/** A graph query in a program callback, whose predicates must fit the program's schema `I`. Otherwise it is {@link Construction.Query | Context.Query}. */
+/**
+ * A graph query in a program callback, whose predicates must fit the program's schema `I`. Otherwise it is {@link Construction.Query | `Context.Query`}.
+ *
+ * @category Queries
+ * @since 0.1.0
+ */
 export interface Query<
   S extends Scope.Scope.Any,
   I,
   V extends Type.Any,
   R,
 > extends Expression.Expression.Handle<Graph<V>, R> {
-  /** Keeps the vertices `predicate` accepts. The predicate receives a fresh restricted context and returns a Boolean whose input requirements fit the schema. The result requires the whole schema, because the filter closure emits the predicate's declarations and no type records their inputs. Otherwise this is the `filter` of {@link Construction.Query | Context.Query}. */
+  /** Keeps the vertices `predicate` accepts. The predicate receives a fresh restricted context and returns a Boolean whose input requirements fit the schema. The result requires the whole schema, because the filter closure emits the predicate's declarations and no type records their inputs. Otherwise this is the `filter` of {@link Construction.Query | `Context.Query`}. */
   readonly filter: <const P extends Expression.Value<Type.PrimitiveBoolean>>(
     name: string,
     predicate: (
@@ -122,17 +145,22 @@ export interface Query<
     ) => P & Accept<I, P>,
   ) => Query<S, I, V, I>;
 
-  /** Ends the query as a list of its vertices. This is {@link @local/hashql!Program.Query.collect | Query.collect}. */
+  /** Ends the query as a list of its vertices. This is {@link @local/hashql#Program.Query.collect | `Query.collect`}. */
   readonly collect: () => Expression.Expression<Type.List<V>, R>;
 }
 
-/** `$.query` in a program callback, whose graph or axes must fit the schema `I` and whose queries take restricted predicates. Otherwise it is {@link Construction.Queries | Context.Queries}. */
+/**
+ * {@link Context.query | `$.query`} in a program callback, whose graph or axes must fit the schema `I` and whose queries take restricted predicates. Otherwise it is {@link Construction.Queries | `Context.Queries`}.
+ *
+ * @category Queries
+ * @since 0.1.0
+ */
 export interface Queries<S extends Scope.Scope.Any, I> {
   <const G extends Expression.Expression.Any>(
     graph: G & Graph.Check<G> & Accept<I, G>,
   ): Query<S, I, Graph.Vertex<G>, Expression.Value.Inputs<G>>;
 
-  /** Starts a query from every entity at the temporal axes `axis`, whose input requirements fit the schema. This is {@link @local/hashql!Program.Query.entities | Query.entities}. */
+  /** Starts a query from every entity at the temporal axes `axis`, whose input requirements fit the schema. This is {@link @local/hashql#Program.Query.entities | `Query.entities`}. */
   readonly entities: <const A extends Expression.Value<QueryTemporalAxes>>(
     axis: A & Accept<I, A>,
   ) => Query<S, I, Entity, Expression.Value.Inputs<A>>;
@@ -141,7 +169,10 @@ export interface Queries<S extends Scope.Scope.Any, I> {
 /**
  * The `$` argument of a program callback, which restricts the construction context to the program's input schema.
  *
- * `let`, `if` and `query` accept only values whose input requirements fit the schema, and branch and filter callbacks receive the same restricted view. The other members are the unrestricted Draft {@link Construction.Context | Context.Context} operations. The unrestricted constructor implements this view, but the view is not assignable to {@link Construction.Context | Context.Context}, so a helper typed with the unrestricted context cannot receive a program's `$`.
+ * {@link let}, {@link if} and {@link query} accept only values whose input requirements fit the schema, and branch and filter callbacks receive the same restricted view. The other members are the unrestricted Draft {@link Construction.Context | `Context.Context`} operations. The unrestricted constructor implements this view, but the view is not assignable to {@link Construction.Context | `Context.Context`}, so a helper typed with the unrestricted context cannot receive a program's `$`.
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export interface Context<S extends Scope.Scope.Any, I> extends Omit<
   Construction.Context<S>,
@@ -152,7 +183,7 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
    *
    * `value` is an expression or host primitive whose input requirements fit the schema, and the reference keeps its semantic type and requirements.
    *
-   * A `type` annotates the binding, and the reference takes the annotation's type, as `Context.let` describes.
+   * A `type` annotates the binding, and the reference takes the annotation's type, as {@link @local/hashql/Draft#Context.Context.let | `Context.Context.let`} describes.
    */
   readonly let: {
     <const E extends Expression.Value.Any>(
@@ -178,13 +209,13 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
   /**
    * Constructs a HashQL conditional from a Boolean condition and a record of branch callbacks.
    *
-   * The condition and every branch must fit the schema. The result requires the whole schema, because the conditional emits each branch's declarations and no branch's type records their inputs. HashQL decides the condition when the query runs, so construction always builds every branch. The callbacks run immediately, `then` first, whatever the condition's value. Each receives a fresh restricted context, and the `if` of {@link Construction.Context | Context.Context} describes where its declarations belong. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
+   * The condition and every branch must fit the schema. The result requires the whole schema, because the conditional emits each branch's declarations and no branch's type records their inputs. HashQL decides the condition when the query runs, so construction always builds every branch. The callbacks run immediately, `then` first, whatever the condition's value. Each receives a fresh restricted context, and the `if` of {@link Construction.Context | `Context.Context`} describes where its declarations belong. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
    *
    * @example <caption>Construct both branches, one with a branch-local binding.</caption>
    * ```ts
    * import assert from "node:assert/strict";
    * import { Program } from "@local/hashql";
-   * import { program } from "@local/hashql/draft";
+   * import { program } from "@local/hashql/Draft";
    * import { Result } from "effect";
    *
    * const visited: string[] = [];
@@ -211,7 +242,7 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
    * ```ts
    * import assert from "node:assert/strict";
    * import { Program } from "@local/hashql";
-   * import { program } from "@local/hashql/draft";
+   * import { program } from "@local/hashql/Draft";
    * import { Result } from "effect";
    *
    * const maybe = program({ flag: Boolean }, ($, { flag }) => $.if(flag, { then: () => 1n }));
@@ -256,6 +287,9 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
  * The callback a Draft program runs with the restricted context and the input handles to obtain the root expression.
  *
  * The returned expression's input requirements must fit the schema. Returning anything other than an expression handle fails construction with `InvalidBodyResult`. The type rejects an asynchronous callback, and at runtime its promise fails construction the same way.
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export type Body<
   S extends Scope.Scope.Any,
@@ -266,7 +300,12 @@ export type Body<
   inputs: Handles<I>,
 ) => O & Check<NoInfer<Requirements<I>>, Expression.Value.Inputs<O>>;
 
-/** A {@link Body} with its input handles already supplied. */
+/**
+ * A {@link Body} with its input handles already supplied.
+ *
+ * @category Models
+ * @since 0.1.0
+ */
 export type WithoutInputs<
   S extends Scope.Scope.Any,
   I extends Inputs,
