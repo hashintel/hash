@@ -5,60 +5,84 @@ sidebar_order: 0
 ---
 
 Petrinaut is a visual editor and simulation runtime for Stochastic Dynamic
-Coloured Petri Nets (SDCPN). This documentation is in two halves that are
-maintained differently, and it is worth knowing which you are reading.
+Coloured Petri Nets (SDCPN). This documentation has two kinds of page, and
+each is maintained in its own way.
+
+**Generated pages** are everything under [Architecture](architecture). Every
+build extracts them from annotations in the source and from the imports
+between files, and CI fails when an annotation and the code disagree. Layer
+sizes and dependency counts come from the code. A generated page that
+disagrees with the code is a bug in the annotations.
+
+**Authored pages** are this one and the guides. They carry the reasons an
+import graph cannot supply: why a boundary sits where it does, which
+alternatives were ruled out, which mistakes are easy to make. Nothing checks
+their prose against the code, so they leave to the generated pages what those
+already state.
 
 ## The diagrams
 
-Every box is a layer and every arrow is real imports, counted from the
-dependency graph rather than drawn by hand. There are three kinds, each showing
-a different slice:
+On a generated page, every box is a layer and every arrow is counted from the
+imports between files. There are three kinds of diagram:
 
-- The [Architecture](architecture) page opens with the **top-level layers** —
-  the whole system at a glance, with everything below the first level folded
-  into its parent.
-- Every layer page opens with its **neighbourhood**: what that layer depends on,
-  and what depends on it. This is usually the one you want.
-- A layer that has sub-layers also gets a **drill-down** of its direct children.
+- The [Architecture](architecture) page opens with the **top-level layers**:
+  the whole system, with everything below the first level folded into its
+  parent.
+- Every layer page opens with its **neighbourhood**: what that layer depends
+  on, and what depends on it.
+- A layer that has sub-layers also gets a **drill-down** of its direct
+  children.
 
-Where a layer has more neighbours than fit legibly, the remainder is drawn as a
-single "further layers" node rather than omitted, and the full list is always in
-the tables on the page.
-
-**Generated pages** — everything under [Architecture](architecture) — are
-extracted from annotations in the source on every build, and CI fails if they
-drift. Layer sizes and dependency counts all come from the code. If a generated page disagrees with the code, that is a bug in the
-annotations, not in the page.
-
-**Authored pages** — this one, and its siblings — carry the reasoning that no
-import graph can supply: why a boundary sits where it does, what the alternatives
-were, which mistakes are easy to make. They are hand-written and can go stale, so
-they avoid restating facts the generated pages already own.
+Where a layer has more neighbours than fit legibly, the remainder is drawn as
+one "further layers" node, and the tables on the page list all of them.
 
 ## Where to start
 
-- [Two execution paths](two-execution-paths) — the single most important thing to
-  understand before changing anything in the simulation layers.
-- [Architecture](architecture) — the generated map: layers, dependencies,
+- [Two execution paths](two-execution-paths): read it before changing anything
+  in the simulation layers.
+- [Architecture](architecture): the generated map of layers, dependencies and
   boundaries.
-- [Working on these docs](doc:maintaining) — how to declare a layer, and how to
-  build and read this site.
+- [Working on these docs](doc:maintaining): how to declare a layer, how to
+  write a guide, and how to build and read this site.
 
 ## Simulation internals
 
-Detail that the generated pages do not carry — binary formats, message
-protocols, and the costs behind each design choice.
+Detail the generated pages do not carry: binary formats, message protocols,
+and the costs behind each design choice.
 
-- [Memory model](doc:core.simulation/memory-model) — which buffer lives on which thread,
-  and the frame format.
-- [How a step is computed](doc:core.simulation.engine/stepping) — the fixed stage order, and
-  determinism.
-- [Compiling user code](doc:core.simulation.authoring/user-code) — the HIR pipeline, scenarios, and
-  what the sandbox does not protect against.
-- [Worker protocol and backpressure](doc:core.simulation.worker/protocol) — messages, and
-  the ack contract.
-- [Monte Carlo experiments](doc:core.simulation.monte-carlo/experiments) — bounded memory, and why
-  only aggregates reach the UI.
+- [Memory model](doc:core.simulation/memory-model): which buffer lives on
+  which thread, and the frame format.
+- [How a step is computed](doc:core.simulation.engine/stepping): the fixed
+  stage order, and determinism.
+- [Compiling user code](doc:core.simulation.authoring/user-code): the HIR
+  pipeline, scenarios, and what the sandbox does not protect against.
+- [Worker protocol and backpressure](doc:core.simulation.worker/protocol):
+  messages, and the ack contract.
+- [Monte Carlo experiments](doc:core.simulation.monte-carlo/experiments):
+  bounded memory, and why only aggregates reach the UI.
+
+## Editor internals
+
+How `@hashintel/petrinaut` is put together: what the React layer provides, what
+the UI layer mounts, and what renders when.
+
+![The host mounts the Petrinaut component, which creates one core instance, mounts the React providers and renders the editor view; the preview mounts the same canvas without the editor view](@diagrams/editor-layers.svg)
+
+- [Editor state](layer:react.state): the contexts that own the state of an
+  editing session, such as the active net, the selection and the settings.
+- [Panel geometry outside React state](doc:react.state/panel-sizes): how a
+  panel drag or slide changes the page without rendering the editor.
+
+Layer rules in `archinaut.config.ts` hold the directions between these parts.
+`yarn workspace @apps/petrinaut-docs lint:arch-docs` fails on a dependency that
+breaks one.
+
+| Rule                                                                                           | Reason                                                                   |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [react](layer:react) never depends on [ui](layer:ui).                                          | The providers stay testable without mounting the editor.                 |
+| [The canvas](layer:ui.views.canvas) never depends on [the editor view](layer:ui.views.editor). | The preview draws the canvas outside the editor.                         |
+| [The notebook](layer:ui.views.notebook) never depends on the editor view.                      | A view does not know the shell that mounts it.                           |
+| [The sub-view containers](layer:ui.sub-view) never depend on the editor view.                  | A container renders the descriptors it is given and never names a panel. |
 
 ## Embedding Petrinaut
 
@@ -79,26 +103,26 @@ extends the editor with plugins.
 
 `@hashintel/petrinaut-core` is the headless half: the document model, the HIR
 compiler for user-authored code, the simulation runtimes, and the language
-server. It has no React, no DOM and no Monaco, which is what lets it run
-unchanged in Node and inside workers.
+server. It has no React, no DOM and no Monaco, so it runs unchanged in Node
+and inside workers.
 
 `@hashintel/petrinaut` is the editor built on top. It splits into a React layer
-that owns state and a UI layer that renders it — and the dependency only goes one
-way, which is enforced rather than merely intended.
+that owns state and a UI layer that renders it. The React layer never depends
+on the UI layer, and a layer rule fails the check when it does.
 
 `@local/petrinaut-optimizer-core` is the Optuna study logic behind the editor's
 optimizer, in pure Python. The core's browser runtime loads it under Pyodide in
-a worker; the [browser runtime](doc:core.optimization.browser/browser-runtime) page covers how
-a study runs. Its layers and import edges are derived the same way as the
-TypeScript ones.
+a worker; the [browser runtime](doc:core.optimization.browser/browser-runtime)
+page covers how a study runs. Its layers and import edges are derived the same
+way as the TypeScript ones.
 
 `@apps/petrinaut-website` is the demo site and the host that embeds the editor.
 Its layers cover the routes, the example catalog, the plugins, and the Vercel
 functions in `api/`. These pages describe how it drives Petrinaut:
 [Router integration](doc:website.routes/router-integration) for the navigation
 contract, [oEmbed](doc:website.api/embedding) for the embed endpoint, and
-[The demo site's plugins](doc:website.plugins/plugins) for the plugins it gives the
-editor.
+[The demo site's plugins](doc:website.plugins/plugins) for the plugins it gives
+the editor.
 
-Adding a package is a matter of declaring layers in its source; see
+To add a package, declare layers in its source; see
 [Declaring layers](doc:maintaining/declaring-layers).
