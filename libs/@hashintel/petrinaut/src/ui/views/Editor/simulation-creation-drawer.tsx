@@ -3,7 +3,7 @@ import {
   useEditorState,
 } from "../../../react/state/editor-context";
 import { CreateExperimentDrawer } from "./panels/SimulateView/experiments/create-experiment-drawer";
-import { CreateMetricDrawer } from "./panels/SimulateView/metrics/create-metric-drawer";
+import { MetricDrawer } from "./panels/SimulateView/metrics/metric-drawer";
 import { CreateScenarioDrawer } from "./panels/SimulateView/scenarios/create-scenario-drawer";
 import { SimulationPanelPresence } from "./panels/SimulateView/shared/simulation-panel";
 
@@ -23,7 +23,7 @@ export const SimulationCreationDrawer = () => {
         ) : null}
       </SimulationPanelPresence>
       {simulateDrawer.type === "create-metric" && (
-        <CreateMetricDrawer onClose={closeDrawer} />
+        <MetricDrawer onClose={closeDrawer} />
       )}
     </>
   );
