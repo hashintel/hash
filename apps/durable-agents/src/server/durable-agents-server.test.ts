@@ -26,7 +26,7 @@ import {
   type UIMessageChunk,
 } from "ai";
 import { Hono } from "hono";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, onTestFinished, test, vi } from "vitest";
 
 import {
   petrinautContextualUserMessageBody,
@@ -115,6 +115,7 @@ type ChatOptions = {
   readonly admitChat?: DurableAgentsServerOptions["admitChat"];
   readonly admitConversation?: DurableAgentsServerOptions["admitConversation"];
   readonly sseHeartbeatMs?: number;
+  readonly onStopError?: DurableAgentsServerOptions["onStopError"];
 };
 
 /**
@@ -130,6 +131,7 @@ const openChat = ({
   admitChat,
   admitConversation,
   sseHeartbeatMs,
+  onStopError,
 }: ChatOptions = {}) => {
   const faux = fauxProvider({
     tokensPerSecond: 300,
@@ -161,6 +163,7 @@ const openChat = ({
     admitChat,
     admitConversation,
     sseHeartbeatMs,
+    onStopError,
     context,
   });
   servers.push(server);
@@ -493,6 +496,112 @@ test("stop while a browser call is pending ends the stream with an abort", async
   expect(
     message?.parts.find((part) => part.type === `tool-${browserToolName}`),
   ).toMatchObject({ toolCallId, state: "output-error" });
+});
+
+describe("a stop answers once it is durable, not once the work unwinds", () => {
+  /** A turn held in a tool that ignores its abort signal, and a message queued behind it. */
+  const heldTurn = async (options: ChatOptions = {}) => {
+    const hold = holdTool();
+    // A failed assertion must not leave the tool holding the server's close.
+    onTestFinished(() => hold.release());
+    const chat = openChat({
+      responses: [
+        fauxAssistantMessage(
+          fauxToolCall(hold.tool.name, {}, { id: "hold-1" }),
+          { stopReason: "toolUse" },
+        ),
+        fauxAssistantMessage("Answered after the stop."),
+      ],
+      extensions: [defineExtension({ name: "probe.hold", tools: [hold.tool] })],
+      ...options,
+    });
+    const running = recorder(await send(chat.transport));
+    await hold.started;
+    const queued = recorder(
+      await send(chat.transport, {
+        message: {
+          id: "user-2",
+          role: "user",
+          parts: [{ type: "text", text: "Queued behind it." }],
+        },
+      }),
+    );
+    /** The stop's status, or `"pending"` if it has not answered within a second. */
+    const stop = async () => {
+      const answered = (async () =>
+        (
+          await chat.server.app.request(`${origin}/chat/${chatId}/abort`, {
+            method: "POST",
+          })
+        ).status)();
+      return Promise.race([
+        answered,
+        sleep(1000).then(() => "pending" as const),
+      ]);
+    };
+    return { ...chat, hold, running, queued, stop };
+  };
+
+  const history = async (server: ReturnType<typeof openChat>["server"]) =>
+    (await (
+      await server.app.request(`${origin}/chat/${chatId}/messages`)
+    ).json()) as UIMessage[];
+
+  test("the stop answers while the tool still runs; the queued message is already withdrawn, and the turn shows stopped once it unwinds", async () => {
+    const { server, transport, faux, hold, running, queued, stop } =
+      await heldTurn();
+
+    expect(await stop()).toBe(204);
+    // Durable before the run unwinds: a reload already sees the queued message withdrawn by the stop.
+    expect(
+      (await history(server)).find(({ id }) => id === "user-2")?.metadata,
+    ).toEqual({ withdrawn: "stopped" });
+
+    hold.release();
+    await Promise.all([running.drain(), queued.drain()]);
+    expect(running.chunks.at(-1)?.type).toBe("abort");
+    expect(
+      (await server.app.request(`${origin}/chat/${chatId}/stream`)).status,
+    ).toBe(204);
+    expect(
+      (await history(server))
+        .filter(({ role }) => role === "assistant")
+        .map(({ metadata }) => metadata),
+    ).toEqual([{ stopped: true }]);
+
+    // The next message runs as usual.
+    const after = recorder(
+      await send(transport, {
+        message: {
+          id: "user-3",
+          role: "user",
+          parts: [{ type: "text", text: "Go on." }],
+        },
+      }),
+    );
+    await after.drain();
+    expect(after.chunks.at(-1)).toEqual({
+      type: "finish",
+      finishReason: "stop",
+    });
+    expect(faux.state.callCount).toBe(2);
+  });
+
+  test("the server closes cleanly while a stopped turn still unwinds", async () => {
+    const stopErrors: unknown[] = [];
+    const { server, hold, running, queued, stop } = await heldTurn({
+      onStopError: (_conversationId, error) => stopErrors.push(error),
+    });
+    expect(await stop()).toBe(204);
+    servers.splice(servers.indexOf(server), 1);
+    const closed = server.close();
+    // Close joins the run, which waits on the tool.
+    await sleep(20);
+    hold.release();
+    await closed;
+    await Promise.allSettled([running.drain(), queued.drain()]);
+    expect(stopErrors).toEqual([]);
+  });
 });
 
 test("re-sending a user message follows its first run instead of starting another", async () => {

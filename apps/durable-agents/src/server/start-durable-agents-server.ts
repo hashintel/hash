@@ -108,6 +108,8 @@ export type StartDurableAgentsServerOptions = {
   readonly onCrashLoop?: DurableAgentsServerOptions["onCrashLoop"];
   /** Told each of Pi Durable's reports, with the conversation whose Harness made it. */
   readonly onReport?: DurableAgentsServerOptions["onReport"];
+  /** Told when a stopped conversation's work fails to unwind after its stop answered. */
+  readonly onStopError?: DurableAgentsServerOptions["onStopError"];
   /**
    * HASH's entry in front of every route (`createHashEntry`); `null` serves
    * without it, every request trusted, as a test or probe on loopback does.
@@ -238,6 +240,7 @@ export const startDurableAgentsServer = async (
     limits: { ...limitsFromEnvironment(process.env), ...options.limits },
     onCrashLoop: options.onCrashLoop,
     onReport: options.onReport,
+    onStopError: options.onStopError,
     isUnavailable: isPoolConnectTimeout,
   });
   server.app.route(
