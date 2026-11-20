@@ -1,0 +1,35 @@
+# Hand-written; rendered by the arch-docs build.
+direction: right
+
+vars: {
+  d2-legend: {
+    a -> b: happens once
+    a -> b: writes each frame {style.stroke-dash: 3}
+    a.style.opacity: 0
+    b.style.opacity: 0
+  }
+}
+
+classes: {
+  value: {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+}
+
+drag: "Pointer move\non a resize handle"
+toggle: "Editor state\nopens a panel"
+size: "Panel size\nMotion value" {class: value}
+presence: "Panel presence\nMotion value, 0 to 1" {class: value}
+panel: "styleRef on the panel\nwidth, transform"
+insets: "Canvas insets\na function of sizes and presence" {class: value}
+followers: "Minimap, viewport controls,\nbottom bar"
+camera: "Camera\nkeeps the selection in view"
+settings: "User settings"
+
+drag -> size: "sets, no render"
+toggle -> presence: "animates over 150 ms"
+size -> panel: "writes each frame" {style.stroke-dash: 3}
+presence -> panel: "writes each frame" {style.stroke-dash: 3}
+size -> insets: "is read by"
+presence -> insets: "is read by"
+insets -> followers: "writes each frame" {style.stroke-dash: 3}
+insets -> camera: "tells once per frame" {style.stroke-dash: 3}
+drag -> settings: "saves on release"
