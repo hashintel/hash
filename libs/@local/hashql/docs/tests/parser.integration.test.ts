@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "@effect/vitest";
 import { DocLinkTag } from "@microsoft/tsdoc";
 import { Array, Chunk, Effect, HashMap, Option, Result, pipe } from "effect";
@@ -171,6 +173,87 @@ describe("parser", () => {
         _tag: "Failure",
         failure: { reason: { _tag: "UnsupportedMerge", name: "Mixed" } },
       });
+    }),
+  );
+
+  it.effect(
+    "shared_entrypoint",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const result = yield* parse({ source: "export interface Box {}" }, [
+        "fixture",
+        "again",
+      ]);
+      expect(result).toMatchObject({
+        _tag: "Failure",
+        failure: {
+          reason: {
+            _tag: "SharedEntrypoint",
+            entrypoints: ["fixture", "again"],
+          },
+        },
+      });
+    }),
+  );
+
+  it.effect.each([
+    [
+      'export { default as Named } from "./anonymous.js";',
+      "export default class {}",
+      "Named",
+      false,
+    ],
+    [
+      'export { default, default as Named } from "./anonymous.js";',
+      "export default class {}",
+      "Named",
+      false,
+    ],
+    [
+      'import Named from "./anonymous.js";\nexport { Named };',
+      "export default function (): void;",
+      "Named",
+      false,
+    ],
+    [
+      'export type { default } from "./anonymous.js";',
+      "export default class {}",
+      "default",
+      true,
+    ],
+  ] as const)(
+    "anonymous_alias_%#",
+    Effect.fnUntraced(function* ([source, anonymous, name, typeOnlyExport]) {
+      expect.hasAssertions();
+      const result = yield* parse({
+        source,
+        files: { "anonymous.d.ts": anonymous },
+      });
+      expect(result).toMatchObject({
+        _tag: "Failure",
+        failure: {
+          reason: {
+            _tag: "AnonymousAlias",
+            file: fileURLToPath(
+              new URL("fixtures/anonymous.d.ts", import.meta.url),
+            ),
+            name,
+            typeOnlyExport,
+          },
+        },
+      });
+    }),
+  );
+
+  it.effect(
+    "anonymous_default",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const ast = yield* success({
+        source: 'export { default } from "./anonymous.js";',
+        files: { "anonymous.d.ts": "export default class {}" },
+      });
+      expect(exported(ast, "default").typeOnlyExport).toBe(false);
     }),
   );
 
@@ -1554,6 +1637,11 @@ export interface Options { readonly body: number }`,
         "UnknownParameter",
         "input",
       ],
+      [
+        "/** @param options - Nothing. */ export declare function make(input: string, { a }: { readonly a: string }): void;",
+        "UnknownParameter",
+        "options",
+      ],
     ] as const)(
       "unknown_name_%#",
       Effect.fnUntraced(function* ([source, reason, name]: readonly [
@@ -1597,6 +1685,7 @@ export interface Options { readonly body: number }`,
       "/** @typeParam T - The held type. */ export interface Box<T> { readonly value: T }",
       "/** @typeParam T - The held type. */ export declare class Box<T> { readonly value: T }",
       "/** @typeParam T - The held type. */ export type Box<T> = readonly T[];",
+      "/** @param input - The input. @param options - The options. */ export declare function make(input: string, { a }: { readonly a: string }): void;",
     ])(
       "known_names_%#",
       Effect.fnUntraced(function* (source: string) {

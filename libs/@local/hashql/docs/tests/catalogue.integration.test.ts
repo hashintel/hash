@@ -138,6 +138,45 @@ describe("catalogue", () => {
   );
 
   it.effect(
+    "value_names",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const ast = yield* ParserFixture.success({
+        source: `export type { Box } from "./box.js";
+export * as Far from "./far.js";
+export * as Near from "./near.js";
+export type { Only } from "./box.js";
+export { Plain } from "./box.js";`,
+        files: {
+          "far.d.ts": 'export * as Deep from "./near.js";',
+          "near.d.ts": 'export { Box as Again } from "./box.js";',
+          "box.d.ts":
+            "export class Box { value: string } export class Only {} export class Plain {}",
+        },
+      });
+      const catalogue = Catalogue.fromAST(ast);
+      const valueName = (...path: string[]): Option.Option<readonly string[]> =>
+        Option.map(entry(catalogue, ...path).valueName, (name) => name.path);
+      expect([
+        valueName("Box"),
+        valueName("Only"),
+        valueName("Plain"),
+      ]).toStrictEqual([
+        // The shortest name is type-only, and of the two that permit value use the shorter names the value, though the walk meets the longer first.
+        Option.some(["Near", "Again"]),
+        Option.none(),
+        Option.some(["Plain"]),
+      ]);
+      expect(
+        Option.map(
+          Catalogue.valued(entry(catalogue, "Box")),
+          ({ name, nameTypeOnlyExport }) => [name.path, nameTypeOnlyExport],
+        ),
+      ).toStrictEqual(Option.some([["Near", "Again"], false]));
+    }),
+  );
+
+  it.effect(
     "namespace_restriction",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();

@@ -464,8 +464,9 @@ export const symbol: {
         CompilerSymbol,
       ]) {
         const suffix = yield* qualification(holder, member, name);
+        const shown = yield* written(holder);
 
-        return Array.flatten([[holder.name], suffix, ["."]]);
+        return Array.flatten([[shown], suffix, ["."]]);
       }),
     );
     const own = yield* written(self);

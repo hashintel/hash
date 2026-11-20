@@ -2,10 +2,11 @@ import { Context, Effect, Function, Layer } from "effect";
 
 import * as store from "../internal/ast/store.js";
 
+import type * as Declaration from "./Declaration.js";
 import type * as Interned from "./Interned.js";
 import type * as Node from "./Node.js";
 import type * as Target from "./Target.js";
-import type { Array } from "effect";
+import type { Array, HashMap } from "effect";
 import type { Symbol as CompilerSymbol } from "typescript/async";
 
 export * as Accessor from "./Accessor.js";
@@ -71,6 +72,23 @@ export type Entry<T extends Target.Target, E, R> = store.Entry<T, E, R>;
 export const make = store.make;
 
 export const layer = Layer.sync(Store, make);
+
+/** The root declaration of each entrypoint in the current graph, by the entrypoint's name. */
+export const entrypoints: Effect.Effect<
+  HashMap.HashMap<string, Declaration.Interned>,
+  never,
+  Store
+> = Effect.map(Store, (graph) => graph.entrypoints);
+
+/** Records `id` as the root declaration of the entrypoint `name` in the current graph. */
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- a pipeable signature makes no sense here
+export const entrypoint = (
+  name: string,
+  id: Declaration.Interned,
+): Effect.Effect<void, never, Store> =>
+  Effect.map(Store, (graph) => {
+    graph.entrypoint(name, id);
+  });
 
 /** Reserves an identity in the current graph and builds its node with it, so recursive references can precede the node they name. */
 export const reserve = <T extends Node.Node, E, R>(

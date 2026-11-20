@@ -42,7 +42,7 @@ export const check = Effect.fnUntraced(function* (
 
 /** Where a comment's names resolve, and whether a reader sees the comment. */
 interface Scope {
-  /** The public name of the innermost public declaration around the comment, below which its names resolve. */
+  /** The public name below which the comment's names resolve, that of the page that shows the innermost public declaration around it. */
   readonly owner: LinkLookup.Scope["owner"];
   /** Whether the declaration the comment documents is public. A member's comment documents the member's owner. */
   readonly public: boolean;
@@ -69,7 +69,12 @@ const scopeOf = Effect.fnUntraced(function* (
     );
 
     if (Option.isSome(entry)) {
-      return { owner: Option.some(entry.value.name), public: documented };
+      return {
+        owner: Option.some(
+          LinkLookup.ownerOf(catalogue, { entry: entry.value, node: current }),
+        ),
+        public: documented,
+      };
     }
 
     // The first declaration around the comment is the one it documents.
@@ -131,7 +136,7 @@ const ownerOf = (
 /**
  * Resolves each link the compiler did not bind, or bound to a name outside the package that no page documents, through the public names of `catalogue`.
  *
- * A package-qualified name starts at its entrypoint. The lookup reads any other name below the public declaration around the comment's owner, then in each enclosing namespace outwards. A comment over a variable statement documents each of its declarators, and resolves in the scope of the first. The compiler can bind a qualified name to something its author did not mean, such as a class's static where the comment names an instance member. A binding a reader cannot follow therefore gives way to the public name. A link in a public declaration's comment that still leads nowhere fails, because a reader would lose its destination. A private declaration's comment keeps such a link as it is, so it fails only where a page shows it.
+ * A package-qualified name starts at its entrypoint. The lookup reads any other name below the public name of the page that shows the declaration around the comment's owner, then in each enclosing namespace outwards. A comment over a variable statement documents each of its declarators, and resolves in the scope of the first. The compiler can bind a qualified name to something its author did not mean, such as a class's static where the comment names an instance member. A binding a reader cannot follow therefore gives way to the public name. A link in a public declaration's comment that still leads nowhere fails, because a reader would lose its destination. A private declaration's comment keeps such a link as it is, so it fails only where a page shows it.
  */
 export const resolve = Effect.fnUntraced(function* (
   catalogue: LinkLookup.Scope["catalogue"],

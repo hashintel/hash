@@ -4,6 +4,7 @@ import {
   Chunk,
   Context,
   Effect,
+  HashMap,
   Layer,
   Option,
   flow,
@@ -22,6 +23,7 @@ import * as Heritage from "./ast-heritage.js";
 import * as Links from "./ast-links.js";
 import * as Names from "./ast-names.js";
 import * as TypeParser from "./ast-types.js";
+import * as Parts from "./parts.js";
 
 import type { Failure } from "./ast-type-parser.js";
 import type { Cause } from "effect";
@@ -236,10 +238,60 @@ const entrypoint = (
       }),
     ),
     Effect.flatMap((id) =>
-      Effect.map(AST.Store, (store) => {
-        store.entrypoint(name, id);
-      }),
+      pipe(
+        AST.entrypoints,
+        Effect.map(HashMap.findFirst((existing) => existing === id)),
+        Effect.flatMap(
+          Option.match({
+            onNone: () => AST.entrypoint(name, id),
+            onSome: ([shared]) =>
+              Effect.fail(
+                AST.ParseError.sharedEntrypoint({
+                  file: module.fileName,
+                  entrypoints: [shared, name],
+                }),
+              ),
+          }),
+        ),
+      ),
     ),
+  );
+
+const isAnonymous = (node: Parts.Source["node"]): boolean =>
+  (Syntax.isClassDeclaration(node) || Syntax.isFunctionDeclaration(node)) &&
+  node.name === undefined;
+
+/** The error for the first anonymous declaration a namespace exports type-only or under a name other than `default`, neither of which an export statement can spell. */
+const anonymousAliases = (
+  catalogue: Catalogue.Catalogue,
+): Effect.Effect<void, AST.ParseError.ParseError> =>
+  pipe(
+    catalogue.entries,
+    Array.flatMap((entry) =>
+      pipe(
+        Parts.of(catalogue.ast, entry),
+        Array.map(({ source }) => source.node),
+        Array.filter(isAnonymous),
+        Array.flatMap((node) =>
+          pipe(
+            Catalogue.namesOf(catalogue.ast, entry),
+            Array.filter(
+              ({ name, typeOnlyExport }) =>
+                name !== "default" || typeOnlyExport,
+            ),
+            Array.map(({ name, typeOnlyExport }) =>
+              AST.ParseError.anonymousAlias({
+                file: node.getSourceFile().fileName,
+                name,
+                typeOnlyExport,
+              }),
+            ),
+          ),
+        ),
+      ),
+    ),
+    Array.head,
+    Option.match({ onNone: () => Effect.void, onSome: Effect.fail }),
   );
 
 const types = TypeParser.layer.pipe(Layer.provideMerge(Comments.layer));
@@ -282,6 +334,7 @@ export const parse = Effect.fn("Parser.parse")(
 
     const store = yield* AST.Store;
     const catalogue = Catalogue.fromAST(store);
+    yield* anonymousAliases(catalogue);
     yield* Links.resolve(catalogue);
     yield* Examples.resolve();
     store.finish();
