@@ -7,8 +7,10 @@ import {
   hashEntityReadInputFor,
   hashEntityReadResultSchema,
   parseHashEntityDetailsInput,
+  parseHashEntityProfileInput,
   parseHashEntityReadInput,
   renderHashEntityDetails,
+  renderHashEntityProfile,
   type ClientToolResult,
 } from "@hashintel/brunch-agent";
 
@@ -98,6 +100,39 @@ const readDetails = async (
   expect(view.refused).toBe(false);
   return view.text;
 };
+
+test.each([true, false])(
+  "both formats describe the inventory's completeness with truncated=%s",
+  async (truncated) => {
+    const output = {
+      entityTypes: [{ entityTypeId: orderTypeId, title: "Order" }],
+      propertyTypes: [],
+      entities: Array.from({ length: 1_000 }, (_, index) => ({
+        entityId: `${webId}~00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+        editionId: `order-edition-${index}`,
+        webId,
+        entityTypeIds: [orderTypeId],
+        properties: {},
+        draft: false,
+        matched: true,
+      })),
+      ...(truncated ? { truncated: true as const } : {}),
+    };
+    const execute: BrowserToolExecutor = async () => ({ output });
+    const input = { entityTypes: [orderTypeId], traversalDepth: 0 };
+    const profileInput = parseHashEntityProfileInput(input);
+    const current = await readCurrent(execute, input);
+    const profile = renderHashEntityProfile(output, profileInput);
+
+    expect(current).toContain("entities: 1000");
+    expect(profile.refused).toBe(false);
+    expect(profile.text).toContain("matched: 1000");
+    expect(current.includes("More may match than shown")).toBe(truncated);
+    expect(profile.text.includes("more may match than this read covers")).toBe(
+      truncated,
+    );
+  },
+);
 
 test("both formats preserve the link when the customer read returns no visible record", async () => {
   const execute: BrowserToolExecutor = async (call) => {
