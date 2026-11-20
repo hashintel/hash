@@ -39,6 +39,9 @@ const solverErrorExtractor = (
 
 export type TimeRange = { min: number; max: number };
 
+/** Samples a continuous series is read at across the visible range. */
+const SAMPLE_COUNT = 400;
+
 const EMPTY_SNAPSHOT: TimelineSeriesSnapshot = {
   data: null,
   firings: [],
@@ -111,13 +114,11 @@ const useTimelineSeriesStore = (
 export function useEventTimelineData({
   viewMin,
   viewMax,
-  sampleCount,
   paused,
 }: {
   /** The visible range as two numbers, so a resample follows a change of value, not of object. */
   viewMin: number;
   viewMax: number;
-  sampleCount: number;
   /**
    * True while nobody can see the timeline: the store then stops following
    * the trace and the range, and catches up when this turns false.
@@ -173,7 +174,7 @@ export function useEventTimelineData({
             kind: "sampled",
             series: seriesConfig.series,
             extract: seriesConfig.extract,
-            sampleCount,
+            sampleCount: SAMPLE_COUNT,
           }
         : solverErrorPlaceIndices
           ? {

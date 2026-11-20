@@ -11,9 +11,6 @@ import { TimelineFrame } from "./timeline-frame";
 import { useEventTimelineData } from "./use-event-timeline-data";
 import { useTimelineViewRange } from "./use-view-range";
 
-/** Samples a continuous series is read at across the visible range. */
-const SAMPLE_COUNT = 400;
-
 /**
  * The timeline of a run: token counts step at the events, metrics follow the
  * interpolated state, and every firing is marked on the ruler. So are the
@@ -36,7 +33,6 @@ const RunTimeline: React.FC<{ showLegend?: boolean }> = ({
   const { data, firings, references, metricError } = useEventTimelineData({
     viewMin: view.range.min,
     viewMax: view.range.max,
-    sampleCount: SAMPLE_COUNT,
     paused: !onScreen,
   });
   const transitionNames = new Map(
