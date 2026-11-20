@@ -61,6 +61,14 @@ const parameter = (
   defaultValue: "1",
 });
 
+const widgetType: ActiveNetDefinition["types"][number] = {
+  id: "colour",
+  name: "Widget",
+  iconSlug: "circle",
+  displayColor: "#000000",
+  elements: [],
+};
+
 const names = (refs: { name: string }[]) => refs.map(({ name }) => name).sort();
 
 describe("buildConnectionIndex", () => {
@@ -95,15 +103,7 @@ describe("buildConnectionIndex", () => {
           dynamics: [{ differentialEquationId: "decay" }],
         }),
       ],
-      types: [
-        {
-          id: "colour",
-          name: "Widget",
-          iconSlug: "circle",
-          displayColor: "#000000",
-          elements: [],
-        },
-      ],
+      types: [widgetType],
       differentialEquations: [
         { arity: 1, id: "decay", name: "Decay", colorId: "colour", code: "" },
       ],
@@ -273,15 +273,7 @@ describe("buildNetGraph", () => {
     const net: ActiveNetDefinition = {
       ...emptyNet,
       places: [place("Stock", { colorId: "colour" })],
-      types: [
-        {
-          id: "colour",
-          name: "Widget",
-          iconSlug: "circle",
-          displayColor: "#000000",
-          elements: [],
-        },
-      ],
+      types: [widgetType],
       parameters: [parameter("rate", "growth_rate")],
       differentialEquations: [
         { arity: 1, id: "decay", name: "Decay", colorId: null, code: "" },
@@ -352,15 +344,7 @@ describe("buildDependentCounts", () => {
     const net: ActiveNetDefinition = {
       ...emptyNet,
       places: [place("Stock", { colorId: "colour" })],
-      types: [
-        {
-          id: "colour",
-          name: "Widget",
-          iconSlug: "circle",
-          displayColor: "#000000",
-          elements: [],
-        },
-      ],
+      types: [widgetType],
       differentialEquations: [
         { arity: 1, id: "decay", name: "Decay", colorId: "colour", code: "" },
       ],
