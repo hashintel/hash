@@ -77,6 +77,12 @@ export const brunchHeaders = {
   actor: "x-brunch-actor",
   conversation: "x-brunch-conversation",
   /**
+   * The web the conversation belongs to: the process's web, or a draft's
+   * `draftWeb`, never the active workspace. The durable server records it
+   * when the conversation is created and refuses a request naming another.
+   */
+  web: "x-brunch-web",
+  /**
    * The actor header's former name, which Brunch still reads when `actor` is
    * absent, so a browser client and Brunch can deploy in either order.
    * Temporary: remove once the Petrinaut website sends `actor` from its own
