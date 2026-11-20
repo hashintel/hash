@@ -1,6 +1,7 @@
 import { Chat } from "@ai-sdk/react";
 import { FetchError, FlueApiError } from "@flue/sdk";
-import { expect, test, vi } from "vitest";
+import { createUIMessageStreamResponse } from "ai";
+import { describe, expect, test, vi } from "vitest";
 
 import {
   interviewBudgetLevels,
@@ -9,6 +10,7 @@ import {
   petrinautContextualUserMessageBody,
   readPetrinautSubmissionContext,
 } from "@hashintel/brunch-agent";
+import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
 import {
   FlueChatAdmissionError,
   FlueChatDisconnectError,
@@ -19,6 +21,7 @@ import { createBrunchFlueAdapter } from "./brunch-flue-adapter";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
+  createBrunchSuccessorPanelTransport,
   createUnavailableBrunchPanelTransport,
 } from "./brunch-panel-transport";
 import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
@@ -955,3 +958,195 @@ test.each(["fulfilled", "rejected"] as const)(
     for (const release of releases) expect(release).toHaveBeenCalledOnce();
   },
 );
+
+describe("on the durable agents server", () => {
+  const conversation = {
+    endpoint: "http://durable.test",
+    actorKey: "actor-1",
+    conversationId: "conversation-1",
+    web: "web-1",
+  };
+  const reply = () =>
+    createUIMessageStreamResponse({
+      stream: new ReadableStream({
+        start(controller) {
+          controller.enqueue({ type: "start", messageId: "durable:entry-1" });
+          controller.enqueue({ type: "finish", finishReason: "stop" });
+          controller.close();
+        },
+      }),
+    });
+  const chatBodies = (fetch: ReturnType<typeof vi.fn>) =>
+    fetch.mock.calls.map(([, init]): unknown => {
+      const body = (init as RequestInit | undefined)?.body;
+      return typeof body === "string" ? JSON.parse(body) : undefined;
+    });
+  const transportWith = (
+    fetch: typeof globalThis.fetch,
+    tracker = new BrunchPanelConversationTracker(),
+    options: Partial<
+      Parameters<typeof createBrunchSuccessorPanelTransport>[2]
+    > = {},
+  ) =>
+    createBrunchSuccessorPanelTransport({ ...conversation, fetch }, tracker, {
+      documentId: "document-1",
+      ...options,
+    });
+  const send = (
+    transport: ReturnType<typeof createBrunchSuccessorPanelTransport>,
+    messages: PetrinautAiMessage[],
+  ) =>
+    transport.sendMessages({
+      trigger: "submit-message",
+      chatId: conversation.conversationId,
+      messageId: undefined,
+      messages,
+      abortSignal: undefined,
+    });
+  const diagnosticsMessage = {
+    id: petrinautDiagnosticsContextMessageId,
+    role: "user",
+    parts: [{ type: "text", text: "Petrinaut diagnostics context only." }],
+  } as PetrinautAiMessage;
+
+  test("sends only the user's message, under its own ID and with Brunch's submission context, never the diagnostics message", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => reply());
+    const versionLoad = {
+      id: "load-1",
+      decisionTime: "2026-10-27T10:00:00.000Z",
+    };
+
+    await send(
+      transportWith(fetch, undefined, {
+        readWords: () => ["RelayDesk"],
+        versionLoad,
+      }),
+      [
+        { id: "user-1", role: "user", parts: [{ type: "text", text: "Hi" }] },
+        diagnosticsMessage,
+      ],
+    );
+
+    const [body] = chatBodies(fetch);
+    expect(body).toMatchObject({
+      messages: [{ id: "user-1", role: "user" }],
+      binding: { conversationId: "conversation-1", documentId: "document-1" },
+    });
+    const { messages } = body as { messages: PetrinautAiMessage[] };
+    expect(messages).toHaveLength(1);
+    const [part] = messages[0]?.parts ?? [];
+    const sent = parsePetrinautUserMessageBody(
+      part?.type === "text" ? part.text : "",
+    );
+    expect(sent).toMatchObject({ userText: "Hi" });
+    expect(readPetrinautSubmissionContext(sent)).toEqual({
+      words: ["RelayDesk"],
+      versionLoad,
+      selection: [],
+    });
+  });
+
+  test("sends Ledger comments as their comment body", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => reply());
+    const comments = ledgerCommentsMessage([
+      { id: "n1", records: ["e1"], text: "The queue is a buffer." },
+    ]);
+
+    await send(transportWith(fetch), [
+      {
+        id: "comments-1",
+        role: "user",
+        parts: [{ type: "text", text: comments.body }],
+      },
+    ]);
+
+    expect(chatBodies(fetch)[0]).toMatchObject({
+      messages: [
+        {
+          id: "comments-1",
+          role: "user",
+          parts: [{ type: "text", text: comments.body }],
+        },
+      ],
+    });
+  });
+
+  test("a continuation after the turn's tool calls sends nothing: the server continues the turn itself", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => reply());
+
+    await expect(
+      send(transportWith(fetch), [
+        { id: "user-1", role: "user", parts: [{ type: "text", text: "Hi" }] },
+        {
+          id: "durable:entry-1",
+          role: "assistant",
+          parts: [
+            { type: "step-start" },
+            {
+              type: "dynamic-tool",
+              toolName: "setNetTitle",
+              toolCallId: "call-1",
+              state: "output-available",
+              input: { title: "Queue" },
+              output: { ok: true },
+            },
+            {
+              type: "tool-ledger_commit",
+              toolCallId: "call-2",
+              state: "output-available",
+              providerExecuted: true,
+              input: {},
+              output: "{}",
+            },
+          ],
+        } as PetrinautAiMessage,
+        diagnosticsMessage,
+      ]),
+    ).rejects.toThrow();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test("a host's send settles once the server admits it, under its request ID", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => reply());
+    const tracker = new BrunchPanelConversationTracker();
+    const onAdmission = vi.fn();
+    const chat = new Chat<PetrinautAiMessage>({
+      transport: transportWith(fetch, tracker, { onAdmission }),
+    });
+
+    await expect(
+      tracker.submitTextWithAdmission(submitThroughChat(chat), {
+        id: "host-1",
+        text: "Results",
+        target: "message",
+      }),
+    ).resolves.toEqual({ kind: "message", messageId: "host-1" });
+    expect(tracker.submissionForInput("host-1")).toBe("host-1");
+    expect(onAdmission).toHaveBeenCalledWith({ submissionId: "host-1" });
+  });
+
+  test("a refused send fails the host's submission with the server's cause", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      async () =>
+        new Response("The conversation is bound to a different document.", {
+          status: 409,
+        }),
+    );
+    const tracker = new BrunchPanelConversationTracker();
+    const chat = new Chat<PetrinautAiMessage>({
+      transport: transportWith(fetch, tracker),
+    });
+
+    await expect(
+      tracker.submitTextWithAdmission(submitThroughChat(chat), {
+        id: "host-1",
+        text: "Results",
+        target: "message",
+      }),
+    ).rejects.toMatchObject({
+      failure: { kind: "rejected", status: 409 },
+      message: "The conversation is bound to a different document.",
+    });
+    expect(tracker.submissionForInput("host-1")).toBeUndefined();
+  });
+});
