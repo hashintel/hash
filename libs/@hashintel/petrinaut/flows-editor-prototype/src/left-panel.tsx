@@ -6,7 +6,7 @@ import {
   type IconName,
   TextInput,
 } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import {
@@ -464,6 +464,8 @@ const FlowList = ({
 
   return (
     <div className={css({ display: "flex", flexDirection: "column" })}>
+      {/* The editor's header has the + and no count line; the run view keeps its count and Collapse all. */}
+      {statusFor ? (
       <div className={listHeadStyle}>
         <span>{total === 1 ? "1 step" : `${total} steps`}</span>
         {/* 2 Nov: a DS IconButton (ghost, xs, neutral), not a blue link. Figma draws lucide fold-vertical; ds-components
@@ -479,6 +481,7 @@ const FlowList = ({
           onClick={() => setClosed(allClosed ? [] : groups)}
         />
       </div>
+      ) : null}
       <div
         className={css({
           display: "flex",
@@ -717,6 +720,31 @@ const tabStyle = css({
   "&[aria-selected=true]": { color: "neutral.fg.heading" },
 });
 
+/** The editor header's title: the selected tab's look (14 px medium, heading colour), no longer a tab. */
+const headerTitleStyle = css({
+  display: "flex",
+  alignItems: "center",
+  height: "[32px]",
+  paddingX: "[10px]",
+  textStyle: "sm",
+  lineHeight: "none",
+  fontWeight: "medium",
+  color: "neutral.fg.heading",
+  whiteSpace: "nowrap",
+});
+
+/** The canvas toolbar's tool button: 32 px square, the icon in the muted grey. */
+const addButtonStyle = css({
+  "&[class]": {
+    width: "[32px]",
+    height: "[32px]",
+    minWidth: "[32px]",
+    padding: "[0]",
+    justifyContent: "center",
+  },
+  "&[class]:not([data-variant=solid])": { color: "neutral.fg.muted" },
+});
+
 const panelTabs = [
   { value: "steps", label: "Steps", region: "Steps" },
   { value: "add", label: "Add", region: "Add a step" },
@@ -733,24 +761,46 @@ export const LeftPanel = ({
   const current = panelTabs.find((tab) => tab.value === panel)!;
   return (
     <aside className={panelStyle} aria-label={current.region}>
-      <div className={headerStyle}>
-        <div role="tablist" aria-label="Left panel" className={tabListStyle}>
-          {(statusFor ? panelTabs.slice(0, 1) : panelTabs).map((tab) => (
+      {statusFor ? (
+        <div className={headerStyle}>
+          <div role="tablist" aria-label="Left panel" className={tabListStyle}>
             <button
-              key={tab.value}
               type="button"
               role="tab"
-              aria-selected={tab.value === panel}
+              aria-selected
               className={tabStyle}
-              onClick={() =>
-                setUi((state) => ({ ...state, leftPanel: tab.value }))
-              }
             >
-              {tab.label}
+              Steps
             </button>
-          ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div
+          className={cx(
+            headerStyle,
+            // The + icon's right edge lines up with the rows' stars.
+            css({ justifyContent: "space-between", paddingRight: "[8px]" }),
+          )}
+        >
+          <span className={headerTitleStyle}>Steps</span>
+          <Button
+            size="sm"
+            className={addButtonStyle}
+            variant="ghost"
+            iconName="plus"
+            aria-label="Add step"
+            tooltip="Add step"
+            pressed={ui.picker?.anchor === "panel"}
+            data-panel-add
+            onClick={() =>
+              setUi((state) => ({
+                ...state,
+                picker: state.picker ? null : { anchor: "panel" },
+              }))
+            }
+          />
+        </div>
+      )}
       <OverlayScrollArea className={css({ flex: "1", minHeight: "[0]" })}>
         {panel === "add" ? <Library /> : <FlowList statusFor={statusFor} />}
       </OverlayScrollArea>

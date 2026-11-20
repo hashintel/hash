@@ -205,7 +205,9 @@ export const AddNodePicker = ({
   const anchor =
     picker.anchor === "toolbar"
       ? toolbarAnchor
-      : picker.anchor === "drop" && picker.drop
+      : picker.anchor === "panel"
+        ? anchorBySelector("[data-panel-add]")
+        : picker.anchor === "drop" && picker.drop
         ? anchorAtPoint(picker.drop.client)
         : anchorBySelector(
             picker.anchor === "output" && picker.after && picker.feed
@@ -262,7 +264,7 @@ export const AddNodePicker = ({
       .find((id) => !document.wires.some((wire) => wire.source === id));
     const after =
       picker.after ??
-      (picker.anchor !== "toolbar"
+      (picker.anchor !== "toolbar" && picker.anchor !== "panel"
         ? undefined
         : selected && selectedStep?.step.kind !== "for-each"
           ? { stepId: selected, port: "next" }
@@ -559,7 +561,8 @@ export const AddNodePicker = ({
     const afterId = picker.after?.stepId;
     const afterStep = afterId ? findStep(document, afterId)?.step : undefined;
     const selectedStep =
-      picker.anchor === "toolbar" && ui.selectedId
+      (picker.anchor === "toolbar" || picker.anchor === "panel") &&
+      ui.selectedId
         ? findStep(document, ui.selectedId)?.step
         : undefined;
     const parentStep = picker.parentId

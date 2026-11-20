@@ -9,7 +9,7 @@ import type { validateDocument } from "./shapes";
 export type PickerTarget = {
   after?: { stepId: string; port: string };
   parentId?: string | null;
-  anchor: "toolbar" | "port" | "group" | "drop" | "output";
+  anchor: "toolbar" | "panel" | "port" | "group" | "drop" | "output";
   /** "Use in a step" on an output row: the new step goes after `after` and reads this output of it. */
   feed?: { outputName: string; label: string };
   /** For "drop": where a wire was released on empty canvas, in window pixels (the menu) and flow units (the new step). */
