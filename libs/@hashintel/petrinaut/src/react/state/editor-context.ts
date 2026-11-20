@@ -1,4 +1,4 @@
-import { createContext, createRef } from "react";
+import { createContext, createRef, use } from "react";
 
 import {
   useSelected,
@@ -308,3 +308,29 @@ export const useEditorFields = <Key extends keyof EditorContextValue>(
   ...keys: Key[]
 ): Pick<EditorContextValue, Key> =>
   useSelectedFields(EditorContext, EditorPublishedContext, keys);
+
+/**
+ * Where `EditorProvider` gives out the editor's actions, apart from its
+ * state. Null where only `EditorContext` is provided, such as under a test.
+ */
+export const EditorActionsContext = createContext<EditorActions | null>(null);
+
+/**
+ * The editor's actions. A component that only acts on the editor reads them
+ * here and renders for no change of the editor's state.
+ *
+ * ```tsx
+ * const { selectItem } = useEditorActions();
+ * ```
+ */
+export const useEditorActions = (): EditorActions =>
+  // `use` is the one hook that may sit in a condition.
+  use(EditorActionsContext) ?? use(EditorContext);
+
+/**
+ * Whether one item is selected. The reader renders when that answer changes,
+ * so a list renders two of its rows when the selection moves from one to
+ * another.
+ */
+export const useIsSelected = (id: string): boolean =>
+  useEditorState((editor) => editor.selection.has(id));

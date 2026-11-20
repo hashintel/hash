@@ -16,6 +16,7 @@ import {
 import {
   type DraggingStateByNodeId,
   type EditorActions,
+  EditorActionsContext,
   EditorContext,
   type EditorContextValue,
   EditorPublishedContext,
@@ -574,9 +575,11 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     >
       <EditorPublishedContext value={published}>
         <EditorContext.Provider value={contextValue}>
-          <ReadOnlyReasonProvider>
-            <PanelPresenceProvider>{children}</PanelPresenceProvider>
-          </ReadOnlyReasonProvider>
+          <EditorActionsContext value={{ ...actions, isSelected }}>
+            <ReadOnlyReasonProvider>
+              <PanelPresenceProvider>{children}</PanelPresenceProvider>
+            </ReadOnlyReasonProvider>
+          </EditorActionsContext>
         </EditorContext.Provider>
       </EditorPublishedContext>
     </AssistantPlacementContext>
