@@ -225,5 +225,30 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
     );
   };
 
+const openInAnotherTab = "Open in another tab";
+
+/**
+ * `resolve`, with a pending call another tab holds saying so: as the detail
+ * under the title `resolve` gives it or, for a tool it doesn't title, as the
+ * title over the panel's own detail.
+ */
+export const withCallsOpenInOtherTabs =
+  (
+    resolve: PetrinautAiToolPresentationResolver,
+    openInOtherTabs: ReadonlySet<string>,
+  ): PetrinautAiToolPresentationResolver =>
+  (context) => {
+    const presentation = resolve(context);
+    if (
+      context.state !== "pending" ||
+      context.toolCallId === undefined ||
+      !openInOtherTabs.has(context.toolCallId)
+    )
+      return presentation;
+    return presentation === undefined
+      ? { title: openInAnotherTab, tone: "neutral" }
+      : { ...presentation, detail: openInAnotherTab, tone: "neutral" };
+  };
+
 /** Compile-time witness that every visible ordinary name has lifecycle copy. */
 export const brunchToolLifecycleTitles = lifecycleTitles;

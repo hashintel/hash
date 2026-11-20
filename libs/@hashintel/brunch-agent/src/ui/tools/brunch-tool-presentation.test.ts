@@ -4,6 +4,7 @@ import {
   brunchToolLifecycleTitles,
   resolveBrunchToolPresentation,
   visibleOrdinaryBrunchToolNames,
+  withCallsOpenInOtherTabs,
 } from "./brunch-tool-presentation";
 
 const states = ["pending", "success", "error"] as const;
@@ -215,5 +216,42 @@ describe("Brunch tool presentation", () => {
         error: undefined,
       }),
     ).toBeUndefined();
+  });
+
+  test("a call waiting in another tab says it is open there until its result arrives", () => {
+    const resolve = withCallsOpenInOtherTabs(
+      resolveBrunchToolPresentation,
+      new Set(["elsewhere"]),
+    );
+    const read = {
+      toolName: "hash_query_entities",
+      input: {},
+      output: undefined,
+      error: undefined,
+    };
+
+    expect(
+      resolve({ ...read, toolCallId: "elsewhere", state: "pending" }),
+    ).toEqual({
+      title: "Look up entities in HASH",
+      detail: "Open in another tab",
+      tone: "neutral",
+    });
+    // A tool Brunch doesn't title keeps the panel's detail under the note.
+    expect(
+      resolve({
+        ...read,
+        toolName: "addPlace",
+        toolCallId: "elsewhere",
+        state: "pending",
+      }),
+    ).toEqual({ title: "Open in another tab", tone: "neutral" });
+    expect(
+      resolve({ ...read, toolCallId: "elsewhere", state: "success" }),
+    ).toEqual({ title: "Looked up entities in HASH" });
+    expect(resolve({ ...read, toolCallId: "here", state: "pending" })).toEqual({
+      title: "Look up entities in HASH",
+      tone: "pending",
+    });
   });
 });
