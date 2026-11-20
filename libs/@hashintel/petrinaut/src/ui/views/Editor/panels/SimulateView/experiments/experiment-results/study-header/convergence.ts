@@ -12,7 +12,7 @@ import type {
 export type ConvergenceVerdict = "too-early" | "improving" | "converging";
 
 /** The completed steps a verdict looks back over: a tenth of the study, five at least. */
-export const convergenceWindow = (requestedTrials: number): number =>
+const convergenceWindow = (requestedTrials: number): number =>
   Math.max(5, Math.floor(requestedTrials / 10));
 
 export const assessConvergence = (
