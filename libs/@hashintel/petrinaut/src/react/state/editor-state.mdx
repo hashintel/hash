@@ -4,11 +4,11 @@ description: Who owns each piece of the state of an editing session, who writes 
 sidebar_order: 10
 ---
 
-The state layer owns the state of an editing session: what belongs to
-neither the document nor a run. Each piece has one owner, one way to write
-it and one hook that reads it.
+The state layer publishes the state of an editing session that the document
+does not hold. Each piece has one owner and one way to write it, which the
+table below names with the hooks or the context that read it.
 
-![An action writes the location or the editor's own state, and a reader renders when the part it selected changes. A panel's geometry never goes through React.](./editor-state.d2)
+![An action writes the location or the editor's own state, and a reader renders when the part it selected changes. The slide of a panel is written to its element each frame, without a render.](./editor-state.d2)
 
 ## Entry point
 
@@ -17,25 +17,35 @@ render from two sources: the location, and its own `useState`. It gives the
 result out through `EditorContext`, publishes it for the selector hooks, and
 gives the actions out through a context of their own.
 
+The location is the state of [navigation](layer:react.navigation): the mode,
+the view, the selection, and the selected scenario and experiment. In an
+editor that only composes, which `useComposesOnly` answers, the mode is
+`edit` and the view is `canvas` whatever the location says.
+
 ## State
 
-| State                                                        | Owner                                                              | Written by                                         | Read through                                              |
-| ------------------------------------------------------------ | ------------------------------------------------------------------ | -------------------------------------------------- | --------------------------------------------------------- |
-| Mode, Edit view, Simulate view and drawer, selection         | The location, in [navigation](layer:react.navigation)              | `useEditorActions`, which navigate                 | `useEditorState`, `useEditorFields`, `useIsSelected`      |
-| Open panels, tool, cursor, bottom panel tab, visualizer windows | `EditorProvider`                                                | `useEditorActions`                                 | `useEditorState`, `useEditorFields`                       |
-| Where the assistant sits                                     | `AssistantPlacementContext`                                        | `useAssistantPlacement`                            | `useAssistantPlacement`                                   |
-| User settings                                                | `UserSettingsProvider`, saved in `localStorage`                    | The setters of `useUserSettingsFields`             | `useUserSettings`, `useUserSettingsFields`                |
-| Panel sizes, and how far each panel is in view               | Motion values, see [Panel geometry](doc:react.state/panel-sizes)   | A resize drag, `PanelPresenceProvider`             | `usePanelSizes`, `usePanelPresence`                       |
-| Read-only reason                                             | `ReadOnlyReasonProvider`, from the document, the mode and the run  | Nothing: it is derived                             | `useReadOnlyReason`, `useIsReadOnly`                      |
-| Undo history                                                 | The history of the Core handle                                     | `undo`, `redo`, `goToIndex` of `UndoRedoContext`   | `useStore` on `canUndo`, `canRedo` or `history`           |
-| Active net                                                   | The location's component id                                        | `setActiveComponentId`                             | `ActiveNetContext`                                        |
-| Saved canvas viewport                                        | User settings, one entry per document                              | `rememberViewport`                                 | `CanvasViewportContext`                                   |
-| Title, list of nets and callbacks of the host                | The host                                                           | The props of `Petrinaut`                           | `NetManagementContext`, `ReadOnlyActionContext`           |
-| Imports, libraries and the host's rules                      | The Core instance                                                  | Core                                               | `CompositionContext`, `useComposesOnly`                   |
+| State                                                                                             | Owner                                                                    | Written by                                                              | Read through                                              |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------- | --------------------------------------------------------- |
+| Mode, Edit view, Simulate view and drawer, selection                                              | The location                                                             | `useEditorActions`, which navigate                                      | `useEditorState`, `useEditorFields`, `useIsSelected`      |
+| The other fields of `EditorState`: open panels, tool, cursor, hovered item, search, timeline view, visualizer windows | A `useState` of `EditorProvider`                     | `useEditorActions`                                                      | `useEditorState`, `useEditorFields`                       |
+| Where the assistant sits                                                                          | A second `useState` of `EditorProvider`                                  | `useAssistantPlacement`                                                 | `useAssistantPlacement`                                   |
+| User settings                                                                                     | `UserSettingsProvider`, saved in `localStorage`                          | The setters of `useUserSettingsFields`                                  | `useUserSettings`, `useUserSettingsFields`                |
+| Panel sizes, and how far each panel is in view                                                    | Motion values, see [Panel geometry](doc:react.state/panel-sizes)         | A resize drag, `PanelPresenceProvider`                                  | `usePanelSizes`, `usePanelPresence`                       |
+| Read-only reason                                                                                  | `ReadOnlyReasonProvider`, from the document, the mode and the run        | Nothing: it is derived                                                  | `useReadOnlyReason`, `useIsReadOnly`                      |
+| Undo history                                                                                      | The history of the Core handle                                           | `undo`, `redo`, `goToIndex` of `UndoRedoContext`                        | `useStore` on `canUndo`, `canRedo` or `history`           |
+| Active net                                                                                        | The location's component id                                              | `setActiveComponentId`                                                  | `ActiveNetContext`                                        |
+| Saved canvas viewport                                                                             | User settings, one entry per document                                    | `rememberViewport`                                                      | `CanvasViewportContext`                                   |
+| Title, list of nets and callbacks of the host                                                     | The host                                                                 | The props of `Petrinaut`                                                | `NetManagementContext`                                    |
+| The action offered with the notice of a blocked edit, where the host made the document read-only | The first running plugin that declares `readOnlyAction`                  | That plugin                                                             | `ReadOnlyActionContext`                                   |
+| Imports, libraries and the host's rules                                                           | The Core instance                                                        | Core                                                                    | `CompositionContext`, `useComposesOnly`                   |
 
-The open panels, the cursor, the bottom panel tab and the timeline chart
-type start from the user settings, and `useSyncEditorToSettings` saves them
-back.
+The left sidebar, the bottom panel and its tab, the cursor and the timeline
+chart type start from the user settings, and `useSyncEditorToSettings` saves
+them back. Search and the assistant start closed and are not saved. In
+Actual mode with a timeline, the bottom panel starts open on that timeline
+whatever the setting.
+
+`UndoRedoContext` is null where the Core handle keeps no history.
 
 ## Data flow
 
@@ -56,36 +66,38 @@ Clicking a row of a list:
 - **A component reads a part of the editor's state, and never
   `use(EditorContext)`.** A panel that opens, a selection and a tool change
   are all changes of that context, and `use` renders its reader for each.
-  Held by `editor-provider.test.tsx` for the hooks; no lint rule refuses the
-  `use` call.
+  Held by `editor-provider.test.tsx` for the hooks. No lint rule refuses the
+  `use` call, and `ui/monaco/code-navigation.tsx` makes it to take
+  `selectItem`.
 - **Actions come from `useEditorActions`, one object for the editor's
   life.** An action reads what it needs when it is called, so a handler built
   from one keeps its identity and its reader renders for no change of state.
-  Held by `editor-provider.test.tsx`.
-- **A list row or a canvas node asks `useIsSelected(id)`.** A list of 500
-  rows then renders two rows when the selection moves. Held by
+  A handler asks `isSelected` of the actions, and a component that shows the
+  answer reads `useIsSelected`. Held by `editor-provider.test.tsx`.
+- **A list row or a canvas node asks `useIsSelected(id)`.** A row that read
+  the selection would render on every move of it. Held by
   `select-from-context.test.tsx`, which pins that a reader renders only when
   its part changes.
-- **State that one panel needs stays out of the editor's state.** Docking
-  the assistant renders no reader of the editor context. Held by
+- **The assistant's placement is outside the editor's state.** Docking the
+  assistant renders no reader of the editor context. Held by
   `editor-provider.test.tsx`.
 - **What changes on every edit is handed out as a store.** `UndoRedoContext`
   carries its actions, and `canUndo`, `canRedo` and `history` as stores, so a
-  reader that only undoes never renders for an edit.
+  reader that only undoes never renders for an edit. The type
+  `UndoRedoContextValue` holds it: the three fields are `ReadableStore`.
 - **The same rules hold for the settings.** A reader of one setting does not
   render when another is saved. Held by `user-settings-provider.test.tsx`.
 
 ## Pitfalls
 
 - A value read through a selector arrives one render pass after the
-  context's, in the same frame, before paint. A guard that must hold in the
-  commit that changes the mode does not read through a selector. That is why
-  the read-only reason has a context of its own, and why `EditorProvider`
-  passes the mode to `ReadOnlyReasonProvider` as a prop.
-- A component asks `useIsReadOnly` and does not work the answer out from the
-  mode. Simulate mode locks editing except for the mutations in
-  `simulateModeAllowedMutationNames`, and two components that each guess
-  will differ.
-- `isSelected` of `useEditorActions` answers a handler. A component that
-  shows the answer reads `useIsSelected`, because the action keeps its
-  identity when the selection changes.
+  context's, in the same frame, before paint. The read-only reason must
+  refuse a layout effect that edits the document in the commit that changes
+  the mode. That is why it has a context of its own, and why
+  `EditorProvider` passes the mode to `ReadOnlyReasonProvider` as a prop.
+- `useIsReadOnly` is `useReadOnlyReason() !== null`, so it answers true for
+  every edit in Simulate mode. `mutationBlockedBy`, which
+  `usePetrinautMutations` applies, makes the exceptions. For every reason
+  but `host-readonly` it lets through the mutations in
+  `simulateModeAllowedMutationNames`, and an `updatePlace` that sets only
+  `visualizerCode`.
