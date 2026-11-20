@@ -26,9 +26,11 @@ import { FrameAnimateContext } from "./drawer-frame/frame-animate-context";
 import { FrameHeader } from "./drawer-frame/frame-header";
 import { useBodyScrolled } from "./drawer-frame/use-body-scrolled";
 import { useHeaderEngaged } from "./drawer-frame/use-header-engaged";
-import { SimulationPanel } from "./simulation-panel";
-import { SimulationPanelControls } from "./simulation-panel/panel-controls";
-import { SimulationPanelTitle } from "./simulation-panel/panel-title";
+import {
+  SimulationPanel,
+  SimulationPanelControls,
+  SimulationPanelTitle,
+} from "./simulation-panel";
 import { useAnimationsEnabled } from "./use-animations-enabled";
 
 export {

@@ -15,6 +15,9 @@ import {
 } from "./simulation-panel/panel-context";
 import { useAnimationsEnabled } from "./use-animations-enabled";
 
+export { SimulationPanelControls } from "./simulation-panel/panel-controls";
+export { SimulationPanelTitle } from "./simulation-panel/panel-title";
+
 export const SimulationPanel = (props: SimulationPanelProps) => {
   const container = useSimulationWorkspaceContainer();
   if (container === null) {
