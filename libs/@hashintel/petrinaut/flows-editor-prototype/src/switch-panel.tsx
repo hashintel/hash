@@ -41,6 +41,8 @@ import {
 import { Select } from "./fill-select";
 import { useReadOnlyPanel } from "./branches";
 import { MiddleCut } from "./middle-cut";
+import { MenuRow } from "./menu-rows";
+import { treeTileColor } from "./status-colors";
 import { useEditor } from "./editor-context";
 import {
   conditionLayout,
@@ -94,6 +96,8 @@ const targetStyle = css({
   minWidth: "[0]",
   "& > *": { flex: "1", minWidth: "[0]" },
   "& button, & [data-part='trigger']": { height: "[32px]" },
+  // The × on a chosen step stays in view, as drawn; the DS shows it only on hover.
+  "& [data-part='clear']:not([data-hidden])": { opacity: "1", visibility: "visible" },
 });
 
 /** A stacked case (S2, S3): its rows, then a hairline before the next. Delete shows on hover. */
@@ -265,6 +269,15 @@ const PathTarget = ({
         readonly={readonly}
         prefix={wire ? { iconName: iconOf(wire.target) } : undefined}
         items={items}
+        // The menu lists steps only, as tile rows (SYS-TILE-32); no "Ends here" row, the empty select says it.
+        renderItem={(value) => (
+          <MenuRow
+            icon={iconOf(value)}
+            title={items.find((item) => item.value === value)?.text ?? value}
+            tint={treeTileColor(iconOf(value))}
+            tiles="all"
+          />
+        )}
         // A long name loses its middle, not its end, as on If's select; the full name shows on hover.
         renderSelectedItem={(value) => (
           <MiddleCut
@@ -274,6 +287,17 @@ const PathTarget = ({
         value={wire?.target}
         onChange={(target) => {
           if (!target) {
+            // Cleared: no wire, which is how a path ends.
+            setDocument((current) => ({
+              ...current,
+              wires: current.wires.filter(
+                (candidate) =>
+                  !(
+                    candidate.source === stepId &&
+                    candidate.sourcePort === port.outputName
+                  ),
+              ),
+            }));
             return;
           }
           setDocument((current) => ({
