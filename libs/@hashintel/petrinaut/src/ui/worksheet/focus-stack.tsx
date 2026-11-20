@@ -40,7 +40,7 @@ import type { ReactNode } from "react";
 
 const contentsStyle = css({ display: "contents" });
 
-interface FocusStackProps {
+export interface FocusStackProps {
   axis: FocusAxis;
   /** Arrows never carry focus out of this stack, in any direction. */
   contain?: boolean;
