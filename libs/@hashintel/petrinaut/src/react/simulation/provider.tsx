@@ -24,7 +24,6 @@ import {
   type MonteCarloExperimentState,
   type PetrinautExtensionSettings,
   type ReadableStore,
-  type Scenario,
   type ScenarioCompilationError,
   type ScenarioHir,
   type ScenarioLoweringInput,
@@ -42,7 +41,6 @@ import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import { LanguageClientContext } from "../lsp/context";
 import { usePetrinautNavigation } from "../navigation";
-import { resolveNavigatedId } from "../navigation/resolve-navigated-ids";
 import { NotificationsContext } from "../notifications/context";
 import {
   findSimulator,
@@ -67,6 +65,11 @@ import {
   snapshotTypeElements,
   type TypeElementsSnapshot,
 } from "./provider/migrate-initial-marking";
+import {
+  getEffectiveSelectedScenarioId,
+  getScenarioParameterDefaults,
+  shouldNormalizeScenarioSelection,
+} from "./provider/scenario-selection";
 import {
   simulatorParametersKey,
   simulatorSelectionIn,
@@ -102,22 +105,6 @@ const DEFAULT_STOCHASTIC_RUNS = 100;
 /** The end time a Stochastic simulation takes when none was set. */
 const DEFAULT_STOCHASTIC_MAX_TIME = 60;
 
-function getScenarioParameterDefaults(
-  scenario?: Scenario,
-): Record<string, string> {
-  const values: Record<string, string> = {};
-
-  if (!scenario) {
-    return values;
-  }
-
-  for (const parameter of scenario.scenarioParameters) {
-    values[parameter.identifier] = String(parameter.default);
-  }
-
-  return values;
-}
-
 function createInitialStateValues(options?: {
   maxTime?: number | null;
   selectedScenarioId?: string | null;
@@ -134,54 +121,6 @@ function createInitialStateValues(options?: {
     simulatorIds: { quick: null, stochastic: null },
     simulatorParameters: {},
   };
-}
-
-/**
- * Whether the requested scenario has to be rewritten to the one in effect.
- *
- * A host that requires a scenario normalizes an absent or stale request, so a
- * URL without one resolves to a real scenario. A host that does not require
- * one normalizes only a stale request, so an explicit no-scenario choice
- * survives instead of snapping back to the first scenario.
- */
-export function shouldNormalizeScenarioSelection({
-  effectiveSelectedScenarioId,
-  requestedScenarioId,
-  requireScenario = false,
-}: {
-  effectiveSelectedScenarioId: string | null;
-  requestedScenarioId: string | null | undefined;
-  requireScenario?: boolean;
-}): boolean {
-  if (requireScenario) {
-    return (
-      effectiveSelectedScenarioId !== null &&
-      requestedScenarioId !== effectiveSelectedScenarioId
-    );
-  }
-
-  return (
-    requestedScenarioId !== undefined &&
-    requestedScenarioId !== null &&
-    requestedScenarioId !== effectiveSelectedScenarioId
-  );
-}
-
-/** The requested scenario resolved through `toPetrinautId`, else the first scenario unless none is allowed. */
-export function getEffectiveSelectedScenarioId(
-  scenarios: readonly Scenario[] | undefined,
-  selectedScenarioId: string | null | undefined,
-  requireScenario = false,
-): string | null {
-  if (selectedScenarioId === null && !requireScenario) {
-    return null;
-  }
-
-  const resolvedScenarioId = selectedScenarioId
-    ? resolveNavigatedId(scenarios, selectedScenarioId)
-    : null;
-
-  return resolvedScenarioId ?? scenarios?.[0]?.id ?? null;
 }
 
 /** A refusal's reasons as one message, the way a failed start reports. */

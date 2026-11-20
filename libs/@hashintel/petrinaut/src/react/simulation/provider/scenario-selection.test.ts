@@ -5,7 +5,7 @@ import { toPetrinautId, type Scenario } from "@hashintel/petrinaut-core";
 import {
   getEffectiveSelectedScenarioId,
   shouldNormalizeScenarioSelection,
-} from "./provider";
+} from "./scenario-selection";
 
 const scenarios = [{ id: "first" }, { id: "second" }] as Scenario[];
 
