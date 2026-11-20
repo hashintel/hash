@@ -226,32 +226,17 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
     () => createPetrinaut({ document: handle, readonly: true }),
     [handle],
   );
-  const navigationAdapter = navigation
-    ? createPreviewNavigationAdapter(navigation, mode)
-    : undefined;
   const hirArtifacts = quickSimulation?.hirArtifacts;
   const scenarioHirById = quickSimulation?.scenarioHirById;
-  // SimulationProvider's lowering effect keys on compiler function identity:
-  // the React Compiler keeps the adapter while the host's artifacts are the same.
-  const simulationCompiler =
-    hirArtifacts && scenarioHirById
-      ? createPreviewSimulationCompiler({ hirArtifacts, scenarioHirById })
-      : undefined;
-  const allowedPlaybackSpeeds = quickSimulation?.allowedPlaybackSpeeds;
-  const defaultPlaybackSpeed = quickSimulation?.defaultPlaybackSpeed;
-  const playbackOptions = hasQuickSimulation
-    ? resolvePreviewPlaybackOptions({
-        allowedPlaybackSpeeds,
-        defaultPlaybackSpeed,
-      })
-    : undefined;
-  const netManagement: NetManagement = {
-    title,
-    setTitle: noop,
-    existingNets: [],
-    createNewNet: noop,
-    loadPetriNet: noop,
-  };
+  // `useMemo`: SimulationProvider's lowering effect keys on the compiler's
+  // functions, so one compiler per set of artifacts is a requirement.
+  const simulationCompiler = useMemo(
+    () =>
+      hirArtifacts && scenarioHirById
+        ? createPreviewSimulationCompiler({ hirArtifacts, scenarioHirById })
+        : undefined,
+    [hirArtifacts, scenarioHirById],
+  );
 
   useEffect(() => () => instance.dispose(), [instance]);
 
@@ -268,6 +253,25 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
     setHandleAtLastSwap(handle);
     setModelGeneration((generation) => generation + 1);
   }
+
+  const navigationAdapter = navigation
+    ? createPreviewNavigationAdapter(navigation, mode)
+    : undefined;
+  const allowedPlaybackSpeeds = quickSimulation?.allowedPlaybackSpeeds;
+  const defaultPlaybackSpeed = quickSimulation?.defaultPlaybackSpeed;
+  const playbackOptions = hasQuickSimulation
+    ? resolvePreviewPlaybackOptions({
+        allowedPlaybackSpeeds,
+        defaultPlaybackSpeed,
+      })
+    : undefined;
+  const netManagement: NetManagement = {
+    title,
+    setTitle: noop,
+    existingNets: [],
+    createNewNet: noop,
+    loadPetriNet: noop,
+  };
   const documentKey = `${handle.id}:${modelGeneration}`;
 
   /**
