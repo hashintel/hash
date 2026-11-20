@@ -135,9 +135,9 @@ pub(crate) struct Failure {
 }
 
 /// A stage of the pipeline, as the `failure` part names it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, derive_more::Display)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum Stage {
+pub enum Stage {
     Capture,
     Prepare,
     Send,

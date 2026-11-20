@@ -7143,6 +7143,7 @@ dependencies = [
 name = "hash-integrations-ledger"
 version = "0.0.0"
 dependencies = [
+ "arrow-array",
  "derive_more",
  "error-stack",
  "futures-util",
@@ -7151,6 +7152,7 @@ dependencies = [
  "hex",
  "insta",
  "object_store",
+ "parquet",
  "pretty_assertions",
  "rstest",
  "serde",
