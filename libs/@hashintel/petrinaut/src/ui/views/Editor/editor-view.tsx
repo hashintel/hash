@@ -3,14 +3,14 @@
  * @role Arranges the panels, toolbars and dialogs around the canvas
  */
 
-import { Activity, useState, type ReactNode } from "react";
+import { Activity, use, useState, type ReactNode } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useDocumentId } from "../../../react/hooks/use-document";
 import {
+  EditorContext,
   useEditorActions,
-  useEditorFields,
 } from "../../../react/state/editor-context";
 import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
@@ -97,10 +97,11 @@ const EditorViewContent = ({
   const petriNetId = useDocumentId();
   const { registerController } = useCanvasRegistration();
 
-  const { globalMode, editViewMode } = useEditorFields(
-    "globalMode",
-    "editViewMode",
-  );
+  // From the context and not by part: the mode shows and hides each
+  // `Activity`, and that has to happen in the commit that changes the
+  // contexts their parts read, the read-only reason among them. A part read
+  // from the published store arrives one commit later.
+  const { globalMode, editViewMode } = use(EditorContext);
   const { toggleAiAssistant } = useEditorActions();
   const composesOnly = useComposesOnly();
   // Not the running plugin itself, which a streaming chat republishes for

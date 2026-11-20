@@ -6,6 +6,7 @@ import { refractive } from "@hashintel/refractive";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
 import {
+  EditorContext,
   useEditorActions,
   useEditorFields,
 } from "../../../../../react/state/editor-context";
@@ -97,13 +98,14 @@ const CanvasShortcuts = () => {
 };
 
 export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
-  const { globalMode, editionMode, isBottomPanelOpen, isAiAssistantOpen } =
-    useEditorFields(
-      "globalMode",
-      "editionMode",
-      "isBottomPanelOpen",
-      "isAiAssistantOpen",
-    );
+  const { editionMode, isBottomPanelOpen, isAiAssistantOpen } = useEditorFields(
+    "editionMode",
+    "isBottomPanelOpen",
+    "isAiAssistantOpen",
+  );
+  // From the context, as the view reads it: the effect below must see the
+  // mode of the commit that shows the bar again, not the one before it.
+  const { globalMode } = use(EditorContext);
   const {
     setEditionMode,
     setBottomPanelOpen,
