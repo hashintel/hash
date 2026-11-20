@@ -9,13 +9,13 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type { OptimizationScalar } from "@hashintel/petrinaut-core/optimization";
 
-export type OptimizeBinding = Extract<
+type OptimizeBinding = Extract<
   PetrinautOptimizationParameterBinding,
   { kind: "optimize" }
 >;
 
 /** The scenario's parameter bindings split by kind, each half in binding order. */
-export type ParameterBindingPartition = {
+type ParameterBindingPartition = {
   /** The parameters held constant, with their values. */
   fixed: Record<string, OptimizationScalar>;
   /** The parameters the optimizer moves, with their domains. */

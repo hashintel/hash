@@ -130,7 +130,7 @@ export const sirNetConstrainedOptimizationInput =
   });
 
 /** The seasonal flu scenario with an `isolation` switch beside its numeric parameters. */
-export const sirSwitchedOptimizationScenario: Scenario = {
+const sirSwitchedOptimizationScenario: Scenario = {
   ...scenario,
   scenarioParameters: [
     ...scenario.scenarioParameters,

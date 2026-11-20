@@ -15,7 +15,7 @@ import { useScenarioHir, type ScenarioHirRequest } from "../use-scenario-hir";
  * What a run compiles: a scenario with the net parameters its expressions
  * read, or the reasons an inline definition cannot run.
  */
-export type RunScenarioTarget =
+type RunScenarioTarget =
   | { kind: "scenario"; scenario: Scenario; netParameters: Parameter[] }
   | { kind: "invalid"; errors: ScenarioCompilationError[] };
 

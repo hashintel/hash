@@ -278,7 +278,7 @@ export function getExperimentElapsedMs(
 }
 
 /** An experiment something else started, handed over to be listed. */
-export type AdoptExperimentInput = {
+type AdoptExperimentInput = {
   name: string;
   /** The experiment, started by its previous owner. */
   handle: MonteCarloExperiment;

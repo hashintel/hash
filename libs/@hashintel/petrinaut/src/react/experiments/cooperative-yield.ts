@@ -30,7 +30,7 @@ const host = globalThis as SchedulerHost;
 
 const now = (): number => host.performance?.now() ?? Date.now();
 
-export type CooperativeYielder = {
+type CooperativeYielder = {
   /** Whether the current task has held the thread past the budget of 8 ms. */
   shouldYield(): boolean;
   /** Yields to the event loop and restarts the budget. */
