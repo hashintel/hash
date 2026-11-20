@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Icon, SortMenu, Tabs, TextInput } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { RunFlowDialog } from "../shared/run-flow";
+import { getRunBlocker } from "../shared/run-form";
 import {
   formatDuration,
   formatEndTime,
@@ -29,6 +31,7 @@ import type { RunFilters, RunRow, RunSort, RunSortKey } from "./run-list";
 import type { RunFilterProperty } from "./runs-table/run-filters";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { SortDirection, Sorter } from "@hashintel/ds-components";
+import type { FlowInputValues } from "@local/hash-isomorphic-utils/flows/types";
 
 const tabs: { id: RunTab; label: string }[] = [
   { id: "all", label: "All" },
@@ -178,11 +181,14 @@ export const RunsTable = ({
   const [sort, setSort] = useState<RunSort>(defaultRunSort);
   const [filters, setFilters] = useState<RunFilters>(noFilters);
   const [searchText, setSearchText] = useState("");
+  /* The inputs of the run Re-run was picked for, which open its form. Kept here, as its row may leave the table. */
+  const [rerunInputs, setRerunInputs] = useState<FlowInputValues | null>(null);
   const [shownFilters, setShownFilters] = useState<RunFilterProperty[]>([]);
   const [addedFilter, setAddedFilter] = useState<RunFilterProperty | null>(
     null,
   );
 
+  const rerunBlocker = getRunBlocker(runner.editorState);
   const filtered = filterRuns(rows, filters).filter((row) =>
     matchesSearch(row, searchText, now),
   );
@@ -334,10 +340,15 @@ export const RunsTable = ({
                 <td>
                   <span
                     role="presentation"
-                    /* So the menu and its form don't open the run. */
+                    /* So the menu doesn't open the run. */
                     onClick={(event) => event.stopPropagation()}
                   >
-                    <RunMenu row={row} runner={runner} onOpen={openRun} />
+                    <RunMenu
+                      row={row}
+                      rerunBlocker={rerunBlocker}
+                      onOpen={openRun}
+                      onRerun={setRerunInputs}
+                    />
                   </span>
                 </td>
               </tr>
@@ -352,6 +363,17 @@ export const RunsTable = ({
           )}
         </tbody>
       </table>
+      {rerunInputs && (
+        <RunFlowDialog
+          webId={runner.webId}
+          name={runner.editorState.flowDefinition.name}
+          inputs={runner.editorState.flowDefinition.inputs}
+          ranInputs={rerunInputs}
+          saveRefusedReason={runner.saveRefusedReason}
+          onRun={runner.onRun}
+          onClose={() => setRerunInputs(null)}
+        />
+      )}
     </>
   );
 };
