@@ -4,7 +4,7 @@
  */
 
 /** `[position in 0..1, r, g, b]`; positions ascend and span 0 to 1. */
-export type RampStop = readonly [number, number, number, number];
+type RampStop = readonly [number, number, number, number];
 
 /** Matplotlib's magma, subsampled; 0 is lightest, 1 darkest. */
 export const MAGMA_STOPS: readonly RampStop[] = [
@@ -56,7 +56,7 @@ export function rampLut(
   return lut;
 }
 
-export type RasterLayout = {
+type RasterLayout = {
   columns: number;
   rows: number;
   /** Row stride of `values` when wider than `columns`; defaults to `columns`. */

@@ -5,7 +5,7 @@
  */
 import type { Color, SDCPN } from "@hashintel/petrinaut-core";
 
-export type FixtureToken = Record<string, number | boolean | bigint | string>;
+type FixtureToken = Record<string, number | boolean | bigint | string>;
 
 /** Three tokens whose attribute values differ per index, so overlapping shapes separate. */
 export const sampleTokens = (color: Color): FixtureToken[] =>

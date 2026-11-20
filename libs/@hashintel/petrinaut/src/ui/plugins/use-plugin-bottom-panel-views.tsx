@@ -8,7 +8,7 @@ import type { PluginBottomPanelTab } from "../../react/state/editor-context";
 import type { ReactNode } from "react";
 
 /** A plugin's bottom panel view, as the panel draws its tab. */
-export interface PluginBottomPanelTabView {
+interface PluginBottomPanelTabView {
   readonly id: PluginBottomPanelTab;
   readonly title: string;
   readonly tooltip?: string;

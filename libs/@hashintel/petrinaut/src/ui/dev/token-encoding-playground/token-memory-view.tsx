@@ -13,7 +13,7 @@ import type {
 
 export type BitOrder = "logical" | "memory";
 
-export type TokenMemoryViewProps = {
+type TokenMemoryViewProps = {
   layout: TokenSlotLayout;
   buffer: ArrayBuffer;
   /** Raw values returned by the user's code, before coercion. */

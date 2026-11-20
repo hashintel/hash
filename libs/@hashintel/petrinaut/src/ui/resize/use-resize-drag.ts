@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { useLatest } from "../../react/hooks/use-latest";
 
-export type ResizeDirection = "horizontal" | "vertical";
+type ResizeDirection = "horizontal" | "vertical";
 
 interface UseResizeDragOptions {
   /** Called on each mousemove with the pixel delta from drag start. */

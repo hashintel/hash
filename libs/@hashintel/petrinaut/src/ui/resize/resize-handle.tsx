@@ -124,7 +124,7 @@ const positionStyle = (edge: ResizableEdge): CSSProperties => {
   }
 };
 
-export interface ResizeHandleProps {
+interface ResizeHandleProps {
   /** Which edge of the positioned parent this handle sits on. */
   edge: ResizableEdge;
   /**

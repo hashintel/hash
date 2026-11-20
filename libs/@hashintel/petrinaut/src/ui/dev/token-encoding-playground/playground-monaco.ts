@@ -151,7 +151,7 @@ const IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
  * predicate must gate the memory layout, or the two views desync (a slot
  * encoded in the buffer with no corresponding property in the editor).
  */
-export const isEncodableDimension = (dimension: PlaygroundDimension): boolean =>
+const isEncodableDimension = (dimension: PlaygroundDimension): boolean =>
   IDENTIFIER_RE.test(dimension.name);
 
 /**

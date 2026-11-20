@@ -30,7 +30,7 @@ export const MAX_PROPERTIES_PANEL_WIDTH = 800;
 // Viewport controls — the button column at the bottom right of the canvas.
 // The width is one `xs` icon button, rounded up from its rendered 21px.
 export const VIEWPORT_CONTROLS_OFFSET = 12;
-export const VIEWPORT_CONTROLS_WIDTH = 24;
+const VIEWPORT_CONTROLS_WIDTH = 24;
 
 /** What a control sharing the column's row has to leave free of it. */
 export const VIEWPORT_CONTROLS_CLEARANCE =

@@ -92,7 +92,7 @@ export function encodeToken(
  * IEEE-754 double anatomy for a bit index in MSB-first order:
  * bit 0 = sign, bits 1–11 = exponent, bits 12–63 = mantissa.
  */
-export type F64BitPart = "sign" | "exponent" | "mantissa";
+type F64BitPart = "sign" | "exponent" | "mantissa";
 
 export function f64BitPart(msbFirstIndex: number): F64BitPart {
   if (msbFirstIndex === 0) {

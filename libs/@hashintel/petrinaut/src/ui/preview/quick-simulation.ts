@@ -40,7 +40,7 @@ export type PetrinautPreviewQuickSimulation = {
   parameterBounds?: SimulationParameterBoundsByIdentifier;
 };
 
-export type PreviewPlaybackOptions = {
+type PreviewPlaybackOptions = {
   allowedPlaybackSpeeds: readonly PlaybackSpeed[];
   defaultPlaybackSpeed: PlaybackSpeed;
 };

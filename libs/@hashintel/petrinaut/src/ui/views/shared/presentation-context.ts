@@ -2,7 +2,7 @@ import { createContext, use } from "react";
 
 export type PetrinautPresentationProfile = "editor" | "review" | "preview";
 
-export type PetrinautPresentationCapabilities = {
+type PetrinautPresentationCapabilities = {
   /** Show controls whose only purpose is to mutate the authored net. */
   showMutationActions: boolean;
   /** Show authored TypeScript source in property inspectors. */

@@ -5,7 +5,7 @@ import type { PlaygroundDimension } from "./physical-layout";
 import type { SelectItem } from "@hashintel/ds-components";
 import type { ColorElementType } from "@hashintel/petrinaut-core";
 
-export type DimensionEditorProps = {
+type DimensionEditorProps = {
   dimensions: PlaygroundDimension[];
   onChange: (dimensions: PlaygroundDimension[]) => void;
 };

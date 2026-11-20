@@ -20,11 +20,11 @@ import { VisualizerSvg } from "./render-visualizer-hir/visualizer-svg";
 
 export type VisualizerSize = { width: number; height: number };
 
-export type VisualizerTokens = readonly Readonly<
+type VisualizerTokens = readonly Readonly<
   Record<string, number | boolean | bigint | string>
 >[];
 
-export type VisualizerParameters = Readonly<Record<string, number | boolean>>;
+type VisualizerParameters = Readonly<Record<string, number | boolean>>;
 
 const isRecord = (
   value: HirValue,
