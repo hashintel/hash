@@ -1,6 +1,6 @@
 import { use, useEffect } from "react";
 
-import { type Hover, MarkupKind, Position } from "@hashintel/petrinaut-core";
+import { type Hover, Position } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../react/lsp/context";
 
@@ -10,14 +10,9 @@ import type * as Monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 function hoverContentsToMarkdown(hover: Hover): Monaco.IMarkdownString[] {
   const { contents } = hover;
 
-  // MarkupContent
+  // MarkupContent, Markdown or plain text
   if (typeof contents === "object" && "kind" in contents) {
-    const mc = contents;
-    if (mc.kind === MarkupKind.Markdown) {
-      return [{ value: mc.value }];
-    }
-    // PlainText — wrap in code block for Monaco
-    return [{ value: mc.value }];
+    return [{ value: contents.value }];
   }
 
   // string
