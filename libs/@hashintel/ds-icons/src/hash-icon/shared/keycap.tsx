@@ -14,9 +14,11 @@ export const Keycap = ({ children }: { children: ReactNode }) => (
 export const KeycapLegend = ({
   text,
   kind = "character",
+  opticalOffsetX = 0,
 }: {
   text: string;
   kind?: "character" | "function" | "word";
+  opticalOffsetX?: number;
 }) => {
   const glyphs = Array.from(
     text,
@@ -30,7 +32,7 @@ export const KeycapLegend = ({
   let offset = 0;
   return (
     <g
-      transform={`translate(${12 - (width * scale) / 2} ${12 - 5 * scale}) scale(${scale})`}
+      transform={`translate(${12 - (width * scale) / 2 + opticalOffsetX} ${12 - 5 * scale}) scale(${scale})`}
       strokeWidth={`calc(var(--hash-icon-stroke-width) * ${0.65 / Math.sqrt(scale)})`}
       strokeLinecap="butt"
       strokeLinejoin="round"

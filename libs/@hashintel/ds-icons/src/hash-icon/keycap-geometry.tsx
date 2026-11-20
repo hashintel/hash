@@ -138,7 +138,7 @@ export const keycapGeometry = {
   ),
   keycap1: (
     <Keycap>
-      <KeycapLegend text="1" />
+      <KeycapLegend text="1" opticalOffsetX={-1.4} />
     </Keycap>
   ),
   keycap2: (
@@ -223,7 +223,7 @@ export const keycapGeometry = {
   ),
   keycapAmpersand: (
     <Keycap>
-      <KeycapLegend text={"&"} />
+      <KeycapLegend text={"&"} opticalOffsetX={0.5} />
     </Keycap>
   ),
   keycapAsterisk: (
