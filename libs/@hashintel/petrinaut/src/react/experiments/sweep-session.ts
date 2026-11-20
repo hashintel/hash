@@ -44,7 +44,6 @@ import {
 } from "./sweep-session/selection-draws";
 
 import type { ExperimentParameterAxis, SweepSelection } from "./parameter-grid";
-import type { BatchStatus } from "./shared/batch-registry";
 import type { SweepRunDraws } from "./sweep-session/selection-draws";
 import type {
   MonteCarloExperiment,
@@ -63,7 +62,15 @@ export type { SweepRunDraws } from "./sweep-session/selection-draws";
  * One rung of the selection's ladder currently computing, for the host's
  * activity display. A sweep runs no other kind of batch.
  */
-export type SweepBatchStatus = BatchStatus<{ kind: "selection" }>;
+export type SweepBatchStatus = {
+  kind: "selection";
+  /** Start order, unique within a session. */
+  id: number;
+  /** Runs this batch owns. */
+  runCount: number;
+  /** Runs it has finished so far. */
+  completedRuns: number;
+};
 
 const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === "AbortError";
