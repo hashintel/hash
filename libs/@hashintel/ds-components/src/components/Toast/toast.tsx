@@ -1,5 +1,12 @@
-import { Toast as ArkToast } from "@ark-ui/react/toast";
-import { useContext, useEffect, useId, useRef } from "react";
+import { Toast as ArkToast, useToastContext } from "@ark-ui/react/toast";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -8,7 +15,11 @@ import { Button, type ButtonProps } from "../Button/button";
 import { Icon, type IconName } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { styles, type ToastVariant } from "./toast.recipe";
-import { ToastToneContext, useToasterContext } from "./toaster-context";
+import {
+  ToastInstanceContext,
+  ToastToneContext,
+  useToasterContext,
+} from "./toaster-context";
 
 import type { Tone } from "../../util/form-shared";
 import type { Position } from "../Tooltip/base-tooltip";
@@ -18,7 +29,7 @@ import type { ExclusifyUnion } from "type-fest";
 export type ToastShouldCloseOn = "closeButton" | "none";
 
 /**
- * A lifecycle status reported through `onStatusChange`: `enter` when the toast
+ * A lifecycle status: `enter` when the toast
  * becomes visible, `behind` when a newer toast pushes it behind the front of
  * its stack, `front` when it returns to the front, and `exit` once it has
  * fully left.
@@ -28,6 +39,11 @@ export type ToastStatus = "enter" | "exit" | "behind" | "front";
 export type ToastStatusChangeDetails = {
   /** The status the toast moved to. */
   status: ToastStatus;
+};
+
+export type ToastRenderDetails = {
+  /** Dismisses the toast, playing its exit animation. */
+  close: () => void;
 };
 
 export type ToastTitleProps = ExclusifyUnion<
@@ -85,12 +101,8 @@ const renderIcon = (
   return icon.custom;
 };
 
-// The parts are exported (beyond the `Toast.*` members) so react-docgen picks
-// up their props for the published docs tables.
 export const ToastTitle = (props: ToastTitleProps) => {
   const { title, icon = true, loading, className, children } = props;
-  // The tone lives on the `Toast` root; the toaster provides it where the
-  // content renders so `icon`'s tone default can resolve here.
   const tone = useContext(ToastToneContext);
   const classes = styles({ tone });
 
@@ -130,43 +142,109 @@ export const ToastBody = ({ children, className }: ToastBodyProps) => {
 };
 
 export type ToastActionProps = ButtonProps & {
-  /**
-   * Whether activating the action also dismisses the toast.
-   * `event.preventDefault()` in `onClick` cancels the dismissal.
-   */
+  /** Whether activating the action also dismisses the toast. */
   closeToast?: boolean;
+  /**
+   * Called when the action is activated. With `closeToast`, a returned
+   * promise defers the dismissal until it resolves.
+   */
+  onClick?: (
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => void | Promise<unknown>;
 };
 
-/**
- * An action button for a toast's `Toast.Actions` row. Takes the same props as
- * `Button`, defaulting to the compact treatment (`size="sm"`,
- * `variant="subtle"`). Subtle actions are tagged with the
- * `toast-action-button` class so the `soft` and `solid` toast variants can
- * lift them onto a white background that reads on their fills.
- */
-export const ToastAction = ({
+type ToastActionButtonProps = Omit<ToastActionProps, "closeToast">;
+
+const isThenable = (value: unknown): value is PromiseLike<unknown> =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as { then?: unknown }).then === "function";
+
+const ToastActionButton = ({
   variant,
   className,
-  closeToast,
   ...props
-}: ToastActionProps) => {
-  const button = (
-    <Button
-      size="sm"
-      {...props}
-      variant={variant ?? "subtle"}
-      className={cx(
-        (variant ?? "subtle") === "subtle" ? "toast-action-button" : undefined,
-        className,
-      )}
-    />
+}: ToastActionButtonProps) => (
+  <Button
+    size="sm"
+    // The spread loses the union's discrimination; each arm still holds.
+    {...(props as ButtonProps)}
+    variant={variant ?? "subtle"}
+    className={cx(
+      (variant ?? "subtle") === "subtle" ? "toast-action-button" : undefined,
+      className,
+    )}
+  />
+);
+
+const ClosingToastAction = ({
+  onClick,
+  loading,
+  ...props
+}: ToastActionButtonProps) => {
+  const toast = useToastContext();
+  const instance = useContext(ToastInstanceContext);
+  const [pending, setPending] = useState(false);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // Duration-based, since pointer-leave resumes zag's timers over any `pause()`.
+  const holdOpen = (): (() => void) => {
+    if (!instance) {
+      // Without the toaster's instance handle (plain Ark context): best effort.
+      toast.pause();
+      return () => {
+        toast.resume();
+      };
+    }
+    return instance.holdOpen();
+  };
+
+  const handleClick: (
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => void | Promise<unknown> = (event) => {
+    const result = onClick?.(event);
+    if (!isThenable(result) || event.defaultPrevented) {
+      return;
+    }
+    event.preventDefault();
+    setPending(true);
+    const release = holdOpen();
+    result.then(
+      () => {
+        // The loading state intentionally persists through the exit.
+        toast.dismiss();
+      },
+      () => {
+        release();
+        if (mountedRef.current) {
+          setPending(false);
+        }
+      },
+    );
+  };
+
+  return (
+    <ArkToast.ActionTrigger asChild>
+      <ToastActionButton
+        {...props}
+        loading={pending || loading}
+        onClick={handleClick}
+      />
+    </ArkToast.ActionTrigger>
   );
-  if (!closeToast) {
-    return button;
+};
+
+export const ToastAction = ({ closeToast, ...props }: ToastActionProps) => {
+  if (closeToast) {
+    return <ClosingToastAction {...props} />;
   }
-  // zag's action trigger runs the composed click (consumer handler first) and
-  // dismisses through the store unless the event was defaultPrevented.
-  return <ArkToast.ActionTrigger asChild>{button}</ArkToast.ActionTrigger>;
+  return <ToastActionButton {...props} />;
 };
 
 export const ToastActions = ({ actions }: ToastActionsProps) => {
@@ -174,8 +252,7 @@ export const ToastActions = ({ actions }: ToastActionsProps) => {
   if (!actions) {
     return null;
   }
-  // data-toast-actions scopes the region so the root recipe can restyle the
-  // buttons within it on solid fills.
+  // Lets the root recipe restyle these buttons on solid fills.
   return (
     <div data-toast-actions className={classes.actions}>
       {actions}
@@ -223,9 +300,12 @@ export type ToastProps = {
   /**
    * The toast's content: `Toast.Title`, `Toast.Body`, and `Toast.Actions` in
    * that order (each optional), or any custom node — pair custom content with
-   * `withPadding={false}` for an edge-to-edge layout.
+   * `withPadding={false}` for an edge-to-edge layout. The function form
+   * receives `close` for custom content that dismisses its own toast.
    */
-  children: React.ReactNode;
+  children:
+    | React.ReactNode
+    | ((details: ToastRenderDetails) => React.ReactNode);
   /**
    * Which dismissals the toast offers: `closeButton` renders a close button
    * and dismisses on Escape while focused; `none` renders neither, leaving
@@ -263,9 +343,13 @@ export const ToastRoot = ({
   const toastId = id === undefined ? autoId : String(id);
   const placement = placementForPosition[position];
 
-  // The zag toast is created once per id/placement; everything that may change
-  // on a later render is read through this ref so creation options stay fresh
-  // without re-creating (and updates never restart the dismiss timer).
+  const close = useCallback(() => {
+    toasterContext.getStore(placement).dismiss(toastId);
+  }, [placement, toastId, toasterContext]);
+  const content =
+    typeof children === "function" ? children({ close }) : children;
+
+  // Read at creation so options stay fresh without re-creating the zag toast.
   const latestRef = useRef({ tone, duration, onStatusChange });
   useEffect(() => {
     latestRef.current = { tone, duration, onStatusChange };
@@ -274,7 +358,7 @@ export const ToastRoot = ({
   // Content and presentation bypass the zag store entirely (see ToastEntry).
   useEffect(() => {
     toasterContext.setEntry(toastId, {
-      content: children,
+      content,
       className,
       tone,
       variant,
@@ -288,9 +372,7 @@ export const ToastRoot = ({
     const store = toasterContext.getStore(placement);
     let cancelled = false;
     let exiting = false;
-    // New toasts are born at the front of their stack; the store subscription
-    // below reports `behind`/`front` as newer toasts push this one back and
-    // dismissals return it to the front.
+    // New toasts are born at the front of their stack.
     let wasFrontmost = true;
     const unsubscribe = store.subscribe(() => {
       if (exiting) {
@@ -310,20 +392,20 @@ export const ToastRoot = ({
         });
       }
     });
-    // Store mutations are deferred to a microtask: zag publishes to its React
-    // machines with flushSync, which React forbids (and logs an error for)
-    // when called from inside an effect.
+    // Deferred: zag publishes with flushSync, which React forbids inside effects.
     queueMicrotask(() => {
       if (cancelled) {
         return;
       }
       store.create({
         id: toastId,
-        // The tone doubles as the zag type, driving the default duration and
-        // the queue priority (errors outrank successes).
+        // The zag type drives default duration and queue priority.
         type: latestRef.current.tone,
         duration: latestRef.current.duration,
         onStatusChange: (details) => {
+          if (cancelled) {
+            return;
+          }
           if (details.status === "visible") {
             latestRef.current.onStatusChange?.({ status: "enter" });
           } else if (details.status === "dismissing") {
@@ -340,10 +422,7 @@ export const ToastRoot = ({
     return () => {
       cancelled = true;
       unsubscribe();
-      // remove, not dismiss: a dismissing toast blocks re-creation under the
-      // same id (zag ignores creates targeting closing toasts), which would
-      // drop the toast on an immediate remount. Exit animations still play
-      // for duration/close-button dismissals; unmounting is immediate.
+      // remove, not dismiss: zag ignores creates for a closing id, breaking remounts.
       queueMicrotask(() => {
         store.remove(toastId);
       });
@@ -351,18 +430,19 @@ export const ToastRoot = ({
     };
   }, [toastId, placement, toasterContext]);
 
-  // Apply duration changes to an already-visible toast (restarts its timer).
-  const previousDurationRef = useRef(duration);
+  // Re-derives the default lifetime, not queue priority (fixed at creation).
+  const previousOptionsRef = useRef({ tone, duration });
   useEffect(() => {
-    if (previousDurationRef.current === duration) {
+    const previous = previousOptionsRef.current;
+    if (previous.tone === tone && previous.duration === duration) {
       return;
     }
-    previousDurationRef.current = duration;
+    previousOptionsRef.current = { tone, duration };
     const store = toasterContext.getStore(placement);
     queueMicrotask(() => {
-      store.update(toastId, { duration });
+      toasterContext.updateOptions(store, toastId, { tone, duration });
     });
-  }, [duration, placement, toastId, toasterContext]);
+  }, [tone, duration, placement, toastId, toasterContext]);
 
   return null;
 };

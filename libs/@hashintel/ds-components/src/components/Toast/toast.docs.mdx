@@ -13,7 +13,8 @@ import {
   ToastBody,
   ToastTitle,
 } from "./toast";
-import { Toaster } from "./toaster";
+import { Toaster, ToastOptionsDoc } from "./toaster";
+import { toaster } from "./toaster-api";
 
 <Meta title="Docs/Toast" />
 
@@ -123,18 +124,73 @@ import { Toaster } from "@hashintel/ds-components";
 export const App = () => <Toaster>{/* …the application… */}</Toaster>;
 ```
 
-3. Render a `Toast` to show it, and remove it when `onStatusChange` reports
+3. Show a toast, in either of two ways.
+
+   Call the `toaster` functions from anywhere — an event handler, a mutation
+   callback, code outside React. The toasts they create clean up after
+   themselves.
+
+```tsx
+import { Button, toaster } from "@hashintel/ds-components";
+
+export const PublishButton = () => (
+  <Button
+    tone="brand"
+    onClick={() =>
+      toaster.create({
+        tone: "success",
+        title: "Entity type published",
+        body: "Version 3 is now live.",
+      })
+    }
+  >
+    Publish entity type
+  </Button>
+);
+```
+
+   Or render a `Toast` from state, and remove it when `onStatusChange` reports
    `exit` — the same mount-to-open contract as `Dialog`. The other statuses
    (`enter`, plus `behind`/`front` as newer toasts stack in front of it and
    leave again) are informational.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Toast } from "@hashintel/ds-components";
+
+export const PublishButton = () => {
+  const [published, setPublished] = useState(false);
+
+  return (
+    <>
+      <Button tone="brand" onClick={() => setPublished(true)}>
+        Publish entity type
+      </Button>
+      {published ? (
+        <Toast
+          tone="success"
+          onStatusChange={({ status }) => {
+            if (status === "exit") {
+              setPublished(false);
+            }
+          }}
+        >
+          <Toast.Title title="Entity type published" />
+          <Toast.Body>Version 3 is now live.</Toast.Body>
+        </Toast>
+      ) : null}
+    </>
+  );
+};
+```
 
 ### When to use
 
 <DoList
   items={[
-    "Use Toast to confirm that an action the user just took succeeded — saving, publishing, archiving.",
-    "Use Toast to report the outcome of a background task that finished while the user was doing something else.",
-    "Use a loading title for short operations whose outcome arrives within a few seconds, then update the same toast with the result.",
+    "Use Toast to report the outcome of a background task — an import, export, or sync — that finished while the user was doing something else.",
+    "Use Toast to surface async errors and results, so that the information isn't lost once the user has moved on. Offer a retry action where one makes sense.",
   ]}
 />
 
@@ -142,28 +198,41 @@ export const App = () => <Toaster>{/* …the application… */}</Toaster>;
 
 <DontList
   items={[
-    "Don't put information the user must act on in a toast — it disappears. Use Banner for persistent status, or Dialog to force a decision.",
+    "Don't put information the user must act on in a toast — it disappears. Use Dialog to force a decision.",
     "Don't toast validation errors next to a form — show them at the field.",
-    "Don't fire a toast for every routine success; reserve them for outcomes the user can't already see on the page.",
+    "Avoid firing a toast for success states — the default expecation should usually be that an action will succeed.",
   ]}
 />
 
 ## Anatomy
 
 ```tsx
-<Toast tone="error" variant="soft" position="bottom-end">
-  <Toast.Title title="Import failed" />
-  <Toast.Body>The file exceeds the 10 MB limit.</Toast.Body>
-  <Toast.Actions actions={<Toast.Action>Retry</Toast.Action>} />
-</Toast>
+// Props API
+const id = toaster.create({
+  tone: "error",
+  variant: "soft",
+  position: "bottom-end",
+  title: "Import failed",
+  body: "The file exceeds the 10 MB limit.",
+  actions: <Toast.Action>Retry</Toast.Action>,
+});
+
+// JSX API
+toaster.create(
+  <Toast tone="error" variant="soft" position="bottom-end">
+    <Toast.Title title="Import failed" />
+    <Toast.Body>The file exceeds the 10 MB limit.</Toast.Body>
+    <Toast.Actions actions={<Toast.Action>Retry</Toast.Action>} />
+  </Toast>,
+);
+
+toaster.update(id, { body: "The file exceeds the 20 MB limit." });
+
+toaster.close(id);
 ```
 
-Children are free-form: compose `Toast.Title`, `Toast.Body`, and
-`Toast.Actions` in that order for the standard layout, or pass any custom
-node — paired with `withPadding={false}` for edge-to-edge content. A close
-button renders automatically unless `shouldCloseOn="none"`. The toast itself
-renders nothing where it is mounted — it appears in the `Toaster`'s stacking
-region for its `position`.
+The props API maps `title`, `body`, and `actions` onto the standard parts;
+use the JSX API for custom content.
 
 ## Examples
 
@@ -184,9 +253,9 @@ export const TonesDemo = () => {
     setQueued((previous) => [...previous, { key: Date.now(), tone, variant }]);
   return (
     <Toaster>
-      {["soft", "outline", "solid"].map((variant) =>
-        ["neutral", "brand", "success", "warning", "error"].map((tone) => (
-          <Button key={`${variant}-${tone}`} size="xs" onClick={() => fire(tone, variant)}>
+      {["neutral", "brand", "success", "warning", "error"].map((tone) =>
+        ["soft", "outline", "solid"].map((variant) => (
+          <Button key={`${tone}-${variant}`} size="xs" onClick={() => fire(tone, variant)}>
             {tone} {variant}
           </Button>
         )),
@@ -216,11 +285,8 @@ export const TonesDemo = () => {
 
 ### Title row
 
-`Toast.Title` lays out the leading icon and the heading on one row. The icon
-defaults to the tone's: pass `icon={false}` for none, `icon={{ iconName }}`
-for another design-system icon, or `icon={{ custom }}` for arbitrary content.
-`loading` swaps the icon for a spinner. Pass `children` instead to replace
-the structured layout entirely.
+`Toast.Title` shows the tone's icon beside the heading; `icon` changes or
+hides it, and `loading` swaps it for a spinner.
 
 export const titleCode = `<Toast tone="brand" duration={Infinity}>
   <Toast.Title title="Uploading entity types…" loading />
@@ -248,17 +314,11 @@ export const TitleDemo = () => {
 
 ### Actions
 
-`Toast.Actions` renders the buttons for responding to the toast — under the
-body, or sharing the title's line (when they fit) in a toast without a body.
-Fill it with `Toast.Action`s: `Button`s defaulting to the compact action
-treatment, lifted onto a white background on the `soft` and `solid` fills.
-Keep the toast around while it has actions — pass `duration={Infinity}` so it
-can't vanish before the user decides.
+Fill `Toast.Actions` with `Toast.Action` buttons, and pass
+`duration={Infinity}` so the toast stays until the user responds.
 
-An action leaves the toast open unless `closeToast` is set, which dismisses
-the toast when the action is activated — an action that resolves it, like
-"Undo" or "Retry". Calling `event.preventDefault()` in the action's `onClick`
-cancels the dismissal.
+`closeToast` dismisses the toast on click; if `onClick` returns a promise, the
+button shows a spinner and the toast stays open until it resolves.
 
 export const actionsCode = `<Toast tone="error" duration={Infinity}>
   <Toast.Title title="Import failed" />
@@ -266,7 +326,10 @@ export const actionsCode = `<Toast tone="error" duration={Infinity}>
   <Toast.Actions
     actions={
       <>
-        <Toast.Action closeToast>Retry</Toast.Action>
+        {/* A returned promise defers the close until the retry finishes. */}
+        <Toast.Action closeToast onClick={() => retryImport()}>
+          Retry
+        </Toast.Action>
         <Toast.Action>Details</Toast.Action>
       </>
     }
@@ -293,7 +356,14 @@ export const ActionsDemo = () => {
           <Toast.Actions
             actions={
               <>
-                <Toast.Action closeToast>Retry</Toast.Action>
+                <Toast.Action
+                  closeToast
+                  onClick={() =>
+                    new Promise((resolve) => setTimeout(resolve, 1500))
+                  }
+                >
+                  Retry
+                </Toast.Action>
                 <Toast.Action>Details</Toast.Action>
               </>
             }
@@ -308,56 +378,73 @@ export const ActionsDemo = () => {
   <ActionsDemo />
 </Stage>
 
-### Updating in place
+### Custom content
 
-Toasts rendered with the same `id` update the same toast — re-render with new
-content to show progress without stacking a second card.
+Any node passed as `children` replaces the standard sections — pair it with
+`withPadding={false}` for an edge-to-edge layout. The function form receives
+`close`, which dismisses the toast with its exit animation, so fully custom
+content can close itself.
 
-export const updateCode = `const [saved, setSaved] = useState(false);
-
-<Toast id="save-draft" tone={saved ? "success" : "neutral"} duration={Infinity}>
-  <Toast.Title title={saved ? "Draft saved" : "Saving draft…"} loading={!saved} />
+export const customContentCode = `<Toast withPadding={false} shouldCloseOn="none" duration={Infinity}>
+  {({ close }) => (
+    <div style={{ padding: 12 }}>
+      <strong>Fully custom children</strong>
+      <p>The toast only provides the card.</p>
+      <Button size="sm" onClick={close}>
+        Done
+      </Button>
+    </div>
+  )}
 </Toast>`;
 
-export const UpdateDemo = () => {
-  const [phase, setPhase] = useState("idle");
-  const start = () => {
-    setPhase("saving");
-    setTimeout(() => {
-      setPhase("saved");
-    }, 2000);
-  };
+export const CustomContentDemo = () => {
+  const [visible, setVisible] = useState(false);
   return (
     <Toaster>
-      <Button onClick={start}>Save draft</Button>
-      {phase === "idle" ? null : (
+      <Button onClick={() => setVisible(true)}>Show custom toast</Button>
+      {visible ? (
         <Toast
-          id="docs-save-draft"
-          tone={phase === "saved" ? "success" : "neutral"}
+          withPadding={false}
+          shouldCloseOn="none"
           duration={Infinity}
+          onStatusChange={({ status }) => {
+            if (status === "exit") {
+              setVisible(false);
+            }
+          }}
         >
-          <Toast.Title
-            title={phase === "saved" ? "Draft saved" : "Saving draft…"}
-            loading={phase !== "saved"}
-          />
+          {({ close }) => (
+            <div
+              style={{
+                padding: 12,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                gap: 8,
+              }}
+            >
+              <strong>Fully custom children</strong>
+              <span>The toast only provides the card.</span>
+              <Button size="sm" onClick={close}>
+                Done
+              </Button>
+            </div>
+          )}
         </Toast>
-      )}
+      ) : null}
     </Toaster>
   );
 };
 
-<Stage code={updateCode}>
-  <UpdateDemo />
+<Stage code={customContentCode}>
+  <CustomContentDemo />
 </Stage>
 
 ### Duration and dismissal
 
-By default a toast's lifetime depends on its `tone`: `success` dismisses
-after 2 seconds and the other tones after 5. Pass `duration` (in
-milliseconds, or `Infinity`) to override it. Hovering or focusing a stack
-pauses every timer in it, as does leaving the page — switching tabs or apps.
-`shouldCloseOn="none"` drops the close button and Escape, leaving dismissal
-to `duration`, unmounting, or a `closeToast` action.
+`success` toasts dismiss sooner than other tones; `duration` (in milliseconds,
+or `Infinity`) overrides it. Hovering, focusing, or leaving the page pauses
+the timers. `shouldCloseOn="none"` removes the close button and Escape.
 
 export const durationCode = `<Toast duration={30000}>
   <Toast.Title title="Long-lived toast" />
@@ -455,65 +542,13 @@ export const PositionDemo = () => {
   <PositionDemo />
 </Stage>
 
-### Deep stacks
-
-A collapsed stack shows its front three toasts; hovering or focusing it
-expands the full column, which scrolls when it outgrows the viewport. At most
-100 toasts are mounted per stacking region — any more wait in a queue and
-appear as older ones leave.
-
-export const stackingCode = `{toasts.map((toast) => (
-  <Toast key={toast.key} duration={Infinity}>
-    <Toast.Title title={toast.title} />
-  </Toast>
-))}`;
-
-export const StackingDemo = () => {
-  const [queued, setQueued] = useState([]);
-  const nextKeyRef = useRef(0);
-  const fire = (count) => {
-    const batch = [];
-    for (let i = 0; i < count; i++) {
-      nextKeyRef.current += 1;
-      batch.push(nextKeyRef.current);
-    }
-    setQueued((previous) => [...previous, ...batch]);
-  };
-  return (
-    <Toaster>
-      <Button onClick={() => fire(5)}>Show 5 toasts</Button>
-      <Button onClick={() => fire(20)}>Show 20 toasts</Button>
-      {queued.map((key) => (
-        <Toast
-          key={key}
-          tone="brand"
-          duration={Infinity}
-          onStatusChange={({ status }) => {
-            if (status === "exit") {
-              setQueued((previous) => previous.filter((toastKey) => toastKey !== key));
-            }
-          }}
-        >
-          <Toast.Title title={`Toast #${key}`} />
-          <Toast.Body>Hover the stack to expand it.</Toast.Body>
-        </Toast>
-      ))}
-    </Toaster>
-  );
-};
-
-<Stage code={stackingCode}>
-  <StackingDemo />
-</Stage>
-
 ## Content
 
 - Lead with the outcome in the title, in a few words: "Entity type
   published", "Import failed".
-- Use `Toast.Body` for the one detail worth adding — what changed, or what to
+- Use `Toast.Body` only when more detail is necessary. For example what changed, or what to
   do about a failure.
-- Name action buttons with a verb ("Undo", "Retry", "View"), never "OK" — a
-  toast needs no acknowledgement.
+- Name action buttons with a verb ("Undo", "Retry", "View").
 
 ## Accessibility
 
@@ -536,12 +571,12 @@ Toasts follow the
 
 ### What you must do
 
-- Remove the `Toast` element when `onStatusChange` reports `exit`;
-  otherwise the next render of a stale element re-creates the toast.
 - Keep toasts supplementary: anything the user must read or act on belongs in
   persistent UI, since a toast may never be noticed.
 - Don't rely on color alone to distinguish outcomes — the title should carry
   the meaning ("Import failed", not just a red tint).
+- If not using the functional api, remove the `Toast` element when `onStatusChange` reports `exit`;
+  otherwise the next render of a stale element re-creates the toast.
 
 ## API reference
 
@@ -559,9 +594,6 @@ Toasts follow the
 />
 
 ### Toast.Title
-
-Either the structured title row (`title`, `icon`, `loading`, `actions`)
-or fully custom `children` — the two are mutually exclusive.
 
 <PropsTable of={ToastTitle} defaults={{ icon: "true" }} />
 
@@ -594,3 +626,33 @@ An action button for the `Toast.Actions` row, taking the same props as
 ### Toaster
 
 <PropsTable of={Toaster} defaults={{ label: '"Notifications"' }} />
+
+### toaster
+
+The imperative counterpart to rendering `Toast` elements; it requires a
+mounted `Toaster` and its toasts clean up after themselves.
+
+- `toaster.create(props | element)` — shows a toast and returns its id; an
+  input carrying the id of a showing toast replaces it in place.
+- `toaster.promise(promise, { loading, success, error })` — shows the
+  persistent `loading` toast, then replaces it with `success` or `error` —
+  toned accordingly by default — when the promise settles. Returns the input
+  promise. The props form's `loading` defaults to `true` there, showing a
+  spinner in the title's icon slot; a `Toast` element passed as `loading` must
+  add its own with `<Toast.Title loading />`.
+- `toaster.update(id, props)` — merges new props into a showing toast.
+- `toaster.close(id)` — dismisses a showing toast, including declaratively
+  rendered ones, by id.
+
+The props form accepts:
+
+<PropsTable
+  of={ToastOptionsDoc}
+  defaults={{
+    icon: "true",
+    tone: '"neutral"',
+    variant: '"soft"',
+    position: '"bottom-end"',
+    shouldCloseOn: '"closeButton"',
+  }}
+/>

@@ -27,15 +27,35 @@ export type ToasterContextValue = {
   removeEntry: (id: string) => void;
   subscribeEntries: (listener: () => void) => () => void;
   getEntry: (id: string) => ToastEntry | undefined;
+  /**
+   * Holds the toast un-expirable (duration `Infinity`) until the returned
+   * release is called. Holds are reference-counted per toast; the last release
+   * restores the latest requested duration, restarting the timer.
+   */
+  holdOpen: (store: CreateToasterReturn, id: string) => () => void;
+  /**
+   * Applies tone and duration changes to a live toast, ignoring closed ones.
+   * A duration change on a held toast is deferred until its release.
+   */
+  updateOptions: (
+    store: CreateToasterReturn,
+    id: string,
+    options: { tone: Tone; duration: number | undefined },
+  ) => void;
 };
 
 export const ToasterContext = createContext<ToasterContextValue | null>(null);
 
-/**
- * The tone of the toast being rendered, provided by the toaster around each
- * toast's content so `Toast.Title` can resolve its tone-default icon.
- */
 export const ToastToneContext = createContext<Tone>("neutral");
+
+export type ToastInstance = {
+  id: string;
+  store: CreateToasterReturn;
+  /** Holds the toast open; see `ToasterContextValue.holdOpen`. */
+  holdOpen: () => () => void;
+};
+
+export const ToastInstanceContext = createContext<ToastInstance | null>(null);
 
 export const useToasterContext = (): ToasterContextValue => {
   const context = useContext(ToasterContext);

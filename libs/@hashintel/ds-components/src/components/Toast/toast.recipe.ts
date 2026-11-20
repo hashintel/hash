@@ -12,14 +12,6 @@ export const toastVariants = ["solid", "soft", "outline"] as const;
 
 export type ToastVariant = (typeof toastVariants)[number];
 
-/**
- * The tone × variant system mirrors Banner's (same tones, same
- * solid/soft/outline treatments, `--toast-*` custom properties in place of
- * `--banner-*`). Placement, stacking, and per-toast motion are driven by the
- * CSS custom properties zag's toast machine sets inline (`--x`, `--y`,
- * `--scale`, `--opacity`, `--height`, `--z-index`); the root styles only
- * consume them and define how changes to them transition.
- */
 export const styles = sva({
   slots: [
     "shell",
@@ -35,10 +27,6 @@ export const styles = sva({
     "closeTrigger",
   ],
   base: {
-    // The region's scroll shell (see `ToasterRegion`): full-viewport and
-    // pointer-transparent — toasts re-enable their own pointer events — with
-    // its `transform` making it the containing block zag's fixed group
-    // positions and scrolls within.
     shell: {
       position: "fixed",
       inset: "0",
@@ -51,14 +39,9 @@ export const styles = sva({
       overflowY: "auto",
       scrollbarWidth: "[none]",
       overscrollBehavior: "contain",
-      // Bottom stacks grow upward, so reverse the column: scrollable overflow
-      // then extends block-start-ward and the resting scroll sits at the
-      // bottom, on the front toast.
       "&[data-side=bottom]": {
         flexDirection: "column-reverse",
       },
-      // While a stack is expanded, a spacer provides the scroll extent of the
-      // measured toast column plus the region's 1rem viewport offsets.
       "&:has([data-part=root][data-stack])::after": {
         content: '""',
         flexShrink: "0",
@@ -71,13 +54,8 @@ export const styles = sva({
       display: "flex",
       alignItems: "flex-start",
       gap: "[8px]",
-      // Read through a custom property so a consumer `className` can set a
-      // custom width deterministically (a plain `width` override would tie
-      // with this one on specificity and fall to stylesheet order).
       width: "[var(--toast-width, var(--toast-width-default, 356px))]",
       maxWidth: "[calc(100vw - 32px)]",
-      // The centered edge placements read better slightly wider than the
-      // corner stacks.
       "&:is([data-placement=top], [data-placement=bottom])": {
         "--toast-width-default": "[450px]",
       },
@@ -100,13 +78,6 @@ export const styles = sva({
         transition:
           "[translate 400ms cubic-bezier(0.06, 0.71, 0.55, 1), scale 400ms cubic-bezier(0.06, 0.71, 0.55, 1), opacity 200ms cubic-bezier(0.06, 0.71, 0.55, 1)]",
       },
-      // While overlapped behind the frontmost toast, clamp to the frontmost
-      // toast's measured height so the collapsed deck reads as even cards, and
-      // hide the content so only clean card edges peek out; it fades back in
-      // when hovering expands the stack. Height stays unclamped everywhere
-      // else — zag measures it rounded to whole pixels, and applying that to
-      // the visible toast nudges its height on hover. The zag-rendered ghost
-      // divs must stay hit-testable.
       "&[data-sibling][data-overlap]": {
         height: "[var(--height)]",
       },
@@ -116,14 +87,6 @@ export const styles = sva({
       "&[data-sibling][data-overlap] > *:not([data-ghost])": {
         opacity: "0",
       },
-      // Beyond the collapsed deck of three (`data-deck-hidden`, set from the
-      // stack index): fully hidden — `visibility` also drops hit-testing and
-      // tab order — until the stack expands or the toast advances into the
-      // deck. Pinned just behind the third card (overriding the per-index
-      // lift and scale) so deep stacks neither leave phantom scroll extent in
-      // the shell nor fade in from far away. Hiding delays `visibility` so
-      // the card fades out first; revealing flips it instantly and fades in
-      // through the base transition.
       "&[data-deck-hidden][data-overlap]": {
         opacity: "0",
         visibility: "hidden",
@@ -143,11 +106,7 @@ export const styles = sva({
       flex: "1",
       alignSelf: "center",
       minWidth: "0",
-      // Gap between the stacked title row / body / custom children.
       "& > * + *": { marginTop: "[1px]" },
-      // Without a body, the title and actions share a line when they fit (the
-      // title grows, pushing the actions to the trailing edge) and the actions
-      // wrap beneath it when they don't.
       "&:not(:has([data-part=description]))": {
         display: "flex",
         flexWrap: "wrap",
@@ -197,8 +156,6 @@ export const styles = sva({
       height: "[24px]",
       marginTop: "[-4px]",
       marginRight: "[-4px]",
-      // Single-line toasts center the trigger on their one line instead of
-      // nudging it into the top corner (measured by ToastContent).
       "&[data-single-line]": {
         alignSelf: "center",
         marginTop: "0",
@@ -220,10 +177,6 @@ export const styles = sva({
     },
   },
   variants: {
-    // Tones pick the palette; `--toast-tone-icon-color` overrides the icon
-    // tint the soft/outline variants apply (the warning and error link colors
-    // read too light for their glyphs). Only the tone axis writes it, and only
-    // the variant axis writes `--toast-icon-color`, so the two never race.
     tone: {
       neutral: {
         root: { colorPalette: "neutral" },
@@ -238,8 +191,7 @@ export const styles = sva({
           colorPalette: "red",
           "--toast-tone-icon-color": "var(--colors-color-palette-fg-body)",
         },
-        // The diamond glyph reads smaller than the other tone icons, so enlarge
-        // it to 18px (mirroring Banner).
+        // The diamond glyph reads smaller than the other tone icons, so enlarge it to 18px.
         defaultIcon: {
           width: "[18px !important]",
           height: "[18px !important]",
@@ -321,8 +273,6 @@ export const styles = sva({
         root: { padding: "[12px]" },
       },
       false: {
-        // The close trigger's negative margins exist to optically inset it
-        // within the padding; without padding they push it over the edge.
         closeTrigger: {
           marginTop: "0",
           marginRight: "0",
