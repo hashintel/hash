@@ -8,8 +8,9 @@
  *
  * Only an acquisition that asks to create one creates a conversation; any
  * other finds an unknown ID absent without creating its storage. A creation
- * given a document binding binds the conversation to it in the commit that
- * creates its root, so no crash leaves it unbound and `afterBind` sees it bound.
+ * given a document binding binds the conversation to it, and writes what its
+ * seed's `record` writes, in the commit that creates its root, so no crash
+ * leaves it unbound or unrecorded and `afterBind` sees it bound.
  *
  * Opening a conversation, before its scheduling starts: its host binding is
  * bound to the new Harness, its agent gets the request-slot gate and the turn
@@ -21,6 +22,7 @@ import {
   AgentDoc,
   type AgentState,
   type Conversation,
+  type ConversationId,
   type Extension,
   Harness,
   type HarnessOptions,
@@ -30,6 +32,7 @@ import {
   type Report,
   ROOT_CONVERSATION_ID,
   type SubmissionId,
+  type Tx,
 } from "@earendil-works/pi-durable";
 
 import { createHostBinding, type HostBinding } from "../../agent/host-binding";
@@ -114,6 +117,8 @@ export type ConversationLimits = {
 export type ConversationSeed = {
   /** The editor binding its browser calls are issued to (`BrowserBindingDoc`); unbound when absent. */
   readonly binding?: BrowserContext["binding"];
+  /** Writes what else the host records of a new conversation, such as who owns it, beside the binding. */
+  readonly record?: (tx: Tx, conversationId: ConversationId) => Promise<void>;
 };
 
 /** A conversation as this process serves it. */
@@ -254,7 +259,6 @@ export const createConversationRegistry = (
     // Open schedules nothing, so no tool, hook or section runs before this.
     host.bind(harness);
     try {
-      const binding = seed?.binding;
       const root =
         seed === undefined
           ? await harness.conversation(ROOT_CONVERSATION_ID, context)
@@ -263,12 +267,11 @@ export const createConversationRegistry = (
                 ...withGate(options.agent, gate.extension),
                 maxTurns: limits.maxTurns,
               },
-              ...(binding === undefined
-                ? {}
-                : {
-                    init: (tx, rootId) =>
-                      bindBrowserDocument(tx, rootId, binding),
-                  }),
+              init: async (tx, rootId) => {
+                if (seed.binding !== undefined)
+                  await bindBrowserDocument(tx, rootId, seed.binding);
+                await seed.record?.(tx, rootId);
+              },
             });
       if (root === undefined) {
         await harness.close(context);

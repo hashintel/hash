@@ -72,10 +72,17 @@ export type BrowserCallStartBody = v.InferOutput<
   typeof browserCallStartBodySchema
 >;
 
-/** The open Harness serving a conversation, by the conversation ID in the route; `undefined` when none does. */
+/**
+ * The open Harness serving a conversation, by the conversation ID in the
+ * route; `undefined` when none does, and a response when the request may not
+ * reach it, which is then the route's answer.
+ */
 export type ResolveHarness = (
   conversationId: string,
-) => Harness | undefined | Promise<Harness | undefined>;
+  request: Context,
+) => Resolved | Promise<Resolved>;
+
+type Resolved = Harness | Response | undefined;
 
 const callRoute =
   `/:conversationId/${brunchRoutes.browserCalls}/:callId` as const;
@@ -198,11 +205,12 @@ export const createBrowserCallRouter = ({
     if (body === undefined)
       return { response: request.json({ error: "invalid-body" }, 400) };
     const params = request.req.param();
-    const harness = await resolveHarness(params.conversationId ?? "");
+    const harness = await resolveHarness(params.conversationId ?? "", request);
     if (harness === undefined)
       return {
         response: request.json({ error: "unknown-conversation" }, 404),
       };
+    if (harness instanceof Response) return { response: harness };
     return { harness, body, toolCallId: params.callId ?? "" };
   };
 
@@ -210,9 +218,13 @@ export const createBrowserCallRouter = ({
     `/:conversationId/${brunchRoutes.browserCalls}`,
     async (request) => {
       request.header("Cache-Control", "no-store");
-      const harness = await resolveHarness(request.req.param("conversationId"));
+      const harness = await resolveHarness(
+        request.req.param("conversationId"),
+        request,
+      );
       if (harness === undefined)
         return request.json({ error: "unknown-conversation" }, 404);
+      if (harness instanceof Response) return harness;
       const calls =
         (await harness.snapshot(BrowserCallsDoc, conversationId, context))
           ?.calls ?? {};

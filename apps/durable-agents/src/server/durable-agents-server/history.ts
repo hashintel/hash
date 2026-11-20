@@ -69,7 +69,7 @@ import {
 
 import type { OpenConversation } from "./conversation-registry";
 import type { Context } from "@earendil-works/chord/context";
-import type { Handler } from "hono";
+import type { Handler, Context as HonoContext } from "hono";
 
 /** The UI part a Ledger-comment turn is shown as, with the entry's `data` (`{ comments }`). */
 export const ledgerCommentsPartType = "data-brunch-ledger-comments";
@@ -384,16 +384,28 @@ export type HistoryRouteOptions = ProjectionOptions & {
       conversationId: string,
     ) => Promise<OpenConversation | undefined>;
   };
+  /** Checks the request against the open conversation before it is read; a response refuses it. */
+  readonly admit?: (
+    conversation: OpenConversation,
+    request: HonoContext,
+  ) => Promise<Response | undefined>;
   readonly context: Context;
 };
 
 /** The handler of `GET /chat/:id/messages`, for the server to mount. */
 export const historyHandler =
-  ({ conversations, context, ...projection }: HistoryRouteOptions): Handler =>
+  ({
+    conversations,
+    admit,
+    context,
+    ...projection
+  }: HistoryRouteOptions): Handler =>
   async (ctx) => {
     const conversation = await conversations.acquire(ctx.req.param("id") ?? "");
     if (conversation === undefined)
       return ctx.text("Unknown conversation.", 404);
+    const refused = await admit?.(conversation, ctx);
+    if (refused !== undefined) return refused;
     const entries = await allEntries(conversation.root, context);
     const messages = await historyMessages(
       entries,
