@@ -18,9 +18,9 @@ import type { ComponentProps, ReactNode } from "react";
 export type ChartCardTone = "default" | "paused" | "muted" | "optimizing";
 
 /** The header's height in pixels: its padding, the title line, the subtitle line and its hairline. */
-export const CHART_CARD_HEADER_HEIGHT = 53;
+const CHART_CARD_HEADER_HEIGHT = 53;
 /** The body's padding on each side, in pixels (the `4` spacing token). */
-export const CHART_CARD_BODY_PADDING = 16;
+const CHART_CARD_BODY_PADDING = 16;
 /** The footer's vertical padding on each side plus its hairline, in pixels. */
 export const CHART_CARD_FOOTER_CHROME = 17;
 /** The card's top and bottom border, in pixels. */
