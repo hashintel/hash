@@ -597,23 +597,91 @@ test("an entity read asking for an entity's full values is issued as asked, and 
   expect(part.seen).toMatch(/definition_object: <object, /);
 });
 
-test.each([
-  [brunchTools.hashQueryEntities, readInput, supplierRead],
-  [brunchTools.hashQueryEntityTypes, {}, { entityTypes: [supplierType] }],
-])(
-  "%s settled as truncated tells the model more may match than it shows",
-  async (toolName, input, output) => {
-    const note = "More may match than shown; narrow the filter.";
-    const truncated = await readOnce(toolName, input, {
+test("the type read settled as truncated tells the model more may match than it shows", async () => {
+  const note = "More may match than shown; narrow the filter.";
+  const output = { entityTypes: [supplierType] };
+  const truncated = await readOnce(
+    brunchTools.hashQueryEntityTypes,
+    {},
+    {
       ...output,
       truncated: true,
-    });
-    expect(truncated.seen?.split("\n")[1]).toBe(note);
+    },
+  );
+  expect(truncated.seen?.split("\n")[1]).toBe(note);
 
-    const whole = await readOnce(toolName, input, output);
-    expect(whole.seen).not.toContain(note);
-  },
-);
+  const whole = await readOnce(brunchTools.hashQueryEntityTypes, {}, output);
+  expect(whole.seen).not.toContain(note);
+});
+
+test("a full page of the entity read shows the model its cursor, as given, and how to read the next page; the last page says nothing of more", async () => {
+  const pageInput = { ...readInput, limit: 1, cursor: "WyJwcmV2aW91cyJd" };
+  const cursor = "WyIyMDI2LTEwLTI2Iiwic3VwcGxpZXIiXQ";
+  const partial = await readOnce(brunchTools.hashQueryEntities, pageInput, {
+    ...supplierRead,
+    cursor,
+  });
+  // The page gets the limit and cursor exactly as the model gave them.
+  expect(partial.claim.input).toEqual(pageInput);
+  const [count, next, ...rest] = partial.seen?.split("\n") ?? [];
+  expect(count).toBe("entities: 1");
+  expect(next).toBe(
+    `This page is full, so more may match. To read the next page, repeat the same read with cursor: ${cursor}`,
+  );
+  expect(rest.join("\n")).toBe(supplierText.split("\n").slice(1).join("\n"));
+
+  const last = await readOnce(
+    brunchTools.hashQueryEntities,
+    pageInput,
+    supplierRead,
+  );
+  expect(last.seen).toBe(supplierText);
+});
+
+test("an entity read whose text would be too large reaches the model as a refusal, with none of the read and no cursor", async () => {
+  const large = "words ".repeat(20_000);
+  const other = { ...supplier, entityId: "alice-web~other", label: "Other" };
+  const { label: _label, ...unlabelled } = supplier;
+  const link = {
+    ...unlabelled,
+    entityId: "alice-web~link",
+    matched: false,
+    properties: {},
+    linkData: {
+      leftEntityId: supplier.entityId,
+      rightEntityId: other.entityId,
+    },
+  };
+  const nameUrl = "https://hash.ai/@alice/types/property-type/name/";
+  const input = {
+    ...readInput,
+    fullValuesFor: [supplier.entityId, other.entityId],
+  };
+  const cursor = "WyJuZXh0Il0";
+  const { seen } = await readOnce(brunchTools.hashQueryEntities, input, {
+    ...supplierRead,
+    entities: [
+      { ...supplier, properties: { [nameUrl]: large } },
+      { ...other, properties: { [nameUrl]: large } },
+      link,
+    ],
+    cursor,
+  });
+  const lines = seen?.split("\n") ?? [];
+  expect(lines[0]).toMatch(
+    /^Refused: this read's text would be about \d{2,3},\d{3} tokens, over the 20,000 a read may show, so none of it is shown and it gives no cursor\.$/u,
+  );
+  expect(lines.slice(1)).toEqual([
+    "It held 3 entities: 2 matched and 1 reached by links.",
+    "Narrow it, then repeat it from the same cursor if it had one, so no match is skipped:",
+    "- a smaller limit, then read the rest page by page",
+    "- traversalDepth: 0, to leave out the entities reached by links",
+    "- filters by entityTypes, webIds or entityIds",
+    "- in fullValuesFor, { entityId, path } for the part of a large value you need, rather than the entity's id",
+  ]);
+  expect(seen).not.toContain(cursor);
+  expect(seen).not.toContain(supplier.entityId);
+});
 
 test.each([
   [brunchTools.hashQueryEntities, readInput],

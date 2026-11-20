@@ -21,6 +21,7 @@ import {
   type HashReadFailure,
   type HashWebReadResult,
   hashEntityReadDefaultTraversalDepth,
+  hashEntityReadDefaultLimit,
   parseHashEntityCountInput,
   parseHashEntityReadInput,
   parseHashEntityTypeReadInput,
@@ -56,6 +57,7 @@ import type {
 import type { User } from "../../../../../../lib/user-and-org";
 import type { PetrinautAiAutomaticTool } from "@hashintel/brunch-agent/ui";
 import type {
+  EntityQueryCursor,
   EntityTraversalEdge,
   EntityTraversalPath,
   Filter,
@@ -232,16 +234,67 @@ const hashEntityReadOnlyDrafts = (
 };
 
 /**
- * The `queryEntitySubgraph` request for one read, limited to `webIds` (from
- * `hashEntityReadWebIds`, never the input's own): every given filter must
- * match. An entity id that names a draft reads that draft, whether or not
- * drafts were asked for; unless they were, an id without a draft part reads
- * only the live entity, and of the drafts the graph returns the read keeps
- * only those named (`hashEntityReadOnlyDrafts`).
+ * The graph's cursor as the opaque text the model passes back: its JSON,
+ * base64url-encoded, so it is one plain word the model copies whole, with no
+ * quotes or brackets to escape or to mistake for structure.
+ */
+export const encodeHashEntityReadCursor = (cursor: EntityQueryCursor) => {
+  const bytes = new TextEncoder().encode(JSON.stringify(cursor));
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/u, "");
+};
+
+const malformedCursor: HashReadFailure = {
+  error:
+    "The cursor isn't one this read gave. Repeat the read without a cursor to start from the first page.",
+};
+
+/**
+ * The graph's cursor back from the text `encodeHashEntityReadCursor` made,
+ * exactly; text that isn't one fails. The graph checks the values inside.
+ */
+export const decodeHashEntityReadCursor = (
+  text: string,
+): EntityQueryCursor | HashReadFailure => {
+  try {
+    if (!/^[A-Za-z0-9_-]+$/u.test(text)) {
+      return malformedCursor;
+    }
+    const binary = atob(text.replaceAll("-", "+").replaceAll("_", "/"));
+    const cursor: unknown = JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(
+        Uint8Array.from(binary, (char) => char.charCodeAt(0)),
+      ),
+    );
+    return Array.isArray(cursor) && cursor.length > 0
+      ? (cursor as EntityQueryCursor)
+      : malformedCursor;
+  } catch {
+    return malformedCursor;
+  }
+};
+
+/**
+ * The `queryEntitySubgraph` request for one page of a read, limited to
+ * `webIds` (from `hashEntityReadWebIds`, never the input's own): every given
+ * filter must match. An entity id that names a draft reads that draft,
+ * whether or not drafts were asked for; unless they were, an id without a
+ * draft part reads only the live entity, and of the drafts the graph returns
+ * the read keeps only those named (`hashEntityReadOnlyDrafts`). The page
+ * holds up to the input's `limit` of matches, by default the most the graph
+ * returns, starting at `cursor`, the input's decoded
+ * (`decodeHashEntityReadCursor`), or else at the first match.
  */
 export const hashEntityReadRequest = (
   input: HashEntityReadInput,
   webIds: readonly string[] | undefined,
+  cursor?: EntityQueryCursor,
 ): QueryEntitySubgraphRequest => {
   if (webIds?.length === 0) {
     // No web filter at all would read every web the user can see.
@@ -273,14 +326,16 @@ export const hashEntityReadRequest = (
     // The entities' types, closed and resolved, for the titles and
     // descriptions of their types and properties.
     includeEntityTypes: "resolved",
+    limit: input.limit ?? hashEntityReadDefaultLimit,
+    ...(cursor === undefined ? {} : { cursor }),
   };
 };
 
 const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
 
 /**
- * A response carries a cursor when the graph stopped at its limit of matches,
- * so more may match than it returned. The read doesn't follow it.
+ * A type response carries a cursor when the graph stopped at its limit of
+ * matches, so more may match than it returned. The type read doesn't follow it.
  */
 const truncatedWhen = (cursor: unknown) =>
   cursor === undefined || cursor === null ? {} : { truncated: true as const };
@@ -325,7 +380,9 @@ const collectPropertyKeys = (value: unknown, found: Set<string>) => {
  * a named draft, without expanding that set. Other drafts are left out;
  * links to excluded entities keep their endpoint ids. An entity in none of
  * `ownWebIds`, the user's own and org webs, is marked `external`, however it
- * was reached.
+ * was reached. The graph returns a cursor when the page holds as many
+ * matches as its limit, so more may match; the result carries it encoded
+ * (`encodeHashEntityReadCursor`) for the next page's read.
  */
 export const hashEntityReadResult = (
   response: QueryEntitySubgraphQuery,
@@ -420,7 +477,9 @@ export const hashEntityReadResult = (
             }),
       };
     }),
-    ...truncatedWhen(cursor),
+    ...(cursor === undefined || cursor === null
+      ? {}
+      : { cursor: encodeHashEntityReadCursor(cursor) }),
   };
 };
 
@@ -453,9 +512,10 @@ const settlingQueryFailure = async <Result>(
 /**
  * Brunch's HASH entity read, run in the page, over the webs in scope for the
  * user signed in when it runs, marking entities outside their webs external.
- * An input the agent's contract doesn't allow rejects; a failed query, or a
- * read that names neither webs nor entities with no user to scope to,
- * settles `{ error }`.
+ * One call reads one page, from the input's cursor if it has one. An input
+ * the agent's contract doesn't allow rejects; a failed query, a cursor this
+ * read didn't give, or a read that names neither webs nor entities with no
+ * user to scope to, settles `{ error }`.
  */
 export const createHashEntityReadTool = (
   queryEntitySubgraph: QueryEntitySubgraph,
@@ -466,12 +526,19 @@ export const createHashEntityReadTool = (
   outputParser: { parse: (value) => value },
   execute: async ({ input, signal }) => {
     const readInput = parseHashEntityReadInput(input);
+    const cursor =
+      readInput.cursor === undefined
+        ? undefined
+        : decodeHashEntityReadCursor(readInput.cursor);
+    if (cursor !== undefined && "error" in cursor) {
+      return cursor;
+    }
     const user = currentUser();
     const webScope = hashEntityReadWebIds(readInput, user);
     if ("error" in webScope) {
       return webScope;
     }
-    const request = hashEntityReadRequest(readInput, webScope.webIds);
+    const request = hashEntityReadRequest(readInput, webScope.webIds, cursor);
     return settlingQueryFailure(signal, async () =>
       hashEntityReadResult(
         await queryEntitySubgraph(request, signal),

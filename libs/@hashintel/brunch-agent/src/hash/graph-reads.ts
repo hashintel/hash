@@ -21,6 +21,26 @@ export const hashEntityReadDefaultTraversalDepth = 1;
 export const hashEntityReadMaxTraversalDepth = 3;
 
 /**
+ * The most matched entities one page of an entity read holds: the graph
+ * server's default query limit for entities.
+ */
+export const hashEntityReadMaxLimit = 1000;
+
+/**
+ * How many matched entities a page holds when the model names no limit. Small
+ * enough that a page with its properties usually fits the read's token
+ * budget: at about 130 tokens an entity on the seeded supply-chain data, 100
+ * come to about 13,000. Questions of how many go to the count, not to pages.
+ */
+export const hashEntityReadDefaultLimit = 100;
+
+const formattedMaxLimit = hashEntityReadMaxLimit.toLocaleString("en-US");
+const formattedDefaultLimit =
+  hashEntityReadDefaultLimit.toLocaleString("en-US");
+
+const limitMessage = `limit is how many matched entities one page holds: a whole number from 1 to ${formattedMaxLimit}. Omit it for ${formattedDefaultLimit}.`;
+
+/**
  * List length and id length are deliberately unbounded: the page reads as the
  * signed-in user, and the graph enforces its own limits.
  */
@@ -84,6 +104,26 @@ export const hashEntityReadInputSchema = v.strictObject({
       v.minLength(1),
       v.description(
         "Values to show where the read would otherwise summarise them. An entity id shows all of that entity's values in full, as JSON. { entityId, path } shows one value or part of one: in full when it fits, else outlined one level down with each part summarised, so you can read a path inside it. Neither changes which entities are read: read them by entityIds too.",
+      ),
+    ),
+  ),
+  limit: v.optional(
+    v.pipe(
+      v.number(limitMessage),
+      v.integer(limitMessage),
+      v.minValue(1, limitMessage),
+      v.maxValue(hashEntityReadMaxLimit, limitMessage),
+      v.description(
+        `How many matched entities one page holds, from 1 to ${formattedMaxLimit}; entities reached by following links come on top. Defaults to ${formattedDefaultLimit}. Lower it when a read is too large to show.`,
+      ),
+    ),
+  ),
+  cursor: v.optional(
+    v.pipe(
+      v.string(),
+      v.minLength(1),
+      v.description(
+        "Where to continue a read that has more pages: the cursor its result gave, copied exactly. Repeat the same read with it, changing nothing but the cursor and, if the page was too large, the limit; a cursor from another read skips or repeats matches. Omit it to read the first page.",
       ),
     ),
   ),
@@ -165,8 +205,9 @@ export const hashReadFailureSchema = v.object({ error: v.string() });
 export type HashReadFailure = v.InferOutput<typeof hashReadFailureSchema>;
 
 /**
- * The graph returns at most a page of matches, and the page reports
- * `truncated` when it stopped there; the reads don't fetch further pages.
+ * The graph returns at most a page of types, and the page reports
+ * `truncated` when it stopped there; the type read doesn't fetch further
+ * pages. The entity read pages by `cursor` instead.
  */
 const truncatedSchema = v.optional(v.literal(true));
 
@@ -207,7 +248,13 @@ export const hashEntityReadResultSchema = v.object({
     v.object({ entityTypeId: v.string(), title: v.string() }),
   ),
   entities: v.array(hashEntitySchema),
-  truncated: truncatedSchema,
+  /**
+   * Set when the page holds as many matches as its limit, so more may match:
+   * where the next page starts, as the page encoded it. Opaque to the agent
+   * and the model, which pass it back unchanged as the next read's `cursor`.
+   * Entities reached by links may appear on more than one page; matches don't.
+   */
+  cursor: v.optional(v.pipe(v.string(), v.minLength(1))),
 });
 
 export type HashEntityReadResult = v.InferOutput<

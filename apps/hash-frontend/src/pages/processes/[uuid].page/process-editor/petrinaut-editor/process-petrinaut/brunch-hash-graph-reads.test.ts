@@ -1,12 +1,18 @@
 import { expect, test, vi } from "vitest";
 
-import { hashEntityReadMaxTraversalDepth } from "@hashintel/brunch-agent";
+import {
+  type HashEntityReadResult,
+  hashEntityReadDefaultLimit,
+  hashEntityReadMaxTraversalDepth,
+} from "@hashintel/brunch-agent";
 
 import {
   createHashEntityCountTool,
   createHashEntityReadTool,
   createHashEntityTypeReadTool,
   createHashWebReadTool,
+  decodeHashEntityReadCursor,
+  encodeHashEntityReadCursor,
   hashEntityCountRequest,
   hashEntityReadRequest,
   hashEntityReadWebIds,
@@ -27,6 +33,7 @@ import type {
   PetrinautAiAutomaticTool,
   PetrinautAiAutomaticToolExecuteParams,
 } from "@hashintel/brunch-agent/ui";
+import type { EntityQueryCursor } from "@local/hash-graph-client";
 
 const archivedUrl = "https://hash.ai/@h/types/property-type/archived/";
 /** Neither archived by the metadata flag, nor, as pages are, by the `archived` property. */
@@ -748,22 +755,188 @@ test("a read that names no draft returns whatever the graph returns", async () =
   expect(await entityIdsRead({})).toHaveLength(8);
 });
 
-test("a response with a cursor, which the graph sets when it stopped at its limit, marks the read truncated", async () => {
+/**
+ * A cursor as the graph sends one: the last match's sort values, which the
+ * graph's client types as objects.
+ */
+const graphCursor = [
+  "2026-10-26T00:00:00Z",
+  "supplier",
+  "alice-web",
+] as unknown as EntityQueryCursor;
+
+test("a read asks for a page of the default size, or of the limit given, from the cursor given", () => {
+  expect(hashEntityReadRequest({}, readerWebs)).toMatchObject({
+    limit: hashEntityReadDefaultLimit,
+  });
+  expect(hashEntityReadRequest({}, readerWebs)).not.toHaveProperty("cursor");
+  expect(
+    hashEntityReadRequest({ limit: 25 }, readerWebs, graphCursor),
+  ).toMatchObject({ limit: 25, cursor: graphCursor });
+});
+
+test("a cursor round-trips through its text exactly, and text that isn't one fails", () => {
+  const cursor = [
+    "2026-10-26T00:00:00.123456Z",
+    { nested: ["ünïcode ✓", 1, null] },
+    "alice-web",
+  ] as unknown as EntityQueryCursor;
+  const text = encodeHashEntityReadCursor(cursor);
+  expect(text).toMatch(/^[A-Za-z0-9_-]+$/u);
+  expect(decodeHashEntityReadCursor(text)).toEqual(cursor);
+
+  const malformed = {
+    error:
+      "The cursor isn't one this read gave. Repeat the read without a cursor to start from the first page.",
+  };
+  for (const notACursor of [
+    "not a cursor",
+    "!!!",
+    encodeHashEntityReadCursor({} as never),
+    encodeHashEntityReadCursor([]),
+    btoa("not json"),
+    text.slice(0, -3),
+  ]) {
+    expect(decodeHashEntityReadCursor(notACursor)).toEqual(malformed);
+  }
+});
+
+test("a response with a cursor, which the graph sets when the page holds its limit, gives the read that cursor, encoded", async () => {
   const withCursor = (cursor: unknown) =>
     ({
       queryEntitySubgraph: { ...response.queryEntitySubgraph, cursor },
     }) as unknown as QueryEntitySubgraphQuery;
 
-  await expect(
-    run(() => Promise.resolve(withCursor({ editionId: "x" })), {}),
-  ).resolves.toMatchObject({ truncated: true });
+  const output = await run(() => Promise.resolve(withCursor(graphCursor)), {});
+  expect(output).toMatchObject({
+    cursor: encodeHashEntityReadCursor(graphCursor),
+  });
+  expect(output).not.toHaveProperty("truncated");
   await expect(
     run(() => Promise.resolve(withCursor(null)), {}),
-  ).resolves.not.toHaveProperty("truncated");
+  ).resolves.not.toHaveProperty("cursor");
   await expect(
     run(() => Promise.resolve(response), {}),
-  ).resolves.not.toHaveProperty("truncated");
+  ).resolves.not.toHaveProperty("cursor");
 });
+
+test("a read given a cursor asks the graph for the page it names", async () => {
+  const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
+  const input = {
+    entityTypes: ["Supplier"],
+    limit: 50,
+    cursor: encodeHashEntityReadCursor(graphCursor),
+  };
+  await run(query, input);
+  expect(query).toHaveBeenCalledWith(
+    hashEntityReadRequest(input, readerWebs, graphCursor),
+    expect.any(AbortSignal),
+  );
+  expect(query.mock.calls[0]?.[0]).toMatchObject({
+    limit: 50,
+    cursor: graphCursor,
+  });
+});
+
+test("a read given a cursor it didn't give settles with an error saying to start again, without querying", async () => {
+  const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
+  await expect(run(query, { cursor: "not-a-cursor" })).resolves.toEqual({
+    error:
+      "The cursor isn't one this read gave. Repeat the read without a cursor to start from the first page.",
+  });
+  expect(query).not.toHaveBeenCalled();
+});
+
+test.each([
+  [7, 3],
+  [9, 3],
+  [2, 1000],
+  [1, 1],
+])(
+  "following each cursor until none comes back reads each of %s matches once, %s to a page",
+  async (matches, limit) => {
+    const ids = Array.from(
+      { length: matches },
+      (_, index) => `alice-web~supplier-${String(index).padStart(3, "0")}`,
+    );
+    const linkId = "alice-web~shared-link";
+    /**
+     * A graph over `ids` in a fixed order, cursoring by the last match a
+     * page holds and giving a cursor whenever a page holds its limit, as the
+     * graph does, so the last page may be empty. Each page also reaches the
+     * same link, as traversal may.
+     */
+    const query = vi.fn<QueryEntitySubgraph>((request) => {
+      const after = request.cursor?.[0] as string | undefined;
+      const start = after === undefined ? 0 : ids.indexOf(after) + 1;
+      const page = ids.slice(start, start + (request.limit ?? 1000));
+      return Promise.resolve({
+        queryEntitySubgraph: {
+          ...response.queryEntitySubgraph,
+          cursor: page.length === request.limit ? [page.at(-1)] : null,
+          subgraph: {
+            ...response.queryEntitySubgraph.subgraph,
+            roots: page.map((baseId) => ({
+              baseId,
+              revisionId: "2026-10-26T00:00:00Z",
+            })),
+            vertices: Object.fromEntries([
+              ...page.map((entityId) => [
+                entityId,
+                {
+                  "2026-10-26T00:00:00Z": entity({
+                    entityId,
+                    editionId: `${entityId}-edition`,
+                    properties: {},
+                  }),
+                },
+              ]),
+              [
+                linkId,
+                {
+                  "2026-10-25T00:00:00Z": entity({
+                    entityId: linkId,
+                    editionId: "link-edition",
+                    properties: {},
+                    linkData: {
+                      leftEntityId: ids[0]!,
+                      rightEntityId: "alice-web~product",
+                    },
+                  }),
+                },
+              ],
+            ]),
+          },
+        },
+      } as unknown as QueryEntitySubgraphQuery);
+    });
+
+    const matched: string[] = [];
+    let cursor: string | undefined;
+    for (let pages = 0; pages <= matches + 1; pages++) {
+      const output = (await run(query, {
+        entityTypes: ["Supplier"],
+        traversalDepth: 1,
+        limit,
+        ...(cursor === undefined ? {} : { cursor }),
+      })) as HashEntityReadResult;
+      matched.push(
+        ...output.entities
+          .filter((read) => read.matched)
+          .map(({ entityId }) => entityId),
+      );
+      cursor = output.cursor;
+      if (cursor === undefined) {
+        break;
+      }
+    }
+
+    expect(cursor).toBeUndefined();
+    expect(matched).toEqual(ids);
+    expect(new Set(matched).size).toBe(matches);
+    expect(query).toHaveBeenCalledTimes(Math.floor(matches / limit) + 1);
+  },
+);
 
 test("a failed query settles the read with its message, so the agent can tell the model why", async () => {
   const graphQlError = new Error("Response not successful: GraphQL error");

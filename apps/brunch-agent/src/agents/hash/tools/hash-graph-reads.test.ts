@@ -730,6 +730,74 @@ test("an empty read says nothing matched", () => {
   expect(hashEntityReadForModel(read([]))).toBe(hashEntityReadEmptyNote);
 });
 
+const nextPageLine = (cursor: string) =>
+  `This page is full, so more may match. To read the next page, repeat the same read with cursor: ${cursor}`;
+
+test("a full page shows its cursor, unread, after the count; the last page shows none", () => {
+  const cursor = "WyIyMDI2LTEwLTI2Il0";
+  const lines = hashEntityReadForModel({ ...read([person]), cursor }).split(
+    "\n",
+  );
+  expect(lines.slice(0, 2)).toEqual(["entities: 1", nextPageLine(cursor)]);
+
+  const last = hashEntityReadForModel(read([person]));
+  expect(last).not.toContain("more may match");
+  expect(last).not.toContain("cursor");
+  // A cursor is passed on as text, quoted only if it couldn't stand bare.
+  expect(
+    hashEntityReadForModel({ ...read([person]), cursor: "a b\nc" }).split(
+      "\n",
+    )[1],
+  ).toBe(nextPageLine(JSON.stringify("a b\nc")));
+});
+
+test("a full page none of whose entities can be shown says so, not that nothing matched, and gives its cursor", () => {
+  expect(hashEntityReadForModel({ ...read([]), cursor: "WyJ4Il0" })).toBe(
+    [
+      "This page holds no entities the signed-in user can see.",
+      nextPageLine("WyJ4Il0"),
+    ].join("\n"),
+  );
+});
+
+test("a read whose text would be too large is refused whole, with its size, counts and how to narrow it", () => {
+  const huge = {
+    ...person,
+    properties: { [displayName]: "x ".repeat(30_000) },
+  };
+  const linked = { ...person, entityId: "web~linked", matched: false };
+  const text = hashEntityReadForModel(
+    {
+      ...read([huge, { ...huge, entityId: "web~second" }, linked]),
+      cursor: "WyJ4Il0",
+    },
+    [huge.entityId, "web~second"],
+  );
+  const [refused, ...rest] = text.split("\n");
+  expect(refused).toMatch(
+    /^Refused: this read's text would be about [\d,]+ tokens, over the 20,000 a read may show, so none of it is shown and it gives no cursor\.$/u,
+  );
+  expect(rest).toEqual([
+    "It held 3 entities: 2 matched and 1 reached by links.",
+    "Narrow it, then repeat it from the same cursor if it had one, so no match is skipped:",
+    "- a smaller limit, then read the rest page by page",
+    "- traversalDepth: 0, to leave out the entities reached by links",
+    "- filters by entityTypes, webIds or entityIds",
+    "- in fullValuesFor, { entityId, path } for the part of a large value you need, rather than the entity's id",
+  ]);
+  expect(text).not.toContain("WyJ4Il0");
+});
+
+test("a read within the budget is shown whole, however many entities it holds", () => {
+  const many = Array.from({ length: 50 }, (_, index) => ({
+    ...person,
+    entityId: `web~${index}`,
+  }));
+  const text = hashEntityReadForModel(read(many));
+  expect(text.split("\n")[0]).toBe("entities: 50");
+  expect(text).not.toContain("Refused");
+});
+
 test("a result in an unknown shape fails the read rather than reaching the model", () => {
   expect(() => hashEntityReadForModel({ entities: [person] })).toThrow(
     "unknown shape",
