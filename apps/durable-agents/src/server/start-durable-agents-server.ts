@@ -190,6 +190,8 @@ export const startDurableAgentsServer = async (
     // Before scheduling resumes, so no request after a reopen offers the placeholder Save.
     afterBind: installBoundSave,
     clientToolNames,
+    // The panel runs a static client tool part itself; a browser call runs only through the browser-call routes.
+    dynamicClientToolNames: clientToolNames,
     admitNewConversation,
     admitChat: (conversation, body) =>
       admitBinding(conversation, body, installBoundSave),
