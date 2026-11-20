@@ -1,7 +1,7 @@
 import { use, useEffect } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ActualModeContext } from "../../../../../react/actual-mode-context";
 import { SimulationContext } from "../../../../../react/simulation/context";
@@ -17,9 +17,7 @@ import { useUserSettingsFields } from "../../../../../react/state/user-settings-
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
   HorizontalTabPanel,
-  HorizontalTabsContent,
   HorizontalTabsHeader,
-  HorizontalTabsHeaderAction,
 } from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
 import {
   MAX_BOTTOM_PANEL_HEIGHT,
@@ -47,18 +45,10 @@ const glassPanelBaseStyle = css({
   boxSizing: "border-box",
 });
 
-const panelStyle = cva({
-  base: {},
-  variants: {
-    open: {
-      true: {},
-      // Where the panel is comes from its presence value; this is only what
-      // a closed panel must not do.
-      false: {
-        pointerEvents: "none",
-      },
-    },
-  },
+// Where the panel is comes from its presence value; this is only what a
+// closed panel must not do.
+const closedPanelStyle = css({
+  pointerEvents: "none",
 });
 
 const panelContainerStyle = css({
@@ -197,6 +187,9 @@ export const BottomPanel: React.FC = () => {
   const activePluginView = pluginViews.find(
     (view) => view.id === renderedActiveTab,
   );
+  const activeSubView = subViews.find((view) => view.id === renderedActiveTab);
+  const HeaderAction = activeSubView?.headerAction;
+  const Content = activeSubView?.component;
 
   useEffect(() => {
     if (renderedActiveTab !== activeTab) {
@@ -204,17 +197,13 @@ export const BottomPanel: React.FC = () => {
     }
   }, [activeTab, renderedActiveTab, setActiveTab]);
 
-  const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId as BottomPanelTab);
-  };
-
   if (!isOpen && !isInView && !keepPanelsMounted) {
     return null;
   }
 
   return (
     <GlassPanel
-      className={cx(glassPanelBaseStyle, panelStyle({ open: isOpen }))}
+      className={cx(glassPanelBaseStyle, !isOpen && closedPanelStyle)}
       // The panel starts beside the left sidebar, as far as that is in view.
       ref={styleRef({
         left: () =>
@@ -239,17 +228,11 @@ export const BottomPanel: React.FC = () => {
         <HorizontalTabsHeader
           subViews={tabs}
           activeTabId={renderedActiveTab}
-          onTabChange={handleTabChange}
+          onTabChange={(tabId) => setActiveTab(tabId as BottomPanelTab)}
         />
         <div className={headerRightStyle}>
-          {activePluginView ? (
-            activePluginView.headerAction
-          ) : (
-            <HorizontalTabsHeaderAction
-              subViews={subViews}
-              activeTabId={renderedActiveTab}
-            />
-          )}
+          {activePluginView?.headerAction}
+          {HeaderAction && <HeaderAction />}
           {!isActualMode && (
             <Button
               size="xxs"
@@ -263,17 +246,14 @@ export const BottomPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Scrollable content */}
-      {activePluginView ? (
-        <HorizontalTabPanel tabId={activePluginView.id}>
-          {activePluginView.content}
-        </HorizontalTabPanel>
-      ) : (
-        <HorizontalTabsContent
-          subViews={subViews}
-          activeTabId={renderedActiveTab}
-        />
-      )}
+      {/* Scrollable content: a plugin's, or the component of an own tab */}
+      <HorizontalTabPanel
+        tabId={renderedActiveTab}
+        padded={!activeSubView?.noPadding}
+      >
+        {activePluginView?.content}
+        {Content && <Content />}
+      </HorizontalTabPanel>
     </GlassPanel>
   );
 };
