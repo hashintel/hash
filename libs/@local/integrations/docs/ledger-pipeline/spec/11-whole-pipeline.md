@@ -6,9 +6,9 @@ The command line tool that calls the four functions of the crate, and the tests 
 
 ```text
 hash-integrations ledger start    --definition aviation.yaml --web … --actor …     prints the run id
-hash-integrations ledger capture  --run … --file aircraft=… --file airfields=…
-hash-integrations ledger prepare  --run …
-hash-integrations ledger send     --run …
+hash-integrations ledger capture  --web … --connector … --run … --file aircraft=… --file airfields=…
+hash-integrations ledger prepare  --web … --connector … --run …
+hash-integrations ledger send     --web … --connector … --run …
 ```
 
 **Decided in:** `../plan.md`, step 2 ("a command line tool calls the stages"), step 5 ("The whole pipeline") and step 6.
@@ -36,13 +36,20 @@ Nothing in the crate changes. Each of the four functions was re-exported from `l
 #[derive(clap::Subcommand)]
 pub enum Ledger {
     /// Start a run and print its id as JSON.
-    Start(StartArgs),       // --definition <file>, --web, --actor, --namespace (optional)
+    Start(StartArgs),       // --definition <file>, --web, --actor, --id-namespace (optional)
     /// Store the capture files of a run.
-    Capture(CaptureArgs),   // --run, --file <table>=<path> (once per table)
+    Capture(CaptureArgs),   // RunArgs, --file <table>=<path> (once per table)
     /// Turn the capture files into entity changes.
-    Prepare(RunArgs),       // --run
+    Prepare(RunArgs),       // --web, --connector, --run
     /// Apply the run's entity changes to the Graph.
-    Send(SendArgs),         // --run, --graph-url; the service secret from the environment
+    Send(SendArgs),         // RunArgs, --graph-url; the service secret from the environment
+}
+
+impl RunArgs {
+    /// The integration's place in the bucket. A stage parses no definition to find it.
+    fn storage(&self, bucket: S3Bucket) -> Result<Storage, Report<StorageError>> {
+        Storage::s3(bucket, &IntegrationNamespace::new(self.web, &self.connector))
+    }
 }
 
 #[derive(clap::Args)]
@@ -50,21 +57,25 @@ pub struct BucketArgs { uri, region, endpoint, use_ssl, key_id, secret }     // 
 
 impl Ledger {
     pub async fn execute(self, bucket: BucketArgs) -> Result<(), Report<LedgerError>> {
-        let storage = Storage::s3(bucket.into())?;
+        let bucket = S3Bucket::from(bucket);
         match self {
             Self::Start(args) => {
+                let text = read_to_string(args.definition)?;
+                let definition = Definition::from_yaml(&text)?;            // the only parse (D9)
+                let namespace = IntegrationNamespace::new(args.web, definition.connector());
+                let storage = Storage::s3(bucket, &namespace)?;
                 let input = StartInput {
                     web: args.web,
                     actor: args.actor,
-                    definition: read_to_string(args.definition)?,         // Start reads the connector from it
-                    namespace: args.namespace,                            // None: Start uses the connector's id
+                    definition: text,
+                    id_namespace: args.id_namespace,                      // None: Start uses the connector's id
                     submitted_at: OffsetDateTime::now_utc(),              // the tool reads the clock, the crate does not
                 };
-                println!("{}", json!({ "run": start(&storage, input).await? }));
+                println!("{}", json!({ "run": start(&storage, &definition, input).await? }));
             }
-            Self::Capture(args) => capture(&storage, args.run, &args.files).await?,
-            Self::Prepare(args) => prepare_incremental(&storage, args.run).await?,
-            Self::Send(args)    => send(&storage, args.run, &GraphClient::new(&args.graph_url, secret)?).await?,
+            Self::Capture(args) => capture(&args.run.storage(bucket)?, args.run.run, &args.files).await?,
+            Self::Prepare(args) => prepare_incremental(&args.storage(bucket)?, args.run).await?,
+            Self::Send(args)    => send(&args.run.storage(bucket)?, args.run.run, &GraphClient::new(&args.graph_url, secret)?).await?,
         }
         Ok(())
     }
@@ -106,9 +117,10 @@ Nothing existing. Not built, as decided: the orchestration interface and the ser
 
 ### Open points
 
-- **Chosen:** the namespace defaults to the connector's id, as labs does (`../background/flow-map.md`, "Entity id and link id"). Start fills it in, because Start reads the definition.
+- **Chosen:** the id namespace defaults to the connector's id, as labs does (`../background/flow-map.md`, "Entity id and link id"). Start fills it in from the definition it is given.
+- **Chosen:** `start` parses the definition, because it needs the connector to open the storage, and hands the parsed definition to the crate (D9). Capture, Prepare and Send are given the web and the connector, which name the integration's place in the bucket, and parse nothing to open it.
 - **Chosen:** the settings of the tool are what the four functions need and nothing else: the bucket (address, region, endpoint, key id; the secret from the environment), and for `send` the Graph's address and the service secret from the environment.
-- **Chosen:** one error type, `LedgerError`, for what the tool itself can fail at: reading the definition file and the settings. A stage's error is printed as it is.
+- **Chosen:** one error type, `LedgerError`, for what the tool itself can fail at: reading and parsing the definition file, and the settings. A stage's error is printed as it is.
 - **Chosen:** the tool prints the run id of `start` as JSON, as the subcommands of hashintel/hash#10458 do, and prints nothing for the three stages when they succeed.
 - **Chosen:** the tests of the whole pipeline call the crate's functions. The tool adds only argument parsing.
 - **Fact:** `apps/hash-integrations` on `main` has two files of subcommands, 39 lines, and one subcommand, `completions`.

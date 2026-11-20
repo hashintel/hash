@@ -20,7 +20,7 @@ Every milestone is in this table. A block further down exists for each milestone
 | 10  | Send                      | the function `send`                                                                                                 | 1, 2, 3, 4, 9                                                   |
 | 11  | The whole pipeline        | the command line tool                                                                                               | 2, 3, 8, 10 (`start`, `capture`, `prepare_incremental`, `send`) |
 
-**Visibility.** The page writes `pub` for everything another milestone calls, and the milestone files do the same in their sketches. In the code only the four functions a caller uses and the types in their signatures are public (`Storage`, `S3Bucket`, `StartInput`, `RunId`, `GraphClient` and the error types). Everything else is `pub(crate)`: the workspace's lints warn on a `pub` item that cannot be reached from outside (`unreachable_pub`).
+**Visibility.** The page writes `pub` for everything another milestone calls, and the milestone files do the same in their sketches. In the code only the four functions a caller uses and the types in their signatures are public (`Storage`, `S3Bucket`, `IntegrationNamespace`, `StartInput`, `RunId`, `GraphClient` and the error types). Everything else is `pub(crate)`: the workspace's lints warn on a `pub` item that cannot be reached from outside (`unreachable_pub`).
 
 Everything here is taken from `../plan.md` or from existing code. Each block names its origin. Three kinds of mark are used in the whole spec:
 
@@ -44,7 +44,7 @@ Everything here is taken from `../plan.md` or from existing code. Each block nam
 ## The four functions a caller uses (`lib.rs`; milestones 2, 3, 8 and 10)
 
 ```rust
-pub async fn start(storage: &Storage, input: StartInput) -> Result<RunId, Report<StartError>>;
+pub async fn start(storage: &Storage, definition: &Definition, input: StartInput) -> Result<RunId, Report<StartError>>;
 pub async fn capture(storage: &Storage, run: RunId, files: &BTreeMap<SourceName, PathBuf>) -> Result<(), Report<StageError>>;
 pub async fn prepare_incremental(storage: &Storage, run: RunId) -> Result<(), Report<StageError>>;
 pub async fn send(storage: &Storage, run: RunId, graph: &GraphClient) -> Result<(), Report<StageError>>;
@@ -52,17 +52,26 @@ pub async fn send(storage: &Storage, run: RunId, graph: &GraphClient) -> Result<
 
 - **Origin:** `../plan.md`, step 3. Every stage takes the run id and reads the rest from `run.json`. Capture also takes the files, one per table of the definition (D14), and Send the Graph client. In a definition a table is called a source, so the name of a table is a `SourceName`.
 - **Chosen:** `start` creates the run id and returns it.
+- **The caller parses the definition, once** (D9). It needs the connector to open the integration's `Storage`, and passes the parsed definition to `start` with the text, which `run.json` keeps (D4). Start parses nothing.
 
 ## Storage (milestone 1)
 
 Used by `run`, `stage`, `sync_table`, Capture and Prepare.
 
 ```rust
-pub struct Storage { .. }                    // one integration's bucket
+pub struct Storage { .. }                    // one integration's place in the bucket
+
+/// tenants/{web}/integrations/{sha256("{web}:{connector}")}
+pub struct IntegrationNamespace { .. }
+
+impl IntegrationNamespace {
+    pub fn new(web: Uuid, connector: &ConnectorId) -> Self;
+}
 
 impl Storage {
-    pub fn s3(bucket: S3Bucket) -> Result<Self, Report<StorageError>>;
-    /// The bucket's settings. The sync table opens its own connection with them.
+    /// Opens the place of `namespace` below the prefix in the bucket's URI.
+    pub fn s3(bucket: S3Bucket, namespace: &IntegrationNamespace) -> Result<Self, Report<StorageError>>;
+    /// The bucket's settings, with the namespace in its URI. The sync table opens its own connection with them.
     pub(crate) fn bucket(&self) -> Option<&S3Bucket>;
     /// The in-memory store of `object_store`, for tests. It has no bucket.
     #[cfg(test)]
@@ -83,11 +92,11 @@ impl Storage {
 pub enum StorageError { Read, Write }
 ```
 
-- **Origin:** `upload` and `download` are `ArtifactStorage::upload` and `materialize` of hashintel/hash#10392, without the content hash. `read_versioned`, `replace_if` and `CasVersion` are taken unchanged from `versioned.rs` on the branch `pe/ledger-r1-conditional-write`, which ported them from labs `blob.rs`. `S3Bucket` is the struct of hashintel/hash#10392.
+- **Origin:** `upload` and `download` are `ArtifactStorage::upload` and `materialize` of hashintel/hash#10392, without the content hash. `IntegrationNamespace` is `ArtifactNamespace` of hashintel/hash#10392, which follows labs `BlobNamespace` (`blob.rs`). All integrations share one bucket, and the web and the connector name an integration's place in it. `read_versioned`, `replace_if` and `CasVersion` are taken unchanged from `versioned.rs` on the branch `pe/ledger-r1-conditional-write`, which ported them from labs `blob.rs`. `S3Bucket` is the struct of hashintel/hash#10392.
 - **Two functions cover all small files.** `replace_if` with `None` is "create if absent". With a version it is "replace if unchanged". `run.json`, `current.json` and the sync table's pointer all use them. The file in the module tree is therefore `storage/versioned.rs`, not `storage/json.rs`. Turning a type into JSON is done by the caller.
 - **Chosen:** a key is a `&str`. The keys are built in two places: `run` for a run's files, `sync_table` for the table.
 - **Fact:** `replace_if` works against MinIO with the workspace's `object_store` 0.12.5 (`../background/spikes.md`).
-- **Only `Storage`, `Storage::s3`, `S3Bucket` and `StorageError` are public.** A caller of the crate opens the bucket and passes it to the stages. The four functions on it are called only inside the crate.
+- **Only `Storage`, `Storage::s3`, `S3Bucket`, `IntegrationNamespace` and `StorageError` are public.** A caller of the crate opens the integration's place in the bucket and passes it to the stages. For Start it reads the connector from the definition, and for a stage it is given the web and the connector. The four functions on it are called only inside the crate.
 - **No local folder as a second kind of storage** (D6). Tests use `Storage::memory`, and the storage and sync table tests use a MinIO container.
 - `read_versioned` and `replace_if` refuse a file larger than 16 MiB. The code they are ported from has 1 MiB (`versioned.rs:19` on the branch). The limit was raised so that `run.json` can hold the failed entities of a large run (D8).
 
@@ -113,7 +122,7 @@ pub struct Input {
     pub connector: Box<str>,                 // the connector's id, as text
     pub actor: ActorEntityUuid,
     pub definition: Box<str>,                // the definition as written (D4)
-    pub namespace: Box<str>,
+    pub id_namespace: Box<str>,              // the namespace of entity ids, as labs `id_namespace`
     pub submitted_at: OffsetDateTime,
 }
 pub struct BatchLimits { pub max_writes: u32, pub max_bytes: u64 }    // the `batch` part: 128 and 1,500,000
@@ -145,6 +154,7 @@ pub(crate) async fn complete(storage: &Storage, run: RunId) -> Result<(), Report
 ```
 
 - **Origin:** the parts and their fields are those of `review.md` and of `../plan.md`, step 3, with one field less: `review.md` has `retryable` in the `failure` part. Only a failure that a rerun cannot help is ever written, so the field would always say the same. The types `WebId`, `ActorEntityUuid`, `EntityId` and `ConnectorId` exist in `type-system` and `definition`.
+- **Two namespaces, two names.** `id_namespace` goes into every entity id (`derive_entity_id`, milestone 7), and defaults to the connector's id. `IntegrationNamespace` is where the integration's files are stored. Labs names them `id_namespace` and `BlobNamespace`.
 - **Names are text in `run.json`.** The connector's id and the names of the tables are written as text. `ConnectorId` and `SourceName` of the `definition` crate cannot be written as JSON, and that crate is not changed.
 - **The `failure` part has a message** beside its code: the text of the error, such as the SQL step that failed with DuckDB's message (D12).
 - `RunError` has five cases: `NotFound`, `Unreadable`, `Changed`, `NotActive` and `Storage`. `03-stage-frame-and-capture.md` has the table of what each becomes for a stage.

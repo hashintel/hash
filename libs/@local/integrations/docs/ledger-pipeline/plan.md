@@ -93,7 +93,7 @@ Port:
 
 Leave behind:
 
-- `bind`, `bound` and `ArtifactNamespace` of hashintel/hash#10392. `run.json` records where a capture is stored, and one bucket per integration needs other keys.
+- `bind` and `bound` of hashintel/hash#10392. `run.json` records where a capture is stored. `ArtifactNamespace` is kept as `IntegrationNamespace`: all integrations share one bucket (Paul, 2026-11-20).
 - The state version and work manifest records of hashintel/hash#10453. They describe stored request bodies, which the new design does not have.
 - From labs: the journal, shards, leases, inbox, garbage collection and `durable-kernel` (about 28,000 lines), and the local cache of `blob.rs`.
 
@@ -309,13 +309,13 @@ Decided with Paul on 2026-11-19.
 
 Decided with Paul on 2026-11-19.
 
-|                  |                                                                                                                                                                                                                                   |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Called with      | The run id                                                                                                                                                                                                                        |
-| Reads            | `run.json` for the actor, the connector, the submission time and the batch limits. The web and the namespace are in the ids of the rows. If the `send` part is there, it only makes sure `current.json` names the run, and stops. |
-| Does             | Reads the run's rows from the sync table, sorts them, builds the requests, cuts them into batches and sends the batches one after another.                                                                                        |
-| Writes last      | The `send` part, once: the counts and the failed entities. Then `current.json`.                                                                                                                                                   |
-| If it runs again | It starts from the first batch.                                                                                                                                                                                                   |
+|                  |                                                                                                                                                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Called with      | The run id                                                                                                                                                                                                                           |
+| Reads            | `run.json` for the actor, the connector, the submission time and the batch limits. The web and the id namespace are in the ids of the rows. If the `send` part is there, it only makes sure `current.json` names the run, and stops. |
+| Does             | Reads the run's rows from the sync table, sorts them, builds the requests, cuts them into batches and sends the batches one after another.                                                                                           |
+| Writes last      | The `send` part, once: the counts and the failed entities. Then `current.json`.                                                                                                                                                      |
+| If it runs again | It starts from the first batch.                                                                                                                                                                                                      |
 
 - **Order.** Entity creates, entity updates, link creates, link updates, link archives, entity archives. Inside a group by `seq`, then entity id.
 - **A batch** holds one kind, at most 128 requests and 1.5 MB, and never two rows for the same entity. The Graph's own limit is 2 MiB. The limits are stored in `run.json`, so every attempt cuts the same batches.
@@ -431,7 +431,7 @@ Each step names the file that holds it. Every stage begins and ends with the two
 
 **Start** (`run/start.rs`)
 
-1. Check that the definition parses. If it does not, refuse (D9).
+1. Take the definition the caller parsed (D9). The caller needs its connector to open the storage.
 2. Read `current.json`. If it names an active run, refuse.
 3. Write `runs/{run}/run.json` with the `input` and `batch` parts.
 4. Name the run as active in `current.json`. If the file changed since step 2, refuse.
