@@ -328,14 +328,6 @@ connects this to its **Animations** setting. With the experimental pack enabled,
 selecting either add tool fills its icon and plays a short bounce. Motion runs
 through inline SVG and browser animation APIs; no animation dependency is needed.
 
-## Storybook
-
-Run Petrinaut's component stories from the repository root:
-
-```bash
-yarn workspace @hashintel/petrinaut dev
-```
-
 `DiagnosticsIcon` reuses two strokes across `status="valid"`, `"warning"`, and
 `"error"`. The strokes move, rotate, and change length to form the check,
 exclamation mark, and cross. The editor badge slides its count out from behind
@@ -349,6 +341,24 @@ state transitions, replay, looping, combined effects, layer timing, selection
 transitions, plus-badge visibility, and the Add Place ↔ Add Transition morph.
 The diagnostics button demo also includes a count control for checking its resize
 and reveal transitions.
+
+## Storybook
+
+Run the Storybook from the repository root:
+
+```bash
+yarn workspace @hashintel/petrinaut dev
+```
+
+Every story sits under one of three roots:
+
+- **Editor** renders the whole editor: on example nets, one of them with about
+  500 nodes, on composed nets, and with plugins.
+- **Components** renders one shared building block, such as the code editor,
+  the spreadsheet, the scenario form, the contour surface or the icons.
+- **States** renders a state that is hard to reach by hand, such as a
+  read-only document, a plugin that fails, an experiment in a long run or an
+  optimizer study.
 
 ## AI assistant
 
