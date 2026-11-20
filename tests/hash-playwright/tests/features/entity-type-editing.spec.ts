@@ -27,7 +27,7 @@ import { expect, test } from "../shared/runtime";
  */
 
 test("removing a type's only parent survives a reload", async ({ page }) => {
-  test.slow();
+  test.setTimeout(180_000);
 
   const parentName = randomTypeName();
   await createEntityType(page, parentName);
@@ -53,7 +53,7 @@ test("removing a type's only parent survives a reload", async ({ page }) => {
 test("unchecking the last required property survives a reload", async ({
   page,
 }) => {
-  test.slow();
+  test.setTimeout(180_000);
 
   const typeName = randomTypeName();
   const typePath = await createEntityType(page, typeName);
@@ -77,7 +77,7 @@ test("unchecking the last required property survives a reload", async ({
 test("removing one of two properties leaves the other in place", async ({
   page,
 }) => {
-  test.slow();
+  test.setTimeout(180_000);
 
   const typeName = randomTypeName();
   const typePath = await createEntityType(page, typeName);
@@ -104,7 +104,7 @@ test("removing one of two properties leaves the other in place", async ({
 test("saving an edit bumps the version and serves the new schema", async ({
   page,
 }) => {
-  test.slow();
+  test.setTimeout(180_000);
 
   const typeName = randomTypeName();
   const typePath = await createEntityType(page, typeName);
