@@ -4,8 +4,10 @@ import type { IsoDataType } from "../data-types";
 
 export const informationUnitsDataTypes: IsoDataType[] = [
   {
+    dataTypeBaseUrl: systemDataTypes.informationContent.dataTypeBaseUrl,
     definition: {
       title: "Information Content",
+      titlePlural: "Information Contents",
       description: "Numeric values in units of information content.",
       type: "number",
       allOf: [
@@ -18,8 +20,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.informationRate.dataTypeBaseUrl,
     definition: {
       title: "Information Rate",
+      titlePlural: "Information Rates",
       description: "Numeric values in units of information rate.",
       type: "number",
       allOf: [
@@ -32,8 +36,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.dataTransferRate.dataTypeBaseUrl,
     definition: {
       title: "Data Transfer Rate",
+      titlePlural: "Data Transfer Rates",
       description: "Numeric values in units of data transfer rate.",
       type: "number",
       allOf: [
@@ -46,8 +52,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.modulationRate.dataTypeBaseUrl,
     definition: {
       title: "Modulation Rate",
+      titlePlural: "Modulation Rates",
       description: "Numeric values in units of modulation rate.",
       type: "number",
       allOf: [
@@ -60,8 +68,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.trafficIntensity.dataTypeBaseUrl,
     definition: {
       title: "Traffic Intensity",
+      titlePlural: "Traffic Intensities",
       description: "Numeric values in units of traffic intensity.",
       type: "number",
       allOf: [
@@ -74,8 +84,11 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.logarithmicFrequencyInterval.dataTypeBaseUrl,
     definition: {
       title: "Logarithmic Frequency Interval",
+      titlePlural: "Logarithmic Frequency Intervals",
       description: "Numeric values in units of logarithmic frequency interval.",
       type: "number",
       allOf: [
@@ -88,8 +101,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.informationBinary.dataTypeBaseUrl,
     definition: {
       title: "Information (Binary)",
+      titlePlural: "Information (Binary)",
       description: "Binary storage quantities expressed using powers of two.",
       type: "number",
       allOf: [
@@ -102,8 +117,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.informationDecimal.dataTypeBaseUrl,
     definition: {
       title: "Information (Decimal)",
+      titlePlural: "Information (Decimal)",
       description: "Binary storage quantities expressed using powers of ten.",
       type: "number",
       allOf: [
@@ -116,8 +133,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.shannons.dataTypeBaseUrl,
     definition: {
-      title: "Shannons",
+      title: "Shannon",
+      titlePlural: "Shannons",
       description:
         "A logarithmic information unit using base 2. Logarithm-base conversion factors are approximate.",
       type: "number",
@@ -133,8 +152,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.shannonsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Shannons per Second",
+      title: "Shannon per Second",
+      titlePlural: "Shannons per Second",
       description: "A value expressed in shannons per second.",
       type: "number",
       allOf: [
@@ -149,8 +170,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.hartleys.dataTypeBaseUrl,
     definition: {
-      title: "Hartleys",
+      title: "Hartley",
+      titlePlural: "Hartleys",
       description:
         "A logarithmic information unit using base 10. Logarithm-base conversion factors are approximate.",
       type: "number",
@@ -189,8 +212,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.hartleysPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Hartleys per Second",
+      title: "Hartley per Second",
+      titlePlural: "Hartleys per Second",
       description: "A value expressed in hartleys per second.",
       type: "number",
       allOf: [
@@ -228,8 +253,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.nats.dataTypeBaseUrl,
     definition: {
-      title: "Nats",
+      title: "Nat",
+      titlePlural: "Nats",
       description:
         "A logarithmic information unit using base e. Logarithm-base conversion factors are approximate.",
       type: "number",
@@ -268,8 +295,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.natsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Nats per Second",
+      title: "Nat per Second",
+      titlePlural: "Nats per Second",
       description: "A value expressed in nats per second.",
       type: "number",
       allOf: [
@@ -307,8 +336,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.bitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Bits per Second",
+      title: "Bit per Second",
+      titlePlural: "Bits per Second",
       description: "A value expressed in bits per second.",
       type: "number",
       allOf: [
@@ -323,8 +354,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.bytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Bytes per Second",
+      title: "Byte per Second",
+      titlePlural: "Bytes per Second",
       description: "A value expressed in bytes per second.",
       type: "number",
       allOf: [
@@ -362,8 +395,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.octets.dataTypeBaseUrl,
     definition: {
-      title: "Octets",
+      title: "Octet",
+      titlePlural: "Octets",
       description:
         "A group of exactly eight binary digits; equal to one eight-bit byte.",
       type: "number",
@@ -402,8 +437,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.bauds.dataTypeBaseUrl,
     definition: {
-      title: "Bauds",
+      title: "Baud",
+      titlePlural: "Bauds",
       description:
         "One symbol interval per second; conversion to bits per second requires the coding scheme.",
       type: "number",
@@ -419,8 +456,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.erlangs.dataTypeBaseUrl,
     definition: {
-      title: "Erlangs",
+      title: "Erlang",
+      titlePlural: "Erlangs",
       description:
         "A traffic intensity corresponding to one resource continuously occupied over the observation interval.",
       type: "number",
@@ -437,8 +476,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.octaves.dataTypeBaseUrl,
     definition: {
-      title: "Octaves",
+      title: "Octave",
+      titlePlural: "Octaves",
       description:
         "A logarithmic frequency interval corresponding to a frequency ratio of two.",
       type: "number",
@@ -454,8 +495,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.semitones.dataTypeBaseUrl,
     definition: {
-      title: "Semitones",
+      title: "Semitone",
+      titlePlural: "Semitones",
       description: "One twelfth of an octave in equal temperament.",
       type: "number",
       allOf: [
@@ -493,8 +536,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.centsFrequencyInterval.dataTypeBaseUrl,
     definition: {
-      title: "Cents (Frequency Interval)",
+      title: "Cent (Frequency Interval)",
+      titlePlural: "Cents (Frequency Interval)",
       description: "One twelve-hundredth of an octave.",
       type: "number",
       allOf: [
@@ -532,8 +577,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.decadesFrequencyInterval.dataTypeBaseUrl,
     definition: {
-      title: "Decades (Frequency Interval)",
+      title: "Decade (Frequency Interval)",
+      titlePlural: "Decades (Frequency Interval)",
       description:
         "A logarithmic frequency interval corresponding to a frequency ratio of ten.",
       type: "number",
@@ -572,8 +619,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.kibibits.dataTypeBaseUrl,
     definition: {
-      title: "Kibibits",
+      title: "Kibibit",
+      titlePlural: "Kibibits",
       description: "A binary multiple equal to 2^10 bits.",
       type: "number",
       allOf: [
@@ -625,8 +674,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.kibibitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Kibibits per Second",
+      title: "Kibibit per Second",
+      titlePlural: "Kibibits per Second",
       description: "A transfer rate of 2^10 bits per second.",
       type: "number",
       allOf: [
@@ -664,8 +715,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.kibibytes.dataTypeBaseUrl,
     definition: {
-      title: "Kibibytes",
+      title: "Kibibyte",
+      titlePlural: "Kibibytes",
       description: "A binary multiple equal to 2^10 bytes.",
       type: "number",
       allOf: [
@@ -703,8 +756,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.kibibytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Kibibytes per Second",
+      title: "Kibibyte per Second",
+      titlePlural: "Kibibytes per Second",
       description: "A transfer rate of 2^10 bytes per second.",
       type: "number",
       allOf: [
@@ -756,8 +811,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.mebibits.dataTypeBaseUrl,
     definition: {
-      title: "Mebibits",
+      title: "Mebibit",
+      titlePlural: "Mebibits",
       description: "A binary multiple equal to 2^20 bits.",
       type: "number",
       allOf: [
@@ -809,8 +866,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.mebibitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Mebibits per Second",
+      title: "Mebibit per Second",
+      titlePlural: "Mebibits per Second",
       description: "A transfer rate of 2^20 bits per second.",
       type: "number",
       allOf: [
@@ -848,8 +907,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.mebibytes.dataTypeBaseUrl,
     definition: {
-      title: "Mebibytes",
+      title: "Mebibyte",
+      titlePlural: "Mebibytes",
       description: "A binary multiple equal to 2^20 bytes.",
       type: "number",
       allOf: [
@@ -887,8 +948,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.mebibytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Mebibytes per Second",
+      title: "Mebibyte per Second",
+      titlePlural: "Mebibytes per Second",
       description: "A transfer rate of 2^20 bytes per second.",
       type: "number",
       allOf: [
@@ -940,8 +1003,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.gibibits.dataTypeBaseUrl,
     definition: {
-      title: "Gibibits",
+      title: "Gibibit",
+      titlePlural: "Gibibits",
       description: "A binary multiple equal to 2^30 bits.",
       type: "number",
       allOf: [
@@ -993,8 +1058,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.gibibitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Gibibits per Second",
+      title: "Gibibit per Second",
+      titlePlural: "Gibibits per Second",
       description: "A transfer rate of 2^30 bits per second.",
       type: "number",
       allOf: [
@@ -1032,8 +1099,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.gibibytes.dataTypeBaseUrl,
     definition: {
-      title: "Gibibytes",
+      title: "Gibibyte",
+      titlePlural: "Gibibytes",
       description: "A binary multiple equal to 2^30 bytes.",
       type: "number",
       allOf: [
@@ -1071,8 +1140,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.gibibytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Gibibytes per Second",
+      title: "Gibibyte per Second",
+      titlePlural: "Gibibytes per Second",
       description: "A transfer rate of 2^30 bytes per second.",
       type: "number",
       allOf: [
@@ -1124,8 +1195,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.tebibits.dataTypeBaseUrl,
     definition: {
-      title: "Tebibits",
+      title: "Tebibit",
+      titlePlural: "Tebibits",
       description: "A binary multiple equal to 2^40 bits.",
       type: "number",
       allOf: [
@@ -1191,8 +1264,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.tebibitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Tebibits per Second",
+      title: "Tebibit per Second",
+      titlePlural: "Tebibits per Second",
       description: "A transfer rate of 2^40 bits per second.",
       type: "number",
       allOf: [
@@ -1244,8 +1319,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.tebibytes.dataTypeBaseUrl,
     definition: {
-      title: "Tebibytes",
+      title: "Tebibyte",
+      titlePlural: "Tebibytes",
       description: "A binary multiple equal to 2^40 bytes.",
       type: "number",
       allOf: [
@@ -1297,8 +1374,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.tebibytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Tebibytes per Second",
+      title: "Tebibyte per Second",
+      titlePlural: "Tebibytes per Second",
       description: "A transfer rate of 2^40 bytes per second.",
       type: "number",
       allOf: [
@@ -1364,8 +1443,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.pebibits.dataTypeBaseUrl,
     definition: {
-      title: "Pebibits",
+      title: "Pebibit",
+      titlePlural: "Pebibits",
       description: "A binary multiple equal to 2^50 bits.",
       type: "number",
       allOf: [
@@ -1431,8 +1512,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.pebibitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Pebibits per Second",
+      title: "Pebibit per Second",
+      titlePlural: "Pebibits per Second",
       description: "A transfer rate of 2^50 bits per second.",
       type: "number",
       allOf: [
@@ -1484,8 +1567,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.pebibytes.dataTypeBaseUrl,
     definition: {
-      title: "Pebibytes",
+      title: "Pebibyte",
+      titlePlural: "Pebibytes",
       description: "A binary multiple equal to 2^50 bytes.",
       type: "number",
       allOf: [
@@ -1537,8 +1622,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.pebibytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Pebibytes per Second",
+      title: "Pebibyte per Second",
+      titlePlural: "Pebibytes per Second",
       description: "A transfer rate of 2^50 bytes per second.",
       type: "number",
       allOf: [
@@ -1604,8 +1691,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.exbibits.dataTypeBaseUrl,
     definition: {
-      title: "Exbibits",
+      title: "Exbibit",
+      titlePlural: "Exbibits",
       description: "A binary multiple equal to 2^60 bits.",
       type: "number",
       allOf: [
@@ -1671,8 +1760,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.exbibitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Exbibits per Second",
+      title: "Exbibit per Second",
+      titlePlural: "Exbibits per Second",
       description: "A transfer rate of 2^60 bits per second.",
       type: "number",
       allOf: [
@@ -1724,8 +1815,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.exbibytes.dataTypeBaseUrl,
     definition: {
-      title: "Exbibytes",
+      title: "Exbibyte",
+      titlePlural: "Exbibytes",
       description: "A binary multiple equal to 2^60 bytes.",
       type: "number",
       allOf: [
@@ -1777,8 +1870,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.exbibytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Exbibytes per Second",
+      title: "Exbibyte per Second",
+      titlePlural: "Exbibytes per Second",
       description: "A transfer rate of 2^60 bytes per second.",
       type: "number",
       allOf: [
@@ -1844,8 +1939,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.zebibits.dataTypeBaseUrl,
     definition: {
-      title: "Zebibits",
+      title: "Zebibit",
+      titlePlural: "Zebibits",
       description: "A binary multiple equal to 2^70 bits.",
       type: "number",
       allOf: [
@@ -1925,8 +2022,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.zebibitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Zebibits per Second",
+      title: "Zebibit per Second",
+      titlePlural: "Zebibits per Second",
       description: "A transfer rate of 2^70 bits per second.",
       type: "number",
       allOf: [
@@ -1992,8 +2091,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.zebibytes.dataTypeBaseUrl,
     definition: {
-      title: "Zebibytes",
+      title: "Zebibyte",
+      titlePlural: "Zebibytes",
       description: "A binary multiple equal to 2^70 bytes.",
       type: "number",
       allOf: [
@@ -2059,8 +2160,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.zebibytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Zebibytes per Second",
+      title: "Zebibyte per Second",
+      titlePlural: "Zebibytes per Second",
       description: "A transfer rate of 2^70 bytes per second.",
       type: "number",
       allOf: [
@@ -2140,8 +2243,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.yobibits.dataTypeBaseUrl,
     definition: {
-      title: "Yobibits",
+      title: "Yobibit",
+      titlePlural: "Yobibits",
       description: "A binary multiple equal to 2^80 bits.",
       type: "number",
       allOf: [
@@ -2221,8 +2326,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.yobibitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Yobibits per Second",
+      title: "Yobibit per Second",
+      titlePlural: "Yobibits per Second",
       description: "A transfer rate of 2^80 bits per second.",
       type: "number",
       allOf: [
@@ -2288,8 +2395,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.yobibytes.dataTypeBaseUrl,
     definition: {
-      title: "Yobibytes",
+      title: "Yobibyte",
+      titlePlural: "Yobibytes",
       description: "A binary multiple equal to 2^80 bytes.",
       type: "number",
       allOf: [
@@ -2355,8 +2464,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.yobibytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Yobibytes per Second",
+      title: "Yobibyte per Second",
+      titlePlural: "Yobibytes per Second",
       description: "A transfer rate of 2^80 bytes per second.",
       type: "number",
       allOf: [
@@ -2436,8 +2547,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.robibits.dataTypeBaseUrl,
     definition: {
-      title: "Robibits",
+      title: "Robibit",
+      titlePlural: "Robibits",
       description: "A binary multiple equal to 2^90 bits.",
       type: "number",
       allOf: [
@@ -2517,8 +2630,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.robibitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Robibits per Second",
+      title: "Robibit per Second",
+      titlePlural: "Robibits per Second",
       description: "A transfer rate of 2^90 bits per second.",
       type: "number",
       allOf: [
@@ -2584,8 +2699,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.robibytes.dataTypeBaseUrl,
     definition: {
-      title: "Robibytes",
+      title: "Robibyte",
+      titlePlural: "Robibytes",
       description: "A binary multiple equal to 2^90 bytes.",
       type: "number",
       allOf: [
@@ -2651,8 +2768,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.robibytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Robibytes per Second",
+      title: "Robibyte per Second",
+      titlePlural: "Robibytes per Second",
       description: "A transfer rate of 2^90 bytes per second.",
       type: "number",
       allOf: [
@@ -2732,8 +2851,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.quebibits.dataTypeBaseUrl,
     definition: {
-      title: "Quebibits",
+      title: "Quebibit",
+      titlePlural: "Quebibits",
       description: "A binary multiple equal to 2^100 bits.",
       type: "number",
       allOf: [
@@ -2827,8 +2948,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.quebibitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Quebibits per Second",
+      title: "Quebibit per Second",
+      titlePlural: "Quebibits per Second",
       description: "A transfer rate of 2^100 bits per second.",
       type: "number",
       allOf: [
@@ -2908,8 +3031,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.quebibytes.dataTypeBaseUrl,
     definition: {
-      title: "Quebibytes",
+      title: "Quebibyte",
+      titlePlural: "Quebibytes",
       description: "A binary multiple equal to 2^100 bytes.",
       type: "number",
       allOf: [
@@ -2989,8 +3114,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.quebibytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Quebibytes per Second",
+      title: "Quebibyte per Second",
+      titlePlural: "Quebibytes per Second",
       description: "A transfer rate of 2^100 bytes per second.",
       type: "number",
       allOf: [
@@ -3084,8 +3211,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.kilobits.dataTypeBaseUrl,
     definition: {
-      title: "Kilobits",
+      title: "Kilobit",
+      titlePlural: "Kilobits",
       description: "A decimal multiple equal to 10^3 bits.",
       type: "number",
       allOf: [
@@ -3137,8 +3266,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.kilobitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Kilobits per Second",
+      title: "Kilobit per Second",
+      titlePlural: "Kilobits per Second",
       description: "A transfer rate of 10^3 bits per second.",
       type: "number",
       allOf: [
@@ -3176,8 +3307,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.kilobytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Kilobytes per Second",
+      title: "Kilobyte per Second",
+      titlePlural: "Kilobytes per Second",
       description: "A transfer rate of 10^3 bytes per second.",
       type: "number",
       allOf: [
@@ -3229,8 +3362,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.megabits.dataTypeBaseUrl,
     definition: {
-      title: "Megabits",
+      title: "Megabit",
+      titlePlural: "Megabits",
       description: "A decimal multiple equal to 10^6 bits.",
       type: "number",
       allOf: [
@@ -3282,8 +3417,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.megabitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Megabits per Second",
+      title: "Megabit per Second",
+      titlePlural: "Megabits per Second",
       description: "A transfer rate of 10^6 bits per second.",
       type: "number",
       allOf: [
@@ -3321,8 +3458,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.megabytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Megabytes per Second",
+      title: "Megabyte per Second",
+      titlePlural: "Megabytes per Second",
       description: "A transfer rate of 10^6 bytes per second.",
       type: "number",
       allOf: [
@@ -3374,8 +3513,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.gigabits.dataTypeBaseUrl,
     definition: {
-      title: "Gigabits",
+      title: "Gigabit",
+      titlePlural: "Gigabits",
       description: "A decimal multiple equal to 10^9 bits.",
       type: "number",
       allOf: [
@@ -3427,8 +3568,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.gigabitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Gigabits per Second",
+      title: "Gigabit per Second",
+      titlePlural: "Gigabits per Second",
       description: "A transfer rate of 10^9 bits per second.",
       type: "number",
       allOf: [
@@ -3466,8 +3609,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.gigabytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Gigabytes per Second",
+      title: "Gigabyte per Second",
+      titlePlural: "Gigabytes per Second",
       description: "A transfer rate of 10^9 bytes per second.",
       type: "number",
       allOf: [
@@ -3519,8 +3664,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.terabits.dataTypeBaseUrl,
     definition: {
-      title: "Terabits",
+      title: "Terabit",
+      titlePlural: "Terabits",
       description: "A decimal multiple equal to 10^12 bits.",
       type: "number",
       allOf: [
@@ -3572,8 +3719,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.terabitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Terabits per Second",
+      title: "Terabit per Second",
+      titlePlural: "Terabits per Second",
       description: "A transfer rate of 10^12 bits per second.",
       type: "number",
       allOf: [
@@ -3611,8 +3760,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.terabytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Terabytes per Second",
+      title: "Terabyte per Second",
+      titlePlural: "Terabytes per Second",
       description: "A transfer rate of 10^12 bytes per second.",
       type: "number",
       allOf: [
@@ -3664,8 +3815,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.petabits.dataTypeBaseUrl,
     definition: {
-      title: "Petabits",
+      title: "Petabit",
+      titlePlural: "Petabits",
       description: "A decimal multiple equal to 10^15 bits.",
       type: "number",
       allOf: [
@@ -3717,8 +3870,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.petabitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Petabits per Second",
+      title: "Petabit per Second",
+      titlePlural: "Petabits per Second",
       description: "A transfer rate of 10^15 bits per second.",
       type: "number",
       allOf: [
@@ -3756,8 +3911,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.petabytes.dataTypeBaseUrl,
     definition: {
-      title: "Petabytes",
+      title: "Petabyte",
+      titlePlural: "Petabytes",
       description: "A decimal multiple equal to 10^15 bytes.",
       type: "number",
       allOf: [
@@ -3795,8 +3952,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.petabytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Petabytes per Second",
+      title: "Petabyte per Second",
+      titlePlural: "Petabytes per Second",
       description: "A transfer rate of 10^15 bytes per second.",
       type: "number",
       allOf: [
@@ -3848,8 +4007,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.exabits.dataTypeBaseUrl,
     definition: {
-      title: "Exabits",
+      title: "Exabit",
+      titlePlural: "Exabits",
       description: "A decimal multiple equal to 10^18 bits.",
       type: "number",
       allOf: [
@@ -3901,8 +4062,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.exabitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Exabits per Second",
+      title: "Exabit per Second",
+      titlePlural: "Exabits per Second",
       description: "A transfer rate of 10^18 bits per second.",
       type: "number",
       allOf: [
@@ -3940,8 +4103,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.exabytes.dataTypeBaseUrl,
     definition: {
-      title: "Exabytes",
+      title: "Exabyte",
+      titlePlural: "Exabytes",
       description: "A decimal multiple equal to 10^18 bytes.",
       type: "number",
       allOf: [
@@ -3979,8 +4144,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.exabytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Exabytes per Second",
+      title: "Exabyte per Second",
+      titlePlural: "Exabytes per Second",
       description: "A transfer rate of 10^18 bytes per second.",
       type: "number",
       allOf: [
@@ -4032,8 +4199,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.zettabits.dataTypeBaseUrl,
     definition: {
-      title: "Zettabits",
+      title: "Zettabit",
+      titlePlural: "Zettabits",
       description: "A decimal multiple equal to 10^21 bits.",
       type: "number",
       allOf: [
@@ -4085,8 +4254,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.zettabitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Zettabits per Second",
+      title: "Zettabit per Second",
+      titlePlural: "Zettabits per Second",
       description: "A transfer rate of 10^21 bits per second.",
       type: "number",
       allOf: [
@@ -4124,8 +4295,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.zettabytes.dataTypeBaseUrl,
     definition: {
-      title: "Zettabytes",
+      title: "Zettabyte",
+      titlePlural: "Zettabytes",
       description: "A decimal multiple equal to 10^21 bytes.",
       type: "number",
       allOf: [
@@ -4163,8 +4336,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.zettabytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Zettabytes per Second",
+      title: "Zettabyte per Second",
+      titlePlural: "Zettabytes per Second",
       description: "A transfer rate of 10^21 bytes per second.",
       type: "number",
       allOf: [
@@ -4216,8 +4391,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.yottabits.dataTypeBaseUrl,
     definition: {
-      title: "Yottabits",
+      title: "Yottabit",
+      titlePlural: "Yottabits",
       description: "A decimal multiple equal to 10^24 bits.",
       type: "number",
       allOf: [
@@ -4269,8 +4446,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.yottabitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Yottabits per Second",
+      title: "Yottabit per Second",
+      titlePlural: "Yottabits per Second",
       description: "A transfer rate of 10^24 bits per second.",
       type: "number",
       allOf: [
@@ -4308,8 +4487,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.yottabytes.dataTypeBaseUrl,
     definition: {
-      title: "Yottabytes",
+      title: "Yottabyte",
+      titlePlural: "Yottabytes",
       description: "A decimal multiple equal to 10^24 bytes.",
       type: "number",
       allOf: [
@@ -4347,8 +4528,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.yottabytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Yottabytes per Second",
+      title: "Yottabyte per Second",
+      titlePlural: "Yottabytes per Second",
       description: "A transfer rate of 10^24 bytes per second.",
       type: "number",
       allOf: [
@@ -4400,8 +4583,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.ronnabits.dataTypeBaseUrl,
     definition: {
-      title: "Ronnabits",
+      title: "Ronnabit",
+      titlePlural: "Ronnabits",
       description: "A decimal multiple equal to 10^27 bits.",
       type: "number",
       allOf: [
@@ -4453,8 +4638,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.ronnabitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Ronnabits per Second",
+      title: "Ronnabit per Second",
+      titlePlural: "Ronnabits per Second",
       description: "A transfer rate of 10^27 bits per second.",
       type: "number",
       allOf: [
@@ -4492,8 +4679,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.ronnabytes.dataTypeBaseUrl,
     definition: {
-      title: "Ronnabytes",
+      title: "Ronnabyte",
+      titlePlural: "Ronnabytes",
       description: "A decimal multiple equal to 10^27 bytes.",
       type: "number",
       allOf: [
@@ -4531,8 +4720,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.ronnabytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Ronnabytes per Second",
+      title: "Ronnabyte per Second",
+      titlePlural: "Ronnabytes per Second",
       description: "A transfer rate of 10^27 bytes per second.",
       type: "number",
       allOf: [
@@ -4584,8 +4775,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.quettabits.dataTypeBaseUrl,
     definition: {
-      title: "Quettabits",
+      title: "Quettabit",
+      titlePlural: "Quettabits",
       description: "A decimal multiple equal to 10^30 bits.",
       type: "number",
       allOf: [
@@ -4637,8 +4830,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.quettabitsPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Quettabits per Second",
+      title: "Quettabit per Second",
+      titlePlural: "Quettabits per Second",
       description: "A transfer rate of 10^30 bits per second.",
       type: "number",
       allOf: [
@@ -4676,8 +4871,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.quettabytes.dataTypeBaseUrl,
     definition: {
-      title: "Quettabytes",
+      title: "Quettabyte",
+      titlePlural: "Quettabytes",
       description: "A decimal multiple equal to 10^30 bytes.",
       type: "number",
       allOf: [
@@ -4715,8 +4912,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.quettabytesPerSecond.dataTypeBaseUrl,
     definition: {
-      title: "Quettabytes per Second",
+      title: "Quettabyte per Second",
+      titlePlural: "Quettabytes per Second",
       description: "A transfer rate of 10^30 bytes per second.",
       type: "number",
       allOf: [
@@ -4768,8 +4967,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.kilobauds.dataTypeBaseUrl,
     definition: {
-      title: "Kilobauds",
+      title: "Kilobaud",
+      titlePlural: "Kilobauds",
       description: "A value expressed in kilobauds.",
       type: "number",
       allOf: [
@@ -4807,8 +5008,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.megabauds.dataTypeBaseUrl,
     definition: {
-      title: "Megabauds",
+      title: "Megabaud",
+      titlePlural: "Megabauds",
       description: "A value expressed in megabauds.",
       type: "number",
       allOf: [
@@ -4846,8 +5049,10 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.gigabauds.dataTypeBaseUrl,
     definition: {
-      title: "Gigabauds",
+      title: "Gigabaud",
+      titlePlural: "Gigabauds",
       description: "A value expressed in gigabauds.",
       type: "number",
       allOf: [

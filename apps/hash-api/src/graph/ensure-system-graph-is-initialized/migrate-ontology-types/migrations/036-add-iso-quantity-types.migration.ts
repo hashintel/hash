@@ -25,7 +25,7 @@ const migrate: MigrationFunction = async ({
     return versionedUrlFromComponents(baseUrl, currentVersion ?? version);
   };
 
-  for (const { definition, conversions } of isoDataTypes) {
+  for (const { dataTypeBaseUrl, definition, conversions } of isoDataTypes) {
     await ensureUnitDataType(context, authentication, {
       dataTypeDefinition: {
         ...definition,
@@ -33,6 +33,7 @@ const migrate: MigrationFunction = async ({
           $ref: currentDataTypeId($ref),
         })),
       },
+      dataTypeBaseUrl,
       conversions,
       migrationState,
       webShortname: "h",
