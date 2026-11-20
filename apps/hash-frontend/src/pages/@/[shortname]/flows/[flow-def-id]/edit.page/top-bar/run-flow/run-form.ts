@@ -7,11 +7,24 @@ import {
 import type { EntityId } from "@blockprotocol/type-system";
 import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
+  FlowDataSources,
   FlowInputDefinition,
   FlowInputValues,
   Payload,
   PayloadKind,
 } from "@local/hash-isomorphic-utils/flows/types";
+
+/**
+ * The API requires data sources to run a flow with an AI action, or to schedule one. Nothing in the editor or the
+ * trigger form picks files or turns on internet access, so a run from them has neither.
+ */
+export const editorRunDataSources: FlowDataSources = {
+  files: { fileEntityIds: [] },
+  internetAccess: {
+    enabled: false,
+    browserPlugin: { enabled: false, domains: [] },
+  },
+};
 
 /**
  * A value given to a flow input in the run form. A number or an entity not given yet is `null`, text or a date `""`,
@@ -184,6 +197,19 @@ export const withGivenValues = (
   return merged;
 };
 
+/** The first required input the form can't take, as why the flow can't be run from it, or `null` if there's none. */
+export const getUnfillableInputProblem = (
+  inputs: FlowInputDefinition[],
+): string | null => {
+  const unfillable = inputs.find(
+    (input) => input.required && !getEmptyValue(input),
+  );
+
+  return unfillable
+    ? `“${getFlowInputLabel(unfillable)}” takes ${withArticle(getKindLabel(unfillable))}, which can't be given here yet`
+    : null;
+};
+
 /**
  * Why the flow can't be run from the editor, or `null` if it can: the first of its errors, no steps, or a required
  * input the form can't take.
@@ -207,15 +233,7 @@ export const getRunBlocker = ({
     return "Add a step to run this flow";
   }
 
-  const unfillable = flowDefinition.inputs.find(
-    (input) => input.required && !getEmptyValue(input),
-  );
-
-  if (unfillable) {
-    return `“${getFlowInputLabel(unfillable)}” takes ${withArticle(getKindLabel(unfillable))}, which can't be given here yet`;
-  }
-
-  return null;
+  return getUnfillableInputProblem(flowDefinition.inputs);
 };
 
 /** The payload for a value, or `null` if it was left blank. Text of only spaces is blank; a toggle never is. */

@@ -102,19 +102,24 @@ const InputControl = ({
   }
 };
 
-const InputField = ({
+/** A flow input's field in the run form, which the trigger form gives a schedule's inputs with too. */
+export const InputField = ({
   webId,
   input,
   value,
   onChange,
+  inline = false,
 }: {
   webId: WebId;
   input: FlowInputDefinition;
   /** Absent for an input the form can't take. */
   value: RunFormValue | undefined;
   onChange: (value: RunFormValue) => void;
+  /** Whether the label is beside the input, rather than above it, without the kind of value it takes under it. */
+  inline?: boolean;
 }) => (
   <Form.Field
+    {...(inline ? { layout: "inline" } : {})}
     /* Not a label for an input the form can't take, as there's no input to label. */
     as={value ? "label" : "legend"}
     label={
@@ -124,7 +129,8 @@ const InputField = ({
         {!input.required && <span className={optionalMark}> · optional</span>}
       </span>
     }
-    description={upperFirst(getKindLabel(input))}
+    /* Inline, a description would sit on its own row above the label, apart from the input. */
+    description={inline ? undefined : upperFirst(getKindLabel(input))}
   >
     {value ? (
       <InputControl

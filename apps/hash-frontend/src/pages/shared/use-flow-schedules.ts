@@ -22,6 +22,7 @@ import {
 } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { describeSchedule, parseCronExpression } from "./schedule-repeat";
 
 import type {
   QueryEntitySubgraphQuery,
@@ -64,11 +65,21 @@ const formatIntervalMs = (ms: number): string => {
   return `Every ${days} day${days !== 1 ? "s" : ""}`;
 };
 
-/** When a schedule runs, in words, e.g. "Every 10 minutes". */
-export const formatScheduleSpec = (scheduleSpec: ScheduleSpec): string =>
-  scheduleSpec.type === "interval"
-    ? formatIntervalMs(scheduleSpec.intervalMs)
+/**
+ * When a schedule runs, in words, e.g. "Every 10 minutes" or "Every Monday at 08:00", or its cron expression if it's
+ * not one the trigger form makes.
+ */
+export const formatScheduleSpec = (scheduleSpec: ScheduleSpec): string => {
+  if (scheduleSpec.type === "interval") {
+    return formatIntervalMs(scheduleSpec.intervalMs);
+  }
+
+  const parsed = parseCronExpression(scheduleSpec.cronExpression);
+
+  return parsed
+    ? describeSchedule(parsed.rule, parsed.time)
     : `Cron: ${scheduleSpec.cronExpression}`;
+};
 
 /**
  * Hook to fetch the flow schedules visible to the current user: all of them, or only those of one flow.

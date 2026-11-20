@@ -77,7 +77,7 @@ const derivedDescription = css({
 });
 const empty = css({ textStyle: "sm", color: "fg.subtle" });
 const addInputButton = css({ alignSelf: "flex-start" });
-const editTriggersLink = css({ alignSelf: "flex-start" });
+const triggerLinks = css({ display: "flex", gap: "2" });
 
 /** The step's tile in its hue, then its type, then "Group · description" with the description given as `children`. */
 const PanelHeader = ({
@@ -135,17 +135,27 @@ const TriggersPanel = ({
         sheetOpen={sheetOpen}
         onSheetOpenChange={setSheetOpen}
       />
-      <Button
-        variant="subtle"
-        tone="neutral"
-        size="sm"
-        href={generateFlowTriggersPath({ flowDefinitionEntityId })}
-        iconName="arrowRight"
-        iconPosition="right"
-        className={editTriggersLink}
-      >
-        Edit flow triggers
-      </Button>
+      <div className={triggerLinks}>
+        <Button
+          variant="ghost"
+          tone="neutral"
+          size="sm"
+          href={generateFlowTriggersPath({ flowDefinitionEntityId, add: true })}
+          iconName="plus"
+        >
+          Add trigger
+        </Button>
+        <Button
+          variant="subtle"
+          tone="neutral"
+          size="sm"
+          href={generateFlowTriggersPath({ flowDefinitionEntityId })}
+          iconName="arrowRight"
+          iconPosition="right"
+        >
+          Edit flow triggers
+        </Button>
+      </div>
     </SidePanel>
   );
 };
