@@ -103,29 +103,26 @@ export const missingLibraryId = "@hashintel/missing";
 
 /**
  * A host's resolver over the two libraries: logistics is in memory and
- * resolves at once, tooling arrives after `delayMs`, and any other id is
+ * resolves at once, tooling arrives after 2.5 seconds, and any other id is
  * refused after the same wait.
  */
-const createStoryImportResolver =
-  (delayMs: number): ResolveImport =>
-  (id) => {
-    if (id === logisticsLibrary.id) {
-      return logisticsLibrary;
-    }
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (id === toolingLibrary.id) {
-          resolve(toolingLibrary);
-        } else {
-          reject(new Error(`The registry has no library ${id}.`));
-        }
-      }, delayMs);
-    });
-  };
+export const resolveStoryImport: ResolveImport = (id) => {
+  if (id === logisticsLibrary.id) {
+    return logisticsLibrary;
+  }
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (id === toolingLibrary.id) {
+        resolve(toolingLibrary);
+      } else {
+        reject(new Error(`The registry has no library ${id}.`));
+      }
+    }, 2500);
+  });
+};
 
-// Created once: a new resolver or a new list would create a new editor
-// instance on every render, and resolve every import again.
-export const resolveStoryImport = createStoryImportResolver(2500);
+// Created once: a new list would create a new editor instance on every
+// render, and resolve every import again.
 export const offeredLibraries = [
   logisticsLibrary.id,
   toolingLibrary.id,
