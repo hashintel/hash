@@ -26,6 +26,10 @@ import {
 /** Values sampled so far, keyed `"x,y"` in grid-index space (y up). */
 export type ContourSurfaceValues = ReadonlyMap<string, number>;
 
+/** The canonical key of a sampled grid cell. */
+export const contourSurfaceKey = (xIndex: number, yIndex: number): string =>
+  `${xIndex},${yIndex}`;
+
 /** An externally supplied point drawn as a ring, in grid-index space. */
 export type ContourSurfaceMarker = {
   x: number;

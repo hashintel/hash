@@ -15,11 +15,11 @@ import {
   AdHocScenarioForm,
   FormLayoutColumn,
 } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
+import { OverlayScrollArea } from "../../../../../components/overlay-scroll-area";
 import {
-  OverlayScrollArea,
   overlayScrollDrawerBodyStyle,
   overlayScrollDrawerViewportStyle,
-} from "../../../../../components/overlay-scroll-area";
+} from "../../../../../components/overlay-scroll-drawer-styles";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { DrawerErrorDisplay } from "../drawer-error-display";

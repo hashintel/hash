@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 
 import {
   ContourSurface,
-  contourSurfaceKey,
   type ContourSurfaceMarker,
   type ContourSurfaceValues,
 } from "./contour-surface";
+import { contourSurfaceKey } from "./contour-surface/paint-field";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 

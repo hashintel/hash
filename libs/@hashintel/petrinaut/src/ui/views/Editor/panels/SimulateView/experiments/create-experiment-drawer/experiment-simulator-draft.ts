@@ -15,7 +15,7 @@ import {
   findSimulator,
   simulatorRefusal,
 } from "../../../../../../../react/simulators/context";
-import { acceptsSimulatorParameter } from "../../../../../../components/simulator-parameter-input";
+import { acceptsSimulatorParameter } from "../../../../../../components/simulator-parameters";
 
 import type {
   SimulatorSelection,

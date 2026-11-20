@@ -30,8 +30,8 @@ import { PhantomLine } from "../../../../../../components/spreadsheet-kit/phanto
 import {
   ReorderableRow,
   ReorderableRows,
-  rowMoveKeyDown,
 } from "../../../../../../components/spreadsheet-kit/reorderable-rows";
+import { rowMoveKeyDown } from "../../../../../../components/spreadsheet-kit/row-move-key-down";
 import { TextCell } from "../../../../../../components/spreadsheet-kit/text-cell";
 import { useFocusGrid } from "../../../../../../worksheet/use-focus-grid";
 import { useRowSelection } from "../../../../../../worksheet/use-row-selection";

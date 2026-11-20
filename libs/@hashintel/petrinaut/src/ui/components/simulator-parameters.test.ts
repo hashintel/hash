@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { visibleSimulatorParameters } from "./simulator-parameter-input";
+import { visibleSimulatorParameters } from "./simulator-parameters";
 
 import type { SimulatorParameterSpecs } from "@hashintel/petrinaut-core";
 

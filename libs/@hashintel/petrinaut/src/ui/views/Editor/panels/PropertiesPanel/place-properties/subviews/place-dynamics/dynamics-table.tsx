@@ -29,8 +29,8 @@ import { PhantomLine } from "../../../../../../../components/spreadsheet-kit/pha
 import {
   ReorderableRow,
   ReorderableRows,
-  rowMoveKeyDown,
 } from "../../../../../../../components/spreadsheet-kit/reorderable-rows";
+import { rowMoveKeyDown } from "../../../../../../../components/spreadsheet-kit/row-move-key-down";
 import { useFocusGrid } from "../../../../../../../worksheet/use-focus-grid";
 import { useRowSelection } from "../../../../../../../worksheet/use-row-selection";
 import { useSelectFirstActivation } from "../../../../../../../worksheet/use-select-first";

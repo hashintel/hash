@@ -17,7 +17,7 @@ import {
   gutterMenuButtonStyle,
 } from "./form-table";
 import { GutterMenu } from "./gutter-menu";
-import { useRowDragHandle } from "./reorderable-rows";
+import { useRowDragHandle } from "./row-drag-handle";
 
 import type { GutterMenuItem } from "./gutter-menu";
 import type { ReactNode } from "react";
