@@ -13,7 +13,6 @@ import {
   AssistantPlacementContext,
 } from "./assistant-placement-context";
 import {
-  type DraggingStateByNodeId,
   type EditorActions,
   EditorActionsContext,
   EditorContext,
@@ -309,18 +308,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         isLeftSidebarOpen: isOpen,
       }));
     },
-    setAiAssistantDockHeight: (height) =>
-      setState((prev) =>
-        prev.aiAssistantDockHeight === height
-          ? prev
-          : { ...prev, aiAssistantDockHeight: height },
-      ),
-    setAiAssistantCollapsed: (collapsed) => {
-      setState((prev) => ({
-        ...prev,
-        isAiAssistantCollapsed: collapsed,
-      }));
-    },
     setBottomPanelOpen: (isOpen) => {
       setState((prev) => ({
         ...prev,
@@ -420,15 +407,11 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         }
         return { ...prev, unfoldedComponentInstanceIds };
       }),
-    setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
-      setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),
     updateDraggingStateByNodeId: (updater) =>
       setState((prev) => ({
         ...prev,
         draggingStateByNodeId: updater(prev.draggingStateByNodeId),
       })),
-    resetDraggingState: () =>
-      setState((prev) => ({ ...prev, draggingStateByNodeId: {} })),
     collapseAllPanels: () => {
       navigation.navigate(
         { selection: [] },

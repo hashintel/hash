@@ -40,8 +40,7 @@ export const ViewportControls: React.FC = () => {
   const { fitView, zoomIn, zoomOut } = useCanvasController();
   const { collapseAllPanels } = use(EditorContext);
 
-  // Unlike the bottom toolbar, this column fits above a collapsed Voice dock.
-  const readInsets = useCanvasInsetsReader({ aboveCollapsedDock: true });
+  const readInsets = useCanvasInsetsReader();
 
   return (
     <div

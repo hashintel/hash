@@ -207,7 +207,6 @@ const EditorViewContent = ({
     setCursorMode,
     clearSelection,
     setAiAssistantOpen,
-    setAiAssistantCollapsed,
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
   const composesOnly = useComposesOnly();
@@ -224,7 +223,6 @@ const EditorViewContent = ({
       setAiAssistantOpen(false);
       return;
     }
-    setAiAssistantCollapsed(false);
     setAiAssistantOpen(true);
     setAiAssistantFocusRequest((request) => request + 1);
   };

@@ -91,9 +91,6 @@ export type EditorState = {
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   isBottomPanelOpen: boolean;
-  /** Rendered compact dock height; null when expanded or closed. */
-  aiAssistantDockHeight: number | null;
-  isAiAssistantCollapsed: boolean;
   activeBottomPanelTab: BottomPanelTab;
   /** The component the next click on the canvas places an instance of. */
   componentToAdd: ComponentReference | null;
@@ -149,8 +146,6 @@ export type EditorActions = {
   setEditionMode: (mode: EditorEditionMode) => void;
   setCursorMode: (mode: CursorMode) => void;
   setLeftSidebarOpen: (isOpen: boolean) => void;
-  setAiAssistantDockHeight: (height: number | null) => void;
-  setAiAssistantCollapsed: (collapsed: boolean) => void;
   setBottomPanelOpen: (isOpen: boolean) => void;
   toggleBottomPanel: () => void;
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
@@ -176,11 +171,9 @@ export type EditorActions = {
   /** Show or dismiss a temporary preview. */
   openPlaceVisualizer: (placeId: string | null) => void;
   setVisualizerEditorFocus: (placeId: string, focused: boolean) => void;
-  setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
   updateDraggingStateByNodeId: (
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
   ) => void;
-  resetDraggingState: () => void;
   collapseAllPanels: () => void;
   setTimelineChartType: (chartType: TimelineChartType) => void;
   setTimelineView: (view: TimelineView) => void;
@@ -205,8 +198,6 @@ export const initialEditorState: EditorState = {
   cursorMode: "pan",
   isLeftSidebarOpen: true,
   isBottomPanelOpen: false,
-  aiAssistantDockHeight: null,
-  isAiAssistantCollapsed: false,
   activeBottomPanelTab: "diagnostics",
   componentToAdd: null,
   selection: new Map(),
@@ -235,8 +226,6 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setEditionMode: () => {},
   setCursorMode: () => {},
   setLeftSidebarOpen: () => {},
-  setAiAssistantDockHeight: () => {},
-  setAiAssistantCollapsed: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},
   setActiveBottomPanelTab: () => {},
@@ -256,9 +245,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   toggleComponentInstanceFold: () => {},
   openPlaceVisualizer: () => {},
   setVisualizerEditorFocus: () => {},
-  setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
-  resetDraggingState: () => {},
   collapseAllPanels: () => {},
   setTimelineChartType: () => {},
   setTimelineView: () => {},
