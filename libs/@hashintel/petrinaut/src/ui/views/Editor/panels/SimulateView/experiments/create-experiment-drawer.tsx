@@ -1,12 +1,4 @@
-import { Collapsible } from "@ark-ui/react/collapsible";
-import {
-  use,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { use, useId, useRef, useState } from "react";
 
 import {
   Button,
@@ -16,9 +8,8 @@ import {
   NumberInput,
   Select,
   TextInput,
-  type SelectItem,
 } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import {
   EMPTY_AD_HOC_STATE,
   runClockOf,
@@ -33,7 +24,6 @@ import {
   type ExperimentParameterAxis,
   type ExperimentParameterInput,
 } from "../../../../../../react/experiments/parameter-grid";
-import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
 import {
@@ -43,7 +33,6 @@ import {
 } from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
-import { useUserSettings } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import {
   OverlayScrollArea,
@@ -51,18 +40,9 @@ import {
   overlayScrollDrawerViewportStyle,
 } from "../../../../../components/overlay-scroll-area";
 import { Section, SectionList } from "../../../../../components/section";
-import { CodeEditor } from "../../../../../monaco/code-editor";
-import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
 import { FocusControls } from "../../../../../worksheet/focus-controls";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
-import { summarizeMetricLspErrors } from "../metrics/metric-lsp";
-import {
-  createMetricKindGroups,
-  getMetricKindIcon,
-  MODEL_METRIC_VALUE_PREFIX,
-  type MetricKindGroup,
-} from "../metrics/metric-picker-options";
-import { useMetricLspSession } from "../metrics/use-metric-lsp-session";
+import { createMetricKindGroups } from "../metrics/metric-picker-options";
 import { SimulationPanel } from "../shared/simulation-panel";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
 import { hasAdHocIntervalToggle } from "./create-experiment-drawer/ad-hoc-interval-toggles";
@@ -92,15 +72,13 @@ import {
   buildMetricSpecs,
   createDefaultMetricDraft,
   getMetricLabel,
-  getMetricSummaryLabel,
-  metricKindPatch,
-  transitionModeOptions,
   type ExperimentMetricDraft,
 } from "./create-experiment-drawer/metric-drafts";
 import {
   MetricObjectiveControl,
   OptimizationBudget,
 } from "./create-experiment-drawer/metric-optimization";
+import { ExperimentMetricRow } from "./create-experiment-drawer/metric-row";
 import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
 import {
   areMetricLspDiagnosticSummariesEqual,
@@ -117,12 +95,7 @@ import {
 import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "./sweep-optimizer";
 
 import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
-import type {
-  AdHocScenarioState,
-  Scenario,
-  SDCPN,
-} from "@hashintel/petrinaut-core";
-import type { ReactNode } from "react";
+import type { AdHocScenarioState, Scenario } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -150,123 +123,6 @@ const metricHeaderStyle = css({
 const metricCountStyle = css({
   fontSize: "sm",
   color: "neutral.s80",
-});
-
-const metricRowStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "md",
-  backgroundColor: "neutral.s00",
-  overflow: "hidden",
-  "&[data-objective=true]": {
-    borderColor: "purple.s60",
-    backgroundColor: "purple.s10",
-  },
-});
-
-const metricRowHeaderStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "2",
-  padding: "2",
-});
-
-const metricHeaderMainStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[20px minmax(0, 1fr) minmax(160px, 220px)]",
-  alignItems: "center",
-  gap: "2",
-  minWidth: "[0]",
-  flex: "1",
-});
-
-const metricCollapseButtonStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[20px]",
-  height: "[24px]",
-  padding: "[0]",
-  border: "[none]",
-  background: "[transparent]",
-  color: "neutral.s120",
-  cursor: "pointer",
-  _focusVisible: {
-    outline: "[2px solid {colors.neutral.s100}]",
-    outlineOffset: "[2px]",
-  },
-});
-
-const metricCollapseIconStyle = css({
-  transition: "[transform 200ms ease-in-out]",
-  "&[data-state=open]": {
-    transform: "[rotate(90deg)]",
-  },
-});
-
-const metricTitleGroupStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1",
-  minWidth: "[0]",
-});
-
-const metricTitleInputStyle = css({
-  fontWeight: "semibold",
-  marginRight: "1",
-});
-
-const metricTitleStyle = css({
-  fontSize: "sm",
-  fontWeight: "semibold",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
-const metricKindTriggerLabelStyle = css({
-  minWidth: "[0]",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  color: "neutral.s100",
-  fontSize: "xs",
-  fontWeight: "medium",
-});
-
-const metricExpandedContentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-  padding: "[0 16px 16px]",
-});
-
-const metricCollapsibleContentStyle = css({
-  overflow: "hidden",
-  animationDuration: "[200ms]",
-  animationTimingFunction: "ease-in-out",
-  "&[data-state=open]": {
-    animationName: "[petrinautExpand]",
-  },
-  "&[data-state=closed]": {
-    animationName: "[petrinautCollapse]",
-  },
-});
-
-const metricSpecificFieldsStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[repeat(2, minmax(0, 1fr))]",
-  gap: "2",
-});
-
-const codeDiagnosticStyle = css({
-  fontSize: "xs",
-  color: "red.s100",
-  whiteSpace: "pre-wrap",
 });
 
 const errorStyle = css({
@@ -315,305 +171,6 @@ function createScenarioOptions(scenarios: readonly Scenario[]) {
   ];
 }
 
-// -- Component ----------------------------------------------------------------
-
-const ExperimentMetricLspSession = ({
-  code,
-  metricSessionId,
-  onChange,
-}: {
-  code: string;
-  metricSessionId: string;
-  onChange: (diagnostics: MetricLspDiagnosticSummary) => void;
-}) => {
-  useMetricLspSession(code, metricSessionId);
-  const { diagnosticsByUri } = use(LanguageClientContext);
-  const { count, firstMessage } = summarizeMetricLspErrors(
-    diagnosticsByUri,
-    metricSessionId,
-  );
-  const stableOnChange = useStableCallback(onChange);
-
-  useEffect(() => {
-    stableOnChange({ count, firstMessage });
-  }, [count, firstMessage, stableOnChange]);
-
-  return null;
-};
-
-const ExperimentExpressionMetricEditor = ({
-  code,
-  metricSessionId,
-  lspDiagnostics,
-  readOnly = false,
-  onChange,
-  onEscape,
-}: {
-  code: string;
-  metricSessionId: string;
-  lspDiagnostics: MetricLspDiagnosticSummary;
-  readOnly?: boolean;
-  onChange: (code: string) => void;
-  onEscape: () => void;
-}) => {
-  const codeUri = getMetricDocumentUri(metricSessionId);
-
-  return (
-    <div className={fieldStyle}>
-      <span className={labelStyle}>Code</span>
-      <CodeEditor
-        language="typescript"
-        path={codeUri}
-        value={code}
-        onChange={(value) => onChange(value ?? "")}
-        height="260px"
-        options={{
-          readOnly,
-          tabFocusMode: true,
-          ariaLabel: "Custom metric code",
-        }}
-        onEscape={onEscape}
-      />
-      {lspDiagnostics.count > 0 ? (
-        <span className={codeDiagnosticStyle}>
-          {lspDiagnostics.firstMessage ?? `${lspDiagnostics.count} diagnostics`}
-        </span>
-      ) : null}
-    </div>
-  );
-};
-
-const ExperimentMetricRow = ({
-  metric,
-  sdcpn,
-  kindGroups,
-  autoFocusLabel,
-  isObjective,
-  onChange,
-  onLspDiagnosticsChange,
-  onRemove,
-  footer,
-  triggerRef,
-}: {
-  metric: ExperimentMetricDraft;
-  sdcpn: SDCPN;
-  kindGroups: MetricKindGroup[];
-  autoFocusLabel: boolean;
-  isObjective: boolean;
-  onChange: (metricId: string, patch: Partial<ExperimentMetricDraft>) => void;
-  onLspDiagnosticsChange: (diagnostics: MetricLspDiagnosticSummary) => void;
-  onRemove: () => void;
-  footer?: ReactNode;
-  triggerRef: (element: HTMLButtonElement | null) => void;
-}) => {
-  const showAnimations = useUserSettings((settings) => settings.showAnimations);
-  const labelInputRef = useRef<HTMLInputElement>(null);
-  const collapseButtonRef = useRef<HTMLButtonElement>(null);
-  const didAutoFocusLabelRef = useRef(false);
-  const metricLabel = getMetricLabel(metric, sdcpn);
-  const isCustomMetric =
-    metric.kind === "expression" && metric.sourceMetricId === null;
-  const placeOptions: SelectItem<string>[] = sdcpn.places.map((place) => ({
-    value: place.id,
-    text: place.name,
-  }));
-  const transitionOptions: SelectItem<string>[] = sdcpn.transitions.map(
-    (transition) => ({
-      value: transition.id,
-      text: transition.name,
-    }),
-  );
-  const updateMetric = (patch: Partial<ExperimentMetricDraft>) => {
-    onChange(metric.id, patch);
-  };
-  const handleKindChange = (kindValue: string) => {
-    const patch = metricKindPatch(metric, kindValue, sdcpn);
-    if (patch) {
-      updateMetric(patch);
-    }
-  };
-
-  useLayoutEffect(() => {
-    if (!isCustomMetric || !autoFocusLabel || didAutoFocusLabelRef.current) {
-      return;
-    }
-
-    didAutoFocusLabelRef.current = true;
-    labelInputRef.current?.focus();
-    labelInputRef.current?.select();
-  }, [autoFocusLabel, isCustomMetric]);
-
-  return (
-    <Collapsible.Root
-      open={metric.expanded}
-      onOpenChange={(details) => updateMetric({ expanded: details.open })}
-      className={metricRowStyle}
-      data-objective={isObjective}
-      role="group"
-      aria-label={metricLabel || "Untitled metric"}
-    >
-      {metric.kind === "expression" ? (
-        <ExperimentMetricLspSession
-          code={metric.code}
-          metricSessionId={metric.metricSessionId}
-          onChange={onLspDiagnosticsChange}
-        />
-      ) : null}
-      <div className={metricRowHeaderStyle}>
-        <div className={metricHeaderMainStyle}>
-          <Collapsible.Trigger className={metricCollapseButtonStyle} asChild>
-            <button
-              type="button"
-              aria-label="Toggle metric"
-              ref={(element) => {
-                collapseButtonRef.current = element;
-                triggerRef(element);
-              }}
-            >
-              <Icon
-                name="chevronRight"
-                size="xs"
-                className={metricCollapseIconStyle}
-                data-state={metric.expanded ? "open" : "closed"}
-              />
-            </button>
-          </Collapsible.Trigger>
-          <div className={metricTitleGroupStyle}>
-            {isCustomMetric ? (
-              <TextInput
-                inputRef={labelInputRef}
-                className={metricTitleInputStyle}
-                size="sm"
-                variant="subtle"
-                value={metric.label}
-                placeholder="Untitled metric"
-                aria-label="Metric label"
-                onChange={(label) => {
-                  updateMetric({ label });
-                }}
-              />
-            ) : (
-              <span className={metricTitleStyle} title={metricLabel}>
-                {metricLabel}
-              </span>
-            )}
-          </div>
-          <Select
-            required
-            aria-label="Metric type"
-            // eslint-disable-next-line jsx-a11y/no-autofocus -- adding a metric explicitly moves focus into its row
-            autoFocus={autoFocusLabel && metric.kind !== "expression"}
-            value={
-              metric.sourceMetricId
-                ? `${MODEL_METRIC_VALUE_PREFIX}${metric.sourceMetricId}`
-                : metric.kind
-            }
-            onChange={handleKindChange}
-            items={kindGroups}
-            size="sm"
-            renderSelectedItem={() => (
-              <span className={metricKindTriggerLabelStyle}>
-                {getMetricSummaryLabel(metric, sdcpn)}
-              </span>
-            )}
-            renderItem={(value) => {
-              const icon = getMetricKindIcon(value);
-              const text =
-                kindGroups
-                  .flatMap((g) => g.items)
-                  .find((it) => it.value === value)?.text ?? value;
-              return (
-                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  {icon && <Icon name={icon} size="xs" />}
-                  {text}
-                </span>
-              );
-            }}
-          />
-        </div>
-        <Button
-          aria-label="Remove metric"
-          iconName="trash"
-          size="xs"
-          tone="error"
-          tooltip="Remove metric"
-          variant="ghost"
-          onClick={onRemove}
-        />
-      </div>
-
-      <Collapsible.Content
-        className={cx(
-          showAnimations ? metricCollapsibleContentStyle : undefined,
-        )}
-      >
-        <div className={metricExpandedContentStyle}>
-          {metric.kind === "placeTokenCountMean" ||
-          metric.kind === "transitionFiringCount" ? (
-            <div className={metricSpecificFieldsStyle}>
-              {metric.kind === "placeTokenCountMean" ? (
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Place</span>
-                  <Select
-                    required
-                    aria-label="Place"
-                    value={metric.placeId}
-                    onChange={(placeId) => updateMetric({ placeId })}
-                    items={placeOptions}
-                    size="sm"
-                  />
-                </div>
-              ) : null}
-              {metric.kind === "transitionFiringCount" ? (
-                <>
-                  <div className={fieldStyle}>
-                    <span className={labelStyle}>Transition</span>
-                    <Select
-                      required
-                      aria-label="Transition"
-                      value={metric.transitionId}
-                      onChange={(transitionId) =>
-                        updateMetric({ transitionId })
-                      }
-                      items={transitionOptions}
-                      size="sm"
-                    />
-                  </div>
-                  <div className={fieldStyle}>
-                    <span className={labelStyle}>Count</span>
-                    <Select
-                      required
-                      aria-label="Count mode"
-                      value={metric.transitionMode}
-                      onChange={(transitionMode) =>
-                        updateMetric({ transitionMode })
-                      }
-                      items={transitionModeOptions}
-                      size="sm"
-                    />
-                  </div>
-                </>
-              ) : null}
-            </div>
-          ) : null}
-
-          {metric.kind === "expression" ? (
-            <ExperimentExpressionMetricEditor
-              code={metric.code}
-              metricSessionId={metric.metricSessionId}
-              lspDiagnostics={metric.lspDiagnostics}
-              readOnly={metric.sourceMetricId !== null}
-              onChange={(code) => updateMetric({ code })}
-              onEscape={() => collapseButtonRef.current?.focus()}
-            />
-          ) : null}
-        </div>
-      </Collapsible.Content>
-      {footer}
-    </Collapsible.Root>
-  );
-};
-
 // -- Drawer -------------------------------------------------------------------
 
 export const CreateExperimentDrawer = ({
@@ -659,7 +216,9 @@ export const CreateExperimentDrawer = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const addMetricButtonRef = useRef<HTMLButtonElement>(null);
-  const metricTriggerRefs = useRef(new Map<string, HTMLButtonElement>());
+  // Held in state, not in a ref: a handler that reads a ref's map is left
+  // uncached by the compiler, and every row with it.
+  const [metricTriggers] = useState(() => new Map<string, HTMLButtonElement>());
 
   const effectiveSelectedScenarioId = getEffectiveScenarioSelection(
     scenarios,
@@ -947,9 +506,20 @@ export const CreateExperimentDrawer = ({
     setError(null);
     setMetricDrafts((prev) => prev.filter((metric) => metric.id !== metricId));
     if (nextMetric) {
-      metricTriggerRefs.current.get(nextMetric.id)?.focus();
+      metricTriggers.get(nextMetric.id)?.focus();
     } else {
       addMetricButtonRef.current?.focus();
+    }
+  };
+
+  const registerMetricTrigger = (
+    metricId: string,
+    element: HTMLButtonElement | null,
+  ) => {
+    if (element) {
+      metricTriggers.set(metricId, element);
+    } else {
+      metricTriggers.delete(metricId);
     }
   };
 
@@ -1263,13 +833,11 @@ export const CreateExperimentDrawer = ({
                             objectiveEnabled && metric.id === objectiveMetricId
                           }
                           onChange={handleMetricChange}
-                          onLspDiagnosticsChange={(diagnostics) =>
-                            handleMetricLspDiagnosticsChange(
-                              metric.id,
-                              diagnostics,
-                            )
+                          onLspDiagnosticsChange={
+                            handleMetricLspDiagnosticsChange
                           }
-                          onRemove={() => handleMetricRemove(metric.id)}
+                          onRemove={handleMetricRemove}
+                          registerTrigger={registerMetricTrigger}
                           footer={
                             objectiveEnabled ? (
                               <MetricObjectiveControl
@@ -1300,13 +868,6 @@ export const CreateExperimentDrawer = ({
                               />
                             ) : undefined
                           }
-                          triggerRef={(element) => {
-                            if (element) {
-                              metricTriggerRefs.current.set(metric.id, element);
-                            } else {
-                              metricTriggerRefs.current.delete(metric.id);
-                            }
-                          }}
                         />
                       ))}
 
