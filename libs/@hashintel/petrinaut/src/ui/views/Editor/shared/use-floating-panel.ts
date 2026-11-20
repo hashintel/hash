@@ -7,12 +7,10 @@ import {
   resizeFloatingPanel,
   type FloatingPanelBounds,
   type FloatingPanelLimits,
-  type FloatingResizeDirection,
 } from "./use-floating-panel/resize-floating-panel";
 
+import type { FloatingResizeDirection } from "../../shared/floating-resize-handles";
 import type { KeyboardEvent, PointerEvent, RefCallback } from "react";
-
-export type { FloatingResizeDirection } from "./use-floating-panel/resize-floating-panel";
 
 /**
  * A window that floats over its parent: it moves by its handle, by the arrow
