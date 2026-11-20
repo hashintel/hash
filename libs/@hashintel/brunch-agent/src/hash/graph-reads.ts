@@ -65,10 +65,29 @@ export const hashEntityReadInputSchema = v.strictObject({
       ),
     ),
   ),
-  fullValuesFor: identifiersSchemaWith({
-    description:
-      "Entity ids whose property values to show in full, as JSON, where the result would otherwise summarise a large value. It doesn't change which entities are read: read them by entityIds too.",
-  }),
+  fullValuesFor: v.optional(
+    v.pipe(
+      v.array(
+        v.union([
+          v.pipe(v.string(), v.minLength(1)),
+          v.strictObject({
+            entityId: v.pipe(v.string(), v.minLength(1)),
+            path: v.pipe(
+              v.array(v.pipe(v.string(), v.minLength(1))),
+              v.minLength(1),
+              v.description(
+                'Where the part is: the property\'s name as the read shows it, then the keys or array positions inside its value, for example ["definition_object", "parameters"] or ["definition_object", "places", "0"].',
+              ),
+            ),
+          }),
+        ]),
+      ),
+      v.minLength(1),
+      v.description(
+        "Values to show where the read would otherwise summarise them. An entity id shows all of that entity's values in full, as JSON. { entityId, path } shows one value or part of one: in full when it fits, else outlined one level down with each part summarised, so you can read a path inside it. Neither changes which entities are read: read them by entityIds too.",
+      ),
+    ),
+  ),
 });
 
 export type HashEntityReadInput = v.InferOutput<

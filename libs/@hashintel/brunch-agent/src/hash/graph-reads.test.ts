@@ -39,6 +39,28 @@ test.each([
   },
 );
 
+test("an entity read names values to show by entity id, or by entity id and a path into one", () => {
+  const entityId = "web~entity";
+  const byPath = { entityId, path: ["definition_object", "places", "0"] };
+  expect(
+    parseHashEntityReadInput({ fullValuesFor: [entityId, byPath] }),
+  ).toEqual({ fullValuesFor: [entityId, byPath] });
+  for (const entry of [
+    { entityId, path: [] },
+    { entityId, path: [""] },
+    { entityId },
+    { entityId: "", path: ["title"] },
+    { entityId, path: ["title"], extra: true },
+    "",
+  ])
+    expect(() => parseHashEntityReadInput({ fullValuesFor: [entry] })).toThrow(
+      /Invalid/u,
+    );
+  expect(() => parseHashEntityReadInput({ fullValuesFor: [] })).toThrow(
+    /Invalid length/u,
+  );
+});
+
 test("a web read takes no input", () => {
   expect(parseHashWebReadInput({})).toEqual({});
   expect(() => parseHashWebReadInput({ webIds: ["web"] })).toThrow(
