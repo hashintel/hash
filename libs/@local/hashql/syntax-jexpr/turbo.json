@@ -1,6 +1,17 @@
 {
   "extends": ["//"],
   "tasks": {
+    "build:codspeed": {
+      "command": [
+        "cargo",
+        "codspeed",
+        "build",
+        "-p",
+        "hashql-syntax-jexpr",
+        "--features",
+        "bench"
+      ]
+    },
     "doc:dependency-diagram": {
       "command": [
         "cargo",
@@ -27,6 +38,9 @@
     },
     "lint:clippy": {
       "command": ["just", "clippy"]
+    },
+    "test:codspeed": {
+      "command": ["cargo", "codspeed", "run", "-p", "hashql-syntax-jexpr"]
     },
     "test:unit": {
       "command": ["mise", "run", "test:unit", "hashql-syntax-jexpr"]

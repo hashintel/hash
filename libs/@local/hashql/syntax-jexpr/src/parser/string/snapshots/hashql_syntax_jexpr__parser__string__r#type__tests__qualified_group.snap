@@ -1,6 +1,5 @@
 ---
 source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
-assertion_line: 438
 description: Grouped qualified type path
 expression: "(Foo::Bar)"
 info:

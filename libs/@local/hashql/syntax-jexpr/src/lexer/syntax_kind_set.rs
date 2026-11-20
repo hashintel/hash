@@ -234,31 +234,30 @@ impl Default for SyntaxKindSet {
 
 #[cfg(test)]
 mod tests {
-    #![expect(clippy::needless_raw_strings)]
     use super::*;
 
     #[test]
     fn empty_set_display() {
         let set = SyntaxKindSet::EMPTY;
 
-        insta::assert_snapshot!(set.display(None).to_string(), @r"none");
-        insta::assert_snapshot!(set.display(Some(Conjunction::Or)).to_string(), @r"none");
+        insta::assert_snapshot!(set.display(None).to_string(), @"none");
+        insta::assert_snapshot!(set.display(Some(Conjunction::Or)).to_string(), @"none");
     }
 
     #[test]
     fn singleton_set_display() {
         let set = SyntaxKindSet::from_slice(&[SyntaxKind::String]);
 
-        insta::assert_snapshot!(set.display(None).to_string(), @r"string");
-        insta::assert_snapshot!(set.display(Some(Conjunction::Or)).to_string(), @r"string");
+        insta::assert_snapshot!(set.display(None).to_string(), @"string");
+        insta::assert_snapshot!(set.display(Some(Conjunction::Or)).to_string(), @"string");
     }
 
     #[test]
     fn pair_set_display() {
         let set = SyntaxKindSet::from_slice(&[SyntaxKind::String, SyntaxKind::Number]);
 
-        insta::assert_snapshot!(set.display(None).to_string(), @r"string, number");
-        insta::assert_snapshot!(set.display(Some(Conjunction::Or)).to_string(), @r"string or number");
+        insta::assert_snapshot!(set.display(None).to_string(), @"string, number");
+        insta::assert_snapshot!(set.display(Some(Conjunction::Or)).to_string(), @"string or number");
     }
 
     #[test]
@@ -266,7 +265,7 @@ mod tests {
         let set =
             SyntaxKindSet::from_slice(&[SyntaxKind::String, SyntaxKind::Number, SyntaxKind::True]);
 
-        insta::assert_snapshot!(set.display(None).to_string(), @r"string, number, `true`");
+        insta::assert_snapshot!(set.display(None).to_string(), @"string, number, `true`");
         insta::assert_snapshot!(set.display(Some(Conjunction::Or)).to_string(), @"string, number, or `true`");
     }
 
@@ -279,8 +278,8 @@ mod tests {
             SyntaxKind::False,
         ]);
 
-        insta::assert_snapshot!(set.display(None).to_string(), @r"string, number, `true`, `false`");
-        insta::assert_snapshot!(set.display(Some(Conjunction::Or)).to_string(), @r"string, number, `true`, or `false`");
+        insta::assert_snapshot!(set.display(None).to_string(), @"string, number, `true`, `false`");
+        insta::assert_snapshot!(set.display(Some(Conjunction::Or)).to_string(), @"string, number, `true`, or `false`");
     }
 
     #[test]
