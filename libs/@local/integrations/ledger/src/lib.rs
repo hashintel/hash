@@ -1,8 +1,7 @@
 //! # HASH Integrations Ledger
 //!
-//! Runs an integration's ledger pipeline. A run passes through three stages, Capture, Prepare
-//! and Send, and each stage keeps its result in the integration's S3 bucket, which [`Storage`]
-//! reads and writes.
+//! Keeps the state of an integration's ledger pipeline in S3. [`Storage`] reads and writes the
+//! place of one integration in a bucket, which [`IntegrationNamespace`] derives.
 //!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]

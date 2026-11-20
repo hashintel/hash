@@ -34,7 +34,8 @@ impl Storage {
     ///
     /// # Errors
     ///
-    /// Returns [`StorageError::Read`] if the bucket's URI or credentials are invalid.
+    /// Returns [`StorageError::Read`] if the bucket's URI is not an `s3://` URI or its secret is
+    /// not UTF-8. Credentials are checked by the first request, not here.
     pub fn s3(
         bucket: S3Bucket,
         namespace: &IntegrationNamespace,
