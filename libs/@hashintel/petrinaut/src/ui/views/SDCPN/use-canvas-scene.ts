@@ -11,6 +11,7 @@ import { useEditorFields } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useUserSettingsFields } from "../../../react/state/user-settings-context";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
+import { useValueOf, type CanvasPointer } from "./canvas-pointer";
 import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
 import { fusionStatuses } from "./fusion-links";
 import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
@@ -18,10 +19,11 @@ import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
 /**
  * The scene for the active net, as the editor currently shows it. Takes the
  * canvas element so the highlight can wait for the pointer to stop moving
- * over it.
+ * over it, and the canvas' pointer for the hover and the drag preview.
  */
 export const useCanvasScene = (
   canvasRef: React.RefObject<HTMLElement | null>,
+  pointer: CanvasPointer,
 ): CanvasScene => {
   const { activeNet, activeComponentId } = use(ActiveNetContext);
   const { extensions, petriNetDefinition } = use(SDCPNContext);
@@ -30,19 +32,15 @@ export const useCanvasScene = (
   // renders, and the editor context and the settings also change with each
   // panel that opens.
   const {
-    draggingStateByNodeId,
     isSelected,
     selection,
-    hoveredItem,
     keptOpenVisualizerPlaceIds,
     openVisualizerPlaceId,
     focusedVisualizerPlaceId,
     unfoldedComponentInstanceIds,
   } = useEditorFields(
-    "draggingStateByNodeId",
     "isSelected",
     "selection",
-    "hoveredItem",
     "keptOpenVisualizerPlaceIds",
     "openVisualizerPlaceId",
     "focusedVisualizerPlaceId",
@@ -60,7 +58,8 @@ export const useCanvasScene = (
    * crossed to get there. Dragging settles the grabbed node immediately and
    * keeps it hovered until the drag ends, even when the pointer leaves it.
    */
-  const hoveredId = hoveredItem?.id ?? null;
+  const hoveredId = useValueOf(pointer.hoveredId);
+  const draggingStateByNodeId = useValueOf(pointer.dragPreview);
   const pointerAtRest = usePointerAtRest(canvasRef);
   const [settledHoverId, setSettledHoverId] = useState(hoveredId);
   const draggedHoverId =

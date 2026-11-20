@@ -1,25 +1,16 @@
 /** @vitest-environment jsdom */
 import { act, cleanup, renderHook } from "@testing-library/react";
-import {
-  createContext,
-  use,
-  useState,
-  type Dispatch,
-  type ReactNode,
-  type SetStateAction,
-} from "react";
+import { use, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ActiveNetContext } from "../../../react/state/active-net-context";
-import {
-  EditorContext,
-  type EditorState,
-} from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { createCanvasPointer } from "./canvas-pointer";
 import { useCanvasScene } from "./use-canvas-scene";
 
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { CanvasDragPreview } from "./canvas-scene";
 
 const net: ActiveNetDefinition = {
   places: ["input", "output"].map((id) => ({
@@ -50,10 +41,6 @@ const net: ActiveNetDefinition = {
   fusions: [],
 };
 
-const TestEditorUpdateContext = createContext<
-  Dispatch<SetStateAction<Partial<EditorState>>>
->(() => {});
-
 let canvas: HTMLDivElement;
 
 beforeEach(() => {
@@ -81,132 +68,111 @@ const advanceTime = (milliseconds: number) => {
 };
 
 const renderScene = (
-  initialState: Partial<EditorState> = {},
+  initial: { hoveredId?: string; dragPreview?: CanvasDragPreview } = {},
   highlightOnHover = true,
 ) => {
   const canvasRef = { current: canvas };
+  const pointer = createCanvasPointer();
+  pointer.hoveredId.set(initial.hoveredId ?? null);
+  pointer.dragPreview.set(initial.dragPreview ?? {});
   const Wrapper = ({ children }: { children: ReactNode }) => {
-    const [editorState, setEditorState] = useState(initialState);
-    const editor = use(EditorContext);
     const sdcpn = use(SDCPNContext);
     const activeNet = use(ActiveNetContext);
     const settings = use(UserSettingsContext);
     return (
       <ActiveNetContext value={{ ...activeNet, activeNet: net }}>
         <SDCPNContext value={{ ...sdcpn, petriNetDefinition: net }}>
-          <EditorContext value={{ ...editor, ...editorState }}>
-            <UserSettingsContext value={{ ...settings, highlightOnHover }}>
-              <TestEditorUpdateContext value={setEditorState}>
-                {children}
-              </TestEditorUpdateContext>
-            </UserSettingsContext>
-          </EditorContext>
+          <UserSettingsContext value={{ ...settings, highlightOnHover }}>
+            {children}
+          </UserSettingsContext>
         </SDCPNContext>
       </ActiveNetContext>
     );
   };
-  const { result } = renderHook(
-    () => ({
-      scene: useCanvasScene(canvasRef),
-      update: use(TestEditorUpdateContext),
-    }),
-    {
-      wrapper: Wrapper,
-    },
-  );
+  const { result } = renderHook(() => useCanvasScene(canvasRef, pointer), {
+    wrapper: Wrapper,
+  });
   return {
     result,
-    update: (state: Partial<EditorState>) => {
-      act(() =>
-        result.current.update((previous) => ({ ...previous, ...state })),
-      );
-    },
+    hover: (id: string | null) => act(() => pointer.hoveredId.set(id)),
+    drag: (preview: CanvasDragPreview) =>
+      act(() => pointer.dragPreview.set(preview)),
   };
 };
 
 describe("canvas hover during dragging", () => {
   it("still waits for ordinary pointer movement to stop", () => {
-    const { result, update } = renderScene();
+    const { result, hover } = renderScene();
     movePointer(100);
-    update({ hoveredItem: { id: "input", type: "place" } });
+    hover("input");
     advanceTime(149);
-    expect(result.current.scene.focusActive).toBe(false);
+    expect(result.current.focusActive).toBe(false);
 
     advanceTime(1);
     expect(
-      result.current.scene.nodes.find((node) => node.id === "input"),
+      result.current.nodes.find((node) => node.id === "input"),
     ).toMatchObject({ hovered: true, focus: "focused" });
   });
 
   it.each([
-    { id: "output", type: "place" as const },
-    { id: "transition", type: "transition" as const },
-  ])("focuses a dragged $type before the pointer rests", (hoveredItem) => {
-    const { result, update } = renderScene({
-      hoveredItem: { id: "input", type: "place" },
-    });
+    { id: "output", type: "place" },
+    { id: "transition", type: "transition" },
+  ])("focuses a dragged $type before the pointer rests", ({ id }) => {
+    const { result, hover, drag } = renderScene({ hoveredId: "input" });
     movePointer(100);
-    update({ hoveredItem });
-    expect(
-      result.current.scene.nodes.find((node) => node.id === hoveredItem.id),
-    ).toMatchObject({ hovered: false });
+    hover(id);
+    expect(result.current.nodes.find((node) => node.id === id)).toMatchObject({
+      hovered: false,
+    });
 
-    update({
-      draggingStateByNodeId: {
-        [hoveredItem.id]: { dragging: true, position: { x: 110, y: 0 } },
-      },
+    drag({ [id]: { dragging: true, position: { x: 110, y: 0 } } });
+    expect(result.current.nodes.find((node) => node.id === id)).toMatchObject({
+      hovered: true,
+      focus: "focused",
+      dragging: true,
     });
     expect(
-      result.current.scene.nodes.find((node) => node.id === hoveredItem.id),
-    ).toMatchObject({ hovered: true, focus: "focused", dragging: true });
-    expect(
-      result.current.scene.nodes.find((node) => node.id === "input"),
+      result.current.nodes.find((node) => node.id === "input"),
     ).toMatchObject({ hovered: false });
   });
 
   it("keeps the dragged node hovered until drop, then resumes the rest delay", () => {
-    const { result, update } = renderScene({
-      hoveredItem: { id: "input", type: "place" },
-      draggingStateByNodeId: {
-        input: { dragging: true, position: { x: 50, y: 0 } },
-      },
+    const { result, hover, drag } = renderScene({
+      hoveredId: "input",
+      dragPreview: { input: { dragging: true, position: { x: 50, y: 0 } } },
     });
     movePointer(100);
-    update({ hoveredItem: null });
+    hover(null);
     advanceTime(150);
     expect(
-      result.current.scene.nodes.find((node) => node.id === "input"),
+      result.current.nodes.find((node) => node.id === "input"),
     ).toMatchObject({ hovered: true, focus: "focused" });
 
-    update({ hoveredItem: { id: "output", type: "place" } });
+    hover("output");
     advanceTime(150);
     expect(
-      result.current.scene.nodes.find((node) => node.id === "input"),
+      result.current.nodes.find((node) => node.id === "input"),
     ).toMatchObject({ hovered: true, focus: "focused" });
 
     movePointer(200);
-    update({ draggingStateByNodeId: {} });
+    drag({});
     expect(
-      result.current.scene.nodes.find((node) => node.id === "input"),
+      result.current.nodes.find((node) => node.id === "input"),
     ).toMatchObject({ hovered: true, dragging: false });
     advanceTime(150);
     expect(
-      result.current.scene.nodes.find((node) => node.id === "output"),
+      result.current.nodes.find((node) => node.id === "output"),
     ).toMatchObject({ hovered: true, focus: "focused" });
   });
 
   it("respects Highlight on hover while still reporting drag hover", () => {
-    const { result, update } = renderScene({}, false);
+    const { result, hover, drag } = renderScene({}, false);
     movePointer(100);
-    update({
-      hoveredItem: { id: "input", type: "place" },
-      draggingStateByNodeId: {
-        input: { dragging: true, position: { x: 50, y: 0 } },
-      },
-    });
-    expect(result.current.scene.focusActive).toBe(false);
+    hover("input");
+    drag({ input: { dragging: true, position: { x: 50, y: 0 } } });
+    expect(result.current.focusActive).toBe(false);
     expect(
-      result.current.scene.nodes.find((node) => node.id === "input"),
+      result.current.nodes.find((node) => node.id === "input"),
     ).toMatchObject({ hovered: true, focus: "none", dragging: true });
   });
 });

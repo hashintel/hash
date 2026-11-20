@@ -16,6 +16,7 @@ import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { getDocumentUri } from "../../../../../monaco/editor-paths";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { VisualizerLoading } from "../../../../shared/visualizer-loading";
+import { CanvasPointerContext, useIsHovered } from "../../../canvas-pointer";
 import { VisualizerWindow } from "./place-state-tooltip/visualizer-window";
 
 import type { PointerEvent } from "react";
@@ -66,10 +67,9 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
     keepPlaceVisualizerOpen,
     closePlaceVisualizer,
     openPlaceVisualizer,
-    hoveredItem,
-    setHoveredItem,
-    clearHoveredItem,
   } = use(EditorContext);
+  const { hoveredId } = use(CanvasPointerContext);
+  const hovered = useIsHovered(nodeId);
   const codeNavigation = useCodeNavigation();
   const node = useInternalNode(nodeId);
   const viewport = useViewport();
@@ -95,7 +95,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
       eyeFocused ||
       editing ||
       openingEditor ||
-      hoveredItem?.id === nodeId
+      hovered
     )
       return;
     // Give the pointer time to cross the gap between the place and its preview.
@@ -107,7 +107,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
     eyeFocused,
     editing,
     openingEditor,
-    hoveredItem?.id,
+    hovered,
     nodeId,
     openPlaceVisualizer,
   ]);
@@ -123,21 +123,31 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
     return null;
 
   const keepHovered = {
-    onPointerEnter: () => setHoveredItem({ type: "place", id: nodeId }),
+    onPointerEnter: () => hoveredId.set(nodeId),
     onPointerLeave: (event: PointerEvent) => {
       if (
         event.relatedTarget instanceof Element &&
         event.relatedTarget.closest(".react-flow__node")
       )
         return;
-      clearHoveredItem();
+      hoveredId.set(null);
     },
+  };
+
+  // The window closes under the pointer, which then never leaves it.
+  const close = () => {
+    setEyeHovered(false);
+    setEyeFocused(false);
+    closePlaceVisualizer(nodeId);
+    if (hoveredId.getSnapshot() === nodeId) {
+      hoveredId.set(null);
+    }
   };
 
   const showTrigger =
     !keptOpen &&
     !!place.visualizerCode &&
-    (hoveredItem?.id === nodeId || node.selected) &&
+    (hovered || node.selected) &&
     !node.dragging;
   const below =
     node.internals.positionAbsolute.y * viewport.zoom + viewport.y < 94;
@@ -158,11 +168,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
             setEyeHovered(false);
             keepPlaceVisualizerOpen(nodeId);
           }}
-          onClose={() => {
-            setEyeHovered(false);
-            setEyeFocused(false);
-            closePlaceVisualizer(nodeId);
-          }}
+          onClose={close}
           onEdit={
             codeNavigation.enabled
               ? () =>
@@ -228,9 +234,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
                 event.stopPropagation();
                 if (event.key === "Escape") {
                   event.preventDefault();
-                  setEyeHovered(false);
-                  setEyeFocused(false);
-                  closePlaceVisualizer(nodeId);
+                  close();
                 }
               }}
               onMouseDown={(event) => event.stopPropagation()}

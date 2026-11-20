@@ -25,7 +25,6 @@ import { fusionLinks, type FusionStatus } from "./fusion-links";
 import { arcStrokeColor } from "./styles/type-colors";
 
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
-import type { DraggingStateByNodeId } from "../../../react/state/editor-context";
 import type {
   CanvasArcFocus,
   CanvasFocus,
@@ -208,6 +207,11 @@ export type CanvasScene = {
   focusActive: boolean;
 };
 
+/** Where each dragged node is shown until its drag ends and commits. */
+export type CanvasDragPreview = Readonly<
+  Record<string, { dragging: boolean; position: CanvasPoint }>
+>;
+
 export type CanvasSceneInput = {
   net: ActiveNetDefinition;
   /** The whole document, for component lookups. */
@@ -218,7 +222,7 @@ export type CanvasSceneInput = {
   fusionStatuses: ReadonlyMap<string, FusionStatus>;
   extensions: PetrinautExtensionSettings;
   dimensions: RenderNodeDimensions;
-  draggingStateByNodeId: DraggingStateByNodeId;
+  draggingStateByNodeId: CanvasDragPreview;
   isSelected: (id: string) => boolean;
   /** The node under the pointer, once the hover has settled. */
   hoveredId: string | null;
@@ -232,7 +236,7 @@ export type CanvasSceneInput = {
 
 const positionOf = (
   item: { id: string; x: number; y: number },
-  draggingStateByNodeId: DraggingStateByNodeId,
+  draggingStateByNodeId: CanvasDragPreview,
 ): { position: CanvasPoint; dragging: boolean } => {
   const draggingState = draggingStateByNodeId[item.id];
   return draggingState?.dragging

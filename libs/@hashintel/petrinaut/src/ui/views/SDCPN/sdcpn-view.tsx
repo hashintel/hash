@@ -3,12 +3,13 @@
  * @role Renders the net as an interactive graph, with node and arc interaction
  */
 
-import { use, useRef } from "react";
+import { use, useRef, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { CanvasFrameStoreProvider } from "./canvas-frame-store";
+import { CanvasPointerContext, createCanvasPointer } from "./canvas-pointer";
 import { canvasRenderers, defaultCanvasRenderer } from "./canvas-renderers";
 import { CursorTooltip } from "./components/cursor-tooltip";
 import { useContainerSize } from "./hooks/util/use-container-size";
@@ -43,19 +44,22 @@ export const SDCPNView: React.FC<{
     containerSizeSettleMs,
   );
   const { petriNetId } = use(SDCPNContext);
-  const scene = useCanvasScene(canvasContainer);
+  const [pointer] = useState(createCanvasPointer);
+  const scene = useCanvasScene(canvasContainer, pointer);
   const Renderer = canvasRenderers[defaultCanvasRenderer];
 
   return (
     <div ref={canvasContainer} className={canvasContainerStyle}>
       {containerSize && (
-        <CanvasFrameStoreProvider key={petriNetId}>
-          <Renderer
-            scene={scene}
-            containerSize={containerSize}
-            registerController={onControllerChange}
-          />
-        </CanvasFrameStoreProvider>
+        <CanvasPointerContext value={pointer}>
+          <CanvasFrameStoreProvider key={petriNetId}>
+            <Renderer
+              scene={scene}
+              containerSize={containerSize}
+              registerController={onControllerChange}
+            />
+          </CanvasFrameStoreProvider>
+        </CanvasPointerContext>
       )}
       <CursorTooltip />
     </div>

@@ -28,6 +28,7 @@ import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useUserSettings } from "../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
+import { CanvasPointerContext } from "./canvas-pointer";
 import { linkEnd } from "./canvas-scene";
 import {
   fusionLinks,
@@ -224,9 +225,6 @@ export const useCanvasInteractions = (): CanvasInteractions => {
     selectItem,
     setSelection,
     clearSelection,
-    setHoveredItem,
-    clearHoveredItem,
-    updateDraggingStateByNodeId,
   } = useEditorFields(
     "editionMode",
     "setEditionMode",
@@ -237,10 +235,8 @@ export const useCanvasInteractions = (): CanvasInteractions => {
     "selectItem",
     "setSelection",
     "clearSelection",
-    "setHoveredItem",
-    "clearHoveredItem",
-    "updateDraggingStateByNodeId",
   );
+  const pointer = use(CanvasPointerContext);
   const snapToGrid = useUserSettings((settings) => settings.snapToGrid);
   const readonly = useIsReadOnly();
   const notifyReadOnly = useReadOnlyFeedback();
@@ -500,13 +496,11 @@ export const useCanvasInteractions = (): CanvasInteractions => {
   };
 
   const moveNodes = (moves: CanvasNodeMove[]) => {
-    updateDraggingStateByNodeId((existing) => {
-      const next = { ...existing };
-      for (const { id, position } of moves) {
-        next[id] = { dragging: true, position: snap(position) };
-      }
-      return next;
-    });
+    const preview = { ...pointer.dragPreview.getSnapshot() };
+    for (const { id, position } of moves) {
+      preview[id] = { dragging: true, position: snap(position) };
+    }
+    pointer.dragPreview.set(preview);
   };
 
   // Positions commit in one mutation and the previews clear in the same tick,
@@ -519,16 +513,15 @@ export const useCanvasInteractions = (): CanvasInteractions => {
         : [];
     });
 
-    updateDraggingStateByNodeId((existing) => {
-      // Unchanged state keeps its identity, so nothing re-renders.
-      if (!drops.some(({ id }) => id in existing)) {
-        return existing;
-      }
+    const preview = pointer.dragPreview.getSnapshot();
+    if (drops.some(({ id }) => id in preview)) {
       const droppedIds = new Set(drops.map(({ id }) => id));
-      return Object.fromEntries(
-        Object.entries(existing).filter(([id]) => !droppedIds.has(id)),
+      pointer.dragPreview.set(
+        Object.fromEntries(
+          Object.entries(preview).filter(([id]) => !droppedIds.has(id)),
+        ),
       );
-    });
+    }
 
     if (commits.length > 0) {
       commitNodePositions({ commits });
@@ -536,9 +529,9 @@ export const useCanvasInteractions = (): CanvasInteractions => {
   };
 
   const actions = useStableActions<CanvasActions>({
-    hoverNode: (node) => setHoveredItem({ type: node.kind, id: node.id }),
-    hoverLink: setHoveredItem,
-    clearHover: clearHoveredItem,
+    hoverNode: (node) => pointer.hoveredId.set(node.id),
+    hoverLink: (item) => pointer.hoveredId.set(item.id),
+    clearHover: () => pointer.hoveredId.set(null),
     // Queued with the changes React Flow reports for the same click, so a
     // sibling link it deselects does not land after and undo the selection.
     selectLink: (item) =>
