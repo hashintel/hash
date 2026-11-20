@@ -20,6 +20,7 @@ import {
   netsListSubView,
   searchSubView,
 } from "./sub-views";
+import { SearchQueryProvider } from "./subviews/search-panel";
 
 const searchSubViews = [searchSubView];
 
@@ -135,10 +136,12 @@ export const LeftSideBar: React.FC = () => {
               with the result list below it. */}
           <FocusRoot>
             <FocusStack axis="vertical">
-              <VerticalSubViewsContainer
-                name="left-sidebar-search"
-                subViews={searchSubViews}
-              />
+              <SearchQueryProvider>
+                <VerticalSubViewsContainer
+                  name="left-sidebar-search"
+                  subViews={searchSubViews}
+                />
+              </SearchQueryProvider>
             </FocusStack>
           </FocusRoot>
         </div>

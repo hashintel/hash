@@ -6,9 +6,32 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
-import { SearchContent, SearchTitle } from "./search-panel";
+import {
+  SearchContent,
+  SearchQueryProvider,
+  SearchTitle,
+} from "./search-panel";
 
 import type { Place, Transition } from "@hashintel/petrinaut-core";
+
+// A result row reads its selection once each time it renders.
+const rowRenders = vi.hoisted(() => ({ count: 0 }));
+vi.mock(
+  "../../../../../../react/state/editor-context",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("../../../../../../react/state/editor-context")
+      >();
+    return {
+      ...actual,
+      useIsSelected: (id: string) => {
+        rowRenders.count += 1;
+        return actual.useIsSelected(id);
+      },
+    };
+  },
+);
 
 afterEach(cleanup);
 
@@ -54,7 +77,9 @@ const Wrapper = ({ children }: { children: ReactNode }) => {
     >
       <EditorContext value={{ ...use(EditorContext), selectItem }}>
         <FocusRoot>
-          <FocusStack axis="vertical">{children}</FocusStack>
+          <FocusStack axis="vertical">
+            <SearchQueryProvider>{children}</SearchQueryProvider>
+          </FocusStack>
         </FocusRoot>
       </EditorContext>
     </SDCPNContext>
@@ -119,6 +144,20 @@ describe("search panel", () => {
 
     fireEvent.keyDown(first!, { key: "ArrowUp" });
     expect(document.activeElement).toBe(input);
+  });
+
+  it("renders the two rows focus moves between, and no other result", () => {
+    renderSearch();
+    const input = type("w");
+    expect(screen.getAllByRole("option")).toHaveLength(3);
+    input.focus();
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+
+    rowRenders.count = 0;
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+
+    expect(document.activeElement).toBe(screen.getAllByRole("option")[1]);
+    expect(rowRenders.count).toBe(2);
   });
 
   it("selects the result that is clicked", () => {
