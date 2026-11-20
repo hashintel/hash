@@ -1,8 +1,0 @@
-/**
- * Re-exports from the centralized document-uris module.
- * Monaco components import from here for convenience.
- */
-export {
-  getConstraintDocumentUri,
-  getMetricDocumentUri,
-} from "@hashintel/petrinaut-core";

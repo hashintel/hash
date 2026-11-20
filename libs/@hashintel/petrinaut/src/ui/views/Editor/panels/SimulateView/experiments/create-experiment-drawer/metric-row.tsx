@@ -9,11 +9,11 @@ import {
   type SelectItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { getMetricDocumentUri } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
 import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
-import { getMetricDocumentUri } from "../../../../../../monaco/editor-paths";
 import { summarizeMetricLspErrors } from "../../metrics/metric-lsp";
 import {
   getMetricKindIcon,

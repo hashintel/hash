@@ -7,11 +7,11 @@ import {
   NumberInput,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { getConstraintDocumentUri } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
 import { Section } from "../../../../../../components/section";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
-import { getConstraintDocumentUri } from "../../../../../../monaco/editor-paths";
 import {
   addConstraintDraft,
   type ConstraintDraftsState,

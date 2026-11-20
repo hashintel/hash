@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { DiagnosticSeverity, type SDCPN } from "@hashintel/petrinaut-core";
+import {
+  DiagnosticSeverity,
+  getMetricDocumentUri,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 
-import { getMetricDocumentUri } from "../../../../../../monaco/editor-paths";
 import {
   buildMetricSpecs,
   createDefaultMetricDraft,

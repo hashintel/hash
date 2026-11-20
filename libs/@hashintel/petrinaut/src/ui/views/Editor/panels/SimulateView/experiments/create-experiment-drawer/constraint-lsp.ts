@@ -1,6 +1,7 @@
-import { DiagnosticSeverity } from "@hashintel/petrinaut-core";
-
-import { getConstraintDocumentUri } from "../../../../../../monaco/editor-paths";
+import {
+  DiagnosticSeverity,
+  getConstraintDocumentUri,
+} from "@hashintel/petrinaut-core";
 
 import type { ConstraintSpace } from "@hashintel/petrinaut-core";
 
