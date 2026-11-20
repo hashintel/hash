@@ -1,20 +1,28 @@
-# Hand-written; rendered by the arch-docs build. The editor's parts use the
-# purple palette, the core the blue one, the host the grey one.
+# Hand-written; rendered by the arch-docs build. The colours are those of the
+# generated diagrams: green for the UI layer, purple for the React layer, blue
+# for the core, grey for the host.
 direction: down
 
-host: "Host application\nhandle, plugins, navigation" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
-core: "Core instance\ndocument, stores, workers" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+classes: {
+  ui: {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
+  react: {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+  core: {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+  other: {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+}
 
-petrinaut: "Petrinaut component\none core instance per handle" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
-react: "React layer\nproviders and hooks" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
-plugins: "Plugins provider\none host per plugin" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
-shell: "Editor view\nbars, panels, dialogs" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
-panels: "Panels and the Simulate view" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
-canvas: "Canvas" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
-notebook: "Notebook" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
-sub-views: "Sub-view containers\nsections and tabs" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
-monaco: "Monaco\ncode editors" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
-preview: "Preview" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+host: "Host application" {class: other}
+core: "Core instance\ndocument and stores" {class: core}
+
+petrinaut: "Petrinaut component" {class: ui}
+react: "React layer\nproviders and hooks" {class: react}
+plugins: "Plugins provider\none host per plugin" {class: ui}
+editor: "Editor view\nbars, panels, dialogs" {class: ui}
+panels: "Panels\nsidebar, bottom, properties" {class: ui}
+canvas: "Canvas" {class: ui}
+notebook: "Notebook" {class: ui}
+sub-views: "Sub-view containers\nsections and tabs" {class: ui}
+monaco: "Monaco\ncode editors" {class: ui}
+preview: "Preview" {class: ui}
 
 host -> petrinaut: mounts
 host -> preview: mounts
@@ -22,10 +30,14 @@ petrinaut -> core: creates
 petrinaut -> react: "mounts the providers of"
 react -> core: "subscribes to"
 petrinaut -> plugins: mounts
-plugins -> shell: "renders after its hosts"
-shell -> panels: arranges
-shell -> canvas: mounts
-shell -> notebook: mounts
+plugins -> editor: "renders after its hosts"
+editor -> panels: arranges
+editor -> canvas: mounts
+editor -> notebook: mounts
 panels -> sub-views: "list descriptors for"
 panels -> monaco: "edit code in"
+notebook -> monaco: "edits code in"
+preview -> core: creates
+preview -> react: "mounts providers of"
 preview -> canvas: mounts
+preview -> panels: "reuses parts of"
