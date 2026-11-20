@@ -4,8 +4,10 @@ import type { IsoDataType } from "../data-types";
 
 export const numericDomainsDataTypes: IsoDataType[] = [
   {
+    dataTypeBaseUrl: systemDataTypes.negativeNumber.dataTypeBaseUrl,
     definition: {
       title: "Negative Number",
+      titlePlural: "Negative Numbers",
       description: "A real number strictly less than zero.",
       type: "number",
       allOf: [
@@ -18,8 +20,10 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.nonNegativeNumber.dataTypeBaseUrl,
     definition: {
       title: "Non-negative Number",
+      titlePlural: "Non-negative Numbers",
       description: "A real number greater than or equal to zero.",
       type: "number",
       allOf: [
@@ -32,8 +36,10 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.nonNegativeInteger.dataTypeBaseUrl,
     definition: {
       title: "Non-negative Integer",
+      titlePlural: "Non-negative Integers",
       description: "An integer greater than or equal to zero.",
       type: "number",
       allOf: [
@@ -46,8 +52,10 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.positiveInteger.dataTypeBaseUrl,
     definition: {
       title: "Positive Integer",
+      titlePlural: "Positive Integers",
       description: "An integer greater than or equal to one.",
       type: "number",
       allOf: [
@@ -60,8 +68,10 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.halfInteger.dataTypeBaseUrl,
     definition: {
       title: "Half-integer",
+      titlePlural: "Half-integers",
       description: "An integer multiple of one half, including integers.",
       type: "number",
       allOf: [
@@ -74,8 +84,10 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.nonNegativeHalfInteger.dataTypeBaseUrl,
     definition: {
       title: "Non-negative Half-integer",
+      titlePlural: "Non-negative Half-integers",
       description: "A non-negative integer multiple of one half.",
       type: "number",
       allOf: [
@@ -88,8 +100,10 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.boundedFraction.dataTypeBaseUrl,
     definition: {
       title: "Bounded Fraction",
+      titlePlural: "Bounded Fractions",
       description:
         "A fraction between zero and the whole, with bounds expressed in each unit.",
       type: "number",
@@ -103,8 +117,10 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.unitInterval.dataTypeBaseUrl,
     definition: {
       title: "Unit Interval",
+      titlePlural: "Unit Intervals",
       description:
         "A fraction from zero to 1, inclusive; 1 represents the whole.",
       type: "number",
@@ -122,8 +138,10 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.fractionalPercentage.dataTypeBaseUrl,
     definition: {
       title: "Fractional Percentage",
+      titlePlural: "Fractional Percentages",
       description:
         "A fraction from zero to 100, inclusive; 100 represents the whole.",
       type: "number",
@@ -164,8 +182,10 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.fractionalPartsPerMillion.dataTypeBaseUrl,
     definition: {
-      title: "Fractional Parts per Million",
+      title: "Fractional Part per Million",
+      titlePlural: "Fractional Parts per Million",
       description:
         "A fraction from zero to 1e+06, inclusive; 1e+06 represents the whole.",
       type: "number",
@@ -206,8 +226,10 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.fractionalPartsPerBillion.dataTypeBaseUrl,
     definition: {
-      title: "Fractional Parts per Billion",
+      title: "Fractional Part per Billion",
+      titlePlural: "Fractional Parts per Billion",
       description:
         "A fraction from zero to 1e+09, inclusive; 1e+09 represents the whole.",
       type: "number",
