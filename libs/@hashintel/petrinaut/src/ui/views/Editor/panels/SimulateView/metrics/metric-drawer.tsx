@@ -12,15 +12,15 @@ import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { DrawerErrorDisplay } from "../drawer-error-display";
+import { MetricFormBody } from "./metric-form";
+import { summarizeMetricLspErrors, validateMetricCompiles } from "./metric-lsp";
 import {
-  MetricFormBody,
+  buildMetricFromFormState,
+  emptyMetricFormState,
   type MetricFormInstance,
   useMetricForm,
-  useMetricLspSession,
-} from "./metric-form";
-import { EMPTY_METRIC_FORM_STATE } from "./metric-form-defaults";
-import { summarizeMetricLspErrors, validateMetricCompiles } from "./metric-lsp";
-import { buildMetricFromFormState } from "./metric-mapping";
+} from "./use-metric-form";
+import { useMetricLspSession } from "./use-metric-lsp-session";
 
 const MetricDrawerFooter = ({
   form,
@@ -128,8 +128,8 @@ export const MetricDrawer = ({
           description: metric.description ?? "",
           code: metric.code,
         }
-      : EMPTY_METRIC_FORM_STATE,
-    (value, ctx) => {
+      : emptyMetricFormState,
+    (value, reset) => {
       const result = metricSchema.safeParse(
         buildMetricFromFormState(value, metric?.id ?? generatePetrinautId()),
       );
@@ -146,7 +146,7 @@ export const MetricDrawer = ({
       } else {
         addMetric(result.data);
         onClose();
-        ctx.reset();
+        reset();
       }
     },
     {

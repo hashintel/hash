@@ -55,7 +55,6 @@ import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
 import { FocusControls } from "../../../../../worksheet/focus-controls";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
-import { useMetricLspSession } from "../metrics/metric-form";
 import { summarizeMetricLspErrors } from "../metrics/metric-lsp";
 import {
   createMetricKindGroups,
@@ -63,6 +62,7 @@ import {
   MODEL_METRIC_VALUE_PREFIX,
   type MetricKindGroup,
 } from "../metrics/metric-picker-options";
+import { useMetricLspSession } from "../metrics/use-metric-lsp-session";
 import { SimulationPanel } from "../shared/simulation-panel";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
 import { hasAdHocIntervalToggle } from "./create-experiment-drawer/ad-hoc-interval-toggles";
