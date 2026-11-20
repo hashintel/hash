@@ -1,6 +1,6 @@
 import { motionValue, type MotionValue } from "motion";
 
-export type PanelName =
+type PanelName =
   | "leftSidebar"
   | "propertiesPanel"
   | "bottomPanel"

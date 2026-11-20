@@ -8,9 +8,9 @@ import { motionValue, type MotionValue } from "motion";
  * it follows it with `styleRef`; a component that computes with it reads it
  * with `useReading` and re-renders on each change.
  */
-export type PanelSize = MotionValue<number>;
+type PanelSize = MotionValue<number>;
 
-export type PanelSizeName =
+type PanelSizeName =
   | "leftSidebarWidth"
   | "propertiesPanelWidth"
   | "bottomPanelHeight"

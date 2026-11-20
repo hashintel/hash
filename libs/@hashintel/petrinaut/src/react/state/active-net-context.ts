@@ -20,7 +20,7 @@ export type ActiveNetDefinition = {
   fusions: Fusion[];
 };
 
-export type ActiveNetContextValue = {
+type ActiveNetContextValue = {
   activeNet: ActiveNetDefinition;
   activeComponentId: string | null;
   setActiveComponentId: (componentId: string | null) => void;

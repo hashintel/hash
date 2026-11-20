@@ -24,7 +24,7 @@ export type SubViewSectionSettings = {
 };
 
 /** Outer key: container name, inner key: subview ID */
-export type SubViewPanelsSettings = Record<
+type SubViewPanelsSettings = Record<
   string,
   Record<string, SubViewSectionSettings>
 >;

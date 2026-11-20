@@ -6,7 +6,7 @@ import type {
   ResolvedLibraries,
 } from "@hashintel/petrinaut-core";
 
-export type CompositionContextValue = {
+type CompositionContextValue = {
   /**
    * The state of each import of the document and of each library on offer:
    * resolving, resolved or failed.

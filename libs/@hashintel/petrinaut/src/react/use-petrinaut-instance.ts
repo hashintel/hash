@@ -11,7 +11,7 @@ import type { Petrinaut } from "@hashintel/petrinaut-core";
  * (which apply the read-only guards) rather than calling them directly on
  * the raw instance.
  */
-export type PetrinautReactInstance = Omit<Petrinaut, "mutations" | "commands">;
+type PetrinautReactInstance = Omit<Petrinaut, "mutations" | "commands">;
 
 /** The whole instance, for the hooks that guard its mutations and commands. */
 export const useCoreInstance = (hookName: string): Petrinaut => {

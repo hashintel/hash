@@ -6,7 +6,7 @@ import type { HistoryEntry, PetrinautHistory } from "@hashintel/petrinaut-core";
  * entry is known by its timestamp. Changes made within one millisecond share
  * theirs, so the mark also counts the entries with that timestamp before it.
  */
-export type HistoryMark = { timestamp: string; ordinal: number };
+type HistoryMark = { timestamp: string; ordinal: number };
 
 const madeAt = (timestamp: string) => (entry: HistoryEntry) =>
   entry.timestamp === timestamp;

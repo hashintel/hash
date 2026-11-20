@@ -8,7 +8,7 @@ import { findStepTargetIndex } from "./step-target";
 import type { SimulationFrameReader } from "../simulation/context";
 
 /** The run as seen at the viewed time: what changes at frame rate. */
-export type EventPlaybackFrame = {
+type EventPlaybackFrame = {
   /** The viewed simulation time, in seconds. */
   time: number;
   /** Index of the last event at or before the viewed time, or -1 before the first. */

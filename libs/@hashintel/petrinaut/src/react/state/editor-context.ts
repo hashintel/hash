@@ -48,7 +48,7 @@ export type SimulateDrawerState =
   | { type: "view-experiment"; experimentId: string }
   | { type: "create-experiment" };
 
-export type EditorNavigationTarget = {
+type EditorNavigationTarget = {
   globalMode?: EditorGlobalMode;
   editViewMode?: EditViewMode;
   simulateViewMode?: SimulateViewMode;
@@ -300,7 +300,7 @@ export const useEditorActions = (): EditorActions =>
   use(EditorActionsContext) ?? use(EditorContext);
 
 /** The mode of the editor and the view of its Edit mode. */
-export type EditorMode = Pick<EditorState, "globalMode" | "editViewMode">;
+type EditorMode = Pick<EditorState, "globalMode" | "editViewMode">;
 
 /**
  * Where `EditorProvider` gives out the mode. Null where only `EditorContext`

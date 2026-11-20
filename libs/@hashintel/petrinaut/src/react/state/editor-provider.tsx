@@ -32,7 +32,7 @@ import { useComposesOnly } from "./use-composes-only";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
 import { useUserSettingsFields } from "./user-settings-context";
 
-export type EditorProviderProps = React.PropsWithChildren;
+type EditorProviderProps = React.PropsWithChildren;
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = useUserSettingsFields(
