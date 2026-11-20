@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 
 import {
   createJsonDocHandle,
@@ -40,7 +40,6 @@ export const PetrinautStoryProvider = ({
   initialDefinition = emptySDCPN,
   capabilities,
   initialNavigation,
-  children,
   ...editorProps
 }: {
   initialTitle?: string;
@@ -49,7 +48,6 @@ export const PetrinautStoryProvider = ({
   capabilities?: PetrinautHandleCapabilities;
   /** Where the editor opens. The story holds the location when this is set. */
   initialNavigation?: Partial<PetrinautNavigationState>;
-  children?: ReactNode;
 } & Pick<
   PetrinautProps,
   | "plugins"
@@ -79,38 +77,37 @@ export const PetrinautStoryProvider = ({
     nets.find((net) => net.handle.id === currentNetId) ?? initialNet;
 
   return (
-    <>
-      <Petrinaut
-        {...editorProps}
-        handle={currentNet.handle}
-        title={currentNet.title}
-        setTitle={(title) =>
-          setNets(
-            nets.map((net) => (net === currentNet ? { ...net, title } : net)),
-          )
+    <Petrinaut
+      {...editorProps}
+      handle={currentNet.handle}
+      title={currentNet.title}
+      setTitle={(title) =>
+        setNets((current) =>
+          current.map((net) =>
+            net.handle.id === currentNet.handle.id ? { ...net, title } : net,
+          ),
+        )
+      }
+      existingNets={nets.map((net) => ({
+        netId: net.handle.id,
+        title: net.title,
+        lastUpdated: storyLoadedAt,
+      }))}
+      createNewNet={({ petriNetDefinition, title }) => {
+        const handle = createJsonDocHandle({
+          id: generatePetrinautId(),
+          initial: petriNetDefinition,
+        });
+        setNets((current) => [...current, { title, handle }]);
+        setCurrentNetId(handle.id);
+      }}
+      loadPetriNet={setCurrentNetId}
+      navigation={
+        initialNavigation && {
+          state: navigationState,
+          onNavigate: setNavigationState,
         }
-        existingNets={nets.map((net) => ({
-          netId: net.handle.id,
-          title: net.title,
-          lastUpdated: storyLoadedAt,
-        }))}
-        createNewNet={({ petriNetDefinition, title }) => {
-          const handle = createJsonDocHandle({
-            id: generatePetrinautId(),
-            initial: petriNetDefinition,
-          });
-          setNets([...nets, { title, handle }]);
-          setCurrentNetId(handle.id);
-        }}
-        loadPetriNet={setCurrentNetId}
-        navigation={
-          initialNavigation && {
-            state: navigationState,
-            onNavigate: setNavigationState,
-          }
-        }
-      />
-      {children}
-    </>
+      }
+    />
   );
 };
