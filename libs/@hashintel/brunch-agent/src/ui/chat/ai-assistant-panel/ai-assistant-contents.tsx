@@ -35,6 +35,7 @@ import {
 import { errorNotification } from "./ai-assistant-contents/shared/error-notification";
 import { VoiceAlerts } from "./ai-assistant-contents/voice-alerts";
 import { LiveVoiceDock } from "./ai-assistant-contents/voice-dock";
+import { VoiceQuestions } from "./ai-assistant-contents/voice-questions";
 import { useAiAssistantEditorApi } from "./editor-api";
 import { getInteractiveTool } from "./interactive-tools/registry";
 
@@ -651,6 +652,12 @@ export const AiAssistantContents = ({
         {showingHostTab && (
           <BrunchResponseStatus busy={isBusy} workingLabel={workingLabel} />
         )}
+
+        {inputMode === "voice" &&
+          !isBusy &&
+          !stopped &&
+          !voiceHandoffPending &&
+          !reviewingHostTab && <VoiceQuestions messages={messages} />}
 
         {voiceMode && (
           <div className={voiceModeStyle} data-testid="ai-voice-mode">
