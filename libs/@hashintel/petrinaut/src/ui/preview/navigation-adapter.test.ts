@@ -15,7 +15,7 @@ describe("Preview navigation adapter", () => {
       {
         state: {
           scenarioId: "scenario-a",
-          subnetId: "subnet-a",
+          componentId: "component-a",
           selection: [{ type: "place", id: "place-a" }],
         },
         onNavigate: vi.fn(),
@@ -26,7 +26,7 @@ describe("Preview navigation adapter", () => {
       mode: "edit",
       simulateView: "scenarios",
       scenarioId: "scenario-a",
-      subnetId: "subnet-a",
+      componentId: "component-a",
       selection: [{ type: "place", id: "place-a" }],
     });
   });
@@ -36,7 +36,7 @@ describe("Preview navigation adapter", () => {
       {
         state: {
           scenarioId: undefined,
-          subnetId: null,
+          componentId: null,
           selection: [],
         },
         onNavigate: vi.fn(),
@@ -56,7 +56,7 @@ describe("Preview navigation adapter", () => {
       {
         state: {
           scenarioId: undefined,
-          subnetId: null,
+          componentId: null,
           selection: [],
         },
         onNavigate: vi.fn(),
@@ -78,7 +78,7 @@ describe("Preview navigation adapter", () => {
       {
         state: {
           scenarioId: undefined,
-          subnetId: null,
+          componentId: null,
           selection: [],
         },
         onNavigate,
@@ -95,7 +95,7 @@ describe("Preview navigation adapter", () => {
         mode: "actual",
         simulateResource: { type: "metric", id: "metric-a" },
         scenarioId: "scenario-b",
-        subnetId: "subnet-b",
+        componentId: "component-b",
         selection: [{ type: "transition", id: "transition-b" }],
       }),
       options,
@@ -105,7 +105,7 @@ describe("Preview navigation adapter", () => {
     const [update, receivedOptions] = onNavigate.mock.calls[0]!;
     expect(update(controller.state)).toEqual({
       scenarioId: "scenario-b",
-      subnetId: "subnet-b",
+      componentId: "component-b",
       selection: [{ type: "transition", id: "transition-b" }],
     });
     expect(receivedOptions).toEqual(options);
@@ -122,7 +122,7 @@ describe("Preview navigation adapter", () => {
       }),
     ).toEqual({
       scenarioId: undefined,
-      subnetId: null,
+      componentId: null,
       selection: [],
     });
   });

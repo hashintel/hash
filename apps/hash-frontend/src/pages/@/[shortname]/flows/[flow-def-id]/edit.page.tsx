@@ -34,6 +34,7 @@ import { generateRunViewPath, parseRunParam } from "./edit.page/run-path";
 import { RunView } from "./edit.page/run-view";
 import { findStep } from "./edit.page/shared/find-step";
 import { sidePanelWidth } from "./edit.page/shared/side-panel";
+import { useFlowRuns } from "./edit.page/shared/use-flow-runs";
 import { StepPanel } from "./edit.page/step-panel";
 import { TopBar } from "./edit.page/top-bar";
 import {
@@ -273,10 +274,37 @@ const FlowEditor = ({
       return next;
     });
 
+  /* Selects one step and brings it into view on the canvas. A step in a collapsed for-each step isn't drawn, so the
+   * for-each step is expanded first. */
+  const selectAndFocusStep = (stepId: string) => {
+    const collapsedParent = flowDefinition.steps.find(
+      (step) =>
+        step.kind === "for-each" &&
+        collapsedStepIds.has(step.stepId) &&
+        findStep(step.steps, stepId),
+    );
+
+    if (collapsedParent) {
+      toggleCollapsed(collapsedParent.stepId);
+    }
+
+    setSession((current) => ({
+      ...current,
+      selectedStepIds: [stepId],
+      startSelected: false,
+      focusRequest: { stepId },
+    }));
+  };
+
   /* The web the flow is in, which the editor's path names. */
   const webId = extractWebIdFromEntityId(flowDefinitionEntityId);
   const getRunPath = (flowRunEntityId: EntityId) =>
     generateRunViewPath({ shortname, flowDefinitionEntityId, flowRunEntityId });
+
+  /* As a run in Logs opens, so Back returns to the run shown before. */
+  const openRun = (flowRunEntityId: EntityId) => {
+    void router.push(getRunPath(flowRunEntityId), undefined, { shallow: true });
+  };
 
   /* A run starts the flow as saved, so the edits not saved yet are saved first. */
   const runFlow = async (flowInputs: FlowInputValues) => {
@@ -335,6 +363,10 @@ const FlowEditor = ({
     view === "logs"
       ? parseRunParam(router.query.run, flowDefinitionEntityId)
       : null;
+  /* One read of the flow's runs for the Logs table and the run switcher, so they agree. */
+  const { flowRuns, retry: retryFlowRuns } = useFlowRuns(
+    view === "logs" ? flowDefinitionEntityId : null,
+  );
   const showView = (nextView: FlowEditorView) => {
     const editorPath = generateFlowEditorPath({
       shortname,
@@ -364,7 +396,9 @@ const FlowEditor = ({
         flowDefinitionEntityId={flowDefinitionEntityId}
         view={view}
         flowRunEntityId={flowRunEntityId}
+        flowRuns={flowRuns}
         onViewChange={showView}
+        onOpenRun={openRun}
         onRename={editor.setName}
         saveStatus={status}
         saveRefusedReason={saveRefusedReason}
@@ -387,7 +421,8 @@ const FlowEditor = ({
           />
         ) : (
           <LogsView
-            flowDefinitionEntityId={flowDefinitionEntityId}
+            flowRuns={flowRuns}
+            onRetry={retryFlowRuns}
             getRunPath={getRunPath}
           />
         )
@@ -396,14 +431,7 @@ const FlowEditor = ({
           <LeftPanel
             steps={flowDefinition.steps}
             selectedStepIds={selectedStepIds}
-            onStepClick={(stepId) =>
-              setSession((current) => ({
-                ...current,
-                selectedStepIds: [stepId],
-                startSelected: false,
-                focusRequest: { stepId },
-              }))
-            }
+            onStepClick={selectAndFocusStep}
             collapsedGroupIds={collapsedStepIds}
             onToggleGroup={toggleCollapsed}
             onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
@@ -462,6 +490,7 @@ const FlowEditor = ({
                 editor={editor}
                 subject={panelSubject}
                 onSelectStart={() => setSelection({ stepIds: [], start: true })}
+                onSelectStep={selectAndFocusStep}
               />
             )}
           </div>

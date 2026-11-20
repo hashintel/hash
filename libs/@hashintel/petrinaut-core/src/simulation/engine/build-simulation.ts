@@ -17,7 +17,7 @@ import {
   deriveDefaultParameterValues,
   mergeParameterValues,
 } from "../../parameter-values";
-import { getPlaceDynamicsEquationIds } from "../../place-dynamics";
+import { getRunningEquationIds } from "../../place-dynamics";
 import {
   createUserKeyedRecord,
   describeDangerousSdcpnKeys,
@@ -40,6 +40,7 @@ import {
   flattenComponentInstancesForSimulation,
   getArcPlaceNameOverrideKey,
 } from "./flatten-component-instances";
+import { sourceItemId } from "./scoped-id";
 import { StringPool } from "./string-pool";
 import {
   computeTokenSlotLayout,
@@ -225,18 +226,6 @@ function getPlaceElements(
   }
 
   return type.elements;
-}
-
-/**
- * Recovers the pre-flattening item id: flattening scopes ids as
- * `instancePath::originalId`, while HIR artifacts are keyed by the original
- * (root or subnet-local) id.
- */
-function sourceItemId(flattenedId: string): string {
-  const separatorIndex = flattenedId.lastIndexOf("::");
-  return separatorIndex === -1
-    ? flattenedId
-    : flattenedId.slice(separatorIndex + 2);
 }
 
 /** Error for items whose code has no compiled artifact (outside the
@@ -706,9 +695,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   // summed into the place's derivative when there are several.
   const differentialEquationFns = new Map<string, DifferentialEquationFn>();
   for (const place of sdcpn.places) {
-    const equationIds = place.dynamicsEnabled
-      ? getPlaceDynamicsEquationIds(place)
-      : [];
+    const equationIds = getRunningEquationIds(place);
     if (equationIds.length === 0) {
       continue;
     }

@@ -49,6 +49,7 @@ process.env.NODE_ENV = "test";
 process.env.OTEL_SDK_DISABLED = "true";
 delete process.env.HASH_OTLP_ENDPOINT;
 process.env.BRUNCH_DEV_DB_PATH = join(directory, "conversation.db");
+process.env.BRUNCH_CHAT_MODEL = "openai/gpt-5.5-2026-04-23";
 process.env.BRUNCH_TEST_KEEP_RECENT_TOKENS = "200";
 
 const faux = fauxProvider({ provider: "openai" });

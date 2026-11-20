@@ -31,7 +31,7 @@ export const createOptimizationManifestInput = () => ({
       types: [],
       differentialEquations: [],
       parameters: [],
-      subnets: [],
+      components: [],
       componentInstances: [],
       scenarios: [scenario],
       metrics: [{ id: "profit", name: "Profit", code: "return 1;" }],

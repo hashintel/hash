@@ -92,6 +92,11 @@ export default withSentryConfig(
             destination: "/@/:shortname?tab=Types",
           },
           {
+            source:
+              "/@:shortname/types/:typeKind(data-type|entity-type|property-type|link-type)s",
+            destination: "/@/:shortname?tab=Types&typeKind=:typeKind",
+          },
+          {
             source: "/@:shortname/:path*",
             destination: "/@/:shortname/:path*",
           },
@@ -151,6 +156,24 @@ export default withSentryConfig(
       },
       async headers() {
         return [
+          {
+            source: "/:path*",
+            headers: [
+              // `frame-ancestors` in the Content Security Policy supersedes
+              // this where supported; it covers routes the policy isn't set on.
+              { key: "X-Frame-Options", value: "SAMEORIGIN" },
+              { key: "X-Content-Type-Options", value: "nosniff" },
+              {
+                key: "Referrer-Policy",
+                value: "strict-origin-when-cross-origin",
+              },
+              {
+                key: "Permissions-Policy",
+                value:
+                  "camera=(), geolocation=(), display-capture=(), payment=()",
+              },
+            ],
+          },
           {
             /**
              * allow fetching types as JSON from anywhere

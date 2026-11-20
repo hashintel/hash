@@ -46,14 +46,14 @@ const sessionAccountQuery =
   "query brunchSessionActor { sessionAccount { webId accountSignupComplete } }";
 
 /** hash-api refuses the query with this code when the request has no session. */
-const vSessionRefusal = v.object({
+const sessionRefusalSchema = v.object({
   errors: v.pipe(
     v.array(v.object({ extensions: v.object({ code: v.string() }) })),
     v.someItem((error) => error.extensions.code === "FORBIDDEN"),
   ),
 });
 
-const vSessionAccountAnswer = v.object({
+const sessionAccountAnswerSchema = v.object({
   data: v.object({
     sessionAccount: v.object({
       webId: v.pipe(v.string(), v.minLength(1)),
@@ -129,8 +129,8 @@ const askHashApi = async (
     });
     return { kind: "unavailable" };
   }
-  if (v.is(vSessionRefusal, body)) return { kind: "unauthenticated" };
-  const answer = v.safeParse(vSessionAccountAnswer, body);
+  if (v.is(sessionRefusalSchema, body)) return { kind: "unauthenticated" };
+  const answer = v.safeParse(sessionAccountAnswerSchema, body);
   if (!answer.success) {
     logger.warn("[brunch] HASH session check named no account");
     return { kind: "unavailable" };

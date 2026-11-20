@@ -23,9 +23,9 @@ describe("read-only example handles", () => {
     expect(handle.history).toBeUndefined();
 
     handle.change((draft) => {
-      draft.subnets = [];
+      draft.components = [];
     });
 
-    expect(handle.doc()?.subnets).toBeUndefined();
+    expect(handle.doc()?.components).toBeUndefined();
   });
 });

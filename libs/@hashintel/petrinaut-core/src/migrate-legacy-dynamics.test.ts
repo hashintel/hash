@@ -71,17 +71,17 @@ describe("migrateLegacyDynamics", () => {
     ]);
   });
 
-  it("migrates subnets the same way", () => {
+  it("migrates components the same way", () => {
     const migrated = migrateLegacyDynamics({
       places: [],
-      subnets: [
+      components: [
         {
           places: [{ id: "p", differentialEquationId: "de" }],
           differentialEquations: [{ id: "de", code: wholePlaceCode }],
         },
       ],
     });
-    expect(migrated.subnets).toEqual([
+    expect(migrated.components).toEqual([
       {
         places: [{ id: "p", dynamics: [{ differentialEquationId: "de" }] }],
         differentialEquations: [{ id: "de", arity: 1, code: oneTokenCode }],

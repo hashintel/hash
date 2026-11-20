@@ -23,6 +23,20 @@ import {
   HashIconProvider,
   hashIconNames,
   hashIconPack,
+  LogicAndIcon,
+  LogicOrIcon,
+  LogicNotIcon,
+  LogicImpliesIcon,
+  LogicEquivalentIcon,
+  LogicForAllIcon,
+  LogicExistsIcon,
+  LogicNextIcon,
+  LogicUntilIcon,
+  LogicBranchingIcon,
+  LogicInvariantIcon,
+  LogicCounterexampleIcon,
+  LogicConstraintIcon,
+  LogicRobustnessIcon,
   PlaceIcon,
   LoadingIcon,
   AddPlaceIcon,
@@ -62,6 +76,84 @@ describe("HashIcon SVG API", () => {
       Array.from(container.querySelectorAll("clipPath"), (clip) => clip.id),
     ).toEqual(clipIds);
   });
+
+  it.each([
+    { name: "logicAnd", IconComponent: LogicAndIcon, filledDots: 0 },
+    { name: "logicOr", IconComponent: LogicOrIcon, filledDots: 0 },
+    { name: "logicNot", IconComponent: LogicNotIcon, filledDots: 0 },
+    { name: "logicImplies", IconComponent: LogicImpliesIcon, filledDots: 0 },
+    {
+      name: "logicEquivalent",
+      IconComponent: LogicEquivalentIcon,
+      filledDots: 0,
+    },
+    { name: "logicForAll", IconComponent: LogicForAllIcon, filledDots: 0 },
+    { name: "logicExists", IconComponent: LogicExistsIcon, filledDots: 0 },
+    { name: "logicNext", IconComponent: LogicNextIcon, filledDots: 1 },
+    { name: "logicUntil", IconComponent: LogicUntilIcon, filledDots: 1 },
+    {
+      name: "logicBranching",
+      IconComponent: LogicBranchingIcon,
+      filledDots: 1,
+    },
+    {
+      name: "logicInvariant",
+      IconComponent: LogicInvariantIcon,
+      filledDots: 0,
+    },
+    {
+      name: "logicCounterexample",
+      IconComponent: LogicCounterexampleIcon,
+      filledDots: 0,
+    },
+    {
+      name: "logicConstraint",
+      IconComponent: LogicConstraintIcon,
+      filledDots: 0,
+    },
+    {
+      name: "logicRobustness",
+      IconComponent: LogicRobustnessIcon,
+      filledDots: 0,
+    },
+  ] as const)(
+    "preserves the meaning of $name in both styles across the weight range",
+    ({ name, IconComponent, filledDots }) => {
+      expect(hashIconPack[name]).toBe(IconComponent);
+      for (const variant of ["outline", "filled"] as const) {
+        for (const weight of [100, 400, 700]) {
+          const { container, unmount } = render(
+            <IconComponent
+              variant={variant}
+              weight={weight}
+              aria-label={name}
+              motion="none"
+            />,
+          );
+          expect(
+            screen.getByRole("img", { name }).getAttribute("data-icon"),
+          ).toBe(name);
+          expect(
+            container.querySelector("svg")?.getAttribute("stroke-width"),
+          ).toBe(String(0.75 + weight / 400));
+          const shapes = container.querySelectorAll("path, circle");
+          expect(shapes.length).toBeGreaterThan(0);
+          let filled = 0;
+          for (const shape of shapes) {
+            const fill = shape.closest("[fill]")?.getAttribute("fill");
+            if (fill === "currentColor") {
+              expect(shape.tagName).toBe("circle");
+              filled++;
+            } else {
+              expect(fill).toBe("none");
+            }
+          }
+          expect(filled).toBe(filledDots);
+          unmount();
+        }
+      }
+    },
+  );
 
   it("renders every icon as a single 24 by 24 SVG", () => {
     for (const name of hashIconNames) {
@@ -103,7 +195,7 @@ describe("HashIcon SVG API", () => {
     );
     const labelled = screen.getByRole("img", { name: "Place" });
     expect(labelled.getAttribute("width")).toBe("20");
-    expect(labelled.getAttribute("stroke-width")).toBe("3");
+    expect(labelled.getAttribute("stroke-width")).toBe("2.5");
     expect(labelled.getAttribute("color")).toBe("red");
     expect(labelled.hasAttribute("aria-hidden")).toBe(false);
     const decorative = container.querySelector('svg[aria-hidden="true"]');
@@ -141,9 +233,9 @@ describe("HashIcon SVG API", () => {
 
   it.each([
     [0, 1],
-    [800, 3],
-    [Number.NaN, 2],
-    [Number.POSITIVE_INFINITY, 2],
+    [800, 2.5],
+    [Number.NaN, 1.75],
+    [Number.POSITIVE_INFINITY, 1.75],
   ])(
     "keeps weight %s within the supported stroke range",
     (weight, strokeWidth) => {
@@ -841,7 +933,7 @@ describe("HashIcon motion", () => {
     );
     expect(animate).not.toHaveBeenCalled();
     expect(ref.current).toBe(screen.getByRole("img", { name: "Add place" }));
-    expect(ref.current?.getAttribute("stroke-width")).toBe("3");
+    expect(ref.current?.getAttribute("stroke-width")).toBe("2.5");
     const maskIds = Array.from(
       container.querySelectorAll("mask"),
       (mask) => mask.id,
@@ -876,7 +968,7 @@ describe("HashIcon motion", () => {
     const frame = container.querySelector('[data-icon-draw="frame"]');
     rerender(<HashIcon name="addTransition" selected />);
     expect(container.querySelector('[data-icon-draw="frame"]')).toBe(frame);
-    expect(frame?.getAttribute("rx")).toBe("2");
+    expect(frame?.getAttribute("rx")).toBe("1");
     expect(getHashIconEffects("addPlace")).toContain("draw");
     expect(getHashIconEffects("settings")).not.toContain("draw");
   });
@@ -904,6 +996,32 @@ describe("HashIcon motion", () => {
     unmount();
     expect(cancel).toHaveBeenCalledTimes(4);
   });
+
+  it.each(["outline", "filled"] as const)(
+    "sweeps %s Radar once and stops when reduced motion is requested",
+    (variant) => {
+      const { container } = render(
+        <HashIcon name="radar" variant={variant} effect="action" />,
+      );
+      const sweep = container.querySelector('[data-icon-detail="radar-sweep"]');
+      expect(sweep?.querySelector("path")).not.toBeNull();
+      expect(animate).toHaveBeenCalledTimes(1);
+      expect(animate.mock.contexts[0]).toBe(sweep);
+      expect(animate.mock.calls[0]).toEqual([
+        [
+          { transform: "rotate(0deg)", transformOrigin: "12px 12px" },
+          { transform: "rotate(360deg)", transformOrigin: "12px 12px" },
+        ],
+        expect.objectContaining({ iterations: 1, easing: "linear" }),
+      ]);
+      act(() => {
+        reducedMotion = true;
+        mediaListeners.forEach((listener) => listener());
+      });
+      expect(cancel).toHaveBeenCalledTimes(1);
+      expect(animate).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("jumps on click without replacing the runner's independent gait", () => {
     const { container, unmount } = render(
@@ -1025,6 +1143,63 @@ describe("HashIcon motion", () => {
     expect(
       offsets.filter((transform) => transform === "translateX(-3px)"),
     ).toHaveLength(2);
+  });
+
+  it.each(["equationCurve", "equationFlow"] as const)(
+    "keeps the endpoints of %s fixed while the curve changes",
+    (name) => {
+      const { container } = render(
+        <button type="button">
+          <HashIcon name={name} />
+        </button>,
+      );
+      const curve = container.querySelector(
+        '[data-icon-detail="equation-curve"], [data-icon-detail="equation-solution"]',
+      );
+      const coordinates = (value: unknown) =>
+        String(value)
+          .match(/-?\d*\.?\d+/g)
+          ?.map(Number) ?? [];
+      const resting = coordinates(curve?.getAttribute("d"));
+      fireEvent.click(screen.getByRole("button"));
+      const frames =
+        animate.mock.calls[animate.mock.contexts.indexOf(curve)]?.[0];
+      expect(frames).toBeDefined();
+      for (const frame of frames ?? []) {
+        const values = coordinates(frame.d);
+        expect(values.slice(0, 2)).toEqual(resting.slice(0, 2));
+        expect(values.slice(-2)).toEqual(resting.slice(-2));
+      }
+    },
+  );
+
+  it("keeps the range value attached to both moving bounds", () => {
+    const { container } = render(
+      <button type="button">
+        <HashIcon name="parameterRange" />
+      </button>,
+    );
+    const left = container.querySelector('[data-icon-detail="range-left"]');
+    const right = container.querySelector('[data-icon-detail="range-right"]');
+    const value = container.querySelector('[data-icon-detail="range-value"]');
+    fireEvent.click(screen.getByRole("button"));
+    const peak = (element: Element | null) =>
+      animate.mock.calls[animate.mock.contexts.indexOf(element)]?.[0][1]
+        ?.transform;
+    const number = (input: unknown) =>
+      Number(String(input).match(/-?\d*\.?\d+/)?.[0]);
+    const start = number(value?.getAttribute("d"));
+    const end = start + number(value?.getAttribute("d")?.split("h")[1]);
+    const center = (start + end) / 2;
+    const scale = number(peak(value));
+    expect(center + (start - center) * scale).toBeCloseTo(
+      number(left?.querySelector("path")?.getAttribute("d")) +
+        number(peak(left)),
+    );
+    expect(center + (end - center) * scale).toBeCloseTo(
+      number(right?.querySelector("path")?.getAttribute("d")) +
+        number(peak(right)),
+    );
   });
 
   it("offers matching labels and drawable paths for every modeling alternative", () => {

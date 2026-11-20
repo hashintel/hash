@@ -1,6 +1,9 @@
 import { Handle, Position, useNodeId, useStore } from "@xyflow/react";
+import { use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
+
+import { LinkRewiringContext } from "../link-rewiring-context";
 
 import type { CSSProperties, KeyboardEvent } from "react";
 
@@ -26,7 +29,8 @@ const launchHandleStyle = css({
   },
 });
 
-// Pseudo-elements expand hit areas without moving the anchors of subnet arcs.
+// Pseudo-elements expand hit areas without moving the anchors of component
+// arcs.
 const targetHandleStyle = css({
   _after: {
     content: '""',
@@ -49,15 +53,35 @@ const activateHandle = (event: KeyboardEvent<HTMLDivElement>) => {
   }
 };
 
-/** Whether an arc may run from a node of one kind to a node of the other. */
-const acceptsArc = (
+/**
+ * Whether a connection drawn from a node of one kind may end on a place or a
+ * transition: an arc between a place and a transition, or from an instance's
+ * port to a transition, and a fusion of an instance's port with a place.
+ */
+const acceptsConnection = (
   sourceKind: string | undefined,
   targetKind: string | undefined,
 ): boolean =>
   (sourceKind === "place" && targetKind === "transition") ||
   (sourceKind === "transition" && targetKind === "place") ||
-  // A component instance only starts an arc from one of its ports.
-  (sourceKind === "componentInstance" && targetKind === "transition");
+  // A component instance only starts a connection from one of its ports.
+  sourceKind === "componentInstance";
+
+/**
+ * Whether a place or a transition offers itself to what is being dragged. The
+ * moved end of a fusion link lands on places, whatever its other end is:
+ * what the drop does, or why it is refused, is for the rewiring to say.
+ */
+export const receivesDrag = ({
+  rewiring,
+  sourceKind,
+  nodeKind,
+}: {
+  rewiring: boolean;
+  sourceKind: string | undefined;
+  nodeKind: string | undefined;
+}): boolean =>
+  rewiring ? nodeKind === "place" : acceptsConnection(sourceKind, nodeKind);
 
 /**
  * A place's or transition's two handles. Hovering the node reveals the
@@ -83,7 +107,9 @@ export const NodeHandles = ({ isConnectable }: { isConnectable: boolean }) => {
       state.connection.toNode?.id === nodeId,
   );
 
-  const canReceive = isConnectable && acceptsArc(sourceKind, nodeKind);
+  const rewiring = use(LinkRewiringContext);
+  const canReceive =
+    isConnectable && receivesDrag({ rewiring, sourceKind, nodeKind });
 
   return (
     <>

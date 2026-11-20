@@ -122,17 +122,17 @@ describe("classifyNet", () => {
       ).toBeNull();
     });
 
-    it("counts the code of a subnet's transitions", () => {
+    it("counts the code of a component's transitions", () => {
       const { transitions, places, types } = netWith({
         transitionKernelCode:
           "return { Out: [{ value: Distribution.Uniform(0, 1) }] };",
       });
       const nested = {
         ...createSDCPN(),
-        subnets: [
+        components: [
           {
-            id: "subnet",
-            name: "Subnet",
+            id: "component",
+            name: "Component",
             places,
             transitions,
             types,
@@ -143,8 +143,10 @@ describe("classifyNet", () => {
       };
       expect(classifyNet(nested).chance).toBe("stochastic");
       expect(
-        classifyNet(nested, { ...DEFAULT_PETRINAUT_EXTENSIONS, subnets: false })
-          .chance,
+        classifyNet(nested, {
+          ...DEFAULT_PETRINAUT_EXTENSIONS,
+          components: false,
+        }).chance,
       ).toBe("deterministic");
     });
   });

@@ -21,7 +21,7 @@ import {
   brunchTools,
   hashProcessEditorId,
   petrinautContextualUserMessageBody,
-  vSdcpnInitialData,
+  sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
 import { liveToolRouteSegment } from "@local/flue-aisdk-transport/server";
 
@@ -280,6 +280,12 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
       "petrinaut_set_net_title",
       "petrinaut_layout_auto",
       "petrinaut_create_experiment",
+      // A fusion's members are added, removed and replaced one at a time.
+      "petrinaut_create_fusion_member",
+      "petrinaut_remove_fusion_member",
+      "petrinaut_replace_fusion_member",
+      // An interface's default implementation is set, never created or removed.
+      "petrinaut_set_implementation",
       ...[
         "place",
         "transition",
@@ -290,8 +296,9 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
         "parameter",
         "scenario",
         "metric",
-        "subnet",
         "component",
+        "component_instance",
+        "fusion",
       ].flatMap((kind) =>
         ["create", "update", "remove"].map(
           (verb) => `petrinaut_${verb}_${kind}`,
@@ -437,8 +444,8 @@ test("only the HASH agent counts records it read from HASH as evidence", async (
 });
 
 test("the agent admits a document binding or no initial data", () => {
-  expect(v.parse(vSdcpnInitialData, bound)).toEqual(bound);
-  expect(v.parse(vSdcpnInitialData, undefined)).toBeUndefined();
+  expect(v.parse(sdcpnInitialDataSchema, bound)).toEqual(bound);
+  expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
 });
 
 test("only the current submission's budget reaches the prompt and Off or a malformed budget restores exactly the baseline", async () => {

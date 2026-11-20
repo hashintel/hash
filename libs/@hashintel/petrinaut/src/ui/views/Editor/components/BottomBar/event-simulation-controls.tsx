@@ -21,7 +21,7 @@ import type { PlaybackSpeed } from "@hashintel/petrinaut-core";
 
 export interface EventSimulationControlsProps {
   disabled?: boolean;
-  inSubnet?: boolean;
+  inComponent?: boolean;
   allowedPlaybackSpeeds?: readonly PlaybackSpeed[];
 }
 
@@ -32,7 +32,7 @@ export interface EventSimulationControlsProps {
  */
 export const EventSimulationControls: React.FC<
   EventSimulationControlsProps
-> = ({ disabled = false, inSubnet = false, allowedPlaybackSpeeds }) => {
+> = ({ disabled = false, inComponent = false, allowedPlaybackSpeeds }) => {
   const experimentalIcons = useExperimentalIconPackEnabled();
   const {
     state: simulationState,
@@ -54,9 +54,9 @@ export const EventSimulationControls: React.FC<
     playbackStore,
     (snapshot) => isSimulationOver && snapshot.time >= coveredTime,
   );
-  const isPlayDisabled = disabled || inSubnet || isAtEnd;
+  const isPlayDisabled = disabled || inComponent || isAtEnd;
 
-  const playTooltip = inSubnet
+  const playTooltip = inComponent
     ? "Return to the root net to run simulation"
     : disabled
       ? "Fix errors to run simulation"
@@ -69,7 +69,7 @@ export const EventSimulationControls: React.FC<
             : "Play";
 
   const handlePlayPause = () => {
-    if (disabled && !inSubnet) {
+    if (disabled && !inComponent) {
       setActiveBottomPanelTab("diagnostics");
       setBottomPanelOpen(true);
       return;

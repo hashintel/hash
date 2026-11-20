@@ -34,9 +34,9 @@ const net: SDCPN = {
   ],
   differentialEquations: [],
   parameters: [],
-  subnets: [
+  components: [
     {
-      id: "subnet-1",
+      id: "component-1",
       name: "Inner",
       places: [place("place-inner", "Inner")],
       transitions: [],
@@ -93,9 +93,9 @@ describe("hashPetrinautDocument", () => {
   const changes: Record<PetrinautNonSemanticPart, (input: SDCPN) => SDCPN> = {
     layout: (input) => ({
       ...input,
-      subnets: input.subnets?.map((subnet) => ({
-        ...subnet,
-        places: subnet.places.map((item) => ({ ...item, x: item.x + 40 })),
+      components: input.components?.map((component) => ({
+        ...component,
+        places: component.places.map((item) => ({ ...item, x: item.x + 40 })),
       })),
     }),
     descriptions: (input) => ({ ...input, description: "Changed" }),
@@ -112,6 +112,22 @@ describe("hashPetrinautDocument", () => {
     expect(hashPetrinautDocument(changed)).not.toBe(hashPetrinautDocument(net));
     expect(hashPetrinautDocument(changed, { exclude: [part] })).toBe(
       hashPetrinautDocument(net, { exclude: [part] }),
+    );
+  });
+
+  it("counts a component's icon and colour as appearance", () => {
+    const styled: SDCPN = {
+      ...net,
+      components: net.components?.map((component) => ({
+        ...component,
+        iconSvg: "<svg/>",
+        displayColor: "#00FF00",
+      })),
+    };
+
+    expect(hashPetrinautDocument(styled)).not.toBe(hashPetrinautDocument(net));
+    expect(hashPetrinautDocument(styled, { exclude: ["appearance"] })).toBe(
+      hashPetrinautDocument(net, { exclude: ["appearance"] }),
     );
   });
 });

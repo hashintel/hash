@@ -9,6 +9,8 @@ import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   calculateGraphLayout,
+  generatePetrinautId,
+  inlineImports,
   layoutNodeDimensions,
   type DocumentFormat,
   type SDCPN,
@@ -33,8 +35,10 @@ import {
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
 import { usePetrinautNavigation } from "../../../react/navigation";
+import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
@@ -187,6 +191,7 @@ const EditorViewContent = ({
     title,
     setTitle,
   } = use(SDCPNContext);
+  const { libraries } = use(CompositionContext);
   const { applyAutoLayout } = usePetrinautCommands();
   const {
     frameSceneAfterRender,
@@ -214,6 +219,7 @@ const EditorViewContent = ({
     bottomPanelHeight,
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
+  const composesOnly = useComposesOnly();
   const assistant = useEditorAssistant();
 
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
@@ -253,6 +259,19 @@ const EditorViewContent = ({
 
   function handleExportWithoutVisualInfo(format: DocumentFormat) {
     exportSDCPN({ petriNetDefinition, title, removeVisualInfo: true, format });
+  }
+
+  /** The document with what it takes from its libraries made its own, so it reads without them. */
+  function handleExportInlined(format: DocumentFormat) {
+    exportSDCPN({
+      petriNetDefinition: inlineImports(
+        petriNetDefinition,
+        libraries,
+        generatePetrinautId,
+      ),
+      title,
+      format,
+    });
   }
 
   function handleExportTikZ() {
@@ -365,6 +384,21 @@ const EditorViewContent = ({
           text: "JSON without visual info",
           onClick: () => handleExportWithoutVisualInfo("json"),
         },
+        // Offered where there is something to inline.
+        ...((petriNetDefinition.imports ?? []).length > 0
+          ? [
+              {
+                id: "export-yaml-inlined",
+                text: "YAML with imports inlined",
+                onClick: () => handleExportInlined("yaml"),
+              },
+              {
+                id: "export-json-inlined",
+                text: "JSON with imports inlined",
+                onClick: () => handleExportInlined("json"),
+              },
+            ]
+          : []),
         {
           id: "export-tikz",
           text: "TikZ",
@@ -595,7 +629,7 @@ const EditorViewContent = ({
             <SimulateView />
           ) : (
             <div className={workspaceStyle}>
-              {globalMode === "edit" && <EditViewSelector />}
+              {globalMode === "edit" && !composesOnly && <EditViewSelector />}
               <Activity
                 mode={
                   globalMode === "actual" || editViewMode === "canvas"

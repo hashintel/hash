@@ -1,6 +1,11 @@
 import { getMiddleCenterBias, GridCellKind } from "@glideapps/glide-data-grid";
 
-import type { CustomCell, DrawArgs, Theme } from "@glideapps/glide-data-grid";
+import type {
+  CustomCell,
+  DrawArgs,
+  GridCell,
+  Theme,
+} from "@glideapps/glide-data-grid";
 
 /** The font a grid draws its column headers in. */
 export const gridHeaderBaseFont = "600 14px Inter";
@@ -31,4 +36,25 @@ export const blankCell: BlankCell = {
   allowOverlay: false,
   copyData: "",
   data: { kind: "blank-cell" },
+};
+
+/** Mirrors the cell text glide's built-in search tests, per cell kind. */
+export const getCellSearchableText = (cell: GridCell): string | undefined => {
+  switch (cell.kind) {
+    case GridCellKind.Text:
+    case GridCellKind.Number:
+      return cell.displayData;
+    case GridCellKind.Uri:
+    case GridCellKind.Markdown:
+      return cell.data;
+    case GridCellKind.Boolean:
+      return typeof cell.data === "boolean" ? cell.data.toString() : undefined;
+    case GridCellKind.Image:
+    case GridCellKind.Bubble:
+      return cell.data.join("\n");
+    case GridCellKind.Custom:
+      return cell.copyData;
+    default:
+      return undefined;
+  }
 };

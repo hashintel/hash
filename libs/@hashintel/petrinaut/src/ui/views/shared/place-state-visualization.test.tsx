@@ -13,9 +13,17 @@ import { afterEach, expect, it, vi } from "vitest";
 import { lowerVisualizerToHir } from "@hashintel/petrinaut-core/view-hir";
 
 import {
+  emptyExecutionFrameSource,
+  ExecutionFrameSourceContext,
+} from "../../../react/execution-frame/context";
+import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
 } from "../../../react/lsp/context";
+import {
+  DEFAULT_SIMULATION_CONTEXT,
+  SimulationContext,
+} from "../../../react/simulation/context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { PlaceStateVisualization } from "./place-state-visualization";
 
@@ -113,6 +121,104 @@ it("keeps the last drawing visible until the newest compilation completes", asyn
   expect(screen.getByText("Third picture")).toBeDefined();
   expect(screen.queryByText("First picture")).toBeNull();
   expect(screen.queryByRole("status")).toBeNull();
+});
+
+/** A place that holds a count, drawn before a run or, given `frameCount`, during one. */
+const setupCounted = (
+  placeType: Color | null,
+  marking: number | Record<string, never>[],
+) => {
+  const code =
+    'return <Visualizer.Svg viewBox="0 0 400 200"><text>{tokens.length} in stock</text>{tokens.map((_, index) => <circle key={index} cx={20 + index * 20} cy={20} r={8} />)}</Visualizer.Svg>;';
+  const requestVisualizerHir = vi.fn(() =>
+    Promise.resolve(
+      lowerVisualizerToHir(code, {
+        surface: "visualizer",
+        parameters: [],
+        elements: placeType?.elements ?? null,
+      }),
+    ),
+  );
+  return ({ frameCount }: { frameCount?: number }) => (
+    <LanguageClientContext
+      value={{ ...DEFAULT_LANGUAGE_CLIENT_CONTEXT, requestVisualizerHir }}
+    >
+      <SimulationContext
+        value={{
+          ...DEFAULT_SIMULATION_CONTEXT,
+          initialMarking: { place: marking },
+        }}
+      >
+        <ExecutionFrameSourceContext
+          value={
+            frameCount === undefined
+              ? emptyExecutionFrameSource
+              : {
+                  ...emptyExecutionFrameSource,
+                  totalFrames: 1,
+                  currentFrameReader: {
+                    number: 0,
+                    time: 0,
+                    getPlaceTokenCount: () => frameCount,
+                    // A frame holds no bytes for tokens that carry nothing.
+                    getPlaceTokens: () => [],
+                    getTransitionState: () => null,
+                    toFrameState: () => ({ number: 0, places: {} }),
+                  },
+                }
+          }
+        >
+          <PlaceStateVisualization
+            place={{
+              ...place,
+              colorId: placeType?.id ?? null,
+              visualizerCode: code,
+            }}
+            placeType={placeType}
+            size={{ width: 400, height: 240 }}
+          />
+        </ExecutionFrameSourceContext>
+      </SimulationContext>
+    </LanguageClientContext>
+  );
+};
+
+it("draws one mark per token of a place with no type, before a run and during one", async () => {
+  const Harness = setupCounted(null, 3);
+
+  const { rerender, container } = await act(() => render(<Harness />));
+  expect(screen.getByText("3 in stock")).toBeDefined();
+  expect(container.querySelectorAll("circle")).toHaveLength(3);
+
+  await act(async () => rerender(<Harness frameCount={5} />));
+  expect(screen.getByText("5 in stock")).toBeDefined();
+  expect(container.querySelectorAll("circle")).toHaveLength(5);
+});
+
+it("counts the tokens of a type with no element as it does those of a place with no type", async () => {
+  const Harness = setupCounted({ ...color, elements: [] }, [{}, {}, {}]);
+
+  const { rerender, container } = await act(() => render(<Harness />));
+  expect(screen.getByText("3 in stock")).toBeDefined();
+
+  await act(async () => rerender(<Harness frameCount={5} />));
+  expect(screen.getByText("5 in stock")).toBeDefined();
+  expect(container.querySelectorAll("circle")).toHaveLength(5);
+});
+
+it("says a count is too large to draw in place of one record per token, and draws again once it is not", async () => {
+  const Harness = setupCounted(null, 4_000_000_000);
+
+  const { rerender, container } = await act(() => render(<Harness />));
+  expect(
+    screen.getByText(
+      "This place holds more than 1,000,000 tokens, too many to draw.",
+    ),
+  ).toBeDefined();
+
+  await act(async () => rerender(<Harness frameCount={2} />));
+  expect(screen.getByText("2 in stock")).toBeDefined();
+  expect(container.querySelectorAll("circle")).toHaveLength(2);
 });
 
 it("shows a compilation error only when ready and recovers on the next edit", async () => {

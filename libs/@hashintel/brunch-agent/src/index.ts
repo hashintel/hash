@@ -18,14 +18,14 @@ export * from "./conversation-identity";
 export * from "./client-tools";
 export {
   hashEntityReadDefaultTraversalDepth,
-  vHashEntityReadInput,
+  hashEntityReadInputSchema,
   hashEntityReadMaxTraversalDepth,
-  vHashEntityReadResult,
-  vHashEntityTypeReadInput,
-  vHashEntityTypeReadResult,
-  vHashReadFailure,
-  vHashWebReadInput,
-  vHashWebReadResult,
+  hashEntityReadResultSchema,
+  hashEntityTypeReadInputSchema,
+  hashEntityTypeReadResultSchema,
+  hashReadFailureSchema,
+  hashWebReadInputSchema,
+  hashWebReadResultSchema,
   parseHashEntityReadInput,
   parseHashEntityTypeReadInput,
   parseHashWebReadInput,
@@ -37,7 +37,7 @@ export {
   type HashWebReadResult,
 } from "./hash/graph-reads";
 export {
-  vHashSaveInput,
+  hashSaveInputSchema,
   parseHashSaveInput,
   parseHashSaveOutcome,
   type HashSaveOutcome,
@@ -63,6 +63,10 @@ export {
 } from "./petrinaut/browser-executed-tools";
 export { CANONICAL_PETRINAUT_TOOL_NAMES } from "./petrinaut/construction-tool-names";
 export {
+  readRecordedCall,
+  recordedCanonicalCallsOf,
+} from "./petrinaut/recorded-calls";
+export {
   PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
@@ -71,6 +75,15 @@ export {
 } from "./petrinaut/contextual-user-message";
 export { type InterviewBudget } from "./petrinaut/interview-budget";
 export {
+  type EditorSelection,
+  listedSelection,
+  newestNonEmptySelection,
+  parseSelection,
+  petrinautSelectionLimits,
+  selectionContextKey,
+  shortenedSelectionLabel,
+} from "./petrinaut/selection";
+export {
   petrinautSubmissionContext,
   readPetrinautSubmissionContext,
   type PetrinautSubmissionContext,
@@ -78,7 +91,7 @@ export {
 } from "./petrinaut/submission-context";
 export {
   netReaderDescriptions,
-  vNetReaderInput,
+  netReaderInputSchema,
   netReaderToolNames,
   parseNetReaderInput,
   netStructureOf,
@@ -99,13 +112,13 @@ export {
   type PetrinautToolCapability,
 } from "./petrinaut/petrinaut-tool-effects";
 export {
-  vSdcpnInitialData,
+  sdcpnInitialDataSchema,
   type BrowserContext,
   type SdcpnInitialData,
 } from "./petrinaut/initial-data";
 export {
-  zDraftPetrinautExperimentInput,
-  zDraftPetrinautExperimentOutput,
+  draftPetrinautExperimentInputSchema,
+  draftPetrinautExperimentOutputSchema,
   type DraftPetrinautExperimentInput,
   type DraftPetrinautExperimentOutput,
 } from "./petrinaut/draft-experiment";

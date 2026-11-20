@@ -1,6 +1,7 @@
 import ts from "@typescript/typescript6";
 
 import { getArcEndpoint } from "../../arc-endpoints";
+import { resolveComponent } from "../../composition/interfaces";
 import { isSupportedArity } from "../../equation-arity";
 import {
   createArcPlaceResolver,
@@ -200,10 +201,10 @@ function getPlaceDisplayNameForArc(
   const instance = sdcpn.componentInstances?.find(
     (i) => i.id === endpoint.componentInstanceId,
   );
-  const subnet = instance
-    ? sdcpn.subnets?.find((s) => s.id === instance.subnetId)
+  const component = instance
+    ? resolveComponent(sdcpn, instance.component)
     : undefined;
-  const portPlace = subnet?.places.find(
+  const portPlace = component?.places.find(
     (p) => p.id === endpoint.portPlaceId && p.isPort,
   );
 
@@ -216,8 +217,8 @@ function getPlaceDisplayNameForArc(
 }
 
 /**
- * Every colour a place can carry: the root net's and all subnets', so port
- * places whose colour is subnet-local still resolve. Deduplicated by id (the
+ * Every colour a place can carry: the root net's and all components', so port
+ * places whose colour is component-local still resolve. Deduplicated by id (the
  * last definition wins). Empty when the colours extension is off.
  */
 function collectColors(
@@ -227,7 +228,7 @@ function collectColors(
   const allColors = extensions.colors
     ? [
         ...sdcpn.types,
-        ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+        ...(sdcpn.components ?? []).flatMap((component) => component.types),
       ]
     : [];
   return new Map(allColors.map((color) => [color.id, color]));
@@ -288,7 +289,7 @@ export function generateVirtualFiles(
 
   const colorById = collectColors(sdcpn, extensions);
   const resolveArcPlace = createArcPlaceResolver(sdcpn, sdcpn, {
-    componentPortsEnabled: extensions.subnets,
+    componentPortsEnabled: extensions.components,
   });
 
   files.set(

@@ -75,3 +75,37 @@ index ec05aa9866c70032fc5509ff557cb8c542e384ed..675685a49e67a2deffa8afb6891be880
      const [selCol, selRow] = currentCell ?? [];
      const onCellFocused = React.useCallback((cell) => {
          const [col, row] = cell;
+diff --git a/dist/cjs/data-editor/copy-paste.js b/dist/cjs/data-editor/copy-paste.js
+--- a/dist/cjs/data-editor/copy-paste.js
++++ b/dist/cjs/data-editor/copy-paste.js
+@@ -131,7 +131,12 @@
+     // 1. Replacing tabs with four spaces for consistency. Also google sheets disallows any tabs.
+     // 2. Wrapping each space with a span element to prevent them from being collapsed or ignored during the
+     //    paste operation
+-    return text.replace(/\t/g, "    ").replace(/ {2,}/g, match => "<span> </span>".repeat(match.length));
++    return text
++        .replace(/&/g, "&amp;")
++        .replace(/</g, "&lt;")
++        .replace(/>/g, "&gt;")
++        .replace(/\t/g, "    ")
++        .replace(/ {2,}/g, match => "<span> </span>".repeat(match.length));
+ }
+ function formatHtmlAttributeContent(attrText) {
+     // Escape all quotes, lt, gt, and other special characters
+diff --git a/dist/esm/data-editor/copy-paste.js b/dist/esm/data-editor/copy-paste.js
+--- a/dist/esm/data-editor/copy-paste.js
++++ b/dist/esm/data-editor/copy-paste.js
+@@ -128,7 +128,12 @@
+     // 1. Replacing tabs with four spaces for consistency. Also google sheets disallows any tabs.
+     // 2. Wrapping each space with a span element to prevent them from being collapsed or ignored during the
+     //    paste operation
+-    return text.replace(/\t/g, "    ").replace(/ {2,}/g, match => "<span> </span>".repeat(match.length));
++    return text
++        .replace(/&/g, "&amp;")
++        .replace(/</g, "&lt;")
++        .replace(/>/g, "&gt;")
++        .replace(/\t/g, "    ")
++        .replace(/ {2,}/g, match => "<span> </span>".repeat(match.length));
+ }
+ function formatHtmlAttributeContent(attrText) {
+     // Escape all quotes, lt, gt, and other special characters

@@ -168,6 +168,63 @@ describe("getFlowGraph", () => {
     ]);
   });
 
+  it("draws a line from the port of the path a step follows, also into a collapsed box that follows another path", () => {
+    const steps: StepDefinition<string>[] = [
+      actionStep("check", {
+        actionDefinitionId: "if",
+        pathNames: { true: "Over budget", false: "Ignored" },
+      }),
+      {
+        kind: "for-each",
+        stepId: "forEach",
+        description: "",
+        runAfter: [{ stepId: "check", outputName: "true" }],
+        over: { kind: "flow-input", inputName: "suppliers" },
+        steps: [
+          actionStep("inner", {
+            runAfter: [{ stepId: "check", outputName: "false" }],
+          }),
+        ],
+        collect: { stepId: "inner", outputName: "entities", as: "results" },
+      },
+    ];
+
+    const graph = graphOf(steps, new Map(), new Set(["forEach"]));
+
+    expect(
+      graph.edges
+        .filter(({ data }) => data?.kind !== "start")
+        .map(({ source, sourceHandle, target, data }) => ({
+          source,
+          sourceHandle,
+          target,
+          kind: data?.kind,
+        })),
+    ).toEqual([
+      {
+        source: getStepNodeId("check"),
+        sourceHandle: "false",
+        target: getStepNodeId("forEach"),
+        kind: "inner",
+      },
+      {
+        source: getStepNodeId("check"),
+        sourceHandle: "true",
+        target: getStepNodeId("forEach"),
+        kind: "connection",
+      },
+    ]);
+    /* Yes takes its new name; No, the catch-all, keeps its own. */
+    expect(
+      graph.nodes.find(({ id }) => id === getStepNodeId("check"))?.data,
+    ).toMatchObject({
+      paths: [
+        { outputName: "true", name: "Over budget", connected: true },
+        { outputName: "false", name: "No", connected: true },
+      ],
+    });
+  });
+
   it("puts Start a gap to the left of the leftmost step with nothing before it", () => {
     const graph = graphOf([
       actionStep("later", { position: { x: 500, y: 300 } }),

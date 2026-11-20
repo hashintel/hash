@@ -4,9 +4,16 @@
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
  */
 
+import { makeDsn } from "@sentry/core";
+
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
-import { brunchAgentOrigin } from "./public-env";
+import { buildStamp } from "../../buildstamp";
+import {
+  brunchAgentOrigin,
+  SENTRY_DSN,
+  SENTRY_ENVIRONMENT,
+} from "./public-env";
 
 const buildDirectiveString = (directives: Record<string, string[]>): string =>
   Object.entries(directives)
@@ -25,6 +32,34 @@ const buildDirectiveString = (directives: Record<string, string[]>): string =>
 export const isProcessEditorPath = (pathname: string): boolean =>
   /^\/processes\/[^/]+\/?$/.test(pathname);
 
+/** The Vercel toolbar, which Vercel injects into preview deployments. */
+const isVercelPreview = (): boolean =>
+  process.env.NEXT_PUBLIC_VERCEL_ENV === "preview";
+
+const reportingEndpointName = "csp-endpoint";
+
+/**
+ * The Sentry project's security endpoint, which browsers send policy
+ * violations to, or `null` without a valid DSN.
+ *
+ * @see https://docs.sentry.io/platforms/javascript/security-policy-reporting/
+ */
+const cspReportEndpoint = (): string | null => {
+  const dsn = SENTRY_DSN ? makeDsn(SENTRY_DSN) : undefined;
+  if (!dsn?.publicKey) {
+    return null;
+  }
+  const port = dsn.port ? `:${dsn.port}` : "";
+  const path = dsn.path ? `/${dsn.path}` : "";
+  const endpoint = new URL(
+    `${dsn.protocol}://${dsn.host}${port}${path}/api/${dsn.projectId}/security/`,
+  );
+  endpoint.searchParams.set("sentry_key", dsn.publicKey);
+  endpoint.searchParams.set("sentry_environment", SENTRY_ENVIRONMENT);
+  endpoint.searchParams.set("sentry_release", buildStamp);
+  return endpoint.href;
+};
+
 export const buildCspHeader = ({
   nonce,
   pathname,
@@ -34,6 +69,7 @@ export const buildCspHeader = ({
   pathname: string;
 }): string => {
   const isProcessEditor = isProcessEditorPath(pathname);
+  const reportEndpoint = cspReportEndpoint();
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
@@ -57,7 +93,7 @@ export const buildCspHeader = ({
       // Google Picker API (Google Sheets integration)
       "https://apis.google.com",
       // Vercel toolbar / live preview widget
-      "https://vercel.live",
+      ...(isVercelPreview() ? ["https://vercel.live"] : []),
     ],
 
     "style-src": [
@@ -112,7 +148,7 @@ export const buildCspHeader = ({
       // Vercel Edge Config (maintenance mode check in middleware)
       "https://edge-config.vercel.com",
       // Vercel toolbar / live preview widget
-      "https://vercel.live",
+      ...(isVercelPreview() ? ["https://vercel.live"] : []),
       // File uploads/downloads use presigned S3/R2 URLs on varying domains.
       // Production storage is always HTTPS; local MinIO uses plain HTTP.
       "https:",
@@ -132,13 +168,31 @@ export const buildCspHeader = ({
       // Google Picker iframe
       "https://docs.google.com",
       // Vercel toolbar / live preview widget
-      "https://vercel.live",
+      ...(isVercelPreview() ? ["https://vercel.live"] : []),
     ],
 
+    "frame-ancestors": ["'self'"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
     "form-action": ["'self'"],
   };
 
+  if (reportEndpoint !== null) {
+    // `report-to` supersedes `report-uri` where a browser supports both.
+    directives["report-uri"] = [reportEndpoint];
+    directives["report-to"] = [reportingEndpointName];
+  }
+
   return buildDirectiveString(directives);
+};
+
+/**
+ * The `Reporting-Endpoints` header value that names the policy's `report-to`
+ * endpoint, or `null` when it reports nowhere.
+ */
+export const buildReportingEndpointsHeader = (): string | null => {
+  const reportEndpoint = cspReportEndpoint();
+  return reportEndpoint === null
+    ? null
+    : `${reportingEndpointName}="${reportEndpoint}"`;
 };

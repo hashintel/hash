@@ -15,7 +15,7 @@ every route that reads query params declares `validateSearch`, which is the
 only place raw query input enters the app.
 
 `website.examples` owns the contract. `example-search.ts` defines the four
-params a shareable location carries — `scenario`, `subnet`, `itemType`,
+params a shareable location carries — `scenario`, `component`, `itemType`,
 `itemId` — validates them with zod, and encodes them back. The module imports
 neither React nor the editor, so the oEmbed function can speak the same
 contract without bundling either.
@@ -50,7 +50,7 @@ carry; the URL still wins for the fields it owns.
 ## Validation normalizes the location
 
 `validateSharedExampleSearch` drops everything it cannot represent: an unknown
-`itemType`, an empty `subnet`, a param outside the contract. Its output is
+`itemType`, an empty `component`, a param outside the contract. Its output is
 therefore the canonical spelling of a location, and two searches are the same
 location when `canonicalSearchString` agrees on both. The hook uses that
 equality to suppress no-op navigations, and the oEmbed function uses the same

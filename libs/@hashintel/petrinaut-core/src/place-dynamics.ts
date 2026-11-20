@@ -2,12 +2,16 @@ import type { ID, Place } from "./types/sdcpn";
 
 /**
  * The differential equations a place composes, in application order.
- * Ignores `dynamicsEnabled`; callers that run the equations check it
- * themselves.
+ * Ignores `dynamicsEnabled`: `getRunningEquationIds` is the list a run uses.
  */
 export const getPlaceDynamicsEquationIds = (
   place: Pick<Place, "dynamics">,
 ): ID[] => (place.dynamics ?? []).map((term) => term.differentialEquationId);
+
+/** The equations a place runs: the ones it composes, while its dynamics are enabled. */
+export const getRunningEquationIds = (
+  place: Pick<Place, "dynamics" | "dynamicsEnabled">,
+): ID[] => (place.dynamicsEnabled ? getPlaceDynamicsEquationIds(place) : []);
 
 /** Whether the place composes `equationId` anywhere in its dynamics. */
 export const placeUsesDifferentialEquation = (

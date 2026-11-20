@@ -1,23 +1,36 @@
 import * as v from "valibot";
 import { z } from "zod";
 
-const zJson = z.json();
-// Use the existing JSON parser without cloning or normalizing the result.
-const vJson = v.custom<z.infer<typeof zJson>>(
-  (value) => zJson.safeParse(value).success,
+/**
+ * `z.json()`, except that an object property may be `undefined`: what
+ * `JSON.stringify` carries without loss, dropping only those properties.
+ */
+const jsonLikeZodSchema: z.ZodType = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonLikeZodSchema),
+    z.record(z.string(), jsonLikeZodSchema.optional()),
+  ]),
+);
+// Check without cloning or normalizing the result; typed as the JSON received.
+const jsonLikeSchema = v.custom<z.infer<ReturnType<typeof z.json>>>(
+  (value) => jsonLikeZodSchema.safeParse(value).success,
   "Expected a JSON value",
 );
 
 /** The result boundary, before HTTP serialization and after receipt. */
-export const vBrowserToolResult = v.object({
-  output: vJson,
+export const browserToolResultSchema = v.object({
+  output: jsonLikeSchema,
   /** Host-owned verified sidecar; canonical output remains unchanged. */
-  metadata: v.optional(vJson),
+  metadata: v.optional(jsonLikeSchema),
 });
 
 /** A browser-executed result, exchanged in band with the server. */
 export type ClientToolResult = Readonly<
-  v.InferOutput<typeof vBrowserToolResult>
+  v.InferOutput<typeof browserToolResultSchema>
 > & {
   readonly toolCallId: string;
   readonly toolName: string;
@@ -43,7 +56,7 @@ export const browserToolEnvelopeOf = (
     )
   )
     return undefined;
-  const parsed = v.safeParse(vBrowserToolResult, value);
+  const parsed = v.safeParse(browserToolResultSchema, value);
   return parsed.success
     ? { brunchBrowserResult: true, ...parsed.output }
     : undefined;

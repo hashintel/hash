@@ -61,7 +61,7 @@ describe("metric LSP validation", () => {
           stochasticity: true,
           dynamics: true,
           parameters: true,
-          subnets: true,
+          components: true,
         },
         metric: {
           id: "metric-id",

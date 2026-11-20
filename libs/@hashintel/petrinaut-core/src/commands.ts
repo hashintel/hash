@@ -18,7 +18,7 @@ import { layoutNodeDimensions } from "./layout/dimensions";
 import { toPetrinautId } from "./petrinaut-id";
 
 import type { ClipboardPayload } from "./clipboard/types";
-import type { SDCPN, Subnet } from "./types/sdcpn";
+import type { Component, SDCPN } from "./types/sdcpn";
 
 export type ApplyClipboardPasteResult = {
   newItemIds: Array<{ type: string; id: string }>;
@@ -47,7 +47,7 @@ export type CommandHelperFunctions = {
    */
   applyClipboardPaste: (input: {
     payload: ClipboardPayload;
-    targetSubnetId?: string | null;
+    targetComponentId?: string | null;
   }) => ApplyClipboardPasteResult;
 
   /**
@@ -57,29 +57,31 @@ export type CommandHelperFunctions = {
    * widget when `askUserFirst: true`).
    */
   applyAutoLayout: (input?: {
-    targetSubnetId?: string | null;
+    targetComponentId?: string | null;
   }) => Promise<ApplyAutoLayoutResult>;
 };
 
 const resolveTargetNet = (
   sdcpn: SDCPN,
-  targetSubnetId?: string | null,
-): SDCPN | Subnet => {
-  if (!targetSubnetId) {
+  targetComponentId?: string | null,
+): SDCPN | Component => {
+  if (!targetComponentId) {
     return sdcpn;
   }
 
-  const subnetId = toPetrinautId(targetSubnetId);
-  const subnet = sdcpn.subnets?.find(({ id }) => id === subnetId);
-  if (!subnet) {
-    throw new Error(`Subnet with ID \`${targetSubnetId}\` does not exist.`);
+  const componentId = toPetrinautId(targetComponentId);
+  const component = sdcpn.components?.find(({ id }) => id === componentId);
+  if (!component) {
+    throw new Error(
+      `Component with ID \`${targetComponentId}\` does not exist.`,
+    );
   }
 
-  return subnet;
+  return component;
 };
 
 const validateNewlyPastedItems = (
-  sdcpn: SDCPN | Subnet,
+  sdcpn: SDCPN | Component,
   newItemIds: Array<{ type: string; id: string }>,
 ): void => {
   const idsByType = new Map<string, Set<string>>();
@@ -145,11 +147,11 @@ export function createPetrinautCommands(
 ): CommandHelperFunctions {
   return {
     applyClipboardPaste(input) {
-      const { payload, targetSubnetId } =
+      const { payload, targetComponentId } =
         commandActionInputSchemas.applyClipboardPaste.parse(input);
       let newItemIds: Array<{ type: string; id: string }> = [];
       mutate((sdcpn) => {
-        const targetNet = resolveTargetNet(sdcpn, targetSubnetId);
+        const targetNet = resolveTargetNet(sdcpn, targetComponentId);
         const result = pastePayloadIntoSDCPN(targetNet, payload);
         stripDisabledExtensionData(sdcpn, extensions);
         newItemIds = result.newItemIds.filter((item) =>
@@ -162,8 +164,8 @@ export function createPetrinautCommands(
 
     async applyAutoLayout(input) {
       const sdcpn = read();
-      const targetSubnetId = input?.targetSubnetId ?? null;
-      const targetNet = resolveTargetNet(sdcpn, targetSubnetId);
+      const targetComponentId = input?.targetComponentId ?? null;
+      const targetNet = resolveTargetNet(sdcpn, targetComponentId);
       const componentInstances = targetNet.componentInstances ?? [];
 
       if (
@@ -181,7 +183,7 @@ export function createPetrinautCommands(
 
       let commitCount = 0;
       mutate((draft) => {
-        const draftTargetNet = resolveTargetNet(draft, targetSubnetId);
+        const draftTargetNet = resolveTargetNet(draft, targetComponentId);
 
         for (const place of draftTargetNet.places) {
           const next = positions[place.id];

@@ -164,6 +164,7 @@ test.each([
       "send" | "wait"
     > as FlueClient;
     const bridge = new RealtimeBrunchBridge({
+      readSelection: () => [],
       session: {
         speakCanonical,
         subscribe: (listener) => {

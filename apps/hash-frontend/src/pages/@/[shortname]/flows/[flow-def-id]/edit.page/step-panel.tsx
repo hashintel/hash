@@ -1,27 +1,31 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 
-import { Button, Form, Icon, TextInput } from "@hashintel/ds-components";
+import { Button, Form, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
 import { findStep } from "./shared/find-step";
-import { getNameLabel } from "./shared/name-label";
+import { getOutputLabel } from "./shared/name-label";
 import { PanelSection, PanelTitle, SidePanel } from "./shared/side-panel";
 import {
   getActionDefinition,
   getStepDisplay,
   startDisplay,
 } from "./shared/step-display";
+import { StepIconTile } from "./shared/step-icon-tile";
+import { getStepPaths } from "./shared/step-paths";
 import { indexValueUses } from "./shared/value-uses";
 import { getFieldProblems } from "./step-panel/field-problems";
 import { FlowInputCard } from "./step-panel/flow-input-card";
 import { InputField } from "./step-panel/input-field";
 import { getNewFlowInput } from "./step-panel/input-sources";
+import { OutputField } from "./step-panel/output-field";
+import { PathsField } from "./step-panel/paths-field";
 import { QueryField } from "./step-panel/query-field";
-import { UsedByField } from "./step-panel/used-by-field";
 
-import type { FlowValue } from "./shared/value-uses";
+import type { StepTone } from "./shared/step-display";
+import type { FlowValue, ValueUse } from "./shared/value-uses";
 import type { IconName } from "@hashintel/ds-components";
 import type { ConnectionTarget } from "@local/hash-isomorphic-utils/flows/can-connect";
 import type {
@@ -35,7 +39,7 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
 
-type StepsUsing = (value: FlowValue) => StepDefinition<string>[];
+type UsesOf = (value: FlowValue) => ValueUse[];
 
 const takesEntityQuery = (input: InputDefinition) =>
   "oneOfPayloadKinds" in input &&
@@ -44,35 +48,49 @@ const takesEntityQuery = (input: InputDefinition) =>
 /** What the panel shows: the start step, or one step at any depth. */
 export type StepPanelSubject = { start: true } | { stepId: string };
 
-const header = css({ display: "flex", alignItems: "flex-start", gap: "2" });
-const headerIcon = css({ display: "flex", color: "fg.body", pt: "0.5" });
+const header = css({ display: "flex", alignItems: "center", gap: "3" });
 const headerText = css({
   display: "flex",
   flexDirection: "column",
-  gap: "1",
   flex: "1",
   minWidth: "0",
 });
-const fixedDescription = css({ textStyle: "sm", color: "fg.body" });
+const headerSubtitle = css({
+  display: "flex",
+  alignItems: "center",
+  textStyle: "sm",
+  color: "fg.muted",
+});
+const headerGroup = css({ flexShrink: "0", whiteSpace: "pre" });
+const headerDescription = css({ flex: "1", minWidth: "0" });
 const empty = css({ textStyle: "sm", color: "fg.subtle" });
 const addInputButton = css({ alignSelf: "flex-start" });
 
+/** The step's tile in its hue, then its type, then "Group · description" with the description given as `children`. */
 const PanelHeader = ({
   icon,
+  tone,
   title,
+  group,
   children,
 }: {
   icon: IconName;
+  tone: StepTone;
   title: string;
+  /** Left out for what belongs to no group, such as Start. */
+  group?: string;
   children: ReactNode;
 }) => (
   <div className={header}>
-    <span className={headerIcon}>
-      <Icon name={icon} size="sm" />
-    </span>
+    <StepIconTile icon={icon} tone={tone} size="header" />
     <div className={headerText}>
       <PanelTitle>{title}</PanelTitle>
-      {children}
+      <div className={headerSubtitle}>
+        {group !== undefined && (
+          <span className={headerGroup}>{`${group} · `}</span>
+        )}
+        <div className={headerDescription}>{children}</div>
+      </div>
     </div>
   </div>
 );
@@ -87,11 +105,13 @@ const newInputTarget: ConnectionTarget = {
 const StartPanel = ({
   editor,
   flowDefinition,
-  stepsUsing,
+  usesOf,
+  onSelectStep,
 }: {
   editor: FlowEditor;
   flowDefinition: FlowDefinition<string>;
-  stepsUsing: StepsUsing;
+  usesOf: UsesOf;
+  onSelectStep: (stepId: string) => void;
 }) => {
   /* The input "Add input" added last, whose label is ready to type in. */
   const [addedName, setAddedName] = useState<string | null>(null);
@@ -124,8 +144,12 @@ const StartPanel = ({
 
   return (
     <SidePanel label="Start">
-      <PanelHeader icon={startDisplay.icon} title={startDisplay.title}>
-        <span className={fixedDescription}>{startDisplay.description}</span>
+      <PanelHeader
+        icon={startDisplay.icon}
+        tone={startDisplay.tone}
+        title={startDisplay.title}
+      >
+        {startDisplay.description}
       </PanelHeader>
       <PanelSection title="Inputs">
         {inputs.length === 0 && <span className={empty}>No inputs yet</span>}
@@ -134,8 +158,9 @@ const StartPanel = ({
             key={key}
             editor={editor}
             input={input}
-            usedBy={stepsUsing({ kind: "flow-input", inputName: input.name })}
+            valueUses={usesOf({ kind: "flow-input", inputName: input.name })}
             autoFocus={input.name === addedName}
+            onSelectStep={onSelectStep}
           />
         ))}
         <Button
@@ -156,21 +181,24 @@ const SelectedStepPanel = ({
   editor,
   flowDefinition,
   problemsByStepId,
-  stepsUsing,
+  usesOf,
   step,
   inner,
   onSelectStart,
+  onSelectStep,
 }: {
   editor: FlowEditor;
   flowDefinition: FlowDefinition<string>;
   problemsByStepId: FlowEditorState["problemsByStepId"];
-  stepsUsing: StepsUsing;
+  usesOf: UsesOf;
   step: StepDefinition<string>;
   /** Inside a for-each step, so read-only (FE-1915). */
   inner: boolean;
   onSelectStart: () => void;
+  onSelectStep: (stepId: string) => void;
 }) => {
-  const { title, icon } = getStepDisplay(step);
+  const { title, icon, tone, group } = getStepDisplay(step);
+  const paths = getStepPaths(step);
   const actionDefinition =
     step.kind === "action"
       ? getActionDefinition(step.actionDefinitionId)
@@ -201,7 +229,7 @@ const SelectedStepPanel = ({
 
   return (
     <SidePanel label={title}>
-      <PanelHeader icon={icon} title={title}>
+      <PanelHeader icon={icon} tone={tone} title={title} group={group}>
         <TextInput
           variant="subtle"
           size="sm"
@@ -244,6 +272,17 @@ const SelectedStepPanel = ({
           </Form.Section>
         </PanelSection>
       )}
+      {paths.length > 0 && (
+        <PanelSection title="Paths">
+          <PathsField
+            editor={editor}
+            flowDefinition={flowDefinition}
+            step={step}
+            paths={paths}
+            readOnly={inner}
+          />
+        </PanelSection>
+      )}
       {/* TODO(FE-1915): edit a for-each step's list and what it collects */}
       {outputNames.length > 0 && (
         <PanelSection title="Outputs">
@@ -256,11 +295,14 @@ const SelectedStepPanel = ({
               );
 
               return (
-                <UsedByField
+                <OutputField
                   key={outputName}
-                  name={getNameLabel(outputName)}
+                  name={getOutputLabel(
+                    actionDefinition?.actionDefinitionId,
+                    outputName,
+                  )}
                   shape={shapes.getStepOutputShape(step.stepId, outputName)}
-                  usedBy={stepsUsing({
+                  valueUses={usesOf({
                     kind: "step-output",
                     stepId: step.stepId,
                     outputName,
@@ -277,6 +319,7 @@ const SelectedStepPanel = ({
                         }
                       : undefined
                   }
+                  onSelectStep={onSelectStep}
                 />
               );
             })}
@@ -292,27 +335,30 @@ export const StepPanel = ({
   editor,
   subject,
   onSelectStart,
+  onSelectStep,
 }: {
   editor: FlowEditor;
   subject: StepPanelSubject;
   onSelectStart: () => void;
+  /** Selects a step that uses a value, picked from "Used in". */
+  onSelectStep: (stepId: string) => void;
 }) => {
   const { flowDefinition, problemsByStepId } = useSyncExternalStore(
     editor.subscribe,
     editor.getState,
   );
-  const stepsUsing = useMemo<StepsUsing>(() => {
-    const usesOf = indexValueUses(flowDefinition.steps);
-
-    return (value) => usesOf(value).map(({ step }) => step);
-  }, [flowDefinition.steps]);
+  const usesOf = useMemo(
+    () => indexValueUses(flowDefinition.steps),
+    [flowDefinition.steps],
+  );
 
   if ("start" in subject) {
     return (
       <StartPanel
         editor={editor}
         flowDefinition={flowDefinition}
-        stepsUsing={stepsUsing}
+        usesOf={usesOf}
+        onSelectStep={onSelectStep}
       />
     );
   }
@@ -326,10 +372,11 @@ export const StepPanel = ({
       editor={editor}
       flowDefinition={flowDefinition}
       problemsByStepId={problemsByStepId}
-      stepsUsing={stepsUsing}
+      usesOf={usesOf}
       step={found.step}
       inner={found.inner}
       onSelectStart={onSelectStart}
+      onSelectStep={onSelectStep}
     />
   ) : null;
 };

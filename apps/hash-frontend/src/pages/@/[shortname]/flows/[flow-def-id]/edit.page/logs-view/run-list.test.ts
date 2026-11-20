@@ -1,15 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import { FlowRunStatus } from "../../../../../../../graphql/api-types.gen";
+import { isRunGoing } from "../shared/run-state";
 import {
   countRunsByTab,
   filterRuns,
-  getRunDuration,
+  isInTab,
   sortRuns,
   toRunRow,
 } from "./run-list";
 
-import type { RunRow, RunSummary } from "./run-list";
+import type { RunSummary } from "../shared/use-flow-runs";
+import type { RunRow } from "./run-list";
 import type { EntityId, EntityUuid, WebId } from "@blockprotocol/type-system";
 import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -99,33 +101,6 @@ describe("toRunRow", () => {
   });
 });
 
-describe("getRunDuration", () => {
-  it("counts a running run to now, but not a stopped run with no end recorded", () => {
-    const startedAt = "2026-11-09T11:00:00Z";
-
-    expect(
-      getRunDuration(
-        row("aaaaaa", {
-          status: FlowRunStatus.Running,
-          startedAt,
-          closedAt: null,
-        }),
-        now,
-      ),
-    ).toBe(60 * 60_000);
-    expect(
-      getRunDuration(
-        row("bbbbbb", {
-          status: FlowRunStatus.Unknown,
-          startedAt,
-          closedAt: null,
-        }),
-        now,
-      ),
-    ).toBeNull();
-  });
-});
-
 describe("countRunsByTab", () => {
   it("counts each status in its tab, and an unknown one in All only", () => {
     const rows = [
@@ -151,6 +126,18 @@ describe("countRunsByTab", () => {
       completed: 1,
       failed: 4,
     });
+  });
+});
+
+describe("isRunGoing", () => {
+  it("follows exactly the runs the Running tab counts, including one that continued as new", () => {
+    for (const status of Object.values(FlowRunStatus)) {
+      expect(isRunGoing(status), status).toBe(
+        isInTab(row("000001", { status }), "running"),
+      );
+    }
+
+    expect(isRunGoing(FlowRunStatus.ContinuedAsNew)).toBe(true);
   });
 });
 

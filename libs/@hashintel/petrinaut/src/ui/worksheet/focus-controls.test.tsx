@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, expect, it } from "vitest";
+import { useState } from "react";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { FocusControls } from "./focus-controls";
 import { FocusRoot, FocusStack } from "./focus-stack";
@@ -39,6 +40,61 @@ it("walks toolbar controls, skips unavailable items and remembers entry", () => 
   expect(document.activeElement).toBe(create);
 });
 
+it("folds from its first control, and moves where it has nothing to fold", () => {
+  const Row = () => {
+    const [open, setOpen] = useState(false);
+    return (
+      <FocusControls
+        {...(open
+          ? { collapse: () => setOpen(false) }
+          : { expand: () => setOpen(true) })}
+      >
+        <button type="button" aria-expanded={open}>
+          Details
+        </button>
+        <button type="button">Switch</button>
+      </FocusControls>
+    );
+  };
+  render(
+    <FocusRoot>
+      <FocusStack axis="horizontal">
+        <FocusControls>
+          <button type="button">Sections</button>
+        </FocusControls>
+        <Row />
+      </FocusStack>
+    </FocusRoot>,
+  );
+  const details = screen.getByRole("button", { name: "Details" });
+  const expanded = () => details.getAttribute("aria-expanded");
+
+  // ArrowRight opens the collapsed group; then it is a move with nowhere to go.
+  details.focus();
+  fireEvent.keyDown(details, { key: "ArrowRight" });
+  expect(expanded()).toBe("true");
+  fireEvent.keyDown(details, { key: "ArrowRight" });
+  expect(expanded()).toBe("true");
+  expect(document.activeElement).toBe(details);
+
+  // Its other controls do not fold it.
+  const toggle = screen.getByRole("button", { name: "Switch" });
+  fireEvent.keyDown(details, { key: "ArrowDown" });
+  expect(document.activeElement).toBe(toggle);
+  fireEvent.keyDown(toggle, { key: "ArrowUp" });
+  expect(expanded()).toBe("true");
+
+  // ArrowLeft closes the expanded group; then it is a move out of it.
+  fireEvent.keyDown(details, { key: "ArrowLeft" });
+  expect(expanded()).toBe("false");
+  expect(document.activeElement).toBe(details);
+  fireEvent.keyDown(details, { key: "ArrowLeft" });
+  expect(expanded()).toBe("false");
+  expect(document.activeElement).toBe(
+    screen.getByRole("button", { name: "Sections" }),
+  );
+});
+
 it("keeps text arrows inside the value until its caret reaches an edge", () => {
   render(
     <FocusControls axis="horizontal">
@@ -65,6 +121,25 @@ it("keeps text arrows inside the value until its caret reaches an edge", () => {
   expect(document.activeElement).toBe(
     screen.getByRole("button", { name: "Next" }),
   );
+});
+
+it("folds from a text field only once its caret is at the edge", () => {
+  const collapse = vi.fn();
+  render(
+    <FocusControls collapse={collapse}>
+      <input aria-label="Name" defaultValue="Stock" />
+    </FocusControls>,
+  );
+  const input = screen.getByRole("textbox", {
+    name: "Name",
+  }) as HTMLInputElement;
+  input.focus();
+  input.setSelectionRange(3, 3);
+  fireEvent.keyDown(input, { key: "ArrowLeft" });
+  expect(collapse).not.toHaveBeenCalled();
+  input.setSelectionRange(0, 0);
+  fireEvent.keyDown(input, { key: "ArrowLeft" });
+  expect(collapse).toHaveBeenCalledTimes(1);
 });
 
 it("leaves arrow handling to an open picker", () => {

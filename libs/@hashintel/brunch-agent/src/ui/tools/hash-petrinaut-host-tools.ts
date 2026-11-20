@@ -11,7 +11,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { zNetDetail } from "../../hash/petrinaut-tools";
+import { netDetailSchema } from "../../hash/petrinaut-tools";
 import {
   applyPetrinautAiCommand,
   executePetrinautAiMutation,
@@ -80,10 +80,10 @@ const sourceArcExists = (
     arcDirection,
     oldPlaceId,
     oldEndpoint,
-    targetSubnetId,
+    targetComponentId,
   } = call.input;
-  const net = targetSubnetId
-    ? definition.subnets?.find(({ id }) => id === targetSubnetId)
+  const net = targetComponentId
+    ? definition.components?.find(({ id }) => id === targetComponentId)
     : definition;
   const transition = net?.transitions.find(({ id }) => id === transitionId);
   if (!transition) return false;
@@ -112,7 +112,8 @@ const standIns: Partial<
     netReadOutput({
       handle,
       title: document.title.get(),
-      detail: zNetDetail.parse(input.detail),
+      detail: netDetailSchema.parse(input.detail),
+      imports: document.imports.get(),
     }),
   petrinaut_get_diagnostics: (_input, { readDiagnosticsContext }) =>
     readDiagnosticsContext(),
@@ -138,11 +139,11 @@ const standIns: Partial<
 const hashPetrinautHostTool = (
   toolName: HashPetrinautToolName,
 ): PetrinautAiAutomaticTool => {
-  const { zInput, parseCall } = hashPetrinautTools[toolName];
+  const { inputSchema, parseCall } = hashPetrinautTools[toolName];
   const standIn = standIns[toolName];
   return {
     toolName,
-    inputParser: zInput,
+    inputParser: inputSchema,
     outputParser: { parse: (value) => value },
     execute: (params) => {
       const { input, handle, edit } = params;

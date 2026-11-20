@@ -29,6 +29,6 @@ Returning restores keyboard focus to **Fill panel**, or to the section header if
 
 Drag the panel’s left edge to change its width. After returning to the other properties, drag the dividers between sections to change their heights.
 
-Changes apply automatically to the model. Simulation modes keep model functions read-only, but visualizer code remains editable during a run because it only changes the picture. Read-only files keep all code read-only. Selecting another item or changing the file or active subnet restores the usual section layout.
+Changes apply automatically to the model. Simulation modes keep model functions read-only, but visualizer code remains editable during a run because it only changes the picture. Read-only files keep all code read-only. Selecting another item or changing the file or active component restores the usual section layout.
 
 The Properties Panel and Definitions show the same saved code. Switching between them keeps your latest edits.

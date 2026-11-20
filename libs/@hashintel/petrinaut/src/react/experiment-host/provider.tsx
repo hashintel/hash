@@ -4,7 +4,11 @@
  */
 import { use, useEffect, useRef, useState } from "react";
 
-import { createReadableStore } from "@hashintel/petrinaut-core";
+import {
+  createReadableStore,
+  inlineImports,
+  resolvedLibraries,
+} from "@hashintel/petrinaut-core";
 
 import { ExperimentsContext } from "../experiments/context";
 import { useStableCallback } from "../hooks/use-stable-callback";
@@ -13,6 +17,7 @@ import { LanguageClientContext } from "../lsp/context";
 import { NotificationsContext } from "../notifications/context";
 import { OptimizationsContext } from "../optimizations/context";
 import { SDCPNContext } from "../state/sdcpn-context";
+import { useExecutableDefinition } from "../state/use-executable-definition";
 import { ExperimentHostContext } from "./context";
 import { runExperiment as runHostExperiment } from "./run-experiment";
 
@@ -22,7 +27,8 @@ import type { PetrinautExperimentHost } from "@hashintel/petrinaut-core/experime
 import type { PropsWithChildren } from "react";
 
 export const ExperimentHostProvider = ({ children }: PropsWithChildren) => {
-  const { petriNetDefinition, extensions, title } = use(SDCPNContext);
+  const { extensions, title } = use(SDCPNContext);
+  const petriNetDefinition = useExecutableDefinition();
   const instance = use(PetrinautInstanceContext);
   const experimentsContext = use(ExperimentsContext);
   const optimizationsContext = use(OptimizationsContext);
@@ -69,7 +75,12 @@ export const ExperimentHostProvider = ({ children }: PropsWithChildren) => {
       // compile without a `catch`.
       const result = await runHostExperiment(
         {
-          definition: instance?.definition.get() ?? petriNetDefinition,
+          definition: instance
+            ? inlineImports(
+                instance.definition.get(),
+                resolvedLibraries(instance.imports.get()),
+              )
+            : petriNetDefinition,
           extensions: instance?.extensions ?? extensions,
           title,
           experiments,

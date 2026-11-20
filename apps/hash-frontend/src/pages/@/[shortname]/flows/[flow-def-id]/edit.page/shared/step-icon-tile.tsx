@@ -4,23 +4,45 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import type { StepTone } from "./step-display";
 import type { IconName } from "@hashintel/ds-components";
 
+/**
+ * The tile and icon steps the designs give each hue so that none looks weaker than another: yellow's tile is a step
+ * deeper, and purple's and pink's icons lighter, than the rest.
+ */
+const tones: Record<StepTone, string> = {
+  yellow: css({ bg: "yellow.s35", color: "yellow.s110" }),
+  blue: css({ bg: "blue.s25", color: "blue.s110" }),
+  pink: css({ bg: "pink.s25", color: "pink.s100" }),
+  orange: css({ bg: "orange.s25", color: "orange.s110" }),
+  green: css({ bg: "green.s25", color: "green.s110" }),
+  purple: css({ bg: "purple.s25", color: "purple.s90" }),
+  neutral: css({ bg: "neutral.s25", color: "neutral.s105" }),
+};
+
 const tile = css({
   display: "flex",
   flexShrink: "0",
   alignItems: "center",
   justifyContent: "center",
 });
-const largeTile = css({ width: "6", height: "6", borderRadius: "sm" });
-const smallTile = css({
-  width: "[14px]",
-  height: "[14px]",
-  borderRadius: "[3px]",
-  bg: "bg.shaded.hover",
-});
+const tileSizes = {
+  small: css({ width: "[14px]", height: "[14px]", borderRadius: "[3px]" }),
+  stack: css({ width: "4", height: "4", borderRadius: "sm" }),
+  row: css({ width: "5", height: "5", borderRadius: "sm" }),
+  large: css({ width: "6", height: "6", borderRadius: "sm" }),
+  header: css({ width: "10", height: "10", borderRadius: "lg" }),
+};
+const iconSizes = {
+  small: "xxs",
+  stack: "xxs",
+  row: "xs",
+  large: "xs",
+  header: "sm",
+} as const;
 
 /**
- * Large on canvas cards, tinted by the step's tone; small in the Steps tab, on a neutral tile. Figma's icons are 14px
- * and 10px, which `Icon` has no sizes for, so the nearest smaller ones are used.
+ * A rounded square in the step's hue: small in the Steps and Add tabs, stack and row in "Used in" at rest and open,
+ * large on canvas cards, and the panel header's 40px tile. Figma's icons are 10px, 14px and 20px, which `Icon` has no
+ * sizes for, so the nearest smaller ones are used.
  */
 export const StepIconTile = ({
   icon,
@@ -29,16 +51,9 @@ export const StepIconTile = ({
 }: {
   icon: IconName;
   tone: StepTone;
-  size: "small" | "large";
+  size: keyof typeof tileSizes;
 }) => (
-  <span
-    className={cx(tile, size === "large" ? largeTile : smallTile)}
-    style={{
-      background:
-        size === "large" ? `var(--colors-${tone}-bg-subtle)` : undefined,
-      color: `var(--colors-${tone}-fg-muted)`,
-    }}
-  >
-    <Icon name={icon} size={size === "large" ? "xs" : "xxs"} />
+  <span className={cx(tile, tileSizes[size], tones[tone])}>
+    <Icon name={icon} size={iconSizes[size]} />
   </span>
 );

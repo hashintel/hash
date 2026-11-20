@@ -1,5 +1,5 @@
 /**
- * The example URL contract: scenario, subnet, and a single focused item.
+ * The example URL contract: scenario, component, and a single focused item.
  *
  * Deliberately free of React and of the Petrinaut editor: the canonical page,
  * the embed page, and the oEmbed server function all speak this one contract,
@@ -65,7 +65,7 @@ export type SharedOverlay = (typeof sharedOverlays)[number];
  */
 export type SharedExampleSearch = {
   scenario?: string;
-  subnet?: string;
+  component?: string;
   itemType?: SelectionItemType;
   itemId?: string;
   mode?: SharedMode;
@@ -83,7 +83,7 @@ export type SharedExampleSearch = {
 /** The keys this contract owns. Anything else in a URL is foreign. */
 const sharedSearchKeys = [
   "scenario",
-  "subnet",
+  "component",
   "itemType",
   "itemId",
   "mode",
@@ -154,7 +154,7 @@ export const validateSharedExampleSearch = (
 
   return {
     scenario: optionalNonEmptyString.parse(input.scenario),
-    subnet: optionalNonEmptyString.parse(input.subnet),
+    component: optionalNonEmptyString.parse(input.component),
     mode: input.mode === "notebook" ? "edit" : optionalMode.parse(input.mode),
     editView:
       input.mode === "notebook"

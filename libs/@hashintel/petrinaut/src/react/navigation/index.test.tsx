@@ -6,8 +6,8 @@ import { describe, expect, test, vi } from "vitest";
 import {
   defaultPetrinautNavigationState,
   navigationResourceToSimulateDrawer,
+  openPetrinautComponent,
   openPetrinautSimulationResource,
-  openPetrinautSubnet,
   PetrinautNavigationProvider,
   petrinautNavigationStatesMatch,
   simulateDrawerToNavigationOverlay,
@@ -21,7 +21,7 @@ import type {
 } from ".";
 
 describe("Petrinaut navigation", () => {
-  test("clears an expanded SubView when its item or subnet changes", () => {
+  test("clears an expanded SubView when its item or component changes", () => {
     const initialState: PetrinautNavigationState = {
       ...defaultPetrinautNavigationState,
       selection: [{ type: "transition", id: "collision" }],
@@ -49,13 +49,13 @@ describe("Petrinaut navigation", () => {
           <button
             type="button"
             onClick={() =>
-              navigate(openPetrinautSubnet("subnet"), {
+              navigate(openPetrinautComponent("component"), {
                 cause: "user",
-                action: "subnet",
+                action: "component",
               })
             }
           >
-            Open subnet
+            Open component
           </button>
         </>
       );
@@ -73,7 +73,7 @@ describe("Petrinaut navigation", () => {
     expect(
       onNavigate.mock.calls.at(-1)?.[0](initialState).expandedSubView,
     ).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Open subnet" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open component" }));
     expect(
       onNavigate.mock.calls.at(-1)?.[0](initialState).expandedSubView,
     ).toBeNull();
@@ -107,8 +107,8 @@ describe("Petrinaut navigation", () => {
           type="button"
           onClick={() =>
             navigate(
-              { subnetId: "subnet-a" },
-              { cause: "user", action: "subnet" },
+              { componentId: "component-a" },
+              { cause: "user", action: "component" },
             )
           }
         >
@@ -129,11 +129,11 @@ describe("Petrinaut navigation", () => {
     const [update, options] = onNavigate.mock.calls[0]!;
     expect(update(defaultPetrinautNavigationState)).toEqual({
       ...defaultPetrinautNavigationState,
-      subnetId: "subnet-a",
+      componentId: "component-a",
     });
     expect(options).toEqual({
       history: "push",
-      intent: { cause: "user", action: "subnet" },
+      intent: { cause: "user", action: "component" },
     });
   });
 
@@ -208,12 +208,12 @@ describe("Petrinaut navigation", () => {
           type="button"
           onClick={() => {
             navigate(
-              { subnetId: "subnet-a" },
-              { cause: "user", action: "subnet" },
+              { componentId: "component-a" },
+              { cause: "user", action: "component" },
             );
             navigate(
-              { subnetId: "subnet-a" },
-              { cause: "user", action: "subnet" },
+              { componentId: "component-a" },
+              { cause: "user", action: "component" },
             );
           }}
         >
@@ -230,7 +230,7 @@ describe("Petrinaut navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Repeat navigation" }));
 
     expect(onNavigate).toHaveBeenCalledOnce();
-    expect(hostState.subnetId).toBe("subnet-a");
+    expect(hostState.componentId).toBe("component-a");
   });
 
   test("allows a controlled host to override the default history policy", () => {
@@ -241,13 +241,13 @@ describe("Petrinaut navigation", () => {
       historyPolicy,
       onNavigate,
     };
-    const intent = { cause: "user", action: "subnet" } as const;
+    const intent = { cause: "user", action: "component" } as const;
     const Probe = () => {
       const { navigate } = usePetrinautNavigation();
       return (
         <button
           type="button"
-          onClick={() => navigate({ subnetId: "subnet-a" }, intent)}
+          onClick={() => navigate({ componentId: "component-a" }, intent)}
         >
           Override history
         </button>
@@ -299,8 +299,8 @@ describe("Petrinaut navigation", () => {
             type="button"
             onClick={() =>
               navigate(
-                { subnetId: null },
-                { cause: "normalization", action: "subnet" },
+                { componentId: null },
+                { cause: "normalization", action: "component" },
               )
             }
           >
@@ -319,7 +319,7 @@ describe("Petrinaut navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Normalize" }));
 
     expect(onNavigate.mock.calls[0]?.[1]).toMatchObject({ history: "replace" });
-    // Normalizing an already-null subnet is a semantic no-op.
+    // Normalizing an already-null component is a semantic no-op.
     expect(onNavigate).toHaveBeenCalledOnce();
   });
 
@@ -329,13 +329,13 @@ describe("Petrinaut navigation", () => {
       return (
         <>
           <output aria-label="Location">
-            {`${String(controlled)} ${state.mode} ${state.subnetId ?? "root"}`}
+            {`${String(controlled)} ${state.mode} ${state.componentId ?? "root"}`}
           </output>
           <button
             type="button"
             onClick={() =>
               navigate(
-                { mode: "simulate", subnetId: "subnet-a" },
+                { mode: "simulate", componentId: "component-a" },
                 { cause: "user", action: "mode" },
               )
             }
@@ -347,21 +347,23 @@ describe("Petrinaut navigation", () => {
     };
 
     render(
-      <PetrinautNavigationProvider initialState={{ subnetId: "subnet-b" }}>
+      <PetrinautNavigationProvider
+        initialState={{ componentId: "component-b" }}
+      >
         <Probe />
       </PetrinautNavigationProvider>,
     );
 
     // The initial location merges initialState over the defaults.
     expect(screen.getByLabelText("Location").textContent).toBe(
-      "false edit subnet-b",
+      "false edit component-b",
     );
 
     fireEvent.click(
       screen.getByRole("button", { name: "Update uncontrolled" }),
     );
     expect(screen.getByLabelText("Location").textContent).toBe(
-      "false simulate subnet-a",
+      "false simulate component-a",
     );
   });
 
@@ -433,8 +435,8 @@ describe("Petrinaut navigation", () => {
           type="button"
           onClick={() =>
             navigate(
-              { subnetId: "subnet-a" },
-              { cause: "user", action: "subnet" },
+              { componentId: "component-a" },
+              { cause: "user", action: "component" },
             )
           }
         >
@@ -465,7 +467,7 @@ describe("Petrinaut navigation", () => {
       screen.getByRole("button", { name: "Retry without rerender" }),
     );
     expect(onNavigate).toHaveBeenCalledTimes(2);
-    expect(hostState.subnetId).toBe("subnet-a");
+    expect(hostState.componentId).toBe("component-a");
   });
 
   test("controlled: a rerender before an async host applies does not lose the next update", () => {
@@ -547,13 +549,13 @@ describe("Petrinaut navigation", () => {
       selection: [{ type: "place", id: "place-a" }],
     });
     expect(
-      openPetrinautSubnet("subnet-a")({
+      openPetrinautComponent("component-a")({
         ...defaultPetrinautNavigationState,
         selection: [{ type: "place", id: "place-a" }],
       }),
     ).toEqual({
       ...defaultPetrinautNavigationState,
-      subnetId: "subnet-a",
+      componentId: "component-a",
       selection: [],
     });
   });

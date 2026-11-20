@@ -1,9 +1,9 @@
 import { Button, Filter, FilterGroup, Menu } from "@hashintel/ds-components";
 
-import { runStates, runStatesByUrgency } from "../run-state";
+import { runStates, runStatesByUrgency } from "../../shared/run-state";
 
+import type { RunState } from "../../shared/run-state";
 import type { RunFilters, RunTrigger } from "../run-list";
-import type { RunState } from "../run-state";
 import type { FilterOperator } from "@hashintel/ds-components";
 
 export type RunFilterProperty = "status" | "trigger";

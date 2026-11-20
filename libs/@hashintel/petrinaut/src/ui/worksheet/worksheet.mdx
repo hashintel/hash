@@ -24,6 +24,8 @@ for each piece.
   sparse lines, and a gutter lane, declared as an ordered stop list.
 - `useFocusHeader` / `useFocusMember`: single-element members (collapsible
   headers, lone cells) and custom navigators.
+- `FocusControls`: ordinary controls, such as a row's button and its
+  switch, as one member whose controls the arrows walk.
 - `useSelectFirstActivation` and `useRowSelection`: the interaction
   grammar shared by worksheet tables: the first click selects, the second
   acts; a focused gutter selects its whole row.
@@ -55,7 +57,11 @@ Each numbered rule is a test target; `focus-flow.test.tsx` covers them.
 7. Inside a text input the horizontal arrows stay with the caret; only
    vertical arrows navigate.
 8. A header owns Left/Right when it collapses and expands; a member whose
-   entry fails (collapsed content) is skipped in the walk.
+   entry fails (collapsed content) is skipped in the walk. A `row` stop of a
+   stop table folds the same way from its first column, and a `FocusControls`
+   group from its first control. Each gives the action that applies now:
+   with only `expand` given, ArrowLeft is a move like any other, and
+   ArrowRight is one with only `collapse`.
 9. In a stop table, vertical arrows walk the declared stops, carrying the
    column across full-width stops; a sparse line is entered at the nearest
    declared column. The gutter is its own lane: vertical moves stay
@@ -82,6 +88,12 @@ Consumers:
   and its result list in one vertical stack.
 - The Simulate view `Table` (`ui/components/table.tsx`): one-column stop
   rows with select-first activation.
+- The Document view's outlines (`ui/plugins/document-view-plugin`): two
+  one-column stop tables side by side in a horizontal stack. Their rows fold,
+  a map, a list or a block of text opening on ArrowRight and closing on
+  ArrowLeft, and an arrow with nothing to fold crosses to the other outline.
+- The Plugins table in User settings: a row's line and its switch are one
+  `FocusControls` group, which folds the row's details from the line.
 
 Stories in `worksheet.stories.tsx` demonstrate the configurations:
 side-by-side columns, aligned entry, contained stacks, a stop table, and

@@ -101,8 +101,8 @@ The geometry and motion helpers live in `src/hash-icon/` in
   releases its animations.
 - `motion/action-motion.ts` defines semantic detail responses and handles
   automatic click feedback through the same effect runner.
-- `modeling-geometry.tsx` authors the modeling alternatives and normalized
-  draw targets. `shared/cube-projection.ts` projects the subnet cube's vertices
+- `modeling-geometry.tsx` authors the modeling alternatives and normalized draw
+  targets. `shared/cube-projection.ts` projects the component cube's vertices
   and culls edges whose two adjacent faces both point away from the viewer.
 - `panda-preset.ts` supplies the icon keyframes, which Petrinaut's preset
   spreads into its own for the package and host builds.
@@ -209,7 +209,7 @@ Modeling studies offer three variations per concept:
 | Parameters             | Sliders, calibration dial, bounds        | Scrub, turn the needle, or narrow the range; return to initial values.      |
 | Variables              | Script x, bounded expression, register   | Flex the value or shift it inside a fixed container.                        |
 | Token types            | Token family, collection stack, type tag | Gather tokens, separate layers, or respond inside a label.                  |
-| Subnets                | Cube, contained net, nested modules      | Rotate with hidden-edge removal, trace connections, or separate modules.    |
+| Components             | Cube, contained net, nested modules      | Rotate with hidden-edge removal, trace connections, or separate modules.    |
 
 The website's Modeling tab compares these alternatives with Action and Draw on
 playback. The inspector also exposes drawing order and a progress slider.

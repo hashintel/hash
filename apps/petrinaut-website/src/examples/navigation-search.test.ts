@@ -127,7 +127,7 @@ describe("navigation state projection", () => {
       expect(
         applyPreviewNavigationUpdate(search, (current) => ({
           ...current,
-          subnetId: "subnet",
+          componentId: "component",
         })),
       ).toMatchObject(search);
     },
@@ -158,20 +158,20 @@ describe("navigation state projection", () => {
     },
   );
 
-  it("round-trips scenario, subnet, and selection", () => {
+  it("round-trips scenario, component, and selection", () => {
     const state = sharedSearchToNavigationState({
       scenario: "none",
-      subnet: "subnet-1",
+      component: "component-1",
       itemType: "place",
       itemId: "place-1",
     });
 
     expect(state.scenarioId).toBeNull();
-    expect(state.subnetId).toBe("subnet-1");
+    expect(state.componentId).toBe("component-1");
     expect(state.selection).toEqual([{ type: "place", id: "place-1" }]);
     expect(navigationStateToSharedSearch(state)).toEqual({
       scenario: "none",
-      subnet: "subnet-1",
+      component: "component-1",
       itemType: "place",
       itemId: "place-1",
     });
@@ -188,7 +188,7 @@ describe("navigation state projection", () => {
   });
 
   it("takes editor defaults for fields the URL does not carry", () => {
-    const state = sharedSearchToNavigationState({ subnet: "subnet-1" });
+    const state = sharedSearchToNavigationState({ component: "component-1" });
 
     expect(state.mode).toBe("edit");
     expect(state.overlay).toBeNull();
@@ -221,7 +221,7 @@ describe("navigation state projection", () => {
     });
     expect(navigationStateToSharedSearch(state)).toEqual({
       scenario: undefined,
-      subnet: undefined,
+      component: undefined,
       mode: "simulate",
       view: undefined,
       overlay: undefined,
@@ -254,10 +254,10 @@ describe("preview navigation writes", () => {
   it("still writes the fields the Preview does navigate", () => {
     const next = applyPreviewNavigationUpdate(
       { itemType: "place", itemId: "place-1" },
-      (current) => ({ ...current, selection: [], subnetId: "subnet-2" }),
+      (current) => ({ ...current, selection: [], componentId: "component-2" }),
     );
 
-    expect(next.subnet).toBe("subnet-2");
+    expect(next.component).toBe("component-2");
     expect(next.itemId).toBeUndefined();
   });
 });
