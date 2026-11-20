@@ -2,19 +2,11 @@ import { use, useRef, useState } from "react";
 
 import { Button, Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import {
-  runClockOf,
-  WEBGPU_FIXED_STEP_SIMULATOR_ID,
-} from "@hashintel/petrinaut-core";
+import { runClockOf } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
-import {
-  findSimulator,
-  SimulatorsContext,
-} from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
 import {
   OverlayScrollArea,
   overlayScrollDrawerBodyStyle,
@@ -25,7 +17,6 @@ import { FocusControls } from "../../../../../worksheet/focus-controls";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
 import { summarizeMetricLspErrors } from "../metrics/metric-lsp";
 import { SimulationPanel } from "../shared/simulation-panel";
-import { useGpuAvailability } from "../shared/use-gpu-availability";
 import {
   type ConstraintDraftsState,
   EMPTY_CONSTRAINT_DRAFTS,
@@ -35,9 +26,7 @@ import { ConstraintsSection } from "./create-experiment-drawer/constraints-secti
 import { ExperimentSection } from "./create-experiment-drawer/experiment-section";
 import {
   EMPTY_EXPERIMENT_SIMULATOR,
-  resolveExperimentSimulator,
   experimentSimulatorError,
-  simulatorRefusalsFor,
 } from "./create-experiment-drawer/experiment-simulator-draft";
 import { ExperimentSimulatorFields } from "./create-experiment-drawer/experiment-simulator-fields";
 import {
@@ -53,6 +42,7 @@ import { MetricsSection } from "./create-experiment-drawer/metrics-section";
 import { ScenarioSection } from "./create-experiment-drawer/scenario-section";
 import { resolveScenarioSelection } from "./create-experiment-drawer/scenario-selection";
 import { describeSweep } from "./create-experiment-drawer/sweep-summary";
+import { useExperimentSimulator } from "./create-experiment-drawer/use-experiment-simulator";
 import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
 import { getExperimentMetricDiagnosticError } from "./experiment-metric-lsp-validation";
 import {
@@ -94,14 +84,12 @@ export const CreateExperimentDrawer = ({
   onClose: () => void;
 }) => {
   const { petriNetDefinition, extensions } = use(SDCPNContext);
-  const executableDefinition = useExecutableDefinition();
   // An untimed net's runs count steps: the form asks for a step to end at,
   // and shows no parameter of how a simulator advances time.
   const clock = runClockOf(petriNetDefinition, extensions);
   const createOptimizedExperiment = useCreateOptimizedExperiment();
   const { diagnosticsByUri, requestConstraint } = use(LanguageClientContext);
   const optimizationSource = use(PetrinautOptimizationContext);
-  const simulators = use(SimulatorsContext);
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -195,27 +183,12 @@ export const CreateExperimentDrawer = ({
     draftMetricSpecs = null;
   }
 
-  const webGpuSimulator = findSimulator(
-    simulators.registrations,
-    WEBGPU_FIXED_STEP_SIMULATOR_ID,
-  );
-  const gpu = useGpuAvailability({
-    enabled: webGpuSimulator?.isAvailable() === true,
-    sdcpn: executableDefinition,
-    extensions,
-    metricSpecs: draftMetricSpecs,
-  });
-  const simulatorRefusals = simulatorRefusalsFor(simulators.registrations, gpu);
-  // Derived rather than stored, so a net edited into ineligibility after a
-  // simulator was picked neither shows it as chosen nor submits it. The
-  // picker's own value and the submitted simulator read the same result, so
-  // they cannot disagree.
-  const experimentSimulator = resolveExperimentSimulator(
-    simulatorDraft,
-    simulators,
-    simulatorRefusals,
-    clock,
-  );
+  const { resolved: experimentSimulator, refusals: simulatorRefusals } =
+    useExperimentSimulator({
+      draft: simulatorDraft,
+      clock,
+      metricSpecs: draftMetricSpecs,
+    });
 
   const objectiveExecution = {
     dt: experimentSimulator.samplePeriod,
