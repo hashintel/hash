@@ -10,8 +10,11 @@ import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import {
+  useEditorActions,
+  useEditorState,
+} from "../../../../../../react/state/editor-context";
+import { useUserSettings } from "../../../../../../react/state/user-settings-context";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { getDocumentUri } from "../../../../../monaco/editor-paths";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
@@ -57,25 +60,36 @@ const triggerStyle = css({
 export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
   const presentation = usePetrinautPresentation();
   const { activeNet } = use(ActiveNetContext);
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
+  // Each answer for this place alone: a place renders when its own changes.
+  const keptOpen = useEditorState((editor) =>
+    editor.keptOpenVisualizerPlaceIds.has(nodeId),
+  );
+  const opened = useEditorState(
+    (editor) => editor.openVisualizerPlaceId === nodeId,
+  );
+  const editing = useEditorState(
+    (editor) => editor.focusedVisualizerPlaceId === nodeId,
+  );
+  const anotherEditing = useEditorState(
+    (editor) =>
+      editor.focusedVisualizerPlaceId !== null &&
+      editor.focusedVisualizerPlaceId !== nodeId,
+  );
+  const stackIndex = useEditorState(
+    (editor) => editor.visualizerStack.indexOf(nodeId) + 1,
+  );
   const {
-    keptOpenVisualizerPlaceIds,
-    visualizerStack,
     bringVisualizerToFront,
-    openVisualizerPlaceId,
-    focusedVisualizerPlaceId,
     keepPlaceVisualizerOpen,
     closePlaceVisualizer,
     openPlaceVisualizer,
-  } = use(EditorContext);
+  } = useEditorActions();
   const { hoveredId } = use(CanvasPointerContext);
   const hovered = useIsHovered(nodeId);
   const codeNavigation = useCodeNavigation();
   const node = useInternalNode(nodeId);
   const viewport = useViewport();
-  const keptOpen = keptOpenVisualizerPlaceIds.has(nodeId);
-  const editing = focusedVisualizerPlaceId === nodeId;
-  const opened = openVisualizerPlaceId === nodeId;
   const [eyeHovered, setEyeHovered] = useState(false);
   const [eyeFocused, setEyeFocused] = useState(false);
   const openingEditor =
@@ -159,9 +173,9 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
           nodeId={nodeId}
           name={place.name}
           editing={editing}
-          muted={focusedVisualizerPlaceId !== null && !editing}
+          muted={anotherEditing}
           animated={showAnimations}
-          stackIndex={visualizerStack.indexOf(nodeId) + 1}
+          stackIndex={stackIndex}
           onActivate={() => bringVisualizerToFront(nodeId)}
           onKeepOpen={() => {
             setEyeFocused(false);

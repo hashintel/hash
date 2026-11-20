@@ -1,11 +1,9 @@
-import { use } from "react";
-
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautNavigation } from "../../../../react/navigation";
-import { EditorContext } from "../../../../react/state/editor-context";
-import { UserSettingsContext } from "../../../../react/state/user-settings-context";
+import { useEditorActions } from "../../../../react/state/editor-context";
+import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
 import { SettingsIcon } from "../../../experimental-icons";
 import { useCanvasInsetsReader } from "../../../hooks/use-canvas-insets";
@@ -27,7 +25,9 @@ const blurredBackground = css({ backdropFilter: "[blur(10px)]" });
 export const ViewportControls: React.FC = () => {
   const presentation = usePetrinautPresentation();
   const navigation = usePetrinautNavigation();
-  const { enableExperimentalIconPack } = use(UserSettingsContext);
+  const enableExperimentalIconPack = useUserSettings(
+    (settings) => settings.enableExperimentalIconPack,
+  );
   const isSettingsOpen =
     navigation.state.overlay?.type === "user-settings" ||
     navigation.state.overlay?.type === "viewport-settings";
@@ -38,7 +38,7 @@ export const ViewportControls: React.FC = () => {
   // controls sit above the renderer contract and must not reach for a
   // renderer's own API.
   const { fitView, zoomIn, zoomOut } = useCanvasController();
-  const { collapseAllPanels } = use(EditorContext);
+  const { collapseAllPanels } = useEditorActions();
 
   const readInsets = useCanvasInsetsReader();
 

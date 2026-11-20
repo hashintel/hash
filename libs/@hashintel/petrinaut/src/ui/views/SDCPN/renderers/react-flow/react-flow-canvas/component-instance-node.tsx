@@ -1,11 +1,10 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { componentInstanceHeaderHeight } from "@hashintel/petrinaut-core";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { ComponentGlyph } from "../../../../../components/component-glyph";
 import { problemTextStyle } from "../../../../../constants/problem-severity";
 import { nodeFocusStyle } from "../../../styles/focus";
@@ -199,7 +198,7 @@ export const ComponentInstanceNode: React.FC<
   selected,
   isConnectable,
 }: NodeProps<ComponentInstanceNodeType>) => {
-  const { toggleComponentInstanceFold } = use(EditorContext);
+  const { toggleComponentInstanceFold } = useEditorActions();
 
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.

@@ -4,7 +4,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { resolveComponent } from "@hashintel/petrinaut-core";
 
 import { CompositionContext } from "../../../../react/state/composition-context";
-import { EditorContext } from "../../../../react/state/editor-context";
+import { useEditorFields } from "../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 
 const tooltipStyle = css({
@@ -26,7 +26,10 @@ const OFFSET_X = 14;
 const OFFSET_Y = 18;
 
 export const CursorTooltip: React.FC = () => {
-  const { editionMode, componentToAdd } = use(EditorContext);
+  const { editionMode, componentToAdd } = useEditorFields(
+    "editionMode",
+    "componentToAdd",
+  );
   const { petriNetDefinition } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
 

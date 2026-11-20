@@ -20,7 +20,7 @@ import {
 import { EventPlaybackContext } from "../../../react/event-playback/context";
 import { ExecutionFrameSourceContext } from "../../../react/execution-frame/context";
 import { SimulationContext } from "../../../react/simulation/context";
-import { EditorContext } from "../../../react/state/editor-context";
+import { useEditorState } from "../../../react/state/editor-context";
 
 import type {
   InitialMarking,
@@ -132,7 +132,7 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
   );
   const { initialMarking, stochasticRun } = use(SimulationContext);
   const { playbackStore } = use(EventPlaybackContext);
-  const { globalMode } = use(EditorContext);
+  const globalMode = useEditorState((editor) => editor.globalMode);
   // Actual mode shows the host's execution, whatever was simulated before.
   const viewedStochasticRun = globalMode === "actual" ? null : stochasticRun;
   const stochasticReader = viewedStochasticRun?.reader ?? null;
