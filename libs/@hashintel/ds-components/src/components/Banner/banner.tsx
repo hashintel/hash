@@ -2,6 +2,7 @@ import { Children, isValidElement } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { defaultToneIcon } from "../../util/default-tone-icon";
 import { Button, type ButtonProps } from "../Button/button";
 import { Icon, type IconName } from "../Icon/icon";
 import { styles } from "./banner.recipe";
@@ -9,15 +10,6 @@ import { styles } from "./banner.recipe";
 import type { Tone } from "../../util/form-shared";
 
 type BannerVariant = "solid" | "soft" | "outline";
-
-/** The default leading icon shown when `icon` is `true`, keyed by tone. */
-const defaultToneIcon: Record<Tone, IconName> = {
-  neutral: "info",
-  brand: "info",
-  warning: "warning",
-  error: "diamondExclamation",
-  success: "circleCheck",
-};
 
 export type BannerRootProps = {
   className?: string;
