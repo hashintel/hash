@@ -159,8 +159,11 @@ export const TriggersTable = ({
         {rows.map((row) => (
           <tr key={row.entityId}>
             <td>
-              <div className={cx(flowName, truncated)} title={row.flowName}>
-                {row.flowName}
+              <div
+                className={cx(flowName, truncated)}
+                title={row.flowName ?? undefined}
+              >
+                {row.flowName ?? "Unknown flow"}
               </div>
             </td>
             <td>

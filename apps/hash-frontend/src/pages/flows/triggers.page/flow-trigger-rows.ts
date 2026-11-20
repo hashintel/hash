@@ -20,12 +20,10 @@ export type FlowTriggerRow = TriggerRow & {
   scheduleText: string | null;
   /** Why it's paused, when it is and that was noted, e.g. "Its flow was archived". */
   pauseNote: string | null;
-  /**
-   * The flow it starts, to filter by, or `null` if the user can't read that flow: it's then listed under a name that
-   * isn't its own, so it can't be told apart from other flows the user can't read.
-   */
+  /** The flow it starts, or `null` if its schedule links to none. */
   flowEntityId: EntityId | null;
-  flowName: string;
+  /** The flow's name, or `null` when the user can't read it. */
+  flowName: string | null;
   webId: WebId;
   /** The web's shortname, e.g. "@aakarsh", or "" while it isn't known. */
   webName: string;
@@ -57,8 +55,8 @@ export const toFlowTriggerRow = ({
         ? null
         : formatScheduleSpec(scheduleSpec as ScheduleSpec),
     pauseNote: !on && pauseNote !== "" ? pauseNote : null,
-    flowEntityId: flow?.name ? flow.entityId : null,
-    flowName: flow?.name ?? "Unknown flow",
+    flowEntityId: flow?.entityId ?? null,
+    flowName: flow?.name ?? null,
     webId: extractWebIdFromEntityId(entityId),
     webName,
   };
@@ -86,7 +84,7 @@ export const filterFlowTriggerRows = (
       (state === "all" || (state === "on") === row.on) &&
       (flowEntityId === null || row.flowEntityId === flowEntityId) &&
       (webId === null || row.webId === webId) &&
-      [row.text, row.scheduleText ?? "", row.flowName, row.webName].some(
+      [row.text, row.scheduleText ?? "", row.flowName ?? "", row.webName].some(
         (text) => text.toLowerCase().includes(term),
       ),
   );
@@ -103,7 +101,8 @@ const compareColumn: Record<
   FlowTriggerColumn,
   (left: FlowTriggerRow, right: FlowTriggerRow) => number
 > = {
-  flow: (left, right) => left.flowName.localeCompare(right.flowName),
+  flow: (left, right) =>
+    (left.flowName ?? "").localeCompare(right.flowName ?? ""),
   trigger: (left, right) => left.text.localeCompare(right.text),
   web: (left, right) => left.webName.localeCompare(right.webName),
   /* On before Paused, ascending. */

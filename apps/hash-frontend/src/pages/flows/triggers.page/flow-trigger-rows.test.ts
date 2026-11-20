@@ -119,21 +119,28 @@ describe("toFlowTriggerRow", () => {
     ).toBeNull();
   });
 
-  it("names a flow it can't read, or can't tell, Unknown flow, and doesn't offer to filter by it", () => {
-    expect(
+  it("keeps the flow to filter by when its name is empty or can't be read", () => {
+    const toRow = (
+      flow: { entityId: EntityId; name: string | null } | undefined,
+    ) =>
       toFlowTriggerRow({
         schedule: schedule({ scheduleStatus: "active" }),
-        flow: { entityId: flowB, name: null },
+        flow,
         webName: "",
-      }),
-    ).toMatchObject({ flowEntityId: null, flowName: "Unknown flow" });
-    expect(
-      toFlowTriggerRow({
-        schedule: schedule({ scheduleStatus: "active" }),
-        flow: undefined,
-        webName: "",
-      }),
-    ).toMatchObject({ flowEntityId: null, flowName: "Unknown flow" });
+      });
+
+    expect(toRow({ entityId: flowB, name: "" })).toMatchObject({
+      flowEntityId: flowB,
+      flowName: "",
+    });
+    expect(toRow({ entityId: flowB, name: null })).toMatchObject({
+      flowEntityId: flowB,
+      flowName: null,
+    });
+    expect(toRow(undefined)).toMatchObject({
+      flowEntityId: null,
+      flowName: null,
+    });
   });
 });
 

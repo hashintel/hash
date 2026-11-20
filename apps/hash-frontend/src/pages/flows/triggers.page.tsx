@@ -116,9 +116,6 @@ const TriggersPage: NextPageWithLayout = () => {
     );
   };
 
-  /* Someone in only one web has all their triggers there. */
-  const showWeb = authenticatedUser.memberOf.length > 0;
-
   const rows = useMemo<FlowTriggerRow[]>(
     () =>
       Array.from(schedulesByEntityUuid, ([scheduleEntityUuid, schedule]) => {
@@ -135,9 +132,18 @@ const TriggersPage: NextPageWithLayout = () => {
     [schedulesByEntityUuid, flowsByScheduleEntityUuid, getOwner],
   );
 
+  /* Someone in only one web has all their triggers there, unless another web's are public. */
+  const showWeb =
+    authenticatedUser.memberOf.length > 0 ||
+    rows.some((row) => row.webId !== authenticatedUser.accountId);
+
   const flowOptions = useMemo(() => {
     const options = toOptions(
-      rows.map((row) => ({ value: row.flowEntityId, text: row.flowName })),
+      /* Flows the user can't read can't be told apart, so they're not offered. */
+      rows.map((row) => ({
+        value: row.flowName === null ? null : row.flowEntityId,
+        text: row.flowName ?? "",
+      })),
     );
 
     /* The editor links here for a flow with no triggers too, whose name isn't known without one. */
