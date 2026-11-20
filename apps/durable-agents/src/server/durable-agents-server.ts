@@ -55,6 +55,7 @@ import {
   type OpenConversation,
 } from "./durable-agents-server/conversation-registry";
 import { historyHandler } from "./durable-agents-server/history";
+import { queuedInputRecorder } from "./durable-agents-server/queued-input";
 import { createRequestSlots } from "./durable-agents-server/request-slots";
 import {
   followSubmission,
@@ -312,6 +313,7 @@ export const createDurableAgentsServer = (
         // Pi refuses a request ID of another submission type with an untyped error; this is its check.
         if (existing !== undefined)
           return existing.type === "input" ? existing.id : undefined;
+        const recordQueued = await queuedInputRecorder(tx, root.id);
         const request: InputRequest = { requestId: input.requestId };
         const submitted = await root.submit(tx, {
           type: "input",
@@ -322,6 +324,7 @@ export const createDurableAgentsServer = (
           whenBusy: "followUp",
         });
         await recordVersionLoad(tx, root.id, input, submitted);
+        await recordQueued(input, input.requestId, submitted);
         return submitted;
       }, context);
       if (submissionId === undefined)
