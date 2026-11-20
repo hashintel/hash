@@ -946,6 +946,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/admittance-of-vacuum/" as BaseUrl,
   },
+  aerosolParticleNumberConcentration: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/aerosol-particle-number-concentration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/aerosol-particle-number-concentration/" as BaseUrl,
+  },
   airborneRadionuclideActivityConcentration: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/airborne-radionuclide-activity-concentration/v/1",
@@ -1106,6 +1112,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/atmospheric-pressure/" as BaseUrl,
   },
+  atmosphericPressureChangeRate: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/atmospheric-pressure-change-rate/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/atmospheric-pressure-change-rate/" as BaseUrl,
+  },
   atomicAttenuationCoefficient: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/atomic-attenuation-coefficient/v/1",
@@ -1243,6 +1255,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/battery-state-of-charge/" as BaseUrl,
   },
+  batteryTerminalVoltage: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/battery-terminal-voltage/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/battery-terminal-voltage/" as BaseUrl,
+  },
   bejanNumberEntropyGeneration: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/bejan-number-entropy-generation/v/1",
@@ -1360,6 +1378,18 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/bond-number/" as BaseUrl,
   },
+  boreholeAbsolutePressure: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/borehole-absolute-pressure/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/borehole-absolute-pressure/" as BaseUrl,
+  },
+  boreholeGaugePressure: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/borehole-gauge-pressure/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/borehole-gauge-pressure/" as BaseUrl,
+  },
   braggAngle: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/bragg-angle/v/1",
     propertyTypeBaseUrl:
@@ -1420,11 +1450,35 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/capillary-number/" as BaseUrl,
   },
+  carbonDioxideGasScreeningValue: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/carbon-dioxide-gas-screening-value/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/carbon-dioxide-gas-screening-value/" as BaseUrl,
+  },
   carbonDioxideMoleFraction: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/carbon-dioxide-mole-fraction/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/carbon-dioxide-mole-fraction/" as BaseUrl,
+  },
+  carbonDioxideVolumeFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/carbon-dioxide-volume-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/carbon-dioxide-volume-fraction/" as BaseUrl,
+  },
+  carbonMonoxideMoleFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/carbon-monoxide-mole-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/carbon-monoxide-mole-fraction/" as BaseUrl,
+  },
+  carbonMonoxideVolumeFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/carbon-monoxide-volume-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/carbon-monoxide-volume-fraction/" as BaseUrl,
   },
   carnotNumber: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/carnot-number/v/1",
@@ -1729,6 +1783,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/colour-temperature/" as BaseUrl,
   },
+  combustibleGasLevelRelativeToLel: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/combustible-gas-level-relative-to-lel/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/combustible-gas-level-relative-to-lel/" as BaseUrl,
+  },
   companyNumber: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/company-number/v/1",
     propertyTypeBaseUrl:
@@ -2018,6 +2078,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/density-of-vibrational-states/" as BaseUrl,
   },
+  depthToGroundwater: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/depth-to-groundwater/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/depth-to-groundwater/" as BaseUrl,
+  },
   dewPointTemperature: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/dew-point-temperature/v/1",
@@ -2028,6 +2094,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/diameter/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/diameter/" as BaseUrl,
+  },
+  differentialPressure: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/differential-pressure/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/differential-pressure/" as BaseUrl,
   },
   diffusionArea: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/diffusion-area/v/1",
@@ -2091,6 +2163,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/display-luminance/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/display-luminance/" as BaseUrl,
+  },
+  dissolvedMethaneMassConcentration: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/dissolved-methane-mass-concentration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/dissolved-methane-mass-concentration/" as BaseUrl,
   },
   dissolvedOxygenAmountConcentration: {
     propertyTypeId:
@@ -3077,6 +3155,30 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/hooke-number/" as BaseUrl,
   },
+  hydrogenMoleFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/hydrogen-mole-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/hydrogen-mole-fraction/" as BaseUrl,
+  },
+  hydrogenSulphideMoleFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/hydrogen-sulphide-mole-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/hydrogen-sulphide-mole-fraction/" as BaseUrl,
+  },
+  hydrogenSulphideVolumeFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/hydrogen-sulphide-volume-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/hydrogen-sulphide-volume-fraction/" as BaseUrl,
+  },
+  hydrogenVolumeFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/hydrogen-volume-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/hydrogen-volume-fraction/" as BaseUrl,
+  },
   hyperfineStructureQuantumNumber: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/hyperfine-structure-quantum-number/v/1",
@@ -3280,6 +3382,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/instantaneous-electrical-power/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/instantaneous-electrical-power/" as BaseUrl,
+  },
+  instrumentInternalTemperature: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/instrument-internal-temperature/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/instrument-internal-temperature/" as BaseUrl,
   },
   insulationResistance: {
     propertyTypeId:
@@ -4215,6 +4323,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/mean-transinformation-content/" as BaseUrl,
   },
+  measuredSupplyVoltage: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/measured-supply-voltage/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/measured-supply-voltage/" as BaseUrl,
+  },
   mechanicalEnergy: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/mechanical-energy/v/1",
@@ -4232,6 +4346,36 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/medical-condition/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/medical-condition/" as BaseUrl,
+  },
+  methaneEmissionMassFlowRate: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/methane-emission-mass-flow-rate/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/methane-emission-mass-flow-rate/" as BaseUrl,
+  },
+  methaneGasScreeningValue: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/methane-gas-screening-value/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/methane-gas-screening-value/" as BaseUrl,
+  },
+  methaneMoleFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/methane-mole-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/methane-mole-fraction/" as BaseUrl,
+  },
+  methaneSurfaceMassFluxDensity: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/methane-surface-mass-flux-density/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/methane-surface-mass-flux-density/" as BaseUrl,
+  },
+  methaneVolumeFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/methane-volume-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/methane-volume-fraction/" as BaseUrl,
   },
   methodology: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/methodology/v/1",
@@ -4738,6 +4882,18 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/output-unit-count/" as BaseUrl,
   },
+  oxygenMoleFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/oxygen-mole-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/oxygen-mole-fraction/" as BaseUrl,
+  },
+  oxygenVolumeFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/oxygen-volume-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/oxygen-volume-fraction/" as BaseUrl,
+  },
   packetCount: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/packet-count/v/1",
     propertyTypeBaseUrl:
@@ -5037,6 +5193,24 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/planning-method/" as BaseUrl,
   },
+  pm10MassConcentration: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/pm10-mass-concentration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/pm10-mass-concentration/" as BaseUrl,
+  },
+  pm1MassConcentration: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/pm1-mass-concentration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/pm1-mass-concentration/" as BaseUrl,
+  },
+  pm25MassConcentration: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/pm2-5-mass-concentration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/pm2-5-mass-concentration/" as BaseUrl,
+  },
   poiseuilleNumber: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/poiseuille-number/v/1",
@@ -5208,6 +5382,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/publication-year/" as BaseUrl,
   },
+  pumpCurrent: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/pump-current/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/pump-current/" as BaseUrl,
+  },
   pumpHydraulicPower: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/pump-hydraulic-power/v/1",
@@ -5357,6 +5536,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/radius-of-curvature/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/radius-of-curvature/" as BaseUrl,
+  },
+  radonActivityConcentration: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/radon-activity-concentration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/radon-activity-concentration/" as BaseUrl,
   },
   rainfallDepth: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/rainfall-depth/v/1",
@@ -6626,6 +6811,18 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/subject/" as BaseUrl,
   },
+  sulphurDioxideMoleFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/sulphur-dioxide-mole-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/sulphur-dioxide-mole-fraction/" as BaseUrl,
+  },
+  sulphurDioxideVolumeFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/sulphur-dioxide-volume-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/sulphur-dioxide-volume-fraction/" as BaseUrl,
+  },
   summary: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/summary/v/1",
     propertyTypeBaseUrl:
@@ -6935,6 +7132,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/total-mass-stopping-power/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/total-mass-stopping-power/" as BaseUrl,
+  },
+  totalSuspendedParticulateMassConcentration: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/total-suspended-particulate-mass-concentration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/total-suspended-particulate-mass-concentration/" as BaseUrl,
   },
   trafficCarriedIntensity: {
     propertyTypeId:
@@ -7262,6 +7465,11 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/willing-to-pay/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/willing-to-pay/" as BaseUrl,
+  },
+  windDirection: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/wind-direction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/wind-direction/" as BaseUrl,
   },
   windGustSpeed: {
     propertyTypeId:
@@ -13142,6 +13350,15 @@ export const systemDataTypes = {
     titlePlural: "Hectoohms",
     description: "A unit equal to 10^2 ohms.",
   },
+  hectopascalPerHour: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectopascal-per-hour/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectopascal-per-hour/" as BaseUrl,
+    title: "Hectopascal per Hour",
+    titlePlural: "Hectopascals per Hour",
+    description:
+      "A unit of pressure change rate equal to 100 pascals per 3600 seconds.",
+  },
   hectopascals: {
     dataTypeId: "https://hash.ai/@h/types/data-type/hectopascals/v/1",
     dataTypeBaseUrl:
@@ -14429,6 +14646,15 @@ export const systemDataTypes = {
     description:
       "A unit of length expressed in links. Based on the international yard of exactly 0.9144 meters.",
   },
+  litrePerHour: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/litre-per-hour/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/litre-per-hour/" as BaseUrl,
+    title: "Litre per Hour",
+    titlePlural: "Litres per Hour",
+    description:
+      "A unit of volume flow rate equal to one litre per 3600 seconds at the stated measurement conditions.",
+  },
   litres: {
     dataTypeId: "https://hash.ai/@h/types/data-type/litres/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/litres/" as BaseUrl,
@@ -15439,6 +15665,16 @@ export const systemDataTypes = {
     titlePlural: "Microfarads",
     description: "A unit of capacitance equal to 1e-06 farads.",
   },
+  microgramPerCubicMeter: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/microgram-per-cubic-meter/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microgram-per-cubic-meter/" as BaseUrl,
+    title: "Microgram per Cubic Meter",
+    titlePlural: "Micrograms per Cubic Meter",
+    description:
+      "A unit of mass concentration equal to 10^-9 kilograms per cubic meter.",
+  },
   micrograms: {
     dataTypeId: "https://hash.ai/@h/types/data-type/micrograms/v/1",
     dataTypeBaseUrl:
@@ -15745,6 +15981,26 @@ export const systemDataTypes = {
     title: "Millifarad",
     titlePlural: "Millifarads",
     description: "A unit equal to 10^-3 farads.",
+  },
+  milligramPerCubicMeter: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/milligram-per-cubic-meter/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/milligram-per-cubic-meter/" as BaseUrl,
+    title: "Milligram per Cubic Meter",
+    titlePlural: "Milligrams per Cubic Meter",
+    description:
+      "A unit of mass concentration equal to 10^-6 kilograms per cubic meter.",
+  },
+  milligramPerSquareMeterSecond: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/milligram-per-square-meter-second/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/milligram-per-square-meter-second/" as BaseUrl,
+    title: "Milligram per Square Meter Second",
+    titlePlural: "Milligrams per Square Meter Second",
+    description:
+      "A unit of mass flux density equal to 10^-6 kilograms per square meter per second.",
   },
   milligrams: {
     dataTypeId: "https://hash.ai/@h/types/data-type/milligrams/v/1",
@@ -16937,6 +17193,15 @@ export const systemDataTypes = {
     description:
       "A dimensionless ratio scaled by one million; the property specifies whether the ratio is by mass, volume, amount, or another basis.",
   },
+  pascalPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pascal-per-second/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pascal-per-second/" as BaseUrl,
+    title: "Pascal per Second",
+    titlePlural: "Pascals per Second",
+    description:
+      "A unit of pressure change rate equal to one pascal per second.",
+  },
   pascals: {
     dataTypeId: "https://hash.ai/@h/types/data-type/pascals/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/pascals/" as BaseUrl,
@@ -17037,6 +17302,16 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/percentage/" as BaseUrl,
     title: "Percentage",
     description: "A measure of the proportion of a whole.",
+  },
+  percentageOfLowerExplosiveLimit: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/percentage-of-lower-explosive-limit/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/percentage-of-lower-explosive-limit/" as BaseUrl,
+    title: "Percentage of Lower Explosive Limit",
+    titlePlural: "Percentages of Lower Explosive Limit",
+    description:
+      "A combustible gas level relative to a specified lower explosive limit, with 100 representing that limit. The target gas or mixture, calibration gas and reference convention accompany the value.",
   },
   permittivity: {
     dataTypeId: "https://hash.ai/@h/types/data-type/permittivity/v/1",
@@ -17847,6 +18122,24 @@ export const systemDataTypes = {
     titlePlural: "Pressures",
     description: "Force applied per unit area, also used to express stress.",
   },
+  pressureChangeRate: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pressure-change-rate/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pressure-change-rate/" as BaseUrl,
+    title: "Pressure Change Rate",
+    titlePlural: "Pressure Change Rates",
+    description:
+      "Numeric values in convertible units of pressure change divided by elapsed time.",
+  },
+  pressureChangeRateMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/pressure-change-rate-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pressure-change-rate-metric/" as BaseUrl,
+    title: "Pressure Change Rate (Metric)",
+    titlePlural: "Pressure Change Rates (Metric)",
+    description: "Pressure change rates expressed in metric units.",
+  },
   pressureImperial: {
     dataTypeId: "https://hash.ai/@h/types/data-type/pressure-imperial/v/1",
     dataTypeBaseUrl:
@@ -18626,6 +18919,16 @@ export const systemDataTypes = {
     title: "Reactive Power (Metric)",
     titlePlural: "Reactive Powers (Metric)",
     description: "Reactive Power expressed in SI units and metric multiples.",
+  },
+  reciprocalCubicCentimeter: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/reciprocal-cubic-centimeter/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/reciprocal-cubic-centimeter/" as BaseUrl,
+    title: "Reciprocal Cubic Centimeter",
+    titlePlural: "Reciprocal Cubic Centimeters",
+    description:
+      "A unit of number concentration equal to one million reciprocal cubic meters.",
   },
   reciprocalCubicMeters: {
     dataTypeId:
