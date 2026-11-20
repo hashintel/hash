@@ -908,6 +908,7 @@ const ConversationAiAssistantPanel = ({
   const followedMessagesRef = useRef<PetrinautAiMessage[] | undefined>(
     undefined,
   );
+  const resumedConversationIdRef = useRef<string | null>(null);
   // Authority is distinct from execution deduplication. Hydration/setMessages
   // never invokes SDK onToolCall, so external/reloaded calls cannot enter here.
   const locallyStreamedToolCallsRef = useRef(new Map<string, number>());
@@ -1369,6 +1370,7 @@ const ConversationAiAssistantPanel = ({
     id: conversationId,
     messages,
     addToolOutput,
+    resumeStream,
     sendMessage,
     setMessages,
     status: chatStatus,
@@ -1823,6 +1825,12 @@ const ConversationAiAssistantPanel = ({
         return;
       followedMessagesRef.current = aiAssistant.messages;
       setMessages(aiAssistant.messages);
+      if (resumedConversationIdRef.current !== conversationId) {
+        resumedConversationIdRef.current = conversationId;
+        // The replay starts with the running response's ID, so it replaces the copy just set.
+        if (aiAssistant.followMessages.resumeOnOpen === true)
+          void resumeStream();
+      }
       return;
     }
     if (
@@ -1858,6 +1866,7 @@ const ConversationAiAssistantPanel = ({
     continuationPending,
     conversationId,
     messages,
+    resumeStream,
     setMessages,
     status,
   ]);
