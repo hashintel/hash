@@ -58,6 +58,22 @@ describe("createIdwAccumulator", () => {
     expect(midway).toBeGreaterThan(3);
     expect(midway).toBeLessThan(9);
   });
+
+  it("weights each sample by the inverse square of its distance", () => {
+    // One row of four raster points at x = 0, 1, 2, 3, with a sample on each end.
+    const raster = createIdwAccumulator({
+      nx: 4,
+      ny: 1,
+      width: 4,
+      height: 1,
+    }).update([
+      { x: 0, y: 0, value: 0 },
+      { x: 3, y: 0, value: 9 },
+    ]);
+    // At x = 1 the weights are 1/1 and 1/4: (0 × 1 + 9 × 0.25) / 1.25.
+    expect(raster[1]).toBeCloseTo(1.8, 9);
+    expect(raster[2]).toBeCloseTo(7.2, 9);
+  });
 });
 
 describe("createIdwAccumulator, fed a growing list", () => {
