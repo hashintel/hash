@@ -2,7 +2,7 @@ import { createContext, use } from "react";
 
 import type { Parameter } from "@hashintel/petrinaut-core";
 
-export interface ParameterPropertiesContextValue {
+interface ParameterPropertiesContextValue {
   parameter: Parameter;
 }
 

@@ -6,7 +6,7 @@ import type {
   Place,
 } from "@hashintel/petrinaut-core";
 
-export interface DiffEqPropertiesContextValue {
+interface DiffEqPropertiesContextValue {
   differentialEquation: DifferentialEquation;
   types: Color[];
   places: Place[];

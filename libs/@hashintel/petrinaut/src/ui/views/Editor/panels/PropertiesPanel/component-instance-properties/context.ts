@@ -2,7 +2,7 @@ import { createContext, use } from "react";
 
 import type { Component, ComponentInstance } from "@hashintel/petrinaut-core";
 
-export type ComponentInstancePropertiesContextValue = {
+type ComponentInstancePropertiesContextValue = {
   instance: ComponentInstance;
   component: Component | null;
 };

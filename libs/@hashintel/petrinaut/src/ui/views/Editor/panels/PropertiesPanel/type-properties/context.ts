@@ -2,7 +2,7 @@ import { createContext, use } from "react";
 
 import type { Color } from "@hashintel/petrinaut-core";
 
-export interface TypePropertiesContextValue {
+interface TypePropertiesContextValue {
   type: Color;
 }
 
