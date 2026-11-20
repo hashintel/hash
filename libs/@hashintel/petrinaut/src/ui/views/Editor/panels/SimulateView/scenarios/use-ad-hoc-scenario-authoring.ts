@@ -78,9 +78,8 @@ const unexposedCodeVariableErrors = (state: AdHocScenarioState): string[] =>
 /**
  * The draft state plus everything the footer needs: the error summary
  * (name validation, synthesis errors, the code's parameter checks, this
- * form's LSP diagnostics), `buildScenario`, which derives the persisted
- * shape from the draft, and `scenarioToSave`, which also holds it against
- * the persistence schema.
+ * form's LSP diagnostics) and `scenarioToSave`, which derives the persisted
+ * shape from the draft and holds it against the persistence schema.
  *
  * Saving persists the form state itself (`initialState.type: "adhoc"`) and
  * derives `scenarioParameters` and `parameterOverrides` from it through
@@ -136,11 +135,12 @@ export function useAdHocScenarioAuthoring({
     codeParameterErrors[0] ??
     firstLspMessage;
 
-  const buildScenario = (id: string): Scenario | null => {
+  /** The scenario to persist, or null: the footer then says why. */
+  const scenarioToSave = (id: string) => {
     if (!synthesized.ok || nameError || codeParameterErrors.length > 0) {
       return null;
     }
-    return {
+    const result = scenarioSchema.safeParse({
       id,
       name: name.trim(),
       description: description.trim() === "" ? undefined : description.trim(),
@@ -152,16 +152,7 @@ export function useAdHocScenarioAuthoring({
         code === undefined
           ? { type: "adhoc", content: state }
           : { type: "code", content: code.body },
-    };
-  };
-
-  /** The scenario to persist, or null: the footer then says why. */
-  const scenarioToSave = (id: string) => {
-    const scenario = buildScenario(id);
-    if (!scenario) {
-      return null;
-    }
-    const result = scenarioSchema.safeParse(scenario);
+    } satisfies Scenario);
     if (!result.success) {
       setSaveError(
         result.error.issues[0]?.message ?? "The scenario failed validation.",
@@ -186,7 +177,6 @@ export function useAdHocScenarioAuthoring({
     firstError,
     saveError,
     canSave: errorCount === 0,
-    buildScenario,
     scenarioToSave,
   };
 }

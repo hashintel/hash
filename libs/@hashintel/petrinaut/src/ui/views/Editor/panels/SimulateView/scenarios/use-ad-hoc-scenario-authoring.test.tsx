@@ -5,10 +5,7 @@ import { render } from "@testing-library/react";
 import { act } from "react";
 import { describe, expect, it } from "vitest";
 
-import {
-  DEFAULT_PETRINAUT_EXTENSIONS,
-  scenarioSchema,
-} from "@hashintel/petrinaut-core";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useAdHocScenarioAuthoring } from "./use-ad-hoc-scenario-authoring";
@@ -17,10 +14,14 @@ import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-cont
 import type { UseAdHocScenarioAuthoringOptions } from "./use-ad-hoc-scenario-authoring";
 import type { AdHocScenarioState, SDCPN } from "@hashintel/petrinaut-core";
 
+// Petrinaut ids, which the schema a scenario is saved through keeps as they are.
+const queuePlaceId = "00000000-0000-4000-8000-000000000001";
+const rateParameterId = "00000000-0000-4000-8000-000000000002";
+
 const sdcpn: SDCPN = {
   places: [
     {
-      id: "place-queue",
+      id: queuePlaceId,
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
@@ -32,7 +33,7 @@ const sdcpn: SDCPN = {
   types: [],
   parameters: [
     {
-      id: "param-rate",
+      id: rateParameterId,
       name: "Rate",
       variableName: "rate",
       type: "real",
@@ -62,13 +63,13 @@ const draftState: AdHocScenarioState = {
   ],
   netParameters: [
     {
-      parameterId: "param-rate",
+      parameterId: rateParameterId,
       expression: "scenario.baseLoad / 2",
       optimize: null,
     },
   ],
   places: {
-    "place-queue": {
+    [queuePlaceId]: {
       kind: "uncoloured",
       count: { expression: "scenario.baseLoad", optimize: null },
     },
@@ -116,20 +117,20 @@ describe("useAdHocScenarioAuthoring", () => {
     });
 
     expect(authoring.current.canSave).toBe(true);
-    const scenario = authoring.current.buildScenario("scenario-1");
+    const scenario = authoring.current.scenarioToSave("scenario-1");
     expect(scenario).not.toBeNull();
     // The exposed Variable became the scenario's one tunable parameter.
     expect(scenario!.scenarioParameters).toEqual([
       { type: "integer", identifier: "base_load", default: 6 },
     ]);
     // The override survived, rewritten to read the exposed parameter.
-    expect(scenario!.parameterOverrides["param-rate"]).toContain("base_load");
+    expect(scenario!.parameterOverrides[rateParameterId]).toContain(
+      "base_load",
+    );
     expect(scenario!.initialState).toEqual({
       type: "adhoc",
       content: draftState,
     });
-    // The persisted shape passes the schema the save paths validate with.
-    expect(scenarioSchema.safeParse(scenario).success).toBe(true);
   });
 
   it("blocks saving on a duplicate name or broken state", () => {
@@ -140,7 +141,7 @@ describe("useAdHocScenarioAuthoring", () => {
     });
     expect(authoring.current.canSave).toBe(false);
     expect(authoring.current.firstError).toContain("already exists");
-    expect(authoring.current.buildScenario("scenario-1")).toBeNull();
+    expect(authoring.current.scenarioToSave("scenario-1")).toBeNull();
   });
 
   it("keeps a code scenario's code verbatim and guards the parameters it reads", () => {
@@ -158,7 +159,7 @@ describe("useAdHocScenarioAuthoring", () => {
 
     expect(authoring.current.code).toBe(code.body);
     expect(authoring.current.canSave).toBe(true);
-    const scenario = authoring.current.buildScenario("scenario-1");
+    const scenario = authoring.current.scenarioToSave("scenario-1");
     expect(scenario?.initialState).toEqual({
       type: "code",
       content: code.body,
@@ -180,7 +181,7 @@ describe("useAdHocScenarioAuthoring", () => {
     expect(authoring.current.firstError).toBe(
       'Variable "base_load" is read by the scenario\'s code as scenario.base_load; keep it exposed with that name and type.',
     );
-    expect(authoring.current.buildScenario("scenario-1")).toBeNull();
+    expect(authoring.current.scenarioToSave("scenario-1")).toBeNull();
   });
 
   it("refuses to save a code scenario with a Variable that is not exposed", () => {
@@ -215,7 +216,7 @@ describe("useAdHocScenarioAuthoring", () => {
     expect(authoring.current.firstError).toBe(
       'Variable "spare" cannot be kept with code-defined initial state; turn Scenario Parameter on or delete it.',
     );
-    expect(authoring.current.buildScenario("scenario-1")).toBeNull();
+    expect(authoring.current.scenarioToSave("scenario-1")).toBeNull();
 
     act(() => {
       authoring.current.setState({
@@ -235,7 +236,7 @@ describe("useAdHocScenarioAuthoring", () => {
     });
     expect(authoring.current.canSave).toBe(true);
     expect(
-      authoring.current.buildScenario("scenario-1")?.scenarioParameters,
+      authoring.current.scenarioToSave("scenario-1")?.scenarioParameters,
     ).toEqual([
       { type: "integer", identifier: "base_load", default: 6 },
       { type: "integer", identifier: "spare", default: 2 },
