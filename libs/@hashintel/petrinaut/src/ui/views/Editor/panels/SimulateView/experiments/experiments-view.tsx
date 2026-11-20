@@ -6,7 +6,7 @@ import {
   ExperimentsContext,
   type ExperimentRecord,
 } from "../../../../../../react/experiments/context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulationPanel } from "../shared/simulation-panel";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
@@ -121,7 +121,7 @@ const ExperimentList = ({
 };
 
 export const ExperimentsView = () => {
-  const { setSimulateDrawer } = use(EditorContext);
+  const { setSimulateDrawer } = useEditorActions();
   const {
     experiments,
     selectedExperiment,

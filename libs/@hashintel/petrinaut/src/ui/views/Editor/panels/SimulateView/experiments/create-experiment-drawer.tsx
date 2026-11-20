@@ -43,7 +43,7 @@ import {
 } from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
-import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import {
   OverlayScrollArea,
@@ -606,7 +606,7 @@ const ExperimentMetricRow = ({
   footer?: ReactNode;
   triggerRef: (element: HTMLButtonElement | null) => void;
 }) => {
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const labelInputRef = useRef<HTMLInputElement>(null);
   const collapseButtonRef = useRef<HTMLButtonElement>(null);
   const didAutoFocusLabelRef = useRef(false);
