@@ -7,34 +7,29 @@ import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { useEditorState } from "../../../react/state/editor-context";
 import { useUndoRedoShortcuts } from "../../../react/state/use-undo-redo-shortcuts";
 import { ResizeHandle } from "../../resize/resize-handle";
-import { focusLands } from "../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
-import { useFocusStops } from "../../worksheet/use-focus-stops";
 import { CELL_KIND_PLURAL_LABELS, CELL_KINDS } from "./cell-kinds";
-import { CONNECTION_GUTTER_WIDTH, ConnectionLines } from "./connection-lines";
 import { GraphExplorer } from "./graph-explorer";
 import { layoutNetGraph } from "./net-graph-layout";
-import { cellBodyParts, NotebookCell, partStopId } from "./notebook-cell";
 import {
-  buildConnectionIndex,
-  buildDependentCounts,
-  buildNetGraph,
   buildNodeNeighbourhood,
-  buildNotebookCells,
   cellName,
   cellToSelectionItem,
   fuzzyMatchName,
   noConnections,
 } from "./notebook-model";
 import { orderCellsTopologically } from "./notebook-order";
+import { CellList } from "./notebook-view/cell-list";
+import { buildNotebookViewModel } from "./notebook-view/view-model";
 
-import type { FocusStop } from "../../worksheet/use-focus-stops";
+import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 import type {
   NodeRef,
   NotebookCellKind,
   NotebookCell as NotebookCellModel,
 } from "./notebook-model";
 import type { CellOrder } from "./notebook-order";
+import type { NotebookViewModel } from "./notebook-view/view-model";
 
 const containerStyle = css({
   display: "flex",
@@ -91,17 +86,6 @@ const filterGroupStyle = css({
   marginLeft: "auto",
 });
 
-const cellListStyle = css({
-  flex: "[1]",
-  minHeight: "[0]",
-  overflowY: "auto",
-});
-
-const cellListContentStyle = css({
-  position: "relative",
-  paddingY: "3",
-});
-
 const explorerColumnStyle = css({
   position: "relative",
   flexShrink: 0,
@@ -119,11 +103,14 @@ const DEFAULT_EXPLORER_WIDTH = 520;
 const MIN_EXPLORER_WIDTH = 320;
 const MAX_EXPLORER_WIDTH = 1100;
 
-const emptyStyle = css({
-  fontSize: "sm",
-  color: "neutral.fg.subtle",
-  padding: "4",
-});
+/** Focuses the row of a cell inside `container`; false when it has none. */
+const focusRowIn = (container: HTMLElement | null, cellId: string): boolean => {
+  const row = container?.querySelector<HTMLElement>(
+    `[data-cell-row="${CSS.escape(cellId)}"]`,
+  );
+  row?.focus({ preventScroll: true });
+  return row !== null && row !== undefined;
+};
 
 /**
  * The Definitions view: a code-like rendering of the net where
@@ -146,8 +133,20 @@ const emptyStyle = css({
  */
 type NotebookViewProps = { toolbarStart?: ReactNode };
 
-const NotebookViewContent = ({ toolbarStart }: NotebookViewProps) => {
-  const { activeNet } = use(ActiveNetContext);
+const NotebookViewContent = ({
+  net,
+  model: {
+    documentCells,
+    connectionIndex,
+    dependentCounts,
+    netGraph,
+    placeColors,
+  },
+  toolbarStart,
+}: NotebookViewProps & {
+  net: ActiveNetDefinition;
+  model: NotebookViewModel;
+}) => {
   // By selector: every cell of the notebook renders with this component.
   const selection = useEditorState((editor) => editor.selection);
   const selectItem = useEditorState((editor) => editor.selectItem);
@@ -167,10 +166,22 @@ const NotebookViewContent = ({ toolbarStart }: NotebookViewProps) => {
     ReadonlySet<NotebookCellKind>
   >(() => new Set(CELL_KINDS));
 
-  const documentCells = buildNotebookCells(activeNet);
-  const connectionIndex = buildConnectionIndex(activeNet);
-  const dependentCounts = buildDependentCounts(connectionIndex);
-  const netGraph = buildNetGraph(activeNet);
+  const cellsColumnRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Navigation can reveal a filtered-out kind, in which case the row to focus
+  // doesn't exist until after the re-render — so a miss is parked here and
+  // retried by the effect below once the row is in the DOM.
+  const pendingFocusCellIdRef = useRef<string | null>(null);
+  // One retry is enough: the reveal of the hidden kind lands in the very next
+  // render, and clearing unconditionally means a deleted cell can't leave a
+  // stale id behind to steal focus later.
+  useEffect(() => {
+    if (pendingFocusCellIdRef.current !== null) {
+      focusRowIn(cellsColumnRef.current, pendingFocusCellIdRef.current);
+      pendingFocusCellIdRef.current = null;
+    }
+  });
 
   // The topological list follows the diagram's default layer order (not the
   // focused re-layout, which is a transient lens on the same net), with
@@ -220,16 +231,6 @@ const NotebookViewContent = ({ toolbarStart }: NotebookViewProps) => {
       ? null
       : (connectionIndex.get(selectedCell.id) ?? noConnections());
 
-  // Token-type colour per place, so the diagram can echo the canvas palette.
-  const placeColors = new Map<string, string>(
-    activeNet.places.flatMap((place) => {
-      const color = activeNet.types.find(({ id }) => id === place.colorId);
-      return color === undefined
-        ? []
-        : [[place.id, color.displayColor] as const];
-    }),
-  );
-
   // The diagram always shows the whole net; a selected place or transition
   // just decides what gets highlighted within it. Nodes reachable both ways
   // count as a dependency and a dependent, so they light up on both sides.
@@ -262,77 +263,6 @@ const NotebookViewContent = ({ toolbarStart }: NotebookViewProps) => {
     focusId: focusOnSelection ? selectedNodeId : null,
   };
 
-  const contentRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // The cell list is one member of the worksheet focus flow: each navigable
-  // row is a full-width stop, followed by its body parts while it is
-  // expanded — so vertical arrows walk exactly what is on screen, and the
-  // whole list is a single roving tab stop. A part line with several cells
-  // (an arc's place, weight and type) is a sparse stop whose cells
-  // horizontal arrows walk individually.
-  const rowStops: FocusStop[] = navigableCells.flatMap((cell) => [
-    { id: cell.id, kind: "full" as const },
-    ...(expandedIds.has(cell.id)
-      ? cellBodyParts(cell, activeNet).map((part): FocusStop => {
-          const stopId = partStopId(cell.id, part.id);
-          return part.columns > 1
-            ? {
-                id: stopId,
-                kind: "sparse",
-                columns: Array.from({ length: part.columns }, (_, at) => at),
-              }
-            : { id: stopId, kind: "full" };
-        })
-      : []),
-  ]);
-  const maxPartColumns = Math.max(
-    1,
-    ...rowStops.map((stop) =>
-      stop.kind === "sparse" ? stop.columns.length : 1,
-    ),
-  );
-  // Destructured: the compiler takes what `ref` is given for a ref and would
-  // refuse the calls to `listFocus` during render.
-  const { attach: attachList, ...listFocus } = useFocusStops({
-    stops: rowStops,
-    columnCount: maxPartColumns,
-    focusTarget: ({ stopId, column }) => {
-      const content = contentRef.current;
-      if (!content) {
-        return false;
-      }
-      const escaped = CSS.escape(stopId);
-      // A declared column with no matching cell (or column 0 on a full-width
-      // part, which carries no column attribute) falls back to the line's
-      // first focusable element.
-      const target =
-        (typeof column === "number"
-          ? content.querySelector<HTMLElement>(
-              `[data-cell-part="${escaped}"][data-part-column="${String(column)}"]`,
-            )
-          : null) ??
-        content.querySelector<HTMLElement>(
-          `[data-cell-row="${escaped}"], [data-cell-part="${escaped}"]`,
-        );
-      return focusLands(target);
-    },
-  });
-
-  const revealedSelectionRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (selectedId === revealedSelectionRef.current) {
-      return;
-    }
-    revealedSelectionRef.current = selectedId;
-    if (selectedId === null) {
-      return;
-    }
-    contentRef.current
-      ?.querySelector(`[data-cell-id="${CSS.escape(selectedId)}"]`)
-      ?.scrollIntoView({ block: "nearest" });
-  }, [selectedId]);
-
   const setCellExpanded = (cellId: string, expanded: boolean) => {
     setExpandedIds((previous) => {
       const next = new Set(previous);
@@ -357,31 +287,8 @@ const NotebookViewContent = ({ toolbarStart }: NotebookViewProps) => {
     });
   };
 
-  // Navigation can reveal a filtered-out kind, in which case the row to focus
-  // doesn't exist until after the re-render — so a miss is parked here and
-  // retried by the effect below once the row is in the DOM.
-  const pendingFocusCellIdRef = useRef<string | null>(null);
-
-  const focusRowElement = (cellId: string): boolean => {
-    const row = contentRef.current?.querySelector<HTMLElement>(
-      `[data-cell-row="${CSS.escape(cellId)}"]`,
-    );
-    row?.focus({ preventScroll: true });
-    return row !== null && row !== undefined;
-  };
-
-  // One retry is enough: the reveal of the hidden kind lands in the very next
-  // render, and clearing unconditionally means a deleted cell can't leave a
-  // stale id behind to steal focus later.
-  useEffect(() => {
-    if (pendingFocusCellIdRef.current !== null) {
-      focusRowElement(pendingFocusCellIdRef.current);
-      pendingFocusCellIdRef.current = null;
-    }
-  });
-
   const focusCellRow = (cellId: string) => {
-    if (!focusRowElement(cellId)) {
+    if (!focusRowIn(cellsColumnRef.current, cellId)) {
       pendingFocusCellIdRef.current = cellId;
     }
   };
@@ -404,6 +311,13 @@ const NotebookViewContent = ({ toolbarStart }: NotebookViewProps) => {
     }
     selectItem({ type: node.type, id: node.id });
     focusCellRow(node.id);
+  };
+
+  const navigateToCell = (cellId: string) => {
+    const target = cells.find(({ id }) => id === cellId);
+    if (target) {
+      selectCell(target, { focus: true });
+    }
   };
 
   /**
@@ -508,95 +422,26 @@ const NotebookViewContent = ({ toolbarStart }: NotebookViewProps) => {
       </div>
 
       <div className={bodyStyle}>
-        <div className={cellsColumnStyle}>
-          <div ref={attachList} className={cellListStyle}>
-            <div
-              ref={contentRef}
-              className={cellListContentStyle}
-              style={{
-                paddingLeft: CONNECTION_GUTTER_WIDTH,
-                paddingRight: CONNECTION_GUTTER_WIDTH,
-              }}
-            >
-              {cells.length === 0 ? (
-                <div className={emptyStyle}>
-                  This net is empty — switch to Canvas to add places and
-                  transitions.
-                </div>
-              ) : visibleCells.length === 0 ? (
-                <div className={emptyStyle}>
-                  All cell kinds are filtered out — enable a kind above to see
-                  cells.
-                </div>
-              ) : (
-                visibleCells.map((cell) => (
-                  <NotebookCell
-                    key={cell.id}
-                    net={activeNet}
-                    cell={cell}
-                    isSelected={cell.id === selectedId}
-                    isExpanded={expandedIds.has(cell.id)}
-                    isDimmed={isSearching && !matchesById.has(cell.id)}
-                    nameMatchIndices={matchesById.get(cell.id) ?? null}
-                    dependentCount={dependentCounts.get(cell.id)}
-                    onSelect={() => selectCell(cell)}
-                    onSetExpanded={(expanded) =>
-                      setCellExpanded(cell.id, expanded)
-                    }
-                    rowFocus={{
-                      tabIndex: listFocus.tabIndexFor({
-                        stopId: cell.id,
-                        column: 0,
-                      }),
-                      onFocus: () => {
-                        listFocus.onFocusTarget({
-                          stopId: cell.id,
-                          column: 0,
-                        });
-                        selectCell(cell);
-                      },
-                      onNavigate: listFocus.onKeyDown({
-                        stopId: cell.id,
-                        column: 0,
-                      }),
-                    }}
-                    bodyParts={{
-                      stopIdFor: (partId) => partStopId(cell.id, partId),
-                      focusFor: (partId, column = 0) => {
-                        const stopId = partStopId(cell.id, partId);
-                        return {
-                          tabIndex: listFocus.tabIndexFor({ stopId, column }),
-                          onFocus: () => {
-                            listFocus.onFocusTarget({ stopId, column });
-                            selectCell(cell);
-                          },
-                          onNavigate: listFocus.onKeyDown({ stopId, column }),
-                        };
-                      },
-                      navigateToCell: (cellId) => {
-                        const target = cells.find(({ id }) => id === cellId);
-                        if (target) {
-                          selectCell(target, { focus: true });
-                        }
-                      },
-                    }}
-                    onFocusSearch={focusSearch}
-                  />
-                ))
-              )}
-              <ConnectionLines
-                containerRef={contentRef}
-                selectedId={selectedId}
-                visibleCellIds={visibleCells.map(({ id }) => id)}
-                upstreamIds={(selectedConnections?.upstream ?? []).map(
-                  ({ id }) => id,
-                )}
-                downstreamIds={(selectedConnections?.downstream ?? []).map(
-                  ({ id }) => id,
-                )}
-              />
-            </div>
-          </div>
+        <div ref={cellsColumnRef} className={cellsColumnStyle}>
+          <CellList
+            net={net}
+            cells={visibleCells}
+            navigableCells={navigableCells}
+            emptyMessage={
+              cells.length === 0
+                ? "This net is empty — switch to Canvas to add places and transitions."
+                : "All cell kinds are filtered out — enable a kind above to see cells."
+            }
+            expandedIds={expandedIds}
+            matchesById={isSearching ? matchesById : null}
+            dependentCounts={dependentCounts}
+            selectedId={selectedId}
+            selectedConnections={selectedConnections}
+            onSelectCell={selectCell}
+            onSetCellExpanded={setCellExpanded}
+            onNavigateToCell={navigateToCell}
+            onFocusSearch={focusSearch}
+          />
         </div>
 
         <div className={explorerColumnStyle} style={{ width: explorerWidth }}>
@@ -624,13 +469,24 @@ const NotebookViewContent = ({ toolbarStart }: NotebookViewProps) => {
   );
 };
 
-export const NotebookView = ({ toolbarStart }: NotebookViewProps) => (
-  // The stack must sit above the component whose hooks join the flow: a
-  // hook reads the context of its own component's position, so a stack
-  // rendered inside NotebookViewContent could never enrol its list.
-  <FocusRoot>
-    <FocusStack axis="horizontal">
-      <NotebookViewContent toolbarStart={toolbarStart} />
-    </FocusStack>
-  </FocusRoot>
-);
+export const NotebookView = ({ toolbarStart }: NotebookViewProps) => {
+  const { activeNet } = use(ActiveNetContext);
+  // Built above the component that holds the view's state and passed as a
+  // prop, so that the compiler derives it again for a new net only.
+  const model = buildNotebookViewModel(activeNet);
+
+  return (
+    // The stack must sit above the component whose hooks join the flow: a
+    // hook reads the context of its own component's position, so a stack
+    // rendered inside NotebookViewContent could never enrol its list.
+    <FocusRoot>
+      <FocusStack axis="horizontal">
+        <NotebookViewContent
+          net={activeNet}
+          model={model}
+          toolbarStart={toolbarStart}
+        />
+      </FocusStack>
+    </FocusRoot>
+  );
+};
