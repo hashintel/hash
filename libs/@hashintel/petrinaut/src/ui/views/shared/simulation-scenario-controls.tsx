@@ -187,20 +187,13 @@ const parameterBounds = (
     : undefined;
 };
 
-export type SimulationScenarioControlsProps = {
-  allowNoScenario?: boolean;
-  parameterBounds?: SimulationParameterBoundsByIdentifier;
-};
-
 /**
- * Shared scenario picker and typed parameter controls, decoupled from the full
- * editor settings panel so the embedded Preview composes them too. Internal to
- * this package: a host embeds `Petrinaut` or `PetrinautPreview`, and neither
- * this component nor the bottom-bar controls are part of a published entry.
+ * The scenario picker and typed parameter controls of the preview's Quick
+ * Simulation popover.
  */
-export const SimulationScenarioControls: React.FC<
-  SimulationScenarioControlsProps
-> = ({ allowNoScenario = true, parameterBounds: boundsByIdentifier }) => {
+export const SimulationScenarioControls: React.FC<{
+  parameterBounds?: SimulationParameterBoundsByIdentifier;
+}> = ({ parameterBounds: boundsByIdentifier }) => {
   const parameters = usePetrinautDefinitionSelector((net) => net.parameters);
   const scenarios = usePetrinautDefinitionSelector((net) => net.scenarios);
   const parametersEnabled = useSDCPNState(
@@ -238,13 +231,10 @@ export const SimulationScenarioControls: React.FC<
         type: parameter.type,
         defaultValue: parameter.defaultValue,
       }));
-  const scenarioOptions = [
-    ...(scenarios ?? []).map((scenario) => ({
-      value: scenario.id,
-      text: scenario.name,
-    })),
-    ...(allowNoScenario ? [{ value: NO_SCENARIO, text: "No scenario" }] : []),
-  ];
+  const scenarioOptions = (scenarios ?? []).map((scenario) => ({
+    value: scenario.id,
+    text: scenario.name,
+  }));
 
   return (
     <div className={rootStyle}>
@@ -254,11 +244,7 @@ export const SimulationScenarioControls: React.FC<
           <Select
             required
             value={selectedScenarioId}
-            onChange={(scenarioId) =>
-              setSelectedScenarioId(
-                scenarioId === NO_SCENARIO ? null : scenarioId,
-              )
-            }
+            onChange={setSelectedScenarioId}
             items={scenarioOptions}
             size="xs"
             disabled={isSimulationActive || scenarioOptions.length < 2}

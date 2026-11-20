@@ -130,10 +130,7 @@ export const PreviewSimulationConfiguration = ({
           <Popover.Container className={configurationPopoverStyle}>
             <Popover.Header title="Quick Simulation" />
             <Popover.Body className={configurationBodyStyle}>
-              <SimulationScenarioControls
-                allowNoScenario={false}
-                parameterBounds={parameterBounds}
-              />
+              <SimulationScenarioControls parameterBounds={parameterBounds} />
             </Popover.Body>
           </Popover.Container>
         </Popover>
