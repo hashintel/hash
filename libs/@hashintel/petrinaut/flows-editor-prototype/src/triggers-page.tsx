@@ -900,7 +900,10 @@ const DefaultScheduleFields = ({
           onClose={() => setPopover(false)}
         >
           <div
-            className={cx(confirmStyle, css({ width: "[560px]" }))}
+            className={cx(
+              confirmStyle,
+              css({ width: "max-content", minWidth: "[560px]" }),
+            )}
             data-custom-repeat
           >
             <span
@@ -912,7 +915,12 @@ const DefaultScheduleFields = ({
             >
               Custom
             </span>
-            <div className={formGridStyle}>
+            <div
+              className={cx(
+                formGridStyle,
+                css({ gridTemplateColumns: "[160px minmax(max-content, 1fr)]" }),
+              )}
+            >
               <CustomFields
                 rule={draft}
                 startIso={startIso}
@@ -1258,6 +1266,7 @@ const TriggerForm = ({
             <InputControl
               input={input}
               inputEntityTypes={flowDocument?.inputEntityTypes ?? {}}
+              height={28}
               value={values.flowInputs?.[input.name] ?? null}
               onChange={(next) =>
                 setValues((current) => ({

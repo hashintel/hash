@@ -45,12 +45,15 @@ export const InputControl = ({
   value,
   onChange,
   inputEntityTypes,
+  height,
 }: {
   input: FlowInputDefinition;
   value: Value;
   onChange: (value: Value) => void;
   /** The flow's `document.inputEntityTypes`. */
   inputEntityTypes: Record<string, string>;
+  /** A date field's height in px; the Run form keeps the default 32. */
+  height?: number;
 }) => {
   switch (input.payloadKind) {
     case "EntityId": {
@@ -131,6 +134,7 @@ export const InputControl = ({
         <TypedValue
           kind={input.payloadKind}
           label={input.label ?? input.name}
+          height={height}
           value={value ?? undefined}
           onChange={(next) => onChange(next ?? null)}
         />

@@ -181,12 +181,14 @@ const DateField = ({
   withTime = false,
   allowRelative = false,
   label,
+  height,
 }: {
   value: unknown;
   onChange: (value: string | RelativeDateValue | null) => void;
   withTime?: boolean;
   allowRelative?: boolean;
   label: string;
+  height?: number;
 }) => {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -212,6 +214,7 @@ const DateField = ({
         ref={triggerRef}
         type="button"
         className={pickerTriggerStyle}
+        style={height ? { height } : undefined}
         data-placeholder={!shown || undefined}
         data-open={open || undefined}
         aria-label={label}
@@ -470,6 +473,8 @@ export type TypedValueProps = {
   placeholder?: string;
   /** A number takes the DS's narrowest width, not the whole row. */
   compact?: boolean;
+  /** A date field's height in px; the default is the side panel's 32. The DS fields are already `sm` (28). */
+  height?: number;
 };
 
 export const TypedValue = ({
@@ -483,6 +488,7 @@ export const TypedValue = ({
   entityTypeBaseUrl,
   placeholder,
   compact,
+  height,
 }: TypedValueProps) => {
   if (options || kind === "ActorType") {
     const items = options ?? actorTypes;
@@ -531,6 +537,7 @@ export const TypedValue = ({
           withTime={kind === "DateTime"}
           allowRelative={allowRelative && kind === "Date"}
           label={label}
+          height={height}
           onChange={onChange}
         />
       );
