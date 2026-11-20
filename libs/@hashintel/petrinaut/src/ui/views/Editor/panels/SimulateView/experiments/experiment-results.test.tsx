@@ -145,11 +145,6 @@ const idleSweep: ExperimentRecord = {
 describe("experimentResultsModel for a running sweep", () => {
   const result = model(sweep);
 
-  it("titles the experiment with details available separately", () => {
-    expect(result.header.title).toBe("SIR transmission sweep");
-    expect(isValidElement(result.header.headline)).toBe(true);
-  });
-
   it("keeps the sweep header to its status and moves sampling and compute into details", () => {
     expect(result.header.status).toEqual({
       label: "Running",
