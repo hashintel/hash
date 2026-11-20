@@ -153,8 +153,8 @@ that writes them on the window as custom properties.
 - **Keep `:has()` off an element whose style is written per frame or per
   pointer move.** A direct write makes the browser work the element's style
   out in full, and matching `:has()` searches every element inside it.
-  `GlassPanel` sets `data-resizing-edge` on its own element while its handle
-  is dragged, so no rule has to look for the handle.
+  The separator of a docked panel paints the edge it drags on itself, from
+  the attribute the library sets on it, so no rule on the panel looks for it.
 
 :::danger[The Simulate panel follows neither rule]
 `simulation-workspace.tsx` holds the panel's width in `useState` and sets it
@@ -167,10 +167,41 @@ width to a Motion value belongs to FE-2319.
 The scripts `geometry.mjs`, `panel-toggles.mjs` and `assistant-dock.mjs` in
 `benchmarks/monaco-performance/` measure a drag, a slide and a dock.
 
+## Resizing a docked panel
+
+`DockResizers` in `ui/views/Editor/shared/dock-resizers.tsx` is a layer over
+the canvas workspace with one separator for each of the left sidebar, the
+Properties panel and the bottom panel. The separators are those of
+`react-resizable-panels`, the library the sections inside a panel resize
+with, so a drag, an arrow key and a touch behave the same in both places.
+
+The panels are not in the library's groups: their boxes follow Motion values.
+Each group holds an empty stand-in the size of its panel, and the groups nest
+as the panels sit: the left sidebar beside everything else, the bottom panel
+under what is left, the Properties panel beside the canvas.
+
+- **A drag leads, and at any other time the stand-in follows.** Each pointer
+  move writes the stand-in's size to the panel's Motion value. When a panel
+  opens or closes, the window resizes, or the canvas view comes back from
+  being hidden, the stand-in is set to the Motion value. A stand-in that led
+  outside a drag would write a size the user never chose.
+- **A press where two separators cross resizes both panels.** The library
+  takes a press for every group with a separator under it, provided the
+  inner group is stacked over the outer separator. `restStyle` stacks it.
+- **A separator has no thickness.** The stand-in is then exactly as large as
+  the panel. The strip a pointer grabs and the strip that shows are the
+  separator's pseudo-elements.
+- **A panel that is not fully in view has a disabled separator.** The test
+  "stops resizing a panel as soon as it starts to slide out" in
+  `dock-resizers.test.tsx` holds this.
+
+No unit test drags a separator: the library lays its groups out from measured
+sizes, which jsdom does not have.
+
 ## Saving
 
-A drag of the left sidebar, the Properties panel or the bottom panel saves
-the size to the user settings when it ends, through `onResizeEnd`. Saving
-renders the readers of that setting and writes local storage.
+A drag or an arrow key on the separator of the left sidebar, the Properties
+panel or the bottom panel saves the size to the user settings when it ends.
+Saving renders the readers of that setting and writes local storage.
 `PanelSizesProvider` restores the three sizes. The assistant's width is not
 saved.

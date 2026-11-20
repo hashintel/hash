@@ -121,10 +121,10 @@ try {
       );
 
       // Width drag of the panel that holds the section.
-      const edgeHandle = page
-        .locator('button[data-resize-edge="left"]')
-        .filter({ visible: true })
-        .last();
+      const edgeHandle = page.getByRole("separator", {
+        name: "Resize the properties panel",
+        exact: true,
+      });
       const edge = await center(edgeHandle);
       measurements.push(
         await observe(page, session, "panel-width-drag", async () => {
@@ -187,10 +187,10 @@ try {
         .click();
       await page.waitForTimeout(700);
       const topEdge = await center(
-        page
-          .locator('button[data-resize-edge="top"]')
-          .filter({ visible: true })
-          .first(),
+        page.getByRole("separator", {
+          name: "Resize the bottom panel",
+          exact: true,
+        }),
       );
       measurements.push(
         await observe(page, session, "bottom-panel-height-drag", async () => {
@@ -204,10 +204,10 @@ try {
         .click();
       await page.waitForTimeout(700);
       const rightEdge = await center(
-        page
-          .locator('button[data-resize-edge="right"]')
-          .filter({ visible: true })
-          .first(),
+        page.getByRole("separator", {
+          name: "Resize the left sidebar",
+          exact: true,
+        }),
       );
       measurements.push(
         await observe(page, session, "left-sidebar-width-drag", async () => {
