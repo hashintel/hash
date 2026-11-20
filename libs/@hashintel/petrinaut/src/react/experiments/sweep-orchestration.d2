@@ -8,14 +8,14 @@ classes: {
 }
 
 selection: "Navigator, surface pick" {class: ui}
-optimizer: "Optimizer trial\nsweep trial evaluator" {class: ui}
+optimizer: "Optimizer trial\nsweep trial evaluator" {class: react}
 actions: "Actions context\nsetSweepSelection, navigateSweep" {class: react}
-session: "Sweep session\nselection cache, ladder of 2 live rungs,\nvisited cells, run cap" {class: react}
+session: "Sweep session\nselection cache, at most 2 live rungs,\nvisited cells, run cap" {class: react}
 batch: "instantiateBatch\nthe provider's" {class: react}
 backend: "Chosen backend\nCPU worker pool or WebGPU" {class: core}
-stores: "Experiment handle stores\nmetrics, progress, run results" {class: core}
+stores: "Experiment handle\nstatus, progress and metrics stores,\nevents stream" {class: core}
 record: "Experiment record\nmetricFrames, sweep.visited, sweepBatches" {class: react}
-views: "Metric charts, activity list, top bar" {class: ui}
+views: "Metric charts, sweep surface,\nactivity list, top bar" {class: ui}
 
 selection -> actions: "selects"
 optimizer -> actions: "navigates to a point\nwith a run cap"

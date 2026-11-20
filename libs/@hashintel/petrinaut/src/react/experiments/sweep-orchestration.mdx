@@ -15,22 +15,20 @@ backend computes each batch.
 ## The selection path
 
 A slider move or a pick on the surface calls `setSweepSelection` through the
-actions context. The session normalizes the selection, aborts the ladder that
-was computing, and starts the ladder for the new selection: batches of 8, 25,
-100, 500 and 1,000 runs, each covering the runs the earlier rungs left.
-
-Rungs are pipelined. The next rung starts as soon as a rung streams its first
-frames, so at most two rungs compute at once, and batches enter the cache in
-rung order. Run ranges are disjoint and the per-run draws and seeds are
-prefix-stable, which is what makes two rungs at once correct.
+actions context. The session normalizes the selection. When the selection or
+the run cap changed, or nothing is computing, it aborts the ladder that was
+computing and starts the ladder for the new selection.
+[Parameter sweeps](doc:react.experiments/parameter-sweeps) gives the rungs,
+where the ladder stops, and why at most two rungs compute at once.
 
 Each rung asks the provider to instantiate a batch. The provider builds an
 `ExperimentRequest`. Per-run parameter draws travel in it as a typed-array
 plan over the net parameters the sweep's axes can reach, and a point
 selection travels as a constant plan. Every batch therefore lays out the same
 per-run buffer, and the GPU backend keeps one compiled setup across
-selections. The first rung lets the backend selection choose between the CPU
-worker pool and the WebGPU backend, and later rungs reuse that choice.
+selections. The backend selection chooses between the CPU worker pool and
+the WebGPU backend once per experiment, with its first batch. Each later
+batch assesses the chosen backend again with its own request.
 
 Frames come back through the stores of the experiment handle. The session
 merges the selection's cached frames with the frames of the rungs computing,
@@ -42,8 +40,9 @@ from the experiments context.
 
 A study starts during creation when **Start optimizer immediately** is
 checked (`useCreateOptimizedExperiment`), or later through **Optimize** on
-the Parameters card (`useSweepOptimizer`). Both call `useStartSweepStudy`
-with the experiment's model snapshot, metric and execution settings.
+the Parameters card (`useSweepOptimizer`). Both call the function
+that `useStartSweepStudy` returns, with the experiment record and the
+objective.
 
 The first trial relies on one contract of `createExperiment`: the sweep
 branch awaits nothing before `startSweepSession`. The session is then
@@ -58,9 +57,11 @@ A trial goes through `navigateSweep(experimentId, point, { runCap })`. The
 session adopts the point as its selection with a run cap and restarts its
 ladder there. The call resolves with the point's value per metric once the
 point has that many runs in the cache. It resolves null when another
-navigation superseded it or the sweep was disposed. It rejects with the
-batch's reason when a batch of the point fails, and the evaluator lets that
-rejection fail the study.
+navigation superseded it, when the sweep is disposed while it waits, or when
+its ladder ends with no finished run. It rejects with the batch's reason
+when a batch of the point fails, and with "The sweep is no longer running"
+when the session is gone before the call. The evaluator lets a rejection
+fail the study.
 
 The cap keeps the ladder from starting a rung the next trial would abort. A
 plain `setSweepSelection` lifts it, so a point the user returns to refines to
