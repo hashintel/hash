@@ -1014,7 +1014,7 @@ const ScaleTriggerRow = ({
           editOnPage(pageTriggerOf[row.label]);
         }}
       >
-        <Pencil size={12} strokeWidth={iconStroke * (16 / 12)} aria-hidden />
+        <Pencil size={12} strokeWidth={iconStroke} aria-hidden />
       </button>
     ) : null}
     <span className={stateStyle}>
