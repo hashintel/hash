@@ -12,6 +12,7 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { useScrollOverflow } from "../../../hooks/use-scroll-overflow";
 import { usePetrinautPresentation } from "../../../views/shared/presentation-context";
+import { useDebouncedHeightSave } from "./vertical-sub-views-container/use-debounced-height-save";
 import { useSubViewMaximization } from "./vertical-sub-views-container/use-sub-view-maximization";
 
 import type { SubView } from "../types";
@@ -654,20 +655,7 @@ export const VerticalSubViewsContainer: React.FC<
   const getSavedHeight = (id: string): number | undefined =>
     containerSettings?.[id]?.height;
 
-  // Debounce height saves to avoid writing to context on every drag frame
-  const heightTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
-    {},
-  );
-
-  const handleResize = (id: string) => (panelSize: { inPixels: number }) => {
-    if (panelSize.inPixels <= HEADER_HEIGHT) {
-      return;
-    }
-    clearTimeout(heightTimers.current[id]);
-    heightTimers.current[id] = setTimeout(() => {
-      updateSubViewSection(name, id, { height: panelSize.inPixels });
-    }, 300);
-  };
+  const saveHeight = useDebouncedHeightSave(name, updateSubViewSection);
 
   const { active: isAnimating, trigger: triggerTransition } =
     useTransientTransition(200);
@@ -713,7 +701,13 @@ export const VerticalSubViewsContainer: React.FC<
             <Panel
               id={subView.id}
               defaultSize={getSavedHeight(subView.id)}
-              onResize={handleResize(subView.id)}
+              onResize={({ inPixels }) => {
+                // A collapsed section is as tall as its header: not a height
+                // to restore.
+                if (inPixels > HEADER_HEIGHT) {
+                  saveHeight(subView.id, inPixels);
+                }
+              }}
               minSize={isExpanded ? minSize : HEADER_HEIGHT}
               maxSize={isExpanded ? undefined : HEADER_HEIGHT}
             >
