@@ -17,11 +17,11 @@ settings: "User settings\ncollapsed and height per section" {style.fill: "#dcecf
 navigation: "Navigation state\nexpandedSubView" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 
 descriptors -> modules: "names components"
-descriptors -> deferred: "wraps a heavy section"
-deferred -> modules: "imports on first use"
+deferred -> descriptors: "builds a descriptor"
+deferred -> modules: "imports on first mount or preload"
 side -> descriptors: "chooses a list"
 bottom -> descriptors: "chooses a list"
-plugin -> bottom: "adds tabs"
+plugin -> bottom: "adds tabs with rendered content"
 side -> sections: "passes subViews"
 bottom -> tabs: "passes tabs"
 sections -> modules: "renders each open section"
