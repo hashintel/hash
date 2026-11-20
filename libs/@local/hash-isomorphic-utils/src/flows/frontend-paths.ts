@@ -44,3 +44,17 @@ export const generatedFilteredWorkersPath = ({
   flowDefinitionEntityIds: EntityId[];
 }) =>
   `/workers?${flowDefinitionEntityIds.map((flowDefinitionEntityId) => `${workerFlowFilterParam}=${encodeURIComponent(flowDefinitionEntityId)}`).join("&")}`;
+
+export const flowTriggersFlowFilterParam = "flow";
+
+/**
+ * The page that lists the flow triggers the user can see: all of them, or only those of one flow.
+ */
+export const generateFlowTriggersPath = ({
+  flowDefinitionEntityId,
+}: {
+  flowDefinitionEntityId?: EntityId;
+} = {}) =>
+  flowDefinitionEntityId
+    ? `/flows/triggers?${flowTriggersFlowFilterParam}=${encodeURIComponent(flowDefinitionEntityId)}`
+    : "/flows/triggers";
