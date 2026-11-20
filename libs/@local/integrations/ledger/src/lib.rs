@@ -6,28 +6,22 @@
 //! [`start`] starts a run of the integration. A run is named by a [`RunId`], which the caller makes
 //! once per run, so that a start that failed can be repeated with the same id.
 //!
+//! [`capture`] is the first stage of a run. It stores the files the run works on, one per table.
+//! A stage that fails says with a [`StageError`] whether running it again can help.
+//!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 
 extern crate alloc;
 
-#[expect(dead_code, reason = "Capture is the first caller of the stage frame")]
 mod run;
-#[cfg_attr(not(test), expect(dead_code, reason = "Capture is the first caller"))]
 mod stage;
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "Capture is the first caller of upload and download"
-    )
-)]
 mod storage;
 #[cfg(test)]
 mod testing;
 
 pub use self::{
     run::{RunId, Stage, StartError, StartInput, start},
-    stage::StageError,
+    stage::{StageError, capture},
     storage::{IntegrationNamespace, S3Bucket, Storage, StorageError},
 };

@@ -76,6 +76,7 @@ impl Storage {
     /// Returns [`StorageError::Read`] if `key` is missing or cannot be downloaded, or
     /// [`StorageError::Write`] if `key` would leave `directory` or the local file cannot be
     /// written.
+    #[cfg_attr(not(test), expect(dead_code, reason = "Prepare is the first caller"))]
     pub(crate) async fn download(
         &self,
         key: &str,

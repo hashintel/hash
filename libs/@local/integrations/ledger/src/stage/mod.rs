@@ -3,14 +3,15 @@
 //! A stage starts with [`begin`], does its work, and ends with [`end`], which writes `run.json`
 //! as the stage's last write to the bucket.
 
+mod capture;
 mod failure;
 #[cfg(test)]
 mod tests;
 
 use error_stack::Report;
 
-pub use self::failure::StageError;
 use self::failure::{from_run, permanent};
+pub use self::{capture::capture, failure::StageError};
 use crate::{
     run::{self, Failure, RunError, RunId, RunRecord, Stage, current},
     storage::{CasVersion, Storage},

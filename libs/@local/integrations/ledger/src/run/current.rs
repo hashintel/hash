@@ -73,6 +73,7 @@ pub(crate) async fn activate(
 /// - [`RunError::Changed`] if the file changed since it was read
 /// - [`RunError::Unreadable`] if the file is not a `current.json`
 /// - [`RunError::Storage`] if the bucket cannot be read or written
+#[cfg_attr(not(test), expect(dead_code, reason = "Send is the first caller"))]
 pub(crate) async fn complete(storage: &Storage, run: RunId) -> Result<(), Report<RunError>> {
     let (current, version) = read(storage).await?;
     if current.active != Some(run) {
