@@ -1,4 +1,4 @@
-import { use, useEffect, useRef } from "react";
+import { use, useEffect } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
@@ -38,6 +38,7 @@ import {
   eventTimelineSubView,
   simulationSettingsSubView,
 } from "./sub-views";
+import { useOpenTimelineOnRunStart } from "./use-open-timeline-on-run-start";
 
 const glassPanelBaseStyle = css({
   position: "absolute",
@@ -135,11 +136,8 @@ export const BottomPanel: React.FC = () => {
     "activeBottomPanelTab",
     "globalMode",
   );
-  const {
-    setBottomPanelOpen,
-    setActiveBottomPanelTab: setActiveTab,
-    toggleBottomPanel,
-  } = useEditorActions();
+  const { setActiveBottomPanelTab: setActiveTab, toggleBottomPanel } =
+    useEditorActions();
   const { shown } = usePanelPresence();
   // Still sliding out, where a closed panel is not kept mounted.
   const isInView = useReading(() => shown.bottomPanel.get() > 0);
@@ -172,9 +170,13 @@ export const BottomPanel: React.FC = () => {
     actualMode.initialState !== null &&
     (actualMode.status === "streaming" || actualMode.status === "complete");
 
-  // Track previous run states to detect when a timeline becomes available.
-  const prevSimulationActiveRef = useRef(false);
-  const prevActualTimelineActiveRef = useRef(false);
+  useOpenTimelineOnRunStart(
+    isActualTimelineActive
+      ? "actual-timeline"
+      : isSimulationActive
+        ? "simulation-timeline"
+        : null,
+  );
 
   // Dynamically compute subviews based on available execution modes.
   const subViews = getBottomPanelSubViews({
@@ -186,7 +188,7 @@ export const BottomPanel: React.FC = () => {
   const tabs = [...subViews, ...pluginViews];
 
   // The tab drawn is already the fallback on the render that loses the
-  // active one; an effect below then stores it.
+  // active one; the effect below then stores it.
   const renderedActiveTab =
     fallbackBottomPanelTab(
       activeTab,
@@ -195,41 +197,6 @@ export const BottomPanel: React.FC = () => {
   const activePluginView = pluginViews.find(
     (view) => view.id === renderedActiveTab,
   );
-
-  // Automatically open bottom panel and switch to the relevant timeline when a
-  // run starts. The effect below stores the tab shown when one disappears.
-  useEffect(() => {
-    const wasSimulationActive = prevSimulationActiveRef.current;
-    const wasActualTimelineActive = prevActualTimelineActiveRef.current;
-    prevSimulationActiveRef.current = isSimulationActive;
-    prevActualTimelineActiveRef.current = isActualTimelineActive;
-
-    if (isActualTimelineActive && !wasActualTimelineActive) {
-      setBottomPanelOpen(true);
-      setActiveTab("actual-timeline");
-    } else if (!isActualMode && isSimulationActive && !wasSimulationActive) {
-      setBottomPanelOpen(true);
-      setActiveTab("simulation-timeline");
-    }
-
-    if (
-      !isActualMode &&
-      !isActualTimelineActive &&
-      wasActualTimelineActive &&
-      activeTab === "actual-timeline"
-    ) {
-      // Only fall back to diagnostics when leaving Actual mode entirely; while
-      // still in Actual mode the timeline tab stays valid even without data.
-      setActiveTab("diagnostics");
-    }
-  }, [
-    activeTab,
-    isActualMode,
-    isActualTimelineActive,
-    isSimulationActive,
-    setActiveTab,
-    setBottomPanelOpen,
-  ]);
 
   useEffect(() => {
     if (renderedActiveTab !== activeTab) {
