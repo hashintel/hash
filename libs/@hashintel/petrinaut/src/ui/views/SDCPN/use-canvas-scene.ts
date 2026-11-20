@@ -75,6 +75,15 @@ export const useCanvasScene = (
     setSettledHoverId(nextHoverId);
   }
 
+  // The hover reaches the scene before it settles only where that shows at
+  // once: on a place with a visualizer. The pointer crossing any other node
+  // leaves every input of the scene as it was, and no scene is built.
+  const hoveredVisualizerId =
+    activeNet.places.find((place) => place.id === hoveredId)?.visualizerCode ===
+    undefined
+      ? null
+      : hoveredId;
+
   // Indexed and checked on the net alone, so the compiler holds both across
   // the renders a hover causes and only redoes them when the net changes.
   const adjacency = buildNetAdjacency(activeNet);
@@ -104,9 +113,11 @@ export const useCanvasScene = (
     }),
     keptOpenVisualizerIds: keptOpenVisualizerPlaceIds,
     activeVisualizerIds: new Set(
-      [hoveredId, openVisualizerPlaceId, focusedVisualizerPlaceId].filter(
-        (id) => id !== null,
-      ),
+      [
+        hoveredVisualizerId,
+        openVisualizerPlaceId,
+        focusedVisualizerPlaceId,
+      ].filter((id) => id !== null),
     ),
     unfoldedInstanceIds: unfoldedComponentInstanceIds,
   });

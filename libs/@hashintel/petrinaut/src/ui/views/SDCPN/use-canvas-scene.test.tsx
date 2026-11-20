@@ -13,13 +13,14 @@ import type { ActiveNetDefinition } from "../../../react/state/active-net-contex
 import type { CanvasDragPreview } from "./canvas-scene";
 
 const net: ActiveNetDefinition = {
-  places: ["input", "output"].map((id) => ({
+  places: ["input", "output", "pictured"].map((id) => ({
     id,
     name: id,
     colorId: null,
     dynamicsEnabled: false,
     x: 0,
     y: 0,
+    ...(id === "pictured" ? { visualizerCode: "return null;" } : {}),
   })),
   transitions: [
     {
@@ -112,6 +113,15 @@ describe("canvas hover during dragging", () => {
     expect(
       result.current.nodes.find((node) => node.id === "input"),
     ).toMatchObject({ hovered: true, focus: "focused" });
+  });
+
+  it("offers a place's visualizer before the pointer rests on it", () => {
+    const { result, hover } = renderScene();
+    movePointer(100);
+    hover("pictured");
+    expect(
+      result.current.nodes.find((node) => node.id === "pictured"),
+    ).toMatchObject({ hovered: false, visualizerActive: true });
   });
 
   it.each([
