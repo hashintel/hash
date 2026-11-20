@@ -8,9 +8,11 @@ import {
   useState,
 } from "react";
 
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { brunchRoutes } from "@hashintel/brunch-agent";
 import {
   BrunchAssistantContext,
+  type BrunchBackend,
   type BrunchHostSave,
   type BrunchOpenDocument,
   brunchPlugin,
@@ -26,7 +28,10 @@ import {
   type PetrinautDocHandle,
 } from "@hashintel/petrinaut";
 
-import { brunchAgentOrigin } from "../../../../../lib/public-env";
+import {
+  brunchAgentOrigin,
+  durableAgentsOrigin,
+} from "../../../../../lib/public-env";
 import { useAuthInfo } from "../../../../shared/auth-info-context";
 import { useBrunchHashGraphReadTools } from "./process-petrinaut/brunch-hash-graph-reads";
 import { topBarPlugin } from "./process-petrinaut/top-bar-plugin";
@@ -36,11 +41,37 @@ import type { EntityId, UserId } from "@blockprotocol/type-system";
 const editorPlugins = [topBarPlugin];
 const editorPluginsWithBrunch = [topBarPlugin, brunchPlugin];
 
-/** Brunch's HASH agent, which the page calls directly. */
-const brunchChatEndpoint = (origin: string) =>
-  `${origin}${brunchRoutes.agents}/${brunchRoutes.hashAgent}`;
+/**
+ * The server the page's assistant runs on, which the page calls directly:
+ * the durable agents server when this deployment names one, else Brunch's,
+ * or `null` when it names neither.
+ */
+const selectBrunchServer = (): {
+  readonly kind: BrunchBackend["kind"];
+  readonly origin: string;
+} | null =>
+  durableAgentsOrigin !== null
+    ? { kind: "successor", origin: durableAgentsOrigin }
+    : brunchAgentOrigin !== null
+      ? { kind: "flue", origin: brunchAgentOrigin }
+      : null;
 
-/** Returns `{ actorKey }` for the signed-in account. */
+/**
+ * Brunch's HASH agent on Brunch's server; on the durable agents server, its
+ * base, which the assistant extends.
+ */
+const brunchChatEndpoint = ({
+  kind,
+  origin,
+}: {
+  kind: BrunchBackend["kind"];
+  origin: string;
+}) =>
+  kind === "successor"
+    ? origin
+    : `${origin}${brunchRoutes.agents}/${brunchRoutes.hashAgent}`;
+
+/** Returns `{ actorKey }` for the signed-in account, on either server. */
 const brunchIdentityEndpoint = (origin: string) =>
   `${origin}${brunchRoutes.hashIdentity}`;
 
@@ -68,30 +99,34 @@ const noNetSwitchingError = () => {
 };
 
 /**
- * Brunch's origin and the signed-in account's actor key, from Brunch, or
- * `null` while it loads, when nobody with a completed signup is signed in,
- * when this deployment has no Brunch, when Brunch declines the session, or
- * when the request failed; only a failure is reported. Requested again
- * whenever the signed-in account changes.
+ * The assistant's server and the signed-in account's actor key, from that
+ * server, or `null` while it loads, when nobody with a completed signup is
+ * signed in, when this deployment has no server for it, when the server
+ * declines the session, or when the request failed; only a failure is
+ * reported. Requested again whenever the signed-in account changes.
  */
 const useBrunchConnection = (): {
+  readonly kind: BrunchBackend["kind"];
   readonly origin: string;
   readonly actorKey: string;
 } | null => {
   const { authenticatedUser } = useAuthInfo();
-  const origin = brunchAgentOrigin;
+  const server = selectBrunchServer();
+  const kind = server?.kind ?? null;
+  const origin = server?.origin ?? null;
   const accountId = authenticatedUser?.accountSignupComplete
     ? authenticatedUser.accountId
     : null;
   const { captureException } = use(ErrorTrackerContext);
   const [identity, setIdentity] = useState<{
+    kind: BrunchBackend["kind"];
     origin: string;
     accountId: UserId;
     actorKey: string;
   } | null>(null);
 
   useEffect(() => {
-    if (origin === null || accountId === null) {
+    if (kind === null || origin === null || accountId === null) {
       return;
     }
     const controller = new AbortController();
@@ -117,7 +152,7 @@ const useBrunchConnection = (): {
           throw new Error("The Brunch identity response has no actor key");
         }
         const { actorKey } = body;
-        setIdentity({ origin, accountId, actorKey });
+        setIdentity({ kind, origin, accountId, actorKey });
       } catch (error) {
         if (!controller.signal.aborted) {
           captureException(error, { source: "brunch.identity" });
@@ -125,9 +160,10 @@ const useBrunchConnection = (): {
       }
     })();
     return () => controller.abort();
-  }, [origin, accountId, captureException]);
+  }, [kind, origin, accountId, captureException]);
 
   return identity !== null &&
+    identity.kind === kind &&
     identity.origin === origin &&
     identity.accountId === accountId
     ? identity
@@ -147,6 +183,7 @@ const useBrunchConnection = (): {
 const BrunchSession = memo(
   ({
     actorKey,
+    backend,
     chatEndpoint,
     openDocument,
     shown,
@@ -156,7 +193,12 @@ const BrunchSession = memo(
     onChange,
   }: {
     actorKey: string;
-    /** Brunch's HASH agent. */
+    /**
+     * The server the conversation runs on, chosen by the page before the
+     * assistant reports it, so anything keyed on the server reads it here.
+     */
+    backend: BrunchBackend;
+    /** Brunch's HASH agent, or the durable agents server's base. */
     chatEndpoint: string;
     openDocument: BrunchOpenDocument;
     /** The editor shows Brunch's assistant. */
@@ -187,6 +229,7 @@ const BrunchSession = memo(
       hostTools,
       hostSave,
       ...(versionLoad === undefined ? {} : { versionLoad }),
+      backend,
     });
 
     useLayoutEffect(() => {
@@ -259,13 +302,25 @@ export const ProcessPetrinaut = ({
         : { documentId: savedEntityId, editor },
     [savedEntityId, readonly, editor],
   );
+  // On the durable agents server, the conversation belongs to the process's
+  // web, never the active workspace.
+  const brunchKind = brunch?.kind ?? null;
+  const brunchBackend = useMemo<BrunchBackend | null>(() => {
+    if (brunchKind === null || savedEntityId === null) {
+      return null;
+    }
+    return brunchKind === "successor"
+      ? { kind: "successor", web: extractWebIdFromEntityId(savedEntityId) }
+      : { kind: "flue" };
+  }, [brunchKind, savedEntityId]);
 
   return (
     <>
-      {brunch !== null && openDocument !== null && (
+      {brunch !== null && brunchBackend !== null && openDocument !== null && (
         <BrunchSession
           actorKey={brunch.actorKey}
-          chatEndpoint={brunchChatEndpoint(brunch.origin)}
+          backend={brunchBackend}
+          chatEndpoint={brunchChatEndpoint(brunch)}
           openDocument={openDocument}
           shown={brunchShown}
           hostTools={hostTools}

@@ -8,12 +8,16 @@ import {
 
 const deployment = vi.hoisted(() => ({
   brunchOrigin: null as string | null,
+  durableAgentsOrigin: null as string | null,
   sentryDsn: undefined as string | undefined,
 }));
 
 vi.mock("./public-env", () => ({
   get brunchAgentOrigin() {
     return deployment.brunchOrigin;
+  },
+  get durableAgentsOrigin() {
+    return deployment.durableAgentsOrigin;
   },
   get SENTRY_DSN() {
     return deployment.sentryDsn;
@@ -44,6 +48,7 @@ const otherPaths = ["/processes", "/processes/", "/processes/x/y", "/", "/new"];
 afterEach(() => {
   vi.unstubAllEnvs();
   deployment.brunchOrigin = null;
+  deployment.durableAgentsOrigin = null;
   deployment.sentryDsn = undefined;
 });
 
@@ -150,6 +155,43 @@ describe("buildCspHeader with Brunch configured", () => {
           !directiveSources(withoutBrunch, "connect-src").includes(source),
       ),
     ).toEqual(["https://agent.brunch.example"]);
+  });
+});
+
+describe("buildCspHeader with the durable agents server configured", () => {
+  test.each([...processEditorPaths, ...otherPaths])(
+    "lets %s connect to the durable agents server, beside Brunch",
+    (pathname) => {
+      vi.stubEnv("NODE_ENV", "production");
+      deployment.brunchOrigin = "https://agent.brunch.example";
+      deployment.durableAgentsOrigin = "https://durable.brunch.example";
+      const header = buildCspHeader({ nonce: "abc", pathname });
+
+      expect(directiveSources(header, "connect-src")).toEqual(
+        expect.arrayContaining([
+          "https://agent.brunch.example",
+          "https://durable.brunch.example",
+        ]),
+      );
+    },
+  );
+
+  test("adds its origin alone, and nothing without it", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const without = directiveSources(
+      buildCspHeader({ nonce: "abc", pathname: "/" }),
+      "connect-src",
+    );
+    deployment.durableAgentsOrigin = "https://durable.brunch.example";
+    const withDurable = directiveSources(
+      buildCspHeader({ nonce: "abc", pathname: "/" }),
+      "connect-src",
+    );
+
+    expect(withDurable.filter((source) => !without.includes(source))).toEqual([
+      "https://durable.brunch.example",
+    ]);
+    expect(withDurable).toEqual(expect.arrayContaining(without));
   });
 });
 
