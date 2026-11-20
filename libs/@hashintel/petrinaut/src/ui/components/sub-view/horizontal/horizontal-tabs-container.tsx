@@ -181,11 +181,7 @@ export const HorizontalTabsHeaderAction: React.FC<{
     subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
 
   const HeaderAction = activeSubView?.headerAction;
-  if (HeaderAction) {
-    return <HeaderAction />;
-  }
-
-  return <>{activeSubView?.renderHeaderAction?.() ?? null}</>;
+  return HeaderAction ? <HeaderAction /> : null;
 };
 
 /** The panel a tab controls: scrolled, and padded unless told otherwise. */

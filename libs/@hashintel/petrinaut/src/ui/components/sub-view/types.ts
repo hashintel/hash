@@ -3,7 +3,7 @@
  * @role The descriptor a panel lists for each view it shows, and the two containers that render one as a collapsible section or as a tab
  */
 
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType } from "react";
 
 /**
  * Configuration for resizable subviews.
@@ -41,8 +41,6 @@ export interface SubView {
    * a `.ts` file beside the components it points at.
    */
   headerAction?: ComponentType;
-  /** @deprecated Being replaced by {@link SubView.headerAction}. */
-  renderHeaderAction?: () => ReactNode;
   /**
    * Whether the header action creates, deletes or clears something. A
    * presentation that hides mutation actions hides only these.
@@ -56,7 +54,7 @@ export interface SubView {
   /**
    * Whether this is the main (primary) subview.
    * When true, shows a non-collapsible header with a larger title style.
-   * The title and `renderHeaderAction` are displayed in the fixed header,
+   * The title and the header action are displayed in the fixed header,
    * and the content should not include its own title/actions.
    */
   main?: boolean;
@@ -65,8 +63,6 @@ export interface SubView {
    * Only used when `main` is true.
    */
   titleComponent?: ComponentType;
-  /** @deprecated Being replaced by {@link SubView.titleComponent}. */
-  renderTitle?: () => ReactNode;
   /**
    * Whether the section should start collapsed before the user has interacted.
    * Defaults to false (expanded). Ignored when `main` is true.

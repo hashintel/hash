@@ -4,10 +4,7 @@ import type { SubView } from "./types";
 
 type LoadedParts = Pick<SubView, "component" | "headerAction">;
 
-type DeferredSubViewOptions = Omit<
-  SubView,
-  "component" | "headerAction" | "renderHeaderAction"
-> & {
+type DeferredSubViewOptions = Omit<SubView, "component" | "headerAction"> & {
   load: () => Promise<LoadedParts>;
   hasHeaderAction?: boolean;
 };

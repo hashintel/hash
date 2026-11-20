@@ -119,7 +119,7 @@ const subViews: SubView[] = [
     component: Code,
     canMaximize: true,
     headerActionMutates: true,
-    renderHeaderAction: () => <button type="button">Load template</button>,
+    headerAction: () => <button type="button">Load template</button>,
   },
 ];
 

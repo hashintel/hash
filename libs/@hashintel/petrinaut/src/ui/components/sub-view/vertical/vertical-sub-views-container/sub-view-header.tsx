@@ -262,7 +262,7 @@ export const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   } = subView;
   const showsHeaderAction =
     (isExpanded || alwaysShowHeaderAction) &&
-    (HeaderAction ?? subView.renderHeaderAction) !== undefined &&
+    HeaderAction !== undefined &&
     !(subView.headerActionMutates && !presentation.showMutationActions);
 
   return (
@@ -322,8 +322,6 @@ export const SubViewHeader: React.FC<SubViewHeaderProps> = ({
           )}
           {Title ? (
             <Title />
-          ) : subView.renderTitle ? (
-            subView.renderTitle()
           ) : (
             <span className={mainTitleStyle()}>{title}</span>
           )}
@@ -385,7 +383,7 @@ export const SubViewHeader: React.FC<SubViewHeaderProps> = ({
                   : headerActionStyle
               }
             >
-              {HeaderAction ? <HeaderAction /> : subView.renderHeaderAction?.()}
+              <HeaderAction />
             </div>
           )}
         </div>
