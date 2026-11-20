@@ -53,12 +53,7 @@ A plugin's `bottomPanelViews` entry never becomes a `SubView`. `usePluginBottomP
 
 **A descriptor file is a `.ts` file.** A module that exports an object beside a component loses Fast Refresh: every save re-runs its importers and resets their state. `tsc` rejects JSX in a `.ts` file, so a component cannot be written there. No check stops a descriptor from being exported by a `.tsx` file.
 
-**A descriptor names components and sets no render function.** A component field keeps the descriptor free of closures, and the container renders it as an element that React can keep between renders. The type still allows a render function, and no lint rule or test checks this.
-
-:::danger[Two deprecated fields remain]
-`SubView` still declares `renderHeaderAction` and `renderTitle`. `SubViewHeader`, `HorizontalTabsHeaderAction` and `createDeferredSubView` still call the first, and `SubViewHeader` the second.
-No descriptor in the package sets either. Two tests set `renderHeaderAction`: `deferred-sub-view.test.tsx` and `vertical-sub-views-container.test.tsx`.
-:::
+**A descriptor names components and sets no render function.** A component field keeps the descriptor free of closures, and the container renders it as an element that React can keep between renders.
 
 **The maximize animation changes no layout property.** The section is laid out once at the size of the container, then moved with `transform` and clipped with `clip-path`, while its title and the other sections change `opacity`. Its content is not laid out again on each frame. The test "animates how the section is drawn in both directions and can reverse an unfinished expansion" in `vertical-sub-views-container.test.tsx` holds this.
 
