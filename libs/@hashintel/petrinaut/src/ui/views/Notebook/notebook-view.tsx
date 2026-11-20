@@ -1,8 +1,9 @@
 import { use, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
+import { Group, Panel, Separator } from "react-resizable-panels";
 
 import { Button, SegmentedControl, TextInput } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import {
@@ -10,7 +11,11 @@ import {
   useEditorState,
 } from "../../../react/state/editor-context";
 import { useUndoRedoShortcuts } from "../../../react/state/use-undo-redo-shortcuts";
-import { ResizeHandle } from "../../resize/resize-handle";
+import {
+  COARSE_GRAB_SIZE,
+  edgeSeparatorStyle,
+  GRAB_SIZE,
+} from "../../resize/edge-separator-style";
 import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
 import { CELL_KIND_PLURAL_LABELS, CELL_KINDS } from "./cell-kinds";
 import { GraphExplorer } from "./graph-explorer";
@@ -42,15 +47,12 @@ const containerStyle = css({
 });
 
 const bodyStyle = css({
-  display: "flex",
   flex: "[1]",
   minHeight: "[0]",
   minWidth: "[0]",
 });
 
 const cellsColumnStyle = css({
-  flex: "[1]",
-  minWidth: "[0]",
   display: "flex",
   flexDirection: "column",
 });
@@ -87,21 +89,24 @@ const filterGroupStyle = css({
 });
 
 const explorerColumnStyle = css({
-  position: "relative",
-  flexShrink: 0,
-  minWidth: "[0]",
-  // The drag bound is absolute pixels; this keeps a narrow window from letting
-  // the explorer squeeze the cell list to nothing.
-  maxWidth: "[85%]",
   borderLeftWidth: "[1px]",
   borderLeftStyle: "solid",
   borderLeftColor: "neutral.s40",
   backgroundColor: "neutral.s00",
 });
 
+// The strip that shows lies over the explorer's border and over whatever is
+// in the explorer.
+const explorerSeparatorStyle = css({
+  _after: { zIndex: "sticky" },
+});
+
 const DEFAULT_EXPLORER_WIDTH = 520;
 const MIN_EXPLORER_WIDTH = 320;
 const MAX_EXPLORER_WIDTH = 1100;
+// The explorer's limits are pixels; this keeps a narrow window from letting
+// it squeeze the cell list to nothing.
+const MIN_CELLS_WIDTH = "15%";
 
 /** Focuses the row of a cell inside `container`, when it has one. */
 const focusRowIn = (container: HTMLElement | null, cellId: string) => {
@@ -157,7 +162,6 @@ const NotebookViewContent = ({
     () => new Set(),
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [explorerWidth, setExplorerWidth] = useState(DEFAULT_EXPLORER_WIDTH);
   const [cellOrder, setCellOrder] = useState<CellOrder>("document");
   const [focusOnSelection, setFocusOnSelection] = useState(false);
   const [visibleKinds, setVisibleKinds] = useState<
@@ -399,8 +403,17 @@ const NotebookViewContent = ({
         </div>
       </div>
 
-      <div className={bodyStyle}>
-        <div ref={cellsColumnRef} className={cellsColumnStyle}>
+      <Group
+        className={bodyStyle}
+        style={{ overflow: "visible" }}
+        resizeTargetMinimumSize={{ fine: GRAB_SIZE, coarse: COARSE_GRAB_SIZE }}
+      >
+        <Panel
+          elementRef={cellsColumnRef}
+          className={cellsColumnStyle}
+          style={{ overflow: "visible" }}
+          minSize={MIN_CELLS_WIDTH}
+        >
           <CellList
             net={net}
             cells={visibleCells}
@@ -420,17 +433,25 @@ const NotebookViewContent = ({
             onNavigateToCell={navigateToCell}
             onFocusSearch={focusSearch}
           />
-        </div>
+        </Panel>
 
-        <div className={explorerColumnStyle} style={{ width: explorerWidth }}>
-          <ResizeHandle
-            edge="left"
-            getSize={() => explorerWidth}
-            onResize={setExplorerWidth}
-            minSize={MIN_EXPLORER_WIDTH}
-            maxSize={MAX_EXPLORER_WIDTH}
-            label="Resize the graph explorer"
-          />
+        <Separator
+          aria-label="Resize the graph explorer"
+          disableDoubleClick
+          className={cx(
+            edgeSeparatorStyle({ edge: "left", paintsBorder: false }),
+            explorerSeparatorStyle,
+          )}
+        />
+
+        <Panel
+          className={explorerColumnStyle}
+          style={{ overflow: "visible" }}
+          defaultSize={DEFAULT_EXPLORER_WIDTH}
+          minSize={MIN_EXPLORER_WIDTH}
+          maxSize={MAX_EXPLORER_WIDTH}
+          groupResizeBehavior="preserve-pixel-size"
+        >
           <GraphExplorer
             connections={selectedConnections}
             selectedCellId={selectedId}
@@ -441,8 +462,8 @@ const NotebookViewContent = ({
             onToggleFocus={() => setFocusOnSelection((previous) => !previous)}
             onNavigate={navigateToNode}
           />
-        </div>
-      </div>
+        </Panel>
+      </Group>
     </div>
   );
 };
