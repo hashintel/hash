@@ -205,6 +205,8 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
     );
   }
   const mode = actualMode ? "actual" : hasQuickSimulation ? "simulate" : "edit";
+  // `useMemo` for the handle and the instance: one per model is a
+  // requirement, not an optimisation left to the compiler.
   const handle = useMemo(
     () =>
       createJsonDocHandle({
@@ -224,44 +226,32 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
     () => createPetrinaut({ document: handle, readonly: true }),
     [handle],
   );
-  const navigationAdapter = useMemo(
-    () =>
-      navigation ? createPreviewNavigationAdapter(navigation, mode) : undefined,
-    [mode, navigation],
-  );
+  const navigationAdapter = navigation
+    ? createPreviewNavigationAdapter(navigation, mode)
+    : undefined;
   const hirArtifacts = quickSimulation?.hirArtifacts;
   const scenarioHirById = quickSimulation?.scenarioHirById;
-  // SimulationProvider's lowering effect keys on compiler function identity,
-  // so retain the adapter while the host's immutable artifacts are unchanged.
-  const simulationCompiler = useMemo(
-    () =>
-      hirArtifacts && scenarioHirById
-        ? createPreviewSimulationCompiler({ hirArtifacts, scenarioHirById })
-        : undefined,
-    [hirArtifacts, scenarioHirById],
-  );
+  // SimulationProvider's lowering effect keys on compiler function identity:
+  // the React Compiler keeps the adapter while the host's artifacts are the same.
+  const simulationCompiler =
+    hirArtifacts && scenarioHirById
+      ? createPreviewSimulationCompiler({ hirArtifacts, scenarioHirById })
+      : undefined;
   const allowedPlaybackSpeeds = quickSimulation?.allowedPlaybackSpeeds;
   const defaultPlaybackSpeed = quickSimulation?.defaultPlaybackSpeed;
-  const playbackOptions = useMemo(
-    () =>
-      hasQuickSimulation
-        ? resolvePreviewPlaybackOptions({
-            allowedPlaybackSpeeds,
-            defaultPlaybackSpeed,
-          })
-        : undefined,
-    [allowedPlaybackSpeeds, defaultPlaybackSpeed, hasQuickSimulation],
-  );
-  const netManagement = useMemo<NetManagement>(
-    () => ({
-      title,
-      setTitle: noop,
-      existingNets: [],
-      createNewNet: noop,
-      loadPetriNet: noop,
-    }),
-    [title],
-  );
+  const playbackOptions = hasQuickSimulation
+    ? resolvePreviewPlaybackOptions({
+        allowedPlaybackSpeeds,
+        defaultPlaybackSpeed,
+      })
+    : undefined;
+  const netManagement: NetManagement = {
+    title,
+    setTitle: noop,
+    existingNets: [],
+    createNewNet: noop,
+    loadPetriNet: noop,
+  };
 
   useEffect(() => () => instance.dispose(), [instance]);
 

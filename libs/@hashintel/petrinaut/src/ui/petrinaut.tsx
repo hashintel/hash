@@ -194,6 +194,8 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   if (!sameRules(heldRules, rules)) {
     setHeldRules(rules);
   }
+  // `useMemo`: one instance per set of inputs is a requirement, not an
+  // optimisation left to the compiler.
   const instance = useMemo<Instance>(
     () =>
       createPetrinaut({
