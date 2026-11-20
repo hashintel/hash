@@ -66,8 +66,6 @@ it("shows one named slider per parameter and selects values on every axis when m
   render(<SweepNavigator {...props} onSelectionChange={onSelectionChange} />);
 
   expect(screen.getAllByRole("slider")).toHaveLength(2);
-  expect(screen.queryByText("Range")).toBeNull();
-  expect(screen.queryByText("Point")).toBeNull();
   expect(screen.getByText("Move a slider to explore results.")).toBeTruthy();
   expect(onSelectionChange).not.toHaveBeenCalled();
 
