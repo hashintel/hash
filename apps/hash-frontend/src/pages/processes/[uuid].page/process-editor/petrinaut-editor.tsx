@@ -412,7 +412,12 @@ export const PetrinautEditor = ({
     [handle, updateSession],
   );
 
-  /** Whether `entityId` is the open net and saved, as of the latest change. */
+  /**
+   * Whether `entityId` is the open net and saved, as of the latest change.
+   * The ref catches up with a new load only in its layout effect, but the
+   * conversation asks only from a send or a clear, which can't run before a
+   * commit's layout effects have.
+   */
   const isNetSaved = useCallback((entityId: EntityId) => {
     const mode = liveSessionRef.current?.mode;
     return mode?.kind === "saved" && mode.entityId === entityId;
