@@ -121,7 +121,7 @@ buttons, settings gears, editing actions, diagnostics, simulation and data views
 and assistant and voice controls, including icons inside shared menus and forms.
 Checkbox marks and loading indicators also use HASH symbols.
 The change applies immediately. Turning Petricon off uses static drawings in the
-same style.
+same style and preserves icon labels for screen readers.
 
 **Add Place** and **Add Transition** show a plain circle and square. Hover over
 either button to reveal a plus at the bottom-right of its shape; the plus disappears

@@ -32,6 +32,7 @@ export const AiAssistantIcon = ({
   return (
     <StaticHashIcon
       aria-hidden={title === undefined ? true : undefined}
+      aria-label={title}
       fill="none"
       height={size}
       role={title === undefined ? undefined : "img"}

@@ -1636,9 +1636,7 @@ describe("AiAssistantContents", () => {
     ]) {
       const button = within(dock).getByRole("button", { name: label });
       const icon = button.querySelector("svg");
-      expect(icon?.getAttribute("viewBox")).toBe(
-        label === "Mute microphone" ? "0 0 20 20" : "0 0 24 24",
-      );
+      expect(icon?.getAttribute("viewBox")).toBe("0 0 24 24");
       expect(icon?.getAttribute("width")).toBe("16");
       expect(icon?.getAttribute("height")).toBe("16");
       expect(within(button).queryByText(label)).toBeNull();
