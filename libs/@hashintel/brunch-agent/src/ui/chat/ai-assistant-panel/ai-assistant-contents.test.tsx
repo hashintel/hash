@@ -5806,7 +5806,7 @@ describe("questions docked on the composer", () => {
     );
   });
 
-  test("Send moves past a question left empty, rather than offering Voice and losing the answers given", () => {
+  test("Send moves past a question left empty, and Voice stays reachable beside it", () => {
     const onInputModeChange = vi.fn();
     const { onSendAnswer } = renderDock({
       messages: [opening, asking(three)],
@@ -5817,16 +5817,75 @@ describe("questions docked on the composer", () => {
     send("Continue to next question");
     expect(composer().value).toBe("");
     expect(
-      screen.queryByRole("button", { name: "Start voice mode" }),
-    ).toBeNull();
+      screen.getByRole("button", { name: "Continue to next question" }),
+    ).not.toBeNull();
 
     fireEvent.keyDown(composer(), { key: "Enter" });
     expect(screen.getByText("Question 3/3 · Production demand")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
+    expect(onInputModeChange).toHaveBeenCalledExactlyOnceWith("voice");
     send("Send answers");
-    expect(onInputModeChange).not.toHaveBeenCalled();
     expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
       "1. Quarantined shipment: It stays counted as an open order\n\nNot answered yet: Recent order, Production demand.",
     );
+  });
+
+  test("a reply with other questions discards the draft left for the earlier ones", () => {
+    const { onSendAnswer, rerender } = renderDock({
+      messages: [opening, asking(three)],
+    });
+    fireEvent.click(option("Stays open"));
+    send("Continue to next question");
+    fireEvent.change(composer(), { target: { value: "Nine days." } });
+
+    // A follow-up sent on its own keeps the composer's text while Brunch replies.
+    const followUp: PetrinautAiMessage = {
+      id: "follow-up",
+      role: "user",
+      parts: [{ type: "text", text: "The experiment finished." }],
+    };
+    const props = { onSendAnswer, onSubmit: noop };
+    rerender(
+      <Docked
+        {...props}
+        messages={[opening, asking(three), followUp]}
+        status="streaming"
+      />,
+    );
+    rerender(
+      <Docked
+        {...props}
+        messages={[
+          opening,
+          asking(three),
+          followUp,
+          { ...asking([quarantine]), id: "asking-again" },
+        ]}
+      />,
+    );
+
+    expect(composer().value).toBe("");
+    expect(option("Stays open").getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(option("Drops out"));
+    send();
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
+      "It drops out until quality releases it",
+    );
+  });
+
+  test("an equivalent message refresh keeps a focused option's description", () => {
+    const { container, rerender, onSendAnswer } = renderDock();
+    fireEvent.focus(option("Drops out"));
+    rerender(
+      <Docked
+        onSendAnswer={onSendAnswer}
+        onSubmit={noop}
+        messages={[opening, asking([quarantine])]}
+      />,
+    );
+    expect(
+      container.querySelector("[data-answer-description]")?.textContent,
+    ).toBe("It drops out until quality releases it");
   });
 
   test("the arrows step between questions, each keeping its answer", () => {
