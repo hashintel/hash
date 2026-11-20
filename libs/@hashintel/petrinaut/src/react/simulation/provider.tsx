@@ -3,7 +3,7 @@
  * @role Owns the run configuration, starts runs and experiments on the selected simulator, and mirrors their handles into React
  */
 
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import {
   createExperimentReader,
@@ -13,11 +13,9 @@ import {
   runContinuityOf,
   experimentSamplePeriod,
   compileScenario,
-  synthesizeAdHocScenario,
   type AdHocScenarioState,
   type EventSimulation,
   type ReadableStore,
-  type ScenarioCompilationError,
   type SimulationRequestBase,
   type SimulationState as CoreSimulationState,
   type CompiledScenarioResult,
@@ -70,8 +68,10 @@ import {
   startSimulatorRun,
 } from "./provider/start-on-simulator";
 import { createStochasticPlaybackSource } from "./provider/stochastic-playback-source";
+import { useRunScenario } from "./provider/use-run-scenario";
 import { runEndOf } from "./run-end";
-import { useScenarioHir, type ScenarioHirRequest } from "./use-scenario-hir";
+
+import type { ScenarioHirRequest } from "./use-scenario-hir";
 
 /**
  * Internal state for the simulation provider.
@@ -269,6 +269,35 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     simulators,
   );
   const simulatorSelectionRef = useLatest(simulatorSelection);
+
+  const effectiveScenarioParameterValues =
+    stateValues.selectedScenarioId === undefined ||
+    stateValues.selectedScenarioId === effectiveSelectedScenarioId
+      ? stateValues.scenarioParameterValues
+      : {};
+  const selectedScenario = effectiveSelectedScenarioId
+    ? petriNetDefinition.scenarios?.find(
+        (scenario) => scenario.id === effectiveSelectedScenarioId,
+      )
+    : undefined;
+  const {
+    target: scenarioToCompile,
+    compiled: compiledScenarioResult,
+    errors: scenarioCompilationErrors,
+    adHocNetParameters,
+  } = useRunScenario({
+    definition: petriNetDefinition,
+    parametersEnabled: extensions.parameters,
+    selectedScenario,
+    parameterValues: stateValues.parameterValues,
+    scenarioParameterValues: effectiveScenarioParameterValues,
+    adHocScenario: stateValues.adHocScenario,
+    requestScenarioHir,
+  });
+  // `initialize` compiles the target itself, not the preview of it: the
+  // preview lowers asynchronously, and a run started while that request is in
+  // flight must not fall back to manual values.
+  const scenarioToCompileRef = useLatest(scenarioToCompile);
 
   // A Quick Simulation's run. Its lifecycle is owned by this provider, and at
   // most one of it and the Stochastic experiment below is live.
@@ -607,22 +636,18 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       ? sdcpn
       : { ...sdcpn, parameters: [] };
     // Snapshot every compile-sensitive input before awaiting the worker so
-    // artifacts and execution always use the same model configuration. The
-    // scenario is compiled below rather than read from render state: the
-    // render path lowers asynchronously, and a run started while that
-    // request is in flight must not fall back to manual values.
+    // artifacts and execution always use the same model configuration.
     const manualInitialMarking = currentState.initialMarking;
     const manualParameterValues = simulationExtensions.parameters
       ? currentState.parameterValues
       : {};
-    // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-    const scenarioToCompile = scenarioToCompileRef.current;
+    const target = scenarioToCompileRef.current;
 
     // Refused before anything is torn down: a definition that does not
     // compile leaves the run that is already going, and only reports.
-    if (scenarioToCompile?.kind === "invalid") {
+    if (target?.kind === "invalid") {
       const refusal = new Error(
-        `The inline initial state does not compile:\n${scenarioToCompile.messages.join("\n")}`,
+        `The inline initial state does not compile:\n${target.errors.map((invalid) => invalid.message).join("\n")}`,
       );
       setError(refusal.message);
       setErrorItemId(null);
@@ -640,11 +665,11 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     try {
       let initialMarking = manualInitialMarking;
       let parameterValues: Record<string, string> = manualParameterValues;
-      if (scenarioToCompile) {
+      if (target) {
         const scenarioHir = await requestScenarioHir(
           {
-            parameterOverrides: scenarioToCompile.scenario.parameterOverrides,
-            initialState: scenarioToCompile.scenario.initialState,
+            parameterOverrides: target.scenario.parameterOverrides,
+            initialState: target.scenario.initialState,
           },
           // A persisted ad-hoc scenario synthesizes against the net inside
           // the worker; other kinds ignore the context.
@@ -655,15 +680,15 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
             places: sdcpn.places,
             types: sdcpn.types,
           },
-          scenarioToCompile.scenario.id,
+          target.scenario.id,
         );
         if (initializationGenerationRef.current !== generation) {
           return false;
         }
         const compiled = compileScenarioForRun(
-          scenarioToCompile.scenario,
+          target.scenario,
           scenarioHir,
-          scenarioToCompile.netParameters,
+          target.netParameters,
           sdcpn.places,
           sdcpn.types,
         );
@@ -877,162 +902,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     requestedScenarioId,
     requireScenario,
   ]);
-  const effectiveScenarioParameterValues =
-    stateValues.selectedScenarioId === undefined ||
-    stateValues.selectedScenarioId === effectiveSelectedScenarioId
-      ? stateValues.scenarioParameterValues
-      : {};
-
-  const selectedScenario = effectiveSelectedScenarioId
-    ? petriNetDefinition.scenarios?.find(
-        (s) => s.id === effectiveSelectedScenarioId,
-      )
-    : undefined;
-
-  // No scenario selected: the ad-hoc definition compiles through a scenario
-  // generated here and never persisted. The panel's parameter inputs stay
-  // the owner of parameter values, so the net parameters are tweaked to the
-  // panel's values before expressions read them.
-  //
-  // `useMemo` on these two, where the compiler memoizes everything else in
-  // this component: both are handed to `compileScenario` after
-  // `useScenarioHir` has run, and the compiler does not cache a value across
-  // a hook call when a later call could still change it. Left to it, both
-  // are new on every render, the scenario is compiled again on every render,
-  // and the context value below changes for every reader each time this
-  // provider renders.
-  const adHocNetParameters = useMemo(
-    () =>
-      extensions.parameters
-        ? petriNetDefinition.parameters.map((parameter) => ({
-            ...parameter,
-            defaultValue:
-              stateValues.parameterValues[parameter.variableName] ??
-              parameter.defaultValue,
-          }))
-        : [],
-    [
-      extensions.parameters,
-      petriNetDefinition.parameters,
-      stateValues.parameterValues,
-    ],
-  );
-  const adHocDefinition = selectedScenario ? null : stateValues.adHocScenario;
-  const adHocSynthesized = useMemo(
-    () =>
-      adHocDefinition
-        ? synthesizeAdHocScenario(adHocDefinition, {
-            netParameters: adHocNetParameters,
-            places: petriNetDefinition.places,
-            types: petriNetDefinition.types,
-          })
-        : null,
-    [
-      adHocDefinition,
-      adHocNetParameters,
-      petriNetDefinition.places,
-      petriNetDefinition.types,
-    ],
-  );
-
-  // Scenario code is lowered to HIR in the language worker (async, keyed on
-  // the scenario's code); type checking and interpretation run synchronously
-  // during render below. React Compiler will memoize based on inputs.
-  const scenarioHirState = useScenarioHir(
-    selectedScenario ??
-      (adHocSynthesized?.ok ? adHocSynthesized.scenario : undefined),
-    {
-      requestScenarioHir,
-      // A persisted ad-hoc scenario synthesizes in the worker against the
-      // net context; the quick-sim definition was synthesized above already.
-      adHocContext: {
-        netParameters: extensions.parameters
-          ? petriNetDefinition.parameters
-          : [],
-        places: petriNetDefinition.places,
-        types: petriNetDefinition.types,
-      },
-    },
-  );
-
-  // Build a scenario with user-tweaked parameter values.
-  const tweakedScenario = selectedScenario
-    ? {
-        ...selectedScenario,
-        scenarioParameters: selectedScenario.scenarioParameters.map((sp) => ({
-          ...sp,
-          default: Number(
-            effectiveScenarioParameterValues[sp.identifier] ?? sp.default,
-          ),
-        })),
-      }
-    : null;
-
-  let compiledScenarioResult: CompiledScenarioResult | null = null;
-  let scenarioCompilationErrors: ScenarioCompilationError[] | null = null;
-  if (tweakedScenario) {
-    if (scenarioHirState.error !== null) {
-      // Keep the errors visible: a failing scenario must not look like an
-      // applied one (the marking silently falls back to manual values).
-      scenarioCompilationErrors = [
-        {
-          source: "initialState",
-          itemId: "__lowering__",
-          message: `Scenario code could not be compiled: ${scenarioHirState.error}`,
-        },
-      ];
-    } else if (scenarioHirState.hir !== null) {
-      const outcome = compileScenario(
-        tweakedScenario,
-        scenarioHirState.hir,
-        extensions.parameters ? petriNetDefinition.parameters : [],
-        petriNetDefinition.places,
-        petriNetDefinition.types,
-      );
-      if (outcome.ok) {
-        compiledScenarioResult = outcome.result;
-      } else {
-        scenarioCompilationErrors = outcome.errors;
-      }
-    }
-    // While lowering is in flight both stay null: the scenario is neither
-    // applied nor failing for this render, matching a just-selected scenario.
-  } else if (adHocSynthesized) {
-    if (!adHocSynthesized.ok) {
-      scenarioCompilationErrors = adHocSynthesized.errors.map(
-        (synthesisError) => ({
-          source:
-            synthesisError.source === "netParameter"
-              ? ("parameterOverride" as const)
-              : ("initialState" as const),
-          itemId: synthesisError.itemId,
-          message: synthesisError.message,
-        }),
-      );
-    } else if (scenarioHirState.error !== null) {
-      scenarioCompilationErrors = [
-        {
-          source: "initialState",
-          itemId: "__lowering__",
-          message: `Scenario code could not be compiled: ${scenarioHirState.error}`,
-        },
-      ];
-    } else if (scenarioHirState.hir !== null) {
-      const outcome = compileScenario(
-        adHocSynthesized.scenario,
-        scenarioHirState.hir,
-        adHocNetParameters,
-        petriNetDefinition.places,
-        petriNetDefinition.types,
-      );
-      if (outcome.ok) {
-        compiledScenarioResult = outcome.result;
-      } else {
-        scenarioCompilationErrors = outcome.errors;
-      }
-    }
-  }
-
   // When a scenario is compiled, override parameterValues and initialMarking
   // with the scenario's resolved output.
   let effectiveParameterValues = extensions.parameters
@@ -1049,38 +918,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       ...compiledScenarioResult.initialState,
     };
   }
-
-  // Snapshot for `initialize`, which compiles the scenario itself: the
-  // saved (tweaked) scenario, or the quick-sim ad-hoc definition already
-  // synthesized above — a run must consume the same definition AND the
-  // same net parameters the render preview compiled with (the ad-hoc
-  // preview overlays the panel's values onto the defaults).
-  const scenarioToCompileRef = useLatest(
-    tweakedScenario
-      ? {
-          kind: "scenario" as const,
-          scenario: tweakedScenario,
-          netParameters: extensions.parameters
-            ? petriNetDefinition.parameters
-            : [],
-        }
-      : adHocSynthesized
-        ? adHocSynthesized.ok
-          ? {
-              kind: "scenario" as const,
-              scenario: adHocSynthesized.scenario,
-              netParameters: adHocNetParameters,
-            }
-          : // A broken inline definition must refuse to run — falling back
-            // to the manual marking would silently ignore what was typed.
-            {
-              kind: "invalid" as const,
-              messages: adHocSynthesized.errors.map(
-                (synthesisError) => synthesisError.message,
-              ),
-            }
-        : null,
-  );
 
   // The run or the experiment says what its positions count. Before one
   // exists the net does: an untimed net is simulated in steps in either mode.

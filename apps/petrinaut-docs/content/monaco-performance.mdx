@@ -307,9 +307,11 @@ every render. The scenario was then compiled again on every render, and the
 compiled result, the parameter values and the initial marking were new with
 it.
 
-The array and the scenario synthesized from it are now in `useMemo`, which
-tells the compiler they are final. The provider's value is the same object
-after a render that changed nothing, and the scenario is compiled once.
+The array and the scenario synthesized from it are now built in
+`useRunScenario` and handed to a second hook that lowers and compiles. A
+value passed to a hook is final for the compiler, so it caches both without
+`useMemo`. The provider's value is the same object after a render that
+changed nothing, and the scenario is compiled once.
 `provider.context-value.react.test.tsx` holds the provider to that with a
 scenario selected, with an ad-hoc scenario and with none.
 
