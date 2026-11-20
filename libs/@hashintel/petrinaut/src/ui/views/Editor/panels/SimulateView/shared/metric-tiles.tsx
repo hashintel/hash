@@ -13,12 +13,10 @@ import { type ReactNode, useState } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import {
-  DEFAULT_METRIC_VIEW_SETTINGS,
-  describeMetricView,
-  ExperimentMetricTimeline,
-  MetricViewMenu,
-} from "../experiments/experiment-metric-timeline";
+import { ExperimentMetricTimeline } from "../experiments/experiment-metric-timeline";
+import { describeMetricView } from "../experiments/experiment-metric-timeline/describe-metric-view";
+import { MetricViewMenu } from "../experiments/experiment-metric-timeline/metric-view-menu";
+import { DEFAULT_METRIC_VIEW_SETTINGS } from "../experiments/experiment-metric-timeline/view-state";
 import {
   CHART_CARD_GRID_GAP,
   CHART_CARD_MIN_WIDTH,

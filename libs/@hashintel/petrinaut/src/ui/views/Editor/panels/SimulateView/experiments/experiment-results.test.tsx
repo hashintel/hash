@@ -32,10 +32,7 @@ import type { ResultsStat } from "../shared/results-model";
 // uPlot reads `matchMedia` as it loads, which jsdom lacks; the model builds
 // the tiles but never renders a timeline.
 vi.mock("./experiment-metric-timeline", () => ({
-  DEFAULT_METRIC_VIEW_SETTINGS: {},
-  describeMetricView: () => "",
   ExperimentMetricTimeline: () => null,
-  MetricViewMenu: () => null,
 }));
 
 // The strip draws through uPlot; the model hands it the study and no more.

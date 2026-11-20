@@ -24,13 +24,6 @@ import type {
   MetricViewSettings,
 } from "./experiment-metric-timeline/view-state";
 
-export { describeMetricView } from "./experiment-metric-timeline/describe-metric-view";
-export { MetricViewMenu } from "./experiment-metric-timeline/metric-view-menu";
-export {
-  DEFAULT_METRIC_VIEW_SETTINGS,
-  type MetricViewSettings,
-} from "./experiment-metric-timeline/view-state";
-
 // The component is exactly the plot's height: the waiting note and the
 // legend sit on the frame as overlays, so no view setting adds a row.
 const frameStyle = css({
