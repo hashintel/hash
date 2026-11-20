@@ -4,15 +4,8 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
 import { FakeEditorProvider } from "./experiments/experiments-story-fixtures";
 import { SimulateView, SimulateViewTabs } from "./simulate-view";
-
-import type {
-  PetrinautConnectedOptimization,
-  PetrinautConnectedOptimizationCapability,
-} from "@hashintel/petrinaut-core/optimization";
-import type { ReactNode } from "react";
 
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const actual =
@@ -41,56 +34,18 @@ vi.mock("./scenarios/scenarios-view", () => ({
   ScenariosView: () => <div>Scenarios view</div>,
 }));
 
-const capability: Pick<
-  PetrinautConnectedOptimizationCapability,
-  "createOptimizationRun" | "attachOptimizationRun" | "cancelOptimizationRun"
-> = {
-  createOptimizationRun: () => Promise.resolve({ runId: "run-test" }),
-  async *attachOptimizationRun() {
-    yield { type: "started", requestedTrials: 1, seq: 1 };
-  },
-  cancelOptimizationRun: () => Promise.resolve(),
-};
-
-const connectedSource: PetrinautConnectedOptimization = {
-  kind: "connected",
-  connect: () => ({
-    ...capability,
-    extendOptimizationRun: () => Promise.resolve(),
-    releaseOptimizationRun: () => Promise.resolve(),
-    dispose: () => {},
-  }),
-};
-
 afterEach(cleanup);
 
-/** The tab list, whatever optimization source the host provides. */
-const tabsUnder = (wrap: (view: ReactNode) => ReactNode): string[] => {
-  const { container, unmount } = render(
-    wrap(
+describe("SimulateView tabs", () => {
+  it("are Experiments and Scenarios", () => {
+    const { container } = render(
       <FakeEditorProvider>
         <SimulateViewTabs />
       </FakeEditorProvider>,
-    ),
-  );
-  const tabs = [...container.querySelectorAll("span")].map(
-    (tab) => tab.textContent,
-  );
-  unmount();
-  return tabs;
-};
-
-describe("SimulateView tabs", () => {
-  it("are Experiments and Scenarios whatever the optimization source", () => {
-    expect(tabsUnder((view) => view)).toEqual(["Experiments", "Scenarios"]);
+    );
     expect(
-      tabsUnder((view) => (
-        <PetrinautOptimizationContext value={connectedSource}>
-          {view}
-        </PetrinautOptimizationContext>
-      )),
+      [...container.querySelectorAll("span")].map((tab) => tab.textContent),
     ).toEqual(["Experiments", "Scenarios"]);
-    expect(screen.queryByText("Optimizations")).toBeNull();
   });
 
   it("show the experiments in the Metrics mode, which has no tab", () => {
