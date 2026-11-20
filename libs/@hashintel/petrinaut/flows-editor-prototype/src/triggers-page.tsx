@@ -1429,7 +1429,7 @@ const AddMenu = ({
         icon: "cube",
         onClick: () => onPick("responsive"),
       },
-    ])}
+    ], "value", false, true)}
     trigger={trigger}
   />
 );

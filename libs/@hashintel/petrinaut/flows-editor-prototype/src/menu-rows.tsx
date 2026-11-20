@@ -86,6 +86,13 @@ export const tiledRowsStyle = css({
   "& [role=menuitem]:has([data-menu-row=two])": {
     "--selectable-list-item-padding-y": "5px",
   },
+  // SYS-TILE-32 (20 Nov): a one-line tile row is 32 px high (22 px tile, 5 px above and below), a two-line row 44 px.
+  "& [role=menuitem]:has([data-menu-row][data-sys])": {
+    "--selectable-list-item-padding-y": "5px",
+  },
+  "& [role=menuitem]:has([data-menu-row=two][data-sys])": {
+    "--selectable-list-item-padding-y": "3px",
+  },
   // A one-line row's 24 px tile starts on the same 16 px edge as the two-line rows' 32 px tiles (12 Nov).
   "& [data-row-slot]": { justifyContent: "flex-start" },
   "& [role=menuitem]:has([data-menu-row]) + [role=menuitem]": {
@@ -156,15 +163,30 @@ const sourceTileStyle = css({
   "&[data-two-line]": { alignSelf: "flex-start", marginTop: "[5px]" },
 });
 
-/** A person's avatar stands where the tile would: a 22 px circle centred in the tile's 32 px slot, no tile behind it. */
+/** SYS-TILE-32 tile (20 Nov): 22 px, 5.5 px corners, a 10 px icon, centred on the row across one or two lines. */
+const sysTileStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+  alignSelf: "center",
+  width: "[22px]",
+  height: "[22px]",
+  borderRadius: "[5.5px]",
+  backgroundColor: "neutral.a25",
+  color: "neutral.fg.muted",
+  "& svg": { width: "[10px]", height: "[10px]", "--icon-size": "10px" },
+});
+
+/** A person's avatar stands where the tile would: a 22 px circle in a 22 px slot, no tile behind it. */
 const avatarSlotStyle = css({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   flexShrink: 0,
   alignSelf: "center",
-  width: "[32px]",
-  height: "[32px]",
+  width: "[22px]",
+  height: "[22px]",
 });
 
 const rowStyle = css({
@@ -175,6 +197,8 @@ const rowStyle = css({
   width: "[100%]",
   // A two-line row hangs from the top: the tile starts at the title's cap height, as Figma draws it (3 Nov).
   "&[data-menu-row=two]": { alignItems: "flex-start" },
+  // SYS-TILE-32: 8 px from tile to text.
+  "&[data-sys]": { gap: "[8px]" },
 });
 
 /** The 32 x 24 px slot of a one-line row: the 24 px tile centred, or nothing (Any), so the label still lines up. */
@@ -365,7 +389,10 @@ export const MenuRow = ({
   tint,
   tiles,
   avatar = false,
+  legacy = false,
 }: {
+  /** Keep the 32 px tile layout from before SYS-TILE-32 (the Add trigger kind menu). */
+  legacy?: boolean;
   /** The icon is a person's avatar: drawn at tile size with no tile behind it. */
   avatar?: boolean;
   icon?: IconName | React.ReactElement;
@@ -379,21 +406,25 @@ export const MenuRow = ({
 }) => {
   const twoLine = description !== undefined && description !== null && description !== "";
   const glyph = typeof icon === "string" ? <Icon name={icon} size="sm" /> : icon;
-  const tiled = tiles === "all" || (tiles === "twoLine" && twoLine);
+  // The new rule covers the default tile mode only; the other `?srcicons=` takes keep today's layout.
+  const sys = !legacy && srcIconsTake === "a";
+  const rowTiles = tiles ?? (sys ? "all" : undefined);
+  const tiled = rowTiles === "all" || (rowTiles === "twoLine" && twoLine);
   return (
     <span
       className={rowStyle}
       data-menu-row={twoLine ? "two" : "one"}
       data-lines={lines}
+      data-sys={sys ? "" : undefined}
     >
       {avatar ? (
         <span className={avatarSlotStyle} aria-hidden="true">
           {glyph}
         </span>
-      ) : tiles ? (
+      ) : rowTiles ? (
         tiled ? (
           <span
-            className={sourceTileStyle}
+            className={sys ? sysTileStyle : sourceTileStyle}
             style={tint}
             data-two-line={twoLine ? "" : undefined}
             aria-hidden="true"
@@ -463,6 +494,8 @@ export const tileMenu = (
   lines: RowLines = "value",
   /** Tile every row even when none has a second line (the step picker's Browse all on its own). */
   always = false,
+  /** Keep the 32 px tile layout from before SYS-TILE-32. */
+  legacy = false,
 ): Array<ItemOrGroup<MenuItem>> => {
   const rows = entries.flatMap((entry) => (isGroup(entry) ? entry.items : [entry]));
   // A value menu with `?srcicons=` a, b or c lays out every row itself, so no row falls back to the DS layout.
@@ -489,6 +522,7 @@ export const tileMenu = (
             rest.subItems as Array<ItemOrGroup<TiledItem>>,
             lines,
             always,
+            legacy,
           ),
         }
       : {};
@@ -515,6 +549,7 @@ export const tileMenu = (
           tint={tint}
           tiles={tiles}
           avatar={avatar}
+          legacy={legacy}
         />,
       ),
       icon: undefined,
