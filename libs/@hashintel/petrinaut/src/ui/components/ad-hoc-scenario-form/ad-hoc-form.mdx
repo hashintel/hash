@@ -54,9 +54,10 @@ existing `compileScenario` already evaluates, so the compiler is untouched.
 
 ## The three shapes
 
-Everything flows through three types declared in the
-[core ad-hoc layer](layer:core.simulation.authoring.adhoc)
-(`core/simulation/authoring/scenario/ad-hoc/ad-hoc-scenario.ts`):
+Everything flows through three types. `AdHocScenarioState` is a document
+type in `libs/@hashintel/petrinaut-core/src/types/sdcpn.ts`. The synthesis
+types, `AdHocSynthesisOutput` among them, are in `ad-hoc-scenario.ts` of the
+[core ad-hoc layer](layer:core.simulation.authoring.adhoc):
 
 <Pipeline
   title="From form state to the pipeline"
@@ -100,8 +101,8 @@ other two in `core/types/sdcpn.ts`:
 - `{ type: "adhoc", content: AdHocScenarioState }` — the form's state,
   verbatim.
 
-`AdHocScenarioState` (the [core ad-hoc
-layer](layer:core.simulation.authoring.adhoc)) is a JSON-serializable tree,
+`AdHocScenarioState` (in `types/sdcpn.ts` of petrinaut-core, with
+`AdHocValue`) is a JSON-serializable tree,
 so it saves as YAML or JSON with the rest of the model document; the zod
 schema in `ad-hoc/ad-hoc-state-schema.ts` validates it on load. Its parts:
 
@@ -173,7 +174,7 @@ row, a fresh `variableN`) and opens the natural editor.
 Every edit is a **serializable action** dispatched through
 `AdHocFormContext.dispatch`. The action vocabulary and the pure reducer live
 in core (`ad-hoc-actions.ts`): `setExpression`, `setDomainField`,
-`toggleSelection`, variable actions (`add`, `rename` — optionally rewriting
+`toggleSelection`, `setVariableExposed`, variable actions (`add`, `rename` — optionally rewriting
 references — `setType`, `delete`, `duplicate`), token-row actions (`add`,
 `delete`, `duplicate`, `setKind`), and `shareColumn`/`unshareColumn`. Each
 action has a zod input schema (`adHocActionInputSchemas`), mirroring the net
@@ -203,7 +204,7 @@ a double-click opens the editor. The value editor opens **in place**: a
 frameless single-line Monaco exactly over the cell, the slot's attribution
 path floating above, the mode's toggle pill below. Turning the toggle on
 swaps the expression editor for a small bounds spreadsheet in the same slab
-— Min/Max/Scale (Step where the domain is integer), each bound an
+— Min and Max, each bound an
 expression cell with the same select-then-edit contract. Escape peels one
 layer at a time: bound edit → bound cell → closed slab → the cell. Only one
 editor is open at a time; opening one closes the rest.
@@ -235,8 +236,7 @@ a collapsed place renders as one line with a row/token summary. Inside the
 token spreadsheet the vertical walk passes through every line — column
 headers, the shared-values line, each dynamic row's count strip, the rows,
 the phantom line — and returns to the column a vertical move started from
-after crossing a full-width stop. The type select and the bounds Scale
-select join the grid: arrows navigate while closed, Enter opens, and the
+after crossing a full-width stop. The type select joins the grid: arrows navigate while closed, Enter opens, and the
 open list owns its keys.
 
 **Escape never reaches the host.** The form's embeddings (drawers, dialogs)
@@ -333,8 +333,8 @@ initial-state body and wrapped override expressions.
 | [`core.simulation.authoring.adhoc`](layer:core.simulation.authoring.adhoc) | The state shapes, the transitions between row kinds, synthesis, labels, the action schemas and the pure reducer |
 | [`core.lsp`](layer:core.lsp) | One wrapped virtual document per non-empty `AdHocSlot`, and the `temp/adhoc/*` session protocol in the worker |
 | [`ui.adhoc-form`](layer:ui.adhoc-form) | The sections, the LSP session, the error map, the undo history, the token table, the in-place cell editor and the dependency highlight |
-| [`ui.spreadsheet-kit`](layer:ui.spreadsheet-kit) | The table shell, gutter cells and their menus, the trailing add-lines and the row-selection model |
-| [`ui.worksheet`](layer:ui.worksheet) | The keyboard flow: each grid or header owns its arrows, and an edge move focuses the next one in DOM order |
+| [`ui.spreadsheet-kit`](layer:ui.spreadsheet-kit) | The table shell, gutter cells and their menus, and the trailing add-lines |
+| [`ui.worksheet`](layer:ui.worksheet) | The keyboard flow: each grid or header owns its arrows, and an edge move focuses the next one in DOM order. Also the row-selection model, `useRowSelection`. |
 
 Three places mount the form. Simulation Settings embeds it through
 `renderLayout`, and [`react.simulation`](layer:react.simulation) synthesizes
@@ -367,7 +367,8 @@ a net-parameter override may read the Variables, so the reading order
 matches the data flow.
 
 One prop shapes an **embedding**: `renderLayout` hands the host each group
-— Variables, Parameters, places — already wired to the form's contexts and
+— Variables, Parameters, places, and the control that shows or hides the
+other places (`placesVisibilityControl`) — already wired to the form's contexts and
 without section chrome, so the host lays them out under its own headings
 (a group the host leaves out of its layout is simply not rendered); each
 visual column goes in a `FormLayoutColumn` so the keyboard walk chains the
@@ -400,8 +401,8 @@ its Simulation Settings error banner stays live.
   a shared column restores every cell exactly, including held Optimize state.
 - **Every edit is one dispatched action**, applied by the pure reducer in
   core; undo replays snapshots and never dispatches.
-- **Generated names are deterministic** (`adhoc.<place>.r<row>.<field>`,
-  `adhoc.count.<place>`, `adhoc.var.net.<name>`, `adhoc.param.<name>`), so
+- **Generated names are deterministic** (`adhoc_<place>_r<row>_<field>`,
+  `adhoc_count_<place>`, `adhoc_var_<scope>_<name>`, `adhoc_param_<name>`), so
   optimization results attribute across runs; place-name duplicates among
   participating places are a synthesis error because the generated initial
   state is keyed by place name.
