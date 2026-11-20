@@ -1,7 +1,12 @@
 import { useRef, useState } from "react";
 
-import { linkEnd } from "../../../canvas-scene";
+import { linkEnd, type CanvasLinkEndName } from "../../../canvas-scene";
 import { toCanvasConnection, type FlowConnection } from "./port-handles";
+import {
+  linkItemOf,
+  type CanvasEdgeType,
+  type NodeType,
+} from "./react-flow-types";
 
 import type {
   CanvasInteractions,
@@ -10,7 +15,7 @@ import type {
 import type { IsValidConnection, ReactFlowProps } from "@xyflow/react";
 
 type ReconnectProps = Pick<
-  ReactFlowProps,
+  ReactFlowProps<NodeType, CanvasEdgeType>,
   "onReconnect" | "onReconnectStart" | "onReconnectEnd"
 >;
 
@@ -29,16 +34,19 @@ const endedOnPane = (event: MouseEvent | TouchEvent): boolean => {
   );
 };
 
-type MovingEnd = Pick<CanvasLinkRewire, "linkId" | "end">;
+type MovingEnd = Pick<CanvasLinkRewire, "fusionId" | "from"> & {
+  end: CanvasLinkEndName;
+};
 
 // React Flow builds the connection around the end that stays, so the end
 // dropped has the name of the end picked up.
 const rewireOnto = (
-  moving: MovingEnd,
+  { fusionId, from, end }: MovingEnd,
   connection: FlowConnection,
 ): CanvasLinkRewire => ({
-  ...moving,
-  onto: linkEnd(toCanvasConnection(connection), moving.end),
+  fusionId,
+  from,
+  onto: linkEnd(toCanvasConnection(connection), end),
 });
 
 /**
@@ -79,9 +87,11 @@ export const useLinkRewiring = (
       ? {}
       : {
           onReconnectStart: (_event, edge, keptEnd) => {
+            const end = keptEnd === "source" ? "target" : "source";
             moving.current = {
-              linkId: edge.id,
-              end: keptEnd === "source" ? "target" : "source",
+              fusionId: linkItemOf(edge).id,
+              from: linkEnd(toCanvasConnection(edge), end),
+              end,
             };
             setIsRewiring(true);
           },
@@ -97,7 +107,8 @@ export const useLinkRewiring = (
               connection.toHandle === null &&
               endedOnPane(event)
             ) {
-              interactions.rewireLink({ ...moving.current, onto: null });
+              const { fusionId, from } = moving.current;
+              interactions.rewireLink({ fusionId, from, onto: null });
             }
             moving.current = null;
             setIsRewiring(false);

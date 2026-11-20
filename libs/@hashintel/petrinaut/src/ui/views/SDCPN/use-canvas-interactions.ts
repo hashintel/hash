@@ -29,16 +29,21 @@ import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useUserSettings } from "../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
 import { linkEnd } from "./canvas-scene";
-import { planFusion, planRewire, type RewirePlan } from "./fusion-links";
+import {
+  fusionLinks,
+  planFusion,
+  planRewire,
+  type RewirePlan,
+} from "./fusion-links";
 
+import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 import type { DraggedNodeKind } from "../shared/canvas-node-drag";
 import type {
   CanvasLinkEnd,
-  CanvasLinkEndName,
   CanvasLinkEnds,
   CanvasNode,
+  CanvasNodeKind,
   CanvasPoint,
-  CanvasScene,
 } from "./canvas-scene";
 import type {
   ComponentReference,
@@ -54,9 +59,9 @@ export type CanvasLinkItem = { type: "arc" | "fusion"; id: string };
 
 /** An end of a fusion link picked up and dropped somewhere else. */
 export type CanvasLinkRewire = {
-  /** The link, by its id in the scene. */
-  linkId: string;
-  end: CanvasLinkEndName;
+  fusionId: string;
+  /** The end picked up. */
+  from: CanvasLinkEnd;
   /** Where the end was dropped, `null` for the empty canvas. */
   onto: CanvasLinkEnd | null;
 };
@@ -168,10 +173,19 @@ type ConnectionOutcome =
     }
   | { kind: "fusion"; first: FusionMember; second: FusionMember };
 
-export const useCanvasInteractions = (
-  scene: CanvasScene,
-): CanvasInteractions => {
-  const { petriNetDefinition, getItemType } = use(SDCPNContext);
+const nodeKindsOf = (
+  net: ActiveNetDefinition,
+): ReadonlyMap<string, CanvasNodeKind> =>
+  new Map<string, CanvasNodeKind>([
+    ...net.places.map(({ id }) => [id, "place"] as const),
+    ...net.transitions.map(({ id }) => [id, "transition"] as const),
+    ...net.componentInstances.map(
+      ({ id }) => [id, "componentInstance"] as const,
+    ),
+  ]);
+
+export const useCanvasInteractions = (): CanvasInteractions => {
+  const { petriNetDefinition } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
   const composesOnly = useComposesOnly();
   const { activeNet } = use(ActiveNetContext);
@@ -230,12 +244,11 @@ export const useCanvasInteractions = (
   const snap = (position: CanvasPoint) =>
     snapToGrid ? snapPositionToGrid(position) : position;
 
-  const kindOf = (id: string) =>
-    scene.nodes.find((node) => node.id === id)?.kind;
+  const nodeKinds = nodeKindsOf(activeNet);
 
   /** The fusion member an end of a line names, or `null` for a transition. */
   const memberOf = ({ nodeId, portId }: CanvasLinkEnd): FusionMember | null => {
-    const kind = kindOf(nodeId);
+    const kind = nodeKinds.get(nodeId);
     if (kind === "place") {
       return placeArcEndpoint(nodeId);
     }
@@ -258,7 +271,7 @@ export const useCanvasInteractions = (
     const second = memberOf(linkEnd(connection, "target"));
     // An editor that only composes draws no arc: ports connect by fusion.
     if (!composesOnly) {
-      if (first && kindOf(targetId) === "transition") {
+      if (first && nodeKinds.get(targetId) === "transition") {
         return {
           kind: "arc",
           transitionId: targetId,
@@ -266,7 +279,7 @@ export const useCanvasInteractions = (
           endpoint: first,
         };
       }
-      if (second && kindOf(sourceId) === "transition") {
+      if (second && nodeKinds.get(sourceId) === "transition") {
         return {
           kind: "arc",
           transitionId: sourceId,
@@ -324,13 +337,12 @@ export const useCanvasInteractions = (
   };
 
   const planLinkRewire = ({
-    linkId,
-    end,
+    fusionId,
+    from,
     onto,
   }: CanvasLinkRewire): RewirePlan => {
-    const link = scene.fusions.find(({ id }) => id === linkId);
-    const fusion = activeNet.fusions.find(({ id }) => id === link?.fusionId);
-    const member = link && memberOf(linkEnd(link, end));
+    const fusion = activeNet.fusions.find(({ id }) => id === fusionId);
+    const member = memberOf(from);
     if (!fusion || !member) {
       return { kind: "none" };
     }
@@ -364,7 +376,7 @@ export const useCanvasInteractions = (
       return;
     }
     const id = generatePetrinautId();
-    const itemNumber = scene.nodes.length + 1;
+    const itemNumber = nodeKinds.size + 1;
     const position = snap(rawPosition);
 
     let added: boolean;
@@ -441,7 +453,9 @@ export const useCanvasInteractions = (
   // the same tick do not clobber each other through stale closures.
   const applySelectionChanges = (changes: CanvasSelectionChange[]) => {
     const fusionIdByLinkId = new Map(
-      scene.fusions.map((link) => [link.id, link.fusionId]),
+      activeNet.fusions.flatMap((fusion) =>
+        fusionLinks(fusion).map((link) => [link.id, fusion.id] as const),
+      ),
     );
     setSelection(
       (prevSelection) => {
@@ -457,9 +471,9 @@ export const useCanvasInteractions = (
           // A change to a fusion's link is a change to the fusion.
           const id = fusionIdByLinkId.get(change.id) ?? change.id;
           if (change.selected && !base.has(id)) {
-            const itemType = getItemType(id);
-            if (itemType && itemType !== "arc" && itemType !== "fusion") {
-              base.set(id, { type: itemType, id });
+            const kind = nodeKinds.get(id);
+            if (kind) {
+              base.set(id, { type: kind, id });
               changed = true;
             }
           } else if (!change.selected && base.has(id)) {
@@ -488,16 +502,10 @@ export const useCanvasInteractions = (
   // so a dropped node never shows its stale committed position in between.
   const dropNodes = (drops: CanvasNodeDrop[]) => {
     const commits = drops.flatMap(({ id, position }) => {
-      const itemType = getItemType(id);
-      if (
-        !position ||
-        (itemType !== "place" &&
-          itemType !== "transition" &&
-          itemType !== "componentInstance")
-      ) {
-        return [];
-      }
-      return [{ id, itemType, position: snap(position) }];
+      const itemType = nodeKinds.get(id);
+      return position && itemType
+        ? [{ id, itemType, position: snap(position) }]
+        : [];
     });
 
     updateDraggingStateByNodeId((existing) => {

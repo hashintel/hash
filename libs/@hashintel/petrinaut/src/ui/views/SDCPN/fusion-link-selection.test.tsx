@@ -18,7 +18,6 @@ import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { fusionLinks } from "./fusion-links";
 import { useCanvasInteractions } from "./use-canvas-interactions";
 
-import type { CanvasScene } from "./canvas-scene";
 import type {
   Fusion,
   FusionMember,
@@ -47,16 +46,6 @@ const itemTypes: Record<string, "place" | "componentInstance" | "fusion"> = {
   m2: "componentInstance",
   belt: "fusion",
 };
-
-const scene = {
-  nodes: [
-    { id: "buffer", kind: "place" },
-    { id: "m1", kind: "componentInstance" },
-    { id: "m2", kind: "componentInstance" },
-  ],
-  arcs: [],
-  fusions: links.map((link) => ({ id: link.id, fusionId: belt.id })),
-} as unknown as CanvasScene;
 
 const NavigationHost = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<PetrinautNavigationState>(
@@ -102,7 +91,7 @@ const Wrapper = ({ children }: { children: ReactNode }) => {
 it("keeps a fusion selected when one of its links is clicked again", async () => {
   const { result } = renderHook(
     () => ({
-      interactions: useCanvasInteractions(scene),
+      interactions: useCanvasInteractions(),
       selection: use(EditorContext).selection,
     }),
     { wrapper: Wrapper },

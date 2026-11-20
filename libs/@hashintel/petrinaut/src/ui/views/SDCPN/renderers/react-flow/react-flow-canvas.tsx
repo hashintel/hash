@@ -156,7 +156,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   const isActualMode = globalMode === "actual";
   const nodeTypes = compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES;
 
-  const interactions = useCanvasInteractions(scene);
+  const interactions = useCanvasInteractions();
   const flowStore = useStoreApi();
   const readOnlyDragHandlers = useReadOnlyNodeDrag({
     readonly: interactions.readonly,
