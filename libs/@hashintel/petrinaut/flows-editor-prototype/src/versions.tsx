@@ -552,11 +552,16 @@ export const PublishButton = ({
   problems,
   viewing,
   liveRun,
+  toFixCount = 0,
+  onFix,
 }: {
   flowId: string | undefined;
   version: FlowVersion;
   /** Steps that keep the draft from running (V5). */
   problems: number;
+  /** Steps with something to fix: Publish stays on and opens their list instead of publishing. */
+  toFixCount?: number;
+  onFix?: () => void;
   viewing: number | null;
   liveRun: number | null;
 }) => {
@@ -565,13 +570,16 @@ export const PublishButton = ({
   const publishRef = useRef<HTMLButtonElement>(null);
   const [toast, setToast] = useState<string | null>(null);
   const draft = version.state === "draft";
-  const disabled = !draft || problems > 0 || viewing !== null;
+  const opensFixList = draft && toFixCount > 0 && viewing === null && onFix !== undefined;
+  const disabled = !draft || (problems > 0 && !opensFixList) || viewing !== null;
   const tooltip =
     viewing !== null
       ? `Viewing v${viewing}. Go back to the draft to publish.`
       : !draft
         ? `v${version.current} is live. Edit the flow to start the next draft.`
-        : problems > 0
+        : opensFixList
+          ? undefined
+          : problems > 0
           ? `Can't publish v${version.current} until the flow can run · ${problems} ${problems === 1 ? "step needs" : "steps need"} inputs`
           : version.published.length === 0
             ? `No trigger can use this flow until v${version.current} is published`
@@ -588,7 +596,11 @@ export const PublishButton = ({
         ref={publishRef}
         // ?triggernone=2: nothing can start the flow, so Publish asks first.
         onClick={() =>
-          triggerNoneTake === 2 ? setWarning(true) : setOpen(true)
+          opensFixList
+            ? onFix()
+            : triggerNoneTake === 2
+              ? setWarning(true)
+              : setOpen(true)
         }
       >
         Publish

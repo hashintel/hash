@@ -43,6 +43,8 @@ export type EditorUi = {
   picker: PickerTarget | null;
   openField: OpenField | null;
   runOpen: boolean;
+  /** Publish on a draft with problems opened the flow panel with its "N to fix" list. */
+  fixOpen?: boolean;
   /** Step kinds added this session, newest first, for "Recent". */
   recent: string[];
   /** A step just added from a picker: its card fades and grows in once. */

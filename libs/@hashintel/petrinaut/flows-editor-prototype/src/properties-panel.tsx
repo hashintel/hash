@@ -101,7 +101,8 @@ import {
   getSourceShape,
 } from "./shapes";
 import { SourceMenu } from "./source-menu";
-import { selectedLabel } from "./menu-rows";
+import { RowTile, selectedLabel } from "./menu-rows";
+import { statusColor, tileColor } from "./status-colors";
 import { firstAndMore, TimeField, TypedValue } from "./typed-value";
 import {
   descriptionInputStyle,
@@ -2234,129 +2235,103 @@ const TriggerPanel = ({ trigger }: { trigger: TriggerNode }) => {
   );
 };
 
-const checklistRowStyle = css({
+/** A 12 px alert mark. */
+export const markStyle = css({
+  display: "inline-flex",
+  flexShrink: 0,
+  "& svg": { width: "[12px]", height: "[12px]", "--icon-size": "12px" },
+});
+
+const fixRowStyle = css({
   display: "flex",
-  alignItems: "flex-start",
-  gap: "2",
+  alignItems: "center",
+  gap: "3",
   width: "[100%]",
   paddingX: "2",
-  paddingY: "2",
+  paddingY: "1.5",
+  marginX: "[-8px]",
   borderRadius: "md",
   textAlign: "left",
   cursor: "pointer",
   _hover: { backgroundColor: "neutral.bg.surface.hover" },
 });
 
+export type FixItem = { stepId: string; title: string; icon: IconName; message: string };
+
 /**
- * V5 with nothing selected (Attio's checklist): the flow, then what keeps the draft from publishing, one row per
- * step; a row selects its step. Publish stays off until the list is empty.
+ * Publish on a draft with problems (13 Nov, confirmed 20 Nov): the flow, then "N to fix" with one two-line row per
+ * step, its tile, its name, and the reason under it behind a red alert mark. A row selects its step; × closes the panel.
  */
-const Checklist = ({
-  items,
-}: {
-  items: { stepId: string; title: string; message: string }[];
-}) => {
+export const FixPanel = ({ items }: { items: FixItem[] }) => {
   const { document, setUi } = useEditor();
   return (
-    <div
-      className={css({ display: "flex", flexDirection: "column", gap: "5" })}
-    >
-      <div
-        className={css({ display: "flex", flexDirection: "column", gap: "1" })}
-      >
-        <span
-          className={css({
-            textStyle: "base",
-            fontWeight: "medium",
-            color: "neutral.fg.heading",
-          })}
-        >
-          {document.name}
-        </span>
-        <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
-          Add a description…
-        </span>
-      </div>
-      <div
-        className={css({
-          display: "flex",
-          alignItems: "center",
-          gap: "2",
-          paddingX: "3",
-          paddingY: "2.5",
-          borderRadius: "lg",
-          backgroundColor: "neutral.bg.surface.hover",
-          textStyle: "sm",
-          color: "neutral.fg.muted",
-        })}
-        data-checklist-banner
-      >
-        <span className={css({ flex: "1" })}>
-          This flow has unpublished changes
-        </span>
-        <Button
-          size="sm"
-          variant="subtle"
-          tone="neutral"
-          disabled
-          tooltip="Fix the items below first"
-        >
-          Publish changes
-        </Button>
-      </div>
-      <Section title={`Checklist · ${items.length}`}>
-        <div className={css({ display: "flex", flexDirection: "column" })}>
-          {items.map((item) => (
-            <button
-              key={`${item.stepId}-${item.message}`}
-              type="button"
-              className={checklistRowStyle}
-              data-checklist-row
-              onClick={() =>
-                setUi((current) => ({
-                  ...current,
-                  selectedId: item.stepId,
-                  selectedIds: [item.stepId],
-                }))
-              }
-            >
-              {/* Two-line row: the icon centres on the title's line, not the row's top. */}
-              <span
-                className={css({
-                  display: "flex",
-                  alignItems: "center",
-                  flexShrink: "0",
-                  height: "[22px]",
-                })}
-              >
-                <Icon name="warning" size="sm" />
-              </span>
-              <span
-                className={css({ display: "flex", flexDirection: "column" })}
-              >
-                <span
-                  className={css({
-                    textStyle: "sm",
-                    fontWeight: "medium",
-                    color: "neutral.fg.heading",
-                  })}
-                >
-                  {item.title}
+    <aside className={panelStyle} aria-label="To fix">
+      <OverlayScrollArea>
+        <div className={panelBodyStyle}>
+          <div className={css({ display: "flex", flexDirection: "column", gap: "5" })}>
+            <div className={css({ display: "flex", alignItems: "flex-start", gap: "3" })}>
+              <div className={css({ flex: "1", display: "flex", flexDirection: "column", gap: "1" })}>
+                <span className={css({ textStyle: "base", fontWeight: "medium", color: "neutral.fg.heading" })}>
+                  {document.name}
                 </span>
-                <span
-                  className={css({
-                    textStyle: "xs",
-                    color: "neutral.fg.muted",
-                  })}
-                >
-                  {item.message}
-                </span>
-              </span>
-            </button>
-          ))}
+                <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>Add a description…</span>
+              </div>
+              <Button
+                size="sm"
+                variant="subtle"
+                tone="neutral"
+                iconName="close"
+                aria-label="Close"
+                onClick={() => setUi((current) => ({ ...current, fixOpen: false }))}
+              />
+            </div>
+            <Section title={`${items.length} to fix`}>
+              <div className={css({ display: "flex", flexDirection: "column" })}>
+                {items.map((item) => (
+                  <button
+                    key={`${item.stepId}-${item.message}`}
+                    type="button"
+                    className={fixRowStyle}
+                    data-fix-row
+                    onClick={() =>
+                      setUi((current) => ({
+                        ...current,
+                        selectedId: item.stepId,
+                        selectedIds: [item.stepId],
+                        triggerId: null,
+                        fixOpen: false,
+                      }))
+                    }
+                  >
+                    <RowTile icon={item.icon} twoLine tint={tileColor(item.icon)} />
+                    <span className={css({ display: "flex", flexDirection: "column", minWidth: "[0]" })}>
+                      <span className={css({ textStyle: "sm", color: "neutral.fg.heading" })}>{item.title}</span>
+                      <span
+                        className={css({
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "1.5",
+                          textStyle: "xs",
+                          color: "neutral.fg.muted",
+                        })}
+                      >
+                        <span
+                          className={markStyle}
+                          style={{ color: statusColor.failed }}
+                        >
+                          <Icon name="error" size="xs" />
+                        </span>
+                        {item.message}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </Section>
+          </div>
         </div>
-      </Section>
-    </div>
+      </OverlayScrollArea>
+    </aside>
   );
 };
 
@@ -2462,7 +2437,7 @@ const MultiSelectPanel = ({ ids }: { ids: string[] }) => {
 };
 
 export const PropertiesPanel = () => {
-  const { document, ui, validation } = useEditor();
+  const { document, ui } = useEditor();
   // A trigger opens from Start's "Started by" list: Start stays selected, the panel shows the trigger (J4 A2).
   const trigger =
     ui.selectedId === START_ID && ui.triggerId
@@ -2474,46 +2449,9 @@ export const PropertiesPanel = () => {
     ui.selectedId === FLOW_OUTPUTS_ID
       ? null
       : findStep(document, ui.selectedId);
-  // J0.3 (3 Nov): with nothing selected there is no panel, unless the draft has a checklist to clear (V5).
+  // With nothing selected there is no panel; Publish on a draft with problems opens `FixPanel` instead.
   if (!ui.selectedId && !ui.run) {
-    const items = [...validation.byStep.entries()].flatMap(
-      ([stepId, diagnostics]) => {
-        const step = findStep(document, stepId)?.step;
-        return diagnostics
-          .filter((diagnostic) => diagnostic.severity === "error")
-          .slice(0, 1)
-          .map((diagnostic) => ({
-            stepId,
-            title: step ? stepLabel(step) : stepId,
-            message: diagnostic.message.replace(
-              /^Required input "([^"]+)".*/,
-              "Needs $1",
-            ),
-          }));
-      },
-    );
-    for (const stepId of validation.incomplete) {
-      if (!items.some((item) => item.stepId === stepId)) {
-        const step = findStep(document, stepId)?.step;
-        items.push({
-          stepId,
-          title: step ? stepLabel(step) : stepId,
-          message: "Not set up yet",
-        });
-      }
-    }
-    if (items.length === 0) {
-      return null;
-    }
-    return (
-      <aside className={panelStyle} aria-label="Checklist">
-        <OverlayScrollArea>
-          <div className={panelBodyStyle}>
-            <Checklist items={items} />
-          </div>
-        </OverlayScrollArea>
-      </aside>
-    );
+    return null;
   }
   // A ghost trigger node opens the read-only Triggers panel (J4.3).
   const ghost = ghostKindOf(ui.selectedId);

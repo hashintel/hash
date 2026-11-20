@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   Button,
+  Icon,
   Menu,
   PortalContainerContext,
   SegmentedControl,
@@ -34,7 +35,8 @@ import { LeftPanel } from "./left-panel";
 import { mockRuns } from "./mock-runs";
 import { needsReviewTake, ReviewSide } from "./needs-review";
 import { ReviewR2Side } from "./needs-review-r2";
-import { PropertiesPanel } from "./properties-panel";
+import { FixPanel, markStyle, PropertiesPanel } from "./properties-panel";
+import { statusColor } from "./status-colors";
 import { navigate, routePath, setQuery, useLocation } from "./router";
 import { RunForm } from "./run-dialogs";
 import { stepMarkOf } from "./run-history";
@@ -634,7 +636,17 @@ export const Editor = ({
                                   id: item.stepId,
                                   text: item.title,
                                   icon: item.icon,
-                                  description: item.message,
+                                  description: (
+                                    <span className={css({ display: "inline-flex", alignItems: "center", gap: "1.5" })}>
+                                      <span
+                                        className={markStyle}
+                                        style={{ color: statusColor.failed }}
+                                      >
+                                        <Icon name="error" size="xs" />
+                                      </span>
+                                      {item.message}
+                                    </span>
+                                  ),
                                   onClick: () =>
                                     setUiState((current) => ({
                                       ...current,
@@ -680,6 +692,16 @@ export const Editor = ({
                             flowId={flowId}
                             version={version}
                             problems={problemCount}
+                            toFixCount={toFix.length}
+                            onFix={() =>
+                              setUiState((current) => ({
+                                ...current,
+                                selectedId: null,
+                                selectedIds: [],
+                                triggerId: null,
+                                fixOpen: true,
+                              }))
+                            }
                             viewing={viewingVersion}
                             liveRun={liveRunId}
                           />
@@ -838,7 +860,11 @@ export const Editor = ({
                       )
                     ) : null
                   ) : viewingVersion === null ? (
-                    <PropertiesPanel />
+                    ui.fixOpen && !ui.selectedId && toFix.length > 0 ? (
+                      <FixPanel items={toFix} />
+                    ) : (
+                      <PropertiesPanel />
+                    )
                   ) : null}
                 </ReactFlowProvider>
               </main>
