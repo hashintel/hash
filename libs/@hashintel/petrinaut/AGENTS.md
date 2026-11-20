@@ -81,7 +81,7 @@ Verify with `yarn workspace @apps/petrinaut-docs lint:arch-docs`. To read the do
 
 A hand-written guide about a layer is an `.mdx` file beside that layer's code, in the folder that declares the layer or beneath it, with `title`, `description` and `sidebar_order` in its frontmatter; pages about the docs themselves stay under `apps/petrinaut-docs/content/`. Link with `[text](layer:core.simulation.engine)` or `[text](doc:core.simulation/memory-model)`; an unresolved target fails CI. Write a formula between `$` signs: KaTeX renders it when the site builds, and a formula it cannot parse fails that build, which `lint:arch-docs` does not run.
 
-A layer guide follows the template in `apps/petrinaut-docs/content/maintaining/writing-a-guide.mdx`: the first sentence defines the layer, one D2 diagram sits beside the page, and each rule names its reason and the check that holds it. It lists no files and names no counts, dates or tickets.
+A layer guide follows the template in `apps/petrinaut-docs/content/maintaining/writing-a-guide.mdx`: the first sentence defines the layer, one D2 diagram sits beside the page, and each rule names its reason and the check that holds it. It lists no files and names no counts, dates or tickets. The rules for where a UI file goes and what a `.tsx` file may export are in `src/ui/ui-layer.mdx`; read it before adding a component, a sub-view or a context.
 
 ## Shipping conventions
 

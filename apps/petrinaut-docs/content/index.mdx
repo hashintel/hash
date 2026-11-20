@@ -68,10 +68,26 @@ the UI layer mounts, and what renders when.
 
 ![The host mounts the Petrinaut component, which creates one core instance, mounts the React providers and renders the editor view; the preview mounts the same canvas without the editor view](@diagrams/editor-layers.svg)
 
-- [Editor state](layer:react.state): the contexts that own the state of an
-  editing session, such as the active net, the selection and the settings.
+- [The React layer](doc:react/react-layer): the providers and hooks that mirror
+  Core state into React, the order the providers nest in, and which hook to
+  call for what.
+- [Editor state](doc:react.state/editor-state): who owns each piece of the
+  state of an editing session, who writes it, and which hook reads it.
 - [Panel geometry outside React state](doc:react.state/panel-sizes): how a
   panel drag or slide changes the page without rendering the editor.
+- [The life of a run](doc:react.simulation/simulation-session): how the React
+  layer configures a run, starts it, plays it back and hands its frames to the
+  canvas and the timeline.
+- [The UI layer](doc:ui/ui-layer): what the Petrinaut component mounts, and
+  where a new part of the editor goes.
+- [Sub-views](doc:ui.sub-view/sub-views): the descriptor a panel lists for each
+  section or tab, and the containers that render one.
+- [The canvas](doc:ui.views.canvas/canvas): how the active net becomes an
+  interactive graph, and what renders for each gesture.
+- [The editor shell](doc:ui.views.editor/editor-shell): the regions of the
+  editor, what mounts in each mode and what places each region.
+- [Monaco](doc:ui.monaco/monaco): one load of Monaco, one model per document
+  URI, and how typing reaches the document.
 
 Layer rules in `archinaut.config.ts` hold the directions between these parts.
 `yarn workspace @apps/petrinaut-docs lint:arch-docs` fails on a dependency that
