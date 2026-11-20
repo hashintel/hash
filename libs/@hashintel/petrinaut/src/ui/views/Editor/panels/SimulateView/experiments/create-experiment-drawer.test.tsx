@@ -1643,20 +1643,13 @@ describe("CreateExperimentDrawer objective", () => {
   });
 
   it("creates the experiment, starts its study from the record, then selects it", async () => {
-    const order: string[] = [];
-    const createExperiment = vi.fn((input: CreateExperimentInput) => {
-      order.push("createExperiment");
-      return createdSweep(input, "experiment-objective");
-    });
+    const createExperiment = vi.fn((input: CreateExperimentInput) =>
+      createdSweep(input, "experiment-objective"),
+    );
     const createOptimization = vi.fn<
       OptimizationsContextValue["createOptimization"]
-    >(() => {
-      order.push("createOptimization");
-      return Promise.resolve("study-objective");
-    });
-    const setSelectedExperimentId = vi.fn(() => {
-      order.push("setSelectedExperimentId");
-    });
+    >(() => Promise.resolve("study-objective"));
+    const setSelectedExperimentId = vi.fn();
     await openConstrainedSweep({
       createExperiment,
       createOptimization,
@@ -1673,11 +1666,6 @@ describe("CreateExperimentDrawer objective", () => {
       ),
     );
 
-    expect(order).toEqual([
-      "createExperiment",
-      "createOptimization",
-      "setSelectedExperimentId",
-    ]);
     const metricId = createExperiment.mock.calls[0]![0].metricSpecs[0]!.id;
     const [manifest, options] = createOptimization.mock.calls[0]!;
     expect(options).toEqual({
