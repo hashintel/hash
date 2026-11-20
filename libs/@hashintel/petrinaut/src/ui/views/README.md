@@ -3,9 +3,10 @@ layer: ui.views
 role: The top-level screens of the editor, which are the editor shell, the net canvas and the notebook
 ---
 
-Each subfolder is a screen: the [editor shell](layer:ui.views.editor), the
+Three subfolders are screens: the [editor shell](layer:ui.views.editor), the
 [canvas](layer:ui.views.canvas) and the [notebook](layer:ui.views.notebook).
+The fourth, `shared/`, holds code that two screens use.
 
-The canvas and the notebook import nothing from the editor shell. The
-[preview](layer:ui.preview) mounts the same canvas outside the editor, so the
-canvas cannot depend on the shell around it.
+The canvas and the notebook import nothing from the editor shell. No rule of
+`archinaut check` enforces it. [The canvas](doc:ui.views.canvas/canvas) gives
+the reason.
