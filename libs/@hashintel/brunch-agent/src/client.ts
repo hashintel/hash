@@ -15,6 +15,7 @@ export * from "./client/brunch-flue-adapter";
 export * from "./client/brunch-panel-transport";
 export * from "./client/conversation/brunch-conversation-id";
 export * from "./client/hand-edits/hand-edit-reporter";
+export * from "./client/hand-edits/shown-revision";
 export * from "./client/successor/request-successor-stop";
 export * from "./client/successor/successor-browser-calls";
 export * from "./client/successor/successor-chat-transport";

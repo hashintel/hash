@@ -66,7 +66,10 @@ const showsNet = (
  *
  * An edit is reported once the document has been idle for `idleMs`, and
  * before each browser call is claimed, whenever its revision differs from
- * the one the model was last told of or shown. No report is sent while a
+ * the one the model was last told of or shown. That starts as what
+ * `readShown` reads, so an edit no panel saw, such as one before a reload,
+ * is reported at once; without it, or when it finds none or fails, as the
+ * document's revision when the reporter starts. No report is sent while a
  * Brunch call runs, since the document moves under it; an edit made
  * meanwhile is reported as the last running call ends. A call whose result
  * shows the model the net closes the edit episode, and the next edit opens
@@ -83,6 +86,7 @@ export const createHandEditReporter = ({
   documentId,
   document,
   idleMs = defaultIdleMs,
+  readShown,
   onRefused,
 }: {
   readonly conversation: SuccessorConversation;
@@ -90,6 +94,11 @@ export const createHandEditReporter = ({
   readonly documentId: string;
   readonly document: HandEditDocument;
   readonly idleMs?: number;
+  /**
+   * Reads the revision the conversation last showed the model or told it
+   * of, such as `readShownRevision`; no report is sent before it answers.
+   */
+  readonly readShown?: (signal: AbortSignal) => Promise<string | undefined>;
   readonly onRefused?: (refusal: HandEditRefusal) => void;
 }) => {
   const binding = canonicalContent({
@@ -173,6 +182,18 @@ export const createHandEditReporter = ({
       const stopping = new AbortController();
       watching = stopping.signal;
       known = document.revision();
+      if (readShown !== undefined) {
+        const seeded = readShown(stopping.signal).then(
+          (shown) => {
+            if (shown !== undefined && !stopping.signal.aborted) known = shown;
+          },
+          () => {},
+        );
+        reports = reports
+          .then(() => seeded)
+          .then(report)
+          .catch(() => {});
+      }
       const unsubscribe = document.subscribe(() => {
         known ??= document.revision();
         clearTimeout(idle);

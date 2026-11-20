@@ -17,6 +17,7 @@ import { brunchRoutes, canonicalContent } from "@hashintel/brunch-agent";
 import {
   createHandEditReporter,
   type HandEditRefusal,
+  readShownRevision,
 } from "@hashintel/brunch-agent/client";
 
 import { browserToolName } from "../../src/browser-call/browser-call";
@@ -228,8 +229,10 @@ test("no report is sent while a Brunch call runs; the edit made during it is rep
       const output = (await execute({})) as Parameters<
         typeof answerAsBrowser
       >[2];
-      await answerAsBrowser(panel, "browser-1", output, () => {
-        reportsWhileRunning = panel.reports().length;
+      await answerAsBrowser(panel, "browser-1", output, {
+        onClaimed: () => {
+          reportsWhileRunning = panel.reports().length;
+        },
       });
     },
   });
@@ -257,6 +260,78 @@ test("no report is sent while a Brunch call runs; the edit made during it is rep
       expect.objectContaining({ revision: "revision-2" }),
     ]),
   );
+});
+
+/** A `setNetTitle` call that moved the net from `revision-1` to `revision-2`. */
+const titleCall = calls([browserToolName, "browser-1", { title: "Queue" }]);
+const titledQueue = async (panel: Awaited<ReturnType<typeof openPanel>>) => {
+  const turn = panel.chat("Name the net Queue.");
+  await answerAsBrowser(
+    panel,
+    "browser-1",
+    { ok: true, title: "Queue" },
+    {
+      metadata: {
+        documentRevision: { before: "revision-1", after: "revision-2" },
+        readBack: { places: [], transitions: [], arcs: [] },
+      },
+    },
+  );
+  await turn;
+};
+
+test("a panel opened after an edit no panel saw reports it at once, against the net the model was last shown", async () => {
+  const transcripts: string[] = [];
+  const panel = await openPanel([
+    titleCall,
+    fauxAssistantMessage("Titled."),
+    answerSeeing(transcripts, "I see your change."),
+  ]);
+  await titledQueue(panel);
+  const net = handEditedDocument();
+  net.edit("revision-3");
+
+  const reporter = createHandEditReporter({
+    conversation: panel.conversation,
+    documentId,
+    document: net.document,
+    idleMs,
+    readShown: (signal) => readShownRevision(panel.conversation, signal),
+  });
+  const stop = reporter.start();
+  await vi.waitFor(() =>
+    expect(panel.reports().map(({ status }) => status)).toEqual([200]),
+  );
+  await panel.chat("What changed?");
+  stop();
+
+  expect(panel.reports()[0]?.body).toMatchObject({ revision: "revision-3" });
+  expect(transcripts[0]).toContain('<hand-edit revision=\\"revision-3\\">');
+});
+
+test("a panel opened on the net the model was last shown reports nothing", async () => {
+  const panel = await openPanel([titleCall, fauxAssistantMessage("Titled.")]);
+  await titledQueue(panel);
+  const net = handEditedDocument();
+  net.edit("revision-2");
+
+  const reporter = createHandEditReporter({
+    conversation: panel.conversation,
+    documentId,
+    document: net.document,
+    idleMs,
+    readShown: (signal) => readShownRevision(panel.conversation, signal),
+  });
+  const stop = reporter.start();
+  await vi.waitFor(() =>
+    expect(
+      panel.requests.filter(({ url }) => url === panel.endpoints.browserCalls),
+    ).toEqual([expect.objectContaining({ status: 200 })]),
+  );
+  await sleep(idleMs * 5);
+  stop();
+
+  expect(panel.reports()).toEqual([]);
 });
 
 test("a report against another document's binding is refused, and the panel stops reporting", async () => {
