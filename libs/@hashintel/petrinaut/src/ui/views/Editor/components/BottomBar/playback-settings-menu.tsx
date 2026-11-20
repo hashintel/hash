@@ -14,7 +14,7 @@ import {
   acceptsRunEnd,
   runEndOf,
 } from "../../../../../react/simulation/run-end";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../../../react/state/user-settings-context";
 import { SettingsIcon } from "../../../../experimental-icons";
 import { usePetrinautPresentation } from "../../../shared/presentation-context";
 import { ToolbarButton } from "./toolbar-button";
@@ -193,7 +193,9 @@ export const PlaybackSettingsMenu = ({
   const presentation = usePetrinautPresentation();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const { enableExperimentalIconPack } = use(UserSettingsContext);
+  const enableExperimentalIconPack = useUserSettings(
+    (settings) => settings.enableExperimentalIconPack,
+  );
   const playModesVisible = !presentation.compactControls;
   const stoppingConditionsVisible = !presentation.compactControls;
   const speedRows = toSpeedRows(allowedSpeeds);

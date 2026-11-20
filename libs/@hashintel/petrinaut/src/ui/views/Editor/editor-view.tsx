@@ -44,7 +44,7 @@ import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
-import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { useUserSettingsFields } from "../../../react/state/user-settings-context";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { ExperimentalIconProvider } from "../../experimental-icons";
@@ -662,8 +662,10 @@ const EditorViewContent = ({
  * view renders on every change to the document.
  */
 const EditorIcons = ({ children }: { children: ReactNode }) => {
-  const { enableExperimentalIconPack, showAnimations } =
-    use(UserSettingsContext);
+  const { enableExperimentalIconPack, showAnimations } = useUserSettingsFields(
+    "enableExperimentalIconPack",
+    "showAnimations",
+  );
 
   return (
     <ExperimentalIconProvider

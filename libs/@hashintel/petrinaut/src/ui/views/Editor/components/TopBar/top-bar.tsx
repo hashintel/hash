@@ -18,7 +18,7 @@ import {
   useEditorFields,
 } from "../../../../../react/state/editor-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../../../react/state/user-settings-context";
 import { MenuIcon, SidebarIcon } from "../../../../experimental-icons";
 import { PluginToolbarItems } from "../../../../plugins/plugin-outlets";
 import { RunningExperimentsPopover } from "./running-experiments-popover";
@@ -108,7 +108,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   // A host that takes no new title gives no `setTitle`.
   const { title, setTitle } = use(NetManagementContext);
   const actualMode = use(ActualModeContext);
-  const { enableExperimentalIconPack } = use(UserSettingsContext);
+  const enableExperimentalIconPack = useUserSettings(
+    (settings) => settings.enableExperimentalIconPack,
+  );
   const composesOnly = useComposesOnly();
 
   return (

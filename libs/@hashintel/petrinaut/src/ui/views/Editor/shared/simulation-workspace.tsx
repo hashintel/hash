@@ -12,7 +12,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useElementSize } from "../../../../react/hooks/use-element-size";
 import { usePetrinautNavigation } from "../../../../react/navigation";
 import { useComposesOnly } from "../../../../react/state/use-composes-only";
-import { UserSettingsContext } from "../../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { ResizeHandle } from "../../../resize/resize-handle";
 
 const SimulationWorkspaceContext = createContext<
@@ -28,7 +28,7 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
   const [preferredWidth, setPreferredWidth] = useState<number | null>(null);
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const { state } = usePetrinautNavigation();
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const composesOnly = useComposesOnly();
   // An editor that only composes has no Simulate mode, whatever the
   // navigation it is handed says.

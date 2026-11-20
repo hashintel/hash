@@ -1,4 +1,4 @@
-import { type ReactNode, use, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { Button, Icon, Menu } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -6,7 +6,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { useAssistantPlacement } from "../../../../react/state/assistant-placement-context";
 import { usePanelPresence } from "../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
-import { UserSettingsContext } from "../../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
 import {
   ExperimentalIcon,
@@ -245,7 +245,7 @@ export const PluginAssistantPanel = ({
   children: ReactNode;
 }) => {
   const { placement, setPlacement } = useAssistantPlacement();
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const { aiAssistantWidth } = usePanelSizes();
   const { shown, aiAssistantDocked, aiAssistantHasRoom } = usePanelPresence();
   const { isOpen, close } = panel;
