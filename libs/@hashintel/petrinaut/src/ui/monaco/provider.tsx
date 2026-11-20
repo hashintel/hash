@@ -3,13 +3,13 @@
  * @role Wires the Monaco editor to the language server for authoring user code
  */
 
-import { useEffect } from "react";
+import { Suspense, use, useEffect } from "react";
 
-import { CompletionSync } from "./completion-sync";
+import { useCompletionSync } from "./completion-sync";
 import { MonacoContext } from "./context";
-import { DiagnosticsSync } from "./diagnostics-sync";
-import { HoverSync } from "./hover-sync";
-import { SignatureHelpSync } from "./signature-help-sync";
+import { useDiagnosticsSync } from "./diagnostics-sync";
+import { useHoverSync } from "./hover-sync";
+import { useSignatureHelpSync } from "./signature-help-sync";
 import { warmEditor } from "./warm-editor";
 
 import type { MonacoContextValue } from "./context";
@@ -74,6 +74,16 @@ function getMonacoPromise(): Promise<MonacoContextValue> {
   return monacoPromise;
 }
 
+/** Renders nothing: backs Monaco's language features with the language server once Monaco has loaded. */
+const LanguageFeatures = () => {
+  const { monaco } = use(use(MonacoContext));
+  useDiagnosticsSync(monaco);
+  useCompletionSync(monaco);
+  useHoverSync(monaco);
+  useSignatureHelpSync(monaco);
+  return null;
+};
+
 export const MonacoProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -95,10 +105,9 @@ export const MonacoProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <MonacoContext.Provider value={promise}>
-      <DiagnosticsSync />
-      <CompletionSync />
-      <HoverSync />
-      <SignatureHelpSync />
+      <Suspense fallback={null}>
+        <LanguageFeatures />
+      </Suspense>
       {children}
     </MonacoContext.Provider>
   );

@@ -1,4 +1,4 @@
-import { Suspense, use, useEffect, useRef } from "react";
+import { use, useEffect, useRef } from "react";
 
 import {
   type Diagnostic,
@@ -7,7 +7,6 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../react/lsp/context";
-import { MonacoContext } from "./context";
 
 import type * as Monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 
@@ -54,8 +53,8 @@ function diagnosticsToMarkers(
   }));
 }
 
-const DiagnosticsSyncInner = () => {
-  const { monaco } = use(use(MonacoContext));
+/** Syncs diagnostics from LanguageClientContext to Monaco model markers. */
+export const useDiagnosticsSync = (monaco: typeof Monaco) => {
   const { diagnosticsByUri } = use(LanguageClientContext);
   const prevUrisRef = useRef<Set<string>>(new Set());
 
@@ -97,13 +96,4 @@ const DiagnosticsSyncInner = () => {
 
     return () => disposable.dispose();
   }, [diagnosticsByUri, monaco]);
-
-  return null;
 };
-
-/** Renders nothing visible — syncs diagnostics from LanguageClientContext to Monaco model markers. */
-export const DiagnosticsSync: React.FC = () => (
-  <Suspense fallback={null}>
-    <DiagnosticsSyncInner />
-  </Suspense>
-);

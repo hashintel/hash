@@ -1,4 +1,4 @@
-import { Suspense, use, useEffect } from "react";
+import { use, useEffect } from "react";
 
 import {
   type CompletionItem,
@@ -8,7 +8,6 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../react/lsp/context";
-import { MonacoContext } from "./context";
 
 import type * as Monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 
@@ -68,8 +67,8 @@ function toMonacoCompletion(
   };
 }
 
-const CompletionSyncInner = () => {
-  const { monaco } = use(use(MonacoContext));
+/** Registers a Monaco CompletionItemProvider backed by the language server. */
+export const useCompletionSync = (monaco: typeof Monaco) => {
   const { notifyDocumentChanged, requestCompletion } = use(
     LanguageClientContext,
   );
@@ -115,13 +114,4 @@ const CompletionSyncInner = () => {
 
     return () => disposable.dispose();
   }, [monaco, notifyDocumentChanged, requestCompletion]);
-
-  return null;
 };
-
-/** Renders nothing visible — registers a Monaco CompletionItemProvider backed by the language server. */
-export const CompletionSync: React.FC = () => (
-  <Suspense fallback={null}>
-    <CompletionSyncInner />
-  </Suspense>
-);

@@ -1,4 +1,4 @@
-import { Suspense, use, useEffect } from "react";
+import { use, useEffect } from "react";
 
 import {
   type MarkupContent,
@@ -7,7 +7,6 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../react/lsp/context";
-import { MonacoContext } from "./context";
 
 import type * as Monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 
@@ -44,8 +43,8 @@ function toMonacoSignatureHelp(
   };
 }
 
-const SignatureHelpSyncInner = () => {
-  const { monaco } = use(use(MonacoContext));
+/** Registers a Monaco SignatureHelpProvider backed by the language server. */
+export const useSignatureHelpSync = (monaco: typeof Monaco) => {
   const { notifyDocumentChanged, requestSignatureHelp } = use(
     LanguageClientContext,
   );
@@ -82,13 +81,4 @@ const SignatureHelpSyncInner = () => {
 
     return () => disposable.dispose();
   }, [monaco, notifyDocumentChanged, requestSignatureHelp]);
-
-  return null;
 };
-
-/** Renders nothing visible — registers a Monaco SignatureHelpProvider backed by the language server. */
-export const SignatureHelpSync: React.FC = () => (
-  <Suspense fallback={null}>
-    <SignatureHelpSyncInner />
-  </Suspense>
-);

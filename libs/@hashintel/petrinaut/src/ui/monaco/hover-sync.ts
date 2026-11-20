@@ -1,9 +1,8 @@
-import { Suspense, use, useEffect } from "react";
+import { use, useEffect } from "react";
 
 import { type Hover, MarkupKind, Position } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../react/lsp/context";
-import { MonacoContext } from "./context";
 
 import type * as Monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 
@@ -48,8 +47,8 @@ function hoverContentsToMarkdown(hover: Hover): Monaco.IMarkdownString[] {
   return [];
 }
 
-const HoverSyncInner = () => {
-  const { monaco } = use(use(MonacoContext));
+/** Registers a Monaco HoverProvider backed by the language server. */
+export const useHoverSync = (monaco: typeof Monaco) => {
   const { notifyDocumentChanged, requestHover } = use(LanguageClientContext);
 
   useEffect(() => {
@@ -87,13 +86,4 @@ const HoverSyncInner = () => {
 
     return () => disposable.dispose();
   }, [monaco, notifyDocumentChanged, requestHover]);
-
-  return null;
 };
-
-/** Renders nothing visible — registers a Monaco HoverProvider backed by the language server. */
-export const HoverSync: React.FC = () => (
-  <Suspense fallback={null}>
-    <HoverSyncInner />
-  </Suspense>
-);
