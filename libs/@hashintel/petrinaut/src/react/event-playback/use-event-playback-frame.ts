@@ -1,7 +1,7 @@
 import { use } from "react";
 
 import { SimulationContext } from "../simulation/context";
-import { useStore, useStoreSelector } from "../use-store";
+import { useStoreSelector } from "../use-store";
 import { EventPlaybackContext } from "./context";
 import { findStepTargetIndex } from "./step-target";
 
@@ -27,24 +27,21 @@ export type EventPlaybackFrame = {
  * call this: it re-renders on every animation frame while playing.
  */
 export const useEventPlaybackFrame = (): EventPlaybackFrame => {
-  const { eventSimulation, totalFramesStore } = use(SimulationContext);
-  const { playbackStore } = use(EventPlaybackContext);
+  const { eventSimulation } = use(SimulationContext);
+  const { playbackStore, eventCount } = use(EventPlaybackContext);
   const time = useStoreSelector(playbackStore, (snapshot) => snapshot.time);
-  // A run is one object that grows: its event count is what tells a render
-  // that there is more to step to.
-  const eventCount = useStore(totalFramesStore);
+  // The run grows in place, so its event count is the version of what it
+  // holds: a count that changed means there may be more to step to.
+  const stepTarget = (direction: -1 | 1) =>
+    eventSimulation !== null && eventCount > 0
+      ? findStepTargetIndex(eventSimulation, time, direction)
+      : null;
 
   return {
     time,
     currentEventIndex: eventSimulation?.findEventIndexAt(time) ?? -1,
     currentFrameReader: eventSimulation?.getStateAt(time) ?? null,
-    hasPreviousEvent:
-      eventSimulation !== null &&
-      eventCount > 0 &&
-      findStepTargetIndex(eventSimulation, time, -1) !== null,
-    hasNextEvent:
-      eventSimulation !== null &&
-      eventCount > 0 &&
-      findStepTargetIndex(eventSimulation, time, 1) !== null,
+    hasPreviousEvent: stepTarget(-1) !== null,
+    hasNextEvent: stepTarget(1) !== null,
   };
 };

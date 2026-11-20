@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
 import { act, cleanup, renderHook } from "@testing-library/react";
+import { use, type ReactNode } from "react";
 import { afterEach, expect, it } from "vitest";
 
 import { createReadableStore } from "@hashintel/petrinaut-core";
@@ -9,9 +10,9 @@ import {
   SimulationContext,
   type SimulationContextValue,
 } from "../simulation/context";
+import { useStore } from "../use-store";
+import { EventPlaybackContext } from "./context";
 import { useEventPlaybackFrame } from "./use-event-playback-frame";
-
-import type { ReactNode } from "react";
 
 afterEach(cleanup);
 
@@ -29,19 +30,24 @@ it("sees a firing the run records while the viewed time holds", () => {
     findDiscreteEventAfter: (index: number) =>
       index + 1 < times.length ? index + 1 : null,
   } as unknown as SimulationContextValue["eventSimulation"];
-  const wrapper = ({ children }: { children: ReactNode }) => (
+  const Wrapper = ({ children }: { children: ReactNode }) => (
     <SimulationContext
-      value={{
-        ...DEFAULT_SIMULATION_CONTEXT,
-        eventSimulation: run,
-        totalFramesStore: eventCount,
-      }}
+      value={{ ...DEFAULT_SIMULATION_CONTEXT, eventSimulation: run }}
     >
-      {children}
+      <EventPlaybackContext
+        value={{
+          ...use(EventPlaybackContext),
+          eventCount: useStore(eventCount),
+        }}
+      >
+        {children}
+      </EventPlaybackContext>
     </SimulationContext>
   );
 
-  const { result } = renderHook(() => useEventPlaybackFrame(), { wrapper });
+  const { result } = renderHook(() => useEventPlaybackFrame(), {
+    wrapper: Wrapper,
+  });
   expect(result.current.hasNextEvent).toBe(false);
 
   act(() => {
