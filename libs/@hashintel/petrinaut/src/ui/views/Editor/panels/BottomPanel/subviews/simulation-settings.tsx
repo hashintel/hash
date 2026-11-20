@@ -10,7 +10,10 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautDefinitionSelector } from "../../../../../../react/hooks/use-document";
-import { SimulationContext } from "../../../../../../react/simulation/context";
+import {
+  SimulationContext,
+  type SimulationState,
+} from "../../../../../../react/simulation/context";
 import { useScenarioHir } from "../../../../../../react/simulation/use-scenario-hir";
 import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
@@ -211,6 +214,10 @@ const ParametersScrollArea: React.FC<{ children: React.ReactNode }> = ({
 
 const NO_SCENARIO = "__none__";
 
+/** A run that is going or paused: what it was started with is locked. */
+const runIsUnderWay = (state: SimulationState) =>
+  state === "Running" || state === "Paused";
+
 /**
  * SimulationSettingsContent displays simulation settings in the BottomPanel:
  * a scenario picker, the run settings, and the scenario form — editable with no
@@ -243,8 +250,7 @@ export const SimulationSettingsContent: React.FC = () => {
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
   const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
 
-  const isSimulationActive =
-    simulationState === "Running" || simulationState === "Paused";
+  const isRunUnderWay = runIsUnderWay(simulationState);
 
   const selectedScenario = scenarios?.find((s) => s.id === selectedScenarioId);
 
@@ -442,7 +448,7 @@ export const SimulationSettingsContent: React.FC = () => {
                     }
                     items={scenarioOptions}
                     size="xs"
-                    disabled={isSimulationActive}
+                    disabled={isRunUnderWay}
                     renderItem={(value) => {
                       const option = scenarioOptions.find(
                         (opt) => opt.value === value,
@@ -513,7 +519,7 @@ export const SimulationSettingsContent: React.FC = () => {
                   />
                 </div>
               </div>
-              <RunSettingsPicker locked={isSimulationActive} />
+              <RunSettingsPicker locked={isRunUnderWay} />
             </div>
           </FocusControls>
 
@@ -539,10 +545,10 @@ export const SimulationSettingsContent: React.FC = () => {
                   <FormLayoutColumn>
                     <ParametersScrollArea>
                       <div
-                        inert={isSimulationActive}
+                        inert={isRunUnderWay}
                         className={cx(
                           leftColumnSectionsStyle,
-                          isSimulationActive && lockedFormStyle,
+                          isRunUnderWay && lockedFormStyle,
                         )}
                       >
                         <div>
@@ -581,9 +587,7 @@ export const SimulationSettingsContent: React.FC = () => {
                             tone="neutral"
                             iconName="rotateLeft"
                             className={quietClearButtonStyle}
-                            disabled={
-                              adHocScenario === null || isSimulationActive
-                            }
+                            disabled={adHocScenario === null || isRunUnderWay}
                             onClick={() => setAdHocScenario(null)}
                           >
                             Clear
@@ -591,8 +595,8 @@ export const SimulationSettingsContent: React.FC = () => {
                         </FocusControls>
                       </FormSectionHeader>
                       <div
-                        inert={isSimulationActive}
-                        className={cx(isSimulationActive && lockedFormStyle)}
+                        inert={isRunUnderWay}
+                        className={cx(isRunUnderWay && lockedFormStyle)}
                       >
                         {placesList}
                       </div>
@@ -634,8 +638,8 @@ export const SimulationSettingsContent: React.FC = () => {
                         tooltip="Change a value for this run without changing the saved scenario."
                       />
                       <div
-                        inert={isSimulationActive}
-                        className={cx(isSimulationActive && lockedFormStyle)}
+                        inert={isRunUnderWay}
+                        className={cx(isRunUnderWay && lockedFormStyle)}
                       >
                         {variables ?? (
                           <div className={emptyMessageStyle}>

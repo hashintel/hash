@@ -4,7 +4,10 @@ import { Button } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ActualModeContext } from "../../../../../react/actual-mode-context";
-import { SimulationContext } from "../../../../../react/simulation/context";
+import {
+  SimulationContext,
+  type SimulationState,
+} from "../../../../../react/simulation/context";
 import {
   type BottomPanelTab,
   useEditorActions,
@@ -86,15 +89,19 @@ const headerRightStyle = css({
   flexShrink: "[10]",
 });
 
+/** A run with a timeline to show: one that is going, paused or finished. */
+const runExists = (state: SimulationState) =>
+  state === "Running" || state === "Paused" || state === "Complete";
+
 const getBottomPanelSubViews = ({
   composesOnly,
   isActualMode,
-  isSimulationActive,
+  hasRun,
   showCompilationOutput,
 }: {
   composesOnly: boolean;
   isActualMode: boolean;
-  isSimulationActive: boolean;
+  hasRun: boolean;
   showCompilationOutput: boolean;
 }) =>
   // An editor that only composes has problems to show and nothing to run.
@@ -105,7 +112,7 @@ const getBottomPanelSubViews = ({
       : [
           diagnosticsSubView,
           simulationSettingsSubView,
-          ...(isSimulationActive ? [eventTimelineSubView] : []),
+          ...(hasRun ? [eventTimelineSubView] : []),
           ...(showCompilationOutput ? [compilationSubView] : []),
         ];
 
@@ -145,15 +152,10 @@ export const BottomPanel: React.FC = () => {
   const pluginViews = usePluginBottomPanelViews();
   const { leftSidebarWidth, bottomPanelHeight } = usePanelSizes();
 
-  // Simulation state for conditional subviews
   const { state: simulationState } = use(SimulationContext);
   const actualMode = use(ActualModeContext);
   const isActualMode = globalMode === "actual";
-  const isSimulationActive =
-    !isActualMode &&
-    (simulationState === "Running" ||
-      simulationState === "Paused" ||
-      simulationState === "Complete");
+  const hasRun = !isActualMode && runExists(simulationState);
   const isActualTimelineActive =
     isActualMode &&
     actualMode.available &&
@@ -163,16 +165,15 @@ export const BottomPanel: React.FC = () => {
   useOpenTimelineOnRunStart(
     isActualTimelineActive
       ? "actual-timeline"
-      : isSimulationActive
+      : hasRun
         ? "simulation-timeline"
         : null,
   );
 
-  // Dynamically compute subviews based on available execution modes.
   const subViews = getBottomPanelSubViews({
     composesOnly,
     isActualMode,
-    isSimulationActive,
+    hasRun,
     showCompilationOutput,
   });
   const tabs = [...subViews, ...pluginViews];
