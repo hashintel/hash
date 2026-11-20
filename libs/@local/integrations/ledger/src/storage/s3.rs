@@ -1,36 +1,35 @@
-use crate::SecretValue;
+use alloc::sync::Arc;
+use core::{pin::Pin, str};
+
+use error_stack::{Report, ResultExt as _};
+use hash_crypto::Secret;
+use object_store::{ObjectStore, aws::AmazonS3Builder, prefix::PrefixStore};
+
+use super::StorageError;
 
 /// An S3 bucket and the credentials to reach it.
 #[derive(Debug)]
 pub struct S3Bucket {
-    /// The bucket and prefix artifacts are stored under, as `s3://bucket/prefix`.
+    /// The bucket and prefix files are stored under, as `s3://bucket/prefix`.
     pub uri: Box<str>,
     pub region: Box<str>,
     /// An S3-compatible endpoint such as MinIO, addressed with path-style URLs.
     pub endpoint: Option<Box<str>>,
     pub use_ssl: bool,
     pub key_id: Box<str>,
-    pub secret: SecretValue,
+    pub secret: Pin<Box<Secret<[u8]>>>,
 }
-
-use alloc::sync::Arc;
-use core::str;
-
-use error_stack::{Report, ResultExt as _};
-use object_store::{ObjectStore, aws::AmazonS3Builder, prefix::PrefixStore};
-
-use crate::storage::{ArtifactError, S3Bucket};
 
 // Origin: `ArtifactStore::from_url` for `s3://` URLs in labs `pocs/integrations_rs/src/blob.rs`,
 // configured from `S3Bucket` instead of environment variables.
 /// Opens `bucket` as an object store, scoped to the prefix in its URI.
-pub(super) fn open(bucket: &S3Bucket) -> Result<Arc<dyn ObjectStore>, Report<ArtifactError>> {
+pub(super) fn open(bucket: &S3Bucket) -> Result<Arc<dyn ObjectStore>, Report<StorageError>> {
     let (name, prefix) = bucket
         .uri
         .strip_prefix("s3://")
         .map(|path| path.split_once('/').unwrap_or((path, "")))
-        .ok_or_else(|| Report::new(ArtifactError::Read))?;
-    let secret = str::from_utf8(bucket.secret.expose()).change_context(ArtifactError::Read)?;
+        .ok_or_else(|| Report::new(StorageError::Read))?;
+    let secret = str::from_utf8(bucket.secret.expose()).change_context(StorageError::Read)?;
     let mut builder = AmazonS3Builder::new()
         .with_bucket_name(name)
         .with_region(&*bucket.region)
@@ -43,7 +42,7 @@ pub(super) fn open(bucket: &S3Bucket) -> Result<Arc<dyn ObjectStore>, Report<Art
             .with_allow_http(!bucket.use_ssl)
             .with_virtual_hosted_style_request(false);
     }
-    let store = builder.build().change_context(ArtifactError::Read)?;
+    let store = builder.build().change_context(StorageError::Read)?;
     Ok(if prefix.is_empty() {
         Arc::new(store)
     } else {
