@@ -1,6 +1,6 @@
 /**
- * The chrome every Simulate results panel shares: a header that condenses once the
- * body scrolls, a body of fixed-height cards, a footer of actions. The parts
+ * The frame of the experiment results panel: a header that condenses once
+ * the body scrolls, a body of fixed-height cards, a footer of actions. The parts
  * in `drawer-frame/` (the header and its stat columns, the columns, the
  * spanning card, the computing chip, the fold) form the frame layer, and
  * this file is their one public door.

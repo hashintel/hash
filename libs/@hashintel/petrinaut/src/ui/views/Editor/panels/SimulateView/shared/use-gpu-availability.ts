@@ -97,6 +97,9 @@ const analyzeGpuUnavailability = async ({
   }
 };
 
+/** How long a spec change settles before the net is lowered again. */
+export const GPU_ANALYSIS_DEBOUNCE_MS = 250;
+
 /**
  * Whether the GPU backend could run a compute request over this net with
  * these metrics, and the reason when it could not.
@@ -112,9 +115,6 @@ const analyzeGpuUnavailability = async ({
  * metric typed keystroke by keystroke costs one lowering, not one per key.
  * While an analysis is pending the previous reason stands.
  */
-
-/** How long a spec change settles before the net is lowered again. */
-export const GPU_ANALYSIS_DEBOUNCE_MS = 250;
 export const useGpuAvailability = ({
   enabled,
   sdcpn,
