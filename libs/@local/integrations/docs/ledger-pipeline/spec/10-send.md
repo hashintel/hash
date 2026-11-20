@@ -1,6 +1,6 @@
 # Milestone 10: Send
 
-### What it adds
+## What it adds
 
 Stage 3. It reads the rows a run left in the sync table and applies them to the Graph in batches. A batch the Graph refuses is sent again one entity at a time, each as an upsert. Send records what it did in the `send` part of `run.json` and then names the run as the last completed run of its integration.
 
@@ -13,7 +13,7 @@ Prepare ──► [ Send ] ──► Graph
 
 **Decided in:** `../plan.md`, step 3, "Send" and "How a stage writes"; step 4, "Send".
 
-### Size
+## Size
 
 |           | Lines   |                                                                            |
 | --------- | ------- | -------------------------------------------------------------------------- |
@@ -24,7 +24,7 @@ Prepare ──► [ Send ] ──► Graph
 
 The plan estimated 490. The check of this batch showed the stage's own steps to be shorter than first written. Labs has the fallback as three functions of 337 lines together, written against its turns, budgets and cursor. The cases are taken from there, and the code is written new.
 
-### Interface
+## Interface
 
 One function is called from outside the stage:
 
@@ -35,7 +35,7 @@ pub async fn send(storage: &Storage, run: RunId, graph: &GraphClient) -> Result<
 
 Everything it calls from other milestones is in `contracts.md`: `stage::begin` and `end`, `sync_table::read`, the three bodies of `request.rs`, the four routes of `GraphClient` with `Answer`, and `run::current::complete`.
 
-### Pseudo code
+## Pseudo code
 
 **`stage/send/mod.rs`: the steps of Send** (new, 115 lines)
 
@@ -175,7 +175,7 @@ What the counts mean. `created`, `updated` and `archived` count what the Graph d
 
 So `created + updated + archived + archive_missing` plus the entries of `failed` is the number of rows of the run.
 
-### Source table
+## Source table
 
 | New file           | Item                                                                          | Comes from                                                                                                                                                                     | Kind    | Lines |
 | ------------------ | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- | ----- |
@@ -184,7 +184,7 @@ So `created + updated + archived + archive_missing` plus the entries of `failed`
 | `send/delivery.rs` | `upsert`, for a create and an archive                                         | `engine/graph/client/mod.rs:114-140`, `GraphClient::send` (27): a create, then a patch on a conflict; an archive that finds nothing                                            | adapted | 40    |
 | `send/delivery.rs` | `deliver`, `upsert` for an update, `Outcome`, `refused`, `count`, `count_one` | none. The cases are those of labs `graph/executor.rs`: `execute_create_batch_group` (`:1017-1111`), `deliver_once` (`:1413-1528`), `execute_patch_first_effect` (`:1211-1336`) | new     | 175   |
 
-### Tests
+## Tests
 
 The Graph in these tests is a small HTTP server inside the test, as in `engine/graph/client/tests.rs`. Tests 1 to 4 build their rows by hand, call `cut` or `deliver`, and need no store. Tests 5 and 6 call `send` and need a MinIO container, because Send reads the sync table.
 
@@ -201,11 +201,11 @@ The Graph in these tests is a small HTTP server inside the test, as in `engine/g
 
 Not tested on their own: `Write::new`, the provenance source and the counting. Tests 2 to 6 go through them.
 
-### What was stripped
+## What was stripped
 
 Against labs `graph/executor.rs`, about 1,080 lines on this path: turns with a request budget, the cursor, permits and the lock registry, several batches at once, the set of known conflicts, the patch-first order after a conflict, and waiting between attempts. Against `engine`: `GraphPlan::finish`, which refused a second write to an entity.
 
-### Open points
+## Open points
 
 - **Fact:** an update row holds every mapped property of its source row, the same set an insert row holds, so a create can be built from it (`08-prepare-incremental.md`, `changes.rs`).
 - **Fact:** a list of n bodies takes n + 1 bytes more than the bodies (`09-graph-requests-and-client.md`).

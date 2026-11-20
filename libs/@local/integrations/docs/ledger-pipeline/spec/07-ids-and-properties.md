@@ -1,6 +1,6 @@
 # Milestone 7: Ids and properties
 
-### What it adds
+## What it adds
 
 Two modules of Prepare in `libs/@local/integrations/ledger`: `stage/prepare/entity_id.rs`, which derives the id of an entity and of a link from a source record, and `stage/prepare/property/`, which turns the column values of a row into properties. Nothing is looked up. The same record gives the same id in every run.
 
@@ -14,7 +14,7 @@ Almost all of it is `engine` code that moves unchanged. The one piece of new sha
 
 **Decided in:** `../plan.md`, step 2, "Prepare"; `../background/flow-map.md`, sections 4 and 5.
 
-### Size
+## Size
 
 |           | Lines   |                                                                          |
 | --------- | ------- | ------------------------------------------------------------------------ |
@@ -25,7 +25,7 @@ Almost all of it is `engine` code that moves unchanged. The one piece of new sha
 
 The plan has 705 (675 moved, 30 adapted). `LinkEndpoint` moves as it is, so it counts as moved, and the function is smaller than estimated.
 
-### Interface
+## Interface
 
 `contracts.md`, "Ids and properties", with `pub(crate)` for `pub` (see Open points):
 
@@ -50,7 +50,7 @@ pub(crate) enum FailureReason { Coercion(Coercion), MeasureAmount, MeasureUnit, 
 - **Fact:** every signature of the contracts block matches `engine`: `derive_entity_id` (`entity_id.rs:12-17`), `LinkEndpoint` (`graph/mod.rs:68-71`), `SinkColumns` with `FromIterator` (`graph/property/mod.rs:41-54`), `SinkRow::new` (`:66`), `text` (`:116`), `resolve` (`:74-78`), `ResolvedProperties` (`:211-216`). Only the visibility differs: `text` is `pub(in crate::graph)` there, the rest `pub`.
   `ConversionFailure` and `FailureReason` are in `contracts.md`. Milestone 8 turns them into issues.
 
-### Pseudo code
+## Pseudo code
 
 **`derive_entity_id`** (moved): a UUID v5 of `{namespace}::{entity type}::{source id}` under a fixed namespace UUID, live (no draft id). `entity_id.rs:8-24`.
 
@@ -73,7 +73,7 @@ This is `graph/mod.rs:100-105`. `LinkUpsert::new` took the link type by value, b
 
 **`SinkRow::text`, `SinkRow::resolve`, the conversions** (moved): `graph/property/mod.rs`, `coerce.rs`, `value.rs`. A blank value is left out. A value that cannot be converted is left out and returned as a `ConversionFailure`. `text` returns the value untrimmed, because it identifies a record.
 
-### Source table
+## Source table
 
 `engine/` is `libs/@local/integrations/engine/src/` on `pe/ledger-pipeline-planning`. Lines without tests.
 
@@ -118,7 +118,7 @@ serde_json        = { workspace = true }
 
 From `definition`: `Accessor`, `Coercion`, `ColumnName`, `Properties`, `UnitCode`, `UnitMap`, `UnitMapName` (`property/mod.rs:21-23`, `coerce.rs:6`). All are exported at `definition/src/lib.rs:37-50`. `UnitMap::units` and `fallback` and `&Properties: IntoIterator` exist (`unit_map.rs:37`, `:43`, `step.rs:133`).
 
-### Tests
+## Tests
 
 **Moved unchanged:** `graph/property/tests.rs`, 409 lines, as `stage/prepare/property/tests.rs`. Its imports are relative (`super::…`, `alloc::…`) and need no change. It has 12 test functions with 64 cases. No snapshot, no fixture file, nothing from `hash-graph-store`.
 
@@ -132,14 +132,14 @@ From `definition`: `Accessor`, `Coercion`, `ColumnName`, `Properties`, `UnitCode
 
 Test lines: 455 moved (409 and 46), about 55 adapted from 82 (`:1-29`, `:60-91`, `:108-146`, without `source` and `aircraft`). No new test: `derive_link_id` is covered by `link_id_from_type_and_endpoints` with the recorded UUID.
 
-### What was stripped
+## What was stripped
 
 - From `graph/mod.rs` (172 lines without tests), all but `LinkEndpoint` and the id rule: the module doc and re-exports (`:1-35`, 35), `EntityUpsert` (`:37-64`, 28), the `LinkUpsert` struct and the rest of `new` (`:73-99`, `:106-117`, about 25), `Archive` (`:120-125`, 6), `GraphOperation` with `kind` (`:127-146`, 20), `OperationKind` (`:148-158`, 11). About 125 lines. The sync table row replaces the operations, and `Op` replaces `OperationKind`.
 - `integration_provenance` (`:160-174`, 15) goes to milestone 9.
 - Tests: `link_endpoints_match_entities` (14) and the helper `aircraft` are left behind. Not this milestone's: `operations_sort_into_application_order` (`:148-171`) is adapted by milestone 10, and the helper `source` (`:31-47`) and `integration_provenance_wire_shape` move with milestone 9.
 - Nothing in `property/` is left: every item is reached from `resolve` or `text`.
 
-### Open points
+## Open points
 
 - **Fact:** the workspace warns on `unreachable_pub` (`Cargo.toml:413`) and allows `redundant_pub_crate` (`:474`). An item that is `pub` inside the private module `stage::prepare` warns, so `pub` becomes `pub(crate)`, as in milestone 1.
 - **Fact:** the workspace enables clippy's `restriction` group (`Cargo.toml:423`) and allows only `mod_module_files` (`:468`). A folder `entity_id/` beside `entity_id.rs` would warn, so the id tests are an inline module, as in `engine/sql.rs:30`.

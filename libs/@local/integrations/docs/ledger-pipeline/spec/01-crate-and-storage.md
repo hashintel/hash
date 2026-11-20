@@ -1,6 +1,6 @@
 # Milestone 1: Crate and storage
 
-### What it adds
+## What it adds
 
 The crate `ledger` at `libs/@local/integrations/ledger`, named `hash-integrations-ledger`, and its module `storage/`: one integration's S3 bucket behind the `object_store` crate. Every other milestone reads and writes the bucket through it.
 
@@ -17,7 +17,7 @@ It has no local-folder backend (D6). Tests of other milestones use `object_store
 
 **Decided in:** `../plan.md`, step 2, "Storage and run state", and step 3, "What a run leaves in the bucket" and "How a stage writes".
 
-### Size
+## Size
 
 |           | Lines   |                                                                                                                 |
 | --------- | ------- | --------------------------------------------------------------------------------------------------------------- |
@@ -28,7 +28,7 @@ It has no local-folder backend (D6). Tests of other milestones use `object_store
 
 The plan has 515 (65 moved, 420 adapted, 30 new). The difference is the local folder: `local.rs` (13), its constructor, and the lock-file emulation of conditional writes in `versioned.rs` (about 130). The storage type also loses its staging directories (23).
 
-### Interface
+## Interface
 
 `contracts.md`, "Storage":
 
@@ -92,7 +92,7 @@ testcontainers-modules = { workspace = true, features = ["minio"] }
 tokio                  = { workspace = true, features = ["macros", "rt"] }
 ```
 
-### Pseudo code
+## Pseudo code
 
 **`storage/mod.rs`: the storage type** (adapted, 32 lines; `memory` new, 8)
 
@@ -191,7 +191,7 @@ pub async fn replace_if(&self, key: &str, expected: Option<&CasVersion>, bytes: 
 
 The branch `pe/ledger-r1-conditional-write` as it is, with three changes: a key is a `&str` and not an `ArtifactKey`, the `local_root` branches go, and so do the helpers for the local folder.
 
-### Source table
+## Source table
 
 `933/` is `libs/@local/integrations/engine/src/storage/` on the branch `pe/be-933-store-integration-artifacts-and-run-records-in-the-object` (hashintel/hash#10392). `r1/` is the same folder on `pe/ledger-r1-conditional-write`.
 
@@ -210,7 +210,7 @@ The branch `pe/ledger-r1-conditional-write` as it is, with three changes: a key 
 
 Moved 51, adapted 237, new 28: 316 lines.
 
-### Tests
+## Tests
 
 **Moved with the code, adapted where the code is** (from `r1/tests.rs`):
 
@@ -227,7 +227,7 @@ Moved 51, adapted 237, new 28: 316 lines.
 
 Not tested on their own: `s3::open` and `Storage::memory`. Every test goes through one of them.
 
-### What was stripped
+## What was stripped
 
 - The local folder: `933/artifact/local.rs` (13), `ArtifactStorage::local` (`933/artifact/mod.rs:45-58`, 14), and in `r1/artifact/versioned.rs` the `local_root` branches (`:55-59`, `:83-92`, 15) and `local_cas_version`, `local_replace_if`, `fsync_ancestors`, `cas_temp_name` and `cas_temp_prefix` (`:126-238`, 113). With imports, about 145 lines, and the `hex` dependency.
 - Naming files by content: `publish` with its existence check (`933/artifact/mod.rs:99-129`, 31), `digest` (`:243-258`, 16), the hash in `upload` and `materialize`, and `ArtifactError::Mismatch`.
@@ -235,7 +235,7 @@ Not tested on their own: `s3::open` and `Storage::memory`. Every test goes throu
 - Staging directories: the fields `staging` and `directory`, `stage`, `directory` and `staging_file` (`933/artifact/mod.rs:75-97`, 23). `download` takes its directory from the caller.
 - Tests left behind: `replace_if_compare_and_swap` (`:497`, the `local` case of `replace_if_conditional_put`), `replace_if_local_handles` (`:534`), `staging_files_are_unique` (`:469`), and the eight tests of content names, references, namespaces and bindings that `../plan.md`, step 5, already leaves behind.
 
-### Open points
+## Open points
 
 - **Fact:** `object_store`'s local file system refuses `PutMode::Update` with `NotImplemented` (`object_store-0.12.5/src/local.rs:327`). Its in-memory store supports `Create` and `Update` and compares the entity tag (`memory.rs:151-172`). The module `memory` needs no feature, `local` needs `fs` (`lib.rs:522-524`), so the crate takes `object_store` with `aws` only.
 - **Fact:** the secret in `S3Bucket` is `SecretValue`, defined as `pub type SecretValue = Pin<Box<Secret<[u8]>>>` in `engine/src/sources/secrets/mod.rs:36` on the storage branch. `Secret` is `hash-crypto`'s (`libs/@local/crypto/src/secret.rs:61`). The new crate writes the same type without the alias.

@@ -1,6 +1,6 @@
 # Milestone 4: Sync table
 
-### What it adds
+## What it adds
 
 The table that Prepare writes and Send reads, with its two functions. It is stored as an Apache Iceberg table under `sync/` in the integration's bucket, with the pointer to its current state in `sync/pointer.json`.
 
@@ -13,7 +13,7 @@ Send    ◄── read(run)        ◄── only that run's file is opened
 
 **Decided in:** `../plan.md`, step 3, "The sync table"; the facts are in `../background/spikes.md`, "Iceberg from Rust".
 
-### Size
+## Size
 
 |           | Lines   |                                                                              |
 | --------- | ------- | ---------------------------------------------------------------------------- |
@@ -26,11 +26,11 @@ The plan estimated 600. The row's conversion came out shorter.
 
 Nothing is ported from labs or `engine`, which have no such table. The spike is the starting point: about 190 lines for the bare flow, with `unwrap` in place of errors and test data in place of the conversion.
 
-### Interface
+## Interface
 
 In `contracts.md`: `Op`, `SyncRow`, `write`, `read`.
 
-### Pseudo code
+## Pseudo code
 
 **`sync_table/row.rs`: one row** (new, 210 lines)
 
@@ -118,7 +118,7 @@ pub async fn read(storage, run) -> Result<Vec<SyncRow>, Report<SyncTableError>> 
 }
 ```
 
-### Source table
+## Source table
 
 | New file                | Item                                         | Starting point                                                                | Kind | Lines |
 | ----------------------- | -------------------------------------------- | ----------------------------------------------------------------------------- | ---- | ----- |
@@ -132,7 +132,7 @@ The spike is in the session's scratch folder and is not in the repository. Its f
 
 Also in this milestone: the `iceberg` crates as git dependencies in the workspace manifest, pinned to commit `641f590` of `apache/iceberg-rust`, with the note to move to version 0.12 when it is released.
 
-### Tests
+## Tests
 
 All new, against a MinIO container, because Iceberg opens its own connection to the bucket. Four tests:
 
@@ -141,11 +141,11 @@ All new, against a MinIO container, because Iceberg opens its own connection to 
 3. A second write of a run adds nothing.
 4. A write whose pointer was not moved: the pointer is set back to its old value, the run is written again, and its rows are in the table once.
 
-### What was stripped
+## What was stripped
 
 Nothing existing. Against a full use of Iceberg, left out on purpose: a catalog of our own, expiring snapshots, removing files nothing refers to, and schema changes. `../background/spikes.md` records that old metadata files accumulate.
 
-### Open points
+## Open points
 
 - **Fact:** all calls in the pseudo code exist in the pinned crate and were run in the spike against MinIO: `MemoryCatalogBuilder`, `register_table`, `fast_append`, `set_snapshot_properties`, `StaticTable::from_metadata_file`, a scan with a filter.
 - **Fact:** a table can be given its location when it is created (`TableCreation.location`, `crates/iceberg/src/catalog/mod.rs:348` at commit `641f590`). The spike left it to the catalog.

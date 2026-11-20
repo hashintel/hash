@@ -1,6 +1,6 @@
 # Milestone 5: Workspace
 
-### What it adds
+## What it adds
 
 `stage/prepare/workspace/`: DuckDB for one run. A `Workspace` opens a DuckDB file with access to files, the network and extensions switched off, loads a Parquet file into a table, checks that a query is a single `SELECT`, creates tables, describes and counts, and reads rows. All functions block. Prepare (8) calls them inside one blocking task, and the SQL steps (6) add three functions to the same type.
 
@@ -16,7 +16,7 @@ The new `Workspace` is `engine`'s `Connection` without the layer above it: no th
 
 **Decided in:** `../plan.md`, step 2, "Prepare" and "Decided with this list" (item 2), and step 4; `decisions.md`, D11.
 
-### Size
+## Size
 
 |           | Lines   |                                                                                                                                                                                                                             |
 | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -27,7 +27,7 @@ The new `Workspace` is `engine`'s `Connection` without the layer above it: no th
 
 The plan has 965 (525 moved, 440 adapted). Moved is 227 lower: D11 removes `QueryErrorType`, `DataErrorType`, `from_duckdb` and `VariantName` (198), and `Setting` (28) becomes adapted, since it now names its settings with a `match`. Adapted is 51 lower: `files.rs` is left behind whole, since `open` takes the database path as it is (the plan counted 20 for "the paths"); the blocking functions lose their metrics, disk checks and the error docs for a stopped thread and for the DuckDB kinds; `WorkspaceConfig` derives `Default` once `queue_capacity` is gone; and `lib.rs` needs no `#![feature]`.
 
-### Interface
+## Interface
 
 `contracts.md`, "Workspace and SQL steps", the first seven functions, and `Identifier`. The page writes `pub`. By its note on visibility, the code makes them `pub(crate)`: no caller outside the crate uses the workspace.
 
@@ -87,7 +87,7 @@ hash-integrations-definition = { workspace = true }                   # Variable
 
 `lib.rs` gets no `#![feature]`. In `engine` the five features of `lib.rs:8-15` other than `ip` serve only the DuckDB kinds and `VariantName` (D11).
 
-### Pseudo code
+## Pseudo code
 
 **`open`** (adapted, 65 lines with its doc; from `connection/mod.rs:146-220`)
 
@@ -145,7 +145,7 @@ Everywhere else, `map_err(StatementError::from_duckdb)` becomes `change_context(
 
 Moved unchanged: `select` (`connection/mod.rs:227-236`), `parameter_values` (`:238-257`), `Select` (`workspace/select.rs`), `Rows` (`workspace/rows.rs`), `Identifier` (`sql.rs`), `ByteSize` (`byte_size.rs`), `CaptureSchema` and `SchemaTable` (`connection/capture.rs:92-132`).
 
-### Source table
+## Source table
 
 `engine/` is `libs/@local/integrations/engine/src/`. Source lines are measured, result lines estimated.
 
@@ -171,7 +171,7 @@ Moved unchanged: `select` (`connection/mod.rs:227-236`), `parameter_values` (`:2
 
 Moved 298, adapted 389, new 3: 690 lines.
 
-### Tests
+## Tests
 
 The tests become unit tests in `workspace/tests.rs`: `Workspace` is `pub(crate)`, so `tests/` cannot reach it. Every moved test needs the same mechanical change, because the functions no longer go through a thread: `#[test]` in place of `#[tokio::test]`, no `.await`, `&str` in place of `"…".into()`, and the helpers `open`, `open_with` and `first_value` become plain functions.
 
@@ -193,7 +193,7 @@ The two `load_capture` tests made their Parquet files with `Workspace::capture`,
 
 **Left behind**, with the code they test. From `tests/workspace.rs`: `query_reports_invalid_data` (D11: with one error it checks the same as `query_failure_keeps_workspace_open`); `open_refuses_second_workspace` (lock file); `dropping_request_interrupts_query`, `dropping_queued_request_skips_it`, `dropping_workspace_interrupts_running_query` (cancellation); the five `snapshot_*` tests; `open_refuses_files_over_disk_limit`, `create_table_over_disk_limit_keeps_table`, `disk_limit_counts_temp_directory`, `disk_limit_checkpoints_before_refusing`. All of `tests/workspace_metrics.rs`. From `tests/capture.rs`: the ten tests of `capture` and `SourceCapture::copy_from`. The unit tests `from_duckdb_reads_error_type` (`workspace/error.rs:281`), `words_joins_lowercase_words` and `matches_words_ignores_case_and_spaces` (`variant_name.rs:79`, `:94`), with D11.
 
-### What was stripped
+## What was stripped
 
 - The thread and its command queue: `answer`, `run`, `serve` (`connection/mod.rs:420-562`, 141), `Command` and `request` (`workspace/mod.rs:78-118`, `:241-261`, 62), the bodies of the async `load_capture`, `open`, `query` and `create_table` (`:156-170`, `:222-239`, `:369-375`, `:404-414`, 51), the async wrappers of `stage_table`, `prepare_pipeline` and `prepare_link_pipeline` (`:263-338`, 76; milestone 6 names two of them too, and they are counted here only), `queue_capacity` with the hand-written `Default` (17), `workspace/reply.rs` (36), and `OpenError::Spawn`, `Stopped` and `StatementError::Stopped`.
 - Cancellation: `workspace/interrupt.rs` (185), `Connection::interrupt` (4), and the two checks in `load_batches`. `check_preparation_cancelled` is counted in milestone 6.
@@ -208,7 +208,7 @@ The two `load_capture` tests made their Parquet files with `Workspace::capture`,
 
 About 1,360 lines without tests. About 50 of them (`queue_capacity`, `disk_limit` and the removed variants) lie inside the sources of adapted rows. `check_metadata` goes to milestone 6. `stage_table` goes to milestone 8, as `incremental/staging.rs`. `check_assertions` is stripped, and milestone 8's file counts it.
 
-### Open points
+## Open points
 
 - **Decided:** D11, the classification of DuckDB errors is dropped (`decisions.md`).
 - **Settled in `contracts.md`:** `describe`, `count` and `pipeline_sql` return `StatementError`. `PreparationError` is defined by milestone 6, which comes later, and all these functions ever report is a failed statement. Milestone 6 wraps it as `PreparationError::Statement`.

@@ -1,6 +1,6 @@
 # Milestone 9: Graph requests and client
 
-### What it adds
+## What it adds
 
 Two files of stage 3. `stage/send/request.rs` builds the body of a Graph request for one row of the sync table: a create, a patch or an archive, for an entity or a link, each with the provenance of the run. `stage/send/client.rs` sends bodies on the four entity routes of the Graph and reads each answer as one of the three cases of `Answer`: applied, not available, or refused with its status and message. The client does not interpret a refusal; milestone 10 reads a 409 after a create and a 404 after a patch. Send (milestone 10) calls both: it builds the bodies, cuts batches, sends them, falls back to single writes and records the results. None of that is in this milestone.
 
@@ -16,7 +16,7 @@ Against `engine`: a body is built from a `SyncRow` when Send runs, not from a `G
 
 **Decided in:** `../plan.md`, step 2, "Send", and step 3, "Send"; `../background/spikes.md`, "How the Graph answers entity writes".
 
-### Size
+## Size
 
 |           | Lines   |                                                                                                                             |
 | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -27,7 +27,7 @@ Against `engine`: a body is built from a `SyncRow` when Send runs, not from a `G
 
 The plan has 450 (90 moved, 240 adapted, 120 new). Moved is 18 lower: the body types with `endpoint` are 55 lines, not 70, and the provenance is 15, not 20. New is 61 lower: `Answer` has three cases, not five, and reading an answer is `engine`'s `accepted` with the cases of labs `classify`, so it counts as adapted, and the bulk routes are four short functions over one shared `request`.
 
-### Interface
+## Interface
 
 `contracts.md`, "Graph requests and client", unchanged. The page writes `pub fn integration_provenance`; it is `pub(super)`, because its one caller is `send/mod.rs`, the parent module of `request.rs`. `GraphClient`, `GraphClient::new` and `GraphError` are public, re-exported from `lib.rs`.
 
@@ -51,7 +51,7 @@ tracing         = { workspace = true }
 # dev, all for the moved tests: hash-graph-store, axum (http1, tokio), tokio (macros, net, rt), pretty_assertions, rstest, time, uuid
 ```
 
-### Pseudo code
+## Pseudo code
 
 **`request.rs`: the three bodies** (adapted, about 75 lines with docs; from `engine/graph/plan/request.rs:139-181`, `:203-247`, `:306-319`)
 
@@ -136,7 +136,7 @@ fn list(bodies: &[&RawValue]) -> String;   // "[" + bodies joined by "," + "]"
 
 A timeout (30 s, kept from `new`, `:97`) is a request error and so `Unavailable`. A 409, a 404 and a 500 are refusals with their status and message; milestone 10 decides what a 409 or a 404 means for the request it sent.
 
-### Source table
+## Source table
 
 `engine/` is `libs/@local/integrations/engine/src/`. Source lines are measured, result lines estimated.
 
@@ -163,7 +163,7 @@ A timeout (30 s, kept from `new`, `:97`) is a request error and so `Unavailable`
 
 Moved 72, adapted 240, new 59: 371 lines.
 
-### Tests
+## Tests
 
 The tests become unit tests in `send/request/tests.rs` and `send/client/tests.rs`. Rows are built by hand with fixed entity ids, so the tests need nothing from milestones 7 and 8.
 
@@ -190,7 +190,7 @@ The tests become unit tests in `send/request/tests.rs` and `send/client/tests.rs
 
 **Left behind:** `unreadable_payload` (`plan/tests.rs:256`, three cases): bodies are not stored and read back. `upsert_patches_existing` (`client/tests.rs:191`): its case, a create that finds the entity and is followed by a patch, is test 3 of `10-send.md`. `finish_duplicate_entity` (`plan/tests.rs:308`): Send no longer refuses a second write to an entity, and `../plan.md`, step 5, leaves it behind. `finish_order` and `operations_sort_into_application_order` go to milestone 10 (`batch.rs`), `plan_aviation` to milestone 8.
 
-### What was stripped
+## What was stripped
 
 - Stored requests: `DELIVERY_VERSION` (`request.rs:30-31`, 2), `Delivery` without `encode` (`:33-64`, 25), `SavedRequests`, `UnreadablePayload`, `SavedDelivery`, `RequestKind`, `SavedRequest` and `Payload::requests` (`:66-137`, 72), the `Request` enum with its three bodies per upsert (`:183-201`, 19).
 - The upsert in the client: `Applied` (`client/mod.rs:51-60`, 10), `send` with create-then-patch and the archive that counts a 404 as done (`:107-140`, 34), and the variants `Payload`, `Request` and `Status` of `GraphError` (inside `:34-49`, 12). The fallback is milestone 10's.
@@ -198,7 +198,7 @@ The tests become unit tests in `send/request/tests.rs` and `send/client/tests.rs
 
 About 175 lines of `engine` without tests. `GraphOperation`, `OperationKind` and the upsert types of `graph/mod.rs` are counted in milestone 7, `Payload` and `PlannedWrite` in milestone 8.
 
-### Open points
+## Open points
 
 - **Fact:** a patch for a link is the same as one for an entity. `PatchEntityParams` has no field for the ends (`libs/@local/graph/store/rust/src/entity/store.rs:497-517`), and it denies unknown fields (`:496`). The ends are only in a create, as `linkData` with `leftEntityId` and `rightEntityId` (`libs/@blockprotocol/type-system/rust/src/knowledge/entity/link.rs:8-35`). The archive is the same for both.
 - **Fact:** an update with an empty `properties` sends `entityId`, `entityTypeIds`, `archived: false` and `provenance`. `properties` is left out when empty (`request.rs:280-282`), and the Graph reads a missing list as empty (`store.rs:505-506`). So it adds and removes no property, as the contracts page says. It still sets the type and revives an archived entity, and the Graph writes no new edition when nothing changed (`../background/spikes.md`).

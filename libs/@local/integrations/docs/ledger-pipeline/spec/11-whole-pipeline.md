@@ -1,6 +1,6 @@
 # Milestone 11: The whole pipeline
 
-### What it adds
+## What it adds
 
 The command line tool that calls the four functions of the crate, and the tests that take a run through all stages. After this milestone a capture file can be taken to the Graph by hand.
 
@@ -13,7 +13,7 @@ hash-integrations ledger send     --web … --connector … --run …
 
 **Decided in:** `../plan.md`, step 2 ("a command line tool calls the stages"), step 5 ("The whole pipeline") and step 6.
 
-### Size
+## Size
 
 |           | Lines   |                                              |
 | --------- | ------- | -------------------------------------------- |
@@ -24,11 +24,11 @@ hash-integrations ledger send     --web … --connector … --run …
 
 The plan estimated 260. The three subcommands of hashintel/hash#10458 take 205 lines.
 
-### Interface
+## Interface
 
 Nothing in the crate changes. Each of the four functions was re-exported from `lib.rs` by the milestone that added it, with the types in its signature: `start` by 2, `capture` by 3, `prepare_incremental` by 8, `send` by 10. The app adds the crate, and `definition`, `type-system`, `hash-crypto`, `time` and `url` for the arguments, as dependencies (`dependencies.md`).
 
-### Pseudo code
+## Pseudo code
 
 **`apps/hash-integrations/src/subcommand/ledger.rs`** (new, 240 lines)
 
@@ -88,7 +88,7 @@ A stage that fails prints its error and the tool exits with a status other than 
 
 **`apps/hash-integrations/src/main.rs`** (adapted, 10 lines of 43): `main` awaits `execute`, and exits with a status other than zero when it returns an error. Today it calls `execute` without looking at a result. hashintel/hash#10458 changes the same lines.
 
-### Source table
+## Source table
 
 | File                                              | Item                                                     | Comes from                                                                                        | Kind    | Lines |
 | ------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------- | ----- |
@@ -96,7 +96,7 @@ A stage that fails prints its error and the tool exits with a status other than 
 | `apps/hash-integrations/src/subcommand/mod.rs`    | the `Ledger` case, `execute` as async                    | the same file on `main` (18)                                                                      | adapted | 10    |
 | `apps/hash-integrations/src/main.rs`              | awaiting `execute`, the exit status                      | the same file on `main` (43)                                                                      | adapted | 10    |
 
-### Tests
+## Tests
 
 No existing test moves. The model is the test that runs the aviation example against a real Graph, `tests/integrations/graph/aviation/mod.rs` (from the repository's root).
 
@@ -111,11 +111,11 @@ The capture files are written with the Parquet helper of `testing.rs`, which mil
 
 The command line tool itself has no test. It parses arguments and calls four functions.
 
-### What was stripped
+## What was stripped
 
 Nothing existing. Not built, as decided: the orchestration interface and the service with `submit`, `status` and `cancel` (`../plan.md`, step 2), a queue, and a command to give up a run (D7).
 
-### Open points
+## Open points
 
 - **Chosen:** the id namespace defaults to the connector's id, as labs does (`../background/flow-map.md`, "Entity id and link id"). Start fills it in from the definition it is given.
 - **Chosen:** `start` parses the definition, because it needs the connector to open the storage, and hands the parsed definition to the crate (D9). Capture, Prepare and Send are given the web and the connector, which name the integration's place in the bucket, and parse nothing to open it.

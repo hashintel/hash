@@ -1,6 +1,6 @@
 # Milestone 6: SQL steps
 
-### What it adds
+## What it adds
 
 `stage/prepare/pipeline/mod.rs`: running the steps of a definition's entity pipelines and link pipelines in the workspace of milestone 5, and the types they return. The plan's module tree has `pipeline.rs`. It becomes a folder because its tests sit beside it (see Open points). Prepare (milestone 8) calls it from `run_pipelines`, after staging and before it reads the rows of each table.
 
@@ -17,7 +17,7 @@ Against `engine`: no `_content_hash`, `_seq` beside `_op` and `_key`, no source 
 
 **Decided in:** `../plan.md`, step 2, "Prepare", and step 3, "Prepare, for incremental updates" (internal columns). D1 for link tables.
 
-### Size
+## Size
 
 |           | Lines   |                                                                                                                                                     |
 | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -28,7 +28,7 @@ Against `engine`: no `_content_hash`, `_seq` beside `_op` and `_key`, no source 
 
 The plan has 395 (80 moved, 315 adapted). Its 80 moved lines were the helpers `pipeline_sql`, `describe` and `pipeline_count`, which milestone 5 now owns. The rest is smaller than estimated because the content hash (about 50 lines) and the request types of the command queue (16) go. `execute_pipeline_sql` counts as adapted, since `pipeline_sql` now returns `StatementError`.
 
-### Interface
+## Interface
 
 `contracts.md`, "Workspace and SQL steps":
 
@@ -51,7 +51,7 @@ pub enum PreparationError {
 
 It uses from milestone 5: `create_table`, `describe`, `count` and `pipeline_sql`, which return `StatementError`, and `sql::Identifier`. Each call adds `change_context(PreparationError::Statement)`. The crate gains `hash-integrations-definition` and `uuid` with `v4` (`engine/Cargo.toml:14`, `:19`).
 
-### Pseudo code
+## Pseudo code
 
 **`execute_pipeline_sql`** (adapted, `engine/workspace/connection/pipeline.rs:23-53`): checks the step's SQL with `pipeline_sql`, binds `input` and the named inputs as CTEs, and writes the result to a new `_step/{uuid}` table. The one change: `pipeline_sql`'s `StatementError` gets `change_context(Statement)`.
 
@@ -132,7 +132,7 @@ It serves entity tables and link tables alike. `pipeline_count` is `count` now. 
 
 **Moved unchanged:** `Execution` (`pipeline.rs:16-20`), `Execution::action` (`:156-166`), `table_name` (`:239-242`), `check_properties` (`:275-291`), `check_column` (`:293-305`), `PreparedPipeline` (`engine/pipeline/mod.rs:82-88`), `PreparedLink` (`:103-108`).
 
-### Source table
+## Source table
 
 `p/` is `engine/workspace/connection/pipeline.rs`, `m/` is `engine/pipeline/mod.rs`, `s/` is `engine/workspace/connection/staging.rs`. All items go to `stage/prepare/pipeline/mod.rs`.
 
@@ -157,7 +157,7 @@ It serves entity tables and link tables alike. `pipeline_count` is `count` now. 
 
 Moved 63, adapted 265, new 0: 328 lines.
 
-### Tests
+## Tests
 
 The tests of `engine/tests/pipeline.rs` named in `../plan.md`, step 5, move to `stage/prepare/pipeline/tests.rs`. Every one changes in the same three ways: `#[test]` in place of `#[tokio::test]` and no `.await`; arguments by reference (`&pipeline`, `"source"`, `&BTreeMap::new()`); and a helper `source` in place of `stage`.
 
@@ -191,7 +191,7 @@ fn source(workspace: &Workspace, table: &str, sql: &str, key: &PrimaryKey) {
 1. `check_metadata` on a table shaped like a link table, with cases: all three columns, `_seq` missing, `_seq` as `VARCHAR`, a null `_seq`. Only the first passes. This is the check milestone 8 runs on link tables (D1). `pipeline_metadata_loss` stays as it is, since this test covers `_seq`.
 2. A sink step names a table with its input's rows and no `_content_hash`. A sink whose entity id column, or a property column, is missing fails with `Step` and `MissingColumn` in its report. In `engine`, only the left-behind `pipeline_converted_hashes` (`:648`) checked this.
 
-### What was stripped
+## What was stripped
 
 - The content hash: `hash_expression` (`p/:244-273`, 30), the copy with `_content_hash` in `sink` (`p/:213-235`, 23), and the hash in `PreparedSink`'s doc comment.
 - Cancellation: `check_preparation_cancelled` (`s/:10-17`, 8), its call in `execute_action` (`p/:175`, 1), `PreparationError::Cancelled` (2).
@@ -200,7 +200,7 @@ fn source(workspace: &Workspace, table: &str, sql: &str, key: &PrimaryKey) {
 - Source checks: `TableAssertions`, `AssertionFailure`, `row_count_bounds` (`m/:7-43`, 37) and `PreparationError::Assertions` (5). `check_assertions` is counted in milestone 8.
 - `#[tracing::instrument]` on the two pipeline functions (2).
 
-### Open points
+## Open points
 
 - **Fact:** the definition types give this: `EntityPipeline` has `source`, `depends_on`, `inputs` (alias to checkpoint) and `steps` (`definition/src/pipeline.rs:12-19`). A `Step` has an id and a `StepKind`, which is an `Action` or `Branches` (`step.rs:220-232`). `Action` is `Sql`, `Checkpoint` or `Sink(EntitySink)` (`step.rs:153-160`). `Branches` is not empty, no branch is empty, and a branch step is always an `Action` (`step.rs:166-216`). `LinkPipeline` has `input`, SQL-only `steps`, `from`, `to`, `link_type` and `properties` (`link.rs:78-86`). `LinkInput` is one checkpoint or a non-empty map of aliases (`link.rs:23-28`, `:52-58`). `entity_pipelines()` is in run order (`definition/mod.rs:106-111`).
 - **Fact:** nothing outside tests reads `PreparedSink.step`. The aviation loop in `tests/integrations/graph/aviation/mod.rs:99-112`, from the repository root and not from `engine/`, reads `sink.table` and `sink.sink`, as milestone 8's `collect_changes` does. `PreparedPipeline.table` is read only by the moved tests (`engine/tests/pipeline.rs:371`, `:415`, `:448`, `:761`). Milestone 8 reads `checkpoints` and `sinks`.

@@ -1,6 +1,6 @@
 # Milestone 2: Run state
 
-### What it adds
+## What it adds
 
 The two status files and the call that creates a run. `run.json` records what a run works with and what each stage finished. `current.json` records which run of the integration is active and which was the last to complete. Start creates a run and refuses while another run is active.
 
@@ -12,7 +12,7 @@ every stage reads run.json first and writes it last (milestone 3)
 
 **Decided in:** `../plan.md`, step 3, "What a run leaves in the bucket" and "How a stage writes"; step 4, "Start". The types are in `contracts.md`.
 
-### Size
+## Size
 
 |           | Lines   |                                                             |
 | --------- | ------- | ----------------------------------------------------------- |
@@ -25,7 +25,7 @@ The plan estimated 440. The `failure` part lost a field, and the record types ca
 
 Nothing is ported, because labs and `engine` keep no file of this shape. Labs records a run as events in its journal. The closest existing code is named in the source table.
 
-### Interface
+## Interface
 
 In `contracts.md`: `RunId`, `RunRecord` with its parts, `Current`, the three key functions, `load`, `save`, `current::complete`, and `start`.
 
@@ -45,7 +45,7 @@ pub enum StartError {
 }
 ```
 
-### Pseudo code
+## Pseudo code
 
 **`run/record.rs`: the types of `run.json`** (new, 135 lines)
 
@@ -115,7 +115,7 @@ pub async fn start(storage, definition: &Definition, input: StartInput) -> Resul
 
 If Start stops between its two writes, a `run.json` exists for a run that never became active. It blocks nothing, and the next Start creates a new run.
 
-### Source table
+## Source table
 
 | New file         | Item                                          | Closest existing code                                                                           | Kind | Lines |
 | ---------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---- | ----- |
@@ -124,7 +124,7 @@ If Start stops between its two writes, a `run.json` exists for a run that never 
 | `run/current.rs` | `Current`, `read`, `activate`, `complete`     | labs admission pointer, `orchestrator/submission.rs:324-379`                                    | new  | 90    |
 | `run/start.rs`   | `start`, `StartInput`, `StartError`           | the same; BE-1136 describes `submit` validating the definition first                            | new  | 90    |
 
-### Tests
+## Tests
 
 All new, on the in-memory store. Five tests:
 
@@ -136,11 +136,11 @@ All new, on the in-memory store. Five tests:
 
 Not tested on their own: the key functions and `load` and `save`. Tests 1 and 2 go through them.
 
-### What was stripped
+## What was stripped
 
 Compared with labs: the journal events for a run, the fold that builds a view from them, the request binding, the run locator and the run policy records. `../plan.md`, step 2, lists them. Labs retries a lost claim of the integration up to eight times (`MAX_ADMISSION_ATTEMPTS`). Start does not retry: a start that loses is refused.
 
-### Open points
+## Open points
 
 - **Chosen:** Start creates the run id, a new UUID, and returns it.
 - **Chosen:** `StartError` tells a caller apart why a start was refused: a run is active, another start was faster, or storage failed. The plan only says "refuse".
