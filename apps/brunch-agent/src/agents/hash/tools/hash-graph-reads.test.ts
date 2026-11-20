@@ -9,6 +9,7 @@ import { brunchTools } from "@hashintel/brunch-agent";
 
 import {
   createHashGraphReadTools,
+  hashEntityCountForModel,
   hashEntityReadEmptyNote,
   hashEntityReadForModel,
   hashEntityTypeReadForModel,
@@ -822,7 +823,96 @@ test("webs render one line each, with their ids", () => {
   );
 });
 
-test("the HASH agent defines its three graph reads", () => {
+const salesOrderTypeId =
+  "https://hash.ai/@acme/types/entity-type/sales-order/v/1";
+const customerTypeId = "https://hash.ai/@acme/types/entity-type/customer/v/2";
+
+test("a count renders its total, each type and each web counted, and which webs were counted", () => {
+  expect(
+    hashEntityCountForModel({
+      count: 1500,
+      webScope: "default",
+      entityTypes: [
+        { entityTypeId: salesOrderTypeId, title: "Sales Order", count: 1400 },
+        { entityTypeId: customerTypeId, count: 100 },
+      ],
+      webs: [
+        {
+          webId: personWebId,
+          kind: "user",
+          shortname: "alice",
+          name: "Alice",
+          count: 1500,
+        },
+        {
+          webId: "org-web",
+          kind: "organization",
+          shortname: "acme",
+          name: "Acme",
+          count: 0,
+        },
+      ],
+    }),
+  ).toBe(
+    [
+      "entities: 1500",
+      "webs counted: the user's own web and their organizations' webs (the default; name webIds to count in others)",
+      "by entity type:",
+      `- 1400 Sales Order: ${salesOrderTypeId}`,
+      `- 100 customer: ${customerTypeId}`,
+      "by web:",
+      `- 1500 user "Alice" @alice webId: ${personWebId}`,
+      '- 0 organization "Acme" @acme webId: org-web',
+    ].join("\n"),
+  );
+});
+
+test("a count in named webs says so, names a web it doesn't know by id, and notes types summing past the total", () => {
+  const text = hashEntityCountForModel({
+    count: 3,
+    webScope: "named",
+    entityTypes: [
+      { entityTypeId: salesOrderTypeId, title: "Sales Order", count: 3 },
+      { entityTypeId: customerTypeId, title: "Customer", count: 1 },
+    ],
+    webs: [{ webId: "hash-web", count: 3 }],
+  });
+  expect(text.split("\n")).toEqual([
+    "entities: 3",
+    "webs counted: the webIds named",
+    "by entity type:",
+    "  An entity of several types is counted under each, so these sum to more than the total.",
+    `- 3 Sales Order: ${salesOrderTypeId}`,
+    `- 1 Customer: ${customerTypeId}`,
+    "by web:",
+    "- 3 web webId: hash-web",
+  ]);
+});
+
+test("a count of nothing says nothing matched that the user can see", () => {
+  expect(
+    hashEntityCountForModel({
+      count: 0,
+      webScope: "default",
+      entityTypes: [],
+      webs: [{ webId: "alice-web", kind: "user", count: 0 }],
+    }),
+  ).toBe(
+    [
+      "entities: 0",
+      "webs counted: the user's own web and their organizations' webs (the default; name webIds to count in others)",
+      "No entities matched that the signed-in user can see. One may still exist but be hidden from them, archived, a draft, or filed under another type title or web.",
+    ].join("\n"),
+  );
+});
+
+test("a count in an unknown shape fails the read rather than reaching the model", () => {
+  expect(() => hashEntityCountForModel({ count: 3 })).toThrow(
+    "HASH's page returned an entity count in an unknown shape.",
+  );
+});
+
+test("the HASH agent defines its four graph reads", () => {
   const tools = createHashGraphReadTools(() =>
     Promise.reject(new Error("No read reaches the browser here.")),
   );
@@ -831,6 +921,7 @@ test("the HASH agent defines its three graph reads", () => {
       brunchTools.hashQueryEntities,
       brunchTools.hashQueryEntityTypes,
       brunchTools.hashQueryWebs,
+      brunchTools.hashCountEntities,
     ].toSorted(),
   );
 });

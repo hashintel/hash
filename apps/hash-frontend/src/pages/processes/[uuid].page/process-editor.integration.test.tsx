@@ -727,6 +727,7 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
     brunchTools.hashQueryEntities,
     brunchTools.hashQueryEntityTypes,
     brunchTools.hashQueryWebs,
+    brunchTools.hashCountEntities,
     ...Object.keys(hashPetrinautTools),
   ]);
   expect(observed.brunch?.hostSave).toBeDefined();

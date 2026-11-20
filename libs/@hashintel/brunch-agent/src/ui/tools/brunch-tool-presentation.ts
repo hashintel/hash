@@ -25,6 +25,7 @@ export const visibleOrdinaryBrunchToolNames = [
   brunchTools.hashQueryEntities,
   brunchTools.hashQueryEntityTypes,
   brunchTools.hashQueryWebs,
+  brunchTools.hashCountEntities,
   brunchTools.appSaveNet,
   netReaderToolNames.outline,
   netReaderToolNames.structure,
@@ -107,6 +108,11 @@ const lifecycleTitles = {
     pending: "List your HASH webs",
     success: "Listed your HASH webs",
     error: "Could not list your HASH webs",
+  },
+  [brunchTools.hashCountEntities]: {
+    pending: "Count entities in HASH",
+    success: "Counted entities in HASH",
+    error: "Could not count entities in HASH",
   },
   [brunchTools.appSaveNet]: {
     pending: "Save the net",

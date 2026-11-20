@@ -36,6 +36,7 @@ import { queryBasisToolDescription } from "../shared/query-basis.ts";
 import { hashEvidencedDescription } from "./guidance.ts";
 import { hashSaveDescription } from "./petrinaut/save-net.ts";
 import {
+  hashEntityCountDescription,
   hashEntityReadDescription,
   hashEntityTypeReadDescription,
   hashWebReadDescription,
@@ -273,6 +274,7 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
       "hash_query_entities",
       "hash_query_entity_types",
       "hash_query_webs",
+      "hash_count_entities",
       "app_save_net",
       "petrinaut_read_guide",
       "petrinaut_get_net",
@@ -340,6 +342,9 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
   expect(mounted.descriptions.get(brunchTools.hashQueryWebs)).toBe(
     hashWebReadDescription,
   );
+  expect(mounted.descriptions.get(brunchTools.hashCountEntities)).toBe(
+    hashEntityCountDescription,
+  );
   // Petrinaut, runtime, experiment and query_basis guidance live in the
   // skills and tool descriptions, so no instruction is mounted.
   expect(mounted.instructions).toEqual([]);
@@ -395,6 +400,7 @@ test("only the HASH agent is guided to its graph: the skill, the system prompt's
   expect(petrinautPrompt).not.toContain("hash-graph");
   expect(mounted.skills).toEqual(["eliciting", "modelling", "petrinaut"]);
   expect(mounted.descriptions.has(brunchTools.hashQueryWebs)).toBe(false);
+  expect(mounted.descriptions.has(brunchTools.hashCountEntities)).toBe(false);
   expect(mounted.descriptions.has(brunchTools.appSaveNet)).toBe(false);
 });
 

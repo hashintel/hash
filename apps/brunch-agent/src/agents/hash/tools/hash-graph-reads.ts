@@ -14,6 +14,8 @@ import * as v from "valibot";
 
 import {
   brunchTools,
+  hashEntityCountInputSchema,
+  hashEntityCountResultSchema,
   hashEntityReadInputSchema,
   hashEntityReadResultSchema,
   hashEntityTypeReadInputSchema,
@@ -618,9 +620,74 @@ export const createHashWebReadTool = (execute: BrowserToolExecutor) =>
       ),
   });
 
+export const hashEntityCountDescription = `Count the HASH entities that match the filters, as the signed-in user: an exact count with no ${formattedQueryLimit}-match limit, of only the entities they may see; archived entities and drafts are not counted. Filters combine: an entity must match every filter given. A link is an entity too, so a link type can be counted. Lists no entities. Returns compact text: the total and which webs were counted; then each direct entity type the counted entities carry, by its count, title and entityTypeId (an entity of several types is counted under each); then each web counted, by its count, kind, name and webId. Without webIds it counts only in the user's own web and their organizations' webs; name webIds to count in others. A count that failed returns { error }. Count before listing: when the question is how many, or what a web holds, count rather than read the entities with ${brunchTools.hashQueryEntities}.`;
+
+const hashEntityCountEmptyNote =
+  "No entities matched that the signed-in user can see. One may still exist but be hidden from them, archived, a draft, or filed under another type title or web.";
+
+/** What the model is shown of a settled entity count: compact text. */
+export const hashEntityCountForModel = (output: unknown) => {
+  const parsed = v.safeParse(hashEntityCountResultSchema, output);
+  if (!parsed.success)
+    throw new Error(
+      "HASH's page returned an entity count in an unknown shape.",
+    );
+  const { count, webScope, entityTypes, webs } = parsed.output;
+  const scope =
+    webScope === "default"
+      ? "webs counted: the user's own web and their organizations' webs (the default; name webIds to count in others)"
+      : "webs counted: the webIds named";
+  if (count === 0)
+    return [`entities: 0`, scope, hashEntityCountEmptyNote].join("\n");
+  const byType = entityTypes.reduce((sum, type) => sum + type.count, 0);
+  return [
+    `entities: ${count}`,
+    scope,
+    "by entity type:",
+    ...(byType > count
+      ? [
+          "  An entity of several types is counted under each, so these sum to more than the total.",
+        ]
+      : []),
+    ...entityTypes.map(
+      ({ entityTypeId, title, count: typeCount }) =>
+        `- ${typeCount} ${title === undefined ? slugName(entityTypeId) : oneLine(title)}: ${plainOrQuoted(entityTypeId)}`,
+    ),
+    "by web:",
+    ...webs.map(({ webId, kind, shortname, name, count: webCount }) =>
+      [
+        `- ${webCount} ${kind ?? "web"}`,
+        ...(name === undefined ? [] : [JSON.stringify(name)]),
+        ...(shortname === undefined ? [] : [`@${plainOrQuoted(shortname)}`]),
+        `webId: ${plainOrQuoted(webId)}`,
+      ].join(" "),
+    ),
+  ].join("\n");
+};
+
+/** The entity count, executed by whatever `execute` reaches HASH through. */
+export const createHashEntityCountTool = (execute: BrowserToolExecutor) =>
+  defineTool({
+    name: brunchTools.hashCountEntities,
+    description: hashEntityCountDescription,
+    input: hashEntityCountInputSchema,
+    run: ({ data, toolCallId, signal }) =>
+      runHashRead(
+        execute,
+        {
+          toolName: brunchTools.hashCountEntities,
+          input: data,
+          toolCallId,
+          signal,
+        },
+        hashEntityCountForModel,
+      ),
+  });
+
 /** Every HASH graph read, executed by whatever `execute` reaches HASH through. */
 export const createHashGraphReadTools = (execute: BrowserToolExecutor) => [
   createHashEntityReadTool(execute),
   createHashEntityTypeReadTool(execute),
   createHashWebReadTool(execute),
+  createHashEntityCountTool(execute),
 ];

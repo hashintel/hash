@@ -25,6 +25,8 @@ export {
 } from "./conversation/question-kinds";
 export * from "./client-tools";
 export {
+  hashEntityCountInputSchema,
+  hashEntityCountResultSchema,
   hashEntityReadDefaultTraversalDepth,
   hashEntityReadInputSchema,
   hashEntityReadMaxTraversalDepth,
@@ -34,9 +36,12 @@ export {
   hashReadFailureSchema,
   hashWebReadInputSchema,
   hashWebReadResultSchema,
+  parseHashEntityCountInput,
   parseHashEntityReadInput,
   parseHashEntityTypeReadInput,
   parseHashWebReadInput,
+  type HashEntityCountInput,
+  type HashEntityCountResult,
   type HashEntityReadInput,
   type HashEntityReadResult,
   type HashEntityTypeReadInput,
