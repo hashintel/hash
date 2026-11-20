@@ -171,8 +171,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     isPanMode,
     connect,
     selectLink,
-    hoverNode,
-    hoverLink,
+    hover,
     clickPane,
     dropNode,
     dropComponent,
@@ -259,7 +258,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   };
 
   const hoverFlowNode = (_event: React.MouseEvent, node: NodeType) =>
-    hoverNode({ id: node.id, kind: node.data.kind });
+    hover(node.id);
 
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
@@ -308,7 +307,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
             onNodeMouseEnter={hoverFlowNode}
             onNodeMouseLeave={interactions.clearHover}
             onNodeDragStart={hoverFlowNode}
-            onEdgeMouseEnter={(_event, edge) => hoverLink(linkItemOf(edge))}
+            onEdgeMouseEnter={(_event, edge) => hover(linkItemOf(edge).id)}
             onEdgeMouseLeave={interactions.clearHover}
             onSelectionStart={interactions.beginSelectionGesture}
             onSelectionEnd={interactions.endSelectionGesture}

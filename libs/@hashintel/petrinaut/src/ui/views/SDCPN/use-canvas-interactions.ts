@@ -46,7 +46,6 @@ import type { DraggedNodeKind } from "../shared/canvas-node-drag";
 import type {
   CanvasLinkEnd,
   CanvasLinkEnds,
-  CanvasNode,
   CanvasNodeKind,
   CanvasPoint,
 } from "./canvas-scene";
@@ -97,8 +96,8 @@ type CanvasModes = {
  * a renderer can hand them to memoized nodes and arcs.
  */
 type CanvasActions = {
-  hoverNode: (node: Pick<CanvasNode, "id" | "kind">) => void;
-  hoverLink: (item: CanvasLinkItem) => void;
+  /** The pointer is over a node, an arc or a fusion: a link of a fusion hovers its fusion. */
+  hover: (id: string) => void;
   clearHover: () => void;
   /** Arcs and fusions are selected only by a direct click, never by box selection. */
   selectLink: (item: CanvasLinkItem) => void;
@@ -522,8 +521,7 @@ export const useCanvasInteractions = (): CanvasInteractions => {
   };
 
   const actions = useStableActions<CanvasActions>({
-    hoverNode: (node) => pointer.hoveredId.set(node.id),
-    hoverLink: (item) => pointer.hoveredId.set(item.id),
+    hover: (id) => pointer.hoveredId.set(id),
     clearHover: () => pointer.hoveredId.set(null),
     // Queued with the changes React Flow reports for the same click, so a
     // sibling link it deselects does not land after and undo the selection.
