@@ -1,8 +1,8 @@
-import { use, useId } from "react";
+import { useId } from "react";
 
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../react/state/user-settings-context";
 import { useNetGraphTransition } from "./net-graph-animation";
 import {
   edgePath,
@@ -177,7 +177,7 @@ export const NetGraphView: React.FC<NetGraphViewProps> = ({
 }) => {
   const instanceId = useId();
   const layout = layoutNetGraph(graph, { focusId });
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const { nodeRef, edgeRef } = useNetGraphTransition(layout, {
     enabled: showAnimations,
   });

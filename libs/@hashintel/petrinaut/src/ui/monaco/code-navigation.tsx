@@ -8,9 +8,9 @@ import {
 import { usePetrinautNavigation } from "../../react/navigation";
 import { ActiveNetContext } from "../../react/state/active-net-context";
 import { CompositionContext } from "../../react/state/composition-context";
-import { EditorContext } from "../../react/state/editor-context";
+import { useEditorActions } from "../../react/state/editor-context";
 import { SDCPNContext } from "../../react/state/sdcpn-context";
-import { UserSettingsContext } from "../../react/state/user-settings-context";
+import { useUserSettingsFields } from "../../react/state/user-settings-context";
 import { usePetrinautPresentation } from "../views/shared/presentation-context";
 import { getDocumentUri } from "./editor-paths";
 
@@ -51,8 +51,11 @@ export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
   const { activeNet } = use(ActiveNetContext);
   const { petriNetDefinition, extensions } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
-  const { selectItem } = use(EditorContext);
-  const { subViewPanels, updateSubViewSection } = use(UserSettingsContext);
+  const { selectItem } = useEditorActions();
+  const { subViewPanels, updateSubViewSection } = useUserSettingsFields(
+    "subViewPanels",
+    "updateSubViewSection",
+  );
   const { showSourceCode: enabled } = usePetrinautPresentation();
   const entries: CodeEntry[] = [
     ...activeNet.transitions.flatMap((transition): CodeEntry[] => {
