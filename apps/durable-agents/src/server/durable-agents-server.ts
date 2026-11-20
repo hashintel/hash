@@ -43,7 +43,7 @@ import {
   type TextUIPart,
   type UIMessage,
 } from "ai";
-import { Hono } from "hono";
+import { type Context as HonoContext, Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 
 import { createAbandonedTurns } from "./durable-agents-server/abandoned-turns";
@@ -114,14 +114,26 @@ export type DurableAgentsServerOptions = ConversationRegistryOptions & {
   readonly dynamicClientToolNames?: ReadonlySet<string>;
   /**
    * Runs on a `POST /chat` that names a conversation that does not exist,
-   * before anything is created, with the request's whole body. A refusal
-   * answers the request and creates nothing; a seed is written in the commit
-   * that creates the conversation. Absent, every chat request creates its
-   * conversation.
+   * before anything is created, with the request's whole body and the
+   * request. A refusal answers the request and creates nothing; a seed is
+   * written in the commit that creates the conversation. Absent, every chat
+   * request creates its conversation.
    */
   readonly admitNewConversation?: (
     body: Readonly<Record<string, unknown>>,
+    request: HonoContext,
   ) => ChatRefusal | ConversationSeed | undefined;
+  /**
+   * Runs on every route that names a conversation, once it is open and before
+   * the route reads or writes it (on `POST /chat` also after creating it,
+   * before `admitChat`), so a host can check the request against what the
+   * conversation records, such as who owns it. A response refuses the
+   * request and is its answer.
+   */
+  readonly admitConversation?: (
+    conversation: OpenConversation,
+    request: HonoContext,
+  ) => Promise<Response | undefined>;
   /**
    * Runs on every `POST /chat` before its submission, with the request's
    * whole body, so a host can check or record what its client sends beside
@@ -316,11 +328,13 @@ export const createDurableAgentsServer = (
     try {
       let conversation = await conversations.acquire(body.id);
       if (conversation === undefined) {
-        const admission = options.admitNewConversation?.(body);
+        const admission = options.admitNewConversation?.(body, ctx);
         if (admission !== undefined && "error" in admission)
           return ctx.text(admission.error, admission.status);
         conversation = await conversations.create(body.id, admission);
       }
+      const refused = await options.admitConversation?.(conversation, ctx);
+      if (refused !== undefined) return refused;
       const refusal = await options.admitChat?.(conversation, body);
       if (refusal !== undefined) return ctx.text(refusal.error, refusal.status);
       const { harness, root } = conversation;
@@ -381,6 +395,8 @@ export const createDurableAgentsServer = (
         },
       );
       if (conversation === undefined) return ctx.text(unknownConversation, 404);
+      const refused = await options.admitConversation?.(conversation, ctx);
+      if (refused !== undefined) return refused;
       const { harness, root } = conversation;
       // The opening reconnect has already selected its input. Other requests
       // select independently and do not inherit that owner's recovery result.
@@ -433,6 +449,8 @@ export const createDurableAgentsServer = (
   app.post("/chat/:id/abort", async (ctx) => {
     const conversation = await conversations.acquire(ctx.req.param("id"));
     if (conversation === undefined) return ctx.text(unknownConversation, 404);
+    const refused = await options.admitConversation?.(conversation, ctx);
+    if (refused !== undefined) return refused;
     await conversation.root.abort(context);
     return ctx.body(null, 204);
   });
@@ -440,7 +458,12 @@ export const createDurableAgentsServer = (
   /** The conversation's history, as the live stream projects it. */
   app.get(
     "/chat/:id/messages",
-    historyHandler({ conversations, context, ...projection }),
+    historyHandler({
+      conversations,
+      admit: options.admitConversation,
+      context,
+      ...projection,
+    }),
   );
 
   return {

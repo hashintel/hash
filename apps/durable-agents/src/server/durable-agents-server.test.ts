@@ -8,6 +8,7 @@ import {
 } from "@earendil-works/pi-ai/providers/faux";
 import {
   createRegistry,
+  defineDoc,
   defineExtension,
   defineTool,
   type Extension,
@@ -111,6 +112,7 @@ type ChatOptions = {
   readonly onReport?: DurableAgentsServerOptions["onReport"];
   readonly admitNewConversation?: DurableAgentsServerOptions["admitNewConversation"];
   readonly admitChat?: DurableAgentsServerOptions["admitChat"];
+  readonly admitConversation?: DurableAgentsServerOptions["admitConversation"];
 };
 
 /**
@@ -124,6 +126,7 @@ const openChat = ({
   onReport,
   admitNewConversation,
   admitChat,
+  admitConversation,
 }: ChatOptions = {}) => {
   const faux = fauxProvider({
     tokensPerSecond: 300,
@@ -153,6 +156,7 @@ const openChat = ({
     onReport,
     admitNewConversation,
     admitChat,
+    admitConversation,
     context,
   });
   servers.push(server);
@@ -1189,6 +1193,80 @@ test("only a conversation that was opened gets an abandonment check", async () =
     set.mockRestore();
     cleared.mockRestore();
   }
+});
+
+/** Who a test conversation belongs to, as its creating request named it. */
+const OwnerDoc = defineDoc<{ owner: string | null }>({
+  kind: "test.owner",
+  version: 1,
+  scope: "conversation",
+  history: "latest",
+  fork: "current",
+  initial: () => ({ owner: null }),
+  checkpointWhen: () => false,
+});
+
+test("a new conversation's seed records in its creating commit, and every route that names a conversation admits the request", async () => {
+  const seen: (string | null | undefined)[] = [];
+  const { server, faux } = openChat({
+    responses: [fauxAssistantMessage("Answered.")],
+    admitNewConversation: (_body, request) => ({
+      record: async (tx, conversationId) => {
+        const doc = await tx.doc(OwnerDoc, conversationId);
+        doc.owner = request.req.header("x-owner") ?? null;
+      },
+    }),
+    admitConversation: async ({ harness, root }, request) => {
+      const owner = (await harness.snapshot(OwnerDoc, root.id, context))?.owner;
+      seen.push(owner);
+      return owner === request.req.header("x-owner")
+        ? undefined
+        : request.json({ error: "forbidden" }, 403);
+    },
+  });
+  const as = (owner: string) => ({ headers: { "x-owner": owner } });
+  const chatAs = (owner: string) =>
+    server.app.request(`${origin}/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-owner": owner },
+      body: JSON.stringify({
+        id: chatId,
+        messages: [userMessage],
+        trigger: "submit-message",
+      }),
+    });
+
+  const created = await chatAs("alice");
+  expect(created.status).toBe(200);
+  await created.text();
+  // The first admission already reads what the creating commit recorded.
+  expect(seen).toEqual(["alice"]);
+
+  const refused = await Promise.all([
+    chatAs("bob"),
+    server.app.request(`${origin}/chat/${chatId}/stream`, as("bob")),
+    server.app.request(`${origin}/chat/${chatId}/messages`, as("bob")),
+    server.app.request(`${origin}/chat/${chatId}/abort`, {
+      method: "POST",
+      ...as("bob"),
+    }),
+  ]);
+  expect(refused.map(({ status }) => status)).toEqual([403, 403, 403, 403]);
+  // The refused chat submitted nothing.
+  expect(faux.state.callCount).toBe(1);
+
+  const history = await server.app.request(
+    `${origin}/chat/${chatId}/messages`,
+    as("alice"),
+  );
+  expect(history.status).toBe(200);
+  expect(
+    ((await history.json()) as UIMessage[]).map(({ role }) => role),
+  ).toEqual(["user", "assistant"]);
+  expect(
+    (await server.app.request(`${origin}/chat/${chatId}/stream`, as("alice")))
+      .status,
+  ).toBe(204);
 });
 
 test("a section that throws is reported once, with the conversation whose Harness ran it", async () => {
