@@ -75,17 +75,10 @@ const createFakeExperiment = (
 export function FakeExperimentsProvider({
   children,
   initialExperiments,
-  overrides,
   restreamOnSelectionChange = false,
 }: {
   children: ReactNode;
   initialExperiments: readonly ExperimentRecord[];
-  /**
-   * Per-story replacements for the fake compute callbacks — e.g. a slower
-   * sampler to watch a surface fill in, or one that resolves null to show
-   * the empty state.
-   */
-  overrides?: Partial<Pick<ExperimentsContextValue, "navigateSweep">>;
   /**
    * Simulates what the real sweep session does on a selection change:
    * frames clear immediately, then the new selection's distribution streams
@@ -336,7 +329,6 @@ export function FakeExperimentsProvider({
           resolve(cell);
         }, 700);
       }),
-    ...overrides,
   }));
 
   const value: ExperimentsContextValue = {
