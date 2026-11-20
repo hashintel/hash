@@ -4,124 +4,112 @@ description: Why a sweep computes only the selected region, and how quantized in
 sidebar_order: 20
 ---
 
-A sweep experiment declares an interval per swept scenario parameter — nothing
-else. Each interval quantizes into ~50 positions (`SWEEP_AXIS_STEPS`,
-`parameter-grid.ts`; integer parameters step by whole numbers), and the
-navigator selects an inclusive position range per parameter: the whole
-interval by default, collapsible to a single point. Only the selected region
-computes, and compute moves the moment the selection does. The model is a
-raytracer's: rays for the current camera, dropped on movement, never
-precomputed for cameras nobody is looking through.
+A sweep experiment declares an interval per swept scenario parameter and
+computes only the region of those intervals that is selected. Each interval
+is quantized into `SWEEP_AXIS_STEPS` positions, and an integer parameter
+steps by whole numbers.
 
-![The selected region refining](./sweep-refinement.d2)
+A selection is an inclusive position range per parameter, a `SweepSelection`.
+A range whose two ends are equal is a point. The navigator shows one slider
+per parameter and selects a point with each move. When the selection changes,
+the batches that were computing are cancelled and the new selection starts.
 
-## Points, ranges, and the refinement ladder
+![A selection change restarts the ladder at the new selection. Finished batches stay in the cache, so a selection that is revisited resumes where it stopped.](./sweep-refinement.d2)
 
-A **point** selection runs the experiment at that value. A **range**
-selection runs one stochastic experiment over the ranges: each run carries
-its own drawn value per ranged parameter (`sweepRangeDraws`), low-discrepancy
-across the selected value interval, rotated by a seed-derived shift
-(Cranley–Patterson, so draws are unbiased over the seed and each experiment
-seed explores its own sequence) and prefix-stable in the seed, axis, and
-global run index — the quantized positions bound the interval, they do not
-grid it. One
-selection is one experiment: full worker-pool parallelism, and the metric
-stream is the experiment's own, so the distribution over the region streams
-from the first frames and sharpens as runs land.
+## Points, ranges and the ladder
 
-Either kind climbs the ladder — 8, 25, 100, 500, 1000, then ×5/×2, capped by
-the run budget — in batches that fold into a cache keyed by the whole
-selection (a point is a degenerate range). The climb is **pipelined**: run
-ranges are disjoint and draws and seeds are prefix-stable in the run index,
-so as soon as a rung streams its first frames the next rung starts alongside
-it — at most two in flight, which hides each rung's setup and straggler tail
-without committing the whole ladder up front. Folds stay strictly ordered: a
-rung folds only after every earlier rung folded, and a rung cancelled by a
-selection change discards its started successor whole (a gap can never enter
-the cache). Revisiting any earlier selection restores its runs and resumes
-from its cached rung.
+A point selection runs the experiment at that value. A range selection runs
+one stochastic experiment over the ranges. Each run carries its own drawn
+value per ranged parameter (`sweepRangeDraws`). The draws are low-discrepancy
+across the selected interval and rotated by a shift derived from the seed, a
+Cranley–Patterson rotation, so each experiment seed explores its own
+sequence. They are prefix-stable in the seed, the axis and the global run
+index. The quantized positions bound the interval, and the draws are
+continuous inside it.
 
-Per-run parameter values travel as `ExperimentRequest.runPlan` — one
-run-major `Float64Array` plus the overridden names, uniform by construction.
-The WebGPU backend converts it straight into its per-run buffer, the CPU
-backend expands it into the engine's per-run configs at the worker-pool
-boundary, and range and point batches walk the same backend selection.
-Scenario compilation needs one
-value per parameter, so an initial state derived from a ranged parameter
-holds at the range midpoint while runtime reads vary per run.
+One selection is one experiment. It uses the whole worker pool, and its
+metric stream is the distribution over the region from the first frames on.
+
+Either kind climbs `EXPERIMENT_RUN_LADDER`: 8, 25, 100, 500 and 1,000 runs,
+then five times and twice the last target in turn, capped by the run budget.
+Each rung is a batch that covers the runs the earlier rungs left. A finished
+batch goes into a cache keyed by the whole selection.
+
+The climb is pipelined. Run ranges are disjoint, and draws and seeds are
+prefix-stable in the run index, so the next rung starts as soon as a rung
+streams its first frames. At most two rungs compute at once.
+
+Batches enter the cache in rung order. A rung that a selection change
+cancels discards the rung started after it, so the cache never holds a gap.
+A selection that is revisited gets its runs back and resumes from its rung.
+
+Per-run parameter values travel as the `runPlan` of the experiment request:
+one run-major `Float64Array` and the names it overrides. The WebGPU backend
+copies it into its per-run buffer, and the CPU backend expands it into the
+engine's per-run configurations where the request reaches the worker pool.
+
+Scenario compilation needs one value per parameter. An initial state derived
+from a ranged parameter is therefore compiled at the middle of the range
+(`selectionMidpoint`), while what the run reads of the parameter varies per
+run.
 
 ## What a batch costs on the main thread
 
-Everything between a slider commit and the first dispatch runs on the main
-thread: drawing per-run values, translating them through the scenario, and
-building the backend request. At large rungs that work is what the user
-feels — profiled at a 1,000,000-run range batch, the page's two longest
-main-thread tasks (1.16 s and 1.45 s) were batch instantiation, and most of
-that was scenario compilation: `translateRangeDraws` compiles the scenario
-once per run's draws.
+Everything between a selection change and the first dispatch runs on the main
+thread: drawing the per-run values, translating them through the scenario,
+and building the request. At a rung of a million runs this work is what the
+user feels, and most of it is scenario compilation.
 
-Draws are continuous inside the selected interval, so per-draw results
-cannot be cached — almost every assignment is new. What repeats is the
-value-independent half of each compile: type-checking every override and
-initial-state item, building expression contexts, parsing net-parameter
-defaults. `prepareScenarioCompiler` (`compile-scenario.ts`, core) runs that
-half once, and each `compile(values)` call only merges the assignment,
-interprets the override expressions, and coerces the results. The provider
-prepares one compiler per experiment and every consumer — batch midpoints,
-per-run translation — compiles through it.
+Draws are continuous inside the interval, so almost every assignment is one
+the compiler has not seen, and a result per draw cannot be cached. Three
+things keep the cost down:
 
-Per-run translation compiles less still: `compileParameterNumbers` runs the
-parameter steps and skips both the initial state, which per-run translation
-never reads — per-run initial markings do not exist, and a batch's own
-marking comes from its midpoint `compile` — and the string conversion. An
-initial-state error therefore fails the batch, not each of its runs.
+- `prepareScenarioCompiler` does once what does not depend on the values:
+  type-checking the overrides and the initial state, building the expression
+  contexts, parsing the defaults of the net's parameters. Each compile after
+  that merges the assignment, interprets the override expressions and coerces
+  the results. The provider prepares one compiler per experiment.
+- `compileParameterNumbers` compiles a run's parameters without the initial
+  state and without converting to strings. A batch's marking comes from the
+  compile at its midpoint, so an error in the initial state fails the batch
+  once, and not each of its runs.
+- `sweepRangeDraws` writes one typed array of draws, and
+  `translateRangeDraws` fills one `Float64Array` column per parameter name,
+  each filled with the base value first. No record is allocated per run.
 
-Nothing else in the per-run pipeline materializes a record per run either:
-`sweepRangeDraws` writes one typed array of draws, and `translateRangeDraws`
-compares each run's compiled numbers against the base and fills per-name
-`Float64Array` columns, pre-filled with the base value so the uniform layout
-falls out. A million-run batch's plumbing allocates a handful of arrays
-instead of a million records of stringified numbers (each run's scenario
-compile still builds its own small binding records), and the garbage
-collector drops out of the profile's top entries.
-
-What remains is still linear in the run count, so the draw and translation
-loops yield cooperatively (`cooperative-yield.ts`): every few thousand
-iterations they check an 8 ms budget and hand the thread back —
-`scheduler.yield()` where the browser has it, a macrotask elsewhere. The
-loops' total cost is unchanged; no single task holds the main thread through
-it. Measured end to end at the same 1,000,000-run batch, the pipeline's
-blocking went from two tasks of 1.16 s and 1.45 s to 178 ms in total with no
-task over ~130 ms.
+What remains is linear in the run count, so the draw and translation loops
+yield. `createCooperativeYielder` checks a budget of 8 ms every few thousand
+iterations and hands the thread back, through `scheduler.yield()` where the
+browser has it and a macrotask elsewhere. The total cost is the same, and no
+single task holds the main thread through it.
 
 ## Determinism
 
-A cell's batch covering runs `[from, target)` seeds itself with
-`deriveRunSeed(seed, from)` (the first batch keeps the base seed verbatim).
-The ladder is the same for every cell, so the same rung draws the same seeds
-everywhere — common random numbers across the space — and a re-run of a
-cancelled rung repeats it exactly. Cached results never go stale: the same
-position always means the same runs.
+A batch that covers runs `[from, target)` takes the seed
+`deriveRunSeed(seed, from)`, and the first batch keeps the base seed. The
+ladder is the same for every selection, so the same rung draws the same seeds
+everywhere: common random numbers across the space. A rung that was cancelled
+and runs again repeats exactly, and a cached result never goes out of date,
+because the same position always means the same runs.
 
-## Where the pieces live
+## Who does what
 
-`createSweepSession` (`react/experiments/sweep-session.ts`) owns the loop:
-selection, ladder, cache, cancellation. It is
-backend-agnostic — it consumes an injected `instantiateBatch` returning a
-`MonteCarloExperiment`, so the CPU worker pool and the WebGPU backend behave
-identically. The provider wires that seam: a sweep's first batch runs the same
-[backend-selection walk](doc:core.experiments/backend-selection) as a plain
-experiment, and later batches re-assess the chosen backend with their own
-request. The swept net parameters ride the per-run plan for every batch — a
-point selection as a constant plan — so the GPU backend keeps one compiled
-setup and its calibration across selections. Scenario compilation still
-happens per batch, because a cell's swept values change the compiled initial
+`createSweepSession` owns the loop: selection, ladder, cache and
+cancellation. It knows no backend. It asks an injected `instantiateBatch` for
+a `MonteCarloExperiment` per batch and reads that handle's stores, so the CPU
+worker pool and the WebGPU backend behave the same to it.
+
+The provider supplies `instantiateBatch`. A sweep's first batch goes through
+the same [backend selection](doc:core.experiments/backend-selection) as a
+plain experiment, and later batches assess the chosen backend again with
+their own request. The swept net parameters travel in the per-run plan for
+every batch, a point selection as a constant plan, so the GPU backend keeps
+one compiled setup and its calibration across selections. The scenario is
+compiled per batch, because the swept values change the compiled initial
 state.
 
-The navigator (`sweep-navigator.tsx`) renders one range slider per parameter
-in the drawer section's sticky band, so the controls stay pinned while the
-charts stream beneath them. Sliders commit on release — dragging previews
-locally — and a Range/Point control collapses a slider to a single value or
-expands it back to the whole interval. Updates go through one context call,
-`setSweepSelection`; everything else the UI shows is plain record state the
+Each slider move of the navigator reaches `setSweepSelection` with a point.
+Everything else the UI shows of a sweep is the experiment record, which the
 session streams out.
+[Sweep orchestration](doc:react.experiments/sweep-orchestration) follows a
+selection change, an optimizer trial and a batch through these parts.
