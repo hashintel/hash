@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Toggle, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -10,7 +10,7 @@ import {
 import { usePetrinautMutations } from "../../../../../../../../react";
 import { useStableCallback } from "../../../../../../../../react/hooks/use-stable-callback";
 import { useEditorActions } from "../../../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../../../react/state/sdcpn-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { useCodeNavigation } from "../../../../../../../monaco/code-navigation-context";
@@ -37,7 +37,7 @@ const headerActionsStyle = css({
 export const PlaceVisualizerContent: React.FC = () => {
   const { place } = usePlacePropertiesContext();
   const { updatePlace } = usePetrinautMutations();
-  const { readonly } = use(SDCPNContext);
+  const readonly = useSDCPNState((document) => document.readonly);
   const { setVisualizerEditorFocus } = useEditorActions();
   const { focusRequest, acknowledgeFocus } = useCodeNavigation();
   const [editorInstance, setEditorInstance] =
@@ -96,7 +96,7 @@ export const PlaceVisualizerContent: React.FC = () => {
 export const VisualizerHeaderAction: React.FC = () => {
   const { place, types } = usePlacePropertiesContext();
   const { updatePlace } = usePetrinautMutations();
-  const { readonly: isReadOnly } = use(SDCPNContext);
+  const isReadOnly = useSDCPNState((document) => document.readonly);
 
   const [savedVisualizerCodeState, setSavedVisualizerCodeState] = useState<{
     placeId: string;

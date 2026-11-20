@@ -16,7 +16,7 @@ import { validateEntityName } from "@hashintel/petrinaut-core";
 import { usePetrinautMutations } from "../../../../../../../react";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
 import { DescriptionField } from "../../../../../../components/description-field";
@@ -84,7 +84,7 @@ export const PlaceMainContent: React.FC = () => {
   const capacityEnabled =
     place.capacity !== undefined && place.capacity !== null;
 
-  const { extensions } = use(SDCPNContext);
+  const extensions = useSDCPNState((document) => document.extensions);
   const { activeNet } = use(ActiveNetContext);
   const { types: availableTypes } = activeNet;
 
