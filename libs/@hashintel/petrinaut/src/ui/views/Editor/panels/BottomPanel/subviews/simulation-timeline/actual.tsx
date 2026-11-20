@@ -5,11 +5,14 @@ import { useElementOnScreen } from "../../../../../../../react/hooks/use-element
 import {
   useEditorActions,
   useEditorFields,
+  type TimelineView,
 } from "../../../../../../../react/state/editor-context";
 import { UPlotChart } from "./chart";
 import { TimelineLegend } from "./legend";
 import { chartAreaStyle, containerStyle } from "./styles";
 import { useStreamingData } from "./use-streaming-data";
+
+const PER_PLACE_VIEW: TimelineView = { kind: "per-place" };
 
 export const ActualTimeline: React.FC<{
   showLegend?: boolean;
@@ -37,24 +40,26 @@ export const ActualTimeline: React.FC<{
   const containerRef = useRef<HTMLDivElement>(null);
   const onScreen = useElementOnScreen(containerRef);
 
-  const { store, metricError } = useStreamingData(source, {
-    paused: !onScreen,
-  });
+  // An execution reported by the host carries token counts only: no metric
+  // is evaluated on it, and no solver recorded an error. Such a pick draws
+  // tokens per place, and the effect below makes that the pick.
+  const pickHasNoData =
+    timelineView.kind === "metric" || timelineView.kind === "solver-error";
+  const store = useStreamingData(
+    source,
+    pickHasNoData ? PER_PLACE_VIEW : timelineView,
+    { paused: !onScreen },
+  );
 
   const [isFollowingLive, setIsFollowingLive] = useState(true);
   const { currentFrameIndex, scrubToFrame, totalFrames } = source;
   const lastFrameIndex = Math.max(0, totalFrames - 1);
 
-  // An execution reported by the host carries token counts only: no metric
-  // is evaluated on it, and no solver recorded an error.
   useEffect(() => {
-    if (
-      timelineView.kind === "metric" ||
-      timelineView.kind === "solver-error"
-    ) {
-      setTimelineView({ kind: "per-place" });
+    if (pickHasNoData) {
+      setTimelineView(PER_PLACE_VIEW);
     }
-  }, [setTimelineView, timelineView.kind]);
+  }, [pickHasNoData, setTimelineView]);
 
   useEffect(() => {
     if (isFollowingLive && totalFrames > 0) {
@@ -69,9 +74,7 @@ export const ActualTimeline: React.FC<{
 
   return (
     <div className={containerStyle} ref={containerRef}>
-      {metricError ? (
-        <span style={{ fontSize: 12, color: "#b91c1c" }}>{metricError}</span>
-      ) : store.length === 0 || totalFrames === 0 ? (
+      {store.length === 0 || totalFrames === 0 ? (
         <span style={{ fontSize: 12, color: "#999" }}>
           No actual execution data available
         </span>

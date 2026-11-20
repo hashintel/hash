@@ -6,7 +6,6 @@ import { SimulationContext } from "../../../../../../../react/simulation/context
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "../simulation-timeline/series-config";
 import { useRunTimelineView } from "../simulation-timeline/use-run-timeline-view";
-import { useTimelineMetric } from "../simulation-timeline/use-streaming-data";
 import {
   createTimelineSeriesStore,
   type TimelineSeriesSnapshot,
@@ -14,6 +13,7 @@ import {
   type TimelineSeriesStore,
   type TimelineSeriesView,
 } from "./series-store";
+import { useTimelineMetric } from "./use-timeline-metric";
 
 import type { EventTimelineData, FiringMark } from "./series";
 import type { TraceEvent } from "@hashintel/petrinaut-core";
