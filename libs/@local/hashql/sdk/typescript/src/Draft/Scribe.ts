@@ -1,13 +1,13 @@
 /**
  * Collects declarations while a synchronous callback constructs an expression.
  *
- * Handles retain semantic parameters until conversion to syntax. Only the declaration wrappers are heterogeneous: each is already an AST operation, so their collection needs no type recovery. A child collector prevents branch declarations from escaping their lexical body. Callback exceptions retain their original cause inside construction failures.
+ * Handles retain semantic parameters until conversion to syntax. Only the declaration wrappers are heterogeneous: each is already an AST operation, so their collection needs no type recovery. Each body takes back the declarations its program's `$` made while Draft built it, whether it succeeds or fails, so none of them escapes into the enclosing body. Callback exceptions retain their original cause inside construction failures.
  *
  * @since 0.1.0
  * @module
  */
 // oxlint-disable import/max-dependencies -- the collector composes every construction module
-import { Cause, Data, Option, Pipeable, Result, pipe } from "effect";
+import { Array, Cause, Data, Option, Pipeable, Result, pipe } from "effect";
 
 import * as Referential from "../internal/referential.js";
 import * as StructuralSyntax from "../internal/structural.js";
@@ -84,7 +84,6 @@ const ConstructionFailure = Data.TaggedError("DraftConstructionFailure")<{
 }>;
 
 class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
-  readonly #scope: S & Namespace.Rebindable<S>;
   readonly #next: Referential.ReferenceProducer;
   readonly #prelude: Namespace.Flatten<S>;
   readonly #modules: Namespace.Modules<S>;
@@ -112,7 +111,6 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     scope: S & Namespace.Rebindable<S>,
     next: Referential.ReferenceProducer,
   ) {
-    this.#scope = scope;
     this.#next = next;
     this.#prelude = Namespace.flatten<S>(scope);
     this.#modules = Namespace.modules<S>(scope);
@@ -314,12 +312,9 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
       readonly else?: ($: Context.Context<S>) => Expression.Value.Any;
     },
   ): Expression.Expression.Any {
-    const consequent = new ContextImpl<S>(this.#scope, this.#next).build(
-      branches.then,
-    );
-    const alternate = Result.transposeMapOption(
-      Option.fromUndefinedOr(branches.else),
-      (body) => new ContextImpl<S>(this.#scope, this.#next).build(body),
+    const consequent = this.build(branches.then);
+    const alternate = Option.fromUndefinedOr(branches.else).pipe(
+      Result.transposeMapOption((body) => this.build(body)),
     );
 
     return pipe(
@@ -355,8 +350,6 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
 
   /** Adds `filter` and `collect` to a graph expression. The vertex type stays erased here, and `Context.Queries` restores it. */
   #query(graph: Expression.Expression.Any): ErasedQuery<S> {
-    const scope = this.#scope;
-    const next = this.#next;
     const expression = pipe(
       graph,
       Expression.toNode,
@@ -370,9 +363,7 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
         this.#query(
           Query.filter(expression, name, (vertex) =>
             pipe(
-              new ContextImpl<S>(scope, next).build(($) =>
-                predicate($, vertex),
-              ),
+              this.build(($) => predicate($, vertex)),
               Expression.fromResult<Type.PrimitiveBoolean, Inputs.Empty>,
             ),
           ),
@@ -384,8 +375,11 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   build(
     body: ($: Context.Context<S>) => Expression.Value.Any,
   ): Result.Result<AST.Node.Any, ProgramError.Construction> {
+    const stackSize = this.#wrappers.length;
+
     try {
       const expression = body(this);
+
       if (
         !Expression.isExpression(expression) &&
         !(
@@ -396,9 +390,11 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
         return Result.fail(ProgramError.Construction.invalidBodyResult());
       }
 
+      const wrappers = Array.drop(this.#wrappers, stackSize);
+
       return pipe(
         {
-          wrappers: Result.all(this.#wrappers),
+          wrappers: Result.all(wrappers),
           node: Expression.toNode(expression),
         },
         Result.all,
@@ -421,6 +417,8 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
           new Cause.UnknownError(error),
         ),
       );
+    } finally {
+      this.#wrappers.splice(stackSize);
     }
   }
 }
