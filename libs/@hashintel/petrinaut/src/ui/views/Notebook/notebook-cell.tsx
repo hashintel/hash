@@ -693,6 +693,22 @@ const FieldRow: React.FC<{
 
 const UNTYPED = "__untyped__";
 
+/** What a select of a token type offers: no type, then every type of the net. */
+const tokenTypeOptions = (net: ActiveNetDefinition) => [
+  { value: UNTYPED, label: "untyped" },
+  ...net.types.map((color) => ({
+    value: color.id,
+    label: color.name || color.id,
+  })),
+];
+
+/** The types a field of a token type and a parameter can have. */
+const valueTypeOptions = [
+  { value: "real", label: "real" },
+  { value: "integer", label: "integer" },
+  { value: "boolean", label: "boolean" },
+];
+
 const PlaceBody: React.FC<{
   net: ActiveNetDefinition;
   place: Place;
@@ -704,13 +720,6 @@ const PlaceBody: React.FC<{
     stopId: parts.stopIdFor(partId),
     focus: parts.focusFor(partId),
   });
-  const typeOptions = [
-    { value: UNTYPED, label: "untyped" },
-    ...net.types.map((color) => ({
-      value: color.id,
-      label: color.name || color.id,
-    })),
-  ];
   const composedEquationNames = getPlaceDynamicsEquationIds(place).map(
     (equationId) =>
       net.differentialEquations.find(({ id }) => id === equationId)?.name ??
@@ -733,7 +742,7 @@ const PlaceBody: React.FC<{
         <PartSelect
           aria-label="Token type"
           value={place.colorId ?? UNTYPED}
-          options={typeOptions}
+          options={tokenTypeOptions(net)}
           onChange={(value) =>
             updatePlace({
               placeId: place.id,
@@ -1011,12 +1020,6 @@ const TransitionBody: React.FC<{
   );
 };
 
-const TYPE_ELEMENT_TYPES: { value: string; label: string }[] = [
-  { value: "real", label: "real" },
-  { value: "integer", label: "integer" },
-  { value: "boolean", label: "boolean" },
-];
-
 const TypeBody: React.FC<{ color: Color; parts: BodyPartContext }> = ({
   color,
   parts,
@@ -1084,7 +1087,7 @@ const TypeBody: React.FC<{ color: Color; parts: BodyPartContext }> = ({
                 <PartSelect
                   aria-label="Field type"
                   value={element.type}
-                  options={TYPE_ELEMENT_TYPES}
+                  options={valueTypeOptions}
                   onChange={(value) =>
                     updateTypeElement({
                       typeId: color.id,
@@ -1103,12 +1106,6 @@ const TypeBody: React.FC<{ color: Color; parts: BodyPartContext }> = ({
     </>
   );
 };
-
-const PARAMETER_TYPES: { value: string; label: string }[] = [
-  { value: "real", label: "real" },
-  { value: "integer", label: "integer" },
-  { value: "boolean", label: "boolean" },
-];
 
 const ParameterBody: React.FC<{
   parameter: Parameter;
@@ -1149,7 +1146,7 @@ const ParameterBody: React.FC<{
         <PartSelect
           aria-label="Parameter type"
           value={parameter.type}
-          options={PARAMETER_TYPES}
+          options={valueTypeOptions}
           onChange={(value) =>
             updateParameter({
               parameterId: parameter.id,
@@ -1204,13 +1201,7 @@ const EquationBody: React.FC<{
         <PartSelect
           aria-label="Applies to type"
           value={equation.colorId ?? UNTYPED}
-          options={[
-            { value: UNTYPED, label: "untyped" },
-            ...net.types.map((color) => ({
-              value: color.id,
-              label: color.name || color.id,
-            })),
-          ]}
+          options={tokenTypeOptions(net)}
           onChange={(value) =>
             updateDifferentialEquation({
               equationId: equation.id,
