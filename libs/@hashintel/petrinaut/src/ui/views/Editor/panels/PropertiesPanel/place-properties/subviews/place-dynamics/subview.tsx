@@ -4,7 +4,7 @@ import { Toggle, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ActiveNetContext } from "../../../../../../../../react/state/active-net-context";
-import { EditorContext } from "../../../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { usePlacePropertiesContext } from "../../context";
 import { composableEquations } from "./compose-dynamics";
@@ -34,7 +34,7 @@ const PlaceDynamicsContent: React.FC = () => {
   const {
     activeNet: { differentialEquations },
   } = use(ActiveNetContext);
-  const { selectItem } = use(EditorContext);
+  const { selectItem } = useEditorActions();
   const terms = place.dynamics ?? [];
 
   if (place.colorId === null) {

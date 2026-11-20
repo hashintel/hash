@@ -1,5 +1,3 @@
-import { use } from "react";
-
 import {
   Button,
   Icon,
@@ -13,7 +11,7 @@ import {
   getEffectiveTransitionLambdaType,
 } from "@hashintel/petrinaut-core";
 
-import { EditorContext } from "../../../../../../../../react/state/editor-context";
+import { useEditorState } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
@@ -58,7 +56,7 @@ const aiMenuItemStyle = css({
 const FiringTimeHeaderAction: React.FC = () => {
   const { logicAvailability, transition, updateTransition } =
     useTransitionPropertiesContext();
-  const { globalMode } = use(EditorContext);
+  const globalMode = useEditorState((editor) => editor.globalMode);
 
   if (globalMode !== "edit" || !logicAvailability.lambda) {
     return null;

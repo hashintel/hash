@@ -21,7 +21,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { CompositionContext } from "../../../../../../react/state/composition-context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { PropertyValue } from "../../../../../components/property-value";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
@@ -156,7 +156,7 @@ const ArcMainContent: React.FC = () => {
 const DeleteArcAction: React.FC = () => {
   const { transitionId, endpoint, arcDirection, removeArc } =
     useArcPropertiesContext();
-  const { clearSelection } = use(EditorContext);
+  const { clearSelection } = useEditorActions();
   const isReadOnly = useIsReadOnly();
 
   return (

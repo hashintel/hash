@@ -15,7 +15,7 @@ import {
 import { usePetrinautMutations } from "../../../../../../react";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { CompositionContext } from "../../../../../../react/state/composition-context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { DescriptionField } from "../../../../../components/description-field";
@@ -118,7 +118,7 @@ const MemberRow = ({ member }: { member: FusionMember }) => {
   const fusion = useFusion();
   const { petriNetDefinition } = use(SDCPNContext);
   const { activeNet } = use(ActiveNetContext);
-  const { selectItem } = use(EditorContext);
+  const { selectItem } = useEditorActions();
   const { removeFusionMember } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
   const { libraries } = use(CompositionContext);
@@ -253,7 +253,7 @@ const FusionTitle: React.FC = () => {
 const DeleteFusionAction: React.FC = () => {
   const fusion = useFusion();
   const { removeFusion } = usePetrinautMutations();
-  const { clearSelection } = use(EditorContext);
+  const { clearSelection } = useEditorActions();
   const isReadOnly = useIsReadOnly();
 
   return (

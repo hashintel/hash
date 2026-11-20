@@ -8,7 +8,7 @@ import { usePanelPresence } from "../../../../../react/state/panel-presence-cont
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { usePanelTarget } from "../../../../../react/state/use-selection";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { useUserSettingsFields } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
   MAX_PROPERTIES_PANEL_WIDTH,
@@ -65,7 +65,7 @@ export const PropertiesPanel: React.FC = () => {
   const isOpen = panelTarget.kind !== "none";
 
   const { keepPanelsMounted, setPropertiesPanelWidth: saveWidth } =
-    use(UserSettingsContext);
+    useUserSettingsFields("keepPanelsMounted", "setPropertiesPanelWidth");
 
   if (!isOpen && !isInView && !keepPanelsMounted) {
     return null;

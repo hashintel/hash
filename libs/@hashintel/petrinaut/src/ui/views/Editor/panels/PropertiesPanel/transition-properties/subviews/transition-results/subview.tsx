@@ -9,7 +9,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { CompositionContext } from "../../../../../../../../react/state/composition-context";
-import { EditorContext } from "../../../../../../../../react/state/editor-context";
+import { useEditorState } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
@@ -97,7 +97,7 @@ const createTransitionArcPlaceResolver = (
 const ResultsHeaderAction: React.FC = () => {
   const { logicAvailability, transition, sdcpn, net, types, updateTransition } =
     useTransitionPropertiesContext();
-  const { globalMode } = use(EditorContext);
+  const globalMode = useEditorState((editor) => editor.globalMode);
   const { libraries } = use(CompositionContext);
 
   if (globalMode !== "edit" || !logicAvailability.transitionKernel) {

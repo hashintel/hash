@@ -15,9 +15,9 @@ import { validateEntityName } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import { UserSettingsContext } from "../../../../../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { PropertyValue } from "../../../../../../components/property-value";
@@ -85,8 +85,8 @@ const arcStyle = css({
  */
 const PlaceMainContent: React.FC = () => {
   const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
-  const { selectItem } = use(EditorContext);
-  const { showAnimations } = use(UserSettingsContext);
+  const { selectItem } = useEditorActions();
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const capacityEnabled =
     place.capacity !== undefined && place.capacity !== null;
 

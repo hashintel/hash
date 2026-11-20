@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 const MultipleIcon = () => <Icon name="layer" />;
 
-import { EditorContext } from "../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
@@ -76,7 +76,7 @@ const MultiSelectionContent: React.FC = () => {
 
 const DeleteSelectionAction: React.FC = () => {
   const { items, deleteItemsByIds } = useMultiSelectionContext();
-  const { clearSelection } = use(EditorContext);
+  const { clearSelection } = useEditorActions();
   const isReadOnly = useIsReadOnly();
 
   return (

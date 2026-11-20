@@ -8,7 +8,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { useStableCallback } from "../../../../../../../../react/hooks/use-stable-callback";
-import { EditorContext } from "../../../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../../react/state/sdcpn-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
@@ -48,7 +48,7 @@ const headerActionsStyle = css({
 const PlaceVisualizerContent: React.FC = () => {
   const { place, updatePlace } = usePlacePropertiesContext();
   const { readonly } = use(SDCPNContext);
-  const { setVisualizerEditorFocus } = use(EditorContext);
+  const { setVisualizerEditorFocus } = useEditorActions();
   const { focusRequest, acknowledgeFocus } = useCodeNavigation();
   const [editorInstance, setEditorInstance] =
     useState<editor.IStandaloneCodeEditor | null>(null);
