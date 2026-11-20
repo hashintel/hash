@@ -6,7 +6,7 @@
 import { use, useEffect } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { ActualModeContext } from "../../../../../react/actual-mode-context";
 import {
@@ -22,20 +22,14 @@ import {
 import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
-import { useUserSettingsFields } from "../../../../../react/state/user-settings-context";
-import { GlassPanel } from "../../../../components/glass-panel";
+import { useUserSettings } from "../../../../../react/state/user-settings-context";
 import {
   HorizontalTabPanel,
   HorizontalTabsHeader,
 } from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
-import {
-  MAX_BOTTOM_PANEL_HEIGHT,
-  MIN_BOTTOM_PANEL_HEIGHT,
-  PANEL_MARGIN,
-} from "../../../../constants/ui";
-import { styleRef, useReading } from "../../../../lib/readings";
+import { PANEL_MARGIN } from "../../../../constants/ui";
 import { usePluginBottomPanelViews } from "../../../../plugins/plugin-outlets";
-import { slideFromEdge } from "../../shared/slide-from-edge";
+import { DockedPanel } from "../../shared/docked-panel";
 import { fallbackBottomPanelTab } from "./fallback-tab";
 import {
   actualEventsSubView,
@@ -52,12 +46,6 @@ const glassPanelBaseStyle = css({
   zIndex: "[calc(var(--z-index-sticky) - 2)]",
   borderTopWidth: "thin",
   boxSizing: "border-box",
-});
-
-// Where the panel is comes from its presence value; this is only what a
-// closed panel must not do.
-const closedPanelStyle = css({
-  pointerEvents: "none",
 });
 
 const panelContainerStyle = css({
@@ -143,21 +131,12 @@ export const BottomPanel: React.FC = () => {
     useEditorActions();
   const publishedEditor = use(EditorPublishedContext);
   const { shown } = usePanelPresence();
-  // Still sliding out, where a closed panel is not kept mounted.
-  const isInView = useReading(() => shown.bottomPanel.get() > 0);
-
-  const {
-    keepPanelsMounted,
-    showCompilationOutput,
-    setBottomPanelHeight: saveHeight,
-  } = useUserSettingsFields(
-    "keepPanelsMounted",
-    "showCompilationOutput",
-    "setBottomPanelHeight",
+  const showCompilationOutput = useUserSettings(
+    (settings) => settings.showCompilationOutput,
   );
   const composesOnly = useComposesOnly();
   const pluginViews = usePluginBottomPanelViews();
-  const { leftSidebarWidth, bottomPanelHeight } = usePanelSizes();
+  const { leftSidebarWidth } = usePanelSizes();
 
   const { state: simulationState } = use(SimulationContext);
   const actualMode = use(ActualModeContext);
@@ -208,30 +187,18 @@ export const BottomPanel: React.FC = () => {
     }
   }, [activeTab, publishedEditor, renderedActiveTab, setActiveTab]);
 
-  if (!isOpen && !isInView && !keepPanelsMounted) {
-    return null;
-  }
-
   return (
-    <GlassPanel
-      className={cx(glassPanelBaseStyle, !isOpen && closedPanelStyle)}
+    <DockedPanel
+      panel="bottomPanel"
+      isOpen={isOpen}
+      className={glassPanelBaseStyle}
+      contentClassName={panelContainerStyle}
+      style={{ bottom: PANEL_MARGIN, right: PANEL_MARGIN }}
       // The panel starts beside the left sidebar, as far as that is in view.
-      ref={styleRef({
+      boundStyle={{
         left: () =>
           PANEL_MARGIN +
           shown.leftSidebar.get() * (leftSidebarWidth.get() + PANEL_MARGIN),
-        height: bottomPanelHeight,
-        transform: () => slideFromEdge("bottom", shown.bottomPanel.get()),
-      })}
-      style={{ bottom: PANEL_MARGIN, right: PANEL_MARGIN }}
-      contentClassName={panelContainerStyle}
-      resizable={{
-        edge: "top",
-        getSize: () => bottomPanelHeight.get(),
-        onResize: (height) => bottomPanelHeight.set(height),
-        onResizeEnd: () => saveHeight(bottomPanelHeight.get()),
-        minSize: MIN_BOTTOM_PANEL_HEIGHT,
-        maxSize: MAX_BOTTOM_PANEL_HEIGHT,
       }}
     >
       {/* Tab Header */}
@@ -268,6 +235,6 @@ export const BottomPanel: React.FC = () => {
         {activePluginView?.content}
         {Content && <Content />}
       </HorizontalTabPanel>
-    </GlassPanel>
+    </DockedPanel>
   );
 };

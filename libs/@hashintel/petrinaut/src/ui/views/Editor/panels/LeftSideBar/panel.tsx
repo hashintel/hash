@@ -5,24 +5,15 @@
 
 import { use } from "react";
 
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { CompositionContext } from "../../../../../react/state/composition-context";
 import { useEditorFields } from "../../../../../react/state/editor-context";
-import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
-import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
-import { useUserSettingsFields } from "../../../../../react/state/user-settings-context";
-import { GlassPanel } from "../../../../components/glass-panel";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
-import {
-  MAX_LEFT_SIDEBAR_WIDTH,
-  MIN_LEFT_SIDEBAR_WIDTH,
-} from "../../../../constants/ui";
-import { styleRef, useReading } from "../../../../lib/readings";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
-import { slideFromEdge } from "../../shared/slide-from-edge";
+import { DockedPanel } from "../../shared/docked-panel";
 import {
   componentsSubView,
   entitiesTreeSubView,
@@ -40,20 +31,6 @@ const glassPanelBaseStyle = css({
   bottom: "0",
   borderRightWidth: "thin",
   boxSizing: "border-box",
-});
-
-const panelStyle = cva({
-  base: {},
-  variants: {
-    open: {
-      true: {},
-      // Where the panel is comes from its presence value; this is only what
-      // a closed panel must not do.
-      false: {
-        pointerEvents: "none",
-      },
-    },
-  },
 });
 
 const contentWrapperStyle = css({
@@ -112,16 +89,9 @@ export const LeftSideBar: React.FC = () => {
     "isLeftSidebarOpen",
     "isSearchOpen",
   );
-  const { shown } = usePanelPresence();
-  // Still sliding out, where a closed panel is not kept mounted.
-  const isInView = useReading(() => shown.leftSidebar.get() > 0);
   const { offered } = use(CompositionContext);
   const composesOnly = useComposesOnly();
   const isCompositionInterfaceOn = useIsCompositionInterfaceOn();
-
-  const { leftSidebarWidth } = usePanelSizes();
-  const { keepPanelsMounted, setLeftSidebarWidth: saveWidth } =
-    useUserSettingsFields("keepPanelsMounted", "setLeftSidebarWidth");
 
   // The sidebar is visible when explicitly opened OR when search is active
   const isVisible = isOpen || isSearchOpen;
@@ -137,25 +107,11 @@ export const LeftSideBar: React.FC = () => {
       : []),
   ];
 
-  if (!isVisible && !isInView && !keepPanelsMounted) {
-    return null;
-  }
-
   return (
-    <GlassPanel
-      className={cx(glassPanelBaseStyle, panelStyle({ open: isVisible }))}
-      ref={styleRef({
-        width: leftSidebarWidth,
-        transform: () => slideFromEdge("left", shown.leftSidebar.get()),
-      })}
-      resizable={{
-        edge: "right",
-        getSize: () => leftSidebarWidth.get(),
-        onResize: (width) => leftSidebarWidth.set(width),
-        onResizeEnd: () => saveWidth(leftSidebarWidth.get()),
-        minSize: MIN_LEFT_SIDEBAR_WIDTH,
-        maxSize: MAX_LEFT_SIDEBAR_WIDTH,
-      }}
+    <DockedPanel
+      panel="leftSidebar"
+      isOpen={isVisible}
+      className={glassPanelBaseStyle}
     >
       <div className={contentWrapperStyle}>
         <div
@@ -187,6 +143,6 @@ export const LeftSideBar: React.FC = () => {
           </FocusRoot>
         </div>
       </div>
-    </GlassPanel>
+    </DockedPanel>
   );
 };
