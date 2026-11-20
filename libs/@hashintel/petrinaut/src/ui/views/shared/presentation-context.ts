@@ -1,4 +1,4 @@
-import { createContext, use, type PropsWithChildren } from "react";
+import { createContext, use } from "react";
 
 export type PetrinautPresentationProfile = "editor" | "review" | "preview";
 
@@ -37,7 +37,7 @@ const editorCapabilities: PetrinautPresentationCapabilities = {
   blurredChrome: true,
 };
 
-const presentationCapabilities: Record<
+export const presentationCapabilities: Record<
   PetrinautPresentationProfile,
   PetrinautPresentationCapabilities
 > = {
@@ -55,16 +55,7 @@ const presentationCapabilities: Record<
   },
 };
 
-const PetrinautPresentationContext =
+export const PetrinautPresentationContext =
   createContext<PetrinautPresentationCapabilities>(editorCapabilities);
-
-export const PetrinautPresentationProvider = ({
-  profile,
-  children,
-}: PropsWithChildren<{ profile: PetrinautPresentationProfile }>) => (
-  <PetrinautPresentationContext value={presentationCapabilities[profile]}>
-    {children}
-  </PetrinautPresentationContext>
-);
 
 export const usePetrinautPresentation = () => use(PetrinautPresentationContext);

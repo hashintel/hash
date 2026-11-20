@@ -40,10 +40,7 @@ import { fpsCounterPlugin } from "./plugins/fps-counter-plugin";
 import { PetrinautPluginsProvider } from "./plugins/plugins-provider";
 import { noSlots, PetrinautSlotsContext } from "./slots-context";
 import { EditorView } from "./views/Editor/editor-view";
-import {
-  PetrinautPresentationProvider,
-  type PetrinautPresentationProfile,
-} from "./views/shared/presentation-context";
+import { PetrinautPresentationProvider } from "./views/shared/presentation-provider";
 
 // `clip`, not `hidden`: a hidden-overflow box is still programmatically
 // scrollable, and focusing an element the canvas transform pushed past the
@@ -59,6 +56,7 @@ const editorRootStyle = css({
 import type { PetrinautNavigationController } from "../react/navigation";
 import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
 import type { PetrinautSlots } from "./types/petrinaut-slots";
+import type { PetrinautPresentationProfile } from "./views/shared/presentation-context";
 
 export type PetrinautProps = {
   handle: PetrinautDocHandle;

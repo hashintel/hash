@@ -1,6 +1,6 @@
+export { PetriconProvider } from "./experimental-icon-provider";
 export {
   Petricon,
-  PetriconProvider,
   petriconNames,
   petriconPack,
   petriconEffects,

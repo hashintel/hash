@@ -17,7 +17,7 @@ import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "../../react/state/user-settings-context";
-import { PetrinautPresentationProvider } from "../views/shared/presentation-context";
+import { PetrinautPresentationProvider } from "../views/shared/presentation-provider";
 import { CodeNavigationProvider } from "./code-navigation";
 import { useCodeNavigation } from "./code-navigation-context";
 

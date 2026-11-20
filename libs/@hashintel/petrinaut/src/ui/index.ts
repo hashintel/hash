@@ -35,9 +35,9 @@ export type {
   PetriconTransition,
   PetriconVariant,
 } from "./petricon";
+export { ExperimentalIconProvider } from "./experimental-icon-provider";
 export {
   ExperimentalIcon,
-  ExperimentalIconProvider,
   DiagnosticsIcon,
   LoadingIcon,
   ArrowTrendDownIcon,

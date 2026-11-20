@@ -13,9 +13,9 @@ import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
 } from "../react/lsp/context";
+import { ExperimentalIconProvider } from "./experimental-icon-provider";
 import {
   ExperimentalIcon,
-  ExperimentalIconProvider,
   experimentalIconNames,
   experimentalIconEffects,
   PlayIcon,

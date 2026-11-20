@@ -18,7 +18,7 @@ import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "../../../../react/state/user-settings-context";
-import { PetrinautPresentationProvider } from "../../../views/shared/presentation-context";
+import { PetrinautPresentationProvider } from "../../../views/shared/presentation-provider";
 import { VerticalSubViewsContainer } from "./vertical-sub-views-container";
 
 import type { PetrinautNavigationController } from "../../../../react/navigation";

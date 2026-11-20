@@ -41,7 +41,7 @@ import {
 import { SimulationProvider } from "../../react/simulation/provider";
 import { SimulatorsProvider } from "../../react/simulators/provider";
 import { SDCPNView } from "../views/SDCPN/sdcpn-view";
-import { PetrinautPresentationProvider } from "../views/shared/presentation-context";
+import { PetrinautPresentationProvider } from "../views/shared/presentation-provider";
 import {
   createPreviewNavigationAdapter,
   type PetrinautPreviewNavigationState,

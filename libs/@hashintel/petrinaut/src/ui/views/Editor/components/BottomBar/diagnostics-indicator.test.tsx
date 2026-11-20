@@ -6,7 +6,7 @@ import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
 } from "../../../../../react/lsp/context";
-import { ExperimentalIconProvider } from "../../../../experimental-icons";
+import { ExperimentalIconProvider } from "../../../../experimental-icon-provider";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
 
 afterEach(cleanup);

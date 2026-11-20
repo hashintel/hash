@@ -17,7 +17,7 @@ import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup"
 import { useUserSettingsFields } from "../../../react/state/user-settings-context";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
-import { ExperimentalIconProvider } from "../../experimental-icons";
+import { ExperimentalIconProvider } from "../../experimental-icon-provider";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
 import { useAssistantChoice } from "../../plugins/plugin-assistant";
 import { useCanvasRegistration } from "../../plugins/plugin-editor";

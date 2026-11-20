@@ -9,7 +9,8 @@ import { Icon, IconProvider } from "@hashintel/ds-components";
 import { UserSettingsContext } from "../react/state/user-settings-context";
 import { UserSettingsProvider } from "../react/state/user-settings-provider";
 import { AiAssistantIcon } from "./components/ai-assistant-icon";
-import { ExperimentalIconProvider, PlayIcon } from "./experimental-icons";
+import { ExperimentalIconProvider } from "./experimental-icon-provider";
+import { PlayIcon } from "./experimental-icons";
 
 const SettingsExample = () => {
   const { enableExperimentalIconPack, setEnableExperimentalIconPack } =
