@@ -41,8 +41,6 @@ import {
   SimulateViewTabs,
 } from "./panels/SimulateView/simulate-view";
 import { SimulationWorkspace } from "./shared/simulation-workspace";
-import { useAutoLayoutAndFrame } from "./shared/use-auto-layout-and-frame";
-import { useCreateEmptyNet } from "./shared/use-create-empty-net";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { EditorCommands } from "./use-editor-commands";
 
@@ -98,8 +96,6 @@ const EditorViewContent = ({
 }) => {
   const petriNetId = useDocumentId();
   const { registerController } = useCanvasRegistration();
-  const createEmptyNet = useCreateEmptyNet();
-  const autoLayoutAndFrame = useAutoLayoutAndFrame();
 
   const { globalMode, editViewMode } = useEditorFields(
     "globalMode",
@@ -117,10 +113,7 @@ const EditorViewContent = ({
   return (
     <>
       <EditorCommands
-        applyAutoLayoutAndFrame={autoLayoutAndFrame}
-        onNewNet={
-          hideNetManagementControls === undefined ? createEmptyNet : undefined
-        }
+        canStartNet={hideNetManagementControls === undefined}
         onToggleAiAssistant={hasAssistant ? toggleAiAssistant : undefined}
       />
       <AssistantCommands />

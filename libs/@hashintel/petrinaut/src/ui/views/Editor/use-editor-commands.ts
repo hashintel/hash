@@ -1,6 +1,5 @@
 import { use, useEffect, useEffectEvent } from "react";
 
-import { usePetrinautCommands } from "../../../react";
 import { useCommand } from "../../../react/commands/command-registry";
 import {
   useEditorActions,
@@ -9,21 +8,26 @@ import {
 import { UndoRedoContext } from "../../../react/state/undo-redo-context";
 import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
-import { autoLayoutShortcut } from "./shared/use-auto-layout-and-frame";
+import {
+  autoLayoutShortcut,
+  useAutoLayoutAndFrame,
+} from "./shared/use-auto-layout-and-frame";
+import { useCreateEmptyNet } from "./shared/use-create-empty-net";
+
+interface EditorCommandsProps {
+  /** Whether the editor, and not its host, starts a net. */
+  canStartNet: boolean;
+  onToggleAiAssistant?: () => void;
+}
 
 /**
  * The editor's palette commands. The `shortcut` strings are display metadata;
  * the keyboard handler still binds the keys.
  */
 const useEditorCommands = ({
-  applyAutoLayoutAndFrame,
-  onNewNet,
+  canStartNet,
   onToggleAiAssistant,
-}: {
-  applyAutoLayoutAndFrame?: () => Promise<unknown>;
-  onNewNet?: () => void;
-  onToggleAiAssistant?: () => void;
-}): void => {
+}: EditorCommandsProps): void => {
   const { globalMode, editViewMode, isLeftSidebarOpen } = useEditorFields(
     "globalMode",
     "editViewMode",
@@ -37,14 +41,15 @@ const useEditorCommands = ({
     setLeftSidebarOpen,
   } = useEditorActions();
   const undoRedo = use(UndoRedoContext);
-  const { applyAutoLayout } = usePetrinautCommands();
+  const createEmptyNet = useCreateEmptyNet();
+  const autoLayoutAndFrame = useAutoLayoutAndFrame();
   const isReadOnly = useIsReadOnly();
   const canEditNet =
     globalMode === "edit" && editViewMode === "canvas" && !isReadOnly;
   const composesOnly = useComposesOnly();
   const canDrawNet = canEditNet && !composesOnly;
   const runAutoLayout = () => {
-    void (applyAutoLayoutAndFrame?.() ?? applyAutoLayout());
+    void autoLayoutAndFrame();
   };
 
   useCommand(
@@ -178,9 +183,9 @@ const useEditorCommands = ({
       label: "Start a blank net",
       category: "Net",
       keywords: ["new", "file", "empty"],
-      run: () => onNewNet?.(),
+      run: createEmptyNet,
     },
-    { when: onNewNet !== undefined },
+    { when: canStartNet },
   );
   useCommand(
     {
@@ -220,14 +225,11 @@ const useEditorCommands = ({
 
 /**
  * Declares the editor's commands from a null-rendering leaf, so the context
- * subscriptions behind them (undo/redo changes on every document mutation)
- * re-render this leaf and not the `EditorView` tree.
+ * subscriptions behind them (undo/redo, the active net and the host's net
+ * management change on every document mutation) re-render this leaf and not
+ * the `EditorView` tree.
  */
-export const EditorCommands: React.FC<{
-  applyAutoLayoutAndFrame?: () => Promise<unknown>;
-  onNewNet?: () => void;
-  onToggleAiAssistant?: () => void;
-}> = ({ applyAutoLayoutAndFrame, onNewNet, onToggleAiAssistant }) => {
-  useEditorCommands({ applyAutoLayoutAndFrame, onNewNet, onToggleAiAssistant });
+export const EditorCommands = (props: EditorCommandsProps) => {
+  useEditorCommands(props);
   return null;
 };
