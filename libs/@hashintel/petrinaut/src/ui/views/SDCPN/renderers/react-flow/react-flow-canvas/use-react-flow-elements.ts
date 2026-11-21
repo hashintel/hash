@@ -1,7 +1,5 @@
-import { MarkerType } from "@xyflow/react";
-
-import { arcHaloColor } from "../../../styles/focus";
 import { useStableItems } from "../../../use-stable-items";
+import { arcHeadOf } from "./arc-head";
 import { instanceFlowOrigin, instanceFlowPosition } from "./instance-anchor";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 import { getOutlineNode } from "./shared/outline-arcs";
@@ -22,7 +20,6 @@ import type {
 } from "./react-flow-types";
 
 const ARC_STROKE_WIDTH = 2;
-const ARC_MARKER_SIZE = 20;
 
 const toReactFlowNode = (node: CanvasNode): NodeType => {
   const size = { width: node.width, height: node.height };
@@ -71,39 +68,30 @@ const edgeBase = (link: CanvasLinkEnds & Pick<CanvasArc, "id" | "focus">) => ({
 
 const toArcEdge = (
   arc: CanvasArc,
+  canvasId: string,
   attachments: Pick<
     ArcData,
     "sourceOutline" | "targetOutline" | "hasReverseArc"
   >,
-): ArcEdgeType => {
-  const color = arc.color;
-  // The casing cannot wrap the arrowhead, so the arrowhead takes its colour:
-  // the cased arc then runs into a head of the same colour rather than
-  // stopping at a grey one.
-  const headColor = arcHaloColor(arc.focus) ?? color;
-  return {
-    ...edgeBase(arc),
-    type: "default",
-    selected: arc.selected,
-    markerEnd: {
-      type: MarkerType.ArrowClosed,
-      color: headColor,
-      width: ARC_MARKER_SIZE,
-      height: ARC_MARKER_SIZE,
-    },
-    style: {
-      stroke: color,
-      strokeWidth: ARC_STROKE_WIDTH,
-    },
-    data: {
-      kind: arc.kind,
-      weight: arc.weight,
-      focus: arc.focus,
-      transitionId: arc.transitionId,
-      ...attachments,
-    },
-  };
-};
+): ArcEdgeType => ({
+  ...edgeBase(arc),
+  type: "default",
+  selected: arc.selected,
+  // The id of a marker the canvas draws itself: React Flow adds none for it.
+  // A read or an inhibitor arc ends in a mark of its own.
+  markerEnd: arc.kind === "standard" ? arcHeadOf(canvasId, arc).id : undefined,
+  style: {
+    stroke: arc.color,
+    strokeWidth: ARC_STROKE_WIDTH,
+  },
+  data: {
+    kind: arc.kind,
+    weight: arc.weight,
+    focus: arc.focus,
+    transitionId: arc.transitionId,
+    ...attachments,
+  },
+});
 
 const toFusionEdge = (link: CanvasFusionLink): FusionEdgeType => ({
   ...edgeBase(link),
@@ -120,7 +108,10 @@ const toFusionEdge = (link: CanvasFusionLink): FusionEdgeType => ({
 
 type ReactFlowElements = { nodes: NodeType[]; edges: CanvasEdgeType[] };
 
-const toReactFlowElements = (scene: CanvasScene): ReactFlowElements => {
+const toReactFlowElements = (
+  scene: CanvasScene,
+  canvasId: string,
+): ReactFlowElements => {
   const nodesById = new Map(scene.nodes.map((node) => [node.id, node]));
   const outlineOf = (nodeId: string) => {
     const node = nodesById.get(nodeId);
@@ -136,7 +127,7 @@ const toReactFlowElements = (scene: CanvasScene): ReactFlowElements => {
     nodes: scene.nodes.map(toReactFlowNode),
     edges: [
       ...scene.arcs.map((arc) =>
-        toArcEdge(arc, {
+        toArcEdge(arc, canvasId, {
           sourceOutline: outlineOf(arc.sourceId),
           targetOutline: outlineOf(arc.targetId),
           hasReverseArc: connections.has(
@@ -154,12 +145,16 @@ const toReactFlowElements = (scene: CanvasScene): ReactFlowElements => {
  * the nodes it joins; a component instance has none, so an arc at a component
  * port ends at the port's handle. No per-frame value rides here: a place's
  * token count and a transition's firing state reach them by subscription, so
- * a playback frame leaves this list untouched.
+ * a playback frame leaves this list untouched. `canvasId` names the
+ * arrowheads of this canvas: see `arcHeadOf`.
  *
  * The elements are rebuilt when the scene is, then held at their previous
  * identity where nothing changed, so React Flow renders only what changed.
  */
-export const useReactFlowElements = (scene: CanvasScene): ReactFlowElements => {
-  const { nodes, edges } = toReactFlowElements(scene);
+export const useReactFlowElements = (
+  scene: CanvasScene,
+  canvasId: string,
+): ReactFlowElements => {
+  const { nodes, edges } = toReactFlowElements(scene, canvasId);
   return { nodes: useStableItems(nodes), edges: useStableItems(edges) };
 };

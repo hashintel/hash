@@ -79,6 +79,46 @@ describe("outline arc paths", () => {
     expect(labelY).toBe(0);
   });
 
+  it("measures a straight connection as the distance between its ends", () => {
+    const [, , , length] = getOutlineArcPath(source, target);
+    expect(length).toBeCloseTo(200);
+  });
+
+  it("measures a bent connection to within a hundredth", () => {
+    // Leaves along x and arrives along y, a quarter turn.
+    const [path, , , length] = getOutlineArcPath(
+      fixedEndpoint(0, 0, Position.Right),
+      fixedEndpoint(100, 100, Position.Top),
+    );
+    const [x0 = 0, y0 = 0, x1 = 0, y1 = 0, x2 = 0, y2 = 0, x3 = 0, y3 = 0] =
+      numbersOf(path);
+    const pointAt = (along: number) => {
+      const back = 1 - along;
+      return {
+        x:
+          back ** 3 * x0 +
+          3 * back ** 2 * along * x1 +
+          3 * back * along ** 2 * x2 +
+          along ** 3 * x3,
+        y:
+          back ** 3 * y0 +
+          3 * back ** 2 * along * y1 +
+          3 * back * along ** 2 * y2 +
+          along ** 3 * y3,
+      };
+    };
+    // The same curve in two thousand steps.
+    let fine = 0;
+    for (let step = 1; step <= 2000; step++) {
+      const from = pointAt((step - 1) / 2000);
+      const to = pointAt(step / 2000);
+      fine += Math.hypot(to.x - from.x, to.y - from.y);
+    }
+
+    expect(fine).toBeGreaterThan(Math.hypot(100, 100));
+    expect(Math.abs(length - fine) / fine).toBeLessThan(0.01);
+  });
+
   it("separates both directions onto opposite sides", () => {
     const [forward, forwardX, forwardY] = getOutlineArcPath(
       source,

@@ -7,6 +7,7 @@ import {
   compactNodeDimensions,
 } from "@hashintel/petrinaut-core";
 
+import { arcHeadOf } from "./arc-head";
 import { getOutlineArcPath } from "./shared/outline-arcs";
 import { useReactFlowElements } from "./use-react-flow-elements";
 
@@ -120,13 +121,16 @@ describe("fusion links", () => {
       focus: "none" as const,
     };
     const { result } = renderHook(() =>
-      useReactFlowElements({
-        ...scene,
-        fusions: [
-          { ...linkBase, id: "two", movableEnds: "both" },
-          { ...linkBase, id: "three", movableEnds: "target" },
-        ],
-      }),
+      useReactFlowElements(
+        {
+          ...scene,
+          fusions: [
+            { ...linkBase, id: "two", movableEnds: "both" },
+            { ...linkBase, id: "three", movableEnds: "target" },
+          ],
+        },
+        "canvas",
+      ),
     );
 
     expect(
@@ -157,22 +161,25 @@ describe("arc rendering", () => {
         y: transitionSize.height * 3,
       };
       const { result } = renderHook(() =>
-        useReactFlowElements({
-          ...scene,
-          nodes: nodes.map((node) =>
-            node.kind === "transition"
-              ? { ...node, ...transitionSize, position: transitionPosition }
-              : node,
-          ),
-          arcs: [
-            {
-              ...arcBase,
-              id: "input",
-              sourceId: "place",
-              targetId: "transition",
-            },
-          ],
-        }),
+        useReactFlowElements(
+          {
+            ...scene,
+            nodes: nodes.map((node) =>
+              node.kind === "transition"
+                ? { ...node, ...transitionSize, position: transitionPosition }
+                : node,
+            ),
+            arcs: [
+              {
+                ...arcBase,
+                id: "input",
+                sourceId: "place",
+                targetId: "transition",
+              },
+            ],
+          },
+          "canvas",
+        ),
       );
 
       const data = arcEdges(result.current.edges).find(
@@ -193,7 +200,7 @@ describe("arc rendering", () => {
   );
 
   it("attaches arcs to node outlines and component port arcs to the port's handle", () => {
-    const { result } = renderHook(() => useReactFlowElements(scene));
+    const { result } = renderHook(() => useReactFlowElements(scene, "canvas"));
     const edges = new Map(
       arcEdges(result.current.edges).map((edge) => [edge.id, edge]),
     );
@@ -222,7 +229,7 @@ describe("arc rendering", () => {
   it("recomputes attachments during node movement without mutating the scene", () => {
     const snapshot = structuredClone(scene);
     const { result, rerender } = renderHook(
-      (input: CanvasScene) => useReactFlowElements(input),
+      (input: CanvasScene) => useReactFlowElements(input, "canvas"),
       { initialProps: scene },
     );
     const previous = arcEdges(result.current.edges).find(
@@ -245,7 +252,7 @@ describe("arc rendering", () => {
 
   it("preserves unaffected nodes and arcs when focus changes", () => {
     const { result, rerender } = renderHook(
-      (input: CanvasScene) => useReactFlowElements(input),
+      (input: CanvasScene) => useReactFlowElements(input, "canvas"),
       { initialProps: scene },
     );
     const previous = result.current;
@@ -279,7 +286,6 @@ describe("arc rendering", () => {
         expect(edge).not.toBe(original);
         expect(edge.data?.focus).toBe("outgoing");
         expect(edge.data?.targetOutline).toEqual(original?.data?.targetOutline);
-        expect(edge.markerEnd).not.toEqual(original?.markerEnd);
       } else {
         expect(edge).toBe(original);
       }
@@ -287,9 +293,41 @@ describe("arc rendering", () => {
   });
 });
 
+describe("arrowheads", () => {
+  const headOf = (edges: CanvasEdgeType[], id: string) =>
+    arcEdges(edges).find((edge) => edge.id === id)?.markerEnd;
+
+  it("points a standard arc at a head the canvas draws, and no other kind of arc", () => {
+    const { result } = renderHook(() => useReactFlowElements(scene, "canvas"));
+
+    // The id of a marker, which React Flow uses as it is.
+    expect(headOf(result.current.edges, "output")).toBe(
+      arcHeadOf("canvas", { color: arcBase.color, focus: "none" }).id,
+    );
+    expect(headOf(result.current.edges, "input")).toBeUndefined();
+  });
+
+  it("points an arc in focus at another head, which does not fade", () => {
+    const { result, rerender } = renderHook(
+      (input: CanvasScene) => useReactFlowElements(input, "canvas"),
+      { initialProps: scene },
+    );
+    const plain = headOf(result.current.edges, "output");
+    rerender({
+      ...scene,
+      focusActive: true,
+      arcs: scene.arcs.map((arc) =>
+        arc.id === "output" ? { ...arc, focus: "incoming" } : arc,
+      ),
+    });
+
+    expect(headOf(result.current.edges, "output")).not.toBe(plain);
+  });
+});
+
 describe("node placement", () => {
   it("hangs a component instance from its top edge, other nodes from their centre", () => {
-    const { result } = renderHook(() => useReactFlowElements(scene));
+    const { result } = renderHook(() => useReactFlowElements(scene, "canvas"));
     const byId = new Map(result.current.nodes.map((node) => [node.id, node]));
 
     // Centred at (600, 0) and 100 high in the scene.

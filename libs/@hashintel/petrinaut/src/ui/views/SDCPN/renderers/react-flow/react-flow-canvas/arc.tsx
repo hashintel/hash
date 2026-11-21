@@ -6,6 +6,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useTransitionFrame } from "../../../canvas-frame-store-context";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import { arcHaloColor } from "../../../styles/focus";
+import { ARC_HEAD_LENGTH } from "./arc-head";
 import { firingIsVisible } from "./firing-animation-visibility";
 import { EdgeUnderlay } from "./shared/edge-underlay";
 import { fixedEndpoint, getOutlineArcPath } from "./shared/outline-arcs";
@@ -255,7 +256,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
 
   // An end at a component port has no outline: it starts at the port's handle
   // and leaves along the side the handle sits on, as the arc's preview did.
-  const [arcPath, labelX, labelY] = getOutlineArcPath(
+  const [arcPath, labelX, labelY, arcLength] = getOutlineArcPath(
     data?.sourceOutline ?? fixedEndpoint(sourceX, sourceY, sourcePosition),
     data?.targetOutline ?? fixedEndpoint(targetX, targetY, targetPosition),
     data?.hasReverseArc,
@@ -265,6 +266,18 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   const arcType = data?.kind;
   const strokeDasharray = getArcStrokeDasharray(arcType);
   const haloColor = arcHaloColor(data?.focus ?? "none");
+
+  // A dot, a circle and ticks lie on the line they mark, so the pane fades
+  // such an arc as one group. A standard arc is a line and a head: the pane
+  // fades each by its own opacity, which costs the browser no buffer per arc.
+  const fadesAsGroup = arcType === "inhibitor" || arcType === "read";
+  // What a faded line draws: all of it but the stretch under the arrowhead,
+  // in the path's own length as the unit. Line and head would both show
+  // where one lay on the other.
+  const headShare = Math.min(
+    1,
+    (ARC_HEAD_LENGTH * BASE_STROKE_WIDTH) / arcLength,
+  );
 
   const tickMarks = arcType === "inhibitor" ? computeArcTickMarks(arcPath) : [];
   const markerEndOverride =
@@ -321,11 +334,11 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
       )}
 
       {/*
-        Everything that draws the arc, grouped so the pane can fade an arc
-        outside the neighbourhood without fading the weight label below,
-        which stays readable.
+        Everything that draws the arc, apart from the weight label below,
+        which stays readable on an arc outside the neighbourhood. The pane
+        fades this group whole only where it carries `arc-strokes`.
       */}
-      <g className="arc-strokes">
+      <g className={fadesAsGroup ? "arc-strokes" : undefined}>
         <EdgeUnderlay
           id={id}
           path={arcPath}
@@ -336,21 +349,36 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
           strokeLinecap={arcType === "read" ? "round" : "butt"}
         />
 
-        {/* Animated overlay path for firing visualization (no marker). */}
+        {/*
+          The line a firing widens, and the line a faded arc keeps. The edge
+          below draws the arc again over it: it carries the head, which would
+          grow with a wider stroke.
+        */}
         <path
           ref={arcPathRef}
+          className={fadesAsGroup ? undefined : "arc-line"}
           d={arcPath}
+          pathLength={fadesAsGroup ? undefined : 1}
           fill="none"
           stroke={strokeColor}
           strokeWidth={BASE_STROKE_WIDTH}
           strokeDasharray={strokeDasharray}
           strokeLinecap={arcType === "read" ? "round" : undefined}
-          style={{ pointerEvents: "none" }}
+          style={
+            fadesAsGroup
+              ? { pointerEvents: "none" }
+              : {
+                  pointerEvents: "none",
+                  // @ts-expect-error CSS variables work at runtime, but are not in the type system
+                  "--arc-faded-dash": `${1 - headShare} 1`,
+                }
+          }
         />
 
         {/* Main edge with marker - using BaseEdge for proper interaction handling */}
         <BaseEdge
           id={id}
+          className={fadesAsGroup ? undefined : "arc-line-twin"}
           path={arcPath}
           markerEnd={markerEndOverride}
           style={

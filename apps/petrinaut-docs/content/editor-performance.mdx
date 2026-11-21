@@ -248,6 +248,48 @@ frames of that pan still take near 200 ms each. The window stops at the edge
 of the canvas there, and the line that joins it to its place is removed in
 one of the two frames and drawn again in the other.
 
+## A highlight on a net with many arcs
+
+While a node is hovered, selected or dragged, the canvas fades every node and
+arc outside its neighbourhood. The fade was an opacity on a group per arc, and
+the browser draws such a group into a buffer of its own on every frame. Now
+the line of an arc fades by the opacity of its stroke and the arrowhead by the
+opacity of its fill, and no arc has a buffer.
+
+The table is for a net of 470 nodes and 1,742 arcs. Unlike the tables above,
+the browser rasters on the GPU here: with a GPU, the buffers were what limited
+these gestures. A gesture sends its input at a fixed pace for half a second,
+and the value is the frames the browser showed per second in that time. Each
+is the median of five alternating rounds on the production build.
+
+| Gesture                                                    | Before | After |
+| ---------------------------------------------------------- | -----: | ----: |
+| Pan with a node selected, every node on screen             |      6 |    25 |
+| Zoom with a node selected, every node on screen            |      8 |    36 |
+| Pan with a node selected, at zoom 0.5                      |      8 |    27 |
+| Zoom with a node selected, at zoom 0.5                     |     12 |    42 |
+| Drag a node, every node on screen                          |      7 |    22 |
+| Drag a node, at zoom 0.5                                   |     15 |    29 |
+| Rest the pointer on a node until the fade ends, then leave |     24 |    47 |
+
+A zoom with the pointer resting on a node, one wheel step per frame, went
+from 23 to 76 frames a second, and its longest frame from 308 ms to 84 ms.
+During the half-second zoom of the table, the GPU process waited 1,162 ms on
+its queue, and now waits 233 ms. After a zoom and a pan over a node it holds
+207 MB where it held 370 MB.
+
+The nodes keep their opacity. Without it, the zoom of the table would show 40
+frames a second where it shows 37, and the pan would show as many as it does.
+For the 200 ms of the fade each node is a layer of its own: 706 layers with
+27 MB of tiles.
+
+On the GPU of the Mac this was measured on, the canvas draws what it drew. In a crop of 760 by 560 pixels with
+a node selected, 0.4% to 2.9% of the pixels differ by more than 6 of 255
+between the two builds, and 0.1% to 0.6% by more than 16. They lie where
+faded arcs cross or run along each other. With the browser rastering on the
+CPU a faded arc is lighter than it was, most where its line is thinner than
+a pixel: [The canvas](doc:ui.views.canvas/canvas) says why.
+
 ## Where the cost is now
 
 - **Selecting a node** still has one frame near 190 ms. Most of what renders
@@ -281,6 +323,10 @@ Each rule is written, with the test that holds it, in the guide of its layer.
   [The canvas](doc:ui.views.canvas/canvas).
 - A node or arc that comes under the pointer while a button is down is
   hovered at the release: [The canvas](doc:ui.views.canvas/canvas).
+
+- No opacity goes on an element that every arc has: an arc fades by the
+  opacity of its stroke and of its arrowhead:
+  [The canvas](doc:ui.views.canvas/canvas).
 - A region that is mounted and not visible sits in a hidden `Activity` and
   runs no effect. A closed panel is not mounted, and a panel mounts inside
   its dock, never as a sibling of the canvas:
@@ -333,4 +379,5 @@ on, so none is part of the rules above.
 | Render only the nodes on screen (`onlyRenderVisibleElements`) | Nodes mount and unmount while panning                      |
 | Promote the viewport to its own layer (`will-change`)         | Text is rastered at one scale and blurs during a zoom      |
 | Unmount the Definitions view whenever the canvas shows        | Each opening takes 292 ms where it takes 215 ms            |
+| Fade the rest of the net with one veil over the canvas        | A faded node hides the arcs behind it, and weights fade    |
 | Upgrade React Flow                                            | A behaviour check of every gesture against the new version |

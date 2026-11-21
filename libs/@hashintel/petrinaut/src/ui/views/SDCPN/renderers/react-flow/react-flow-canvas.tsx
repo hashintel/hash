@@ -13,7 +13,7 @@ import {
   useStore,
   useStoreApi,
 } from "@xyflow/react";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useId, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -41,6 +41,8 @@ import { useKeepSelectionInView } from "../../hooks/use-keep-selection-in-view";
 import { useDebouncedValue } from "../../hooks/util/use-debounced-value";
 import { useCanvasInteractions } from "../../use-canvas-interactions";
 import { Arc } from "./react-flow-canvas/arc";
+import { arcHeadsOf } from "./react-flow-canvas/arc-head";
+import { ArcHeads } from "./react-flow-canvas/arc-heads";
 import { ClassicPlaceNode } from "./react-flow-canvas/classic-place-node";
 import { ClassicTransitionNode } from "./react-flow-canvas/classic-transition-node";
 import { ComponentInstanceNode } from "./react-flow-canvas/component-instance-node";
@@ -109,6 +111,27 @@ const paneStyle = css({
     transition: "[opacity var(--canvas-focus-duration, 200ms) ease]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
+  // The fade of the arcs: see the rules that set these opacities, below. The
+  // dashes that keep a faded line off its head stay until the line has faded
+  // back in. `allow-discrete` lets a value that cannot be blended wait: a
+  // browser without it drops the dashes when the fade back starts.
+  "& .arc-line": {
+    transition:
+      "[stroke-opacity var(--canvas-focus-duration, 200ms) ease, stroke-dasharray 0s linear var(--canvas-focus-duration, 200ms)]",
+    transitionBehavior: "[allow-discrete]",
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
+  // The second stroke of a line comes back once the line has faded back in:
+  // any sooner and it would show through the line.
+  "& .arc-line-twin": {
+    transition:
+      "[stroke-opacity 0s linear var(--canvas-focus-duration, 200ms)]",
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
+  "& .arc-head": {
+    transition: "[fill-opacity var(--canvas-focus-duration, 200ms) ease]",
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
   // A component instance's height animates between folded and unfolded, so
   // the card grows and shrinks rather than jumping. React Flow reads the pins
   // again on every frame the node resizes, which keeps the links on them.
@@ -130,6 +153,31 @@ const paneStyle = css({
   // An arc outside the neighbourhood recedes from here, so a hover leaves
   // every arc it did not touch alone. Only the strokes fade: an arc's weight
   // is worth reading whether or not the arc carrying it is in focus.
+  //
+  // No opacity goes on an element that every arc has. For an opacity on a
+  // group the browser draws the group into a buffer of its own, on every
+  // frame of a pan, a zoom or a drag, and a net has one group per arc. So
+  // each thing a faded arc draws is drawn once, at 0.45 by an opacity of its
+  // own: the line by its stroke and the head by its fill. What would lie
+  // under another is not drawn, since both would show: the line stops where
+  // the head begins, and the second stroke of the line goes, at once.
+  "&[data-focus-active] .react-flow__edge:not(.canvas-focus-role) .arc-line": {
+    strokeOpacity: "[0.45]",
+    strokeDasharray: "[var(--arc-faded-dash)]",
+    transition: "[stroke-opacity var(--canvas-focus-duration, 200ms) ease]",
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
+  "&[data-focus-active] .react-flow__edge:not(.canvas-focus-role) .arc-line-twin":
+    {
+      strokeOpacity: "[0]",
+      transition: "[none]",
+    },
+  "&[data-focus-active] .arc-head:not(.canvas-focus-role)": {
+    fillOpacity: "[0.45]",
+  },
+  // Marks that lie on their line can only fade with it as one group: the
+  // ticks, the circle and the dot of an inhibitor or a read arc, and the knot
+  // of a fusion link. Those keep an opacity, and a net has few of them.
   "&[data-focus-active] .react-flow__edge:not(.canvas-focus-role) .arc-strokes":
     {
       opacity: "[0.45]",
@@ -177,7 +225,9 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   } = interactions;
   const flowStore = useStoreApi();
   const readOnlyDragHandlers = useReadOnlyNodeDrag({ readonly, isPanMode });
-  const { nodes, edges } = useReactFlowElements(scene);
+  const canvasId = useId();
+  const { nodes, edges } = useReactFlowElements(scene, canvasId);
+  const arcHeads = arcHeadsOf(canvasId, scene.arcs);
   const applyChanges = useApplyNodeChanges(interactions);
   const insets = useCanvasInsetsReader();
 
@@ -359,6 +409,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
             minZoom={minZoom}
           >
             <Background gap={SNAP_GRID_SIZE} size={1} />
+            <ArcHeads heads={arcHeads} />
             {showMinimap && presentation.showMinimap && <MiniMap />}
             {!isActualMode && <ViewportControls />}
           </ReactFlow>

@@ -78,28 +78,31 @@ export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
 
   return (
     <>
-      <g className="arc-strokes">
-        <EdgeUnderlay
-          id={id}
-          path={path}
-          selected={selected}
-          haloColor={arcHaloColor(data?.focus ?? "none")}
-          strokeWidth={strokeWidth}
-          strokeDasharray={dashPattern}
-          strokeLinecap="round"
-        />
-        <BaseEdge
-          id={id}
-          path={path}
-          style={{
-            stroke: strokeColor,
-            strokeWidth,
-            strokeDasharray: dashPattern,
-            strokeLinecap: "round",
-          }}
-        />
-      </g>
-      {/* Among the strokes, so that the knot fades with its line. */}
+      <EdgeUnderlay
+        id={id}
+        path={path}
+        selected={selected}
+        haloColor={arcHaloColor(data?.focus ?? "none")}
+        strokeWidth={strokeWidth}
+        strokeDasharray={dashPattern}
+        strokeLinecap="round"
+      />
+      {/* A line the pane fades by its stroke, as it does an arc's. */}
+      <BaseEdge
+        id={id}
+        className="arc-line"
+        path={path}
+        style={{
+          stroke: strokeColor,
+          strokeWidth,
+          strokeDasharray: dashPattern,
+          strokeLinecap: "round",
+        }}
+      />
+      {/*
+        A group the pane fades whole, so that the knot fades with its line:
+        its ring lies on its white fill.
+      */}
       <g
         className="arc-strokes"
         transform={`translate(${labelX}, ${labelY})`}
