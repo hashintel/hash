@@ -26,9 +26,12 @@ const rowStyle = cva({
     transition: "[background-color 100ms ease-out, opacity 150ms ease-out]",
     /* A row scrolled out of view is skipped by the browser, at the height it
        last had. Each row holds an icon of about ten SVG elements, and every
-       one is laid out again whenever the editor around the list resizes. */
+       one is laid out again whenever the editor around the list resizes.
+       A row that was never in view takes the height of a row of one line:
+       24 px of content inside the padding. The list is then as long as it is
+       when drawn, and a scroll offset means the same rows before and after. */
     contentVisibility: "auto",
-    containIntrinsicSize: "[auto 32px]",
+    containIntrinsicSize: "[auto 24px]",
 
     /* Focus shows as a background change, like hover. */
     _focus: {
