@@ -327,6 +327,10 @@ Each rule is written, with the test that holds it, in the guide of its layer.
 - No opacity goes on an element that every arc has: an arc fades by the
   opacity of its stroke and of its arrowhead:
   [The canvas](doc:ui.views.canvas/canvas).
+- No custom property is registered. With one registered anywhere in the
+  document, Chromium restyles the net of the highlight table in 480 to 850 ms
+  for a change of focus, where it takes 40 to 80 ms:
+  [The canvas](doc:ui.views.canvas/canvas).
 - A region that is mounted and not visible sits in a hidden `Activity` and
   runs no effect. A closed panel is not mounted, and a panel mounts inside
   its dock, never as a sibling of the canvas:
