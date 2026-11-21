@@ -1,5 +1,3 @@
-//! Compact bitset of [`SyntaxKind`] values for parser expectations and diagnostics.
-
 use core::{
     fmt::{self, Display},
     ops::BitOr,
@@ -23,19 +21,15 @@ const DOMAIN_SIZE: u32 = {
     }
 };
 
-/// Conjunction used when formatting a [`SyntaxKindSet`].
 #[derive(Copy, Clone)]
 pub(crate) enum Conjunction {
-    /// Join the final item with `or`.
     Or,
 }
 
-/// Bitset of [`SyntaxKind`] values for parser expectations and diagnostics.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct SyntaxKindSet(FiniteBitSet<SyntaxKind, u64>);
 
 impl SyntaxKindSet {
-    /// Closing delimiters (`]` and `}`).
     pub(crate) const CLOSING_DELIMITER: Self =
         Self::from_slice(&[SyntaxKind::RBracket, SyntaxKind::RBrace]);
     /// All non-trivia syntactic JSON tokens.
@@ -52,15 +46,11 @@ impl SyntaxKindSet {
         SyntaxKind::LBracket,
         SyntaxKind::RBracket,
     ]);
-    /// Empty syntax-kind set.
     #[cfg(test)] // exercised by `syntax_kind_set::tests::empty_set_display`.
     pub(crate) const EMPTY: Self = Self(FiniteBitSet::new_empty(DOMAIN_SIZE));
-    /// Opening delimiters (`[` and `{`).
     pub(crate) const OPENING_DELIMITER: Self =
         Self::from_slice(&[SyntaxKind::LBracket, SyntaxKind::LBrace]);
-    /// Punctuation separators (`,` and `:`).
     pub(crate) const SEPARATORS: Self = Self::from_slice(&[SyntaxKind::Comma, SyntaxKind::Colon]);
-    /// Primitive JSON value tokens (string, number, `true`, `false`, `null`).
     pub(crate) const VALUE: Self = Self::from_slice(&[
         SyntaxKind::String,
         SyntaxKind::Number,
@@ -69,7 +59,6 @@ impl SyntaxKindSet {
         SyntaxKind::Null,
     ]);
 
-    /// Creates a singleton set containing `kind`.
     #[must_use]
     pub(crate) const fn from_kind(kind: SyntaxKind) -> Self {
         let mut set = FiniteBitSet::new_empty(DOMAIN_SIZE);
@@ -77,71 +66,65 @@ impl SyntaxKindSet {
         Self(set)
     }
 
-    /// Creates a set containing every kind in `slice`.
     #[must_use]
     pub(crate) const fn from_slice(slice: &[SyntaxKind]) -> Self {
-        let mut set = FiniteBitSet::new_empty(DOMAIN_SIZE);
-        let mut index = 0;
+        Self(FiniteBitSet::from_slice(slice))
+    }
 
-        while index < slice.len() {
-            set.insert(slice[index]);
+    #[must_use]
+    pub(crate) const fn from_union(sets: &[Self]) -> Self {
+        let mut this = FiniteBitSet::new_empty(DOMAIN_SIZE);
+
+        let mut index = 0;
+        while index < sets.len() {
+            this.union(&sets[index].0);
             index += 1;
         }
 
-        Self(set)
+        Self(this)
     }
 
-    /// Reports whether the set contains no kinds.
     #[must_use]
     pub(crate) const fn is_empty(self) -> bool {
         self.0.is_empty()
     }
 
-    /// Reports whether the set contains every syntactic JSON token kind.
     #[must_use]
     pub(crate) const fn is_complete(self) -> bool {
         self.0.into_inner() == Self::COMPLETE.0.into_inner()
     }
 
-    /// Reports whether `kind` is in the set.
     #[must_use]
     pub(crate) const fn contains(self, kind: SyntaxKind) -> bool {
         self.0.contains(kind)
     }
 
-    /// Reports whether the set shares at least one kind with `other`.
     #[must_use]
     pub(crate) const fn contains_any(self, other: Self) -> bool {
         (self.0.into_inner() & other.0.into_inner()) != 0
     }
 
-    /// Reports whether the set contains `]` or `}`.
     #[must_use]
     pub(crate) const fn contains_closing_delimiter(self) -> bool {
         self.contains_any(Self::CLOSING_DELIMITER)
     }
 
-    /// Reports whether the set contains `[` or `{`.
     #[must_use]
     pub(crate) const fn contains_opening_delimiter(self) -> bool {
         self.contains_any(Self::OPENING_DELIMITER)
     }
 
-    /// Reports whether the set contains any JSON scalar value token.
     #[must_use]
     pub(crate) const fn contains_value(self) -> bool {
         self.contains_any(Self::VALUE)
     }
 
-    /// Reports whether the set contains `,` or `:`.
     #[must_use]
     pub(crate) const fn contains_separator(self) -> bool {
         self.contains_any(Self::SEPARATORS)
     }
 
-    /// Formats the set in human-readable order with an optional final conjunction.
     pub(crate) const fn display(self, conjunction: Option<Conjunction>) -> impl Display {
-        /// Display adapter for a [`SyntaxKindSet`].
         struct Format(SyntaxKindSet, Option<Conjunction>);
 
         impl Display for Format {

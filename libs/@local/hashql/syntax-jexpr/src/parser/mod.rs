@@ -1,5 +1,3 @@
-//! Streaming Rowan parser for J-Expr syntax trees.
-
 use alloc::borrow::Cow;
 use core::{fmt, marker::PhantomData};
 
@@ -20,111 +18,105 @@ pub(crate) mod expr;
 pub(crate) mod object;
 pub(crate) mod recovery;
 
-/// Result of parsing a J-Expr document into a lossless Rowan concrete syntax tree.
-///
-/// The root marker `R` selects the typed CST item yielded by [`Parse::tree`].
-pub struct Parse<R> {
-    green: GreenNode,
+/// Lossless Rowan parse tree whose root marker `R` selects the item from [`Document::tree`].
+pub struct Document<R> {
+    tree: GreenNode,
     errors: Vec<SyntaxError>,
     _root: PhantomData<fn() -> R>,
 }
 
-impl<R> Parse<R> {
-    pub(crate) fn new(green: GreenNode, errors: Vec<SyntaxError>) -> Self {
-        debug_assert_eq!(SyntaxKind::from_raw(green.kind()), SyntaxKind::Root);
+impl<R> Document<R> {
+    pub(crate) fn new(tree: GreenNode, errors: Vec<SyntaxError>) -> Self {
+        debug_assert_eq!(SyntaxKind::from_raw(tree.kind()), SyntaxKind::Root);
+
         Self {
-            green,
+            tree,
             errors,
             _root: PhantomData,
         }
     }
 
-    /// Returns the immutable green tree backing this parse result.
     #[must_use]
     pub const fn green(&self) -> &GreenNode {
-        &self.green
+        &self.tree
     }
 
-    /// Creates a red [`SyntaxNode`] rooted at this parse tree.
+    /// Builds an owned red-tree [`SyntaxNode`] root on demand.
     #[must_use]
     pub fn syntax(&self) -> SyntaxNode {
-        SyntaxNode::new_root(self.green.clone())
+        SyntaxNode::new_root(self.tree.clone())
     }
 
-    /// Returns all lexical and outer-syntax errors recorded while building this tree.
     #[must_use]
     pub const fn errors(&self) -> &[SyntaxError] {
         self.errors.as_slice()
     }
 
-    /// Reports whether parsing completed with no lexical or outer-syntax errors.
     #[must_use]
     pub const fn is_valid(&self) -> bool {
         self.errors.is_empty()
     }
 
-    /// Derives the RFC 6901 JSON Pointer for `range` directly from the green tree.
-    ///
-    /// Returns `None` if `range` lies outside the parsed source bounds.
+    /// Derives the RFC 6901 JSON Pointer for `range`, or `None` outside the source bounds.
     #[must_use]
     pub fn json_pointer(&self, range: TextRange) -> Option<PointerBuf> {
-        pointer::json_pointer_for_range(cst::SyntaxNode::new(&self.green, TextSize::new(0)), range)
+        pointer::json_pointer_for_range(
+            cst::SyntaxNodeData::new(&self.tree, TextSize::new(0)),
+            range,
+        )
     }
 }
 
-impl<R: cst::TreeRoot> Parse<R> {
-    /// Returns the typed [`cst::Root`] wrapper borrowing this parse tree's green root.
+impl<R> Document<R>
+where
+    R: cst::TreeRoot,
+{
+    #[inline]
     #[must_use]
     pub fn tree(&self) -> cst::Root<'_, R::Item<'_>> {
-        cst::Root::from_root(&self.green)
+        cst::Root::from_root(&self.tree)
     }
 }
 
-impl<R> fmt::Debug for Parse<R> {
+impl<R> fmt::Debug for Document<R> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Parse")
-            .field("green", &self.green)
+            .field("green", &self.tree)
             .field("errors", &self.errors)
             .finish()
     }
 }
 
-impl<R> Clone for Parse<R> {
+impl<R> Clone for Document<R> {
     fn clone(&self) -> Self {
         Self {
-            green: self.green.clone(),
+            tree: self.tree.clone(),
             errors: self.errors.clone(),
             _root: PhantomData,
         }
     }
 }
 
-impl<R> PartialEq for Parse<R> {
+impl<R> PartialEq for Document<R> {
     fn eq(&self, other: &Self) -> bool {
-        self.green == other.green && self.errors == other.errors
+        self.tree == other.tree && self.errors == other.errors
     }
 }
 
-impl<R> Eq for Parse<R> {}
+impl<R> Eq for Document<R> {}
 
-/// Grammar specialization controlling which items and annotations the CST parser accepts.
 pub(crate) trait Grammar {
-    /// Root marker identifying the typed CST item yielded by [`Parse::tree`].
     type Root: cst::TreeRoot;
 
-    /// Whether constructor objects admit a `"#type"` annotation field.
     const ALLOW_TYPE_ANNOTATIONS: bool;
 
-    /// Token kinds that may start an item in this grammar.
     const ITEM_FIRST: SyntaxKindSet;
 
-    /// Parses one item into `parser`'s green tree builder.
     fn parse_item(parser: &mut Parser<'_, Self>)
     where
         Self: Sized;
 }
 
-/// Streaming recursive-descent parser that writes tokens directly into [`GreenNodeBuilder`].
 pub(crate) struct Parser<'source, G> {
     lexer: Lexer<'source>,
     peeked: Option<ScannedToken>,
@@ -135,13 +127,11 @@ pub(crate) struct Parser<'source, G> {
 }
 
 impl<'source, G: Grammar> Parser<'source, G> {
-    /// Parses `source` under grammar `G` into a typed [`Parse`] result.
-    ///
     /// # Panics
     ///
     /// Panics if `source.len()` exceeds `u32::MAX` bytes.
     #[must_use]
-    pub(crate) fn parse_cst(source: &'source str) -> Parse<G::Root> {
+    pub(crate) fn parse_cst(source: &'source str) -> Document<G::Root> {
         let mut parser = Self::new(source);
         parser.parse_root();
         parser.finish()
@@ -195,17 +185,16 @@ impl<'source, G: Grammar> Parser<'source, G> {
         self.builder.finish_node();
     }
 
-    pub(crate) fn finish(self) -> Parse<G::Root> {
-        Parse::new(self.builder.finish(), self.errors)
+    pub(crate) fn finish(self) -> Document<G::Root> {
+        Document::new(self.builder.finish(), self.errors)
     }
 
-    /// Flushes any trivia ahead of the next non-trivia token into the currently open node.
     #[inline]
     fn flush_trivia(&mut self) {
         let _: Option<ScannedToken> = self.current();
     }
 
-    /// Returns the next non-trivia token, flushing any preceding trivia into the open node.
+    /// Emits leading trivia into the open node and returns the next non-trivia token.
     #[inline]
     pub(crate) fn current(&mut self) -> Option<ScannedToken> {
         if let Some(token) = self.peeked {
@@ -229,7 +218,7 @@ impl<'source, G: Grammar> Parser<'source, G> {
         None
     }
 
-    /// Peeks the second non-trivia token without mutating the builder or emitting diagnostics.
+    /// Peeks the second non-trivia token without mutating the builder or recording diagnostics.
     pub(crate) fn peek2(&mut self) -> Option<ScannedToken> {
         let _: ScannedToken = self.current()?;
         let mut lookahead = self.lexer.clone();
@@ -241,18 +230,14 @@ impl<'source, G: Grammar> Parser<'source, G> {
         None
     }
 
-    /// Reports whether the next non-trivia token has kind `kind`.
     #[inline]
     pub(crate) fn at(&mut self, kind: SyntaxKind) -> bool {
         self.current().is_some_and(|token| token.kind == kind)
     }
 
-    /// Consumes and emits the current non-trivia token, asserting its kind matches `expected`.
-    ///
     /// # Panics
     ///
-    /// Panics if called at end of input, or in debug builds if the token kind differs from
-    /// `expected`.
+    /// Panics at EOF, or in debug builds if the current token's kind differs from `expected`.
     #[inline]
     pub(crate) fn bump(&mut self, expected: SyntaxKind) -> ScannedToken {
         let token = self.bump_any();
@@ -260,11 +245,9 @@ impl<'source, G: Grammar> Parser<'source, G> {
         token
     }
 
-    /// Consumes and emits the current non-trivia token regardless of its kind.
-    ///
     /// # Panics
     ///
-    /// Panics if called at end of input.
+    /// Panics at EOF.
     #[inline]
     pub(crate) fn bump_any(&mut self) -> ScannedToken {
         let token = self.current().expect("bump called at EOF");
@@ -280,59 +263,52 @@ impl<'source, G: Grammar> Parser<'source, G> {
         token
     }
 
-    /// Flushes leading trivia into the enclosing node and starts a child node of kind `kind`.
+    /// Flushes leading trivia into the enclosing node before opening a child node.
     #[inline]
     pub(crate) fn start_node(&mut self, kind: SyntaxKind) {
         self.flush_trivia();
         self.builder.start_node(kind.into());
     }
 
-    /// Flushes leading trivia into the enclosing node and captures a builder checkpoint.
+    /// Flushes leading trivia into the enclosing node before capturing a checkpoint.
     #[inline]
     pub(crate) fn checkpoint(&mut self) -> Checkpoint {
         self.flush_trivia();
         self.builder.checkpoint()
     }
 
-    /// Wraps tokens emitted since `checkpoint` into a new node of kind `kind`.
     #[inline]
     pub(crate) fn start_node_at(&mut self, checkpoint: Checkpoint, kind: SyntaxKind) {
         self.builder.start_node_at(checkpoint, kind.into());
     }
 
-    /// Closes the current syntax node without consuming trailing trivia.
+    /// Closes the current node before any trailing trivia is flushed.
     #[inline]
     pub(crate) fn finish_node(&mut self) {
         self.builder.finish_node();
     }
 
-    /// Returns the end byte offset of the last non-trivia token emitted.
     #[inline]
     pub(crate) const fn last_token_end(&self) -> TextSize {
         self.last_token_end
     }
 
-    /// Returns the empty byte range at the end of the source string.
     #[inline]
     pub(crate) fn eof_range(&self) -> TextRange {
         TextRange::empty(self.lexer.eof_offset())
     }
 
-    /// Returns the number of syntax errors recorded so far.
     #[inline]
     pub(crate) const fn error_count(&self) -> usize {
         self.errors.len()
     }
 
-    /// Records a syntax error at `range`.
     #[inline]
     pub(crate) fn error(&mut self, range: TextRange, kind: SyntaxErrorKind) {
         self.errors.push(SyntaxError::new(range, kind));
     }
 
-    /// Decodes a [`SyntaxKind::String`] token, borrowing directly when no escapes are present.
-    ///
-    /// Returns `None` if the token carried a lexical string error.
+    /// Decodes a validated string token, returning `None` if it carried a lex error.
     #[expect(
         clippy::string_slice,
         reason = "validated JSON string token begins and ends with ASCII quotes"

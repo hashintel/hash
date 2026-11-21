@@ -17,7 +17,7 @@ use hashql_diagnostics::{
 use hashql_eval::error::EvalDiagnosticCategory;
 use hashql_hir::error::HirDiagnosticCategory;
 use hashql_mir::error::MirDiagnosticCategory;
-use hashql_syntax_jexpr::{Parse, cst, error::JExprDiagnosticCategory, span::Span};
+use hashql_syntax_jexpr::{Document, cst, error::JExprDiagnosticCategory, span::Span};
 use http::StatusCode;
 
 use super::{
@@ -190,7 +190,11 @@ struct PointerSpan {
 }
 
 impl PointerSpan {
-    fn resolve(id: SpanId, spans: &SpanTable<Span>, parse: &Parse<cst::ExprRoot>) -> Option<Self> {
+    fn resolve(
+        id: SpanId,
+        spans: &SpanTable<Span>,
+        parse: &Document<cst::ExprRoot>,
+    ) -> Option<Self> {
         let absolute = spans.absolute(id)?;
 
         let pointer = if id == SpanId::SYNTHETIC {
@@ -212,7 +216,7 @@ pub(crate) fn status_to_response(
     status: Status<OwnedValue, HashQlDiagnosticCategory, SpanId>,
     sources: &Sources<'_>,
     mut spans: &SpanTable<Span>,
-    parse: &Parse<cst::ExprRoot>,
+    parse: &Document<cst::ExprRoot>,
     options: &CompilationOutputOptions,
 ) -> BoxedResponse {
     match status {

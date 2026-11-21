@@ -1,80 +1,68 @@
-//! Typed CST token wrappers borrowing immutable Rowan green tokens.
-
 use alloc::borrow::Cow;
 
-use super::{SyntaxToken, Token, TypedToken, kind};
-use crate::{error::StringError, lexer::decode_quoted, syntax_kind::SyntaxKind};
+use super::{SyntaxToken, SyntaxTokenData, Token, kind};
+use crate::{
+    error::StringError, lexer::decode_quoted, syntax_kind::SyntaxKind,
+    syntax_kind_set::SyntaxKindSet,
+};
 
-/// JSON string literal token (`"..."`).
-pub type StringToken<'tree> = TypedToken<'tree, kind::String>;
+pub type StringToken<'tree> = SyntaxToken<'tree, kind::String>;
 
 impl<'tree> StringToken<'tree> {
-    /// Decodes escape sequences in the string token, borrowing directly when unescaped.
+    /// Decodes JSON escape sequences, borrowing the inner slice directly when no escapes appear.
     ///
     /// # Errors
     ///
-    /// Returns [`StringError`] if the raw token contains an unescaped control character, invalid
+    /// Returns [`StringError`] if the token contains an unescaped control character, invalid
     /// escape sequence, or missing closing quote.
     pub fn decode(self) -> Result<Cow<'tree, str>, StringError> {
         decode_quoted(self.syntax.text())
     }
 }
 
-/// JSON number literal token (integer or floating-point).
-pub type NumberToken<'tree> = TypedToken<'tree, kind::Number>;
+pub type NumberToken<'tree> = SyntaxToken<'tree, kind::Number>;
 
 impl NumberToken<'_> {
-    /// Reports whether this number token has a fractional part or exponent.
+    /// Reports whether the spelling includes a decimal point or exponent (`1.0` and `1e0` are
+    /// floats).
     #[must_use]
     pub fn is_float(self) -> bool {
-        self.syntax.text().contains(['.', 'e', 'E'])
+        memchr::memchr3(b'.', b'e', b'E', self.syntax.text().as_bytes()).is_some()
     }
 }
 
-/// JSON boolean literal token (`true` or `false`).
-pub type BoolToken<'tree> = TypedToken<'tree, kind::Bool>;
+pub type BoolToken<'tree> = SyntaxToken<'tree, kind::Bool>;
 
 impl BoolToken<'_> {
-    /// Returns the boolean value represented by this token.
     #[must_use]
     pub fn value(self) -> bool {
         self.syntax.kind() == SyntaxKind::True
     }
 }
 
-/// JSON `null` literal token.
-pub type NullToken<'tree> = TypedToken<'tree, kind::Null>;
+pub type NullToken<'tree> = SyntaxToken<'tree, kind::Null>;
 
-/// Concrete primitive token inside a [`super::LiteralValue`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum LiteralToken<'tree> {
-    /// String primitive token.
     String(StringToken<'tree>),
-    /// Number primitive token (integer or floating-point).
     Number(NumberToken<'tree>),
-    /// Boolean primitive token.
     Bool(BoolToken<'tree>),
-    /// Null primitive token.
     Null(NullToken<'tree>),
 }
 
 impl<'tree> Token<'tree> for LiteralToken<'tree> {
-    fn can_cast(kind: SyntaxKind) -> bool {
-        matches!(
-            kind,
-            SyntaxKind::String
-                | SyntaxKind::Number
-                | SyntaxKind::True
-                | SyntaxKind::False
-                | SyntaxKind::Null
-        )
-    }
+    const SYNTAX_KINDS: crate::syntax_kind_set::SyntaxKindSet = SyntaxKindSet::from_union(&[
+        StringToken::SYNTAX_KINDS,
+        NumberToken::SYNTAX_KINDS,
+        BoolToken::SYNTAX_KINDS,
+        NullToken::SYNTAX_KINDS,
+    ]);
 
     #[expect(
         clippy::wildcard_enum_match_arm,
         reason = "only primitive literal token kinds cast to LiteralToken"
     )]
-    fn cast(syntax: SyntaxToken<'tree>) -> Option<Self> {
+    fn cast(syntax: SyntaxTokenData<'tree>) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::String => StringToken::cast(syntax).map(Self::String),
             SyntaxKind::Number => NumberToken::cast(syntax).map(Self::Number),
@@ -84,7 +72,7 @@ impl<'tree> Token<'tree> for LiteralToken<'tree> {
         }
     }
 
-    fn syntax(self) -> SyntaxToken<'tree> {
+    fn syntax(self) -> SyntaxTokenData<'tree> {
         match self {
             Self::String(token) => token.syntax(),
             Self::Number(token) => token.syntax(),

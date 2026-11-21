@@ -66,34 +66,32 @@ mod tests;
 
 pub use self::{
     error::{JExprDiagnostic, JExprDiagnosticCategory},
-    parser::Parse,
+    parser::Document,
     span::Span,
 };
 
-/// Parser driver that parses J-Expr CSTs and lowers them into arena-allocated HashQL ASTs.
 pub struct Parser<'heap, 'spans> {
     heap: &'heap Heap,
     spans: &'spans mut SpanTable<Span>,
 }
 
 impl<'heap, 'spans> Parser<'heap, 'spans> {
-    /// Creates a parser bound to `heap` and `spans`.
     #[must_use]
     pub const fn new(heap: &'heap Heap, spans: &'spans mut SpanTable<Span>) -> Self {
         Self { heap, spans }
     }
 
-    /// Parses a J-Expr expression document into a lossless concrete syntax tree.
+    /// Parses a J-Expr expression document into a lossless CST without lowering.
     ///
     /// # Panics
     ///
     /// Panics if `source.len()` exceeds `u32::MAX` bytes.
     #[must_use]
-    pub fn parse_expr_cst(source: &str) -> Parse<cst::ExprRoot> {
+    pub fn parse_expr_cst(source: &str) -> Document<cst::ExprRoot> {
         parser::Parser::<parser::expr::ExprGrammar>::parse_cst(source)
     }
 
-    /// Parses a J-Expr source string into a HashQL AST [`Expr`].
+    /// Parses a J-Expr document and lowers it into an arena-allocated HashQL [`Expr`].
     ///
     /// # Errors
     ///
@@ -107,7 +105,7 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
         self.lower_expr(&parse)
     }
 
-    /// Lowers a previously parsed J-Expr CST into a HashQL AST [`Expr`].
+    /// Lowers a parsed J-Expr CST into an arena-allocated HashQL [`Expr`].
     ///
     /// # Errors
     ///
@@ -115,7 +113,7 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
     /// embedded-DSL diagnostics collected across the document.
     pub fn lower_expr(
         &mut self,
-        parse: &Parse<cst::ExprRoot>,
+        parse: &Document<cst::ExprRoot>,
     ) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
         lower::lower_expr(self.heap, self.spans, parse)
     }

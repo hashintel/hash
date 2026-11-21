@@ -1,5 +1,3 @@
-//! SIMD-accelerated JSON string validation and decoding.
-
 use alloc::borrow::Cow;
 use core::{
     fmt,
@@ -15,7 +13,6 @@ use core::{
 #[cfg(test)]
 mod tests;
 
-/// Error encountered while decoding a JSON escape sequence.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EscapeError {
     /// Unrecognized escape character following `\`.
@@ -26,7 +23,6 @@ pub enum EscapeError {
     Surrogate(u16),
     /// High UTF-16 surrogate not followed by a `\uXXXX` low surrogate.
     ExpectedLowSurrogate,
-    /// Input ended before the escape sequence completed.
     Eof,
 }
 
@@ -44,27 +40,21 @@ impl fmt::Display for EscapeError {
     }
 }
 
-/// Error encountered while scanning or decoding a JSON string literal.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum StringError {
     /// Unescaped ASCII control character (`0x00..=0x1F`).
     Control,
-    /// Malformed escape sequence.
     Escape(EscapeError),
-    /// Input ended before the closing `"`.
     Eof,
-    /// Invalid UTF-8 sequence inside a byte slice.
     Utf8(Utf8Error),
 }
 
-/// First error recorded while validating a string literal in place.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct ValidatedStringError {
-    /// Specific string lexing failure.
     pub kind: StringError,
     /// UTF-8 character-boundary offset from the byte immediately after the opening `"`.
     pub offset: usize,
-    /// Total bytes consumed after the opening `"` through the recovery closing quote or EOF.
+    /// Bytes consumed after the opening `"` through the recovery closing `"` or EOF.
     pub consumed: usize,
 }
 
@@ -208,7 +198,6 @@ fn bytes_to_str(bytes: &[u8]) -> Result<&str, StringError> {
     )
 }
 
-/// Sink receiving scanned JSON string segments and decoded escape characters.
 trait StringSink<'source>: Sized {
     type Output;
 
@@ -219,7 +208,6 @@ trait StringSink<'source>: Sized {
     fn finish(self) -> Self::Output;
 }
 
-/// Allocating sink that produces a decoded [`Cow<'source, str>`].
 struct DecodeSink(String);
 
 impl<'source> StringSink<'source> for DecodeSink {
@@ -252,7 +240,6 @@ impl<'source> StringSink<'source> for DecodeSink {
     }
 }
 
-/// Zero-allocation sink for pre-validated UTF-8 strings that records whether escapes appeared.
 struct ValidateSink;
 
 impl<'source> StringSink<'source> for ValidateSink {

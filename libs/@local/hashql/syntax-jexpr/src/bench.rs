@@ -1,11 +1,7 @@
-//! Benchmark entry points for lexing and CST construction.
-
 use core::hint::black_box;
 
 use crate::{Parser, lexer::Lexer};
 
-/// Tokenizes the entire input using the streaming lexer without constructing a tree.
-///
 /// # Panics
 ///
 /// Panics if the input contains a lexical error.
@@ -20,8 +16,6 @@ pub fn tokenize(source: &str) {
     }
 }
 
-/// Parses `source` into a lossless J-Expr CST without lowering to HashQL AST.
-///
 /// # Panics
 ///
 /// Panics if the input contains a syntax error.

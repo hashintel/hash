@@ -1,5 +1,3 @@
-//! Diagnostic categories and syntax error records for J-Expr parsing.
-
 use alloc::borrow::Cow;
 
 use hashql_core::span::{SpanAncestors, SpanId, SpanTable};
@@ -31,7 +29,6 @@ pub use crate::{
     },
 };
 
-/// Diagnostic emitted by the J-Expr frontend.
 pub type JExprDiagnostic<K = Critical> = Diagnostic<JExprDiagnosticCategory, SpanId, K>;
 
 const EXPECTED_LANGUAGE_ITEM: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -44,10 +41,8 @@ const EXPECTED_EOF: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     name: "Unexpected token after expression",
 };
 
-/// Top-level diagnostic category for J-Expr syntax errors.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum JExprDiagnosticCategory {
-    /// Lexing, outer CST parsing, or embedded string parsing diagnostic.
     Parser(ParserDiagnosticCategory),
 }
 
@@ -67,20 +62,14 @@ impl DiagnosticCategory for JExprDiagnosticCategory {
     }
 }
 
-/// Parser-phase diagnostic categories across lexing, arrays, objects, and embedded strings.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ParserDiagnosticCategory {
-    /// Lexer error or token mismatch.
     Lexer(LexerDiagnosticCategory),
     /// Embedded HashQL expression or type string error.
     String(StringDiagnosticCategory),
-    /// Array or call-expression error.
     Array(ArrayDiagnosticCategory),
-    /// Object or data-constructor error.
     Object(ObjectDiagnosticCategory),
-    /// Unexpected token where a language item was required.
     ExpectedLanguageItem,
-    /// Trailing tokens after a complete root expression.
     ExpectedEof,
 }
 
@@ -164,7 +153,6 @@ pub(crate) fn expected_eof(span: SpanId) -> JExprDiagnostic {
     diagnostic
 }
 
-/// Detailed syntax error payload stored inside a [`SyntaxError`] during CST construction.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum SyntaxErrorKind {
     InvalidString(StringError),
@@ -233,7 +221,6 @@ pub(crate) enum SyntaxErrorKind {
     },
 }
 
-/// Syntax error recorded with source [`TextRange`] locations while building a J-Expr CST.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SyntaxError {
     range: TextRange,
@@ -245,13 +232,11 @@ impl SyntaxError {
         Self { range, kind }
     }
 
-    /// Returns the primary source byte range for this syntax error.
     #[must_use]
     pub const fn range(&self) -> TextRange {
         self.range
     }
 
-    /// Returns the [`JExprDiagnosticCategory`] corresponding to this syntax error.
     #[must_use]
     pub const fn category(&self) -> JExprDiagnosticCategory {
         let parser_category = match &self.kind {
@@ -352,7 +337,6 @@ impl SyntaxError {
         JExprDiagnosticCategory::Parser(parser_category)
     }
 
-    /// Lowers this syntax error into a [`JExprDiagnostic`], registering its spans in `spans`.
     pub fn to_diagnostic(&self, spans: &mut SpanTable<Span>) -> JExprDiagnostic {
         let primary = spans.insert(Span::new(self.range), SpanAncestors::EMPTY);
 

@@ -28,7 +28,7 @@ use hashql_eval::{
     postgres::{AuthorizationPatch, PreparedQueryPatch},
 };
 use hashql_mir::interpret::Inputs;
-use hashql_syntax_jexpr::{Parse, Parser, cst, span::Span};
+use hashql_syntax_jexpr::{Document, Parser, cst, span::Span};
 use http::StatusCode;
 use serde_json::value::RawValue;
 use tokio_util::task::LocalPoolHandle;
@@ -99,7 +99,7 @@ async fn query_local_impl<S>(
     ctx: Arc<CompilerContext>,
     exec: ExecutionContext<S>,
     spans: &mut SpanTable<Span>,
-    parse: &Parse<cst::ExprRoot>,
+    parse: &Document<cst::ExprRoot>,
 ) -> Status<OwnedValue, HashQlDiagnosticCategory, SpanId>
 where
     S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>,

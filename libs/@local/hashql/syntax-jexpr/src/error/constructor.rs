@@ -1,5 +1,3 @@
-//! Diagnostic builders for J-Expr data-constructor objects.
-
 use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{Diagnostic, Label, diagnostic::Message, severity::Critical};
 use winnow::error::ContextError;

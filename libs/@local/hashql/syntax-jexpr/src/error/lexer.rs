@@ -1,5 +1,3 @@
-//! Lexer-level diagnostic categories and builders.
-
 use alloc::borrow::Cow;
 
 use hashql_core::span::SpanId;
@@ -48,22 +46,14 @@ const UNEXPECTED_TOKEN: TerminalDiagnosticCategory = TerminalDiagnosticCategory 
     name: "Unexpected token",
 };
 
-/// Diagnostic categories produced while lexing or matching tokens.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum LexerDiagnosticCategory {
-    /// Malformed JSON string literal.
-    ///
-    /// Covers unescaped control characters, invalid escape sequences, and missing closing quotes.
+    /// Unescaped control character, invalid escape sequence, or missing closing quote.
     InvalidString,
-    /// Number literal that violates JSON number grammar.
     InvalidNumber,
-    /// Character or bare word that cannot start any JSON token.
     InvalidCharacter,
-    /// Block comment (`/*`) that reaches end of input without a closing `*/`.
     UnterminatedBlockComment,
-    /// End of input reached while expecting a token.
     UnexpectedEof,
-    /// Token whose kind does not match the expected syntax set.
     UnexpectedToken,
 }
 

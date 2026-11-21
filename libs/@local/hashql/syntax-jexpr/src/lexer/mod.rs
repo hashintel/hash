@@ -1,5 +1,3 @@
-//! Logos-driven lexer callbacks and lossless token stream for J-Expr.
-
 use text_size::{TextRange, TextSize};
 
 use crate::syntax_kind::SyntaxKind;
@@ -12,46 +10,32 @@ pub(crate) use self::{
     string::{StringError, decode_quoted},
 };
 
-/// Lexical error encountered while tokenizing J-Expr input.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub enum LexError {
-    /// Invalid string literal with the exact byte offset where validation failed.
     String {
-        /// Specific string lexing failure.
         error: StringError,
-        /// Byte range where string validation failed.
         range: TextRange,
     },
-    /// Invalid number literal.
     Number(ParseNumberError),
-    /// Unterminated `/* ...` block comment.
     UnterminatedBlockComment,
-    /// Unrecognized character or bare word.
     #[default]
     UnrecognizedCharacter,
 }
 
-/// One scanned token produced on demand by [`Lexer`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct ScannedToken {
-    /// Syntax kind emitted into the green tree.
     pub kind: SyntaxKind,
-    /// Byte range in the source string.
     pub range: TextRange,
-    /// Whether a [`SyntaxKind::String`] token contained escape sequences.
     pub has_escapes: bool,
-    /// Lex error associated with this token, if any.
     pub error: Option<LexError>,
 }
 
-/// Logos callback for `//` line comments up to the line break.
 pub(crate) fn lex_line_comment(lexer: &mut logos::Lexer<'_, SyntaxKind>) {
     let remainder = lexer.remainder().as_bytes();
     let len = memchr::memchr(b'\n', remainder).unwrap_or(remainder.len());
     lexer.bump(len);
 }
 
-/// Logos callback for `/* ... */` block comments, including consecutive asterisks before `/`.
 pub(crate) fn lex_block_comment(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(), LexError> {
     let remainder = lexer.remainder().as_bytes();
     let mut pos = 0;
@@ -68,7 +52,6 @@ pub(crate) fn lex_block_comment(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Res
     Err(LexError::UnterminatedBlockComment)
 }
 
-/// Logos callback for zero-allocation SIMD JSON string validation.
 #[expect(
     clippy::cast_possible_truncation,
     reason = "Lexer::new asserts source length fits in u32"
@@ -93,7 +76,6 @@ pub(crate) fn lex_string(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(),
     }
 }
 
-/// Logos callback that validates JSON numbers via [`Number::parse`].
 #[expect(
     clippy::cast_possible_truncation,
     reason = "Lexer::new asserts source length fits in u32"
@@ -121,20 +103,17 @@ pub(crate) fn lex_number(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(),
     }
 }
 
-/// Logos callback for unrecognized bare words so they emit one invalid token.
+// Consumes an entire bare ASCII word as one invalid token instead of failing per character.
 pub(crate) const fn lex_invalid_word(_: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(), LexError> {
     Err(LexError::UnrecognizedCharacter)
 }
 
-/// Streaming, cloneable lexer wrapping [`logos::Lexer`] over [`SyntaxKind`].
 #[derive(Clone)]
 pub(crate) struct Lexer<'source> {
     inner: logos::Lexer<'source, SyntaxKind>,
 }
 
 impl<'source> Lexer<'source> {
-    /// Creates a lexer positioned at the start of `source`.
-    ///
     /// # Panics
     ///
     /// Panics if `source.len()` exceeds `u32::MAX` bytes.
@@ -149,32 +128,29 @@ impl<'source> Lexer<'source> {
         }
     }
 
-    /// Returns the end byte offset of the underlying source string.
-    #[inline]
     #[expect(
         clippy::cast_possible_truncation,
         reason = "constructor asserts source length fits in u32"
     )]
+    #[inline]
     pub(crate) fn eof_offset(&self) -> TextSize {
         TextSize::new(self.inner.source().len() as u32)
     }
 
-    /// Returns the slice covered by `range` in the underlying source string.
-    #[inline]
     #[expect(
         clippy::string_slice,
         reason = "token ranges produced by logos on &str begin and end on UTF-8 boundaries"
     )]
+    #[inline]
     pub(crate) fn slice(&self, range: TextRange) -> &'source str {
         &self.inner.source()[usize::from(range.start())..usize::from(range.end())]
     }
 
-    /// Scans the next token (including trivia tokens) and advances the lexer past it.
-    #[inline]
     #[expect(
         clippy::cast_possible_truncation,
         reason = "constructor asserts source length fits in u32"
     )]
+    #[inline]
     pub(crate) fn next_token(&mut self) -> Option<ScannedToken> {
         let result = self.inner.next()?;
         let span = self.inner.span();

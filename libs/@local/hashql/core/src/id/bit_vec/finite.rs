@@ -200,6 +200,41 @@ impl<I, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
 }
 
 impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
+    pub const fn from_items(
+        items: impl [const] IntoIterator<Item = I, IntoIter: [const] Iterator + [const] Destruct>
+        + [const] Destruct,
+    ) -> Self
+    where
+        I: [const] Id,
+        T: [const] FiniteBitSetIntegral,
+    {
+        let mut set = Self::new_empty(I::MAX.as_u32());
+
+        for item in items {
+            set.insert(item);
+        }
+
+        set
+    }
+
+    pub const fn from_slice(slice: &[I]) -> Self
+    where
+        I: const Id,
+        T: [const] FiniteBitSetIntegral,
+    {
+        const { assert!(I::MAX.as_u32() <= T::MAX_DOMAIN_SIZE) };
+
+        let mut set = Self::new_empty(I::MAX.as_u32());
+        let mut index = 0;
+
+        while index < slice.len() {
+            set.insert(slice[index]);
+            index += 1;
+        }
+
+        set
+    }
+
     /// Sets the bit at `index`.
     ///
     /// # Panics
@@ -412,7 +447,7 @@ impl<I: Id, T: FiniteBitSetIntegral> IntoIterator for &FiniteBitSet<I, T> {
     }
 }
 
-impl<I: Id, T: FiniteBitSetIntegral> BitRelations<Self> for FiniteBitSet<I, T> {
+const impl<I: Id, T: FiniteBitSetIntegral> BitRelations<Self> for FiniteBitSet<I, T> {
     fn union(&mut self, other: &Self) -> bool {
         let prev = self.store;
         self.store |= other.store;

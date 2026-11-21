@@ -1,7 +1,3 @@
-//! Lowers a typed J-Expr CST into a [`hashql_ast::node::expr::Expr`].
-//!
-//! Collects lexical, syntactic, and embedded-DSL diagnostics into a [`Status`] in source order.
-
 use hashql_ast::node::{
     expr::{
         CallExpr, Expr, ExprKind,
@@ -31,18 +27,17 @@ use crate::{
         ArrayDiagnosticCategory, JExprDiagnosticCategory, ObjectDiagnosticCategory,
         ParserDiagnosticCategory, array,
     },
-    parser::Parse,
+    parser::Document,
     span::Span,
     syntax_kind::SyntaxKind,
 };
 
 mod constructor;
 
-/// Lowers `parse` into an arena-allocated HashQL [`Expr`] and collects all diagnostics.
 pub(crate) fn lower_expr<'heap>(
     heap: &'heap Heap,
     spans: &mut SpanTable<Span>,
-    parse: &Parse<cst::ExprRoot>,
+    parse: &Document<cst::ExprRoot>,
 ) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
     let mut lowerer = Lowerer::new(heap, spans);
 
@@ -73,7 +68,8 @@ pub(crate) fn lower_expr<'heap>(
     Err(into_ordered_failure(lowerer.diagnostics, lowerer.spans))
 }
 
-/// Orders accumulated diagnostics by primary span start offset and builds a [`Failure`].
+// Orders accumulated diagnostics by primary span start offset so multi-phase errors appear in
+// source order.
 fn into_ordered_failure(
     issues: DiagnosticIssues<JExprDiagnosticCategory, SpanId, Severity>,
     spans: &SpanTable<Span>,
@@ -103,7 +99,6 @@ fn into_ordered_failure(
     }
 }
 
-/// Shared lowering state collecting spans and diagnostics across one CST pass.
 pub(crate) struct Lowerer<'heap, 'spans> {
     heap: &'heap Heap,
     spans: &'spans mut SpanTable<Span>,
@@ -138,7 +133,6 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
         self.spans.insert(Span::new(range), SpanAncestors::EMPTY)
     }
 
-    /// Lowers one typed CST expression node.
     pub(crate) fn lower_expr(&mut self, expr: cst::Expr<'_>) -> Option<Expr<'heap>> {
         match expr {
             cst::Expr::Path(node) => self.lower_path(node),
@@ -151,7 +145,8 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
         }
     }
 
-    /// Lowers a constructor's primary field and optional `#type` field in source order.
+    /// Lowers a constructor's primary and `#type` fields in source order so diagnostics stay
+    /// ordered.
     pub(crate) fn lower_typed_pair<'tree, Field, Output>(
         &mut self,
         type_field: Option<cst::TypeField<'tree>>,
@@ -180,7 +175,7 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
         Some((primary, r#type))
     }
 
-    fn check_orphaned_type_fields(&mut self, root: cst::SyntaxNode<'_>) {
+    fn check_orphaned_type_fields(&mut self, root: cst::SyntaxNodeData<'_>) {
         for child in root.children() {
             if child.kind() == SyntaxKind::JsonObject {
                 for field in child.child_nodes::<cst::TypeField<'_>>() {

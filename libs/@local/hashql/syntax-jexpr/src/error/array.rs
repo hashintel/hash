@@ -1,5 +1,3 @@
-//! Array and call-expression diagnostic categories and builders.
-
 use alloc::borrow::Cow;
 
 use hashql_core::span::{SpanId, SpanTable};
@@ -52,18 +50,12 @@ const LABELED_ARGUMENT_INVALID_IDENTIFIER: TerminalDiagnosticCategory =
         name: "Invalid identifier in labeled argument",
     };
 
-/// Diagnostic categories produced while parsing arrays and call expressions.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ArrayDiagnosticCategory {
-    /// Token-level error inside an array context.
     Lexer(LexerDiagnosticCategory),
-    /// Comma appearing before the first array element.
     LeadingComma,
-    /// Comma appearing after the last array element before `]`.
     TrailingComma,
-    /// Adjacent commas without an intervening element.
     ConsecutiveComma,
-    /// Empty `[]` call expression with no callee.
     Empty,
     /// Secondary key in a labeled-argument object lacking a leading `:`.
     LabeledArgumentMissingPrefix,

@@ -1,5 +1,3 @@
-//! Expression grammar (`ExprGrammar`) for paths, function calls, and constructor objects.
-
 use text_size::TextRange;
 
 use super::{
@@ -13,7 +11,6 @@ use crate::{
     syntax_kind_set::SyntaxKindSet,
 };
 
-/// Grammar specialization for J-Expr expressions (paths, calls, and typed data constructors).
 pub(crate) struct ExprGrammar;
 
 impl Grammar for ExprGrammar {
@@ -27,7 +24,6 @@ impl Grammar for ExprGrammar {
     }
 }
 
-/// Parses one J-Expr expression into `parser`.
 pub(crate) fn parse_expr(parser: &mut Parser<'_, ExprGrammar>) {
     let Some(token) = parser.current() else {
         let eof = parser.eof_range();

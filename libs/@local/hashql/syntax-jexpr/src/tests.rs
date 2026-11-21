@@ -1,5 +1,3 @@
-//! End-to-end CST, AST lowering, multi-diagnostic recovery, and generic-grammar tests.
-
 use hashql_ast::format::SyntaxDump as _;
 use hashql_core::{
     heap::Heap,
@@ -401,7 +399,7 @@ fn generic_value_grammar_rejects_type_annotations() {
             clippy::wildcard_enum_match_arm,
             reason = "test grammar handles only Literal and Struct nodes"
         )]
-        fn cast(syntax: cst::SyntaxNode<'tree>) -> Option<Self> {
+        fn cast(syntax: cst::SyntaxNodeData<'tree>) -> Option<Self> {
             match syntax.kind() {
                 SyntaxKind::Literal => cst::Literal::cast(syntax).map(Self::Literal),
                 SyntaxKind::Struct => cst::Struct::cast(syntax).map(Self::Struct),
@@ -409,7 +407,7 @@ fn generic_value_grammar_rejects_type_annotations() {
             }
         }
 
-        fn syntax(self) -> cst::SyntaxNode<'tree> {
+        fn syntax(self) -> cst::SyntaxNodeData<'tree> {
             match self {
                 Self::Literal(node) => node.syntax(),
                 Self::Struct(node) => node.syntax(),

@@ -1,5 +1,3 @@
-//! On-demand RFC 6901 JSON Pointer derivation from a J-Expr syntax tree.
-
 use alloc::borrow::Cow;
 
 use jsonptr::PointerBuf;
@@ -10,7 +8,7 @@ use crate::{
     syntax_kind::SyntaxKind,
 };
 
-fn push_first_field_key(node: cst::SyntaxNode<'_>, pointer: &mut PointerBuf) {
+fn push_first_field_key(node: cst::SyntaxNodeData<'_>, pointer: &mut PointerBuf) {
     let Some(token) = node.first_token::<cst::StringToken<'_>>() else {
         return;
     };
@@ -29,12 +27,10 @@ fn push_first_field_key(node: cst::SyntaxNode<'_>, pointer: &mut PointerBuf) {
     }
 }
 
-/// Derives the RFC 6901 [`PointerBuf`] for `range` by descending from `root`.
-///
-/// Returns `None` if `range` lies outside `root`'s byte bounds.
+/// Derives the RFC 6901 [`PointerBuf`] for `range`, or `None` outside `root`.
 #[must_use]
 pub(crate) fn json_pointer_for_range(
-    root: cst::SyntaxNode<'_>,
+    root: cst::SyntaxNodeData<'_>,
     range: TextRange,
 ) -> Option<PointerBuf> {
     if !root.text_range().contains_range(range) {

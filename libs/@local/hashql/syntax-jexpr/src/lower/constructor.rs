@@ -1,5 +1,3 @@
-//! AST lowering for J-Expr data-constructor nodes.
-
 use hashql_ast::node::{
     expr::{
         DictExpr, Expr, ExprKind, ListExpr, LiteralExpr, StructExpr, TupleExpr, dict::DictEntry,

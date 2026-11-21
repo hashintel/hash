@@ -1,5 +1,3 @@
-//! Object-level diagnostic categories and structural object diagnostic builders.
-
 use alloc::borrow::Cow;
 
 use hashql_core::span::SpanId;
@@ -104,46 +102,28 @@ const LITERAL_EXPECTED_PRIMITIVE: TerminalDiagnosticCategory = TerminalDiagnosti
     name: "Expected primitive for literal definition",
 };
 
-/// Diagnostic categories produced while parsing objects and data constructors.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ObjectDiagnosticCategory {
-    /// Token-level error inside an object context.
     Lexer(LexerDiagnosticCategory),
-    /// Comma appearing before the first object field.
     LeadingComma,
-    /// Comma appearing after the last object field before `}`.
     TrailingComma,
-    /// Adjacent commas without an intervening field.
     ConsecutiveComma,
-    /// Adjacent colons between a field key and value.
     ConsecutiveColon,
-    /// Object key not accepted by the enclosing J-Expr constructor.
     UnknownKey,
-    /// Empty `{}` constructor object.
     Empty,
     /// `#type` field without a primary constructor field in the same object.
     OrphanedType,
-    /// Constructor or `#type` key repeated in the same object.
     DuplicateKey,
-    /// Non-object value supplied to `#struct`.
     StructExpectedObject,
-    /// Struct field key that is not a valid HashQL identifier.
     StructKeyExpectedIdentifier,
     /// Value supplied to `#dict` that is neither an object nor an array of pairs.
     DictExpectedFormat,
-    /// Pair entry in an array-form `#dict` with fewer than two elements.
     DictEntryTooFewItems,
-    /// Pair entry in an array-form `#dict` with more than two elements.
     DictEntryTooManyItems,
-    /// Non-array entry in an array-form `#dict`.
     DictEntryExpectedArray,
-    /// Non-array value supplied to `#tuple`.
     TupleExpectedArray,
-    /// Non-array value supplied to `#list`.
     ListExpectedArray,
-    /// Non-string value supplied to `#type`.
     TypeExpectedString,
-    /// Non-primitive value supplied to `#literal`.
     LiteralExpectedPrimitive,
 }
 

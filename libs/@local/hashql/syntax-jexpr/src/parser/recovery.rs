@@ -1,5 +1,3 @@
-//! Container delimiter, separator, and generic JSON error recovery.
-
 use text_size::TextRange;
 
 use super::{Grammar, Parser};
@@ -13,18 +11,14 @@ const EXPECTED_ARRAY_SEP: SyntaxKindSet = SyntaxKindSet::from_slice(&[T![,], T![
 
 const EXPECTED_OBJECT_SEP: SyntaxKindSet = SyntaxKindSet::from_slice(&[T![,], T!['}']]);
 
-/// Outcome of advancing to the next element or entry inside an array or object.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum ContainerStep {
-    /// Positioned at the start of the next element or object key.
     Item,
-    /// Consumed the container's matching closing delimiter.
     Closed,
-    /// Aborted on EOF or an enclosing container's closing delimiter.
+    /// Stopped on EOF or an enclosing container's closing delimiter.
     Aborted,
 }
 
-/// Advances to the next array element, handling leading, consecutive, and trailing commas.
 pub(crate) fn next_array_element<G: Grammar>(
     parser: &mut Parser<'_, G>,
     index: usize,
@@ -116,7 +110,7 @@ fn consume_array_comma<G: Grammar>(parser: &mut Parser<'_, G>) -> ContainerStep 
     ContainerStep::Item
 }
 
-/// Advances to the next object entry, guaranteeing `SyntaxKind::String` on [`ContainerStep::Item`].
+/// Guarantees the current token is [`SyntaxKind::String`] when returning [`ContainerStep::Item`].
 pub(crate) fn next_object_entry<G: Grammar>(
     parser: &mut Parser<'_, G>,
     index: usize,
@@ -233,9 +227,7 @@ fn advance_object_separator<G: Grammar>(
     SeparatorStep::RetrySeparator
 }
 
-/// Consumes `:` after an object key and diagnoses consecutive colons or a missing colon.
-///
-/// Returns `true` when the caller should proceed to parse the field's value.
+/// Returns `true` when the caller should proceed to parse the field value.
 pub(crate) fn expect_colon<G: Grammar>(parser: &mut Parser<'_, G>) -> bool {
     let Some(token) = parser.current() else {
         let eof = parser.eof_range();
@@ -273,7 +265,6 @@ pub(crate) fn expect_colon<G: Grammar>(parser: &mut Parser<'_, G>) -> bool {
     !matches!(token.kind, T![,] | T!['}'] | T![']'])
 }
 
-/// Parses an arbitrary JSON value into generic `Json*` CST nodes for structured error recovery.
 pub(crate) fn parse_json_value<G: Grammar>(parser: &mut Parser<'_, G>) {
     let Some(token) = parser.current() else {
         return;
@@ -346,7 +337,6 @@ fn parse_json_array<G: Grammar>(parser: &mut Parser<'_, G>) {
     parser.finish_node();
 }
 
-/// Reports whether `kind` can begin a JSON value during recovery.
 pub(crate) const fn is_json_value_start(kind: SyntaxKind) -> bool {
     matches!(
         kind,
@@ -354,7 +344,6 @@ pub(crate) const fn is_json_value_start(kind: SyntaxKind) -> bool {
     )
 }
 
-/// Emits a structured recovery node when an unexpected token appears in item position.
 pub(crate) fn recover_unexpected_item<G: Grammar>(parser: &mut Parser<'_, G>) {
     let Some(token) = parser.current() else {
         let eof = parser.eof_range();

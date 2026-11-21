@@ -22,7 +22,7 @@ use hashql_mir::{
         execution::{ExecutionAnalysisResidual, VertexType},
     },
 };
-use hashql_syntax_jexpr::{Parse, cst, span::Span};
+use hashql_syntax_jexpr::{Document, cst, span::Span};
 
 use super::error::HashQlDiagnosticCategory;
 
@@ -56,7 +56,7 @@ impl<'heap> Compilation<'heap> {
         heap: &'heap Heap,
         scratch: &mut Scratch,
         spans: &mut SpanTable<Span>,
-        parse: &Parse<cst::ExprRoot>,
+        parse: &Document<cst::ExprRoot>,
     ) -> Status<Self, HashQlDiagnosticCategory, SpanId> {
         // Lower the parsed J-Expr CST into an AST
         let mut parser = hashql_syntax_jexpr::Parser::new(heap, spans);

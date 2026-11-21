@@ -1,12 +1,11 @@
-//! Syntax kinds and Rowan language definition for J-Expr.
-
 use core::fmt::{self, Display};
+
+use hashql_core::id::bit_vec::FiniteBitSet;
 
 use crate::lexer::{
     LexError, lex_block_comment, lex_invalid_word, lex_line_comment, lex_number, lex_string,
 };
 
-/// Token and node kinds in the lossless J-Expr concrete syntax tree.
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, hashql_core::id::Id, logos::Logos,
 )]
@@ -15,154 +14,104 @@ use crate::lexer::{
 #[repr(u8)]
 pub enum SyntaxKind {
     // Syntactic JSON tokens (ordered for diagnostic display)
-    /// JSON string literal, including its surrounding quotes.
     #[token("\"", lex_string)]
     String,
-    /// JSON number literal (integer or floating-point).
     #[regex(r"[0-9-]", lex_number)]
     Number,
-    /// Boolean literal `true`.
     #[token("true")]
     True,
-    /// Boolean literal `false`.
     #[token("false")]
     False,
-    /// Null literal `null`.
     #[token("null")]
     Null,
-    /// Comma (`,`).
     #[token(",")]
     Comma,
-    /// Colon (`:`).
     #[token(":")]
     Colon,
-    /// Left brace (`{`).
     #[token("{")]
     LBrace,
-    /// Right brace (`}`).
     #[token("}")]
     RBrace,
-    /// Left bracket (`[`).
     #[token("[")]
     LBracket,
-    /// Right bracket (`]`).
     #[token("]")]
     RBracket,
 
     // Trivia tokens
-    /// Contiguous JSON whitespace (` `, `\t`, `\r`, `\n`, `\f`).
     #[regex(r"[ \t\r\n\f]+")]
     Whitespace,
-    /// Single-line `//` comment extending up to the line break.
+    /// Single-line `//` comment, excluding the terminating line break.
     #[token("//", lex_line_comment)]
     LineComment,
-    /// Block `/* ... */` comment.
     #[token("/*", lex_block_comment)]
     BlockComment,
 
-    // Lexer error token
-    /// Malformed number or unrecognized character sequence preserved for lossless recovery.
+    /// Malformed number or unrecognized input preserved for lossless recovery.
     #[regex(r"[A-Za-z_][A-Za-z0-9_]*", lex_invalid_word)]
     InvalidToken,
 
-    // Root node
-    /// Root node wrapping a J-Expr document and its surrounding trivia.
+    /// Document root, retaining leading and trailing trivia.
     Root,
 
     // Expression nodes
-    /// String path, field-access, index-access, or underscore expression.
     PathExpr,
-    /// Array function-call expression (`[callee, arg1, ...]`).
     CallExpr,
-    /// Positional argument in a [`SyntaxKind::CallExpr`].
     PositionalArg,
-    /// Object-form labeled argument (`{":label": value}`) in a [`SyntaxKind::CallExpr`].
     LabeledArg,
-    /// Key-value entry inside a [`SyntaxKind::LabeledArg`].
     LabeledArgEntry,
-    /// Shorthand string labeled argument (`":label"`) in a [`SyntaxKind::CallExpr`].
     ShorthandLabeledArg,
 
     // Data constructor nodes
-    /// `#literal` constructor object.
     Literal,
-    /// `"#literal": <value>` field inside a [`SyntaxKind::Literal`].
     LiteralField,
-    /// Primitive value inside a [`SyntaxKind::LiteralField`].
     LiteralValue,
 
-    /// `#struct` constructor object.
     Struct,
-    /// `"#struct": { ... }` field inside a [`SyntaxKind::Struct`].
     StructField,
-    /// Object body of a [`SyntaxKind::StructField`].
     StructBody,
-    /// Named field entry inside a [`SyntaxKind::StructBody`].
     StructEntry,
 
-    /// `#tuple` constructor object.
     Tuple,
-    /// `"#tuple": [ ... ]` field inside a [`SyntaxKind::Tuple`].
     TupleField,
-    /// Array body of a [`SyntaxKind::TupleField`].
     TupleBody,
-    /// Element inside a [`SyntaxKind::TupleBody`].
     TupleElement,
 
-    /// `#list` constructor object.
     List,
-    /// `"#list": [ ... ]` field inside a [`SyntaxKind::List`].
     ListField,
-    /// Array body of a [`SyntaxKind::ListField`].
     ListBody,
-    /// Element inside a [`SyntaxKind::ListBody`].
     ListElement,
 
-    /// `#dict` constructor object.
     Dict,
-    /// `"#dict": { ... } | [ ... ]` field inside a [`SyntaxKind::Dict`].
     DictField,
-    /// Object-form body of a [`SyntaxKind::DictField`].
     DictObjectBody,
-    /// Key-value entry inside a [`SyntaxKind::DictObjectBody`].
     DictObjectEntry,
-    /// Array-of-pairs body of a [`SyntaxKind::DictField`].
     DictArrayBody,
-    /// Pair entry (`[key, value]`) inside a [`SyntaxKind::DictArrayBody`].
     DictArrayEntry,
 
     // Type annotation and recovery field nodes
-    /// `"#type": "..."` annotation field on a constructor object.
     TypeField,
-    /// Type-expression string wrapper inside a [`SyntaxKind::TypeField`].
     TypeAnnotation,
-    /// Unknown or duplicate field preserved inside a constructor object.
+    /// Unrecognized or duplicate field preserved inside a constructor object.
     UnknownField,
 
     // Generic JSON recovery nodes
-    /// Plain JSON object preserved when an object is not a valid J-Expr constructor.
     JsonObject,
-    /// Key-value field inside a [`SyntaxKind::JsonObject`].
     JsonField,
-    /// Plain JSON array preserved during error recovery.
     JsonArray,
-    /// Plain JSON scalar literal preserved during error recovery.
     JsonLiteral,
 
-    /// Unrecognized or structurally malformed syntax wrapped for error recovery.
     Error,
 }
 
 impl SyntaxKind {
-    /// Converts a raw [`rowan::SyntaxKind`] discriminant into a [`SyntaxKind`].
-    ///
     /// # Panics
     ///
-    /// Panics if `raw` does not correspond to a defined [`SyntaxKind`] variant.
+    /// Panics if `raw` does not match a defined [`SyntaxKind`] discriminant.
     #[inline]
     #[must_use]
     pub const fn from_raw(raw: rowan::SyntaxKind) -> Self {
         assert!(raw.0 <= u8::MAX as u16, "invalid SyntaxKind raw value");
+
         #[expect(
             clippy::cast_possible_truncation,
             reason = "asserted above that raw.0 <= u8::MAX"
@@ -170,7 +119,6 @@ impl SyntaxKind {
         Self::from_discriminant(raw.0 as u8)
     }
 
-    /// Reports whether this kind is trivia (whitespace or comment).
     #[inline]
     #[must_use]
     pub const fn is_trivia(self) -> bool {
@@ -180,14 +128,12 @@ impl SyntaxKind {
         )
     }
 
-    /// Reports whether this kind is a token rather than a composite node.
     #[inline]
     #[must_use]
     pub const fn is_token(self) -> bool {
         self.into_discriminant() < Self::Root.into_discriminant()
     }
 
-    /// Reports whether this node kind is a key-value entry inside a JSON object.
     #[inline]
     #[must_use]
     pub const fn is_object_field(self) -> bool {
@@ -207,8 +153,6 @@ impl SyntaxKind {
         )
     }
 
-    /// Reports whether this node kind is a JSON array container whose child nodes are indexed
-    /// elements.
     #[inline]
     #[must_use]
     pub const fn is_array_container(self) -> bool {
@@ -288,7 +232,6 @@ impl Display for SyntaxKind {
     }
 }
 
-/// Maps a J-Expr token spelling to its [`SyntaxKind`].
 #[expect(
     clippy::min_ident_chars,
     reason = "single-letter token macro matching rust-analyzer convention"
@@ -331,7 +274,6 @@ macro_rules! T {
 
 pub(crate) use T;
 
-/// Rowan language tag for J-Expr syntax trees.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct JExprLanguage(!);
 
@@ -349,14 +291,7 @@ impl rowan::Language for JExprLanguage {
     }
 }
 
-/// Red-tree syntax node specialized for [`JExprLanguage`].
 pub type SyntaxNode = rowan::SyntaxNode<JExprLanguage>;
-
-/// Red-tree syntax token specialized for [`JExprLanguage`].
 pub type SyntaxToken = rowan::SyntaxToken<JExprLanguage>;
-
-/// Red-tree syntax node or token specialized for [`JExprLanguage`].
 pub type SyntaxElement = rowan::SyntaxElement<JExprLanguage>;
-
-/// Iterator over child [`SyntaxNode`]s specialized for [`JExprLanguage`].
 pub type SyntaxNodeChildren = rowan::SyntaxNodeChildren<JExprLanguage>;

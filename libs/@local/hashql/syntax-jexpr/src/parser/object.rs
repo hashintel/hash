@@ -1,5 +1,3 @@
-//! Generic parser for J-Expr data-constructor objects.
-
 use text_size::TextRange;
 
 use super::{
@@ -59,10 +57,7 @@ const PRIMARY_KEYS: &[&str] = &["#literal", "#struct", "#dict", "#tuple", "#list
 const ALL_EXPR_KEYS: &[&str] = &["#literal", "#struct", "#dict", "#tuple", "#list", "#type"];
 const TYPE_ONLY_KEYS: &[&str] = &["#type"];
 
-/// Parses a constructor object `{ ... }` with optional `#type` in either field order.
-///
-/// Uses `checkpoint` and `start_node_at` so the constructor node kind is decided after scanning
-/// the primary field.
+/// Parses a constructor object whose `#type` field may precede or follow the primary key.
 pub(crate) fn parse_object<G: Grammar>(parser: &mut Parser<'_, G>) {
     let checkpoint = parser.checkpoint();
     let open = parser.bump(T!['{']).range;
