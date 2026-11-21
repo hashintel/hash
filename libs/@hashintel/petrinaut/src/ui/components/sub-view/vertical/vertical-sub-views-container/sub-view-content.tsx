@@ -4,6 +4,10 @@ import { useAvoidScrollWidthChange } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { useScrollOverflow } from "../../../../hooks/use-scroll-overflow";
+import {
+  MountsScrolledContext,
+  useKeptScroll,
+} from "../../../../lib/kept-state";
 
 import type { SubView } from "../../types";
 
@@ -75,14 +79,17 @@ const scrollShadowStyle = cva({
 
 /**
  * Wraps children in a scrollable container with top/bottom gradient shadows
- * that fade in when content overflows in that direction.
+ * that fade in when content overflows in that direction. The container keeps
+ * its scroll offset under `scrollKey` while it is unmounted.
  */
-const ScrollableContent: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+const ScrollableContent: React.FC<{
+  scrollKey: string;
+  children: React.ReactNode;
+}> = ({ scrollKey, children }) => {
   const { scrollRef, canScrollUp, canScrollDown, onScroll } =
     useScrollOverflow();
   useAvoidScrollWidthChange(scrollRef);
+  const mountsScrolled = useKeptScroll(scrollRef, scrollKey);
 
   return (
     <div className={scrollContainerStyle}>
@@ -93,7 +100,9 @@ const ScrollableContent: React.FC<{ children: React.ReactNode }> = ({
         })}
       />
       <div ref={scrollRef} className={panelContentStyle} onScroll={onScroll}>
-        {children}
+        <MountsScrolledContext value={mountsScrolled}>
+          {children}
+        </MountsScrolledContext>
       </div>
       <div
         className={scrollShadowStyle({
@@ -122,7 +131,7 @@ export const SubViewContent: React.FC<{
       inert={!visible}
       aria-hidden={!visible || undefined}
     >
-      <ScrollableContent>
+      <ScrollableContent scrollKey={`scroll:${subView.id}`}>
         <Component />
       </ScrollableContent>
     </div>

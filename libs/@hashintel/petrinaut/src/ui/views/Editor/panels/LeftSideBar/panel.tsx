@@ -11,11 +11,11 @@ import { CompositionContext } from "../../../../../react/state/composition-conte
 import { useEditorFields } from "../../../../../react/state/editor-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
+import { KeptState } from "../../../../components/kept-state";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { DockedPanel } from "../../shared/docked-panel";
 import { leftSidebarSubViews, searchSubView } from "./sub-views";
-import { CollapsedGroupsProvider } from "./subviews/entities-tree";
 import { SearchQueryProvider } from "./subviews/search-panel";
 
 const searchSubViews = [searchSubView];
@@ -99,10 +99,11 @@ export const LeftSideBar: React.FC = () => {
   });
 
   return (
-    // Above the panel, which unmounts when it closes: the text searched for
-    // and the collapsed groups are there when it opens again.
+    // Above the panel, which unmounts when it closes: the text searched for,
+    // the collapsed groups and the scroll offsets are there when it opens
+    // again.
     <SearchQueryProvider>
-      <CollapsedGroupsProvider>
+      <KeptState>
         <DockedPanel
           panel="leftSidebar"
           isOpen={isVisible}
@@ -139,7 +140,7 @@ export const LeftSideBar: React.FC = () => {
             </div>
           </div>
         </DockedPanel>
-      </CollapsedGroupsProvider>
+      </KeptState>
     </SearchQueryProvider>
   );
 };

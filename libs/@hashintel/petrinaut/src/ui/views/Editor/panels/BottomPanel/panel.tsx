@@ -23,6 +23,7 @@ import { usePanelPresence } from "../../../../../react/state/panel-presence-cont
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useUserSettings } from "../../../../../react/state/user-settings-context";
+import { KeptState } from "../../../../components/kept-state";
 import {
   HorizontalTabPanel,
   HorizontalTabsHeader,
@@ -188,53 +189,58 @@ export const BottomPanel: React.FC = () => {
   }, [activeTab, publishedEditor, renderedActiveTab, setActiveTab]);
 
   return (
-    <DockedPanel
-      panel="bottomPanel"
-      isOpen={isOpen}
-      className={glassPanelBaseStyle}
-      contentClassName={panelContainerStyle}
-      style={{ bottom: PANEL_MARGIN, right: PANEL_MARGIN }}
-      // The panel starts beside the left sidebar, as far as that is in view.
-      boundStyle={{
-        left: () =>
-          PANEL_MARGIN +
-          shown.leftSidebar.get() * (leftSidebarWidth.get() + PANEL_MARGIN),
-      }}
-    >
-      {/* Tab Header */}
-      <div className={headerStyle}>
-        <HorizontalTabsHeader
-          subViews={tabs}
-          activeTabId={renderedActiveTab}
-          onTabChange={(tabId) => setActiveTab(tabId as BottomPanelTab)}
-        />
-        <div className={headerRightStyle}>
-          {activePluginView?.headerAction}
-          {HeaderAction && <HeaderAction />}
-          {!isActualMode && (
-            <Button
-              size="xxs"
-              variant="ghost"
-              onClick={toggleBottomPanel}
-              aria-label="Close panel"
-              tooltip="Close panel"
-              iconName="close"
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Scrollable content: a plugin's, or the component of an own tab */}
-      <HorizontalTabPanel
-        // A new element between a plugin's tab and an own one, so the scroll
-        // offset of the one does not carry over to the other.
-        key={activePluginView ? "plugin" : "own"}
-        tabId={renderedActiveTab}
-        padded={!activeSubView?.noPadding}
+    // Above the panel, which unmounts when it closes: what the tab holds is
+    // there when the panel opens again. A tab starts afresh each time it is
+    // picked.
+    <KeptState scope={renderedActiveTab}>
+      <DockedPanel
+        panel="bottomPanel"
+        isOpen={isOpen}
+        className={glassPanelBaseStyle}
+        contentClassName={panelContainerStyle}
+        style={{ bottom: PANEL_MARGIN, right: PANEL_MARGIN }}
+        // The panel starts beside the left sidebar, as far as that is in view.
+        boundStyle={{
+          left: () =>
+            PANEL_MARGIN +
+            shown.leftSidebar.get() * (leftSidebarWidth.get() + PANEL_MARGIN),
+        }}
       >
-        {activePluginView?.content}
-        {Content && <Content />}
-      </HorizontalTabPanel>
-    </DockedPanel>
+        {/* Tab Header */}
+        <div className={headerStyle}>
+          <HorizontalTabsHeader
+            subViews={tabs}
+            activeTabId={renderedActiveTab}
+            onTabChange={(tabId) => setActiveTab(tabId as BottomPanelTab)}
+          />
+          <div className={headerRightStyle}>
+            {activePluginView?.headerAction}
+            {HeaderAction && <HeaderAction />}
+            {!isActualMode && (
+              <Button
+                size="xxs"
+                variant="ghost"
+                onClick={toggleBottomPanel}
+                aria-label="Close panel"
+                tooltip="Close panel"
+                iconName="close"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Scrollable content: a plugin's, or the component of an own tab */}
+        <HorizontalTabPanel
+          // A new element between a plugin's tab and an own one, so the
+          // scroll offset of the one does not carry over to the other.
+          key={activePluginView ? "plugin" : "own"}
+          tabId={renderedActiveTab}
+          padded={!activeSubView?.noPadding}
+        >
+          {activePluginView?.content}
+          {Content && <Content />}
+        </HorizontalTabPanel>
+      </DockedPanel>
+    </KeptState>
   );
 };

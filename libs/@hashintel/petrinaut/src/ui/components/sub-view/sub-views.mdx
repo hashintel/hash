@@ -45,6 +45,8 @@ A user collapses a section of the properties panel:
 3. A click on a header calls `updateSubViewSection`, which saves `collapsed` in `subViewPanels` of the [user settings](layer:react.state), under the container name and the section `id`. A resize saves `height` the same way, 300 ms after the last change.
 4. The collapsed section unmounts its content, unless `retainOnCollapse` is set and the section was opened before.
 
+A section and a bottom tab scroll their content. Under a `KeptState`, each keeps its scroll offset with `useKeptScroll`, a section by its `id`, and mounts at that offset again after it was unmounted with its panel. See [The editor shell](doc:ui.views.editor/editor-shell).
+
 Maximizing a section does not go through the settings. The container writes `expandedSubView`, with its `name` as `container`, to the [navigation state](layer:react.navigation), so Back and Forward restore it. Two containers with the same `name` would share saved state, so each panel uses its own.
 
 A plugin's `bottomPanelViews` entry never becomes a `SubView`. `usePluginBottomPanelViews` turns it into a tab with an `id`, a `title`, a `tooltip` and rendered `content`, and the bottom panel lists it after its own tabs. See [Writing a plugin](doc:ui.plugins/writing-a-plugin).

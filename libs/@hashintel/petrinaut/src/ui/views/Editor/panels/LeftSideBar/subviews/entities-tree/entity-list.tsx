@@ -10,9 +10,12 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
+import {
+  MountsScrolledContext,
+  useKeptState,
+} from "../../../../../../lib/kept-state";
 import { focusLands } from "../../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../../worksheet/use-focus-stops";
-import { CollapsedGroupsContext } from "./collapsed-groups-context";
 import { entitiesMountedFirst, selectionItemOf } from "./entity-groups";
 import { EmptyGroupRow, EntityRow, GroupRow } from "./entity-rows";
 
@@ -39,6 +42,8 @@ const groupChildrenStyle = css({
 
 /** The entities that mount with the list: at 33 px a row, what a sidebar 2,600 px high shows. */
 const firstMountLimit = 80;
+
+const noGroups: ReadonlySet<string> = new Set();
 
 type Row = EntityItem | EntityGroup;
 
@@ -83,7 +88,18 @@ export const EntityList: React.FC<{ groups: EntityGroup[] }> = ({ groups }) => {
   // Row elements are found by id, which this prefix keeps apart from the ids
   // of any other list.
   const listId = useId();
-  const { collapsedGroups, toggleGroup } = use(CollapsedGroupsContext);
+  // Kept while the sidebar is closed, which unmounts the list.
+  const [collapsedGroups, setCollapsedGroups] = useKeptState<
+    ReadonlySet<string>
+  >("collapsed-entity-groups", noGroups);
+  const toggleGroup = (groupId: string) =>
+    setCollapsedGroups((previous) => {
+      const next = new Set(previous);
+      if (!next.delete(groupId)) {
+        next.add(groupId);
+      }
+      return next;
+    });
   const [menuRows, showMenu] = useReducer(menuRowsAfter, {
     pointed: null,
     focused: null,
@@ -93,8 +109,9 @@ export const EntityList: React.FC<{ groups: EntityGroup[] }> = ({ groups }) => {
   // A long list mounts in two steps: every group header with the rows a
   // sidebar can show, then the other rows, in a render that React interrupts
   // for a frame. The rows of several hundred entities would otherwise hold
-  // back the frame in which the sidebar opens.
-  const mountsEveryRow = useDeferredValue(true, false);
+  // back the frame in which the sidebar opens. A list that opens scrolled
+  // shows rows from further down, so it mounts in one step.
+  const mountsEveryRow = useDeferredValue(true, use(MountsScrolledContext));
   const firstEntities = mountsEveryRow
     ? null
     : entitiesMountedFirst(groups, collapsedGroups, firstMountLimit);

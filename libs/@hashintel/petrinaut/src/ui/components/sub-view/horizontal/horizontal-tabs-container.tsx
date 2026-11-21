@@ -1,5 +1,9 @@
+import { useRef } from "react";
+
 import { HelpTooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
+
+import { useKeptScroll } from "../../../lib/kept-state";
 
 import type { SubView } from "../types";
 
@@ -169,18 +173,27 @@ export const HorizontalTabsHeader: React.FC<{
   );
 };
 
-/** The panel a tab controls: scrolled, and padded unless told otherwise. */
+/**
+ * The panel a tab controls: scrolled, and padded unless told otherwise. It
+ * keeps its scroll offset while it is unmounted.
+ */
 export const HorizontalTabPanel: React.FC<{
   tabId: string;
   padded?: boolean;
   children: React.ReactNode;
-}> = ({ tabId, padded = true, children }) => (
-  <div
-    id={`tabpanel-${tabId}`}
-    className={contentStyle({ padded })}
-    role="tabpanel"
-    aria-labelledby={`tab-${tabId}`}
-  >
-    {children}
-  </div>
-);
+}> = ({ tabId, padded = true, children }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useKeptScroll(scrollRef, "scroll:tab-panel");
+
+  return (
+    <div
+      ref={scrollRef}
+      id={`tabpanel-${tabId}`}
+      className={contentStyle({ padded })}
+      role="tabpanel"
+      aria-labelledby={`tab-${tabId}`}
+    >
+      {children}
+    </div>
+  );
+};

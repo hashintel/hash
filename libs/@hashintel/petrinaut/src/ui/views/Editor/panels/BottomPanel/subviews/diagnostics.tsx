@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { use } from "react";
 
 import { Banner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -7,6 +7,7 @@ import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
+import { useKeptState } from "../../../../../lib/kept-state";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation-context";
 import { useCompositionProblems } from "../../../shared/use-composition-problems";
 import { CompositionDiagnostics } from "./diagnostics/composition-diagnostics";
@@ -75,8 +76,10 @@ const DiagnosticsContent: React.FC = () => {
     errorItemId,
   } = use(SimulationContext);
   const compositionProblems = useCompositionProblems();
-  // Track collapsed entities (all expanded by default)
-  const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(
+  // The collapsed entities: none at first, and kept while the tab is
+  // unmounted.
+  const [collapsedEntities, setCollapsedEntities] = useKeptState<Set<string>>(
+    "collapsed-diagnostics",
     new Set(),
   );
 

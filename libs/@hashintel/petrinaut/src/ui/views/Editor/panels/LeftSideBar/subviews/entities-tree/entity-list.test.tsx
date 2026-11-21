@@ -16,7 +16,7 @@ import {
   EditorContext,
   EditorPublishedContext,
 } from "../../../../../../../react/state/editor-context";
-import { CollapsedGroupsProvider } from "../entities-tree";
+import { KeptState } from "../../../../../../components/kept-state";
 import { EntityList } from "./entity-list";
 
 import type { EditorContextValue } from "../../../../../../../react/state/editor-context";
@@ -90,9 +90,9 @@ const renderList = (groups: EntityGroup[]) => {
   const stub = makeSelectionStub();
   const view = render(
     <EditorContext value={stub.value}>
-      <CollapsedGroupsProvider>
+      <KeptState>
         <EntityList groups={groups} />
-      </CollapsedGroupsProvider>
+      </KeptState>
     </EditorContext>,
   );
   return { ...stub, view };
@@ -286,11 +286,11 @@ describe("entity list mounting", () => {
     };
     const tree = (
       <EditorContext value={makeSelectionStub().value}>
-        <CollapsedGroupsProvider>
+        <KeptState>
           <MountProbe key={mount} onMount={noteRows}>
             <EntityList groups={[nodes, types]} />
           </MountProbe>
-        </CollapsedGroupsProvider>
+        </KeptState>
       </EditorContext>
     );
     return { tree, rows };
