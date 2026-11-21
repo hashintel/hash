@@ -15,10 +15,6 @@ export const SNAP_GRID_SIZE = GRID_SIZE;
 // Panel margin (spacing around panels)
 export const PANEL_MARGIN = 0;
 
-// Resize handle of a floating window
-export const RESIZE_HANDLE_SIZE = 5;
-export const RESIZE_HANDLE_OFFSET = -Math.floor(RESIZE_HANDLE_SIZE / 2) - 1;
-
 // Left Sidebar (DEFAULT_LEFT_SIDEBAR_WIDTH lives in react/state/panel-defaults)
 export const MIN_LEFT_SIDEBAR_WIDTH = 220;
 export const MAX_LEFT_SIDEBAR_WIDTH = 500;
