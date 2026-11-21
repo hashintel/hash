@@ -42,6 +42,8 @@ The three panels are children of the canvas workspace, so they follow its row fi
 
 What stays of a closed panel is its dock: an empty element with `display: contents`, in the panel's place among the children of the canvas workspace.
 
+Opening a panel is measured by `benchmarks/monaco-performance/panel-mount.mjs`. Its header says what it reports.
+
 ## Data flow
 
 A user runs the command that toggles the bottom panel:
@@ -61,7 +63,7 @@ A user runs the command that toggles the bottom panel:
 
 **A command's `shortcut` string is display text.** The command registry binds no key. `useEditorCommands`, `UserSettings` and `useKeyboardShortcuts` each bind theirs in a `keydown` handler.
 
-**A panel mounts inside its dock, never straight beside the canvas.** The browser works out again the style of the element after an inserted element, and of the element after a removed one, with everything inside it: the design system has rules of the form `x + *`, which can match whatever follows any element. A panel inserted before the canvas costs a style recalculation of every node and arc, and its removal costs as much again. Inside the dock the panel has no element after it. The tests in `docked-panel.test.tsx` hold that a panel mounts inside the element that was there.
+**A panel mounts inside its dock, never straight beside the canvas.** The browser works out again the style of the element after an inserted element, and of the element after a removed one, with everything inside it: the design system has rules of the form `x + *`, which can match whatever follows any element. A panel inserted before the canvas costs a style recalculation of every node and arc, and its removal costs as much again. Inside the dock the panel has no element after it. [Editor performance on a large net](doc:editor-performance) has the numbers. The tests in `docked-panel.test.tsx` hold that a panel mounts inside the element that was there.
 
 **What a panel must remember while it is closed lives above its `DockedPanel`.** Closing a panel unmounts its content, and state held inside is gone when it opens again. `LeftSideBar` holds the text searched for and the collapsed groups of the entities tree in two providers around its `DockedPanel`. A section's collapsed state and height are in the user settings, and the bottom panel's tab is in the editor state. The scroll offset of a list, and state a tab of the bottom panel holds itself, start again when the panel opens.
 

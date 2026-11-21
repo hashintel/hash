@@ -69,6 +69,52 @@ drawer. In Simulation Settings on Supply Chain, typing a value is about as
 fast as before: the time left there is the simulation context, which renders
 the settings around the form on every key.
 
+## Closed panels
+
+A closed sidebar, Properties panel or bottom panel is not mounted. Its content
+mounts when it opens, inside an empty element that stays in the panel's place:
+see [The editor shell](doc:ui.views.editor/editor-shell). The table compares
+three builds on the same net. "Kept" leaves a closed panel mounted and out of
+view. "Beside the canvas" unmounts it and inserts it again as a sibling of the
+canvas. "In its dock" is the editor now. Each value is the median of five
+alternating rounds on the production build, from the press to the first frame
+that shows the panel.
+
+| Action                                                |  Kept | Beside the canvas | In its dock |
+| ----------------------------------------------------- | ----: | ----------------: | ----------: |
+| Open the left sidebar                                 | 19 ms |            186 ms |       41 ms |
+| The same, longest frame                               | 10 ms |            167 ms |       25 ms |
+| Close the left sidebar, longest frame                 | 10 ms |            133 ms |       10 ms |
+| Select a transition, which opens the Properties panel | 78 ms |            209 ms |       81 ms |
+| Deselect it, longest frame                            | 26 ms |            143 ms |       18 ms |
+| Open the bottom panel on Diagnostics                  | 22 ms |             25 ms |       24 ms |
+| Open the bottom panel on Simulation Settings          | 47 ms |             39 ms |       39 ms |
+| The same, until the form is complete                  | 47 ms |             83 ms |       86 ms |
+| Open the bottom panel on the Timeline of a run        | 26 ms |             80 ms |       66 ms |
+
+An element inserted before the canvas, or removed from there, makes the
+browser recalculate the style of the canvas: 130 ms of the 186 ms in the
+second column. The dock removes that cost. What is left is the mounting
+itself:
+
+- **The sidebar** renders one row per entity. It mounts the 80 a sidebar can
+  show with the panel and the others one render later, 99 ms after the press.
+- **Simulation Settings** with a scenario selected compiles the preview of
+  its initial state again each time it mounts. The form shows a notice for two
+  or three frames, and the frame that brings the rows takes 58 ms.
+- **The Timeline** draws its chart again: 40 ms more than a kept panel. The
+  options of its series dropdown mount when the dropdown opens, which takes
+  1,500 of 1,980 component renders out of the opening.
+
+On Supply Chain itself, 43 nodes, the three columns read 15, 28 and 17 ms for
+the sidebar and 36, 54 and 33 ms for the transition.
+
+With the sidebar and the bottom panel closed, the page of the 468-node net
+has 35,300 elements where it had 46,000, and its heap is 68 MiB where it was 78. A node dragged then renders 580 components and not 1,331: a closed
+Simulation Settings form no longer follows the net.
+
+`benchmarks/monaco-performance/panel-mount.mjs` measures these.
+
 ## Where the cost is now
 
 - **Selecting a node** still has one frame near 190 ms. Most of what renders
@@ -94,7 +140,9 @@ Each rule is written, with the test that holds it, in the guide of its layer.
 - Hover and the drag preview stay in the canvas and reach no panel:
   [The canvas](doc:ui.views.canvas/canvas).
 - A region that is mounted and not visible sits in a hidden `Activity` and
-  runs no effect: [The editor shell](doc:ui.views.editor/editor-shell).
+  runs no effect. A closed panel is not mounted, and a panel mounts inside
+  its dock, never as a sibling of the canvas:
+  [The editor shell](doc:ui.views.editor/editor-shell).
 - A panel's size is a Motion value, so a resize renders no component:
   [Panel geometry outside React state](doc:react.state/panel-sizes).
 - A value that changes on every frame is written on the element that uses it,
@@ -130,10 +178,15 @@ that uses every core moves the times by more than a change does.
 Each of these changes what the canvas draws or which library version it runs
 on, so none is part of the rules above.
 
+The Definitions view stays mounted in a hidden `Activity` while the canvas
+shows. On the 468-node net it holds 18,100 of the page's 42,800 elements and
+11 MiB of its 88 MiB heap, and the script time of the load is 595 ms with it
+and 469 ms without.
+
 | Change                                                        | What it would cost                                         |
 | ------------------------------------------------------------- | ---------------------------------------------------------- |
 | Draw simpler nodes when zoomed out                            | Labels and token counts disappear below a zoom level       |
 | Render only the nodes on screen (`onlyRenderVisibleElements`) | Nodes mount and unmount while panning                      |
 | Promote the viewport to its own layer (`will-change`)         | Text is rastered at one scale and blurs during a zoom      |
-| Mount the Definitions view on first use                       | Its first opening takes longer                             |
+| Mount the Definitions view when it shows                      | Each opening takes 294 ms where it takes 223 ms            |
 | Upgrade React Flow                                            | A behaviour check of every gesture against the new version |
