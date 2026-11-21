@@ -10,6 +10,7 @@ use super::{
 };
 use crate::{
     lexer::{ParseNumberErrorKind, StringError},
+    parser::recovery::Separators,
     span::Span,
     syntax_kind::SyntaxKind,
     syntax_kind_set::SyntaxKindSet,
@@ -108,18 +109,9 @@ impl LexerErrorKind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ArrayErrorKind {
     Empty,
-    LeadingCommas {
-        rest: Vec<TextRange>,
-        patch_range: Option<TextRange>,
-    },
-    TrailingCommas {
-        rest: Vec<TextRange>,
-        patch_range: Option<TextRange>,
-    },
-    ConsecutiveCommas {
-        rest: Vec<TextRange>,
-        patch_range: Option<TextRange>,
-    },
+    LeadingCommas(Separators),
+    TrailingCommas(Separators),
+    ConsecutiveCommas(Separators),
     LabeledArgumentMissingPrefix {
         actual: String,
     },
@@ -135,9 +127,9 @@ impl ArrayErrorKind {
     const fn category(&self) -> ArrayDiagnosticCategory {
         match self {
             Self::Empty => ArrayDiagnosticCategory::Empty,
-            Self::LeadingCommas { .. } => ArrayDiagnosticCategory::LeadingComma,
-            Self::TrailingCommas { .. } => ArrayDiagnosticCategory::TrailingComma,
-            Self::ConsecutiveCommas { .. } => ArrayDiagnosticCategory::ConsecutiveComma,
+            Self::LeadingCommas(_) => ArrayDiagnosticCategory::LeadingComma,
+            Self::TrailingCommas(_) => ArrayDiagnosticCategory::TrailingComma,
+            Self::ConsecutiveCommas(_) => ArrayDiagnosticCategory::ConsecutiveComma,
             Self::LabeledArgumentMissingPrefix { .. } => {
                 ArrayDiagnosticCategory::LabeledArgumentMissingPrefix
             }
@@ -155,20 +147,23 @@ impl ArrayErrorKind {
     ) -> array::ArrayDiagnostic {
         match self {
             Self::Empty => array::empty(primary),
-            Self::LeadingCommas { rest, patch_range } => {
-                let rest = insert_ranges(spans, rest);
-                let patch = patch_range.map(|span| insert_range(spans, span));
-                array::leading_commas(primary, &rest, patch)
+            Self::LeadingCommas(separators) => {
+                let patch = insert_range(spans, separators.range());
+                let rest = insert_ranges(spans, &separators.secondary);
+
+                array::leading_commas(primary, rest, patch)
             }
-            Self::TrailingCommas { rest, patch_range } => {
-                let rest = insert_ranges(spans, rest);
-                let patch = patch_range.map(|span| insert_range(spans, span));
-                array::trailing_commas(primary, &rest, patch)
+            Self::TrailingCommas(separators) => {
+                let patch = insert_range(spans, separators.range());
+                let rest = insert_ranges(spans, &separators.secondary);
+
+                array::trailing_commas(primary, rest, patch)
             }
-            Self::ConsecutiveCommas { rest, patch_range } => {
-                let rest = insert_ranges(spans, rest);
-                let patch = patch_range.map(|span| insert_range(spans, span));
-                array::consecutive_commas(primary, &rest, patch)
+            Self::ConsecutiveCommas(separators) => {
+                let patch = insert_range(spans, separators.range());
+                let rest = insert_ranges(spans, &separators.secondary);
+
+                array::consecutive_commas(primary, rest, patch)
             }
             Self::LabeledArgumentMissingPrefix { actual } => {
                 let insert_pos = range.start() + TextSize::new(1);
@@ -183,12 +178,13 @@ impl ArrayErrorKind {
                 count,
             } => {
                 let first_span = first_entry.map(|span| insert_range(spans, span));
-                let extra_spans = insert_ranges(spans, extra);
                 let split_span = split_comma.map(|span| insert_range(spans, span));
+                let extra_spans = insert_ranges(spans, extra);
+
                 array::labeled_arguments_length_mismatch(
                     primary,
                     first_span,
-                    &extra_spans,
+                    extra_spans,
                     split_span,
                     *count,
                 )
@@ -202,18 +198,9 @@ pub(crate) enum ObjectErrorKind {
     Empty {
         allow_type_annotations: bool,
     },
-    LeadingCommas {
-        rest: Vec<TextRange>,
-        patch_range: Option<TextRange>,
-    },
-    TrailingCommas {
-        rest: Vec<TextRange>,
-        patch_range: Option<TextRange>,
-    },
-    ConsecutiveCommas {
-        rest: Vec<TextRange>,
-        patch_range: Option<TextRange>,
-    },
+    LeadingCommas(Separators),
+    TrailingCommas(Separators),
+    ConsecutiveCommas(Separators),
     ConsecutiveColons {
         rest: Vec<TextRange>,
         patch_range: Option<TextRange>,
@@ -277,9 +264,9 @@ impl ObjectErrorKind {
     const fn category(&self) -> ObjectDiagnosticCategory {
         match self {
             Self::Empty { .. } => ObjectDiagnosticCategory::Empty,
-            Self::LeadingCommas { .. } => ObjectDiagnosticCategory::LeadingComma,
-            Self::TrailingCommas { .. } => ObjectDiagnosticCategory::TrailingComma,
-            Self::ConsecutiveCommas { .. } => ObjectDiagnosticCategory::ConsecutiveComma,
+            Self::LeadingCommas(_) => ObjectDiagnosticCategory::LeadingComma,
+            Self::TrailingCommas(_) => ObjectDiagnosticCategory::TrailingComma,
+            Self::ConsecutiveCommas(_) => ObjectDiagnosticCategory::ConsecutiveComma,
             Self::ConsecutiveColons { .. } => ObjectDiagnosticCategory::ConsecutiveColon,
             Self::UnknownKey { .. } => ObjectDiagnosticCategory::UnknownKey,
             Self::ConflictingConstructor { .. } => ObjectDiagnosticCategory::ConflictingConstructor,
@@ -309,7 +296,7 @@ impl ObjectErrorKind {
             Self::Empty {
                 allow_type_annotations,
             } => object::empty(primary, *allow_type_annotations),
-            Self::LeadingCommas { rest, patch_range } => {
+            Self::LeadingCommas(separators) => {
                 let rest = insert_ranges(spans, rest);
                 let patch = patch_range.map(|span| insert_range(spans, span));
                 object::leading_commas(primary, &rest, patch)
@@ -446,19 +433,6 @@ impl SyntaxError {
         JExprDiagnosticCategory::Parser(parser_category)
     }
 
-    /// Converts this syntax error into a [`JExprDiagnostic`] backed by `spans`.
-    pub fn to_diagnostic(&self, spans: &mut SpanTable<Span>) -> JExprDiagnostic {
-        self.to_diagnostic_with_heap(None, spans)
-    }
-
-    pub(crate) fn to_diagnostic_in(
-        &self,
-        heap: &Heap,
-        spans: &mut SpanTable<Span>,
-    ) -> JExprDiagnostic {
-        self.to_diagnostic_with_heap(Some(heap), spans)
-    }
-
     fn to_diagnostic_with_heap(
         &self,
         heap: Option<&Heap>,
@@ -478,5 +452,18 @@ impl SyntaxError {
                 .to_diagnostic(primary, heap, spans)
                 .map_category(wrap_object),
         }
+    }
+
+    /// Converts this syntax error into a [`JExprDiagnostic`] backed by `spans`.
+    pub fn to_diagnostic(&self, spans: &mut SpanTable<Span>) -> JExprDiagnostic {
+        self.to_diagnostic_with_heap(None, spans)
+    }
+
+    pub(crate) fn to_diagnostic_in(
+        &self,
+        heap: &Heap,
+        spans: &mut SpanTable<Span>,
+    ) -> JExprDiagnostic {
+        self.to_diagnostic_with_heap(Some(heap), spans)
     }
 }

@@ -10,8 +10,6 @@ use hashql_diagnostics::{
 
 use super::{ConstructorKind, format_backticked_or_list, suggest_similar};
 
-pub(crate) type ObjectDiagnostic<K = Critical> = Diagnostic<ObjectDiagnosticCategory, SpanId, K>;
-
 const LEADING_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "leading-comma",
     name: "Unexpected leading comma in object",
@@ -166,6 +164,8 @@ impl DiagnosticCategory for ObjectDiagnosticCategory {
         }
     }
 }
+
+pub(crate) type ObjectDiagnostic<K = Critical> = Diagnostic<ObjectDiagnosticCategory, SpanId, K>;
 
 const MAX_EXTRA_LABELS: usize = 2;
 

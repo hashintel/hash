@@ -92,6 +92,19 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
         parser::Parser::<parser::expr::ExprGrammar>::parse_cst(source)
     }
 
+    /// Lowers a parsed J-Expr CST into an arena-allocated HashQL [`Expr`].
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`hashql_diagnostics::Failure`] containing all lexical, syntactic, and
+    /// embedded-DSL diagnostics collected across the document.
+    pub fn lower_expr(
+        &mut self,
+        parse: &Document<cst::ExprRoot>,
+    ) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
+        lower::lower_expr(self.heap, self.spans, parse)
+    }
+
     /// Parses a J-Expr document and lowers it into an arena-allocated HashQL [`Expr`].
     ///
     /// # Errors
@@ -104,18 +117,5 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
     ) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
         let parse = Self::parse_expr_cst(source);
         self.lower_expr(&parse)
-    }
-
-    /// Lowers a parsed J-Expr CST into an arena-allocated HashQL [`Expr`].
-    ///
-    /// # Errors
-    ///
-    /// Returns a [`hashql_diagnostics::Failure`] containing all lexical, syntactic, and
-    /// embedded-DSL diagnostics collected across the document.
-    pub fn lower_expr(
-        &mut self,
-        parse: &Document<cst::ExprRoot>,
-    ) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
-        lower::lower_expr(self.heap, self.spans, parse)
     }
 }

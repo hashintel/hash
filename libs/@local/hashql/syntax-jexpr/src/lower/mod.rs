@@ -34,40 +34,27 @@ use crate::{
 
 mod constructor;
 
-pub(crate) fn lower_expr<'heap>(
-    heap: &'heap Heap,
-    spans: &mut SpanTable<Span>,
-    parse: &Document<cst::ExprRoot>,
-) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
-    let mut lowerer = Lowerer::new(heap, spans);
-
-    for error in parse.errors() {
-        let diagnostic = error
-            .to_diagnostic_in(lowerer.heap, lowerer.spans)
-            .generalize();
-        lowerer.push_diagnostic(diagnostic);
+fn precedes<'tree, First, Second>(first: Option<First>, second: Option<Second>) -> bool
+where
+    First: Node<'tree>,
+    Second: Node<'tree>,
+{
+    match (first, second) {
+        (Some(first), Some(second)) => first.offset() < second.offset(),
+        _ => false,
     }
+}
 
-    let root = parse.tree();
-    let expr = if let Some(item) = root.item() {
-        lowerer.lower_expr(item)
-    } else {
-        lowerer.check_orphaned_type_fields(root.syntax());
-        None
-    };
+const fn wrap_string(category: StringDiagnosticCategory) -> JExprDiagnosticCategory {
+    JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::String(category))
+}
 
-    if lowerer.diagnostics.is_empty() {
-        let expr = expr.expect("valid CST with no diagnostics must lower to an expression");
-        return Status::success(expr);
-    }
+const fn wrap_array(category: ArrayDiagnosticCategory) -> JExprDiagnosticCategory {
+    JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Array(category))
+}
 
-    if lowerer.diagnostics.critical() == 0 {
-        let expr =
-            expr.expect("valid CST with no critical diagnostics must lower to an expression");
-        return lowerer.diagnostics.into_status(expr);
-    }
-
-    Err(into_ordered_failure(lowerer.diagnostics, lowerer.spans))
+pub(crate) const fn wrap_object(category: ObjectDiagnosticCategory) -> JExprDiagnosticCategory {
+    JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Object(category))
 }
 
 // Orders accumulated diagnostics by primary span start offset so multi-phase errors appear in
@@ -135,15 +122,52 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
         self.spans.insert(Span::new(range), SpanAncestors::EMPTY)
     }
 
-    pub(crate) fn lower_expr(&mut self, expr: cst::Expr<'_>) -> Option<Expr<'heap>> {
-        match expr {
-            cst::Expr::Path(node) => self.lower_path(node),
-            cst::Expr::Call(node) => self.lower_call(node),
-            cst::Expr::Literal(node) => constructor::lower_literal(self, node),
-            cst::Expr::Struct(node) => constructor::lower_struct(self, node),
-            cst::Expr::Tuple(node) => constructor::lower_tuple(self, node),
-            cst::Expr::List(node) => constructor::lower_list(self, node),
-            cst::Expr::Dict(node) => constructor::lower_dict(self, node),
+    fn lower_type_field(
+        &mut self,
+        field: cst::TypeField<'_>,
+    ) -> Option<heap::Box<'heap, Type<'heap>>> {
+        let annotation = field.annotation()?;
+        let token = annotation.token()?;
+        let Ok(decoded) = token.decode() else {
+            return None;
+        };
+
+        let key_range = field.key().map(cst::Token::text_range);
+        let parent = self.insert_range(token.text_range());
+        match parse_type_from_string(
+            self.heap,
+            self.spans,
+            parent,
+            key_range,
+            token.text(),
+            &decoded,
+        ) {
+            Ok(r#type) => Some(Box::new_in(r#type, self.heap)),
+            Err(diagnostic) => {
+                self.diagnostics
+                    .push(diagnostic.map_category(wrap_string).generalize());
+                None
+            }
+        }
+    }
+
+    fn lower_optional_type(
+        &mut self,
+        type_field: Option<cst::TypeField<'_>>,
+    ) -> (Option<heap::Box<'heap, Type<'heap>>>, bool) {
+        type_field.map_or((None, true), |field| {
+            self.lower_type_field(field)
+                .map_or((None, false), |r#type| (Some(r#type), true))
+        })
+    }
+
+    fn check_orphaned_type_fields(&mut self, root: cst::SyntaxNodeData<'_>) {
+        for child in root.children() {
+            if child.kind() == SyntaxKind::JsonObject {
+                for field in child.child_nodes::<cst::TypeField<'_>>() {
+                    let _: Option<heap::Box<'heap, Type<'heap>>> = self.lower_type_field(field);
+                }
+            }
         }
     }
 
@@ -178,16 +202,6 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
         Some((primary, r#type))
     }
 
-    fn check_orphaned_type_fields(&mut self, root: cst::SyntaxNodeData<'_>) {
-        for child in root.children() {
-            if child.kind() == SyntaxKind::JsonObject {
-                for field in child.child_nodes::<cst::TypeField<'_>>() {
-                    let _: Option<heap::Box<'heap, Type<'heap>>> = self.lower_type_field(field);
-                }
-            }
-        }
-    }
-
     fn lower_path(&mut self, node: cst::PathExpr<'_>) -> Option<Expr<'heap>> {
         let token = node.token()?;
         let Ok(decoded) = token.decode() else {
@@ -204,69 +218,6 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
                 None
             }
         }
-    }
-
-    fn lower_call(&mut self, node: cst::CallExpr<'_>) -> Option<Expr<'heap>> {
-        let callee = node.callee().and_then(|expr| self.lower_expr(expr));
-
-        let mut arguments = Vec::new_in(self.heap);
-        let mut labeled_arguments = Vec::new_in(self.heap);
-        let mut ok = callee.is_some();
-
-        for arg in node.args() {
-            match arg {
-                cst::CallArg::Positional(pos) => {
-                    if let Some(expr) = pos.expr().and_then(|expr| self.lower_expr(expr)) {
-                        arguments.push(Argument {
-                            id: NodeId::PLACEHOLDER,
-                            span: expr.span,
-                            value: expr,
-                        });
-                    } else {
-                        ok = false;
-                    }
-                }
-                cst::CallArg::ShorthandLabeled(shorthand) => {
-                    if let Some(labeled) = self.lower_shorthand_labeled_arg(shorthand) {
-                        labeled_arguments.push(labeled);
-                    } else {
-                        ok = false;
-                    }
-                }
-                cst::CallArg::Labeled(labeled) => {
-                    let mut entry_count = 0_usize;
-                    for entry in labeled.entries() {
-                        entry_count += 1;
-                        if let Some(arg) = self.lower_labeled_arg_entry(entry) {
-                            labeled_arguments.push(arg);
-                        } else {
-                            ok = false;
-                        }
-                    }
-                    if entry_count != 1 {
-                        ok = false;
-                    }
-                }
-            }
-        }
-
-        let span = self.insert_range(node.text_range());
-        let function = callee?;
-        if !ok {
-            return None;
-        }
-
-        Some(Expr {
-            id: NodeId::PLACEHOLDER,
-            span,
-            kind: ExprKind::Call(CallExpr {
-                id: NodeId::PLACEHOLDER,
-                span,
-                function: Box::new_in(function, self.heap),
-                arguments,
-                labeled_arguments,
-            }),
-        })
     }
 
     fn lower_shorthand_labeled_arg(
@@ -379,65 +330,114 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
         })
     }
 
-    fn lower_type_field(
-        &mut self,
-        field: cst::TypeField<'_>,
-    ) -> Option<heap::Box<'heap, Type<'heap>>> {
-        let annotation = field.annotation()?;
-        let token = annotation.token()?;
-        let Ok(decoded) = token.decode() else {
-            return None;
-        };
+    fn lower_call(&mut self, node: cst::CallExpr<'_>) -> Option<Expr<'heap>> {
+        let callee = node.callee().and_then(|expr| self.lower_expr(expr));
 
-        let key_range = field.key().map(cst::Token::text_range);
-        let parent = self.insert_range(token.text_range());
-        match parse_type_from_string(
-            self.heap,
-            self.spans,
-            parent,
-            key_range,
-            token.text(),
-            &decoded,
-        ) {
-            Ok(r#type) => Some(Box::new_in(r#type, self.heap)),
-            Err(diagnostic) => {
-                self.diagnostics
-                    .push(diagnostic.map_category(wrap_string).generalize());
-                None
+        let mut arguments = Vec::new_in(self.heap);
+        let mut labeled_arguments = Vec::new_in(self.heap);
+        let mut ok = callee.is_some();
+
+        for arg in node.args() {
+            match arg {
+                cst::CallArg::Positional(pos) => {
+                    if let Some(expr) = pos.expr().and_then(|expr| self.lower_expr(expr)) {
+                        arguments.push(Argument {
+                            id: NodeId::PLACEHOLDER,
+                            span: expr.span,
+                            value: expr,
+                        });
+                    } else {
+                        ok = false;
+                    }
+                }
+                cst::CallArg::ShorthandLabeled(shorthand) => {
+                    if let Some(labeled) = self.lower_shorthand_labeled_arg(shorthand) {
+                        labeled_arguments.push(labeled);
+                    } else {
+                        ok = false;
+                    }
+                }
+                cst::CallArg::Labeled(labeled) => {
+                    let mut entry_count = 0_usize;
+                    for entry in labeled.entries() {
+                        entry_count += 1;
+                        if let Some(arg) = self.lower_labeled_arg_entry(entry) {
+                            labeled_arguments.push(arg);
+                        } else {
+                            ok = false;
+                        }
+                    }
+                    if entry_count != 1 {
+                        ok = false;
+                    }
+                }
             }
         }
-    }
 
-    fn lower_optional_type(
-        &mut self,
-        type_field: Option<cst::TypeField<'_>>,
-    ) -> (Option<heap::Box<'heap, Type<'heap>>>, bool) {
-        type_field.map_or((None, true), |field| {
-            self.lower_type_field(field)
-                .map_or((None, false), |r#type| (Some(r#type), true))
+        let span = self.insert_range(node.text_range());
+        let function = callee?;
+        if !ok {
+            return None;
+        }
+
+        Some(Expr {
+            id: NodeId::PLACEHOLDER,
+            span,
+            kind: ExprKind::Call(CallExpr {
+                id: NodeId::PLACEHOLDER,
+                span,
+                function: Box::new_in(function, self.heap),
+                arguments,
+                labeled_arguments,
+            }),
         })
     }
-}
 
-fn precedes<'tree, First, Second>(first: Option<First>, second: Option<Second>) -> bool
-where
-    First: Node<'tree>,
-    Second: Node<'tree>,
-{
-    match (first, second) {
-        (Some(first), Some(second)) => first.offset() < second.offset(),
-        _ => false,
+    pub(crate) fn lower_expr(&mut self, expr: cst::Expr<'_>) -> Option<Expr<'heap>> {
+        match expr {
+            cst::Expr::Path(node) => self.lower_path(node),
+            cst::Expr::Call(node) => self.lower_call(node),
+            cst::Expr::Literal(node) => constructor::lower_literal(self, node),
+            cst::Expr::Struct(node) => constructor::lower_struct(self, node),
+            cst::Expr::Tuple(node) => constructor::lower_tuple(self, node),
+            cst::Expr::List(node) => constructor::lower_list(self, node),
+            cst::Expr::Dict(node) => constructor::lower_dict(self, node),
+        }
     }
 }
 
-const fn wrap_string(category: StringDiagnosticCategory) -> JExprDiagnosticCategory {
-    JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::String(category))
-}
+pub(crate) fn lower_expr<'heap>(
+    heap: &'heap Heap,
+    spans: &mut SpanTable<Span>,
+    parse: &Document<cst::ExprRoot>,
+) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
+    let mut lowerer = Lowerer::new(heap, spans);
 
-const fn wrap_array(category: ArrayDiagnosticCategory) -> JExprDiagnosticCategory {
-    JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Array(category))
-}
+    for error in parse.errors() {
+        let diagnostic = error
+            .to_diagnostic_in(lowerer.heap, lowerer.spans)
+            .generalize();
+        lowerer.push_diagnostic(diagnostic);
+    }
 
-pub(crate) const fn wrap_object(category: ObjectDiagnosticCategory) -> JExprDiagnosticCategory {
-    JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Object(category))
+    let root = parse.tree();
+    let expr = if let Some(item) = root.item() {
+        lowerer.lower_expr(item)
+    } else {
+        lowerer.check_orphaned_type_fields(root.syntax());
+        None
+    };
+
+    if lowerer.diagnostics.is_empty() {
+        let expr = expr.expect("valid CST with no diagnostics must lower to an expression");
+        return Status::success(expr);
+    }
+
+    if lowerer.diagnostics.critical() == 0 {
+        let expr =
+            expr.expect("valid CST with no critical diagnostics must lower to an expression");
+        return lowerer.diagnostics.into_status(expr);
+    }
+
+    Err(into_ordered_failure(lowerer.diagnostics, lowerer.spans))
 }

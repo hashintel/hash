@@ -13,8 +13,6 @@ use winnow::error::{ContextError, StrContext, StrContextValue};
 
 use crate::span::Span;
 
-pub(crate) type StringDiagnostic<K = Critical> = Diagnostic<StringDiagnosticCategory, SpanId, K>;
-
 const INVALID_EXPR: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "invalid-expression",
     name: "Invalid string expression",
@@ -46,6 +44,13 @@ impl DiagnosticCategory for StringDiagnosticCategory {
             Self::InvalidType => Some(&INVALID_TYPE),
         }
     }
+}
+
+pub(crate) type StringDiagnostic<K = Critical> = Diagnostic<StringDiagnosticCategory, SpanId, K>;
+
+fn parse_hex4(bytes: &[u8]) -> Option<u16> {
+    let text = core::str::from_utf8(bytes).ok()?;
+    u16::from_str_radix(text, 16).ok()
 }
 
 /// Maps a byte offset inside a decoded JSON string back to its relative range inside `raw_quoted`.
@@ -126,11 +131,6 @@ pub(crate) fn raw_error_range(raw_quoted: &str, decoded: &str, decoded_offset: u
     }
 
     TextRange::empty(TextSize::new(content_end as u32))
-}
-
-fn parse_hex4(bytes: &[u8]) -> Option<u16> {
-    let text = core::str::from_utf8(bytes).ok()?;
-    u16::from_str_radix(text, 16).ok()
 }
 
 pub(crate) struct EmbeddedErrorParts {

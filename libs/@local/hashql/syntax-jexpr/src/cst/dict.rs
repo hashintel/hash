@@ -3,38 +3,53 @@ use core::fmt;
 use super::{Expr, Node, StringToken, SyntaxNode, SyntaxNodeData, TypeField, kind};
 use crate::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet};
 
-pub type Dict<'tree, T> = SyntaxNode<'tree, kind::Dict<T>>;
+pub type DictObjectEntry<'tree, T> = SyntaxNode<'tree, kind::DictObjectEntry<T>>;
 
-impl<'tree, T> Dict<'tree, T> {
-    #[must_use]
-    pub fn field(self) -> Option<DictField<'tree, T>> {
-        self.data.child_node()
-    }
-
-    #[must_use]
-    pub fn body(self) -> Option<DictBody<'tree, T>> {
-        self.field()?.body()
-    }
-}
-
-impl<'tree> Dict<'tree, Expr<'tree>> {
-    #[must_use]
-    pub fn type_field(self) -> Option<TypeField<'tree>> {
-        self.data.child_node()
-    }
-}
-
-pub type DictField<'tree, T> = SyntaxNode<'tree, kind::DictField<T>>;
-
-impl<'tree, T> DictField<'tree, T> {
+impl<'tree, T> DictObjectEntry<'tree, T> {
     #[must_use]
     pub fn key(self) -> Option<StringToken<'tree>> {
         self.data.first_token()
     }
+}
+
+impl<'tree, T: Node<'tree>> DictObjectEntry<'tree, T> {
+    #[must_use]
+    pub fn value(self) -> Option<T> {
+        self.data.child_node()
+    }
+}
+
+pub type DictObjectBody<'tree, T> = SyntaxNode<'tree, kind::DictObjectBody<T>>;
+
+impl<'tree, T: 'tree> DictObjectBody<'tree, T> {
+    pub fn entries(self) -> impl Iterator<Item = DictObjectEntry<'tree, T>> + 'tree {
+        self.data.child_nodes()
+    }
+}
+
+pub type DictArrayEntry<'tree, T> = SyntaxNode<'tree, kind::DictArrayEntry<T>>;
+
+impl<'tree, T: Node<'tree> + 'tree> DictArrayEntry<'tree, T> {
+    pub fn items(self) -> impl Iterator<Item = T> + 'tree {
+        self.data.child_nodes()
+    }
 
     #[must_use]
-    pub fn body(self) -> Option<DictBody<'tree, T>> {
-        self.data.child_node()
+    pub fn key(self) -> Option<T> {
+        self.items().next()
+    }
+
+    #[must_use]
+    pub fn value(self) -> Option<T> {
+        self.items().nth(1)
+    }
+}
+
+pub type DictArrayBody<'tree, T> = SyntaxNode<'tree, kind::DictArrayBody<T>>;
+
+impl<'tree, T: 'tree> DictArrayBody<'tree, T> {
+    pub fn entries(self) -> impl Iterator<Item = DictArrayEntry<'tree, T>> + 'tree {
+        self.data.child_nodes()
     }
 }
 
@@ -94,52 +109,37 @@ impl<T> PartialEq for DictBody<'_, T> {
 
 impl<T> Eq for DictBody<'_, T> {}
 
-pub type DictObjectBody<'tree, T> = SyntaxNode<'tree, kind::DictObjectBody<T>>;
+pub type DictField<'tree, T> = SyntaxNode<'tree, kind::DictField<T>>;
 
-impl<'tree, T: 'tree> DictObjectBody<'tree, T> {
-    pub fn entries(self) -> impl Iterator<Item = DictObjectEntry<'tree, T>> + 'tree {
-        self.data.child_nodes()
-    }
-}
-
-pub type DictObjectEntry<'tree, T> = SyntaxNode<'tree, kind::DictObjectEntry<T>>;
-
-impl<'tree, T> DictObjectEntry<'tree, T> {
+impl<'tree, T> DictField<'tree, T> {
     #[must_use]
     pub fn key(self) -> Option<StringToken<'tree>> {
         self.data.first_token()
     }
-}
 
-impl<'tree, T: Node<'tree>> DictObjectEntry<'tree, T> {
     #[must_use]
-    pub fn value(self) -> Option<T> {
+    pub fn body(self) -> Option<DictBody<'tree, T>> {
         self.data.child_node()
     }
 }
 
-pub type DictArrayBody<'tree, T> = SyntaxNode<'tree, kind::DictArrayBody<T>>;
+pub type Dict<'tree, T> = SyntaxNode<'tree, kind::Dict<T>>;
 
-impl<'tree, T: 'tree> DictArrayBody<'tree, T> {
-    pub fn entries(self) -> impl Iterator<Item = DictArrayEntry<'tree, T>> + 'tree {
-        self.data.child_nodes()
+impl<'tree, T> Dict<'tree, T> {
+    #[must_use]
+    pub fn field(self) -> Option<DictField<'tree, T>> {
+        self.data.child_node()
+    }
+
+    #[must_use]
+    pub fn body(self) -> Option<DictBody<'tree, T>> {
+        self.field()?.body()
     }
 }
 
-pub type DictArrayEntry<'tree, T> = SyntaxNode<'tree, kind::DictArrayEntry<T>>;
-
-impl<'tree, T: Node<'tree> + 'tree> DictArrayEntry<'tree, T> {
-    pub fn items(self) -> impl Iterator<Item = T> + 'tree {
-        self.data.child_nodes()
-    }
-
+impl<'tree> Dict<'tree, Expr<'tree>> {
     #[must_use]
-    pub fn key(self) -> Option<T> {
-        self.items().next()
-    }
-
-    #[must_use]
-    pub fn value(self) -> Option<T> {
-        self.items().nth(1)
+    pub fn type_field(self) -> Option<TypeField<'tree>> {
+        self.data.child_node()
     }
 }

@@ -20,37 +20,6 @@ const VALID_ESCAPES_NOTE: &str =
 const CONTROL_CHAR_NOTE: &str =
     "ASCII control characters (`0x00` through `0x1F`) must be escaped in JSON strings";
 
-pub(crate) fn from_string_error(
-    error: StringError,
-    span: SpanId,
-    context: &StringErrorContext,
-    spans: &mut SpanTable<Span>,
-) -> LexerDiagnostic {
-    match error {
-        StringError::Control => control_char_error(span, context.control_byte),
-        StringError::Escape(escape) => escape_error(escape, span, context, spans),
-        StringError::Eof => {
-            let mut diagnostic =
-                Diagnostic::new(LexerDiagnosticCategory::InvalidString, Critical::ERROR).primary(
-                    Label::new(span, "expected closing `\"` before end of input"),
-                );
-            let open_span = insert_range(spans, context.open_quote);
-            diagnostic.add_label(Label::new(open_span, "string started here"));
-            let suggestion = Suggestions::patch(Patch::new(span, "\""));
-            diagnostic
-                .add_message(Message::help("add a closing quote").with_suggestions(suggestion));
-            diagnostic
-        }
-        StringError::Utf8(err) => {
-            let mut diagnostic =
-                Diagnostic::new(LexerDiagnosticCategory::InvalidString, Critical::ERROR)
-                    .primary(Label::new(span, "invalid UTF-8 sequence in string literal"));
-            diagnostic.add_message(Message::note(err.to_string()));
-            diagnostic
-        }
-    }
-}
-
 fn control_char_error(span: SpanId, byte: Option<u8>) -> LexerDiagnostic {
     let (label, help_text, replacement): (Cow<'static, str>, Cow<'static, str>, Cow<'static, str>) =
         match byte {
@@ -106,6 +75,51 @@ fn control_char_error(span: SpanId, byte: Option<u8>) -> LexerDiagnostic {
     }
 
     diagnostic.add_message(Message::note(CONTROL_CHAR_NOTE));
+    diagnostic
+}
+
+fn expected_low_surrogate(
+    span: SpanId,
+    context: &StringErrorContext,
+    spans: &mut SpanTable<Span>,
+) -> LexerDiagnostic {
+    let mut diagnostic = context.high_surrogate.map_or_else(
+        || {
+            let label = context.invalid_unit.map_or_else(
+                || Cow::Borrowed("unpaired high surrogate escape"),
+                |unit| Cow::Owned(format!(r"unpaired high surrogate `\u{unit:04X}`")),
+            );
+            let mut diagnostic =
+                Diagnostic::new(LexerDiagnosticCategory::InvalidString, Critical::ERROR)
+                    .primary(Label::new(span, label));
+            diagnostic.add_message(Message::help(
+                r"follow the high surrogate with a low surrogate escape (`\uDC00`..`\uDFFF`)",
+            ));
+            diagnostic
+        },
+        |high_range| {
+            let found = context.invalid_unit.map_or_else(
+                || Cow::Borrowed(r"expected low surrogate (`\uDC00`..`\uDFFF`)"),
+                |unit| {
+                    Cow::Owned(format!(
+                        r"expected low surrogate (`\uDC00`..`\uDFFF`), found `\u{unit:04X}`"
+                    ))
+                },
+            );
+            let mut diagnostic =
+                Diagnostic::new(LexerDiagnosticCategory::InvalidString, Critical::ERROR)
+                    .primary(Label::new(span, found));
+            let high_span = insert_range(spans, high_range);
+            diagnostic.add_label(Label::new(high_span, "high surrogate started here"));
+            diagnostic.add_message(Message::help(
+                r"replace with a low surrogate escape in `\uDC00`..`\uDFFF`",
+            ));
+            diagnostic
+        },
+    );
+    diagnostic.add_message(Message::note(
+        "UTF-16 high surrogates must be paired with a low surrogate",
+    ));
     diagnostic
 }
 
@@ -214,49 +228,35 @@ fn escape_error(
     }
 }
 
-fn expected_low_surrogate(
+pub(crate) fn from_string_error(
+    error: StringError,
     span: SpanId,
     context: &StringErrorContext,
     spans: &mut SpanTable<Span>,
 ) -> LexerDiagnostic {
-    let mut diagnostic = context.high_surrogate.map_or_else(
-        || {
-            let label = context.invalid_unit.map_or_else(
-                || Cow::Borrowed("unpaired high surrogate escape"),
-                |unit| Cow::Owned(format!(r"unpaired high surrogate `\u{unit:04X}`")),
-            );
+    match error {
+        StringError::Control => control_char_error(span, context.control_byte),
+        StringError::Escape(escape) => escape_error(escape, span, context, spans),
+        StringError::Eof => {
+            let mut diagnostic =
+                Diagnostic::new(LexerDiagnosticCategory::InvalidString, Critical::ERROR).primary(
+                    Label::new(span, "expected closing `\"` before end of input"),
+                );
+            let open_span = insert_range(spans, context.open_quote);
+            diagnostic.add_label(Label::new(open_span, "string started here"));
+            let suggestion = Suggestions::patch(Patch::new(span, "\""));
+            diagnostic
+                .add_message(Message::help("add a closing quote").with_suggestions(suggestion));
+            diagnostic
+        }
+        StringError::Utf8(err) => {
             let mut diagnostic =
                 Diagnostic::new(LexerDiagnosticCategory::InvalidString, Critical::ERROR)
-                    .primary(Label::new(span, label));
-            diagnostic.add_message(Message::help(
-                r"follow the high surrogate with a low surrogate escape (`\uDC00`..`\uDFFF`)",
-            ));
+                    .primary(Label::new(span, "invalid UTF-8 sequence in string literal"));
+            diagnostic.add_message(Message::note(err.to_string()));
             diagnostic
-        },
-        |high_range| {
-            let found = context.invalid_unit.map_or_else(
-                || Cow::Borrowed(r"expected low surrogate (`\uDC00`..`\uDFFF`)"),
-                |unit| {
-                    Cow::Owned(format!(
-                        r"expected low surrogate (`\uDC00`..`\uDFFF`), found `\u{unit:04X}`"
-                    ))
-                },
-            );
-            let mut diagnostic =
-                Diagnostic::new(LexerDiagnosticCategory::InvalidString, Critical::ERROR)
-                    .primary(Label::new(span, found));
-            let high_span = insert_range(spans, high_range);
-            diagnostic.add_label(Label::new(high_span, "high surrogate started here"));
-            diagnostic.add_message(Message::help(
-                r"replace with a low surrogate escape in `\uDC00`..`\uDFFF`",
-            ));
-            diagnostic
-        },
-    );
-    diagnostic.add_message(Message::note(
-        "UTF-16 high surrogates must be paired with a low surrogate",
-    ));
-    diagnostic
+        }
+    }
 }
 
 pub(crate) fn single_quoted_string(span: SpanId, replacement: Option<&str>) -> LexerDiagnostic {

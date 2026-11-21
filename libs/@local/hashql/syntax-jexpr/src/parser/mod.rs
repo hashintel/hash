@@ -173,6 +173,12 @@ impl<'source, G: Grammar> Parser<'source, G> {
         token
     }
 
+    pub(crate) fn try_bump(&mut self, expected: SyntaxKind) -> Option<ScannedToken<'source>> {
+        self.current()
+            .is_some_and(|token| token.kind == expected)
+            .then(|| self.bump_any())
+    }
+
     /// Emits the current non-trivia token into the green builder, asserting it matches `expected`.
     ///
     /// # Panics

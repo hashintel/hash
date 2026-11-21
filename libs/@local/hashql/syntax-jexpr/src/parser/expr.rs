@@ -13,97 +13,6 @@ use crate::{
 
 pub(crate) struct ExprGrammar;
 
-impl Grammar for ExprGrammar {
-    type Root = cst::ExprRoot;
-
-    const ALLOW_TYPE_ANNOTATIONS: bool = true;
-    const ITEM_FIRST: SyntaxKindSet = SyntaxKindSet::from_slice(&[T![string], T!['['], T!['{']]);
-
-    fn parse_item(parser: &mut Parser<'_, Self>) {
-        parse_expr(parser);
-    }
-}
-
-pub(crate) fn parse_expr(parser: &mut Parser<'_, ExprGrammar>) {
-    let Some(token) = parser.current() else {
-        parser.record_eof(ExprGrammar::ITEM_FIRST, EofContext::Document);
-        return;
-    };
-
-    if token.kind == T![string] {
-        parser.start_node(SyntaxKind::PathExpr);
-        parser.bump(T![string]);
-        parser.finish_node();
-    } else if token.kind == T!['['] {
-        parse_call(parser);
-    } else if token.kind == T!['{'] {
-        object::parse_object(parser);
-    } else {
-        recovery::recover_unexpected_item(parser);
-    }
-}
-
-fn parse_call(parser: &mut Parser<'_, ExprGrammar>) {
-    parser.start_node(SyntaxKind::CallExpr);
-    let open = parser.bump(T!['[']).range;
-    let err_start = parser.error_count();
-
-    let mut count = 0_usize;
-    loop {
-        match recovery::next_array_element(parser, open, count, |kind| {
-            ExprGrammar::ITEM_FIRST.contains(kind)
-        }) {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item { .. } => {
-                if count == 0 {
-                    parse_expr(parser);
-                } else {
-                    parse_call_arg(parser);
-                }
-                count += 1;
-            }
-        }
-    }
-
-    if count == 0 && parser.error_count() == err_start {
-        let range = TextRange::new(open.start(), parser.last_token_end());
-        parser.error(range, SyntaxErrorKind::Array(ArrayErrorKind::Empty));
-    }
-
-    parser.finish_node();
-}
-
-fn parse_call_arg(parser: &mut Parser<'_, ExprGrammar>) {
-    let Some(first) = parser.current() else {
-        return;
-    };
-
-    // Shorthand labeled argument: `":label"`, excluding rooted paths starting with `"::"`.
-    if let Some(decoded) = first.decode_string()
-        && decoded.starts_with(':')
-        && !decoded.starts_with("::")
-    {
-        parser.start_node(SyntaxKind::ShorthandLabeledArg);
-        parser.bump(T![string]);
-        parser.finish_node();
-        return;
-    }
-
-    // Object-form labeled argument: LL(2) check for `{` followed by a `":..."` key string.
-    if first.kind == T!['{']
-        && let Some(second) = parser.peek2()
-        && let Some(decoded) = second.decode_string()
-        && decoded.starts_with(':')
-    {
-        parse_labeled_arg(parser);
-        return;
-    }
-
-    parser.start_node(SyntaxKind::PositionalArg);
-    parse_expr(parser);
-    parser.finish_node();
-}
-
 fn parse_labeled_arg(parser: &mut Parser<'_, ExprGrammar>) {
     parser.start_node(SyntaxKind::LabeledArg);
     let open = parser.bump(T!['{']).range;
@@ -190,4 +99,95 @@ fn parse_labeled_arg(parser: &mut Parser<'_, ExprGrammar>) {
     }
 
     parser.finish_node();
+}
+
+fn parse_call_arg(parser: &mut Parser<'_, ExprGrammar>) {
+    let Some(first) = parser.current() else {
+        return;
+    };
+
+    // Shorthand labeled argument: `":label"`, excluding rooted paths starting with `"::"`.
+    if let Some(decoded) = first.decode_string()
+        && decoded.starts_with(':')
+        && !decoded.starts_with("::")
+    {
+        parser.start_node(SyntaxKind::ShorthandLabeledArg);
+        parser.bump(T![string]);
+        parser.finish_node();
+        return;
+    }
+
+    // Object-form labeled argument: LL(2) check for `{` followed by a `":..."` key string.
+    if first.kind == T!['{']
+        && let Some(second) = parser.peek2()
+        && let Some(decoded) = second.decode_string()
+        && decoded.starts_with(':')
+    {
+        parse_labeled_arg(parser);
+        return;
+    }
+
+    parser.start_node(SyntaxKind::PositionalArg);
+    parse_expr(parser);
+    parser.finish_node();
+}
+
+fn parse_call(parser: &mut Parser<'_, ExprGrammar>) {
+    parser.start_node(SyntaxKind::CallExpr);
+    let open = parser.bump(T!['[']).range;
+    let err_start = parser.error_count();
+
+    let mut count = 0_usize;
+    loop {
+        match recovery::next_array_element(parser, open, count, |kind| {
+            ExprGrammar::ITEM_FIRST.contains(kind)
+        }) {
+            ContainerStep::Closed | ContainerStep::Aborted => break,
+            ContainerStep::Item { .. } => {
+                if count == 0 {
+                    parse_expr(parser);
+                } else {
+                    parse_call_arg(parser);
+                }
+                count += 1;
+            }
+        }
+    }
+
+    if count == 0 && parser.error_count() == err_start {
+        let range = TextRange::new(open.start(), parser.last_token_end());
+        parser.error(range, SyntaxErrorKind::Array(ArrayErrorKind::Empty));
+    }
+
+    parser.finish_node();
+}
+
+pub(crate) fn parse_expr(parser: &mut Parser<'_, ExprGrammar>) {
+    let Some(token) = parser.current() else {
+        parser.record_eof(ExprGrammar::ITEM_FIRST, EofContext::Document);
+        return;
+    };
+
+    if token.kind == T![string] {
+        parser.start_node(SyntaxKind::PathExpr);
+        parser.bump(T![string]);
+        parser.finish_node();
+    } else if token.kind == T!['['] {
+        parse_call(parser);
+    } else if token.kind == T!['{'] {
+        object::parse_object(parser);
+    } else {
+        recovery::recover_unexpected_item(parser);
+    }
+}
+
+impl Grammar for ExprGrammar {
+    type Root = cst::ExprRoot;
+
+    const ALLOW_TYPE_ANNOTATIONS: bool = true;
+    const ITEM_FIRST: SyntaxKindSet = SyntaxKindSet::from_slice(&[T![string], T!['['], T!['{']]);
+
+    fn parse_item(parser: &mut Parser<'_, Self>) {
+        parse_expr(parser);
+    }
 }

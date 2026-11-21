@@ -22,8 +22,6 @@ use crate::{
     syntax_kind_set::{Conjunction, SyntaxKindSet},
 };
 
-pub(crate) type LexerDiagnostic<K = Critical> = Diagnostic<LexerDiagnosticCategory, SpanId, K>;
-
 const INVALID_STRING: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "invalid-string",
     name: "Invalid string literal",
@@ -93,6 +91,8 @@ impl DiagnosticCategory for LexerDiagnosticCategory {
         }
     }
 }
+
+pub(crate) type LexerDiagnostic<K = Critical> = Diagnostic<LexerDiagnosticCategory, SpanId, K>;
 
 pub(crate) fn from_unrecognized_character_error(span: SpanId, character: char) -> LexerDiagnostic {
     let label = if character.is_control() || character == '`' {
@@ -177,6 +177,23 @@ pub(crate) fn unterminated_block_comment(span: SpanId, eof_span: SpanId) -> Lexe
         Message::help("add `*/` to close the block comment").with_suggestions(suggestion),
     );
     diagnostic
+}
+
+const fn field_value_eof_help(constructor: Option<ConstructorKind>) -> &'static str {
+    match constructor {
+        Some(ConstructorKind::Literal) => {
+            "add a primitive literal value such as `42`, `\"text\"`, `true`, or `null`"
+        }
+        Some(ConstructorKind::Struct) => "add a struct body object such as `{\"field\": value}`",
+        Some(ConstructorKind::Tuple | ConstructorKind::List) => {
+            "add an array of elements such as `[elem1, elem2]`"
+        }
+        Some(ConstructorKind::Dict) => {
+            "add an object `{\"key\": value}` or an array of pairs `[[key, value]]`"
+        }
+        Some(ConstructorKind::Type) => "add a type annotation string such as `\"Int\"`",
+        None => "add a value for this field",
+    }
 }
 
 const MAX_UNCLOSED_LABELS: usize = 3;
@@ -285,21 +302,47 @@ pub(crate) fn unexpected_eof(
     }
 }
 
-const fn field_value_eof_help(constructor: Option<ConstructorKind>) -> &'static str {
-    match constructor {
-        Some(ConstructorKind::Literal) => {
-            "add a primitive literal value such as `42`, `\"text\"`, `true`, or `null`"
-        }
-        Some(ConstructorKind::Struct) => "add a struct body object such as `{\"field\": value}`",
-        Some(ConstructorKind::Tuple | ConstructorKind::List) => {
-            "add an array of elements such as `[elem1, elem2]`"
-        }
-        Some(ConstructorKind::Dict) => {
-            "add an object `{\"key\": value}` or an array of pairs `[[key, value]]`"
-        }
-        Some(ConstructorKind::Type) => "add a type annotation string such as `\"Int\"`",
-        None => "add a value for this field",
+fn unexpected_token_general(
+    span: SpanId,
+    found: SyntaxKind,
+    expected: SyntaxKindSet,
+) -> LexerDiagnostic {
+    let label = if expected.is_empty() || expected.is_complete() {
+        format!("unexpected {found}")
+    } else {
+        format!(
+            "expected {}, found {found}",
+            expected.display(Some(Conjunction::Or))
+        )
+    };
+
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedToken, Critical::ERROR)
+        .primary(Label::new(span, label));
+
+    if found == SyntaxKind::Colon && !expected.contains(SyntaxKind::Colon) {
+        diagnostic.add_message(Message::help("remove the unexpected `:`"));
+        diagnostic.add_message(Message::note(
+            "colons separate keys from values inside objects",
+        ));
+    } else if found == SyntaxKind::Comma && !expected.contains(SyntaxKind::Comma) {
+        diagnostic.add_message(Message::help("remove the unexpected `,`"));
+        diagnostic.add_message(Message::note(
+            "commas separate elements in arrays and entries in objects",
+        ));
+    } else if expected.contains_closing_delimiter() {
+        diagnostic.add_message(Message::help(
+            "close the enclosing container or check for a missing separator",
+        ));
+    } else if expected.contains_value() {
+        diagnostic.add_message(Message::help(
+            "provide a valid JSON value such as a string, number, boolean, `null`, object, or \
+             array",
+        ));
+    } else {
+        // The primary label already names the exact expected tokens.
     }
+
+    diagnostic
 }
 
 pub(crate) fn unexpected_token(
@@ -403,47 +446,4 @@ pub(crate) fn unexpected_token(
         }
         UnexpectedTokenContext::General => unexpected_token_general(span, found, expected),
     }
-}
-
-fn unexpected_token_general(
-    span: SpanId,
-    found: SyntaxKind,
-    expected: SyntaxKindSet,
-) -> LexerDiagnostic {
-    let label = if expected.is_empty() || expected.is_complete() {
-        format!("unexpected {found}")
-    } else {
-        format!(
-            "expected {}, found {found}",
-            expected.display(Some(Conjunction::Or))
-        )
-    };
-
-    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedToken, Critical::ERROR)
-        .primary(Label::new(span, label));
-
-    if found == SyntaxKind::Colon && !expected.contains(SyntaxKind::Colon) {
-        diagnostic.add_message(Message::help("remove the unexpected `:`"));
-        diagnostic.add_message(Message::note(
-            "colons separate keys from values inside objects",
-        ));
-    } else if found == SyntaxKind::Comma && !expected.contains(SyntaxKind::Comma) {
-        diagnostic.add_message(Message::help("remove the unexpected `,`"));
-        diagnostic.add_message(Message::note(
-            "commas separate elements in arrays and entries in objects",
-        ));
-    } else if expected.contains_closing_delimiter() {
-        diagnostic.add_message(Message::help(
-            "close the enclosing container or check for a missing separator",
-        ));
-    } else if expected.contains_value() {
-        diagnostic.add_message(Message::help(
-            "provide a valid JSON value such as a string, number, boolean, `null`, object, or \
-             array",
-        ));
-    } else {
-        // The primary label already names the exact expected tokens.
-    }
-
-    diagnostic
 }

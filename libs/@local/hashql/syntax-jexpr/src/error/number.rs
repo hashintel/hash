@@ -20,49 +20,6 @@ fn is_complete_json_number(candidate: &str) -> bool {
     Number::parse(candidate.as_bytes()).is_ok_and(|num| num.as_str().len() == candidate.len())
 }
 
-pub(crate) fn from_number_error(
-    error: ParseNumberErrorKind,
-    error_range: TextRange,
-    token_range: TextRange,
-    raw: &str,
-    spans: &mut SpanTable<Span>,
-) -> LexerDiagnostic {
-    let base = token_range.start();
-
-    if let Some(rest) = raw.strip_prefix('+') {
-        return leading_plus_number_error(base, rest, spans);
-    }
-
-    if raw.starts_with('.') {
-        return leading_dot_number_error(base, raw, spans);
-    }
-
-    let rel_pos =
-        usize::from(error_range.start().checked_sub(base).unwrap_or_default()).min(raw.len());
-
-    match error {
-        ParseNumberErrorKind::UnexpectedDigit(_) => leading_zero_number_error(base, raw, spans),
-        ParseNumberErrorKind::UnexpectedDot => {
-            unexpected_dot_number_error(base, rel_pos, error_range, raw, spans)
-        }
-        ParseNumberErrorKind::UnexpectedExponent => {
-            unexpected_exponent_number_error(base, rel_pos, error_range, raw, spans)
-        }
-        ParseNumberErrorKind::ExpectedDigit => {
-            expected_digit_number_error(rel_pos, error_range, raw, spans)
-        }
-        ParseNumberErrorKind::UnexpectedEof => {
-            let span = insert_range(spans, error_range);
-            let mut diagnostic =
-                Diagnostic::new(LexerDiagnosticCategory::InvalidNumber, Critical::ERROR).primary(
-                    Label::new(span, "unexpected end of input in number literal"),
-                );
-            diagnostic.add_message(Message::note(NUMBER_FORMAT_NOTE));
-            diagnostic
-        }
-    }
-}
-
 fn leading_plus_number_error(
     base: TextSize,
     rest: &str,
@@ -292,4 +249,47 @@ fn expected_digit_number_error(
     diagnostic.add_message(Message::help(help));
     diagnostic.add_message(Message::note(NUMBER_FORMAT_NOTE));
     diagnostic
+}
+
+pub(crate) fn from_number_error(
+    error: ParseNumberErrorKind,
+    error_range: TextRange,
+    token_range: TextRange,
+    raw: &str,
+    spans: &mut SpanTable<Span>,
+) -> LexerDiagnostic {
+    let base = token_range.start();
+
+    if let Some(rest) = raw.strip_prefix('+') {
+        return leading_plus_number_error(base, rest, spans);
+    }
+
+    if raw.starts_with('.') {
+        return leading_dot_number_error(base, raw, spans);
+    }
+
+    let rel_pos =
+        usize::from(error_range.start().checked_sub(base).unwrap_or_default()).min(raw.len());
+
+    match error {
+        ParseNumberErrorKind::UnexpectedDigit(_) => leading_zero_number_error(base, raw, spans),
+        ParseNumberErrorKind::UnexpectedDot => {
+            unexpected_dot_number_error(base, rel_pos, error_range, raw, spans)
+        }
+        ParseNumberErrorKind::UnexpectedExponent => {
+            unexpected_exponent_number_error(base, rel_pos, error_range, raw, spans)
+        }
+        ParseNumberErrorKind::ExpectedDigit => {
+            expected_digit_number_error(rel_pos, error_range, raw, spans)
+        }
+        ParseNumberErrorKind::UnexpectedEof => {
+            let span = insert_range(spans, error_range);
+            let mut diagnostic =
+                Diagnostic::new(LexerDiagnosticCategory::InvalidNumber, Critical::ERROR).primary(
+                    Label::new(span, "unexpected end of input in number literal"),
+                );
+            diagnostic.add_message(Message::note(NUMBER_FORMAT_NOTE));
+            diagnostic
+        }
+    }
 }

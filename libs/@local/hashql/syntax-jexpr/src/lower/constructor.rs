@@ -14,25 +14,6 @@ use crate::{
     error::constructor,
 };
 
-pub(crate) fn lower_literal<'heap>(
-    lowerer: &mut Lowerer<'heap, '_>,
-    node: cst::Literal<'_>,
-) -> Option<Expr<'heap>> {
-    let (mut literal, r#type) =
-        lowerer.lower_typed_pair(node.type_field(), node.field(), |lowerer, field| {
-            let value = field.value()?;
-            lower_literal_value(lowerer, value)
-        })?;
-    literal.r#type = r#type;
-
-    let span = lowerer.insert_range(node.text_range());
-    Some(Expr {
-        id: NodeId::PLACEHOLDER,
-        span,
-        kind: ExprKind::Literal(literal),
-    })
-}
-
 fn lower_literal_value<'heap>(
     lowerer: &mut Lowerer<'heap, '_>,
     value: cst::LiteralValue<'_>,
@@ -65,22 +46,22 @@ fn lower_literal_value<'heap>(
     })
 }
 
-pub(crate) fn lower_struct<'heap>(
+pub(crate) fn lower_literal<'heap>(
     lowerer: &mut Lowerer<'heap, '_>,
-    node: cst::Struct<'_, cst::Expr<'_>>,
+    node: cst::Literal<'_>,
 ) -> Option<Expr<'heap>> {
-    let (mut struct_expr, r#type) =
+    let (mut literal, r#type) =
         lowerer.lower_typed_pair(node.type_field(), node.field(), |lowerer, field| {
-            let body = field.body()?;
-            lower_struct_body(lowerer, body)
+            let value = field.value()?;
+            lower_literal_value(lowerer, value)
         })?;
-    struct_expr.r#type = r#type;
+    literal.r#type = r#type;
 
     let span = lowerer.insert_range(node.text_range());
     Some(Expr {
         id: NodeId::PLACEHOLDER,
         span,
-        kind: ExprKind::Struct(struct_expr),
+        kind: ExprKind::Literal(literal),
     })
 }
 
@@ -145,22 +126,22 @@ fn lower_struct_body<'heap>(
     })
 }
 
-pub(crate) fn lower_tuple<'heap>(
+pub(crate) fn lower_struct<'heap>(
     lowerer: &mut Lowerer<'heap, '_>,
-    node: cst::Tuple<'_, cst::Expr<'_>>,
+    node: cst::Struct<'_, cst::Expr<'_>>,
 ) -> Option<Expr<'heap>> {
-    let (mut tuple_expr, r#type) =
+    let (mut struct_expr, r#type) =
         lowerer.lower_typed_pair(node.type_field(), node.field(), |lowerer, field| {
             let body = field.body()?;
-            lower_tuple_body(lowerer, body)
+            lower_struct_body(lowerer, body)
         })?;
-    tuple_expr.r#type = r#type;
+    struct_expr.r#type = r#type;
 
     let span = lowerer.insert_range(node.text_range());
     Some(Expr {
         id: NodeId::PLACEHOLDER,
         span,
-        kind: ExprKind::Tuple(tuple_expr),
+        kind: ExprKind::Struct(struct_expr),
     })
 }
 
@@ -196,22 +177,22 @@ fn lower_tuple_body<'heap>(
     })
 }
 
-pub(crate) fn lower_list<'heap>(
+pub(crate) fn lower_tuple<'heap>(
     lowerer: &mut Lowerer<'heap, '_>,
-    node: cst::List<'_, cst::Expr<'_>>,
+    node: cst::Tuple<'_, cst::Expr<'_>>,
 ) -> Option<Expr<'heap>> {
-    let (mut list_expr, r#type) =
+    let (mut tuple_expr, r#type) =
         lowerer.lower_typed_pair(node.type_field(), node.field(), |lowerer, field| {
             let body = field.body()?;
-            lower_list_body(lowerer, body)
+            lower_tuple_body(lowerer, body)
         })?;
-    list_expr.r#type = r#type;
+    tuple_expr.r#type = r#type;
 
     let span = lowerer.insert_range(node.text_range());
     Some(Expr {
         id: NodeId::PLACEHOLDER,
         span,
-        kind: ExprKind::List(list_expr),
+        kind: ExprKind::Tuple(tuple_expr),
     })
 }
 
@@ -248,33 +229,23 @@ fn lower_list_body<'heap>(
     })
 }
 
-pub(crate) fn lower_dict<'heap>(
+pub(crate) fn lower_list<'heap>(
     lowerer: &mut Lowerer<'heap, '_>,
-    node: cst::Dict<'_, cst::Expr<'_>>,
+    node: cst::List<'_, cst::Expr<'_>>,
 ) -> Option<Expr<'heap>> {
-    let (mut dict_expr, r#type) =
+    let (mut list_expr, r#type) =
         lowerer.lower_typed_pair(node.type_field(), node.field(), |lowerer, field| {
             let body = field.body()?;
-            lower_dict_body(lowerer, body)
+            lower_list_body(lowerer, body)
         })?;
-    dict_expr.r#type = r#type;
+    list_expr.r#type = r#type;
 
     let span = lowerer.insert_range(node.text_range());
     Some(Expr {
         id: NodeId::PLACEHOLDER,
         span,
-        kind: ExprKind::Dict(dict_expr),
+        kind: ExprKind::List(list_expr),
     })
-}
-
-fn lower_dict_body<'heap>(
-    lowerer: &mut Lowerer<'heap, '_>,
-    body: cst::DictBody<'_, cst::Expr<'_>>,
-) -> Option<DictExpr<'heap>> {
-    match body {
-        cst::DictBody::Object(object) => lower_dict_object_body(lowerer, object),
-        cst::DictBody::Array(array) => lower_dict_array_body(lowerer, array),
-    }
 }
 
 fn lower_dict_object_body<'heap>(
@@ -379,5 +350,34 @@ fn lower_dict_array_body<'heap>(
         span,
         entries,
         r#type: None,
+    })
+}
+
+fn lower_dict_body<'heap>(
+    lowerer: &mut Lowerer<'heap, '_>,
+    body: cst::DictBody<'_, cst::Expr<'_>>,
+) -> Option<DictExpr<'heap>> {
+    match body {
+        cst::DictBody::Object(object) => lower_dict_object_body(lowerer, object),
+        cst::DictBody::Array(array) => lower_dict_array_body(lowerer, array),
+    }
+}
+
+pub(crate) fn lower_dict<'heap>(
+    lowerer: &mut Lowerer<'heap, '_>,
+    node: cst::Dict<'_, cst::Expr<'_>>,
+) -> Option<Expr<'heap>> {
+    let (mut dict_expr, r#type) =
+        lowerer.lower_typed_pair(node.type_field(), node.field(), |lowerer, field| {
+            let body = field.body()?;
+            lower_dict_body(lowerer, body)
+        })?;
+    dict_expr.r#type = r#type;
+
+    let span = lowerer.insert_range(node.text_range());
+    Some(Expr {
+        id: NodeId::PLACEHOLDER,
+        span,
+        kind: ExprKind::Dict(dict_expr),
     })
 }

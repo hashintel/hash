@@ -26,6 +26,38 @@ pub enum LexError {
     UnrecognizedCharacter,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum ScannedPayload<'source> {
+    None,
+    String(LexedStr<'source>),
+    Error(LexError),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct ScannedToken<'source> {
+    pub kind: SyntaxKind,
+    pub range: TextRange,
+    payload: ScannedPayload<'source>,
+}
+
+impl<'source> ScannedToken<'source> {
+    #[inline]
+    pub(crate) fn decode_string(self) -> Option<Cow<'source, str>> {
+        match self.payload {
+            ScannedPayload::String(string) => Some(string.decode()),
+            ScannedPayload::None | ScannedPayload::Error(_) => None,
+        }
+    }
+
+    #[inline]
+    pub(crate) const fn error(self) -> Option<LexError> {
+        match self.payload {
+            ScannedPayload::Error(error) => Some(error),
+            ScannedPayload::None | ScannedPayload::String(_) => None,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, logos::Logos)]
 #[logos(error = LexError)]
 enum LexToken<'source> {
@@ -81,38 +113,6 @@ impl<'source> LexToken<'source> {
             Self::LineComment => (SyntaxKind::LineComment, ScannedPayload::None),
             Self::BlockComment => (SyntaxKind::BlockComment, ScannedPayload::None),
             Self::InvalidToken => (SyntaxKind::InvalidToken, ScannedPayload::None),
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum ScannedPayload<'source> {
-    None,
-    String(LexedStr<'source>),
-    Error(LexError),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct ScannedToken<'source> {
-    pub kind: SyntaxKind,
-    pub range: TextRange,
-    payload: ScannedPayload<'source>,
-}
-
-impl<'source> ScannedToken<'source> {
-    #[inline]
-    pub(crate) fn decode_string(self) -> Option<Cow<'source, str>> {
-        match self.payload {
-            ScannedPayload::String(string) => Some(string.decode()),
-            ScannedPayload::None | ScannedPayload::Error(_) => None,
-        }
-    }
-
-    #[inline]
-    pub(crate) const fn error(self) -> Option<LexError> {
-        match self.payload {
-            ScannedPayload::Error(error) => Some(error),
-            ScannedPayload::None | ScannedPayload::String(_) => None,
         }
     }
 }

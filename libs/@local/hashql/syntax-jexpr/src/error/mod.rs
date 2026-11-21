@@ -39,33 +39,10 @@ pub use crate::{
     },
 };
 
-pub type JExprDiagnostic<K = Critical> = Diagnostic<JExprDiagnosticCategory, SpanId, K>;
-
 const EXPECTED_EOF: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "expected-eof",
     name: "Unexpected token after expression",
 };
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum JExprDiagnosticCategory {
-    Parser(ParserDiagnosticCategory),
-}
-
-impl DiagnosticCategory for JExprDiagnosticCategory {
-    fn id(&self) -> Cow<'_, str> {
-        Cow::Borrowed("jexpr")
-    }
-
-    fn name(&self) -> Cow<'_, str> {
-        Cow::Borrowed("J-Expr syntax")
-    }
-
-    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
-        match self {
-            Self::Parser(parser) => Some(parser),
-        }
-    }
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ParserDiagnosticCategory {
@@ -134,6 +111,29 @@ impl From<ObjectDiagnosticCategory> for ParserDiagnosticCategory {
         Self::Object(value)
     }
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum JExprDiagnosticCategory {
+    Parser(ParserDiagnosticCategory),
+}
+
+impl DiagnosticCategory for JExprDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed("jexpr")
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed("J-Expr syntax")
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        match self {
+            Self::Parser(parser) => Some(parser),
+        }
+    }
+}
+
+pub type JExprDiagnostic<K = Critical> = Diagnostic<JExprDiagnosticCategory, SpanId, K>;
 
 /// High-level JSON value shape used for constructor mismatch diagnostics.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -297,28 +297,11 @@ pub(crate) fn insert_range(spans: &mut SpanTable<Span>, range: TextRange) -> Spa
     spans.insert(Span::new(range), SpanAncestors::EMPTY)
 }
 
-pub(crate) fn insert_ranges(spans: &mut SpanTable<Span>, ranges: &[TextRange]) -> Vec<SpanId> {
-    ranges
-        .iter()
-        .map(|&range| insert_range(spans, range))
-        .collect()
-}
-
-/// Returns similar candidate strings ordered by similarity using [`did_you_mean`].
-pub(crate) fn suggest_similar(
-    lookup: &str,
-    candidates: &[&'static str],
-    heap: Option<&Heap>,
-    top_n: usize,
-) -> Vec<&'static str> {
-    if candidates.is_empty() {
-        return Vec::new();
-    }
-
-    heap.map_or_else(
-        || suggest_similar_in(lookup, candidates, &Heap::with_capacity(512), top_n),
-        |heap| suggest_similar_in(lookup, candidates, heap, top_n),
-    )
+pub(crate) fn insert_ranges(
+    spans: &mut SpanTable<Span>,
+    ranges: &[TextRange],
+) -> impl IntoIterator<Item = SpanId, IntoIter: ExactSizeIterator> {
+    ranges.iter().map(|&range| insert_range(spans, range))
 }
 
 fn suggest_similar_in(
@@ -342,6 +325,23 @@ fn suggest_similar_in(
                 .find(|&candidate| candidate == matched.as_str())
         })
         .collect()
+}
+
+/// Returns similar candidate strings ordered by similarity using [`did_you_mean`].
+pub(crate) fn suggest_similar(
+    lookup: &str,
+    candidates: &[&'static str],
+    heap: Option<&Heap>,
+    top_n: usize,
+) -> Vec<&'static str> {
+    if candidates.is_empty() {
+        return Vec::new();
+    }
+
+    heap.map_or_else(
+        || suggest_similar_in(lookup, candidates, &Heap::with_capacity(512), top_n),
+        |heap| suggest_similar_in(lookup, candidates, heap, top_n),
+    )
 }
 
 /// Formats a list of code items as backticked prose with `or` before the final item.

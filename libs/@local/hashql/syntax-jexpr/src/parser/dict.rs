@@ -32,24 +32,6 @@ pub(crate) fn parse_dict_object_body<G: Grammar>(parser: &mut Parser<'_, G>) {
     parser.finish_node();
 }
 
-pub(crate) fn parse_dict_array_body<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: TextRange) {
-    parser.start_node(SyntaxKind::DictArrayBody);
-    let open = parser.bump(T!['[']).range;
-
-    let mut index = 0_usize;
-    loop {
-        match recovery::next_array_element(parser, open, index, |kind| kind == T!['[']) {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item { .. } => {
-                index += 1;
-                parse_dict_array_entry(parser, dict_key);
-            }
-        }
-    }
-
-    parser.finish_node();
-}
-
 fn parse_dict_array_entry<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: TextRange) {
     let Some(token) = parser.current() else {
         return;
@@ -121,6 +103,25 @@ fn parse_dict_array_entry<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: Text
         );
     } else {
         // Entry has two elements or already reported an inner syntax error.
+    }
+
+    parser.finish_node();
+}
+
+// Parses the array variant of `{"#dict": [ ... ]}`, that means the `[...]` part.
+pub(crate) fn parse_dict_array_body<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: TextRange) {
+    parser.start_node(SyntaxKind::DictArrayBody);
+    let open = parser.bump(T!['[']).range;
+
+    let mut index = 0_usize;
+    loop {
+        match recovery::next_array_element(parser, open, index, |kind| kind == T!['[']) {
+            ContainerStep::Closed | ContainerStep::Aborted => break,
+            ContainerStep::Item { .. } => {
+                index += 1;
+                parse_dict_array_entry(parser, dict_key);
+            }
+        }
     }
 
     parser.finish_node();
