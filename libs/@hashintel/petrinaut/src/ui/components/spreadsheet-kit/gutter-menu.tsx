@@ -10,11 +10,7 @@ import { useRef } from "react";
 
 import { Popover } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-
-import {
-  CheckIcon,
-  useExperimentalIconPackEnabled,
-} from "../../experimental-icons";
+import { CheckIcon } from "@hashintel/ds-icons";
 
 const menuStyle = css({
   display: "flex",
@@ -84,7 +80,6 @@ export const GutterMenu: React.FC<GutterMenuProps> = ({
   onClose,
   onDismiss,
 }) => {
-  const experimentalIcons = useExperimentalIconPackEnabled();
   const focusedOnOpenRef = useRef(false);
   // The Popover focuses this when it opens; the initial item's ref fills it.
   const initialItemRef = useRef<HTMLElement | null>(null);
@@ -172,13 +167,7 @@ export const GutterMenu: React.FC<GutterMenuProps> = ({
               >
                 {hasCheckable ? (
                   <span className={menuMarkStyle} aria-hidden="true">
-                    {item.checked ? (
-                      experimentalIcons ? (
-                        <CheckIcon size={14} />
-                      ) : (
-                        "✓"
-                      )
-                    ) : null}
+                    {item.checked ? <CheckIcon size={14} /> : null}
                   </span>
                 ) : null}
                 {item.label}

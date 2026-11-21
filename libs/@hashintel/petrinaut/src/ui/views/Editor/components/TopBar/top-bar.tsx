@@ -7,6 +7,7 @@ import {
   type SegmentedControlItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { SidebarIcon } from "@hashintel/ds-icons";
 
 import { ActualModeContext } from "../../../../../react/actual-mode-context";
 import { NetManagementContext } from "../../../../../react/net-management-context";
@@ -16,8 +17,6 @@ import {
   useEditorFields,
 } from "../../../../../react/state/editor-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
-import { useUserSettings } from "../../../../../react/state/user-settings-context";
-import { SidebarIcon } from "../../../../experimental-icons";
 import { PluginToolbarItems } from "../../../../plugins/plugin-outlets";
 import { EditorMenu } from "./editor-menu";
 import { RunningExperimentsPopover } from "./running-experiments-popover";
@@ -101,9 +100,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   // A host that takes no new title gives no `setTitle`.
   const { title, setTitle } = use(NetManagementContext);
   const actualMode = use(ActualModeContext);
-  const enableExperimentalIconPack = useUserSettings(
-    (settings) => settings.enableExperimentalIconPack,
-  );
   const composesOnly = useComposesOnly();
 
   return (
@@ -120,17 +116,13 @@ export const TopBar: React.FC<TopBarProps> = ({
           }}
           aria-label={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
           tooltip={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-          {...(enableExperimentalIconPack
-            ? {
-                prefix: (
-                  <SidebarIcon
-                    size={16}
-                    collapsed={!isLeftSidebarOpen}
-                    duration={240}
-                  />
-                ),
-              }
-            : { iconName: "sidebar" })}
+          prefix={
+            <SidebarIcon
+              size={16}
+              collapsed={!isLeftSidebarOpen}
+              duration={240}
+            />
+          }
         />
 
         <EditorMenu

@@ -1,14 +1,13 @@
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { SettingsIcon } from "@hashintel/ds-icons";
 
 import {
   usePetrinautNavigate,
   usePetrinautNavigationState,
 } from "../../../../react/navigation/navigation";
 import { useEditorActions } from "../../../../react/state/editor-context";
-import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
-import { SettingsIcon } from "../../../experimental-icons";
 import { useCanvasInsetsReader } from "../../../hooks/use-canvas-insets";
 import { styleRef } from "../../../lib/readings";
 import { PluginToolbarItems } from "../../../plugins/plugin-outlets";
@@ -28,9 +27,6 @@ const blurredBackground = css({ backdropFilter: "[blur(10px)]" });
 export const ViewportControls: React.FC = () => {
   const presentation = usePetrinautPresentation();
   const navigate = usePetrinautNavigate();
-  const enableExperimentalIconPack = useUserSettings(
-    (settings) => settings.enableExperimentalIconPack,
-  );
   const isSettingsOpen = usePetrinautNavigationState(
     ({ overlay }) =>
       overlay?.type === "user-settings" ||
@@ -117,17 +113,9 @@ export const ViewportControls: React.FC = () => {
             aria-label="Viewport settings"
             tooltip="Viewport settings"
             tooltipOptions={{ position: "left" }}
-            {...(enableExperimentalIconPack
-              ? {
-                  prefix: (
-                    <SettingsIcon
-                      size={12}
-                      open={isSettingsOpen}
-                      duration={240}
-                    />
-                  ),
-                }
-              : { iconName: "gear" })}
+            prefix={
+              <SettingsIcon size={12} open={isSettingsOpen} duration={240} />
+            }
             className={chromeBackground}
             onClick={() =>
               navigate(

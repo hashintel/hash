@@ -36,7 +36,7 @@ It renders what the [React layer](layer:react) holds and calls its hooks to chan
 | Code that two views share and no other part of the UI uses | `ui/views/shared`                                                 |                                                                         |
 | A value that follows a panel on every frame                | `styleRef` or `useReading` from `ui/lib/readings.ts`              | [Panel geometry outside React state](doc:react.state/panel-sizes)       |
 | Something only one host needs                              | A plugin                                                          | [Plugins](doc:ui.plugins/overview)                                      |
-| An icon                                                    | The Petricon set                                                  | [Petricon](doc:ui/petricon)                                             |
+| An icon                                                    | `@hashintel/ds-icons`, imported where it is drawn                 | The README of that package                                              |
 
 A component and its private parts share a name: `x.tsx` is the entry, and the folder `x/` holds what only it uses. The entry file calls hooks, then composes parts. The panels under `ui/views/Editor/panels` differ: the entry is `panel.tsx` or `main.tsx`, and the sections sit in `subviews/`.
 

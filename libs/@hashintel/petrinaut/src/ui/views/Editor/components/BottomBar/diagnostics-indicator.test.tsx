@@ -2,19 +2,20 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
+import { HashIconProvider } from "@hashintel/ds-icons";
+
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
 } from "../../../../../react/lsp/context";
-import { ExperimentalIconProvider } from "../../../../experimental-icon-provider";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
 
 afterEach(cleanup);
 
 it("keeps one animated icon as live diagnostics change severity", () => {
   const onClick = vi.fn();
-  const indicator = (total: number, errors: number, enabled = true) => (
-    <ExperimentalIconProvider enabled={enabled} motion="none">
+  const indicator = (total: number, errors: number) => (
+    <HashIconProvider motion="none">
       <LanguageClientContext
         value={{
           ...DEFAULT_LANGUAGE_CLIENT_CONTEXT,
@@ -24,7 +25,7 @@ it("keeps one animated icon as live diagnostics change severity", () => {
       >
         <DiagnosticsIndicator onClick={onClick} isExpanded={false} />
       </LanguageClientContext>
-    </ExperimentalIconProvider>
+    </HashIconProvider>
   );
   const { rerender } = render(indicator(0, 0));
   const icon = screen
@@ -78,12 +79,4 @@ it("keeps one animated icon as live diagnostics change severity", () => {
   expect(
     screen.getByRole("button", { name: "12 diagnostic issues found" }),
   ).toBe(errorButton);
-
-  rerender(indicator(1, 1, false));
-  expect(
-    screen
-      .getByRole("button", { name: "1 diagnostic issues found" })
-      .querySelector("svg")
-      ?.hasAttribute("data-icon-pack"),
-  ).toBe(false);
 });

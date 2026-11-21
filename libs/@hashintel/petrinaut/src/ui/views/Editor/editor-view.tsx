@@ -3,7 +3,7 @@
  * @role Arranges the panels, toolbars and dialogs around the canvas
  */
 
-import { Activity, useState, type ReactNode } from "react";
+import { Activity, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -14,10 +14,8 @@ import {
 } from "../../../react/state/editor-context";
 import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
-import { useUserSettingsFields } from "../../../react/state/user-settings-context";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
-import { ExperimentalIconProvider } from "../../experimental-icon-provider";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
 import { useAssistantChoice } from "../../plugins/plugin-assistant";
 import { useCanvasRegistration } from "../../plugins/plugin-editor";
@@ -31,6 +29,7 @@ import {
   AssistantCommands,
   EditorAssistantPanel,
 } from "./editor-view/editor-assistant";
+import { EditorIconProvider } from "./editor-view/editor-icon-provider";
 import { EmptyNetPrompt } from "./editor-view/empty-net-prompt";
 import { UserSettings } from "./editor-view/user-settings";
 import { BottomPanel } from "./panels/BottomPanel/panel";
@@ -193,35 +192,14 @@ const EditorViewContent = ({
   );
 };
 
-/**
- * The editor's icons, provided from above the view and not by it. The
- * provider hands every icon a new context value each time it renders, and the
- * view renders on every change to the document.
- */
-const EditorIcons = ({ children }: { children: ReactNode }) => {
-  const { enableExperimentalIconPack, showAnimations } = useUserSettingsFields(
-    "enableExperimentalIconPack",
-    "showAnimations",
-  );
-
-  return (
-    <ExperimentalIconProvider
-      enabled={enableExperimentalIconPack}
-      motion={showAnimations ? "auto" : "none"}
-    >
-      {children}
-    </ExperimentalIconProvider>
-  );
-};
-
 export const EditorView = ({
   hideNetManagementControls,
 }: React.ComponentProps<typeof EditorViewContent>) => (
   <CodeNavigationProvider>
-    <EditorIcons>
+    <EditorIconProvider>
       <EditorViewContent
         hideNetManagementControls={hideNetManagementControls}
       />
-    </EditorIcons>
+    </EditorIconProvider>
   </CodeNavigationProvider>
 );

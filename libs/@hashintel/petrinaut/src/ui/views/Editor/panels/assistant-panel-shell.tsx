@@ -2,16 +2,13 @@ import { type ReactNode, useEffect, useState } from "react";
 
 import { Button, Icon, Menu } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { HashIcon, useHashIconMotionAllowed } from "@hashintel/ds-icons";
 
 import { useAssistantPlacement } from "../../../../react/state/assistant-placement-context";
 import { usePanelPresence } from "../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
 import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
-import {
-  ExperimentalIcon,
-  useExperimentalIconMotionAllowed,
-} from "../../../experimental-icons";
 import { styleRef, useReading } from "../../../lib/readings";
 import {
   type AssistantPanel,
@@ -243,7 +240,7 @@ export const PluginAssistantPanel = ({
 
   const isFloating = placement === "floating";
   const HeaderLabel = isFloating ? "button" : "div";
-  const iconMotionAllowed = useExperimentalIconMotionAllowed();
+  const iconMotionAllowed = useHashIconMotionAllowed();
   const {
     panelRef,
     bindPanel,
@@ -354,7 +351,7 @@ export const PluginAssistantPanel = ({
                 aria-label={placementLabel}
                 onClick={() => setPlacement(isFloating ? "docked" : "floating")}
                 prefix={
-                  <ExperimentalIcon
+                  <HashIcon
                     name={isFloating ? "sidebar" : "externalLink"}
                     size={14}
                   />
@@ -368,7 +365,7 @@ export const PluginAssistantPanel = ({
                 className={buttonStyle}
                 aria-label="Close AI assistant"
                 onClick={close}
-                prefix={<ExperimentalIcon name="close" size={14} />}
+                prefix={<HashIcon name="close" size={14} />}
                 tooltip="Close AI assistant"
               />
             </div>

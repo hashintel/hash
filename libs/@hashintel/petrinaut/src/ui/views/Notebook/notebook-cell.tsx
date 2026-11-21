@@ -1,11 +1,8 @@
 import { Fragment, memo } from "react";
 
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { ChevronRightIcon } from "@hashintel/ds-icons";
 
-import {
-  ChevronRightIcon,
-  useExperimentalIconPackEnabled,
-} from "../../experimental-icons";
 import { CELL_KIND_ICONS, CELL_KIND_LABELS } from "./cell-kinds";
 
 import type { CellRef, NotebookCellKind } from "./notebook-model";
@@ -212,7 +209,6 @@ const Cell: React.FC<NotebookCellProps> = ({
   actionsRef,
   children,
 }) => {
-  const experimentalIcons = useExperimentalIconPackEnabled();
   const KindIcon = CELL_KIND_ICONS[kind];
   const kindLabel = CELL_KIND_LABELS[kind];
 
@@ -264,13 +260,7 @@ const Cell: React.FC<NotebookCellProps> = ({
             actionsRef.current.setExpanded(cellId, !isExpanded);
           }}
         >
-          {experimentalIcons ? (
-            <ChevronRightIcon size={8} hover="none" />
-          ) : (
-            <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden>
-              <path d="M2 0 L7 4 L2 8 Z" fill="currentColor" />
-            </svg>
-          )}
+          <ChevronRightIcon size={8} hover="none" />
         </button>
         <span
           className={iconStyle}

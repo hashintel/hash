@@ -1,6 +1,7 @@
 import { use } from "react";
 
-import { Icon, type MenuItem, Menu } from "@hashintel/ds-components";
+import { type MenuItem, Menu } from "@hashintel/ds-components";
+import { AddPlaceIcon, AddTransitionIcon } from "@hashintel/ds-icons";
 import { sameComponent } from "@hashintel/petrinaut-core";
 
 import { usePetrinautDefinitionSelector } from "../../../../../react/hooks/use-document";
@@ -12,11 +13,6 @@ import {
 } from "../../../../../react/state/editor-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
-import { useUserSettings } from "../../../../../react/state/user-settings-context";
-import {
-  AddPlaceIcon,
-  AddTransitionIcon,
-} from "../../../../experimental-icons";
 import { writeDraggedNodeKind } from "../../../shared/canvas-node-drag";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
@@ -79,9 +75,6 @@ export const EditionTools = () => {
   const isRootNet = activeComponentId === null;
   const composesOnly = useComposesOnly();
   const isCompositionInterfaceOn = useIsCompositionInterfaceOn();
-  const enableExperimentalIconPack = useUserSettings(
-    (settings) => settings.enableExperimentalIconPack,
-  );
 
   if (composesOnly) {
     return null;
@@ -103,18 +96,14 @@ export const EditionTools = () => {
           writeDraggedNodeKind(event.dataTransfer, "place");
         }}
       >
-        {enableExperimentalIconPack ? (
-          <AddPlaceIcon
-            selected={editionMode === "add-place"}
-            variant={editionMode === "add-place" ? "filled" : "outline"}
-            effect={editionMode === "add-place" ? "bounce" : undefined}
-            trigger={editionMode}
-            transition="spring"
-            duration={420}
-          />
-        ) : (
-          <Icon name="circlePlus" />
-        )}
+        <AddPlaceIcon
+          selected={editionMode === "add-place"}
+          variant={editionMode === "add-place" ? "filled" : "outline"}
+          effect={editionMode === "add-place" ? "bounce" : undefined}
+          trigger={editionMode}
+          transition="spring"
+          duration={420}
+        />
       </ToolbarButton>
       <ToolbarButton
         tooltip="Add Transition"
@@ -129,18 +118,14 @@ export const EditionTools = () => {
           writeDraggedNodeKind(event.dataTransfer, "transition");
         }}
       >
-        {enableExperimentalIconPack ? (
-          <AddTransitionIcon
-            selected={editionMode === "add-transition"}
-            variant={editionMode === "add-transition" ? "filled" : "outline"}
-            effect={editionMode === "add-transition" ? "bounce" : undefined}
-            trigger={editionMode}
-            transition="spring"
-            duration={420}
-          />
-        ) : (
-          <Icon name="squarePlus" />
-        )}
+        <AddTransitionIcon
+          selected={editionMode === "add-transition"}
+          variant={editionMode === "add-transition" ? "filled" : "outline"}
+          effect={editionMode === "add-transition" ? "bounce" : undefined}
+          trigger={editionMode}
+          transition="spring"
+          duration={420}
+        />
       </ToolbarButton>
       {isRootNet && isCompositionInterfaceOn && <ComponentDropdown />}
     </>

@@ -8,6 +8,7 @@ import {
   type IconName,
 } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { SettingsIcon } from "@hashintel/ds-icons";
 import {
   formatPlaybackSpeed,
   PLAYBACK_SPEEDS,
@@ -20,8 +21,6 @@ import {
   acceptsRunEnd,
   runEndOf,
 } from "../../../../../react/simulation/run-end";
-import { useUserSettings } from "../../../../../react/state/user-settings-context";
-import { SettingsIcon } from "../../../../experimental-icons";
 import { usePetrinautPresentation } from "../../../shared/presentation-context";
 import { ToolbarButton } from "./toolbar-button";
 
@@ -242,9 +241,6 @@ export const PlaybackSettingsMenu = ({
   const presentation = usePetrinautPresentation();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const enableExperimentalIconPack = useUserSettings(
-    (settings) => settings.enableExperimentalIconPack,
-  );
   const playModesVisible = !presentation.compactControls;
   const stoppingConditionsVisible = !presentation.compactControls;
   const speedRows = toSpeedRows(allowedSpeeds);
@@ -290,11 +286,7 @@ export const PlaybackSettingsMenu = ({
         ariaExpanded={open}
         onClick={() => setOpen((wasOpen) => !wasOpen)}
       >
-        {enableExperimentalIconPack ? (
-          <SettingsIcon open={open} duration={240} />
-        ) : (
-          <Icon name="gear" />
-        )}
+        <SettingsIcon open={open} duration={240} />
       </ToolbarButton>
       {open && (
         <Popover

@@ -2,6 +2,7 @@ import { use, useState } from "react";
 
 import { Button, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { MenuIcon } from "@hashintel/ds-icons";
 import {
   generatePetrinautId,
   inlineImports,
@@ -14,8 +15,6 @@ import { CompositionContext } from "../../../../../react/state/composition-conte
 import { useEditorActions } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
-import { useUserSettings } from "../../../../../react/state/user-settings-context";
-import { MenuIcon } from "../../../../experimental-icons";
 import { exportSDCPN } from "../../../../file-io/export-sdcpn";
 import { exportTikZ } from "../../../../file-io/export-tikz";
 import { importSDCPN } from "../../../../file-io/import-sdcpn";
@@ -66,9 +65,6 @@ export const EditorMenu = ({
   // Auto-layout moves nodes, which a read-only net rejects, so the menu would
   // otherwise offer an item that silently does nothing.
   const isReadOnly = useIsReadOnly();
-  const enableExperimentalIconPack = useUserSettings(
-    (settings) => settings.enableExperimentalIconPack,
-  );
   const createEmptyNet = useCreateEmptyNet();
   const autoLayoutAndFrame = useAutoLayoutAndFrame();
   const [importError, setImportError] = useState<string | null>(null);
@@ -226,9 +222,7 @@ export const EditorMenu = ({
             size="sm"
             variant="ghost"
             tooltip="Menu"
-            {...(enableExperimentalIconPack
-              ? { prefix: <MenuIcon size={16} duration={200} /> }
-              : { iconName: "bars" })}
+            prefix={<MenuIcon size={16} duration={200} />}
           />
         }
         items={items}

@@ -148,41 +148,13 @@ User settings lists the plugins and lets the user switch each one off. The
 guide lives in the architecture docs:
 [Plugins](https://github.com/hashintel/hash/blob/main/libs/%40hashintel/petrinaut/src/ui/plugins/overview.mdx).
 
-## Petricon
+## Icons
 
-Petricon supplies the editor's SVG icons and their motion. The editor uses it
-by default; the **Petricon** switch in the user settings dialog turns it off,
-and the preference is saved in the browser. The website route `/petricon` and the
-**Components / Icons** stories show every icon with its states and effects.
-
-`@hashintel/petrinaut/ui` exports the icons, by name through `Petricon` and as
-one component per icon:
-
-```tsx
-import { Petricon, PetriconProvider, PlaceIcon } from "@hashintel/petrinaut/ui";
-
-<PetriconProvider size={20} weight={400}>
-  <PlaceIcon variant="filled" aria-label="Place" />
-  <Petricon name="zoomIn" size={16} weight={500} />
-</PetriconProvider>;
-```
-
-`size` is the SVG size in pixels. `weight` goes from 100 to 700 and its
-default is 400. `variant` is `outline`, the default, or `filled`. An icon
-inherits `currentColor`, takes standard SVG props and a ref, and is decorative
-unless it has an accessible label.
-
-`PetriconProvider` sets the defaults for the icons below it and gives the pack
-to the design-system components in its tree, portals included.
-`enabled={false}` restores the design-system icons. `experimentalIconPack` maps
-design-system icon names to their replacements and can be passed to the
-design-system `IconProvider`; `experimentalIconNames` lists the names.
-`ExperimentalIcon` and `ExperimentalIconProvider` are the earlier names of
-`Petricon` and `PetriconProvider` and stay exported.
-
-The state props, the effects, the hover hints, the motion settings and the
-drawing rules are in the architecture docs:
-[Petricon](https://github.com/hashintel/hash/blob/main/libs/%40hashintel/petrinaut/src/ui/petricon.mdx).
+The editor draws its icons from
+[`@hashintel/ds-icons`](https://github.com/hashintel/hash/tree/main/libs/%40hashintel/ds-icons),
+and inside the editor the design-system `Icon` draws from the same set. A host
+or a plugin that needs an icon imports it from that package, whose README
+describes the components and their props.
 
 ## Storybook
 
@@ -197,7 +169,7 @@ Every story sits under one of three roots:
 - **Editor** renders the whole editor: on example nets, one of them with about
   500 nodes, on composed nets, and with plugins.
 - **Components** renders one shared building block, such as the code editor,
-  the spreadsheet, the scenario form, the contour surface or the icons.
+  the spreadsheet, the scenario form or the contour surface.
 - **States** renders a state that is hard to reach by hand, such as a
   read-only document, a plugin that fails, an experiment in a long run or an
   optimizer study.
