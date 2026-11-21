@@ -109,11 +109,13 @@ interface DiagnosticsIndicatorProps {
 }
 
 /**
- * DiagnosticsIndicator shows the current SDCPN validation status, the code
- * diagnostics and the composition's errors and warnings together.
- * - Green check icon if no issues
- * - Amber icon with count if only warnings/hints (simulation still allowed)
- * - Red cross icon with count if errors found
+ * Shows how many issues the net has, counting the code diagnostics and the
+ * composition's errors and warnings together. `DiagnosticsIcon` draws the
+ * status:
+ * - `valid`, in green and with no count, when there is no issue
+ * - `warning`, in amber with the count, when there are only warnings and
+ *   hints, which leave the simulation allowed
+ * - `error`, in red with the count, when there is at least one error
  */
 export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
   onClick,
