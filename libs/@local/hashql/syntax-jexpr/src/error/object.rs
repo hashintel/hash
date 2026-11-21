@@ -201,29 +201,29 @@ pub(crate) fn empty(span: SpanId, allow_type_annotations: bool) -> ObjectDiagnos
 
 pub(crate) fn trailing_commas(
     first: SpanId,
-    rest: &[SpanId],
-    patch_span: Option<SpanId>,
+    rest: impl IntoIterator<Item = SpanId, IntoIter: ExactSizeIterator>,
+    patch_span: SpanId,
 ) -> ObjectDiagnostic {
     let mut diagnostic =
         Diagnostic::new(ObjectDiagnosticCategory::TrailingComma, Critical::ERROR).primary(
             Label::new(first, "trailing comma is not allowed in objects"),
         );
 
-    for &span in rest.iter().take(MAX_EXTRA_LABELS) {
+    let rest = rest.into_iter();
+    let rest_len = rest.len();
+
+    for span in rest.take(MAX_EXTRA_LABELS) {
         diagnostic.add_label(Label::new(span, "additional trailing comma"));
     }
 
-    let help_text = if rest.is_empty() {
+    let help_text = if rest_len == 0 {
         "remove the trailing comma"
     } else {
         "remove the trailing commas"
     };
-    if let Some(patch_span) = patch_span {
-        let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
-        diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
-    } else {
-        diagnostic.add_message(Message::help(help_text));
-    }
+
+    let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
+    diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
 
     diagnostic.add_message(Message::note(
         "J-Expr follows JSON syntax, which does not allow trailing commas",
@@ -233,27 +233,27 @@ pub(crate) fn trailing_commas(
 
 pub(crate) fn leading_commas(
     first: SpanId,
-    rest: &[SpanId],
-    patch_span: Option<SpanId>,
+    rest: impl IntoIterator<Item = SpanId, IntoIter: ExactSizeIterator>,
+    patch_span: SpanId,
 ) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::LeadingComma, Critical::ERROR)
         .primary(Label::new(first, "leading comma is not allowed in objects"));
 
-    for &span in rest.iter().take(MAX_EXTRA_LABELS) {
+    let rest = rest.into_iter();
+    let rest_len = rest.len();
+
+    for span in rest.take(MAX_EXTRA_LABELS) {
         diagnostic.add_label(Label::new(span, "additional leading comma"));
     }
 
-    let help_text = if rest.is_empty() {
+    let help_text = if rest_len == 0 {
         "remove the leading comma"
     } else {
         "remove the leading commas"
     };
-    if let Some(patch_span) = patch_span {
-        let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
-        diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
-    } else {
-        diagnostic.add_message(Message::help(help_text));
-    }
+
+    let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
+    diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
 
     diagnostic.add_message(Message::note(
         "J-Expr follows JSON syntax, which does not allow leading commas",
@@ -263,29 +263,29 @@ pub(crate) fn leading_commas(
 
 pub(crate) fn consecutive_commas(
     first: SpanId,
-    rest: &[SpanId],
-    patch_span: Option<SpanId>,
+    rest: impl IntoIterator<Item = SpanId, IntoIter: ExactSizeIterator>,
+    patch_span: SpanId,
 ) -> ObjectDiagnostic {
     let mut diagnostic =
         Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveComma, Critical::ERROR).primary(
             Label::new(first, "consecutive comma is not allowed in objects"),
         );
 
-    for &span in rest.iter().take(MAX_EXTRA_LABELS) {
+    let rest = rest.into_iter();
+    let rest_len = rest.len();
+
+    for span in rest.take(MAX_EXTRA_LABELS) {
         diagnostic.add_label(Label::new(span, "additional extra comma"));
     }
 
-    let help_text = if rest.is_empty() {
+    let help_text = if rest_len == 0 {
         "remove the extra comma"
     } else {
         "remove the extra commas"
     };
-    if let Some(patch_span) = patch_span {
-        let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
-        diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
-    } else {
-        diagnostic.add_message(Message::help(help_text));
-    }
+
+    let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
+    diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
 
     diagnostic.add_message(Message::note(
         "object entries must be separated by a single comma",
@@ -295,8 +295,8 @@ pub(crate) fn consecutive_commas(
 
 pub(crate) fn consecutive_colons(
     first: SpanId,
-    rest: &[SpanId],
-    patch_span: Option<SpanId>,
+    rest: impl IntoIterator<Item = SpanId, IntoIter: ExactSizeIterator>,
+    patch_span: SpanId,
 ) -> ObjectDiagnostic {
     let mut diagnostic =
         Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveColon, Critical::ERROR).primary(
@@ -306,21 +306,21 @@ pub(crate) fn consecutive_colons(
             ),
         );
 
-    for &span in rest.iter().take(MAX_EXTRA_LABELS) {
+    let rest = rest.into_iter();
+    let rest_len = rest.len();
+
+    for span in rest.take(MAX_EXTRA_LABELS) {
         diagnostic.add_label(Label::new(span, "additional extra colon"));
     }
 
-    let help_text = if rest.is_empty() {
+    let help_text = if rest_len == 0 {
         "remove the extra colon"
     } else {
         "remove the extra colons"
     };
-    if let Some(patch_span) = patch_span {
-        let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
-        diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
-    } else {
-        diagnostic.add_message(Message::help(help_text));
-    }
+
+    let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
+    diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
 
     diagnostic.add_message(Message::note(
         "object keys and values must be separated by a single `:`",

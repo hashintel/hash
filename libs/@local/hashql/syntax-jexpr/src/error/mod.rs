@@ -13,7 +13,11 @@ use hashql_diagnostics::{
 };
 use text_size::{TextRange, TextSize};
 
-use crate::{span::Span, syntax_kind::SyntaxKind};
+use crate::{
+    span::Span,
+    syntax_kind::{SyntaxKind, T},
+    syntax_kind_set::SyntaxKindSet,
+};
 
 pub(crate) mod array;
 pub(crate) mod constructor;
@@ -175,7 +179,7 @@ impl ValueKind {
     }
 }
 
-/// J-Expr constructor or annotation field name used in contextual object diagnostics.
+/// J-Expr primary constructor kind.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum ConstructorKind {
     Literal,
@@ -183,10 +187,20 @@ pub(crate) enum ConstructorKind {
     Tuple,
     List,
     Dict,
-    Type,
 }
 
 impl ConstructorKind {
+    pub(crate) fn from_key(key: &str) -> Option<Self> {
+        match key {
+            "#literal" => Some(Self::Literal),
+            "#struct" => Some(Self::Struct),
+            "#tuple" => Some(Self::Tuple),
+            "#list" => Some(Self::List),
+            "#dict" => Some(Self::Dict),
+            _ => None,
+        }
+    }
+
     pub(crate) const fn key(self) -> &'static str {
         match self {
             Self::Literal => "#literal",
@@ -194,7 +208,65 @@ impl ConstructorKind {
             Self::Tuple => "#tuple",
             Self::List => "#list",
             Self::Dict => "#dict",
+        }
+    }
+
+    pub(crate) const fn node_kind(self) -> SyntaxKind {
+        match self {
+            Self::Literal => SyntaxKind::Literal,
+            Self::Struct => SyntaxKind::Struct,
+            Self::Tuple => SyntaxKind::Tuple,
+            Self::List => SyntaxKind::List,
+            Self::Dict => SyntaxKind::Dict,
+        }
+    }
+
+    pub(crate) const fn field_kind(self) -> SyntaxKind {
+        match self {
+            Self::Literal => SyntaxKind::LiteralField,
+            Self::Struct => SyntaxKind::StructField,
+            Self::Tuple => SyntaxKind::TupleField,
+            Self::List => SyntaxKind::ListField,
+            Self::Dict => SyntaxKind::DictField,
+        }
+    }
+
+    pub(crate) const fn expected_value(self) -> SyntaxKindSet {
+        match self {
+            Self::Literal => SyntaxKindSet::VALUE,
+            Self::Struct => SyntaxKindSet::from_kind(T!['{']),
+            Self::Tuple | Self::List => SyntaxKindSet::from_kind(T!['[']),
+            Self::Dict => SyntaxKindSet::OPENING_DELIMITER,
+        }
+    }
+}
+
+/// J-Expr object field kind, either a primary constructor or a `#type` annotation.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum FieldKind {
+    Constructor(ConstructorKind),
+    Type,
+}
+
+impl FieldKind {
+    pub(crate) const fn key(self) -> &'static str {
+        match self {
+            Self::Constructor(kind) => kind.key(),
             Self::Type => "#type",
+        }
+    }
+
+    pub(crate) const fn syntax_kind(self) -> SyntaxKind {
+        match self {
+            Self::Constructor(kind) => kind.field_kind(),
+            Self::Type => SyntaxKind::TypeField,
+        }
+    }
+
+    pub(crate) const fn expected_value(self) -> SyntaxKindSet {
+        match self {
+            Self::Constructor(kind) => kind.expected_value(),
+            Self::Type => SyntaxKindSet::from_kind(T![string]),
         }
     }
 }
@@ -247,7 +319,7 @@ pub(crate) enum EofContext {
     },
     FieldValue {
         key: TextRange,
-        constructor: Option<ConstructorKind>,
+        field: Option<FieldKind>,
     },
     UnclosedDelimiters(Vec<(DelimiterKind, TextRange)>),
 }

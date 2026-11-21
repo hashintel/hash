@@ -210,7 +210,7 @@ pub(crate) fn dict_entry_too_few_items(
 pub(crate) fn dict_entry_too_many_items(
     first: SpanId,
     dict_key_span: SpanId,
-    rest: &[SpanId],
+    rest: impl IntoIterator<Item = SpanId, IntoIter: ExactSizeIterator>,
 ) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::DictEntryTooManyItems,
@@ -221,13 +221,16 @@ pub(crate) fn dict_entry_too_many_items(
         "unexpected extra element in dictionary entry",
     ));
 
-    for &span in rest.iter().take(MAX_EXTRA_LABELS) {
+    let rest = rest.into_iter();
+    let rest_len = rest.len();
+
+    for span in rest.take(MAX_EXTRA_LABELS) {
         diagnostic.add_label(Label::new(span, "additional extra element"));
     }
     diagnostic.add_label(Label::new(dict_key_span, "in this `#dict`"));
 
-    let total = 3 + rest.len();
-    let noun = if rest.is_empty() {
+    let total = 3 + rest_len;
+    let noun = if rest_len == 0 {
         "the extra element"
     } else {
         "the extra elements"

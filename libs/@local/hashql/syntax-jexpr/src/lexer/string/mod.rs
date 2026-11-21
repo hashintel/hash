@@ -346,13 +346,14 @@ impl<'source> LexedStr<'source> {
         self.value.len()
     }
 
+    #[expect(
+        clippy::string_slice,
+        reason = "LexedStr::new guarantees value ends with an ASCII closing quote"
+    )]
     #[inline]
     pub(crate) fn decode(&self) -> Cow<'source, str> {
         if !self.has_escapes {
-            let body = self
-                .value
-                .strip_suffix('"')
-                .expect("lexed string ends with a closing quote");
+            let body = &self.value[..self.value.len() - 1];
             return Cow::Borrowed(body);
         }
 

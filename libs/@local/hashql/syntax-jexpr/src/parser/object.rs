@@ -1,12 +1,12 @@
+use core::ops::ControlFlow;
+
+use rowan::Checkpoint;
 use text_size::TextRange;
 
-use super::{
-    Grammar, Parser, dict,
-    recovery::{self, ContainerStep},
-};
+use super::{Grammar, Parser, dict, recovery};
 use crate::{
     error::{ConstructorKind, EofContext, ObjectErrorKind, SyntaxErrorKind, ValueKind},
-    lexer::ScannedToken,
+    lexer::Token,
     syntax_kind::{SyntaxKind, T},
     syntax_kind_set::SyntaxKindSet,
 };
@@ -152,19 +152,14 @@ fn parse_struct_body<G: Grammar>(parser: &mut Parser<'_, G>) {
     let open = parser.bump(T!['{']).range;
 
     let mut index = 0_usize;
-    loop {
-        match recovery::next_object_entry(parser, open, index) {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item { .. } => {
-                index += 1;
-                parser.start_node(SyntaxKind::StructEntry);
-                let key_range = parser.bump(T![string]).range;
-                if recovery::expect_colon(parser, key_range) {
-                    G::parse_item(parser);
-                }
-                parser.finish_node();
-            }
+    while let ControlFlow::Continue(_) = recovery::next_object_entry(parser, open, index) {
+        index += 1;
+        parser.start_node(SyntaxKind::StructEntry);
+        let key_range = parser.bump(T![string]).range;
+        if recovery::expect_colon(parser, key_range) {
+            G::parse_item(parser);
         }
+        parser.finish_node();
     }
 
     parser.finish_node();
@@ -179,17 +174,13 @@ fn parse_sequence_body<G: Grammar>(
     let open = parser.bump(T!['[']).range;
 
     let mut index = 0_usize;
-    loop {
-        match recovery::next_array_element(parser, open, index, |kind| G::ITEM_FIRST.contains(kind))
-        {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item { .. } => {
-                index += 1;
-                parser.start_node(element_kind);
-                G::parse_item(parser);
-                parser.finish_node();
-            }
-        }
+    while let ControlFlow::Continue(_) =
+        recovery::next_array_element(parser, open, index, G::ITEM_FIRST)
+    {
+        index += 1;
+        parser.start_node(element_kind);
+        G::parse_item(parser);
+        parser.finish_node();
     }
 
     parser.finish_node();
@@ -264,7 +255,7 @@ fn parse_primary_field<G: Grammar>(parser: &mut Parser<'_, G>, kind: PrimaryKind
 
 fn parse_object_field<G: Grammar>(
     parser: &mut Parser<'_, G>,
-    key: ScannedToken<'_>,
+    key: Token<'_>,
     primary: &mut Option<(PrimaryKind, TextRange)>,
     type_field: &mut Option<(TextRange, TextRange)>,
     has_unknown_or_error: &mut bool,
@@ -351,32 +342,28 @@ fn parse_object_field<G: Grammar>(
     parse_unknown_field(parser);
 }
 
-/// Parses a constructor object whose `#type` field may precede or follow the primary key.
-pub(crate) fn parse_object<G: Grammar>(parser: &mut Parser<'_, G>) {
-    let checkpoint = parser.checkpoint();
-    let open = parser.bump(T!['{']).range;
-    let err_start = parser.error_count();
-
+/// Parses a constructor object body after bumping its opening `{` at `checkpoint`.
+pub(crate) fn parse_object_after_open<G: Grammar>(
+    parser: &mut Parser<'_, G>,
+    checkpoint: Checkpoint,
+    open: TextRange,
+    err_start: usize,
+) {
     let mut primary: Option<(PrimaryKind, TextRange)> = None;
     let mut type_field: Option<(TextRange, TextRange)> = None;
     let mut has_unknown_or_error = false;
     let mut index = 0_usize;
 
-    loop {
-        match recovery::next_object_entry(parser, open, index) {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item { .. } => {
-                index += 1;
-                let key = parser.current().expect("next_object_entry guarantees key");
-                parse_object_field(
-                    parser,
-                    key,
-                    &mut primary,
-                    &mut type_field,
-                    &mut has_unknown_or_error,
-                );
-            }
-        }
+    while let ControlFlow::Continue(_) = recovery::next_object_entry(parser, open, index) {
+        index += 1;
+        let key = parser.current().expect("next_object_entry guarantees key");
+        parse_object_field(
+            parser,
+            key,
+            &mut primary,
+            &mut type_field,
+            &mut has_unknown_or_error,
+        );
     }
 
     let node_kind = if let Some((kind, _)) = primary {
@@ -405,4 +392,12 @@ pub(crate) fn parse_object<G: Grammar>(parser: &mut Parser<'_, G>) {
 
     parser.start_node_at(checkpoint, node_kind);
     parser.finish_node();
+}
+
+/// Parses a constructor object whose `#type` field may precede or follow the primary key.
+pub(crate) fn parse_object<G: Grammar>(parser: &mut Parser<'_, G>) {
+    let checkpoint = parser.checkpoint();
+    let open = parser.bump(T!['{']).range;
+    let err_start = parser.error_count();
+    parse_object_after_open(parser, checkpoint, open, err_start);
 }

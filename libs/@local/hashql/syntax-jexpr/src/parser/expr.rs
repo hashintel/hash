@@ -1,8 +1,11 @@
+use core::ops::ControlFlow;
+
+use rowan::Checkpoint;
 use text_size::TextRange;
 
 use super::{
     Grammar, Parser, object,
-    recovery::{self, ContainerStep},
+    recovery::{self, Item},
 };
 use crate::{
     cst,
@@ -13,50 +16,48 @@ use crate::{
 
 pub(crate) struct ExprGrammar;
 
-fn parse_labeled_arg(parser: &mut Parser<'_, ExprGrammar>) {
-    parser.start_node(SyntaxKind::LabeledArg);
-    let open = parser.bump(T!['{']).range;
-    let err_start = parser.error_count();
-
+fn parse_labeled_arg_after_open(
+    parser: &mut Parser<'_, ExprGrammar>,
+    checkpoint: Checkpoint,
+    open: TextRange,
+    err_start: usize,
+) {
     let mut entry_ranges = Vec::new();
     let mut commas = Vec::new();
     let mut all_prefixed = true;
     let mut index = 0_usize;
 
-    loop {
-        match recovery::next_object_entry(parser, open, index) {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item { separator } => {
-                if let Some(comma) = separator {
-                    commas.push(comma);
-                }
-                index += 1;
-                parser.start_node(SyntaxKind::LabeledArgEntry);
-                let key = parser.bump(T![string]);
-
-                if let Some(decoded) = key.decode_string() {
-                    if !decoded.starts_with(':') {
-                        all_prefixed = false;
-                        parser.error(
-                            key.range,
-                            SyntaxErrorKind::Array(ArrayErrorKind::LabeledArgumentMissingPrefix {
-                                actual: decoded.into_owned(),
-                            }),
-                        );
-                    }
-                } else {
-                    all_prefixed = false;
-                }
-
-                if recovery::expect_colon(parser, key.range) {
-                    parse_expr(parser);
-                }
-
-                let entry_range = TextRange::new(key.range.start(), parser.last_token_end());
-                entry_ranges.push(entry_range);
-                parser.finish_node();
-            }
+    while let ControlFlow::Continue(Item { separator }) =
+        recovery::next_object_entry(parser, open, index)
+    {
+        if let Some(comma) = separator {
+            commas.push(comma);
         }
+        index += 1;
+        parser.start_node(SyntaxKind::LabeledArgEntry);
+        let key = parser.bump(T![string]);
+
+        if let Some(decoded) = key.decode_string() {
+            if !decoded.starts_with(':') {
+                all_prefixed = false;
+                parser.error(
+                    key.range,
+                    SyntaxErrorKind::Array(ArrayErrorKind::LabeledArgumentMissingPrefix {
+                        actual: decoded.into_owned(),
+                    }),
+                );
+            }
+        } else {
+            all_prefixed = false;
+        }
+
+        if recovery::expect_colon(parser, key.range) {
+            parse_expr(parser);
+        }
+
+        let entry_range = TextRange::new(key.range.start(), parser.last_token_end());
+        entry_ranges.push(entry_range);
+        parser.finish_node();
     }
 
     if entry_ranges.len() != 1 {
@@ -98,6 +99,7 @@ fn parse_labeled_arg(parser: &mut Parser<'_, ExprGrammar>) {
         );
     }
 
+    parser.start_node_at(checkpoint, SyntaxKind::LabeledArg);
     parser.finish_node();
 }
 
@@ -117,13 +119,21 @@ fn parse_call_arg(parser: &mut Parser<'_, ExprGrammar>) {
         return;
     }
 
-    // Object-form labeled argument: LL(2) check for `{` followed by a `":..."` key string.
-    if first.kind == T!['{']
-        && let Some(second) = parser.peek2()
-        && let Some(decoded) = second.decode_string()
-        && decoded.starts_with(':')
-    {
-        parse_labeled_arg(parser);
+    if first.kind == T!['{'] {
+        let checkpoint = parser.checkpoint();
+        let open = parser.bump(T!['{']).range;
+        let err_start = parser.error_count();
+
+        if let Some(second) = parser.current()
+            && let Some(decoded) = second.decode_string()
+            && decoded.starts_with(':')
+        {
+            parse_labeled_arg_after_open(parser, checkpoint, open, err_start);
+        } else {
+            object::parse_object_after_open(parser, checkpoint, open, err_start);
+            parser.start_node_at(checkpoint, SyntaxKind::PositionalArg);
+            parser.finish_node();
+        }
         return;
     }
 
@@ -138,20 +148,15 @@ fn parse_call(parser: &mut Parser<'_, ExprGrammar>) {
     let err_start = parser.error_count();
 
     let mut count = 0_usize;
-    loop {
-        match recovery::next_array_element(parser, open, count, |kind| {
-            ExprGrammar::ITEM_FIRST.contains(kind)
-        }) {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item { .. } => {
-                if count == 0 {
-                    parse_expr(parser);
-                } else {
-                    parse_call_arg(parser);
-                }
-                count += 1;
-            }
+    while let ControlFlow::Continue(_) =
+        recovery::next_array_element(parser, open, count, ExprGrammar::ITEM_FIRST)
+    {
+        if count == 0 {
+            parse_expr(parser);
+        } else {
+            parse_call_arg(parser);
         }
+        count += 1;
     }
 
     if count == 0 && parser.error_count() == err_start {

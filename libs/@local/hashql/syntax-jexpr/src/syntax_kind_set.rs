@@ -111,43 +111,36 @@ impl SyntaxKindSet {
         self.contains_any(Self::VALUE)
     }
 
-    pub(crate) const fn display(self, conjunction: Option<Conjunction>) -> impl Display {
-        struct Format(SyntaxKindSet, Option<Conjunction>);
+    pub(crate) const fn display(self, conjunction: Option<Conjunction>) -> impl Display + use<> {
+        fmt::from_fn(move |fmt| {
+            let iter = self.0.iter();
+            let len = iter.len();
 
-        impl Display for Format {
-            fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-                let Self(set, conjunction) = *self;
-                let iter = set.0.iter();
-                let len = iter.len();
+            if len == 0 {
+                return fmt.write_str("none");
+            }
 
-                if len == 0 {
-                    return fmt.write_str("none");
-                }
-
-                for (index, kind) in iter.enumerate() {
-                    if index > 0 {
-                        if index != len - 1 || len != 2 {
-                            fmt.write_str(", ")?;
-                        }
-
-                        if index == len - 1 {
-                            match conjunction {
-                                Some(Conjunction::Or) if len == 2 => fmt.write_str(" or ")?,
-                                Some(Conjunction::Or) => fmt.write_str("or ")?,
-                                None if len == 2 => fmt.write_str(", ")?,
-                                None => {}
-                            }
-                        }
+            for (index, kind) in iter.enumerate() {
+                if index > 0 {
+                    if index != len - 1 || len != 2 {
+                        fmt.write_str(", ")?;
                     }
 
-                    Display::fmt(&kind, fmt)?;
+                    if index == len - 1 {
+                        match conjunction {
+                            Some(Conjunction::Or) if len == 2 => fmt.write_str(" or ")?,
+                            Some(Conjunction::Or) => fmt.write_str("or ")?,
+                            None if len == 2 => fmt.write_str(", ")?,
+                            None => {}
+                        }
+                    }
                 }
 
-                Ok(())
+                Display::fmt(&kind, fmt)?;
             }
-        }
 
-        Format(self, conjunction)
+            Ok(())
+        })
     }
 }
 

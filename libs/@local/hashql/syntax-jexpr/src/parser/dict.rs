@@ -1,12 +1,12 @@
+use core::ops::ControlFlow;
+
 use text_size::TextRange;
 
-use super::{
-    Grammar, Parser,
-    recovery::{self, ContainerStep},
-};
+use super::{Grammar, Parser, recovery};
 use crate::{
     error::{ObjectErrorKind, SyntaxErrorKind, ValueKind},
     syntax_kind::{SyntaxKind, T},
+    syntax_kind_set::SyntaxKindSet,
 };
 
 pub(crate) fn parse_dict_object_body<G: Grammar>(parser: &mut Parser<'_, G>) {
@@ -14,19 +14,14 @@ pub(crate) fn parse_dict_object_body<G: Grammar>(parser: &mut Parser<'_, G>) {
     let open = parser.bump(T!['{']).range;
 
     let mut index = 0_usize;
-    loop {
-        match recovery::next_object_entry(parser, open, index) {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item { .. } => {
-                index += 1;
-                parser.start_node(SyntaxKind::DictObjectEntry);
-                let key_range = parser.bump(T![string]).range;
-                if recovery::expect_colon(parser, key_range) {
-                    G::parse_item(parser);
-                }
-                parser.finish_node();
-            }
+    while let ControlFlow::Continue(_) = recovery::next_object_entry(parser, open, index) {
+        index += 1;
+        parser.start_node(SyntaxKind::DictObjectEntry);
+        let key_range = parser.bump(T![string]).range;
+        if recovery::expect_colon(parser, key_range) {
+            G::parse_item(parser);
         }
+        parser.finish_node();
     }
 
     parser.finish_node();
@@ -67,21 +62,17 @@ fn parse_dict_array_entry<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: Text
     let mut count = 0_usize;
     let mut excess = Vec::new();
 
-    loop {
-        match recovery::next_array_element(parser, open, count, |kind| G::ITEM_FIRST.contains(kind))
+    while let ControlFlow::Continue(_) =
+        recovery::next_array_element(parser, open, count, G::ITEM_FIRST)
+    {
+        let item_start = parser.current().map(|tok| tok.range.start());
+        G::parse_item(parser);
+        if count >= 2
+            && let Some(start) = item_start
         {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item { .. } => {
-                let item_start = parser.current().map(|tok| tok.range.start());
-                G::parse_item(parser);
-                if count >= 2
-                    && let Some(start) = item_start
-                {
-                    excess.push(TextRange::new(start, parser.last_token_end()));
-                }
-                count += 1;
-            }
+            excess.push(TextRange::new(start, parser.last_token_end()));
         }
+        count += 1;
     }
 
     if let Some((&first_excess, rest)) = excess.split_first() {
@@ -114,14 +105,11 @@ pub(crate) fn parse_dict_array_body<G: Grammar>(parser: &mut Parser<'_, G>, dict
     let open = parser.bump(T!['[']).range;
 
     let mut index = 0_usize;
-    loop {
-        match recovery::next_array_element(parser, open, index, |kind| kind == T!['[']) {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item { .. } => {
-                index += 1;
-                parse_dict_array_entry(parser, dict_key);
-            }
-        }
+    while let ControlFlow::Continue(_) =
+        recovery::next_array_element(parser, open, index, SyntaxKindSet::from_kind(T!['[']))
+    {
+        index += 1;
+        parse_dict_array_entry(parser, dict_key);
     }
 
     parser.finish_node();

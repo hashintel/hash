@@ -27,33 +27,33 @@ pub enum LexError {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum ScannedPayload<'source> {
+enum LexPayload<'source> {
     None,
     String(LexedStr<'source>),
     Error(LexError),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct ScannedToken<'source> {
+pub(crate) struct Token<'source> {
     pub kind: SyntaxKind,
     pub range: TextRange,
-    payload: ScannedPayload<'source>,
+    payload: LexPayload<'source>,
 }
 
-impl<'source> ScannedToken<'source> {
+impl<'source> Token<'source> {
     #[inline]
     pub(crate) fn decode_string(self) -> Option<Cow<'source, str>> {
         match self.payload {
-            ScannedPayload::String(string) => Some(string.decode()),
-            ScannedPayload::None | ScannedPayload::Error(_) => None,
+            LexPayload::String(string) => Some(string.decode()),
+            LexPayload::None | LexPayload::Error(_) => None,
         }
     }
 
     #[inline]
     pub(crate) const fn error(self) -> Option<LexError> {
         match self.payload {
-            ScannedPayload::Error(error) => Some(error),
-            ScannedPayload::None | ScannedPayload::String(_) => None,
+            LexPayload::Error(error) => Some(error),
+            LexPayload::None | LexPayload::String(_) => None,
         }
     }
 }
@@ -96,23 +96,23 @@ enum LexToken<'source> {
 
 impl<'source> LexToken<'source> {
     #[inline]
-    const fn into_parts(self) -> (SyntaxKind, ScannedPayload<'source>) {
+    const fn into_parts(self) -> (SyntaxKind, LexPayload<'source>) {
         match self {
-            Self::String(string) => (SyntaxKind::String, ScannedPayload::String(string)),
-            Self::Number => (SyntaxKind::Number, ScannedPayload::None),
-            Self::True => (SyntaxKind::True, ScannedPayload::None),
-            Self::False => (SyntaxKind::False, ScannedPayload::None),
-            Self::Null => (SyntaxKind::Null, ScannedPayload::None),
-            Self::Comma => (SyntaxKind::Comma, ScannedPayload::None),
-            Self::Colon => (SyntaxKind::Colon, ScannedPayload::None),
-            Self::LBrace => (SyntaxKind::LBrace, ScannedPayload::None),
-            Self::RBrace => (SyntaxKind::RBrace, ScannedPayload::None),
-            Self::LBracket => (SyntaxKind::LBracket, ScannedPayload::None),
-            Self::RBracket => (SyntaxKind::RBracket, ScannedPayload::None),
-            Self::Whitespace => (SyntaxKind::Whitespace, ScannedPayload::None),
-            Self::LineComment => (SyntaxKind::LineComment, ScannedPayload::None),
-            Self::BlockComment => (SyntaxKind::BlockComment, ScannedPayload::None),
-            Self::InvalidToken => (SyntaxKind::InvalidToken, ScannedPayload::None),
+            Self::String(string) => (SyntaxKind::String, LexPayload::String(string)),
+            Self::Number => (SyntaxKind::Number, LexPayload::None),
+            Self::True => (SyntaxKind::True, LexPayload::None),
+            Self::False => (SyntaxKind::False, LexPayload::None),
+            Self::Null => (SyntaxKind::Null, LexPayload::None),
+            Self::Comma => (SyntaxKind::Comma, LexPayload::None),
+            Self::Colon => (SyntaxKind::Colon, LexPayload::None),
+            Self::LBrace => (SyntaxKind::LBrace, LexPayload::None),
+            Self::RBrace => (SyntaxKind::RBrace, LexPayload::None),
+            Self::LBracket => (SyntaxKind::LBracket, LexPayload::None),
+            Self::RBracket => (SyntaxKind::RBracket, LexPayload::None),
+            Self::Whitespace => (SyntaxKind::Whitespace, LexPayload::None),
+            Self::LineComment => (SyntaxKind::LineComment, LexPayload::None),
+            Self::BlockComment => (SyntaxKind::BlockComment, LexPayload::None),
+            Self::InvalidToken => (SyntaxKind::InvalidToken, LexPayload::None),
         }
     }
 }
@@ -232,9 +232,25 @@ fn lex_single_quoted_string<'source>(
     Err(LexError::UnrecognizedCharacter)
 }
 
-#[derive(Clone)]
+#[derive(Debug, Copy, Clone)]
+enum TokenOrEof<'source> {
+    Token(Token<'source>),
+    Eof,
+}
+
+impl<'source> TokenOrEof<'source> {
+    #[inline]
+    const fn into_token(self) -> Option<Token<'source>> {
+        match self {
+            Self::Token(token) => Some(token),
+            Self::Eof => None,
+        }
+    }
+}
+
 pub(crate) struct Lexer<'source> {
     inner: logos::Lexer<'source, LexToken<'source>>,
+    peek: Option<TokenOrEof<'source>>,
 }
 
 impl<'source> Lexer<'source> {
@@ -249,8 +265,10 @@ impl<'source> Lexer<'source> {
             u32::try_from(source.len()).is_ok(),
             "source is larger than 4GiB"
         );
+
         Self {
             inner: logos::Lexer::new(source),
+            peek: None,
         }
     }
 
@@ -277,8 +295,11 @@ impl<'source> Lexer<'source> {
         reason = "constructor asserts source length fits in u32"
     )]
     #[inline]
-    pub(crate) fn next_token(&mut self) -> Option<ScannedToken<'source>> {
-        let result = self.inner.next()?;
+    fn consume(&mut self) -> TokenOrEof<'source> {
+        let Some(result) = self.inner.next() else {
+            return TokenOrEof::Eof;
+        };
+
         let span = self.inner.span();
         let range = TextRange::new(
             TextSize::new(span.start as u32),
@@ -288,7 +309,8 @@ impl<'source> Lexer<'source> {
         match result {
             Ok(token) => {
                 let (kind, payload) = token.into_parts();
-                Some(ScannedToken {
+
+                TokenOrEof::Token(Token {
                     kind,
                     range,
                     payload,
@@ -303,13 +325,33 @@ impl<'source> Lexer<'source> {
                     | LexError::InvalidWord
                     | LexError::UnrecognizedCharacter => SyntaxKind::InvalidToken,
                 };
-                Some(ScannedToken {
+
+                TokenOrEof::Token(Token {
                     kind,
                     range,
-                    payload: ScannedPayload::Error(error),
+                    payload: LexPayload::Error(error),
                 })
             }
         }
+    }
+
+    #[inline]
+    pub(crate) fn next_token(&mut self) -> Option<Token<'source>> {
+        self.peek
+            .take()
+            .unwrap_or_else(|| self.consume())
+            .into_token()
+    }
+
+    #[inline]
+    pub(crate) fn peek_token(&mut self) -> Option<Token<'source>> {
+        if let Some(token) = self.peek {
+            return token.into_token();
+        }
+
+        let token = self.consume();
+        self.peek = Some(token);
+        token.into_token()
     }
 }
 
@@ -319,10 +361,10 @@ mod tests {
 
     use text_size::{TextRange, TextSize};
 
-    use super::{LexError, Lexer, ScannedToken, number::ParseNumberErrorKind, string::StringError};
+    use super::{LexError, Lexer, Token, number::ParseNumberErrorKind, string::StringError};
     use crate::syntax_kind::SyntaxKind;
 
-    fn lex_all(source: &str) -> Vec<ScannedToken<'_>> {
+    fn lex_all(source: &str) -> Vec<Token<'_>> {
         let mut lexer = Lexer::new(source);
         let mut tokens = Vec::new();
         while let Some(token) = lexer.next_token() {
@@ -331,7 +373,7 @@ mod tests {
         tokens
     }
 
-    fn lex_significant(source: &str) -> Vec<ScannedToken<'_>> {
+    fn lex_significant(source: &str) -> Vec<Token<'_>> {
         lex_all(source)
             .into_iter()
             .filter(|token| !token.kind.is_trivia())
@@ -448,5 +490,37 @@ mod tests {
                 .iter()
                 .all(|token| token.error() == Some(LexError::UnrecognizedCharacter))
         );
+    }
+
+    #[test]
+    fn peek_token_and_eof() {
+        let mut lexer = Lexer::new("{1}");
+        assert_eq!(
+            lexer.peek_token().map(|tok| tok.kind),
+            Some(SyntaxKind::LBrace)
+        );
+        assert_eq!(
+            lexer.peek_token().map(|tok| tok.kind),
+            Some(SyntaxKind::LBrace)
+        );
+        assert_eq!(
+            lexer.next_token().map(|tok| tok.kind),
+            Some(SyntaxKind::LBrace)
+        );
+        assert_eq!(
+            lexer.next_token().map(|tok| tok.kind),
+            Some(SyntaxKind::Number)
+        );
+        assert_eq!(
+            lexer.peek_token().map(|tok| tok.kind),
+            Some(SyntaxKind::RBrace)
+        );
+        assert_eq!(
+            lexer.next_token().map(|tok| tok.kind),
+            Some(SyntaxKind::RBrace)
+        );
+        assert_eq!(lexer.peek_token(), None);
+        assert_eq!(lexer.peek_token(), None);
+        assert_eq!(lexer.next_token(), None);
     }
 }

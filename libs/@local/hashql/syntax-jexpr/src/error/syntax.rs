@@ -201,10 +201,7 @@ pub(crate) enum ObjectErrorKind {
     LeadingCommas(Separators),
     TrailingCommas(Separators),
     ConsecutiveCommas(Separators),
-    ConsecutiveColons {
-        rest: Vec<TextRange>,
-        patch_range: Option<TextRange>,
-    },
+    ConsecutiveColons(Separators),
     UnknownKey {
         key: String,
         expected: &'static [&'static str],
@@ -267,7 +264,7 @@ impl ObjectErrorKind {
             Self::LeadingCommas(_) => ObjectDiagnosticCategory::LeadingComma,
             Self::TrailingCommas(_) => ObjectDiagnosticCategory::TrailingComma,
             Self::ConsecutiveCommas(_) => ObjectDiagnosticCategory::ConsecutiveComma,
-            Self::ConsecutiveColons { .. } => ObjectDiagnosticCategory::ConsecutiveColon,
+            Self::ConsecutiveColons(_) => ObjectDiagnosticCategory::ConsecutiveColon,
             Self::UnknownKey { .. } => ObjectDiagnosticCategory::UnknownKey,
             Self::ConflictingConstructor { .. } => ObjectDiagnosticCategory::ConflictingConstructor,
             Self::DuplicateKey { .. } => ObjectDiagnosticCategory::DuplicateKey,
@@ -297,24 +294,24 @@ impl ObjectErrorKind {
                 allow_type_annotations,
             } => object::empty(primary, *allow_type_annotations),
             Self::LeadingCommas(separators) => {
-                let rest = insert_ranges(spans, rest);
-                let patch = patch_range.map(|span| insert_range(spans, span));
-                object::leading_commas(primary, &rest, patch)
+                let patch = insert_range(spans, separators.range());
+                let rest = insert_ranges(spans, &separators.secondary);
+                object::leading_commas(primary, rest, patch)
             }
-            Self::TrailingCommas { rest, patch_range } => {
-                let rest = insert_ranges(spans, rest);
-                let patch = patch_range.map(|span| insert_range(spans, span));
-                object::trailing_commas(primary, &rest, patch)
+            Self::TrailingCommas(separators) => {
+                let patch = insert_range(spans, separators.range());
+                let rest = insert_ranges(spans, &separators.secondary);
+                object::trailing_commas(primary, rest, patch)
             }
-            Self::ConsecutiveCommas { rest, patch_range } => {
-                let rest = insert_ranges(spans, rest);
-                let patch = patch_range.map(|span| insert_range(spans, span));
-                object::consecutive_commas(primary, &rest, patch)
+            Self::ConsecutiveCommas(separators) => {
+                let patch = insert_range(spans, separators.range());
+                let rest = insert_ranges(spans, &separators.secondary);
+                object::consecutive_commas(primary, rest, patch)
             }
-            Self::ConsecutiveColons { rest, patch_range } => {
-                let rest = insert_ranges(spans, rest);
-                let patch = patch_range.map(|span| insert_range(spans, span));
-                object::consecutive_colons(primary, &rest, patch)
+            Self::ConsecutiveColons(separators) => {
+                let patch = insert_range(spans, separators.range());
+                let rest = insert_ranges(spans, &separators.secondary);
+                object::consecutive_colons(primary, rest, patch)
             }
             Self::UnknownKey {
                 key,
@@ -379,7 +376,7 @@ impl ObjectErrorKind {
             Self::DictEntryTooManyItems { dict_key, rest } => {
                 let dict_span = insert_range(spans, *dict_key);
                 let rest = insert_ranges(spans, rest);
-                constructor::dict_entry_too_many_items(primary, dict_span, &rest)
+                constructor::dict_entry_too_many_items(primary, dict_span, rest)
             }
             Self::TypeExpectedString { key, found } => {
                 let key_span = insert_range(spans, *key);

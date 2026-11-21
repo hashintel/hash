@@ -181,6 +181,37 @@ fn call_arguments_and_escaped_keys() {
 }
 
 #[test]
+fn call_object_args_with_trivia() {
+    let source = "[\"greet\", /* lead1 */ { /* inner1 */\n  \":name\": {\"#literal\": \"Alice\"} \
+                  }, /* lead2 */ { /* inner2 */\n  \"#literal\": 1 }]";
+    let parse = Parser::parse_expr_cst(source);
+    assert!(parse.is_valid(), "errors: {:?}", parse.errors());
+    assert_eq!(parse.green().to_string(), source);
+
+    let Some(cst::Expr::Call(call)) = parse.tree().item() else {
+        panic!("expected call expression");
+    };
+    let args: Vec<_> = call.args().collect();
+    assert_eq!(args.len(), 2);
+    assert!(matches!(args[0], cst::CallArg::Labeled(_)));
+    assert!(args[0].green().to_string().starts_with('{'));
+    assert!(matches!(
+        args[1],
+        cst::CallArg::Positional(pos) if matches!(pos.expr(), Some(cst::Expr::Literal(_)))
+    ));
+    assert!(args[1].green().to_string().starts_with('{'));
+
+    // Unterminated trivia inside `{` must not trigger a spurious empty-object error.
+    let categories = parse_err_categories("[\"greet\", { /* unclosed");
+    assert_eq!(
+        categories,
+        vec![JExprDiagnosticCategory::Parser(
+            ParserDiagnosticCategory::Lexer(LexerDiagnosticCategory::UnterminatedBlockComment)
+        )]
+    );
+}
+
+#[test]
 fn multi_diagnostic_recovery_across_phases() {
     let source = r##"["add", {"#literal": 42.}, {"#struct": {"123bad": {"#literal": 1}}, "#type": ""}, "foo$bar"]"##;
     let categories = parse_err_categories(source);
