@@ -29,6 +29,7 @@ import {
 import { useCommandRegistry } from "../react/commands/command-registry";
 import { CommandRegistryProvider } from "../react/commands/command-registry-provider";
 import { PetrinautProvider } from "../react/petrinaut-provider";
+import { OverlayHost } from "./components/overlay-host";
 import { ResolvingOverlay } from "./components/resolving-overlay";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
@@ -230,10 +231,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
       >
         <PetrinautPresentationProvider profile={presentationProfile}>
           <MonacoProvider>
-            <Stack
-              className={cx(editorRootStyle, "petrinaut-root")}
-              ref={portalContainerRef}
-            >
+            <Stack className={cx(editorRootStyle, "petrinaut-root")}>
               <PetrinautPluginsProvider
                 plugins={[fpsCounterPlugin, documentViewPlugin, ...plugins]}
               >
@@ -242,6 +240,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
                 />
               </PetrinautPluginsProvider>
               <ResolvingOverlay />
+              <OverlayHost ref={portalContainerRef} />
             </Stack>
           </MonacoProvider>
         </PetrinautPresentationProvider>

@@ -38,6 +38,7 @@ import {
 } from "../../react/petrinaut-provider-layers";
 import { SimulationProvider } from "../../react/simulation/provider";
 import { SimulatorsProvider } from "../../react/simulators/provider";
+import { OverlayHost } from "../components/overlay-host";
 import { SDCPNView } from "../views/SDCPN/sdcpn-view";
 import { PetrinautIconProvider } from "../views/shared/icon-provider";
 import { PetrinautPresentationProvider } from "../views/shared/presentation-provider";
@@ -292,10 +293,7 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
       key={runSettingsKey}
       initialPlaybackSpeed={playbackOptions?.defaultPlaybackSpeed}
     >
-      <div
-        ref={portalContainerRef}
-        className={cx(previewRootStyle, "petrinaut-root")}
-      >
+      <div className={cx(previewRootStyle, "petrinaut-root")}>
         <header className={previewHeaderStyle}>
           <PreviewNetNavigation />
           <span className={previewTitleStyle} title={title}>
@@ -332,6 +330,7 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
           </div>
           <PreviewPropertiesPanel />
         </main>
+        <OverlayHost ref={portalContainerRef} />
       </div>
     </PetrinautCanvasProvider>
   );

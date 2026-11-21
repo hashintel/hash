@@ -24,14 +24,36 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS as dndCss } from "@dnd-kit/utilities";
-import { useId } from "react";
+import { useId, useSyncExternalStore } from "react";
 
+import { usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { RowDragContext } from "./row-drag-handle";
 
 import type { DragEndEvent, Modifier } from "@dnd-kit/core";
 import type { ReactNode } from "react";
+
+const neverChanges = () => () => {};
+
+/**
+ * Where a table's drag announcements go: the editor's overlay host, or the
+ * page for a table outside an editor. A table that unmounts takes its two
+ * announcement elements with it, and an element that leaves from before a
+ * sibling makes the browser recalculate the style of everything in its
+ * parent: in the overlay host that is the overlays, in `<body>` the page.
+ *
+ * The host is read once it is in the page, which is after the first render
+ * of an editor that opens with a table.
+ */
+const useAnnouncementContainer = (): HTMLElement | undefined => {
+  const overlayHost = usePortalContainerRef();
+  return useSyncExternalStore(
+    neverChanges,
+    () => overlayHost?.current ?? document.body,
+    () => undefined,
+  );
+};
 
 // Keeps the dragged row on the body's vertical axis and inside its bounds.
 const restrictToRows: Modifier = ({
@@ -64,6 +86,7 @@ export const ReorderableRows: React.FC<ReorderableRowsProps> = ({
   children,
 }) => {
   const id = useId();
+  const announcements = useAnnouncementContainer();
   // A short travel before a drag starts, so a click still selects the row.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -89,7 +112,7 @@ export const ReorderableRows: React.FC<ReorderableRowsProps> = ({
       onDragEnd={onDragEnd}
       accessibility={{
         // Portalled out: inline, the live region would be a div in a table.
-        container: typeof document === "undefined" ? undefined : document.body,
+        container: announcements,
       }}
     >
       <SortableContext

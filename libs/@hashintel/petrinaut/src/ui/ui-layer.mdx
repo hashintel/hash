@@ -11,7 +11,7 @@ It renders what the [React layer](layer:react) holds and calls its hooks to chan
 
 ## Entry point
 
-`Petrinaut` in `ui/petrinaut.tsx` creates one Core instance for the document handle and disposes it when the inputs change. It wraps the editor in `PetrinautSlotsContext`, `CommandRegistryProvider` and `PortalContainerContext`, then mounts, from the outside in:
+`Petrinaut` in `ui/petrinaut.tsx` creates one Core instance for the document handle and disposes it when the inputs change. It wraps the editor in `PetrinautSlotsContext`, `CommandRegistryProvider` and `PortalContainerContext`, whose container is the `OverlayHost` at the end of the editor's root, then mounts, from the outside in:
 
 1. `PetrinautProvider`, which connects the instance to React. See the [React layer](layer:react).
 2. `PetrinautPresentationProvider`, which says what a profile shows: the editor, a review, or a preview.
