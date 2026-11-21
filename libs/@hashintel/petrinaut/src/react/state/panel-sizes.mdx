@@ -220,9 +220,9 @@ width is a Motion value the workspace owns, and a `PanelResizer` laid over
 the workspace resizes it, as for a docked panel.
 
 Two elements follow the width, and each has its `width` written directly: the
-holder the panels render into, marked `data-simulation-panel-slot`, and a
-sizer inside the room. The room is a flex
-item beside the content, so the content gives up what the room takes.
+container the panels render into, marked `data-simulation-panel-container`,
+and a sizer inside the room. The room is a flex item beside the content, so
+the content gives up what the room takes.
 
 - **A drag leads, and at any other time the width worked out while rendering
   does.** The workspace keeps the width the user chose in state, and
@@ -232,19 +232,19 @@ item beside the content, so the content gives up what the room takes.
   pointer move and the choice once, when it ends, so a drag renders the
   workspace once. `panel-width.test.ts` and `simulation-workspace.test.tsx`
   hold the widths.
-- **The room and the holder ease a share, and a drag writes the width.** The
-  room opens and closes with the panel, and the holder grows to the whole
-  workspace in fullscreen. The room is a grid whose one column goes from
-  `0fr` to `1fr` of the sizer, and the holder takes the space left of it by a
+- **The room and the container ease a share, and a drag writes the width.**
+  The room opens and closes with the panel, and the container grows to the
+  whole workspace in fullscreen. The room is a grid whose one column goes from
+  `0fr` to `1fr` of the sizer, and the container takes the space left of it by a
   `flex-grow` that goes from 0 to 1. Each transition is on the share, so a drag
   moves both edges in the frame it happens in.
-- **The workspace learns of a panel from its holder.** A panel is rendered
-  into the holder through a portal, from anywhere below the workspace.
-  `useHasOpenPanel` observes the holder's children and says whether one is
+- **The workspace learns of a panel from the container.** A panel is rendered
+  into the container through a portal, from anywhere below the workspace.
+  `useHasOpenPanel` observes the container's children and says whether one is
   shown and not closing. The room is open and the resizer mounted while it
   says yes. `use-has-open-panel.test.tsx` holds this.
-- **The holder is always laid out.** It lets the pointer through everywhere but
-  on a panel. A holder that appeared only once the workspace had rendered
+- **The container is always laid out.** It lets the pointer through everywhere but
+  on a panel. A container that appeared only once the workspace had rendered
   again would refuse the focus a panel takes in the commit that adds it.
 - **The resizer is there only beside an open panel.** Without a panel, and
   in fullscreen, the page has no separator to reach with the pointer.

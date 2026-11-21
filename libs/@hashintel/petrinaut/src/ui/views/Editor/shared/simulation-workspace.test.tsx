@@ -79,17 +79,17 @@ const findResizer = () =>
     name: "Resize simulation panel",
   });
 
-/** The width of the panel's slot, a frame on. The room beside the content has the same. */
+/** The width of the panels' container, a frame on. The room beside the content has the same. */
 const panelWidth = async (container: HTMLElement) => {
   await nextFrame();
-  const slot = container.querySelector<HTMLElement>(
-    "[data-simulation-panel-slot]",
+  const panelContainer = container.querySelector<HTMLElement>(
+    "[data-simulation-panel-container]",
   )!;
   const sizer = container.querySelector<HTMLElement>(
     "[data-simulation-panel-room] > div > div",
   )!;
-  expect(sizer.style.width).toBe(slot.style.width);
-  return slot.style.width;
+  expect(sizer.style.width).toBe(panelContainer.style.width);
+  return panelContainer.style.width;
 };
 
 it("keeps the width its resizer commits through fullscreen, and fits it beside the list", async () => {

@@ -4,8 +4,8 @@ import { useSyncExternalStore } from "react";
 const openPanel =
   "[data-simulation-panel]:not([hidden]):not([data-closing=true])";
 
-const hasOpenPanel = (slot: HTMLElement | null): boolean => {
-  for (const child of slot?.children ?? []) {
+const hasOpenPanel = (container: HTMLElement | null): boolean => {
+  for (const child of container?.children ?? []) {
     if (child.matches(openPanel)) {
       return true;
     }
@@ -14,10 +14,10 @@ const hasOpenPanel = (slot: HTMLElement | null): boolean => {
 };
 
 /** Has `observer` hear of a panel that arrives or leaves, and of one that hides or starts to close. */
-const observePanels = (observer: MutationObserver, slot: HTMLElement) => {
+const observePanels = (observer: MutationObserver, container: HTMLElement) => {
   observer.disconnect();
-  observer.observe(slot, { childList: true });
-  for (const panel of slot.children) {
+  observer.observe(container, { childList: true });
+  for (const panel of container.children) {
     observer.observe(panel, {
       attributes: true,
       attributeFilter: ["hidden", "data-closing"],
@@ -26,33 +26,34 @@ const observePanels = (observer: MutationObserver, slot: HTMLElement) => {
 };
 
 const subscribeToPanels = (
-  slot: HTMLElement | null,
+  container: HTMLElement | null,
   onChange: () => void,
 ): (() => void) => {
-  if (!slot) {
+  if (!container) {
     return () => {};
   }
   const observer = new MutationObserver((_records, self) => {
     // The change may have brought a panel, which is not observed yet.
-    observePanels(self, slot);
+    observePanels(self, container);
     onChange();
   });
-  observePanels(observer, slot);
+  observePanels(observer, container);
 
   return () => observer.disconnect();
 };
 
 /**
- * Whether the slot of a simulation workspace holds an open panel.
+ * Whether the container of a simulation workspace's panels holds an open
+ * one.
  *
- * Panels are rendered into the slot from anywhere below the workspace, so
- * the workspace learns of one from the slot's elements: they are the
+ * Panels are rendered into the container from anywhere below the workspace,
+ * so the workspace learns of one from the container's elements: they are the
  * external store, read on every render and again whenever a panel arrives,
  * leaves, hides or starts to close.
  */
-export const useHasOpenPanel = (slot: HTMLElement | null): boolean =>
+export const useHasOpenPanel = (container: HTMLElement | null): boolean =>
   useSyncExternalStore(
-    (onChange) => subscribeToPanels(slot, onChange),
-    () => hasOpenPanel(slot),
+    (onChange) => subscribeToPanels(container, onChange),
+    () => hasOpenPanel(container),
     () => false,
   );

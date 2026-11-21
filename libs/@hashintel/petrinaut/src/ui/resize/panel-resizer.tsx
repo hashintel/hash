@@ -68,7 +68,7 @@ interface PanelResizerProps {
   maxSize: number;
   /** The separator's accessible name. */
   label: string;
-  /** Called with the size when a drag ends. */
+  /** Called with the size, in whole pixels, when a drag ends. */
   onCommit?: (pixels: number) => void;
   /** Whether a drag paints the panel's border, which lies under the strip. */
   paintsBorder?: boolean;

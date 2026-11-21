@@ -57,9 +57,9 @@ const roomClipStyle = css({
   overflow: "hidden",
 });
 
-// Over the workspace, with the slot at its right edge, and out of the
-// pointer's way everywhere but on a panel.
-const slotLayerStyle = css({
+// Over the workspace, with the panels' container at its right edge, and out
+// of the pointer's way everywhere but on a panel.
+const panelLayerStyle = css({
   position: "absolute",
   inset: "[0]",
   display: "flex",
@@ -67,9 +67,9 @@ const slotLayerStyle = css({
   pointerEvents: "none",
 });
 
-// The fullscreen slot takes the room left of it as a share that grows. A
-// transition changes the share and a drag the width, as for the room.
-const panelSlotStyle = css({
+// In fullscreen the container takes the room left of it as a share that
+// grows. A transition changes the share and a drag the width, as for the room.
+const panelContainerStyle = css({
   position: "relative",
   display: "grid",
   flex: "none",
@@ -96,9 +96,11 @@ const resizerLayerStyle = css({
 
 export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
   const [workspace, setWorkspace] = useState<HTMLDivElement | null>(null);
-  const [slot, setSlot] = useState<HTMLDivElement | null>(null);
+  const [panelContainer, setPanelContainer] = useState<HTMLDivElement | null>(
+    null,
+  );
   const workspaceWidth = useElementWidth(workspace);
-  const hasOpenPanel = useHasOpenPanel(slot);
+  const hasOpenPanel = useHasOpenPanel(panelContainer);
   const [preferredWidth, setPreferredWidth] = useState<number | null>(null);
   // What the panel's elements follow. A drag sets it on every pointer move,
   // which renders nothing.
@@ -146,7 +148,7 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
   }, [width, panelWidth]);
 
   return (
-    <SimulationWorkspaceContext value={slot}>
+    <SimulationWorkspaceContext value={panelContainer}>
       <div
         ref={setWorkspace}
         data-simulation-workspace
@@ -164,14 +166,14 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
             <div ref={styleRef({ width })} />
           </div>
         </div>
-        <div className={slotLayerStyle}>
+        <div className={panelLayerStyle}>
           <div
             ref={(element) => {
-              setSlot(element);
+              setPanelContainer(element);
               return element ? bindStyle(element, { width }) : undefined;
             }}
-            data-simulation-panel-slot
-            className={panelSlotStyle}
+            data-simulation-panel-container
+            className={panelContainerStyle}
           />
         </div>
         {hasOpenPanel && !fullscreen && (
@@ -188,7 +190,7 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
                 // A press that moved nothing chose no width.
                 width.set(panelWidth);
               } else {
-                setPreferredWidth(Math.round(pixels));
+                setPreferredWidth(pixels);
               }
             }}
           />

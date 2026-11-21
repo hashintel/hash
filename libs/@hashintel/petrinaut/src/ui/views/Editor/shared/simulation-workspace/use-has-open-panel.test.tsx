@@ -7,14 +7,14 @@ import { useHasOpenPanel } from "./use-has-open-panel";
 
 afterEach(cleanup);
 
-const Slot = ({ children }: { children?: ReactNode }) => {
-  const [slot, setSlot] = useState<HTMLElement | null>(null);
-  const hasOpenPanel = useHasOpenPanel(slot);
+const Container = ({ children }: { children?: ReactNode }) => {
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+  const hasOpenPanel = useHasOpenPanel(container);
 
   return (
     <>
       <output>{hasOpenPanel ? "open" : "none"}</output>
-      <div ref={setSlot}>{children}</div>
+      <div ref={setContainer}>{children}</div>
     </>
   );
 };
@@ -22,67 +22,67 @@ const Slot = ({ children }: { children?: ReactNode }) => {
 const shows = (answer: "open" | "none") =>
   waitFor(() => expect(screen.getByRole("status").textContent).toBe(answer));
 
-it("answers for a slot that starts with a panel", async () => {
+it("answers for a container that starts with a panel", async () => {
   render(
-    <Slot>
+    <Container>
       <section data-simulation-panel />
-    </Slot>,
+    </Container>,
   );
 
   await shows("open");
 });
 
 it("follows a panel that arrives, hides, starts to close and leaves", async () => {
-  const view = render(<Slot />);
+  const view = render(<Container />);
   await shows("none");
 
   view.rerender(
-    <Slot>
+    <Container>
       <section data-simulation-panel />
-    </Slot>,
+    </Container>,
   );
   await shows("open");
 
   view.rerender(
-    <Slot>
+    <Container>
       <section data-simulation-panel hidden />
-    </Slot>,
+    </Container>,
   );
   await shows("none");
 
   view.rerender(
-    <Slot>
+    <Container>
       <section data-simulation-panel />
-    </Slot>,
+    </Container>,
   );
   await shows("open");
 
   view.rerender(
-    <Slot>
+    <Container>
       <section data-simulation-panel data-closing />
-    </Slot>,
+    </Container>,
   );
   await shows("none");
 
-  view.rerender(<Slot />);
+  view.rerender(<Container />);
   await shows("none");
 });
 
 it("counts a panel shown beside a hidden one, and none inside another element", async () => {
   const view = render(
-    <Slot>
+    <Container>
       <section data-simulation-panel hidden />
       <section data-simulation-panel />
-    </Slot>,
+    </Container>,
   );
   await shows("open");
 
   view.rerender(
-    <Slot>
+    <Container>
       <div>
         <section data-simulation-panel />
       </div>
-    </Slot>,
+    </Container>,
   );
   await shows("none");
 });
