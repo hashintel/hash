@@ -201,6 +201,34 @@ once before that selection, the Definitions view takes the difference away:
 118 ms against 157 ms in three alternating runs. On Supply Chain the first
 selection takes 75 ms either way.
 
+## A pan beside an arc
+
+A pan moves the net one frame after the pointer. Grabbed a few pixels from an
+arc, the canvas carries that arc, and the nodes and arcs after it, under the
+pointer. Each one the pointer rested on lit up its neighbourhood, which fades
+every other node and arc of the net, and the next move cleared it again. Now
+a node or arc that comes under the pointer while a button is down is hovered
+at the release, so a pan changes no highlight.
+
+The table is a pan at zoom 0.5 on a net of 470 nodes and 1,742 arcs, grabbed
+3 to 5 px from an arc. A stepped pan sends each move once the frame of the
+move before is drawn. The others send a move every 8 ms. Each value is the
+median of ten pans, two grab points in five alternating rounds, on the
+production build, with the lowest and the highest in brackets. The browser
+rasters on the GPU for this table.
+
+| Pan                   | Frames a second before | Frames a second after | Highlight changes before | Highlight changes after |
+| --------------------- | ---------------------: | --------------------: | -----------------------: | ----------------------: |
+| Stepped, 6 px a frame |            18 (17..31) |           91 (90..97) |              51 (13..80) |                       0 |
+| 250 px a second       |            13 (11..83) |           79 (58..81) |                 0 (0..5) |                       0 |
+| 500 px a second       |            58 (14..81) |           75 (57..84) |                 0 (0..3) |                       0 |
+| 750 px a second       |            20 (11..53) |           76 (55..85) |                 3 (1..7) |                       0 |
+
+Before, 30 of these 40 pans changed the highlight, and the longest frame of
+each of the 30 took 140 to 290 ms. Now the longest frame of a pan takes 17 to
+35 ms. A pan grabbed 12 px or more from an arc changed no highlight before
+either, and its median is 77 to 92 frames a second in both builds.
+
 ## Where the cost is now
 
 - **Selecting a node** still has one frame near 190 ms. Most of what renders
@@ -232,6 +260,8 @@ Each rule is written, with the test that holds it, in the guide of its layer.
   arc is the same object: [The canvas](doc:ui.views.canvas/canvas).
 - Hover and the drag preview stay in the canvas and reach no panel:
   [The canvas](doc:ui.views.canvas/canvas).
+- A node or arc that comes under the pointer while a button is down is
+  hovered at the release: [The canvas](doc:ui.views.canvas/canvas).
 - A region that is mounted and not visible sits in a hidden `Activity` and
   runs no effect. A closed panel is not mounted, and a panel mounts inside
   its dock, never as a sibling of the canvas:
