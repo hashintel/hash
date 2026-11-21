@@ -15,10 +15,10 @@ import {
 
 import {
   defaultPetrinautNavigationState,
-  PetrinautNavigationProvider,
   type PetrinautNavigationController,
   type PetrinautNavigationState,
-} from "../navigation";
+} from "../navigation/navigation";
+import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
 import { ActiveNetContext } from "./active-net-context";
 import {
   useAssistantPlacement,
@@ -27,8 +27,10 @@ import {
 import { CompositionContext } from "./composition-context";
 import {
   EditorContext,
+  useEditorActions,
   useEditorFields,
   useEditorState,
+  type EditorActions,
   type EditorContextValue,
 } from "./editor-context";
 import { EditorProvider } from "./editor-provider";
@@ -253,6 +255,86 @@ describe("EditorProvider readers of one part", () => {
     expect(renders()).toMatchObject({ mode: 1, fields: 1, readOnly: 1 });
     view.unmount();
   });
+
+  it("keeps the selection through a document edit that leaves it alone", () => {
+    let editor: EditorContextValue;
+    const editorProvider = (
+      <EditorProvider>
+        <EditorContextGrabber
+          onContextValue={(value) => {
+            editor = value;
+          }}
+        />
+      </EditorProvider>
+    );
+    // As `SDCPNProvider` gives it: a new `getItemType` with each definition.
+    const document = () => (
+      <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
+        {editorProvider}
+      </SDCPNContext>
+    );
+    const view = render(document(), {
+      wrapper: ({ children }) => (
+        <TestHost
+          recorded={[]}
+          initialState={{ selection: [{ type: "place", id: "place-1" }] }}
+        >
+          {children}
+        </TestHost>
+      ),
+    });
+    const { selection } = editor!;
+    expect(selection.has("place-1")).toBe(true);
+
+    view.rerender(document());
+
+    expect(editor!.selection).toBe(selection);
+    view.unmount();
+  });
+});
+
+describe("EditorProvider actions", () => {
+  it("gives out one object for the editor's life, which reads the selection when called", () => {
+    const seen: EditorActions[] = [];
+    const ActionsGrabber = ({
+      onActions,
+    }: {
+      onActions: (actions: EditorActions) => void;
+    }) => {
+      onActions(useEditorActions());
+      return null;
+    };
+    const PublishedAnswer = () => (
+      <output aria-label="published answer">
+        {String(useEditorState((editor) => editor.isSelected("place-a")))}
+      </output>
+    );
+    const view = render(
+      <SDCPNContext.Provider value={makeSdcpnContextValue(() => "place")}>
+        <TestHost recorded={[]}>
+          <EditorProvider>
+            <ActionsGrabber
+              onActions={(actions) => {
+                if (!seen.includes(actions)) {
+                  seen.push(actions);
+                }
+              }}
+            />
+            <PublishedAnswer />
+          </EditorProvider>
+        </TestHost>
+      </SDCPNContext.Provider>,
+    );
+    const actions = seen[0]!;
+
+    act(() => actions.selectItem({ type: "place", id: "place-a" }));
+    act(() => actions.toggleBottomPanel());
+    act(() => actions.setSimulateDrawer({ type: "create-scenario" }));
+
+    expect(seen).toHaveLength(1);
+    expect(actions.isSelected("place-a")).toBe(true);
+    expect(view.getByLabelText("published answer").textContent).toBe("true");
+  });
 });
 
 describe("EditorProvider selection gestures", () => {
@@ -284,8 +366,6 @@ describe("EditorProvider selection gestures", () => {
     act(() => editor.setVisualizerEditorFocus("place-c", true));
     act(() => editor.setVisualizerEditorFocus("place-b", false));
     expect(editor.focusedVisualizerPlaceId).toBe("place-c");
-    act(() => editor.clearHoveredItem());
-    expect(editor.focusedVisualizerPlaceId).toBe("place-c");
     act(() => editor.setVisualizerEditorFocus("place-c", false));
     expect(editor.focusedVisualizerPlaceId).toBeNull();
     expect([...editor.keptOpenVisualizerPlaceIds]).toEqual(["place-a"]);
@@ -313,12 +393,6 @@ describe("EditorProvider selection gestures", () => {
     expect([...editor.unfoldedComponentInstanceIds]).toEqual(["m1", "m2"]);
     act(() => editor.toggleComponentInstanceFold("m1"));
     expect([...editor.unfoldedComponentInstanceIds]).toEqual(["m2"]);
-  });
-
-  it("leaves hover preview dismissal to its grace period when crossing another place", () => {
-    act(() => editor.openPlaceVisualizer("place-a"));
-    act(() => editor.setHoveredItem({ type: "place", id: "place-b" }));
-    expect(editor.openVisualizerPlaceId).toBe("place-a");
   });
 
   it("keeps the most recently activated visualizer in front after blur and restores the previous order on close", () => {

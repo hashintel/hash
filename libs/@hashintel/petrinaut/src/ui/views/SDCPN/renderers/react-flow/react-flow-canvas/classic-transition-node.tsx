@@ -5,7 +5,7 @@ import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
-import { useTransitionFrame } from "../../../canvas-frame-store";
+import { useTransitionFrame } from "../../../canvas-frame-store-context";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import {
   classicNodeBoxStyle,
@@ -16,7 +16,7 @@ import {
   nodeSurfaceStyle,
   transitionSurfaceStyle,
 } from "../../../styles/node-surface";
-import { iconBadgeStyle } from "./node-card";
+import { iconBadgeStyle } from "./node-card-styles";
 import { NodeHandles } from "./shared/node-handles";
 import { useTransitionFiringAnimation } from "./use-transition-firing-animation";
 
@@ -133,7 +133,12 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
           <Icon name="lightning" size="sm" />
         </div>
       </div>
-      <NodeHandles isConnectable={isConnectable} />
+      <NodeHandles
+        kind="transition"
+        width={data.width}
+        height={data.height}
+        isConnectable={isConnectable}
+      />
     </div>
   );
 };

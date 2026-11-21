@@ -5,11 +5,13 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { analyzeCompilation } from "@hashintel/petrinaut-core/webgpu";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import {
+  useEditorActions,
+  useEditorState,
+} from "../../../../../../react/state/editor-context";
+import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
 import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import type {
   CompilationItemReport,
   CompilationReport,
@@ -186,11 +188,13 @@ const Group = ({
   </div>
 );
 
-const CompilationContent: React.FC = () => {
-  const { extensions, getItemType } = use(SDCPNContext);
+export const CompilationContent: React.FC = () => {
+  const extensions = useSDCPNState((document) => document.extensions);
+  const getItemType = useSDCPNState((document) => document.getItemType);
   const petriNetDefinition = useExecutableDefinition();
   const { requestHirArtifacts } = use(LanguageClientContext);
-  const { selection, selectItem } = use(EditorContext);
+  const selection = useEditorState((editor) => editor.selection);
+  const { selectItem } = useEditorActions();
 
   const [report, setReport] = useState<CompilationReport | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -373,16 +377,4 @@ const CompilationContent: React.FC = () => {
       )}
     </div>
   );
-};
-
-/**
- * SubView definition for Compilation output. Registered only when the
- * `showCompilationOutput` setting is on — see `ui-subviews.ts`.
- */
-export const compilationSubView: SubView = {
-  id: "compilation",
-  title: "Compilation",
-  tooltip:
-    "How this net's code lowered to HIR, and what stops it running on the GPU.",
-  component: CompilationContent,
 };

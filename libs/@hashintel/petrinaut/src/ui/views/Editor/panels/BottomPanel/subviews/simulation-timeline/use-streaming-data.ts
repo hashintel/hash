@@ -1,42 +1,23 @@
-import {
-  use,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import {
-  createHirMetricEvaluator,
-  resolveNetParameterValues,
-  sanitizeSDCPNForExtensions,
-  type Metric,
-  type MetricShape,
-} from "@hashintel/petrinaut-core";
-import { fingerprintHirCompilationInput } from "@hashintel/petrinaut-core/hir-runtime";
-
-import { useSimulationParameters } from "../../../../../../../react/hooks/use-simulation";
-import { LanguageClientContext } from "../../../../../../../react/lsp/context";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../../react/hooks/use-document";
+import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "./series-config";
 
 import type { ExecutionFrameSource } from "../../../../../../../react/execution-frame/context";
-import type { TimelineMetricEvaluator } from "./series-config/metric";
+import type { SimulationFrameReader } from "../../../../../../../react/simulation/context";
+import type { TimelineView } from "../../../../../../../react/state/editor-context";
 import type {
   StreamingStore,
-  TimelineFrame,
   TimelineSeriesExtractor,
   TimelineSeriesMeta,
 } from "./types";
 
-function createEmptyStore(series: TimelineSeriesMeta[]): StreamingStore {
+function createEmptyStore(): StreamingStore {
   return {
-    series,
-    columns: [[], ...series.map(() => [])],
+    series: [],
+    columns: [[]],
     length: 0,
-    revision: 0,
   };
 }
 
@@ -45,13 +26,11 @@ function resetStore(store: StreamingStore, series: TimelineSeriesMeta[]): void {
     series,
     columns: [[], ...series.map(() => [])],
     length: 0,
-    revision: store.revision + 1,
   });
 }
 
 interface StreamingStoreSnapshot {
   store: StreamingStore;
-  revision: number;
 }
 
 interface StreamingStoreController {
@@ -61,26 +40,18 @@ interface StreamingStoreController {
   reset: (series: TimelineSeriesMeta[]) => void;
   resetCurrentSeries: () => void;
   appendFrames: (
-    frames: TimelineFrame[],
+    frames: SimulationFrameReader[],
     extract: TimelineSeriesExtractor,
   ) => void;
 }
 
-function createStreamingStoreController(
-  series: TimelineSeriesMeta[],
-): StreamingStoreController {
+function createStreamingStoreController(): StreamingStoreController {
   const listeners = new Set<() => void>();
-  const store = createEmptyStore(series);
-  let snapshot: StreamingStoreSnapshot = {
-    store,
-    revision: store.revision,
-  };
+  const store = createEmptyStore();
+  let snapshot: StreamingStoreSnapshot = { store };
 
   const notify = () => {
-    snapshot = {
-      store,
-      revision: store.revision,
-    };
+    snapshot = { store };
     for (const listener of listeners) {
       listener();
     }
@@ -115,197 +86,51 @@ function createStreamingStoreController(
       }
 
       store.length = timeCol.length;
-      store.revision++;
       notify();
     },
   };
 }
 
-type TimelineMetricState = {
-  /** Identity of the compiled metric (id + code), null when none. */
-  key: string | null;
-  evaluate: TimelineMetricEvaluator | null;
-  /** How the metric moves over a run, inferred from its code; null until compiled. */
-  shape: MetricShape | null;
-  error: string | null;
-};
-
-const EMPTY_TIMELINE_METRIC_STATE: TimelineMetricState = {
-  key: null,
-  evaluate: null,
-  shape: null,
-  error: null,
-};
-
 /**
- * Compiles the selected timeline metric through the HIR (in the language
- * worker) and binds the resulting buffer program to frame readers. The
- * compile is asynchronous — while it is in flight the extractor plots gaps.
- */
-export function useTimelineMetric(metric: Metric | null): TimelineMetricState {
-  const { requestHirArtifacts } = use(LanguageClientContext);
-  const { extensions, petriNetDefinition } = use(SDCPNContext);
-  const { parameterValues } = useSimulationParameters();
-  const [state, setState] = useState<TimelineMetricState>(
-    EMPTY_TIMELINE_METRIC_STATE,
-  );
-  // Resolved net parameter values bound to ambient `parameters.<name>` reads
-  // in the metric. They can change between runs (including scenario
-  // overrides), so they participate in the metric key to rebind the evaluator.
-  const netParameterValues = useMemo(
-    () =>
-      resolveNetParameterValues(
-        petriNetDefinition.parameters,
-        parameterValues,
-        extensions.parameters,
-      ),
-    [petriNetDefinition.parameters, parameterValues, extensions.parameters],
-  );
-  const compilationFingerprint = useMemo(
-    () =>
-      fingerprintHirCompilationInput(
-        sanitizeSDCPNForExtensions(petriNetDefinition, extensions),
-        extensions,
-      ),
-    [extensions, petriNetDefinition],
-  );
-  const key = metric
-    ? `${compilationFingerprint}\u0000${metric.id}\u0000${metric.code}\u0000${JSON.stringify(netParameterValues)}`
-    : null;
-
-  useEffect(() => {
-    if (!metric || !key) {
-      return;
-    }
-
-    let cancelled = false;
-    requestHirArtifacts(
-      { ...petriNetDefinition, metrics: [metric] },
-      extensions,
-    )
-      .then(({ artifacts, failures }) => {
-        if (cancelled) {
-          return;
-        }
-        const artifact = artifacts.metrics[metric.id];
-        if (!artifact) {
-          const message = failures
-            .filter(
-              (failure) =>
-                failure.itemType === "metric" && failure.itemId === metric.id,
-            )
-            .flatMap((failure) =>
-              failure.diagnostics.map((diagnostic) => diagnostic.message),
-            )
-            .join("; ");
-          setState({
-            key,
-            evaluate: null,
-            shape: null,
-            error: message || `Metric "${metric.name}" did not compile`,
-          });
-          return;
-        }
-        setState({
-          key,
-          evaluate: createHirMetricEvaluator({
-            metricName: metric.name,
-            artifact,
-            places: petriNetDefinition.places,
-            parameterValues: netParameterValues,
-          }),
-          shape: artifact.shape,
-          error: null,
-        });
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          setState({
-            key,
-            evaluate: null,
-            shape: null,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    metric,
-    key,
-    extensions,
-    petriNetDefinition,
-    requestHirArtifacts,
-    netParameterValues,
-  ]);
-
-  // Effects run after render. Hide a previous evaluator/error synchronously
-  // whenever the metric, schema, code, or extension settings change.
-  return state.key === key ? state : EMPTY_TIMELINE_METRIC_STATE;
-}
-
-/**
- * Hook that streams simulation frames directly into uPlot columnar arrays.
+ * Reads the frames of a reported execution into uPlot's columnar arrays as
+ * they arrive, for the series `timelineView` draws.
  *
  * uPlot data is columnar: the first array contains x-values, then each
  * following array contains y-values for one plotted series.
  * See: https://github.com/leeoniya/uPlot/blob/master/docs/README.md#data-format
  *
- * Returns the current streaming store snapshot for the active timeline view.
+ * A reported execution carries token counts only, so the view is one of
+ * tokens per place, tokens per type and transition firings.
  *
- * Handles three view modes driven by `timelineView`:
- *  - `per-place`: one series per place, values are token counts.
- *  - `per-type`: one series per color type (plus "Untyped" for uncolored
- *    places), values are the sum of token counts across places of that type.
- *  - `metric`: a single series computed by the compiled user metric.
+ * While `paused` no frame is read. The cursor is kept, so resuming appends
+ * everything that arrived meanwhile in one batch.
  */
 export function useStreamingData(
   source: ExecutionFrameSource,
-  options?: {
-    /**
-     * Stop reading frames. The cursor is kept, so resuming appends everything
-     * that arrived meanwhile in one batch.
-     */
-    paused?: boolean;
-  },
-): {
-  store: StreamingStore;
-  metricError: string | null;
-} {
-  const paused = options?.paused ?? false;
-  const {
-    extensions,
-    petriNetDefinition: { places, types, transitions, metrics },
-  } = use(SDCPNContext);
-  const colorsEnabled = extensions.colors;
-  const { timelineView } = use(EditorContext);
-
-  const selectedMetric =
-    timelineView.kind === "metric"
-      ? (metrics?.find((metric) => metric.id === timelineView.metricId) ?? null)
-      : null;
-
-  const timelineMetric = useTimelineMetric(selectedMetric);
-  const evaluateMetric = timelineMetric.evaluate;
+  timelineView: TimelineView,
+  paused: boolean,
+): StreamingStore {
+  const colorsEnabled = useSDCPNState((document) => document.extensions.colors);
+  const places = usePetrinautDefinitionSelector((net) => net.places);
+  const types = usePetrinautDefinitionSelector((net) => net.types);
+  const transitions = usePetrinautDefinitionSelector((net) => net.transitions);
   const availableTypes = colorsEnabled ? types : [];
   const availablePlaces = colorsEnabled
     ? places
     : places.map((place) => ({ ...place, colorId: null }));
 
-  // Computes the active timeline view mode described above into concrete uPlot
-  // series metadata and the per-frame value extractor used while streaming.
+  // The series of the view and the extractor that reads a frame's value for
+  // each of them.
   const seriesConfig = buildTimelineSeriesConfig({
     timelineView,
     places: availablePlaces,
     types: availableTypes,
     transitions,
-    selectedMetric,
-    evaluateMetric,
+    selectedMetric: null,
+    evaluateMetric: null,
   });
 
-  const [storeController] = useState(() => createStreamingStoreController([]));
+  const [storeController] = useState(createStreamingStoreController);
   const { store } = useSyncExternalStore(
     storeController.subscribe,
     storeController.getSnapshot,
@@ -378,8 +203,5 @@ export function useStreamingData(
     totalFrames,
   ]);
 
-  return {
-    store,
-    metricError: timelineMetric.error,
-  };
+  return store;
 }

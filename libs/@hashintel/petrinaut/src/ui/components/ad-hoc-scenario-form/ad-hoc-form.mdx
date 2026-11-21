@@ -4,7 +4,6 @@ description: How the one scenario form turns an inline Initial State + Parameter
 sidebar_order: 10
 ---
 
-import { Lanes } from "@diagrams/lanes";
 import { Pipeline } from "@diagrams/pipeline";
 import { Sequence } from "@diagrams/sequence";
 
@@ -55,9 +54,10 @@ existing `compileScenario` already evaluates, so the compiler is untouched.
 
 ## The three shapes
 
-Everything flows through three types declared in the
-[core ad-hoc layer](layer:core.simulation.authoring.adhoc)
-(`core/simulation/authoring/scenario/ad-hoc/ad-hoc-scenario.ts`):
+Everything flows through three types. `AdHocScenarioState` is a document
+type in `libs/@hashintel/petrinaut-core/src/types/sdcpn.ts`. The synthesis
+types, `AdHocSynthesisOutput` among them, are in `ad-hoc-scenario.ts` of the
+[core ad-hoc layer](layer:core.simulation.authoring.adhoc):
 
 <Pipeline
   title="From form state to the pipeline"
@@ -101,8 +101,8 @@ other two in `core/types/sdcpn.ts`:
 - `{ type: "adhoc", content: AdHocScenarioState }` — the form's state,
   verbatim.
 
-`AdHocScenarioState` (the [core ad-hoc
-layer](layer:core.simulation.authoring.adhoc)) is a JSON-serializable tree,
+`AdHocScenarioState` (in `types/sdcpn.ts` of petrinaut-core, with
+`AdHocValue`) is a JSON-serializable tree,
 so it saves as YAML or JSON with the rest of the model document; the zod
 schema in `ad-hoc/ad-hoc-state-schema.ts` validates it on load. Its parts:
 
@@ -174,7 +174,7 @@ row, a fresh `variableN`) and opens the natural editor.
 Every edit is a **serializable action** dispatched through
 `AdHocFormContext.dispatch`. The action vocabulary and the pure reducer live
 in core (`ad-hoc-actions.ts`): `setExpression`, `setDomainField`,
-`toggleSelection`, variable actions (`add`, `rename` — optionally rewriting
+`toggleSelection`, `setVariableExposed`, variable actions (`add`, `rename` — optionally rewriting
 references — `setType`, `delete`, `duplicate`), token-row actions (`add`,
 `delete`, `duplicate`, `setKind`), and `shareColumn`/`unshareColumn`. Each
 action has a zod input schema (`adHocActionInputSchemas`), mirroring the net
@@ -204,7 +204,7 @@ a double-click opens the editor. The value editor opens **in place**: a
 frameless single-line Monaco exactly over the cell, the slot's attribution
 path floating above, the mode's toggle pill below. Turning the toggle on
 swaps the expression editor for a small bounds spreadsheet in the same slab
-— Min/Max/Scale (Step where the domain is integer), each bound an
+— Min and Max, each bound an
 expression cell with the same select-then-edit contract. Escape peels one
 layer at a time: bound edit → bound cell → closed slab → the cell. Only one
 editor is open at a time; opening one closes the rest.
@@ -236,8 +236,7 @@ a collapsed place renders as one line with a row/token summary. Inside the
 token spreadsheet the vertical walk passes through every line — column
 headers, the shared-values line, each dynamic row's count strip, the rows,
 the phantom line — and returns to the column a vertical move started from
-after crossing a full-width stop. The type select and the bounds Scale
-select join the grid: arrows navigate while closed, Enter opens, and the
+after crossing a full-width stop. The type select joins the grid: arrows navigate while closed, Enter opens, and the
 open list owns its keys.
 
 **Escape never reaches the host.** The form's embeddings (drawers, dialogs)
@@ -329,105 +328,40 @@ initial-state body and wrapped override expressions.
 
 ## Who owns what
 
-<Lanes
-  title="The component split"
-  lanes={[
-    {
-      title: "core.simulation.authoring.adhoc",
-      accent: "core",
-      boxes: [
-        {
-          label: "ad-hoc-scenario.ts",
-          note: "Shapes, transitions (toggle / share / row kind), synthesis, slots, labels, place totals",
-        },
-        {
-          label: "ad-hoc-actions.ts",
-          note: "The action schemas, the pure reducer, rename-with-rewrite and duplication helpers, coalescing keys",
-        },
-      ],
-    },
-    {
-      title: "core.lsp",
-      accent: "core",
-      boxes: [
-        {
-          label: "generateAdHocSessionFiles",
-          note: "One wrapped virtual document per non-empty slot",
-        },
-        {
-          label: "temp/adhoc/* protocol",
-          note: "Session lifecycle in the worker, mirroring scenario sessions",
-        },
-      ],
-    },
-    {
-      title: "ui.adhoc-form",
-      accent: "ui",
-      boxes: [
-        {
-          label: "ad-hoc-scenario-form.tsx",
-          note: "Sections, the LSP session, the error map, the AdHocFormContext provider (dispatch included)",
-        },
-        {
-          label: "use-form-history.ts",
-          note: "The dispatch + snapshot-stack undo model described above",
-        },
-        {
-          label: "token-table.tsx",
-          note: "The spreadsheet: gutter kind menu, strips, shared columns, totals",
-        },
-        {
-          label: "value-editor.tsx",
-          note: "The in-place cell editor: Monaco, bounds, the mode's toggle pill",
-        },
-        {
-          label: "ui.spreadsheet-kit",
-          note: "The state-agnostic building blocks the three tables compose: the table shell, gutter cells with their menu choreography, the trailing add-lines, the row-selection model",
-        },
-        {
-          label: "ui.worksheet",
-          note: "Zone registry: each grid or header owns its arrows; an edge move focuses the next zone in DOM order, skipping collapsed ones",
-        },
-        {
-          label: "dependency-highlight.ts",
-          note: "Pure reference extraction: the rows a focused expression reads, and the cells reading a focused Variable or Parameter",
-        },
-        {
-          label: "variable-rows / parameter-rows / place-block / form-table",
-          note: "Rows at both scopes, collapsible place blocks, the shared spreadsheet style grammar",
-        },
-      ],
-    },
-    {
-      title: "Consumers",
-      accent: "ui",
-      boxes: [
-        {
-          label: "Simulation Settings (inline)",
-          note: "Quick simulation embeds the form through renderLayout — Variables and Parameters in the left column, Initial state in the right; react.simulation synthesizes and compiles on every change, so errors surface live",
-        },
-        {
-          label: "Create-experiment drawer",
-          note: "react.experiments compiles it at experiment start",
-        },
-        {
-          label: "Create-experiment drawer (sweeps)",
-          note: "Swept fields become the experiment's parameter axes",
-        },
-        {
-          label: "Scenario drawers",
-          note: 'Create and edit save the state as initialState.type "adhoc"; the edit drawer seeds through adHocStateFromScenario, showing a code scenario\'s body read-only',
-        },
-      ],
-    },
-  ]}
-/>
+| Layer                                                                      | What it owns                                                                                                                                                 |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`core.simulation.authoring.adhoc`](layer:core.simulation.authoring.adhoc) | The state shapes, the transitions between row kinds, synthesis, labels, the action schemas and the pure reducer                                              |
+| [`core.lsp`](layer:core.lsp)                                               | One wrapped virtual document per non-empty `AdHocSlot`, and the `temp/adhoc/*` session protocol in the worker                                                |
+| [`ui.adhoc-form`](layer:ui.adhoc-form)                                     | The sections, the LSP session, the error map, the undo history, the token table, the in-place cell editor and the dependency highlight                       |
+| [`ui.spreadsheet-kit`](layer:ui.spreadsheet-kit)                           | The table shell, gutter cells and their menus, and the trailing add-lines                                                                                    |
+| [`ui.worksheet`](layer:ui.worksheet)                                       | The keyboard flow: each grid or header owns its arrows, and an edge move focuses the next one in DOM order. Also the row-selection model, `useRowSelection`. |
 
-`AdHocFormContext` is the internal seam: the form provides the whole editing
-state, the `dispatch` write path, the net context, the selection mode, the
-LSP session id, per-slot error/URI lookup, the dependency highlight, and the
-focused-value reporter, so the components beneath carry only their own value
-and location.
+Three places mount the form. Simulation Settings embeds it through
+`renderLayout`, and [`react.simulation`](layer:react.simulation) synthesizes
+and compiles on every change. The Create Experiment drawer hands the state to
+[`react.experiments`](layer:react.experiments), which compiles it at experiment
+start and turns swept fields into parameter axes. The scenario drawers save the
+state as `initialState.type "adhoc"`.
+
+`form-context.ts` holds what the form gives the components beneath it, in two
+parts. `AdHocFormContext` carries what an edit, a diagnostic or a move of the
+focus leaves as it is: the `dispatch` write path, the net context, the
+selection mode, the URI of each `AdHocSlot` and the focused-value reporter. A
+component beneath reads it with `useAdHocForm`. What those three change (the
+definition, the error of each value, the labels, the place totals, the
+dependency highlight) is a store in that context, and a component reads its
+own part of it with `useAdHocFormFact`. A group, a place or a cell renders when
+its part changes, so an edit renders the cells it changes and no other; one
+context for both would render every cell.
+
+A selector passed to `useAdHocFormFact` returns a value that keeps its identity
+while it says the same: a string, a boolean, or an object the definition
+holds. Where it builds a list or a record of such values, as a table does for
+the marks of its rows, the caller passes `sameParts` as the equality.
+
+The form keeps the objects of the definition it shows wherever a new one says
+the same (`share-definition.ts`): a host may build the whole definition again
+on any render, and the cells compare their part by identity.
 
 ## Mounting the form
 
@@ -447,7 +381,8 @@ a net-parameter override may read the Variables, so the reading order
 matches the data flow.
 
 One prop shapes an **embedding**: `renderLayout` hands the host each group
-— Variables, Parameters, places — already wired to the form's contexts and
+— Variables, Parameters, places, and the control that shows or hides the
+other places (`placesVisibilityControl`) — already wired to the form's contexts and
 without section chrome, so the host lays them out under its own headings
 (a group the host leaves out of its layout is simply not rendered); each
 visual column goes in a `FormLayoutColumn` so the keyboard walk chains the
@@ -463,10 +398,10 @@ would render.
 The form runs its own LSP session against `LanguageClientContext`; with the
 default no-op client (tests, stories without the provider) it degrades to
 synthesis-only validation. The Create Experiment drawer's constraint rows
-(`create-experiment-drawer/constraints/`) follow the same pattern with
+(`create-experiment-drawer/constraints-section.tsx`) follow the same pattern with
 `temp/constraint/*` sessions: one per row, keyed by the draft id, carrying
 the selected scenario's parameters so `scenario.*` resolves in every row.
-State is plain data — hold it wherever the consumer
+State is plain data. Hold it wherever the consumer
 already keeps its draft (component state in the drawer, `SimulationContext`
 for quick simulation) and hand `output.scenario` to `compileScenario` when
 the consumer needs it: the drawer compiles at experiment start,
@@ -480,8 +415,8 @@ its Simulation Settings error banner stays live.
   a shared column restores every cell exactly, including held Optimize state.
 - **Every edit is one dispatched action**, applied by the pure reducer in
   core; undo replays snapshots and never dispatches.
-- **Generated names are deterministic** (`adhoc.<place>.r<row>.<field>`,
-  `adhoc.count.<place>`, `adhoc.var.net.<name>`, `adhoc.param.<name>`), so
+- **Generated names are deterministic** (`adhoc_<place>_r<row>_<field>`,
+  `adhoc_count_<place>`, `adhoc_var_<scope>_<name>`, `adhoc_param_<name>`), so
   optimization results attribute across runs; place-name duplicates among
   participating places are a synthesis error because the generated initial
   state is keyed by place name.

@@ -6,7 +6,7 @@ import {
   ExperimentsContext,
 } from "../../../../../../react/experiments/context";
 import { buildSweepOptimizationInput } from "../../../../../../react/experiments/sweep-optimization";
-import { PetrinautNavigationProvider } from "../../../../../../react/navigation";
+import { PetrinautNavigationProvider } from "../../../../../../react/navigation/navigation-provider";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
 import {
   foldBestTrial,
@@ -15,24 +15,15 @@ import {
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-/**
- * The sweep-experiment drawer against fake compute: drag a parameter slider
- * and the charts bridge the compute gap with the previous picture, dimmed,
- * until the new selection's first frames arrive. For a sweep created with
- * Optimize the drawer also shows the study it was created with: its
- * headline, its Steps columns, its Constraints and Sensitivity cards and its
- * steps table, in one shape from its first frame.
- */
 import { SimulationWorkspace } from "../../../shared/simulation-workspace";
 import {
-  FakeExperimentsProvider,
   makeConstrainedSweepExperiment,
-  makeExperiment,
   makeParameterSweepExperiment,
   sirSdcpnContextValue,
   sweepFixtureScenario,
   syntheticSweepObjective,
 } from "./experiments-story-fixtures";
+import { FakeExperimentsProvider } from "./experiments-story-providers";
 import {
   fakeConstrainedStudyInput,
   fakeLongStudyInput,
@@ -49,8 +40,14 @@ import { ViewExperimentDrawer } from "./view-experiment-drawer";
 import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+/**
+ * The results drawer of a sweep created with Optimize, against fake compute
+ * and a study in a given state: its headline, its Steps columns, its
+ * Constraints and Sensitivity cards and its steps table. Reaching any of
+ * these by hand takes the optimizer service and a study that runs to there.
+ */
 const meta = {
-  title: "Simulate / ViewExperimentDrawer",
+  title: "States/Experiment results",
   parameters: { layout: "fullscreen" },
   decorators: [
     (Story) => (
@@ -81,92 +78,11 @@ const DrawerFromContext = ({
   const { experiments } = use(ExperimentsContext);
   return (
     <ViewExperimentDrawer
-      open
       onClose={() => {}}
       experiment={experiments[0]}
       presentation={presentation}
     />
   );
-};
-
-export const Sweep: Story = {
-  render: () => (
-    <FakeExperimentsProvider
-      initialExperiments={[makeParameterSweepExperiment()]}
-      restreamOnSelectionChange
-    >
-      <DrawerFromContext />
-    </FakeExperimentsProvider>
-  ),
-};
-
-export const InlineResults: Story = {
-  render: () => (
-    <div style={{ height: "100vh", display: "flex" }}>
-      <FakeExperimentsProvider
-        initialExperiments={[makeParameterSweepExperiment()]}
-        restreamOnSelectionChange
-      >
-        <DrawerFromContext presentation="inline" />
-      </FakeExperimentsProvider>
-    </div>
-  ),
-};
-
-/** The two-axis sweep with four metrics: the common case the drawer must show without scrolling. */
-const fourMetricSweep = (): ExperimentRecord => {
-  const sweep = makeParameterSweepExperiment();
-  const infected = sweep.metricSpecs[0]!;
-  return {
-    ...sweep,
-    metricSpecs: [
-      infected,
-      { ...infected, id: "susceptible", label: "Susceptible" },
-      { ...infected, id: "recovered", label: "Recovered" },
-      { ...infected, id: "hospitalised", label: "Hospitalised" },
-    ],
-  };
-};
-
-export const FourMetrics: Story = {
-  name: "Sweep, four metrics",
-  render: () => (
-    <FakeExperimentsProvider
-      initialExperiments={[fourMetricSweep()]}
-      restreamOnSelectionChange
-    >
-      <DrawerFromContext />
-    </FakeExperimentsProvider>
-  ),
-};
-
-/** A plain experiment: no parameters, no surface, the metric cards alone under the header. */
-const plainExperiment = (
-  status: ExperimentRecord["status"],
-): ExperimentRecord =>
-  makeExperiment(1, {
-    name: "SIR Monte Carlo",
-    status,
-    metricSpecs: makeParameterSweepExperiment().metricSpecs,
-    metricFrames: makeParameterSweepExperiment().metricFrames,
-  });
-
-export const Running: Story = {
-  name: "Plain experiment, running",
-  render: () => (
-    <FakeExperimentsProvider initialExperiments={[plainExperiment("running")]}>
-      <DrawerFromContext />
-    </FakeExperimentsProvider>
-  ),
-};
-
-export const Complete: Story = {
-  name: "Plain experiment, complete",
-  render: () => (
-    <FakeExperimentsProvider initialExperiments={[plainExperiment("complete")]}>
-      <DrawerFromContext />
-    </FakeExperimentsProvider>
-  ),
 };
 
 /** A connected optimizer the fake optimizations context never connects. */

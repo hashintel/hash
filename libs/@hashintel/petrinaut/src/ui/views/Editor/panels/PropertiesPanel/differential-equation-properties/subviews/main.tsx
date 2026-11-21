@@ -1,11 +1,9 @@
-import { lazy, Suspense, useState } from "react";
+import { useState } from "react";
 
 import {
   Button,
   Dialog,
   Form,
-  Icon,
-  Menu,
   Select,
   Tooltip,
 } from "@hashintel/ds-components";
@@ -17,20 +15,21 @@ import {
   validateDisplayName,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../../react";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { PropertyValue } from "../../../../../../components/property-value";
-import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
+import { CodeTemplateMenu } from "../../code-template-menu";
 import { tokenCountLabel } from "../../token-count-label";
 import { useDiffEqPropertiesContext } from "../context";
+import { DifferentialEquationCodeField } from "./code-field";
 
-import type { SubView } from "../../../../../../components/sub-view/types";
 import type { Color, DifferentialEquation } from "@hashintel/petrinaut-core";
 
 // the section fills the panel; the last row (Code) takes the remaining height
-const fieldsSectionStyle = css({
+const equationFieldsStyle = css({
   paddingTop: "3",
   flex: "[1]",
   minHeight: "[0]",
@@ -62,13 +61,7 @@ const confirmHintStyle = css({
   color: "neutral.s80",
 });
 
-const aiMenuItemStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-});
-
-const arcStyle = css({
+const typeOptionStyle = css({
   display: "flex",
   gap: "2",
   alignItems: "center",
@@ -107,15 +100,10 @@ const codeForArity = (
     : code;
 };
 
-const DeferredDifferentialEquationCodeField = lazy(async () => {
-  const { DifferentialEquationCodeField } = await import("./code-field");
-  return { default: DifferentialEquationCodeField };
-});
-
-const DiffEqMainContent: React.FC = () => {
-  const { differentialEquation, types, places, updateDifferentialEquation } =
-    useDiffEqPropertiesContext();
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+export const DiffEqMainContent: React.FC = () => {
+  const { differentialEquation, types, places } = useDiffEqPropertiesContext();
+  const { updateDifferentialEquation } = usePetrinautMutations();
+  // The type the user picked, while the dialog asks to confirm it.
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
   const isReadOnly = useIsReadOnly();
   const presentation = usePetrinautPresentation();
@@ -141,7 +129,6 @@ const DiffEqMainContent: React.FC = () => {
   const handleTypeChange = (newTypeId: string) => {
     if (placesUsingEquation.length > 0) {
       setPendingTypeId(newTypeId);
-      setShowConfirmDialog(true);
     } else {
       updateDifferentialEquation({
         equationId: differentialEquation.id,
@@ -157,18 +144,14 @@ const DiffEqMainContent: React.FC = () => {
         update: { colorId: pendingTypeId },
       });
     }
-    setShowConfirmDialog(false);
     setPendingTypeId(null);
   };
 
-  const cancelTypeChange = () => {
-    setShowConfirmDialog(false);
-    setPendingTypeId(null);
-  };
+  const cancelTypeChange = () => setPendingTypeId(null);
 
   return (
     <>
-      <Form.Section className={fieldsSectionStyle}>
+      <Form.Section className={equationFieldsStyle}>
         <DraftFieldInput
           label="Name"
           sourceId={differentialEquation.id}
@@ -180,18 +163,10 @@ const DiffEqMainContent: React.FC = () => {
               update: { name },
             })
           }
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
 
         <Form.Field label="Associated Type" size="sm">
-          <PropertyValue
-            text={
-              types.find(
-                (candidate) => candidate.id === differentialEquation.colorId,
-              )?.name
-            }
-          >
+          <PropertyValue text={equationType?.name}>
             <Tooltip
               content={UI_MESSAGES.READ_ONLY_MODE}
               disableTooltip={!isReadOnly}
@@ -210,11 +185,10 @@ const DiffEqMainContent: React.FC = () => {
                 }))}
                 placeholder="Select a type"
                 size="sm"
-                disabled={isReadOnly}
                 renderItem={(value) => {
                   const type = types.find((tp) => tp.id === value);
                   return (
-                    <div className={arcStyle}>
+                    <div className={typeOptionStyle}>
                       <div
                         className={colorDotStyle}
                         style={{ backgroundColor: type?.displayColor }}
@@ -241,20 +215,15 @@ const DiffEqMainContent: React.FC = () => {
                 onChange={handleArityChange}
                 items={arityItems(differentialEquation.arity)}
                 size="sm"
-                disabled={isReadOnly}
               />
             </Tooltip>
           </PropertyValue>
         </Form.Field>
 
-        {presentation.showSourceCode && (
-          <Suspense fallback={null}>
-            <DeferredDifferentialEquationCodeField />
-          </Suspense>
-        )}
+        {presentation.showSourceCode && <DifferentialEquationCodeField />}
       </Form.Section>
 
-      {showConfirmDialog && (
+      {pendingTypeId !== null && (
         <Dialog size="xs" onClose={cancelTypeChange}>
           <Dialog.Header title="Change Associated Type?" />
           <Dialog.Body>
@@ -309,9 +278,9 @@ const DiffEqMainContent: React.FC = () => {
   );
 };
 
-const DiffEqCodeAction: React.FC = () => {
-  const { differentialEquation, types, updateDifferentialEquation } =
-    useDiffEqPropertiesContext();
+export const DiffEqCodeAction: React.FC = () => {
+  const { differentialEquation, types } = useDiffEqPropertiesContext();
+  const { updateDifferentialEquation } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
   if (isReadOnly) {
@@ -319,69 +288,24 @@ const DiffEqCodeAction: React.FC = () => {
   }
 
   return (
-    <Menu
-      trigger={
-        <Button
-          aria-label="More options"
-          tooltip="More options"
-          variant="ghost"
-          size="xs"
-          iconName="ellipsisVertical"
-        />
-      }
-      items={[
-        {
-          id: "load-default",
-          text: "Load default template",
-          onClick: () => {
-            const equationType = types.find(
-              (tp) => tp.id === differentialEquation.colorId,
-            );
+    <CodeTemplateMenu
+      onLoadDefault={() => {
+        const equationType = types.find(
+          (tp) => tp.id === differentialEquation.colorId,
+        );
 
-            updateDifferentialEquation({
-              equationId: differentialEquation.id,
-              update: {
-                code: equationType
-                  ? generateDefaultDifferentialEquationCode(
-                      equationType,
-                      differentialEquation.arity,
-                    )
-                  : DEFAULT_DIFFERENTIAL_EQUATION_CODE,
-              },
-            });
+        updateDifferentialEquation({
+          equationId: differentialEquation.id,
+          update: {
+            code: equationType
+              ? generateDefaultDifferentialEquationCode(
+                  equationType,
+                  differentialEquation.arity,
+                )
+              : DEFAULT_DIFFERENTIAL_EQUATION_CODE,
           },
-        },
-        {
-          id: "generate-ai",
-          text: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              position="bottom"
-            >
-              <div className={aiMenuItemStyle}>
-                <Icon name="sparkles" size="sm" />
-                Generate with AI
-              </div>
-            </Tooltip>
-          ),
-          disabled: true,
-          onClick: () => {
-            // TODO: Implement AI generation
-          },
-        },
-      ]}
+        });
+      }}
     />
   );
-};
-
-export const diffEqMainContentSubView: SubView = {
-  id: "diff-eq-main-content",
-  fullWidthCodeEditor: true,
-  title: "Differential Equation",
-  icon: DifferentialEquationIcon,
-  main: true,
-  component: DiffEqMainContent,
-  renderHeaderAction: () => <DiffEqCodeAction />,
-  headerActionMutates: true,
-  alwaysShowHeaderAction: true,
 };

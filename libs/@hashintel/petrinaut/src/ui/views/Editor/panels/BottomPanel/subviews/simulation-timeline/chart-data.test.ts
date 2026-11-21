@@ -19,7 +19,6 @@ const makeStore = (seriesIds: string[]) => {
     series: seriesIds.map(seriesMeta),
     columns: [[], ...seriesIds.map(() => [])],
     length: 0,
-    revision: 0,
   };
 
   const append = (time: number, values: number[]) => {

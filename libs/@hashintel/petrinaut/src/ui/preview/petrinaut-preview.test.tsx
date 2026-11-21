@@ -126,6 +126,21 @@ describe("PetrinautPreview", () => {
     ).toBeNull();
   });
 
+  it("draws its icons from the set the editor uses", () => {
+    render(
+      <PetrinautPreview
+        definition={definition}
+        fullViewUrl="https://example.com/model"
+      />,
+    );
+
+    const fullViewIcon = screen
+      .getByRole("link", { name: "Open full view" })
+      .querySelector("svg");
+
+    expect(fullViewIcon?.getAttribute("data-icon")).toBe("externalLink");
+  });
+
   it("opens an execution in Actual mode on its latest frame, with its timeline", async () => {
     render(
       <PetrinautPreview definition={definition} actualMode={actualMode} />,

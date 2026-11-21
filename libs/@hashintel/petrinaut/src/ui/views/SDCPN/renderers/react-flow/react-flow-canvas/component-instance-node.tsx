@@ -1,11 +1,10 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { componentInstanceHeaderHeight } from "@hashintel/petrinaut-core";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { ComponentGlyph } from "../../../../../components/component-glyph";
 import { problemTextStyle } from "../../../../../constants/problem-severity";
 import { nodeFocusStyle } from "../../../styles/focus";
@@ -15,10 +14,10 @@ import {
   nodeSubtitleStyle,
   nodeTextAreaStyle,
   nodeTitleStyle,
-} from "./node-card";
+} from "./node-card-styles";
 import { pinLayout, pinSides, portOnSide } from "./pin-layout";
 import { portInHandleId, portOutHandleId } from "./port-handles";
-import { pinColorStyle, pinStyle } from "./port-pin";
+import { pinColorStyle, pinStyle } from "./port-pin-style";
 import { useRemeasureHandles } from "./use-remeasure-handles";
 
 import type { CanvasInstanceBinding, CanvasPort } from "../../../canvas-scene";
@@ -199,7 +198,7 @@ export const ComponentInstanceNode: React.FC<
   selected,
   isConnectable,
 }: NodeProps<ComponentInstanceNodeType>) => {
-  const { toggleComponentInstanceFold } = use(EditorContext);
+  const { toggleComponentInstanceFold } = useEditorActions();
 
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.

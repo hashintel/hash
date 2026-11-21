@@ -239,7 +239,7 @@ const DemoGrid = ({
 // -- Meta -----------------------------------------------------------------
 
 const meta = {
-  title: "worksheet/FocusStack",
+  title: "Components/Keyboard focus",
   component: FocusStack,
   parameters: {
     layout: "padded",

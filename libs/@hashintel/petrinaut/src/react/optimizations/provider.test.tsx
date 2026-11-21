@@ -21,10 +21,8 @@ import {
   type SweepVisitedCell,
 } from "../experiments/context";
 import { sweepPointFor } from "../experiments/parameter-grid";
-import {
-  PetrinautNavigationProvider,
-  usePetrinautNavigation,
-} from "../navigation";
+import { usePetrinautNavigation } from "../navigation/navigation";
+import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
 import { PetrinautOptimizationContext } from "../optimization-context";
 import {
   type OptimizationBest,
@@ -42,7 +40,7 @@ import type {
   ExperimentParameterAxis,
   SweepSelection,
 } from "../experiments/parameter-grid";
-import type { PetrinautNavigationState } from "../navigation";
+import type { PetrinautNavigationState } from "../navigation/navigation";
 import type { PropsWithChildren } from "react";
 
 const metricId = sirOptimizationMetric.id;

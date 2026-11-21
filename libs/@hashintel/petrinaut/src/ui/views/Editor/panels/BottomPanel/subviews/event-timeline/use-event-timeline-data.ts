@@ -2,11 +2,11 @@ import { use, useEffect, useState, useSyncExternalStore } from "react";
 
 import { SOLVER_ERROR_DIAGNOSTIC } from "@hashintel/petrinaut-core";
 
+import { usePetrinautDefinitionSelector } from "../../../../../../../react/hooks/use-document";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "../simulation-timeline/series-config";
 import { useRunTimelineView } from "../simulation-timeline/use-run-timeline-view";
-import { useTimelineMetric } from "../simulation-timeline/use-streaming-data";
 import {
   createTimelineSeriesStore,
   type TimelineSeriesSnapshot,
@@ -14,6 +14,7 @@ import {
   type TimelineSeriesStore,
   type TimelineSeriesView,
 } from "./series-store";
+import { useTimelineMetric } from "./use-timeline-metric";
 
 import type { EventTimelineData, FiringMark } from "./series";
 import type { TraceEvent } from "@hashintel/petrinaut-core";
@@ -37,6 +38,9 @@ const solverErrorExtractor = (
 };
 
 export type TimeRange = { min: number; max: number };
+
+/** Samples a continuous series is read at across the visible range. */
+const SAMPLE_COUNT = 400;
 
 const EMPTY_SNAPSHOT: TimelineSeriesSnapshot = {
   data: null,
@@ -110,13 +114,11 @@ const useTimelineSeriesStore = (
 export function useEventTimelineData({
   viewMin,
   viewMax,
-  sampleCount,
   paused,
 }: {
   /** The visible range as two numbers, so a resample follows a change of value, not of object. */
   viewMin: number;
   viewMax: number;
-  sampleCount: number;
   /**
    * True while nobody can see the timeline: the store then stops following
    * the trace and the range, and catches up when this turns false.
@@ -131,10 +133,11 @@ export function useEventTimelineData({
 } {
   const { eventSimulation } = use(SimulationContext);
   const timelineView = useRunTimelineView();
-  const {
-    extensions,
-    petriNetDefinition: { places, types, transitions, metrics },
-  } = use(SDCPNContext);
+  const colorsEnabled = useSDCPNState((document) => document.extensions.colors);
+  const places = usePetrinautDefinitionSelector((net) => net.places);
+  const types = usePetrinautDefinitionSelector((net) => net.types);
+  const transitions = usePetrinautDefinitionSelector((net) => net.transitions);
+  const metrics = usePetrinautDefinitionSelector((net) => net.metrics);
 
   const selectedMetric =
     timelineView.kind === "metric"
@@ -142,12 +145,10 @@ export function useEventTimelineData({
       : null;
   const timelineMetric = useTimelineMetric(selectedMetric);
 
-  const colorsEnabled = extensions.colors;
   const seriesConfig = buildTimelineSeriesConfig({
     timelineView,
-    places: colorsEnabled
-      ? places
-      : places.map((place) => ({ ...place, colorId: null })),
+    places,
+    // Without colours a place's type is not found, so it takes a default colour.
     types: colorsEnabled ? types : [],
     transitions,
     selectedMetric,
@@ -173,7 +174,7 @@ export function useEventTimelineData({
             kind: "sampled",
             series: seriesConfig.series,
             extract: seriesConfig.extract,
-            sampleCount,
+            sampleCount: SAMPLE_COUNT,
           }
         : solverErrorPlaceIndices
           ? {

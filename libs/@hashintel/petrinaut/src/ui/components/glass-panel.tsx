@@ -1,109 +1,42 @@
-import { useState, type CSSProperties, type ReactNode, type Ref } from "react";
-
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { ResizeHandle, type ResizableEdge } from "../resize/resize-handle";
+import type { CSSProperties, ReactNode, Ref } from "react";
 
-const panelContainerStyle = css({
+const panelStyle = css({
   position: "relative",
   backgroundColor: "neutral.s00",
   borderColor: "neutral.s40",
-  boxSizing: "content-box",
   borderStyle: "solid",
-  // The dragged edge highlights for as long as its handle is dragged. The
-  // panel carries the attribute itself. A `:has()` selector that looked for
-  // the handle would have the browser search every element in the panel each
-  // time the panel's own style is worked out, which a slide or a resize does
-  // on every frame.
-  '&[data-resizing-edge="top"]': { borderTopColor: "blue.a70" },
-  '&[data-resizing-edge="bottom"]': { borderBottomColor: "blue.a70" },
-  '&[data-resizing-edge="left"]': { borderLeftColor: "blue.a70" },
-  '&[data-resizing-edge="right"]': { borderRightColor: "blue.a70" },
+  // The border lies outside the size the panel is given. The strip of the
+  // separator that resizes a docked panel is centred on it.
+  boxSizing: "content-box",
 });
 
-const contentContainerStyle = css({
+const contentStyle = css({
   position: "relative",
   height: "[100%]",
   width: "[100%]",
 });
 
-interface ResizeConfig {
-  /** Which edge of the panel is resizable */
-  edge: ResizableEdge;
-  /** Called on every pointer move of a drag, with the new size */
-  onResize: (newSize: number) => void;
-  /** Called once when a drag ends */
-  onResizeEnd?: () => void;
-  /** The size when a drag starts (width for left/right, height for top/bottom) */
-  getSize: () => number;
-  /** Minimum size constraint */
-  minSize?: number;
-  /** Maximum size constraint */
-  maxSize?: number;
-}
-
-interface GlassPanelProps {
-  /** Content to render inside the panel */
-  children: ReactNode;
-  /** Additional CSS class name for the panel container */
-  className?: string;
-  /** Inline styles for the panel container */
-  style?: CSSProperties;
-  /** The panel container element */
-  ref?: Ref<HTMLDivElement>;
-  /** Additional CSS class name for the content container */
-  contentClassName?: string;
-  /** Inline styles for the content container */
-  contentStyle?: CSSProperties;
-  /** Configuration for making the panel resizable */
-  resizable?: ResizeConfig;
-}
-
 /**
- * GlassPanel provides a styled container panel.
- *
- * Optionally supports resizing from any edge with the `resizable` prop.
+ * The box of a panel beside the canvas: its background and the colour of its
+ * border. The caller says which edges have a border, and how wide.
  */
-export const GlassPanel: React.FC<GlassPanelProps> = ({
+export const GlassPanel = ({
   children,
   className,
   style,
   ref,
   contentClassName,
-  contentStyle,
-  resizable,
-}) => {
-  const [isResizing, setIsResizing] = useState(false);
-
-  return (
-    <div
-      className={cx(panelContainerStyle, className)}
-      data-resizing-edge={isResizing ? resizable?.edge : undefined}
-      style={style}
-      ref={ref}
-    >
-      {resizable && (
-        <ResizeHandle
-          edge={resizable.edge}
-          getSize={resizable.getSize}
-          onResizeStart={() => setIsResizing(true)}
-          onResize={resizable.onResize}
-          onResizeEnd={() => {
-            setIsResizing(false);
-            resizable.onResizeEnd?.();
-          }}
-          minSize={resizable.minSize ?? 100}
-          maxSize={resizable.maxSize ?? 800}
-          label={`Resize panel from ${resizable.edge}`}
-        />
-      )}
-
-      <div
-        className={cx(contentContainerStyle, contentClassName)}
-        style={contentStyle}
-      >
-        {children}
-      </div>
-    </div>
-  );
-};
+}: {
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+  ref?: Ref<HTMLDivElement>;
+  /** For the element that holds the children, which fills the panel. */
+  contentClassName?: string;
+}) => (
+  <div className={cx(panelStyle, className)} style={style} ref={ref}>
+    <div className={cx(contentStyle, contentClassName)}>{children}</div>
+  </div>
+);

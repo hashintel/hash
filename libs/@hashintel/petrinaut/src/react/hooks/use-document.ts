@@ -1,88 +1,20 @@
-import { use, useEffect, useRef } from "react";
+import { useSDCPNState } from "../state/sdcpn-context";
 
-import {
-  type DocHandleState,
-  type DocumentId,
-  type PetrinautPatch,
-  type SDCPN,
-} from "@hashintel/petrinaut-core";
-
-import { NetManagementContext } from "../net-management-context";
-import { SDCPNContext } from "../state/sdcpn-context";
-import { usePetrinautInstance } from "../use-petrinaut-instance";
-import { useStore } from "../use-store";
+import type { SDCPN } from "@hashintel/petrinaut-core";
 
 /**
- * The current SDCPN snapshot. Re-renders on every change to the document.
+ * One part of the document. The reader renders when that part changes.
+ * `select` returns a value the document holds, or a primitive: a list or an
+ * object it builds is new after every edit.
  *
- * For finer-grained re-renders, prefer {@link usePetrinautDefinitionSelector}.
+ * ```tsx
+ * const placeCount = usePetrinautDefinitionSelector((net) => net.places.length);
+ * ```
  */
-export function usePetrinautDefinition(): SDCPN {
-  return use(SDCPNContext).petriNetDefinition;
-}
+export const usePetrinautDefinitionSelector = <Selected>(
+  select: (definition: SDCPN) => Selected,
+): Selected => useSDCPNState((document) => select(document.petriNetDefinition));
 
-/**
- * Subscribe to a derived slice of the SDCPN. Re-renders only when the selected
- * value changes (`Object.is` comparison).
- */
-export function usePetrinautDefinitionSelector<T>(
-  selector: (sdcpn: SDCPN) => T,
-): T {
-  return selector(usePetrinautDefinition());
-}
-
-const ignoreTitle = () => {};
-
-/** Set the current net's title. Does nothing where the host takes no title. */
-export function useSetTitle(): (title: string) => void {
-  return use(NetManagementContext).setTitle ?? ignoreTitle;
-}
-
-/** Current net title. */
-export function useTitle(): string {
-  return use(NetManagementContext).title;
-}
-
-/** Stable identifier for the currently loaded net. `null` when none is loaded. */
-export function useDocumentId(): DocumentId | null {
-  return use(SDCPNContext).petriNetId;
-}
-
-/**
- * Lifecycle state of the underlying handle. Today derived from instance
- * presence; once handle.state is exposed end-to-end through the React layer
- * (Phase 3b) this hook will subscribe to it directly.
- */
-export function useDocumentState(): DocHandleState {
-  const instance = usePetrinautInstance();
-  return useStore(instance.handle.state);
-}
-
-/** True iff `useDocumentState() === "ready"`. Convenience wrapper. */
-export function useIsDocumentReady(): boolean {
-  return useDocumentState() === "ready";
-}
-
-/**
- * Subscribe to patch events emitted by the document handle. The handler is
- * invoked once per `change()` (skipping no-ops). The returned `void` is
- * intentional — there is no current value, only a stream of events.
- */
-export function usePetrinautPatches(
-  handler: (patches: PetrinautPatch[]) => void,
-): void {
-  const instance = usePetrinautInstance();
-  const handlerRef = useRef(handler);
-
-  // Sync the latest handler in an effect (not during render) — React Compiler
-  // rejects ref writes in render bodies.
-  useEffect(() => {
-    handlerRef.current = handler;
-  }, [handler]);
-
-  useEffect(() => {
-    return instance.patches.subscribe((patches) => {
-      handlerRef.current(patches);
-    });
-  }, [instance]);
-}
+/** The id of the open document, or `null` when none is loaded. */
+export const useDocumentId = (): string | null =>
+  useSDCPNState((document) => document.petriNetId);

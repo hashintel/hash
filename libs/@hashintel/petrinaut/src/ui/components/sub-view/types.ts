@@ -1,15 +1,16 @@
-import type { ComponentType, ReactNode } from "react";
+/**
+ * @layerRoot ui.sub-view
+ * @role The descriptor a panel lists for each view it shows, and the two containers that render one as a collapsible section or as a tab
+ */
+
+import type { ComponentType } from "react";
 
 /**
  * Configuration for resizable subviews.
  */
 export interface SubViewResizeConfig {
-  /** Default height when expanded (in pixels) */
-  defaultHeight: number;
   /** Minimum height constraint (in pixels) */
   minHeight?: number;
-  /** Maximum height constraint (in pixels) */
-  maxHeight?: number;
 }
 
 /**
@@ -31,10 +32,11 @@ export interface SubView {
   /** The component to render for this subview */
   component: ComponentType;
   /**
-   * Optional render function for the header right side (e.g., add button).
-   * Only used in vertical (collapsible) layout.
+   * What the right side of the header shows, such as an add button. A
+   * component, so the descriptor holds no function of its own and can live in
+   * a `.ts` file beside the components it points at.
    */
-  renderHeaderAction?: () => ReactNode;
+  headerAction?: ComponentType;
   /**
    * Whether the header action creates, deletes or clears something. A
    * presentation that hides mutation actions hides only these.
@@ -46,27 +48,17 @@ export interface SubView {
    */
   headerActionMutates?: boolean;
   /**
-   * Whether this subview should grow to fill available space.
-   * Only affects vertical layout. Defaults to false.
-   */
-  flexGrow?: boolean;
-  /**
    * Whether this is the main (primary) subview.
    * When true, shows a non-collapsible header with a larger title style.
-   * The title and `renderHeaderAction` are displayed in the fixed header,
+   * The title and the header action are displayed in the fixed header,
    * and the content should not include its own title/actions.
    */
   main?: boolean;
   /**
-   * Optional custom render for the title area of a main subview header.
-   * When provided, replaces the static title text. Only used when `main` is true.
+   * What a main subview's header shows in place of the static title text.
+   * Only used when `main` is true.
    */
-  renderTitle?: () => ReactNode;
-  /**
-   * Whether the section can be collapsed by clicking the header.
-   * Defaults to true. Forced to false when `main` is true.
-   */
-  collapsible?: boolean;
+  titleComponent?: ComponentType;
   /**
    * Whether the section should start collapsed before the user has interacted.
    * Defaults to false (expanded). Ignored when `main` is true.

@@ -1,6 +1,6 @@
 /**
- * The chrome every Simulate results panel shares: a header that condenses once the
- * body scrolls, a body of fixed-height cards, a footer of actions. The parts
+ * The frame of the experiment results panel: a header that condenses once
+ * the body scrolls, a body of fixed-height cards, a footer of actions. The parts
  * in `drawer-frame/` (the header and its stat columns, the columns, the
  * spanning card, the computing chip, the fold) form the frame layer, and
  * this file is their one public door.
@@ -18,17 +18,12 @@
  * transition in the frame: the header and the body read it from context,
  * and the body stamps it as `data-animate` for the cards' styles.
  */
-import { type ReactNode, use, useRef } from "react";
+import { type ReactNode, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { FrameAnimateContext } from "./drawer-frame/frame-animate-context";
-import {
-  FRAME_HEADER_CONDENSED_HEIGHT,
-  FRAME_HEADER_HEIGHT,
-  FrameHeader,
-} from "./drawer-frame/frame-header";
+import { FrameHeader } from "./drawer-frame/frame-header";
 import { useBodyScrolled } from "./drawer-frame/use-body-scrolled";
 import { useHeaderEngaged } from "./drawer-frame/use-header-engaged";
 import {
@@ -36,7 +31,7 @@ import {
   SimulationPanelControls,
   SimulationPanelTitle,
 } from "./simulation-panel";
-import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
+import { useAnimationsEnabled } from "./use-animations-enabled";
 
 export {
   type ComputeBatch,
@@ -58,6 +53,9 @@ export type FrameNote = {
   content: string;
   tone: "muted" | "error";
 };
+
+/** What the header hands the body when it condenses, in pixels: the stats strip and the gap above it. */
+const headerCondensedGain = 38;
 
 /** The height of the note row in pixels: the body's top padding, which the row sits in. */
 const FRAME_NOTE_HEIGHT = 20;
@@ -174,15 +172,11 @@ export const DrawerFrame = ({
   panel,
   children,
 }: DrawerFrameProps) => {
-  const { showAnimations } = use(UserSettingsContext);
-  const reducedMotion = usePrefersReducedMotion();
-  const { scrolled, onScroll } = useBodyScrolled(
-    FRAME_HEADER_HEIGHT - FRAME_HEADER_CONDENSED_HEIGHT,
-  );
+  const animate = useAnimationsEnabled();
+  const { scrolled, onScroll } = useBodyScrolled(headerCondensedGain);
   const { engaged, engagement, settleFocus } = useHeaderEngaged();
   const bodyRef = useRef<HTMLDivElement>(null);
   const condensed = scrolled && !engaged;
-  const animate = showAnimations && !reducedMotion;
 
   const header = (
     <FrameHeader

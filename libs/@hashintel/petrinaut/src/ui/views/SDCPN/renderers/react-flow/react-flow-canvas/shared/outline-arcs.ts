@@ -9,9 +9,9 @@ export type OutlineNode = {
 };
 
 /** Where an arc meets an endpoint, and the direction it leaves in. */
-export type FixedEndpoint = { point: CanvasPoint; normal: CanvasPoint };
+type FixedEndpoint = { point: CanvasPoint; normal: CanvasPoint };
 
-export type OutlineArcPath = [path: string, labelX: number, labelY: number];
+type OutlineArcPath = [path: string, labelX: number, labelY: number];
 
 // Keyed by React Flow's side names, so this module needs only its types.
 const sideNormals: Record<`${Position}`, CanvasPoint> = {

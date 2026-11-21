@@ -8,7 +8,7 @@ import { findStepTargetIndex } from "./step-target";
 import type { SimulationFrameReader } from "../simulation/context";
 
 /** The run as seen at the viewed time: what changes at frame rate. */
-export type EventPlaybackFrame = {
+type EventPlaybackFrame = {
   /** The viewed simulation time, in seconds. */
   time: number;
   /** Index of the last event at or before the viewed time, or -1 before the first. */
@@ -28,18 +28,20 @@ export type EventPlaybackFrame = {
  */
 export const useEventPlaybackFrame = (): EventPlaybackFrame => {
   const { eventSimulation } = use(SimulationContext);
-  const { playbackStore } = use(EventPlaybackContext);
+  const { playbackStore, eventCount } = use(EventPlaybackContext);
   const time = useStoreSelector(playbackStore, (snapshot) => snapshot.time);
+  // The run grows in place, so its event count is the version of what it
+  // holds: a count that changed means there may be more to step to.
+  const stepTarget = (direction: -1 | 1) =>
+    eventSimulation !== null && eventCount > 0
+      ? findStepTargetIndex(eventSimulation, time, direction)
+      : null;
 
   return {
     time,
     currentEventIndex: eventSimulation?.findEventIndexAt(time) ?? -1,
     currentFrameReader: eventSimulation?.getStateAt(time) ?? null,
-    hasPreviousEvent:
-      eventSimulation !== null &&
-      findStepTargetIndex(eventSimulation, time, -1) !== null,
-    hasNextEvent:
-      eventSimulation !== null &&
-      findStepTargetIndex(eventSimulation, time, 1) !== null,
+    hasPreviousEvent: stepTarget(-1) !== null,
+    hasNextEvent: stepTarget(1) !== null,
   };
 };

@@ -33,14 +33,9 @@ import type {
 
 const HISTORY_LIMIT = 100;
 
-interface HistoryEntry {
-  state: AdHocScenarioState;
-  /** ISO timestamp of the edit that created the entry. */
-  timestamp: string;
-}
-
 interface HistoryModel {
-  entries: HistoryEntry[];
+  /** One state snapshot per undo step, oldest first. */
+  entries: AdHocScenarioState[];
   /** The entry the form currently shows. */
   cursor: number;
   /**
@@ -51,23 +46,12 @@ interface HistoryModel {
   hotKey: string | null;
 }
 
-export interface AdHocFormHistory {
+interface AdHocFormHistory {
   /**
    * Applies one action, or a batch of actions as one step, and records the
    * step for undo.
    */
   dispatch: (action: AdHocAction | AdHocAction[]) => void;
-  /** Moves the cursor back and replays that snapshot; never dispatches. */
-  undo: () => void;
-  /** Moves the cursor forward and replays that snapshot; never dispatches. */
-  redo: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
-  /** One entry per undo step, oldest first, mirroring `UndoRedoContext`. */
-  history: { timestamp: string }[];
-  currentIndex: number;
-  /** Jumps the cursor to any recorded step. */
-  goToIndex: (index: number) => void;
   /**
    * Capture-phase key handler for the form root: Cmd/Ctrl+Z undoes,
    * Shift+Cmd/Ctrl+Z or Ctrl+Y redoes. Keys inside a text field or a Monaco
@@ -84,7 +68,7 @@ function appendEntry(
   const kept = model.entries.slice(0, model.cursor + 1);
   const entries = [
     ...(kept.length >= HISTORY_LIMIT ? kept.slice(1) : kept),
-    { state, timestamp: new Date().toISOString() },
+    state,
   ];
   return { entries, cursor: entries.length - 1, hotKey: null };
 }
@@ -97,19 +81,19 @@ export function useAdHocFormHistory(
    * Whether the host owns part of the state and recomputes it from the
    * form's own edits. In run mode the computed parameters and marking are
    * derived, so they belong to the host rather than to the undo stack: an
-   * external change adopts in place instead of adding a step. Recording it
-   * as a step made an edit land twice — the value, then the preview it
-   * derived — and undo could never get back past the second one.
+   * external change adopts in place instead of adding a step. Recorded as a
+   * step, an edit would land twice (the value, then the preview derived
+   * from it) and undo could never get back past the second one.
    */
   hostDerivesState = false,
 ): AdHocFormHistory {
   const [model, setModel] = useState<HistoryModel>(() => ({
-    entries: [{ state, timestamp: new Date().toISOString() }],
+    entries: [state],
     cursor: 0,
     hotKey: null,
   }));
 
-  // The invariant is `entries[cursor].state === state`; every dispatch,
+  // The invariant is `entries[cursor] === state`; every dispatch,
   // undo, and redo maintains it. A mismatch means the parent changed the
   // state externally — record that as a fresh step (render-adjusted state,
   // no effect involved). Two kinds of mismatch are adopted in place
@@ -117,14 +101,14 @@ export function useAdHocFormHistory(
   // per render, and a step that undoes nothing is noise), and any external
   // change at all when the host derives part of the state, because then
   // the change is the host's own answer to an edit already recorded.
-  const cursorEntry = model.entries[model.cursor]!;
-  if (cursorEntry.state !== state) {
+  const cursorState = model.entries[model.cursor]!;
+  if (cursorState !== state) {
     if (
       hostDerivesState ||
-      JSON.stringify(cursorEntry.state) === JSON.stringify(state)
+      JSON.stringify(cursorState) === JSON.stringify(state)
     ) {
       const entries = [...model.entries];
-      entries[model.cursor] = { state, timestamp: cursorEntry.timestamp };
+      entries[model.cursor] = state;
       setModel({ ...model, entries });
     } else {
       setModel(appendEntry(model, state));
@@ -132,6 +116,12 @@ export function useAdHocFormHistory(
   }
 
   const stateRef = useLatest(state);
+  // The handlers below read the latest history and the latest `onChange`
+  // through refs, so they keep one identity for the form's life: they are
+  // part of what the form gives every cell, and a handler that changed with
+  // each edit would render every cell on each edit.
+  const modelRef = useLatest(model);
+  const onChangeRef = useLatest(onChange);
 
   const dispatch = (action: AdHocAction | AdHocAction[]) => {
     // Through the latest-state ref: a dispatch can fire from an async
@@ -154,30 +144,26 @@ export function useAdHocFormHistory(
     setModel((current) => {
       const atTop = current.cursor === current.entries.length - 1;
       if (key !== null && key === current.hotKey && atTop) {
-        // Extend the burst: replace the top snapshot, keep its timestamp.
+        // Extend the burst: replace the top snapshot.
         const entries = [...current.entries];
-        entries[current.cursor] = {
-          state: next,
-          timestamp: entries[current.cursor]!.timestamp,
-        };
+        entries[current.cursor] = next;
         return { ...current, entries };
       }
       return { ...appendEntry(current, next), hotKey: key };
     });
-    onChange(next);
+    onChangeRef.current(next);
   };
 
+  /** Moves the cursor and replays that snapshot; never dispatches. */
   const goToIndex = (index: number) => {
-    const target = model.entries[index];
-    if (!target || index === model.cursor) {
+    const current = modelRef.current;
+    const target = current.entries[index];
+    if (!target) {
       return;
     }
-    setModel({ ...model, cursor: index, hotKey: null });
-    onChange(target.state);
+    setModel({ ...current, cursor: index, hotKey: null });
+    onChangeRef.current(target);
   };
-
-  const undo = () => goToIndex(model.cursor - 1);
-  const redo = () => goToIndex(model.cursor + 1);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     const target = event.target as HTMLElement;
@@ -195,23 +181,13 @@ export function useAdHocFormHistory(
     if (key === "z" && !event.shiftKey) {
       event.preventDefault();
       event.stopPropagation();
-      undo();
+      goToIndex(modelRef.current.cursor - 1);
     } else if (key === "z" || (key === "y" && event.ctrlKey)) {
       event.preventDefault();
       event.stopPropagation();
-      redo();
+      goToIndex(modelRef.current.cursor + 1);
     }
   };
 
-  return {
-    dispatch,
-    undo,
-    redo,
-    canUndo: model.cursor > 0,
-    canRedo: model.cursor < model.entries.length - 1,
-    history: model.entries.map(({ timestamp }) => ({ timestamp })),
-    currentIndex: model.cursor,
-    goToIndex,
-    handleKeyDown,
-  };
+  return { dispatch, handleKeyDown };
 }

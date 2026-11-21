@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { flushSync } from "react-dom";
 
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -9,10 +9,10 @@ import {
   TYPE_POLICIES,
 } from "@hashintel/petrinaut-core";
 
-import { focusLands } from "../worksheet/focus-flow";
 import { useFocusStops } from "../worksheet/use-focus-stops";
 import { useRowSelection } from "../worksheet/use-row-selection";
 import { useSelectFirstActivation } from "../worksheet/use-select-first";
+import { useStopTargets } from "../worksheet/use-stop-targets";
 
 import type { FocusStop, FocusStopTarget } from "../worksheet/use-focus-stops";
 
@@ -24,7 +24,7 @@ export interface SpreadsheetColumn {
 
 export type SpreadsheetCellValue = number | boolean | bigint | string;
 
-export interface SpreadsheetProps {
+interface SpreadsheetProps {
   columns: SpreadsheetColumn[];
   data: SpreadsheetCellValue[][];
   /** Omit for a read-only grid. */
@@ -275,9 +275,6 @@ const parseCellValue = (
 ): SpreadsheetCellValue =>
   TYPE_POLICIES[column?.type ?? "real"].parseEditorText(rawValue);
 
-const targetKey = (target: FocusStopTarget): string =>
-  `${target.stopId}:${target.column}`;
-
 const handled = (event: React.KeyboardEvent) => {
   event.preventDefault();
   event.stopPropagation();
@@ -312,7 +309,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
     null,
   );
   const [editingValue, setEditingValue] = useState("");
-  const targets = useRef<Map<string, HTMLElement>>(new Map());
+  const { register: registerTarget, focus: focusTarget } = useStopTargets();
 
   // A position past the current data is stale: masked rather than synced.
   const editingCell =
@@ -337,22 +334,13 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
   } = useFocusStops({
     stops,
     columnCount: colCount,
-    focusTarget: (target) => focusLands(targets.current.get(targetKey(target))),
+    focusTarget,
   });
   const { selectedRow, setFocusedRow } = useRowSelection();
   const { onPointerDown, shouldActivate } = useSelectFirstActivation();
 
-  const registerTarget =
-    (target: FocusStopTarget) => (element: HTMLElement | null) => {
-      if (element) {
-        targets.current.set(targetKey(target), element);
-      } else {
-        targets.current.delete(targetKey(target));
-      }
-    };
-
   const focusCell = (row: number, column: number | "gutter"): boolean =>
-    focusLands(targets.current.get(targetKey({ stopId: String(row), column })));
+    focusTarget({ stopId: String(row), column });
 
   const updateCell = (
     row: number,

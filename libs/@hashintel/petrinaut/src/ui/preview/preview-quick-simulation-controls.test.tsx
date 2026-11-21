@@ -1,17 +1,13 @@
 /**
  * @vitest-environment jsdom
  */
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
   emptyExecutionFrameSource,
   ExecutionFrameSourceContext,
 } from "../../react/execution-frame/context";
-import {
-  SimulationContext,
-  type SimulationContextValue,
-} from "../../react/simulation/context";
 import { PreviewSimulationPlaybackControls } from "./preview-quick-simulation-controls";
 
 vi.mock(
@@ -50,6 +46,7 @@ describe("PreviewSimulationPlaybackControls", () => {
     expect(panel.getAttribute("data-state")).toBe("collapsed");
     expect(timelineReveal.getAttribute("aria-hidden")).toBe("true");
     const timeline = screen.getByText("Compact event timeline");
+    expect(screen.getByText("Event simulation controls")).toBeDefined();
 
     rerender(
       <ExecutionFrameSourceContext
@@ -79,31 +76,5 @@ describe("PreviewSimulationPlaybackControls", () => {
     expect(panel.getAttribute("data-state")).toBe("collapsed");
     expect(timelineReveal.getAttribute("aria-hidden")).toBe("true");
     expect(screen.getByText("Compact event timeline")).toBe(timeline);
-  });
-
-  it("plays the run with the controls and timeline that address time", () => {
-    const { container } = render(
-      <SimulationContext
-        value={
-          {
-            scenarioCompilationErrors: null,
-          } as SimulationContextValue
-        }
-      >
-        <ExecutionFrameSourceContext
-          value={{ ...emptyExecutionFrameSource, totalFrames: 4 }}
-        >
-          <PreviewSimulationPlaybackControls />
-        </ExecutionFrameSourceContext>
-      </SimulationContext>,
-    );
-
-    const rendered = within(container);
-    expect(rendered.getByText("Event simulation controls")).toBeDefined();
-    expect(
-      rendered
-        .getByText("Compact event timeline")
-        .getAttribute("data-show-legend"),
-    ).toBe("false");
   });
 });

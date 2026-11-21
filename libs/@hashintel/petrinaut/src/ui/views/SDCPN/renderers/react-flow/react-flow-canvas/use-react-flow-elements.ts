@@ -118,16 +118,9 @@ const toFusionEdge = (link: CanvasFusionLink): FusionEdgeType => ({
   },
 });
 
-/**
- * The scene as React Flow nodes and edges. Each arc carries the outlines of
- * the nodes it joins; a component instance has none, so an arc at a component
- * port ends at the port's handle. No per-frame value rides here: a place's
- * token count and a transition's firing state reach them by subscription, so
- * a playback frame leaves this list untouched.
- */
-export const useReactFlowElements = (
-  scene: CanvasScene,
-): { nodes: NodeType[]; edges: CanvasEdgeType[] } => {
+type ReactFlowElements = { nodes: NodeType[]; edges: CanvasEdgeType[] };
+
+const toReactFlowElements = (scene: CanvasScene): ReactFlowElements => {
   const nodesById = new Map(scene.nodes.map((node) => [node.id, node]));
   const outlineOf = (nodeId: string) => {
     const node = nodesById.get(nodeId);
@@ -139,12 +132,10 @@ export const useReactFlowElements = (
     scene.arcs.map((arc) => JSON.stringify([arc.sourceId, arc.targetId])),
   );
 
-  // Rebuilt from the scene, then held at their previous identity where
-  // nothing changed, so React Flow re-renders only what a hover touched.
   return {
-    nodes: useStableItems(scene.nodes.map(toReactFlowNode)),
-    edges: useStableItems<CanvasEdgeType>([
-      ...scene.arcs.map((arc): ArcEdgeType =>
+    nodes: scene.nodes.map(toReactFlowNode),
+    edges: [
+      ...scene.arcs.map((arc) =>
         toArcEdge(arc, {
           sourceOutline: outlineOf(arc.sourceId),
           targetOutline: outlineOf(arc.targetId),
@@ -154,6 +145,21 @@ export const useReactFlowElements = (
         }),
       ),
       ...scene.fusions.map(toFusionEdge),
-    ]),
+    ],
   };
+};
+
+/**
+ * The scene as React Flow nodes and edges. Each arc carries the outlines of
+ * the nodes it joins; a component instance has none, so an arc at a component
+ * port ends at the port's handle. No per-frame value rides here: a place's
+ * token count and a transition's firing state reach them by subscription, so
+ * a playback frame leaves this list untouched.
+ *
+ * The elements are rebuilt when the scene is, then held at their previous
+ * identity where nothing changed, so React Flow renders only what changed.
+ */
+export const useReactFlowElements = (scene: CanvasScene): ReactFlowElements => {
+  const { nodes, edges } = toReactFlowElements(scene);
+  return { nodes: useStableItems(nodes), edges: useStableItems(edges) };
 };

@@ -11,59 +11,14 @@ export type ContourSample = {
 };
 
 /**
- * Interpolates `samples` onto a `width × height` raster spanning the grid's
+ * Interpolates samples onto a `width × height` raster spanning the grid's
  * index space, by inverse distance weighting (power 2). A raster point on a
  * sample takes its value; a single sample gives a flat raster.
- */
-export const idwRaster = (options: {
-  samples: readonly ContourSample[];
-  /** Grid extent in index space: samples lie in [0, nx-1] × [0, ny-1]. */
-  nx: number;
-  ny: number;
-  width: number;
-  height: number;
-}): Float64Array => {
-  const { samples, nx, ny, width, height } = options;
-  const raster = new Float64Array(width * height);
-  if (samples.length === 0) {
-    return raster;
-  }
-
-  for (let py = 0; py < height; py++) {
-    // Raster rows run top-to-bottom; grid rows bottom-to-top.
-    const gy = ((height - 1 - py) / Math.max(height - 1, 1)) * (ny - 1);
-    for (let px = 0; px < width; px++) {
-      const gx = (px / Math.max(width - 1, 1)) * (nx - 1);
-
-      let weightSum = 0;
-      let valueSum = 0;
-      let exact: number | null = null;
-      for (const sample of samples) {
-        const distanceSquared =
-          (sample.x - gx) * (sample.x - gx) + (sample.y - gy) * (sample.y - gy);
-        if (distanceSquared < 1e-9) {
-          exact = sample.value;
-          break;
-        }
-        const weight = 1 / distanceSquared;
-        weightSum += weight;
-        valueSum += weight * sample.value;
-      }
-
-      raster[py * width + px] = exact ?? valueSum / weightSum;
-    }
-  }
-
-  return raster;
-};
-
-/**
- * Inverse distance weighting over a growing sample list, folding only the
- * samples appended since the last `update` into persistent weight and value
- * sums. Each repaint costs O(raster × new samples) instead of
- * O(raster × all samples), with results identical to `idwRaster`. An
- * `update` whose samples do not extend the previous list refolds from
- * scratch.
+ *
+ * The sample list grows: `update` folds only the samples appended since the
+ * last call into persistent weight and value sums, so a repaint costs
+ * O(raster × new samples) and not O(raster × all samples). An `update` whose
+ * samples do not extend the previous list refolds from scratch.
  */
 export type IdwAccumulator = {
   update(samples: readonly ContourSample[]): Float64Array;

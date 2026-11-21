@@ -22,23 +22,32 @@ import { useReadOnlyFeedback } from "../../../react/hooks/use-read-only-feedback
 import { NotificationsContext } from "../../../react/notifications/context";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { CompositionContext } from "../../../react/state/composition-context";
-import { useEditorFields } from "../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorFields,
+} from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useUserSettings } from "../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
+import { CanvasPointerContext } from "./canvas-pointer";
 import { linkEnd } from "./canvas-scene";
-import { planFusion, planRewire, type RewirePlan } from "./fusion-links";
+import {
+  fusionLinks,
+  planFusion,
+  planRewire,
+  type RewirePlan,
+} from "./fusion-links";
+import { useStableActions } from "./use-stable-actions";
 
+import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 import type { DraggedNodeKind } from "../shared/canvas-node-drag";
 import type {
   CanvasLinkEnd,
-  CanvasLinkEndName,
   CanvasLinkEnds,
-  CanvasNode,
+  CanvasNodeKind,
   CanvasPoint,
-  CanvasScene,
 } from "./canvas-scene";
 import type {
   ComponentReference,
@@ -54,9 +63,9 @@ export type CanvasLinkItem = { type: "arc" | "fusion"; id: string };
 
 /** An end of a fusion link picked up and dropped somewhere else. */
 export type CanvasLinkRewire = {
-  /** The link, by its id in the scene. */
-  linkId: string;
-  end: CanvasLinkEndName;
+  fusionId: string;
+  /** The end picked up. */
+  from: CanvasLinkEnd;
   /** Where the end was dropped, `null` for the empty canvas. */
   onto: CanvasLinkEnd | null;
 };
@@ -68,9 +77,9 @@ export type CanvasNodeDrop = { id: string; position: CanvasPoint | null };
 
 export type CanvasSelectionChange = { id: string; selected: boolean };
 
-export type CanvasPaneCursor = "copy" | "grab" | "default";
+type CanvasPaneCursor = "copy" | "grab" | "default";
 
-export type CanvasInteractions = {
+type CanvasModes = {
   readonly: boolean;
   /** Clicking the pane places a node or component instance. */
   isAddMode: boolean;
@@ -79,8 +88,16 @@ export type CanvasInteractions = {
   /** Dragging the pane draws a selection box. */
   isSelectMode: boolean;
   paneCursor: CanvasPaneCursor;
-  hoverNode: (node: Pick<CanvasNode, "id" | "kind">) => void;
-  hoverLink: (item: CanvasLinkItem) => void;
+};
+
+/**
+ * What each gesture does. Every function keeps its identity for the life of
+ * the canvas and reads the net and the editor's state when it is called, so
+ * a renderer can hand them to memoized nodes and arcs.
+ */
+type CanvasActions = {
+  /** The pointer is over a node, an arc or a fusion: a link of a fusion hovers its fusion. */
+  hover: (id: string) => void;
   clearHover: () => void;
   /** Arcs and fusions are selected only by a direct click, never by box selection. */
   selectLink: (item: CanvasLinkItem) => void;
@@ -88,7 +105,6 @@ export type CanvasInteractions = {
   applySelectionChanges: (changes: CanvasSelectionChange[]) => void;
   beginSelectionGesture: () => void;
   endSelectionGesture: () => void;
-  clearSelection: () => void;
   /** Drag previews; positions snap when the grid is on. */
   moveNodes: (moves: CanvasNodeMove[]) => void;
   /** Drags that ended; commits the positions and clears the previews. */
@@ -118,6 +134,8 @@ export type CanvasInteractions = {
     scenePosition: CanvasPoint,
   ) => void;
 };
+
+export type CanvasInteractions = CanvasModes & CanvasActions;
 
 /**
  * Converts a component's free-form display name to a valid PascalCase instance
@@ -168,10 +186,19 @@ type ConnectionOutcome =
     }
   | { kind: "fusion"; first: FusionMember; second: FusionMember };
 
-export const useCanvasInteractions = (
-  scene: CanvasScene,
-): CanvasInteractions => {
-  const { petriNetDefinition, getItemType } = use(SDCPNContext);
+const nodeKindsOf = (
+  net: ActiveNetDefinition,
+): ReadonlyMap<string, CanvasNodeKind> =>
+  new Map<string, CanvasNodeKind>([
+    ...net.places.map(({ id }) => [id, "place"] as const),
+    ...net.transitions.map(({ id }) => [id, "transition"] as const),
+    ...net.componentInstances.map(
+      ({ id }) => [id, "componentInstance"] as const,
+    ),
+  ]);
+
+export const useCanvasInteractions = (): CanvasInteractions => {
+  const { petriNetDefinition } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
   const composesOnly = useComposesOnly();
   const { activeNet } = use(ActiveNetContext);
@@ -189,33 +216,20 @@ export const useCanvasInteractions = (
   } = usePetrinautMutations();
   // By name: the canvas renders with this hook, and the editor context and
   // the settings change with each panel that opens.
+  const { editionMode, componentToAdd, cursorMode } = useEditorFields(
+    "editionMode",
+    "componentToAdd",
+    "cursorMode",
+  );
   const {
-    editionMode,
     setEditionMode,
-    componentToAdd,
-    cursorMode,
     beginSelectionGesture,
     endSelectionGesture,
     selectItem,
     setSelection,
     clearSelection,
-    setHoveredItem,
-    clearHoveredItem,
-    updateDraggingStateByNodeId,
-  } = useEditorFields(
-    "editionMode",
-    "setEditionMode",
-    "componentToAdd",
-    "cursorMode",
-    "beginSelectionGesture",
-    "endSelectionGesture",
-    "selectItem",
-    "setSelection",
-    "clearSelection",
-    "setHoveredItem",
-    "clearHoveredItem",
-    "updateDraggingStateByNodeId",
-  );
+  } = useEditorActions();
+  const pointer = use(CanvasPointerContext);
   const snapToGrid = useUserSettings((settings) => settings.snapToGrid);
   const readonly = useIsReadOnly();
   const notifyReadOnly = useReadOnlyFeedback();
@@ -230,12 +244,11 @@ export const useCanvasInteractions = (
   const snap = (position: CanvasPoint) =>
     snapToGrid ? snapPositionToGrid(position) : position;
 
-  const kindOf = (id: string) =>
-    scene.nodes.find((node) => node.id === id)?.kind;
+  const nodeKinds = nodeKindsOf(activeNet);
 
   /** The fusion member an end of a line names, or `null` for a transition. */
   const memberOf = ({ nodeId, portId }: CanvasLinkEnd): FusionMember | null => {
-    const kind = kindOf(nodeId);
+    const kind = nodeKinds.get(nodeId);
     if (kind === "place") {
       return placeArcEndpoint(nodeId);
     }
@@ -258,7 +271,7 @@ export const useCanvasInteractions = (
     const second = memberOf(linkEnd(connection, "target"));
     // An editor that only composes draws no arc: ports connect by fusion.
     if (!composesOnly) {
-      if (first && kindOf(targetId) === "transition") {
+      if (first && nodeKinds.get(targetId) === "transition") {
         return {
           kind: "arc",
           transitionId: targetId,
@@ -266,7 +279,7 @@ export const useCanvasInteractions = (
           endpoint: first,
         };
       }
-      if (second && kindOf(sourceId) === "transition") {
+      if (second && nodeKinds.get(sourceId) === "transition") {
         return {
           kind: "arc",
           transitionId: sourceId,
@@ -324,13 +337,12 @@ export const useCanvasInteractions = (
   };
 
   const planLinkRewire = ({
-    linkId,
-    end,
+    fusionId,
+    from,
     onto,
   }: CanvasLinkRewire): RewirePlan => {
-    const link = scene.fusions.find(({ id }) => id === linkId);
-    const fusion = activeNet.fusions.find(({ id }) => id === link?.fusionId);
-    const member = link && memberOf(linkEnd(link, end));
+    const fusion = activeNet.fusions.find(({ id }) => id === fusionId);
+    const member = memberOf(from);
     if (!fusion || !member) {
       return { kind: "none" };
     }
@@ -364,7 +376,7 @@ export const useCanvasInteractions = (
       return;
     }
     const id = generatePetrinautId();
-    const itemNumber = scene.nodes.length + 1;
+    const itemNumber = nodeKinds.size + 1;
     const position = snap(rawPosition);
 
     let added: boolean;
@@ -441,7 +453,9 @@ export const useCanvasInteractions = (
   // the same tick do not clobber each other through stale closures.
   const applySelectionChanges = (changes: CanvasSelectionChange[]) => {
     const fusionIdByLinkId = new Map(
-      scene.fusions.map((link) => [link.id, link.fusionId]),
+      activeNet.fusions.flatMap((fusion) =>
+        fusionLinks(fusion).map((link) => [link.id, fusion.id] as const),
+      ),
     );
     setSelection(
       (prevSelection) => {
@@ -457,9 +471,9 @@ export const useCanvasInteractions = (
           // A change to a fusion's link is a change to the fusion.
           const id = fusionIdByLinkId.get(change.id) ?? change.id;
           if (change.selected && !base.has(id)) {
-            const itemType = getItemType(id);
-            if (itemType && itemType !== "arc" && itemType !== "fusion") {
-              base.set(id, { type: itemType, id });
+            const kind = nodeKinds.get(id);
+            if (kind) {
+              base.set(id, { type: kind, id });
               changed = true;
             }
           } else if (!change.selected && base.has(id)) {
@@ -475,56 +489,40 @@ export const useCanvasInteractions = (
   };
 
   const moveNodes = (moves: CanvasNodeMove[]) => {
-    updateDraggingStateByNodeId((existing) => {
-      const next = { ...existing };
-      for (const { id, position } of moves) {
-        next[id] = { dragging: true, position: snap(position) };
-      }
-      return next;
-    });
+    const preview = new Map(pointer.dragPreview.get());
+    for (const { id, position } of moves) {
+      preview.set(id, snap(position));
+    }
+    pointer.dragPreview.set(preview);
   };
 
   // Positions commit in one mutation and the previews clear in the same tick,
   // so a dropped node never shows its stale committed position in between.
   const dropNodes = (drops: CanvasNodeDrop[]) => {
     const commits = drops.flatMap(({ id, position }) => {
-      const itemType = getItemType(id);
-      if (
-        !position ||
-        (itemType !== "place" &&
-          itemType !== "transition" &&
-          itemType !== "componentInstance")
-      ) {
-        return [];
-      }
-      return [{ id, itemType, position: snap(position) }];
+      const itemType = nodeKinds.get(id);
+      return position && itemType
+        ? [{ id, itemType, position: snap(position) }]
+        : [];
     });
 
-    updateDraggingStateByNodeId((existing) => {
-      // Unchanged state keeps its identity, so nothing re-renders.
-      if (!drops.some(({ id }) => id in existing)) {
-        return existing;
+    const preview = pointer.dragPreview.get();
+    if (drops.some(({ id }) => preview.has(id))) {
+      const remaining = new Map(preview);
+      for (const { id } of drops) {
+        remaining.delete(id);
       }
-      const droppedIds = new Set(drops.map(({ id }) => id));
-      return Object.fromEntries(
-        Object.entries(existing).filter(([id]) => !droppedIds.has(id)),
-      );
-    });
+      pointer.dragPreview.set(remaining);
+    }
 
     if (commits.length > 0) {
       commitNodePositions({ commits });
     }
   };
 
-  return {
-    readonly,
-    isAddMode,
-    isPanMode,
-    isSelectMode,
-    paneCursor: isAddMode ? "copy" : isPanMode ? "grab" : "default",
-    hoverNode: (node) => setHoveredItem({ type: node.kind, id: node.id }),
-    hoverLink: setHoveredItem,
-    clearHover: clearHoveredItem,
+  const actions = useStableActions<CanvasActions>({
+    hover: (id) => pointer.hoveredId.set(id),
+    clearHover: () => pointer.hoveredId.set(null),
     // Queued with the changes React Flow reports for the same click, so a
     // sibling link it deselects does not land after and undo the selection.
     selectLink: (item) =>
@@ -532,7 +530,6 @@ export const useCanvasInteractions = (
     applySelectionChanges,
     beginSelectionGesture,
     endSelectionGesture,
-    clearSelection,
     moveNodes,
     dropNodes,
     isValidConnection: (connection) => classify(connection) !== null,
@@ -542,5 +539,14 @@ export const useCanvasInteractions = (
     clickPane,
     dropNode: createNodeAt,
     dropComponent: createComponentInstanceAt,
+  });
+
+  return {
+    readonly,
+    isAddMode,
+    isPanMode,
+    isSelectMode,
+    paneCursor: isAddMode ? "copy" : isPanMode ? "grab" : "default",
+    ...actions,
   };
 };

@@ -8,8 +8,6 @@
 
 import { css } from "@hashintel/ds-helpers/css";
 
-export const CELL_HEIGHT = 28;
-
 /**
  * The row palette, centralized. A row kind sets two custom properties on
  * its `<tr>` (via `rowPaletteVars`): `--adhoc-row-rgb`, the kind's tint,

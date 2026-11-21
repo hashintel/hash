@@ -4,11 +4,10 @@
  * the previous picture crossfaded out on a content change, and pointer
  * scrubbing turned into frame picks.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import uPlot from "uplot";
 
 import { createCrossfadeOverlay } from "./use-metric-plot/crossfade-overlay";
-import { createDistributionHeatmapPlugin } from "./use-metric-plot/distribution-heatmap";
 import { attachFrameScrubbing } from "./use-metric-plot/frame-scrubbing";
 import {
   chartOptions,
@@ -26,8 +25,6 @@ import type { CrossfadeOverlay } from "./use-metric-plot/crossfade-overlay";
 import type { FramePick } from "./use-metric-plot/frame-scrubbing";
 import type { YCeiling } from "./use-metric-plot/plot-options";
 import type { RefObject } from "react";
-
-export type { FramePick } from "./use-metric-plot/frame-scrubbing";
 
 const UPlot = uPlot;
 /** Below this the axes and labels no longer fit. */
@@ -69,7 +66,6 @@ const applyContent = (
 export const useMetricPlot = ({
   chartRootRef,
   size,
-  canPlot,
   displayMode,
   outputType,
   aggregateRuns,
@@ -85,15 +81,14 @@ export const useMetricPlot = ({
 }: {
   chartRootRef: RefObject<HTMLDivElement | null>;
   size: PlotSize | null;
-  canPlot: boolean;
   displayMode: MetricDisplayMode;
   outputType: MetricFrame["outputType"];
   aggregateRuns: boolean;
   runAggregation: RunAggregation;
   distributionView: DistributionView;
   timeTrace: TimeTrace;
-  timeDomainStart: number | undefined;
-  timeDomainEnd: number | undefined;
+  timeDomainStart: number;
+  timeDomainEnd: number;
   frames: readonly MetricFrame[];
   plotData: uPlot.AlignedData;
   /**
@@ -171,6 +166,7 @@ export const useMetricPlot = ({
     }
   }, [size]);
 
+  const selectFrame = useEffectEvent(onFrameSelect);
   const hasSize = size !== null;
   useEffect(() => {
     const viewKey = `${displayMode}|${aggregateRuns}|${runAggregation}|${distributionView}|${timeTrace}`;
@@ -179,15 +175,10 @@ export const useMetricPlot = ({
     }
     const root = chartRootRef.current;
     const initialSize = sizeRef.current;
-    if (!root || !hasSize || !initialSize || !canPlot) {
+    if (!root || !hasSize || !initialSize) {
       return;
     }
     const { width, height } = plotSize(initialSize);
-    const isHeatmap =
-      displayMode === "chart" &&
-      outputType === "distribution" &&
-      !aggregateRuns &&
-      distributionView === "heatmap";
     const options =
       displayMode === "distribution"
         ? distributionBarChartOptions(width, height)
@@ -200,16 +191,10 @@ export const useMetricPlot = ({
               runAggregation,
               distributionView,
               timeTrace,
-              timeDomain:
-                timeDomainStart !== undefined && timeDomainEnd !== undefined
-                  ? [timeDomainStart, timeDomainEnd]
-                  : undefined,
+              timeDomain: [timeDomainStart, timeDomainEnd],
             },
-            getFrames: () => contentRef.current.frames,
+            getContent: () => contentRef.current,
             yCeiling: yCeilingRef.current.ceiling,
-            plugins: isHeatmap
-              ? [createDistributionHeatmapPlugin(() => contentRef.current)]
-              : [],
           });
     const plot = new UPlot(options, [[], []] as uPlot.AlignedData, root);
     plot.setData(contentRef.current.plotData);
@@ -220,7 +205,7 @@ export const useMetricPlot = ({
         ? attachFrameScrubbing(
             plot,
             () => contentRef.current.frames,
-            onFrameSelect,
+            (pick) => selectFrame(pick),
           )
         : null;
 
@@ -231,12 +216,10 @@ export const useMetricPlot = ({
     };
   }, [
     aggregateRuns,
-    canPlot,
     chartRootRef,
     displayMode,
     distributionView,
     hasSize,
-    onFrameSelect,
     outputType,
     runAggregation,
     timeDomainEnd,

@@ -1,10 +1,8 @@
 import { ExperimentHostProvider } from "./experiment-host/provider";
 import { ExperimentsProvider } from "./experiments/provider";
 import { LanguageClientProvider } from "./lsp/provider";
-import {
-  PetrinautNavigationProvider,
-  type PetrinautNavigationController,
-} from "./navigation";
+import { type PetrinautNavigationController } from "./navigation/navigation";
+import { PetrinautNavigationProvider } from "./navigation/navigation-provider";
 import { NotificationsProvider } from "./notifications/provider";
 import { OptimizationsProvider } from "./optimizations/provider";
 import {
@@ -83,15 +81,12 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
       instance={instance}
       netManagement={netManagement}
     >
+      {/* Keyed by handle id so a net switch resets the location and the net-scoped workers below. */}
       <PetrinautNavigationProvider
         controller={navigation}
         key={instance.handle.id}
       >
-        {/* Keyed by handle id so a net switch resets net-scoped workers. */}
-        <LanguageClientProvider
-          key={instance.handle.id}
-          workerFactory={lspWorkerFactory}
-        >
+        <LanguageClientProvider workerFactory={lspWorkerFactory}>
           <NotificationsProvider>
             <SimulatorsProvider
               runWorkerFactory={eventSimulationWorkerFactory}
@@ -99,7 +94,7 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
               registrations={simulators}
             >
               {/* The editor's Quick Simulation runs on a registered simulator. */}
-              <SimulationProvider key={instance.handle.id}>
+              <SimulationProvider>
                 <ExperimentsProvider>
                   <OptimizationsProvider>
                     <ExperimentHostProvider>

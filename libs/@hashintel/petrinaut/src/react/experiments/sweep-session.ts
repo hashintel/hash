@@ -44,7 +44,6 @@ import {
 } from "./sweep-session/selection-draws";
 
 import type { ExperimentParameterAxis, SweepSelection } from "./parameter-grid";
-import type { BatchStatus } from "./shared/batch-registry";
 import type { SweepRunDraws } from "./sweep-session/selection-draws";
 import type {
   MonteCarloExperiment,
@@ -52,18 +51,19 @@ import type {
   MonteCarloWorkerProgress,
 } from "@hashintel/petrinaut-core";
 
-export type { SweepSelection } from "./parameter-grid";
-export {
-  sweepBatchSeed,
-  sweepSelectionKey,
-} from "./sweep-session/selection-draws";
-export type { SweepRunDraws } from "./sweep-session/selection-draws";
-
 /**
  * One rung of the selection's ladder currently computing, for the host's
  * activity display. A sweep runs no other kind of batch.
  */
-export type SweepBatchStatus = BatchStatus<{ kind: "selection" }>;
+export type SweepBatchStatus = {
+  kind: "selection";
+  /** Start order, unique within a session. */
+  id: number;
+  /** Runs this batch owns. */
+  runCount: number;
+  /** Runs it has finished so far. */
+  completedRuns: number;
+};
 
 const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === "AbortError";
@@ -476,6 +476,19 @@ export function createSweepSession(
       abortRung();
     };
     abortSet.add(abortEntry);
+    // An abort means a restart or a dispose already superseded this
+    // generation; anything else stops the selection with its reason.
+    const stopRung = (error: unknown, fallbackMessage: string): null => {
+      abortSet.delete(abortEntry);
+      if (!isStale(loopGeneration) && !isAbortError(error)) {
+        fail(
+          loopGeneration,
+          error instanceof Error ? error.message : fallbackMessage,
+        );
+        publish({ runTarget: target, computing: false });
+      }
+      return null;
+    };
 
     let draws: SweepRunDraws | undefined;
     try {
@@ -488,18 +501,7 @@ export function createSweepSession(
         abortController.signal,
       );
     } catch (error) {
-      abortSet.delete(abortEntry);
-      // An abort means a restart or a dispose already superseded this
-      // generation; anything else stops the selection with its reason.
-      if (isStale(loopGeneration) || isAbortError(error)) {
-        return null;
-      }
-      fail(
-        loopGeneration,
-        error instanceof Error ? error.message : "Failed to draw a batch",
-      );
-      publish({ runTarget: target, computing: false });
-      return null;
+      return stopRung(error, "Failed to draw a batch");
     }
 
     // The value at a point axis, the range midpoint otherwise — taken in
@@ -531,16 +533,7 @@ export function createSweepSession(
         signal: abortController.signal,
       });
     } catch (error) {
-      abortSet.delete(abortEntry);
-      if (isStale(loopGeneration) || isAbortError(error)) {
-        return null;
-      }
-      fail(
-        loopGeneration,
-        error instanceof Error ? error.message : "Failed to start a batch",
-      );
-      publish({ runTarget: target, computing: false });
-      return null;
+      return stopRung(error, "Failed to start a batch");
     }
     if (isStale(loopGeneration)) {
       abortSet.delete(abortEntry);

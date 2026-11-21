@@ -16,7 +16,6 @@
 
 import { Portal } from "@ark-ui/react/portal";
 import {
-  use,
   useEffect,
   useEffectEvent,
   useId,
@@ -30,10 +29,7 @@ import {
   usePortalContainerRef,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import {
-  adHocNeutralExpression,
-  adHocSlotKey,
-} from "@hashintel/petrinaut-core";
+import { adHocNeutralExpression } from "@hashintel/petrinaut-core";
 
 import { CodeEditor } from "../../monaco/code-editor";
 import { useSelectFirstActivation } from "../../worksheet/use-select-first";
@@ -45,12 +41,15 @@ import {
 import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
 import { sameAdHocFocusTarget } from "./dependency-highlight";
 import {
-  AdHocFormContext,
+  useAdHocForm,
+  useAdHocFormFact,
   adHocSelectionApplies,
   adHocSelectionText,
+  sameParts,
 } from "./form-context";
 import { stepAdHocValue } from "./step-value";
 import { ComputedExpression } from "./value-editor/computed-expression";
+import { valueFacts } from "./value-editor/value-facts";
 
 import type {
   AdHocValue,
@@ -219,7 +218,7 @@ const expressionRowStyle = css({
   width: "[100%]",
 });
 
-export interface ValueEditorProps {
+interface ValueEditorProps {
   value: AdHocValue;
   /**
    * The slot's location. Edits dispatch against it — `setExpression`,
@@ -421,22 +420,31 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   onTriggerFocus,
 }) => {
   const {
-    errorFor,
     uriFor,
-    labelFor,
     selection,
-    highlight,
     setFocusedValue,
     formatExpression,
     dispatch,
     overlayKeyDown,
-    expressionFor,
-  } = use(AdHocFormContext);
+  } = useAdHocForm();
   const triggerPlaceholder =
     placeholder ?? (kind === "count" ? "0" : adHocNeutralExpression(kind));
-  const label = labelFor(target);
-  const dependencyHighlighted = highlight.slotKeys.has(
-    adHocSlotKey({ target, part: "expression" }),
+  // Value slots carry the interval toggle (Optimize or Sweep) when the value
+  // is a number; expose mode marks whole top-level Variables (in their own
+  // rows), never value slots.
+  const selectable = adHocSelectionApplies(selection, kind);
+  const optimized = selectable && value.optimize !== null;
+  const {
+    label,
+    dependencyHighlighted,
+    expressionError,
+    minError,
+    maxError,
+    stepError,
+    sourceExpression,
+  } = useAdHocFormFact(
+    (facts) => valueFacts(facts, target, { optimized, readOnly }),
+    sameParts,
   );
   const portalContainerRef = usePortalContainerRef();
   const editorId = useId();
@@ -472,11 +480,6 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   // so a reopened slab always presents a new button to select.
   const minSelectedElementRef = useRef<HTMLButtonElement | null>(null);
 
-  // Value slots carry the interval toggle (Optimize or Sweep) when the value
-  // is a number; expose mode marks whole top-level Variables (in their own
-  // rows), never value slots.
-  const selectable = adHocSelectionApplies(selection, kind);
-  const optimized = selectable && value.optimize !== null;
   // Closing the slab commits the expression, and a valid one is re-printed
   // canonically (worker-side, from the lowered tree) — normalized spacing,
   // minimal parentheses, literals preserved. The nonce discards a response
@@ -762,14 +765,10 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       : value.expression || triggerPlaceholder);
 
   const expressionSlot = { target, part: "expression" as const };
-  const boundsError = optimized
-    ? (errorFor({ target, part: "min" }) ??
-      errorFor({ target, part: "max" }) ??
-      errorFor({ target, part: "step" }))
-    : undefined;
+  const boundsError = minError ?? maxError ?? stepError;
   // An optimized slot's kept value can fail too (a ratio outside 0..1
   // behind valid bounds); the trigger carries that after any bound error.
-  const error = boundsError ?? errorFor(expressionSlot);
+  const error = boundsError ?? expressionError;
   const showTriggerError = error !== undefined && !open;
 
   const boundFields: { key: BoundKey; fieldLabel: string }[] = [
@@ -799,7 +798,6 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const boundValue = (key: BoundKey): string => value.optimize?.[key] ?? "";
 
   const [focused, setFocused] = useState(false);
-  const sourceExpression = readOnly ? expressionFor(target) : undefined;
   const showSource = focused && sourceExpression && sourceExpression !== text;
   const sourceId = `${editorId}-source`;
   const trigger = (
@@ -938,7 +936,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                           valueLabel={label}
                           bound={boundValue(field.key)}
                           uri={uriFor({ target, part: field.key }) || undefined}
-                          error={errorFor({ target, part: field.key })}
+                          error={field.key === "min" ? minError : maxError}
                           editing={editingBound === field.key}
                           onStartEdit={() => setEditingBound(field.key)}
                           onEndEdit={() => endBoundEdit(field.key)}

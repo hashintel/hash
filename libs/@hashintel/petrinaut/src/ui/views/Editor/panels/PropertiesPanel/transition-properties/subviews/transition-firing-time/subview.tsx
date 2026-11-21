@@ -1,32 +1,19 @@
-import { use } from "react";
-
-import {
-  Button,
-  Icon,
-  Menu,
-  SegmentedControl,
-  Tooltip,
-} from "@hashintel/ds-components";
+import { SegmentedControl, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   generateDefaultLambdaCode,
+  getDocumentUri,
   getEffectiveTransitionLambdaType,
 } from "@hashintel/petrinaut-core";
 
-import { EditorContext } from "../../../../../../../../react/state/editor-context";
+import { usePetrinautMutations } from "../../../../../../../../react";
+import { useEditorState } from "../../../../../../../../react/state/editor-context";
+import { useIsReadOnly } from "../../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
-import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
+import { CodeTemplateMenu } from "../../../code-template-menu";
+import { codeSectionStyle } from "../../../styles";
 import { useTransitionPropertiesContext } from "../../context";
-
-import type { SubView } from "../../../../../../../components/sub-view/types";
-
-const contentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-});
 
 const segmentGroupContainerStyle = css({
   marginTop: "[8px]",
@@ -49,16 +36,10 @@ const infoBoxStyle = css({
   marginBottom: "[8px]",
 });
 
-const aiMenuItemStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-});
-
-const FiringTimeHeaderAction: React.FC = () => {
-  const { logicAvailability, transition, updateTransition } =
-    useTransitionPropertiesContext();
-  const { globalMode } = use(EditorContext);
+export const FiringTimeHeaderAction: React.FC = () => {
+  const { logicAvailability, transition } = useTransitionPropertiesContext();
+  const { updateTransition } = usePetrinautMutations();
+  const globalMode = useEditorState((editor) => editor.globalMode);
 
   if (globalMode !== "edit" || !logicAvailability.lambda) {
     return null;
@@ -70,56 +51,24 @@ const FiringTimeHeaderAction: React.FC = () => {
   );
 
   return (
-    <Menu
-      trigger={
-        <Button
-          aria-label="More options"
-          tooltip="More options"
-          variant="ghost"
-          size="xs"
-          iconName="ellipsisVertical"
-        />
-      }
-      items={[
-        {
-          id: "load-default",
-          text: "Load default template",
-          onClick: () => {
-            updateTransition({
-              transitionId: transition.id,
-              update: {
-                lambdaType,
-                lambdaCode: generateDefaultLambdaCode(lambdaType),
-              },
-            });
+    <CodeTemplateMenu
+      onLoadDefault={() => {
+        updateTransition({
+          transitionId: transition.id,
+          update: {
+            lambdaType,
+            lambdaCode: generateDefaultLambdaCode(lambdaType),
           },
-        },
-        {
-          id: "generate-ai",
-          text: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              position="bottom"
-            >
-              <div className={aiMenuItemStyle}>
-                <Icon name="sparkles" size="sm" />
-                Generate with AI
-              </div>
-            </Tooltip>
-          ),
-          disabled: true,
-          onClick: () => {
-            // TODO: Implement AI generation
-          },
-        },
-      ]}
+        });
+      }}
     />
   );
 };
 
-const TransitionFiringTimeContent: React.FC = () => {
-  const { logicAvailability, transition, isReadOnly, updateTransition } =
-    useTransitionPropertiesContext();
+export const TransitionFiringTimeContent: React.FC = () => {
+  const { logicAvailability, transition } = useTransitionPropertiesContext();
+  const { updateTransition } = usePetrinautMutations();
+  const isReadOnly = useIsReadOnly();
   const lambdaType = getEffectiveTransitionLambdaType(
     transition,
     logicAvailability,
@@ -150,7 +99,7 @@ const TransitionFiringTimeContent: React.FC = () => {
   );
 
   return (
-    <div className={contentStyle}>
+    <div className={codeSectionStyle}>
       {showLambdaTypeSelector && (
         <div className={segmentGroupContainerStyle}>
           {isReadOnly ? (
@@ -189,20 +138,4 @@ const TransitionFiringTimeContent: React.FC = () => {
       />
     </div>
   );
-};
-
-export const transitionFiringTimeSubView: SubView = {
-  id: "transition-firing-time",
-  canMaximize: true,
-  title: "Firing Time",
-  defaultCollapsed: true,
-  tooltip:
-    "Define the rate at or conditions under which this transition will fire, optionally based on each set of input tokens' data (where input tokens have types).",
-  component: TransitionFiringTimeContent,
-  renderHeaderAction: () => <FiringTimeHeaderAction />,
-  resizable: {
-    minHeight: 250,
-    maxHeight: 1200,
-    defaultHeight: 300,
-  },
 };

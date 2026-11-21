@@ -1,7 +1,7 @@
 import type { ReadableStore } from "@hashintel/petrinaut-core";
 
 /** The value type of each store in a record of stores. */
-export type StoreValues<Stores> = {
+type StoreValues<Stores> = {
   readonly [Name in keyof Stores]: Stores[Name] extends ReadableStore<
     infer Value
   >

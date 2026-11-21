@@ -1,8 +1,7 @@
 /**
- * What the sweep's surface card is built from: the plot and footer heights
- * that keep it level with its neighbours, the X/Y axis selects for the
- * footer, with whatever else the view controls on a second footer row, and
- * the caption helpers. The footer is a grid of label and select pairs: the
+ * The footer of the sweep's surface card: the X/Y axis selects, with
+ * whatever else the view controls on a second footer row, and the read-only
+ * mark. The footer is a grid of label and select pairs: the
  * selects share the row's width, so the footer fits the card's narrowest
  * column without overflowing, and a view with further controls reserves its
  * second row at all times.
@@ -11,13 +10,6 @@ import { Chip, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import type { ReactNode } from "react";
-
-/** The plot's height in pixels inside a surface card. */
-export const SURFACE_PLOT_HEIGHT = 280;
-/** The footer's content height for one row of controls: an extra-small Select. */
-const SURFACE_FOOTER_HEIGHT = 24;
-/** The footer's content height for two rows of controls and the gap between them. */
-export const SURFACE_FOOTER_TWO_ROW_HEIGHT = SURFACE_FOOTER_HEIGHT * 2 + 6;
 
 // Two label-and-select pairs per row; each select takes its share of the row
 // and ellipsizes a long option name rather than pushing the next label.
@@ -128,15 +120,3 @@ export const SurfaceReadOnlyMark = ({
     </Chip>
   </span>
 );
-
-/** The caption: the axis readouts under the pointer mid-drag, the state line otherwise. */
-export const surfaceCaption = ({
-  preview,
-  text,
-}: {
-  /** Axis readouts under the pointer mid-drag; null outside a drag. */
-  preview: { x: string; y: string } | null;
-  /** The state line shown outside a drag. */
-  text: string;
-}): string =>
-  preview ? `${preview.x} · ${preview.y} — release to navigate` : text;

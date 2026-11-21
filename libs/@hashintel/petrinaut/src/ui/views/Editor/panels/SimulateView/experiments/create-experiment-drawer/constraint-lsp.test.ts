@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { DiagnosticSeverity } from "@hashintel/petrinaut-core";
+import {
+  DiagnosticSeverity,
+  getConstraintDocumentUri,
+} from "@hashintel/petrinaut-core";
 
-import { getConstraintDocumentUri } from "../../../../../../monaco/editor-paths";
 import {
   type ConstraintDraft,
   describeConstraint,

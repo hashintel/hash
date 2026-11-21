@@ -1,9 +1,10 @@
-import { use } from "react";
-
 import { Button, Icon } from "@hashintel/ds-components";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../react/hooks/use-document";
+import {
+  useEditorActions,
+  useEditorState,
+} from "../../../../../../react/state/editor-context";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
 import { ViewScenarioDrawer } from "./view-scenario-drawer";
@@ -27,32 +28,11 @@ const scenarioColumns = [
   },
 ] satisfies readonly TableColumn<Scenario>[];
 
-const ScenarioList = ({
-  scenarios,
-  selectedId,
-  onSelect,
-}: {
-  scenarios: Scenario[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}) => {
-  return (
-    <Table
-      columns={scenarioColumns}
-      emptyLabel="No scenarios yet"
-      getRowId={(scenario) => scenario.id}
-      rows={scenarios}
-      selectedRowId={selectedId}
-      onRowSelect={(scenario) => onSelect(scenario.id)}
-    />
-  );
-};
-
 export const ScenariosView = () => {
-  const { simulateDrawer: drawer, setSimulateDrawer: setDrawer } =
-    use(EditorContext);
-  const { petriNetDefinition } = use(SDCPNContext);
-  const scenarios = petriNetDefinition.scenarios ?? [];
+  const drawer = useEditorState((editor) => editor.simulateDrawer);
+  const { setSimulateDrawer: setDrawer } = useEditorActions();
+  const scenarios =
+    usePetrinautDefinitionSelector((definition) => definition.scenarios) ?? [];
 
   const selectedScenario =
     drawer.type === "view-scenario"
@@ -76,10 +56,17 @@ export const ScenariosView = () => {
         </Button>
       }
     >
-      <ScenarioList
-        scenarios={scenarios}
-        selectedId={drawer.type === "view-scenario" ? drawer.scenarioId : null}
-        onSelect={(id) => setDrawer({ type: "view-scenario", scenarioId: id })}
+      <Table
+        columns={scenarioColumns}
+        emptyLabel="No scenarios yet"
+        getRowId={(scenario) => scenario.id}
+        rows={scenarios}
+        selectedRowId={
+          drawer.type === "view-scenario" ? drawer.scenarioId : null
+        }
+        onRowSelect={(scenario) =>
+          setDrawer({ type: "view-scenario", scenarioId: scenario.id })
+        }
       />
 
       <ViewScenarioDrawer

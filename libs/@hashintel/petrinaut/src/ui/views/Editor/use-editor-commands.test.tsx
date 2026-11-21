@@ -8,14 +8,18 @@ import {
   type PetrinautRules,
 } from "@hashintel/petrinaut-core";
 
-import { CommandRegistryProvider } from "../../../react/commands/command-registry";
+import { CommandRegistryProvider } from "../../../react/commands/command-registry-provider";
+import { NetManagementContext } from "../../../react/net-management-context";
 import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { EditorCommands } from "./use-editor-commands";
 
+/** The layout the commands run: the auto-layout, then the fit of the canvas. */
+const layout = vi.hoisted(() => vi.fn(async () => {}));
+
 vi.mock("../../../react", () => ({
-  usePetrinautCommands: () => ({ applyAutoLayout: vi.fn() }),
+  usePetrinautCommands: () => ({ applyAutoLayout: layout }),
 }));
 
 const EditableNet = ({ children }: { children: ReactNode }) => {
@@ -27,15 +31,19 @@ const EditableNet = ({ children }: { children: ReactNode }) => {
   );
 };
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  layout.mockClear();
+});
 
 describe("new net command", () => {
   it("is listed only when the host can start a net, and starts one", () => {
     const registry = createCommandRegistry();
-    const onNewNet = vi.fn();
+    const createNewNet = vi.fn();
+    const loadPetriNet = vi.fn();
     const view = render(
       <CommandRegistryProvider registry={registry}>
-        <EditorCommands />
+        <EditorCommands canStartNet={false} />
       </CommandRegistryProvider>,
       { wrapper: EditableNet },
     );
@@ -44,13 +52,19 @@ describe("new net command", () => {
     expect(isListed()).toBe(false);
 
     view.rerender(
-      <CommandRegistryProvider registry={registry}>
-        <EditorCommands onNewNet={onNewNet} />
-      </CommandRegistryProvider>,
+      <NetManagementContext
+        value={{ title: "", existingNets: [], createNewNet, loadPetriNet }}
+      >
+        <CommandRegistryProvider registry={registry}>
+          <EditorCommands canStartNet />
+        </CommandRegistryProvider>
+      </NetManagementContext>,
     );
     expect(isListed()).toBe(true);
     registry.execute("petrinaut.net.new");
-    expect(onNewNet).toHaveBeenCalledOnce();
+    expect(createNewNet).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ title: "Untitled" }),
+    );
   });
 });
 
@@ -65,7 +79,7 @@ describe("drawing commands", () => {
       );
       render(
         <CommandRegistryProvider registry={registry}>
-          <EditorCommands />
+          <EditorCommands canStartNet={false} />
         </CommandRegistryProvider>,
         { wrapper: Composing },
       );
@@ -93,10 +107,9 @@ describe("auto-layout shortcut", () => {
     "shows the binding in the palette and runs the same layout-and-fit action with %s",
     (modifier) => {
       const registry = createCommandRegistry();
-      const layout = vi.fn(async () => {});
       render(
         <CommandRegistryProvider registry={registry}>
-          <EditorCommands applyAutoLayoutAndFrame={layout} />
+          <EditorCommands canStartNet={false} />
         </CommandRegistryProvider>,
         { wrapper: EditableNet },
       );
@@ -119,11 +132,10 @@ describe("auto-layout shortcut", () => {
   );
 
   it("ignores typing, other modifiers, repeats, composition, and handled events", () => {
-    const layout = vi.fn(async () => {});
     const { getByRole } = render(
       <>
         <input aria-label="Name" />
-        <EditorCommands applyAutoLayoutAndFrame={layout} />
+        <EditorCommands canStartNet={false} />
       </>,
       { wrapper: EditableNet },
     );
@@ -157,17 +169,16 @@ describe("auto-layout shortcut", () => {
       editor: use(EditorContext),
       sdcpn: use(SDCPNContext),
     })).result.current;
-    const layout = vi.fn(async () => {});
     const { rerender } = render(
       <SDCPNContext value={{ ...defaults.sdcpn, readonly: true }}>
-        <EditorCommands applyAutoLayoutAndFrame={layout} />
+        <EditorCommands canStartNet={false} />
       </SDCPNContext>,
       { wrapper: EditableNet },
     );
     fireEvent.keyDown(window, { key: "l", ctrlKey: true, shiftKey: true });
     rerender(
       <EditorContext value={{ ...defaults.editor, globalMode: "simulate" }}>
-        <EditorCommands applyAutoLayoutAndFrame={layout} />
+        <EditorCommands canStartNet={false} />
       </EditorContext>,
     );
     fireEvent.keyDown(window, { key: "l", ctrlKey: true, shiftKey: true });
@@ -182,7 +193,7 @@ describe("AI assistant command", () => {
     const updatedToggle = vi.fn();
     const { rerender, unmount } = render(
       <CommandRegistryProvider registry={registry}>
-        <EditorCommands />
+        <EditorCommands canStartNet={false} />
       </CommandRegistryProvider>,
     );
     const aiCommand = () =>
@@ -192,7 +203,7 @@ describe("AI assistant command", () => {
     expect(aiCommand()).toBeUndefined();
     rerender(
       <CommandRegistryProvider registry={registry}>
-        <EditorCommands onToggleAiAssistant={toggle} />
+        <EditorCommands canStartNet={false} onToggleAiAssistant={toggle} />
       </CommandRegistryProvider>,
     );
     expect(aiCommand()).toMatchObject({
@@ -203,7 +214,10 @@ describe("AI assistant command", () => {
     expect(toggle).toHaveBeenCalledOnce();
     rerender(
       <CommandRegistryProvider registry={registry}>
-        <EditorCommands onToggleAiAssistant={updatedToggle} />
+        <EditorCommands
+          canStartNet={false}
+          onToggleAiAssistant={updatedToggle}
+        />
       </CommandRegistryProvider>,
     );
     registry.execute("petrinaut.ai-assistant.toggle");
@@ -219,7 +233,7 @@ describe("AI assistant command", () => {
       const { getByRole, unmount } = render(
         <>
           <input aria-label="Other input" />
-          <EditorCommands onToggleAiAssistant={toggle} />
+          <EditorCommands canStartNet={false} onToggleAiAssistant={toggle} />
         </>,
       );
       const input = getByRole("textbox");
@@ -243,7 +257,7 @@ describe("AI assistant command", () => {
 
   it("leaves other chords, composition, and handled events alone", () => {
     const toggle = vi.fn();
-    render(<EditorCommands onToggleAiAssistant={toggle} />);
+    render(<EditorCommands canStartNet={false} onToggleAiAssistant={toggle} />);
     for (const modifiers of [
       { metaKey: true },
       { shiftKey: true },

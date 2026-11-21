@@ -20,7 +20,7 @@ import {
   toolingLibrary,
 } from "../../../../../libraries-story-fixtures";
 import { readDraggedComponent } from "../../../../shared/canvas-node-drag";
-import { componentsSubView } from "./components-panel";
+import { ComponentsPanel } from "./components-panel";
 
 afterEach(cleanup);
 
@@ -87,8 +87,7 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
   </SDCPNContext>
 );
 
-const renderPanel = () =>
-  render(<componentsSubView.component />, { wrapper: Wrapper });
+const renderPanel = () => render(<ComponentsPanel />, { wrapper: Wrapper });
 
 describe("the Components panel", () => {
   it("lists the components of a library under its name, with what each does", () => {

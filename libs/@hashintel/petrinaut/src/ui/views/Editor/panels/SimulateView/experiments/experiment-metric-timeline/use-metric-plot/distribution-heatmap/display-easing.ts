@@ -5,7 +5,7 @@
 import type { HeatmapDensityGrid } from "./density-grid";
 
 /** How much of a new grid shows per blend step; the rest is the shown one. */
-export const HEATMAP_BLEND_WEIGHT = 0.5;
+const HEATMAP_BLEND_WEIGHT = 0.5;
 /**
  * Settle redraws after a blended paint, `HEATMAP_SETTLE_MS` apart (the
  * session's publish cadence), each halving what remains of the old picture;
@@ -61,9 +61,8 @@ const sampleGrid = (
 export const blendHeatmapGrids = (
   previous: HeatmapDensityGrid | null,
   next: HeatmapDensityGrid,
-  weight = HEATMAP_BLEND_WEIGHT,
 ): HeatmapDensityGrid => {
-  if (previous === null || weight >= 1) {
+  if (previous === null) {
     return next;
   }
   const sharedColumns = Math.min(previous.columns, next.columns);
@@ -89,7 +88,8 @@ export const blendHeatmapGrids = (
         ? previous.densities[row * previous.columns + column]!
         : sampleGrid(previous, column, value);
       densities[index] =
-        before * (1 - weight) + next.densities[index]! * weight;
+        before * (1 - HEATMAP_BLEND_WEIGHT) +
+        next.densities[index]! * HEATMAP_BLEND_WEIGHT;
     }
   }
   return { ...next, densities };

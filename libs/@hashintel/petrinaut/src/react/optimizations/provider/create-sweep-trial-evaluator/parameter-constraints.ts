@@ -12,7 +12,7 @@ import {
 
 import type { PetrinautOptimizationManifest } from "@hashintel/petrinaut-core/optimization";
 
-export type ParameterConstraintOutcome = {
+type ParameterConstraintOutcome = {
   results: ParameterConstraintResult[];
   /** The first constraint the draw broke, or null when every one holds. */
   infeasible: string | null;

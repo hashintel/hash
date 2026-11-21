@@ -18,7 +18,6 @@ export type { CanvasViewport };
 export type FrameSceneResult = "framed" | "empty" | "no-renderer" | "timed-out";
 
 export type CanvasController = {
-  getViewport: () => CanvasViewport;
   /**
    * Where the viewport will come to rest: the target of an eased move under
    * way, or where it is now.
@@ -40,7 +39,6 @@ export type CanvasController = {
   frameSceneAfterRender: () => Promise<FrameSceneResult>;
   /** Client (viewport-relative screen) coordinates to scene coordinates. */
   screenToScene: (point: CanvasPoint) => CanvasPoint;
-  sceneToScreen: (point: CanvasPoint) => CanvasPoint;
 };
 
 export const CanvasControllerContext = createContext<CanvasController | null>(
@@ -58,7 +56,7 @@ export const useCanvasController = (): CanvasController => {
   return controller;
 };
 
-export type CanvasRendererProps = {
+type CanvasRendererProps = {
   scene: CanvasScene;
   /** Settled size of the canvas container. */
   containerSize: Size;
@@ -67,7 +65,3 @@ export type CanvasRendererProps = {
 };
 
 export type CanvasRenderer = React.FC<CanvasRendererProps>;
-
-export const canvasRendererNames = ["react-flow"] as const;
-
-export type CanvasRendererName = (typeof canvasRendererNames)[number];

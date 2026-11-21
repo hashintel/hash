@@ -2,23 +2,22 @@ import { Menu, type MenuItem } from "@hashintel/ds-components";
 
 import {
   type CursorMode,
-  type EditorState,
+  useEditorActions,
+  useEditorFields,
 } from "../../../../../react/state/editor-context";
 import { KeyboardShortcut } from "../../../../keyboard-shortcut";
 import { ToolbarMenuTrigger } from "./toolbar-menu-trigger";
 
-type EditorEditionMode = EditorState["editionMode"];
-
 /** Picks between the select and pan cursors, and returns to cursor mode. */
-export const CursorModeDropdown: React.FC<{
-  editionMode: EditorEditionMode;
-  onEditionModeChange: (mode: EditorEditionMode) => void;
-  cursorMode: CursorMode;
-  onCursorModeChange: (mode: CursorMode) => void;
-}> = ({ editionMode, onEditionModeChange, cursorMode, onCursorModeChange }) => {
+export const CursorModeDropdown = () => {
+  const { editionMode, cursorMode } = useEditorFields(
+    "editionMode",
+    "cursorMode",
+  );
+  const { setCursorMode, setEditionMode } = useEditorActions();
   const handleCursorChange = (mode: CursorMode) => {
-    onCursorModeChange(mode);
-    onEditionModeChange("cursor");
+    setCursorMode(mode);
+    setEditionMode("cursor");
   };
 
   const items: MenuItem[] = [

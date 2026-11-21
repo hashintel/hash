@@ -1,6 +1,11 @@
 /**
- * @layerRoot ui.views.editor.results
- * @role The one results surface the experiment panel renders from a view-model: the header stats, the parameter card, the surface, the metric cards and the footer in the shared frame, with the study's headline, columns, cards and steps filled in once a sweep has one
+ * @layerRoot ui.views.editor.simulate.shared
+ * @role What the Simulate drawers share: the frame, the results surface, chart cards and formatters
+ *
+ * `ResultsView` is the one results surface the experiment panel renders from
+ * a view-model: the header stats, the parameter card, the surface, the metric
+ * cards and the footer in the shared frame, with the study's headline,
+ * columns, cards and steps filled in once a sweep has one.
  *
  * The view renders a `ResultsModel` and nothing else: it reads no record and
  * no provider. The adapter that builds the model lives beside the record it
@@ -109,7 +114,6 @@ export const ResultsView = ({
               tiles={metrics.tiles}
               timeDomain={metrics.timeDomain}
               contentEpoch={metrics.contentEpoch}
-              plotHeight={metrics.plotHeight}
               tone={metrics.tone}
             >
               {metrics.cards}

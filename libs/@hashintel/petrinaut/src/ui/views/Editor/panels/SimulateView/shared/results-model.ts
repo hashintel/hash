@@ -30,7 +30,7 @@ export type ResultsStatus = {
  * there is one. A leaf element may stand in for the text so a readout that
  * ticks on its own (the wall clock) re-renders alone.
  */
-export type ResultsStatValue = {
+type ResultsStatValue = {
   text: ReactNode;
   tooltip?: string;
 };
@@ -69,7 +69,7 @@ export type ResultsHeader = {
  * `more` is a part the card keeps folded away behind a footer button, the
  * parameters held fixed; null gives the card no footer.
  */
-export type ResultsBand = {
+type ResultsBand = {
   /** The band's key; it carries the record's id so a fold never survives an in-place swap to another record. */
   id: string;
   title: string;
@@ -87,7 +87,7 @@ export type ResultsBand = {
 };
 
 /** The metric cards grid: the timelines, then whatever cards follow them, all one height. */
-export type ResultsMetrics = {
+type ResultsMetrics = {
   /** Identity of the grid's view state; a change resets every card's view choice. */
   key: string;
   tiles: readonly MetricTile[];
@@ -98,8 +98,6 @@ export type ResultsMetrics = {
    * sparse new stream.
    */
   contentEpoch: string;
-  /** The plot's height inside every card; the grid's row height follows. */
-  plotHeight: number;
   tone: ChartCardTone;
   /** Cards after the timelines, in the same grid: a study's objective by step, constraints, importance. */
   cards: ReactNode | null;

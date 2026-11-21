@@ -1,10 +1,11 @@
 import { DEFAULT_COLORS } from "../default-colors";
 
-import type { TimelineFrame, TimelineSeriesConfig } from "../types";
+import type { SimulationFrameReader } from "../../../../../../../../react/simulation/context";
+import type { TimelineSeriesConfig } from "../types";
 import type { Metric } from "@hashintel/petrinaut-core";
 
 /** Evaluates the selected metric against one timeline frame. */
-export type TimelineMetricEvaluator = (frame: TimelineFrame) => number;
+export type TimelineMetricEvaluator = (frame: SimulationFrameReader) => number;
 
 /**
  * Builds the timeline series for a user-authored metric.

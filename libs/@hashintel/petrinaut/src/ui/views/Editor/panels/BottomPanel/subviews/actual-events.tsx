@@ -7,7 +7,6 @@ import { ActualModeContext } from "../../../../../../react/actual-mode-context";
 import { exportActualModeRecording } from "../../../../../file-io/export-actual-mode-recording";
 import { exportSDCPN } from "../../../../../file-io/export-sdcpn";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import type {
   ActualModeMarking,
   ActualModeTransitionFiring,
@@ -241,7 +240,7 @@ const EventRow: React.FC<{
   </tr>
 );
 
-const ActualEventsContent: React.FC = () => {
+export const ActualEventsContent: React.FC = () => {
   const actualMode = use(ActualModeContext);
   const canExportRecording =
     actualMode.available &&
@@ -407,12 +406,4 @@ const ActualEventsContent: React.FC = () => {
       )}
     </div>
   );
-};
-
-export const actualEventsSubView: SubView = {
-  id: "actual-events",
-  title: "Events",
-  tooltip:
-    "Inspect the Actual mode transition stream and export a recording or the net.",
-  component: ActualEventsContent,
 };

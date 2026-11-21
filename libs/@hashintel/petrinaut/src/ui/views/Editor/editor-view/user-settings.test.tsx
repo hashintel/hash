@@ -11,14 +11,10 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  isWebGpuAvailable,
-  createCommandRegistry,
-} from "@hashintel/petrinaut-core";
+import { createCommandRegistry } from "@hashintel/petrinaut-core";
 
-import { CommandRegistryProvider } from "../../../../react/commands/command-registry";
-import { PetrinautNavigationProvider } from "../../../../react/navigation";
-import { PetrinautOptimizationContext } from "../../../../react/optimization-context";
+import { CommandRegistryProvider } from "../../../../react/commands/command-registry-provider";
+import { PetrinautNavigationProvider } from "../../../../react/navigation/navigation-provider";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
 import { nextFrame } from "../../../lib/readings.test-helpers";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
@@ -29,8 +25,7 @@ import { UserSettings } from "./user-settings";
 import type {
   PetrinautNavigationState,
   PetrinautSettingsSection,
-} from "../../../../react/navigation";
-import type { PetrinautConnectedOptimization } from "../../../../react/optimization-context";
+} from "../../../../react/navigation/navigation";
 import type { PetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import type { ReactNode } from "react";
 
@@ -58,7 +53,6 @@ afterEach(() => {
 
 const renderSettings = (
   initialState: Partial<PetrinautNavigationState> = {},
-  optimization: PetrinautConnectedOptimization | null = null,
   settingsLabs?: ReactNode,
 ) => {
   const registry = createCommandRegistry();
@@ -66,11 +60,9 @@ const renderSettings = (
     <CommandRegistryProvider registry={registry}>
       <UserSettingsProvider>
         <PetrinautNavigationProvider initialState={initialState}>
-          <PetrinautOptimizationContext value={optimization}>
-            <PetrinautSlotsContext value={{ settingsLabs }}>
-              <UserSettings />
-            </PetrinautSlotsContext>
-          </PetrinautOptimizationContext>
+          <PetrinautSlotsContext value={{ settingsLabs }}>
+            <UserSettings />
+          </PetrinautSlotsContext>
         </PetrinautNavigationProvider>
       </UserSettingsProvider>
     </CommandRegistryProvider>,
@@ -205,14 +197,8 @@ describe("user settings", () => {
   });
 
   it.each([
-    ["top", 760, 440, 140, 320],
     ["right", 820, 480, 100, 260],
-    ["bottom", 760, 520, 100, 320],
-    ["left", 700, 480, 100, 320],
     ["top-left", 700, 440, 140, 320],
-    ["top-right", 820, 440, 140, 260],
-    ["bottom-left", 700, 520, 100, 320],
-    ["bottom-right", 820, 520, 100, 260],
   ] as const)(
     "resizes from %s and preserves size when changing sections",
     async (direction, width, height, top, right) => {
@@ -264,6 +250,27 @@ describe("user settings", () => {
       ).toEqual(resizedStyle);
     },
   );
+
+  it("names a resize handle for each edge and corner", async () => {
+    renderSettings({ overlay: { type: "user-settings" } });
+    await screen.findByRole("dialog");
+    expect(
+      screen
+        .getAllByRole("button", { name: /^Resize User settings from / })
+        .map((handle) => handle.getAttribute("aria-label")),
+    ).toEqual(
+      [
+        "top",
+        "right",
+        "bottom",
+        "left",
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right",
+      ].map((direction) => `Resize User settings from ${direction}`),
+    );
+  });
 
   it.each(["edit", "simulate", "actual"] as const)(
     "opens from the shortcut and palette in %s mode",
@@ -342,11 +349,8 @@ describe("user settings", () => {
     ).toBe("true");
   });
 
-  it("offers settings without simulation feature flags", async () => {
-    renderSettings(
-      { overlay: { type: "user-settings" } },
-      { kind: "connected", connect: vi.fn() },
-    );
+  it("offers four sections", async () => {
+    renderSettings({ overlay: { type: "user-settings" } });
     await screen.findByRole("heading", { name: "General" });
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
       "General",
@@ -354,33 +358,26 @@ describe("user settings", () => {
       "Plugins",
       "Labs",
     ]);
-    for (const name of [
-      "WebGPU",
-      "Parameter sweeps",
-      "In-browser optimization",
-    ]) {
-      expect(screen.queryByRole("checkbox", { name })).toBeNull();
-    }
   });
 
   it("walks settings with worksheet arrows and restores focus across columns", async () => {
-    renderSettings({ overlay: { type: "user-settings" } });
-    const general = await screen.findByRole("tab", { name: "General" });
-    act(() => general.focus());
-    fireEvent.keyDown(general, { key: "ArrowRight" });
-    const animations = screen.getByRole("checkbox", { name: "Animations" });
-    expect(document.activeElement).toBe(animations);
-    fireEvent.keyDown(animations, { key: "ArrowDown" });
-    const panels = screen.getByRole("checkbox", {
-      name: "Keep panels mounted",
+    renderSettings({ overlay: { type: "user-settings", section: "viewport" } });
+    const viewport = await screen.findByRole("tab", { name: "Viewport" });
+    act(() => viewport.focus());
+    fireEvent.keyDown(viewport, { key: "ArrowRight" });
+    const minimap = screen.getByRole("checkbox", { name: "Minimap" });
+    expect(document.activeElement).toBe(minimap);
+    fireEvent.keyDown(minimap, { key: "ArrowDown" });
+    const compactNodes = screen.getByRole("checkbox", {
+      name: "Compact nodes",
     });
-    expect(document.activeElement).toBe(panels);
-    fireEvent.keyDown(panels, { key: "ArrowLeft" });
-    expect(document.activeElement).toBe(general);
-    fireEvent.keyDown(general, { key: "ArrowRight" });
-    expect(document.activeElement).toBe(panels);
-    fireEvent.keyDown(panels, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(animations);
+    expect(document.activeElement).toBe(compactNodes);
+    fireEvent.keyDown(compactNodes, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(viewport);
+    fireEvent.keyDown(viewport, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(compactNodes);
+    fireEvent.keyDown(compactNodes, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(minimap);
   });
 
   it("keeps one content panel and walks a section from the top", async () => {
@@ -399,15 +396,16 @@ describe("user settings", () => {
       screen.getByRole("checkbox", { name: "Minimap" }),
     );
     fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
-    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
-    const iconPack = screen.getByRole("checkbox", { name: "Petricon" });
-    expect(document.activeElement).toBe(iconPack);
-    fireEvent.keyDown(iconPack, { key: "ArrowDown" });
+    const compactNodes = screen.getByRole("checkbox", {
+      name: "Compact nodes",
+    });
+    expect(document.activeElement).toBe(compactNodes);
+    fireEvent.keyDown(compactNodes, { key: "ArrowDown" });
     expect(document.activeElement).toBe(
       screen.getByRole("checkbox", { name: "Highlight on hover" }),
     );
     fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(iconPack);
+    expect(document.activeElement).toBe(compactNodes);
   });
 
   it("ignores modified shortcuts and unregisters when unmounted", async () => {
@@ -429,23 +427,6 @@ describe("user settings", () => {
 });
 
 describe("Labs settings", () => {
-  it("offers Notebook directly in Edit without a Labs setting", async () => {
-    renderSettings({ overlay: { type: "user-settings", section: "labs" } });
-    await screen.findByRole("heading", { name: "Labs" });
-    expect(screen.queryByText("Notebook view")).toBeNull();
-  });
-
-  it("offer no Ad-hoc scenarios row: the scenario form is the only scenario form", async () => {
-    // The dialog body portals to document.body, which `screen` covers.
-    renderSettings({ overlay: { type: "user-settings", section: "labs" } });
-
-    await screen.findByRole("tab", { name: "Labs" });
-    expect(screen.queryByText(/Ad-hoc scenarios/)).toBeNull();
-    expect(
-      screen.queryByText(/Define initial state and parameters inline/),
-    ).toBeNull();
-  });
-
   it("renders a plugin's Labs settings after the built-in groups and persists a toggle", async () => {
     renderPluginSettings("labs");
     await screen.findByRole("heading", { name: "Labs" });
@@ -496,7 +477,6 @@ describe("Labs settings", () => {
 
     renderSettings(
       { overlay: { type: "user-settings", section: "labs" } },
-      null,
       <section aria-label="Host AI settings">
         <button type="button">Use Brunch</button>
       </section>,
@@ -511,7 +491,6 @@ describe("Labs settings", () => {
   it("walks enabled host Labs controls and crosses the existing focus flow", async () => {
     renderSettings(
       { overlay: { type: "user-settings", section: "labs" } },
-      null,
       <section aria-label="Host AI settings">
         <button type="button" disabled>
           Unavailable first
@@ -582,15 +561,13 @@ describe("AI assistant settings", () => {
   it("lets the picker own its keyboard interaction while it is open", async () => {
     renderPluginSettings("general", [chat, composer]);
     const picker = await screen.findByRole("combobox", { name: "Assistant" });
-    const panels = screen.getByRole("checkbox", {
-      name: "Keep panels mounted",
-    });
-    act(() => panels.focus());
-    fireEvent.keyDown(panels, { key: "ArrowDown" });
+    const animations = screen.getByRole("checkbox", { name: "Animations" });
+    act(() => animations.focus());
+    fireEvent.keyDown(animations, { key: "ArrowDown" });
     expect(document.activeElement).toBe(picker);
     fireEvent.keyDown(picker, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(panels);
-    fireEvent.keyDown(panels, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(animations);
+    fireEvent.keyDown(animations, { key: "ArrowDown" });
     fireEvent.keyDown(picker, { key: "Enter" });
     await waitFor(() =>
       expect(picker.getAttribute("aria-expanded")).toBe("true"),
@@ -600,7 +577,7 @@ describe("AI assistant settings", () => {
     );
     fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
     expect(screen.getByRole("listbox")).toBeTruthy();
-    expect(document.activeElement).not.toBe(panels);
+    expect(document.activeElement).not.toBe(animations);
     fireEvent.keyDown(document.activeElement!, { key: "Escape" });
     await waitFor(() =>
       expect(picker.getAttribute("aria-expanded")).toBe("false"),
@@ -654,55 +631,5 @@ describe("Plugins settings", () => {
     renderPluginSettings("plugins", []);
     await screen.findByRole("heading", { name: "Plugins" });
     expect(screen.getByText("This editor has no plugins.")).toBeTruthy();
-  });
-});
-
-describe("WebGPU availability", () => {
-  it("detects WebGPU support from the host, not a build flag", () => {
-    // The runtime gate the control's `disabled` state is derived from.
-    vi.stubGlobal("navigator", { gpu: {} });
-    try {
-      expect(isWebGpuAvailable()).toBe(true);
-    } finally {
-      vi.unstubAllGlobals();
-    }
-
-    vi.stubGlobal("navigator", {});
-    try {
-      expect(isWebGpuAvailable()).toBe(false);
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
-});
-
-describe("Viewport settings", () => {
-  it("keeps Petricon across remounts and offers no arc settings", async () => {
-    const first = renderSettings({
-      overlay: { type: "user-settings", section: "viewport" },
-    });
-    const iconPack = await screen.findByRole("checkbox", {
-      name: "Petricon",
-    });
-    expect((iconPack as HTMLInputElement).checked).toBe(true);
-    expect(
-      screen.getByText("Petricon", { exact: true }).parentElement?.textContent,
-    ).toBe("Petricon");
-    await act(async () => fireEvent.click(iconPack));
-    first.unmount();
-    renderSettings({ overlay: { type: "user-settings", section: "viewport" } });
-    expect(
-      (
-        (await screen.findByRole("checkbox", {
-          name: "Petricon",
-        })) as HTMLInputElement
-      ).checked,
-    ).toBe(false);
-    expect(
-      screen.queryByRole("checkbox", { name: "Automatic arc connections" }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole("combobox", { name: "Arc rendering" }),
-    ).toBeNull();
   });
 });

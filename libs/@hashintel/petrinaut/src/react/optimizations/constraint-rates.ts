@@ -35,7 +35,7 @@ export const passThresholdPercent = (alpha: number): number =>
   Math.round((1 - alpha) * 1000) / 10;
 
 /** Per-run verdicts within one step: passed over total, and the step's verdict against alpha. */
-export type StepConstraintRate = {
+type StepConstraintRate = {
   constraintId: string;
   runsPassed: number;
   runsTotal: number;

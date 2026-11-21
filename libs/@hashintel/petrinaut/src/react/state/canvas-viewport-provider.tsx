@@ -5,7 +5,7 @@ import {
   type CanvasViewport,
 } from "./canvas-viewport-context";
 import { SDCPNContext } from "./sdcpn-context";
-import { UserSettingsContext } from "./user-settings-context";
+import { useUserSettingsFields } from "./user-settings-context";
 
 /**
  * Keeps the canvas viewport per document in the user settings, so a net
@@ -17,7 +17,10 @@ import { UserSettingsContext } from "./user-settings-context";
  */
 export const CanvasViewportProvider: FC<PropsWithChildren> = ({ children }) => {
   const { petriNetId } = use(SDCPNContext);
-  const { canvasViewports, setCanvasViewport } = use(UserSettingsContext);
+  const { canvasViewports, setCanvasViewport } = useUserSettingsFields(
+    "canvasViewports",
+    "setCanvasViewport",
+  );
 
   const rememberViewport = (viewport: CanvasViewport) => {
     if (!petriNetId) {

@@ -9,7 +9,7 @@ This page shows how to build a worksheet panel from the layer's pieces. The
 guarantees; this page shows the wiring. The module lives at
 `libs/@hashintel/petrinaut/src/ui/worksheet/`, and every configuration below
 runs as a story in `worksheet.stories.tsx` (`yarn workspace
-@hashintel/petrinaut storybook`, under `worksheet/FocusStack`).
+@hashintel/petrinaut dev`, under `Components / Keyboard focus`).
 
 The layer adds no ARIA and moves real DOM focus. Put roles and labels on your
 own elements: a data table declares `role="grid"`, `row`, and `gridcell`
@@ -94,13 +94,18 @@ const RatesGrid = ({ rows }: { rows: string[][] }) => {
 ```
 
 - The grid is one tab stop: `tabIndexFor` returns `0` for the remembered cell
-  and `-1` for the rest.
+  and `-1` for the rest. A grid whose cells keep their own tab stops passes
+  `useFocusGrid({ tabStop: "native" })` (`useFocusStops` takes the same
+  option) and never calls `tabIndexFor`: a move of the focus then renders
+  nothing, where the roving stop renders the grid once per move.
 - Focus memory needs no wiring. Any focus landing inside the attached
   container updates the remembered cell. Call `onFocusCell(row, column)` from
   a cell's `onFocus` only when the cell renders outside the container (a
   portal).
 - Cells register under their `(row, column)` position. Positions may have
   holes; arrows skip positions nothing registered.
+- `focus(row, column)` focuses a registered cell from code, for example the
+  row that takes a deleted row's place. Keep no second map of the elements.
 - Inside an `<input>` or `<textarea>` the horizontal arrows keep moving the
   caret. Only the vertical arrows navigate.
 - A toolbar is a one-row grid: register each button at row `0` and the row
@@ -122,18 +127,15 @@ const stops: FocusStop[] = [
   { id: "shared", kind: "sparse", columns: [1, 2] },
 ];
 
-const targetKey = (target: FocusStopTarget) =>
-  `${target.stopId}:${target.column}`;
-
 const TokenTable = () => {
-  const targets = useRef(new Map<string, HTMLElement>());
+  const { register, focus } = useStopTargets();
   const { attach, onKeyDown, onFocusTarget, tabIndexFor } = useFocusStops({
     stops,
     columnCount: 3,
-    focusTarget: (target) => focusLands(targets.current.get(targetKey(target))),
+    focusTarget: focus,
   });
   // Each focusable part wires, for its own position: FocusStopTarget:
-  //   ref       -> store the element into targets under targetKey(position)
+  //   ref       -> register(position)
   //   tabIndex  -> tabIndexFor(position)
   //   onKeyDown -> onKeyDown(position)
   //   onFocus   -> onFocusTarget(position)
@@ -142,8 +144,10 @@ const TokenTable = () => {
 ```
 
 - `focusTarget` receives a wished position and reports whether an element
-  took focus. Ref bookkeeping and any nearest-column policy stay with the
-  table that owns them.
+  took focus. `useStopTargets` keeps the elements by position: a ref
+  callback that writes the table's own ref, created per row, keeps the
+  compiler from caching the rows. Any nearest-column policy stays with the
+  table that owns it.
 - A `row` stop with `gutter: true` joins the gutter lane. Its gutter part
   wires with `column: "gutter"`; the contract describes the lane's movement.
 - A `full` stop renders one full-width part wired at `column: 0`. The hook
@@ -156,9 +160,6 @@ const TokenTable = () => {
   in place of moving. The arrow with nothing to do stays a move: ArrowLeft on
   a collapsed row leaves the line as it would on any other. `full` and
   `sparse` stops do not fold.
-- The returned `moveFrom(direction, from?)` hands a move to the enclosing
-  stack. Use it from custom key handling at edges the stop walk does not
-  cover.
 
 ## Headers and custom members
 

@@ -12,7 +12,7 @@ import {
 import { Chip, Dialog, Icon, Select, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { useAssistantChoice } from "../../../../plugins/plugin-assistant";
 import { PluginSettingsRows } from "../../../../plugins/plugin-settings-rows";
@@ -27,7 +27,7 @@ import { PluginsSection } from "./user-settings-dialog/plugins-section";
 import { SettingsHeading } from "./user-settings-dialog/settings-heading";
 import { SettingsPanel } from "./user-settings-dialog/settings-panel";
 
-import type { PetrinautSettingsSection } from "../../../../../react/navigation";
+import type { PetrinautSettingsSection } from "../../../../../react/navigation/navigation";
 import type { IconName } from "@hashintel/ds-components";
 
 const settingsDialogStyles = {
@@ -201,6 +201,8 @@ const SettingsGroup = ({
   </section>
 );
 
+const experimentalChipStyle = css({ display: "flex", flexShrink: "0" });
+
 const SettingRow = ({
   label,
   description,
@@ -266,10 +268,7 @@ const SettingRow = ({
         <div className={labelStyle}>
           <span id={`${id}-label`}>{label}</span>
           {experimental && (
-            <div
-              id={`${id}-experimental`}
-              className={css({ display: "flex", flexShrink: "0" })}
-            >
+            <div id={`${id}-experimental`} className={experimentalChipStyle}>
               <Chip size="xs" color="orange" variant="outline" shape="round">
                 Experimental
               </Chip>
@@ -293,32 +292,16 @@ const SettingRow = ({
 const SettingToggle = ({
   label,
   description,
-  experimental,
   value,
   onChange,
-  disabled,
 }: {
   label: string;
   description: string;
-  experimental?: boolean;
   value: boolean;
   onChange: (value: boolean) => void;
-  disabled?: boolean;
 }) => (
-  <SettingRow
-    label={label}
-    description={description}
-    experimental={experimental}
-  >
-    {(aria) => (
-      <Toggle
-        {...aria}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        size="sm"
-      />
-    )}
+  <SettingRow label={label} description={description}>
+    {(aria) => <Toggle {...aria} value={value} onChange={onChange} size="sm" />}
   </SettingRow>
 );
 
@@ -410,6 +393,27 @@ const HostLabsSettings = () => {
   );
 };
 
+const dialogHeaderStyle = css({
+  position: "absolute",
+  top: "3",
+  right: "3",
+  "&": {
+    padding: "0",
+    border: "[0]",
+    background: "[transparent]",
+  },
+  zIndex: "[1]",
+  "& button": { margin: "0" },
+});
+
+const dialogBodyStyle = css({
+  "&": {
+    overflow: "visible",
+    border: "[0]",
+    borderRadius: "[inherit]",
+  },
+});
+
 export const UserSettingsDialog = ({
   section,
   onSectionChange,
@@ -420,7 +424,7 @@ export const UserSettingsDialog = ({
   onClose: () => void;
 }) => {
   const settings = use(UserSettingsContext);
-  const { extensions } = use(SDCPNContext);
+  const extensions = useSDCPNState((document) => document.extensions);
   const item =
     sections.find((candidate) => candidate.id === section) ?? sections[0];
   const headingRef = useRef<HTMLElement>(null);
@@ -443,30 +447,8 @@ export const UserSettingsDialog = ({
       onClose={onClose}
       onKeyDown={(event) => event.stopPropagation()}
     >
-      <Dialog.Header
-        className={css({
-          position: "absolute",
-          top: "3",
-          right: "3",
-          "&": {
-            padding: "0",
-            border: "[0]",
-            background: "[transparent]",
-          },
-          zIndex: "[1]",
-          "& button": { margin: "0" },
-        })}
-      />
-      <Dialog.Body
-        withPadding={false}
-        className={css({
-          "&": {
-            overflow: "visible",
-            border: "[0]",
-            borderRadius: "[inherit]",
-          },
-        })}
-      >
+      <Dialog.Header className={dialogHeaderStyle} />
+      <Dialog.Body withPadding={false} className={dialogBodyStyle}>
         <FloatingResizeHandles
           label="User settings"
           getHandleProps={getResizeHandleProps}
@@ -522,12 +504,6 @@ export const UserSettingsDialog = ({
                           value={settings.showAnimations}
                           onChange={settings.setShowAnimations}
                         />
-                        <SettingToggle
-                          label="Keep panels mounted"
-                          description="Keep hidden panels ready for faster switching. Uses more memory."
-                          value={settings.keepPanelsMounted}
-                          onChange={settings.setKeepPanelsMounted}
-                        />
                       </SettingsGroup>
                       <AssistantGroup />
                       <PluginSettingsRows
@@ -550,12 +526,6 @@ export const UserSettingsDialog = ({
                           description="Use smaller nodes to fit more of your net on screen."
                           value={settings.compactNodes}
                           onChange={settings.setCompactNodes}
-                        />
-                        <SettingToggle
-                          label="Petricon"
-                          description="Use Petrinaut's custom icon pack across the editor."
-                          value={settings.enableExperimentalIconPack}
-                          onChange={settings.setEnableExperimentalIconPack}
                         />
                       </SettingsGroup>
                       <SettingsGroup title="Interaction">

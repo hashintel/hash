@@ -1,0 +1,34 @@
+# Hand-written; rendered by the arch-docs build.
+direction: down
+
+vars: {
+  d2-legend: {
+    a -> b: sets a value, or reads one when asked
+    a -> b: follows a value once per frame {style.stroke-dash: 3}
+    a.style.opacity: 0
+    b.style.opacity: 0
+  }
+}
+
+classes: {
+  value: {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+}
+
+toggle: "Editor state and assistant placement\nopen, close, dock, float"
+drag: "Pointer move\non a resize handle"
+geometry: "Motion values\npanel sizes, panel presence 0 to 1" {class: value}
+settings: "User settings\nthree sizes, not the assistant's"
+panel: "styleRef on the panel\nwidth, transform"
+insets: "Canvas insets\na function of sizes and presence" {class: value}
+followers: "Minimap, viewport controls,\nbottom bar"
+camera: "Camera\nkeeps the selection in view"
+windows: "Visualizer windows\nrender on each move"
+
+toggle -> geometry: "animates a presence\nover 150 ms"
+drag -> geometry: "sets a size,\nno render"
+drag -> settings: "saves on release"
+geometry -> panel: "write each frame" {style.stroke-dash: 3}
+geometry -> insets: "are read by"
+followers -> insets: "follow, and write\ntheir own style" {style.stroke-dash: 3}
+camera -> insets: "watches once\nper frame" {style.stroke-dash: 3}
+windows -> insets: "read with\nuseCanvasInsets" {style.stroke-dash: 3}

@@ -1,12 +1,11 @@
 /**
  * The frame popover's histogram, drawn as a raster on a canvas.
  *
- * A distribution frame can carry thousands of bins; one DOM row per bin
- * showed a dozen of them at a time behind a scrollbar, so the shape of the
- * distribution — which is the reason to open the popover at all — was never
- * visible. The canvas draws the whole distribution at once in a fixed box:
- * bins become adjacent rectangles across the value axis (see
- * `bin-histogram-raster`), heights are counts, and both axes are labelled.
+ * A distribution frame can carry thousands of bins, and the shape of the
+ * distribution is the reason to open the popover. The canvas draws the whole
+ * distribution at once in a fixed box: bins become adjacent rectangles
+ * across the value axis (see `bin-histogram-raster`), heights are counts,
+ * and both axes are labelled.
  *
  * Colour comes from the container's computed `color`, so the drawing follows
  * the theme's neutral scale like the surrounding markup does; the lighter

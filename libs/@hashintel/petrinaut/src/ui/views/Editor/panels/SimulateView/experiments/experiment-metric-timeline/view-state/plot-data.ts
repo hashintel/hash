@@ -11,7 +11,7 @@ import {
   applyTimeTrace,
 } from "../shared/distribution-math";
 import {
-  isDistributionMetricFrame,
+  distributionFramesFrom,
   isScalarMetricFrame,
 } from "../shared/metric-frames";
 
@@ -24,40 +24,30 @@ import type {
   DistributionBins,
   DistributionMetricFrame,
   MetricFrame,
-  ScalarMetricFrame,
 } from "../shared/metric-frames";
 import type uPlot from "uplot";
 
-function buildScalarMetricTimelineData(
-  frames: readonly ScalarMetricFrame[],
-  timeTrace: TimeTrace,
-): uPlot.AlignedData {
-  const time: number[] = [];
-  const values: (number | null)[] = [];
+/** A frame as one number: a scalar's value, or a distribution's runs reduced to one. */
+export const frameScalar = (
+  frame: MetricFrame,
+  runAggregation: RunAggregation,
+): number | null =>
+  frame.outputType === "scalar"
+    ? frame.value
+    : aggregateDistributionBins(frame.bins, runAggregation);
 
-  for (const frame of frames) {
-    time.push(frame.time);
-    values.push(frame.value);
-  }
-
-  return [time, applyTimeTrace(values, timeTrace)] as uPlot.AlignedData;
-}
-
-function buildDistributionSingleData(
-  frames: readonly DistributionMetricFrame[],
+const buildLineData = (
+  frames: readonly MetricFrame[],
   runAggregation: RunAggregation,
   timeTrace: TimeTrace,
-): uPlot.AlignedData {
-  const time: number[] = [];
-  const values: (number | null)[] = [];
-
-  for (const frame of frames) {
-    time.push(frame.time);
-    values.push(aggregateDistributionBins(frame.bins, runAggregation));
-  }
-
-  return [time, applyTimeTrace(values, timeTrace)] as uPlot.AlignedData;
-}
+): uPlot.AlignedData =>
+  [
+    frames.map((frame) => frame.time),
+    applyTimeTrace(
+      frames.map((frame) => frameScalar(frame, runAggregation)),
+      timeTrace,
+    ),
+  ] as uPlot.AlignedData;
 
 function buildDistributionHeatmapData(
   frames: readonly DistributionMetricFrame[],
@@ -98,20 +88,17 @@ export function buildMetricTimelineData(
   timeTrace: TimeTrace,
 ): uPlot.AlignedData {
   if (outputType !== "distribution") {
-    return buildScalarMetricTimelineData(
+    return buildLineData(
       frames.filter(isScalarMetricFrame),
+      runAggregation,
       timeTrace,
     );
   }
 
-  const distributionFrames = frames.filter(isDistributionMetricFrame);
+  const distributionFrames = distributionFramesFrom(frames);
 
   if (aggregateRuns) {
-    return buildDistributionSingleData(
-      distributionFrames,
-      runAggregation,
-      timeTrace,
-    );
+    return buildLineData(distributionFrames, runAggregation, timeTrace);
   }
 
   return distributionView === "heatmap"

@@ -29,15 +29,19 @@ describe("iconMaskImage", () => {
     expect(svg).not.toMatch(/\s(width|height)=/);
   });
 
-  it("takes a missing viewBox from the width and height", () => {
-    const svg = svgOf(
-      iconMaskImage(
-        '<svg width="32" height="16"><rect width="32" height="16"/></svg>',
-      ),
-    );
-
-    expect(svg).toContain('viewBox="0 0 32 16"');
-  });
+  it.each([
+    [
+      '<svg width="32" height="16"><rect width="32" height="16"/></svg>',
+      "32 16",
+    ],
+    ['<svg width="32px" height="16.5px"><rect/></svg>', "32 16.5"],
+    ['<svg width=".5" height="2"><rect/></svg>', "0.5 2"],
+  ])(
+    "takes a missing viewBox from the width and height of %s",
+    (markup, size) => {
+      expect(svgOf(iconMaskImage(markup))).toContain(`viewBox="0 0 ${size}"`);
+    },
+  );
 
   it("reads a standalone file, prolog and all", () => {
     const svg = svgOf(
@@ -47,14 +51,6 @@ describe("iconMaskImage", () => {
     );
 
     expect(svg).toContain("<circle");
-  });
-
-  it("takes a size in px as user units", () => {
-    const svg = svgOf(
-      iconMaskImage('<svg width="32px" height="16.5px"><rect/></svg>'),
-    );
-
-    expect(svg).toContain('viewBox="0 0 32 16.5"');
   });
 
   it("gives up on a long run of digits with a unit in time that does not grow with its square", () => {
@@ -67,14 +63,6 @@ describe("iconMaskImage", () => {
     expect(svg).not.toContain("viewBox");
     // A pattern that backtracks takes most of a second here.
     expect(performance.now() - started).toBeLessThan(250);
-  });
-
-  it("takes a size that opens with its decimal point", () => {
-    const svg = svgOf(
-      iconMaskImage('<svg width=".5" height="2"><rect/></svg>'),
-    );
-
-    expect(svg).toContain('viewBox="0 0 0.5 2"');
   });
 
   it("makes no viewBox from a size in another unit", () => {

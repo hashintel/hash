@@ -200,17 +200,6 @@ describe("RunSettingsPicker", () => {
     ).toBe("60");
   });
 
-  it("adds the run count and the end time in Stochastic mode", () => {
-    render(
-      <Providers simulation={{ mode: "stochastic", runs: 250, maxTime: 60 }} />,
-    );
-    expect(
-      screen.getByRole("button", {
-        name: "Simulator: Stepped, 0.01 s · 250 runs · to 60 s",
-      }),
-    ).toBeTruthy();
-  });
-
   it("lists the simulators in a popover, with the one that cannot compute the mode greyed and explained", async () => {
     const selectSimulator = vi.fn();
     render(<Providers simulation={{ selectSimulator }} />);

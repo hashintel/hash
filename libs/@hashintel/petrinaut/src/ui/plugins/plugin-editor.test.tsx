@@ -9,7 +9,7 @@ import { LanguageClientContext } from "../../react/lsp/context";
 import {
   defaultPetrinautNavigationState,
   type PetrinautNavigationIntent,
-} from "../../react/navigation";
+} from "../../react/navigation/navigation";
 import { EditorContext } from "../../react/state/editor-context";
 import { useStore } from "../../react/use-store";
 import {
@@ -19,8 +19,8 @@ import {
 } from "./define-petrinaut-plugin";
 import { describeRefusal } from "./plugin-access";
 import { useCanvasRegistration } from "./plugin-editor";
-import { usePluginService } from "./plugins-provider";
 import { renderPlugins } from "./plugins-test-harness";
+import { usePluginService } from "./running-plugins";
 
 import type { CanvasController } from "../views/SDCPN/canvas-renderer";
 import type { PluginDocument, PluginEditor } from "./plugin-access";

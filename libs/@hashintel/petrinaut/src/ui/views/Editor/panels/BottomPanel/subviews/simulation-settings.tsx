@@ -5,17 +5,18 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   classicRunParameterValues,
   classicRunVariables,
-  classicScenarioRunState,
-  compileScenario,
-  createUserKeyedRecord,
   EMPTY_AD_HOC_STATE,
   initialMarkingToAdHocPlaces,
 } from "@hashintel/petrinaut-core";
 
-import { SimulationContext } from "../../../../../../react/simulation/context";
+import { usePetrinautDefinitionSelector } from "../../../../../../react/hooks/use-document";
+import {
+  SimulationContext,
+  type SimulationState,
+} from "../../../../../../react/simulation/context";
 import { useScenarioHir } from "../../../../../../react/simulation/use-scenario-hir";
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { useEditorActions } from "../../../../../../react/state/editor-context";
+import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
 import {
   AdHocScenarioForm,
   FormLayoutColumn,
@@ -32,8 +33,8 @@ import {
   scenarioRunParameterValues,
   seedScenarioRunState,
 } from "./scenario-run-state";
+import { scenarioRunPreview } from "./simulation-settings/scenario-run-preview";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
@@ -213,18 +214,26 @@ const ParametersScrollArea: React.FC<{ children: React.ReactNode }> = ({
 
 const NO_SCENARIO = "__none__";
 
+/** A run that is going or paused: what it was started with is locked. */
+const runIsUnderWay = (state: SimulationState) =>
+  state === "Running" || state === "Paused";
+
 /**
  * SimulationSettingsContent displays simulation settings in the BottomPanel:
  * a scenario picker, the run settings, and the scenario form — editable with no
  * scenario selected, in run mode for a saved scenario.
  */
-const SimulationSettingsContent: React.FC = () => {
-  const { navigateTo, setSimulateDrawer } = use(EditorContext);
-  const {
-    extensions,
-    petriNetDefinition: { parameters, scenarios, places, types },
-  } = use(SDCPNContext);
-  const globalParameters = extensions.parameters ? parameters : [];
+export const SimulationSettingsContent: React.FC = () => {
+  const { navigateTo, setSimulateDrawer } = useEditorActions();
+  const parametersEnabled = useSDCPNState(
+    (document) => document.extensions.parameters,
+  );
+  const colorsEnabled = useSDCPNState((document) => document.extensions.colors);
+  const parameters = usePetrinautDefinitionSelector((net) => net.parameters);
+  const scenarios = usePetrinautDefinitionSelector((net) => net.scenarios);
+  const places = usePetrinautDefinitionSelector((net) => net.places);
+  const types = usePetrinautDefinitionSelector((net) => net.types);
+  const globalParameters = parametersEnabled ? parameters : [];
   const {
     state: simulationState,
     selectedScenarioId: contextScenarioId,
@@ -241,8 +250,7 @@ const SimulationSettingsContent: React.FC = () => {
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
   const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
 
-  const isSimulationActive =
-    simulationState === "Running" || simulationState === "Paused";
+  const isRunUnderWay = runIsUnderWay(simulationState);
 
   const selectedScenario = scenarios?.find((s) => s.id === selectedScenarioId);
 
@@ -268,7 +276,7 @@ const SimulationSettingsContent: React.FC = () => {
     adHocContext: {
       netParameters: globalParameters,
       places,
-      types: extensions.colors ? types : [],
+      types: colorsEnabled ? types : [],
     },
   });
   // `seededFrom` is the persisted scenario definition the run state came
@@ -344,7 +352,7 @@ const SimulationSettingsContent: React.FC = () => {
     ...EMPTY_AD_HOC_STATE,
     places: initialMarkingToAdHocPlaces(
       initialMarking,
-      { places, types: extensions.colors ? types : [] },
+      { places, types: colorsEnabled ? types : [] },
       Number.POSITIVE_INFINITY,
     ).places,
   };
@@ -355,7 +363,7 @@ const SimulationSettingsContent: React.FC = () => {
     // its overrides rule.
     netParameters: adHocActive ? adHocNetParameters : globalParameters,
     places,
-    types: extensions.colors ? types : [],
+    types: colorsEnabled ? types : [],
   };
   const onScenarioRunChange = (next: AdHocScenarioState) => {
     if (!selectedAdHocScenario || !scenarioRun) {
@@ -389,102 +397,22 @@ const SimulationSettingsContent: React.FC = () => {
     }
   };
 
-  const scenarioRunView: {
-    state: AdHocScenarioState;
-    onChange: (next: AdHocScenarioState) => void;
-    notice: string | null;
-    previewReady: boolean;
-  } | null = (() => {
-    if (!selectedScenario || scenarioRun?.scenarioId !== selectedScenario.id) {
-      return null;
-    }
-    const withoutPreview = (notice: string) => ({
-      state: {
-        variables: scenarioRun.state.variables,
-        netParameters: Object.entries(selectedScenario.parameterOverrides).map(
-          ([parameterId, expression]) => ({
-            parameterId,
-            expression,
-            optimize: null,
-          }),
-        ),
-        places: {},
-      },
-      onChange: selectedAdHocScenario
-        ? onScenarioRunChange
-        : onClassicRunChange,
-      notice,
-      previewReady: false,
-    });
-    if (scenarioHir.error !== null) {
-      return withoutPreview(
-        `The initial state preview could not be compiled: ${scenarioHir.error}`,
-      );
-    }
-    if (scenarioHir.hir === null) {
-      return withoutPreview("Compiling the initial state preview…");
-    }
-    const numericValues = createUserKeyedRecord<number>();
-    for (const [identifier, value] of Object.entries(scenarioParameterValues)) {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) {
-        numericValues[identifier] = parsed;
-      }
-    }
-    const outcome = compileScenario(
-      selectedScenario,
-      scenarioHir.hir,
-      globalParameters,
-      places,
-      adHocFormContext.types,
-      { scenarioParameterValues: numericValues },
-    );
-    if (!outcome.ok) {
-      return withoutPreview(
-        `The initial state preview could not be computed: ${outcome.errors
-          .map((error) => error.message)
-          .join(" · ")}`,
-      );
-    }
-    const materialized = classicScenarioRunState(
-      selectedScenario,
-      outcome.result.initialState,
-      { places, types: adHocFormContext.types },
-      scenarioParameterValues,
-    );
-    return {
-      state: {
-        ...materialized.state,
-        variables: scenarioRun.state.variables,
-        netParameters: globalParameters.flatMap((parameter) => {
-          const resolved =
-            outcome.result.parameterValues[parameter.variableName];
-          return resolved === undefined
-            ? []
-            : [
-                {
-                  parameterId: parameter.id,
-                  expression: resolved,
-                  optimize: null,
-                },
-              ];
-        }),
-      },
-      onChange: selectedAdHocScenario
-        ? onScenarioRunChange
-        : onClassicRunChange,
-      notice:
-        materialized.truncated.length > 0
-          ? `Preview truncated: ${materialized.truncated
-              .map(
-                (cut) =>
-                  `${cut.placeName} shows ${cut.shown} of ${cut.total} rows`,
-              )
-              .join(" · ")}`
-          : null,
-      previewReady: true,
-    };
-  })();
+  const scenarioRunView =
+    selectedScenario && scenarioRun?.scenarioId === selectedScenario.id
+      ? {
+          // A selected scenario's form context holds the net's own parameters.
+          ...scenarioRunPreview(
+            selectedScenario,
+            scenarioHir,
+            adHocFormContext,
+            scenarioParameterValues,
+            scenarioRun.state.variables,
+          ),
+          onChange: selectedAdHocScenario
+            ? onScenarioRunChange
+            : onClassicRunChange,
+        }
+      : null;
 
   const scenarioOptions = [
     ...(scenarios ?? []).map((s) => ({ value: s.id, text: s.name })),
@@ -520,7 +448,7 @@ const SimulationSettingsContent: React.FC = () => {
                     }
                     items={scenarioOptions}
                     size="xs"
-                    disabled={isSimulationActive}
+                    disabled={isRunUnderWay}
                     renderItem={(value) => {
                       const option = scenarioOptions.find(
                         (opt) => opt.value === value,
@@ -591,7 +519,7 @@ const SimulationSettingsContent: React.FC = () => {
                   />
                 </div>
               </div>
-              <RunSettingsPicker locked={isSimulationActive} />
+              <RunSettingsPicker locked={isRunUnderWay} />
             </div>
           </FocusControls>
 
@@ -617,10 +545,10 @@ const SimulationSettingsContent: React.FC = () => {
                   <FormLayoutColumn>
                     <ParametersScrollArea>
                       <div
-                        inert={isSimulationActive}
+                        inert={isRunUnderWay}
                         className={cx(
                           leftColumnSectionsStyle,
-                          isSimulationActive && lockedFormStyle,
+                          isRunUnderWay && lockedFormStyle,
                         )}
                       >
                         <div>
@@ -659,9 +587,7 @@ const SimulationSettingsContent: React.FC = () => {
                             tone="neutral"
                             iconName="rotateLeft"
                             className={quietClearButtonStyle}
-                            disabled={
-                              adHocScenario === null || isSimulationActive
-                            }
+                            disabled={adHocScenario === null || isRunUnderWay}
                             onClick={() => setAdHocScenario(null)}
                           >
                             Clear
@@ -669,8 +595,8 @@ const SimulationSettingsContent: React.FC = () => {
                         </FocusControls>
                       </FormSectionHeader>
                       <div
-                        inert={isSimulationActive}
-                        className={cx(isSimulationActive && lockedFormStyle)}
+                        inert={isRunUnderWay}
+                        className={cx(isRunUnderWay && lockedFormStyle)}
                       >
                         {placesList}
                       </div>
@@ -712,8 +638,8 @@ const SimulationSettingsContent: React.FC = () => {
                         tooltip="Change a value for this run without changing the saved scenario."
                       />
                       <div
-                        inert={isSimulationActive}
-                        className={cx(isSimulationActive && lockedFormStyle)}
+                        inert={isRunUnderWay}
+                        className={cx(isRunUnderWay && lockedFormStyle)}
                       >
                         {variables ?? (
                           <div className={emptyMessageStyle}>
@@ -787,15 +713,4 @@ const SimulationSettingsContent: React.FC = () => {
       </FocusStack>
     </FocusRoot>
   );
-};
-
-/**
- * SubView definition for Simulation Settings tab.
- */
-export const simulationSettingsSubView: SubView = {
-  id: "simulation-settings",
-  title: "Simulation Settings",
-  tooltip: "Configure simulation parameters and the computation time step.",
-  component: SimulationSettingsContent,
-  noPadding: true,
 };

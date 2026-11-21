@@ -1,12 +1,11 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 import type { SubView } from "./types";
 
-type DeferredSubViewOptions = Omit<
-  SubView,
-  "component" | "renderHeaderAction"
-> & {
-  load: () => Promise<SubView>;
+type LoadedParts = Pick<SubView, "component" | "headerAction">;
+
+type DeferredSubViewOptions = Omit<SubView, "component" | "headerAction"> & {
+  load: () => Promise<LoadedParts>;
   hasHeaderAction?: boolean;
 };
 
@@ -16,15 +15,9 @@ export const createDeferredSubView = ({
   hasHeaderAction = false,
   ...descriptor
 }: DeferredSubViewOptions): SubView & { preload: () => void } => {
-  let result: { subView?: SubView; error?: unknown } = {};
+  let result: { loaded?: LoadedParts; error?: unknown } = {};
   let loading = false;
   const listeners = new Set<() => void>();
-  const subscribe = (listener: () => void) => {
-    listeners.add(listener);
-    return () => {
-      listeners.delete(listener);
-    };
-  };
   const getSnapshot = () => result;
   const publish = (next: typeof result) => {
     result = next;
@@ -34,26 +27,36 @@ export const createDeferredSubView = ({
     if (loading) return;
     loading = true;
     void load().then(
-      (subView) => publish({ subView }),
+      (loaded) => publish({ loaded }),
       (error: unknown) => publish({ error }),
     );
   };
-  const useSubView = () => {
+  // The first reader to mount starts the load, if no preload did.
+  const subscribe = (listener: () => void) => {
+    preload();
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  };
+  const useLoaded = () => {
     const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-    useEffect(preload, []);
     if ("error" in snapshot) throw snapshot.error;
-    return snapshot.subView;
+    return snapshot.loaded;
   };
   const Content = () => {
-    const Component = useSubView()?.component;
+    const Component = useLoaded()?.component;
     return Component ? <Component /> : null;
   };
-  const HeaderAction = () => useSubView()?.renderHeaderAction?.() ?? null;
+  const HeaderAction = () => {
+    const Action = useLoaded()?.headerAction;
+    return Action ? <Action /> : null;
+  };
 
   return {
     ...descriptor,
     component: Content,
-    renderHeaderAction: hasHeaderAction ? () => <HeaderAction /> : undefined,
+    headerAction: hasHeaderAction ? HeaderAction : undefined,
     preload,
   };
 };

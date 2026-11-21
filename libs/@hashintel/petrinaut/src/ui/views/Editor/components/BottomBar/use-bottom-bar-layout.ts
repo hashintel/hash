@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
 import { useElementSize } from "../../../../../react/hooks/use-element-size";
 import { VIEWPORT_CONTROLS_CLEARANCE } from "../../../../constants/ui";
@@ -8,7 +8,10 @@ import {
 } from "../../../../hooks/use-canvas-insets";
 import { bindStyle, useReading } from "../../../../lib/readings";
 import { fitsWithinBounds, getBottomBarOffset } from "./bottom-bar-placement";
-import { type CollapsibleGroupWidth } from "./collapse-context";
+import {
+  type BottomBarCollapseValue,
+  type CollapsibleGroupWidth,
+} from "./collapse-context";
 
 /** Gap kept between the bar and a panel it has been pushed away from. */
 const BOTTOM_BAR_MARGIN = 12;
@@ -28,16 +31,6 @@ const boundsWithin = (
     insets.right + (hasViewportControls ? VIEWPORT_CONTROLS_CLEARANCE : 0),
   margin: BOTTOM_BAR_MARGIN,
 });
-
-export interface BottomBarLayout {
-  /** True while the bar has room only for its essential controls. */
-  readonly isCollapsed: boolean;
-  /** Reports what one collapsible group takes up. See the collapse context. */
-  readonly reportGroupWidth: (
-    id: string,
-    width: CollapsibleGroupWidth | null,
-  ) => void;
-}
 
 /**
  * Places the bottom bar between the docked panels and decides whether it has
@@ -64,7 +57,7 @@ export const useBottomBarLayout = (
   }: {
     hasViewportControls: boolean;
   },
-): BottomBarLayout => {
+): BottomBarCollapseValue => {
   const containerWidth = useElementSize(laneRef, { box: "border" })?.width ?? 0;
   const barWidth = useElementSize(barRef, { box: "border" })?.width ?? 0;
 
@@ -72,33 +65,30 @@ export const useBottomBarLayout = (
     ReadonlyMap<string, CollapsibleGroupWidth>
   >(() => new Map());
 
-  // Identity is load-bearing rather than a performance nicety: every group
-  // measures from an effect keyed on this callback, and a new one each render
-  // would tear the observers down and report a width in a loop.
-  const reportGroupWidth = useCallback(
-    (id: string, width: CollapsibleGroupWidth | null) => {
-      setGroupWidths((previous) => {
-        const current = previous.get(id);
-        if (width === null) {
-          if (!current) {
-            return previous;
-          }
-          const next = new Map(previous);
-          next.delete(id);
-          return next;
-        }
-        if (
-          current &&
-          current.natural === width.natural &&
-          current.rendered === width.rendered
-        ) {
+  const reportGroupWidth: BottomBarCollapseValue["reportGroupWidth"] = (
+    id,
+    width,
+  ) => {
+    setGroupWidths((previous) => {
+      const current = previous.get(id);
+      if (width === null) {
+        if (!current) {
           return previous;
         }
-        return new Map(previous).set(id, width);
-      });
-    },
-    [],
-  );
+        const next = new Map(previous);
+        next.delete(id);
+        return next;
+      }
+      if (
+        current &&
+        current.natural === width.natural &&
+        current.rendered === width.rendered
+      ) {
+        return previous;
+      }
+      return new Map(previous).set(id, width);
+    });
+  };
 
   const readInsets = useCanvasInsetsReader();
 

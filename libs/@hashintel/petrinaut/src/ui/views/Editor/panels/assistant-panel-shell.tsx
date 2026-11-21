@@ -1,17 +1,14 @@
-import { type ReactNode, use, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { Button, Icon, Menu } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { HashIcon, useHashIconMotionAllowed } from "@hashintel/ds-icons";
 
 import { useAssistantPlacement } from "../../../../react/state/assistant-placement-context";
 import { usePanelPresence } from "../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
-import { UserSettingsContext } from "../../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
-import {
-  ExperimentalIcon,
-  useExperimentalIconMotionAllowed,
-} from "../../../experimental-icons";
 import { styleRef, useReading } from "../../../lib/readings";
 import {
   type AssistantPanel,
@@ -19,7 +16,6 @@ import {
   AssistantTitleBarContext,
   useAssistantChoice,
 } from "../../../plugins/plugin-assistant";
-import { ResizeHandle } from "../../../resize/resize-handle";
 import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
 import { slideFromEdge } from "../shared/slide-from-edge";
 import { useFloatingPanel } from "../shared/use-floating-panel";
@@ -51,14 +47,6 @@ const shellStyle = cva({
       },
     },
   },
-});
-
-const resizeAnchorStyle = css({
-  position: "absolute",
-  top: "[0]",
-  bottom: "[0]",
-  left: "[0]",
-  width: "[0]",
 });
 
 const cardStyle = cva({
@@ -239,23 +227,20 @@ const between = (floating: string, docked: string, howDocked: number) => {
  */
 export const PluginAssistantPanel = ({
   panel,
-  focusRequest,
   children,
 }: {
   panel: AssistantPanel;
-  /** Changes each time the user opens the panel; the panel then takes focus. */
-  focusRequest: number;
   children: ReactNode;
 }) => {
   const { placement, setPlacement } = useAssistantPlacement();
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const { aiAssistantWidth } = usePanelSizes();
   const { shown, aiAssistantDocked, aiAssistantHasRoom } = usePanelPresence();
   const { isOpen, close } = panel;
 
   const isFloating = placement === "floating";
   const HeaderLabel = isFloating ? "button" : "div";
-  const iconMotionAllowed = useExperimentalIconMotionAllowed();
+  const iconMotionAllowed = useHashIconMotionAllowed();
   const {
     panelRef,
     bindPanel,
@@ -290,7 +275,7 @@ export const PluginAssistantPanel = ({
       panelElement.querySelector<HTMLElement>("[data-autofocus]") ??
       panelElement;
     target.focus({ preventScroll: true });
-  }, [focusRequest, isOpen, panelRef]);
+  }, [isOpen, panelRef]);
 
   return (
     <AssistantPanelContext value={panel}>
@@ -333,23 +318,12 @@ export const PluginAssistantPanel = ({
           data-placement={placement}
           style={{ visibility: isOpen || isInView ? undefined : "hidden" }}
         >
-          {isFloating ? (
+          {/* Docked, the panel is resized by `EditorResizers`. */}
+          {isFloating && (
             <FloatingResizeHandles
               label="AI assistant"
               getHandleProps={getResizeHandleProps}
             />
-          ) : (
-            <div className={resizeAnchorStyle}>
-              <ResizeHandle
-                edge="left"
-                appearance="hidden"
-                getSize={() => aiAssistantWidth.get()}
-                onResize={(width) => aiAssistantWidth.set(width)}
-                minSize={320}
-                maxSize={720}
-                label="Resize AI assistant"
-              />
-            </div>
           )}
           <div
             className={cardStyle({ floating: isFloating })}
@@ -377,7 +351,7 @@ export const PluginAssistantPanel = ({
                 aria-label={placementLabel}
                 onClick={() => setPlacement(isFloating ? "docked" : "floating")}
                 prefix={
-                  <ExperimentalIcon
+                  <HashIcon
                     name={isFloating ? "sidebar" : "externalLink"}
                     size={14}
                   />
@@ -391,7 +365,7 @@ export const PluginAssistantPanel = ({
                 className={buttonStyle}
                 aria-label="Close AI assistant"
                 onClick={close}
-                prefix={<ExperimentalIcon name="close" size={14} />}
+                prefix={<HashIcon name="close" size={14} />}
                 tooltip="Close AI assistant"
               />
             </div>

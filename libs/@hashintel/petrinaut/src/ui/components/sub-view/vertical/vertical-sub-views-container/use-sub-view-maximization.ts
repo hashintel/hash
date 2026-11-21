@@ -1,6 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { usePetrinautNavigation } from "../../../../../react/navigation";
+import {
+  usePetrinautNavigate,
+  usePetrinautNavigationState,
+} from "../../../../../react/navigation/navigation";
 
 import type { SubView } from "../../types";
 
@@ -9,7 +12,10 @@ type Bounds = { top: number; height: number };
 type Maximization = {
   id: string;
   restoring: boolean;
-  animated: boolean;
+  /**
+   * Where the section showed when it set off, to animate from there.
+   * Without an animation, `null`.
+   */
   from: Bounds | null;
 };
 
@@ -77,11 +83,10 @@ export const useSubViewMaximization = (
   subViews: SubView[],
   showAnimations: boolean,
 ) => {
-  const navigation = usePetrinautNavigation();
-  const requestedId =
-    navigation.state.expandedSubView?.container === name
-      ? navigation.state.expandedSubView.id
-      : null;
+  const navigate = usePetrinautNavigate();
+  const requestedId = usePetrinautNavigationState(({ expandedSubView }) =>
+    expandedSubView?.container === name ? expandedSubView.id : null,
+  );
   const targetId = subViews.some(
     (subView) => subView.id === requestedId && subView.canMaximize,
   )
@@ -90,9 +95,7 @@ export const useSubViewMaximization = (
   const containerRef = useRef<HTMLDivElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const [maximization, setMaximization] = useState<Maximization | null>(() =>
-    targetId
-      ? { id: targetId, restoring: false, animated: false, from: null }
-      : null,
+    targetId ? { id: targetId, restoring: false, from: null } : null,
   );
   if (
     maximization &&
@@ -102,10 +105,22 @@ export const useSubViewMaximization = (
   ) {
     setMaximization(null);
   }
+  const filledId =
+    maximization && !maximization.restoring ? maximization.id : null;
+  // The section whose animation to fill the container has ended.
+  const [arrivedId, setArrivedId] = useState<string | null>(null);
+  if (arrivedId !== null && arrivedId !== filledId) {
+    setArrivedId(null);
+  }
+  const isAnimatingIn =
+    maximization !== null &&
+    !maximization.restoring &&
+    maximization.from !== null &&
+    arrivedId !== maximization.id;
 
   useEffect(() => {
     if (requestedId !== null && targetId === null) {
-      navigation.navigate(
+      navigate(
         (current) =>
           current.expandedSubView?.container === name &&
           current.expandedSubView.id === requestedId
@@ -114,7 +129,7 @@ export const useSubViewMaximization = (
         { cause: "normalization", action: "subview" },
       );
     }
-  }, [name, navigation, requestedId, targetId]);
+  }, [name, navigate, requestedId, targetId]);
 
   useLayoutEffect(() => {
     const displayedId = maximization?.restoring
@@ -137,14 +152,16 @@ export const useSubViewMaximization = (
       !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!targetId && !animated) {
       restoreFocusRef.current = section;
+      setMaximization(null);
+      return;
     }
-    const from = visibleBounds(section, container);
-    // Measure the current DOM bounds before moving a routed section; the destination guard prevents repeated updates.
-    setMaximization(
-      !targetId && !animated
-        ? null
-        : { id: sectionId, restoring: targetId === null, animated, from },
-    );
+    setMaximization({
+      id: sectionId,
+      restoring: targetId === null,
+      // Measured before the section moves. The check of `displayedId` above
+      // keeps this from running again for the same move.
+      from: animated ? visibleBounds(section, container) : null,
+    });
   }, [maximization, showAnimations, targetId]);
 
   useLayoutEffect(() => {
@@ -169,7 +186,7 @@ export const useSubViewMaximization = (
       focusHeader(section, "[data-restore-subview]");
     }
     const panel = section.closest("[data-panel]");
-    if (!maximization.animated || !maximization.from || !panel) return;
+    if (!maximization.from || !panel) return;
     const target = maximization.restoring
       ? relativeBounds(panel, container)
       : relativeBounds(container, container);
@@ -200,6 +217,8 @@ export const useSubViewMaximization = (
         if (maximization.restoring) {
           restoreFocusRef.current = section;
           setMaximization(null);
+        } else {
+          setArrivedId(maximization.id);
         }
       })
       .catch(() => {});
@@ -213,15 +232,17 @@ export const useSubViewMaximization = (
     containerRef,
     maximizedId: maximization?.id ?? null,
     isRestoring: maximization?.restoring ?? false,
+    /**
+     * A section is on its way to filling the container and does not cover
+     * the others yet: from the request until its animation ends.
+     */
+    isArriving: targetId !== null && (filledId !== targetId || isAnimatingIn),
     maximize: (id: string) =>
-      navigation.navigate(
+      navigate(
         { expandedSubView: { container: name, id } },
         { cause: "user", action: "subview" },
       ),
     restore: () =>
-      navigation.navigate(
-        { expandedSubView: null },
-        { cause: "user", action: "subview" },
-      ),
+      navigate({ expandedSubView: null }, { cause: "user", action: "subview" }),
   };
 };

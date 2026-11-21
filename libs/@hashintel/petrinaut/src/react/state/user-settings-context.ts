@@ -5,11 +5,7 @@ import {
   useSelectedFields,
   type Published,
 } from "../select-from-context";
-import {
-  DEFAULT_BOTTOM_PANEL_HEIGHT,
-  DEFAULT_LEFT_SIDEBAR_WIDTH,
-  DEFAULT_PROPERTIES_PANEL_WIDTH,
-} from "./panel-defaults";
+import { defaultPanelSizes } from "./panel-sizes";
 
 import type {
   CanvasViewport,
@@ -28,16 +24,14 @@ export type SubViewSectionSettings = {
 };
 
 /** Outer key: container name, inner key: subview ID */
-export type SubViewPanelsSettings = Record<
+type SubViewPanelsSettings = Record<
   string,
   Record<string, SubViewSectionSettings>
 >;
 
 export type UserSettings = {
   showAnimations: boolean;
-  keepPanelsMounted: boolean;
   compactNodes: boolean;
-  enableExperimentalIconPack: boolean;
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   leftSidebarWidth: number;
@@ -76,25 +70,52 @@ export type UserSettings = {
   canvasViewports: Record<string, SavedCanvasViewport>;
 };
 
-export type UserSettingsActions = {
-  setShowAnimations: (value: boolean) => void;
-  setKeepPanelsMounted: (value: boolean) => void;
-  setCompactNodes: (value: boolean) => void;
-  setEnableExperimentalIconPack: (value: boolean) => void;
-  setIsLeftSidebarOpen: (value: boolean) => void;
-  setLeftSidebarWidth: (value: number) => void;
-  setPropertiesPanelWidth: (value: number) => void;
-  setIsBottomPanelOpen: (value: boolean) => void;
-  setBottomPanelHeight: (value: number) => void;
-  setActiveBottomPanelTab: (value: BottomPanelTab) => void;
-  setCursorMode: (value: CursorMode) => void;
-  setTimelineChartType: (value: TimelineChartType) => void;
-  setShowMinimap: (value: boolean) => void;
-  setSnapToGrid: (value: boolean) => void;
-  setHighlightOnHover: (value: boolean) => void;
-  setPartialSelection: (value: boolean) => void;
-  setEnableNetComponents: (value: boolean) => void;
-  setShowCompilationOutput: (value: boolean) => void;
+/**
+ * The settings that change whole. Each has a setter named after it:
+ * `showMinimap` is changed by `setShowMinimap`.
+ */
+const plainSettingKeys = [
+  "showAnimations",
+  "compactNodes",
+  "cursorMode",
+  "isLeftSidebarOpen",
+  "leftSidebarWidth",
+  "propertiesPanelWidth",
+  "isBottomPanelOpen",
+  "bottomPanelHeight",
+  "activeBottomPanelTab",
+  "timelineChartType",
+  "showMinimap",
+  "snapToGrid",
+  "highlightOnHover",
+  "partialSelection",
+  "enableNetComponents",
+  "showCompilationOutput",
+] as const satisfies (keyof UserSettings)[];
+
+type PlainSettingKey = (typeof plainSettingKeys)[number];
+
+type PlainSettingSetters = {
+  [Key in PlainSettingKey as `set${Capitalize<Key>}`]: (
+    value: UserSettings[Key],
+  ) => void;
+};
+
+/** The setter of every plain setting, each writing through `set`. */
+export const createPlainSettingSetters = (
+  set: <Key extends PlainSettingKey>(
+    key: Key,
+    value: UserSettings[Key],
+  ) => void,
+): PlainSettingSetters =>
+  Object.fromEntries(
+    plainSettingKeys.map((key) => [
+      `set${key.charAt(0).toUpperCase()}${key.slice(1)}`,
+      (value: UserSettings[typeof key]) => set(key, value),
+    ]),
+  ) as PlainSettingSetters;
+
+export type UserSettingsActions = PlainSettingSetters & {
   setPluginEnabled: (pluginId: string, enabled: boolean) => void;
   setAssistantPluginId: (pluginId: string) => void;
   updateSubViewSection: (
@@ -109,15 +130,13 @@ export type UserSettingsContextValue = UserSettings & UserSettingsActions;
 
 export const defaultUserSettings: UserSettings = {
   showAnimations: true,
-  keepPanelsMounted: true,
   compactNodes: false,
-  enableExperimentalIconPack: true,
   cursorMode: "pan",
   isLeftSidebarOpen: true,
-  leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
-  propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
+  leftSidebarWidth: defaultPanelSizes.leftSidebarWidth,
+  propertiesPanelWidth: defaultPanelSizes.propertiesPanelWidth,
   isBottomPanelOpen: false,
-  bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
+  bottomPanelHeight: defaultPanelSizes.bottomPanelHeight,
   activeBottomPanelTab: "diagnostics",
   timelineChartType: "run",
   showMinimap: true,
@@ -138,24 +157,7 @@ export const defaultUserSettings: UserSettings = {
  */
 export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   ...defaultUserSettings,
-  setShowAnimations: () => {},
-  setKeepPanelsMounted: () => {},
-  setCompactNodes: () => {},
-  setEnableExperimentalIconPack: () => {},
-  setIsLeftSidebarOpen: () => {},
-  setLeftSidebarWidth: () => {},
-  setPropertiesPanelWidth: () => {},
-  setIsBottomPanelOpen: () => {},
-  setBottomPanelHeight: () => {},
-  setActiveBottomPanelTab: () => {},
-  setCursorMode: () => {},
-  setTimelineChartType: () => {},
-  setShowMinimap: () => {},
-  setSnapToGrid: () => {},
-  setHighlightOnHover: () => {},
-  setPartialSelection: () => {},
-  setEnableNetComponents: () => {},
-  setShowCompilationOutput: () => {},
+  ...createPlainSettingSetters(() => {}),
   setPluginEnabled: () => {},
   setAssistantPluginId: () => {},
   updateSubViewSection: () => {},

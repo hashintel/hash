@@ -13,7 +13,7 @@ export const isScalarMetricFrame = (
   frame: MetricFrame,
 ): frame is ScalarMetricFrame => frame.outputType === "scalar";
 
-export const isDistributionMetricFrame = (
+const isDistributionMetricFrame = (
   frame: MetricFrame,
 ): frame is DistributionMetricFrame => frame.outputType === "distribution";
 

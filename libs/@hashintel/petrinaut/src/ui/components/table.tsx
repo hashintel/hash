@@ -1,9 +1,7 @@
-import { useRef } from "react";
-
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { focusLands } from "../worksheet/focus-flow";
 import { useFocusStops } from "../worksheet/use-focus-stops";
+import { useStopTargets } from "../worksheet/use-stop-targets";
 
 import type { FocusStop, FocusStopTarget } from "../worksheet/use-focus-stops";
 import type { CSSProperties, ReactNode } from "react";
@@ -179,7 +177,7 @@ export function Table<Row>({
   onRowSelect,
   selectedRowId,
 }: TableProps<Row>) {
-  const targets = useRef<Map<string, HTMLElement>>(new Map());
+  const { register, focus } = useStopTargets();
 
   const stops: FocusStop[] = rows.map((row) => ({
     id: getRowId(row),
@@ -188,12 +186,11 @@ export function Table<Row>({
   const { onKeyDown, onFocusTarget, tabIndexFor, attach } = useFocusStops({
     stops,
     columnCount: 1,
-    focusTarget: (target) => {
-      const focused = focusLands(targets.current.get(target.stopId));
-      const row = rows.find(
-        (candidate) => getRowId(candidate) === target.stopId,
-      );
-      if (focused && row !== undefined && target.stopId !== selectedRowId) {
+    // A row is one target whatever column a move arrives from.
+    focusTarget: ({ stopId }) => {
+      const focused = focus({ stopId, column: 0 });
+      const row = rows.find((candidate) => getRowId(candidate) === stopId);
+      if (focused && row !== undefined && stopId !== selectedRowId) {
         onRowSelect?.(row);
       }
       return focused;
@@ -211,13 +208,7 @@ export function Table<Row>({
   ) => {
     const target: FocusStopTarget = { stopId: rowId, column: 0 };
     return {
-      ref: (element: HTMLElement | null) => {
-        if (element) {
-          targets.current.set(rowId, element);
-        } else {
-          targets.current.delete(rowId);
-        }
-      },
+      ref: register(target),
       tabIndex: tabIndexFor(target),
       "aria-selected": rowId === selectedRowId,
       onFocus: (event: React.FocusEvent) => {

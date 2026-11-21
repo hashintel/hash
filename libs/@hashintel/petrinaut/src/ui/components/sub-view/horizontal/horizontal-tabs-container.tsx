@@ -1,5 +1,9 @@
+import { useRef } from "react";
+
 import { HelpTooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
+
+import { useKeptScroll } from "../../../lib/kept-state";
 
 import type { SubView } from "../types";
 
@@ -25,45 +29,13 @@ const tabButtonStyle = cva({
     minWidth: "[0]",
   },
   variants: {
-    styleVariant: {
-      default: {},
-      pill: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "1.5",
-        padding: "[4px 8px]",
-        borderRadius: "md",
-        color: "neutral.s90",
-        fontSize: "xs",
-        textTransform: "none",
-        "& [data-mark]": { display: "inline-flex", color: "neutral.s80" },
-        "&[aria-selected=true]": {
-          backgroundColor: "neutral.bg.subtle",
-          color: "neutral.s120",
-          "& [data-mark]": { color: "neutral.s90" },
-        },
-        _hover: { backgroundColor: "neutral.bg.subtle" },
-      },
-    },
     active: {
-      true: {},
-      false: {},
-    },
-  },
-  compoundVariants: [
-    {
-      styleVariant: "default",
-      active: true,
-      css: {
+      true: {
         opacity: "[1]",
         backgroundColor: "[rgba(0, 0, 0, 0.08)]",
         color: "neutral.s125",
       },
-    },
-    {
-      styleVariant: "default",
-      active: false,
-      css: {
+      false: {
         opacity: "[0.6]",
         color: "neutral.s105",
         _hover: {
@@ -73,7 +45,7 @@ const tabButtonStyle = cva({
         },
       },
     },
-  ],
+  },
 });
 
 /**
@@ -94,45 +66,7 @@ const tabButtonLabelStyle = css({
     "[linear-gradient(to right, black calc(100% - 10px), transparent)]",
 });
 
-const attentionBadgeStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minWidth: "[16px]",
-  height: "[16px]",
-  paddingX: "[4px]",
-  borderRadius: "full",
-  backgroundColor: "blue.s90",
-  color: "white",
-  fontSize: "[9px]",
-  lineHeight: "[16px]",
-  flexShrink: 0,
-});
-
-const attentionMarkerStyle = css({
-  width: "[6px]",
-  height: "[6px]",
-  borderRadius: "full",
-  backgroundColor: "blue.s90",
-  flexShrink: 0,
-});
-
-const liveRegionStyle = css({
-  position: "absolute",
-  width: "[1px]",
-  height: "[1px]",
-  padding: "0",
-  margin: "[-1px]",
-  overflow: "hidden",
-  clip: "[rect(0, 0, 0, 0)]",
-  whiteSpace: "nowrap",
-  border: "0",
-});
-
-export type HorizontalTabView = Pick<SubView, "id" | "title" | "tooltip"> & {
-  mark?: React.ReactNode;
-  attention?: { count?: number; marker?: boolean };
-};
+type HorizontalTabView = Pick<SubView, "id" | "title" | "tooltip">;
 
 const contentStyle = cva({
   base: {
@@ -155,14 +89,12 @@ interface TabButtonProps {
   subView: HorizontalTabView;
   isActive: boolean;
   onClick: () => void;
-  styleVariant: "default" | "pill";
 }
 
 const TabButton: React.FC<TabButtonProps> = ({
   subView,
   isActive,
   onClick,
-  styleVariant,
 }) => {
   const tabId = `tab-${subView.id}`;
   const tabpanelId = `tabpanel-${subView.id}`;
@@ -172,7 +104,7 @@ const TabButton: React.FC<TabButtonProps> = ({
       type="button"
       id={tabId}
       onClick={onClick}
-      className={tabButtonStyle({ active: isActive, styleVariant })}
+      className={tabButtonStyle({ active: isActive })}
       aria-label={subView.title}
       aria-selected={isActive}
       tabIndex={isActive ? 0 : -1}
@@ -180,27 +112,7 @@ const TabButton: React.FC<TabButtonProps> = ({
       role="tab"
     >
       <span className={tabButtonLabelStyle}>
-        {subView.mark && (
-          <span data-mark aria-hidden="true">
-            {subView.mark}
-          </span>
-        )}
         {subView.title}
-        {subView.attention?.count ? (
-          <span
-            className={attentionBadgeStyle}
-            aria-hidden="true"
-            data-attention
-          >
-            {subView.attention.count > 9 ? "9+" : subView.attention.count}
-          </span>
-        ) : subView.attention?.marker ? (
-          <span
-            className={attentionMarkerStyle}
-            aria-hidden="true"
-            data-attention
-          />
-        ) : null}
         {subView.tooltip && <HelpTooltip content={subView.tooltip} />}
       </span>
     </button>
@@ -215,121 +127,73 @@ export const HorizontalTabsHeader: React.FC<{
   subViews: HorizontalTabView[];
   activeTabId: string;
   onTabChange: (tabId: string) => void;
-  announcement?: string;
-  styleVariant?: "default" | "pill";
-}> = ({
-  subViews,
-  activeTabId,
-  onTabChange,
-  announcement,
-  styleVariant = "default",
-}) => {
+}> = ({ subViews, activeTabId, onTabChange }) => {
   return (
-    <>
-      <div
-        className={tabsContainerStyle}
-        data-style-variant={styleVariant}
-        role="tablist"
-        tabIndex={-1}
-        onKeyDown={(event) => {
-          const index = subViews.findIndex((tab) => tab.id === activeTabId);
-          let nextIndex: number;
-          switch (event.key) {
-            case "ArrowRight":
-              nextIndex = (index + 1) % subViews.length;
-              break;
-            case "ArrowLeft":
-              nextIndex = (index - 1 + subViews.length) % subViews.length;
-              break;
-            case "Home":
-              nextIndex = 0;
-              break;
-            case "End":
-              nextIndex = subViews.length - 1;
-              break;
-            default:
-              return;
-          }
-          const next = subViews[nextIndex];
-          if (!next) return;
-          event.preventDefault();
-          onTabChange(next.id);
-          event.currentTarget
-            .querySelectorAll<HTMLButtonElement>('[role="tab"]')
-            [nextIndex]?.focus();
-        }}
-      >
-        {subViews.map((subView) => (
-          <TabButton
-            key={subView.id}
-            subView={subView}
-            isActive={activeTabId === subView.id}
-            onClick={() => onTabChange(subView.id)}
-            styleVariant={styleVariant}
-          />
-        ))}
-      </div>
-      <span className={liveRegionStyle} aria-live="polite" role="status">
-        {announcement}
-      </span>
-    </>
+    <div
+      className={tabsContainerStyle}
+      role="tablist"
+      tabIndex={-1}
+      onKeyDown={(event) => {
+        const index = subViews.findIndex((tab) => tab.id === activeTabId);
+        let nextIndex: number;
+        switch (event.key) {
+          case "ArrowRight":
+            nextIndex = (index + 1) % subViews.length;
+            break;
+          case "ArrowLeft":
+            nextIndex = (index - 1 + subViews.length) % subViews.length;
+            break;
+          case "Home":
+            nextIndex = 0;
+            break;
+          case "End":
+            nextIndex = subViews.length - 1;
+            break;
+          default:
+            return;
+        }
+        const next = subViews[nextIndex];
+        if (!next) return;
+        event.preventDefault();
+        onTabChange(next.id);
+        event.currentTarget
+          .querySelectorAll<HTMLButtonElement>('[role="tab"]')
+          [nextIndex]?.focus();
+      }}
+    >
+      {subViews.map((subView) => (
+        <TabButton
+          key={subView.id}
+          subView={subView}
+          isActive={activeTabId === subView.id}
+          onClick={() => onTabChange(subView.id)}
+        />
+      ))}
+    </div>
   );
 };
 
 /**
- * Returns the header action for the currently active tab.
- * Used to render custom actions (like add buttons) in the panel header.
+ * The panel a tab controls: scrolled, and padded unless told otherwise. It
+ * keeps its scroll offset while it is unmounted.
  */
-export const HorizontalTabsHeaderAction: React.FC<{
-  subViews: SubView[];
-  activeTabId: string;
-}> = ({ subViews, activeTabId }) => {
-  const activeSubView =
-    subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
-
-  if (!activeSubView?.renderHeaderAction) {
-    return null;
-  }
-
-  return <>{activeSubView.renderHeaderAction()}</>;
-};
-
-/** The panel a tab controls: scrolled, and padded unless told otherwise. */
 export const HorizontalTabPanel: React.FC<{
   tabId: string;
   padded?: boolean;
   children: React.ReactNode;
-}> = ({ tabId, padded = true, children }) => (
-  <div
-    id={`tabpanel-${tabId}`}
-    className={contentStyle({ padded })}
-    role="tabpanel"
-    aria-labelledby={`tab-${tabId}`}
-  >
-    {children}
-  </div>
-);
-
-/**
- * Renders just the content portion of the horizontal tabs.
- * Useful when you need to compose the content separately from the tabs header.
- */
-export const HorizontalTabsContent: React.FC<{
-  subViews: SubView[];
-  activeTabId: string;
-}> = ({ subViews, activeTabId }) => {
-  const activeSubView =
-    subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
-
-  if (!activeSubView) {
-    return null;
-  }
-
-  const Component = activeSubView.component;
+}> = ({ tabId, padded = true, children }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useKeptScroll(scrollRef, "scroll:tab-panel");
 
   return (
-    <HorizontalTabPanel tabId={activeTabId} padded={!activeSubView.noPadding}>
-      <Component />
-    </HorizontalTabPanel>
+    <div
+      ref={scrollRef}
+      id={`tabpanel-${tabId}`}
+      className={contentStyle({ padded })}
+      role="tabpanel"
+      aria-labelledby={`tab-${tabId}`}
+    >
+      {children}
+    </div>
   );
 };

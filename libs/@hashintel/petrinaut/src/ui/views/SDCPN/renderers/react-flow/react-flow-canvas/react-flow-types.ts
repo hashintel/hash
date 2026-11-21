@@ -1,10 +1,8 @@
 /**
  * React Flow's node and edge types for the canvas: the scene's nodes, arcs
- * and fusion links, plus the simulation frame state React Flow components
- * animate from.
+ * and fusion links.
  */
 
-import type { SimulationFrameReader } from "../../../../../../react/simulation/context";
 import type {
   CanvasArc,
   CanvasComponentInstanceNode,
@@ -16,22 +14,12 @@ import type { CanvasLinkItem } from "../../../use-canvas-interactions";
 import type { OutlineNode } from "./shared/outline-arcs";
 import type { Edge, Node } from "@xyflow/react";
 
-export type TransitionFrameState = NonNullable<
-  ReturnType<SimulationFrameReader["getTransitionState"]>
->;
+export type PlaceNodeType = Node<CanvasPlaceNode, "place">;
 
-export type PlaceNodeData = CanvasPlaceNode;
-
-export type TransitionNodeData = CanvasTransitionNode;
-
-export type ComponentInstanceNodeData = CanvasComponentInstanceNode;
-
-export type PlaceNodeType = Node<PlaceNodeData, "place">;
-
-export type TransitionNodeType = Node<TransitionNodeData, "transition">;
+export type TransitionNodeType = Node<CanvasTransitionNode, "transition">;
 
 export type ComponentInstanceNodeType = Node<
-  ComponentInstanceNodeData,
+  CanvasComponentInstanceNode,
   "componentInstance"
 >;
 
@@ -56,7 +44,7 @@ export type ArcData = Pick<
 
 export type ArcEdgeType = Edge<ArcData, "default">;
 
-export type FusionEdgeData = Pick<
+type FusionEdgeData = Pick<
   CanvasFusionLink,
   "fusionId" | "name" | "focus" | "severity"
 >;

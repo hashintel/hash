@@ -15,7 +15,7 @@ import { logisticsLibrary } from "../../libraries-story-fixtures";
 import { fusionLinks } from "./fusion-links";
 import { useCanvasInteractions } from "./use-canvas-interactions";
 
-import type { CanvasScene } from "./canvas-scene";
+import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 import type {
   CanvasConnection,
   CanvasLinkRewire,
@@ -59,23 +59,16 @@ const itemTypes: Record<
 };
 const [beltLink] = fusionLinks(belt);
 
-const scene = {
-  nodes: Object.entries(itemTypes)
-    .filter(([, kind]) => kind !== "fusion")
-    .map(([id, kind]) => ({ id, kind })),
-  arcs: [],
-  // Buffer on the left, M1's port on the right.
-  fusions: [
-    {
-      id: beltLink!.id,
-      fusionId: belt.id,
-      sourceId: "buffer",
-      sourcePortId: null,
-      targetId: "m1",
-      targetPortId: "in",
-    },
-  ],
-} as unknown as CanvasScene;
+const idsOf = (type: string) =>
+  Object.entries(itemTypes)
+    .filter(([, itemType]) => itemType === type)
+    .map(([id]) => ({ id }));
+const net = {
+  places: idsOf("place"),
+  transitions: idsOf("transition"),
+  componentInstances: idsOf("componentInstance"),
+  fusions: [belt],
+} as unknown as ActiveNetDefinition;
 
 const connection = (
   sourceId: string,
@@ -97,8 +90,8 @@ const dropPortEnd = (
   nodeId?: string,
   portId: string | null = null,
 ): CanvasLinkRewire => ({
-  linkId: beltLink!.id,
-  end: "target",
+  fusionId: belt.id,
+  from: { nodeId: "m1", portId: "in" },
   onto: nodeId === undefined ? null : { nodeId, portId },
 });
 const addNotification = vi.fn();
@@ -137,13 +130,12 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
       value={{
         ...use(SDCPNContext),
         readonly: false,
-        getItemType: (id) => itemTypes[id] ?? null,
       }}
     >
       <ActiveNetContext
         value={{
           ...use(ActiveNetContext),
-          activeNet: { ...use(ActiveNetContext).activeNet, fusions: [belt] },
+          activeNet: { ...use(ActiveNetContext).activeNet, ...net },
         }}
       >
         <NotificationsContext
@@ -181,7 +173,7 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
 );
 
 const renderInteractions = () => ({
-  interactions: renderHook(() => useCanvasInteractions(scene), {
+  interactions: renderHook(() => useCanvasInteractions(), {
     wrapper: Wrapper,
   }).result.current,
   selectedIds: () => [...editor.selection.keys()],
@@ -271,7 +263,7 @@ describe("useCanvasInteractions", () => {
     expect(interactions.canRewireLink(dropPortEnd("m2"))).toBe(false);
     expect(interactions.canRewireLink(dropPortEnd("buffer"))).toBe(false);
     expect(
-      interactions.canRewireLink({ ...dropPortEnd("m2", "in"), linkId: "x" }),
+      interactions.canRewireLink({ ...dropPortEnd("m2", "in"), fusionId: "x" }),
     ).toBe(false);
   });
 
@@ -289,7 +281,10 @@ describe("useCanvasInteractions", () => {
     expect(selectedIds()).toEqual(["belt"]);
 
     // The other end is the place: it gives way to another place.
-    interactions.rewireLink({ ...dropPortEnd("store"), end: "source" });
+    interactions.rewireLink({
+      ...dropPortEnd("store"),
+      from: { nodeId: "buffer", portId: null },
+    });
     expect(mutations.replaceFusionMember).toHaveBeenLastCalledWith(
       expect.objectContaining({
         member: place("buffer"),

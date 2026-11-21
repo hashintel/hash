@@ -65,25 +65,17 @@ export const PetrinautDocumentProvider: React.FC<
     { sinceTaken: composesOnly(instance.rules) },
   );
 
-  const document = (
-    <UserSettingsProvider>
-      <CompositionProvider instance={instance}>
-        <SDCPNProvider>{children}</SDCPNProvider>
-      </CompositionProvider>
-    </UserSettingsProvider>
-  );
-
   return (
     <PetrinautInstanceContext value={instance}>
       <NetManagementContext value={netManagement}>
         <ReadOnlyActionContext value={netManagement.readOnlyAction}>
-          {handleHistoryUndoRedo ? (
-            <UndoRedoContext value={handleHistoryUndoRedo}>
-              {document}
-            </UndoRedoContext>
-          ) : (
-            document
-          )}
+          <UndoRedoContext value={handleHistoryUndoRedo ?? null}>
+            <UserSettingsProvider>
+              <CompositionProvider instance={instance}>
+                <SDCPNProvider>{children}</SDCPNProvider>
+              </CompositionProvider>
+            </UserSettingsProvider>
+          </UndoRedoContext>
         </ReadOnlyActionContext>
       </NetManagementContext>
     </PetrinautInstanceContext>

@@ -5,10 +5,10 @@
  * share one row height, so a card's content can change what it draws without
  * moving its neighbours.
  */
-import { Button, HelpTooltip, Menu } from "@hashintel/ds-components";
+import { HelpTooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import type { ComponentProps, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 /**
  * How a card reads its state. `paused` is a frozen look, `muted` a
@@ -16,37 +16,6 @@ import type { ComponentProps, ReactNode } from "react";
  * drives.
  */
 export type ChartCardTone = "default" | "paused" | "muted" | "optimizing";
-
-/** The header's height in pixels: its padding, the title line, the subtitle line and its hairline. */
-export const CHART_CARD_HEADER_HEIGHT = 53;
-/** The body's padding on each side, in pixels (the `4` spacing token). */
-export const CHART_CARD_BODY_PADDING = 16;
-/** The footer's vertical padding on each side plus its hairline, in pixels. */
-export const CHART_CARD_FOOTER_CHROME = 17;
-/** The card's top and bottom border, in pixels. */
-const CHART_CARD_BORDER = 2;
-
-/**
- * The height a card takes with these body and footer heights, so a grid's
- * `rowHeight` and its cards' `bodyHeight` are never computed apart.
- */
-export const chartCardHeight = ({
-  bodyHeight,
-  footerHeight = 0,
-}: {
-  bodyHeight: number;
-  footerHeight?: number;
-}): number =>
-  CHART_CARD_BORDER +
-  CHART_CARD_HEADER_HEIGHT +
-  CHART_CARD_BODY_PADDING * 2 +
-  bodyHeight +
-  (footerHeight > 0 ? footerHeight + CHART_CARD_FOOTER_CHROME : 0);
-
-/** The body height that makes a card exactly `cardHeight` tall; the inverse of `chartCardHeight` without a footer. */
-export const chartCardBodyHeight = (cardHeight: number): number =>
-  cardHeight -
-  (CHART_CARD_BORDER + CHART_CARD_HEADER_HEIGHT + CHART_CARD_BODY_PADDING * 2);
 
 // The card clips its content, with a margin so the halo it draws while an
 // optimizer drives it shows. The halo is a pseudo-element carrying the peak
@@ -187,7 +156,7 @@ const footerStyle = css({
   boxSizing: "content-box",
 });
 
-export type ChartCardProps = {
+type ChartCardProps = {
   title: string;
   /**
    * One line under the title: what is drawn and from what. Its height is
@@ -196,7 +165,7 @@ export type ChartCardProps = {
   subtitle?: string;
   /** A help tooltip after the title. */
   help?: string;
-  /** The header's right side: a `ChartCardMenu`, icon buttons, a chip. */
+  /** The header's right side: a menu, icon buttons, a chip. */
   actions?: ReactNode | null;
   /**
    * The body's fixed content height in pixels. The body clips; it never grows
@@ -263,38 +232,6 @@ export const ChartCard = ({
   </div>
 );
 
-export type ChartCardMenuProps = {
-  /** The trigger's accessible name, e.g. "Chart options". */
-  label: string;
-  items: ComponentProps<typeof Menu>["items"];
-};
-
-/** The header's overflow menu: an ellipsis button opening a ds `Menu`. */
-export const ChartCardMenu = ({ label, items }: ChartCardMenuProps) => (
-  <Menu
-    items={items}
-    position="bottom-end"
-    trigger={
-      <Button
-        iconName="ellipsis"
-        variant="ghost"
-        size="xs"
-        aria-label={label}
-        tooltip={label}
-      />
-    }
-  />
-);
-
-/**
- * The narrowest a chart card gets in a grid, in pixels: two fit side by side
- * in the frame's secondary column from its minimum width up.
- */
-export const CHART_CARD_MIN_WIDTH = 320;
-
-/** The grid's gap between cards, in pixels (the `4` spacing token). */
-export const CHART_CARD_GRID_GAP = 16;
-
 // Dense packing fills the cells a spanning card leaves in its row with the
 // cards after it instead of holes; with equal cards it places them in order.
 // The cards stay in source order; where the browser supports `reading-flow`,
@@ -309,7 +246,7 @@ const gridStyle = css({
   gap: "4",
 });
 
-export type ChartCardGridProps = {
+type ChartCardGridProps = {
   /** Columns are as many of at least this width, in pixels, as fit. */
   minColumnWidth: number;
   /** Every row is exactly this tall, in pixels. */

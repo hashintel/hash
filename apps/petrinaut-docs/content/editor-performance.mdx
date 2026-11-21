@@ -1,0 +1,232 @@
+---
+title: Editor performance on a large net
+description: What a selection, a hover, a drag, a pan and a panel resize cost on a net of about 500 nodes, how to measure it, and where the cost is.
+sidebar_order: 5
+---
+
+The editor is measured on the Supply Chain example tiled twelve times: 468
+nodes and 576 arcs. A benchmark script performs each gesture in a headless
+browser and reads the cost from a trace. This page gives the numbers, the way
+to reproduce them and the rules that hold them.
+
+"Before" is the editor while every panel and the canvas read the whole editor
+state from one context. "After" is the editor with the rules below. The times
+describe one host. The browser rasters on the CPU, so paint and raster times
+are higher than on a machine with a GPU.
+
+## What renders
+
+The count is the number of component renders React reports for one gesture, on
+React's profiling build, with every node on screen.
+
+| Gesture             | Before | After |
+| ------------------- | -----: | ----: |
+| Select a node       |  8,055 |   369 |
+| Select another node |  8,279 |   512 |
+| Hover a node        | 13,130 |   164 |
+| Drag a node         | 67,945 | 1,316 |
+| Pan                 | 13,686 |   381 |
+| Zoom                |  2,260 |   118 |
+| Open a panel        |    160 |    36 |
+| Deselect            |  2,173 |    31 |
+
+## What a gesture costs
+
+Script time is the main-thread time spent in JavaScript during the gesture. A
+late frame is one that took more than 20 ms. Each value is the median of six
+samples on the production build, with every node on screen.
+
+| Gesture             | Script before | Script after | Late frames before | Late frames after | Longest frame before | Longest frame after |
+| ------------------- | ------------: | -----------: | -----------------: | ----------------: | -------------------: | ------------------: |
+| Select a node       |        220 ms |       112 ms |                  6 |                 6 |               275 ms |              192 ms |
+| Select another node |        173 ms |        57 ms |                  3 |                 1 |               166 ms |               91 ms |
+| Hover a node        |        224 ms |        50 ms |                  6 |                 1 |                50 ms |               42 ms |
+| Drag a node         |      1,078 ms |       355 ms |                 27 |                 7 |               117 ms |               50 ms |
+| Pan                 |        375 ms |       205 ms |                  8 |                 7 |               125 ms |              102 ms |
+| Zoom                |        103 ms |        69 ms |                  0 |                 0 |                17 ms |               17 ms |
+| Deselect            |         47 ms |        16 ms |                  0 |                 0 |                17 ms |               15 ms |
+
+Zoomed in to where the labels read, the script times fall by about the same
+share. Loading the net is no faster: the page is ready after 1.1 s and holds
+about 42,800 elements, and the script time of the load rose from 545 ms to
+577 ms.
+
+## Panels and forms
+
+The same benchmark app measures the panels on the same net. Each value is the
+median of five alternating rounds on the production build.
+
+| Action                                                         | Before | After |
+| -------------------------------------------------------------- | -----: | ----: |
+| Resize the bottom panel over Simulation Settings, per move     |  46 ms | 15 ms |
+| The same resize, frames over 20 ms                             |     38 |     2 |
+| Type a value in the ad-hoc form, script per key                |  17 ms |  7 ms |
+| Move with an arrow key in the ad-hoc form, key to drawn frame  |  38 ms | 14 ms |
+| Open the first differential equation, until its code is usable | 356 ms | 63 ms |
+| Open the menu a second time, longest frame                     | 167 ms | 12 ms |
+| Select a transition while a place is selected, longest frame   | 235 ms | 67 ms |
+
+The form rows are for Supply Chain tiled four times, in the Create scenario
+drawer. In Simulation Settings on Supply Chain, typing a value is about as
+fast as before: the time left there is the simulation context, which renders
+the settings around the form on every key.
+
+The last two rows are overlays and drag announcements mounting in a host of
+their own: before, an overlay that closed restyled the editor, 40,160 elements
+for the menu, and now 1,382. While the Properties panel slides out it shows
+what was selected, where it slid out empty.
+
+## Closed panels
+
+A closed sidebar, Properties panel or bottom panel is not mounted. Its content
+mounts when it opens, inside an empty element that stays in the panel's place:
+see [The editor shell](doc:ui.views.editor/editor-shell). The table compares
+three ways to do it on the same net. "Kept" leaves a closed panel mounted and
+out of view. "Beside the canvas" unmounts it and inserts it again as a sibling
+of the canvas. Both are the build before this change, with its setting to keep
+panels mounted on and off. "In its dock" is the editor now. Each value is the
+median of five alternating rounds on the production build, from the press to
+the first frame that shows the panel.
+
+| Action                                                |   Kept | Beside the canvas | In its dock |
+| ----------------------------------------------------- | -----: | ----------------: | ----------: |
+| Open the left sidebar                                 |  28 ms |            194 ms |       52 ms |
+| The same, longest frame                               |  17 ms |            175 ms |       33 ms |
+| Close the left sidebar, longest frame                 |  17 ms |            125 ms |       17 ms |
+| Select a place, the first selection of a session      | 125 ms |            302 ms |      150 ms |
+| Select a transition, which opens the Properties panel |  82 ms |            198 ms |       83 ms |
+| Deselect it, longest frame                            |  35 ms |            149 ms |       25 ms |
+| Open the bottom panel on Diagnostics                  |  48 ms |             50 ms |       41 ms |
+| Open the bottom panel on Simulation Settings          |  62 ms |             59 ms |      101 ms |
+| The same, until the form is complete                  |  62 ms |             98 ms |      101 ms |
+| Open the bottom panel on the Timeline of a run        |  42 ms |             95 ms |       72 ms |
+| The same on a metric, until the metric is drawn       |  46 ms |            163 ms |       63 ms |
+
+An element inserted before the canvas, or removed from there, makes the
+browser recalculate the style of the canvas: 120 ms of the 194 ms in the
+second column. The dock removes that cost. What is left is the mounting
+itself:
+
+- **The sidebar** renders one row per entity. It mounts every group header
+  and the 80 entities a sidebar can show with the panel, and the others one
+  render later, 100 ms after the press. A list that was left scrolled mounts
+  in one step, at the offset it was left at.
+- **Simulation Settings** mounts a block for every place of the net in the
+  frame that opens the panel. The scenario it previews is lowered once and
+  remembered, so the form opens complete. Before that it opened in 59 ms with
+  a notice in place of the preview for three frames, and the rows came in a
+  58 ms frame during the slide.
+- **The Timeline** draws its chart again: 30 ms more than a kept panel. The
+  options of its series dropdown mount when the dropdown opens, which takes
+  1,500 of 1,980 component renders out of the opening. A metric it compiled
+  is kept while the panel is closed. Before that the chart showed gaps for
+  seven frames while the metric compiled again.
+- **The Properties panel** mounted its content at the selection before this
+  change as well, so it costs what it did. No code editor mounts in that
+  frame on these selections: the sections that hold one are collapsed until
+  the user opens them.
+
+On Supply Chain itself, 43 nodes, the three columns read 22, 48 and 37 ms for
+the sidebar, 44, 62 and 42 ms for the transition, and 33, 66 and 47 ms for
+the complete Simulation Settings form. Those are medians of three rounds.
+
+With the sidebar and the bottom panel closed, and the Definitions view not
+yet shown, the page of the 468-node net has 17,200 elements where it had
+46,000, and its heap is 51 MiB where it was 78. A node dragged then renders
+580 components and not 1,331: a closed Simulation Settings form no longer
+follows the net.
+
+`benchmarks/monaco-performance/panel-mount.mjs` measures the last column on
+a build of the editor. The first two need the build before this change.
+
+## The Definitions view
+
+The Definitions view renders a cell for every entity of the net. It mounts
+when it first shows and stays in a hidden `Activity` from then on, so a
+session that never opens it does not pay for it. On the 468-node net the view
+is 18,100 of the 42,800 elements the page had with it and 18 MiB of an 85 MiB
+heap, and the script time of the load is 446 ms without it against 565 ms.
+The first opening mounts the cells and takes 292 ms where it took 208 ms. Each
+later one shows the hidden view again, in 215 ms.
+
+The hidden view also ran, at load, code that the Properties panel shares with
+it. Without it the first selection of a session is the first to run that
+code: a place on the 468-node net takes 150 ms where it took 125 ms. Shown
+once before that selection, the Definitions view takes the difference away:
+118 ms against 157 ms in three alternating runs. On Supply Chain the first
+selection takes 75 ms either way.
+
+## Where the cost is now
+
+- **Selecting a node** still has one frame near 190 ms. Most of what renders
+  is the properties panel of the node, and the browser recalculates style for
+  about 90 ms.
+- **Style and paint** are most of a hover and a drag. A hover that rests fades
+  every node outside the neighbourhood, and each frame of that fade paints the
+  nodes on screen. Hover paints more than before, 306 ms against 270 ms: the
+  browser draws 97 frames of it against 91.
+- **Paint per drawn frame during a drag**, zoomed in, rose from 3.6 ms to
+  5.3 ms. The cause is not known.
+- **Loading** takes as long. Without the Definitions view the load runs
+  120 ms less script, and the page is ready after the same 0.9 s. That time
+  follows the elements of the canvas, and no rule on this page lowers their
+  number.
+
+## The rules that hold the numbers
+
+Each rule is written, with the test that holds it, in the guide of its layer.
+
+- A component reads the part of the editor state it shows, so it renders when
+  that part changes: [Editor state](doc:react.state/editor-state).
+- A handler given to React Flow keeps its identity, and an unchanged node or
+  arc is the same object: [The canvas](doc:ui.views.canvas/canvas).
+- Hover and the drag preview stay in the canvas and reach no panel:
+  [The canvas](doc:ui.views.canvas/canvas).
+- A region that is mounted and not visible sits in a hidden `Activity` and
+  runs no effect. A closed panel is not mounted, and a panel mounts inside
+  its dock, never as a sibling of the canvas:
+  [The editor shell](doc:ui.views.editor/editor-shell).
+- An overlay mounts in the overlay host, and a box around the canvas clips
+  with `overflow: clip`: [The editor shell](doc:ui.views.editor/editor-shell).
+- A panel's size is a Motion value, so a resize renders no component:
+  [Panel geometry outside React state](doc:react.state/panel-sizes).
+- A value that changes on every frame is written on the element that uses it,
+  never as a custom property on an ancestor: the overlay scroll area writes
+  each thumb's size and place on the thumb.
+- A cell of the ad-hoc form reads its own part of what the form knows:
+  [The ad-hoc scenario form](doc:ui.adhoc-form/ad-hoc-form).
+
+## Measure it
+
+From `libs/@hashintel/petrinaut`, build the benchmark app and serve it:
+
+```sh
+yarn exec vite build --config benchmarks/monaco-performance/vite.config.ts
+yarn exec vite preview --config benchmarks/monaco-performance/vite.config.ts --port 6027
+```
+
+Then run the gestures against it:
+
+```sh
+node benchmarks/monaco-performance/canvas-scale.mjs origin=http://127.0.0.1:6027 copies=12 samples=3
+```
+
+Render counts need React's profiling build, unminified so that components keep
+their names. Build with `BENCH_REACT_PROFILING=true` and `--minify false`, then
+add `samples=1 details=1` to list who rendered for each gesture.
+
+Compare two builds in alternating rounds on a quiet machine: a second process
+that uses every core moves the times by more than a change does.
+
+## Changes not made
+
+Each of these changes what the canvas draws or which library version it runs
+on, so none is part of the rules above.
+
+| Change                                                        | What it would cost                                         |
+| ------------------------------------------------------------- | ---------------------------------------------------------- |
+| Draw simpler nodes when zoomed out                            | Labels and token counts disappear below a zoom level       |
+| Render only the nodes on screen (`onlyRenderVisibleElements`) | Nodes mount and unmount while panning                      |
+| Promote the viewport to its own layer (`will-change`)         | Text is rastered at one scale and blurs during a zoom      |
+| Unmount the Definitions view whenever the canvas shows        | Each opening takes 292 ms where it takes 215 ms            |
+| Upgrade React Flow                                            | A behaviour check of every gesture against the new version |

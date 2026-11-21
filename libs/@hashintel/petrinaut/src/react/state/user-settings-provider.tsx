@@ -2,6 +2,7 @@ import { use, useEffect, useState } from "react";
 
 import { usePublished } from "../select-from-context";
 import {
+  createPlainSettingSetters,
   defaultUserSettings,
   defaultUserSettingsContextValue,
   UserSettingsContext,
@@ -10,11 +11,6 @@ import {
 import { rememberCanvasViewport } from "./user-settings-provider/remember-canvas-viewport";
 
 import type { CanvasViewport } from "./canvas-viewport-context";
-import type {
-  BottomPanelTab,
-  CursorMode,
-  TimelineChartType,
-} from "./editor-context";
 import type {
   SubViewSectionSettings,
   UserSettings,
@@ -58,6 +54,16 @@ type PersistedUserSettings = Partial<UserSettings> & {
    * Dropped on the next write.
    */
   arcRendering?: "smoothstep" | "bezier" | "custom";
+  /**
+   * Kept the closed panels mounted. A closed panel always unmounts, so the
+   * key is dropped on the next write.
+   */
+  keepPanelsMounted?: boolean;
+  /**
+   * Switched the editor's icons to the default set of the design system. The
+   * editor always draws its own set, so the key is dropped on the next write.
+   */
+  enableExperimentalIconPack?: boolean;
 };
 
 const loadSettings = (): UserSettings => {
@@ -79,6 +85,8 @@ const loadSettings = (): UserSettings => {
         showWalkthroughOnInit: _showWalkthroughOnInit,
         enableAutomaticArcConnections: _enableAutomaticArcConnections,
         arcRendering: _arcRendering,
+        keepPanelsMounted: _keepPanelsMounted,
+        enableExperimentalIconPack: _enableExperimentalIconPack,
         ...parsed
       } = JSON.parse(raw) as PersistedUserSettings;
       return {
@@ -105,47 +113,15 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
     }
   }, [state]);
 
+  const [plainSetters] = useState(() =>
+    createPlainSettingSetters((key, value) =>
+      setState((prev) => ({ ...prev, [key]: value })),
+    ),
+  );
+
   const contextValue = {
     ...state,
-    setShowAnimations: (value: boolean) =>
-      setState((prev) => ({ ...prev, showAnimations: value })),
-    setKeepPanelsMounted: (value: boolean) =>
-      setState((prev) => ({ ...prev, keepPanelsMounted: value })),
-    setCompactNodes: (value: boolean) =>
-      setState((prev) => ({ ...prev, compactNodes: value })),
-    setEnableExperimentalIconPack: (value: boolean) =>
-      setState((settings) => ({
-        ...settings,
-        enableExperimentalIconPack: value,
-      })),
-    setCursorMode: (value: CursorMode) =>
-      setState((prev) => ({ ...prev, cursorMode: value })),
-    setIsLeftSidebarOpen: (value: boolean) =>
-      setState((prev) => ({ ...prev, isLeftSidebarOpen: value })),
-    setLeftSidebarWidth: (value: number) =>
-      setState((prev) => ({ ...prev, leftSidebarWidth: value })),
-    setPropertiesPanelWidth: (value: number) =>
-      setState((prev) => ({ ...prev, propertiesPanelWidth: value })),
-    setIsBottomPanelOpen: (value: boolean) =>
-      setState((prev) => ({ ...prev, isBottomPanelOpen: value })),
-    setBottomPanelHeight: (value: number) =>
-      setState((prev) => ({ ...prev, bottomPanelHeight: value })),
-    setActiveBottomPanelTab: (value: BottomPanelTab) =>
-      setState((prev) => ({ ...prev, activeBottomPanelTab: value })),
-    setTimelineChartType: (value: TimelineChartType) =>
-      setState((prev) => ({ ...prev, timelineChartType: value })),
-    setShowMinimap: (value: boolean) =>
-      setState((prev) => ({ ...prev, showMinimap: value })),
-    setSnapToGrid: (value: boolean) =>
-      setState((prev) => ({ ...prev, snapToGrid: value })),
-    setHighlightOnHover: (value: boolean) =>
-      setState((prev) => ({ ...prev, highlightOnHover: value })),
-    setPartialSelection: (value: boolean) =>
-      setState((prev) => ({ ...prev, partialSelection: value })),
-    setEnableNetComponents: (value: boolean) =>
-      setState((prev) => ({ ...prev, enableNetComponents: value })),
-    setShowCompilationOutput: (value: boolean) =>
-      setState((prev) => ({ ...prev, showCompilationOutput: value })),
+    ...plainSetters,
     setPluginEnabled: (pluginId: string, enabled: boolean) =>
       setState((prev) => ({
         ...prev,

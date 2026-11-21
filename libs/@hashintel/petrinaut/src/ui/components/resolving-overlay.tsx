@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { isResolvingImports } from "@hashintel/petrinaut-core";
 
 import { CompositionContext } from "../../react/state/composition-context";
-import { SDCPNContext } from "../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../react/state/sdcpn-context";
 
 const overlayStyle = css({
   position: "absolute",
@@ -29,10 +29,12 @@ const overlayStyle = css({
  * checked or run.
  */
 export const ResolvingOverlay: React.FC = () => {
-  const { petriNetDefinition } = use(SDCPNContext);
   const { imports } = use(CompositionContext);
+  const resolving = useSDCPNState((document) =>
+    isResolvingImports(document.petriNetDefinition, imports),
+  );
 
-  if (!isResolvingImports(petriNetDefinition, imports)) {
+  if (!resolving) {
     return null;
   }
   return (

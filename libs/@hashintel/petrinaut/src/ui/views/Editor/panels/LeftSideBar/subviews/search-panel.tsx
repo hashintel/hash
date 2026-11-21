@@ -1,29 +1,28 @@
 import fuzzysort from "fuzzysort";
-import { use, useEffect, useRef, useState } from "react";
+import { memo, use, useEffect, useId, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import type { ComponentType, ReactNode } from "react";
-
-const SearchIcon = () => <Icon name="search" />;
-
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import {
-  DifferentialEquationIcon,
-  ParameterIcon,
-  PlaceFilledIcon,
-  TokenTypeIcon,
-  TransitionFilledIcon,
-} from "../../../../../constants/entity-icons";
+  useEditorActions,
+  useEditorFields,
+  useIsSelected,
+} from "../../../../../../react/state/editor-context";
+import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusMember } from "../../../../../worksheet/use-focus-member";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
+import {
+  entityGroups,
+  entityIcons,
+  selectionItemOf,
+} from "./entities-tree/entity-groups";
+import { SearchQueryContext } from "./search-query-context";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import type { FocusStop } from "../../../../../worksheet/use-focus-stops";
-import type { SelectionItem } from "@hashintel/petrinaut-core";
+import type { EntityItem } from "./entities-tree/entity-groups";
+import type { ReactNode } from "react";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -89,19 +88,14 @@ const resultRowStyle = cva({
   },
 });
 
-const resultContentStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1.5",
-  flex: "1",
-  minWidth: "0",
-});
-
 const resultIconStyle = css({
   flexShrink: 0,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  /* Adds to the row's gap: the name sits further from the icon than the
+     category does from the name. */
+  marginRight: "0.5",
 });
 
 const resultNameStyle = css({
@@ -135,95 +129,87 @@ const emptyResultsStyle = css({
 const ICON_SIZE = 12;
 const DEFAULT_ICON_COLOR = "#9ca3af";
 
-// -- Search item types --------------------------------------------------------
-
-interface SearchableItem {
-  id: string;
-  name: string;
-  category: string;
-  icon: ComponentType<{ size: number }>;
-  iconColor?: string;
-  selectionItem: SelectionItem;
-}
+/** What the search calls an entity of each type, at the right of its row. */
+const categories: Record<EntityItem["type"], string> = {
+  place: "Node",
+  transition: "Node",
+  type: "Type",
+  differentialEquation: "Equation",
+  parameter: "Parameter",
+};
 
 interface SearchResult {
-  item: SearchableItem;
+  item: EntityItem;
   highlighted: ReactNode;
 }
 
-function useSearchableItems(): SearchableItem[] {
-  const {
-    petriNetDefinition: {
-      places,
-      transitions,
-      types,
-      differentialEquations,
-      parameters,
-    },
-    extensions,
-  } = use(SDCPNContext);
-
-  return [
-    ...places.map((p) => ({
-      id: p.id,
-      name: p.name || `Place ${p.id}`,
-      category: "Node",
-      icon: PlaceFilledIcon,
-      selectionItem: { type: "place" as const, id: p.id },
-    })),
-    ...transitions.map((t) => ({
-      id: t.id,
-      name: t.name || `Transition ${t.id}`,
-      category: "Node",
-      icon: TransitionFilledIcon,
-      selectionItem: { type: "transition" as const, id: t.id },
-    })),
-    ...(extensions.colors
-      ? types.map((t) => ({
-          id: t.id,
-          name: t.name,
-          category: "Type",
-          icon: TokenTypeIcon,
-          iconColor: t.displayColor,
-          selectionItem: { type: "type" as const, id: t.id },
-        }))
-      : []),
-    ...(extensions.colors && extensions.dynamics
-      ? differentialEquations.map((eq) => ({
-          id: eq.id,
-          name: eq.name,
-          category: "Equation",
-          icon: DifferentialEquationIcon,
-          selectionItem: {
-            type: "differentialEquation" as const,
-            id: eq.id,
-          },
-        }))
-      : []),
-    ...(extensions.parameters
-      ? parameters.map((p) => ({
-          id: p.id,
-          name: p.name,
-          category: "Parameter",
-          icon: ParameterIcon,
-          selectionItem: { type: "parameter" as const, id: p.id },
-        }))
-      : []),
-  ];
-}
-
 // -- Components ---------------------------------------------------------------
+
+export const SearchIcon: React.FC = () => <Icon name="search" />;
+
+/** Holds the query for the search input and the results, which the panel draws apart. */
+export const SearchQueryProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const [query, setQuery] = useState("");
+
+  return (
+    <SearchQueryContext value={{ query, setQuery }}>
+      {children}
+    </SearchQueryContext>
+  );
+};
+
+const SearchResultRowBody: React.FC<{
+  elementId: string;
+  result: SearchResult;
+  tabIndex: 0 | -1;
+}> = ({ elementId, result: { item, highlighted }, tabIndex }) => {
+  const isSelected = useIsSelected(item.id);
+  const TypeIcon = entityIcons[item.type];
+
+  return (
+    <div
+      id={elementId}
+      role="option"
+      tabIndex={tabIndex}
+      aria-selected={isSelected}
+      className={resultRowStyle({ isSelected })}
+    >
+      <span
+        className={resultIconStyle}
+        style={{ color: item.iconColor ?? DEFAULT_ICON_COLOR }}
+      >
+        <TypeIcon size={ICON_SIZE} />
+      </span>
+      <span className={resultNameStyle}>{highlighted}</span>
+      <span className={resultCategoryStyle}>{categories[item.type]}</span>
+    </div>
+  );
+};
+
+/**
+ * The row of one result. It reads its own selection, and `memo` keeps it from
+ * rendering each time the list does: the list builds its rows in a loop,
+ * where the compiler caches no element.
+ */
+const SearchResultRow = memo(SearchResultRowBody);
 
 /**
  * The result rows, one member of the search panel's vertical focus flow:
  * arrows walk the rows and select as they move, and a move off the top edge
  * flows back into the search input above.
+ *
+ * The rows take no handler: the list handles their events itself and finds
+ * the result by the row's element.
  */
 const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({
   results,
 }) => {
-  const { isSelected: checkIsSelected, selectItem } = use(EditorContext);
-  const targets = useRef<Map<string, HTMLElement>>(new Map());
+  const { selectItem } = useEditorActions();
+  // Row elements are found by id, which this prefix keeps apart from the ids
+  // of any other list.
+  const listId = useId();
 
   const stops: FocusStop[] = results.map(({ item }) => ({
     id: item.id,
@@ -237,80 +223,74 @@ const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({
   } = useFocusStops({
     stops,
     columnCount: 1,
-    focusTarget: (target) => focusLands(targets.current.get(target.stopId)),
+    focusTarget: ({ stopId }) =>
+      focusLands(document.getElementById(listId + stopId)),
   });
 
+  /** The result whose row an event came from. */
+  const itemAt = (target: EventTarget): EntityItem | undefined => {
+    const row =
+      target instanceof Element ? target.closest("[role=option]") : null;
+    return row
+      ? results.find(({ item }) => listId + item.id === row.id)?.item
+      : undefined;
+  };
+
   return (
-    <div ref={attach} className={resultListStyle} role="listbox">
-      {results.map(({ item, highlighted }) => {
-        const isSelected = checkIsSelected(item.id);
-        return (
-          <div
-            key={item.id}
-            ref={(element) => {
-              if (element) {
-                targets.current.set(item.id, element);
-              } else {
-                targets.current.delete(item.id);
-              }
-            }}
-            role="option"
-            tabIndex={tabIndexFor({ stopId: item.id, column: 0 })}
-            aria-selected={isSelected}
-            className={resultRowStyle({ isSelected })}
-            onClick={() => selectItem(item.selectionItem)}
-            onFocus={() => {
-              onFocusTarget({ stopId: item.id, column: 0 });
-              selectItem(item.selectionItem);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                event.stopPropagation();
-                selectItem(item.selectionItem);
-                return;
-              }
-              onStopsKeyDown({ stopId: item.id, column: 0 })(event);
-            }}
-          >
-            <div className={resultContentStyle}>
-              <span
-                className={resultIconStyle}
-                style={{
-                  color: item.iconColor ?? DEFAULT_ICON_COLOR,
-                }}
-              >
-                <item.icon size={ICON_SIZE} />
-              </span>
-              <span className={resultNameStyle}>{highlighted}</span>
-            </div>
-            <span className={resultCategoryStyle}>{item.category}</span>
-          </div>
-        );
-      })}
+    <div
+      ref={attach}
+      className={resultListStyle}
+      role="listbox"
+      tabIndex={-1}
+      onClick={(event) => {
+        const item = itemAt(event.target);
+        if (item) {
+          selectItem(selectionItemOf(item));
+        }
+      }}
+      onFocus={(event) => {
+        const item = itemAt(event.target);
+        if (item) {
+          onFocusTarget({ stopId: item.id, column: 0 });
+          selectItem(selectionItemOf(item));
+        }
+      }}
+      onKeyDown={(event) => {
+        const item = itemAt(event.target);
+        if (!item) {
+          return;
+        }
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          selectItem(selectionItemOf(item));
+          return;
+        }
+        onStopsKeyDown({ stopId: item.id, column: 0 })(event);
+      }}
+    >
+      {results.map((result) => (
+        <SearchResultRow
+          key={result.item.id}
+          elementId={listId + result.item.id}
+          result={result}
+          tabIndex={tabIndexFor({ stopId: result.item.id, column: 0 })}
+        />
+      ))}
     </div>
   );
 };
 
-const SearchContent: React.FC = () => {
-  const { searchInputRef } = use(EditorContext);
-  const allItems = useSearchableItems();
-  const [query, setQuery] = useState("");
-
-  // Sync query from the input (the input lives in SearchTitle, so we read its value)
-  useEffect(() => {
-    const input = searchInputRef.current;
-    if (!input) {
-      return;
-    }
-
-    const handleInput = () => {
-      setQuery(input.value);
-    };
-    input.addEventListener("input", handleInput);
-    setQuery(input.value);
-    return () => input.removeEventListener("input", handleInput);
-  }, [searchInputRef]);
+export const SearchContent: React.FC = () => {
+  // The root net's entities, whichever net is open.
+  const petriNetDefinition = useSDCPNState(
+    (document) => document.petriNetDefinition,
+  );
+  const extensions = useSDCPNState((document) => document.extensions);
+  const { query } = use(SearchQueryContext);
+  const allItems = entityGroups(petriNetDefinition, extensions).flatMap(
+    (group) => group.children,
+  );
 
   const trimmed = query.trim();
   const results: SearchResult[] =
@@ -351,8 +331,12 @@ const SearchContent: React.FC = () => {
  * The search input, the first member of the search panel's vertical focus
  * flow: ArrowDown hands focus to the result list below.
  */
-const SearchTitle: React.FC = () => {
-  const { isSearchOpen, searchInputRef } = use(EditorContext);
+export const SearchTitle: React.FC = () => {
+  const { isSearchOpen, searchInputRef } = useEditorFields(
+    "isSearchOpen",
+    "searchInputRef",
+  );
+  const { query, setQuery } = use(SearchQueryContext);
   const { attach, moveFrom } = useFocusMember(() =>
     focusLands(searchInputRef.current),
   );
@@ -375,6 +359,8 @@ const SearchTitle: React.FC = () => {
       type="text"
       placeholder="Find anything…"
       className={searchInputStyle}
+      value={query}
+      onChange={(event) => setQuery(event.target.value)}
       onKeyDown={(event) => {
         if (event.key === "ArrowDown") {
           event.preventDefault();
@@ -385,8 +371,8 @@ const SearchTitle: React.FC = () => {
   );
 };
 
-const SearchHeaderAction: React.FC = () => {
-  const { setSearchOpen } = use(EditorContext);
+export const SearchHeaderAction: React.FC = () => {
+  const { setSearchOpen } = useEditorActions();
 
   return (
     <Button
@@ -398,15 +384,4 @@ const SearchHeaderAction: React.FC = () => {
       onClick={() => setSearchOpen(false)}
     />
   );
-};
-
-export const searchSubView: SubView = {
-  id: "search",
-  title: "Search",
-  icon: SearchIcon,
-  component: SearchContent,
-  renderTitle: () => <SearchTitle />,
-  renderHeaderAction: () => <SearchHeaderAction />,
-  alwaysShowHeaderAction: true,
-  main: true,
 };

@@ -3,71 +3,34 @@
  * @role Arranges the panels, toolbars and dialogs around the canvas
  */
 
-import { Activity, use, useState, type ReactNode } from "react";
+import { Activity, useState } from "react";
 
-import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import {
-  calculateGraphLayout,
-  generatePetrinautId,
-  inlineImports,
-  layoutNodeDimensions,
-  type DocumentFormat,
-  type SDCPN,
-} from "@hashintel/petrinaut-core";
-import {
-  bicycleAssembly,
-  cafeQueue,
-  deploymentPipelineSDCPN,
-  dronePatrol,
-  planetsAndSatellites,
-  probabilisticSatellitesSDCPN,
-  productionMachines,
-  satellitesWithAttraction,
-  sirMassActionModel,
-  sirModel,
-  supplyChainWithDisruption,
-  supplyChainProfit,
-  vaccinationCampaign,
-  wheelTruing,
-} from "@hashintel/petrinaut-core/examples";
 
-import { usePetrinautCommands } from "../../../react";
-import { ActualModeContext } from "../../../react/actual-mode-context";
-import { usePetrinautNavigation } from "../../../react/navigation";
-import { NetManagementContext } from "../../../react/net-management-context";
-import { CompositionContext } from "../../../react/state/composition-context";
-import { EditorContext } from "../../../react/state/editor-context";
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { useDocumentId } from "../../../react/hooks/use-document";
+import {
+  useEditorActions,
+  useEditorMode,
+} from "../../../react/state/editor-context";
 import { useComposesOnly } from "../../../react/state/use-composes-only";
-import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
-import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
-import { ExperimentalIconProvider } from "../../experimental-icons";
-import { exportSDCPN } from "../../file-io/export-sdcpn";
-import { exportTikZ } from "../../file-io/export-tikz";
-import { importSDCPN } from "../../file-io/import-sdcpn";
-import { KeyboardShortcut } from "../../keyboard-shortcut";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
+import { useAssistantChoice } from "../../plugins/plugin-assistant";
 import { useCanvasRegistration } from "../../plugins/plugin-editor";
 import { PluginRoots } from "../../plugins/plugin-outlets";
-import { usePluginOverlay } from "../../plugins/plugins-provider";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
-import { AiCtaModal } from "./components/ai-cta-modal";
+import { PetrinautIconProvider } from "../shared/icon-provider";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
-import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
-import { applyAutoLayoutAndFrame } from "./editor-view/apply-auto-layout-and-frame";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
 import {
   AssistantCommands,
   EditorAssistantPanel,
-  useEditorAssistant,
 } from "./editor-view/editor-assistant";
-import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
+import { EmptyNetPrompt } from "./editor-view/empty-net-prompt";
 import { UserSettings } from "./editor-view/user-settings";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
@@ -76,35 +39,10 @@ import {
   SimulateView,
   SimulateViewTabs,
 } from "./panels/SimulateView/simulate-view";
+import { EditorResizers } from "./shared/editor-resizers";
 import { SimulationWorkspace } from "./shared/simulation-workspace";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
-import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
-
-const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
-  numeric: "auto",
-});
-
-const formatRelativeTime = (isoTimestamp: string): string => {
-  const diffMs = Date.now() - new Date(isoTimestamp).getTime();
-  const diffSecs = Math.round(diffMs / 1_000);
-  const diffMins = Math.round(diffMs / 60_000);
-  const diffHours = Math.round(diffMs / 3_600_000);
-  const diffDays = Math.round(diffMs / 86_400_000);
-
-  if (diffSecs < 60) {
-    return relativeTimeFormat.format(-diffSecs, "second");
-  } else if (diffMins < 60) {
-    return relativeTimeFormat.format(-diffMins, "minute");
-  } else if (diffHours < 24) {
-    return relativeTimeFormat.format(-diffHours, "hour");
-  } else if (diffDays < 30) {
-    return relativeTimeFormat.format(-diffDays, "day");
-  }
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(isoTimestamp));
-};
+import { EditorCommands } from "./use-editor-commands";
 
 // The remaining space under the TopBar, never 100% of the root: a full-height
 // row overflows the root by the TopBar's height, and although the root hides
@@ -136,477 +74,66 @@ const workspaceStyle = css({
   minHeight: "[0]",
 });
 
-// `white-space` inherits down to the item text, whose `overflow: hidden;
-// text-overflow: ellipsis` only elides on a non-wrapping line. `&&` outranks
-// the menu's own max-height class, which ties on specificity.
-const openSubmenuStyle = css({
-  whiteSpace: "nowrap",
-  "&&": {
-    maxWidth: "[min(600px, 70vw)]",
-    maxHeight: "[min(800px, 80vh, var(--available-height, 100vh))]",
-  },
-});
-
 const editViewSelectorSpaceStyle = css({
   width: "[var(--edit-view-selector-width)]",
   flexShrink: "0",
 });
 
-const ignoreTitle = () => {};
-
-const isEmptySDCPN = (sdcpn: SDCPN) =>
-  sdcpn.places.length === 0 &&
-  sdcpn.transitions.length === 0 &&
-  sdcpn.types.length === 0 &&
-  sdcpn.parameters.length === 0 &&
-  sdcpn.differentialEquations.length === 0;
-
 /**
- * EditorView is responsible for the overall editor UI layout and controls.
- * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
+ * Drops what was deleted from the selection. A leaf, because it reads the
+ * selection and the hover, which the view does not.
  */
+const SelectionCleanup = () => {
+  useSelectionCleanup();
+  return null;
+};
+
+/** The layout of the editor: the bars, the workspace of the mode, and the assistant. */
 const EditorViewContent = ({
   hideNetManagementControls,
-  titleEditable,
 }: {
-  /**
-   * See {@link TopBar} for the full semantics.
-   */
   hideNetManagementControls?: "all" | "except-title";
-  titleEditable: boolean;
 }) => {
-  const showNetManagementMenuItems = hideNetManagementControls === undefined;
-  const navigation = usePetrinautNavigation();
-  // Auto-layout moves nodes, which a read-only net rejects, so the menu would
-  // otherwise offer an item that silently does nothing.
-  const isReadOnly = useIsReadOnly();
-  // Get data from sdcpn-store
-  const { petriNetDefinition, petriNetId } = use(SDCPNContext);
-  const { createNewNet, existingNets, loadPetriNet, title, setTitle } =
-    use(NetManagementContext);
-  const { libraries } = use(CompositionContext);
-  const { applyAutoLayout } = usePetrinautCommands();
-  const {
-    frameSceneAfterRender,
-    registerController,
-    requestFrameOnNextRegistration,
-  } = useCanvasRegistration();
-  const runAutoLayoutAndFrame = () =>
-    applyAutoLayoutAndFrame({ applyAutoLayout, frameSceneAfterRender });
+  const petriNetId = useDocumentId();
+  const { registerController } = useCanvasRegistration();
 
-  // Get editor context
-  const {
-    globalMode,
-    editViewMode,
-    isAiAssistantOpen,
-    navigateTo,
-    setGlobalMode,
-    editionMode,
-    setEditionMode,
-    cursorMode,
-    setCursorMode,
-    clearSelection,
-    setAiAssistantOpen,
-    setAiAssistantCollapsed,
-  } = use(EditorContext);
-  const actualMode = use(ActualModeContext);
+  // Not by part: the mode shows and hides each `Activity`, and that has to
+  // happen in the commit that changes the contexts their parts read.
+  const { globalMode, editViewMode } = useEditorMode();
+  const { toggleAiAssistant } = useEditorActions();
   const composesOnly = useComposesOnly();
-  const assistant = useEditorAssistant();
+  // Not the running plugin itself, which a streaming chat republishes for
+  // every token.
+  const hasAssistant = useAssistantChoice().shownId !== undefined;
 
-  const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
-  const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
+  const [isEmptyNetPromptDismissed, setEmptyNetPromptDismissed] =
+    useState(false);
 
-  // A plugin covering the canvas, such as a tour, holds back the prompt.
-  const pluginOverlay = usePluginOverlay();
-
-  const toggleAiAssistant = () => {
-    if (isAiAssistantOpen) {
-      setAiAssistantOpen(false);
-      return;
-    }
-    setAiAssistantCollapsed(false);
-    setAiAssistantOpen(true);
-    setAiAssistantFocusRequest((request) => request + 1);
-  };
-
-  const [importError, setImportError] = useState<string | null>(null);
-
-  // Clean up stale selections when items are deleted
-  useSelectionCleanup();
-
-  function handleCreateEmpty() {
-    createNewNet({
-      title: "Untitled",
-      petriNetDefinition: emptyPetriNetDefinition,
-    });
-    clearSelection();
+  // The Definitions view of a net mounts when it first shows, and stays in a
+  // hidden `Activity` from then on. A session that never opens it does not
+  // pay for a cell per entity at load.
+  const netKey = petriNetId ?? "no-net";
+  const showsDefinitions =
+    globalMode === "edit" && editViewMode === "definitions";
+  const [netWithDefinitions, setNetWithDefinitions] = useState<string | null>(
+    null,
+  );
+  if (showsDefinitions && netWithDefinitions !== netKey) {
+    setNetWithDefinitions(netKey);
   }
-
-  function handleExport(format: DocumentFormat) {
-    exportSDCPN({ petriNetDefinition, title, format });
-  }
-
-  function handleExportWithoutVisualInfo(format: DocumentFormat) {
-    exportSDCPN({ petriNetDefinition, title, removeVisualInfo: true, format });
-  }
-
-  /** The document with what it takes from its libraries made its own, so it reads without them. */
-  function handleExportInlined(format: DocumentFormat) {
-    exportSDCPN({
-      petriNetDefinition: inlineImports(
-        petriNetDefinition,
-        libraries,
-        generatePetrinautId,
-      ),
-      title,
-      format,
-    });
-  }
-
-  function handleExportTikZ() {
-    exportTikZ({ petriNetDefinition, title });
-  }
-
-  function handleRunningExperimentClick(experimentId: string) {
-    navigateTo({
-      globalMode: "simulate",
-      simulateViewMode: "experiments",
-      simulateDrawer: { type: "view-experiment", experimentId },
-    });
-  }
-
-  async function handleImport() {
-    const result = await importSDCPN();
-    if (!result) {
-      return; // User cancelled file picker
-    }
-
-    if (!result.ok) {
-      setImportError(result.error);
-      return;
-    }
-
-    const { sdcpn: loadedSDCPN, hadMissingPositions } = result;
-    let sdcpnToLoad = loadedSDCPN;
-
-    // If any nodes were missing positions, run ELK layout BEFORE creating the net.
-    // We must do this before createNewNet because after createNewNet triggers a
-    // re-render, the mutatePetriNetDefinition closure would be stale.
-    if (hadMissingPositions) {
-      const positions = await calculateGraphLayout(
-        sdcpnToLoad,
-        layoutNodeDimensions,
-      );
-
-      if (Object.keys(positions).length > 0) {
-        sdcpnToLoad = {
-          ...sdcpnToLoad,
-          places: sdcpnToLoad.places.map((place) => {
-            const position = positions[place.id];
-            return position
-              ? { ...place, x: position.x, y: position.y }
-              : place;
-          }),
-          transitions: sdcpnToLoad.transitions.map((transition) => {
-            const position = positions[transition.id];
-            return position
-              ? { ...transition, x: position.x, y: position.y }
-              : transition;
-          }),
-        };
-      }
-    }
-
-    if (hadMissingPositions) {
-      requestFrameOnNextRegistration();
-    }
-    createNewNet({
-      title: loadedSDCPN.title,
-      petriNetDefinition: sdcpnToLoad,
-    });
-    clearSelection();
-  }
-
-  const menuItems: MenuItem[] = [
-    ...(showNetManagementMenuItems
-      ? [{ id: "new", text: "New", onClick: handleCreateEmpty }]
-      : []),
-    ...(showNetManagementMenuItems && existingNets.length > 0
-      ? [
-          {
-            id: "open",
-            text: "Open",
-            menuClassName: openSubmenuStyle,
-            subItems: existingNets.map((net) => ({
-              id: `open-${net.netId}`,
-              text: net.title,
-              suffix: formatRelativeTime(net.lastUpdated),
-              onClick: () => {
-                loadPetriNet(net.netId);
-                clearSelection();
-              },
-            })),
-          },
-        ]
-      : []),
-    {
-      id: "export",
-      text: "Export",
-      subItems: [
-        {
-          id: "export-yaml",
-          text: "YAML",
-          onClick: () => handleExport("yaml"),
-        },
-        {
-          id: "export-yaml-without-visuals",
-          text: "YAML without visual info",
-          onClick: () => handleExportWithoutVisualInfo("yaml"),
-        },
-        {
-          id: "export-json",
-          text: "JSON",
-          onClick: () => handleExport("json"),
-        },
-        {
-          id: "export-json-without-visuals",
-          text: "JSON without visual info",
-          onClick: () => handleExportWithoutVisualInfo("json"),
-        },
-        // Offered where there is something to inline.
-        ...((petriNetDefinition.imports ?? []).length > 0
-          ? [
-              {
-                id: "export-yaml-inlined",
-                text: "YAML with imports inlined",
-                onClick: () => handleExportInlined("yaml"),
-              },
-              {
-                id: "export-json-inlined",
-                text: "JSON with imports inlined",
-                onClick: () => handleExportInlined("json"),
-              },
-            ]
-          : []),
-        {
-          id: "export-tikz",
-          text: "TikZ",
-          onClick: handleExportTikZ,
-        },
-      ],
-    },
-    ...(showNetManagementMenuItems
-      ? [
-          {
-            id: "import",
-            text: "Import",
-            onClick: handleImport,
-          },
-        ]
-      : []),
-    ...(isReadOnly
-      ? []
-      : [
-          {
-            id: "layout",
-            text: "Layout",
-            suffix: <KeyboardShortcut shortcut={autoLayoutShortcut} inMenu />,
-            onClick: () => {
-              void runAutoLayoutAndFrame();
-            },
-          },
-        ]),
-    ...(showNetManagementMenuItems
-      ? [
-          {
-            id: "load-example",
-            text: "Load example",
-            subItems: [
-              {
-                id: "load-example-sir-model",
-                text: "SIR Model",
-                onClick: () => {
-                  createNewNet(sirModel);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-sir-mass-action",
-                text: "SIR Mass-Action Model",
-                onClick: () => {
-                  createNewNet(sirMassActionModel);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-cafe-queue",
-                text: "Café Queue",
-                onClick: () => {
-                  createNewNet(cafeQueue);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-drone-patrol",
-                text: "Drone Patrol",
-                onClick: () => {
-                  createNewNet(dronePatrol);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-deployment-pipeline",
-                text: "Deployment Pipeline",
-                onClick: () => {
-                  createNewNet(deploymentPipelineSDCPN);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-production-machines",
-                text: "Production with Machine Failure",
-                onClick: () => {
-                  createNewNet(productionMachines);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-supply-chain-stochastic",
-                text: "Supply Chain with Disruption",
-                onClick: () => {
-                  createNewNet(supplyChainWithDisruption);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-probabilistic-satellites",
-                text: "Probabilistic Satellite Launcher",
-                onClick: () => {
-                  createNewNet(probabilisticSatellitesSDCPN);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-satellites-attraction",
-                text: "Satellites with Attraction",
-                onClick: () => {
-                  createNewNet(satellitesWithAttraction);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-planets-and-satellites",
-                text: "Planets and Satellites",
-                onClick: () => {
-                  createNewNet(planetsAndSatellites);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-supply-chain-profit",
-                text: "Supply Chain Profit",
-                onClick: () => {
-                  createNewNet(supplyChainProfit);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-vaccination-campaign",
-                text: "Vaccination Campaign",
-                onClick: () => {
-                  createNewNet(vaccinationCampaign);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-bicycle-assembly",
-                text: "Bicycle Assembly",
-                onClick: () => {
-                  createNewNet(bicycleAssembly);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-wheel-truing",
-                text: "Wheel Truing",
-                onClick: () => {
-                  createNewNet(wheelTruing);
-                  clearSelection();
-                },
-              },
-            ],
-          },
-        ]
-      : []),
-    {
-      id: "user-settings",
-      text: "User settings",
-      suffix: <KeyboardShortcut shortcut="mod+," inMenu />,
-      onClick: () =>
-        navigation.navigate(
-          { overlay: { type: "user-settings", section: "general" } },
-          { cause: "user", action: "overlay" },
-        ),
-    },
-    {
-      id: "docs",
-      text: "Docs",
-      onClick: () => {
-        window.open(
-          "https://github.com/hashintel/hash/tree/main/libs/%40hashintel/petrinaut/docs",
-          "_blank",
-          "noopener,noreferrer",
-        );
-      },
-    },
-  ];
-
-  // The empty-net prompt hands its message to the plugin assistant's
-  // `onPrompt`.
-  const showEmptyAiHero =
-    assistant.onPrompt !== undefined &&
-    !isAiAssistantOpen &&
-    !isAiCtaDismissed &&
-    !pluginOverlay &&
-    isEmptySDCPN(petriNetDefinition);
 
   return (
     <>
       <EditorCommands
-        applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
-        onNewNet={showNetManagementMenuItems ? handleCreateEmpty : undefined}
-        onToggleAiAssistant={
-          assistant.hasAssistant ? toggleAiAssistant : undefined
-        }
+        canStartNet={hideNetManagementControls === undefined}
+        onToggleAiAssistant={hasAssistant ? toggleAiAssistant : undefined}
       />
       <AssistantCommands />
       <PluginRoots />
       <UserSettings />
-      <ImportErrorDialog
-        open={importError !== null}
-        onOpenChange={({ open }) => {
-          if (!open) {
-            setImportError(null);
-          }
-        }}
-        errorMessage={importError ?? ""}
-        onCreateEmpty={handleCreateEmpty}
-      />
+      <SelectionCleanup />
 
-      {/* Top Bar - always visible */}
-      <TopBar
-        actualModeAvailable={actualMode.available}
-        menuItems={menuItems}
-        title={title}
-        onTitleChange={setTitle ?? ignoreTitle}
-        titleEditable={titleEditable}
-        hideNetManagementControls={hideNetManagementControls}
-        mode={globalMode}
-        onModeChange={setGlobalMode}
-        onRunningExperimentClick={(experiment) =>
-          handleRunningExperimentClick(experiment.id)
-        }
-      />
+      <TopBar hideNetManagementControls={hideNetManagementControls} />
 
       <Stack direction="row" className={rowContainerStyle}>
         {globalMode === "simulate" && <SimulateViewTabs />}
@@ -624,43 +151,28 @@ const EditorViewContent = ({
                 }
               >
                 <Box className={canvasContainerStyle}>
-                  {/* Left Sidebar - Tools and content panels */}
                   <LeftSideBar />
-
-                  {/* Properties Panel - Right Side */}
                   <PropertiesPanel />
-
-                  {/* SDCPN Visualization */}
                   <SDCPNView onControllerChange={registerController} />
-
-                  {showEmptyAiHero && (
-                    <AiCtaModal
-                      onDismiss={() => setIsAiCtaDismissed(true)}
-                      onSubmit={(message) => {
-                        setAiAssistantOpen(true);
-                        assistant.onPrompt?.(message);
-                      }}
+                  {!isEmptyNetPromptDismissed && (
+                    <EmptyNetPrompt
+                      onDismiss={() => setEmptyNetPromptDismissed(true)}
                     />
                   )}
-
-                  {/* Bottom Panel */}
                   <BottomPanel />
                 </Box>
               </Activity>
-              <Activity
-                mode={
-                  globalMode === "edit" && editViewMode === "definitions"
-                    ? "visible"
-                    : "hidden"
-                }
-              >
-                <NotebookView
-                  key={petriNetId ?? "no-net"}
-                  toolbarStart={
-                    <div aria-hidden className={editViewSelectorSpaceStyle} />
-                  }
-                />
-              </Activity>
+              {/* An editor that only composes has no Definitions view. */}
+              {!composesOnly && netWithDefinitions === netKey && (
+                <Activity mode={showsDefinitions ? "visible" : "hidden"}>
+                  <NotebookView
+                    key={netKey}
+                    toolbarStart={
+                      <div aria-hidden className={editViewSelectorSpaceStyle} />
+                    }
+                  />
+                </Activity>
+              )}
             </div>
           )}
           <Activity
@@ -671,58 +183,30 @@ const EditorViewContent = ({
                 : "hidden"
             }
           >
-            <BottomBar
-              mode={globalMode}
-              editionMode={editionMode}
-              onEditionModeChange={setEditionMode}
-              cursorMode={cursorMode}
-              onCursorModeChange={setCursorMode}
-              hasAiAssistant={assistant.hasAssistant}
-            />
+            <BottomBar hasAiAssistant={hasAssistant} />
           </Activity>
           <SimulationCreationDrawer />
         </SimulationWorkspace>
-        {assistant.plugin && (
-          <EditorAssistantPanel
-            plugin={assistant.plugin}
-            petriNetId={petriNetId}
-            focusRequest={aiAssistantFocusRequest}
-          />
-        )}
+        <EditorAssistantPanel />
+        <EditorResizers
+          canvasShows={
+            globalMode === "actual" ||
+            (globalMode === "edit" && editViewMode === "canvas")
+          }
+        />
       </Stack>
     </>
   );
 };
 
-/**
- * The editor's icons, provided from above the view and not by it. The
- * provider hands every icon a new context value each time it renders, and the
- * view renders on every change to the document.
- */
-const EditorIcons = ({ children }: { children: ReactNode }) => {
-  const { enableExperimentalIconPack, showAnimations } =
-    use(UserSettingsContext);
-
-  return (
-    <ExperimentalIconProvider
-      enabled={enableExperimentalIconPack}
-      motion={showAnimations ? "auto" : "none"}
-    >
-      {children}
-    </ExperimentalIconProvider>
-  );
-};
-
 export const EditorView = ({
   hideNetManagementControls,
-  titleEditable,
 }: React.ComponentProps<typeof EditorViewContent>) => (
   <CodeNavigationProvider>
-    <EditorIcons>
+    <PetrinautIconProvider>
       <EditorViewContent
         hideNetManagementControls={hideNetManagementControls}
-        titleEditable={titleEditable}
       />
-    </EditorIcons>
+    </PetrinautIconProvider>
   </CodeNavigationProvider>
 );

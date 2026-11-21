@@ -1,8 +1,8 @@
 import { use } from "react";
 
-import { PetrinautInstanceContext } from "../instance-context";
 import { ActiveNetContext } from "../state/active-net-context";
 import { useIsReadOnly } from "../state/use-is-read-only";
+import { useCoreInstance } from "../use-petrinaut-instance";
 import { useHostRulesFeedback } from "./use-host-rules-feedback";
 import { useReadOnlyFeedback } from "./use-read-only-feedback";
 
@@ -19,12 +19,7 @@ import type { PetrinautCommands } from "@hashintel/petrinaut-core";
  * NOT reach for `usePetrinautInstance().commands` directly.
  */
 export function usePetrinautCommands(): PetrinautCommands {
-  const instance = use(PetrinautInstanceContext);
-  if (!instance) {
-    throw new Error(
-      "usePetrinautCommands must be used inside <PetrinautProvider> (or <Petrinaut>).",
-    );
-  }
+  const instance = useCoreInstance("usePetrinautCommands");
   const isReadOnly = useIsReadOnly();
   const notifyReadOnly = useReadOnlyFeedback();
   const { activeComponentId } = use(ActiveNetContext);

@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { use } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -12,6 +12,7 @@ import {
   type HirArtifacts,
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
+  type Scenario,
   type SDCPN,
   type SimulatorExperimentRequest,
   type SimulationRequest,
@@ -19,7 +20,7 @@ import {
   type SimulatorRegistration,
 } from "@hashintel/petrinaut-core";
 
-import { PetrinautNavigationProvider } from "../navigation";
+import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
 import { SimulatorsContext } from "../simulators/context";
 import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import { SimulationContext, type SimulationContextValue } from "./context";
@@ -189,9 +190,9 @@ const renderProvider = (
     holder.current = use(SimulationContext);
     return null;
   };
-  render(
+  const tree = (current: SDCPN) => (
     <SDCPNContext.Provider
-      value={{ ...sdcpnContextValue, petriNetDefinition: definition }}
+      value={{ ...sdcpnContextValue, petriNetDefinition: current }}
     >
       <PetrinautNavigationProvider>
         <SimulatorsContext
@@ -211,9 +212,15 @@ const renderProvider = (
           </SimulationProvider>
         </SimulatorsContext>
       </PetrinautNavigationProvider>
-    </SDCPNContext.Provider>,
+    </SDCPNContext.Provider>
   );
-  return { getValue: () => holder.current!, requestHirArtifacts };
+  const { rerender, unmount } = render(tree(definition));
+  return {
+    getValue: () => holder.current!,
+    requestHirArtifacts,
+    rerender: (next: SDCPN) => rerender(tree(next)),
+    unmount,
+  };
 };
 
 describe("SimulationProvider on a registered simulator", () => {
@@ -362,6 +369,55 @@ describe("SimulationProvider on a registered simulator", () => {
     });
   });
 
+  it("discards the run when another scenario comes into effect", async () => {
+    const handle = makeHandle();
+    const simulator = makeSimulator({
+      id: "test.first",
+      needsHirTrees: false,
+      start: () => Promise.resolve({ ok: true, handle }),
+    });
+    const { getValue } = renderProvider([simulator.registration], {
+      ...sdcpn,
+      scenarios: [
+        {
+          id: "busy",
+          name: "Busy",
+          scenarioParameters: [],
+          parameterOverrides: {},
+          initialState: { type: "per_place", content: {} },
+        },
+      ],
+    });
+
+    act(() => getValue().setSelectedScenarioId(null));
+    await act(() => getValue().initialize({ seed: 1 }));
+    expect(getValue().eventSimulation?.status).toBe(handle.status);
+
+    act(() => getValue().setSelectedScenarioId("busy"));
+    expect(handle.dispose).toHaveBeenCalledTimes(1);
+    expect(simulator.disposed).toHaveBeenCalledTimes(1);
+    expect(getValue().eventSimulation).toBeNull();
+    expect(getValue().selectedScenarioId).toBe("busy");
+  });
+
+  it("ends the run and releases its simulator when the provider unmounts", async () => {
+    const handle = makeHandle();
+    const simulator = makeSimulator({
+      id: "test.first",
+      needsHirTrees: false,
+      start: () => Promise.resolve({ ok: true, handle }),
+    });
+    const { getValue, unmount } = renderProvider([simulator.registration]);
+
+    await act(() => getValue().initialize({ seed: 1 }));
+    expect(handle.dispose).not.toHaveBeenCalled();
+    expect(simulator.disposed).not.toHaveBeenCalled();
+
+    unmount();
+    expect(handle.dispose).toHaveBeenCalledTimes(1);
+    expect(simulator.disposed).toHaveBeenCalledTimes(1);
+  });
+
   it("reports why a simulator refused to start, and starts nothing", async () => {
     const refusing = makeSimulator({
       id: "test.refusing",
@@ -441,6 +497,52 @@ describe("SimulationProvider on a registered simulator", () => {
     expect((failure as Error).message).toBe(
       "test.batched computes many runs at once, not a single run",
     );
+  });
+});
+
+describe("SimulationProvider on a net with scenarios", () => {
+  const makeScenario = (id: string, defaultRate: number): Scenario => ({
+    id,
+    name: id,
+    scenarioParameters: [
+      { type: "real", identifier: "rate", default: defaultRate },
+    ],
+    parameterOverrides: {},
+    initialState: { type: "per_place", content: {} },
+  });
+
+  it("does not leak implicit first-scenario overrides after reorder and deletion", async () => {
+    const firstScenario = makeScenario("scenario-a", 1);
+    const secondScenario = makeScenario("scenario-b", 2);
+    const simulator = makeSimulator({
+      id: "test.plain",
+      needsHirTrees: false,
+      start: () => Promise.resolve({ ok: true, handle: makeHandle() }),
+    });
+    const { getValue, rerender } = renderProvider([simulator.registration], {
+      ...sdcpn,
+      scenarios: [firstScenario, secondScenario],
+    });
+
+    expect(getValue().selectedScenarioId).toBe(firstScenario.id);
+
+    act(() => {
+      getValue().setScenarioParameterValue("rate", "99");
+    });
+
+    expect(getValue().scenarioParameterValues).toEqual({ rate: "99" });
+
+    rerender({ ...sdcpn, scenarios: [secondScenario, firstScenario] });
+
+    expect(getValue().selectedScenarioId).toBe(firstScenario.id);
+    expect(getValue().scenarioParameterValues).toEqual({ rate: "99" });
+
+    rerender({ ...sdcpn, scenarios: [secondScenario] });
+
+    await waitFor(() => {
+      expect(getValue().selectedScenarioId).toBe(secondScenario.id);
+      expect(getValue().scenarioParameterValues).toEqual({ rate: "2" });
+    });
   });
 });
 

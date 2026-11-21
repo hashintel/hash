@@ -3,14 +3,14 @@ import { use } from "react";
 import { Toggle, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { usePetrinautMutations } from "../../../../../../../../react";
 import { ActiveNetContext } from "../../../../../../../../react/state/active-net-context";
-import { EditorContext } from "../../../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../../../react/state/editor-context";
+import { useIsReadOnly } from "../../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { usePlacePropertiesContext } from "../../context";
 import { composableEquations } from "./compose-dynamics";
 import { DynamicsTable } from "./dynamics-table";
-
-import type { SubView } from "../../../../../../../components/sub-view/types";
 
 const hintStyle = css({
   fontSize: "[12px]",
@@ -29,12 +29,14 @@ const contentStyle = css({
  * The equations composed into the selected place's dynamics, in the order
  * they are applied; their derivatives are summed every step.
  */
-const PlaceDynamicsContent: React.FC = () => {
-  const { place, isReadOnly, updatePlace } = usePlacePropertiesContext();
+export const PlaceDynamicsContent: React.FC = () => {
+  const { place } = usePlacePropertiesContext();
+  const { updatePlace } = usePetrinautMutations();
+  const isReadOnly = useIsReadOnly();
   const {
     activeNet: { differentialEquations },
   } = use(ActiveNetContext);
-  const { selectItem } = use(EditorContext);
+  const { selectItem } = useEditorActions();
   const terms = place.dynamics ?? [];
 
   if (place.colorId === null) {
@@ -75,8 +77,10 @@ const PlaceDynamicsContent: React.FC = () => {
 };
 
 /** The header's switch that runs or pauses the place's equations. */
-const PlaceDynamicsHeaderActions: React.FC = () => {
-  const { place, isReadOnly, updatePlace } = usePlacePropertiesContext();
+export const PlaceDynamicsHeaderActions: React.FC = () => {
+  const { place } = usePlacePropertiesContext();
+  const { updatePlace } = usePetrinautMutations();
+  const isReadOnly = useIsReadOnly();
   const untyped = place.colorId === null;
   const toggleTooltip = isReadOnly
     ? UI_MESSAGES.READ_ONLY_MODE
@@ -98,19 +102,4 @@ const PlaceDynamicsHeaderActions: React.FC = () => {
       />
     </Tooltip>
   );
-};
-
-/**
- * SubView definition for a place's dynamics. Requires
- * PlacePropertiesProvider in the component tree.
- */
-export const placeDynamicsSubView: SubView = {
-  id: "place-dynamics",
-  title: "Dynamics",
-  tooltip:
-    "The differential equations that move this place's tokens while it holds them, applied in order with their derivatives summed. An equation over several tokens is applied to every combination of that many tokens. Drag a row's gutter, or press Alt with an arrow key, to reorder.",
-  component: PlaceDynamicsContent,
-  renderHeaderAction: () => <PlaceDynamicsHeaderActions />,
-  headerActionMutates: true,
-  alwaysShowHeaderAction: true,
 };

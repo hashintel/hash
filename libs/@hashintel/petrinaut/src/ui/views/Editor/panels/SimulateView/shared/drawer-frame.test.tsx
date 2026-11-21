@@ -16,7 +16,6 @@ import {
   ComputeBatchesChip,
   DrawerFrame,
   FrameCard,
-  FrameColumns,
   FrameStat,
   FrameStatusPill,
 } from "./drawer-frame";
@@ -364,28 +363,6 @@ describe("DrawerFrame", () => {
       screen
         .getByRole("button", { name: /^Hide fixed parameters/u })
         .getAttribute("aria-expanded"),
-    ).toBe("true");
-  });
-
-  it("gives the secondary column the whole width when there is no primary", () => {
-    const view = render(<FrameColumns secondary={<div>cards</div>} />);
-    expect(
-      view.container
-        .querySelector("[data-frame-columns]")
-        ?.getAttribute("data-primary"),
-    ).toBe("false");
-    view.unmount();
-
-    render(
-      <FrameColumns
-        primary={<div>surface</div>}
-        secondary={<div>cards</div>}
-      />,
-    );
-    expect(
-      document
-        .querySelector("[data-frame-columns]")
-        ?.getAttribute("data-primary"),
     ).toBe("true");
   });
 });

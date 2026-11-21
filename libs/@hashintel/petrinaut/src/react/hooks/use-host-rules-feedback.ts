@@ -7,6 +7,8 @@ import { NotificationsContext } from "../notifications/context";
  * refusals show one notice, not a stack.
  */
 export const useHostRulesFeedback = () => {
+  // It calls no hook but `use`, which `infer` mode would skip.
+  "use memo";
   const { addNotification } = use(NotificationsContext);
 
   return (refusal: string) =>

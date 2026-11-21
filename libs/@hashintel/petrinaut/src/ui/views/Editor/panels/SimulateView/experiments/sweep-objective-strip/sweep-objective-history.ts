@@ -12,7 +12,7 @@ import {
 } from "../../shared/objective-history-data";
 import { objectiveMetricName } from "../../shared/study-labels";
 
-export type SweepObjectiveHistory = {
+type SweepObjectiveHistory = {
   /** The study's steps, numbered from 1. */
   points: readonly ObjectiveHistoryPoint[];
   /**

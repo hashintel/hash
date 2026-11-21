@@ -22,14 +22,14 @@ import { createCooperativeYielder } from "../../cooperative-yield";
 import { axisValueAt } from "../../parameter-grid";
 
 import type { ExperimentParameterAxis } from "../../parameter-grid";
-import type { SweepRunDraws } from "../../sweep-session";
+import type { SweepRunDraws } from "../../sweep-session/selection-draws";
 import type { ExperimentRunPlan } from "@hashintel/petrinaut-core/experiments";
 
 type CompileRunNumbers = (swept: Readonly<Record<string, number>>) => {
   parameters: Readonly<Record<string, number | boolean>>;
 };
 
-export type TranslateRangeDrawsOptions = {
+type TranslateRangeDrawsOptions = {
   /** The batch's per-run draws, keyed by scenario parameter identifier. */
   draws: SweepRunDraws;
   /** Aborts the translation at the next yield point (a superseded batch). */

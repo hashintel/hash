@@ -12,13 +12,11 @@ import {
 
 import { ExperimentsContext } from "../experiments/context";
 import { useStableCallback } from "../hooks/use-stable-callback";
-import { PetrinautInstanceContext } from "../instance-context";
 import { LanguageClientContext } from "../lsp/context";
 import { NetManagementContext } from "../net-management-context";
 import { NotificationsContext } from "../notifications/context";
 import { OptimizationsContext } from "../optimizations/context";
-import { SDCPNContext } from "../state/sdcpn-context";
-import { useExecutableDefinition } from "../state/use-executable-definition";
+import { usePetrinautInstance } from "../use-petrinaut-instance";
 import { ExperimentHostContext } from "./context";
 import { runExperiment as runHostExperiment } from "./run-experiment";
 
@@ -28,10 +26,8 @@ import type { PetrinautExperimentHost } from "@hashintel/petrinaut-core/experime
 import type { PropsWithChildren } from "react";
 
 export const ExperimentHostProvider = ({ children }: PropsWithChildren) => {
-  const { extensions } = use(SDCPNContext);
   const { title } = use(NetManagementContext);
-  const petriNetDefinition = useExecutableDefinition();
-  const instance = use(PetrinautInstanceContext);
+  const instance = usePetrinautInstance();
   const experimentsContext = use(ExperimentsContext);
   const optimizationsContext = use(OptimizationsContext);
   const languageClient = use(LanguageClientContext);
@@ -77,13 +73,11 @@ export const ExperimentHostProvider = ({ children }: PropsWithChildren) => {
       // compile without a `catch`.
       const result = await runHostExperiment(
         {
-          definition: instance
-            ? inlineImports(
-                instance.definition.get(),
-                resolvedLibraries(instance.imports.get()),
-              )
-            : petriNetDefinition,
-          extensions: instance?.extensions ?? extensions,
+          definition: inlineImports(
+            instance.definition.get(),
+            resolvedLibraries(instance.imports.get()),
+          ),
+          extensions: instance.extensions,
           title,
           experiments,
           optimizations,

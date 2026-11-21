@@ -10,11 +10,11 @@
 
 // --- Palette commands ---
 export {
-  CommandRegistryProvider,
   useCommand,
   useCommandRegistry,
   useCommands,
 } from "./commands/command-registry";
+export { CommandRegistryProvider } from "./commands/command-registry-provider";
 export { formatShortcutKeys } from "./commands/format-shortcut";
 
 // --- Instance access + low-level adapters ---
@@ -40,10 +40,12 @@ export {
   defaultPetrinautNavigationState,
   openPetrinautComponent,
   openPetrinautSimulationResource,
-  PetrinautNavigationProvider,
   petrinautNavigationStatesMatch,
+  usePetrinautNavigate,
   usePetrinautNavigation,
-} from "./navigation";
+  usePetrinautNavigationState,
+} from "./navigation/navigation";
+export { PetrinautNavigationProvider } from "./navigation/navigation-provider";
 export type {
   PetrinautNavigationAction,
   PetrinautNavigationController,
@@ -51,13 +53,13 @@ export type {
   PetrinautNavigationHistoryPolicy,
   PetrinautNavigationIntent,
   PetrinautNavigationOverlay,
-  PetrinautNavigationProviderProps,
   PetrinautNavigationState,
   PetrinautNavigationUpdate,
   PetrinautNavigationUpdater,
   PetrinautSimulateResource,
   PetrinautSettingsSection,
-} from "./navigation";
+} from "./navigation/navigation";
+export type { PetrinautNavigationProviderProps } from "./navigation/navigation-provider";
 // The vocabularies two navigation fields are drawn from. A host encoding the
 // location into a router needs to spell them, and to fail its own build when
 // either gains a member.
@@ -141,8 +143,26 @@ export type {
   ErrorTrackerCaptureContext,
 } from "./error-tracker-context";
 
-// --- Public hook surface ---
-export * from "./hooks";
+// --- Editing, and whether it is allowed ---
+export {
+  useDocumentId,
+  usePetrinautDefinitionSelector,
+} from "./hooks/use-document";
+export { useIsReadOnly } from "./state/use-is-read-only";
+export {
+  formatReadOnlyReason,
+  useReadOnlyReason,
+  type ReadOnlyReason,
+} from "./state/use-read-only-reason";
+export {
+  usePetrinautMutations,
+  type GuardedPetrinautMutations,
+} from "./hooks/use-petrinaut-mutations";
+export { usePetrinautCommands } from "./hooks/use-petrinaut-commands";
+export type {
+  PetrinautCommands,
+  PetrinautMutations,
+} from "@hashintel/petrinaut-core";
 
 // --- Re-export Core types for convenience ---
 export type {

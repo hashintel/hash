@@ -132,9 +132,10 @@ try {
       await page.waitForTimeout(450);
       assert.equal(await activeValue(), original);
       const returned = await snapshot();
-      const handle = page
-        .getByRole("button", { name: "Resize panel from left", exact: true })
-        .last();
+      const handle = page.getByRole("separator", {
+        name: "Resize the properties panel",
+        exact: true,
+      });
       const bounds = await handle.boundingBox();
       assert.ok(bounds);
       const resizeStart = await page.evaluate(() => performance.now());

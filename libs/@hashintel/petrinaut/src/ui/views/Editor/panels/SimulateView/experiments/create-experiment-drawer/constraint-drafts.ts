@@ -40,8 +40,3 @@ export const removeConstraintDraft = (
   ...state,
   rows: state.rows.filter((row) => row.id !== draftId),
 });
-
-/** Whether any row ranges over the simulation state, which is what a pass threshold judges. */
-export const hasStateConstraintDraft = (
-  state: ConstraintDraftsState,
-): boolean => state.rows.some((row) => row.space === "state");

@@ -19,18 +19,15 @@
  * A `row` stop can fold from its first column: see `FocusFold`.
  *
  * Focusing stays the owner's: `focusTarget` receives the wished position
- * and reports whether an element took focus, so ref bookkeeping and
- * nearest-column policies live with the table that owns them.
+ * and reports whether an element took focus. `useStopTargets` keeps the
+ * elements; a nearest-column policy lives with the table that owns it.
  */
 
-import { use, useEffect, useId, useRef, useState } from "react";
+import { useRef } from "react";
 
-import {
-  FocusGroupContext,
-  type FocusDirection,
-  type FocusEntry,
-  type FocusFold,
-} from "./focus-flow";
+import { arrowDirection, type FocusEntry, type FocusFold } from "./focus-flow";
+import { useFocusMember } from "./use-focus-member";
+import { useFocusMemory, type FocusTabStop } from "./use-focus-memory";
 
 export type FocusStop =
   | ({ id: string; kind: "row"; gutter?: boolean } & FocusFold)
@@ -43,12 +40,14 @@ export interface FocusStopTarget {
   column: number | "gutter";
 }
 
-export interface FocusStopsOptions {
+interface FocusStopsOptions {
   /** Ordered stops, top to bottom; rebuilt every render by the owner. */
   stops: FocusStop[];
   columnCount: number;
   /** Focus the target; returns whether an element took focus. */
   focusTarget: (target: FocusStopTarget) => boolean;
+  /** Defaults to "roving". */
+  tabStop?: FocusTabStop;
 }
 
 export interface FocusStops {
@@ -60,25 +59,16 @@ export interface FocusStops {
   tabIndexFor: (position: FocusStopTarget) => 0 | -1;
   /** Attach to the table's root element; registered while mounted. */
   attach: (element: HTMLElement | null) => void;
-  /** Carry focus out of the table. Returns whether focus moved. */
-  moveFrom: (
-    direction: FocusDirection,
-    from?: { row: number; column: number },
-  ) => boolean;
 }
 
 const samePosition = (a: FocusStopTarget, b: FocusStopTarget): boolean =>
   a.stopId === b.stopId && a.column === b.column;
 
 export function useFocusStops(options: FocusStopsOptions): FocusStops {
-  const { stops, columnCount, focusTarget } = options;
-  const group = use(FocusGroupContext);
-  const id = useId();
+  const { stops, columnCount, focusTarget, tabStop = "roving" } = options;
+  const { remember, recall, tabbable } = useFocusMemory(tabStop, samePosition);
   // The column vertical moves aim at, persisted across full-width stops.
   const lastColumnRef = useRef(0);
-  // The roving tab stop, in state because it renders as tabIndex.
-  const [tabbable, setTabbable] = useState<FocusStopTarget | null>(null);
-  const [element, setElement] = useState<HTMLElement | null>(null);
 
   const stopIndexOf = (stopId: string): number =>
     stops.findIndex((stop) => stop.id === stopId);
@@ -144,7 +134,8 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
         fromEnd ? -1 : 1,
       );
     }
-    if (tabbable && focusTarget(tabbable)) {
+    const last = recall();
+    if (last && focusTarget(last)) {
       return true;
     }
     const fromEnd = entry.direction === "up" || entry.direction === "left";
@@ -154,42 +145,13 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
       fromEnd ? -1 : 1,
     );
   };
-  const enterRef = useRef(enter);
-  useEffect(() => {
-    enterRef.current = enter;
-  });
 
-  useEffect(() => {
-    if (element) {
-      group.register(id, {
-        element,
-        enter: (entry) => enterRef.current(entry),
-      });
-    }
-  });
-  useEffect(() => () => group.unregister(id), [group, id]);
-
-  const moveFrom = (
-    direction: FocusDirection,
-    from?: { row: number; column: number },
-  ): boolean => group.moveFrom(id, direction, from);
+  const { attach, moveFrom } = useFocusMember(enter);
 
   const onKeyDown =
     (position: FocusStopTarget): React.KeyboardEventHandler =>
     (event) => {
-      const target = event.target as HTMLElement;
-      const inTextField =
-        target.tagName === "INPUT" || target.tagName === "TEXTAREA";
-      const direction: FocusDirection | null =
-        event.key === "ArrowDown"
-          ? "down"
-          : event.key === "ArrowUp"
-            ? "up"
-            : event.key === "ArrowRight" && !inTextField
-              ? "right"
-              : event.key === "ArrowLeft" && !inTextField
-                ? "left"
-                : null;
+      const direction = arrowDirection(event);
       if (direction === null) {
         return;
       }
@@ -279,7 +241,7 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
   // The roving tab stop: the remembered position while its stop and column
   // still exist, else the first stop. A row removed or filtered away, or a
   // column dropped, must not take the table out of the tab order.
-  const tabStop: FocusStopTarget =
+  const rovingStop: FocusStopTarget =
     tabbable &&
     stops.some((stop) => stop.id === tabbable.stopId) &&
     (tabbable.column === "gutter" || tabbable.column < columnCount)
@@ -298,12 +260,9 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
       if (position.column !== "gutter" && stop?.kind !== "full") {
         lastColumnRef.current = position.column;
       }
-      setTabbable((current) =>
-        current && samePosition(current, position) ? current : position,
-      );
+      remember(position);
     },
-    tabIndexFor: (position) => (samePosition(tabStop, position) ? 0 : -1),
-    attach: setElement,
-    moveFrom,
+    tabIndexFor: (position) => (samePosition(rovingStop, position) ? 0 : -1),
+    attach,
   };
 }

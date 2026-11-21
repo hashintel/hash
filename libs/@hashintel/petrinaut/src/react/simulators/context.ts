@@ -70,14 +70,21 @@ export const simulatorRefusal = (
   return null;
 };
 
+/** What each mode starts on unless the host fixes it. */
+export const defaultSimulatorSelections: SimulatorsContextValue["defaultSelections"] =
+  {
+    quick: { simulatorId: FIXED_STEP_SIMULATOR_ID },
+    stochastic: {
+      simulatorId: FIXED_STEP_SIMULATOR_ID,
+      parameters: { dt: 0.1 },
+    },
+  };
+
 /**
  * No simulators: the value outside a `SimulatorsProvider`. A run cannot
  * start from it, and the picker shows nothing to pick.
  */
 export const SimulatorsContext = createContext<SimulatorsContextValue>({
   registrations: [],
-  defaultSelections: {
-    quick: { simulatorId: FIXED_STEP_SIMULATOR_ID },
-    stochastic: { simulatorId: FIXED_STEP_SIMULATOR_ID },
-  },
+  defaultSelections: defaultSimulatorSelections,
 });

@@ -1,11 +1,10 @@
 import {
   parseClipboardPayload,
+  type PetrinautCommands,
   serializeSelection,
   type SDCPN,
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
-
-import type { PetrinautCommands } from "../../react";
 
 /**
  * Copy the current selection to the system clipboard.

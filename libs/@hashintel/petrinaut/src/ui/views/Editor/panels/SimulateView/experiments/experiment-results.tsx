@@ -11,7 +11,7 @@ import {
   type SweepBatchStatus,
 } from "../../../../../../react/experiments/context";
 import { sweepPointFor } from "../../../../../../react/experiments/parameter-grid";
-import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session";
+import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session/selection-draws";
 import {
   constraintAlpha,
   formatRate,
@@ -25,8 +25,8 @@ import {
 import { experimentProgressPercent } from "../../../shared/experiment-progress";
 import { describeStepProgress } from "../shared/describe-study-progress";
 import { formatCount, formatFixed } from "../shared/format-value";
-import { METRIC_PLOT_HEIGHT, type MetricTile } from "../shared/metric-tiles";
-import { constraintsFold } from "./experiment-results/constraints-fold";
+import { type MetricTile } from "../shared/metric-tiles";
+import { ConstraintList } from "./experiment-results/constraints-fold";
 import { ElapsedStat } from "./experiment-results/elapsed-stat";
 import {
   ExperimentDetails,
@@ -47,7 +47,7 @@ import {
 import { SweepSurface } from "./sweep-surface";
 
 import type { ChartCardTone } from "../shared/chart-card";
-import type { ComputeBatch } from "../shared/drawer-frame";
+import type { ComputeBatch, FrameCardMore } from "../shared/drawer-frame";
 import type {
   ResultsModel,
   ResultsStat,
@@ -135,30 +135,24 @@ const experimentDetailsStats = (
       ? {
           id: "selection",
           label: "Runs sampled",
-          value: {
-            text: `${formatCount(sweep.runsSampled)} / ${runCount} runs`,
-          },
+          text: `${formatCount(sweep.runsSampled)} / ${runCount} runs`,
         }
       : {
           id: "runs",
           label: "Runs",
-          value: {
-            text: progress
-              ? `${formatCount(progress.activeRuns)} active, ${formatCount(progress.completedRuns)} complete`
-              : runCount,
-          },
+          text: progress
+            ? `${formatCount(progress.activeRuns)} active, ${formatCount(progress.completedRuns)} complete`
+            : runCount,
         },
     {
       id: "errors",
       label: "Errors",
-      value: { text: formatCount(progress?.erroredRuns ?? 0) },
+      text: formatCount(progress?.erroredRuns ?? 0),
     },
     {
       id: "time",
       label: inSteps ? "Step" : "Simulation time",
-      value: {
-        text: `${formatPosition(progress?.time ?? settledTime(experiment))} / ${formatPosition(experiment.maxTime)}`,
-      },
+      text: `${formatPosition(progress?.time ?? settledTime(experiment))} / ${formatPosition(experiment.maxTime)}`,
     },
     // Wall-clock, as distinct from the simulated time; it stops once the
     // experiment finishes and is dashed out when stepping never began. The
@@ -170,15 +164,13 @@ const experimentDetailsStats = (
           {
             id: "elapsed",
             label: "Elapsed time",
-            value: {
-              text: (
-                <ElapsedStat
-                  startedAt={experiment.startedAt}
-                  finishedAt={experiment.finishedAt}
-                  active={isExperimentActive(experiment)}
-                />
-              ),
-            },
+            text: (
+              <ElapsedStat
+                startedAt={experiment.startedAt}
+                finishedAt={experiment.finishedAt}
+                active={isExperimentActive(experiment)}
+              />
+            ),
           },
         ]),
   ];
@@ -200,7 +192,7 @@ const studyDetailsStats = (
     {
       id: "steps",
       label: "Steps",
-      value: { text: describeStepProgress(study) },
+      text: describeStepProgress(study),
     },
     ...(rates === null
       ? []
@@ -208,11 +200,32 @@ const studyDetailsStats = (
           {
             id: "steps-clear",
             label: "Steps clear",
-            value: { text: formatRate(rates.stepsClear, rates.stepsSimulated) },
+            text: formatRate(rates.stepsClear, rates.stepsSimulated),
           },
         ]),
   ];
 };
+
+/**
+ * The fold a constrained experiment's Parameters card keeps behind its
+ * footer; null for an experiment without constraints.
+ */
+const constraintsFold = ({
+  constraints,
+  constraintPolicy,
+}: ExperimentRecord): FrameCardMore | null =>
+  constraints.length === 0
+    ? null
+    : {
+        show: `Show ${constraints.length} constraint${constraints.length === 1 ? "" : "s"}`,
+        hide: "Hide constraints",
+        content: (
+          <ConstraintList
+            constraints={constraints}
+            constraintPolicy={constraintPolicy}
+          />
+        ),
+      };
 
 /**
  * One tile per configured metric, fed the record's frames. Called from the
@@ -406,7 +419,7 @@ export const experimentResultsModel = (
                 status={{
                   computing: sweep.computing,
                   following: following
-                    ? { kind: "following", ...following }
+                    ? { kind: "following", step: following.step }
                     : study === null
                       ? null
                       : {
@@ -454,10 +467,7 @@ export const experimentResultsModel = (
               ),
             // The constraints the experiment carries, from creation on; a
             // property of the experiment, not of any study.
-            more:
-              experiment.constraints.length > 0
-                ? constraintsFold(experiment)
-                : null,
+            more: constraintsFold(experiment),
             tone,
           },
         ]
@@ -486,7 +496,6 @@ export const experimentResultsModel = (
             // picture out inside each plot instead of cutting to the sparse
             // new stream. The session keys the selection once per publish.
             contentEpoch: sweep?.selectionKey ?? "",
-            plotHeight: METRIC_PLOT_HEIGHT,
             tone: "default",
             // Keyed on the study, so the cards start afresh when the drawer
             // swaps records in place. The Sensitivity card decides its own
@@ -498,25 +507,15 @@ export const experimentResultsModel = (
                     <StudyConstraintsCard
                       optimization={study}
                       rates={rates}
-                      plotHeight={METRIC_PLOT_HEIGHT}
                       tone={tone}
                     />
                   )}
-                  <ParameterImportancePanel
-                    optimization={study}
-                    plotHeight={METRIC_PLOT_HEIGHT}
-                  />
+                  <ParameterImportancePanel optimization={study} />
                 </Fragment>
               ),
           }
         : null,
-    after:
-      study === null ? null : (
-        <StudySteps
-          optimization={study}
-          bestTrial={study.best?.trial ?? null}
-        />
-      ),
+    after: study === null ? null : <StudySteps optimization={study} />,
     footer: (
       <>
         {canCancel ? (

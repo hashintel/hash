@@ -12,7 +12,7 @@ import type {
  * An empty `value` falls back to the parameter's default (same as before
  * ranges existed).
  */
-export type ExperimentParameterFixedInput = {
+type ExperimentParameterFixedInput = {
   mode: "fixed";
   value: string;
 };
@@ -22,7 +22,7 @@ export type ExperimentParameterFixedInput = {
  * quantizes internally (`buildParameterAxis`); nothing about its resolution
  * is declared here.
  */
-export type ExperimentParameterRangeInput = {
+type ExperimentParameterRangeInput = {
   mode: "range";
   min: number;
   max: number;
@@ -127,7 +127,7 @@ export function getNextRunTarget(
   return Math.min(target, maxRuns);
 }
 
-export type BuildAxisOutcome =
+type BuildAxisOutcome =
   | { ok: true; axis: ExperimentParameterAxis }
   | { ok: false; error: string };
 
@@ -190,7 +190,7 @@ export function buildParameterAxis(
   };
 }
 
-export type BuildAxesOutcome =
+type BuildAxesOutcome =
   | { ok: true; axes: ExperimentParameterAxis[] }
   | { ok: false; error: string };
 

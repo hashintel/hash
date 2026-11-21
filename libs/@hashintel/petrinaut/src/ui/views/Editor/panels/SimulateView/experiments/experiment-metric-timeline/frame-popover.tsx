@@ -4,7 +4,7 @@
  * its measured height and dismissed by an outside click.
  */
 import { Portal } from "@ark-ui/react/portal";
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 
 import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -21,12 +21,6 @@ import type {
 } from "./shared/metric-frames";
 import type { PointerPosition } from "./shared/pointer-position";
 import type { CSSProperties, RefObject } from "react";
-
-type FramePopoverPosition = {
-  x: number;
-  y: number;
-  placement: "above" | "below";
-};
 
 const POPOVER_WIDTH = 340;
 const POPOVER_MAX_HEIGHT = 248;
@@ -106,7 +100,7 @@ function clamp(value: number, min: number, max: number): number {
 function popoverPositionFor(
   pointer: PointerPosition,
   popoverHeight: number,
-): FramePopoverPosition {
+): { x: number; y: number } {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const width = Math.min(
@@ -125,16 +119,13 @@ function popoverPositionFor(
   const canFitBelow =
     pointer.clientY + POPOVER_OFFSET + height <=
     viewportHeight - POPOVER_MARGIN;
-  const placement = canFitBelow ? "below" : "above";
-  const preferredY =
-    placement === "below"
-      ? pointer.clientY + POPOVER_OFFSET
-      : pointer.clientY - POPOVER_OFFSET - height;
+  const preferredY = canFitBelow
+    ? pointer.clientY + POPOVER_OFFSET
+    : pointer.clientY - POPOVER_OFFSET - height;
 
   return {
     x: clamp(pointer.clientX + POPOVER_OFFSET, POPOVER_MARGIN, maxX),
     y: clamp(preferredY, POPOVER_MARGIN, maxY),
-    placement,
   };
 }
 
@@ -199,6 +190,7 @@ export const FramePopover = ({
     measuredSize?.height ?? POPOVER_MAX_HEIGHT,
   );
 
+  const closeOnOutsidePress = useEffectEvent(onClose);
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node | null;
@@ -210,7 +202,7 @@ export const FramePopover = ({
         return;
       }
 
-      onClose();
+      closeOnOutsidePress();
     };
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -218,14 +210,13 @@ export const FramePopover = ({
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown);
     };
-  }, [chartRootRef, onClose]);
+  }, [chartRootRef]);
 
   return (
     <Portal container={portalContainerRef}>
       <div
         ref={popoverRef}
         className={popoverStyle}
-        data-placement={position.placement}
         role="dialog"
         aria-label={
           frame.outputType === "distribution"

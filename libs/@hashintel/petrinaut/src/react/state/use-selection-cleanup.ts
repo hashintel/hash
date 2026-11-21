@@ -8,7 +8,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { ActiveNetContext } from "./active-net-context";
-import { EditorContext } from "./editor-context";
+import { useEditorActions, useEditorState } from "./editor-context";
 import { SDCPNContext } from "./sdcpn-context";
 
 /**
@@ -17,11 +17,11 @@ import { SDCPNContext } from "./sdcpn-context";
 export function useSelectionCleanup() {
   const { activeNet } = use(ActiveNetContext);
   const { extensions } = use(SDCPNContext);
-  const { selection, setSelection, hoveredItem, clearHoveredItem } =
-    use(EditorContext);
+  const selection = useEditorState((editor) => editor.selection);
+  const { setSelection } = useEditorActions();
 
   useEffect(() => {
-    if (selection.size === 0 && !hoveredItem) {
+    if (selection.size === 0) {
       return;
     }
 
@@ -97,17 +97,5 @@ export function useSelectionCleanup() {
         { cause: "normalization" },
       );
     }
-
-    // Clear hoveredItem if it references a deleted element
-    if (hoveredItem && !validIds.has(hoveredItem.id)) {
-      clearHoveredItem();
-    }
-  }, [
-    activeNet,
-    extensions,
-    selection,
-    setSelection,
-    hoveredItem,
-    clearHoveredItem,
-  ]);
+  }, [activeNet, extensions, selection, setSelection]);
 }

@@ -84,31 +84,20 @@ export type StochasticRun = {
 };
 
 export type SimulationContextValue = {
-  // State values
-  /**
-   * Current lifecycle state of the simulation.
-   */
+  /** Current lifecycle state of the simulation. */
   state: SimulationState;
-  /**
-   * Error message if state is "Error".
-   */
+  /** Error message if state is "Error". */
   error: string | null;
-  /**
-   * ID of the SDCPN item that caused the error, if applicable.
-   */
+  /** ID of the SDCPN item that caused the error, if applicable. */
   errorItemId: string | null;
-  /**
-   * Current parameter values (string representation for UI binding).
-   */
+  /** Current parameter values (string representation for UI binding). */
   parameterValues: Record<string, string>;
-  /**
-   * Initial token distribution for each place.
-   */
+  /** Initial token distribution for each place. */
   initialMarking: InitialMarking;
   /**
-   * Maximum simulation time in seconds.
-   * When the simulation reaches this time, it will be paused.
-   * If null, the simulation runs until no transitions are enabled.
+   * Where a run ends, in simulated seconds or steps: a run that reaches it
+   * completes. Null means no end: the run goes on until no transition is
+   * enabled. A Stochastic simulation always has one.
    */
   maxTime: number | null;
   /**
@@ -155,17 +144,10 @@ export type SimulationContextValue = {
    */
   eventSimulation: EventSimulation | null;
 
-  // Frame access. A frame is the state an event of the run recorded, read
-  // from the trace the host already holds.
-  /**
-   * The frame at an index, or null when the index is out of bounds or no
-   * run exists.
-   */
-  getFrame: (frameIndex: number) => Promise<SimulationFrameReader | null>;
-
   /**
    * The frames from `startIndex` (inclusive) to `endIndex` (exclusive), or
-   * to the last one when `endIndex` is left out.
+   * to the last one when `endIndex` is left out. A frame is the state an
+   * event of the run recorded, read from the trace the host already holds.
    */
   getFramesInRange: (
     startIndex: number,
@@ -206,7 +188,6 @@ export type SimulationContextValue = {
    */
   adHocNetParameters: Parameter[];
 
-  // Actions
   setSelectedScenarioId: (scenarioId: string | null) => void;
   setAdHocScenario: (state: AdHocScenarioState | null) => void;
   setScenarioParameterValue: (identifier: string, value: string) => void;
@@ -229,8 +210,8 @@ export type SimulationContextValue = {
     value: number | boolean | string,
   ) => void;
   /**
-   * Set the maximum simulation time in seconds.
-   * Pass null to disable the time limit.
+   * Sets where a run ends, in simulated seconds or steps. Null removes the
+   * end, and a Stochastic simulation then takes its default.
    */
   setMaxTime: (maxTime: number | null) => void;
   /**
@@ -269,7 +250,6 @@ export const DEFAULT_SIMULATION_CONTEXT: SimulationContextValue = {
   stochasticRun: null,
   playbackSource: null,
   eventSimulation: null,
-  getFrame: () => Promise.resolve(null),
   getFramesInRange: () => Promise.resolve([]),
   setSelectedScenarioId: () => {},
   setAdHocScenario: () => {},

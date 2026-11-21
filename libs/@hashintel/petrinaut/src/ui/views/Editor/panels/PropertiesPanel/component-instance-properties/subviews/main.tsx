@@ -1,7 +1,6 @@
 import { use } from "react";
 
 import {
-  Button,
   Form,
   Icon,
   Select,
@@ -25,25 +24,14 @@ import { CompositionContext } from "../../../../../../../react/state/composition
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DescriptionField } from "../../../../../../components/description-field";
-import { PropertyValue } from "../../../../../../components/property-value";
+import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
 import { hintTextStyle } from "../../../../../../constants/hint-text";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { useDraftField } from "../../../../../../hooks/use-draft-field";
 import { implementationItems } from "../../../implementation-items";
+import { DeleteItemButton } from "../../delete-item-button";
+import { fieldsSectionStyle, itemTitleStyle } from "../../styles";
 import { useComponentInstancePropertiesContext } from "../context";
-
-import type { SubView } from "../../../../../../components/sub-view/types";
-
-const fieldsSectionStyle = css({
-  paddingY: "3",
-});
-
-const titleStyle = css({
-  fontSize: "lg",
-  fontWeight: "semibold",
-  lineHeight: "[1.2]",
-});
 
 const paramVarNameStyle = css({
   fontSize: "xs",
@@ -51,7 +39,6 @@ const paramVarNameStyle = css({
   fontFamily: "mono",
 });
 
-// the compact pre-migration label treatment for the parameter rows
 const paramFieldLabelStyle = css({
   "& :is(label, legend)": {
     fontSize: "xs",
@@ -65,8 +52,8 @@ const paramFieldLabelStyle = css({
  * own choice, or the document's default.
  */
 const ImplementationField: React.FC = () => {
-  const { instance, updateComponentInstance } =
-    useComponentInstancePropertiesContext();
+  const { instance } = useComponentInstancePropertiesContext();
+  const { updateComponentInstance } = usePetrinautMutations();
   const { petriNetDefinition } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
   const mutationRefusal = useMutationRefusal();
@@ -186,60 +173,28 @@ const ComponentField: React.FC = () => {
   );
 };
 
-const ComponentInstanceMainContent: React.FC = () => {
-  const { instance, component, componentParameters, updateComponentInstance } =
-    useComponentInstancePropertiesContext();
+export const ComponentInstanceMainContent: React.FC = () => {
+  const { instance, component } = useComponentInstancePropertiesContext();
+  const { updateComponentInstance } = usePetrinautMutations();
+  const componentParameters = component?.parameters ?? [];
   const isDisabled = useIsReadOnly();
   const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
-  const nameField = useDraftField({
-    sourceId: instance.id,
-    sourceValue: instance.name,
-  });
-
-  const handleNameBlur = () => {
-    const result = validateEntityName(nameField.value);
-    if (!result.valid) {
-      nameField.setError(result.error);
-      return;
-    }
-    nameField.setError(null);
-    if (result.name !== instance.name) {
-      updateComponentInstance({
-        instanceId: instance.id,
-        update: { name: result.name },
-      });
-    }
-  };
 
   return (
     <SectionList>
       <Form.Section className={fieldsSectionStyle}>
-        <Form.Field
+        <DraftFieldInput
           label="Name"
-          size="sm"
-          errors={
-            !isDisabled && nameField.error ? [nameField.error] : undefined
+          sourceId={instance.id}
+          sourceValue={instance.name}
+          validate={validateEntityName}
+          onCommit={(name) =>
+            updateComponentInstance({
+              instanceId: instance.id,
+              update: { name },
+            })
           }
-        >
-          <PropertyValue text={instance.name}>
-            <Tooltip
-              content={readOnlyTooltip ?? ""}
-              disableTooltip={!isDisabled}
-            >
-              <TextInput
-                value={nameField.value}
-                size="sm"
-                onChange={(name) => {
-                  nameField.setValue(name);
-                  if (nameField.error) nameField.setError(null);
-                }}
-                onBlur={handleNameBlur}
-                disabled={isDisabled}
-                invalid={!!nameField.error}
-              />
-            </Tooltip>
-          </PropertyValue>
-        </Form.Field>
+        />
 
         <DescriptionField
           sourceId={instance.id}
@@ -250,8 +205,6 @@ const ComponentInstanceMainContent: React.FC = () => {
               update: { description },
             })
           }
-          disabled={isDisabled}
-          tooltip={readOnlyTooltip}
         />
 
         <ComponentField />
@@ -308,44 +261,27 @@ const ComponentInstanceMainContent: React.FC = () => {
   );
 };
 
-const ComponentInstanceTitle: React.FC = () => {
+export const ComponentInstanceIcon: React.FC<{ size: number }> = ({ size }) => (
+  <Icon name="cube" size={size === 12 ? "xs" : "sm"} />
+);
+
+export const ComponentInstanceTitle: React.FC = () => {
   const { component } = useComponentInstancePropertiesContext();
   return (
-    <span className={titleStyle}>
+    <span className={itemTitleStyle}>
       {component?.name ?? "Component"} instance
     </span>
   );
 };
 
-const DeleteComponentInstanceAction: React.FC = () => {
+export const DeleteComponentInstanceAction: React.FC = () => {
   const { instance } = useComponentInstancePropertiesContext();
   const { removeComponentInstance } = usePetrinautMutations();
-  const isReadOnly = useIsReadOnly();
 
   return (
-    <Button
-      aria-label="Delete component instance"
-      size="sm"
-      variant="ghost"
-      tone="error"
-      iconName="trash"
-      onClick={() => removeComponentInstance({ instanceId: instance.id })}
-      disabled={isReadOnly}
-      tooltip={
-        isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete component instance"
-      }
+    <DeleteItemButton
+      label="Delete component instance"
+      onDelete={() => removeComponentInstance({ instanceId: instance.id })}
     />
   );
-};
-
-export const componentInstanceMainContentSubView: SubView = {
-  id: "component-instance-main-content",
-  title: "Component Instance",
-  icon: ({ size }) => <Icon name="cube" size={size === 12 ? "xs" : "sm"} />,
-  main: true,
-  renderTitle: () => <ComponentInstanceTitle />,
-  component: ComponentInstanceMainContent,
-  renderHeaderAction: () => <DeleteComponentInstanceAction />,
-  headerActionMutates: true,
-  alwaysShowHeaderAction: true,
 };

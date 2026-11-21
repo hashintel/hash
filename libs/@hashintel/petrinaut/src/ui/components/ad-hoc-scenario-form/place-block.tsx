@@ -8,14 +8,14 @@
  * uncoloured place is a header plus one full-width count cell.
  */
 
-import { use, useState } from "react";
+import { useState } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useFocusHeader } from "../../worksheet/use-focus-member";
 import { tableContainerStyle } from "../spreadsheet-kit/form-table";
-import { AdHocFormContext } from "./form-context";
+import { sameParts, useAdHocForm, useAdHocFormFact } from "./form-context";
 import { TokenTable } from "./token-table";
 import { ValueEditor } from "./value-editor";
 import { VariableRows } from "./variable-rows";
@@ -26,6 +26,20 @@ import type {
   Color,
   Place,
 } from "@hashintel/petrinaut-core";
+
+// What a place the definition does not mention yet shows. One object each,
+// never changed: a new one per render would tell the tables beneath that
+// their rows changed.
+const untouchedColouredPlace: AdHocColouredPlace = {
+  kind: "coloured",
+  variables: [],
+  rows: [],
+  sharedColumns: {},
+};
+const untouchedUncolouredPlace: AdHocUncolouredPlace = {
+  kind: "uncoloured",
+  count: { expression: "0", optimize: null },
+};
 
 const blockStyle = css({
   display: "flex",
@@ -177,7 +191,7 @@ const countBoxStyle = css({
   minWidth: "[0]",
 });
 
-export interface ColouredPlaceBlockProps {
+interface ColouredPlaceBlockProps {
   place: Place;
   colour: Color;
   state: AdHocColouredPlace;
@@ -192,7 +206,7 @@ const PlaceBlockContents: React.FC<ColouredPlaceBlockProps> = ({
   colour,
   state,
 }) => {
-  const { mode } = use(AdHocFormContext);
+  const { mode } = useAdHocForm();
   return (
     <>
       {/* Run mode shows no auxiliary Variables — they are the saved
@@ -201,7 +215,6 @@ const PlaceBlockContents: React.FC<ColouredPlaceBlockProps> = ({
         <VariableRows
           scopeLabel={`Variables of ${place.name}`}
           placeId={place.id}
-          variables={state.variables}
         />
       )}
       <TokenTable place={place} colour={colour} state={state} />
@@ -214,7 +227,7 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   colour,
   state,
 }) => {
-  const { placeTotal, dense } = use(AdHocFormContext);
+  const { dense } = useAdHocForm();
   // The dense embedding (quick simulation) starts places collapsed: the
   // panel reads as an overview, one line per place.
   const [collapsed, setCollapsed] = useState(dense);
@@ -229,7 +242,10 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
     collapse: collapsed ? undefined : () => setCollapsed(true),
     expand: collapsed ? () => setCollapsed(false) : undefined,
   });
-  const total = placeTotal(place.id);
+  const total = useAdHocFormFact(
+    (facts) => facts.placeTotal(place.id),
+    sameParts,
+  );
   const totalText = total.resolved ? `${total.total}` : total.text;
 
   return (
@@ -287,7 +303,7 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   );
 };
 
-export interface UncolouredPlaceBlockProps {
+interface UncolouredPlaceBlockProps {
   place: Place;
   state: AdHocUncolouredPlace;
 }
@@ -296,7 +312,7 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
   place,
   state,
 }) => {
-  const { mode } = use(AdHocFormContext);
+  const { mode } = useAdHocForm();
   const target = { kind: "count" as const, placeId: place.id, row: null };
   // The count cell is a single-element member: vertical arrows leave to the
   // neighbouring member, horizontal ones cross into a sibling column.
@@ -326,4 +342,24 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
       </div>
     </div>
   );
+};
+
+/** One place of the Initial state list, reading its own part of the definition. */
+export const PlaceBlock: React.FC<{
+  place: Place;
+  /** The place's token colour, where it has one the net still defines. */
+  colour: Color | undefined;
+}> = ({ place, colour }) => {
+  const stored = useAdHocFormFact((facts) => facts.state.places[place.id]);
+  const state =
+    stored ??
+    (place.colorId ? untouchedColouredPlace : untouchedUncolouredPlace);
+
+  if (state.kind === "coloured" && colour) {
+    return <ColouredPlaceBlock place={place} colour={colour} state={state} />;
+  }
+  if (state.kind === "uncoloured") {
+    return <UncolouredPlaceBlock place={place} state={state} />;
+  }
+  return null;
 };

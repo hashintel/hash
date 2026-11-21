@@ -1,8 +1,8 @@
 /**
- * The "Percentile lines" view's band definitions: which statistics are
- * drawn, how each line is styled, and how the legend groups them. One
- * definition feeds the data builder, the uPlot series, and the legend so
- * the three can never disagree.
+ * The "Percentile lines" view: which statistics are drawn and how each line
+ * is styled. The data builder and the uPlot series read
+ * `distributionBandSeries`, so their order agrees. The legend is a second
+ * list: it repeats the strokes, with each pair of percentiles as one entry.
  */
 import { meanFromBins, percentileFromBins } from "./distribution-math";
 

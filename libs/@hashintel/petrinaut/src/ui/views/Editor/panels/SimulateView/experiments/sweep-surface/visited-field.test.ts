@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { contourSurfaceKey } from "../../../../../../components/contour-surface";
+import { contourSurfaceKey } from "../../../../../../components/contour-surface/paint-field";
 import {
   computingSurfaceField,
   describeVisitedSurface,

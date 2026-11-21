@@ -4,11 +4,11 @@ import type { SimulatorSelection } from "../simulators/context";
 import type {
   ExperimentParameterAxis,
   ExperimentParameterInput,
+  SweepSelection,
 } from "./parameter-grid";
 import type {
   SweepBatchStatus,
   SweepNavigateOptions,
-  SweepSelection,
   SweepVisitedCell,
 } from "./sweep-session";
 
@@ -278,7 +278,7 @@ export function getExperimentElapsedMs(
 }
 
 /** An experiment something else started, handed over to be listed. */
-export type AdoptExperimentInput = {
+type AdoptExperimentInput = {
   name: string;
   /** The experiment, started by its previous owner. */
   handle: MonteCarloExperiment;

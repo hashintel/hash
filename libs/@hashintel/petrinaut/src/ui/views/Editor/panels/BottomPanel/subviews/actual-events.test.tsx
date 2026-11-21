@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { toPetrinautId, type SDCPN } from "@hashintel/petrinaut-core";
 
 import { ActualModeContext } from "../../../../../../react/actual-mode-context";
-import { actualEventsSubView } from "./actual-events";
+import { ActualEventsContent as Events } from "./actual-events";
 
 const queueId = toPetrinautId("place__queue");
 const servedId = toPetrinautId("place__served");
@@ -54,8 +54,6 @@ afterEach(cleanup);
 
 describe("Actual mode events", () => {
   it("names the transition and places of each event, and falls back to the id", () => {
-    const Events = actualEventsSubView.component;
-
     render(
       <ActualModeContext
         value={{

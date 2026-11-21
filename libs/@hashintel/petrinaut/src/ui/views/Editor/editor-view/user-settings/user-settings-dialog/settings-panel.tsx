@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { ScrollFade } from "../../../../../components/scroll-fade";
 import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
 
-import type { PetrinautSettingsSection } from "../../../../../../react/navigation";
+import type { PetrinautSettingsSection } from "../../../../../../react/navigation/navigation";
 import type { ReactNode, RefObject } from "react";
 
 const scrollAreaStyle = css({
@@ -69,6 +69,25 @@ const SettingsScrollBody = ({
   );
 };
 
+const panelStyle = css({
+  gridArea: "[1 / 2]",
+  display: "flex",
+  flexDirection: "column",
+  minWidth: "0",
+  minHeight: "0",
+  cursor: "auto",
+});
+
+const headerStyle = css({
+  flexShrink: "0",
+  paddingX: "5",
+  paddingTop: "5",
+  cursor: "grab",
+  touchAction: "none",
+  _active: { cursor: "grabbing" },
+  "@media (max-width: 600px)": { paddingX: "3", paddingTop: "3" },
+});
+
 export const SettingsPanel = ({
   section,
   headingRef,
@@ -82,28 +101,8 @@ export const SettingsPanel = ({
   animated: boolean;
   children: ReactNode;
 }) => (
-  <div
-    className={css({
-      gridArea: "[1 / 2]",
-      display: "flex",
-      flexDirection: "column",
-      minWidth: "0",
-      minHeight: "0",
-      cursor: "auto",
-    })}
-  >
-    <header
-      ref={headingRef}
-      className={css({
-        flexShrink: "0",
-        paddingX: "5",
-        paddingTop: "5",
-        cursor: "grab",
-        touchAction: "none",
-        _active: { cursor: "grabbing" },
-        "@media (max-width: 600px)": { paddingX: "3", paddingTop: "3" },
-      })}
-    >
+  <div className={panelStyle}>
+    <header ref={headingRef} className={headerStyle}>
       {heading}
     </header>
     <SettingsScrollBody key={section} section={section} animated={animated}>

@@ -2,7 +2,7 @@ import { useStoreApi } from "@xyflow/react";
 import { useEffect } from "react";
 
 import { useLatest } from "../../../../../../react/hooks/use-latest";
-import { nodeFiringIsVisible } from "./firing-animation-visibility";
+import { firingIsVisible } from "./firing-animation-visibility";
 
 const FIRING_ANIMATION_DURATION_MS = 300;
 
@@ -36,8 +36,7 @@ export const useTransitionFiringAnimation = (
       return;
     }
 
-    const { x, y } = positionRef.current;
-    if (!nodeFiringIsVisible(store.getState(), x, y)) {
+    if (!firingIsVisible(store.getState(), positionRef.current)) {
       return;
     }
 

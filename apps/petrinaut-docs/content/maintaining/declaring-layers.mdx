@@ -22,8 +22,8 @@ role: Runs many simulations with bounded frame memory
 The prose below the frontmatter becomes the layer's page body, so an existing
 folder README needs only the frontmatter added.
 
-For a folder with a barrel entry file and no README, annotate the entry file
-instead:
+For a folder with no README, put the tags in the doc comment at the top of one
+source file of the folder:
 
 ```ts
 /**
@@ -39,15 +39,13 @@ and `@talksTo`. Anything else is either an error or ignored.
 ## You do not need to annotate every file
 
 A file with no annotation belongs to the nearest ancestor folder that declares a
-layer. Thirty-seven declarations cover four hundred and thirteen files. Declare a layer where
-the architecture genuinely changes — a new boundary, a different responsibility —
-not on every directory that exists.
+layer. Declare a layer where the architecture changes, at a boundary or a
+different responsibility, and leave every other directory to inherit.
 
 ## Moving or renaming a folder
 
-Nothing to update, provided the folder keeps its declaration with it. That is the
-main practical gain over the old path-matching script, where a move silently
-re-bucketed files into a fallback group.
+Nothing to update, provided the folder keeps its declaration with it. The
+declaration travels with the folder, so its files stay in the same layer.
 
 Renaming a _layer id_ is a real change: it moves the layer's page and invalidates
 inbound links, and every descendant id has to move with it.
@@ -55,10 +53,10 @@ inbound links, and every descendant id has to move with it.
 ## Adding a new package
 
 Add it to `packages` in
-[`architecture.config.ts`](https://github.com/hashintel/hash/blob/main/apps/petrinaut-docs/archinaut.config.ts),
+[`archinaut.config.ts`](https://github.com/hashintel/hash/blob/main/apps/petrinaut-docs/archinaut.config.ts),
 declare a root layer in its source, and rebuild. Build configuration outside the
-package's source directory is deliberately excluded — it configures the build, it
-is not part of the design.
+package's source directory is excluded, because it configures the build and is
+no part of the design.
 
 ## What CI will hold you to
 
@@ -69,8 +67,8 @@ yarn workspace @apps/petrinaut-docs lint:arch-docs
 ```
 
 It fails when a source file no layer covers appears, when a layer id implies an
-ancestor nothing declares, when a dependency violates a declared rule, and when
-the import graph reaches a source file no layer claims.
+ancestor nothing declares, when a `@layerRoot` has no `@role`, when a dependency
+violates a declared rule, and when a `layer:` or `doc:` link does not resolve.
 
 The bundle itself is build output and is git-ignored, so there is nothing to
 regenerate before pushing. Only the annotations are versioned. To read the docs
@@ -100,7 +98,8 @@ comes from the location, so an `attachTo` key is an error. Link to other
 pages by name rather than by path: `[text](layer:core.simulation.engine)` for
 a generated page, `[text](doc:core.simulation/memory-model)` for a guide,
 named by its layer and file stem. A target that does not resolve fails the
-check.
+check. [Writing a layer guide](doc:maintaining/writing-a-guide) has the
+template a guide follows.
 
 Pages about the documentation itself, like this one, belong to no layer and
 stay under `apps/petrinaut-docs/content/`, where the slug is the
@@ -203,8 +202,8 @@ needs its own components of those names.
 
 ## Declaring a rule
 
-Rules live in `architecture.config.ts` and are checked against the real import
-graph:
+Rules live in `archinaut.config.ts` and are checked against the dependency
+graph. A rule that names a layer covers its descendants too:
 
 ```ts
 {
@@ -214,9 +213,9 @@ graph:
 }
 ```
 
-Add one only when the code already satisfies it — a rule is a statement of fact
-that CI keeps true, not an aspiration. Check first with a build; if there are
-existing violations, either fix them in the same change or leave the rule out.
+Add one only when the code already satisfies it: a rule is a statement of fact
+that CI keeps true. Run the check first; if the code breaks the rule, either
+fix the code in the same change or leave the rule out.
 
 ## Declaring a protocol edge
 

@@ -7,8 +7,6 @@ export { CODE_FONT_FAMILY } from "./fonts";
  *
  * NOTE: This file is imported by panda.config.ts (build-time, Node context).
  * Do not add browser-only or React imports here.
- *
- * NOTE: SubView registries live in ./ui-subviews.ts to avoid import cycles.
  */
 
 // Canvas grid
@@ -16,10 +14,6 @@ export const SNAP_GRID_SIZE = GRID_SIZE;
 
 // Panel margin (spacing around panels)
 export const PANEL_MARGIN = 0;
-
-// Resize handle
-export const RESIZE_HANDLE_SIZE = 5;
-export const RESIZE_HANDLE_OFFSET = -Math.floor(RESIZE_HANDLE_SIZE / 2) - 1;
 
 // Left Sidebar (DEFAULT_LEFT_SIDEBAR_WIDTH lives in react/state/panel-defaults)
 export const MIN_LEFT_SIDEBAR_WIDTH = 220;
@@ -29,10 +23,14 @@ export const MAX_LEFT_SIDEBAR_WIDTH = 500;
 export const MIN_PROPERTIES_PANEL_WIDTH = 250;
 export const MAX_PROPERTIES_PANEL_WIDTH = 800;
 
+// AI assistant, while it is docked beside the workspace
+export const MIN_AI_ASSISTANT_WIDTH = 320;
+export const MAX_AI_ASSISTANT_WIDTH = 720;
+
 // Viewport controls — the button column at the bottom right of the canvas.
 // The width is one `xs` icon button, rounded up from its rendered 21px.
 export const VIEWPORT_CONTROLS_OFFSET = 12;
-export const VIEWPORT_CONTROLS_WIDTH = 24;
+const VIEWPORT_CONTROLS_WIDTH = 24;
 
 /** What a control sharing the column's row has to leave free of it. */
 export const VIEWPORT_CONTROLS_CLEARANCE =

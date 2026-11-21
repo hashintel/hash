@@ -1,11 +1,9 @@
 /**
- * Module factories for the `vi.mock` calls the study suites share. uPlot
- * cannot mount in jsdom, so the charts are stubs while the card chrome around
- * them (the menu, the subtitle, the tone) stays real.
+ * The module factory for the `vi.mock` call of the experiment panel's suite.
+ * uPlot cannot mount in jsdom, so the timeline is a stub while the card chrome
+ * around it (the menu, the subtitle, the tone) stays real.
  */
 import { vi } from "vitest";
-
-import type { ChartCardTone } from "./chart-card";
 
 /**
  * Replaces `../experiments/experiment-metric-timeline`: the menu, the view
@@ -44,29 +42,6 @@ export const mockExperimentMetricTimelineModule = async () => {
       >
         {frames.length} frames
       </div>
-    ),
-  };
-};
-
-/** Replaces the objective-history module: a real `ChartCard` around a stub plot. */
-export const mockObjectiveHistoryCardModule = async () => {
-  const chartCard =
-    await vi.importActual<typeof import("./chart-card")>("./chart-card");
-  return {
-    ObjectiveHistoryCard: ({
-      plotHeight,
-      tone,
-    }: {
-      plotHeight: number;
-      tone?: ChartCardTone;
-    }) => (
-      <chartCard.ChartCard
-        title="Objective by step"
-        bodyHeight={plotHeight}
-        tone={tone}
-      >
-        <div data-testid="objective-history" />
-      </chartCard.ChartCard>
     ),
   };
 };

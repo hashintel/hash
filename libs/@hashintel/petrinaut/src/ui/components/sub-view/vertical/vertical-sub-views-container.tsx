@@ -1,25 +1,22 @@
-import React, { Fragment, useRef, useState } from "react";
+import { Fragment } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
-import {
-  Button,
-  HelpTooltip,
-  Icon,
-  useAvoidScrollWidthChange,
-} from "@hashintel/ds-components";
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useUserSettings } from "../../../../react/state/user-settings-context";
-import { useScrollOverflow } from "../../../hooks/use-scroll-overflow";
-import { usePetrinautPresentation } from "../../../views/shared/presentation-context";
+import { SubViewContent } from "./vertical-sub-views-container/sub-view-content";
+import { SubViewHeader } from "./vertical-sub-views-container/sub-view-header";
+import { useDebouncedHeightSave } from "./vertical-sub-views-container/use-debounced-height-save";
+import { useHeldWhile } from "./vertical-sub-views-container/use-held-while";
 import { useSubViewMaximization } from "./vertical-sub-views-container/use-sub-view-maximization";
+import { useTransientTransition } from "./vertical-sub-views-container/use-transient-transition";
 
+import type { SubViewSectionSettings } from "../../../../react/state/user-settings-context";
 import type { SubView } from "../types";
 
 /** Height of the header row in pixels */
 const HEADER_HEIGHT = 44;
-/** Size of the icon in the main header */
-const HEADER_ICON_SIZE = 16;
+
 /** Default minimum panel height when no per-subview minHeight is set */
 const DEFAULT_MIN_PANEL_HEIGHT = 100;
 
@@ -74,140 +71,6 @@ const sectionMotionStyle = css({
   "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
 });
 
-const breadcrumbStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1.5",
-  flex: "1",
-  minWidth: "0",
-  pl: "1",
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s100",
-  lineHeight: "[20px]",
-});
-
-const parentTitleStyle = css({
-  appearance: "none",
-  border: "[0]",
-  backgroundColor: "[transparent]",
-  padding: "0",
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-  flex: "[0 1 auto]",
-  minWidth: "0",
-  overflow: "hidden",
-  whiteSpace: "nowrap",
-  textAlign: "left",
-  font: "[inherit]",
-  fontSize: "[13px]",
-  fontWeight: "normal",
-  color: "neutral.s85",
-  cursor: "pointer",
-  textDecoration: "underline",
-  textDecorationColor: "[transparent]",
-  textUnderlineOffset: "[3px]",
-  "[data-subview-animate] &": {
-    transition: "[color 160ms ease-out, text-decoration-color 160ms ease-out]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  },
-  _hover: {
-    color: "neutral.s120",
-    textDecorationColor: "[currentColor]",
-  },
-  _focusVisible: {
-    outline: "[2px solid {colors.blue.s70}]",
-    outlineOffset: "[3px]",
-    borderRadius: "[2px]",
-  },
-});
-
-const parentTitleTextStyle = css({
-  minWidth: "0",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-});
-
-const breadcrumbSeparatorStyle = css({
-  display: "flex",
-  color: "neutral.s65",
-  flexShrink: 0,
-});
-
-const breadcrumbCurrentStyle = css({
-  display: "flex",
-  alignItems: "center",
-  flexShrink: 0,
-  whiteSpace: "nowrap",
-});
-
-const sectionContentStyle = css({
-  overflow: "hidden",
-  minHeight: "[0]",
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-});
-
-const scrollContainerStyle = css({
-  position: "relative",
-  flex: "[1]",
-  minHeight: "[0]",
-  display: "flex",
-  flexDirection: "column",
-});
-
-const panelContentStyle = css({
-  overflowY: "auto",
-  scrollbarWidth: "[thin]",
-  flex: "[1]",
-  minHeight: "[0]",
-  display: "flex",
-  flexDirection: "column",
-  // No top padding on the scroll container — it would create a gap above
-  // sticky section headers (which would pin below the gap). The first sticky
-  // header owns its own top spacing. Bottom padding is fine: it scrolls with
-  // the content, so short views keep a clean inset while overflowing views
-  // scroll through the section's full height.
-  "--subview-content-inline-padding": "[16px]",
-  px: "[var(--subview-content-inline-padding)]",
-  pb: "3",
-  // The padding changes at once: a transition on it would resize the code
-  // editor on every frame of a section's animation.
-  "[data-subview-full-width-code] &": { paddingBottom: "0" },
-});
-
-const SHADOW_HEIGHT = 7;
-
-const scrollShadowStyle = cva({
-  base: {
-    position: "absolute",
-    left: "[0]",
-    right: "[0]",
-    height: `[${SHADOW_HEIGHT}px]`,
-    pointerEvents: "none",
-    zIndex: "[1]",
-    opacity: "[0]",
-    transition: "[opacity 150ms ease]",
-  },
-  variants: {
-    position: {
-      top: {
-        top: "[0]",
-        background: "[linear-gradient(to bottom, #D0D0D0, #FFFFFF10)]",
-      },
-      bottom: {
-        bottom: "[0]",
-        background: "[linear-gradient(to top, #D0D0D0, #FFFFFF10)]",
-      },
-    },
-    visible: {
-      true: { opacity: "[0.2]" },
-    },
-  },
-});
-
 const resizeHandleStyle = css({
   borderTopWidth: "thin",
   borderTopColor:
@@ -226,399 +89,17 @@ const resizeHandleStyle = css({
   },
 });
 
-const headerRowStyle = cva({
-  base: {
-    height: "11",
-    flexShrink: 0,
-    pl: "0.5",
-    pr: "2",
-
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-
-    borderBottomWidth: "thin",
-    borderBottomColor: "neutral.a20",
-  },
-  variants: {
-    isCollapsed: {
-      true: {
-        borderBottomColor: "[transparent]",
-      },
-    },
-  },
-});
-
-const mainHeaderRowStyle = css({
-  p: "3",
-  h: "11",
-  flexShrink: 0,
-
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-
-  borderBottomWidth: "thin",
-  borderBottomColor: "neutral.a20",
-});
-
-const headerActionsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-  flexShrink: 0,
-});
-
-const headerActionVisibleStyle = css({
-  /** Constrain height so buttons don't grow the header */
-  maxHeight: "[44px]",
-  display: "flex",
-  alignItems: "center",
-  flexShrink: 0,
-});
-
-const headerActionStyle = css({
-  maxHeight: "[44px]",
-  display: "flex",
-  alignItems: "center",
-  flexShrink: 0,
-  opacity: "[0]",
-  width: "[0]",
-  overflow: "hidden",
-  transition: "[opacity 150ms ease-out, width 0s 150ms]",
-});
-
-const sectionToggleStyle = css({
-  display: "flex",
-  alignItems: "center",
-  fontWeight: "medium",
-  fontSize: "sm",
-  color: "neutral.s100",
-  cursor: "pointer",
-  flex: "[1]",
-  minWidth: "[0]",
-  overflow: "hidden",
-
-  "& [data-toggle-icon]": {
-    width: "3.5",
-    opacity: "[var(--petrinaut-panel-toggle-opacity, 0)]",
-  },
-  "&:hover [data-toggle-icon], &:focus-visible [data-toggle-icon]": {
-    opacity: "[1]",
-  },
-});
-
-const sectionToggleLabelStyle = css({
-  display: "flex",
-  alignItems: "center",
-  minWidth: "0",
-});
-
-const sectionToggleIconStyle = css({
-  flexShrink: 0,
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  overflow: "hidden",
-  transition:
-    "[width 150ms ease-out, opacity 150ms ease-out, transform 150ms ease-out]",
-});
-
-const sectionToggleIconExpandedStyle = css({
-  transform: "[rotate(90deg)]",
-});
-
-const infoTooltipWrapperStyle = css({
-  display: "flex",
-  alignItems: "center",
-  flexShrink: 0,
-  opacity: "[0]",
-  transition: "[opacity 150ms ease-out]",
-});
-
-const mainHeaderContentStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-  pl: "1",
-  flex: "[1]",
-  minWidth: "[0]",
-  overflow: "hidden",
-});
-
-const headerIconStyle = css({
-  flexShrink: 0,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "5",
-  color: "neutral.s85",
-});
-
-const mainTitleStyle = cva({
-  base: {
-    fontWeight: "medium",
-    fontSize: "sm",
-    lineHeight: "[20px]",
-    color: "neutral.s100",
-    minWidth: "0",
-    overflow: "hidden",
-    whiteSpace: "nowrap",
-  },
-  variants: {
-    fadeOverflow: {
-      true: {
-        paddingRight: "3",
-        maskImage:
-          "[linear-gradient(to right, black calc(100% - 12px), transparent)]",
-      },
-      false: { textOverflow: "ellipsis" },
-    },
-  },
-  defaultVariants: { fadeOverflow: false },
-});
-
-/**
- * Temporarily enables a boolean flag for `durationMs` after each call to
- * `trigger()`. Useful for enabling CSS transitions only during programmatic
- * state changes (e.g. collapse/expand) while keeping them disabled during
- * mount, resize, or drag interactions.
- */
-const useTransientTransition = (durationMs = 200) => {
-  const [active, setActive] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const trigger = () => {
-    setActive(true);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setActive(false), durationMs);
-  };
-
-  return { active, trigger };
-};
-
-/**
- * Wraps children in a scrollable container with top/bottom gradient shadows
- * that fade in when content overflows in that direction.
- */
-const ScrollableContent: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const { scrollRef, canScrollUp, canScrollDown, onScroll } =
-    useScrollOverflow();
-  useAvoidScrollWidthChange(scrollRef);
-
-  return (
-    <div className={scrollContainerStyle}>
-      <div
-        className={scrollShadowStyle({
-          position: "top",
-          visible: canScrollUp,
-        })}
-      />
-      <div ref={scrollRef} className={panelContentStyle} onScroll={onScroll}>
-        {children}
-      </div>
-      <div
-        className={scrollShadowStyle({
-          position: "bottom",
-          visible: canScrollDown,
-        })}
-      />
-    </div>
-  );
-};
-
-const SubViewContent: React.FC<{ subView: SubView; visible: boolean }> = ({
-  subView,
-  visible,
-}) => {
-  const [visited, setVisited] = useState(visible);
-  if (visible && !visited) setVisited(true);
-  if (!visible && !(subView.retainOnCollapse && visited)) return null;
-  const Component = subView.component;
-
-  return (
-    <div
-      id={`subview-content-${subView.id}`}
-      className={sectionContentStyle}
-      style={visible ? undefined : { display: "none" }}
-      inert={!visible}
-      aria-hidden={!visible || undefined}
-    >
-      <ScrollableContent>
-        <Component />
-      </ScrollableContent>
-    </div>
-  );
-};
-
-interface SubViewHeaderProps {
-  id: string;
-  title: string;
-  tooltip?: string;
-  icon?: React.ComponentType<{ size: number }>;
-  main?: boolean;
-  renderTitle?: () => React.ReactNode;
-  isExpanded: boolean;
-  onToggle: () => void;
-  renderHeaderAction?: () => React.ReactNode;
-  alwaysShowHeaderAction?: boolean;
-  onExpand?: () => void;
-  onRestore?: () => void;
-  parentTitle: string;
-  parentIcon?: SubView["icon"];
-}
-
-const SubViewHeader: React.FC<SubViewHeaderProps> = ({
-  id,
-  title,
-  tooltip,
-  icon: HeaderIcon,
-  main = false,
-  renderTitle,
-  isExpanded,
-  onToggle,
-  renderHeaderAction,
-  alwaysShowHeaderAction,
-  onExpand,
-  onRestore,
-  parentTitle,
-  parentIcon: ParentIcon,
-}) => (
-  <div
-    data-subview-header
-    className={
-      main ? mainHeaderRowStyle : headerRowStyle({ isCollapsed: !isExpanded })
-    }
-  >
-    {onRestore ? (
-      <nav
-        aria-label="Properties path"
-        data-subview-title
-        className={breadcrumbStyle}
-      >
-        <button
-          type="button"
-          data-restore-subview
-          aria-label={`Back to ${parentTitle}`}
-          title={parentTitle}
-          className={parentTitleStyle}
-          onClick={onRestore}
-        >
-          {ParentIcon && (
-            <span aria-hidden="true" className={headerIconStyle}>
-              <ParentIcon size={HEADER_ICON_SIZE} />
-            </span>
-          )}
-          <span className={parentTitleTextStyle}>{parentTitle}</span>
-        </button>
-        {parentTitle !== title && (
-          <>
-            <span aria-hidden="true" className={breadcrumbSeparatorStyle}>
-              <Icon name="chevronRight" size="xxs" />
-            </span>
-            <span
-              aria-current="page"
-              title={title}
-              className={breadcrumbCurrentStyle}
-            >
-              {title}
-              {tooltip && (
-                <span data-info-tooltip className={infoTooltipWrapperStyle}>
-                  <HelpTooltip align="center" content={tooltip} />
-                </span>
-              )}
-            </span>
-          </>
-        )}
-      </nav>
-    ) : main ? (
-      <div data-subview-title className={mainHeaderContentStyle}>
-        {HeaderIcon && (
-          <span aria-hidden="true" className={headerIconStyle}>
-            <HeaderIcon size={HEADER_ICON_SIZE} />
-          </span>
-        )}
-        {renderTitle ? (
-          renderTitle()
-        ) : (
-          <span className={mainTitleStyle()}>{title}</span>
-        )}
-      </div>
-    ) : (
-      <div
-        data-toggle-subview
-        onClick={onToggle}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onToggle();
-          }
-        }}
-        className={sectionToggleStyle}
-        aria-expanded={isExpanded}
-        aria-controls={`subview-content-${id}`}
-      >
-        <div
-          data-toggle-icon
-          className={cx(
-            sectionToggleIconStyle,
-            isExpanded && sectionToggleIconExpandedStyle,
-          )}
-        >
-          <Icon name="chevronRight" size="xxs" />
-        </div>
-        <span className={sectionToggleLabelStyle}>
-          <span className={mainTitleStyle()}>{title}</span>
-          {tooltip && (
-            <span data-info-tooltip className={infoTooltipWrapperStyle}>
-              <HelpTooltip align="center" content={tooltip} />
-            </span>
-          )}
-        </span>
-      </div>
-    )}
-    {(onExpand ||
-      ((isExpanded || alwaysShowHeaderAction) && renderHeaderAction)) && (
-      <div className={headerActionsStyle}>
-        {onExpand && (
-          <Button
-            size="sm"
-            variant="ghost"
-            iconName="expand"
-            data-expand-subview
-            aria-label={`Expand ${title}`}
-            tooltip="Fill panel"
-            onClick={onExpand}
-          />
-        )}
-        {(isExpanded || alwaysShowHeaderAction) && renderHeaderAction && (
-          <div
-            {...(!alwaysShowHeaderAction && { "data-header-action": true })}
-            className={
-              alwaysShowHeaderAction
-                ? headerActionVisibleStyle
-                : headerActionStyle
-            }
-          >
-            {renderHeaderAction()}
-          </div>
-        )}
-      </div>
-    )}
-  </div>
-);
+const isCollapsedIn = (
+  settings: Record<string, SubViewSectionSettings> | undefined,
+  subView: SubView,
+): boolean =>
+  settings?.[subView.id]?.collapsed ?? subView.defaultCollapsed ?? false;
 
 interface VerticalSubViewsContainerProps {
   /** Unique name used as a key in UserSettingsContext to persist section state */
   name: string;
   /** Array of subviews to display */
   subViews: SubView[];
-  /** Whether sections should be expanded by default */
-  defaultExpanded?: boolean;
 }
 
 /**
@@ -628,8 +109,7 @@ interface VerticalSubViewsContainerProps {
  */
 export const VerticalSubViewsContainer: React.FC<
   VerticalSubViewsContainerProps
-> = ({ name, subViews, defaultExpanded = true }) => {
-  const presentation = usePetrinautPresentation();
+> = ({ name, subViews }) => {
   // By selector: the settings are saved each time a panel opens or closes,
   // and every section of this panel renders with this component.
   const showAnimations = useUserSettings((settings) => settings.showAnimations);
@@ -639,36 +119,24 @@ export const VerticalSubViewsContainer: React.FC<
   const updateSubViewSection = useUserSettings(
     (settings) => settings.updateSubViewSection,
   );
-  const { containerRef, maximizedId, isRestoring, maximize, restore } =
-    useSubViewMaximization(name, subViews, showAnimations);
+  const {
+    containerRef,
+    maximizedId,
+    isRestoring,
+    isArriving,
+    maximize,
+    restore,
+  } = useSubViewMaximization(name, subViews, showAnimations);
   const parentSubView = subViews.find((subView) => subView.main);
   const parentTitle = parentSubView?.title ?? "Properties";
 
-  const isSectionCollapsed = (sv: SubView): boolean => {
-    const saved = containerSettings?.[sv.id];
-    if (saved !== undefined) {
-      return saved.collapsed;
-    }
-    return sv.defaultCollapsed ?? !defaultExpanded;
-  };
+  // What opens code in a section expands the section and fills the container
+  // with it at once. The other sections show until the section covers them,
+  // so the layout they are in holds still until then: expanding the section
+  // would give its panel a new height and move every section below the fold.
+  const shownSettings = useHeldWhile(isArriving, containerSettings);
 
-  const getSavedHeight = (id: string): number | undefined =>
-    containerSettings?.[id]?.height;
-
-  // Debounce height saves to avoid writing to context on every drag frame
-  const heightTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
-    {},
-  );
-
-  const handleResize = (id: string) => (panelSize: { inPixels: number }) => {
-    if (panelSize.inPixels <= HEADER_HEIGHT) {
-      return;
-    }
-    clearTimeout(heightTimers.current[id]);
-    heightTimers.current[id] = setTimeout(() => {
-      updateSubViewSection(name, id, { height: panelSize.inPixels });
-    }, 300);
-  };
+  const saveHeight = useDebouncedHeightSave(name, updateSubViewSection);
 
   const { active: isAnimating, trigger: triggerTransition } =
     useTransientTransition(200);
@@ -677,13 +145,14 @@ export const VerticalSubViewsContainer: React.FC<
     if (showAnimations) {
       triggerTransition();
     }
-    updateSubViewSection(name, sv.id, { collapsed: !isSectionCollapsed(sv) });
+    updateSubViewSection(name, sv.id, {
+      collapsed: !isCollapsedIn(containerSettings, sv),
+    });
   };
 
-  const allCollapsed = subViews.every((sv) => {
-    const isCollapsible = !sv.main && (sv.collapsible ?? true);
-    return isCollapsible && isSectionCollapsed(sv);
-  });
+  const allCollapsed = subViews.every(
+    (sv) => !sv.main && isCollapsedIn(shownSettings, sv),
+  );
 
   return (
     <Group
@@ -706,8 +175,7 @@ export const VerticalSubViewsContainer: React.FC<
         const fillsContainer = maximizedId === subView.id;
         const isHidden = maximizedId !== null && !fillsContainer;
         const isMain = subView.main ?? false;
-        const isCollapsible = !isMain && (subView.collapsible ?? true);
-        const isExpanded = !isCollapsible || !isSectionCollapsed(subView);
+        const isExpanded = isMain || !isCollapsedIn(shownSettings, subView);
         const minSize =
           subView.resizable?.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
 
@@ -715,8 +183,14 @@ export const VerticalSubViewsContainer: React.FC<
           <Fragment key={subView.id}>
             <Panel
               id={subView.id}
-              defaultSize={getSavedHeight(subView.id)}
-              onResize={handleResize(subView.id)}
+              defaultSize={containerSettings?.[subView.id]?.height}
+              onResize={({ inPixels }) => {
+                // A collapsed section is as tall as its header: not a height
+                // to restore.
+                if (inPixels > HEADER_HEIGHT) {
+                  saveHeight(subView.id, inPixels);
+                }
+              }}
               minSize={isExpanded ? minSize : HEADER_HEIGHT}
               maxSize={isExpanded ? undefined : HEADER_HEIGHT}
             >
@@ -740,21 +214,10 @@ export const VerticalSubViewsContainer: React.FC<
                 data-subview-animate={showAnimations || undefined}
               >
                 <SubViewHeader
-                  id={subView.id}
-                  title={subView.title}
-                  tooltip={subView.tooltip}
-                  icon={subView.icon}
+                  subView={subView}
                   main={isMain || fillsContainer}
-                  renderTitle={subView.renderTitle}
                   isExpanded={fillsContainer || isExpanded}
                   onToggle={() => toggleSection(subView)}
-                  renderHeaderAction={
-                    subView.headerActionMutates &&
-                    !presentation.showMutationActions
-                      ? undefined
-                      : subView.renderHeaderAction
-                  }
-                  alwaysShowHeaderAction={subView.alwaysShowHeaderAction}
                   parentTitle={parentTitle}
                   parentIcon={parentSubView?.icon}
                   onRestore={fillsContainer ? restore : undefined}

@@ -1,14 +1,9 @@
 import { use, useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { DiagnosticsIcon, useHashIconMotionAllowed } from "@hashintel/ds-icons";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
-import {
-  DiagnosticsIcon,
-  useExperimentalIconMotionAllowed,
-  useExperimentalIconPackEnabled,
-} from "../../../../experimental-icons";
 import { useCompositionProblems } from "../../shared/use-composition-problems";
 import { ToolbarButton } from "./toolbar-button";
 
@@ -31,17 +26,12 @@ const iconContainerStyle = cva({
         backgroundColor: "[rgba(245, 158, 11, 0.1)]",
         color: "[#d97706]",
       },
-      success: {
+      valid: {
         backgroundColor: "[rgba(34, 197, 94, 0.1)]",
         color: "[#16a34a]",
       },
     },
   },
-});
-
-const countStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
 });
 
 const animatedContainerStyle = css({
@@ -119,11 +109,13 @@ interface DiagnosticsIndicatorProps {
 }
 
 /**
- * DiagnosticsIndicator shows the current SDCPN validation status, the code
- * diagnostics and the composition's errors and warnings together.
- * - Green check icon if no issues
- * - Amber icon with count if only warnings/hints (simulation still allowed)
- * - Red cross icon with count if errors found
+ * Shows how many issues the net has, counting the code diagnostics and the
+ * composition's errors and warnings together. `DiagnosticsIcon` draws the
+ * status:
+ * - `valid`, in green and with no count, when there is no issue
+ * - `warning`, in amber with the count, when there are only warnings and
+ *   hints, which leave the simulation allowed
+ * - `error`, in red with the count, when there is at least one error
  */
 export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
   onClick,
@@ -143,8 +135,7 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
 
   const hasErrors = errorDiagnosticsCount > 0;
   const hasIssues = totalDiagnosticsCount > 0;
-  const experimentalIcons = useExperimentalIconPackEnabled();
-  const motionAllowed = useExperimentalIconMotionAllowed();
+  const motionAllowed = useHashIconMotionAllowed();
   const status = hasErrors ? "error" : hasIssues ? "warning" : "valid";
 
   return (
@@ -157,43 +148,26 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
           : "No diagnostic issues"
       }
       ariaExpanded={isExpanded}
-      style={
-        experimentalIcons
-          ? {
-              width: "auto",
-              minWidth: 32,
-              flexShrink: 0,
-              transition: motionAllowed ? undefined : "none",
-            }
-          : undefined
-      }
+      style={{
+        width: "auto",
+        minWidth: 32,
+        flexShrink: 0,
+        transition: motionAllowed ? undefined : "none",
+      }}
     >
       <div
-        className={iconContainerStyle({
-          status: hasErrors ? "error" : hasIssues ? "warning" : "success",
-        })}
-        style={
-          experimentalIcons
-            ? {
-                transition: motionAllowed
-                  ? "background-color 320ms ease, color 320ms ease"
-                  : "none",
-              }
-            : undefined
-        }
+        className={iconContainerStyle({ status })}
+        style={{
+          transition: motionAllowed
+            ? "background-color 320ms ease, color 320ms ease"
+            : "none",
+        }}
       >
-        {experimentalIcons ? (
-          <AnimatedDiagnosticsContents
-            count={totalDiagnosticsCount}
-            status={status}
-            motionAllowed={motionAllowed}
-          />
-        ) : (
-          <Icon name={hasIssues ? "close" : "check"} size="sm" />
-        )}
-        {!experimentalIcons && hasIssues && (
-          <span className={countStyle}>{totalDiagnosticsCount}</span>
-        )}
+        <AnimatedDiagnosticsContents
+          count={totalDiagnosticsCount}
+          status={status}
+          motionAllowed={motionAllowed}
+        />
       </div>
     </ToolbarButton>
   );

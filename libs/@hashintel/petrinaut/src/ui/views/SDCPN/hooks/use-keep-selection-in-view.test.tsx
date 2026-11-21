@@ -52,7 +52,6 @@ const setup = (initialSelection: string[]) => {
   });
   // A camera that never catches up: only where it is heading moves.
   const controller = {
-    getViewport: () => origin,
     getRestViewport: () => rest,
     setViewport,
   } as unknown as CanvasController;

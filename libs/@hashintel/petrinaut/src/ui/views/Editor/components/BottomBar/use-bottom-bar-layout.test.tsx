@@ -75,7 +75,6 @@ it("centers in the available main view as sibling panels resize it", async () =>
     isSearchOpen: false,
     hasSelection: false,
     isAiAssistantOpen: false,
-    isAiAssistantCollapsed: false,
   };
   const panelSizes = createPanelSizes();
   const wrapper = ({ children }: { children: ReactNode }) => (

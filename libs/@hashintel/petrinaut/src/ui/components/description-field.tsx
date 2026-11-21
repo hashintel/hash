@@ -30,7 +30,7 @@ const textAreaStyle = css({
  * Description textarea bound to a {@link useDraftField} draft.
  * {@link DescriptionField} wraps it with a "Description" label.
  */
-export const DescriptionTextArea: React.FC<DescriptionTextAreaProps> = ({
+const DescriptionTextArea: React.FC<DescriptionTextAreaProps> = ({
   sourceId,
   sourceValue,
   onCommit,

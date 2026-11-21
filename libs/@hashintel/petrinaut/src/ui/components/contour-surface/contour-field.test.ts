@@ -3,36 +3,33 @@ import { describe, expect, it } from "vitest";
 import {
   contourLevels,
   createIdwAccumulator,
-  idwRaster,
   marchingSquaresSegments,
 } from "./contour-field";
 
-describe("idwRaster", () => {
+describe("createIdwAccumulator", () => {
   it("is flat at the sample value with a single sample", () => {
-    const raster = idwRaster({
-      samples: [{ x: 1, y: 1, value: 7 }],
+    const raster = createIdwAccumulator({
       nx: 3,
       ny: 3,
       width: 4,
       height: 4,
-    });
+    }).update([{ x: 1, y: 1, value: 7 }]);
     expect([...raster].every((value) => Math.abs(value - 7) < 1e-9)).toBe(true);
   });
 
   it("hits sample values exactly at their raster positions", () => {
     // 2x2 grid rendered on a 2x2 raster: each raster corner is a sample.
-    const raster = idwRaster({
-      samples: [
-        { x: 0, y: 0, value: 1 },
-        { x: 1, y: 0, value: 2 },
-        { x: 0, y: 1, value: 3 },
-        { x: 1, y: 1, value: 4 },
-      ],
+    const raster = createIdwAccumulator({
       nx: 2,
       ny: 2,
       width: 2,
       height: 2,
-    });
+    }).update([
+      { x: 0, y: 0, value: 1 },
+      { x: 1, y: 0, value: 2 },
+      { x: 0, y: 1, value: 3 },
+      { x: 1, y: 1, value: 4 },
+    ]);
     // Raster rows are top-down; grid y is up, so grid (0,1)=3 is top-left.
     expect([...raster]).toEqual([3, 4, 1, 2]);
   });
@@ -45,7 +42,7 @@ describe("idwRaster", () => {
       { x: 4.9, y: 4.4, value: 5 },
     ];
     const size = { nx: 11, ny: 11, width: 81, height: 81 };
-    const raster = idwRaster({ samples, ...size });
+    const raster = createIdwAccumulator(size).update(samples);
 
     expect(Math.min(...raster)).toBeGreaterThanOrEqual(2);
     expect(Math.max(...raster)).toBeLessThanOrEqual(10);
@@ -61,9 +58,25 @@ describe("idwRaster", () => {
     expect(midway).toBeGreaterThan(3);
     expect(midway).toBeLessThan(9);
   });
+
+  it("weights each sample by the inverse square of its distance", () => {
+    // One row of four raster points at x = 0, 1, 2, 3, with a sample on each end.
+    const raster = createIdwAccumulator({
+      nx: 4,
+      ny: 1,
+      width: 4,
+      height: 1,
+    }).update([
+      { x: 0, y: 0, value: 0 },
+      { x: 3, y: 0, value: 9 },
+    ]);
+    // At x = 1 the weights are 1/1 and 1/4: (0 × 1 + 9 × 0.25) / 1.25.
+    expect(raster[1]).toBeCloseTo(1.8, 9);
+    expect(raster[2]).toBeCloseTo(7.2, 9);
+  });
 });
 
-describe("createIdwAccumulator", () => {
+describe("createIdwAccumulator, fed a growing list", () => {
   const samples = [
     { x: 0, y: 0, value: 1 },
     { x: 2, y: 2, value: 9 },
@@ -71,12 +84,14 @@ describe("createIdwAccumulator", () => {
   ];
   const size = { nx: 3, ny: 3, width: 9, height: 9 };
 
-  it("matches idwRaster after folding samples incrementally", () => {
+  it("gives the raster of one fold after folding samples incrementally", () => {
     const accumulator = createIdwAccumulator(size);
     accumulator.update(samples.slice(0, 1));
     accumulator.update(samples.slice(0, 2));
     const incremental = [...accumulator.update(samples)];
-    expect(incremental).toEqual([...idwRaster({ samples, ...size })]);
+    expect(incremental).toEqual([
+      ...createIdwAccumulator(size).update(samples),
+    ]);
   });
 
   it("bumps the version only when the raster changes", () => {
@@ -94,7 +109,7 @@ describe("createIdwAccumulator", () => {
     accumulator.update(samples);
     const restarted = [...accumulator.update(samples.slice(2))];
     expect(restarted).toEqual([
-      ...idwRaster({ samples: samples.slice(2), ...size }),
+      ...createIdwAccumulator(size).update(samples.slice(2)),
     ]);
   });
 });

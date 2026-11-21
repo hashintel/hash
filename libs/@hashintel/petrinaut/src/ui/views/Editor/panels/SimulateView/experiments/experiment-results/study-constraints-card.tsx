@@ -1,4 +1,3 @@
-import { css } from "@hashintel/ds-helpers/css";
 /**
  * The study's constraints in one card: how many steps are clear across the
  * study as the headline, the latest step's own verdict beneath it, and one
@@ -6,19 +5,21 @@ import { css } from "@hashintel/ds-helpers/css";
  * percentage is printed beside the fraction it came from, and every row is
  * reserved so the card never changes shape as steps land.
  */
+import { css } from "@hashintel/ds-helpers/css";
 import { constraintLabel } from "@hashintel/petrinaut-core";
 
 import {
-  bindingStepRate,
   constraintAlpha,
-  constraintNameIn,
   formatRate,
   passThresholdPercent,
-  type StepVerdict,
-  stepVerdict,
   type StudyConstraintRates,
 } from "../../../../../../../react/optimizations/constraint-rates";
 import { ChartCard, type ChartCardTone } from "../../shared/chart-card";
+import { METRIC_PLOT_HEIGHT } from "../../shared/chart-card-layout";
+import {
+  describeStep,
+  latestStep,
+} from "./study-constraints-card/describe-step";
 
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
 
@@ -134,75 +135,14 @@ const noteStyle = css({
   color: "neutral.s80",
 });
 
-const VERDICT_WORD: Record<StepVerdict, string> = {
-  clear: "clear",
-  limited: "limited",
-  infeasible: "infeasible",
-  unconstrained: "unconstrained",
-};
-
-/**
- * The step the card describes beneath the headline: the latest step whose
- * event landed. Null before any step.
- */
-export const describedStep = (
-  trials: OptimizationRecord["trials"],
-): OptimizationRecord["trials"][number] | null =>
-  trials.reduce<OptimizationRecord["trials"][number] | null>(
-    (latest, trial) =>
-      latest === null || trial.trial > latest.trial ? trial : latest,
-    null,
-  );
-
-/** The step line's parts: the verdict word, the `Step 12: limited` head and what follows it. */
-export type DescribedStep = {
-  verdict: StepVerdict;
-  head: string;
-  /** The infeasible draw's constraint; the binding rate as `51 / 60 runs passed · 85% · Queue under 10`; a state other than complete; null when the head says it all. */
-  detail: string | null;
-};
-
-export const describeStep = (
-  input: Pick<OptimizationRecord["input"], "constraints">,
-  trial: OptimizationRecord["trials"][number],
-  alpha: number,
-): DescribedStep => {
-  const verdict = stepVerdict(trial, alpha);
-  const head = `Step ${trial.trial + 1}: ${VERDICT_WORD[verdict]}`;
-  if (verdict === "infeasible") {
-    return {
-      verdict,
-      head,
-      detail: constraintNameIn(input, trial.constraints?.infeasible ?? ""),
-    };
-  }
-  const binding = bindingStepRate(trial, alpha);
-  if (binding === null) {
-    return {
-      verdict,
-      head,
-      detail: trial.state === "complete" ? null : trial.state,
-    };
-  }
-  const percent = Math.round((binding.runsPassed / binding.runsTotal) * 100);
-  return {
-    verdict,
-    head,
-    detail: `${binding.runsPassed} / ${binding.runsTotal} runs passed · ${percent}% · ${constraintNameIn(input, binding.constraintId)}`,
-  };
-};
-
 export const StudyConstraintsCard = ({
   optimization,
   rates,
-  plotHeight,
   tone,
 }: {
   optimization: OptimizationRecord;
   /** The study's rates, computed once by the model for the strip and this card. */
   rates: StudyConstraintRates;
-  /** The body's height in pixels; the card is exactly as tall as its neighbours. */
-  plotHeight: number;
   /** How the card reads: `optimizing` while the study drives the sweep. */
   tone?: ChartCardTone;
 }) => {
@@ -213,7 +153,7 @@ export const StudyConstraintsCard = ({
   const stateConstraints = constraints.filter(
     (constraint) => constraint.space === "state",
   );
-  const step = describedStep(trials);
+  const step = latestStep(trials);
   const described = step === null ? null : describeStep(input, step, alpha);
   const infeasibleNote =
     rates.infeasibleDraws === 0
@@ -225,10 +165,10 @@ export const StudyConstraintsCard = ({
       title="Constraints"
       subtitle={`pass threshold ${threshold}% (alpha ${alpha})${infeasibleNote}`}
       help="A run passes a state constraint when the condition held on every sampled frame. A step is clear when every state constraint held on at least the threshold share of its runs, limited otherwise, and infeasible when its parameters broke a parameter constraint before anything ran. The objective counts every run whatever the verdicts; nothing is excluded."
-      bodyHeight={plotHeight}
+      bodyHeight={METRIC_PLOT_HEIGHT}
       tone={tone}
     >
-      <div className={bodyStyle} data-constraint-summary>
+      <div className={bodyStyle}>
         <div className={headlineStyle}>
           <span className={headlineValueStyle}>
             {formatRate(rates.stepsClear, rates.stepsSimulated)}

@@ -6,7 +6,7 @@ import type { SpreadsheetCellValue, SpreadsheetColumn } from "./spreadsheet";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
-  title: "Components / Spreadsheet",
+  title: "Components/Spreadsheet",
   parameters: {
     layout: "centered",
   },

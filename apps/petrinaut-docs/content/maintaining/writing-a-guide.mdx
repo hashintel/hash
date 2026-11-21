@@ -1,0 +1,84 @@
+---
+title: Writing a layer guide
+description: The template a guide about one layer follows, what it leaves to the generated pages, and what the build checks in it.
+sidebar_order: 4
+---
+
+A layer guide is a hand-written `.mdx` page beside a layer's code that explains
+why the layer has its shape. The generated layer page states the role, the
+folder, the size and the dependencies, and TSDoc states the signatures. A guide
+repeats neither.
+
+![Annotations and references produce the layer page, so a guide carries reasons, and the build checks its links, its MDX and its diagram](@diagrams/guide-sources.svg)
+
+## Template
+
+```mdx
+---
+title: <Layer name>
+description: <the @role sentence>
+sidebar_order: <n>
+---
+
+<The @role sentence, then what the layer owns and what it leaves to others.>
+
+![<A caption that states the takeaway>](./<name>.d2)
+
+## Entry point
+
+<The file and the exported symbol. The parts it composes, in order.>
+
+## Interface
+
+<Three to seven names a caller starts from.>
+
+## Data flow
+
+<Numbered steps of one user action, using the arrow labels of the diagram.>
+
+## Rules
+
+<A checkable sentence, its reason, and the test, lint rule or layer rule that holds it.>
+
+## Pitfalls
+
+<Symptom, cause, the rule that avoids it.>
+```
+
+The first sentence defines the layer. A page that needs two definitions is two
+pages. A guide above about 500 words says why it is longer.
+
+## What a guide leaves out
+
+| Left out                                 | Reason                                                            |
+| ---------------------------------------- | ----------------------------------------------------------------- |
+| Lists of files, exports and dependencies | The code lists the first two, the layer page the dependencies.    |
+| Signatures and parameter lists           | TSDoc on the export has them, and the editor shows them on hover. |
+| Counts, versions, dates, people, tickets | They change while the page stays the same.                        |
+| History                                  | A guide describes the code as it is.                              |
+
+A flaw that needs a refactor is the one place for a ticket: it gets a
+`:::danger` aside that names the flaw and its ticket.
+
+## The diagram
+
+A guide has one D2 diagram, in a `.d2` file beside it.
+[Declaring layers](doc:maintaining/declaring-layers) shows how a page
+references it.
+
+- It has at most about fifteen nodes. A larger subject is split by user action.
+- Each arrow has one direction and a verb as its label.
+- The caption states what the reader should take from it.
+- A legend names the line styles when the diagram uses two.
+- A label that contains `:` or `[` is quoted.
+
+## What the build checks
+
+| Rule                                                                 | Reason                                                         | Check                                                |
+| -------------------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------- |
+| Every `layer:` and `doc:` link names a layer or a page that exists.  | A renamed layer or page would leave a link that leads nowhere. | `yarn workspace @apps/petrinaut-docs lint:arch-docs` |
+| A dependency that a rule in `archinaut.config.ts` forbids is absent. | A guide can then state the direction as a fact.                | `yarn workspace @apps/petrinaut-docs lint:arch-docs` |
+| The MDX compiles, each formula parses and each D2 file renders.      | The check reads a page without compiling it.                   | `yarn workspace @apps/petrinaut-docs build`          |
+
+No build checks that a symbol in backticks exists. Search for each one in the
+code before the page is committed.

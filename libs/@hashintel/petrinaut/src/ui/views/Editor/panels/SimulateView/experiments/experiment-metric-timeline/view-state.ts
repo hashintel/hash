@@ -3,7 +3,6 @@
  * so the component only holds state and renders.
  */
 import {
-  aggregateDistributionBins,
   aggregateDistributionOverTime,
   reduceOverTime,
 } from "./shared/distribution-math";
@@ -11,6 +10,7 @@ import { distributionFramesFrom } from "./shared/metric-frames";
 import {
   buildDistributionBarData,
   buildMetricTimelineData,
+  frameScalar,
 } from "./view-state/plot-data";
 
 import type {
@@ -42,7 +42,7 @@ export const DEFAULT_METRIC_VIEW_SETTINGS: MetricViewSettings = {
   timeAggregation: "mean",
 };
 
-export type MetricViewState = {
+type MetricViewState = {
   displayMode: MetricDisplayMode;
   /** The percentile-lines legend is shown under the chart. */
   showsBandLegend: boolean;
@@ -50,25 +50,16 @@ export type MetricViewState = {
   aggregateNumber: number | null;
   plotData: uPlot.AlignedData;
   hasPlotData: boolean;
-  /** A plot is mounted: there is data, or axes to keep up without any. */
-  canPlot: boolean;
 };
 
 export const deriveMetricViewState = ({
   frames,
   outputType,
   settings,
-  keepsAxesWhileEmpty,
 }: {
   frames: readonly MetricFrame[];
   outputType: MetricFrame["outputType"];
   settings: MetricViewSettings;
-  /**
-   * A pinned time domain draws real axes with no data at all, so the chart
-   * mounts before the first frame streams and nothing shifts when data
-   * lands; an empty re-stream keeps the plot mounted the same way.
-   */
-  keepsAxesWhileEmpty: boolean;
 }): MetricViewState => {
   const {
     aggregateRuns,
@@ -96,11 +87,7 @@ export const deriveMetricViewState = ({
   const aggregateNumber =
     displayMode === "number"
       ? reduceOverTime(
-          frames.map((frame) =>
-            frame.outputType === "scalar"
-              ? frame.value
-              : aggregateDistributionBins(frame.bins, runAggregation),
-          ),
+          frames.map((frame) => frameScalar(frame, runAggregation)),
           timeAggregation,
         )
       : null;
@@ -120,14 +107,12 @@ export const deriveMetricViewState = ({
           distributionView,
           timeTrace,
         );
-  const hasPlotData = plotData[0]!.length > 0;
   return {
     displayMode,
     showsBandLegend,
     aggregateNumber,
     plotData,
-    hasPlotData,
-    canPlot: displayMode !== "number" && (hasPlotData || keepsAxesWhileEmpty),
+    hasPlotData: plotData[0]!.length > 0,
   };
 };
 

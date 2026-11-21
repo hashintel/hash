@@ -11,7 +11,7 @@ import {
 import { PetrinautProvider } from "../../react/petrinaut-provider";
 import { PetrinautPluginsProvider } from "./plugins-provider";
 
-import type { PetrinautNavigationController } from "../../react/navigation";
+import type { PetrinautNavigationController } from "../../react/navigation/navigation";
 import type { NetManagement } from "../../react/net-management-context";
 import type { PetrinautPlugin } from "./define-petrinaut-plugin";
 import type { ComponentType, ReactNode } from "react";

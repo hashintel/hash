@@ -1,58 +1,39 @@
-import { createContext, use, useState } from "react";
+import { startTransition, use, useState } from "react";
 
 import {
+  getDocumentUri,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautNavigation } from "../../react/navigation";
+import { usePetrinautNavigate } from "../../react/navigation/navigation";
 import { ActiveNetContext } from "../../react/state/active-net-context";
 import { CompositionContext } from "../../react/state/composition-context";
-import { EditorContext } from "../../react/state/editor-context";
-import { SDCPNContext } from "../../react/state/sdcpn-context";
-import { UserSettingsContext } from "../../react/state/user-settings-context";
+import { useEditorActions } from "../../react/state/editor-context";
+import { useSDCPNState } from "../../react/state/sdcpn-context";
+import { useUserSettingsFields } from "../../react/state/user-settings-context";
 import { usePetrinautPresentation } from "../views/shared/presentation-context";
-import { getDocumentUri } from "./editor-paths";
+import { CodeNavigationContext } from "./code-navigation-context";
 
-import type { SelectionItem } from "@hashintel/petrinaut-core";
+import type { CodeEntry, CodeNavigation } from "./code-navigation-context";
 import type { PropsWithChildren } from "react";
 
-type CodeEntry = {
-  path: string;
-  label: string;
-  selection: SelectionItem;
-  panel: string;
-  section: string;
-};
-
-type CodeNavigation = {
-  enabled: boolean;
-  entries: CodeEntry[];
-  open: (path: string, options?: { maximize?: boolean }) => void;
-  focusRequest: { path: string } | null;
-  acknowledgeFocus: (path: string) => void;
-};
-
-const CodeNavigationContext = createContext<CodeNavigation>({
-  enabled: false,
-  entries: [],
-  open: () => {},
-  focusRequest: null,
-  acknowledgeFocus: () => {},
-});
-
-export const useCodeNavigation = () => use(CodeNavigationContext);
-
 export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
-  const navigation = usePetrinautNavigation();
+  const navigate = usePetrinautNavigate();
   const [focusRequest, setFocusRequest] = useState<{ path: string } | null>(
     null,
   );
   const { activeNet } = use(ActiveNetContext);
-  const { petriNetDefinition, extensions } = use(SDCPNContext);
+  const petriNetDefinition = useSDCPNState(
+    (document) => document.petriNetDefinition,
+  );
+  const extensions = useSDCPNState((document) => document.extensions);
   const { libraries } = use(CompositionContext);
-  const { selectItem } = use(EditorContext);
-  const { subViewPanels, updateSubViewSection } = use(UserSettingsContext);
+  const { selectItem } = useEditorActions();
+  const { subViewPanels, updateSubViewSection } = useUserSettingsFields(
+    "subViewPanels",
+    "updateSubViewSection",
+  );
   const { showSourceCode: enabled } = usePetrinautPresentation();
   const entries: CodeEntry[] = [
     ...activeNet.transitions.flatMap((transition): CodeEntry[] => {
@@ -130,12 +111,13 @@ export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
     open: (path, options) => {
       const entry = entries.find((candidate) => candidate.path === path);
       if (!enabled || !entry) return;
-      updateSubViewSection(entry.panel, entry.section, {
-        ...subViewPanels[entry.panel]?.[entry.section],
-        collapsed: false,
-      });
+      const expandSection = () =>
+        updateSubViewSection(entry.panel, entry.section, {
+          ...subViewPanels[entry.panel]?.[entry.section],
+          collapsed: false,
+        });
       if (options?.maximize) {
-        navigation.navigate(
+        navigate(
           {
             selection: [entry.selection],
             expandedSubView: { container: entry.panel, id: entry.section },
@@ -143,7 +125,13 @@ export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
           { cause: "user", action: "subview" },
         );
         setFocusRequest({ path });
+        // The section fills its container whether or not it is collapsed.
+        // Expanding it only matters once the user goes back, so it waits:
+        // the container then knows of the request first, and keeps the
+        // layout of its sections still until the section covers them.
+        startTransition(expandSection);
       } else {
+        expandSection();
         selectItem(entry.selection);
       }
     },

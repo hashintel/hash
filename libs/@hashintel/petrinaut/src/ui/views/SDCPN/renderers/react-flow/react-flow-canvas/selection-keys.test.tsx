@@ -5,6 +5,7 @@ import {
   cleanup,
   fireEvent,
   render,
+  renderHook,
   screen,
 } from "@testing-library/react";
 import { ReactFlow, ReactFlowProvider, useStore } from "@xyflow/react";
@@ -21,6 +22,7 @@ import {
 import {
   getSelectionKeyCode,
   useMultiSelectionModifier,
+  useSelectionKeyRelease,
 } from "./selection-keys";
 import { useApplyNodeChanges } from "./use-apply-node-changes";
 
@@ -258,5 +260,60 @@ describe("canvas selection keys", () => {
         ]),
       );
     });
+  });
+});
+
+describe("a selection key the page saw go down and not come up", () => {
+  /** A press that carries the state of Shift, as a pointer event does. */
+  const press = (shiftKey: boolean) =>
+    document.body.dispatchEvent(
+      new MouseEvent("pointerdown", { bubbles: true, shiftKey }),
+    );
+
+  /** The Shift keyups the window receives while the hook is mounted. */
+  const watchShiftKeyups = () => {
+    const keyups: string[] = [];
+    const record = (event: KeyboardEvent) => keyups.push(event.key);
+    window.addEventListener("keyup", record);
+    const { unmount } = renderHook(() => useSelectionKeyRelease());
+    return {
+      keyups,
+      stop: () => {
+        unmount();
+        window.removeEventListener("keyup", record);
+      },
+    };
+  };
+
+  it("is released by the next press that says Shift is up", () => {
+    const { keyups, stop } = watchShiftKeyups();
+    fireEvent.keyDown(window, { key: "Shift" });
+
+    press(false);
+
+    expect(keyups).toEqual(["Shift"]);
+    // Released once: the next press has nothing to release.
+    press(false);
+    expect(keyups).toEqual(["Shift"]);
+    stop();
+  });
+
+  it("is left alone while a press says Shift is still down", () => {
+    const { keyups, stop } = watchShiftKeyups();
+    fireEvent.keyDown(window, { key: "Shift" });
+
+    press(true);
+
+    expect(keyups).toEqual([]);
+    stop();
+  });
+
+  it("sends nothing for a press with no Shift before it", () => {
+    const { keyups, stop } = watchShiftKeyups();
+
+    press(false);
+
+    expect(keyups).toEqual([]);
+    stop();
   });
 });

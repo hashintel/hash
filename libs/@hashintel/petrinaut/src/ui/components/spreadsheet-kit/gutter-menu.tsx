@@ -10,11 +10,7 @@ import { useRef } from "react";
 
 import { Popover } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-
-import {
-  CheckIcon,
-  useExperimentalIconPackEnabled,
-} from "../../experimental-icons";
+import { CheckIcon } from "@hashintel/ds-icons";
 
 const menuStyle = css({
   display: "flex",
@@ -67,7 +63,7 @@ export interface GutterMenuItem {
   disabled?: boolean;
 }
 
-export interface GutterMenuProps {
+interface GutterMenuProps {
   anchor: HTMLButtonElement;
   items: GutterMenuItem[];
   onSelect: (id: string) => void;
@@ -84,8 +80,6 @@ export const GutterMenu: React.FC<GutterMenuProps> = ({
   onClose,
   onDismiss,
 }) => {
-  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const experimentalIcons = useExperimentalIconPackEnabled();
   const focusedOnOpenRef = useRef(false);
   // The Popover focuses this when it opens; the initial item's ref fills it.
   const initialItemRef = useRef<HTMLElement | null>(null);
@@ -98,9 +92,9 @@ export const GutterMenu: React.FC<GutterMenuProps> = ({
         )
       : checkedIndex;
 
-  const handleMenuKeyDown = (event: React.KeyboardEvent) => {
-    const focusables = itemRefs.current.filter(
-      (item): item is HTMLButtonElement => item !== null && !item.disabled,
+  const handleMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const focusables = Array.from(
+      event.currentTarget.querySelectorAll<HTMLButtonElement>("button:enabled"),
     );
     const activeIndex = focusables.findIndex(
       (item) => item === document.activeElement,
@@ -147,7 +141,6 @@ export const GutterMenu: React.FC<GutterMenuProps> = ({
               <button
                 key={item.id}
                 ref={(element) => {
-                  itemRefs.current[index] = element;
                   if (index === initialIndex) {
                     initialItemRef.current = element;
                     // Focus on first attach too: jsdom never runs the
@@ -174,13 +167,7 @@ export const GutterMenu: React.FC<GutterMenuProps> = ({
               >
                 {hasCheckable ? (
                   <span className={menuMarkStyle} aria-hidden="true">
-                    {item.checked ? (
-                      experimentalIcons ? (
-                        <CheckIcon size={14} />
-                      ) : (
-                        "✓"
-                      )
-                    ) : null}
+                    {item.checked ? <CheckIcon size={14} /> : null}
                   </span>
                 ) : null}
                 {item.label}

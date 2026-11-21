@@ -24,14 +24,14 @@ vi.mock("./views/Editor/editor-view", async () => {
     import("react"),
     import("../react/net-management-context"),
     import("./views/Editor/components/TopBar/top-bar"),
-    import("../react/navigation"),
+    import("../react/navigation/navigation"),
   ]);
 
   return {
-    EditorView: ({ titleEditable }: { titleEditable: boolean }) => {
+    EditorView: () => {
       "use no memo"; // The call below has to run on every render.
       onEditorViewRender();
-      const { setTitle, title } = use(NetManagementContext);
+      const { setTitle } = use(NetManagementContext);
       const { state, navigate } = usePetrinautNavigation();
 
       return (
@@ -39,15 +39,7 @@ vi.mock("./views/Editor/editor-view", async () => {
           data-testid="title-capability"
           data-available={setTitle !== undefined}
         >
-          <TopBar
-            actualModeAvailable={false}
-            menuItems={[]}
-            title={title}
-            onTitleChange={setTitle ?? (() => {})}
-            titleEditable={titleEditable}
-            mode="edit"
-            onModeChange={() => {}}
-          />
+          <TopBar />
           <button
             type="button"
             onClick={() =>
@@ -97,7 +89,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { defaultPetrinautNavigationState } from "../react/navigation";
+import { defaultPetrinautNavigationState } from "../react/navigation/navigation";
 import { Petrinaut } from "./petrinaut";
 import {
   definePetrinautPlugin,

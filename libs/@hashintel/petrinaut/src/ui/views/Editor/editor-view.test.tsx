@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import {
   EditorContext,
+  EditorModeContext,
+  EditorPublishedContext,
   type EditorGlobalMode,
   type EditViewMode,
 } from "../../../react/state/editor-context";
@@ -22,12 +24,6 @@ vi.mock("../../../react", () => ({
 }));
 vi.mock("../../../react/hooks/use-element-size", () => ({
   useElementSize: () => ({ width: 1200, height: 800 }),
-}));
-vi.mock("../../../react/state/use-selection-cleanup", () => ({
-  useSelectionCleanup: () => {},
-}));
-vi.mock("../../../react/state/use-is-read-only", () => ({
-  useIsReadOnly: () => false,
 }));
 vi.mock("./panels/SimulateView/simulate-view", () => ({
   SimulateViewTabs: () => <nav aria-label="Simulation views" />,
@@ -66,21 +62,17 @@ vi.mock("./panels/PropertiesPanel/panel", () => ({
 vi.mock("./panels/BottomPanel/panel", () => ({ BottomPanel: () => null }));
 vi.mock("./components/BottomBar/bottom-bar", () => ({ BottomBar: () => null }));
 vi.mock("./components/TopBar/top-bar", () => ({ TopBar: () => null }));
-vi.mock("./components/ai-cta-modal", () => ({
+vi.mock("./editor-view/empty-net-prompt/ai-cta-modal", () => ({
   AiCtaModal: ({ onSubmit }: { onSubmit: (message: string) => void }) => (
     <button type="button" onClick={() => onSubmit("Build an SIR model")}>
       Send empty-net prompt
     </button>
   ),
 }));
-vi.mock("./components/import-error-dialog", () => ({
-  ImportErrorDialog: () => null,
-}));
 vi.mock("./simulation-creation-drawer", () => ({
   SimulationCreationDrawer: () => null,
 }));
-vi.mock("./use-editor-commands", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./use-editor-commands")>()),
+vi.mock("./use-editor-commands", () => ({
   EditorCommands: () => null,
 }));
 
@@ -118,16 +110,22 @@ const EditorAtMode = ({
 }) => {
   const editor = use(EditorContext);
   return (
-    <EditorContext.Provider
-      value={{
-        ...editor,
-        globalMode: mode,
-        editViewMode: view,
-        isAiAssistantOpen: true,
-      }}
-    >
-      <EditorView titleEditable />
-    </EditorContext.Provider>
+    // Nothing published and no mode given out, so a reader by part and a
+    // reader of the mode follow the context below.
+    <EditorPublishedContext value={null}>
+      <EditorModeContext value={null}>
+        <EditorContext.Provider
+          value={{
+            ...editor,
+            globalMode: mode,
+            editViewMode: view,
+            isAiAssistantOpen: true,
+          }}
+        >
+          <EditorView />
+        </EditorContext.Provider>
+      </EditorModeContext>
+    </EditorPublishedContext>
   );
 };
 
@@ -135,11 +133,13 @@ const EditableWorkspace = () => {
   const editor = use(EditorContext);
   const [editViewMode, setEditViewMode] = useState<EditViewMode>("canvas");
   return (
-    <EditorContext.Provider
-      value={{ ...editor, editViewMode, setEditViewMode }}
-    >
-      <EditorView titleEditable />
-    </EditorContext.Provider>
+    <EditorModeContext value={null}>
+      <EditorContext.Provider
+        value={{ ...editor, editViewMode, setEditViewMode }}
+      >
+        <EditorView />
+      </EditorContext.Provider>
+    </EditorModeContext>
   );
 };
 
@@ -190,7 +190,7 @@ describe("EditorView assistant lifecycle", () => {
 
 describe("EditorView empty-net prompt", () => {
   test("opens the panel and hands the message to the plugin assistant's onPrompt", () => {
-    renderPlugins([promptPlugin], <EditorView titleEditable />);
+    renderPlugins([promptPlugin], <EditorView />);
 
     fireEvent.click(
       screen.getByRole("button", { name: "Send empty-net prompt" }),
@@ -203,7 +203,7 @@ describe("EditorView empty-net prompt", () => {
   });
 
   test("hides the prompt while the plugin assistant has no onPrompt", () => {
-    renderPlugins([silentPlugin], <EditorView titleEditable />);
+    renderPlugins([silentPlugin], <EditorView />);
 
     expect(
       screen.queryByRole("button", { name: "Send empty-net prompt" }),
@@ -243,6 +243,20 @@ describe("Edit workspace views", () => {
       ).value,
     ).toBe("collision");
     expect(notebook.scrollTop).toBe(240);
+  });
+
+  test("mounts the Definitions view when it first shows, and keeps it from then on", async () => {
+    // By label: a hidden view has no accessible name to find its region by.
+    const definitions = () => screen.queryByLabelText("Definitions search");
+    render(<EditableWorkspace />);
+    expect(definitions()).toBeNull();
+
+    fireEvent.click(screen.getByRole("radio", { name: "Definitions" }));
+    await screen.findByRole("region", { name: "Definitions" });
+    fireEvent.click(screen.getByRole("radio", { name: "Canvas" }));
+    await screen.findByRole("button", { name: /Canvas zoom/u });
+
+    expect(definitions()).not.toBeNull();
   });
 
   test.each(["simulate", "actual"] as const)(

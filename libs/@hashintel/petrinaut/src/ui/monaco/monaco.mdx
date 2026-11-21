@@ -1,0 +1,50 @@
+---
+title: Monaco
+description: The Monaco layer wires the Monaco editor to the language server for authoring user code.
+sidebar_order: 10
+---
+
+The Monaco layer wires the Monaco editor to the language server for authoring user code. It owns the one load of Monaco, the `CodeEditor` component, the life of text models, and the adapters that carry diagnostics, completion, hover and signature help between a model and the [language client](layer:react.lsp).
+
+![One provider loads Monaco, each CodeEditor attaches to the model of its document URI, and the document receives every keystroke](./monaco-lifecycle.d2)
+
+## Entry point
+
+`MonacoProvider` in `ui/monaco/provider.tsx` starts the import of Monaco when it first renders and keeps the promise for the life of the page. It mounts `DiagnosticsSync`, `CompletionSync`, `HoverSync` and `SignatureHelpSync`, and schedules `warmEditor`.
+
+`CodeEditor` in `ui/monaco/code-editor.tsx` waits for that promise in state, with no Suspense boundary, and shows a dimmed label until the module and the editor instance that Monaco creates are ready.
+
+## Interface
+
+| Name                                 | Use it to                                                                                                                                                                         |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CodeEditor`                         | Edit one document. `path` names its URI, `value` and `onChange` carry the text.                                                                                                   |
+| `singleLine`, `onSubmit`, `onEscape` | Use the editor as a one-line expression input.                                                                                                                                    |
+| `mountSelection`                     | Say where the caret lands when the editor mounts.                                                                                                                                 |
+| `getDocumentUri`                     | Build the URI of a piece of user code, the same one the language server uses.                                                                                                     |
+| `useCodeNavigation`                  | Open the section that holds a piece of code and focus its editor. `EditorView` mounts its provider. Outside it, as in the preview, the hook returns a default that opens nothing. |
+
+## Data flow
+
+A user types one character in a place's visualizer code:
+
+1. Monaco changes the model of that URI and `CodeEditor` calls `onChange`. The caller writes the text to the document handle at once.
+2. `createVisualizerDefinitionStore` in the React layer delays the snapshot that the UI renders until typing has paused for 120 ms, or 500 ms have passed. A pointer press, a window blur, Tab, Escape and any key pressed with Cmd or Ctrl publish it at once. Only a local edit to visualizer code is delayed. Every other change publishes at once.
+3. While the editor has focus, `CodeEditor` withholds `value`, so a snapshot that is one keystroke behind never overwrites the model.
+4. `CompletionSync` sends the current text of the model to the language client before it asks for completions. `DiagnosticsSync` writes the diagnostics of each URI to the model as markers.
+
+## Rules
+
+**Every editor on a document passes the `path` of that document.** Monaco keeps one model per URI, and two editors on one URI share its text and markers. When an editor moves to another path, `releaseReplacedModels` disposes the model it left, unless another editor is attached or the caller passed `keepCurrentModel`. `release-replaced-models.test.ts` holds this.
+
+**The model is the source of truth while the editor has focus.** Writing a controlled value into a focused editor moves the caret to the end. The tests in `code-editor-activity.test.tsx` cover typing in one view while another is hidden, and coming back to it.
+
+**An editor inside a hidden `Activity` is disposed.** React removes the effects of a hidden `Activity`, and the editor instance lives in one. A collapsed section keeps its editor through `retainOnCollapse`, which [Sub-views](doc:ui.sub-view/sub-views) describes.
+
+**The warm-up creates one editor and never competes with a real one.** `warmEditor` waits for the code font and an idle callback, creates a hidden editor, and disposes it on the next frame. It does nothing when an editor is already open, or in a browser without `document.fonts` or `requestIdleCallback`. `warm-editor.test.ts` holds this.
+
+## Pitfalls
+
+- `contain: paint` on the editor can clip the completion and hover popups.
+- Animating a property that changes the editor's size makes Monaco lay out on every frame. Animate the surrounding panel with `transform`, and change paddings and margins in one step.
+- `CodeEditor` replaces the `onMount` it gives the `Editor` component of `@monaco-editor/react` through a ref, because that component keeps the first callback when an `Activity` shows the editor again.

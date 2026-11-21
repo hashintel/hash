@@ -5,7 +5,10 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorState,
+} from "../../../../../../../react/state/editor-context";
 import { TimelineLegend } from "../simulation-timeline/legend";
 import { chartAreaStyle, containerStyle } from "../simulation-timeline/styles";
 import { EventTimelineChart } from "./chart";
@@ -80,10 +83,10 @@ export const TimelineFrame: React.FC<{
   containerRef,
   onScreen,
 }) => {
-  const {
-    hiddenTimelineSeriesIds: hiddenSeries,
-    setHiddenTimelineSeriesIds: setHiddenSeries,
-  } = use(EditorContext);
+  const hiddenSeries = useEditorState(
+    (editor) => editor.hiddenTimelineSeriesIds,
+  );
+  const { setHiddenTimelineSeriesIds: setHiddenSeries } = useEditorActions();
   const { clock } = use(SimulationContext);
   const {
     coveredTime,

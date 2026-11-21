@@ -1,16 +1,18 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import {
   createJsonDocHandle,
   generatePetrinautId,
   type PetrinautDocHandle,
-  type MinimalNetMetadata,
+  type PetrinautHandleCapabilities,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { Petrinaut } from "./petrinaut";
-
-import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
+import {
+  defaultPetrinautNavigationState,
+  type PetrinautNavigationState,
+} from "../react/navigation/navigation";
+import { Petrinaut, type PetrinautProps } from "./petrinaut";
 
 const emptySDCPN: SDCPN = {
   places: [],
@@ -20,149 +22,92 @@ const emptySDCPN: SDCPN = {
   differentialEquations: [],
 };
 
-type StoredNet = {
-  id: string;
-  title: string;
-  /** Latest snapshot — kept in sync with handle.doc() via subscribe. */
-  sdcpn: SDCPN;
-};
-
-type HandlesByNetId = Record<string, PetrinautDocHandle>;
+/** One handle per net, so a net's history survives switching to another. */
+type StoryNet = { title: string; handle: PetrinautDocHandle };
 
 /** Every story net reports the time the story loaded as its last update. */
 const storyLoadedAt = new Date().toISOString();
 
 /**
- * Self-contained wrapper around {@link Petrinaut} that manages a small
- * in-memory net registry, mirroring the shape of the demo-site's `DevApp`.
+ * {@link Petrinaut} over a small in-memory registry of nets, as a host that
+ * stores nets would mount it. For stories and the benchmark page.
  *
- * Intended for Storybook stories — owns one handle per net id, so per-net
- * history survives switching between nets.
+ * The first net and the first location are read once: give the provider a
+ * `key` to start again from other ones.
  */
 export const PetrinautStoryProvider = ({
-  plugins,
   initialTitle = "New Process",
   initialDefinition = emptySDCPN,
-  hideNetManagementControls,
-  readonly = false,
-  children,
+  capabilities,
+  initialNavigation,
+  ...editorProps
 }: {
-  plugins?: readonly PetrinautPlugin[];
   initialTitle?: string;
   initialDefinition?: SDCPN;
-  hideNetManagementControls?: "all" | "except-title";
-  readonly?: boolean;
-  children?: ReactNode;
-}) => {
-  const [initialNetId] = useState(generatePetrinautId);
-  const [nets, setNets] = useState<Record<string, StoredNet>>(() => ({
-    [initialNetId]: {
-      id: initialNetId,
-      title: initialTitle,
-      sdcpn: initialDefinition,
-    },
-  }));
-  const [currentNetId, setCurrentNetId] = useState<string>(initialNetId);
-  const [handlesByNetId, setHandlesByNetId] = useState<HandlesByNetId>(() => ({
-    [initialNetId]: createJsonDocHandle({
-      id: initialNetId,
+  /** What the first net's handle supports: every extension, when left out. */
+  capabilities?: PetrinautHandleCapabilities;
+  /** Where the editor opens. The story holds the location when this is set. */
+  initialNavigation?: Partial<PetrinautNavigationState>;
+} & Pick<
+  PetrinautProps,
+  | "plugins"
+  | "readonly"
+  | "hideNetManagementControls"
+  | "rules"
+  | "resolveImport"
+  | "libraries"
+>) => {
+  const [initialNet] = useState<StoryNet>(() => ({
+    title: initialTitle,
+    handle: createJsonDocHandle({
+      id: generatePetrinautId(),
       initial: initialDefinition,
+      capabilities,
     }),
   }));
-
-  // Track which handles have an active subscription so adding a new net only
-  // wires up the new handle instead of tearing down every existing one.
-  const unsubscribersRef = useRef<Map<string, () => void>>(new Map());
-
-  useEffect(() => {
-    for (const handle of Object.values(handlesByNetId)) {
-      if (unsubscribersRef.current.has(handle.id)) {
-        continue;
-      }
-      const off = handle.subscribe((event) => {
-        setNets((prev) => {
-          const stored = prev[handle.id];
-          if (!stored) {
-            return prev;
-          }
-          return { ...prev, [handle.id]: { ...stored, sdcpn: event.next } };
-        });
-      });
-      unsubscribersRef.current.set(handle.id, off);
-    }
-  }, [handlesByNetId]);
-
-  useEffect(
-    () => () => {
-      for (const off of unsubscribersRef.current.values()) {
-        off();
-      }
-      unsubscribersRef.current.clear();
-    },
-    [],
-  );
-
-  const existingNets: MinimalNetMetadata[] = Object.values(nets).map((net) => ({
-    netId: net.id,
-    title: net.title,
-    lastUpdated: storyLoadedAt,
-  }));
-
-  const createNewNet = (params: {
-    petriNetDefinition: SDCPN;
-    title: string;
-  }) => {
-    const id = generatePetrinautId();
-    const handle = createJsonDocHandle({
-      id,
-      initial: params.petriNetDefinition,
+  const [nets, setNets] = useState([initialNet]);
+  const [currentNetId, setCurrentNetId] = useState(initialNet.handle.id);
+  const [navigationState, setNavigationState] =
+    useState<PetrinautNavigationState>({
+      ...defaultPetrinautNavigationState,
+      ...initialNavigation,
     });
-    setHandlesByNetId((prev) => ({
-      ...prev,
-      [id]: handle,
-    }));
-    setNets((prev) => ({
-      ...prev,
-      [id]: { id, title: params.title, sdcpn: params.petriNetDefinition },
-    }));
-    setCurrentNetId(id);
-  };
 
-  const loadPetriNet = (petriNetId: string) => {
-    setCurrentNetId(petriNetId);
-  };
-
-  const setTitle = (title: string) => {
-    setNets((prev) => {
-      const net = prev[currentNetId];
-      if (!net) {
-        return prev;
-      }
-      return { ...prev, [currentNetId]: { ...net, title } };
-    });
-  };
-
-  const currentNet = nets[currentNetId]!;
-  const handle = handlesByNetId[currentNetId];
-
-  if (!handle) {
-    return null;
-  }
+  const currentNet =
+    nets.find((net) => net.handle.id === currentNetId) ?? initialNet;
 
   return (
-    <>
-      <Petrinaut
-        handle={handle}
-        plugins={plugins}
-        existingNets={existingNets}
-        createNewNet={createNewNet}
-        hideNetManagementControls={hideNetManagementControls}
-        loadPetriNet={loadPetriNet}
-        readonly={readonly}
-        setTitle={setTitle}
-        title={currentNet.title}
-      />
-      {children}
-    </>
+    <Petrinaut
+      {...editorProps}
+      handle={currentNet.handle}
+      title={currentNet.title}
+      setTitle={(title) =>
+        setNets((current) =>
+          current.map((net) =>
+            net.handle.id === currentNet.handle.id ? { ...net, title } : net,
+          ),
+        )
+      }
+      existingNets={nets.map((net) => ({
+        netId: net.handle.id,
+        title: net.title,
+        lastUpdated: storyLoadedAt,
+      }))}
+      createNewNet={({ petriNetDefinition, title }) => {
+        const handle = createJsonDocHandle({
+          id: generatePetrinautId(),
+          initial: petriNetDefinition,
+        });
+        setNets((current) => [...current, { title, handle }]);
+        setCurrentNetId(handle.id);
+      }}
+      loadPetriNet={setCurrentNetId}
+      navigation={
+        initialNavigation && {
+          state: navigationState,
+          onNavigate: setNavigationState,
+        }
+      }
+    />
   );
 };

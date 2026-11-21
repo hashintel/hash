@@ -6,10 +6,9 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import { useReading } from "../../../lib/readings";
 import { nextFrame } from "../../../lib/readings.test-helpers";
-import {
-  useFloatingPanel,
-  type FloatingResizeDirection,
-} from "./use-floating-panel";
+import { useFloatingPanel } from "./use-floating-panel";
+
+import type { FloatingResizeDirection } from "../../shared/floating-resize-handles";
 
 afterEach(() => {
   cleanup();

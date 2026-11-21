@@ -1,14 +1,16 @@
-import { use, useState } from "react";
+import { useState } from "react";
 
 import { Button, SegmentedControl, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { usePetrinautDefinitionSelector } from "../../../../../../../react/hooks/use-document";
 import {
-  EditorContext,
+  useEditorActions,
+  useEditorState,
   type TimelineChartType,
   type TimelineView,
 } from "../../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { ViewMetricDrawer } from "../../../SimulateView/metrics/view-metric-drawer";
 import { useMetricShapes } from "./use-metric-shapes";
 import {
@@ -75,8 +77,8 @@ function selectValueToView(value: string): TimelineView {
 }
 
 export const TimelineChartTypeSelector: React.FC = () => {
-  const { timelineChartType: chartType, setTimelineChartType: setChartType } =
-    use(EditorContext);
+  const chartType = useEditorState((editor) => editor.timelineChartType);
+  const { setTimelineChartType: setChartType } = useEditorActions();
 
   return (
     <SegmentedControl
@@ -89,13 +91,10 @@ export const TimelineChartTypeSelector: React.FC = () => {
 };
 
 export const TimelineViewPicker: React.FC = () => {
-  const { navigateTo, setSimulateDrawer, setTimelineView } = use(EditorContext);
+  const { navigateTo, setSimulateDrawer, setTimelineView } = useEditorActions();
   const timelineView = useRunTimelineView();
-  const {
-    extensions,
-    petriNetDefinition: { metrics = [] },
-  } = use(SDCPNContext);
-  const colorsEnabled = extensions.colors;
+  const colorsEnabled = useSDCPNState((document) => document.extensions.colors);
+  const metrics = usePetrinautDefinitionSelector((net) => net.metrics) ?? [];
   const metricShapes = useMetricShapes();
   const solverErrorAvailable = useSolverErrorAvailable();
 

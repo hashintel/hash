@@ -103,25 +103,36 @@ export const missingLibraryId = "@hashintel/missing";
 
 /**
  * A host's resolver over the two libraries: logistics is in memory and
- * resolves at once, tooling arrives after `delayMs`, and any other id is
+ * resolves at once, tooling arrives after 2.5 seconds, and any other id is
  * refused after the same wait.
  */
-export const createStoryImportResolver =
-  (delayMs: number): ResolveImport =>
-  (id) => {
-    if (id === logisticsLibrary.id) {
-      return logisticsLibrary;
-    }
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (id === toolingLibrary.id) {
-          resolve(toolingLibrary);
-        } else {
-          reject(new Error(`The registry has no library ${id}.`));
-        }
-      }, delayMs);
-    });
-  };
+export const resolveStoryImport: ResolveImport = (id) => {
+  if (id === logisticsLibrary.id) {
+    return logisticsLibrary;
+  }
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (id === toolingLibrary.id) {
+        resolve(toolingLibrary);
+      } else {
+        reject(new Error(`The registry has no library ${id}.`));
+      }
+    }, 2500);
+  });
+};
+
+// Created once: a new list would create a new editor instance on every
+// render, and resolve every import again.
+export const offeredLibraries = [
+  logisticsLibrary.id,
+  toolingLibrary.id,
+  missingLibraryId,
+];
+
+/** A resolver over a library the host holds in memory: it resolves at once, with no loader. */
+export const resolveLogistics: ResolveImport = (id) =>
+  id === logisticsLibrary.id ? logisticsLibrary : undefined;
+export const logisticsOnly = [logisticsLibrary.id];
 
 const port = (componentInstanceId: string, portPlaceId: string) => ({
   kind: "componentPort" as const,

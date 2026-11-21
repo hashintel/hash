@@ -853,7 +853,10 @@ __metadata:
     "@local/tsconfig": "workspace:*"
     "@tsconfig/bases": "catalog:"
     "@types/node": "catalog:"
+    "@types/react": "npm:19.2.14"
+    react: "npm:19.2.6"
     typescript: "catalog:"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -7237,7 +7240,7 @@ __metadata:
     oxlint-tsgolint: "catalog:"
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
-    react-resizable-panels: "npm:4.6.5"
+    react-resizable-panels: "npm:4.22.0"
     rolldown: "catalog:"
     rolldown-plugin-dts: "npm:0.28.3"
     storybook: "npm:10.6.2"
@@ -36305,13 +36308,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-resizable-panels@npm:4.6.5":
-  version: 4.6.5
-  resolution: "react-resizable-panels@npm:4.6.5"
+"react-resizable-panels@npm:4.22.0":
+  version: 4.22.0
+  resolution: "react-resizable-panels@npm:4.22.0"
   peerDependencies:
+    "@types/react": ^18.2.6 || ^19.0.0
     react: ^18.0.0 || ^19.0.0
     react-dom: ^18.0.0 || ^19.0.0
-  checksum: 10c0/90094be816df75e8b44d8f684f1a6715da3ac22e6cf69b5e4f2bdf1c53e6942a6faf93a842eec16864f4440e1ae227d68625e0c482f09449071b237b312d19b6
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+  checksum: 10c0/56b5d1bd6ffbdd037ce3487ac7c4512c276934c25fe24de7ccb3023c305d394f28250d4e902912967e0892572f28f61b9db3ec45c5e91e244f594b0399987127
   languageName: node
   linkType: hard
 

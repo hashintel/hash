@@ -1,87 +1,85 @@
 /** @vitest-environment jsdom */
-import { cleanup, render, screen } from "@testing-library/react";
-import { use, type ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, screen } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
 
-import { CompositionContext } from "../../../../../react/state/composition-context";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { useEditorActions } from "../../../../../react/state/editor-context";
+import { nextFrame } from "../../../../lib/readings.test-helpers";
+import { renderPlugins } from "../../../../plugins/plugins-test-harness";
 import { LeftSideBar } from "./panel";
 
-import type { SubView } from "../../../../components/sub-view/types";
-import type { PetrinautRules } from "@hashintel/petrinaut-core";
-
-// The registry of panels loads the bottom panel's charts too, which ask the
-// screen for its pixel ratio as their module loads.
-vi.hoisted(() =>
-  vi.stubGlobal("matchMedia", () => ({
+vi.hoisted(() => {
+  // Reduced motion: a panel is in or out of view in one step, with no slide
+  // to wait for.
+  globalThis.matchMedia = (() => ({
+    matches: true,
     addEventListener: () => {},
     removeEventListener: () => {},
-  })),
-);
-
-// The panels are told apart by their titles: what each one draws is its own.
-vi.mock(
-  "../../../../components/sub-view/vertical/vertical-sub-views-container",
-  () => ({
-    VerticalSubViewsContainer: ({ subViews }: { subViews: SubView[] }) =>
-      subViews.map(({ id, title }) => <h2 key={id}>{title}</h2>),
-  }),
-);
+  })) as unknown as typeof matchMedia;
+  // The sections of the sidebar observe their size, which jsdom does not lay
+  // out.
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+});
 
 afterEach(cleanup);
 
-const logistics = "@hashintel/logistics";
-
-const panels = ({
-  enableNetComponents = false,
-  rules = {},
-  offered = [logistics],
-}: {
-  enableNetComponents?: boolean;
-  rules?: PetrinautRules;
-  offered?: readonly string[];
-}) => {
-  const Wrapper = ({ children }: { children: ReactNode }) => (
-    <UserSettingsContext
-      value={{ ...use(UserSettingsContext), enableNetComponents }}
-    >
-      <CompositionContext
-        value={{ ...use(CompositionContext), offered, rules }}
-      >
-        {children}
-      </CompositionContext>
-    </UserSettingsContext>
+/** Closes and opens the sidebar of the editor it is rendered in, and opens its search. */
+const SidebarControls = () => {
+  const { setLeftSidebarOpen, setSearchOpen } = useEditorActions();
+  return (
+    <>
+      <button type="button" onClick={() => setLeftSidebarOpen(false)}>
+        Close the sidebar
+      </button>
+      <button type="button" onClick={() => setLeftSidebarOpen(true)}>
+        Open the sidebar
+      </button>
+      <button type="button" onClick={() => setSearchOpen(true)}>
+        Search
+      </button>
+      <button type="button" onClick={() => setSearchOpen(false)}>
+        Leave the search
+      </button>
+    </>
   );
-  render(<LeftSideBar />, { wrapper: Wrapper });
-  const titles = screen
-    .getAllByRole("heading")
-    .map((heading) => heading.textContent)
-    .filter((title) => title !== "Search");
-  cleanup();
-  return titles;
 };
 
-describe("the left sidebar", () => {
-  it("hides the Nets and Components panels until Net Components is on", () => {
-    expect(panels({})).toEqual(["Entities"]);
-    expect(panels({ enableNetComponents: true })).toEqual([
-      "Entities",
-      "Nets",
-      "Components",
-    ]);
+const press = (name: string) =>
+  fireEvent.click(screen.getByRole("button", { name }));
+
+const nodesGroup = () => screen.getByRole("option", { name: /Nodes/u });
+
+/** The height the Nodes group gives its rows: `0px` while it is collapsed. */
+const nodesHeight = () =>
+  screen.getByText("No nodes").parentElement?.style.height;
+
+it("finds the text searched for and the collapsed groups again after it was closed", async () => {
+  renderPlugins(
+    [],
+    <>
+      <SidebarControls />
+      <LeftSideBar />
+    </>,
+  );
+  fireEvent.click(nodesGroup());
+  expect(nodesHeight()).toBe("0px");
+  press("Search");
+  fireEvent.change(screen.getByPlaceholderText("Find anything…"), {
+    target: { value: "stock" },
   });
 
-  it("shows the Components panel alone in an editor that only composes, whatever the setting says", () => {
-    expect(panels({ rules: { edit: "compose" } })).toEqual(["Components"]);
-    expect(
-      panels({ rules: { edit: "compose" }, enableNetComponents: true }),
-    ).toEqual(["Components"]);
-  });
+  press("Leave the search");
+  press("Close the sidebar");
+  await nextFrame();
+  expect(screen.queryByPlaceholderText("Find anything…")).toBeNull();
 
-  it("has no Components panel where the host offers no library", () => {
-    expect(panels({ enableNetComponents: true, offered: [] })).toEqual([
-      "Entities",
-      "Nets",
-    ]);
-  });
+  press("Open the sidebar");
+
+  expect(nodesHeight()).toBe("0px");
+  expect(
+    screen.getByPlaceholderText<HTMLInputElement>("Find anything…").value,
+  ).toBe("stock");
 });

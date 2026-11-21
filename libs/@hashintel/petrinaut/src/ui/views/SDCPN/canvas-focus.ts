@@ -73,7 +73,7 @@ type NodeAdjacency = {
  * the size of the neighbourhood rather than a walk over every transition and
  * arc in the net.
  */
-export type NetAdjacency = {
+type NetAdjacency = {
   /** Every id the canvas can focus: nodes, arcs and fusions. */
   canvasIds: ReadonlySet<string>;
   byNode: ReadonlyMap<string, NodeAdjacency>;

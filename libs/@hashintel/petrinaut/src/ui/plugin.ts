@@ -51,11 +51,9 @@ export type {
   PluginExperimentsReader,
   PluginNotifications,
 } from "./plugins/plugin-access";
-export { usePluginService } from "./plugins/plugins-provider";
-export {
-  AssistantPanelTitle,
-  useAssistantPanel,
-} from "./plugins/plugin-assistant";
+export { usePluginService } from "./plugins/running-plugins";
+export { AssistantPanelTitle } from "./plugins/assistant-panel-title";
+export { useAssistantPanel } from "./plugins/plugin-assistant";
 export type { AssistantPanel } from "./plugins/plugin-assistant";
 export {
   useCommand,

@@ -1,15 +1,15 @@
 import { animateValue, cancelFrame, frame, type MotionValue } from "motion";
-import { use, useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
 import { useAssistantPlacement } from "./assistant-placement-context";
-import { EditorContext } from "./editor-context";
+import { useEditorFields } from "./editor-context";
 import {
   assistantWantsRoom,
   createPanelPresence,
   type PanelPlacement,
 } from "./panel-presence";
 import { PanelPresenceContext } from "./panel-presence-context";
-import { UserSettingsContext } from "./user-settings-context";
+import { useUserSettings } from "./user-settings-context";
 
 /** How a panel slides in and out. The duration is in milliseconds. */
 const panelTransition = { duration: 150, ease: [0.16, 1, 0.3, 1] } as const;
@@ -79,9 +79,15 @@ export const PanelPresenceProvider: React.FC<React.PropsWithChildren> = ({
     hasSelection,
     isBottomPanelOpen,
     isAiAssistantOpen,
-  } = use(EditorContext);
+  } = useEditorFields(
+    "isLeftSidebarOpen",
+    "isSearchOpen",
+    "hasSelection",
+    "isBottomPanelOpen",
+    "isAiAssistantOpen",
+  );
   const { placement: assistantPlacement } = useAssistantPlacement();
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
 
   const placement: PanelPlacement = {
     open: {

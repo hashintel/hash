@@ -162,7 +162,6 @@ const listedImplementations = async ({
     <ComponentInstanceProperties
       instance={placed}
       component={resolveComponent(sdcpn, scale, libraries) ?? null}
-      updateComponentInstance={instance.mutations.updateComponentInstance}
     />,
     { wrapper: Wrapper },
   );

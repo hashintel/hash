@@ -24,84 +24,36 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS as dndCss } from "@dnd-kit/utilities";
-import { createContext, use, useId } from "react";
+import { useId, useSyncExternalStore } from "react";
 
+import { usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+
+import { RowDragContext } from "./row-drag-handle";
 
 import type { DragEndEvent, Modifier } from "@dnd-kit/core";
 import type { ReactNode } from "react";
 
-export interface RowDragHandle {
-  /** Attach to the element a pointer drag starts from. */
-  ref: (element: HTMLElement | null) => void;
-  /** Spread onto that element; `undefined` while reordering is disabled. */
-  listeners: ReturnType<typeof useSortable>["listeners"];
-  dragging: boolean;
-}
-
-const RowDragContext = createContext<RowDragHandle | null>(null);
-
-/** The enclosing `ReorderableRow`'s drag handle, `null` outside one. */
-export const useRowDragHandle = (): RowDragHandle | null => use(RowDragContext);
+const neverChanges = () => () => {};
 
 /**
- * The row step an Alt+arrow asks for: -1 for up, 1 for down, `null` for
- * any other key, and for a key typed into a text field, where the arrows
- * belong to the caret.
+ * Where a table's drag announcements go: the editor's overlay host, or the
+ * page for a table outside an editor. A table that unmounts takes its two
+ * announcement elements with it, and an element that leaves from before a
+ * sibling makes the browser recalculate the style of everything in its
+ * parent: in the overlay host that is the overlays, in `<body>` the page.
+ *
+ * The host is read once it is in the page, which is after the first render
+ * of an editor that opens with a table.
  */
-const rowMoveStep = (event: React.KeyboardEvent): -1 | 1 | null => {
-  if (!event.altKey || event.metaKey || event.ctrlKey) {
-    return null;
-  }
-  const target = event.target as HTMLElement;
-  if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
-    return null;
-  }
-  return event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : null;
+const useAnnouncementContainer = (): HTMLElement | undefined => {
+  const overlayHost = usePortalContainerRef();
+  return useSyncExternalStore(
+    neverChanges,
+    () => overlayHost?.current ?? document.body,
+    () => undefined,
+  );
 };
-
-export interface RowMoveKeys {
-  /** The table's focus grid: other keys go to it, and it follows the row. */
-  grid: {
-    onKeyDown: (row: number, column: number) => React.KeyboardEventHandler;
-    onFocusCell: (row: number, column: number) => void;
-  };
-  /** Hears the moved row's new index when its gutter holds focus. */
-  setFocusedRow: (row: number) => void;
-  rowCount: number;
-  onMove: (from: number, to: number) => void;
-  /** Alt+arrow moves nothing; every key goes to the grid. */
-  readOnly?: boolean;
-}
-
-/**
- * The key handler of the cell at `(row, column)` in a reorderable table.
- * Alt with an arrow moves the row one place, inside the table, and keeps
- * focus and the row highlight on it; every other key walks the grid.
- */
-export const rowMoveKeyDown =
-  ({ grid, setFocusedRow, rowCount, onMove, readOnly = false }: RowMoveKeys) =>
-  (row: number, column: number): React.KeyboardEventHandler =>
-  (event) => {
-    const step = readOnly ? null : rowMoveStep(event);
-    if (step === null) {
-      grid.onKeyDown(row, column)(event);
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    const to = row + step;
-    if (to < 0 || to >= rowCount) {
-      return;
-    }
-    onMove(row, to);
-    grid.onFocusCell(to, column);
-    // The gutter keeps focus through the move, so no focus event follows
-    // to move the row highlight.
-    if (column === 0) {
-      setFocusedRow(to);
-    }
-  };
 
 // Keeps the dragged row on the body's vertical axis and inside its bounds.
 const restrictToRows: Modifier = ({
@@ -117,7 +69,7 @@ const restrictToRows: Modifier = ({
   return { ...transform, x: 0, y };
 };
 
-export interface ReorderableRowsProps {
+interface ReorderableRowsProps {
   /** Row ids in display order; each `ReorderableRow` names one of them. */
   ids: readonly string[];
   /** A dropped drag: the row at `from` lands at `to`, both inside `ids`. */
@@ -134,6 +86,7 @@ export const ReorderableRows: React.FC<ReorderableRowsProps> = ({
   children,
 }) => {
   const id = useId();
+  const announcements = useAnnouncementContainer();
   // A short travel before a drag starts, so a click still selects the row.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -159,7 +112,7 @@ export const ReorderableRows: React.FC<ReorderableRowsProps> = ({
       onDragEnd={onDragEnd}
       accessibility={{
         // Portalled out: inline, the live region would be a div in a table.
-        container: typeof document === "undefined" ? undefined : document.body,
+        container: announcements,
       }}
     >
       <SortableContext
@@ -187,7 +140,7 @@ const rowStyle = css({
   },
 });
 
-export interface ReorderableRowProps {
+interface ReorderableRowProps {
   id: string;
   children: ReactNode;
 }

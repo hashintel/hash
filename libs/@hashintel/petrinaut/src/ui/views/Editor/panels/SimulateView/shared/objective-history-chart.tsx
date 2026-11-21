@@ -2,9 +2,8 @@
  * The objective over a study's steps: every step's value as a dot, the best
  * so far as a step line over them, at a fixed height. A port of Optuna's
  * `plot_optimization_history`, drawn from points a caller builds with
- * `buildObjectiveHistory`, so one chart serves the sweep's objective strip
- * and any later card: the palette and sizes come in as a style, and the x
- * axis can be pinned to a right edge the data has not reached yet.
+ * `buildObjectiveHistory`. The palette and sizes come in as a style, and the
+ * x axis can be pinned to a right edge the data has not reached yet.
  */
 import { useEffect, useRef } from "react";
 import uPlot from "uplot";
@@ -31,17 +30,6 @@ export type ObjectiveHistoryStyle = {
   axisSize: { x: number; y: number };
   /** Air above the topmost dot, in pixels. */
   paddingTop: number;
-};
-
-/** The default look: grey dots, a blue best line. */
-export const defaultObjectiveHistoryStyle: ObjectiveHistoryStyle = {
-  step: { fill: "#9ca3af", stroke: "#9ca3af", size: 6 },
-  best: "#2563eb",
-  axisText: { x: "#475569", y: "#999" },
-  grid: "#f3f4f6",
-  ticks: { x: "#cbd5e1", y: "#e5e7eb" },
-  axisSize: { x: 26, y: 54 },
-  paddingTop: 8,
 };
 
 const frameStyle = css({
@@ -166,18 +154,18 @@ const chartOptions = ({
 export const ObjectiveHistoryChart = ({
   points,
   plotHeight,
-  style = defaultObjectiveHistoryStyle,
+  style,
   xMax,
-  emptyLabel = "Waiting for the first step",
+  emptyLabel,
 }: {
   points: readonly ObjectiveHistoryPoint[];
   /** The plot's height in pixels; the component is exactly this tall. */
   plotHeight: number;
-  style?: ObjectiveHistoryStyle;
+  style: ObjectiveHistoryStyle;
   /** Pins the x axis's right edge; without it the axis follows the last step. */
   xMax?: number;
   /** What the plot says while there is no point to draw. */
-  emptyLabel?: string;
+  emptyLabel: string;
 }) => {
   const chartRootRef = useRef<HTMLDivElement>(null);
   const size = useElementSize(chartRootRef);

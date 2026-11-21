@@ -24,32 +24,27 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("draws the demo's 24 by 6 square history, newest on the right", () => {
-  const fills: {
-    color: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  }[] = [];
+it("draws a 24 by 6 history coloured by frame rate, newest on the right", () => {
+  const fills: { color: string; x: number }[] = [];
   const context = {
     fillStyle: "",
     setTransform: vi.fn(),
     clearRect: vi.fn(),
-    fillRect: (x: number, y: number, width: number, height: number) => {
-      fills.push({ color: context.fillStyle, x, y, width, height });
+    fillRect: (x: number) => {
+      fills.push({ color: context.fillStyle, x });
     },
   };
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
     context as unknown as CanvasRenderingContext2D,
   );
   render(<FpsCounter onClose={() => {}} />);
+
+  const rightmost = Math.max(...fills.map((fill) => fill.x));
+  const slowest = fills.filter((fill) => fill.color === "#f85149");
   expect(fills).toHaveLength(144);
   expect(fills.filter((fill) => fill.color === "#3fb950")).toHaveLength(6);
   expect(fills.filter((fill) => fill.color === "#e3b341")).toHaveLength(4);
-  expect(fills.filter((fill) => fill.color === "#f85149")).toEqual([
-    { color: "#f85149", x: 172.5, y: 37.5, width: 5.5, height: 5.5 },
-    { color: "#f85149", x: 172.5, y: 30, width: 5.5, height: 5.5 },
-  ]);
+  expect(slowest).toHaveLength(2);
+  expect(slowest.every((fill) => fill.x === rightmost)).toBe(true);
   expect(screen.getByText("20")).toBeTruthy();
 });

@@ -14,12 +14,12 @@ import {
 
 import {
   defaultPetrinautNavigationState,
-  PetrinautNavigationProvider,
   usePetrinautNavigation,
   type PetrinautNavigationController,
   type PetrinautNavigationIntent,
   type PetrinautNavigationState,
-} from "../navigation";
+} from "../navigation/navigation";
+import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
 import { ActiveNetContext } from "./active-net-context";
 import { ActiveNetProvider } from "./active-net-provider";
 import { CompositionContext } from "./composition-context";

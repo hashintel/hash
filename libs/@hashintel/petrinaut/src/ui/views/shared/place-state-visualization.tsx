@@ -7,13 +7,11 @@ import {
   createUserKeyedRecord,
   defaultTokenAttributeValue,
   getOwn,
+  mergeParameterValues,
 } from "@hashintel/petrinaut-core";
 
 import { ExecutionFrameSourceContext } from "../../../react/execution-frame/context";
-import {
-  mergeParameterValues,
-  useDefaultParameterValues,
-} from "../../../react/hooks/use-default-parameter-values";
+import { useDefaultParameterValues } from "../../../react/hooks/use-default-parameter-values";
 import { SimulationContext } from "../../../react/simulation/context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import {
@@ -21,7 +19,7 @@ import {
   type VisualizerSize,
 } from "../../lib/render-visualizer-hir";
 import { useVisualizerHir } from "../../lib/use-visualizer-hir";
-import { VisualizerErrorBoundary } from "../Editor/panels/PropertiesPanel/place-properties/subviews/place-visualizer/visualizer-error-boundary";
+import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
 import { VisualizerLoading } from "./visualizer-loading";
 
 import type { Color, Place, TokenRecord } from "@hashintel/petrinaut-core";

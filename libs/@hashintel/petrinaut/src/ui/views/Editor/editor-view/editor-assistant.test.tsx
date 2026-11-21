@@ -20,20 +20,14 @@ import {
 
 import { createCommandRegistry } from "@hashintel/petrinaut-core";
 
-import { CommandRegistryProvider } from "../../../../react/commands/command-registry";
+import { CommandRegistryProvider } from "../../../../react/commands/command-registry-provider";
 import { ErrorTrackerContext } from "../../../../react/error-tracker-context";
 import { EditorContext } from "../../../../react/state/editor-context";
+import { AssistantPanelTitle } from "../../../plugins/assistant-panel-title";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
-import {
-  AssistantPanelTitle,
-  useAssistantPanel,
-} from "../../../plugins/plugin-assistant";
+import { useAssistantPanel } from "../../../plugins/plugin-assistant";
 import { renderPlugins } from "../../../plugins/plugins-test-harness";
-import {
-  AssistantCommands,
-  EditorAssistantPanel,
-  useEditorAssistant,
-} from "./editor-assistant";
+import { AssistantCommands, EditorAssistantPanel } from "./editor-assistant";
 
 beforeAll(() => {
   vi.stubGlobal(
@@ -89,7 +83,6 @@ const brokenPlugin = definePetrinautPlugin(
 
 /** The panel as the editor mounts it, with a button standing in for the toggle. */
 const Editor = () => {
-  const { plugin } = useEditorAssistant();
   const { setAiAssistantOpen } = use(EditorContext);
 
   return (
@@ -98,13 +91,7 @@ const Editor = () => {
       <button type="button" onClick={() => setAiAssistantOpen(true)}>
         Show AI assistant
       </button>
-      {plugin && (
-        <EditorAssistantPanel
-          plugin={plugin}
-          petriNetId="net"
-          focusRequest={0}
-        />
-      )}
+      <EditorAssistantPanel />
     </>
   );
 };
@@ -122,7 +109,6 @@ describe("EditorAssistantPanel", () => {
       (button) => button.getAttribute("aria-label") ?? button.textContent,
     );
     expect(panelButtons).toEqual([
-      "Resize AI assistant",
       "Float AI assistant",
       "Clear test chat",
       "Close AI assistant",

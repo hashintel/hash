@@ -3,10 +3,10 @@ import { useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useTransitionFrame } from "../../../canvas-frame-store";
+import { useTransitionFrame } from "../../../canvas-frame-store-context";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import { arcHaloColor } from "../../../styles/focus";
-import { arcFiringIsVisible } from "./firing-animation-visibility";
+import { firingIsVisible } from "./firing-animation-visibility";
 import { EdgeUnderlay } from "./shared/edge-underlay";
 import { fixedEndpoint, getOutlineArcPath } from "./shared/outline-arcs";
 
@@ -56,16 +56,7 @@ function useFiringAnimation(
 
     // The box the drawn path occupies, in flow units: a curve can sweep well
     // past its endpoints, so where it is drawn is what decides.
-    const box = pathRef.current.getBBox();
-    if (
-      !arcFiringIsVisible(
-        store.getState(),
-        box.x,
-        box.y,
-        box.x + box.width,
-        box.y + box.height,
-      )
-    ) {
+    if (!firingIsVisible(store.getState(), pathRef.current.getBBox())) {
       return;
     }
 

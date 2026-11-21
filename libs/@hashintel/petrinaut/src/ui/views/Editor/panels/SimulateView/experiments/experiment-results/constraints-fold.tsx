@@ -1,6 +1,6 @@
 /**
- * The Parameters card's footer fold for a constrained sweep: one line per
- * constraint — its kind chip, its label and its code — with the pass
+ * What the Parameters card's footer fold shows for a constrained sweep: one
+ * line per constraint — its kind chip, its label and its code — with the pass
  * threshold a state constraint is judged against beneath them. Read from
  * the experiment record, so it is there from creation whether or not a study
  * ever ran.
@@ -15,7 +15,6 @@ import {
 } from "../../../../../../../react/optimizations/constraint-rates";
 
 import type { ExperimentRecord } from "../../../../../../../react/experiments/context";
-import type { FrameCardMore } from "../../shared/drawer-frame";
 import type { ConstraintSpace } from "@hashintel/petrinaut-core";
 
 const listStyle = css({
@@ -69,7 +68,7 @@ const oneLine = (code: string): string =>
     .split(/\s*\n\s*/u)
     .join(" ");
 
-const ConstraintList = ({
+export const ConstraintList = ({
   constraints,
   constraintPolicy,
 }: Pick<ExperimentRecord, "constraints" | "constraintPolicy">) => {
@@ -104,21 +103,4 @@ const ConstraintList = ({
       ) : null}
     </div>
   );
-};
-
-/** The fold a constrained experiment's Parameters card keeps behind its footer. */
-export const constraintsFold = (
-  experiment: Pick<ExperimentRecord, "constraints" | "constraintPolicy">,
-): FrameCardMore => {
-  const count = experiment.constraints.length;
-  return {
-    show: `Show ${count} constraint${count === 1 ? "" : "s"}`,
-    hide: "Hide constraints",
-    content: (
-      <ConstraintList
-        constraints={experiment.constraints}
-        constraintPolicy={experiment.constraintPolicy}
-      />
-    ),
-  };
 };

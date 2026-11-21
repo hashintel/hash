@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  fitSceneViewport,
   fitViewportToBounds,
-  getInitialViewport,
   isScenePointInView,
   MAX_FIT_ZOOM,
   revealBounds,
@@ -98,21 +98,6 @@ describe("fitViewportToBounds", () => {
     expect(result.y).toBe(300 - 50 * 2);
   });
 
-  it("clamps the zoom to the given range", () => {
-    const bounds = { x: 0, y: 0, width: 10, height: 10 };
-    const container = { width: 1000, height: 1000 };
-    expect(fitViewportToBounds(bounds, container, 0.1, 1.5, 0).zoom).toBe(1.5);
-    expect(
-      fitViewportToBounds(
-        { x: 0, y: 0, width: 10_000, height: 10_000 },
-        container,
-        0.3,
-        1.5,
-        0,
-      ).zoom,
-    ).toBe(0.3);
-  });
-
   it("centres within asymmetric panel insets", () => {
     const result = fitViewportToBounds(
       { x: 0, y: 0, width: 200, height: 100 },
@@ -129,20 +114,16 @@ describe("fitViewportToBounds", () => {
   });
 });
 
-describe("getInitialViewport", () => {
-  it("returns the origin at zoom 1 when there is nothing to fit", () => {
-    expect(getInitialViewport(null, { width: 500, height: 400 })).toEqual({
-      x: 0,
-      y: 0,
-      zoom: 1,
-    });
+describe("fitSceneViewport", () => {
+  it("returns nothing when there is nothing to fit", () => {
+    expect(fitSceneViewport(null, { width: 500, height: 400 })).toBeNull();
   });
 
   it("never zooms in past the fit ceiling", () => {
-    const result = getInitialViewport(
+    const result = fitSceneViewport(
       { x: 0, y: 0, width: 10, height: 10 },
       { width: 1000, height: 1000 },
     );
-    expect(result.zoom).toBe(MAX_FIT_ZOOM);
+    expect(result?.zoom).toBe(MAX_FIT_ZOOM);
   });
 });

@@ -21,8 +21,8 @@ vi.mock("./panels/SimulateView/experiments/create-experiment-drawer", () => ({
     </button>
   ),
 }));
-vi.mock("./panels/SimulateView/metrics/create-metric-drawer", () => ({
-  CreateMetricDrawer: ({ onClose }: { onClose: () => void }) => (
+vi.mock("./panels/SimulateView/metrics/metric-drawer", () => ({
+  MetricDrawer: ({ onClose }: { onClose: () => void }) => (
     <button type="button" onClick={onClose}>
       metric
     </button>

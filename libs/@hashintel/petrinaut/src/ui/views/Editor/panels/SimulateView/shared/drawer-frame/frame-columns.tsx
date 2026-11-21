@@ -1,8 +1,8 @@
 /**
- * The frame body's arrangement under the Parameters band. At the extra-large
- * drawer's width and above, two columns: the surface on the left, the metric
- * cards on the right, the right column never narrower than two cards. In a
- * narrower drawer, one column with the metric cards first, then the surface,
+ * The frame body's arrangement under the Parameters band. In a body of 960px
+ * and wider, two columns: the surface on the left, the metric cards on the
+ * right, the right column never narrower than two cards. In a narrower
+ * body, one column with the metric cards first, then the surface,
  * so the thing being watched is at the top either way. Without a surface the
  * cards take the whole width. Whatever follows (a steps table) spans the
  * width beneath.
@@ -13,10 +13,8 @@ import type { ReactNode } from "react";
 
 // The body is the `drawer-frame-body` size container (declared in
 // drawer-frame.tsx); Panda extracts the query statically, so the threshold
-// and the column minimum are written out here. The threshold sits under the
-// extra-large drawer's body width (1010px, 995px beside a classic scrollbar)
-// with room for a viewport that clamps the drawer a little; the column
-// minimum is two chart cards at `CHART_CARD_MIN_WIDTH` and the grid's gap.
+// and the column minimum are written out here. The column minimum is two
+// chart cards at `CHART_CARD_MIN_WIDTH` and the grid's gap.
 const columnsStyle = css({
   display: "grid",
   gap: "4",

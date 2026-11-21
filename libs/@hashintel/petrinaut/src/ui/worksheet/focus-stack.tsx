@@ -20,7 +20,7 @@
  * refuses every move), so the root is documentation more than mechanism.
  */
 
-import { use, useEffect, useId, useRef, useState } from "react";
+import { useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -34,6 +34,7 @@ import {
   type FocusGroup,
   type FocusMemberHandle,
 } from "./focus-flow";
+import { useFocusMember } from "./use-focus-member";
 
 import type { ReactNode } from "react";
 
@@ -63,14 +64,11 @@ export const FocusStack: React.FC<FocusStackProps> = ({
   entry = "remembered",
   children,
 }) => {
-  const parent = use(FocusGroupContext);
-  const id = useId();
   const membersRef = useRef(new Map<string, FocusMemberHandle>());
   // The child focus last landed in, restored when a move re-enters the
   // stack. Updated from focusin (covering pointer clicks too) and read only
   // in event handlers; invalid ids fall back to edge entry.
   const lastChildRef = useRef<string | null>(null);
-  const [element, setElement] = useState<HTMLDivElement | null>(null);
 
   const orderedMembers = (): { id: string; handle: FocusMemberHandle }[] =>
     [...membersRef.current.entries()]
@@ -125,6 +123,11 @@ export const FocusStack: React.FC<FocusStackProps> = ({
     return walk.some((member) => enterChild(member.id, entering, false));
   };
 
+  // The stack is itself a member of the stack around it.
+  const { attach, moveFrom: leaveStack } = useFocusMember(enterStack);
+
+  // A stable identity for the context value would drop every keystroke's
+  // closure; the compiler memoizes it against its real inputs.
   const group: FocusGroup = {
     register: (memberId, handle) => {
       membersRef.current.set(memberId, handle);
@@ -155,29 +158,16 @@ export const FocusStack: React.FC<FocusStackProps> = ({
       if (contain) {
         return false;
       }
-      return parent.moveFrom(id, direction, from);
+      return leaveStack(direction, from);
     },
   };
-  // A stable identity for the context value would drop every keystroke's
-  // closure; the compiler memoizes it against its real inputs.
-
-  // Re-register every render so the parent always holds the freshest enter
-  // closure; unregister only on unmount (or a parent change), so the
-  // parent's memory of this child survives ordinary renders.
-  useEffect(() => {
-    if (element) {
-      parent.register(id, { element, enter: enterStack });
-    }
-  });
-  useEffect(() => () => parent.unregister(id), [parent, id]);
 
   return (
     <FocusGroupContext value={group}>
       <div
-        ref={setElement}
+        ref={attach}
         className={contentsStyle}
         role="presentation"
-        data-focus-stack={axis}
         onFocus={(event) => {
           // Track which child holds focus, so re-entry restores it. focusin
           // bubbles through display:contents wrappers.
@@ -198,7 +188,7 @@ export const FocusStack: React.FC<FocusStackProps> = ({
   );
 };
 
-export interface FocusRootProps {
+interface FocusRootProps {
   children: ReactNode;
 }
 

@@ -43,7 +43,6 @@ export function useElementSize(
   ref: RefObject<HTMLElement | null>,
   options?: UseElementSizeOptions,
 ): ElementSize | null {
-  "use no memo"; // imperative observer + timer management
   const [size, setSize] = useState<ElementSize | null>(null);
   const debounceMs = options?.debounce ?? 0;
   const box = options?.box ?? "content";

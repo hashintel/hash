@@ -1,8 +1,12 @@
 ---
 layer: ui.views
-role: The top-level screens the editor composes — the editor shell, the net canvas, and the notebook
+role: The top-level screens of the editor, which are the editor shell, the net canvas and the notebook
 ---
 
-Each subfolder is a screen rather than a widget. The split matters because the
-canvas is reused outside the full editor — Actual mode renders a net with no
-editing affordances — so it cannot depend on the editor shell around it.
+Three subfolders are screens: the [editor shell](layer:ui.views.editor), the
+[canvas](layer:ui.views.canvas) and the [notebook](layer:ui.views.notebook).
+The fourth, `shared/`, holds code that two screens use.
+
+The canvas and the notebook import nothing from the editor shell. No rule of
+`archinaut check` enforces it. [The canvas](doc:ui.views.canvas/canvas) gives
+the reason.

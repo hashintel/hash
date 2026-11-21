@@ -10,7 +10,8 @@
     "dev": "archinaut dev --port ${PORT:-4322}",
     "doc:architecture": "archinaut bundle",
     "lint:arch-docs": "archinaut check",
-    "lint:tsc": "tsc --noEmit"
+    "lint:tsc": "tsc --noEmit",
+    "test:unit": "vitest run content"
   },
   "devDependencies": {
     "@apps/petrinaut-website": "workspace:*",
@@ -20,7 +21,10 @@
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
     "@types/node": "catalog:",
-    "typescript": "catalog:"
+    "@types/react": "19.2.14",
+    "react": "19.2.6",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
     "node": "22.x"

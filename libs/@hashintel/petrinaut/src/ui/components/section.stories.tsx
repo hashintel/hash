@@ -1,115 +1,46 @@
-import { Button } from "@hashintel/ds-components";
-
 import { Section, SectionList } from "./section";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
-  title: "Components / Section",
+  title: "Components/Section",
+  component: Section,
   parameters: {
     layout: "centered",
   },
-} satisfies Meta;
+  decorators: [
+    (Story) => (
+      <div style={{ width: 280 }}>
+        <Story />
+      </div>
+    ),
+  ],
+  args: {
+    title: "Properties",
+    tooltip: "",
+    collapsible: false,
+    children: "Section content",
+  },
+} satisfies Meta<typeof Section>;
 
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-const Container = ({ children }: { children: React.ReactNode }) => (
-  <div style={{ width: 280 }}>{children}</div>
-);
+export const Default: Story = {};
 
-const Placeholder = ({ label }: { label: string }) => (
-  <div
-    style={{
-      padding: 12,
-      borderRadius: 4,
-      backgroundColor: "#f5f5f5",
-      fontSize: 12,
-      color: "#888",
-    }}
-  >
-    {label}
-  </div>
-);
-
-export const Default: Story = {
-  name: "Default",
-  render: () => (
-    <Container>
-      <Section title="Properties">
-        <Placeholder label="Section content" />
-      </Section>
-    </Container>
-  ),
-};
-
-export const WithTooltip: Story = {
-  name: "With tooltip",
-  render: () => (
-    <Container>
-      <Section title="Initial State" tooltip="The starting token distribution">
-        <Placeholder label="Content with tooltip on header" />
-      </Section>
-    </Container>
-  ),
-};
-
-export const Collapsible: Story = {
-  name: "Collapsible",
-  render: () => (
-    <Container>
-      <Section title="Advanced" collapsible>
-        <Placeholder label="Collapsible content (open by default)" />
-      </Section>
-    </Container>
-  ),
-};
-
-export const CollapsibleClosed: Story = {
-  name: "Collapsible (initially closed)",
-  render: () => (
-    <Container>
-      <Section title="Advanced" collapsible defaultOpen={false}>
-        <Placeholder label="This starts collapsed" />
-      </Section>
-    </Container>
-  ),
-};
-
-export const WithHeaderAction: Story = {
-  name: "With header action",
-  render: () => (
-    <Container>
-      <Section
-        title="Tokens"
-        renderHeaderAction={() => (
-          <Button variant="subtle" size="xxs">
-            Clear
-          </Button>
-        )}
-      >
-        <Placeholder label="Content with action button in header" />
-      </Section>
-    </Container>
-  ),
-};
-
+/** One section with a tooltip, one that starts collapsed. */
 export const List: Story = {
   name: "SectionList",
   render: () => (
-    <Container>
-      <SectionList>
-        <Section title="General">
-          <Placeholder label="General settings" />
-        </Section>
-        <Section title="Appearance">
-          <Placeholder label="Color and style options" />
-        </Section>
-        <Section title="Advanced" collapsible defaultOpen={false}>
-          <Placeholder label="Advanced configuration" />
-        </Section>
-      </SectionList>
-    </Container>
+    <SectionList>
+      <Section title="General">General settings</Section>
+      <Section title="Initial State" tooltip="The starting token distribution">
+        Content with a tooltip on the header
+      </Section>
+      <Section title="Advanced" collapsible defaultOpen={false}>
+        Advanced configuration
+      </Section>
+    </SectionList>
   ),
 };

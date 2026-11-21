@@ -17,12 +17,12 @@ import {
   gutterMenuButtonStyle,
 } from "./form-table";
 import { GutterMenu } from "./gutter-menu";
-import { useRowDragHandle } from "./reorderable-rows";
+import { useRowDragHandle } from "./row-drag-handle";
 
 import type { GutterMenuItem } from "./gutter-menu";
 import type { ReactNode } from "react";
 
-export interface GutterCellProps {
+interface GutterCellProps {
   /** The glyph the main button shows (`#1`, `i`, a variable icon). */
   glyph: ReactNode;
   tooltip?: string;

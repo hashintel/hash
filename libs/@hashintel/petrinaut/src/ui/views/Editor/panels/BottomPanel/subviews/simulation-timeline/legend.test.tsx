@@ -31,6 +31,12 @@ globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
 globalThis.IntersectionObserver =
   ObserverStub as unknown as typeof IntersectionObserver;
 
+// jsdom has no `CSS` either. With the dropdown open, zag looks up the
+// highlighted option by an escaped selector from a mutation observer, and
+// without the stub that callback throws after the test has passed. The
+// series ids of these tests need no escaping.
+globalThis.CSS = { escape: (value: string) => value } as typeof CSS;
+
 // Vitest globals are disabled in this package, so testing-library cannot
 // auto-register its cleanup hook.
 afterEach(() => {
@@ -192,6 +198,17 @@ describe("TimelineLegend", () => {
     expect(
       screen.getByRole("button", { name: /45 of 45 series shown/u }),
     ).toBeDefined();
+  });
+
+  it("mounts the options with the dropdown, and none while it is closed", async () => {
+    render(<StatefulLegend series={createSeries(3)} />);
+    expect(screen.queryAllByRole("option", { hidden: true })).toHaveLength(0);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /3 of 3 series shown/u }),
+    );
+
+    expect(await screen.findAllByRole("option")).toHaveLength(3);
   });
 
   it("clears the search text without changing the selection", async () => {

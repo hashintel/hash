@@ -27,15 +27,11 @@ import {
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
 import type { ComputeBatch } from "../shared/drawer-frame";
-import type { ResultsStat } from "../shared/results-model";
 
 // uPlot reads `matchMedia` as it loads, which jsdom lacks; the model builds
 // the tiles but never renders a timeline.
 vi.mock("./experiment-metric-timeline", () => ({
-  DEFAULT_METRIC_VIEW_SETTINGS: {},
-  describeMetricView: () => "",
   ExperimentMetricTimeline: () => null,
-  MetricViewMenu: () => null,
 }));
 
 // The strip draws through uPlot; the model hands it the study and no more.
@@ -80,17 +76,14 @@ const propsOf = <Props,>(node: ReactNode): Props =>
 
 const detailsOf = (result: ReturnType<typeof model>) =>
   propsOf<{
-    stats: readonly Pick<ResultsStat, "id" | "label" | "value">[];
+    stats: readonly { id: string; label: string; text: ReactNode }[];
     batches: readonly ComputeBatch[];
     children: ReactNode;
   }>(result.header.headline);
 
 const statTexts = (experiment: ExperimentRecord) =>
   Object.fromEntries(
-    detailsOf(model(experiment)).stats.map((stat) => [
-      stat.label,
-      stat.value.text,
-    ]),
+    detailsOf(model(experiment)).stats.map((stat) => [stat.label, stat.text]),
   );
 
 /** The navigator's props inside the Parameters card. */
@@ -152,11 +145,6 @@ const idleSweep: ExperimentRecord = {
 describe("experimentResultsModel for a running sweep", () => {
   const result = model(sweep);
 
-  it("titles the experiment with details available separately", () => {
-    expect(result.header.title).toBe("SIR transmission sweep");
-    expect(isValidElement(result.header.headline)).toBe(true);
-  });
-
   it("keeps the sweep header to its status and moves sampling and compute into details", () => {
     expect(result.header.status).toEqual({
       label: "Running",
@@ -214,7 +202,6 @@ describe("experimentResultsModel for a running sweep", () => {
     expect(result.metrics).toMatchObject({
       key: sweep.id,
       contentEpoch: sweep.sweep!.selectionKey,
-      plotHeight: 220,
       tone: "default",
       cards: null,
       timeDomain: [0, sweep.maxTime],
@@ -433,24 +420,6 @@ describe("experimentResultsModel with the optimizer", () => {
     optimizer: withStudy(study, driving),
   });
 
-  it("puts Stop on the Parameters card only while the study drives the sweep", () => {
-    expect(model(sweep).bands[0]!.trailing).toBeNull();
-    const stop = vi.fn();
-    const drivingCard = model(sweep, {
-      optimizer: { ...withStudy(study, driving), stop },
-    }).bands[0]!;
-    expect(
-      propsOf<{ children: string; onClick: () => void }>(drivingCard.trailing),
-    ).toMatchObject({ children: "Stop", "data-sweep-optimizing": true });
-    propsOf<{ onClick: () => void }>(drivingCard.trailing).onClick();
-    expect(stop).toHaveBeenCalledOnce();
-    expect(
-      model(idleSweep, {
-        optimizer: withStudy({ ...study, status: "complete" }),
-      }).bands[0]!.trailing,
-    ).toBeNull();
-  });
-
   it("turns the Parameters card and the surface purple while a study drives the sweep", () => {
     const result = model(sweep, { optimizer: withStudy(study, driving) });
     expect(result.bands[0]!.tone).toBe("optimizing");
@@ -459,15 +428,6 @@ describe("experimentResultsModel with the optimizer", () => {
       disabled: true,
       tone: "optimizing",
     });
-  });
-
-  it("reads Optimizing from the study across the gap between steps, with Cancel offered", () => {
-    expect(betweenSteps.header.status).toEqual({
-      label: "Optimizing",
-      tone: "active",
-      widest: "Initializing",
-    });
-    expect(isValidElement(footerButtonsOf(betweenSteps)[0])).toBe(true);
   });
 
   it("fills the progress bar with the steps finished, not the step's runs", () => {
@@ -488,25 +448,9 @@ describe("experimentResultsModel with the optimizer", () => {
       "Step 5",
     ]);
     expect(navigatorOf(result)).toMatchObject({
-      status: { following: { kind: "following", step: 5, total: 30 } },
+      status: { following: { kind: "following", step: 5 } },
       disabled: true,
     });
-  });
-
-  it("puts the objective strip under the sliders whenever the sweep has a study, driving or settled", () => {
-    expect(model(sweep).bands[0]!.below).toBeNull();
-    const strip = propsOf<{ study: unknown; driving: boolean }>(
-      betweenSteps.bands[0]!.below,
-    );
-    expect(isValidElement(betweenSteps.bands[0]!.below)).toBe(true);
-    expect(strip.study).toBe(study);
-    expect(strip.driving).toBe(true);
-    const settled = { ...study, status: "complete" as const };
-    expect(
-      propsOf<{ driving: boolean }>(
-        model(idleSweep, { optimizer: withStudy(settled) }).bands[0]!.below,
-      ).driving,
-    ).toBe(false);
   });
 
   it("restores all best parameter values together on the sweep grid", () => {
@@ -636,10 +580,6 @@ describe("experimentResultsModel with the optimizer", () => {
 describe("experimentResultsModel with constraints", () => {
   const constrained = makeConstrainedSweepExperiment();
 
-  it("gives the Parameters card no fold without constraints", () => {
-    expect(model(sweep).bands[0]!.more).toBeNull();
-  });
-
   it("folds the constraints behind the Parameters card's footer from creation on", () => {
     const more = model(constrained).bands[0]!.more;
     expect(more).toMatchObject({
@@ -671,18 +611,6 @@ describe("experimentResultsModel with a study", () => {
     optimizer: withStudy(runningStudy, driving),
   });
 
-  it("shows nothing of a study for a sweep created without one", () => {
-    const result = model(sweep);
-    expect(isValidElement(result.header.headline)).toBe(true);
-    expect(Object.keys(statTexts(sweep))).toEqual([
-      "Runs sampled",
-      "Errors",
-      "Simulation time",
-    ]);
-    expect(result.metrics?.cards).toBeNull();
-    expect(result.after).toBeNull();
-  });
-
   it("fills the headline, the Steps column, the Sensitivity card and the steps table from the study", () => {
     expect(isValidElement(running.header.headline)).toBe(true);
     expect(detailsOf(running).stats.map((stat) => stat.label)).toEqual([
@@ -692,25 +620,16 @@ describe("experimentResultsModel with a study", () => {
       "Steps",
     ]);
     const steps = detailsOf(running).stats.find((stat) => stat.id === "steps")!;
-    expect(steps.value.text).toBe("4 / 30");
+    expect(steps.text).toBe("4 / 30");
     expect(running.header.stats.some((stat) => stat.id === "best")).toBe(false);
     const cards = propsOf<{ children: ReactNode[] }>(
       running.metrics!.cards,
     ).children;
     expect(cards[0]).toBeNull();
-    expect(propsOf<{ plotHeight: number }>(cards[1]).plotHeight).toBe(220);
+    expect(isValidElement(cards[1])).toBe(true);
     expect(
-      propsOf<{ bestTrial: number | null; optimization: OptimizationRecord }>(
-        running.after,
-      ),
-    ).toMatchObject({ bestTrial: 2, optimization: { id: "study" } });
-  });
-
-  it("keeps the objective strip under the sliders beside the study's cards", () => {
-    expect(isValidElement(running.bands[0]!.below)).toBe(true);
-    expect(propsOf<{ study: unknown }>(running.bands[0]!.below).study).toBe(
-      runningStudy,
-    );
+      propsOf<{ optimization: OptimizationRecord }>(running.after),
+    ).toMatchObject({ optimization: { id: "study" } });
   });
 
   it("adds Steps clear and the Constraints card only for a constrained study, in the card's tone", () => {
@@ -734,17 +653,16 @@ describe("experimentResultsModel with a study", () => {
     const stepsClear = detailsOf(constrained).stats.find(
       (stat) => stat.id === "steps-clear",
     )!;
-    expect(stepsClear.value.text).toMatch(/^\d+ \/ \d+ · \d+%$/u);
+    expect(stepsClear.text).toMatch(/^\d+ \/ \d+ · \d+%$/u);
     expect(
-      detailsOf(constrained).stats.find((stat) => stat.id === "steps")?.value
-        .text,
+      detailsOf(constrained).stats.find((stat) => stat.id === "steps")?.text,
     ).toBe("4 / 30 · 60 runs each");
     const cards = propsOf<{ children: ReactNode[] }>(
       constrained.metrics!.cards,
     ).children;
-    expect(
-      propsOf<{ tone: string; plotHeight: number }>(cards[0]),
-    ).toMatchObject({ tone: "optimizing", plotHeight: 220 });
+    expect(propsOf<{ tone: string }>(cards[0])).toMatchObject({
+      tone: "optimizing",
+    });
     // The experiment's own constraints do not add the column; the study's do.
     expect(
       model(makeConstrainedSweepExperiment(), {

@@ -25,7 +25,7 @@ import type { MetricFrame } from "../shared/metric-frames";
 import type { HeatmapDensityGrid } from "./distribution-heatmap/density-grid";
 import type { HeatmapDisplay } from "./distribution-heatmap/display-easing";
 
-export type HeatmapContent = {
+type HeatmapContent = {
   frames: readonly MetricFrame[];
   /** The selection the frames belong to; a new one starts from its own data. */
   epoch: string | undefined;

@@ -3,15 +3,16 @@ import { useRef } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useTransitionFrame } from "../../../canvas-frame-store";
+import { useTransitionFrame } from "../../../canvas-frame-store-context";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import { nodeFocusStyle } from "../../../styles/focus";
+import { NodeCard } from "./node-card";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
-  NodeCard,
   nodeCardStyle,
-} from "./node-card";
+} from "./node-card-styles";
+import { NodeHandles } from "./shared/node-handles";
 import { useTransitionFiringAnimation } from "./use-transition-firing-animation";
 
 import type { TransitionNodeType } from "./react-flow-types";
@@ -101,7 +102,13 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
           <Icon name="lightning" />
         </div>
       }
-      isConnectable={isConnectable}
-    />
+    >
+      <NodeHandles
+        kind="transition"
+        width={data.width}
+        height={data.height}
+        isConnectable={isConnectable}
+      />
+    </NodeCard>
   );
 };

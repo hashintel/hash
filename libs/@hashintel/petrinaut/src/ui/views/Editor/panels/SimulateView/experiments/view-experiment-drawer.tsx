@@ -23,18 +23,16 @@ const ExperimentDrawer = ({
 };
 
 export const ViewExperimentDrawer = ({
-  open,
   onClose,
   experiment,
   presentation = "panel",
 }: {
-  open: boolean;
   onClose: () => void;
   experiment: ExperimentRecord | undefined;
   presentation?: "panel" | "inline";
 }) => (
   <SimulationPanelPresence>
-    {open && experiment ? (
+    {experiment ? (
       <ExperimentDrawer
         experiment={experiment}
         onClose={onClose}

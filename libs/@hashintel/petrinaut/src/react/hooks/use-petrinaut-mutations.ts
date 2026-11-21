@@ -1,11 +1,11 @@
 import { use } from "react";
 
-import { PetrinautInstanceContext } from "../instance-context";
 import { ActiveNetContext } from "../state/active-net-context";
 import {
   mutationBlockedBy,
   useReadOnlyReason,
 } from "../state/use-read-only-reason";
+import { useCoreInstance } from "../use-petrinaut-instance";
 import { useHostRulesFeedback } from "./use-host-rules-feedback";
 import { useReadOnlyFeedback } from "./use-read-only-feedback";
 
@@ -26,6 +26,20 @@ export type GuardedPetrinautMutations = {
   ) => boolean;
 };
 
+/** The mutations of the document as a whole. The others act on the open net. */
+const documentWideMutations: ReadonlySet<keyof PetrinautMutations> = new Set([
+  "addScenario",
+  "updateScenario",
+  "removeScenario",
+  "addMetric",
+  "updateMetric",
+  "removeMetric",
+  "addComponent",
+  "updateComponent",
+  "removeComponent",
+  "setImplementation",
+]);
+
 /**
  * React-facing bundle of atomic SDCPN mutations.
  *
@@ -43,37 +57,30 @@ export type GuardedPetrinautMutations = {
  * surface to keep the readonly guard centralised in this hook.
  */
 export function usePetrinautMutations(): GuardedPetrinautMutations {
-  const instance = use(PetrinautInstanceContext);
-  if (!instance) {
-    throw new Error(
-      "usePetrinautMutations must be used inside <PetrinautProvider> (or <Petrinaut>).",
-    );
-  }
+  const instance = useCoreInstance("usePetrinautMutations");
   const { activeComponentId } = use(ActiveNetContext);
   const readOnlyReason = useReadOnlyReason();
   const notifyReadOnly = useReadOnlyFeedback();
   const notifyHostRules = useHostRulesFeedback();
   const { mutations } = instance;
 
-  const withReadonlyGuard = <Name extends keyof PetrinautMutations>(
+  const guarded = <Name extends keyof PetrinautMutations>(
     name: Name,
-    options?: { targetActiveComponent?: boolean },
   ): GuardedPetrinautMutations[Name] => {
     const target = mutations[name] as (
       input: PetrinautMutationInput<Name>,
     ) => void;
-    const wrapped = ((input: PetrinautMutationInput<Name>) => {
+    return ((input: PetrinautMutationInput<Name>) => {
       if (mutationBlockedBy(name, readOnlyReason, input) !== null) {
         notifyReadOnly();
         return false;
       }
-      const nextInput =
-        options?.targetActiveComponent === false
-          ? input
-          : ({
-              ...input,
-              targetComponentId: activeComponentId,
-            } as PetrinautMutationInput<Name>);
+      const nextInput = documentWideMutations.has(name)
+        ? input
+        : ({
+            ...input,
+            targetComponentId: activeComponentId,
+          } as PetrinautMutationInput<Name>);
       // Asked of the input as it goes out, with the net it targets.
       const refusal = instance.mutationRefusal(name, nextInput);
       if (refusal !== null) {
@@ -83,77 +90,12 @@ export function usePetrinautMutations(): GuardedPetrinautMutations {
       target(nextInput);
       return true;
     }) as GuardedPetrinautMutations[Name];
-    return wrapped;
   };
 
-  return {
-    addPlace: withReadonlyGuard("addPlace"),
-    updatePlace: withReadonlyGuard("updatePlace"),
-    updatePlacePosition: withReadonlyGuard("updatePlacePosition"),
-    removePlace: withReadonlyGuard("removePlace"),
-    addTransition: withReadonlyGuard("addTransition"),
-    updateTransition: withReadonlyGuard("updateTransition"),
-    updateTransitionPosition: withReadonlyGuard("updateTransitionPosition"),
-    removeTransition: withReadonlyGuard("removeTransition"),
-    addArc: withReadonlyGuard("addArc"),
-    removeArc: withReadonlyGuard("removeArc"),
-    updateArcWeight: withReadonlyGuard("updateArcWeight"),
-    updateArcType: withReadonlyGuard("updateArcType"),
-    updateArcPlace: withReadonlyGuard("updateArcPlace"),
-    addType: withReadonlyGuard("addType"),
-    updateType: withReadonlyGuard("updateType"),
-    removeType: withReadonlyGuard("removeType"),
-    addTypeElement: withReadonlyGuard("addTypeElement"),
-    updateTypeElement: withReadonlyGuard("updateTypeElement"),
-    removeTypeElement: withReadonlyGuard("removeTypeElement"),
-    moveTypeElement: withReadonlyGuard("moveTypeElement"),
-    addDifferentialEquation: withReadonlyGuard("addDifferentialEquation"),
-    updateDifferentialEquation: withReadonlyGuard("updateDifferentialEquation"),
-    removeDifferentialEquation: withReadonlyGuard("removeDifferentialEquation"),
-    addParameter: withReadonlyGuard("addParameter"),
-    updateParameter: withReadonlyGuard("updateParameter"),
-    removeParameter: withReadonlyGuard("removeParameter"),
-    addScenario: withReadonlyGuard("addScenario", {
-      targetActiveComponent: false,
-    }),
-    updateScenario: withReadonlyGuard("updateScenario", {
-      targetActiveComponent: false,
-    }),
-    removeScenario: withReadonlyGuard("removeScenario", {
-      targetActiveComponent: false,
-    }),
-    addMetric: withReadonlyGuard("addMetric", { targetActiveComponent: false }),
-    updateMetric: withReadonlyGuard("updateMetric", {
-      targetActiveComponent: false,
-    }),
-    removeMetric: withReadonlyGuard("removeMetric", {
-      targetActiveComponent: false,
-    }),
-    addComponent: withReadonlyGuard("addComponent", {
-      targetActiveComponent: false,
-    }),
-    updateComponent: withReadonlyGuard("updateComponent", {
-      targetActiveComponent: false,
-    }),
-    removeComponent: withReadonlyGuard("removeComponent", {
-      targetActiveComponent: false,
-    }),
-    addComponentInstance: withReadonlyGuard("addComponentInstance"),
-    updateComponentInstance: withReadonlyGuard("updateComponentInstance"),
-    updateComponentInstancePosition: withReadonlyGuard(
-      "updateComponentInstancePosition",
-    ),
-    removeComponentInstance: withReadonlyGuard("removeComponentInstance"),
-    addFusion: withReadonlyGuard("addFusion"),
-    updateFusion: withReadonlyGuard("updateFusion"),
-    removeFusion: withReadonlyGuard("removeFusion"),
-    addFusionMember: withReadonlyGuard("addFusionMember"),
-    removeFusionMember: withReadonlyGuard("removeFusionMember"),
-    replaceFusionMember: withReadonlyGuard("replaceFusionMember"),
-    setImplementation: withReadonlyGuard("setImplementation", {
-      targetActiveComponent: false,
-    }),
-    deleteItemsByIds: withReadonlyGuard("deleteItemsByIds"),
-    commitNodePositions: withReadonlyGuard("commitNodePositions"),
-  };
+  return Object.fromEntries(
+    (Object.keys(mutations) as (keyof PetrinautMutations)[]).map((name) => [
+      name,
+      guarded(name),
+    ]),
+  ) as GuardedPetrinautMutations;
 }

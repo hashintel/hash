@@ -41,7 +41,7 @@ const clipStyle = css({
   overflow: "hidden",
 });
 
-export type FoldProps = {
+type FoldProps = {
   open: boolean;
   /** The clip element's id, for the control's `aria-controls`. */
   id?: string;

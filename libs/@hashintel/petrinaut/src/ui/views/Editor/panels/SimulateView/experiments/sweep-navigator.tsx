@@ -16,7 +16,7 @@ import type {
 } from "../../../../../../react/experiments/parameter-grid";
 
 /** Progress shown under the sliders. */
-export type SweepNavigatorStatus = {
+type SweepNavigatorStatus = {
   /** Whether a batch is currently running for the selection. */
   computing: boolean;
   /**
@@ -25,7 +25,7 @@ export type SweepNavigatorStatus = {
    * no study was started.
    */
   following:
-    | { kind: "following"; step: number; total: number }
+    | { kind: "following"; step: number }
     | { kind: "settled"; summary: string }
     | null;
   /** Runs finished for the selection so far. */

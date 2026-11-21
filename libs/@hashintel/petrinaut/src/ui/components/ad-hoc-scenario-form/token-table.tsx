@@ -19,7 +19,7 @@
  * opens its editor, Escape closes it.
  */
 
-import { use, useRef, useState } from "react";
+import { useState } from "react";
 
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -32,14 +32,10 @@ import {
   type Place,
 } from "@hashintel/petrinaut-core";
 
-import { focusLands } from "../../worksheet/focus-flow";
-import {
-  useFocusStops,
-  type FocusStop,
-  type FocusStopTarget,
-} from "../../worksheet/use-focus-stops";
+import { useFocusStops, type FocusStop } from "../../worksheet/use-focus-stops";
 import { useRowSelection } from "../../worksheet/use-row-selection";
 import { useSelectFirstActivation } from "../../worksheet/use-select-first";
+import { useStopTargets } from "../../worksheet/use-stop-targets";
 import { FormSpreadsheet } from "../spreadsheet-kit/form-spreadsheet";
 import {
   cellStyle,
@@ -55,7 +51,7 @@ import {
 } from "../spreadsheet-kit/form-table";
 import { GutterCell } from "../spreadsheet-kit/gutter-cell";
 import { PhantomLine } from "../spreadsheet-kit/phantom-line";
-import { AdHocFormContext, adHocIntervalSelection } from "./form-context";
+import { useAdHocForm, adHocIntervalSelection } from "./form-context";
 import { ValueEditor } from "./value-editor";
 
 // A background image, not a solid color, so it composites over row tints.
@@ -131,10 +127,7 @@ const stripEditorOptimizedStyle = css({
   backgroundColor: "[transparent]",
 });
 
-const targetKey = ({ stopId, column }: FocusStopTarget): string =>
-  `${stopId}:${column}`;
-
-export interface TokenTableProps {
+interface TokenTableProps {
   place: Place;
   colour: Color;
   state: AdHocColouredPlace;
@@ -145,7 +138,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   colour,
   state,
 }) => {
-  const { mode, selection, setFocusedValue, dispatch } = use(AdHocFormContext);
+  const { mode, selection, setFocusedValue, dispatch } = useAdHocForm();
   // Run mode: cells and gutters stay focusable and walkable, but nothing
   // edits and no rows are added or removed.
   const readOnly = mode === "run";
@@ -178,7 +171,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   const rowSelection = useRowSelection();
   // Phantom cells select on the first click and materialize on the second.
   const phantomActivation = useSelectFirstActivation();
-  const targets = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const { register: registerTarget, focus: focusTarget } = useStopTargets();
 
   const hasSharedColumns = Object.keys(state.sharedColumns).length > 0;
   const sharedColumnIndexes = elements.flatMap((element, columnIndex) =>
@@ -217,17 +210,9 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   const { attach, onKeyDown, onFocusTarget } = useFocusStops({
     stops,
     columnCount,
-    focusTarget: (target) => focusLands(targets.current.get(targetKey(target))),
+    focusTarget,
+    tabStop: "native",
   });
-
-  const registerTarget =
-    (position: FocusStopTarget) => (element: HTMLButtonElement | null) => {
-      if (element) {
-        targets.current.set(targetKey(position), element);
-      } else {
-        targets.current.delete(targetKey(position));
-      }
-    };
 
   const deleteRow = (rowIndex: number) => {
     dispatch({ type: "deleteTokenRow", placeId: place.id, row: rowIndex });
@@ -242,7 +227,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
               column: "gutter" as const,
             }
           : { stopId: "phantom", column: 0 };
-      targets.current.get(targetKey(survivor))?.focus();
+      focusTarget(survivor);
     }, 0);
   };
 

@@ -1,6 +1,7 @@
-import { use, useState } from "react";
+import { use } from "react";
 
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
+import { useKeptState } from "../../../../../../lib/kept-state";
 import { MIN_VIEW_SPAN } from "./interactions";
 
 import type { TimeRange } from "./use-event-timeline-data";
@@ -19,7 +20,11 @@ export type TimelineViewRange = {
 
 export const useTimelineViewRange = (): TimelineViewRange => {
   const { coveredTime } = use(EventPlaybackContext);
-  const [zoomedRange, setZoomedRange] = useState<TimeRange | null>(null);
+  // Kept while a closed panel has the Timeline unmounted.
+  const [zoomedRange, setZoomedRange] = useKeptState<TimeRange | null>(
+    "timeline-zoom",
+    null,
+  );
   const domain = Math.max(coveredTime, MIN_VIEW_SPAN);
   return {
     range: zoomedRange ?? { min: 0, max: domain },

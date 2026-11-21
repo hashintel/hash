@@ -1,12 +1,15 @@
 /**
- * Centralized icon definitions for Petri net entity types.
- *
- * Each entity has an outline icon (used in PropertiesPanel headers)
- * and optionally a filled icon (used in list item rows).
+ * The icon of each kind of Petri net entity, as the properties headers, the
+ * entity lists and the notebook cells show it.
  */
-import { Icon, type IconName } from "@hashintel/ds-components";
+import { Icon } from "@hashintel/ds-components";
 
 type IconSize = "xxs" | "xs" | "sm" | "md" | "lg";
+
+interface EntityIconProps {
+  /** In pixels; the icon takes the nearest size of the design system. */
+  size: number;
+}
 
 const sizeToIconSize = (size: number): IconSize => {
   if (size <= 9) {
@@ -24,20 +27,26 @@ const sizeToIconSize = (size: number): IconSize => {
   return "lg";
 };
 
-const makeIcon =
-  (name: IconName) =>
-  ({ size }: { size: number }) => (
-    <Icon name={name} size={sizeToIconSize(size)} />
-  );
+export const PlaceIcon = ({ size }: EntityIconProps) => (
+  <Icon name="circleFilled" size={sizeToIconSize(size)} />
+);
 
-/** Outline icons — used in PropertiesPanel headers */
-export const PlaceIcon = makeIcon("circleFilled");
-export const TransitionIcon = makeIcon("squareFilled");
-export const ParameterIcon = makeIcon("sliders");
-export const TokenTypeIcon = makeIcon("threeCircles");
-export const DifferentialEquationIcon = makeIcon("function");
-export const FusionIcon = makeIcon("diagramNodes");
+export const TransitionIcon = ({ size }: EntityIconProps) => (
+  <Icon name="squareFilled" size={sizeToIconSize(size)} />
+);
 
-/** Filled icons — used in list item rows */
-export const PlaceFilledIcon = makeIcon("circleFilled");
-export const TransitionFilledIcon = makeIcon("squareFilled");
+export const ParameterIcon = ({ size }: EntityIconProps) => (
+  <Icon name="sliders" size={sizeToIconSize(size)} />
+);
+
+export const TokenTypeIcon = ({ size }: EntityIconProps) => (
+  <Icon name="threeCircles" size={sizeToIconSize(size)} />
+);
+
+export const DifferentialEquationIcon = ({ size }: EntityIconProps) => (
+  <Icon name="function" size={sizeToIconSize(size)} />
+);
+
+export const FusionIcon = ({ size }: EntityIconProps) => (
+  <Icon name="diagramNodes" size={sizeToIconSize(size)} />
+);

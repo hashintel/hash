@@ -11,7 +11,7 @@
  * worksheet member past the edges.
  */
 
-import { use, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { Icon, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -35,16 +35,18 @@ import { GutterCell } from "../spreadsheet-kit/gutter-cell";
 import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
 import { PhantomLine } from "../spreadsheet-kit/phantom-line";
 import { TextCell } from "../spreadsheet-kit/text-cell";
-import { adHocVariableKey } from "./dependency-highlight";
 import {
-  AdHocFormContext,
+  useAdHocForm,
+  useAdHocFormFact,
   adHocIntervalSelection,
   adHocSelectionApplies,
   adHocSelectionText,
+  sameParts,
+  variableHighlights,
+  variableNameErrors,
+  variablesOf,
 } from "./form-context";
 import { ValueEditor } from "./value-editor";
-
-import type { AdHocVariable } from "@hashintel/petrinaut-core";
 
 const gutterColumnStyle = css({
   width: "[40px]",
@@ -72,11 +74,10 @@ const exposeCellStyle = css({
   textAlign: "center",
 });
 
-export interface VariableRowsProps {
+interface VariableRowsProps {
   scopeLabel: string;
   /** `null` for top-level Variables, the owning place id otherwise. */
   placeId: string | null;
-  variables: AdHocVariable[];
 }
 
 /** Grid columns: 0 gutter, 1 name, 2 type, 3 value, 4 Optimize. */
@@ -85,10 +86,17 @@ const PHANTOM_COLUMNS = [0, 1, 2, 3, 4];
 export const VariableRows: React.FC<VariableRowsProps> = ({
   scopeLabel,
   placeId,
-  variables,
 }) => {
-  const { errorFor, selection, highlight, setFocusedValue, dispatch } =
-    use(AdHocFormContext);
+  const { selection, setFocusedValue, dispatch } = useAdHocForm();
+  const variables = useAdHocFormFact((facts) => variablesOf(facts, placeId));
+  const nameErrors = useAdHocFormFact(
+    (facts) => variableNameErrors(facts, placeId),
+    sameParts,
+  );
+  const highlightedRows = useAdHocFormFact(
+    (facts) => variableHighlights(facts, placeId),
+    sameParts,
+  );
   // The trailing toggle column: the interval toggle (Optimize or Sweep) on
   // every numeric Variable; "Scenario Parameter" on top-level Variables only
   // in expose mode (a per-place Variable is a per-row intermediate — nothing
@@ -98,9 +106,10 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
     (selection === "expose" && placeId === null)
       ? selection
       : null;
-  const { register, onKeyDown, attach } = useFocusGrid();
-  const gutterRefs = useRef(new Map<number, HTMLButtonElement>());
-  const phantomRef = useRef<HTMLButtonElement | null>(null);
+  const { register, focus, onKeyDown, attach } = useFocusGrid({
+    tabStop: "native",
+  });
+  const addLineRef = useRef<HTMLButtonElement | null>(null);
   // Gutter focus selects the whole row; the selection highlight follows it.
   const rowSelection = useRowSelection();
   // The add-line selects on the first click and materializes on the second.
@@ -136,11 +145,14 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   const deleteVariable = (index: number) => {
     dispatch({ type: "deleteVariable", placeId, index });
     const remaining = variables.length - 1;
+    // The gutter of the row that took the place. With no variable left, the
+    // add-line: by its element, as its row is 0 only once the host has
+    // applied the delete.
     setTimeout(() => {
       if (remaining > 0) {
-        gutterRefs.current.get(Math.min(index, remaining - 1))?.focus();
+        focus(Math.min(index, remaining - 1), 0);
       } else {
-        phantomRef.current?.focus();
+        addLineRef.current?.focus();
       }
     }, 0);
   };
@@ -168,10 +180,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
       <tbody>
         {variables.map((variable, index) => {
           const target = { kind: "variable" as const, placeId, index };
-          const nameError = errorFor({ target, part: "name" });
-          const highlighted = highlight.variableKeys.has(
-            adHocVariableKey(placeId, variable.name),
-          );
+          const nameError = nameErrors[index];
+          const highlighted = highlightedRows[index] ?? false;
           const rowHighlight = cx(
             highlighted && highlightStyle,
             rowSelection.selectedRow === index && selectedRowCellStyle,
@@ -211,14 +221,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                   }
                   onOpenMenu={(anchor) => rowSelection.openMenu(index, anchor)}
                   onCloseMenu={rowSelection.closeMenu}
-                  buttonRef={(element) => {
-                    register(index, 0)(element);
-                    if (element) {
-                      gutterRefs.current.set(index, element);
-                    } else {
-                      gutterRefs.current.delete(index);
-                    }
-                  }}
+                  buttonRef={register(index, 0)}
                   onFocus={() => {
                     rowSelection.setFocusedRow(index);
                     setFocusedValue(target);
@@ -385,7 +388,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
           >
             <button
               ref={(element) => {
-                phantomRef.current = element;
+                addLineRef.current = element;
                 for (const column of PHANTOM_COLUMNS) {
                   register(variables.length, column)(element);
                 }

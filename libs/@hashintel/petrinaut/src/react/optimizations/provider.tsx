@@ -2,14 +2,11 @@
  * @layerRoot react.optimizations
  * @role Tracks the studies driving parameter sweeps: connects the host's in-browser optimizer, folds each study's event stream into a record, and routes its trials to the sweep that evaluates them
  */
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import {
-  PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
   petrinautOptimizationInputSchema,
-  type PetrinautOptimizationDirection,
   type PetrinautOptimizationEvent,
-  type PetrinautOptimizationInput,
 } from "@hashintel/petrinaut-core";
 
 import { ExperimentsActionsContext } from "../experiments/context";
@@ -18,68 +15,31 @@ import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
 import { PetrinautOptimizationContext } from "../optimization-context";
 import {
-  foldBestTrial,
   type OptimizationBest,
   isOptimizationActive,
-  type OptimizationOrigin,
   type OptimizationRecord,
   OptimizationsContext,
   type OptimizationsContextValue,
 } from "./context";
 import {
+  consumeOptimizationRun,
+  isAbortError,
+} from "./provider/consume-optimization-run";
+import {
   createSweepTrialEvaluator,
   type SweepTrialEvaluator,
 } from "./provider/create-sweep-trial-evaluator";
+import {
+  createOptimizationRecord,
+  foldOptimizationEvent,
+  isCancellationEvent,
+} from "./provider/optimization-records";
 
 import type {
   PetrinautConnectedOptimization,
   PetrinautConnectedOptimizationCapability,
 } from "@hashintel/petrinaut-core/optimization";
 import type { PropsWithChildren } from "react";
-
-const isAbortError = (error: unknown): boolean =>
-  (error instanceof DOMException && error.name === "AbortError") ||
-  (error instanceof Error && error.name === "AbortError");
-
-/**
- * Calls `visit` with each value of `values` until `shouldStop` returns true,
- * then closes the iterator as a `break` would. React Compiler cannot compile
- * a `for await` loop, so the provider iterates through this helper.
- */
-const forEachAwaited = async <T,>(
-  values: AsyncIterable<T>,
-  visit: (value: T) => void,
-  shouldStop: () => boolean,
-): Promise<void> => {
-  for await (const value of values) {
-    if (shouldStop()) {
-      break;
-    }
-    visit(value);
-  }
-};
-
-const createOptimizationRecord = (
-  id: string,
-  input: PetrinautOptimizationInput,
-  origin: OptimizationOrigin,
-): OptimizationRecord => ({
-  id,
-  input,
-  createdAt: Date.now(),
-  origin,
-  status: "initializing",
-  error: null,
-  runId: null,
-  lastSeq: 0,
-  requestedTrials: input.study.trials,
-  completedTrials: 0,
-  prunedTrials: 0,
-  failedTrials: 0,
-  trials: [],
-  best: null,
-  importance: null,
-});
 
 /**
  * A connected source's capability, wired to the sweeps that evaluate its
@@ -149,214 +109,80 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     [source],
   );
 
-  const patchOptimization = useCallback(
-    (
-      optimizationId: string,
-      updater: (optimization: OptimizationRecord) => OptimizationRecord,
-    ) => {
-      setOptimizations((current) =>
-        current.map((optimization) =>
-          optimization.id === optimizationId
-            ? updater(optimization)
-            : optimization,
-        ),
-      );
-    },
-    [],
-  );
+  const patchOptimization = (
+    optimizationId: string,
+    updater: (optimization: OptimizationRecord) => OptimizationRecord,
+  ) => {
+    setOptimizations((current) =>
+      current.map((optimization) =>
+        optimization.id === optimizationId
+          ? updater(optimization)
+          : optimization,
+      ),
+    );
+  };
 
-  const dropOptimizationRecord = useCallback((optimizationId: string) => {
+  const dropOptimizationRecord = (optimizationId: string) => {
     setOptimizations((current) =>
       current.filter((optimization) => optimization.id !== optimizationId),
     );
-  }, []);
+  };
 
   /** The study is over: the sweep parks on the best point, or on the last one tried. */
-  const settleStudy = useCallback(
-    (optimizationId: string, best?: OptimizationBest | null) => {
-      sweepEvaluatorsRef.current.get(optimizationId)?.settle(best);
-    },
-    [],
-  );
+  const settleStudy = (
+    optimizationId: string,
+    best?: OptimizationBest | null,
+  ) => {
+    sweepEvaluatorsRef.current.get(optimizationId)?.settle(best);
+  };
 
-  const markOptimizationCancelled = useCallback(
-    (optimizationId: string) => {
-      patchOptimization(optimizationId, (current) => ({
-        ...current,
-        status: "cancelled",
-        error: null,
-      }));
-      settleStudy(optimizationId);
-    },
-    [patchOptimization, settleStudy],
-  );
+  const markOptimizationCancelled = (optimizationId: string) => {
+    patchOptimization(optimizationId, (current) => ({
+      ...current,
+      status: "cancelled",
+      error: null,
+    }));
+    settleStudy(optimizationId);
+  };
 
-  const markOptimizationFailed = useCallback(
-    (
-      optimizationId: string,
-      error: unknown,
-      /** The best step the study tried before failing: the sweep parks there, not on the step that failed. */
-      best: OptimizationBest | null,
-    ) => {
-      patchOptimization(optimizationId, (current) => ({
-        ...current,
-        status: "error",
-        error: errorMessage(error),
-      }));
-      settleStudy(optimizationId, best);
-    },
-    [patchOptimization, settleStudy],
-  );
+  const markOptimizationFailed = (
+    optimizationId: string,
+    error: unknown,
+    /** The best step the study tried before failing: the sweep parks there, not on the step that failed. */
+    best: OptimizationBest | null,
+  ) => {
+    patchOptimization(optimizationId, (current) => ({
+      ...current,
+      status: "error",
+      error: errorMessage(error),
+    }));
+    settleStudy(optimizationId, best);
+  };
 
   /**
-   * Fold one optimizer event into the record, causing a single state update
-   * per event. `best` is the best step the attachment has folded so far, by
-   * the record's own fold: a terminal event settles the sweep with it, since
-   * the record in state may still be a render behind the trial before it.
+   * Folds one optimizer event into the record, in a single state update, and
+   * settles the sweep on a terminal event. `best` is the best step the
+   * attachment has folded so far, by the record's own fold: the record in
+   * state may still be a render behind the trial before it.
    */
-  const applyOptimizationEvent = useCallback(
-    (
-      optimizationId: string,
-      event: PetrinautOptimizationEvent,
-      lastSeq: number,
-      best: OptimizationBest | null,
-    ) => {
-      switch (event.type) {
-        case "started":
-          patchOptimization(optimizationId, (current) => ({
-            ...current,
-            lastSeq,
-            status: "running",
-            requestedTrials: event.requestedTrials,
-          }));
-          break;
-        case "trial":
-          patchOptimization(optimizationId, (current) => ({
-            ...current,
-            lastSeq,
-            // A trial that settled as the study was stopped still reports;
-            // it does not revive the study.
-            status: current.status === "cancelled" ? "cancelled" : "running",
-            completedTrials:
-              current.completedTrials + (event.state === "complete" ? 1 : 0),
-            prunedTrials:
-              current.prunedTrials + (event.state === "pruned" ? 1 : 0),
-            failedTrials:
-              current.failedTrials + (event.state === "failed" ? 1 : 0),
-            trials: [...current.trials, event],
-            best: foldBestTrial(
-              current.input.objective.direction,
-              current.best,
-              event,
-            ),
-            importance: event.importances ?? current.importance,
-          }));
-          break;
-        case "complete":
-          patchOptimization(optimizationId, (current) => ({
-            ...current,
-            lastSeq,
-            status: "complete",
-            // The complete event's requested-trial count is the true total,
-            // but its completed/pruned/failed counts only cover the frames
-            // this attachment observed, so the record's own accumulated
-            // counters and running best stay authoritative.
-            requestedTrials: event.requestedTrials,
-            best: event.best ?? current.best,
-            importance: event.importances ?? current.importance,
-          }));
-          settleStudy(optimizationId, event.best);
-          break;
-        case "error": {
-          // A cancellation reaches us as an error event — the stream has no
-          // type of its own for it. It is an outcome, not a failure, so it
-          // settles exactly as a locally-driven stop does: the sweep stays on
-          // the point it was trying. A failure parks it on the best step.
-          const cancelled =
-            event.code === PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE;
-          patchOptimization(optimizationId, (current) => ({
-            ...current,
-            lastSeq,
-            ...(cancelled
-              ? { status: "cancelled" as const, error: null }
-              : { status: "error" as const, error: event.message }),
-          }));
-          settleStudy(optimizationId, cancelled ? null : best);
-          break;
-        }
-      }
-    },
-    [patchOptimization, settleStudy],
-  );
-
-  /**
-   * Consume a run's event stream until its terminal event. Replayed events
-   * at or below the last applied `seq` are skipped so trials are never
-   * double-counted. Aborting the attachment before the terminal event
-   * settles the record as cancelled; a thrown error fails it, and the sweep
-   * parks on the best step tried so far.
-   */
-  const runAttachLoop = useCallback(
-    async ({
-      optimizationId,
-      runId,
-      direction,
-      capability,
-      abortController,
-    }: {
-      optimizationId: string;
-      runId: string;
-      /** The objective's direction, which decides the best step among the trials. */
-      direction: PetrinautOptimizationDirection;
-      capability: PetrinautConnectedOptimizationCapability;
-      abortController: AbortController;
-    }): Promise<void> => {
-      const { signal } = abortController;
-      // Read through a call so the abort flag is re-checked after each await
-      // (a plain property read would be control-flow-narrowed to `false`).
-      const isCancelled = () => signal.aborted;
-      let lastSeq = 0;
-      let best: OptimizationBest | null = null;
-      // Set by the event visitor. Typed `boolean` so TypeScript does not
-      // narrow it to its initial `false` after the loop.
-      let sawTerminalEvent = false as boolean;
-      try {
-        await forEachAwaited(
-          capability.attachOptimizationRun(runId, { cursor: lastSeq, signal }),
-          (event) => {
-            if (typeof event.seq === "number") {
-              if (event.seq <= lastSeq) {
-                return;
-              }
-              lastSeq = event.seq;
-            }
-            if (event.type === "trial") {
-              best = foldBestTrial(direction, best, event);
-            }
-            if (event.type === "complete" || event.type === "error") {
-              sawTerminalEvent = true;
-            }
-            applyOptimizationEvent(optimizationId, event, lastSeq, best);
-          },
-          isCancelled,
-        );
-        if (isCancelled() && !sawTerminalEvent) {
-          markOptimizationCancelled(optimizationId);
-        }
-      } catch (error) {
-        if (isCancelled() || isAbortError(error)) {
-          markOptimizationCancelled(optimizationId);
-          return;
-        }
-        if (sawTerminalEvent) {
-          // The run already settled; a trailing hiccup changes nothing.
-          return;
-        }
-        markOptimizationFailed(optimizationId, error, best);
-      }
-    },
-    [applyOptimizationEvent, markOptimizationCancelled, markOptimizationFailed],
-  );
+  const applyOptimizationEvent = (
+    optimizationId: string,
+    event: PetrinautOptimizationEvent,
+    lastSeq: number,
+    best: OptimizationBest | null,
+  ) => {
+    patchOptimization(optimizationId, (current) =>
+      foldOptimizationEvent(current, event, lastSeq),
+    );
+    if (event.type === "complete") {
+      settleStudy(optimizationId, event.best);
+    } else if (event.type === "error") {
+      // A cancellation settles exactly as a locally-driven stop does: the
+      // sweep stays on the point it was trying. A failure parks it on the
+      // best step.
+      settleStudy(optimizationId, isCancellationEvent(event) ? null : best);
+    }
+  };
 
   /** The sweep evaluator behind an optimizer run id, or null when no study owns the run. */
   const resolveSweepEvaluator = (runId: string): SweepTrialEvaluator | null => {
@@ -456,12 +282,16 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
           status: "running",
         }));
 
-        await runAttachLoop({
-          optimizationId,
+        await consumeOptimizationRun({
+          capability,
           runId,
           direction: input.objective.direction,
-          capability,
-          abortController,
+          signal: abortController.signal,
+          onEvent: (event, lastSeq, best) =>
+            applyOptimizationEvent(optimizationId, event, lastSeq, best),
+          onCancelled: () => markOptimizationCancelled(optimizationId),
+          onFailed: (error, best) =>
+            markOptimizationFailed(optimizationId, error, best),
         });
       };
 

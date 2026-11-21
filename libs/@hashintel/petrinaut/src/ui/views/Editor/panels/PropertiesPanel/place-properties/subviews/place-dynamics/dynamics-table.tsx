@@ -29,8 +29,8 @@ import { PhantomLine } from "../../../../../../../components/spreadsheet-kit/pha
 import {
   ReorderableRow,
   ReorderableRows,
-  rowMoveKeyDown,
 } from "../../../../../../../components/spreadsheet-kit/reorderable-rows";
+import { rowMoveKeyDown } from "../../../../../../../components/spreadsheet-kit/row-move-key-down";
 import { useFocusGrid } from "../../../../../../../worksheet/use-focus-grid";
 import { useRowSelection } from "../../../../../../../worksheet/use-row-selection";
 import { useSelectFirstActivation } from "../../../../../../../worksheet/use-select-first";
@@ -104,7 +104,7 @@ const tokensCellStyle = css({
 /** Grid columns: 0 gutter, 1 equation. */
 const PHANTOM_COLUMNS = [0, 1];
 
-export interface DynamicsTableProps {
+interface DynamicsTableProps {
   terms: readonly PlaceDynamicsTerm[];
   /** Every equation of the net, to name the terms. */
   equations: readonly DifferentialEquation[];

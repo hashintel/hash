@@ -1,9 +1,7 @@
-import { use } from "react";
-
 import { css } from "@hashintel/ds-helpers/css";
 
-import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
-import { usePluginStatuses } from "../../../../../plugins/plugins-provider";
+import { useUserSettings } from "../../../../../../react/state/user-settings-context";
+import { usePluginStatuses } from "../../../../../plugins/running-plugins";
 import { PluginRow, type PluginRowProps } from "./plugins-section/plugin-row";
 
 const tableStyle = css({
@@ -40,7 +38,7 @@ const emptyStyle = css({
 
 /** One row per plugin passed to the editor, with its switch and what it contributes. */
 export const PluginsTable = ({ rows }: { rows: readonly PluginRowProps[] }) => {
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   if (rows.length === 0) {
     return <p className={emptyStyle}>This editor has no plugins.</p>;
   }

@@ -17,7 +17,7 @@ import type { ExperimentParameterAxis } from "../../../../../../react/experiment
 import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
 
 /** The chart's height in pixels, x axis included. */
-export const SWEEP_OBJECTIVE_PLOT_HEIGHT = 120;
+const SWEEP_OBJECTIVE_PLOT_HEIGHT = 120;
 
 /** The strip's palette: the purple ramp's light hexes, since a canvas cannot read the tokens. */
 const sweepObjectiveStyle: ObjectiveHistoryStyle = {

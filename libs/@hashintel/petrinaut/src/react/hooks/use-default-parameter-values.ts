@@ -1,20 +1,11 @@
-import { use, useMemo } from "react";
+import { use } from "react";
 
 import {
   type DefaultParameterValues,
   deriveDefaultParameterValues,
-  mergeParameterValues,
 } from "@hashintel/petrinaut-core";
 
 import { SDCPNContext } from "../state/sdcpn-context";
-
-// Re-export the pure utilities for back-compat with existing import sites.
-// The canonical home is `@hashintel/petrinaut-core`.
-export {
-  type DefaultParameterValues,
-  deriveDefaultParameterValues,
-  mergeParameterValues,
-};
 
 /**
  * Derives default parameter values from SDCPN Store Parameters.
@@ -26,15 +17,11 @@ export {
  * @returns A record mapping parameter IDs to their default values as numbers or booleans
  */
 export function useDefaultParameterValues(): DefaultParameterValues {
+  "use memo";
   const {
     extensions,
     petriNetDefinition: { parameters },
   } = use(SDCPNContext);
 
-  return useMemo(() => {
-    if (!extensions.parameters) {
-      return {};
-    }
-    return deriveDefaultParameterValues(parameters);
-  }, [extensions.parameters, parameters]);
+  return extensions.parameters ? deriveDefaultParameterValues(parameters) : {};
 }

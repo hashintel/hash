@@ -4,58 +4,35 @@ import { describeMetricView } from "./describe-metric-view";
 import { DEFAULT_METRIC_VIEW_SETTINGS } from "./view-state";
 
 describe("describeMetricView", () => {
-  it("reads the defaults as a heatmap of values over time", () => {
-    expect(
-      describeMetricView(DEFAULT_METRIC_VIEW_SETTINGS, "distribution"),
-    ).toBe("heatmap · value over time");
-  });
-
-  it("names only the time part for a scalar metric", () => {
-    expect(describeMetricView(DEFAULT_METRIC_VIEW_SETTINGS, "scalar")).toBe(
-      "value over time",
-    );
-    expect(
-      describeMetricView(
-        { ...DEFAULT_METRIC_VIEW_SETTINGS, timeTrace: "maxToDate" },
-        "scalar",
-      ),
-    ).toBe("maximum to date");
-  });
-
-  it("names the run aggregation when runs collapse", () => {
-    expect(
-      describeMetricView(
-        {
-          ...DEFAULT_METRIC_VIEW_SETTINGS,
-          aggregateRuns: true,
-          runAggregation: "median",
-        },
-        "distribution",
-      ),
-    ).toBe("median over runs · value over time");
+  it.each([
+    [{}, "distribution", "heatmap · value over time"],
+    [{}, "scalar", "value over time"],
+    [{ timeTrace: "maxToDate" }, "scalar", "maximum to date"],
+    [
+      { aggregateRuns: true, runAggregation: "median" },
+      "distribution",
+      "median over runs · value over time",
+    ],
+    [
+      { aggregateRuns: true, runAggregation: "p90" },
+      "distribution",
+      "90th percentile over runs · value over time",
+    ],
+    [
+      {
+        distributionView: "bands",
+        aggregateTime: true,
+        timeAggregation: "sum",
+      },
+      "distribution",
+      "percentile lines · sum over time",
+    ],
+  ] as const)("reads %j of a %s metric as %s", (settings, outputType, text) => {
     expect(
       describeMetricView(
-        {
-          ...DEFAULT_METRIC_VIEW_SETTINGS,
-          aggregateRuns: true,
-          runAggregation: "p90",
-        },
-        "distribution",
+        { ...DEFAULT_METRIC_VIEW_SETTINGS, ...settings },
+        outputType,
       ),
-    ).toBe("90th percentile over runs · value over time");
-  });
-
-  it("names the time aggregation when the series collapses", () => {
-    expect(
-      describeMetricView(
-        {
-          ...DEFAULT_METRIC_VIEW_SETTINGS,
-          distributionView: "bands",
-          aggregateTime: true,
-          timeAggregation: "sum",
-        },
-        "distribution",
-      ),
-    ).toBe("percentile lines · sum over time");
+    ).toBe(text);
   });
 });

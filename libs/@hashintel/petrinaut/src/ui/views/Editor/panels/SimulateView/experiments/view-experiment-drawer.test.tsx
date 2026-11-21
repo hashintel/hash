@@ -72,9 +72,8 @@ vi.mock("./sweep-optimizer", async (importOriginal) => {
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@hashintel/ds-components")>();
-  const { Drawer } = await import("../shared/ds-drawer-stub");
   const stubs = await import("../shared/ds-control-stubs");
-  return { ...actual, ...stubs, Drawer };
+  return { ...actual, ...stubs };
 });
 
 // The contour surface draws on a canvas jsdom cannot host; the card around
@@ -141,7 +140,7 @@ afterEach(() => {
 });
 
 const drawerElement = (experiment: ExperimentRecord) => (
-  <ViewExperimentDrawer open onClose={() => {}} experiment={experiment} />
+  <ViewExperimentDrawer onClose={() => {}} experiment={experiment} />
 );
 
 const renderDrawer = (experiment: ExperimentRecord) =>
@@ -190,11 +189,7 @@ const renderDrawerWithStudies = (
         <OptimizationsContext
           value={makeOptimizationsContextValue(study, overrides)}
         >
-          <ViewExperimentDrawer
-            open
-            onClose={() => {}}
-            experiment={experiment}
-          />
+          <ViewExperimentDrawer onClose={() => {}} experiment={experiment} />
         </OptimizationsContext>
       </SDCPNContext>
     </PetrinautOptimizationContext>,
@@ -226,7 +221,6 @@ describe("ViewExperimentDrawer in the frame", () => {
   it("renders inline results with the same status and no dialog", () => {
     render(
       <ViewExperimentDrawer
-        open
         experiment={sweep}
         onClose={() => {}}
         presentation="inline"
@@ -339,7 +333,6 @@ describe("ViewExperimentDrawer in the frame", () => {
 
     view.rerender(
       <ViewExperimentDrawer
-        open
         onClose={() => {}}
         experiment={{ ...constrained, id: `${constrained.id}-next` }}
       />,

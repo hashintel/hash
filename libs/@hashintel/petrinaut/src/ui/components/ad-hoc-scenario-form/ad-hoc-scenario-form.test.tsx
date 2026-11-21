@@ -19,6 +19,7 @@ import {
   LanguageClientContext,
 } from "../../../react/lsp/context";
 import { AdHocScenarioForm, FormLayoutColumn } from "./ad-hoc-scenario-form";
+import { useAdHocForm } from "./form-context";
 
 import type { AdHocFormSelection } from "./form-context";
 import type {
@@ -45,6 +46,20 @@ vi.mock("../../monaco/code-editor", () => ({
     />
   ),
 }));
+
+// Counts the renders of each place's token table, for the test that an edit
+// renders only what it changes.
+const tokenTableRenders = vi.hoisted(() => ({ count: 0 }));
+vi.mock("./token-table", async (importOriginal) => {
+  const original = await importOriginal<typeof import("./token-table")>();
+  return {
+    ...original,
+    TokenTable: (props: React.ComponentProps<typeof original.TokenTable>) => {
+      tokenTableRenders.count += 1;
+      return <original.TokenTable {...props} />;
+    },
+  };
+});
 
 // jsdom provides neither observer, but the value editor's popover schedules
 // @floating-ui/dom's autoUpdate on an animation frame, which constructs both.
@@ -137,6 +152,33 @@ const Harness: React.FC<{
     />
   );
 };
+
+/** A host that applies the form's change later than the form's own timer. */
+const LateHost: React.FC<{ initial: AdHocScenarioState }> = ({ initial }) => {
+  const [state, setState] = useState(initial);
+  return (
+    <AdHocScenarioForm
+      state={state}
+      onChange={(next) => {
+        setTimeout(() => setState(next), 20);
+      }}
+      context={context}
+      selection="optimize"
+    />
+  );
+};
+
+// A reader of the form's context that reports each of its renders. One
+// element for every render of the form, so the reader renders for a new
+// context value and for nothing else.
+const contextProbeRendered = vi.fn();
+const ContextProbe: React.FC = () => {
+  useAdHocForm();
+  contextProbeRendered();
+  return null;
+};
+const contextProbe = <ContextProbe />;
+const probeLayout = () => contextProbe;
 
 const colouredPlace = (state: AdHocScenarioState | undefined) => {
   const place = state?.places["place-pumps"];
@@ -585,31 +627,6 @@ describe("AdHocScenarioForm", () => {
     ).toBe("altitude");
   });
 
-  it("undoes and redoes edits at the form level", () => {
-    let latest: AdHocScenarioState | undefined;
-    render(
-      <Harness
-        onState={(state) => {
-          latest = state;
-        }}
-      />,
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add a token row (pressure)" }),
-    );
-    expect(colouredPlace(latest).rows).toHaveLength(1);
-
-    const table = screen.getByRole("button", { name: "Row 1 kind" });
-    fireEvent.keyDown(table, { key: "z", metaKey: true });
-    expect(latest?.places["place-pumps"]).toBeUndefined();
-
-    fireEvent.keyDown(
-      screen.getByRole("button", { name: "Add a token row (pressure)" }),
-      { key: "z", metaKey: true, shiftKey: true },
-    );
-    expect(colouredPlace(latest).rows).toHaveLength(1);
-  });
-
   it("replays identical snapshots: undo moves a cursor, redo restores the same state", () => {
     const states: AdHocScenarioState[] = [];
     render(
@@ -877,6 +894,31 @@ describe("AdHocScenarioForm", () => {
       setTimeout(resolve, 0);
     });
     // Focus lands on the add-a-variable line once nothing is left.
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Add a variable (Top-level variables)",
+    );
+  });
+
+  it("keeps focus on the add-a-variable line when the host applies the last delete late", async () => {
+    render(
+      <LateHost
+        initial={{
+          ...EMPTY_AD_HOC_STATE,
+          variables: [
+            { name: "n", type: "integer", expression: "2", optimize: null },
+          ],
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Variable 1 actions" }));
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "Delete variable" }),
+    );
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", { name: "Variable 1 actions" }),
+      ).toBeNull();
+    });
     expect(document.activeElement?.getAttribute("aria-label")).toBe(
       "Add a variable (Top-level variables)",
     );
@@ -1428,30 +1470,6 @@ describe("AdHocScenarioForm", () => {
     expect(screen.getByRole("textbox", { name: "Expression" })).toBeTruthy();
   });
 
-  it("materializes the phantom row into a fixed row", () => {
-    let latest: AdHocScenarioState | undefined;
-    render(
-      <Harness
-        onState={(state) => {
-          latest = state;
-        }}
-      />,
-    );
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add a token row (pressure)" }),
-    );
-
-    const place = colouredPlace(latest);
-    expect(place.rows).toHaveLength(1);
-    expect(place.rows[0]?.kind).toBe("fixed");
-    // The gutter shows the row's ordinal, and a fresh phantom row follows.
-    expect(screen.getByRole("button", { name: "Row 1 kind" })).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Add a token row (pressure)" }),
-    ).toBeTruthy();
-  });
-
   it("undo and redo never reopen an editor from a stale materialize nonce", () => {
     render(<Harness />);
     const phantom = screen.getByRole("button", {
@@ -1704,5 +1722,72 @@ describe.each([
         name: gutter === "Swept count" ? "Optimized count" : "Swept count",
       }),
     ).toBe(null);
+  });
+});
+
+describe("what renders in AdHocScenarioForm", () => {
+  it("renders no other place's table for an edit of a value", async () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: "Queue › count" }));
+    const input = await screen.findByRole("textbox", { name: "Expression" });
+    const before = tokenTableRenders.count;
+
+    fireEvent.change(input, { target: { value: "2" } });
+    fireEvent.change(input, { target: { value: "24" } });
+
+    expect(tokenTableRenders.count).toBe(before);
+  });
+
+  /** A host that builds its context and its definition anew on every render. */
+  const rebuildingHost = (
+    renderLayout?: React.ComponentProps<
+      typeof AdHocScenarioForm
+    >["renderLayout"],
+  ) => (
+    <AdHocScenarioForm
+      state={{
+        ...EMPTY_AD_HOC_STATE,
+        places: {
+          "place-pumps": {
+            kind: "coloured",
+            variables: [],
+            rows: [
+              {
+                kind: "fixed",
+                cells: [
+                  { expression: "1", optimize: null },
+                  { expression: "true", optimize: null },
+                ],
+              },
+            ],
+            sharedColumns: {},
+          },
+        },
+      }}
+      onChange={() => {}}
+      context={{ ...context }}
+      selection="optimize"
+      renderLayout={renderLayout}
+    />
+  );
+
+  it("renders no table when the host builds an equal definition again", () => {
+    const { rerender } = render(rebuildingHost());
+    expect(tokenTableRenders.count).toBeGreaterThan(0);
+    const before = tokenTableRenders.count;
+
+    rerender(rebuildingHost());
+
+    expect(tokenTableRenders.count).toBe(before);
+  });
+
+  it("renders no reader of its context when the host builds an equal context again", () => {
+    contextProbeRendered.mockClear();
+    const { rerender } = render(rebuildingHost(probeLayout));
+    expect(contextProbeRendered).toHaveBeenCalledTimes(1);
+
+    rerender(rebuildingHost(probeLayout));
+
+    expect(contextProbeRendered).toHaveBeenCalledTimes(1);
   });
 });

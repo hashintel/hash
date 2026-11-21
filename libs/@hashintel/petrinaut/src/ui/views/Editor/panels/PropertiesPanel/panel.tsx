@@ -1,22 +1,23 @@
+/**
+ * @layerRoot ui.views.editor.properties
+ * @role Shows and edits the properties of the selected item, or of a selection of several, in the right panel
+ */
+
 import { use } from "react";
 
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { assistantCover } from "../../../../../react/state/panel-presence";
 import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
-import { usePanelTarget } from "../../../../../react/state/use-selection";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
-import { GlassPanel } from "../../../../components/glass-panel";
 import {
-  MAX_PROPERTIES_PANEL_WIDTH,
-  MIN_PROPERTIES_PANEL_WIDTH,
-  PANEL_MARGIN,
-} from "../../../../constants/ui";
-import { styleRef, useReading } from "../../../../lib/readings";
-import { slideFromEdge } from "../../shared/slide-from-edge";
+  useLastPanelTarget,
+  usePanelTarget,
+} from "../../../../../react/state/use-selection";
+import { PANEL_MARGIN } from "../../../../constants/ui";
+import { DockedPanel } from "../../shared/docked-panel";
 import { SelectedItemProperties } from "./selected-item-properties";
 
 const glassPanelStyle = css({
@@ -29,80 +30,47 @@ const glassPanelStyle = css({
   borderLeftWidth: "thin",
 });
 
-const panelStyle = cva({
-  base: {},
-  variants: {
-    open: {
-      true: {},
-      // Where the panel is comes from its presence value; this is only what
-      // a closed panel must not do.
-      false: {
-        pointerEvents: "none",
-      },
-    },
-  },
-});
-
 const glassPanelContentStyle = css({
   overflowY: "auto",
 });
 
 /**
- * PropertiesPanel displays properties and controls for the selected node/edge.
+ * The docked panel on the right: the properties of what is selected, one item
+ * of the net or several at once.
  */
 export const PropertiesPanel: React.FC = () => {
-  const { propertiesPanelWidth, bottomPanelHeight, aiAssistantWidth } =
-    usePanelSizes();
+  const { bottomPanelHeight, aiAssistantWidth } = usePanelSizes();
   const presence = usePanelPresence();
-  const { shown } = presence;
-  // Still sliding out, where a closed panel is not kept mounted.
-  const isInView = useReading(() => shown.propertiesPanel.get() > 0);
 
   const { petriNetId } = use(SDCPNContext);
   const { activeComponentId } = use(ActiveNetContext);
   const panelTarget = usePanelTarget();
-
-  const isOpen = panelTarget.kind !== "none";
-
-  const { keepPanelsMounted, setPropertiesPanelWidth: saveWidth } =
-    use(UserSettingsContext);
-
-  if (!isOpen && !isInView && !keepPanelsMounted) {
-    return null;
-  }
+  // The panel slides out after the selection is gone. It shows what was
+  // selected until it is out of view, and does not slide out empty.
+  const shownTarget = useLastPanelTarget();
 
   return (
-    <GlassPanel
-      className={cx(glassPanelStyle, panelStyle({ open: isOpen }))}
-      // The box follows the drags and the panels around it by direct writes,
-      // with no render. It ends above the bottom panel, with the gap there is
-      // beside the left sidebar, and it makes way for an AI assistant that is
-      // docking over the editor.
-      ref={styleRef({
-        width: propertiesPanelWidth,
-        bottom: () =>
-          shown.bottomPanel.get() * (bottomPanelHeight.get() + PANEL_MARGIN),
-        transform: () =>
-          slideFromEdge(
-            "right",
-            shown.propertiesPanel.get(),
-            assistantCover(presence, aiAssistantWidth.get()),
-          ),
-      })}
-      style={{ padding: PANEL_MARGIN }}
+    <DockedPanel
+      panel="propertiesPanel"
+      isOpen={panelTarget.kind !== "none"}
+      className={glassPanelStyle}
       contentClassName={glassPanelContentStyle}
-      resizable={{
-        edge: "left",
-        getSize: () => propertiesPanelWidth.get(),
-        onResize: (width) => propertiesPanelWidth.set(width),
-        onResizeEnd: () => saveWidth(propertiesPanelWidth.get()),
-        minSize: MIN_PROPERTIES_PANEL_WIDTH,
-        maxSize: MAX_PROPERTIES_PANEL_WIDTH,
+      style={{ padding: PANEL_MARGIN }}
+      // The panel ends above the bottom panel, with the gap there is beside
+      // the left sidebar, and it makes way for an AI assistant that is
+      // docking over the editor.
+      boundStyle={{
+        bottom: () =>
+          presence.shown.bottomPanel.get() *
+          (bottomPanelHeight.get() + PANEL_MARGIN),
       }}
+      pushedBy={() => assistantCover(presence, aiAssistantWidth.get())}
     >
       <SelectedItemProperties
         key={JSON.stringify([petriNetId, activeComponentId])}
+        panelTarget={shownTarget}
+        inert={panelTarget.kind === "none"}
       />
-    </GlassPanel>
+    </DockedPanel>
   );
 };

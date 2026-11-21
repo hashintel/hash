@@ -1,7 +1,6 @@
 /**
  * The Petrinaut instance of archinaut: which packages participate, what to
- * skip, the layer-crossing rules, the tag vocabulary, the external parties,
- * and where content and output live. The layer taxonomy itself lives in the
+ * skip, the layer-crossing rules, and where content and output live. The layer taxonomy itself lives in the
  * packages, as README frontmatter and `@layerRoot` annotations.
  */
 
@@ -48,8 +47,8 @@ export default defineConfig({
   ],
 
   /**
-   * Each rule is a claim the drift check enforces against the real import
-   * graph, so adding one here without fixing the code fails CI. A rule matches
+   * Each rule is a claim `archinaut check` holds against the dependency
+   * graph, so adding one here without fixing the code fails it. A rule matches
    * an edge when the edge's endpoints are the named layer or a descendant of it.
    */
   rules: [
@@ -88,6 +87,24 @@ export default defineConfig({
       reason:
         "the experiments backend evaluates trials through the channel and never learns who asked",
     },
+    {
+      from: "ui.views.canvas",
+      to: "ui.views.editor",
+      reason:
+        "the canvas is also drawn by the preview, outside the editor, so it cannot need a panel or the shell",
+    },
+    {
+      from: "ui.views.notebook",
+      to: "ui.views.editor",
+      reason:
+        "a view does not know the shell that mounts it, so the shell can change without the view",
+    },
+    {
+      from: "ui.sub-view",
+      to: "ui.views.editor",
+      reason:
+        "a container renders the descriptors it is given and never names a panel",
+    },
   ],
 
   ignoredDirectories: [
@@ -104,17 +121,19 @@ export default defineConfig({
   ],
 
   /**
-   * Tests, stories, fixtures and ambient declarations are excluded: they
+   * Tests, stories, their helpers and ambient declarations are excluded: they
    * describe the architecture's *use*, not its shape, and including them
-   * inflates every layer's file count with fixtures.
+   * inflates every layer's file count with fixtures. A helper is recognised by
+   * its name: `x.test-helpers.ts`, `x-test-harness.tsx`, `x-stub.tsx`,
+   * `x-fixtures.ts`, `x-story-harness.tsx`, `x-story-provider.tsx` and
+   * `story-x.ts`. Config files, changelogs and licences are skipped too.
    */
   ignoredFilePattern:
-    /(?:\.(?:test|spec|stories)\.[cm]?[jt]sx?$|\.fixtures\.[cm]?[jt]sx?$|\.d\.ts$|\.config\.[cm]?[jt]s$|\/CHANGELOG\.md$|\/LICENSE[^/]*\.md$)/u,
+    /(?:\.(?:test|spec|stories|fixtures|test-helpers)\.[cm]?[jt]sx?$|-(?:fixtures?|stubs?|test-harness|story-harness|story-provider)\.[cm]?[jt]sx?$|\/story-[^/]+\.[cm]?[jt]sx?$|\.d\.ts$|\.config\.[cm]?[jt]s$|\/CHANGELOG\.md$|\/LICENSE[^/]*\.md$)/u,
 
   /**
-   * The bundle is the product; the Starlight site in `apps/petrinaut-docs` and
-   * hash.dev are both just consumers of it. It therefore lives with the
-   * generator that owns its schema, not inside either renderer.
+   * Where the authored content is read and where the bundle and the cache are
+   * written, relative to the repository root.
    */
   contentDirectory: "apps/petrinaut-docs/content",
   outputDirectory: "apps/petrinaut-docs/bundle",

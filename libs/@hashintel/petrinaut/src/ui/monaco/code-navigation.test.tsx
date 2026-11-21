@@ -6,10 +6,8 @@ import { afterEach, expect, it, vi } from "vitest";
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { productionMachines } from "@hashintel/petrinaut-core/examples";
 
-import {
-  PetrinautNavigationProvider,
-  usePetrinautNavigation,
-} from "../../react/navigation";
+import { usePetrinautNavigation } from "../../react/navigation/navigation";
+import { PetrinautNavigationProvider } from "../../react/navigation/navigation-provider";
 import { ActiveNetContext } from "../../react/state/active-net-context";
 import { EditorContext } from "../../react/state/editor-context";
 import { SDCPNContext } from "../../react/state/sdcpn-context";
@@ -17,8 +15,9 @@ import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "../../react/state/user-settings-context";
-import { PetrinautPresentationProvider } from "../views/shared/presentation-context";
-import { CodeNavigationProvider, useCodeNavigation } from "./code-navigation";
+import { PetrinautPresentationProvider } from "../views/shared/presentation-provider";
+import { CodeNavigationProvider } from "./code-navigation";
+import { useCodeNavigation } from "./code-navigation-context";
 
 import type { PropsWithChildren } from "react";
 

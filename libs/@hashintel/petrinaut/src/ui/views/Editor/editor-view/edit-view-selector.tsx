@@ -1,12 +1,13 @@
-import { use } from "react";
-
 import { SegmentedControl } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorState,
+} from "../../../../react/state/editor-context";
 import { usePanelPresence } from "../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
-import { UserSettingsContext } from "../../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { styleRef } from "../../../lib/readings";
 
 const selectorStyle = css({
@@ -64,10 +65,11 @@ const placementStyle = cva({
 });
 
 export const EditViewSelector = () => {
-  const { editViewMode, setEditViewMode } = use(EditorContext);
+  const editViewMode = useEditorState((editor) => editor.editViewMode);
+  const { setEditViewMode } = useEditorActions();
   const { leftSidebarWidth } = usePanelSizes();
   const { shown } = usePanelPresence();
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const isCanvas = editViewMode === "canvas";
 
   return (

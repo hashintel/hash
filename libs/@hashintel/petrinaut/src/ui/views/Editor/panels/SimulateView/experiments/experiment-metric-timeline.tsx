@@ -11,8 +11,8 @@ import "uplot/dist/uPlot.min.css";
 import { useElementSize } from "../../../../../../react/hooks/use-element-size";
 import { formatFixed } from "../shared/format-value";
 import { FramePopover } from "./experiment-metric-timeline/frame-popover";
+import { MetricPlot } from "./experiment-metric-timeline/metric-plot";
 import { distributionBandLegend } from "./experiment-metric-timeline/shared/distribution-bands";
-import { useMetricPlot } from "./experiment-metric-timeline/use-metric-plot";
 import {
   deriveMetricViewState,
   selectedFrameFrom,
@@ -24,32 +24,12 @@ import type {
   MetricViewSettings,
 } from "./experiment-metric-timeline/view-state";
 
-export { describeMetricView } from "./experiment-metric-timeline/describe-metric-view";
-export { MetricViewMenu } from "./experiment-metric-timeline/metric-view-menu";
-export {
-  DEFAULT_METRIC_VIEW_SETTINGS,
-  type MetricViewSettings,
-} from "./experiment-metric-timeline/view-state";
-
 // The component is exactly the plot's height: the waiting note and the
 // legend sit on the frame as overlays, so no view setting adds a row.
 const frameStyle = css({
   position: "relative",
   width: "full",
   minWidth: "[0]",
-});
-
-const chartStyle = css({
-  width: "full",
-  height: "full",
-  minWidth: "[0]",
-  _empty: {
-    cursor: "default",
-  },
-  "& .u-over": {
-    cursor: "crosshair",
-    touchAction: "none",
-  },
 });
 
 const chartWaitingStyle = css({
@@ -110,7 +90,7 @@ const aggregateNumberStyle = css({
 });
 
 const BandLegend = () => (
-  <div className={legendStyle} data-band-legend>
+  <div className={legendStyle}>
     {distributionBandLegend.map((item) => (
       <span key={item.label} className={legendItemStyle}>
         <span
@@ -122,6 +102,14 @@ const BandLegend = () => (
         {item.label}
       </span>
     ))}
+  </div>
+);
+
+// A component, so that no call takes a field of the view: the compiler would
+// rebuild the view with every element that follows such a call.
+const AggregateNumber = ({ value }: { value: number | null }) => (
+  <div className={aggregateNumberStyle}>
+    {value === null ? "n/a" : formatFixed(value)}
   </div>
 );
 
@@ -142,10 +130,10 @@ export const ExperimentMetricTimeline = ({
    */
   expectedOutputType?: MetricFrame["outputType"];
   /**
-   * Pins the x axis to this time window (typically `[0, maxTime]`). Without
-   * it the axis fits the streamed frames and rescales as they arrive.
+   * The time window the x axis is pinned to (typically `[0, maxTime]`): the
+   * chart draws its axes before the first frame and never rescales in time.
    */
-  timeDomain?: readonly [number, number];
+  timeDomain: readonly [number, number];
   /**
    * Identity of what the frames represent (a sweep's selection key). A
    * change crossfades the previous picture out instead of cutting.
@@ -157,50 +145,19 @@ export const ExperimentMetricTimeline = ({
   const chartRootRef = useRef<HTMLDivElement>(null);
   const size = useElementSize(chartRootRef, { debounce: 50 });
   const [selection, setSelection] = useState<FrameSelection | null>(null);
-  const latestFrame = frames.at(-1);
   // A re-stream briefly empties the frames; the remembered output type keeps
   // the chart shape from flickering through the scalar defaults.
   const [lastOutputType, setLastOutputType] = useState<
     MetricFrame["outputType"] | null
   >(null);
+  const latestFrame = frames.at(-1);
   if (latestFrame && latestFrame.outputType !== lastOutputType) {
     setLastOutputType(latestFrame.outputType);
   }
   const outputType =
     latestFrame?.outputType ?? lastOutputType ?? expectedOutputType ?? "scalar";
-  const timeDomainStart = timeDomain?.[0];
-  const timeDomainEnd = timeDomain?.[1];
-  const view = deriveMetricViewState({
-    frames,
-    outputType,
-    settings,
-    keepsAxesWhileEmpty:
-      timeDomainStart !== undefined && timeDomainEnd !== undefined,
-  });
+  const view = deriveMetricViewState({ frames, outputType, settings });
   const selectedFrame = selection ? selectedFrameFrom(frames, selection) : null;
-
-  useMetricPlot({
-    chartRootRef,
-    size,
-    canPlot: view.canPlot,
-    displayMode: view.displayMode,
-    outputType,
-    aggregateRuns: settings.aggregateRuns,
-    runAggregation: settings.runAggregation,
-    distributionView: settings.distributionView,
-    timeTrace: settings.timeTrace,
-    timeDomainStart,
-    timeDomainEnd,
-    frames,
-    plotData: view.plotData,
-    contentEpoch,
-    onFrameSelect: (pick) =>
-      setSelection({
-        index: pick.index,
-        frameNumber: pick.frame.frameNumber,
-        pointer: pick.pointer,
-      }),
-  });
 
   return (
     <div
@@ -208,14 +165,31 @@ export const ExperimentMetricTimeline = ({
       style={{ height: plotHeight, minHeight: plotHeight }}
     >
       {view.displayMode === "number" ? (
-        <div className={aggregateNumberStyle}>
-          {view.aggregateNumber === null
-            ? "n/a"
-            : formatFixed(view.aggregateNumber)}
-        </div>
+        <AggregateNumber value={view.aggregateNumber} />
       ) : (
         <>
-          <div ref={chartRootRef} className={chartStyle} />
+          <MetricPlot
+            chartRootRef={chartRootRef}
+            size={size}
+            displayMode={view.displayMode}
+            outputType={outputType}
+            aggregateRuns={settings.aggregateRuns}
+            runAggregation={settings.runAggregation}
+            distributionView={settings.distributionView}
+            timeTrace={settings.timeTrace}
+            timeDomainStart={timeDomain[0]}
+            timeDomainEnd={timeDomain[1]}
+            frames={frames}
+            plotData={view.plotData}
+            contentEpoch={contentEpoch}
+            onFrameSelect={(pick) =>
+              setSelection({
+                index: pick.index,
+                frameNumber: pick.frame.frameNumber,
+                pointer: pick.pointer,
+              })
+            }
+          />
           {view.hasPlotData || lastOutputType !== null ? null : (
             <div className={chartWaitingStyle}>Waiting for metric data</div>
           )}

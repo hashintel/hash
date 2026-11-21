@@ -8,8 +8,6 @@
  * fixing it.
  */
 
-import { use } from "react";
-
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useFocusGrid } from "../../worksheet/use-focus-grid";
@@ -21,16 +19,17 @@ import {
   staticTypeCellStyle,
 } from "../spreadsheet-kit/form-table";
 import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
-import { adHocVariableKey } from "./dependency-highlight";
 import {
-  AdHocFormContext,
+  useAdHocForm,
+  useAdHocFormFact,
   adHocIntervalSelection,
   adHocSelectionApplies,
   adHocSelectionText,
+  sameParts,
+  variableHighlights,
+  variablesOf,
 } from "./form-context";
 import { ValueEditor } from "./value-editor";
-
-import type { AdHocVariable } from "@hashintel/petrinaut-core";
 
 const toggleCellStyle = css({
   width: "[92px]",
@@ -38,21 +37,17 @@ const toggleCellStyle = css({
   textAlign: "center",
 });
 
-export interface ScenarioParameterRowsProps {
-  /**
-   * The form's top-level Variables, exposed and auxiliary alike; the rows
-   * render the exposed ones under their original indices, so value edits
-   * dispatch against the right slot.
-   */
-  variables: AdHocVariable[];
-}
-
-export const ScenarioParameterRows: React.FC<ScenarioParameterRowsProps> = ({
-  variables,
-}) => {
-  const { highlight, selection, setFocusedValue, dispatch } =
-    use(AdHocFormContext);
-  const { register, onKeyDown, attach } = useFocusGrid();
+export const ScenarioParameterRows: React.FC = () => {
+  const { selection, setFocusedValue, dispatch } = useAdHocForm();
+  // The top-level Variables, exposed and auxiliary alike: the rows show the
+  // exposed ones under their indices in that list, so a value edit
+  // dispatches against the right Variable.
+  const variables = useAdHocFormFact((facts) => variablesOf(facts, null));
+  const highlightedRows = useAdHocFormFact(
+    (facts) => variableHighlights(facts, null),
+    sameParts,
+  );
+  const { register, onKeyDown, attach } = useFocusGrid({ tabStop: "native" });
   const withToggles = adHocIntervalSelection(selection);
 
   const exposed = variables.flatMap((variable, index) =>
@@ -71,9 +66,7 @@ export const ScenarioParameterRows: React.FC<ScenarioParameterRowsProps> = ({
             placeId: null,
             index,
           };
-          const highlighted = highlight.variableKeys.has(
-            adHocVariableKey(null, variable.name),
-          );
+          const highlighted = highlightedRows[index] ?? false;
           const rowHighlight = highlighted && highlightStyle;
           return (
             <tr key={index} data-highlighted={highlighted || undefined}>

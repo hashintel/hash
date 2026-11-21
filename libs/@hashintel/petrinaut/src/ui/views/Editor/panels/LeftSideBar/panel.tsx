@@ -1,25 +1,24 @@
-import { use, useMemo } from "react";
+/**
+ * @layerRoot ui.views.editor.left-sidebar
+ * @role Lists the entities, the nets, the library components and the search results of a document as sections in the left panel
+ */
 
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { use } from "react";
+
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { CompositionContext } from "../../../../../react/state/composition-context";
-import { EditorContext } from "../../../../../react/state/editor-context";
-import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
-import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
+import { useEditorFields } from "../../../../../react/state/editor-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
-import { GlassPanel } from "../../../../components/glass-panel";
+import { KeptState } from "../../../../components/kept-state";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
-import {
-  MAX_LEFT_SIDEBAR_WIDTH,
-  MIN_LEFT_SIDEBAR_WIDTH,
-} from "../../../../constants/ui";
-import { LEFT_SIDEBAR_SUBVIEWS } from "../../../../constants/ui-subviews";
-import { styleRef, useReading } from "../../../../lib/readings";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
-import { slideFromEdge } from "../../shared/slide-from-edge";
-import { searchSubView } from "./subviews/search-panel";
+import { DockedPanel } from "../../shared/docked-panel";
+import { leftSidebarSubViews, searchSubView } from "./sub-views";
+import { SearchQueryProvider } from "./subviews/search-panel";
+
+const searchSubViews = [searchSubView];
 
 const glassPanelBaseStyle = css({
   position: "absolute",
@@ -29,20 +28,6 @@ const glassPanelBaseStyle = css({
   bottom: "0",
   borderRightWidth: "thin",
   boxSizing: "border-box",
-});
-
-const panelStyle = cva({
-  base: {},
-  variants: {
-    open: {
-      true: {},
-      // Where the panel is comes from its presence value; this is only what
-      // a closed panel must not do.
-      false: {
-        pointerEvents: "none",
-      },
-    },
-  },
 });
 
 const contentWrapperStyle = css({
@@ -97,86 +82,65 @@ const contentLayerStyle = cva({
  * Resizable from the right edge.
  */
 export const LeftSideBar: React.FC = () => {
-  const { isLeftSidebarOpen: isOpen, isSearchOpen } = use(EditorContext);
-  const { shown } = usePanelPresence();
-  // Still sliding out, where a closed panel is not kept mounted.
-  const isInView = useReading(() => shown.leftSidebar.get() > 0);
+  const { isLeftSidebarOpen: isOpen, isSearchOpen } = useEditorFields(
+    "isLeftSidebarOpen",
+    "isSearchOpen",
+  );
   const { offered } = use(CompositionContext);
   const composesOnly = useComposesOnly();
   const isCompositionInterfaceOn = useIsCompositionInterfaceOn();
 
-  const { leftSidebarWidth } = usePanelSizes();
-  const { keepPanelsMounted, setLeftSidebarWidth: saveWidth } =
-    use(UserSettingsContext);
-
-  // The sidebar is visible when explicitly opened OR when search is active
   const isVisible = isOpen || isSearchOpen;
 
-  // The Nets list and the Components panel are part of the composition
-  // interface. The Components panel lists the libraries on offer, and is all
-  // an editor that only composes has to show.
-  const sidebarSubViews = LEFT_SIDEBAR_SUBVIEWS.filter((subView) => {
-    if (subView.id === "components") {
-      return isCompositionInterfaceOn && offered.length > 0;
-    }
-    if (composesOnly) {
-      return false;
-    }
-    return subView.id !== "nets-list" || isCompositionInterfaceOn;
+  const sidebarSubViews = leftSidebarSubViews({
+    composesOnly,
+    compositionInterfaceOn: isCompositionInterfaceOn,
+    offersLibraries: offered.length > 0,
   });
 
-  const searchSubViews = useMemo(() => [searchSubView], []);
-
-  if (!isVisible && !isInView && !keepPanelsMounted) {
-    return null;
-  }
-
   return (
-    <GlassPanel
-      className={cx(glassPanelBaseStyle, panelStyle({ open: isVisible }))}
-      ref={styleRef({
-        width: leftSidebarWidth,
-        transform: () => slideFromEdge("left", shown.leftSidebar.get()),
-      })}
-      resizable={{
-        edge: "right",
-        getSize: () => leftSidebarWidth.get(),
-        onResize: (width) => leftSidebarWidth.set(width),
-        onResizeEnd: () => saveWidth(leftSidebarWidth.get()),
-        minSize: MIN_LEFT_SIDEBAR_WIDTH,
-        maxSize: MAX_LEFT_SIDEBAR_WIDTH,
-      }}
-    >
-      <div className={contentWrapperStyle}>
-        <div
-          className={contentLayerStyle({
-            active: !isSearchOpen,
-            direction: "forward",
-          })}
+    // Above the panel, which unmounts when it closes: the text searched for,
+    // the collapsed groups and the scroll offsets are there when it opens
+    // again.
+    <SearchQueryProvider>
+      <KeptState>
+        <DockedPanel
+          panel="leftSidebar"
+          isOpen={isVisible}
+          className={glassPanelBaseStyle}
         >
-          <VerticalSubViewsContainer
-            name="left-sidebar"
-            subViews={sidebarSubViews}
-          />
-        </div>
-        <div
-          className={contentLayerStyle({
-            active: isSearchOpen,
-            direction: "backward",
-          })}
-        >
-          {/* One vertical focus flow joins the search input in the header
-              with the result list below it. */}
-          <FocusRoot>
-            <FocusStack axis="vertical">
+          <div className={contentWrapperStyle}>
+            <div
+              className={contentLayerStyle({
+                active: !isSearchOpen,
+                direction: "forward",
+              })}
+            >
               <VerticalSubViewsContainer
-                name="left-sidebar-search"
-                subViews={searchSubViews}
+                name="left-sidebar"
+                subViews={sidebarSubViews}
               />
-            </FocusStack>
-          </FocusRoot>
-        </div>
-      </div>
-    </GlassPanel>
+            </div>
+            <div
+              className={contentLayerStyle({
+                active: isSearchOpen,
+                direction: "backward",
+              })}
+            >
+              {/* One vertical focus flow joins the search input in the header
+                  with the result list below it. */}
+              <FocusRoot>
+                <FocusStack axis="vertical">
+                  <VerticalSubViewsContainer
+                    name="left-sidebar-search"
+                    subViews={searchSubViews}
+                  />
+                </FocusStack>
+              </FocusRoot>
+            </div>
+          </div>
+        </DockedPanel>
+      </KeptState>
+    </SearchQueryProvider>
   );
 };

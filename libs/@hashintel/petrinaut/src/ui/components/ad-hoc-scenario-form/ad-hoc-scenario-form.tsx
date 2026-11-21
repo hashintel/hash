@@ -38,7 +38,6 @@ import { use, useEffect, useRef, useState } from "react";
 import { Toggle } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
-  adHocPlaceStateFor,
   adHocSlotKey,
   createAdHocPlaceTotalResolver,
   createAdHocTargetLabeler,
@@ -47,16 +46,17 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../react/lsp/context";
+import { usePublished } from "../../../react/select-from-context";
 import { FocusControls } from "../../worksheet/focus-controls";
 import { FocusStack } from "../../worksheet/focus-stack";
 import { useFocusClearance } from "../../worksheet/use-focus-clearance";
-import { useFocusHeader } from "../../worksheet/use-focus-member";
 import { Section, SectionList } from "../section";
 import { computeAdHocHighlight } from "./dependency-highlight";
 import { AdHocFormContext } from "./form-context";
 import { ParameterRows } from "./parameter-rows";
-import { ColouredPlaceBlock, UncolouredPlaceBlock } from "./place-block";
+import { PlaceBlock } from "./place-block";
 import { ScenarioParameterRows } from "./scenario-parameter-rows";
+import { useSharedContent } from "./share-definition";
 import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
 import { useAdHocFormHistory } from "./use-form-history";
 import { VariableRows } from "./variable-rows";
@@ -65,6 +65,7 @@ export { FormSectionHeader } from "./form-section-header";
 
 import type { AdHocFocusTarget } from "./dependency-highlight";
 import type {
+  AdHocFormFacts,
   AdHocFormMode,
   AdHocFormSelection,
   AdHocFormServices,
@@ -107,7 +108,7 @@ const placesVisibilityStyle = css({
   },
 });
 
-export interface AdHocScenarioFormProps {
+interface AdHocScenarioFormProps {
   state: AdHocScenarioState;
   onChange: (state: AdHocScenarioState) => void;
   context: AdHocSynthesisContext;
@@ -147,6 +148,9 @@ export interface AdHocScenarioFormProps {
   sessionId?: string;
 }
 
+/** No source to show: the default of `expressionFor`, one function for every form. */
+const noExpression = () => undefined;
+
 /**
  * One keyboard column of a custom layout: hosts wrap each visual column of
  * their `renderLayout` output in one. Vertical arrows chain the column's
@@ -158,50 +162,24 @@ export const FormLayoutColumn: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => <FocusStack axis="vertical">{children}</FocusStack>;
 
-/**
- * A Section that participates in the form's keyboard walk: its collapse
- * trigger is a navigation stop, Left collapses, Right expands.
- */
-const NavigableSection: React.FC<{
-  title: string;
-  tooltip: string;
-  children: React.ReactNode;
-  titleAction?: React.ReactNode;
-}> = ({ title, tooltip, children, titleAction }) => {
-  const [open, setOpen] = useState(true);
-  const header = useFocusHeader({
-    collapse: open ? () => setOpen(false) : undefined,
-    expand: open ? undefined : () => setOpen(true),
-  });
-  return (
-    <Section
-      stacked
-      title={title}
-      tooltip={tooltip}
-      collapsible
-      unmountOnCollapse
-      open={open}
-      onOpenChange={setOpen}
-      triggerRef={header.attach}
-      onTriggerKeyDown={header.onHeaderKeyDown}
-      titleAction={titleAction}
-    >
-      {children}
-    </Section>
-  );
-};
-
 export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
-  state,
+  state: givenState,
   onChange,
-  context,
+  context: givenContext,
   selection,
   mode = "author",
-  expressionFor = () => undefined,
+  expressionFor = noExpression,
   renderLayout,
   className,
   sessionId: externalSessionId,
 }) => {
+  // A host may build an equal definition or an equal context again on any
+  // render, and every cell reads both. The form shares the definition by
+  // content with the one it shows, and holds the context by its three parts:
+  // the compiler keeps this object while they stay the same.
+  const state = useSharedContent(givenState);
+  const { netParameters, places, types } = givenContext;
+  const context = { netParameters, places, types };
   const sessionId = useAdHocLspSession(state, externalSessionId);
   const [showAllPlaces, setShowAllPlaces] = useState(false);
   const { diagnosticsByUri, requestFormatExpression } = use(
@@ -296,22 +274,17 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     }
   };
 
-  // Both index the state once for the whole render: the slots beneath ask
-  // for one label each and every place block asks for its total, and doing
-  // that work per slot made a render quadratic in the net's size.
+  // Both index the state once for the whole render: every value beneath
+  // asks for its label and every place block for its total, and indexing per
+  // value would make a render quadratic in the net's size.
   const labelFor = createAdHocTargetLabeler(state, context);
   const placeTotal = createAdHocPlaceTotalResolver(state, context);
 
-  const services: AdHocFormServices = {
-    formState: state,
-    dispatch,
-    synthesisContext: context,
-    selection,
-    sessionId,
-    uriFor: (slot: AdHocSlot) =>
-      getAdHocDocumentUri(sessionId, adHocSlotKey(slot)),
-    labelFor,
-    placeTotal,
+  // The two parts of what the form gives out, as `form-context.ts` splits
+  // them: the facts, which change, through a store, and the services, which
+  // do not, through the context.
+  const facts = usePublished<AdHocFormFacts>({
+    state,
     errorFor: (slot: AdHocSlot) => {
       const key = adHocSlotKey(slot);
       const synthesisError = synthesisErrors.get(key);
@@ -323,31 +296,43 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
       );
       return diagnostics?.[0]?.message;
     },
+    labelFor,
+    placeTotal,
     highlight,
+    expressionFor,
+  });
+
+  // A boolean, so what reads it follows whether the host lays the form out,
+  // not which function it passes: a host hands over a new one on any render.
+  const dense = renderLayout !== undefined;
+
+  const services: AdHocFormServices = {
+    dispatch,
+    synthesisContext: context,
+    selection,
+    uriFor: (slot: AdHocSlot) =>
+      getAdHocDocumentUri(sessionId, adHocSlotKey(slot)),
+    facts,
     setFocusedValue,
     formatExpression: requestFormatExpression,
     mode,
-    expressionFor,
-    dense: renderLayout !== undefined,
+    dense,
     overlayKeyDown: { capture: handleKeyDown, bubble: stopDeleteKeys },
   };
 
+  // The groups take no part of the definition as a prop: each reads its own
+  // from the facts, so these elements stay the same through an edit and the
+  // host's layout around them is not rendered again.
   const parameterRows =
-    context.netParameters.length > 0 ? (
-      <ParameterRows entries={state.netParameters} />
-    ) : null;
+    context.netParameters.length > 0 ? <ParameterRows /> : null;
 
   // Run mode lists the scenario's parameters (the exposed Variables, value
   // edits only); authoring gets the full Variables editor.
   const variableRows =
     mode === "run" ? (
-      <ScenarioParameterRows variables={state.variables} />
+      <ScenarioParameterRows />
     ) : (
-      <VariableRows
-        scopeLabel="Top-level variables"
-        placeId={null}
-        variables={state.variables}
-      />
+      <VariableRows scopeLabel="Top-level variables" placeId={null} />
     );
 
   const visiblePlaces = context.places.filter(
@@ -369,10 +354,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   ) : null;
   const placesList = (
     <div
-      className={cx(
-        placesListStyle,
-        renderLayout && css({ paddingLeft: "[24px]" }),
-      )}
+      className={cx(placesListStyle, dense && css({ paddingLeft: "[24px]" }))}
     >
       {visiblePlaces.length === 0 ? (
         <p
@@ -387,33 +369,17 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
             : "No places defined."}
         </p>
       ) : null}
-      {visiblePlaces.map((place) => {
-        const placeState = adHocPlaceStateFor(state, context, place.id);
-        const colour = place.colorId
-          ? context.types.find((type) => type.id === place.colorId)
-          : undefined;
-
-        if (placeState.kind === "coloured" && colour) {
-          return (
-            <ColouredPlaceBlock
-              key={place.id}
-              place={place}
-              colour={colour}
-              state={placeState}
-            />
-          );
-        }
-        if (placeState.kind === "uncoloured") {
-          return (
-            <UncolouredPlaceBlock
-              key={place.id}
-              place={place}
-              state={placeState}
-            />
-          );
-        }
-        return null;
-      })}
+      {visiblePlaces.map((place) => (
+        <PlaceBlock
+          key={place.id}
+          place={place}
+          colour={
+            place.colorId
+              ? context.types.find((type) => type.id === place.colorId)
+              : undefined
+          }
+        />
+      ))}
     </div>
   );
 
@@ -444,29 +410,38 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
         ) : (
           <FocusStack axis="vertical">
             <SectionList stacked>
-              <NavigableSection
+              <Section
+                stacked
+                collapsible
+                unmountOnCollapse
                 title="Variables"
                 tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
               >
                 {variableRows}
-              </NavigableSection>
+              </Section>
 
               {parameterRows ? (
-                <NavigableSection
+                <Section
+                  stacked
+                  collapsible
+                  unmountOnCollapse
                   title="Parameters"
                   tooltip="Override a net parameter's value for this run. Empty keeps its default. Overrides may read the Variables above."
                 >
                   {parameterRows}
-                </NavigableSection>
+                </Section>
               ) : null}
 
-              <NavigableSection
+              <Section
+                stacked
+                collapsible
+                unmountOnCollapse
                 title="Initial state"
                 tooltip="Token counts and values per place. Every value is an expression."
                 titleAction={placesVisibilityControl}
               >
                 {placesList}
-              </NavigableSection>
+              </Section>
             </SectionList>
           </FocusStack>
         )}

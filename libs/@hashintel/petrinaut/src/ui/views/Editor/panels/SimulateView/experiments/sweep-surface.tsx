@@ -9,45 +9,33 @@
  * pick, the others to the middle of their ranges; while an optimizer drives
  * the sweep the plot only displays.
  */
-import { use, useState } from "react";
+import { useState } from "react";
 
 import { Select } from "@hashintel/ds-components";
 
-import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
 import {
   axisDisplayName,
   axisStep,
   axisValueAt,
-  selectionMidpoint,
 } from "../../../../../../react/experiments/parameter-grid";
-import { ContourSurface } from "../../../../../components/contour-surface";
 import { ChartCard } from "../shared/chart-card";
 import { formatAxisValue } from "../shared/format-axis-value";
+import { surfaceAxisPosition } from "../shared/surface-field";
 import {
-  mergeSurfaceFields,
-  surfaceAxisPosition,
-  surfaceGridCoordinate,
-} from "../shared/surface-field";
-import {
-  SURFACE_FOOTER_TWO_ROW_HEIGHT,
-  SURFACE_PLOT_HEIGHT,
   SurfaceAxisControls,
-  surfaceCaption,
   SurfaceControlLabel,
   SurfaceReadOnlyMark,
 } from "../shared/surface-frame";
-import { surfaceColumnCount } from "../shared/surface-sampling";
 import {
-  computingSurfaceField,
-  describeVisitedSurface,
-  visitedSurfaceField,
-} from "./sweep-surface/visited-field";
+  SURFACE_FOOTER_TWO_ROW_HEIGHT,
+  SURFACE_PLOT_HEIGHT,
+  surfaceCaption,
+} from "../shared/surface-frame-layout";
+import { SweepSurfacePlot } from "./sweep-surface/sweep-surface-plot";
+import { describeVisitedSurface } from "./sweep-surface/visited-field";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
-import type {
-  ExperimentParameterAxis,
-  SweepAxisSelection,
-} from "../../../../../../react/experiments/parameter-grid";
+import type { ExperimentParameterAxis } from "../../../../../../react/experiments/parameter-grid";
 import type { ContourSurfaceFraction } from "../../../../../components/contour-surface";
 import type { ChartCardTone } from "../shared/chart-card";
 
@@ -65,7 +53,6 @@ export const SweepSurface = ({
   tone?: ChartCardTone;
 }) => {
   const readOnly = following || disabled;
-  const { setSweepSelection } = use(ExperimentsActionsContext);
   const axes = experiment.parameterAxes;
   const [xAxisId, setXAxisId] = useState(axes[0]?.identifier ?? "");
   const [yAxisId, setYAxisId] = useState(axes[1]?.identifier ?? "");
@@ -79,24 +66,6 @@ export const SweepSurface = ({
   if (axes.length < 2 || !sweep) {
     return null;
   }
-  const { selection } = sweep;
-
-  const handlePickFraction = (fraction: ContourSurfaceFraction) => {
-    if (!xAxis || !yAxis) {
-      return;
-    }
-    const picked: Record<string, SweepAxisSelection> = {};
-    for (const axis of axes) {
-      const position =
-        axis === xAxis
-          ? surfaceAxisPosition(xAxis, fraction.x)
-          : axis === yAxis
-            ? surfaceAxisPosition(yAxis, fraction.y)
-            : Math.round(selectionMidpoint(selection, axis));
-      picked[axis.identifier] = { from: position, to: position };
-    }
-    setSweepSelection(experiment.id, picked);
-  };
 
   /** The axis readout a plot fraction lands on. */
   const readoutAt = (axis: ExperimentParameterAxis, fraction: number): string =>
@@ -104,26 +73,6 @@ export const SweepSurface = ({
       axisValueAt(axis, surfaceAxisPosition(axis, fraction)),
       axisStep(axis),
     )}`;
-
-  const field =
-    xAxis && yAxis && xAxis !== yAxis
-      ? mergeSurfaceFields(
-          visitedSurfaceField({
-            visited: sweep.visited,
-            xAxis,
-            yAxis,
-            metricId,
-            selection,
-          }),
-          computingSurfaceField({
-            selection,
-            axes,
-            xAxis,
-            yAxis,
-            computing: sweep.computing,
-          }),
-        )
-      : null;
 
   return (
     <ChartCard
@@ -176,33 +125,16 @@ export const SweepSurface = ({
       }
       tone={tone}
     >
-      {xAxis && yAxis && field ? (
-        <ContourSurface
-          nx={surfaceColumnCount(xAxis)}
-          ny={surfaceColumnCount(yAxis)}
-          height={SURFACE_PLOT_HEIGHT}
-          contentKey={`${xAxisId}|${yAxisId}|${metricId}`}
-          values={field.values}
-          sampleMarks="none"
-          markers={[
-            ...field.markers,
-            // Where the navigator sits.
-            {
-              x: surfaceGridCoordinate(
-                xAxis,
-                selectionMidpoint(selection, xAxis),
-              ),
-              y: surfaceGridCoordinate(
-                yAxis,
-                selectionMidpoint(selection, yAxis),
-              ),
-              kind: "navigation",
-            },
-          ]}
-          onPickFraction={readOnly ? undefined : handlePickFraction}
-          onPreviewFraction={readOnly ? undefined : setPreview}
+      {xAxis && yAxis && xAxis !== yAxis ? (
+        <SweepSurfacePlot
+          experimentId={experiment.id}
+          sweep={sweep}
+          axes={axes}
+          xAxis={xAxis}
+          yAxis={yAxis}
+          metricId={metricId}
           readOnly={readOnly}
-          aria-label="Sweep surface"
+          onPreview={setPreview}
         />
       ) : null}
     </ChartCard>

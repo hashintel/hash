@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode, useRef, useState } from "react";
 
-import { Button, Popover, Tooltip } from "@hashintel/ds-components";
+import { Button, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ComputeBackendBadge } from "../../shared/compute-backend-badge";
@@ -9,9 +9,9 @@ import { formatCount } from "../../shared/format-value";
 
 import type { ExperimentRecord } from "../../../../../../../react/experiments/context";
 import type { ComputeBatch } from "../../shared/drawer-frame";
-import type { ResultsStat } from "../../shared/results-model";
 
-export type ExperimentDetail = Pick<ResultsStat, "id" | "label" | "value">;
+/** One labelled row of the details list. */
+export type ExperimentDetail = { id: string; label: string; text: ReactNode };
 
 const bodyStyle = css({
   width: "[360px]",
@@ -87,15 +87,7 @@ export const ExperimentDetails = ({
                 {stats.map((stat) => (
                   <Fragment key={stat.id}>
                     <dt>{stat.label}</dt>
-                    <dd>
-                      {stat.value.tooltip ? (
-                        <Tooltip content={stat.value.tooltip}>
-                          <span>{stat.value.text}</span>
-                        </Tooltip>
-                      ) : (
-                        stat.value.text
-                      )}
-                    </dd>
+                    <dd>{stat.text}</dd>
                   </Fragment>
                 ))}
                 <dt>Compute</dt>

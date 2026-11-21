@@ -57,13 +57,11 @@ describe("deriveMetricViewState", () => {
       frames,
       outputType: "distribution",
       settings: DEFAULT_METRIC_VIEW_SETTINGS,
-      keepsAxesWhileEmpty: false,
     });
     expect(view.displayMode).toBe("chart");
     expect(view.showsBandLegend).toBe(false);
     expect(view.aggregateNumber).toBeNull();
     expect(view.plotData[0]).toEqual([0, 1]);
-    expect(view.canPlot).toBe(true);
   });
 
   it("shows the band legend only for the percentile-lines chart", () => {
@@ -71,7 +69,6 @@ describe("deriveMetricViewState", () => {
       frames,
       outputType: "distribution",
       settings: { ...DEFAULT_METRIC_VIEW_SETTINGS, distributionView: "bands" },
-      keepsAxesWhileEmpty: false,
     });
     expect(view.showsBandLegend).toBe(true);
     expect(view.plotData).toHaveLength(7);
@@ -86,7 +83,6 @@ describe("deriveMetricViewState", () => {
         aggregateTime: true,
         timeAggregation: "sum",
       },
-      keepsAxesWhileEmpty: false,
     });
     expect(view.displayMode).toBe("distribution");
     expect(view.plotData).toEqual([
@@ -100,11 +96,9 @@ describe("deriveMetricViewState", () => {
       frames: [scalarFrame(0, 2), scalarFrame(1, 4)],
       outputType: "scalar",
       settings: { ...DEFAULT_METRIC_VIEW_SETTINGS, aggregateTime: true },
-      keepsAxesWhileEmpty: true,
     });
     expect(view.displayMode).toBe("number");
     expect(view.aggregateNumber).toBe(3);
-    expect(view.canPlot).toBe(false);
 
     const aggregatedRuns = deriveMetricViewState({
       frames,
@@ -114,27 +108,8 @@ describe("deriveMetricViewState", () => {
         aggregateRuns: true,
         aggregateTime: true,
       },
-      keepsAxesWhileEmpty: false,
     });
     expect(aggregatedRuns.displayMode).toBe("number");
-  });
-
-  it("keeps a plot mounted without data only with pinned axes", () => {
-    const empty = { frames: [], outputType: "scalar" as const };
-    expect(
-      deriveMetricViewState({
-        ...empty,
-        settings: DEFAULT_METRIC_VIEW_SETTINGS,
-        keepsAxesWhileEmpty: true,
-      }).canPlot,
-    ).toBe(true);
-    expect(
-      deriveMetricViewState({
-        ...empty,
-        settings: DEFAULT_METRIC_VIEW_SETTINGS,
-        keepsAxesWhileEmpty: false,
-      }).canPlot,
-    ).toBe(false);
   });
 });
 

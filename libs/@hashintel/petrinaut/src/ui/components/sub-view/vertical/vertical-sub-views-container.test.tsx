@@ -10,18 +10,16 @@ import {
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  defaultPetrinautNavigationState,
-  PetrinautNavigationProvider,
-} from "../../../../react/navigation";
+import { defaultPetrinautNavigationState } from "../../../../react/navigation/navigation";
+import { PetrinautNavigationProvider } from "../../../../react/navigation/navigation-provider";
 import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "../../../../react/state/user-settings-context";
-import { PetrinautPresentationProvider } from "../../../views/shared/presentation-context";
+import { PetrinautPresentationProvider } from "../../../views/shared/presentation-provider";
 import { VerticalSubViewsContainer } from "./vertical-sub-views-container";
 
-import type { PetrinautNavigationController } from "../../../../react/navigation";
+import type { PetrinautNavigationController } from "../../../../react/navigation/navigation";
 import type { SubView } from "../types";
 import type { ComponentProps } from "react";
 
@@ -119,7 +117,7 @@ const subViews: SubView[] = [
     component: Code,
     canMaximize: true,
     headerActionMutates: true,
-    renderHeaderAction: () => <button type="button">Load template</button>,
+    headerAction: () => <button type="button">Load template</button>,
   },
 ];
 

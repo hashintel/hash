@@ -8,22 +8,19 @@ const segments = (label: string): string[] =>
   withLabelWrapPoints(label).split(ZERO_WIDTH_SPACE);
 
 describe("withLabelWrapPoints", () => {
-  it("breaks a PascalCase name between its words", () => {
-    expect(segments("HelloWorld")).toEqual(["Hello", "World"]);
-  });
-
-  it("keeps an acronym together", () => {
-    expect(segments("QAQueue")).toEqual(["QA", "Queue"]);
-    expect(segments("XMLHttpRequest")).toEqual(["XML", "Http", "Request"]);
-    expect(segments("IOError")).toEqual(["IO", "Error"]);
-  });
-
-  it("breaks before a run of digits", () => {
-    expect(segments("Space42")).toEqual(["Space", "42"]);
-  });
-
-  it("leaves a single word alone", () => {
-    expect(segments("Hello")).toEqual(["Hello"]);
+  it.each([
+    ["HelloWorld", ["Hello", "World"]],
+    ["QAQueue", ["QA", "Queue"]],
+    ["XMLHttpRequest", ["XML", "Http", "Request"]],
+    ["IOError", ["IO", "Error"]],
+    ["Space42", ["Space", "42"]],
+    ["Hello", ["Hello"]],
+    [
+      "Unload the tanker (SteadyNitrogen)",
+      ["Unload the tanker (Steady", "Nitrogen)"],
+    ],
+  ])("breaks %s between its words, acronyms and digit runs", (label, parts) => {
+    expect(segments(label)).toEqual(parts);
   });
 
   it("leaves a label written as a sentence alone", () => {
@@ -34,13 +31,6 @@ describe("withLabelWrapPoints", () => {
     ]) {
       expect(withLabelWrapPoints(label).replace(/\u200B/gu, "")).toBe(label);
     }
-  });
-
-  it("still breaks the PascalCase parts of a sentence", () => {
-    expect(segments("Unload the tanker (SteadyNitrogen)")).toEqual([
-      "Unload the tanker (Steady",
-      "Nitrogen)",
-    ]);
   });
 
   it("returns an empty string unchanged", () => {

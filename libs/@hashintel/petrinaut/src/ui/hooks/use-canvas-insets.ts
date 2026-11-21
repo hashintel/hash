@@ -1,4 +1,3 @@
-import { useEditorFields } from "../../react/state/editor-context";
 import { assistantCover } from "../../react/state/panel-presence";
 import { usePanelPresence } from "../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../react/state/panel-sizes-context";
@@ -24,55 +23,24 @@ export interface PanelLayoutState {
   readonly propertiesPanelWidth: number;
   /** How much of a docking AI assistant lies over the editor's right edge. */
   readonly aiAssistantCover: number;
-  readonly isAiAssistantOpen: boolean;
-  readonly aiAssistantWidth: number;
-  readonly aiAssistantDockHeight: number | null;
-  readonly isAiAssistantCollapsed: boolean;
   readonly bottomPanelShown: number;
   readonly bottomPanelHeight: number;
 }
 
-interface CanvasInsetOptions {
-  /** The viewport column clears the compact dock above, not beside it. */
-  readonly aboveCollapsedDock?: boolean;
-}
-
 /**
  * Each edge's rule is the one the panel on it renders by: a panel covers its
- * edge as far as it has slid in, and a compact Voice dock stays at the right
- * edge. The expanded, docked assistant has its own column outside the canvas,
- * except while it arrives or leaves, when it covers the right edge and the
- * Properties panel moves in from it. A movable assistant reserves no edge.
+ * edge as far as it has slid in. The docked assistant has its own column
+ * outside the canvas, except while it arrives or leaves, when it covers the
+ * right edge and the Properties panel moves in from it. A movable assistant
+ * reserves no edge.
  */
-export const getCanvasInsets = (
-  state: PanelLayoutState,
-  { aboveCollapsedDock = false }: CanvasInsetOptions = {},
-): CanvasInsets => {
-  const dockHeight =
-    aboveCollapsedDock &&
-    state.isAiAssistantOpen &&
-    state.isAiAssistantCollapsed
-      ? state.aiAssistantDockHeight
-      : null;
-  return {
-    left: state.leftSidebarShown * (state.leftSidebarWidth + PANEL_MARGIN),
-    right:
-      state.aiAssistantCover +
-      Math.max(
-        state.propertiesPanelShown *
-          (state.propertiesPanelWidth + PANEL_MARGIN),
-        state.isAiAssistantOpen &&
-          state.isAiAssistantCollapsed &&
-          dockHeight === null
-          ? state.aiAssistantWidth + 12
-          : 0,
-      ),
-    bottom: Math.max(
-      state.bottomPanelShown * (state.bottomPanelHeight + PANEL_MARGIN),
-      dockHeight === null ? 0 : dockHeight + 12,
-    ),
-  };
-};
+export const getCanvasInsets = (state: PanelLayoutState): CanvasInsets => ({
+  left: state.leftSidebarShown * (state.leftSidebarWidth + PANEL_MARGIN),
+  right:
+    state.aiAssistantCover +
+    state.propertiesPanelShown * (state.propertiesPanelWidth + PANEL_MARGIN),
+  bottom: state.bottomPanelShown * (state.bottomPanelHeight + PANEL_MARGIN),
+});
 
 const NO_INSETS: CanvasInsets = { left: 0, right: 0, bottom: 0 };
 
@@ -94,19 +62,10 @@ export const sameInsets = (previous: CanvasInsets, next: CanvasInsets) =>
  * The panels overlay the canvas rather than shrinking it, so a floating
  * control cannot read this off its own layout.
  */
-export const useCanvasInsetsReader = (
-  options?: CanvasInsetOptions,
-): (() => CanvasInsets) => {
+export const useCanvasInsetsReader = (): (() => CanvasInsets) => {
   const presentation = usePetrinautPresentation();
-  const { isAiAssistantOpen, aiAssistantDockHeight, isAiAssistantCollapsed } =
-    useEditorFields(
-      "isAiAssistantOpen",
-      "aiAssistantDockHeight",
-      "isAiAssistantCollapsed",
-    );
   const panelSizes = usePanelSizes();
   const presence = usePanelPresence();
-  const aboveCollapsedDock = options?.aboveCollapsedDock ?? false;
   // Where the panels sit beside the canvas rather than over it, the canvas is
   // already the space it occupies and there is nothing to keep clear of.
   const overlaid = presentation.panelsOverlayCanvas;
@@ -114,7 +73,6 @@ export const useCanvasInsetsReader = (
   return () => {
     // Every value is read before any condition, so whatever follows this
     // function follows all of them.
-    const aiAssistantWidth = panelSizes.aiAssistantWidth.get();
     const state: PanelLayoutState = {
       leftSidebarShown: presence.shown.leftSidebar.get(),
       leftSidebarWidth: panelSizes.leftSidebarWidth.get(),
@@ -122,16 +80,13 @@ export const useCanvasInsetsReader = (
       propertiesPanelWidth: panelSizes.propertiesPanelWidth.get(),
       bottomPanelShown: presence.shown.bottomPanel.get(),
       bottomPanelHeight: panelSizes.bottomPanelHeight.get(),
-      aiAssistantCover: assistantCover(presence, aiAssistantWidth),
-      aiAssistantWidth,
-      isAiAssistantOpen,
-      aiAssistantDockHeight,
-      isAiAssistantCollapsed,
+      aiAssistantCover: assistantCover(
+        presence,
+        panelSizes.aiAssistantWidth.get(),
+      ),
     };
 
-    return overlaid
-      ? getCanvasInsets(state, { aboveCollapsedDock })
-      : NO_INSETS;
+    return overlaid ? getCanvasInsets(state) : NO_INSETS;
   };
 };
 
@@ -140,5 +95,5 @@ export const useCanvasInsetsReader = (
  * rendering. It renders on every pointer move of a panel drag: an element
  * that only positions itself follows {@link useCanvasInsetsReader} instead.
  */
-export const useCanvasInsets = (options?: CanvasInsetOptions): CanvasInsets =>
-  useReading(useCanvasInsetsReader(options), sameInsets);
+export const useCanvasInsets = (): CanvasInsets =>
+  useReading(useCanvasInsetsReader(), sameInsets);

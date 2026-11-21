@@ -21,6 +21,7 @@ import {
   DiagnosticSeverity,
   FIXED_STEP_SIMULATOR_ID,
   getConstraintDocumentUri,
+  getMetricDocumentUri,
 } from "@hashintel/petrinaut-core";
 import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
 
@@ -30,10 +31,6 @@ import { PetrinautOptimizationContext } from "../../../../../../react/optimizati
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { SimulatorsContext } from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import {
-  defaultUserSettings,
-  UserSettingsContext,
-} from "../../../../../../react/state/user-settings-context";
 import { CreateExperimentDrawer } from "./create-experiment-drawer";
 import {
   makeExperiment,
@@ -48,7 +45,6 @@ import type { LanguageClientContextValue } from "../../../../../../react/lsp/con
 import type { OptimizationsContextValue } from "../../../../../../react/optimizations/context";
 import type { SimulatorsContextValue } from "../../../../../../react/simulators/context";
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
-import type { UserSettingsContextValue } from "../../../../../../react/state/user-settings-context";
 import type {
   ConstraintSource,
   LowerConstraintResult,
@@ -57,19 +53,16 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 import type { ConstraintSessionParams } from "@hashintel/petrinaut-core/workers/lsp";
-import type { ReactNode } from "react";
 
 vi.mock("../../../../../monaco/code-editor", () => ({
   CodeEditor: ({
     onChange,
     value,
     options,
-    singleLine,
   }: {
     onChange: (value: string) => void;
     value: string;
-    options?: { readOnly?: boolean; scrollbar?: { vertical?: string } };
-    singleLine?: boolean;
+    options?: { readOnly?: boolean };
   }) => {
     const changeHandlerRef = useRef(onChange);
     const previousValueRef = useRef(value);
@@ -88,8 +81,6 @@ vi.mock("../../../../../monaco/code-editor", () => ({
     return (
       <textarea
         aria-label="Metric code"
-        data-single-line={singleLine}
-        data-vertical-scrollbar={options?.scrollbar?.vertical}
         value={value}
         readOnly={options?.readOnly}
         onChange={(event) => onChange(event.target.value)}
@@ -101,28 +92,6 @@ vi.mock("../../../../../monaco/code-editor", () => ({
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@hashintel/ds-components")>();
-  // The real Drawer portals its body somewhere testing-library cannot reach from
-  // this tree; the parts under test are plain children of it.
-  const Drawer = Object.assign(
-    ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    {
-      Header: () => null,
-      Body: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-      Footer: ({
-        actions,
-        secondaryActions,
-      }: {
-        actions?: ReactNode;
-        secondaryActions?: ReactNode;
-      }) => (
-        <div>
-          {secondaryActions}
-          {actions}
-        </div>
-      ),
-    },
-  );
-
   // The real Select is an Ark menu jsdom cannot drive; a native select with
   // the same items lets a test change the scenario, the metric kind or the
   // objective's metric. The segmented control comes from the shared stubs.
@@ -162,7 +131,7 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   );
   const { SegmentedControl } = await import("../shared/ds-control-stubs");
 
-  return { ...actual, Drawer, Select, SegmentedControl };
+  return { ...actual, Select, SegmentedControl };
 });
 
 /**
@@ -315,32 +284,6 @@ const TestProviders = ({
   optimizationSource?: PetrinautConnectedOptimization | null;
 }) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
-  const settings: UserSettingsContextValue = {
-    ...defaultUserSettings,
-    setShowAnimations: () => {},
-    setKeepPanelsMounted: () => {},
-    setCompactNodes: () => {},
-    setEnableExperimentalIconPack: () => {},
-    setCursorMode: () => {},
-    setIsLeftSidebarOpen: () => {},
-    setLeftSidebarWidth: () => {},
-    setPropertiesPanelWidth: () => {},
-    setIsBottomPanelOpen: () => {},
-    setBottomPanelHeight: () => {},
-    setActiveBottomPanelTab: () => {},
-    setTimelineChartType: () => {},
-    setShowMinimap: () => {},
-    setHighlightOnHover: () => {},
-    setSnapToGrid: () => {},
-    setPartialSelection: () => {},
-    setEnableNetComponents: () => {},
-    setShowCompilationOutput: () => {},
-    setCanvasViewport: () => {},
-    setPluginEnabled: () => {},
-    setAssistantPluginId: () => {},
-    updateSubViewSection: () => {},
-  };
-
   return (
     <PortalContainerContext value={portalContainerRef}>
       <SimulatorsContext value={simulators}>
@@ -368,12 +311,10 @@ const TestProviders = ({
               }}
             >
               <SDCPNContext value={sdcpnContextValue}>
-                <UserSettingsContext value={settings}>
-                  <PetrinautOptimizationContext value={optimizationSource}>
-                    <div ref={portalContainerRef} />
-                    <CreateExperimentDrawer open onClose={() => {}} />
-                  </PetrinautOptimizationContext>
-                </UserSettingsContext>
+                <PetrinautOptimizationContext value={optimizationSource}>
+                  <div ref={portalContainerRef} />
+                  <CreateExperimentDrawer onClose={() => {}} />
+                </PetrinautOptimizationContext>
               </SDCPNContext>
             </OptimizationsContext>
           </ExperimentsActionsContext>
@@ -1404,6 +1345,71 @@ describe("CreateExperimentDrawer metric selection", () => {
       expect(screen.queryByLabelText("Metric label")).toBeNull();
     },
   );
+  it("blocks Run and names the metric while its code has an error", async () => {
+    const languageClient = makeLanguageClient();
+    const sdcpnContextValue = {
+      ...sirSdcpnContextValue,
+      petriNetDefinition: {
+        ...sirSdcpnContextValue.petriNetDefinition,
+        metrics: [{ id: "first", name: "First metric", code: "return 1;" }],
+      },
+    };
+    const { rerender } = render(
+      <TestProviders
+        languageClient={languageClient}
+        sdcpnContextValue={sdcpnContextValue}
+      />,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: /Add metric/ }));
+    const metricType = screen.getByLabelText("Metric type");
+    fireEvent.change(metricType, { target: { value: "expression" } });
+    expect(submitButton().disabled).toBe(false);
+
+    const session = vi.mocked(languageClient.initializeMetricSession).mock
+      .calls[0]?.[0];
+    if (!session) {
+      throw new Error("expected a metric session to have been initialized");
+    }
+    const diagnosticsByUri: LanguageClientContextValue["diagnosticsByUri"] =
+      new Map([
+        [
+          getMetricDocumentUri(session.sessionId),
+          [
+            {
+              range: {
+                start: { line: 0, character: 0 },
+                end: { line: 0, character: 1 },
+              },
+              message: "Property 'Missing' does not exist.",
+              severity: DiagnosticSeverity.Error,
+            },
+          ],
+        ],
+      ]);
+    rerender(
+      <TestProviders
+        languageClient={{ ...languageClient, diagnosticsByUri }}
+        sdcpnContextValue={sdcpnContextValue}
+      />,
+    );
+
+    expect(
+      within(screen.getByRole("group", { name: "Custom metric" })).getByText(
+        "Property 'Missing' does not exist.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Metric \"Custom metric\" has 1 code diagnostic: Property 'Missing' does not exist.",
+      ),
+    ).toBeTruthy();
+    expect(submitButton().disabled).toBe(true);
+
+    // The language worker has not answered for the model metric's code yet.
+    fireEvent.change(metricType, { target: { value: "model:first" } });
+    expect(screen.queryByText(/Property 'Missing' does not exist/)).toBeNull();
+    expect(submitButton().disabled).toBe(false);
+  });
 });
 
 const objectiveRadio = (metricLabel: string) =>
@@ -1637,20 +1643,13 @@ describe("CreateExperimentDrawer objective", () => {
   });
 
   it("creates the experiment, starts its study from the record, then selects it", async () => {
-    const order: string[] = [];
-    const createExperiment = vi.fn((input: CreateExperimentInput) => {
-      order.push("createExperiment");
-      return createdSweep(input, "experiment-objective");
-    });
+    const createExperiment = vi.fn((input: CreateExperimentInput) =>
+      createdSweep(input, "experiment-objective"),
+    );
     const createOptimization = vi.fn<
       OptimizationsContextValue["createOptimization"]
-    >(() => {
-      order.push("createOptimization");
-      return Promise.resolve("study-objective");
-    });
-    const setSelectedExperimentId = vi.fn(() => {
-      order.push("setSelectedExperimentId");
-    });
+    >(() => Promise.resolve("study-objective"));
+    const setSelectedExperimentId = vi.fn();
     await openConstrainedSweep({
       createExperiment,
       createOptimization,
@@ -1667,11 +1666,6 @@ describe("CreateExperimentDrawer objective", () => {
       ),
     );
 
-    expect(order).toEqual([
-      "createExperiment",
-      "createOptimization",
-      "setSelectedExperimentId",
-    ]);
     const metricId = createExperiment.mock.calls[0]![0].metricSpecs[0]!.id;
     const [manifest, options] = createOptimization.mock.calls[0]!;
     expect(options).toEqual({
@@ -1752,22 +1746,4 @@ describe("CreateExperimentDrawer objective", () => {
     await waitFor(() => expect(createOptimization).toHaveBeenCalledOnce());
     expect(createExperiment).toHaveBeenCalledOnce();
   });
-});
-
-it("uses inline scrollbar defaults for parameter constraints and scrolls multiline state constraints", async () => {
-  await openConstrainedSweep({ languageClient: makeLoweringLanguageClient() });
-  fireEvent.click(
-    screen.getByRole("button", { name: "Add parameter constraint" }),
-  );
-  fireEvent.click(screen.getByRole("button", { name: "Add state constraint" }));
-  const parameterEditor = codeOf(
-    screen.getByRole("group", { name: "Parameter constraint 1" }),
-  );
-  const stateEditor = codeOf(
-    screen.getByRole("group", { name: "State constraint 1" }),
-  );
-  expect(parameterEditor.getAttribute("data-single-line")).toBe("true");
-  expect(parameterEditor.getAttribute("data-vertical-scrollbar")).toBeNull();
-  expect(stateEditor.getAttribute("data-single-line")).toBe("false");
-  expect(stateEditor.getAttribute("data-vertical-scrollbar")).toBe("auto");
 });

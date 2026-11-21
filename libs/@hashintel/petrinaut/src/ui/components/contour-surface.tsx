@@ -18,6 +18,7 @@ import { useEffect, useRef } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useElementSize } from "../../react/hooks/use-element-size";
+import { DragCrosshair } from "./contour-surface/drag-crosshair";
 import {
   type ContourSurfaceMarker,
   type ContourSurfaceSampleMarks,
@@ -28,7 +29,6 @@ import {
 } from "./contour-surface/paint-field";
 import {
   type ContourSurfaceFraction,
-  DragCrosshair,
   useSurfaceDrag,
 } from "./contour-surface/use-surface-drag";
 
@@ -38,10 +38,6 @@ export type {
   ContourSurfaceValues,
 } from "./contour-surface/paint-field";
 export type { ContourSurfaceFraction } from "./contour-surface/use-surface-drag";
-
-/** The canonical key of a sampled grid cell. */
-export const contourSurfaceKey = (xIndex: number, yIndex: number): string =>
-  `${xIndex},${yIndex}`;
 
 const frameStyle = css({
   position: "relative",

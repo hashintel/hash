@@ -1,4 +1,4 @@
-import { use } from "react";
+import { type ComponentProps, use } from "react";
 
 import { Button, Chip, Icon } from "@hashintel/ds-components";
 
@@ -6,57 +6,40 @@ import {
   ExperimentsContext,
   type ExperimentRecord,
 } from "../../../../../../react/experiments/context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulationPanel } from "../shared/simulation-panel";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
 import { ViewExperimentDrawer } from "./view-experiment-drawer";
 
-function formatExperimentStatus(status: ExperimentRecord["status"]): string {
-  switch (status) {
-    case "initializing":
-      return "Initializing";
-    case "running":
-      return "Running";
-    case "idle":
-      return "Idle";
-    case "complete":
-      return "Complete";
-    case "error":
-      return "Error";
-    case "cancelled":
-      return "Cancelled";
-  }
-}
+const activePrefix = { variant: "naked", loading: true } as const;
+
+/** How each status reads in the list: its word, its colour and its mark. */
+const statusChips = {
+  initializing: { label: "Initializing", color: "blue", prefix: activePrefix },
+  running: { label: "Running", color: "blue", prefix: activePrefix },
+  idle: { label: "Idle", color: "grey" },
+  complete: { label: "Complete", color: "green" },
+  error: {
+    label: "Error",
+    color: "red",
+    prefix: { variant: "naked", iconName: "error" },
+  },
+  cancelled: { label: "Cancelled", color: "red" },
+} satisfies Record<
+  ExperimentRecord["status"],
+  { label: string } & Pick<ComponentProps<typeof Chip>, "color" | "prefix">
+>;
 
 const ExperimentStatusBadge = ({
   status,
 }: {
   status: ExperimentRecord["status"];
 }) => {
-  const label = formatExperimentStatus(status);
-  const isActive = status === "initializing" || status === "running";
+  const { label, ...chip } = statusChips[status];
 
   return (
-    <Chip
-      variant="soft"
-      color={
-        isActive
-          ? "blue"
-          : status === "idle"
-            ? "grey"
-            : status === "complete"
-              ? "green"
-              : "red"
-      }
-      prefix={
-        isActive
-          ? { variant: "naked", loading: true }
-          : status === "error"
-            ? { variant: "naked", iconName: "error" }
-            : undefined
-      }
-    >
+    <Chip variant="soft" {...chip}>
       {label}
     </Chip>
   );
@@ -99,29 +82,8 @@ const experimentColumns = [
   },
 ] satisfies readonly TableColumn<ExperimentRecord>[];
 
-const ExperimentList = ({
-  experiments,
-  selectedId,
-  onSelect,
-}: {
-  experiments: readonly ExperimentRecord[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}) => {
-  return (
-    <Table
-      columns={experimentColumns}
-      emptyLabel="No experiments yet"
-      getRowId={(experiment) => experiment.id}
-      rows={experiments}
-      selectedRowId={selectedId}
-      onRowSelect={(experiment) => onSelect(experiment.id)}
-    />
-  );
-};
-
 export const ExperimentsView = () => {
-  const { setSimulateDrawer } = use(EditorContext);
+  const { setSimulateDrawer } = useEditorActions();
   const {
     experiments,
     selectedExperiment,
@@ -146,14 +108,16 @@ export const ExperimentsView = () => {
         </Button>
       }
     >
-      <ExperimentList
-        experiments={experiments}
-        selectedId={selectedExperimentId}
-        onSelect={setSelectedExperimentId}
+      <Table
+        columns={experimentColumns}
+        emptyLabel="No experiments yet"
+        getRowId={(experiment) => experiment.id}
+        rows={experiments}
+        selectedRowId={selectedExperimentId}
+        onRowSelect={(experiment) => setSelectedExperimentId(experiment.id)}
       />
 
       <ViewExperimentDrawer
-        open={selectedExperiment !== null}
         onClose={closeViewDrawer}
         experiment={selectedExperiment ?? undefined}
       />

@@ -161,7 +161,10 @@ const placeholderStyle = css({
 
 // -- Props --------------------------------------------------------------------
 
-export type CodeEditorProps = Omit<EditorProps, "theme"> & {
+export type CodeEditorProps = Omit<
+  EditorProps,
+  "theme" | "keepCurrentModel"
+> & {
   tooltip?: string;
   /** Render as a single-line expression input */
   singleLine?: boolean;
@@ -186,7 +189,7 @@ export type CodeEditorProps = Omit<EditorProps, "theme"> & {
    * Where the caret lands on mount: "end" puts it after the content (typing
    * continues), "all" selects the whole content (typing replaces). Omitted,
    * the caret is only positioned when the reused per-path model needed a
-   * value sync (the pre-existing behaviour).
+   * value sync.
    */
   mountSelection?: "all" | "end";
 };
@@ -260,7 +263,7 @@ const CodeEditorInner: React.FC<
     monacoInstance: Monaco,
   ) => {
     editorRef.current = editorInstance;
-    if (!props.keepCurrentModel) releaseReplacedModels(editorInstance);
+    releaseReplacedModels(editorInstance);
     setEditorFocused(false);
     setEditorMounted(true);
 

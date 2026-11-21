@@ -11,13 +11,14 @@ import {
 
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { CompositionContext } from "../../../../../../react/state/composition-context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorState,
+} from "../../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { ComponentGlyph } from "../../../../../components/component-glyph";
 import { problemTextStyle } from "../../../../../constants/problem-severity";
 import { writeDraggedComponent } from "../../../../shared/canvas-node-drag";
-
-import type { SubView } from "../../../../../components/sub-view/types";
 
 const panelStyle = css({
   display: "flex",
@@ -114,12 +115,13 @@ const ComponentRow: React.FC<{
   component: Component;
   canPlace: boolean;
 }> = ({ reference, component, canPlace }) => {
-  const { editionMode, componentToAdd, setAddComponentMode, setEditionMode } =
-    use(EditorContext);
-  const armed =
-    editionMode === "add-component" &&
-    componentToAdd !== null &&
-    sameComponent(componentToAdd, reference);
+  const { setAddComponentMode, setEditionMode } = useEditorActions();
+  const armed = useEditorState(
+    (editor) =>
+      editor.editionMode === "add-component" &&
+      editor.componentToAdd !== null &&
+      sameComponent(editor.componentToAdd, reference),
+  );
 
   return (
     <button
@@ -199,7 +201,7 @@ const LibraryGroup: React.FC<{
  * The components of the libraries on offer, each under its library's name.
  * Instances go into the root net, as the toolbar's component tool has it.
  */
-const ComponentsPanel: React.FC = () => {
+export const ComponentsPanel: React.FC = () => {
   const { imports, offered } = use(CompositionContext);
   const { activeComponentId } = use(ActiveNetContext);
   const isReadOnly = useIsReadOnly();
@@ -217,12 +219,4 @@ const ComponentsPanel: React.FC = () => {
       ))}
     </div>
   );
-};
-
-export const componentsSubView: SubView = {
-  id: "components",
-  title: "Components",
-  tooltip:
-    "The components of the libraries this editor offers. Click one, then the canvas, to place an instance of it, or drag it onto the canvas.",
-  component: ComponentsPanel,
 };

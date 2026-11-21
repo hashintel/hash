@@ -7,53 +7,11 @@ import "uplot/dist/uPlot.min.css";
 import { useLatest } from "../../../../../../../react/hooks/use-latest";
 import { useStableCallback } from "../../../../../../../react/hooks/use-stable-callback";
 import { createRunDataBuilder, createStackedDataBuilder } from "./chart-data";
-import {
-  tooltipDotStyle,
-  tooltipLabelStyle,
-  tooltipStyle,
-  tooltipValueStyle,
-} from "./styles";
+import { createChartTooltip, type ChartTooltip } from "./chart-tooltip";
 
 import type { TimelineChartType } from "../../../../../../../react/state/editor-context";
 import type { StreamingStore, TimelineSeriesMeta } from "./types";
 import type { FC, RefObject } from "react";
-
-interface TooltipNodes {
-  root: HTMLDivElement;
-  dot: HTMLDivElement;
-  name: HTMLSpanElement;
-  value: HTMLSpanElement;
-  time: HTMLDivElement;
-  frame: HTMLDivElement;
-}
-
-function createTooltip(): TooltipNodes {
-  const root = document.createElement("div");
-  root.className = tooltipStyle;
-
-  const label = document.createElement("div");
-  label.className = tooltipLabelStyle;
-
-  const dot = document.createElement("div");
-  dot.className = tooltipDotStyle;
-
-  const name = document.createElement("span");
-
-  const value = document.createElement("span");
-  value.className = tooltipValueStyle;
-
-  label.append(dot, name, value);
-
-  const time = document.createElement("div");
-  time.style.cssText = "font-size:10px;opacity:0.8;margin-top:2px";
-
-  const frame = document.createElement("div");
-  frame.style.cssText = "font-size:9px;opacity:0.6;margin-top:2px";
-
-  root.append(label, time, frame);
-
-  return { root, dot, name, value, time, frame };
-}
 
 function hitTestStackedBand(
   store: StreamingStore,
@@ -135,13 +93,13 @@ function resolveHoverTarget(
   return { series, value, idx, time: store.columns[0]![idx] ?? 0 };
 }
 
-function positionTooltip(tooltip: TooltipNodes, u: uPlot, hit: HoverHit): void {
+function positionTooltip(tooltip: ChartTooltip, u: uPlot, hit: HoverHit): void {
   const t = tooltip;
   t.dot.style.background = hit.series.color;
   t.name.textContent = hit.series.seriesName;
   t.value.textContent = String(hit.value);
   t.time.textContent = `${hit.time.toFixed(3)}s`;
-  t.frame.textContent = `Frame ${hit.idx}`;
+  t.detail.textContent = `Frame ${hit.idx}`;
 
   t.root.style.display = "block";
   const cx = u.cursor.left ?? 0;
@@ -226,7 +184,7 @@ interface ChartOptions {
   size: { width: number; height: number };
   onScrub: (frameIndex: number) => void;
   getPlayheadFrame: () => number;
-  tooltip: TooltipNodes;
+  tooltip: ChartTooltip;
 }
 
 function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
@@ -484,7 +442,9 @@ export const UPlotChart: FC<{
         ? buildStackedData(store, hiddenSeries)
         : buildRunData(store, hiddenSeries);
 
-    const tooltip = createTooltip();
+    const tooltip = createChartTooltip(
+      "font-size:9px;opacity:0.6;margin-top:2px",
+    );
 
     const opts = buildUPlotOptions({
       store,

@@ -1,6 +1,5 @@
 import { Button } from "@hashintel/ds-components";
-import { useHashIconPackEnabled } from "@hashintel/ds-icons";
-import { VoiceIcon } from "@hashintel/petrinaut/ui";
+import { useHashIconPackEnabled, VoiceIcon } from "@hashintel/ds-icons";
 
 type AiVoiceModeButtonProps = {
   className?: string;
@@ -10,8 +9,8 @@ type AiVoiceModeButtonProps = {
 
 /** Brunch's Voice mode mark, from the icon pack while the editor uses it. */
 export const AiVoiceModeIcon = ({ size = 16 }: { size?: number }) => {
-  const experimentalIcons = useHashIconPackEnabled();
-  if (experimentalIcons) {
+  const iconPackEnabled = useHashIconPackEnabled();
+  if (iconPackEnabled) {
     return <VoiceIcon size={size} />;
   }
   return (

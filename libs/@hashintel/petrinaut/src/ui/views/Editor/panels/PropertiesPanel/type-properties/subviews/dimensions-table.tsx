@@ -12,6 +12,7 @@ import { Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { generatePetrinautId, type Color } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../../react";
 import { FormSpreadsheet } from "../../../../../../components/spreadsheet-kit/form-spreadsheet";
 import {
   cellErrorUnderlineStyle,
@@ -29,8 +30,8 @@ import { PhantomLine } from "../../../../../../components/spreadsheet-kit/phanto
 import {
   ReorderableRow,
   ReorderableRows,
-  rowMoveKeyDown,
 } from "../../../../../../components/spreadsheet-kit/reorderable-rows";
+import { rowMoveKeyDown } from "../../../../../../components/spreadsheet-kit/row-move-key-down";
 import { TextCell } from "../../../../../../components/spreadsheet-kit/text-cell";
 import { useFocusGrid } from "../../../../../../worksheet/use-focus-grid";
 import { useRowSelection } from "../../../../../../worksheet/use-row-selection";
@@ -67,7 +68,7 @@ const emptyStyle = css({
 /** Grid columns: 0 gutter, 1 name, 2 type. */
 const PHANTOM_COLUMNS = [0, 1, 2];
 
-export interface DimensionsTableProps {
+interface DimensionsTableProps {
   /** Rows cannot be added, renamed, retyped, reordered or removed. */
   readOnly: boolean;
 }
@@ -75,13 +76,13 @@ export interface DimensionsTableProps {
 export const DimensionsTable: React.FC<DimensionsTableProps> = ({
   readOnly,
 }) => {
+  const { type } = useTypePropertiesContext();
   const {
-    type,
     addTypeElement,
     updateTypeElement,
     removeTypeElement,
     moveTypeElement,
-  } = useTypePropertiesContext();
+  } = usePetrinautMutations();
   const { elements } = type;
   const grid = useFocusGrid();
   const { register, attach } = grid;

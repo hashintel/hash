@@ -1,8 +1,8 @@
 /**
  * The harness behind the SimulateView stories that run real simulations: the
- * provider stack around a real example model, the settings a story pins, and
- * a sweep created with its study once the stack is mounted, as the Create
- * Experiment drawer's Optimize does.
+ * provider stack around a real example model, and a sweep created with its
+ * study once the stack is mounted, as the Create Experiment drawer's Optimize
+ * does.
  */
 import { use, useEffect, useRef } from "react";
 
@@ -17,7 +17,7 @@ import {
 import { ExperimentsProvider } from "../../../../../react/experiments/provider";
 import { useLatest } from "../../../../../react/hooks/use-latest";
 import { LanguageClientProvider } from "../../../../../react/lsp/provider";
-import { PetrinautNavigationProvider } from "../../../../../react/navigation";
+import { PetrinautNavigationProvider } from "../../../../../react/navigation/navigation-provider";
 import {
   NetManagementContext,
   type NetManagement,
@@ -25,30 +25,24 @@ import {
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
 import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
 import { OptimizationsProvider } from "../../../../../react/optimizations/provider";
-import { usePublished } from "../../../../../react/select-from-context";
 import { SimulatorsProvider } from "../../../../../react/simulators/provider";
 import {
   SDCPNContext,
   type SDCPNContextValue,
+  useSDCPNState,
 } from "../../../../../react/state/sdcpn-context";
-import {
-  type UserSettings,
-  UserSettingsContext,
-  UserSettingsPublishedContext,
-} from "../../../../../react/state/user-settings-context";
 import { UserSettingsProvider } from "../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../monaco/provider";
 import { SimulationWorkspace } from "../../shared/simulation-workspace";
 import { SimulationCreationDrawer } from "../../simulation-creation-drawer";
 import { useCreateOptimizedExperiment } from "./experiments/create-optimized-experiment";
-import { FakeEditorProvider } from "./experiments/experiments-story-fixtures";
+import { FakeEditorProvider } from "./experiments/experiments-story-providers";
 import { SimulateView, SimulateViewTabs } from "./simulate-view";
 
 import type {
   CreateExperimentInput,
   ExperimentComputeBackend,
 } from "../../../../../react/experiments/context";
-import type { SimulateViewMode } from "../../../../../react/state/editor-context";
 import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 import type { PropsWithChildren } from "react";
 
@@ -78,7 +72,7 @@ const portalContainerStyle = css({
   },
 });
 
-export const createSdcpnContextValue = ({
+const createSdcpnContextValue = ({
   petriNetDefinition,
   title,
 }: StoryExample): SDCPNContextValue => ({
@@ -114,22 +108,6 @@ export const createSdcpnContextValue = ({
   },
 });
 
-/** Pins user settings over the persisted ones for everything below. */
-export const WithUserSettings = ({
-  overrides,
-  children,
-}: PropsWithChildren<{ overrides: Partial<UserSettings> }>) => {
-  const settings = use(UserSettingsContext);
-  const value = { ...settings, ...overrides };
-  // Published as well, for the readers that follow one setting.
-  const published = usePublished(value);
-  return (
-    <UserSettingsPublishedContext value={published}>
-      <UserSettingsContext value={value}>{children}</UserSettingsContext>
-    </UserSettingsPublishedContext>
-  );
-};
-
 /**
  * The full-height stage every SimulateView story renders into: the view, its
  * creation drawer, and the layer portalled surfaces mount in.
@@ -155,20 +133,15 @@ export const SimulateViewStoryStage = ({ children }: PropsWithChildren) => {
 /**
  * SimulateView over a real example model with the real experiments and
  * optimizations providers, so the stories run simulations for real. Children
- * mount inside the providers; an `optimization` source becomes the host's.
+ * mount inside the providers; `optimization` is the host's optimizer.
  */
 export const RunnableSimulateViewStory = ({
   example,
-  initialSimulateViewMode = "experiments",
-  optimization = null,
-  settings,
+  optimization,
   children,
 }: PropsWithChildren<{
   example: StoryExample;
-  initialSimulateViewMode?: SimulateViewMode;
-  optimization?: PetrinautConnectedOptimization | null;
-  /** Settings used by this story. */
-  settings?: Partial<UserSettings>;
+  optimization: PetrinautConnectedOptimization;
 }>) => {
   const sdcpnContextValue = createSdcpnContextValue(example);
   // The title is the host's, so it is not in the document context.
@@ -179,23 +152,18 @@ export const RunnableSimulateViewStory = ({
     loadPetriNet: () => {},
   };
 
-  const story = (
-    <NetManagementContext value={netManagement}>
-      <SDCPNContext value={sdcpnContextValue}>
-        <PetrinautNavigationProvider
-          initialState={{
-            mode: "simulate",
-            simulateView: initialSimulateViewMode,
-          }}
-        >
-          <LanguageClientProvider>
-            <MonacoProvider>
-              <NotificationsProvider>
-                <UserSettingsProvider>
-                  <WithUserSettings overrides={settings ?? {}}>
-                    <FakeEditorProvider
-                      initialSimulateViewMode={initialSimulateViewMode}
-                    >
+  return (
+    <PetrinautOptimizationContext value={optimization}>
+      <NetManagementContext value={netManagement}>
+        <SDCPNContext value={sdcpnContextValue}>
+          <PetrinautNavigationProvider
+            initialState={{ mode: "simulate", simulateView: "experiments" }}
+          >
+            <LanguageClientProvider>
+              <MonacoProvider>
+                <NotificationsProvider>
+                  <UserSettingsProvider>
+                    <FakeEditorProvider>
                       <SimulatorsProvider>
                         <ExperimentsProvider>
                           <OptimizationsProvider>
@@ -206,27 +174,19 @@ export const RunnableSimulateViewStory = ({
                         </ExperimentsProvider>
                       </SimulatorsProvider>
                     </FakeEditorProvider>
-                  </WithUserSettings>
-                </UserSettingsProvider>
-              </NotificationsProvider>
-            </MonacoProvider>
-          </LanguageClientProvider>
-        </PetrinautNavigationProvider>
-      </SDCPNContext>
-    </NetManagementContext>
-  );
-
-  return optimization ? (
-    <PetrinautOptimizationContext value={optimization}>
-      {story}
+                  </UserSettingsProvider>
+                </NotificationsProvider>
+              </MonacoProvider>
+            </LanguageClientProvider>
+          </PetrinautNavigationProvider>
+        </SDCPNContext>
+      </NetManagementContext>
     </PetrinautOptimizationContext>
-  ) : (
-    story
   );
 };
 
 /** The interval one scenario parameter is swept over. */
-export type AutoSweepRange = { min: number; max: number };
+type AutoSweepRange = { min: number; max: number };
 
 /**
  * A sweep and the study that drives it, described by the names in the
@@ -270,7 +230,7 @@ const findByName = <T extends { name: string }>(
 const AUTO_SWEEP_OBJECTIVE_ID = "objective";
 
 /** Resolves a description against the example, as the create form would. */
-export const buildAutoSweepExperimentInput = (
+const buildAutoSweepExperimentInput = (
   { petriNetDefinition }: StoryExample,
   study: AutoSweepStudyDescription,
   computeBackend: ExperimentComputeBackend,
@@ -340,7 +300,9 @@ export const AutoSweepStudy = ({
   study: AutoSweepStudyDescription;
   computeBackend?: ExperimentComputeBackend;
 }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const petriNetDefinition = useSDCPNState(
+    (document) => document.petriNetDefinition,
+  );
   const { title } = use(NetManagementContext);
   const createOptimizedExperiment = useCreateOptimizedExperiment();
   const startRef = useLatest(() =>

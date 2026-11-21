@@ -1,30 +1,25 @@
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Button, Icon, Menu, Toggle, Tooltip } from "@hashintel/ds-components";
+import { Toggle, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultVisualizerCode,
+  getDocumentUri,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../../../react";
 import { useStableCallback } from "../../../../../../../../react/hooks/use-stable-callback";
-import { EditorContext } from "../../../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../../../react/state/sdcpn-context";
+import { useEditorActions } from "../../../../../../../../react/state/editor-context";
+import { useSDCPNState } from "../../../../../../../../react/state/sdcpn-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
-import { useCodeNavigation } from "../../../../../../../monaco/code-navigation";
-import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
+import { useCodeNavigation } from "../../../../../../../monaco/code-navigation-context";
+import { CodeTemplateMenu } from "../../../code-template-menu";
+import { codeSectionStyle } from "../../../styles";
 import { usePlacePropertiesContext } from "../../context";
 
-import type { SubView } from "../../../../../../../components/sub-view/types";
 import type { editor } from "monaco-editor";
-
-const contentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-});
 
 const messageStyle = css({
   padding: "[12px]",
@@ -33,22 +28,17 @@ const messageStyle = css({
   lineHeight: "[1.5]",
 });
 
-const aiMenuItemStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-});
-
 const headerActionsStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1",
 });
 
-const PlaceVisualizerContent: React.FC = () => {
-  const { place, updatePlace } = usePlacePropertiesContext();
-  const { readonly } = use(SDCPNContext);
-  const { setVisualizerEditorFocus } = use(EditorContext);
+export const PlaceVisualizerContent: React.FC = () => {
+  const { place } = usePlacePropertiesContext();
+  const { updatePlace } = usePetrinautMutations();
+  const readonly = useSDCPNState((document) => document.readonly);
+  const { setVisualizerEditorFocus } = useEditorActions();
   const { focusRequest, acknowledgeFocus } = useCodeNavigation();
   const [editorInstance, setEditorInstance] =
     useState<editor.IStandaloneCodeEditor | null>(null);
@@ -82,7 +72,7 @@ const PlaceVisualizerContent: React.FC = () => {
   }
 
   return (
-    <div className={contentStyle}>
+    <div className={codeSectionStyle}>
       <CodeEditor
         path={path}
         language="typescript"
@@ -103,18 +93,13 @@ const PlaceVisualizerContent: React.FC = () => {
   );
 };
 
-const VisualizerHeaderAction: React.FC = () => {
-  const { place, types, updatePlace } = usePlacePropertiesContext();
-  const { readonly: isReadOnly } = use(SDCPNContext);
+export const VisualizerHeaderAction: React.FC = () => {
+  const { place, types } = usePlacePropertiesContext();
+  const { updatePlace } = usePetrinautMutations();
+  const isReadOnly = useSDCPNState((document) => document.readonly);
 
-  const [savedVisualizerCodeState, setSavedVisualizerCodeState] = useState<{
-    placeId: string;
-    code: string;
-  } | null>(null);
-  const savedVisualizerCode =
-    savedVisualizerCodeState?.placeId === place.id
-      ? savedVisualizerCodeState.code
-      : undefined;
+  // The panel's sections are mounted per place, so this is this place's code.
+  const [savedVisualizerCode, setSavedVisualizerCode] = useState<string>();
 
   const hasVisualizer = place.visualizerCode !== undefined;
 
@@ -141,10 +126,7 @@ const VisualizerHeaderAction: React.FC = () => {
               });
             } else {
               if (place.visualizerCode) {
-                setSavedVisualizerCodeState({
-                  placeId: place.id,
-                  code: place.visualizerCode,
-                });
+                setSavedVisualizerCode(place.visualizerCode);
               }
               updatePlace({
                 placeId: place.id,
@@ -155,74 +137,24 @@ const VisualizerHeaderAction: React.FC = () => {
         />
       </Tooltip>
       {hasVisualizer && (
-        <Menu
-          trigger={
-            <Button
-              disabled={isReadOnly}
-              aria-label="More options"
-              tooltip="More options"
-              variant="ghost"
-              size="xs"
-              iconName="ellipsisVertical"
-            />
-          }
-          items={[
-            {
-              id: "load-default",
-              text: "Load default template",
-              onClick: () => {
-                const currentPlaceType = place.colorId
-                  ? types.find((type) => type.id === place.colorId)
-                  : null;
+        <CodeTemplateMenu
+          disabled={isReadOnly}
+          onLoadDefault={() => {
+            const currentPlaceType = place.colorId
+              ? types.find((type) => type.id === place.colorId)
+              : null;
 
-                updatePlace({
-                  placeId: place.id,
-                  update: {
-                    visualizerCode: currentPlaceType
-                      ? generateDefaultVisualizerCode(currentPlaceType)
-                      : DEFAULT_VISUALIZER_CODE,
-                  },
-                });
+            updatePlace({
+              placeId: place.id,
+              update: {
+                visualizerCode: currentPlaceType
+                  ? generateDefaultVisualizerCode(currentPlaceType)
+                  : DEFAULT_VISUALIZER_CODE,
               },
-            },
-            {
-              id: "generate-ai",
-              text: (
-                <Tooltip
-                  content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-                  position="bottom"
-                >
-                  <div className={aiMenuItemStyle}>
-                    <Icon name="sparkles" size="sm" />
-                    Generate with AI
-                  </div>
-                </Tooltip>
-              ),
-              disabled: true,
-              onClick: () => {
-                // TODO: Implement AI generation
-              },
-            },
-          ]}
+            });
+          }}
         />
       )}
     </div>
   );
-};
-
-export const placeVisualizerSubView: SubView = {
-  id: "place-visualizer",
-  canMaximize: true,
-  title: "Visualizer",
-  tooltip:
-    "Custom visualization of tokens in this place, defined by visualizer code.",
-  component: PlaceVisualizerContent,
-  renderHeaderAction: () => <VisualizerHeaderAction />,
-  alwaysShowHeaderAction: true,
-  defaultCollapsed: true,
-  resizable: {
-    minHeight: 200,
-    maxHeight: 1200,
-    defaultHeight: 300,
-  },
 };

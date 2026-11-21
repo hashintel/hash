@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { act, renderHook } from "@testing-library/react";
-import { type ReactNode } from "react";
+import { use, type ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
 
 import {
@@ -26,11 +26,7 @@ import {
   type SimulationState,
   DEFAULT_SIMULATION_CONTEXT,
 } from "../simulation/context";
-import {
-  EditorContext,
-  type EditorContextValue,
-  initialEditorState,
-} from "../state/editor-context";
+import { EditorContext } from "../state/editor-context";
 import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import { usePetrinautCommands } from "./use-petrinaut-commands";
 
@@ -42,52 +38,18 @@ const EMPTY_SDCPN: SDCPN = {
   parameters: [],
 };
 
-const editorContextValue = (
-  globalMode: "edit" | "simulate" = "edit",
-): EditorContextValue => ({
-  ...initialEditorState,
+/** The editor's default state, in the given mode. */
+const EditorInMode = ({
   globalMode,
-  navigateTo: () => {},
-  setGlobalMode: () => {},
-  setEditViewMode: () => {},
-  setEditionMode: () => {},
-  setAddComponentMode: () => {},
-  setCursorMode: () => {},
-  setLeftSidebarOpen: () => {},
-  setAiAssistantDockHeight: () => {},
-  setAiAssistantCollapsed: () => {},
-  setBottomPanelOpen: () => {},
-  toggleBottomPanel: () => {},
-  setActiveBottomPanelTab: () => {},
-  isSelected: () => false,
-  setSelection: () => {},
-  beginSelectionGesture: () => {},
-  endSelectionGesture: () => {},
-  selectItem: () => {},
-  toggleItem: () => {},
-  clearSelection: () => {},
-  setHoveredItem: () => {},
-  clearHoveredItem: () => {},
-  keepPlaceVisualizerOpen: () => {},
-  closePlaceVisualizer: () => {},
-  toggleComponentInstanceFold: () => {},
-  openPlaceVisualizer: () => {},
-  setVisualizerEditorFocus: () => {},
-  bringVisualizerToFront: () => {},
-  setDraggingStateByNodeId: () => {},
-  updateDraggingStateByNodeId: () => {},
-  resetDraggingState: () => {},
-  collapseAllPanels: () => {},
-  setTimelineChartType: () => {},
-  setTimelineView: () => {},
-  setHiddenTimelineSeriesIds: () => {},
-  setSimulateViewMode: () => {},
-  setSimulateDrawer: () => {},
-  setSearchOpen: () => {},
-  setAiAssistantOpen: () => {},
-  toggleAiAssistant: () => {},
-  searchInputRef: { current: null },
-});
+  children,
+}: {
+  globalMode: "edit" | "simulate";
+  children: ReactNode;
+}) => (
+  <EditorContext value={{ ...use(EditorContext), globalMode }}>
+    {children}
+  </EditorContext>
+);
 
 type WrapperOptions = {
   sdcpn?: SDCPN;
@@ -125,9 +87,7 @@ const createWrapper = (options: WrapperOptions = {}) => {
         <SimulationContext
           value={{ ...DEFAULT_SIMULATION_CONTEXT, state: simulationState }}
         >
-          <EditorContext value={editorContextValue(globalMode)}>
-            {children}
-          </EditorContext>
+          <EditorInMode globalMode={globalMode}>{children}</EditorInMode>
         </SimulationContext>
       </SDCPNContext>
     </PetrinautInstanceContext>
@@ -159,6 +119,18 @@ const samplePastePayload: ClipboardPayload = {
 };
 
 describe("usePetrinautCommands", () => {
+  test("gives the same commands while nothing they read changes", () => {
+    const { Wrapper } = createWrapper();
+    const { result, rerender } = renderHook(usePetrinautCommands, {
+      wrapper: Wrapper,
+    });
+    const commands = result.current;
+
+    rerender();
+
+    expect(result.current).toBe(commands);
+  });
+
   describe("when not readonly", () => {
     test("applyClipboardPaste pastes new items and reports IDs", () => {
       const { Wrapper, instance } = createWrapper();
@@ -198,9 +170,7 @@ describe("usePetrinautCommands", () => {
       });
       const { result } = renderHook(usePetrinautCommands, {
         wrapper: ({ children }: { children: ReactNode }) => (
-          <NotificationsContext
-            value={{ addNotification, dismissNotification: () => {} }}
-          >
+          <NotificationsContext value={{ addNotification }}>
             <Wrapper>{children}</Wrapper>
           </NotificationsContext>
         ),

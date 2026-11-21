@@ -2,11 +2,9 @@ import { Profiler, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
-import {
-  probabilisticSatellitesSDCPN,
-  supplyChainWithDisruption,
-} from "@hashintel/petrinaut-core/examples";
+import * as examples from "@hashintel/petrinaut-core/examples";
 
+import { tileNet } from "../../src/ui/dev/tiled-net";
 import { CodeEditor } from "../../src/ui/monaco/code-editor";
 import { MonacoProvider } from "../../src/ui/monaco/provider";
 import { Petrinaut } from "../../src/ui/petrinaut";
@@ -14,10 +12,24 @@ import { PetrinautStoryProvider } from "../../src/ui/petrinaut-story-provider";
 import { definePetrinautPlugin } from "../../src/ui/plugins/define-petrinaut-plugin";
 
 const query = new URLSearchParams(location.search);
-const example =
-  query.get("model") === "satellites"
-    ? probabilisticSatellitesSDCPN
-    : supplyChainWithDisruption;
+// `model` is `satellites`, `supply-chain` (the default), or the name any
+// other example is exported under, such as `cafeQueue`.
+const models: Record<string, (typeof examples)[keyof typeof examples]> = {
+  ...examples,
+  satellites: examples.probabilisticSatellitesSDCPN,
+  "supply-chain": examples.supplyChainWithDisruption,
+};
+const chosen =
+  models[query.get("model") ?? "supply-chain"] ??
+  examples.supplyChainWithDisruption;
+// `copies=12` makes a net of about 500 nodes out of the 43 of Supply Chain.
+const example = {
+  ...chosen,
+  petriNetDefinition: tileNet(
+    chosen.petriNetDefinition,
+    Number(query.get("copies") ?? 1),
+  ),
+};
 const fixture =
   example.petriNetDefinition.places.find((place) => place.visualizerCode)
     ?.visualizerCode ?? "return 42;";

@@ -66,7 +66,7 @@ const createInstance = (rules?: PetrinautRules) =>
 const plainInstance = createInstance();
 
 const BoundShortcuts = () => {
-  useKeyboardShortcuts("edit", actions.mode, () => {});
+  useKeyboardShortcuts();
   return <input aria-label="Search" />;
 };
 /** The shortcuts, on a plain instance unless a test mounts its own. */
@@ -74,7 +74,11 @@ const Shortcuts = () => (
   <PetrinautInstanceContext
     value={use(PetrinautInstanceContext) ?? plainInstance}
   >
-    <BoundShortcuts />
+    <EditorContext
+      value={{ ...use(EditorContext), setEditionMode: actions.mode }}
+    >
+      <BoundShortcuts />
+    </EditorContext>
   </PetrinautInstanceContext>
 );
 const Selection = ({ children }: { children: ReactNode }) => {

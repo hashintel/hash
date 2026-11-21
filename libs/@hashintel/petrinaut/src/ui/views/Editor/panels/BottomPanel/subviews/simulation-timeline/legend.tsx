@@ -6,7 +6,8 @@ import { Chip, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { SeriesDropdown } from "./legend/series-dropdown";
-import { SeriesStrip, useStripLingering } from "./legend/series-strip";
+import { SeriesStrip } from "./legend/series-strip";
+import { useStripLingering } from "./legend/use-strip-lingering";
 import { legendContainerStyle } from "./styles";
 
 import type { LegendComboboxItem } from "./legend/series-dropdown";
@@ -215,6 +216,11 @@ export const TimelineLegend: FC<{
         collection={collection}
         closeOnSelect={false}
         inputValue={inputValue}
+        // The options mount with the dropdown and not with the timeline: a
+        // run has one for each of its series, and the dropdown is closed
+        // while the timeline is read.
+        lazyMount
+        unmountOnExit
         multiple
         onInputValueChange={(details) => setInputValue(details.inputValue)}
         onOpenChange={(details) => {

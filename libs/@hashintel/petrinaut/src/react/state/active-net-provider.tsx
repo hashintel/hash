@@ -2,8 +2,10 @@ import { use, useEffect, type ReactNode } from "react";
 
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
-import { useStableCallback } from "../hooks/use-stable-callback";
-import { openPetrinautComponent, usePetrinautNavigation } from "../navigation";
+import {
+  openPetrinautComponent,
+  usePetrinautNavigation,
+} from "../navigation/navigation";
 import { ActiveNetContext } from "./active-net-context";
 import { SDCPNContext } from "./sdcpn-context";
 import { useComposesOnly } from "./use-composes-only";
@@ -27,21 +29,15 @@ export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const { petriNetDefinition } = use(SDCPNContext);
   const composesOnly = useComposesOnly();
-  const navigation = usePetrinautNavigation();
-  const requestedComponentId = navigation.state.componentId;
+  const { navigate, state: location } = usePetrinautNavigation();
+  const requestedComponentId = location.componentId;
 
-  // One function for the provider's life. `navigation.navigate` is a new
-  // function after every navigation, a selection included, and a function
-  // made from it here would give every reader of the active net a new context
-  // value each time something is selected.
-  const setActiveComponentId = useStableCallback(
-    (componentId: string | null) => {
-      navigation.navigate(openPetrinautComponent(componentId), {
-        cause: "user",
-        action: "component",
-      });
-    },
-  );
+  const setActiveComponentId = (componentId: string | null) => {
+    navigate(openPetrinautComponent(componentId), {
+      cause: "user",
+      action: "component",
+    });
+  };
 
   const canonicalComponentId =
     requestedComponentId !== null ? toPetrinautId(requestedComponentId) : null;
@@ -59,12 +55,12 @@ export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
       requestedComponentId !== null &&
       requestedComponentId !== resolvedComponentId
     ) {
-      navigation.navigate(openPetrinautComponent(resolvedComponentId), {
+      navigate(openPetrinautComponent(resolvedComponentId), {
         cause: "normalization",
         action: "component",
       });
     }
-  }, [navigation, requestedComponentId, resolvedComponentId]);
+  }, [navigate, requestedComponentId, resolvedComponentId]);
 
   const activeNet = component
     ? {
