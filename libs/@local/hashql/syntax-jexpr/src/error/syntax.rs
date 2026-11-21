@@ -2,11 +2,11 @@ use hashql_core::{heap::Heap, span::SpanTable};
 use text_size::{TextRange, TextSize};
 
 use super::{
-    ArrayDiagnosticCategory, ConstructorKind, EofContext, JExprDiagnostic, JExprDiagnosticCategory,
-    LexerDiagnosticCategory, ObjectDiagnosticCategory, ParserDiagnosticCategory,
-    StringErrorContext, UnexpectedTokenContext, ValueKind, array, constructor, expected_eof,
-    insert_range, insert_ranges, lexer, number, object, string, wrap_array, wrap_lexer,
-    wrap_object,
+    ArrayDiagnosticCategory, ConstructorKind, EofContext, FieldKind, JExprDiagnostic,
+    JExprDiagnosticCategory, LexerDiagnosticCategory, ObjectDiagnosticCategory,
+    ParserDiagnosticCategory, StringErrorContext, UnexpectedTokenContext, ValueKind, array,
+    constructor, expected_eof, insert_range, insert_ranges, lexer, number, object, string,
+    wrap_array, wrap_lexer, wrap_object,
 };
 use crate::{
     lexer::{ParseNumberErrorKind, StringError},
@@ -219,19 +219,8 @@ pub(crate) enum ObjectErrorKind {
         key: &'static str,
     },
     OrphanedType,
-    StructExpectedObject {
-        key: TextRange,
-        found: Option<ValueKind>,
-    },
-    TupleExpectedArray {
-        key: TextRange,
-        found: Option<ValueKind>,
-    },
-    ListExpectedArray {
-        key: TextRange,
-        found: Option<ValueKind>,
-    },
-    DictExpectedFormat {
+    ExpectedValue {
+        field: FieldKind,
         key: TextRange,
         found: Option<ValueKind>,
     },
@@ -247,14 +236,6 @@ pub(crate) enum ObjectErrorKind {
         dict_key: TextRange,
         rest: Vec<TextRange>,
     },
-    TypeExpectedString {
-        key: TextRange,
-        found: Option<ValueKind>,
-    },
-    LiteralExpectedPrimitive {
-        key: TextRange,
-        found: Option<ValueKind>,
-    },
 }
 
 impl ObjectErrorKind {
@@ -269,17 +250,27 @@ impl ObjectErrorKind {
             Self::ConflictingConstructor { .. } => ObjectDiagnosticCategory::ConflictingConstructor,
             Self::DuplicateKey { .. } => ObjectDiagnosticCategory::DuplicateKey,
             Self::OrphanedType => ObjectDiagnosticCategory::OrphanedType,
-            Self::StructExpectedObject { .. } => ObjectDiagnosticCategory::StructExpectedObject,
-            Self::TupleExpectedArray { .. } => ObjectDiagnosticCategory::TupleExpectedArray,
-            Self::ListExpectedArray { .. } => ObjectDiagnosticCategory::ListExpectedArray,
-            Self::DictExpectedFormat { .. } => ObjectDiagnosticCategory::DictExpectedFormat,
+            Self::ExpectedValue { field, .. } => match field {
+                FieldKind::Constructor(ConstructorKind::Literal) => {
+                    ObjectDiagnosticCategory::LiteralExpectedPrimitive
+                }
+                FieldKind::Constructor(ConstructorKind::Struct) => {
+                    ObjectDiagnosticCategory::StructExpectedObject
+                }
+                FieldKind::Constructor(ConstructorKind::Tuple) => {
+                    ObjectDiagnosticCategory::TupleExpectedArray
+                }
+                FieldKind::Constructor(ConstructorKind::List) => {
+                    ObjectDiagnosticCategory::ListExpectedArray
+                }
+                FieldKind::Constructor(ConstructorKind::Dict) => {
+                    ObjectDiagnosticCategory::DictExpectedFormat
+                }
+                FieldKind::Type => ObjectDiagnosticCategory::TypeExpectedString,
+            },
             Self::DictEntryExpectedArray { .. } => ObjectDiagnosticCategory::DictEntryExpectedArray,
             Self::DictEntryTooFewItems { .. } => ObjectDiagnosticCategory::DictEntryTooFewItems,
             Self::DictEntryTooManyItems { .. } => ObjectDiagnosticCategory::DictEntryTooManyItems,
-            Self::TypeExpectedString { .. } => ObjectDiagnosticCategory::TypeExpectedString,
-            Self::LiteralExpectedPrimitive { .. } => {
-                ObjectDiagnosticCategory::LiteralExpectedPrimitive
-            }
         }
     }
 
@@ -349,21 +340,26 @@ impl ObjectErrorKind {
                 object::duplicate_key(first_span, primary, key)
             }
             Self::OrphanedType => object::orphaned_type(primary),
-            Self::StructExpectedObject { key, found } => {
+            Self::ExpectedValue { field, key, found } => {
                 let key_span = insert_range(spans, *key);
-                constructor::struct_expected_object(primary, key_span, *found)
-            }
-            Self::TupleExpectedArray { key, found } => {
-                let key_span = insert_range(spans, *key);
-                constructor::tuple_expected_array(primary, key_span, *found)
-            }
-            Self::ListExpectedArray { key, found } => {
-                let key_span = insert_range(spans, *key);
-                constructor::list_expected_array(primary, key_span, *found)
-            }
-            Self::DictExpectedFormat { key, found } => {
-                let key_span = insert_range(spans, *key);
-                constructor::dict_expected_format(primary, key_span, *found)
+                match field {
+                    FieldKind::Constructor(ConstructorKind::Literal) => {
+                        constructor::literal_expected_primitive(primary, key_span, *found)
+                    }
+                    FieldKind::Constructor(ConstructorKind::Struct) => {
+                        constructor::struct_expected_object(primary, key_span, *found)
+                    }
+                    FieldKind::Constructor(ConstructorKind::Tuple) => {
+                        constructor::tuple_expected_array(primary, key_span, *found)
+                    }
+                    FieldKind::Constructor(ConstructorKind::List) => {
+                        constructor::list_expected_array(primary, key_span, *found)
+                    }
+                    FieldKind::Constructor(ConstructorKind::Dict) => {
+                        constructor::dict_expected_format(primary, key_span, *found)
+                    }
+                    FieldKind::Type => constructor::type_expected_string(primary, key_span, *found),
+                }
             }
             Self::DictEntryExpectedArray { dict_key, found } => {
                 let dict_span = insert_range(spans, *dict_key);
@@ -377,14 +373,6 @@ impl ObjectErrorKind {
                 let dict_span = insert_range(spans, *dict_key);
                 let rest = insert_ranges(spans, rest);
                 constructor::dict_entry_too_many_items(primary, dict_span, rest)
-            }
-            Self::TypeExpectedString { key, found } => {
-                let key_span = insert_range(spans, *key);
-                constructor::type_expected_string(primary, key_span, *found)
-            }
-            Self::LiteralExpectedPrimitive { key, found } => {
-                let key_span = insert_range(spans, *key);
-                constructor::literal_expected_primitive(primary, key_span, *found)
             }
         }
     }

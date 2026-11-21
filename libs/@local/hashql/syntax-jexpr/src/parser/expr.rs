@@ -1,10 +1,10 @@
 use core::ops::ControlFlow;
 
-use rowan::Checkpoint;
 use text_size::TextRange;
 
 use super::{
-    Grammar, Parser, object,
+    Grammar, Parser,
+    object::{self, OpenObject},
     recovery::{self, Item},
 };
 use crate::{
@@ -18,9 +18,11 @@ pub(crate) struct ExprGrammar;
 
 fn parse_labeled_arg_after_open(
     parser: &mut Parser<'_, ExprGrammar>,
-    checkpoint: Checkpoint,
-    open: TextRange,
-    err_start: usize,
+    OpenObject {
+        checkpoint,
+        open,
+        err_start,
+    }: OpenObject,
 ) {
     let mut entry_ranges = Vec::new();
     let mut commas = Vec::new();
@@ -120,18 +122,15 @@ fn parse_call_arg(parser: &mut Parser<'_, ExprGrammar>) {
     }
 
     if first.kind == T!['{'] {
-        let checkpoint = parser.checkpoint();
-        let open = parser.bump(T!['{']).range;
-        let err_start = parser.error_count();
-
+        let opened = OpenObject::open(parser);
         if let Some(second) = parser.current()
             && let Some(decoded) = second.decode_string()
             && decoded.starts_with(':')
         {
-            parse_labeled_arg_after_open(parser, checkpoint, open, err_start);
+            parse_labeled_arg_after_open(parser, opened);
         } else {
-            object::parse_object_after_open(parser, checkpoint, open, err_start);
-            parser.start_node_at(checkpoint, SyntaxKind::PositionalArg);
+            opened.parse_object(parser);
+            parser.start_node_at(opened.checkpoint, SyntaxKind::PositionalArg);
             parser.finish_node();
         }
         return;

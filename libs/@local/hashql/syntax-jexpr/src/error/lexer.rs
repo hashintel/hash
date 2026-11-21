@@ -13,7 +13,7 @@ use hashql_diagnostics::{
 use text_size::TextRange;
 
 use super::{
-    ConstructorKind, DelimiterKind, EofContext, UnexpectedTokenContext, insert_range,
+    ConstructorKind, DelimiterKind, EofContext, FieldKind, UnexpectedTokenContext, insert_range,
     suggest_similar,
 };
 use crate::{
@@ -179,19 +179,21 @@ pub(crate) fn unterminated_block_comment(span: SpanId, eof_span: SpanId) -> Lexe
     diagnostic
 }
 
-const fn field_value_eof_help(constructor: Option<ConstructorKind>) -> &'static str {
-    match constructor {
-        Some(ConstructorKind::Literal) => {
+const fn field_value_eof_help(field: Option<FieldKind>) -> &'static str {
+    match field {
+        Some(FieldKind::Constructor(ConstructorKind::Literal)) => {
             "add a primitive literal value such as `42`, `\"text\"`, `true`, or `null`"
         }
-        Some(ConstructorKind::Struct) => "add a struct body object such as `{\"field\": value}`",
-        Some(ConstructorKind::Tuple | ConstructorKind::List) => {
+        Some(FieldKind::Constructor(ConstructorKind::Struct)) => {
+            "add a struct body object such as `{\"field\": value}`"
+        }
+        Some(FieldKind::Constructor(ConstructorKind::Tuple | ConstructorKind::List)) => {
             "add an array of elements such as `[elem1, elem2]`"
         }
-        Some(ConstructorKind::Dict) => {
+        Some(FieldKind::Constructor(ConstructorKind::Dict)) => {
             "add an object `{\"key\": value}` or an array of pairs `[[key, value]]`"
         }
-        Some(ConstructorKind::Type) => "add a type annotation string such as `\"Int\"`",
+        Some(FieldKind::Type) => "add a type annotation string such as `\"Int\"`",
         None => "add a value for this field",
     }
 }
@@ -232,7 +234,7 @@ pub(crate) fn unexpected_eof(
             diagnostic.add_message(Message::help("add `:` and a value for this field"));
             diagnostic
         }
-        EofContext::FieldValue { key, constructor } => {
+        EofContext::FieldValue { key, field } => {
             let label = if expected.is_empty() || expected.is_complete() {
                 Cow::Borrowed("unexpected end of input, expected a value")
             } else {
@@ -245,12 +247,12 @@ pub(crate) fn unexpected_eof(
                 Diagnostic::new(LexerDiagnosticCategory::UnexpectedEof, Critical::ERROR)
                     .primary(Label::new(span, label));
             let key_span = insert_range(spans, *key);
-            let secondary = constructor.map_or_else(
+            let secondary = field.map_or_else(
                 || Cow::Borrowed("after this key"),
-                |ctor| Cow::Owned(format!("value required by `{}`", ctor.key())),
+                |field| Cow::Owned(format!("value required by `{}`", field.key())),
             );
             diagnostic.add_label(Label::new(key_span, secondary));
-            diagnostic.add_message(Message::help(field_value_eof_help(*constructor)));
+            diagnostic.add_message(Message::help(field_value_eof_help(*field)));
             diagnostic
         }
         EofContext::UnclosedDelimiters(unclosed) => {

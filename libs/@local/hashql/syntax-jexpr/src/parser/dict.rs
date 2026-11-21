@@ -34,9 +34,7 @@ fn parse_dict_array_entry<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: Text
 
     if token.kind == SyntaxKind::InvalidToken {
         parser.start_node(SyntaxKind::DictArrayEntry);
-        parser.start_node(SyntaxKind::Error);
-        parser.bump(SyntaxKind::InvalidToken);
-        parser.finish_node();
+        parser.error_node();
         parser.finish_node();
         return;
     }

@@ -41,7 +41,7 @@ fn parse_json_object<G: Grammar>(parser: &mut Parser<'_, G>) {
                         JSON_VALUE_FIRST,
                         EofContext::FieldValue {
                             key: key_range,
-                            constructor: None,
+                            field: None,
                         },
                     );
                 }
