@@ -11,10 +11,34 @@
 import "./diagram.css";
 import { lazy, Suspense, useState } from "react";
 
+/**
+ * Stands in for the playground when its code cannot be fetched. Reloading is
+ * a button, since the site routes a link inside a page without a reload.
+ */
+const LoadFailed = () => (
+  <p className="pnd-box-note">
+    The playground could not load.{" "}
+    <button type="button" onClick={() => window.location.reload()}>
+      Reload the page
+    </button>{" "}
+    to try again.
+  </p>
+);
+
+/**
+ * The playground, or `LoadFailed` when the request for its code fails: the
+ * reader is offline, or a newer deployment has replaced the file. Resolving
+ * to a component keeps the failure inside the figure. A rejection would reach
+ * the boundary of the whole page and replace the guide the reader is in.
+ */
 const Playground = lazy(async () => {
-  const { Playground: component } =
-    await import("./token-encoding-playground/playground");
-  return { default: component };
+  try {
+    const { Playground: component } =
+      await import("./token-encoding-playground/playground");
+    return { default: component };
+  } catch {
+    return { default: LoadFailed };
+  }
 });
 
 /** How far outside the viewport the figure is when its code starts to load. */
