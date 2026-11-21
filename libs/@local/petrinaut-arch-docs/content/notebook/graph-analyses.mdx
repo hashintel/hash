@@ -1,0 +1,114 @@
+---
+title: Notebook graph analyses
+description: Why the notebook's cycle, siphon, layout and animation algorithms look the way they do.
+attachTo: ui.views.notebook
+---
+
+The notebook's right-hand explorer and its cell badges are driven by four
+structural analyses. Each is a pure function over places, transitions and
+arcs — no markings, no scenario state — so they can be unit-tested as plain
+data transforms and recomputed on every render without an invalidation
+story. This page records why each algorithm was chosen, not what it does;
+the doc comments in [the layer itself](layer:ui.views.notebook) cover that.
+
+## One edge list, two directions
+
+Every dependency the view draws — gutter lines, explorer lists, dependent
+counts — derives from a single edge list built in `notebook-model`. The
+upstream and downstream indices are two projections of the same edges, so
+the left and right gutters can never disagree about a relationship. The
+alternative, computing each direction from the net separately, invites
+exactly that disagreement.
+
+Parameter usage is the one best-effort edge: a word-boundary text match
+against transition and equation code. A parameter mentioned only in a
+comment still counts as used. Resolving that properly means asking the
+LSP, which is asynchronous and per-model; a structural view that is wrong
+about comments beats one that is right but flickers.
+
+## Cycles are SCCs
+
+A "cycle" badge marks a strongly connected component of size above one,
+found with an iterative Tarjan pass. SCCs rather than elementary cycles
+because the number of elementary cycles can be exponential and the answer
+the reader needs is "these nodes feed back into each other", not an
+enumeration of every loop. The known cost: a densely-connected net can be
+one giant SCC, and then the badge marks most of the net. If that proves
+unhelpful in practice, the upgrade path is Johnson's algorithm with a
+size threshold.
+
+Tarjan is iterative, not recursive, because nets are user data and a long
+chain would overflow the call stack.
+
+## "Needs seeding" means minimal siphon
+
+The `initial` badge answers: which places must the initial marking cover
+for the net to run at all? The structural notion is a **siphon** — a place
+set where every transition producing into the set also consumes from it.
+An empty siphon stays empty forever. This one definition unifies the two
+cases that look different on the canvas: a source place with no producers
+(a singleton siphon) and a resource pool circulating in a cycle (borrowed
+and returned, never manufactured).
+
+Minimal siphons are found per place by a greedy shrink from the maximal
+siphon: drop a member, re-run the fixpoint, keep the reduction if the
+place survives. The result is provably minimal and the whole pass stays
+polynomial — no linear algebra, no exponential enumeration. Two pragmatic
+filters keep the output readable:
+
+- Groups that merely contain a smaller reported group are dropped, so a
+  place downstream of a seeded pool is not itself reported.
+- Groups overlapping an already-accepted one are dropped. Real nets have
+  legitimate overlapping minimal siphons (production-machines has three),
+  but reporting them reads as noise and wrongly implies more places need
+  seeding than do. This is a display decision, not a soundness one.
+
+A transition that references a place which no longer exists is excluded
+from the analysis entirely: it can never fire, so treating its remaining
+arcs as a live source would suppress genuine seeding requirements.
+
+The pass is cubic in the place count, so nets above the cap in
+`net-siphons` skip the analysis rather than stall a render. The next
+precision upgrade, if ever needed, is P-invariants via the Farkas
+algorithm, which would also name conserved token counts.
+
+## Layout ignores the canvas
+
+The explorer diagram is a cut-down Sugiyama pipeline: break cycles with a
+depth-first sweep, layer by longest path, order within layers by two
+barycentre passes, then assign coordinates. Canvas x/y positions are
+ignored on purpose — the diagram exists to answer "what feeds what", and
+inheriting hand-drag positions would make it a worse copy of the canvas.
+
+D2 and other rendering engines were rejected for this: the Go-to-WASM
+bundle is multi-megabyte, initialises asynchronously, and is hard to
+theme or wire click handlers into. Hand-computed positions plus inline
+SVG keep the whole thing synchronous, testable and a few hundred lines.
+`elkjs` already ships in [core.layout](layer:core.layout) if a full
+engine is ever wanted.
+
+Focus mode re-layers by signed BFS distance from the selected node —
+dependencies above, dependents below. Nodes unreachable from the focus
+keep their own longest-path sub-layering in a band underneath, because
+collapsing a disconnected component into one row leaves its edges as
+degenerate same-row curves. Edges are classified as "return" edges by
+geometry (target layer at or above source layer) rather than by the
+cycle-breaking pass, so the same rule holds in both layouts.
+
+## Animation writes, never reads
+
+Re-layouts animate FLIP-style. React renders the target layout once; a
+single `requestAnimationFrame` loop then writes each node's remaining
+offset as a `transform` and recomputes each edge path from interpolated
+positions. The loop only writes — it never calls `getBoundingClientRect`
+or reads computed styles — so there is no forced synchronous layout, and
+zero React re-renders happen per frame. Offsets decay to zero, leaving
+the DOM exactly where React thinks it is, with nothing to unwind.
+
+Each node gets an outer animation-owned `<g>` around the inner
+React-owned `<g>`, so the two transforms never fight over one attribute.
+The subtle case is an interrupted animation: any React re-render re-runs
+the effect, whose cleanup cancels the frame loop. Bailing out on an
+unchanged layout signature alone would freeze nodes mid-flight, so the
+effect also checks that every node has settled before declining to
+animate.
