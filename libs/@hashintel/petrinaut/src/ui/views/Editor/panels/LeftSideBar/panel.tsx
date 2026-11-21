@@ -15,6 +15,7 @@ import { VerticalSubViewsContainer } from "../../../../components/sub-view/verti
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { DockedPanel } from "../../shared/docked-panel";
 import { leftSidebarSubViews, searchSubView } from "./sub-views";
+import { CollapsedGroupsProvider } from "./subviews/entities-tree";
 import { SearchQueryProvider } from "./subviews/search-panel";
 
 const searchSubViews = [searchSubView];
@@ -98,43 +99,47 @@ export const LeftSideBar: React.FC = () => {
   });
 
   return (
-    <DockedPanel
-      panel="leftSidebar"
-      isOpen={isVisible}
-      className={glassPanelBaseStyle}
-    >
-      <div className={contentWrapperStyle}>
-        <div
-          className={contentLayerStyle({
-            active: !isSearchOpen,
-            direction: "forward",
-          })}
+    // Above the panel, which unmounts when it closes: the text searched for
+    // and the collapsed groups are there when it opens again.
+    <SearchQueryProvider>
+      <CollapsedGroupsProvider>
+        <DockedPanel
+          panel="leftSidebar"
+          isOpen={isVisible}
+          className={glassPanelBaseStyle}
         >
-          <VerticalSubViewsContainer
-            name="left-sidebar"
-            subViews={sidebarSubViews}
-          />
-        </div>
-        <div
-          className={contentLayerStyle({
-            active: isSearchOpen,
-            direction: "backward",
-          })}
-        >
-          {/* One vertical focus flow joins the search input in the header
-              with the result list below it. */}
-          <FocusRoot>
-            <FocusStack axis="vertical">
-              <SearchQueryProvider>
-                <VerticalSubViewsContainer
-                  name="left-sidebar-search"
-                  subViews={searchSubViews}
-                />
-              </SearchQueryProvider>
-            </FocusStack>
-          </FocusRoot>
-        </div>
-      </div>
-    </DockedPanel>
+          <div className={contentWrapperStyle}>
+            <div
+              className={contentLayerStyle({
+                active: !isSearchOpen,
+                direction: "forward",
+              })}
+            >
+              <VerticalSubViewsContainer
+                name="left-sidebar"
+                subViews={sidebarSubViews}
+              />
+            </div>
+            <div
+              className={contentLayerStyle({
+                active: isSearchOpen,
+                direction: "backward",
+              })}
+            >
+              {/* One vertical focus flow joins the search input in the header
+                  with the result list below it. */}
+              <FocusRoot>
+                <FocusStack axis="vertical">
+                  <VerticalSubViewsContainer
+                    name="left-sidebar-search"
+                    subViews={searchSubViews}
+                  />
+                </FocusStack>
+              </FocusRoot>
+            </div>
+          </div>
+        </DockedPanel>
+      </CollapsedGroupsProvider>
+    </SearchQueryProvider>
   );
 };

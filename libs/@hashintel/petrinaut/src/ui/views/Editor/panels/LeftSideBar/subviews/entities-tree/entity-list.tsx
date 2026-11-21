@@ -1,10 +1,11 @@
-import { Fragment, useId, useReducer, useRef, useState } from "react";
+import { Fragment, use, useId, useReducer, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { focusLands } from "../../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../../worksheet/use-focus-stops";
+import { CollapsedGroupsContext } from "./collapsed-groups-context";
 import { selectionItemOf } from "./entity-groups";
 import { EmptyGroupRow, EntityRow, GroupRow } from "./entity-rows";
 
@@ -72,9 +73,7 @@ export const EntityList: React.FC<{ groups: EntityGroup[] }> = ({ groups }) => {
   // Row elements are found by id, which this prefix keeps apart from the ids
   // of any other list.
   const listId = useId();
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const { collapsedGroups, toggleGroup } = use(CollapsedGroupsContext);
   const [menuRows, showMenu] = useReducer(menuRowsAfter, {
     pointed: null,
     focused: null,
@@ -121,16 +120,6 @@ export const EntityList: React.FC<{ groups: EntityGroup[] }> = ({ groups }) => {
     return element
       ? rows.find((row) => listId + row.id === element.id)
       : undefined;
-  };
-
-  const toggleGroup = (groupId: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(groupId)) {
-        next.add(groupId);
-      }
-      return next;
-    });
   };
 
   const select = (entity: EntityItem) => {

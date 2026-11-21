@@ -15,6 +15,7 @@ import {
   EditorContext,
   EditorPublishedContext,
 } from "../../../../../../../react/state/editor-context";
+import { CollapsedGroupsProvider } from "../entities-tree";
 import { EntityList } from "./entity-list";
 
 import type { EditorContextValue } from "../../../../../../../react/state/editor-context";
@@ -88,7 +89,9 @@ const renderList = (groups: EntityGroup[]) => {
   const stub = makeSelectionStub();
   const view = render(
     <EditorContext value={stub.value}>
-      <EntityList groups={groups} />
+      <CollapsedGroupsProvider>
+        <EntityList groups={groups} />
+      </CollapsedGroupsProvider>
     </EditorContext>,
   );
   return { ...stub, view };
