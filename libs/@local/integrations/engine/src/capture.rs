@@ -155,6 +155,7 @@ impl SourceCapture {
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
+    use core::assert_matches;
     use std::{fs, io, io::Write as _};
 
     use arrow_array::{ArrayRef, Int64Array, RecordBatch};
@@ -181,10 +182,10 @@ mod tests {
             Err(io::Error::other("injected directory sync failure"))
         })
         .expect_err("should report the directory sync failure");
-        assert!(matches!(
+        assert_matches!(
             error.current_context(),
             CaptureError::SyncDirectory { path } if path == &target
-        ));
+        );
         assert!(error.downcast_ref::<io::Error>().is_some());
 
         let capture = SourceCapture::open(target.clone()).expect("should recover the capture");
@@ -198,10 +199,7 @@ mod tests {
         );
         let retry =
             SourceCapture::stage(&target).expect_err("should preserve the published capture");
-        assert!(matches!(
-            retry.current_context(),
-            CaptureError::Exists { path } if path == &target
-        ));
+        assert_matches!(retry.current_context(), CaptureError::Exists { path } if path == &target);
         assert_eq!(
             fs::read_dir(directory.path())
                 .expect("should read the directory")
@@ -226,10 +224,7 @@ mod tests {
         SourceCapture::publish(first, &target, 1).expect("the first writer should publish");
         let error = SourceCapture::publish(second, &target, 2)
             .expect_err("the second writer should preserve the first capture");
-        assert!(matches!(
-            error.current_context(),
-            CaptureError::Exists { .. }
-        ));
+        assert_matches!(error.current_context(), CaptureError::Exists { .. });
         assert_eq!(
             fs::read(target).expect("should read the first capture"),
             b"first"

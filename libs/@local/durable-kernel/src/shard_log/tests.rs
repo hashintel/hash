@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{num::NonZeroU64, pin::pin, time::Duration};
+use core::{assert_matches, num::NonZeroU64, pin::pin, time::Duration};
 use std::io::Write;
 
 use bytes::Bytes;
@@ -207,10 +207,10 @@ async fn open_invalid_storage() {
         .await
         .err()
         .expect("a file at the storage root should prevent opening a writer");
-    assert!(matches!(
+    assert_matches!(
         writer_error.downcast_ref::<ShardLogOpenError>(),
         Some(ShardLogOpenError::Writer { shard: failed_shard }) if *failed_shard == shard
-    ));
+    );
     assert!(
         writer_error.contains::<opendata_log::Error>(),
         "writer open should retain the storage error through the command context"
@@ -219,10 +219,10 @@ async fn open_invalid_storage() {
     let reader_error = read_journal::<TestRecord>(&location)
         .await
         .expect_err("a file at the storage root should prevent reading the journal");
-    assert!(matches!(
+    assert_matches!(
         reader_error.downcast_ref::<ShardLogOpenError>(),
         Some(ShardLogOpenError::Reader { shard: failed_shard }) if *failed_shard == shard
-    ));
+    );
     assert!(
         reader_error.contains::<opendata_log::Error>(),
         "journal read should retain the storage error"
@@ -450,11 +450,9 @@ async fn journal_registration_conflict() {
             name: TEST_RECORD_DECLARATION.name,
         }
     );
-    assert!(
-        matches!(
-            error.downcast_ref::<DeclarationError>(),
-            Some(DeclarationError::ConflictingDeclaration { .. })
-        ),
+    assert_matches!(
+        error.downcast_ref::<DeclarationError>(),
+        Some(DeclarationError::ConflictingDeclaration { .. }),
         "registration failure should retain the declaration conflict"
     );
 }
@@ -544,10 +542,10 @@ async fn unregistered_record_is_refused_before_any_append_side_effect() {
         error.current_context().kind,
         AppendFailureKind::DefinitelyNotCommitted
     );
-    assert!(matches!(
+    assert_matches!(
         error.downcast_ref::<crate::registry::DeclarationError>(),
         Some(crate::registry::DeclarationError::Unregistered { .. })
-    ));
+    );
     assert_eq!(
         error.downcast_ref::<DurableError>(),
         Some(&DurableError::ValidateRecordRegistration {

@@ -481,6 +481,8 @@ impl PolicyExpressionTree {
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches;
+
     use super::*;
 
     fn version_expression(major: i64) -> ast::Expr {
@@ -499,8 +501,9 @@ mod tests {
         let error = PolicyExpressionTree::from_expr(&expression)
             .expect_err("a policy containing version zero should be rejected");
 
-        assert!(
-            matches!(error.current_context(), ParseExpressionError::AndExpression),
+        assert_matches!(
+            error.current_context(),
+            ParseExpressionError::AndExpression,
             "the containing policy expression should fail parsing"
         );
         assert!(
