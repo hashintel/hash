@@ -343,11 +343,19 @@ and compiles on every change. The Create Experiment drawer hands the state to
 start and turns swept fields into parameter axes. The scenario drawers save the
 state as `initialState.type "adhoc"`.
 
-`AdHocFormContext` is what the form gives the components beneath it: the
-`dispatch` write path, the net context, the selection mode, the error and the
-URI of each `AdHocSlot`, the labels, the place totals, the dependency highlight and
-the focused-value reporter. A component beneath reads it with `useAdHocForm`
-and carries only its own value and location.
+`AdHocFormContext` is what the form gives the components beneath it and keeps
+for its life: the `dispatch` write path, the net context, the selection mode,
+the URI of each `AdHocSlot` and the focused-value reporter. A component beneath
+reads it with `useAdHocForm`. What changes while the form is used (the
+definition, the error of each slot, the labels, the place totals, the
+dependency highlight) is a store in that context, and a component reads its
+own part of it with `useAdHocFormFact`. A group, a place or a cell renders when
+its part changes, so an edit, a diagnostic or a move of the focus renders the
+cells it changes and no other; one context for both would render every cell.
+
+The form keeps the objects of the definition it shows wherever a new one says
+the same (`share-definition.ts`): a host may build the whole definition again
+on any render, and the cells compare their part by identity.
 
 ## Mounting the form
 

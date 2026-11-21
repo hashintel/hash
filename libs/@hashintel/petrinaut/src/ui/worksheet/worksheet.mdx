@@ -35,8 +35,9 @@ for each piece.
 Each numbered rule is a test target; `focus-flow.test.tsx` covers them.
 
 1. Tab order is never rerouted. Each grid is one tab stop (roving
-   tabindex: `tabIndexFor` marks the remembered cell 0 and the rest -1);
-   plain controls keep their own stops. Arrow-crossing between siblings is
+   tabindex: `tabIndexFor` marks the remembered cell 0 and the rest -1),
+   or, with `tabStop: "native"`, leaves Tab to the cells' own stops and
+   remembers the cell without a render; plain controls keep their own stops. Arrow-crossing between siblings is
    an enhancement over that intact order.
 2. Arrows move within a member; a move that runs off the member's edge
    asks the nearest enclosing stack whose axis matches the direction to

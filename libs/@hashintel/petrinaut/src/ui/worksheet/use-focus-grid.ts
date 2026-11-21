@@ -40,8 +40,23 @@ export interface FocusGrid {
 
 const cellKey = (row: number, column: number) => `${row}-${column}`;
 
-export function useFocusGrid(): FocusGrid {
+interface FocusGridOptions {
+  /**
+   * "roving" (default) makes the grid one tab stop: `tabIndexFor` answers
+   * for the last-focused cell, which takes a render per move of the focus.
+   * "native" is for a grid that leaves Tab to the browser and never asks
+   * `tabIndexFor`: the last-focused cell is remembered without a render.
+   */
+  tabStop?: "roving" | "native";
+}
+
+export function useFocusGrid({
+  tabStop = "roving",
+}: FocusGridOptions = {}): FocusGrid {
   const cells = useRef(new Map<string, HTMLElement>());
+  // The last-focused cell, for a move that enters the grid. Read by `enter`
+  // only, which runs from a key handler.
+  const remembered = useRef({ row: 0, column: 0 });
   const bounds = useRef({ rows: 0, columns: 0 });
   // The roving tab stop: last-focused cell, in state because it renders as
   // tabIndex. Falls back to (0, 0) until something focuses.
@@ -141,7 +156,13 @@ export function useFocusGrid(): FocusGrid {
       return focusNearest(row, column);
     }
     // Remembered entry: the roving cell, wherever it is.
-    if (focusLands(cells.current.get(cellKey(tabbable.row, tabbable.column)))) {
+    if (
+      focusLands(
+        cells.current.get(
+          cellKey(remembered.current.row, remembered.current.column),
+        ),
+      )
+    ) {
       return true;
     }
     const fromEnd = entry.direction === "up" || entry.direction === "left";
@@ -167,6 +188,10 @@ export function useFocusGrid(): FocusGrid {
       for (const [key, cell] of cells.current) {
         if (cell === event.target || cell.contains(event.target)) {
           const [row, column] = key.split("-").map(Number);
+          remembered.current = { row: row!, column: column! };
+          if (tabStop === "native") {
+            return;
+          }
           setTabbable((current) =>
             current.row === row && current.column === column
               ? current
@@ -178,7 +203,7 @@ export function useFocusGrid(): FocusGrid {
     };
     element.addEventListener("focusin", onFocusIn);
     return () => element.removeEventListener("focusin", onFocusIn);
-  }, [element]);
+  }, [element, tabStop]);
 
   const onKeyDown =
     (row: number, column: number): React.KeyboardEventHandler =>
@@ -207,6 +232,10 @@ export function useFocusGrid(): FocusGrid {
     focus: (row, column) => focusLands(cells.current.get(cellKey(row, column))),
     onKeyDown,
     onFocusCell: (row, column) => {
+      remembered.current = { row, column };
+      if (tabStop === "native") {
+        return;
+      }
       setTabbable((current) =>
         current.row === row && current.column === column
           ? current

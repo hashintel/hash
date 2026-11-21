@@ -15,17 +15,40 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useFocusHeader } from "../../worksheet/use-focus-member";
 import { tableContainerStyle } from "../spreadsheet-kit/form-table";
-import { useAdHocForm } from "./form-context";
+import { useAdHocForm, useAdHocFormFact } from "./form-context";
 import { TokenTable } from "./token-table";
 import { ValueEditor } from "./value-editor";
 import { VariableRows } from "./variable-rows";
 
 import type {
   AdHocColouredPlace,
+  AdHocPlaceTotal,
   AdHocUncolouredPlace,
   Color,
   Place,
 } from "@hashintel/petrinaut-core";
+
+// What a place the definition does not mention yet shows. One object each,
+// never changed: a new one per render would tell the tables beneath that
+// their rows changed.
+const untouchedColouredPlace: AdHocColouredPlace = {
+  kind: "coloured",
+  variables: [],
+  rows: [],
+  sharedColumns: {},
+};
+const untouchedUncolouredPlace: AdHocUncolouredPlace = {
+  kind: "uncoloured",
+  count: { expression: "0", optimize: null },
+};
+
+const sameTotal = (
+  previous: AdHocPlaceTotal,
+  next: AdHocPlaceTotal,
+): boolean =>
+  previous.resolved
+    ? next.resolved && previous.total === next.total
+    : !next.resolved && previous.text === next.text;
 
 const blockStyle = css({
   display: "flex",
@@ -201,7 +224,6 @@ const PlaceBlockContents: React.FC<ColouredPlaceBlockProps> = ({
         <VariableRows
           scopeLabel={`Variables of ${place.name}`}
           placeId={place.id}
-          variables={state.variables}
         />
       )}
       <TokenTable place={place} colour={colour} state={state} />
@@ -214,7 +236,7 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   colour,
   state,
 }) => {
-  const { placeTotal, dense } = useAdHocForm();
+  const { dense } = useAdHocForm();
   // The dense embedding (quick simulation) starts places collapsed: the
   // panel reads as an overview, one line per place.
   const [collapsed, setCollapsed] = useState(dense);
@@ -229,7 +251,10 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
     collapse: collapsed ? undefined : () => setCollapsed(true),
     expand: collapsed ? () => setCollapsed(false) : undefined,
   });
-  const total = placeTotal(place.id);
+  const total = useAdHocFormFact(
+    (facts) => facts.placeTotal(place.id),
+    sameTotal,
+  );
   const totalText = total.resolved ? `${total.total}` : total.text;
 
   return (
@@ -326,4 +351,27 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
       </div>
     </div>
   );
+};
+
+/**
+ * One place of the Initial state list. It reads its own part of the
+ * definition, so an edit elsewhere in the form does not render it.
+ */
+export const PlaceBlock: React.FC<{
+  place: Place;
+  /** The place's token colour, where it has one the net still defines. */
+  colour: Color | undefined;
+}> = ({ place, colour }) => {
+  const stored = useAdHocFormFact((facts) => facts.state.places[place.id]);
+  const state =
+    stored ??
+    (place.colorId ? untouchedColouredPlace : untouchedUncolouredPlace);
+
+  if (state.kind === "coloured" && colour) {
+    return <ColouredPlaceBlock place={place} colour={colour} state={state} />;
+  }
+  if (state.kind === "uncoloured") {
+    return <UncolouredPlaceBlock place={place} state={state} />;
+  }
+  return null;
 };

@@ -26,14 +26,20 @@ export const constantStore = <T>(value: T): ReadableStore<T> => ({
   subscribe: () => () => {},
 });
 
+/**
+ * One part of a store's value: the reader renders when that part changes.
+ * For a part built in `selector`, pass `isSame`.
+ */
 export function useStoreSelector<T, U>(
   store: ReadableStore<T>,
   selector: (value: T) => U,
+  isSame?: (previous: U, next: U) => boolean,
 ): U {
   return useSyncExternalStoreWithSelector(
     (onStoreChange) => store.subscribe(onStoreChange),
     () => store.get(),
     () => store.get(),
     selector,
+    isSame,
   );
 }

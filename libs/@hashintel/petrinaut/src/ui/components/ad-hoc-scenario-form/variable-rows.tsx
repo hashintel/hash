@@ -38,13 +38,65 @@ import { TextCell } from "../spreadsheet-kit/text-cell";
 import { adHocVariableKey } from "./dependency-highlight";
 import {
   useAdHocForm,
+  useAdHocFormFact,
   adHocIntervalSelection,
   adHocSelectionApplies,
   adHocSelectionText,
 } from "./form-context";
 import { ValueEditor } from "./value-editor";
 
+import type { AdHocFormFacts } from "./form-context";
 import type { AdHocVariable } from "@hashintel/petrinaut-core";
+
+const noVariables: AdHocVariable[] = [];
+
+interface VariableRowFacts {
+  variables: AdHocVariable[];
+  /** Per row: the error of its name, if any. */
+  nameErrors: (string | undefined)[];
+  /** Per row: whether the focused value reads it. */
+  highlighted: boolean[];
+}
+
+/** What a Variables table shows of the form: its own rows and what marks them. */
+const variableRowFacts = (
+  facts: AdHocFormFacts,
+  placeId: string | null,
+): VariableRowFacts => {
+  const place = placeId === null ? undefined : facts.state.places[placeId];
+  const variables =
+    placeId === null
+      ? facts.state.variables
+      : place?.kind === "coloured"
+        ? place.variables
+        : noVariables;
+  return {
+    variables,
+    nameErrors: variables.map((_, index) =>
+      facts.errorFor({
+        target: { kind: "variable", placeId, index },
+        part: "name",
+      }),
+    ),
+    highlighted: variables.map((variable) =>
+      facts.highlight.variableKeys.has(
+        adHocVariableKey(placeId, variable.name),
+      ),
+    ),
+  };
+};
+
+const sameItems = <Item,>(previous: Item[], next: Item[]): boolean =>
+  previous.length === next.length &&
+  previous.every((item, index) => item === next[index]);
+
+const sameVariableRowFacts = (
+  previous: VariableRowFacts,
+  next: VariableRowFacts,
+): boolean =>
+  previous.variables === next.variables &&
+  sameItems(previous.nameErrors, next.nameErrors) &&
+  sameItems(previous.highlighted, next.highlighted);
 
 const gutterColumnStyle = css({
   width: "[40px]",
@@ -76,7 +128,6 @@ interface VariableRowsProps {
   scopeLabel: string;
   /** `null` for top-level Variables, the owning place id otherwise. */
   placeId: string | null;
-  variables: AdHocVariable[];
 }
 
 /** Grid columns: 0 gutter, 1 name, 2 type, 3 value, 4 Optimize. */
@@ -85,10 +136,18 @@ const PHANTOM_COLUMNS = [0, 1, 2, 3, 4];
 export const VariableRows: React.FC<VariableRowsProps> = ({
   scopeLabel,
   placeId,
-  variables,
 }) => {
-  const { errorFor, selection, highlight, setFocusedValue, dispatch } =
-    useAdHocForm();
+  const { selection, setFocusedValue, dispatch } = useAdHocForm();
+  // The table's own rows, so an edit elsewhere in the form does not render
+  // it.
+  const {
+    variables,
+    nameErrors,
+    highlighted: highlightedRows,
+  } = useAdHocFormFact(
+    (facts) => variableRowFacts(facts, placeId),
+    sameVariableRowFacts,
+  );
   // The trailing toggle column: the interval toggle (Optimize or Sweep) on
   // every numeric Variable; "Scenario Parameter" on top-level Variables only
   // in expose mode (a per-place Variable is a per-row intermediate — nothing
@@ -98,7 +157,9 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
     (selection === "expose" && placeId === null)
       ? selection
       : null;
-  const { register, focus, onKeyDown, attach } = useFocusGrid();
+  const { register, focus, onKeyDown, attach } = useFocusGrid({
+    tabStop: "native",
+  });
   const addLineRef = useRef<HTMLButtonElement | null>(null);
   // Gutter focus selects the whole row; the selection highlight follows it.
   const rowSelection = useRowSelection();
@@ -170,10 +231,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
       <tbody>
         {variables.map((variable, index) => {
           const target = { kind: "variable" as const, placeId, index };
-          const nameError = errorFor({ target, part: "name" });
-          const highlighted = highlight.variableKeys.has(
-            adHocVariableKey(placeId, variable.name),
-          );
+          const nameError = nameErrors[index];
+          const highlighted = highlightedRows[index] ?? false;
           const rowHighlight = cx(
             highlighted && highlightStyle,
             rowSelection.selectedRow === index && selectedRowCellStyle,

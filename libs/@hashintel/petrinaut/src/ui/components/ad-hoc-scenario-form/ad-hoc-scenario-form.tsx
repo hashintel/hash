@@ -33,12 +33,11 @@
  * the cells that read it (`dependency-highlight`).
  */
 
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import { Toggle } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
-  adHocPlaceStateFor,
   adHocSlotKey,
   createAdHocPlaceTotalResolver,
   createAdHocTargetLabeler,
@@ -47,6 +46,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../react/lsp/context";
+import { usePublished } from "../../../react/select-from-context";
 import { FocusControls } from "../../worksheet/focus-controls";
 import { FocusStack } from "../../worksheet/focus-stack";
 import { useFocusClearance } from "../../worksheet/use-focus-clearance";
@@ -54,8 +54,9 @@ import { Section, SectionList } from "../section";
 import { computeAdHocHighlight } from "./dependency-highlight";
 import { AdHocFormContext } from "./form-context";
 import { ParameterRows } from "./parameter-rows";
-import { ColouredPlaceBlock, UncolouredPlaceBlock } from "./place-block";
+import { PlaceBlock } from "./place-block";
 import { ScenarioParameterRows } from "./scenario-parameter-rows";
+import { shareAdHocState } from "./share-definition";
 import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
 import { useAdHocFormHistory } from "./use-form-history";
 import { VariableRows } from "./variable-rows";
@@ -64,6 +65,7 @@ export { FormSectionHeader } from "./form-section-header";
 
 import type { AdHocFocusTarget } from "./dependency-highlight";
 import type {
+  AdHocFormFacts,
   AdHocFormMode,
   AdHocFormSelection,
   AdHocFormServices,
@@ -146,6 +148,9 @@ interface AdHocScenarioFormProps {
   sessionId?: string;
 }
 
+/** No source to show: the default of `expressionFor`, one function for every form. */
+const noExpression = () => undefined;
+
 /**
  * One keyboard column of a custom layout: hosts wrap each visual column of
  * their `renderLayout` output in one. Vertical arrows chain the column's
@@ -158,16 +163,39 @@ export const FormLayoutColumn: React.FC<{ children: React.ReactNode }> = ({
 }) => <FocusStack axis="vertical">{children}</FocusStack>;
 
 export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
-  state,
+  state: givenState,
   onChange,
-  context,
+  context: givenContext,
   selection,
   mode = "author",
-  expressionFor = () => undefined,
+  expressionFor = noExpression,
   renderLayout,
   className,
   sessionId: externalSessionId,
 }) => {
+  // The net context by its three parts. A host may hand over a new object
+  // with the same parts on every render: Simulation Settings does on every
+  // keystroke, where the compiler builds the object in a scope that also
+  // depends on the definition. Every cell reads the context, and the write
+  // path closes over it, so its identity must follow the parts alone; the
+  // compiler gives no such guarantee, hence the explicit memo.
+  const { netParameters, places, types } = givenContext;
+  const context = useMemo(
+    () => ({ netParameters, places, types }),
+    [netParameters, places, types],
+  );
+  // The definition the cells read: what the host gave, with every part that
+  // says what the form already shows kept as the object it shows. Adjusted
+  // during render when the host hands over a new definition.
+  const [definition, setDefinition] = useState({
+    given: givenState,
+    shown: givenState,
+  });
+  let state = definition.shown;
+  if (definition.given !== givenState) {
+    state = shareAdHocState(definition.shown, givenState);
+    setDefinition({ given: givenState, shown: state });
+  }
   const sessionId = useAdHocLspSession(state, externalSessionId);
   const [showAllPlaces, setShowAllPlaces] = useState(false);
   const { diagnosticsByUri, requestFormatExpression } = use(
@@ -268,14 +296,13 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   const labelFor = createAdHocTargetLabeler(state, context);
   const placeTotal = createAdHocPlaceTotalResolver(state, context);
 
-  const services: AdHocFormServices = {
-    dispatch,
-    synthesisContext: context,
-    selection,
-    uriFor: (slot: AdHocSlot) =>
-      getAdHocDocumentUri(sessionId, adHocSlotKey(slot)),
-    labelFor,
-    placeTotal,
+  // What changes while the form is used goes out through a store the cells
+  // read by selector; what does not goes out through the context. So an
+  // edit, a diagnostic or a move of the focus renders this component and the
+  // cells whose own part changed, where one context for both rendered every
+  // cell of the form each time.
+  const facts = usePublished<AdHocFormFacts>({
+    state,
     errorFor: (slot: AdHocSlot) => {
       const key = adHocSlotKey(slot);
       const synthesisError = synthesisErrors.get(key);
@@ -287,31 +314,43 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
       );
       return diagnostics?.[0]?.message;
     },
+    labelFor,
+    placeTotal,
     highlight,
+    expressionFor,
+  });
+
+  // A boolean, so what reads it follows whether the host lays the form out,
+  // not which function it passes: a host hands over a new one on any render.
+  const dense = renderLayout !== undefined;
+
+  const services: AdHocFormServices = {
+    dispatch,
+    synthesisContext: context,
+    selection,
+    uriFor: (slot: AdHocSlot) =>
+      getAdHocDocumentUri(sessionId, adHocSlotKey(slot)),
+    facts,
     setFocusedValue,
     formatExpression: requestFormatExpression,
     mode,
-    expressionFor,
-    dense: renderLayout !== undefined,
+    dense,
     overlayKeyDown: { capture: handleKeyDown, bubble: stopDeleteKeys },
   };
 
+  // The groups take no part of the definition as a prop: each reads its own
+  // from the facts, so these elements stay the same through an edit and the
+  // host's layout around them is not rendered again.
   const parameterRows =
-    context.netParameters.length > 0 ? (
-      <ParameterRows entries={state.netParameters} />
-    ) : null;
+    context.netParameters.length > 0 ? <ParameterRows /> : null;
 
   // Run mode lists the scenario's parameters (the exposed Variables, value
   // edits only); authoring gets the full Variables editor.
   const variableRows =
     mode === "run" ? (
-      <ScenarioParameterRows variables={state.variables} />
+      <ScenarioParameterRows />
     ) : (
-      <VariableRows
-        scopeLabel="Top-level variables"
-        placeId={null}
-        variables={state.variables}
-      />
+      <VariableRows scopeLabel="Top-level variables" placeId={null} />
     );
 
   const visiblePlaces = context.places.filter(
@@ -333,10 +372,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   ) : null;
   const placesList = (
     <div
-      className={cx(
-        placesListStyle,
-        renderLayout && css({ paddingLeft: "[24px]" }),
-      )}
+      className={cx(placesListStyle, dense && css({ paddingLeft: "[24px]" }))}
     >
       {visiblePlaces.length === 0 ? (
         <p
@@ -351,33 +387,17 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
             : "No places defined."}
         </p>
       ) : null}
-      {visiblePlaces.map((place) => {
-        const placeState = adHocPlaceStateFor(state, context, place.id);
-        const colour = place.colorId
-          ? context.types.find((type) => type.id === place.colorId)
-          : undefined;
-
-        if (placeState.kind === "coloured" && colour) {
-          return (
-            <ColouredPlaceBlock
-              key={place.id}
-              place={place}
-              colour={colour}
-              state={placeState}
-            />
-          );
-        }
-        if (placeState.kind === "uncoloured") {
-          return (
-            <UncolouredPlaceBlock
-              key={place.id}
-              place={place}
-              state={placeState}
-            />
-          );
-        }
-        return null;
-      })}
+      {visiblePlaces.map((place) => (
+        <PlaceBlock
+          key={place.id}
+          place={place}
+          colour={
+            place.colorId
+              ? context.types.find((type) => type.id === place.colorId)
+              : undefined
+          }
+        />
+      ))}
     </div>
   );
 

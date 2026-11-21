@@ -22,6 +22,7 @@ import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
 import { adHocVariableKey } from "./dependency-highlight";
 import {
   useAdHocForm,
+  useAdHocFormFact,
   adHocIntervalSelection,
   adHocSelectionApplies,
   adHocSelectionText,
@@ -30,26 +31,43 @@ import { ValueEditor } from "./value-editor";
 
 import type { AdHocVariable } from "@hashintel/petrinaut-core";
 
-const toggleCellStyle = css({
-  width: "[92px]",
-  paddingX: "1",
-  textAlign: "center",
-});
-
-interface ScenarioParameterRowsProps {
+interface ScenarioParameterFacts {
   /**
    * The form's top-level Variables, exposed and auxiliary alike; the rows
    * render the exposed ones under their original indices, so value edits
    * dispatch against the right slot.
    */
   variables: AdHocVariable[];
+  /** Per Variable: whether the focused value reads it. */
+  highlighted: boolean[];
 }
 
-export const ScenarioParameterRows: React.FC<ScenarioParameterRowsProps> = ({
-  variables,
-}) => {
-  const { highlight, selection, setFocusedValue, dispatch } = useAdHocForm();
-  const { register, onKeyDown, attach } = useFocusGrid();
+const sameScenarioParameterFacts = (
+  previous: ScenarioParameterFacts,
+  next: ScenarioParameterFacts,
+): boolean =>
+  previous.variables === next.variables &&
+  previous.highlighted.length === next.highlighted.length &&
+  previous.highlighted.every((flag, index) => flag === next.highlighted[index]);
+
+const toggleCellStyle = css({
+  width: "[92px]",
+  paddingX: "1",
+  textAlign: "center",
+});
+
+export const ScenarioParameterRows: React.FC = () => {
+  const { selection, setFocusedValue, dispatch } = useAdHocForm();
+  const { variables, highlighted: highlightedRows } = useAdHocFormFact(
+    (facts): ScenarioParameterFacts => ({
+      variables: facts.state.variables,
+      highlighted: facts.state.variables.map((variable) =>
+        facts.highlight.variableKeys.has(adHocVariableKey(null, variable.name)),
+      ),
+    }),
+    sameScenarioParameterFacts,
+  );
+  const { register, onKeyDown, attach } = useFocusGrid({ tabStop: "native" });
   const withToggles = adHocIntervalSelection(selection);
 
   const exposed = variables.flatMap((variable, index) =>
@@ -68,9 +86,7 @@ export const ScenarioParameterRows: React.FC<ScenarioParameterRowsProps> = ({
             placeId: null,
             index,
           };
-          const highlighted = highlight.variableKeys.has(
-            adHocVariableKey(null, variable.name),
-          );
+          const highlighted = highlightedRows[index] ?? false;
           const rowHighlight = highlighted && highlightStyle;
           return (
             <tr key={index} data-highlighted={highlighted || undefined}>

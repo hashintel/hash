@@ -45,6 +45,13 @@ interface FocusStopsOptions {
   columnCount: number;
   /** Focus the target; returns whether an element took focus. */
   focusTarget: (target: FocusStopTarget) => boolean;
+  /**
+   * "roving" (default) makes the table one tab stop, which takes a render
+   * per move of the focus. "native" is for a table that leaves Tab to the
+   * browser and never asks `tabIndexFor`: the last-focused position is
+   * remembered without a render.
+   */
+  tabStop?: "roving" | "native";
 }
 
 export interface FocusStops {
@@ -62,7 +69,10 @@ const samePosition = (a: FocusStopTarget, b: FocusStopTarget): boolean =>
   a.stopId === b.stopId && a.column === b.column;
 
 export function useFocusStops(options: FocusStopsOptions): FocusStops {
-  const { stops, columnCount, focusTarget } = options;
+  const { stops, columnCount, focusTarget, tabStop: tabStopMode } = options;
+  // The last-focused position, for a move that enters the table. Read by
+  // `enter` only, which runs from a key handler.
+  const remembered = useRef<FocusStopTarget | null>(null);
   // The column vertical moves aim at, persisted across full-width stops.
   const lastColumnRef = useRef(0);
   // The roving tab stop, in state because it renders as tabIndex.
@@ -132,7 +142,7 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
         fromEnd ? -1 : 1,
       );
     }
-    if (tabbable && focusTarget(tabbable)) {
+    if (remembered.current && focusTarget(remembered.current)) {
       return true;
     }
     const fromEnd = entry.direction === "up" || entry.direction === "left";
@@ -256,6 +266,10 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
       const stop = stops.find((candidate) => candidate.id === position.stopId);
       if (position.column !== "gutter" && stop?.kind !== "full") {
         lastColumnRef.current = position.column;
+      }
+      remembered.current = position;
+      if (tabStopMode === "native") {
+        return;
       }
       setTabbable((current) =>
         current && samePosition(current, position) ? current : position,

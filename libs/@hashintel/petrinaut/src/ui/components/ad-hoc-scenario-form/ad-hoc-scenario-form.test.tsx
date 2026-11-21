@@ -46,6 +46,20 @@ vi.mock("../../monaco/code-editor", () => ({
   ),
 }));
 
+// Counts the renders of each place's token table, for the test that an edit
+// renders only what it changes.
+const tokenTableRenders = vi.hoisted(() => ({ count: 0 }));
+vi.mock("./token-table", async (importOriginal) => {
+  const original = await importOriginal<typeof import("./token-table")>();
+  return {
+    ...original,
+    TokenTable: (props: React.ComponentProps<typeof original.TokenTable>) => {
+      tokenTableRenders.count += 1;
+      return <original.TokenTable {...props} />;
+    },
+  };
+});
+
 // jsdom provides neither observer, but the value editor's popover schedules
 // @floating-ui/dom's autoUpdate on an animation frame, which constructs both.
 class ObserverStub {
@@ -1695,5 +1709,17 @@ describe.each([
         name: gutter === "Swept count" ? "Optimized count" : "Swept count",
       }),
     ).toBe(null);
+  });
+
+  it("renders no other place's table for an edit of a value", async () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: "Queue › count" }));
+    const input = await screen.findByRole("textbox", { name: "Expression" });
+    const before = tokenTableRenders.count;
+
+    fireEvent.change(input, { target: { value: "2" } });
+    fireEvent.change(input, { target: { value: "24" } });
+
+    expect(tokenTableRenders.count).toBe(before);
   });
 });

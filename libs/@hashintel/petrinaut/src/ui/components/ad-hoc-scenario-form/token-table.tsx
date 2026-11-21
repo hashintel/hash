@@ -211,6 +211,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
     stops,
     columnCount,
     focusTarget,
+    tabStop: "native",
   });
 
   const deleteRow = (rowIndex: number) => {

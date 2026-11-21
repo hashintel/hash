@@ -116,6 +116,12 @@ export function useAdHocFormHistory(
   }
 
   const stateRef = useLatest(state);
+  // The handlers below read the latest history and the latest `onChange`
+  // through refs, so they keep one identity for the form's life: they are
+  // part of what the form gives every cell, and a handler that changed with
+  // each edit would render every cell on each edit.
+  const modelRef = useLatest(model);
+  const onChangeRef = useLatest(onChange);
 
   const dispatch = (action: AdHocAction | AdHocAction[]) => {
     // Through the latest-state ref: a dispatch can fire from an async
@@ -145,17 +151,18 @@ export function useAdHocFormHistory(
       }
       return { ...appendEntry(current, next), hotKey: key };
     });
-    onChange(next);
+    onChangeRef.current(next);
   };
 
   /** Moves the cursor and replays that snapshot; never dispatches. */
   const goToIndex = (index: number) => {
-    const target = model.entries[index];
+    const current = modelRef.current;
+    const target = current.entries[index];
     if (!target) {
       return;
     }
-    setModel({ ...model, cursor: index, hotKey: null });
-    onChange(target);
+    setModel({ ...current, cursor: index, hotKey: null });
+    onChangeRef.current(target);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -174,11 +181,11 @@ export function useAdHocFormHistory(
     if (key === "z" && !event.shiftKey) {
       event.preventDefault();
       event.stopPropagation();
-      goToIndex(model.cursor - 1);
+      goToIndex(modelRef.current.cursor - 1);
     } else if (key === "z" || (key === "y" && event.ctrlKey)) {
       event.preventDefault();
       event.stopPropagation();
-      goToIndex(model.cursor + 1);
+      goToIndex(modelRef.current.cursor + 1);
     }
   };
 
