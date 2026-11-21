@@ -1,7 +1,12 @@
 import { Profiler, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+import {
+  createJsonDocHandle,
+  parseDocumentText,
+  parseSDCPNFile,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 import * as examples from "@hashintel/petrinaut-core/examples";
 
 import { tileNet } from "../../src/ui/dev/tiled-net";
@@ -19,9 +24,37 @@ const models: Record<string, (typeof examples)[keyof typeof examples]> = {
   satellites: examples.probabilisticSatellitesSDCPN,
   "supply-chain": examples.supplyChainWithDisruption,
 };
-const chosen =
-  models[query.get("model") ?? "supply-chain"] ??
-  examples.supplyChainWithDisruption;
+
+/**
+ * A net read from a file the benchmark's server serves, as the editor's
+ * import reads it: `modelUrl=/models/my-net.yaml`, with the file copied into
+ * the folder the build was written to. For a net that is too large, or not
+ * ours, to be an example.
+ */
+const loadModel = async (
+  url: string,
+): Promise<{ title: string; petriNetDefinition: SDCPN }> => {
+  const text = await (await fetch(url)).text();
+  const parsed = parseDocumentText(text);
+  if (!parsed.ok) {
+    throw new Error(`${url}: ${parsed.error}`);
+  }
+  const imported = parseSDCPNFile(parsed.data);
+  if (!imported.ok) {
+    throw new Error(`${url}: ${imported.error}`);
+  }
+  const { title } = parsed.data as { title?: unknown };
+  return {
+    title: typeof title === "string" ? title : url,
+    petriNetDefinition: imported.sdcpn,
+  };
+};
+
+const modelUrl = query.get("modelUrl");
+const chosen: { title: string; petriNetDefinition: SDCPN } = modelUrl
+  ? await loadModel(modelUrl)
+  : (models[query.get("model") ?? "supply-chain"] ??
+    examples.supplyChainWithDisruption);
 // `copies=12` makes a net of about 500 nodes out of the 43 of Supply Chain.
 const example = {
   ...chosen,

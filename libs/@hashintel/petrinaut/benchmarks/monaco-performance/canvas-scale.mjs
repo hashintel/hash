@@ -26,6 +26,11 @@ const args = Object.fromEntries(
 );
 const origin = args.origin ?? "http://127.0.0.1:6027";
 const copies = Number(args.copies ?? 12);
+// `modelUrl=/models/my-net.yaml` measures a net from a file the server
+// serves (see `loadModel` in app.tsx); pass `copies=1` with it.
+const modelQuery = args.modelUrl
+  ? `modelUrl=${encodeURIComponent(args.modelUrl)}`
+  : "model=supply-chain";
 const samples = Number(args.samples ?? 3);
 const views = (args.views ?? "fit,close").split(",");
 const output = resolvePath(
@@ -194,7 +199,7 @@ try {
     try {
       const startedAt = Date.now();
       await page.goto(
-        `${origin}/benchmarks/monaco-performance/bench.html?surface=full&model=supply-chain&variant=prototype&copies=${copies}`,
+        `${origin}/benchmarks/monaco-performance/bench.html?surface=full&${modelQuery}&variant=prototype&copies=${copies}`,
       );
       await page
         .getByRole("button", { name: "Fit view", exact: true })
@@ -354,7 +359,7 @@ try {
 }
 
 await writeFile(
-  `${output}/canvas-scale-x${copies}-${new URL(origin).port}${args.cpu ? `-cpu${args.cpu}` : ""}.json`,
+  `${output}/canvas-scale-${args.modelUrl ? "file" : "x"}${copies}-${new URL(origin).port}${args.cpu ? `-cpu${args.cpu}` : ""}.json`,
   JSON.stringify({ loads, rows }, null, 1),
 );
 
