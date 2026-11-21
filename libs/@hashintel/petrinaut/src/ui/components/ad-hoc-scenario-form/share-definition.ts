@@ -11,89 +11,47 @@
  * render only for a change.
  */
 
-import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
+/** A list or a record: the definition is plain JSON data throughout. */
+const isCollection = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
 
-/** Plain JSON data throughout, so equal text is equal content. */
-const sameContent = (previous: unknown, next: unknown): boolean =>
-  previous === next || JSON.stringify(previous) === JSON.stringify(next);
-
-const shareItems = <Item>(previous: Item[], next: Item[]): Item[] => {
-  if (previous === next) {
-    return previous;
-  }
-  const shared = next.map((item, index) => {
-    const before = previous[index];
-    return before !== undefined && sameContent(before, item) ? before : item;
-  });
+/**
+ * `next`, with every part that says what `previous` says replaced by the
+ * object `previous` holds, at every depth:
+ *
+ * - `previous` itself when nothing changed;
+ * - `next` itself when it shares all it can already. The result of an edit
+ *   through the reducer does, and the undo history holds that object;
+ * - otherwise a copy of `next` whose unchanged parts are those of
+ *   `previous`.
+ */
+export const shareContent = <Value>(previous: Value, next: Value): Value => {
   if (
-    shared.length === previous.length &&
-    shared.every((item, index) => item === previous[index])
+    previous === next ||
+    !isCollection(previous) ||
+    !isCollection(next) ||
+    Array.isArray(previous) !== Array.isArray(next)
   ) {
-    return previous;
+    return next;
   }
-  // `next` shares all it can already: keep its own list.
-  return shared.every((item, index) => item === next[index]) ? next : shared;
-};
-
-const sharePlaces = (
-  previous: AdHocScenarioState["places"],
-  next: AdHocScenarioState["places"],
-): AdHocScenarioState["places"] => {
-  if (previous === next) {
-    return previous;
-  }
-  const previousIds = Object.keys(previous);
-  const entries = Object.entries(next).map(([placeId, place]) => {
-    const before = previous[placeId];
-    return [
-      placeId,
-      before !== undefined && sameContent(before, place) ? before : place,
-    ] as const;
-  });
+  const previousKeys = Object.keys(previous);
+  const entries = Object.entries(next).map(
+    ([key, value]) => [key, shareContent(previous[key], value)] as const,
+  );
   const unchanged =
-    entries.length === previousIds.length &&
+    entries.length === previousKeys.length &&
     entries.every(
-      ([placeId, place], index) =>
-        previousIds[index] === placeId && previous[placeId] === place,
+      ([key, value], index) =>
+        key === previousKeys[index] && value === previous[key],
     );
   if (unchanged) {
     return previous;
   }
-  // `next` shares all it can already: keep its own record.
-  return entries.every(([placeId, place]) => next[placeId] === place)
-    ? next
-    : Object.fromEntries(entries);
-};
-
-/**
- * `next`, with every part that says what `previous` says replaced by the
- * object `previous` holds. Returns `previous` itself when nothing changed,
- * and `next` itself when it shares all it can already: the result of an
- * edit through the reducer does, and the undo history holds that object.
- */
-export const shareAdHocState = (
-  previous: AdHocScenarioState,
-  next: AdHocScenarioState,
-): AdHocScenarioState => {
-  if (previous === next) {
-    return previous;
-  }
-  const variables = shareItems(previous.variables, next.variables);
-  const netParameters = shareItems(previous.netParameters, next.netParameters);
-  const places = sharePlaces(previous.places, next.places);
-  if (
-    variables === previous.variables &&
-    netParameters === previous.netParameters &&
-    places === previous.places
-  ) {
-    return previous;
-  }
-  if (
-    variables === next.variables &&
-    netParameters === next.netParameters &&
-    places === next.places
-  ) {
+  if (entries.every(([key, value]) => value === next[key])) {
     return next;
   }
-  return { ...next, variables, netParameters, places };
+  const shared = Array.isArray(next)
+    ? entries.map(([, value]) => value)
+    : Object.fromEntries(entries);
+  return shared as Value;
 };

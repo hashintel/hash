@@ -56,7 +56,7 @@ import { AdHocFormContext } from "./form-context";
 import { ParameterRows } from "./parameter-rows";
 import { PlaceBlock } from "./place-block";
 import { ScenarioParameterRows } from "./scenario-parameter-rows";
-import { shareAdHocState } from "./share-definition";
+import { shareContent } from "./share-definition";
 import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
 import { useAdHocFormHistory } from "./use-form-history";
 import { VariableRows } from "./variable-rows";
@@ -193,7 +193,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   });
   let state = definition.shown;
   if (definition.given !== givenState) {
-    state = shareAdHocState(definition.shown, givenState);
+    state = shareContent(definition.shown, givenState);
     setDefinition({ given: givenState, shown: state });
   }
   const sessionId = useAdHocLspSession(state, externalSessionId);
