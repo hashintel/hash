@@ -12,12 +12,12 @@ Drag the heading or empty space across the top of the settings window to move it
 
 Changes apply immediately and are saved as your preferences across nets. On hosts with app navigation enabled, opening or closing the dialog is part of Browser Back / Forward history. Switching settings sections updates the current history entry. Browser navigation leaves saved preferences in place.
 
-| Section      | Settings                                                                         |
-| ------------ | -------------------------------------------------------------------------------- |
-| **General**  | Animations, the AI assistant, browser FPS, and the document view.                |
-| **Viewport** | Minimap, Petricon, compact nodes, hover highlight, grid snapping, and selection. |
-| **Plugins**  | The host's plugins: switch each on or off and see what it adds.                  |
-| **Labs**     | Experimental modeling views, code layouts, and developer tools.                  |
+| Section      | Settings                                                               |
+| ------------ | ---------------------------------------------------------------------- |
+| **General**  | Animations, the AI assistant, browser FPS, and the document view.      |
+| **Viewport** | Minimap, compact nodes, hover highlight, grid snapping, and selection. |
+| **Plugins**  | The host's plugins: switch each on or off and see what it adds.        |
+| **Labs**     | Experimental modeling views, code layouts, and developer tools.        |
 
 Plugins can add their own settings to **General**, **Viewport** and **Labs**,
 in a group under the plugin's name after the built-in groups.
@@ -108,20 +108,18 @@ are switched off. **Plugins → Document view** removes the tab and the setting.
 
 Show or hide the **overview minimap** in the top-right corner of the canvas. The minimap provides a zoomed-out view of the entire net for orientation in large models.
 
-### Petricon
+### Icons
 
-In the **Viewport** section, **Petricon** is on by default and provides Petrinaut's
-custom icons for entities, playback, zoom, and navigation. Saved preferences are preserved. The pack includes the
-sidebar toggle, main menu, pan hand and compact selection arrow, add-place and add-transition
-buttons, settings gears, editing actions, diagnostics, simulation and data views,
-and assistant and voice controls, including icons inside shared menus and forms.
-Checkbox marks and loading indicators keep their default appearance.
-The change applies immediately, and turning it off
-restores the default icons.
+The editor draws one set of icons: the sidebar toggle, main menu, pan hand and
+compact selection arrow, add-place and add-transition buttons, settings gears,
+editing actions, diagnostics, simulation and data views, and assistant and voice
+controls, including icons inside shared menus and forms. Checkbox marks and
+loading indicators keep the design system's appearance. The icons have no
+setting of their own; their motion follows **Animations**.
 
 **Add Place** and **Add Transition** show a plain circle and square. Hover over
 either button to reveal a plus at the bottom-right of its shape; the plus disappears
-when you move away. Selecting either tool fills its icon and plays a short bounce. Turning off **Animations** below keeps the selection feedback and removes
+when you move away. Selecting either tool fills its icon and plays a short bounce. Turning off **Animations** keeps the selection feedback and removes
 the motion. Icons also respect your device's reduced-motion preference.
 The sidebar toggle keeps a thin line near the left edge of its frame when the
 sidebar is collapsed. Hovering makes it thicker and moves it slightly right.

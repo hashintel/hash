@@ -24,7 +24,7 @@ const dockStyle = css({
 /**
  * A panel docked to an edge of the canvas: it slides in and out with its
  * presence value and is as large as its size value. Its box follows both by
- * direct writes, with no render. `DockResizers` resizes it.
+ * direct writes, with no render. `EditorResizers` resizes it.
  *
  * A closed panel is not mounted: it mounts in the render that opens it and
  * unmounts once it has slid out. Its dock stays, an empty element in the

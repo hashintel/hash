@@ -32,7 +32,6 @@ type SubViewPanelsSettings = Record<
 export type UserSettings = {
   showAnimations: boolean;
   compactNodes: boolean;
-  enableExperimentalIconPack: boolean;
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   leftSidebarWidth: number;
@@ -78,7 +77,6 @@ export type UserSettings = {
 const plainSettingKeys = [
   "showAnimations",
   "compactNodes",
-  "enableExperimentalIconPack",
   "cursorMode",
   "isLeftSidebarOpen",
   "leftSidebarWidth",
@@ -133,7 +131,6 @@ export type UserSettingsContextValue = UserSettings & UserSettingsActions;
 export const defaultUserSettings: UserSettings = {
   showAnimations: true,
   compactNodes: false,
-  enableExperimentalIconPack: true,
   cursorMode: "pan",
   isLeftSidebarOpen: true,
   leftSidebarWidth: defaultPanelSizes.leftSidebarWidth,

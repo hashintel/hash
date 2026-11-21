@@ -2,4 +2,6 @@
 "@hashintel/petrinaut": patch
 ---
 
-Removes the icon exports from `@hashintel/petrinaut/ui`: `Petricon`, `ExperimentalIcon`, their providers and types, and the component of each icon. Import icons from `@hashintel/ds-icons`. The editor and `PetrinautPreview` always draw their icons from that set: in the preview, the icons of the design system's buttons and menus change to its drawings, and the play button's icon moves only while the Animations setting is on.
+pr: 10555
+
+Removes the icon exports from `@hashintel/petrinaut/ui` and the Petricon setting: the editor's icons come from `@hashintel/ds-icons`.

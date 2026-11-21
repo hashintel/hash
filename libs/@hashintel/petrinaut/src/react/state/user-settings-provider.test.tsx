@@ -94,6 +94,7 @@ describe("UserSettingsProvider", () => {
             enableAutomaticArcConnections: enabled,
             arcRendering: "smoothstep",
             keepPanelsMounted: enabled,
+            enableExperimentalIconPack: enabled,
             showAnimations: false,
           }),
         ],
@@ -123,6 +124,7 @@ describe("UserSettingsProvider", () => {
           "enableAutomaticArcConnections",
           "arcRendering",
           "keepPanelsMounted",
+          "enableExperimentalIconPack",
         ]) {
           expect(key in persisted).toBe(false);
         }

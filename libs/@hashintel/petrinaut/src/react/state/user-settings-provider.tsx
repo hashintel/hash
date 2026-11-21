@@ -59,6 +59,11 @@ type PersistedUserSettings = Partial<UserSettings> & {
    * key is dropped on the next write.
    */
   keepPanelsMounted?: boolean;
+  /**
+   * Switched the editor's icons to the default set of the design system. The
+   * editor always draws its own set, so the key is dropped on the next write.
+   */
+  enableExperimentalIconPack?: boolean;
 };
 
 const loadSettings = (): UserSettings => {
@@ -81,6 +86,7 @@ const loadSettings = (): UserSettings => {
         enableAutomaticArcConnections: _enableAutomaticArcConnections,
         arcRendering: _arcRendering,
         keepPanelsMounted: _keepPanelsMounted,
+        enableExperimentalIconPack: _enableExperimentalIconPack,
         ...parsed
       } = JSON.parse(raw) as PersistedUserSettings;
       return {

@@ -527,12 +527,6 @@ export const UserSettingsDialog = ({
                           value={settings.compactNodes}
                           onChange={settings.setCompactNodes}
                         />
-                        <SettingToggle
-                          label="Petricon"
-                          description="Use Petrinaut's custom icon pack across the editor."
-                          value={settings.enableExperimentalIconPack}
-                          onChange={settings.setEnableExperimentalIconPack}
-                        />
                       </SettingsGroup>
                       <SettingsGroup title="Interaction">
                         <SettingToggle

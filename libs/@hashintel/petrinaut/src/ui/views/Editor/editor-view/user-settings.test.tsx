@@ -396,15 +396,16 @@ describe("user settings", () => {
       screen.getByRole("checkbox", { name: "Minimap" }),
     );
     fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
-    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
-    const iconPack = screen.getByRole("checkbox", { name: "Petricon" });
-    expect(document.activeElement).toBe(iconPack);
-    fireEvent.keyDown(iconPack, { key: "ArrowDown" });
+    const compactNodes = screen.getByRole("checkbox", {
+      name: "Compact nodes",
+    });
+    expect(document.activeElement).toBe(compactNodes);
+    fireEvent.keyDown(compactNodes, { key: "ArrowDown" });
     expect(document.activeElement).toBe(
       screen.getByRole("checkbox", { name: "Highlight on hover" }),
     );
     fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(iconPack);
+    expect(document.activeElement).toBe(compactNodes);
   });
 
   it("ignores modified shortcuts and unregisters when unmounted", async () => {
@@ -630,30 +631,5 @@ describe("Plugins settings", () => {
     renderPluginSettings("plugins", []);
     await screen.findByRole("heading", { name: "Plugins" });
     expect(screen.getByText("This editor has no plugins.")).toBeTruthy();
-  });
-});
-
-describe("Viewport settings", () => {
-  it("keeps Petricon across remounts", async () => {
-    const first = renderSettings({
-      overlay: { type: "user-settings", section: "viewport" },
-    });
-    const iconPack = await screen.findByRole("checkbox", {
-      name: "Petricon",
-    });
-    expect((iconPack as HTMLInputElement).checked).toBe(true);
-    expect(
-      screen.getByText("Petricon", { exact: true }).parentElement?.textContent,
-    ).toBe("Petricon");
-    await act(async () => fireEvent.click(iconPack));
-    first.unmount();
-    renderSettings({ overlay: { type: "user-settings", section: "viewport" } });
-    expect(
-      (
-        (await screen.findByRole("checkbox", {
-          name: "Petricon",
-        })) as HTMLInputElement
-      ).checked,
-    ).toBe(false);
   });
 });
