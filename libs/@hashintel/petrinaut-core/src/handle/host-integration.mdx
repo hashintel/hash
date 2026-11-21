@@ -685,6 +685,51 @@ on handles whose persisted document should also be restricted; for a read-only
 view of a richer document, prefer `readonly: true` with all extensions
 enabled.
 
+### What the pass after a change costs
+
+The pass runs inside every `change()`, so every edit pays for it. Its cost
+must follow the size of the net, and never the number of places times the
+number of transitions.
+
+Which code a transition can have depends on the places its arcs reach, and
+finding a place by its id takes an index of the places of the net. The rule:
+a pass over the transitions of a net builds that index once and asks about
+every transition through it. `createTransitionLogicAvailabilityReader` in
+`extensions.ts` is that one index for one net. It builds the index at the
+first answer that needs a place, so a net with colours disabled reads none.
+`getTransitionLogicAvailability` builds the index on every call. It answers
+for one transition: a loop over the transitions of a net asks through a
+reader.
+
+A reader keeps the places as they were when it built its index. Each pass
+makes a reader of its own once the change has run, so a place that joined or
+left the net in that change counts, and no reader outlives its pass.
+
+Two passes run on the main thread for a change and follow the rule:
+
+- `stripDisabledExtensionData`, the pass after a change, which also makes the
+  sanitized copy the definition store hands out.
+- `sanitizeAllTransitions` in `actions.ts`, which settles every transition
+  after a place changes or is removed, a type is removed, or a selection is
+  deleted.
+
+The tests that hold it count how often the places are read:
+"reads each place of a net once, however many transitions the net has" in
+`extensions.test.ts`, and "a change of a place reads the places of the net
+as often for 250 transitions as for 2" in `actions.test.ts`.
+
+On a net of 221 places, 249 transitions and 1,742 arcs, an edit takes Core
+1.3 to 2.0 ms from the mutation until its subscribers are told, where it took
+28 to 51 ms: see
+[Editor performance on a large net](doc:editor-performance).
+
+Two readers of a change do not follow the rule yet. The language service
+asks through one reader per check, and still indexes the places once per
+transition when it builds the context of that transition's code, in
+`hir/surface-context.ts`. The package does not export the reader, so the
+editor's canvas scene and code navigation call
+`getTransitionLogicAvailability` once per transition.
+
 ## Reference implementations in this repo
 
 | Pattern                                                                                                                   | Where                                                                                                                     |

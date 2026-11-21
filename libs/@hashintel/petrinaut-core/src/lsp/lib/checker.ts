@@ -1,6 +1,6 @@
 import {
+  createTransitionLogicAvailabilityReader,
   DEFAULT_PETRINAUT_EXTENSIONS,
-  getTransitionLogicAvailability,
   sanitizeSDCPNForExtensions,
   type PetrinautExtensionSettings,
 } from "../../extensions";
@@ -137,12 +137,12 @@ export function checkSDCPN(
   const timed = netTimeOf(sdcpn, extensions) === "timed";
 
   // Check all functions in transitions (both lambda and kernel)
+  const readAvailability = createTransitionLogicAvailabilityReader(
+    sdcpn,
+    extensions,
+  );
   for (const transition of sdcpn.transitions) {
-    const availability = getTransitionLogicAvailability(
-      transition,
-      sdcpn,
-      extensions,
-    );
+    const availability = readAvailability(transition);
 
     // The lambda's file carries the transition's firing diagnostics, the
     // structural one included, which holds whether or not the code is shown.

@@ -188,37 +188,80 @@ const createUnreadPortTest = (
   };
 };
 
+type ArcTest = (arc: InputArc | OutputArc) => boolean;
+
+/**
+ * A test for an arc whose place carries typed tokens: a coloured place of
+ * `net`, a coloured port of a component, or a port that cannot be read yet.
+ *
+ * The first arc asked about makes it index the places of `net`, and every
+ * answer reads that index. So a question that needs no place reads none, and
+ * a test shared by a pass over the transitions of a net reads the places
+ * once. The index holds the places as they were when it was made: share a
+ * test once the places of the net are settled, and make a new one after a
+ * place joins or leaves the net.
+ */
+const createTypedArcTest = (
+  sdcpn: SDCPN,
+  net: NetWithComponentInstances,
+  options: ArcPlaceResolverOptions,
+): ArcTest => {
+  let isTypedArc: ArcTest | undefined;
+
+  return (arc) => {
+    if (!isTypedArc) {
+      const resolveArcPlace = createArcPlaceResolver(sdcpn, net, options);
+      const isUnreadPort = createUnreadPortTest(net, options);
+      isTypedArc = (candidate) =>
+        resolveArcPlace(candidate)?.colorId != null || isUnreadPort(candidate);
+    }
+    return isTypedArc(arc);
+  };
+};
+
+const hasTypedNonInhibitorInput = (
+  transition: SDCPN["transitions"][number],
+  isTypedArc: ArcTest,
+): boolean =>
+  transition.inputArcs.some(
+    (arc) => arc.type !== "inhibitor" && isTypedArc(arc),
+  );
+
+const hasTypedOutput = (
+  transition: SDCPN["transitions"][number],
+  isTypedArc: ArcTest,
+): boolean => transition.outputArcs.some((arc) => isTypedArc(arc));
+
+/** Which code `transition` can have, given the test for a typed arc of its net. */
+const availabilityOf = (
+  transition: SDCPN["transitions"][number],
+  extensions: PetrinautExtensionSettings,
+  isTypedArc: ArcTest,
+): TransitionLogicAvailability => {
+  const predicateLambda =
+    extensions.stochasticity ||
+    (extensions.colors && hasTypedNonInhibitorInput(transition, isTypedArc));
+  const stochasticLambda = extensions.stochasticity;
+
+  return {
+    lambda: predicateLambda || stochasticLambda,
+    predicateLambda,
+    stochasticLambda,
+    transitionKernel:
+      extensions.colors && hasTypedOutput(transition, isTypedArc),
+  };
+};
+
 export const hasTypedNonInhibitorInputPlace = (
   transition: SDCPN["transitions"][number],
   sdcpn: SDCPN,
   net: NetWithComponentInstances = sdcpn,
-  options?: ArcPlaceResolverOptions,
-): boolean => {
-  const resolveArcPlace = createArcPlaceResolver(sdcpn, net, options);
-  const isUnreadPort = createUnreadPortTest(net, options);
-
-  return transition.inputArcs.some((arc) => {
-    if (arc.type === "inhibitor") {
-      return false;
-    }
-
-    return resolveArcPlace(arc)?.colorId != null || isUnreadPort(arc);
-  });
-};
-
-const hasTypedOutputPlace = (
-  transition: SDCPN["transitions"][number],
-  sdcpn: SDCPN,
-  net: NetWithComponentInstances = sdcpn,
-  options?: ArcPlaceResolverOptions,
-): boolean => {
-  const resolveArcPlace = createArcPlaceResolver(sdcpn, net, options);
-  const isUnreadPort = createUnreadPortTest(net, options);
-
-  return transition.outputArcs.some(
-    (arc) => resolveArcPlace(arc)?.colorId != null || isUnreadPort(arc),
+  options: ArcPlaceResolverOptions = {},
+): boolean =>
+  hasTypedNonInhibitorInput(
+    transition,
+    createTypedArcTest(sdcpn, net, options),
   );
-};
 
 export const isTransitionLambdaAvailable = (
   transition: SDCPN["transitions"][number],
@@ -242,15 +285,50 @@ export const isTransitionKernelAvailable = (
   libraries?: ResolvedLibraries,
 ): boolean =>
   extensions.colors &&
-  hasTypedOutputPlace(transition, sdcpn, net, {
+  hasTypedOutput(
+    transition,
+    createTypedArcTest(sdcpn, net, {
+      componentPortsEnabled: extensions.components,
+      libraries,
+    }),
+  );
+
+export type TransitionLogicAvailabilityReader = (
+  transition: SDCPN["transitions"][number],
+) => TransitionLogicAvailability;
+
+/**
+ * {@link getTransitionLogicAvailability} for every transition of one net: a
+ * pass over them asks through one reader, so the places of the net are
+ * indexed once for the pass, where a call per transition indexes them for
+ * each transition.
+ *
+ * The index holds the places as they were at the first answer that needed
+ * one. Make the reader once the places of the net are settled, and a new one
+ * after a place joins or leaves the net.
+ */
+export const createTransitionLogicAvailabilityReader = (
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+  net: NetWithComponentInstances = sdcpn,
+  libraries?: ResolvedLibraries,
+): TransitionLogicAvailabilityReader => {
+  const isTypedArc = createTypedArcTest(sdcpn, net, {
     componentPortsEnabled: extensions.components,
     libraries,
   });
+
+  return (transition) => availabilityOf(transition, extensions, isTypedArc);
+};
 
 /**
  * Which of a transition's code a user can write. `libraries` are the ones
  * the document's imports resolved to: without them, a port of a component of
  * an import counts as no place.
+ *
+ * A call that needs a place indexes every place of `net`. Inside this
+ * package, a pass over the transitions of a net asks through one
+ * `createTransitionLogicAvailabilityReader`.
  */
 export const getTransitionLogicAvailability = (
   transition: SDCPN["transitions"][number],
@@ -258,29 +336,13 @@ export const getTransitionLogicAvailability = (
   extensions: PetrinautExtensionSettings,
   net: NetWithComponentInstances = sdcpn,
   libraries?: ResolvedLibraries,
-): TransitionLogicAvailability => {
-  const predicateLambda =
-    extensions.stochasticity ||
-    (extensions.colors &&
-      hasTypedNonInhibitorInputPlace(transition, sdcpn, net, {
-        componentPortsEnabled: extensions.components,
-        libraries,
-      }));
-  const stochasticLambda = extensions.stochasticity;
-
-  return {
-    lambda: predicateLambda || stochasticLambda,
-    predicateLambda,
-    stochasticLambda,
-    transitionKernel: isTransitionKernelAvailable(
-      transition,
-      sdcpn,
-      extensions,
-      net,
-      libraries,
-    ),
-  };
-};
+): TransitionLogicAvailability =>
+  createTransitionLogicAvailabilityReader(
+    sdcpn,
+    extensions,
+    net,
+    libraries,
+  )(transition);
 
 export const getEffectiveTransitionLambdaType = (
   transition: SDCPN["transitions"][number],
@@ -339,22 +401,16 @@ export const sanitizePlaceForExtensions = <
   return sanitized;
 };
 
-export const sanitizeTransitionForExtensions = <
+/**
+ * `transition` without the code `availability` rules out, and with the kind
+ * of lambda it leaves: `transition` itself when it has nothing to lose.
+ */
+export const sanitizeTransitionForAvailability = <
   Transition extends SDCPN["transitions"][number],
 >(
   transition: Transition,
-  sdcpn: SDCPN,
-  extensions: PetrinautExtensionSettings,
-  net: NetWithComponentInstances = sdcpn,
-  libraries?: ResolvedLibraries,
+  availability: TransitionLogicAvailability,
 ): Transition => {
-  const availability = getTransitionLogicAvailability(
-    transition,
-    sdcpn,
-    extensions,
-    net,
-    libraries,
-  );
   const lambdaType = getEffectiveTransitionLambdaType(transition, availability);
 
   if (
@@ -403,13 +459,16 @@ const stripDisabledExtensionDataFromNet = (
     net.parameters.splice(0);
   }
 
-  for (const place of net.places) {
-    Object.assign(place, sanitizePlaceForExtensions(place, extensions));
-    if (!extensions.colors) {
-      delete place.visualizerCode;
-    }
-    if (!canUseDynamics(extensions)) {
-      delete place.dynamics;
+  // With colours and dynamics on, a place has nothing to lose.
+  if (!extensions.colors || !extensions.dynamics) {
+    for (const place of net.places) {
+      Object.assign(place, sanitizePlaceForExtensions(place, extensions));
+      if (!extensions.colors) {
+        delete place.visualizerCode;
+      }
+      if (!canUseDynamics(extensions)) {
+        delete place.dynamics;
+      }
     }
   }
 
@@ -417,6 +476,14 @@ const stripDisabledExtensionDataFromNet = (
     const targetNet = net;
     delete targetNet.fusions;
   }
+
+  // One reader for the whole pass: the places of the net are settled above,
+  // and a reader per transition would read all of them for each transition.
+  const readAvailability = createTransitionLogicAvailabilityReader(
+    sdcpn,
+    extensions,
+    net,
+  );
 
   for (const transition of net.transitions) {
     if (!extensions.components) {
@@ -428,10 +495,13 @@ const stripDisabledExtensionDataFromNet = (
       );
     }
 
-    Object.assign(
+    const sanitized = sanitizeTransitionForAvailability(
       transition,
-      sanitizeTransitionForExtensions(transition, sdcpn, extensions, net),
+      readAvailability(transition),
     );
+    if (sanitized !== transition) {
+      Object.assign(transition, sanitized);
+    }
   }
 };
 

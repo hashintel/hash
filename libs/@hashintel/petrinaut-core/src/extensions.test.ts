@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createTransitionLogicAvailabilityReader,
   getTransitionLogicAvailability,
   sanitizeSDCPNForExtensions,
-  sanitizeTransitionForExtensions,
+  sanitizeTransitionForAvailability,
+  stripDisabledExtensionData,
 } from "./extensions";
 import { isSDCPNEqual } from "./lib/deep-equal";
 
+import type { ResolvedLibraries } from "./composition/libraries";
 import type { PetrinautExtensionSettings } from "./extensions";
 import type { SDCPN } from "./types/sdcpn";
 
@@ -17,6 +20,17 @@ const allEnabled: PetrinautExtensionSettings = {
   parameters: true,
   components: true,
 };
+
+/** One transition of the net, sanitised as a pass over the net sanitises each. */
+const sanitizeTransitionForExtensions = (
+  transition: SDCPN["transitions"][number],
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+) =>
+  sanitizeTransitionForAvailability(
+    transition,
+    getTransitionLogicAvailability(transition, sdcpn, extensions),
+  );
 
 const createSDCPN = (
   transition: Partial<SDCPN["transitions"][number]> = {},
@@ -602,5 +616,457 @@ describe("transition logic availability", () => {
     const loaded = sanitizeSDCPNForExtensions(persisted, allEnabled);
 
     expect(isSDCPNEqual(loaded, persisted)).toBe(true);
+  });
+});
+
+type Place = SDCPN["places"][number];
+type Transition = SDCPN["transitions"][number];
+
+const tokenType: SDCPN["types"][number] = {
+  id: "type-1",
+  name: "Token",
+  iconSlug: "circle",
+  displayColor: "#808080",
+  elements: [{ elementId: "element-1", name: "x", type: "real" }],
+};
+
+const placeOf = (
+  id: string,
+  colorId: string | null,
+  rest: Partial<Place> = {},
+): Place => ({
+  id,
+  name: id,
+  colorId,
+  dynamicsEnabled: false,
+  x: 0,
+  y: 0,
+  ...rest,
+});
+
+const fromPlace = (placeId: string): Transition["inputArcs"][number] => ({
+  placeId,
+  weight: 1,
+  type: "standard",
+});
+
+const toPlace = (placeId: string): Transition["outputArcs"][number] => ({
+  placeId,
+  weight: 1,
+});
+
+const toPort = (
+  componentInstanceId: string,
+  portPlaceId: string,
+): Transition["outputArcs"][number] => ({
+  endpoint: { kind: "componentPort", componentInstanceId, portPlaceId },
+  weight: 1,
+});
+
+const fromPort = (
+  componentInstanceId: string,
+  portPlaceId: string,
+): Transition["inputArcs"][number] => ({
+  ...toPort(componentInstanceId, portPlaceId),
+  type: "standard",
+});
+
+/** A predicate transition with a lambda and a kernel written, named `name`. */
+const transitionOf = (
+  name: string,
+  inputArcs: Transition["inputArcs"],
+  outputArcs: Transition["outputArcs"],
+): Transition => ({
+  id: name,
+  name,
+  inputArcs,
+  outputArcs,
+  lambdaType: "predicate",
+  lambdaCode: "export default Lambda(() => true);",
+  transitionKernelCode: "export default TransitionKernel(() => ({}));",
+  x: 0,
+  y: 0,
+});
+
+/**
+ * A net with places of its own, an instance of one of its components, an
+ * instance of a component of an import, and a fusion. Each transition is
+ * named after what its arcs reach. The component has a plain place under the
+ * id of a typed place of the net.
+ */
+const createComposedSDCPN = (): SDCPN => ({
+  places: [placeOf("typed", "type-1"), placeOf("plain", null)],
+  transitions: [
+    transitionOf("typed places", [fromPlace("typed")], [toPlace("typed")]),
+    transitionOf("plain places", [fromPlace("plain")], [toPlace("plain")]),
+    transitionOf(
+      "typed place behind an inhibitor",
+      [{ placeId: "typed", weight: 1, type: "inhibitor" }],
+      [toPlace("plain")],
+    ),
+    transitionOf(
+      "typed ports",
+      [fromPort("instance-1", "port-typed")],
+      [toPort("instance-1", "port-typed")],
+    ),
+    transitionOf(
+      "plain port and place inside the component",
+      [fromPort("instance-1", "port-plain")],
+      [toPort("instance-1", "inner")],
+    ),
+    transitionOf(
+      "ports of an import",
+      [fromPort("instance-2", "port")],
+      [toPort("instance-2", "port")],
+    ),
+    transitionOf(
+      "missing place and instance",
+      [fromPlace("missing")],
+      [toPort("missing", "port-typed")],
+    ),
+    transitionOf("no arcs", [], []),
+  ],
+  types: [tokenType],
+  differentialEquations: [],
+  parameters: [],
+  componentInstances: [
+    {
+      id: "instance-1",
+      name: "Instance 1",
+      component: { id: "component-1" },
+      parameterValues: {},
+      x: 0,
+      y: 0,
+    },
+    {
+      id: "instance-2",
+      name: "Instance 2",
+      component: { from: "library-1", id: "remote" },
+      parameterValues: {},
+      x: 0,
+      y: 0,
+    },
+  ],
+  fusions: [
+    {
+      id: "fusion-1",
+      name: "Fusion",
+      members: [
+        { kind: "place", placeId: "typed" },
+        {
+          kind: "componentPort",
+          componentInstanceId: "instance-1",
+          portPlaceId: "port-typed",
+        },
+      ],
+    },
+  ],
+  components: [
+    {
+      id: "component-1",
+      name: "Component",
+      places: [
+        placeOf("port-typed", "type-1", { isPort: true }),
+        placeOf("port-plain", null, { isPort: true }),
+        placeOf("inner", "type-1"),
+        placeOf("typed", null),
+      ],
+      transitions: [
+        transitionOf(
+          "typed places of the component",
+          [fromPlace("port-typed")],
+          [toPlace("inner")],
+        ),
+        transitionOf(
+          "plain place under the id of a typed place of the net",
+          [fromPlace("typed")],
+          [toPlace("typed")],
+        ),
+      ],
+      types: [tokenType],
+      differentialEquations: [],
+      parameters: [],
+    },
+  ],
+});
+
+/** The import of the composed net, read: its component has one plain port. */
+const readLibraries: ResolvedLibraries = new Map([
+  [
+    "library-1",
+    {
+      id: "library-1",
+      name: "Library",
+      components: [
+        {
+          id: "remote",
+          name: "Remote",
+          places: [placeOf("port", null, { isPort: true })],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+        },
+      ],
+    },
+  ],
+]);
+
+const withoutStochasticity: PetrinautExtensionSettings = {
+  ...allEnabled,
+  stochasticity: false,
+};
+
+/**
+ * Whether a predicate and a kernel can be written, by name of transition,
+ * for the composed net with colours and components on and no rates.
+ */
+const composedAvailability: Record<string, [boolean, boolean]> = {
+  "typed places": [true, true],
+  "plain places": [false, false],
+  "typed place behind an inhibitor": [false, false],
+  "typed ports": [true, true],
+  "plain port and place inside the component": [false, false],
+  // What a port of an import carries cannot be told until the import is read.
+  "ports of an import": [true, true],
+  "missing place and instance": [false, false],
+  "no arcs": [false, false],
+  "typed places of the component": [true, true],
+  "plain place under the id of a typed place of the net": [false, false],
+};
+
+const netsOf = (sdcpn: SDCPN) => [sdcpn, ...(sdcpn.components ?? [])];
+
+describe("a pass over the transitions of a net", () => {
+  const askPerPass = (
+    sdcpn: SDCPN,
+    extensions: PetrinautExtensionSettings,
+    libraries?: ResolvedLibraries,
+  ) =>
+    netsOf(sdcpn).flatMap((net) => {
+      const readAvailability = createTransitionLogicAvailabilityReader(
+        sdcpn,
+        extensions,
+        net,
+        libraries,
+      );
+      return net.transitions.map(
+        (transition) =>
+          [transition.name, readAvailability(transition)] as const,
+      );
+    });
+
+  const askPerTransition = (
+    sdcpn: SDCPN,
+    extensions: PetrinautExtensionSettings,
+    libraries?: ResolvedLibraries,
+  ) =>
+    netsOf(sdcpn).flatMap((net) =>
+      net.transitions.map(
+        (transition) =>
+          [
+            transition.name,
+            getTransitionLogicAvailability(
+              transition,
+              sdcpn,
+              extensions,
+              net,
+              libraries,
+            ),
+          ] as const,
+      ),
+    );
+
+  it.each([
+    ["one reader per net", askPerPass],
+    ["one question per transition", askPerTransition],
+  ])(
+    "tells what each transition of a net and of its components can have, through %s",
+    (_, ask) => {
+      const sdcpn = createComposedSDCPN();
+      const predicateAndKernel = (
+        extensions: PetrinautExtensionSettings,
+        libraries?: ResolvedLibraries,
+      ) =>
+        Object.fromEntries(
+          ask(sdcpn, extensions, libraries).map(([name, availability]) => [
+            name,
+            [availability.predicateLambda, availability.transitionKernel],
+          ]),
+        );
+
+      expect(predicateAndKernel(withoutStochasticity)).toEqual(
+        composedAvailability,
+      );
+      expect(predicateAndKernel(withoutStochasticity, readLibraries)).toEqual({
+        ...composedAvailability,
+        "ports of an import": [false, false],
+      });
+      expect(
+        predicateAndKernel({ ...withoutStochasticity, components: false }),
+      ).toEqual({
+        ...composedAvailability,
+        "typed ports": [false, false],
+        "ports of an import": [false, false],
+      });
+      expect(
+        predicateAndKernel({ ...withoutStochasticity, colors: false }),
+      ).toEqual(
+        Object.fromEntries(
+          Object.keys(composedAvailability).map((name) => [
+            name,
+            [false, false],
+          ]),
+        ),
+      );
+      // A rate needs no typed input, and a kernel still needs a typed output.
+      expect(predicateAndKernel(allEnabled)).toEqual(
+        Object.fromEntries(
+          Object.entries(composedAvailability).map(([name, [, kernel]]) => [
+            name,
+            [true, kernel],
+          ]),
+        ),
+      );
+    },
+  );
+
+  const writtenCode = (sdcpn: SDCPN) =>
+    Object.fromEntries(
+      netsOf(sdcpn).flatMap((net) =>
+        net.transitions.map((transition) => [
+          transition.name,
+          [
+            transition.lambdaCode !== "",
+            transition.transitionKernelCode !== "",
+          ],
+        ]),
+      ),
+    );
+
+  it("keeps the code of the transitions that can have it, in the net and in each component", () => {
+    const sanitized = sanitizeSDCPNForExtensions(
+      createComposedSDCPN(),
+      withoutStochasticity,
+    );
+
+    expect(writtenCode(sanitized)).toEqual(composedAvailability);
+    expect(sanitized.fusions).toEqual(createComposedSDCPN().fusions);
+  });
+
+  it("drops port arcs, fusions and the code that needed them when components are disabled", () => {
+    const sanitized = sanitizeSDCPNForExtensions(createComposedSDCPN(), {
+      ...withoutStochasticity,
+      components: false,
+    });
+
+    expect(writtenCode(sanitized)).toEqual({
+      "typed places": [true, true],
+      "plain places": [false, false],
+      "typed place behind an inhibitor": [false, false],
+      "typed ports": [false, false],
+      "plain port and place inside the component": [false, false],
+      "ports of an import": [false, false],
+      "missing place and instance": [false, false],
+      "no arcs": [false, false],
+    });
+    expect(
+      sanitized.transitions.find(({ name }) => name === "typed ports"),
+    ).toMatchObject({ inputArcs: [], outputArcs: [] });
+    expect(sanitized).not.toHaveProperty("fusions");
+  });
+
+  it("reads the places as they are when the pass starts", () => {
+    const sdcpn = createSDCPN({ outputArcs: [toPlace("place-2")] });
+    const kernelCode = sdcpn.transitions[0]!.transitionKernelCode;
+
+    // The output place is not in the net yet.
+    stripDisabledExtensionData(sdcpn, allEnabled);
+    expect(sdcpn.transitions[0]!.transitionKernelCode).toBe("");
+
+    sdcpn.places.push(placeOf("place-2", "type-1"));
+    sdcpn.transitions[0]!.transitionKernelCode = kernelCode;
+    stripDisabledExtensionData(sdcpn, allEnabled);
+    expect(sdcpn.transitions[0]!.transitionKernelCode).toBe(kernelCode);
+
+    sdcpn.places.pop();
+    stripDisabledExtensionData(sdcpn, allEnabled);
+    expect(sdcpn.transitions[0]!.transitionKernelCode).toBe("");
+  });
+
+  /**
+   * A net of `transitionCount` transitions between three typed places, and
+   * how many times the id of a place was read: indexing the places of a net
+   * reads the id of each of them once.
+   */
+  const createCountedNet = (transitionCount: number) => {
+    let placeIdReads = 0;
+    const sdcpn: SDCPN = {
+      places: ["place-1", "place-2", "place-3"].map((id) =>
+        Object.defineProperty(placeOf(id, "type-1"), "id", {
+          enumerable: true,
+          get: () => {
+            placeIdReads += 1;
+            return id;
+          },
+        }),
+      ),
+      transitions: Array.from({ length: transitionCount }, (_, index) =>
+        transitionOf(
+          `transition-${index}`,
+          [fromPlace("place-1"), fromPlace("place-2")],
+          [toPlace("place-3")],
+        ),
+      ),
+      types: [tokenType],
+      differentialEquations: [],
+      parameters: [],
+    };
+    return { sdcpn, placeIdReads: () => placeIdReads };
+  };
+
+  it.each([
+    ["every extension enabled", allEnabled],
+    ["stochasticity disabled", withoutStochasticity],
+    ["components disabled", { ...allEnabled, components: false }],
+  ])(
+    "reads each place of a net once, however many transitions the net has, with %s",
+    (_, extensions) => {
+      const few = createCountedNet(2);
+      const many = createCountedNet(250);
+
+      stripDisabledExtensionData(few.sdcpn, extensions);
+      stripDisabledExtensionData(many.sdcpn, extensions);
+
+      expect(few.placeIdReads()).toBe(3);
+      expect(many.placeIdReads()).toBe(3);
+    },
+  );
+
+  it("reads the places when the first answer needs them, and not again", () => {
+    const { sdcpn, placeIdReads } = createCountedNet(250);
+    const readAvailability = createTransitionLogicAvailabilityReader(
+      sdcpn,
+      allEnabled,
+    );
+    expect(placeIdReads()).toBe(0);
+
+    for (const transition of sdcpn.transitions) {
+      readAvailability(transition);
+    }
+    expect(placeIdReads()).toBe(3);
+  });
+
+  it("reads no place when colours are disabled", () => {
+    const { sdcpn, placeIdReads } = createCountedNet(250);
+    const readAvailability = createTransitionLogicAvailabilityReader(sdcpn, {
+      ...allEnabled,
+      colors: false,
+    });
+
+    for (const transition of sdcpn.transitions) {
+      readAvailability(transition);
+    }
+    expect(placeIdReads()).toBe(0);
   });
 });

@@ -76,6 +76,40 @@ their own: before, an overlay that closed restyled the editor, 40,160 elements
 for the menu, and now 1,382. While the Properties panel slides out it shows
 what was selected, where it slid out empty.
 
+## A change of the document
+
+After every change Core removes what the document cannot have: the data of a
+disabled extension, and the code a transition's places do not allow. That
+pass indexed every place of the net once for each transition. It now indexes
+them once: see
+[What the pass after a change costs](doc:core.handle/host-integration).
+
+The first table is Core alone, in Node: a mutation of an instance on a
+`createJsonDocHandle` document, from the call until a subscriber of the
+definition is told. The second net has 221 places, 249 transitions and 1,742
+arcs. Each value is the median of five alternating rounds of 25 edits.
+
+| Edit                              | Supply Chain tiled, before |  After | Second net, before |  After |
+| --------------------------------- | -------------------------: | -----: | -----------------: | -----: |
+| Move a place                      |                    27.0 ms | 2.5 ms |            28.2 ms | 1.3 ms |
+| Commit the positions of 20 nodes  |                    27.2 ms | 2.5 ms |            28.6 ms | 1.5 ms |
+| Rename a place                    |                    58.8 ms | 4.3 ms |            51.2 ms | 2.0 ms |
+| Type a key in a transition's code |                    27.2 ms | 2.5 ms |            28.5 ms | 1.4 ms |
+
+The second table is the editor on the second net: the script time of the
+edit and its tasks over 50 ms. Each value is the median of five alternating
+rounds on the production build.
+
+| Edit                              | Script before | Script after | Long tasks before | Long tasks after |
+| --------------------------------- | ------------: | -----------: | ----------------: | ---------------: |
+| Type a key in a transition's code |         62 ms |        42 ms |                 1 |                0 |
+| Type 20 keys there, 12 a second   |      1,307 ms |       823 ms |                22 |                0 |
+| Commit a new name for a place     |         82 ms |        42 ms |                 1 |                0 |
+| Drop a dragged node               |         60 ms |        34 ms |                 1 |                0 |
+
+The drag before the drop costs what it did: the document changes when the
+node is dropped.
+
 ## Closed panels
 
 A closed sidebar, Properties panel or bottom panel is not mounted. Its content
@@ -167,6 +201,11 @@ selection takes 75 ms either way.
   browser draws 97 frames of it against 91.
 - **Paint per drawn frame during a drag**, zoomed in, rose from 3.6 ms to
   5.3 ms. The cause is not known.
+- **A change of the document** is followed by two loops in the editor that
+  index the places of the net for each transition: the canvas scene and the
+  code navigation call `getTransitionLogicAvailability` once per transition.
+  On the net of 221 places each loop takes 2.8 ms, where one reader for the
+  net takes 0.06 ms. Core does not export the reader.
 - **Loading** takes as long. Without the Definitions view the load runs
   120 ms less script, and the page is ready after the same 0.9 s. That time
   follows the elements of the canvas, and no rule on this page lowers their
@@ -195,6 +234,8 @@ Each rule is written, with the test that holds it, in the guide of its layer.
   each thumb's size and place on the thumb.
 - A cell of the ad-hoc form reads its own part of what the form knows:
   [The ad-hoc scenario form](doc:ui.adhoc-form/ad-hoc-form).
+- A pass over the transitions of a net indexes the places of the net once:
+  [Embedding in a host application](doc:core.handle/host-integration).
 
 ## Measure it
 

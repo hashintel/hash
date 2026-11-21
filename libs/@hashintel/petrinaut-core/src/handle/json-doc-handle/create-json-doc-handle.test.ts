@@ -224,6 +224,57 @@ describe("createJsonDocHandle", () => {
       dynamicsEnabled: false,
     });
   });
+
+  const kernelCode = "export default TransitionKernel(() => ({}));";
+  const transitionTo = (placeId: string): SDCPN["transitions"][number] => ({
+    id: "tr1",
+    name: "Transition 1",
+    inputArcs: [],
+    outputArcs: [{ placeId, weight: 1 }],
+    lambdaType: "predicate",
+    lambdaCode: "",
+    transitionKernelCode: kernelCode,
+    x: 0,
+    y: 0,
+  });
+
+  it("settles the transitions of a direct change against the places that change leaves", () => {
+    const handle = createJsonDocHandle({ initial: coloured() });
+
+    // A coloured place arrives with the arc that reaches it.
+    handle.change((draft) => {
+      draft.places.push({
+        id: "p2",
+        name: "Place 2",
+        colorId: "t1",
+        dynamicsEnabled: false,
+        x: 0,
+        y: 0,
+      });
+      draft.transitions.push(transitionTo("p2"));
+    });
+    expect(handle.doc()?.transitions[0]?.transitionKernelCode).toBe(kernelCode);
+
+    // The place leaves and the arc stays.
+    handle.change((draft) => {
+      draft.places.pop();
+    });
+    expect(handle.doc()?.transitions[0]?.transitionKernelCode).toBe("");
+
+    // It comes back with a kernel for the transition, in one change.
+    handle.change((draft) => {
+      draft.places.push({
+        id: "p2",
+        name: "Place 2",
+        colorId: "t1",
+        dynamicsEnabled: false,
+        x: 0,
+        y: 0,
+      });
+      draft.transitions[0]!.transitionKernelCode = kernelCode;
+    });
+    expect(handle.doc()?.transitions[0]?.transitionKernelCode).toBe(kernelCode);
+  });
 });
 
 describe("createPetrinaut", () => {

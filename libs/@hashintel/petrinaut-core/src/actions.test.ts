@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { mutationActionInputSchemas } from "./action-schemas";
-import { updatePrunesReferences } from "./actions";
+import { createPetrinautActions, updatePrunesReferences } from "./actions";
 import {
   gateLibrary,
   logistics,
@@ -478,6 +478,89 @@ describe("Petrinaut core actions", () => {
     expect(instance.definition.get().transitions[0]).toMatchObject({
       transitionKernelCode: existingKernelCode,
     });
+  });
+
+  /**
+   * A net of `transitionCount` transitions that write a kernel into the
+   * coloured place `place-1`, all but the last, which writes into the
+   * coloured place `place-2`.
+   */
+  const netOfKernels = (transitionCount: number): SDCPN => ({
+    ...emptySDCPN,
+    types: [
+      {
+        id: idOf("type-1"),
+        name: "Particle",
+        iconSlug: "circle",
+        displayColor: "#34a0fa",
+        elements: [{ elementId: "element-1", name: "Mass", type: "real" }],
+      },
+    ],
+    places: ["place-1", "place-2"].map((id, index) => ({
+      id: idOf(id),
+      name: `Output${index}`,
+      colorId: idOf("type-1"),
+      dynamicsEnabled: false,
+      x: 0,
+      y: 0,
+    })),
+    transitions: Array.from({ length: transitionCount }, (_, index) => ({
+      id: idOf(`transition-${index}`),
+      name: `Move${index}`,
+      inputArcs: [],
+      outputArcs: [
+        {
+          placeId: idOf(index === transitionCount - 1 ? "place-2" : "place-1"),
+          weight: 1,
+        },
+      ],
+      lambdaType: "predicate" as const,
+      lambdaCode: "",
+      transitionKernelCode: "export default TransitionKernel(() => ({}));",
+      x: 0,
+      y: 0,
+    })),
+  });
+
+  test("settles every transition of the net when a place loses its colour", () => {
+    const instance = createInstance(netOfKernels(3));
+
+    instance.mutations.updatePlace({
+      placeId: "place-1",
+      update: { colorId: null },
+    });
+
+    expect(
+      instance.definition
+        .get()
+        .transitions.map(
+          ({ transitionKernelCode }) => transitionKernelCode !== "",
+        ),
+    ).toEqual([false, false, true]);
+  });
+
+  test("a change of a place reads the places of the net as often for 250 transitions as for 2", () => {
+    const placeListReadsToRename = (transitionCount: number): number => {
+      const { places, ...rest } = netOfKernels(transitionCount);
+      let placeListReads = 0;
+      const sdcpn = Object.defineProperty(rest, "places", {
+        enumerable: true,
+        get: () => {
+          placeListReads += 1;
+          return places;
+        },
+      }) as SDCPN;
+
+      createPetrinautActions((change) => change(sdcpn)).updatePlace({
+        placeId: "place-1",
+        update: { name: "Renamed" },
+      });
+
+      expect(places[0]!.name).toBe("Renamed");
+      return placeListReads;
+    };
+
+    expect(placeListReadsToRename(250)).toBe(placeListReadsToRename(2));
   });
 
   test("adds, validates, and cleans up component-port arcs", () => {

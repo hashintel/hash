@@ -5,9 +5,9 @@ import { resolveComponent } from "../../composition/interfaces";
 import { isSupportedArity } from "../../equation-arity";
 import {
   createArcPlaceResolver,
+  createTransitionLogicAvailabilityReader,
   DEFAULT_PETRINAUT_EXTENSIONS,
   getEffectiveTransitionLambdaType,
-  getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
 } from "../../extensions";
 import {
@@ -384,12 +384,12 @@ export function generateVirtualFiles(
   }
 
   // Generate files for each transition
+  const readAvailability = createTransitionLogicAvailabilityReader(
+    sdcpn,
+    extensions,
+  );
   for (const transition of sdcpn.transitions) {
-    const availability = getTransitionLogicAvailability(
-      transition,
-      sdcpn,
-      extensions,
-    );
+    const availability = readAvailability(transition);
 
     const parametersDefsPath = getItemFilePath("parameters-defs");
     const lambdaDefsPath = getItemFilePath("transition-lambda-defs", {

@@ -39,11 +39,12 @@ import { generateDefaultTransitionKernelCode } from "./default-codes";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   createArcPlaceResolver,
-  getTransitionLogicAvailability,
+  createTransitionLogicAvailabilityReader,
   sanitizePlaceForExtensions,
-  sanitizeTransitionForExtensions,
+  sanitizeTransitionForAvailability,
   stripDisabledExtensionData,
   type PetrinautExtensionSettings,
+  type TransitionLogicAvailabilityReader,
 } from "./extensions";
 import { toPetrinautId } from "./petrinaut-id";
 import {
@@ -881,29 +882,28 @@ export function createPetrinautActions(
     net: MutableNet,
     sdcpn: SDCPN,
     sanitizeOptions: { loadDefaultKernelWhenEmpty?: boolean } = {},
+    /** The reader of `net`, from a pass over all of its transitions. */
+    readAvailability?: TransitionLogicAvailabilityReader,
   ): void => {
     const libraries = readLibraries();
-    Object.assign(
+    // What the arcs of the transition reach decides this, so it is the same
+    // before and after the transition loses code.
+    const availability = (
+      readAvailability ??
+      createTransitionLogicAvailabilityReader(sdcpn, extensions, net, libraries)
+    )(transition);
+    const sanitized = sanitizeTransitionForAvailability(
       transition,
-      sanitizeTransitionForExtensions(
-        transition,
-        sdcpn,
-        extensions,
-        net,
-        libraries,
-      ),
+      availability,
     );
+    if (sanitized !== transition) {
+      Object.assign(transition, sanitized);
+    }
 
     if (
       sanitizeOptions.loadDefaultKernelWhenEmpty &&
       transition.transitionKernelCode.trim() === "" &&
-      getTransitionLogicAvailability(
-        transition,
-        sdcpn,
-        extensions,
-        net,
-        libraries,
-      ).transitionKernel
+      availability.transitionKernel
     ) {
       const { inputs, outputs } = getTransitionTemplateArcs({
         transition,
@@ -923,10 +923,22 @@ export function createPetrinautActions(
 
   const sanitizeAllTransitions = (sdcpn: SDCPN): void => {
     for (const net of getAllMutableNets(sdcpn)) {
+      // One reader for the net: its places stay as they are while its
+      // transitions are settled.
+      const readAvailability = createTransitionLogicAvailabilityReader(
+        sdcpn,
+        extensions,
+        net,
+        readLibraries(),
+      );
       for (const transition of net.transitions) {
-        sanitizeTransition(transition, net, sdcpn, {
-          loadDefaultKernelWhenEmpty: true,
-        });
+        sanitizeTransition(
+          transition,
+          net,
+          sdcpn,
+          { loadDefaultKernelWhenEmpty: true },
+          readAvailability,
+        );
       }
     }
   };
