@@ -38,7 +38,9 @@ the built `@hashintel/petrinaut-core`. `lint:tsc` checks the components and
 Most components are static diagrams. An interactive one keeps the file a page
 imports small and loads the rest when the figure comes near the viewport, as
 `token-encoding-playground.tsx` does, so the page pays for it only when a
-reader reaches it.
+reader reaches it. The loader catches a failed request and shows a note in the
+figure: the site has no error boundary below the page, so a load that rejects
+would replace the whole guide.
 
 ## Deployment
 
