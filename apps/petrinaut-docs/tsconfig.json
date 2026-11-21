@@ -6,9 +6,7 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "preserve",
     "moduleResolution": "bundler",
-    "noEmit": true,
-    // The components import their stylesheets, which the site's Vite resolves.
-    "noUncheckedSideEffectImports": false
+    "noEmit": true
   },
-  "include": ["archinaut.config.ts", "content/components"]
+  "include": ["archinaut.config.ts", "content/components", "stylesheets.d.ts"]
 }
