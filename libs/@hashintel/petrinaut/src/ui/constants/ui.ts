@@ -15,7 +15,7 @@ export const SNAP_GRID_SIZE = GRID_SIZE;
 // Panel margin (spacing around panels)
 export const PANEL_MARGIN = 0;
 
-// Resize handle
+// Resize handle of a floating window
 export const RESIZE_HANDLE_SIZE = 5;
 export const RESIZE_HANDLE_OFFSET = -Math.floor(RESIZE_HANDLE_SIZE / 2) - 1;
 
@@ -24,11 +24,12 @@ export const MIN_LEFT_SIDEBAR_WIDTH = 220;
 export const MAX_LEFT_SIDEBAR_WIDTH = 500;
 
 // Properties Panel — right side (DEFAULT_PROPERTIES_PANEL_WIDTH in react/state/panel-defaults)
-export const MIN_AI_ASSISTANT_WIDTH = 320;
-export const MAX_AI_ASSISTANT_WIDTH = 720;
-
 export const MIN_PROPERTIES_PANEL_WIDTH = 250;
 export const MAX_PROPERTIES_PANEL_WIDTH = 800;
+
+// AI assistant, while it is docked beside the workspace
+export const MIN_AI_ASSISTANT_WIDTH = 320;
+export const MAX_AI_ASSISTANT_WIDTH = 720;
 
 // Viewport controls — the button column at the bottom right of the canvas.
 // The width is one `xs` icon button, rounded up from its rendered 21px.
