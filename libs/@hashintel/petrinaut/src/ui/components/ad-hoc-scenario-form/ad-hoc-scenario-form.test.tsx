@@ -19,6 +19,7 @@ import {
   LanguageClientContext,
 } from "../../../react/lsp/context";
 import { AdHocScenarioForm, FormLayoutColumn } from "./ad-hoc-scenario-form";
+import { useAdHocForm } from "./form-context";
 
 import type { AdHocFormSelection } from "./form-context";
 import type {
@@ -166,6 +167,18 @@ const LateHost: React.FC<{ initial: AdHocScenarioState }> = ({ initial }) => {
     />
   );
 };
+
+// A reader of the form's context that reports each of its renders. One
+// element for every render of the form, so the reader renders for a new
+// context value and for nothing else.
+const contextProbeRendered = vi.fn();
+const ContextProbe: React.FC = () => {
+  useAdHocForm();
+  contextProbeRendered();
+  return null;
+};
+const contextProbe = <ContextProbe />;
+const probeLayout = () => contextProbe;
 
 const colouredPlace = (state: AdHocScenarioState | undefined) => {
   const place = state?.places["place-pumps"];
@@ -1710,7 +1723,9 @@ describe.each([
       }),
     ).toBe(null);
   });
+});
 
+describe("what renders in AdHocScenarioForm", () => {
   it("renders no other place's table for an edit of a value", async () => {
     render(<Harness />);
     fireEvent.click(screen.getByRole("button", { name: "Queue › count" }));
@@ -1721,5 +1736,58 @@ describe.each([
     fireEvent.change(input, { target: { value: "24" } });
 
     expect(tokenTableRenders.count).toBe(before);
+  });
+
+  /** A host that builds its context and its definition anew on every render. */
+  const rebuildingHost = (
+    renderLayout?: React.ComponentProps<
+      typeof AdHocScenarioForm
+    >["renderLayout"],
+  ) => (
+    <AdHocScenarioForm
+      state={{
+        ...EMPTY_AD_HOC_STATE,
+        places: {
+          "place-pumps": {
+            kind: "coloured",
+            variables: [],
+            rows: [
+              {
+                kind: "fixed",
+                cells: [
+                  { expression: "1", optimize: null },
+                  { expression: "true", optimize: null },
+                ],
+              },
+            ],
+            sharedColumns: {},
+          },
+        },
+      }}
+      onChange={() => {}}
+      context={{ ...context }}
+      selection="optimize"
+      renderLayout={renderLayout}
+    />
+  );
+
+  it("renders no table when the host builds an equal definition again", () => {
+    const { rerender } = render(rebuildingHost());
+    expect(tokenTableRenders.count).toBeGreaterThan(0);
+    const before = tokenTableRenders.count;
+
+    rerender(rebuildingHost());
+
+    expect(tokenTableRenders.count).toBe(before);
+  });
+
+  it("renders no reader of its context when the host builds an equal context again", () => {
+    contextProbeRendered.mockClear();
+    const { rerender } = render(rebuildingHost(probeLayout));
+    expect(contextProbeRendered).toHaveBeenCalledTimes(1);
+
+    rerender(rebuildingHost(probeLayout));
+
+    expect(contextProbeRendered).toHaveBeenCalledTimes(1);
   });
 });

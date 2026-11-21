@@ -11,6 +11,8 @@
  * render only for a change.
  */
 
+import { useState } from "react";
+
 /** A list or a record: the definition is plain JSON data throughout. */
 const isCollection = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -54,4 +56,19 @@ export const shareContent = <Value>(previous: Value, next: Value): Value => {
     ? entries.map(([, value]) => value)
     : Object.fromEntries(entries);
   return shared as Value;
+};
+
+/**
+ * `given`, shared by content with the value this hook returned before.
+ * State adjusted during render: what to share with is the last value shown,
+ * which no prop carries.
+ */
+export const useSharedContent = <Value>(given: Value): Value => {
+  const [content, setContent] = useState({ given, shown: given });
+  if (content.given === given) {
+    return content.shown;
+  }
+  const shown = shareContent(content.shown, given);
+  setContent({ given, shown });
+  return shown;
 };

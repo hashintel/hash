@@ -33,7 +33,7 @@
  * the cells that read it (`dependency-highlight`).
  */
 
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { Toggle } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -56,7 +56,7 @@ import { AdHocFormContext } from "./form-context";
 import { ParameterRows } from "./parameter-rows";
 import { PlaceBlock } from "./place-block";
 import { ScenarioParameterRows } from "./scenario-parameter-rows";
-import { shareContent } from "./share-definition";
+import { useSharedContent } from "./share-definition";
 import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
 import { useAdHocFormHistory } from "./use-form-history";
 import { VariableRows } from "./variable-rows";
@@ -173,29 +173,13 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   className,
   sessionId: externalSessionId,
 }) => {
-  // The net context by its three parts. A host may hand over a new object
-  // with the same parts on every render: Simulation Settings does on every
-  // keystroke, where the compiler builds the object in a scope that also
-  // depends on the definition. Every cell reads the context, and the write
-  // path closes over it, so its identity must follow the parts alone; the
-  // compiler gives no such guarantee, hence the explicit memo.
+  // A host may build an equal definition or an equal context again on any
+  // render, and every cell reads both. The form shares the definition by
+  // content with the one it shows, and holds the context by its three parts:
+  // the compiler keeps this object while they stay the same.
+  const state = useSharedContent(givenState);
   const { netParameters, places, types } = givenContext;
-  const context = useMemo(
-    () => ({ netParameters, places, types }),
-    [netParameters, places, types],
-  );
-  // The definition the cells read: what the host gave, with every part that
-  // says what the form already shows kept as the object it shows. Adjusted
-  // during render when the host hands over a new definition.
-  const [definition, setDefinition] = useState({
-    given: givenState,
-    shown: givenState,
-  });
-  let state = definition.shown;
-  if (definition.given !== givenState) {
-    state = shareContent(definition.shown, givenState);
-    setDefinition({ given: givenState, shown: state });
-  }
+  const context = { netParameters, places, types };
   const sessionId = useAdHocLspSession(state, externalSessionId);
   const [showAllPlaces, setShowAllPlaces] = useState(false);
   const { diagnosticsByUri, requestFormatExpression } = use(
