@@ -541,8 +541,13 @@ export const useCanvasInteractions = (): CanvasInteractions => {
 
   const actions = useStableActions<CanvasActions>({
     enter: (id, { pressed, connecting }) => {
-      const waitsForRelease = pressed && !connecting;
-      (waitsForRelease ? pointer.hoverOnReleaseId : pointer.hoveredId).set(id);
+      if (pressed && !connecting) {
+        pointer.hoverOnReleaseId.set(id);
+      } else {
+        pointer.hoveredId.set(id);
+        // What waited for a release is no longer under the pointer.
+        pointer.hoverOnReleaseId.set(null);
+      }
     },
     hover: (id) => pointer.hoveredId.set(id),
     clearHover: () => {

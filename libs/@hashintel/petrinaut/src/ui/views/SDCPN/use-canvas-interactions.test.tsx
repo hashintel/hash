@@ -236,6 +236,17 @@ describe("the hover of what the pointer comes onto", () => {
     expect(hoveredId()).toBe("store");
   });
 
+  it("forgets the item that waited once another one is hovered", () => {
+    const { interactions, hoveredId } = renderInteractions();
+
+    // A release the canvas did not hear, then the pointer back on another item.
+    interactions.enter("store", pressed);
+    interactions.enter("t", free);
+    interactions.releasePointer();
+
+    expect(hoveredId()).toBe("t");
+  });
+
   it("is the node a connection is drawn onto, at once", () => {
     const { interactions, hoveredId } = renderInteractions();
 
