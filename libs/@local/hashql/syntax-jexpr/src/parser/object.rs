@@ -1,11 +1,11 @@
 use text_size::TextRange;
 
 use super::{
-    Grammar, Parser,
+    Grammar, Parser, dict,
     recovery::{self, ContainerStep},
 };
 use crate::{
-    error::SyntaxErrorKind,
+    error::{ConstructorKind, EofContext, ObjectErrorKind, SyntaxErrorKind, ValueKind},
     lexer::ScannedToken,
     syntax_kind::{SyntaxKind, T},
     syntax_kind_set::SyntaxKindSet,
@@ -21,14 +21,18 @@ enum PrimaryKind {
 }
 
 impl PrimaryKind {
-    const fn key(self) -> &'static str {
+    const fn as_constructor(self) -> ConstructorKind {
         match self {
-            Self::Literal => "#literal",
-            Self::Struct => "#struct",
-            Self::Tuple => "#tuple",
-            Self::List => "#list",
-            Self::Dict => "#dict",
+            Self::Literal => ConstructorKind::Literal,
+            Self::Struct => ConstructorKind::Struct,
+            Self::Tuple => ConstructorKind::Tuple,
+            Self::List => ConstructorKind::List,
+            Self::Dict => ConstructorKind::Dict,
         }
+    }
+
+    const fn key(self) -> &'static str {
+        self.as_constructor().key()
     }
 
     const fn node_kind(self) -> SyntaxKind {
@@ -69,9 +73,9 @@ pub(crate) fn parse_object<G: Grammar>(parser: &mut Parser<'_, G>) {
     let mut index = 0_usize;
 
     loop {
-        match recovery::next_object_entry(parser, index) {
+        match recovery::next_object_entry(parser, open, index) {
             ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item => {
+            ContainerStep::Item { .. } => {
                 index += 1;
                 let key = parser.current().expect("next_object_entry guarantees key");
                 parse_object_field(
@@ -90,13 +94,21 @@ pub(crate) fn parse_object<G: Grammar>(parser: &mut Parser<'_, G>) {
     } else {
         if let Some((_, field_range)) = type_field {
             if !has_unknown_or_error && parser.error_count() == err_start {
-                parser.error(field_range, SyntaxErrorKind::OrphanedType);
+                parser.error(
+                    field_range,
+                    SyntaxErrorKind::Object(ObjectErrorKind::OrphanedType),
+                );
             }
         } else if index == 0 && !has_unknown_or_error && parser.error_count() == err_start {
             let range = TextRange::new(open.start(), parser.last_token_end());
-            parser.error(range, SyntaxErrorKind::EmptyObject);
+            parser.error(
+                range,
+                SyntaxErrorKind::Object(ObjectErrorKind::Empty {
+                    allow_type_annotations: G::ALLOW_TYPE_ANNOTATIONS,
+                }),
+            );
         } else {
-            // An unknown field or lexer error already explained why no constructor was formed.
+            // An unknown field or lexer error already explained why the object has no constructor.
         }
         SyntaxKind::JsonObject
     };
@@ -127,25 +139,22 @@ fn parse_object_field<G: Grammar>(
             Some((existing, first_range)) if existing == kind => {
                 parser.error(
                     key.range,
-                    SyntaxErrorKind::DuplicateKey {
+                    SyntaxErrorKind::Object(ObjectErrorKind::DuplicateKey {
                         first: first_range,
                         key: existing.key(),
-                    },
+                    }),
                 );
                 parse_unknown_field(parser);
             }
-            Some(_) => {
-                let expected = if G::ALLOW_TYPE_ANNOTATIONS && type_field.is_none() {
-                    TYPE_ONLY_KEYS
-                } else {
-                    &[]
-                };
+            Some((existing, existing_range)) => {
                 parser.error(
                     key.range,
-                    SyntaxErrorKind::UnknownKey {
-                        key: decoded.into_owned(),
-                        expected,
-                    },
+                    SyntaxErrorKind::Object(ObjectErrorKind::ConflictingConstructor {
+                        existing: existing.as_constructor(),
+                        existing_range,
+                        found: kind.as_constructor(),
+                        allow_type: G::ALLOW_TYPE_ANNOTATIONS && type_field.is_none(),
+                    }),
                 );
                 *has_unknown_or_error = true;
                 parse_unknown_field(parser);
@@ -158,10 +167,10 @@ fn parse_object_field<G: Grammar>(
         if let Some((first_range, _)) = *type_field {
             parser.error(
                 key.range,
-                SyntaxErrorKind::DuplicateKey {
+                SyntaxErrorKind::Object(ObjectErrorKind::DuplicateKey {
                     first: first_range,
                     key: "#type",
-                },
+                }),
             );
             parse_unknown_field(parser);
         } else {
@@ -171,6 +180,7 @@ fn parse_object_field<G: Grammar>(
         return;
     }
 
+    let type_annotations_disallowed = !G::ALLOW_TYPE_ANNOTATIONS && decoded == "#type";
     let expected = if primary.is_some() {
         if G::ALLOW_TYPE_ANNOTATIONS && type_field.is_none() {
             TYPE_ONLY_KEYS
@@ -185,10 +195,12 @@ fn parse_object_field<G: Grammar>(
 
     parser.error(
         key.range,
-        SyntaxErrorKind::UnknownKey {
+        SyntaxErrorKind::Object(ObjectErrorKind::UnknownKey {
             key: decoded.into_owned(),
             expected,
-        },
+            primary_key: primary.map(|(kind, range)| (kind.as_constructor(), range)),
+            type_annotations_disallowed,
+        }),
     );
     *has_unknown_or_error = true;
     parse_unknown_field(parser);
@@ -199,9 +211,12 @@ fn parse_primary_field<G: Grammar>(parser: &mut Parser<'_, G>, kind: PrimaryKind
         PrimaryKind::Literal => parse_constructor_field(
             parser,
             SyntaxKind::LiteralField,
+            ConstructorKind::Literal,
             SyntaxKindSet::VALUE,
-            |found| SyntaxErrorKind::LiteralExpectedPrimitive { found },
-            |parser, token_kind| {
+            |key, found| {
+                SyntaxErrorKind::Object(ObjectErrorKind::LiteralExpectedPrimitive { key, found })
+            },
+            |parser, _, token_kind| {
                 parser.start_node(SyntaxKind::LiteralValue);
                 parser.bump(token_kind);
                 parser.finish_node();
@@ -210,36 +225,48 @@ fn parse_primary_field<G: Grammar>(parser: &mut Parser<'_, G>, kind: PrimaryKind
         PrimaryKind::Struct => parse_constructor_field(
             parser,
             SyntaxKind::StructField,
+            ConstructorKind::Struct,
             SyntaxKindSet::from_kind(T!['{']),
-            |found| SyntaxErrorKind::StructExpectedObject { found },
-            |parser, _| parse_struct_body(parser),
+            |key, found| {
+                SyntaxErrorKind::Object(ObjectErrorKind::StructExpectedObject { key, found })
+            },
+            |parser, _, _| parse_struct_body(parser),
         ),
         PrimaryKind::Tuple => parse_constructor_field(
             parser,
             SyntaxKind::TupleField,
+            ConstructorKind::Tuple,
             SyntaxKindSet::from_kind(T!['[']),
-            |found| SyntaxErrorKind::TupleExpectedArray { found },
-            |parser, _| {
+            |key, found| {
+                SyntaxErrorKind::Object(ObjectErrorKind::TupleExpectedArray { key, found })
+            },
+            |parser, _, _| {
                 parse_sequence_body(parser, SyntaxKind::TupleBody, SyntaxKind::TupleElement);
             },
         ),
         PrimaryKind::List => parse_constructor_field(
             parser,
             SyntaxKind::ListField,
+            ConstructorKind::List,
             SyntaxKindSet::from_kind(T!['[']),
-            |found| SyntaxErrorKind::ListExpectedArray { found },
-            |parser, _| parse_sequence_body(parser, SyntaxKind::ListBody, SyntaxKind::ListElement),
+            |key, found| SyntaxErrorKind::Object(ObjectErrorKind::ListExpectedArray { key, found }),
+            |parser, _, _| {
+                parse_sequence_body(parser, SyntaxKind::ListBody, SyntaxKind::ListElement);
+            },
         ),
         PrimaryKind::Dict => parse_constructor_field(
             parser,
             SyntaxKind::DictField,
+            ConstructorKind::Dict,
             SyntaxKindSet::OPENING_DELIMITER,
-            |found| SyntaxErrorKind::DictExpectedFormat { found },
-            |parser, kind| {
-                if kind == T!['{'] {
-                    parse_dict_object_body(parser);
+            |key, found| {
+                SyntaxErrorKind::Object(ObjectErrorKind::DictExpectedFormat { key, found })
+            },
+            |parser, key_range, token_kind| {
+                if token_kind == T!['{'] {
+                    dict::parse_dict_object_body(parser);
                 } else {
-                    parse_dict_array_body(parser);
+                    dict::parse_dict_array_body(parser, key_range);
                 }
             },
         ),
@@ -249,30 +276,45 @@ fn parse_primary_field<G: Grammar>(parser: &mut Parser<'_, G>, kind: PrimaryKind
 fn parse_constructor_field<G: Grammar>(
     parser: &mut Parser<'_, G>,
     field_kind: SyntaxKind,
+    constructor: ConstructorKind,
     expected: SyntaxKindSet,
-    make_mismatch: impl FnOnce(SyntaxKind) -> SyntaxErrorKind,
-    parse_body: impl FnOnce(&mut Parser<'_, G>, SyntaxKind),
+    make_mismatch: impl FnOnce(TextRange, Option<ValueKind>) -> SyntaxErrorKind,
+    parse_body: impl FnOnce(&mut Parser<'_, G>, TextRange, SyntaxKind),
 ) {
     parser.start_node(field_kind);
-    parser.bump(T![string]);
+    let key_range = parser.bump(T![string]).range;
 
-    if recovery::expect_colon(parser) {
+    if recovery::expect_colon(parser, key_range) {
         match parser.current() {
             None => {
-                let eof = parser.eof_range();
-                parser.error(eof, SyntaxErrorKind::UnexpectedEof { expected });
+                parser.record_eof(
+                    expected,
+                    EofContext::FieldValue {
+                        key: key_range,
+                        constructor: Some(constructor),
+                    },
+                );
             }
-            Some(token) if expected.contains(token.kind) => parse_body(parser, token.kind),
+            Some(token) if expected.contains(token.kind) => {
+                parse_body(parser, key_range, token.kind);
+            }
             Some(token) if token.kind == SyntaxKind::InvalidToken => {
                 parser.start_node(SyntaxKind::Error);
                 parser.bump(SyntaxKind::InvalidToken);
                 parser.finish_node();
             }
+            Some(token) if matches!(token.kind, T![,] | T!['}'] | T![']']) => {
+                parser.error(
+                    TextRange::empty(token.range.start()),
+                    make_mismatch(key_range, None),
+                );
+            }
             Some(token) => {
-                parser.error(token.range, make_mismatch(token.kind));
-                if !matches!(token.kind, T![,] | T!['}'] | T![']']) {
-                    recovery::parse_json_value(parser);
-                }
+                let start = token.range.start();
+                let found = ValueKind::from_syntax_kind(token.kind);
+                recovery::parse_json_value(parser);
+                let value_range = TextRange::new(start, parser.last_token_end());
+                parser.error(value_range, make_mismatch(key_range, found));
             }
         }
     }
@@ -290,9 +332,10 @@ fn parse_type_field<G: Grammar>(parser: &mut Parser<'_, G>) -> TextRange {
     parse_constructor_field(
         parser,
         SyntaxKind::TypeField,
+        ConstructorKind::Type,
         SyntaxKindSet::from_kind(T![string]),
-        |found| SyntaxErrorKind::TypeExpectedString { found },
-        |parser, _| {
+        |key, found| SyntaxErrorKind::Object(ObjectErrorKind::TypeExpectedString { key, found }),
+        |parser, _, _| {
             parser.start_node(SyntaxKind::TypeAnnotation);
             parser.bump(T![string]);
             parser.finish_node();
@@ -304,8 +347,8 @@ fn parse_type_field<G: Grammar>(parser: &mut Parser<'_, G>) -> TextRange {
 
 fn parse_unknown_field<G: Grammar>(parser: &mut Parser<'_, G>) {
     parser.start_node(SyntaxKind::UnknownField);
-    parser.bump(T![string]);
-    if recovery::expect_colon(parser)
+    let key_range = parser.bump(T![string]).range;
+    if recovery::expect_colon(parser, key_range)
         && !matches!(
             parser.current().map(|tok| tok.kind),
             None | Some(T![,] | T!['}'] | T![']'])
@@ -318,17 +361,17 @@ fn parse_unknown_field<G: Grammar>(parser: &mut Parser<'_, G>) {
 
 fn parse_struct_body<G: Grammar>(parser: &mut Parser<'_, G>) {
     parser.start_node(SyntaxKind::StructBody);
-    parser.bump(T!['{']);
+    let open = parser.bump(T!['{']).range;
 
     let mut index = 0_usize;
     loop {
-        match recovery::next_object_entry(parser, index) {
+        match recovery::next_object_entry(parser, open, index) {
             ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item => {
+            ContainerStep::Item { .. } => {
                 index += 1;
                 parser.start_node(SyntaxKind::StructEntry);
-                parser.bump(T![string]);
-                if recovery::expect_colon(parser) {
+                let key_range = parser.bump(T![string]).range;
+                if recovery::expect_colon(parser, key_range) {
                     G::parse_item(parser);
                 }
                 parser.finish_node();
@@ -345,126 +388,20 @@ fn parse_sequence_body<G: Grammar>(
     element_kind: SyntaxKind,
 ) {
     parser.start_node(body_kind);
-    parser.bump(T!['[']);
+    let open = parser.bump(T!['[']).range;
 
     let mut index = 0_usize;
     loop {
-        match recovery::next_array_element(parser, index, |kind| G::ITEM_FIRST.contains(kind)) {
+        match recovery::next_array_element(parser, open, index, |kind| G::ITEM_FIRST.contains(kind))
+        {
             ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item => {
+            ContainerStep::Item { .. } => {
                 index += 1;
                 parser.start_node(element_kind);
                 G::parse_item(parser);
                 parser.finish_node();
             }
         }
-    }
-
-    parser.finish_node();
-}
-
-fn parse_dict_object_body<G: Grammar>(parser: &mut Parser<'_, G>) {
-    parser.start_node(SyntaxKind::DictObjectBody);
-    parser.bump(T!['{']);
-
-    let mut index = 0_usize;
-    loop {
-        match recovery::next_object_entry(parser, index) {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item => {
-                index += 1;
-                parser.start_node(SyntaxKind::DictObjectEntry);
-                parser.bump(T![string]);
-                if recovery::expect_colon(parser) {
-                    G::parse_item(parser);
-                }
-                parser.finish_node();
-            }
-        }
-    }
-
-    parser.finish_node();
-}
-
-fn parse_dict_array_body<G: Grammar>(parser: &mut Parser<'_, G>) {
-    parser.start_node(SyntaxKind::DictArrayBody);
-    parser.bump(T!['[']);
-
-    let mut index = 0_usize;
-    loop {
-        match recovery::next_array_element(parser, index, |kind| kind == T!['[']) {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item => {
-                index += 1;
-                parse_dict_array_entry(parser);
-            }
-        }
-    }
-
-    parser.finish_node();
-}
-
-fn parse_dict_array_entry<G: Grammar>(parser: &mut Parser<'_, G>) {
-    let Some(token) = parser.current() else {
-        return;
-    };
-
-    if token.kind == SyntaxKind::InvalidToken {
-        parser.start_node(SyntaxKind::DictArrayEntry);
-        parser.start_node(SyntaxKind::Error);
-        parser.bump(SyntaxKind::InvalidToken);
-        parser.finish_node();
-        parser.finish_node();
-        return;
-    }
-
-    if token.kind != T!['['] {
-        parser.error(
-            token.range,
-            SyntaxErrorKind::DictEntryExpectedArray { found: token.kind },
-        );
-        parser.start_node(SyntaxKind::DictArrayEntry);
-        recovery::parse_json_value(parser);
-        parser.finish_node();
-        return;
-    }
-
-    parser.start_node(SyntaxKind::DictArrayEntry);
-    let open = parser.bump(T!['[']).range;
-    let err_start = parser.error_count();
-
-    let mut count = 0_usize;
-    let mut excess = Vec::new();
-
-    loop {
-        match recovery::next_array_element(parser, count, |kind| G::ITEM_FIRST.contains(kind)) {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item => {
-                let item_start = parser.current().map(|tok| tok.range.start());
-                G::parse_item(parser);
-                if count >= 2
-                    && let Some(start) = item_start
-                {
-                    excess.push(TextRange::new(start, parser.last_token_end()));
-                }
-                count += 1;
-            }
-        }
-    }
-
-    if let Some((&first_excess, rest)) = excess.split_first() {
-        parser.error(
-            first_excess,
-            SyntaxErrorKind::DictEntryTooManyItems(rest.to_vec()),
-        );
-    } else if count < 2 && parser.error_count() == err_start {
-        let range = TextRange::new(open.start(), parser.last_token_end());
-        parser.error(
-            range,
-            SyntaxErrorKind::DictEntryTooFewItems { found: count },
-        );
-    } else {
-        // Entry has two elements or already reported an inner syntax error.
     }
 
     parser.finish_node();

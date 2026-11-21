@@ -1,9 +1,8 @@
 use core::fmt::{self, Display};
 
-use hashql_core::id::bit_vec::FiniteBitSet;
-
 use crate::lexer::{
-    LexError, lex_block_comment, lex_invalid_word, lex_line_comment, lex_number, lex_string,
+    LexError, lex_block_comment, lex_invalid_word, lex_line_comment, lex_number,
+    lex_single_quoted_string, lex_string,
 };
 
 #[derive(
@@ -16,7 +15,7 @@ pub enum SyntaxKind {
     // Syntactic JSON tokens (ordered for diagnostic display)
     #[token("\"", lex_string)]
     String,
-    #[regex(r"[0-9-]", lex_number)]
+    #[regex(r"[0-9-]|\.[0-9]|\+[0-9]", lex_number)]
     Number,
     #[token("true")]
     True,
@@ -48,6 +47,7 @@ pub enum SyntaxKind {
 
     /// Malformed number or unrecognized input preserved for lossless recovery.
     #[regex(r"[A-Za-z_][A-Za-z0-9_]*", lex_invalid_word)]
+    #[token("'", lex_single_quoted_string)]
     InvalidToken,
 
     /// Document root, retaining leading and trailing trivia.
@@ -104,6 +104,8 @@ pub enum SyntaxKind {
 }
 
 impl SyntaxKind {
+    /// Converts a raw Rowan kind tag into a [`SyntaxKind`].
+    ///
     /// # Panics
     ///
     /// Panics if `raw` does not match a defined [`SyntaxKind`] discriminant.

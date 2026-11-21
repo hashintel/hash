@@ -7,7 +7,7 @@ pub(crate) mod string;
 
 pub(crate) use self::{
     number::{Number, ParseNumberError, ParseNumberErrorKind},
-    string::{StringError, decode_quoted},
+    string::{LexedStr, StringError, decode_quoted},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
@@ -16,7 +16,9 @@ pub enum LexError {
         error: StringError,
         range: TextRange,
     },
+    SingleQuotedString,
     Number(ParseNumberError),
+    InvalidWord,
     UnterminatedBlockComment,
     #[default]
     UnrecognizedCharacter,
@@ -59,10 +61,10 @@ pub(crate) fn lex_block_comment(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Res
 #[inline]
 pub(crate) fn lex_string(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(), LexError> {
     let start = lexer.span().start as u32;
-    match string::validate(lexer.remainder()) {
-        Ok((consumed, has_escapes)) => {
-            lexer.bump(consumed);
-            lexer.extras = has_escapes;
+    match LexedStr::new(lexer.remainder()) {
+        Ok(string) => {
+            lexer.bump(string.consumed());
+            lexer.extras = string.has_escapes();
             Ok(())
         }
         Err(err) => {
@@ -70,7 +72,10 @@ pub(crate) fn lex_string(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(),
             lexer.extras = false;
             Err(LexError::String {
                 error: err.kind,
-                range: TextRange::empty(TextSize::new(start + 1 + err.offset as u32)),
+                range: TextRange::new(
+                    TextSize::new(start + 1 + err.span.start as u32),
+                    TextSize::new(start + 1 + err.span.end as u32),
+                ),
             })
         }
     }
@@ -83,17 +88,17 @@ pub(crate) fn lex_string(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(),
 #[inline]
 pub(crate) fn lex_number(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(), LexError> {
     let start = lexer.span().start;
+    let already_consumed = lexer.span().len();
     let slice = &lexer.source().as_bytes()[start..];
     match Number::parse(slice) {
         Ok(number) => {
-            // The leading `[0-9-]` byte was already consumed by the regex.
-            lexer.bump(number.as_str().len() - 1);
+            lexer.bump(number.as_str().len() - already_consumed);
             Ok(())
         }
         Err(mut error) => {
             error.range += TextSize::new(start as u32);
             // Consume the malformed number run so recovery does not re-fail on its tail.
-            let extra = slice[1..]
+            let extra = slice[already_consumed..]
                 .iter()
                 .take_while(|byte| matches!(byte, b'0'..=b'9' | b'.' | b'e' | b'E' | b'+' | b'-'))
                 .count();
@@ -105,6 +110,34 @@ pub(crate) fn lex_number(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(),
 
 // Consumes an entire bare ASCII word as one invalid token instead of failing per character.
 pub(crate) const fn lex_invalid_word(_: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(), LexError> {
+    Err(LexError::InvalidWord)
+}
+
+// Consumes a single-line `'...'` string as one invalid token when a closing `'` exists on the same
+// line. An unmatched `'` falls back to an unrecognized character so later tokens stay intact.
+pub(crate) fn lex_single_quoted_string(
+    lexer: &mut logos::Lexer<'_, SyntaxKind>,
+) -> Result<(), LexError> {
+    let remainder = lexer.remainder().as_bytes();
+    let mut index = 0;
+    while index < remainder.len() {
+        match remainder[index] {
+            b'\'' => {
+                lexer.bump(index + 1);
+                return Err(LexError::SingleQuotedString);
+            }
+            b'\\' => {
+                if index + 1 < remainder.len() && !matches!(remainder[index + 1], b'\n' | b'\r') {
+                    index += 2;
+                } else {
+                    return Err(LexError::UnrecognizedCharacter);
+                }
+            }
+            b'\n' | b'\r' => return Err(LexError::UnrecognizedCharacter),
+            _ => index += 1,
+        }
+    }
+
     Err(LexError::UnrecognizedCharacter)
 }
 
@@ -114,6 +147,8 @@ pub(crate) struct Lexer<'source> {
 }
 
 impl<'source> Lexer<'source> {
+    /// Creates a streaming lexer over `source`, requiring its byte length to fit in `u32`.
+    ///
     /// # Panics
     ///
     /// Panics if `source.len()` exceeds `u32::MAX` bytes.
@@ -170,9 +205,10 @@ impl<'source> Lexer<'source> {
                 let kind = match error {
                     LexError::String { .. } => SyntaxKind::String,
                     LexError::UnterminatedBlockComment => SyntaxKind::BlockComment,
-                    LexError::Number(_) | LexError::UnrecognizedCharacter => {
-                        SyntaxKind::InvalidToken
-                    }
+                    LexError::SingleQuotedString
+                    | LexError::Number(_)
+                    | LexError::InvalidWord
+                    | LexError::UnrecognizedCharacter => SyntaxKind::InvalidToken,
                 };
                 Some(ScannedToken {
                     kind,
@@ -289,9 +325,20 @@ mod tests {
         let tokens = lex_significant("true truex false null");
         assert_eq!(tokens[0].kind, SyntaxKind::True);
         assert_eq!(tokens[1].kind, SyntaxKind::InvalidToken);
-        assert_eq!(tokens[1].error, Some(LexError::UnrecognizedCharacter));
+        assert_eq!(tokens[1].error, Some(LexError::InvalidWord));
         assert_eq!(tokens[2].kind, SyntaxKind::False);
         assert_eq!(tokens[3].kind, SyntaxKind::Null);
+    }
+
+    #[test]
+    fn single_quoted_and_prefixed_numbers_lex_as_single_tokens() {
+        let tokens = lex_significant("'hello' +42 .5 'unterminated");
+        assert_eq!(tokens.len(), 5);
+        assert_eq!(tokens[0].error, Some(LexError::SingleQuotedString));
+        assert_matches!(tokens[1].error, Some(LexError::Number(_)));
+        assert_matches!(tokens[2].error, Some(LexError::Number(_)));
+        assert_eq!(tokens[3].error, Some(LexError::UnrecognizedCharacter));
+        assert_eq!(tokens[4].error, Some(LexError::InvalidWord));
     }
 
     #[test]

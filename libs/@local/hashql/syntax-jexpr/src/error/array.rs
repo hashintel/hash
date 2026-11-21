@@ -2,14 +2,13 @@ use alloc::borrow::Cow;
 
 use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{
-    Diagnostic, Label,
+    Diagnostic, Label, Patch, Suggestions,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
     severity::Critical,
 };
 use winnow::error::ContextError;
 
-use super::lexer::LexerDiagnosticCategory;
 use crate::{embedded::error::convert_parse_error, span::Span};
 
 pub(crate) type ArrayDiagnostic<K = Critical> = Diagnostic<ArrayDiagnosticCategory, SpanId, K>;
@@ -52,7 +51,6 @@ const LABELED_ARGUMENT_INVALID_IDENTIFIER: TerminalDiagnosticCategory =
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ArrayDiagnosticCategory {
-    Lexer(LexerDiagnosticCategory),
     LeadingComma,
     TrailingComma,
     ConsecutiveComma,
@@ -65,51 +63,17 @@ pub enum ArrayDiagnosticCategory {
     LabeledArgumentInvalidIdentifier,
 }
 
-impl ArrayDiagnosticCategory {
-    pub(crate) fn hoist(&self) -> &dyn DiagnosticCategory {
-        match self {
-            Self::Lexer(category) => category.subcategory().unwrap_or(category),
-            Self::LeadingComma
-            | Self::TrailingComma
-            | Self::ConsecutiveComma
-            | Self::Empty
-            | Self::LabeledArgumentMissingPrefix
-            | Self::LabeledArgumentLengthMismatch
-            | Self::LabeledArgumentInvalidIdentifier => self,
-        }
-    }
-}
-
 impl DiagnosticCategory for ArrayDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
-        match self {
-            Self::Lexer(category) => category.id(),
-            Self::LeadingComma
-            | Self::TrailingComma
-            | Self::ConsecutiveComma
-            | Self::Empty
-            | Self::LabeledArgumentMissingPrefix
-            | Self::LabeledArgumentLengthMismatch
-            | Self::LabeledArgumentInvalidIdentifier => Cow::Borrowed("array"),
-        }
+        Cow::Borrowed("array")
     }
 
     fn name(&self) -> Cow<'_, str> {
-        match self {
-            Self::Lexer(category) => category.name(),
-            Self::LeadingComma
-            | Self::TrailingComma
-            | Self::ConsecutiveComma
-            | Self::Empty
-            | Self::LabeledArgumentMissingPrefix
-            | Self::LabeledArgumentLengthMismatch
-            | Self::LabeledArgumentInvalidIdentifier => Cow::Borrowed("Array"),
-        }
+        Cow::Borrowed("Array")
     }
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
-            Self::Lexer(category) => category.subcategory(),
             Self::LeadingComma => Some(&LEADING_COMMA),
             Self::TrailingComma => Some(&TRAILING_COMMA),
             Self::ConsecutiveComma => Some(&CONSECUTIVE_COMMA),
@@ -121,100 +85,152 @@ impl DiagnosticCategory for ArrayDiagnosticCategory {
     }
 }
 
-impl From<LexerDiagnosticCategory> for ArrayDiagnosticCategory {
-    #[inline]
-    fn from(value: LexerDiagnosticCategory) -> Self {
-        Self::Lexer(value)
-    }
-}
+const MAX_EXTRA_LABELS: usize = 2;
 
-const EMPTY_HELP: &str = r##"In J-Expr syntax, arrays must contain at least one element that represents the function to be called. For example: ["add", {"#literal": 1}, {"#literal": 2}] calls the 'add' function with arguments 1 and 2."##;
+const EMPTY_HELP: &str =
+    r##"add a function expression as the first element, or use `{"#list": []}` for an empty list"##;
 
-const EMPTY_NOTE: &str = r##"Valid examples:
-- `["get", "user"]` - Calls 'get' with argument 'user'
-- `["map", "identity", [{"#literal": 1}, {"#literal": 2}, {"#literal": 3}]]` - Calls 'map' with a function and array
-"##;
+const EMPTY_NOTE: &str = r##"in J-Expr, bare arrays represent function calls whose first element is the callee:
+- `["get", "user"]` calls `get` with `user`
+- `{"#list": []}` constructs an empty list
+- `{"#tuple": []}` constructs an empty tuple"##;
 
 pub(crate) fn empty(span: SpanId) -> ArrayDiagnostic {
-    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::Empty, Critical::ERROR)
-        .primary(Label::new(span, "Empty array not allowed"));
+    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::Empty, Critical::ERROR).primary(
+        Label::new(span, "empty arrays are not allowed as expressions"),
+    );
     diagnostic.add_message(Message::help(EMPTY_HELP));
     diagnostic.add_message(Message::note(EMPTY_NOTE));
     diagnostic
 }
 
-const TRAILING_COMMA_HELP: &str = "J-Expr does not support trailing commas in arrays. Use \
-                                   `[item1, item2]` instead of `[item1, item2,]`";
-
-pub(crate) fn trailing_commas(first: SpanId, rest: &[SpanId]) -> ArrayDiagnostic {
+pub(crate) fn trailing_commas(
+    first: SpanId,
+    rest: &[SpanId],
+    patch_span: Option<SpanId>,
+) -> ArrayDiagnostic {
     let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::TrailingComma, Critical::ERROR)
-        .primary(Label::new(first, "Remove this trailing comma"));
-    for &span in rest {
-        diagnostic
-            .labels
-            .push(Label::new(span, "... and this trailing comma"));
+        .primary(Label::new(first, "trailing comma is not allowed in arrays"));
+
+    for &span in rest.iter().take(MAX_EXTRA_LABELS) {
+        diagnostic.add_label(Label::new(span, "additional trailing comma"));
     }
-    diagnostic.add_message(Message::help(TRAILING_COMMA_HELP));
+
+    let help_text = if rest.is_empty() {
+        "remove the trailing comma"
+    } else {
+        "remove the trailing commas"
+    };
+    if let Some(patch_span) = patch_span {
+        let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
+        diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
+    } else {
+        diagnostic.add_message(Message::help(help_text));
+    }
+
+    diagnostic.add_message(Message::note(
+        "J-Expr follows JSON syntax, which does not allow trailing commas",
+    ));
     diagnostic
 }
 
-const LEADING_COMMA_HELP: &str =
-    "J-Expr does not support leading commas in arrays. Use `[item1, item2]` format.";
-
-pub(crate) fn leading_commas(first: SpanId, rest: &[SpanId]) -> ArrayDiagnostic {
+pub(crate) fn leading_commas(
+    first: SpanId,
+    rest: &[SpanId],
+    patch_span: Option<SpanId>,
+) -> ArrayDiagnostic {
     let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::LeadingComma, Critical::ERROR)
-        .primary(Label::new(first, "Remove this leading comma"));
-    for &span in rest {
-        diagnostic
-            .labels
-            .push(Label::new(span, "... and this leading comma"));
+        .primary(Label::new(first, "leading comma is not allowed in arrays"));
+
+    for &span in rest.iter().take(MAX_EXTRA_LABELS) {
+        diagnostic.add_label(Label::new(span, "additional leading comma"));
     }
-    diagnostic.add_message(Message::help(LEADING_COMMA_HELP));
+
+    let help_text = if rest.is_empty() {
+        "remove the leading comma"
+    } else {
+        "remove the leading commas"
+    };
+    if let Some(patch_span) = patch_span {
+        let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
+        diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
+    } else {
+        diagnostic.add_message(Message::help(help_text));
+    }
+
+    diagnostic.add_message(Message::note(
+        "J-Expr follows JSON syntax, which does not allow leading commas",
+    ));
     diagnostic
 }
 
-const CONSECUTIVE_COMMA_HELP: &str =
-    "J-Expr requires exactly one comma between array elements. Use `[item1, item2, item3]` format.";
-
-pub(crate) fn consecutive_commas(first: SpanId, rest: &[SpanId]) -> ArrayDiagnostic {
+pub(crate) fn consecutive_commas(
+    first: SpanId,
+    rest: &[SpanId],
+    patch_span: Option<SpanId>,
+) -> ArrayDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(ArrayDiagnosticCategory::ConsecutiveComma, Critical::ERROR)
-            .primary(Label::new(first, "Remove this extra comma"));
-    for &span in rest {
-        diagnostic
-            .labels
-            .push(Label::new(span, "... and this extra comma"));
+        Diagnostic::new(ArrayDiagnosticCategory::ConsecutiveComma, Critical::ERROR).primary(
+            Label::new(first, "consecutive comma is not allowed in arrays"),
+        );
+
+    for &span in rest.iter().take(MAX_EXTRA_LABELS) {
+        diagnostic.add_label(Label::new(span, "additional extra comma"));
     }
-    diagnostic.add_message(Message::help(CONSECUTIVE_COMMA_HELP));
+
+    let help_text = if rest.is_empty() {
+        "remove the extra comma"
+    } else {
+        "remove the extra commas"
+    };
+    if let Some(patch_span) = patch_span {
+        let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
+        diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
+    } else {
+        diagnostic.add_message(Message::help(help_text));
+    }
+
+    diagnostic.add_message(Message::note(
+        "array elements must be separated by a single comma",
+    ));
     diagnostic
 }
 
-const LABELED_ARGUMENT_PREFIX_NOTE: &str = r#"In J-Expr, labeled arguments use the format:
-- `["function", {":label": value}]`
-- `["function", {":label1": value1}, {":label2": value2}]`
-- `["function", ":variable1"]`
+const LABELED_ARGUMENT_NOTE: &str =
+    r#"labeled arguments use `{":label": value}` (one entry per object) or shorthand `":label"`"#;
 
-The colon prefix (':') is required to distinguish labeled arguments from positional arguments."#;
-
-pub(crate) fn labeled_argument_missing_prefix(span: SpanId, actual: &str) -> ArrayDiagnostic {
+pub(crate) fn labeled_argument_missing_prefix(
+    span: SpanId,
+    insert_span: Option<SpanId>,
+    actual: &str,
+) -> ArrayDiagnostic {
+    let escaped = actual.escape_debug();
     let mut diagnostic = Diagnostic::new(
         ArrayDiagnosticCategory::LabeledArgumentMissingPrefix,
         Critical::ERROR,
     )
-    .primary(Label::new(span, "Missing ':' prefix"));
+    .primary(Label::new(
+        span,
+        format!("labeled argument key `{escaped}` must start with `:`"),
+    ));
 
-    let help_message = format!(
-        "Add ':' prefix to '{}' to make it a valid labeled argument",
-        actual.escape_debug()
-    );
-    diagnostic.add_message(Message::help(help_message));
-    diagnostic.add_message(Message::note(LABELED_ARGUMENT_PREFIX_NOTE));
+    let help_text = format!("prefix `{escaped}` with `:`");
+    if let Some(insert_span) = insert_span {
+        let suggestion = Suggestions::patch(Patch::new(insert_span, ":"));
+        diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
+    } else {
+        diagnostic.add_message(Message::help(help_text));
+    }
+
+    diagnostic.add_message(Message::note(LABELED_ARGUMENT_NOTE));
     diagnostic
 }
 
 pub(crate) fn labeled_arguments_length_mismatch(
-    span: SpanId,
-    extra: impl IntoIterator<Item = SpanId>,
+    primary: SpanId,
+    first_entry: Option<SpanId>,
+    extra: &[SpanId],
+    split_comma: Option<SpanId>,
     count: usize,
 ) -> ArrayDiagnostic {
     let diagnostic = Diagnostic::new(
@@ -222,55 +238,100 @@ pub(crate) fn labeled_arguments_length_mismatch(
         Critical::ERROR,
     );
 
-    let mut diagnostic = if count == 0 {
-        diagnostic.primary(Label::new(span, "Add exactly one key-value pair"))
-    } else {
+    if count == 0 {
         let mut diagnostic = diagnostic.primary(Label::new(
-            span,
-            "This object contains additional arguments",
+            primary,
+            "labeled argument object cannot be empty",
         ));
-        for extra_span in extra {
-            diagnostic.labels.push(Label::new(
-                extra_span,
-                "... remove this extraneous argument",
-            ));
-        }
-        diagnostic
-    };
+        diagnostic.add_message(Message::help(
+            r#"add a single `":label": value` entry to this object"#,
+        ));
+        diagnostic.add_message(Message::note(LABELED_ARGUMENT_NOTE));
+        return diagnostic;
+    }
 
-    let help_message = if count == 0 {
-        Cow::Borrowed(
-            "Labeled arguments require exactly one key-value pair in the format {\":key\": value}",
-        )
+    let mut diagnostic = diagnostic.primary(Label::new(
+        primary,
+        format!("expected 1 labeled argument per object, found {count}"),
+    ));
+
+    if let Some(first_span) = first_entry {
+        diagnostic.add_label(Label::new(first_span, "first labeled argument here"));
+    }
+
+    for &extra_span in extra.iter().take(MAX_EXTRA_LABELS) {
+        diagnostic.add_label(Label::new(extra_span, "additional labeled argument"));
+    }
+
+    if let Some(comma_span) = split_comma {
+        let suggestion = Suggestions::patch(Patch::new(comma_span, "}, {"));
+        diagnostic.add_message(
+            Message::help("place each labeled argument in its own object")
+                .with_suggestions(suggestion),
+        );
     } else {
-        Cow::Owned(format!(
-            "Labeled arguments must contain exactly one key-value pair, but {count} were provided",
-        ))
-    };
-    diagnostic.add_message(Message::help(help_message));
-    diagnostic.add_message(Message::note(LABELED_ARGUMENT_PREFIX_NOTE));
+        diagnostic.add_message(Message::help(
+            r#"place each labeled argument in its own object: `{":a": x}, {":b": y}`"#,
+        ));
+    }
+
+    diagnostic.add_message(Message::note(LABELED_ARGUMENT_NOTE));
     diagnostic
 }
 
-const LABELED_ARGUMENT_IDENTIFIER_HELP: &str =
-    "Labeled argument identifiers must be valid HashQL identifiers";
+const LABELED_ARGUMENT_IDENTIFIER_NOTE: &str =
+    "labeled argument names must be valid HashQL identifiers";
 
 pub(crate) fn labeled_argument_invalid_identifier(
     spans: &mut SpanTable<Span>,
     label_span: SpanId,
+    raw_quoted: &str,
+    decoded: &str,
     parse_error: (usize, ContextError),
 ) -> ArrayDiagnostic {
+    if decoded == ":" {
+        let mut diagnostic = Diagnostic::new(
+            ArrayDiagnosticCategory::LabeledArgumentInvalidIdentifier,
+            Critical::ERROR,
+        )
+        .primary(Label::new(
+            label_span,
+            "missing identifier after `:` in labeled argument",
+        ));
+        diagnostic.add_message(Message::help(
+            "add a valid identifier name after `:`, for example `\":name\"`",
+        ));
+        diagnostic.add_message(Message::note(LABELED_ARGUMENT_IDENTIFIER_NOTE));
+        return diagnostic;
+    }
+
+    let parts = convert_parse_error(
+        spans,
+        label_span,
+        raw_quoted,
+        decoded,
+        "labeled argument identifier",
+        1,
+        parse_error,
+    );
+
     let mut diagnostic = Diagnostic::new(
         ArrayDiagnosticCategory::LabeledArgumentInvalidIdentifier,
         Critical::ERROR,
     )
-    .primary(Label::new(label_span, "Invalid labeled argument name"));
+    .primary(Label::new(parts.span, parts.label));
 
-    let (_, expected) = convert_parse_error(spans, label_span, parse_error);
-    if let Some(expected) = expected {
-        diagnostic.add_message(Message::help(expected));
+    if let Some(delim) = parts.closing_delimiter {
+        let suggestion = Suggestions::patch(Patch::new(parts.span, delim.to_string()));
+        diagnostic.add_message(
+            Message::help(format!("add the missing `{delim}`")).with_suggestions(suggestion),
+        );
+    } else {
+        diagnostic.add_message(Message::help(
+            "use a valid HashQL identifier after `:`, starting with a letter, `_`, or symbol",
+        ));
     }
 
-    diagnostic.add_message(Message::note(LABELED_ARGUMENT_IDENTIFIER_HELP));
+    diagnostic.add_message(Message::note(LABELED_ARGUMENT_IDENTIFIER_NOTE));
     diagnostic
 }

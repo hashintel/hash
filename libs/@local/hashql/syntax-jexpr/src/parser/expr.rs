@@ -6,7 +6,7 @@ use super::{
 };
 use crate::{
     cst,
-    error::SyntaxErrorKind,
+    error::{ArrayErrorKind, EofContext, SyntaxErrorKind},
     syntax_kind::{SyntaxKind, T},
     syntax_kind_set::SyntaxKindSet,
 };
@@ -26,13 +26,7 @@ impl Grammar for ExprGrammar {
 
 pub(crate) fn parse_expr(parser: &mut Parser<'_, ExprGrammar>) {
     let Some(token) = parser.current() else {
-        let eof = parser.eof_range();
-        parser.error(
-            eof,
-            SyntaxErrorKind::UnexpectedEof {
-                expected: ExprGrammar::ITEM_FIRST,
-            },
-        );
+        parser.record_eof(ExprGrammar::ITEM_FIRST, EofContext::Document);
         return;
     };
 
@@ -56,11 +50,11 @@ fn parse_call(parser: &mut Parser<'_, ExprGrammar>) {
 
     let mut count = 0_usize;
     loop {
-        match recovery::next_array_element(parser, count, |kind| {
+        match recovery::next_array_element(parser, open, count, |kind| {
             ExprGrammar::ITEM_FIRST.contains(kind)
         }) {
             ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item => {
+            ContainerStep::Item { .. } => {
                 if count == 0 {
                     parse_expr(parser);
                 } else {
@@ -73,7 +67,7 @@ fn parse_call(parser: &mut Parser<'_, ExprGrammar>) {
 
     if count == 0 && parser.error_count() == err_start {
         let range = TextRange::new(open.start(), parser.last_token_end());
-        parser.error(range, SyntaxErrorKind::EmptyArray);
+        parser.error(range, SyntaxErrorKind::Array(ArrayErrorKind::Empty));
     }
 
     parser.finish_node();
@@ -115,30 +109,39 @@ fn parse_call_arg(parser: &mut Parser<'_, ExprGrammar>) {
 fn parse_labeled_arg(parser: &mut Parser<'_, ExprGrammar>) {
     parser.start_node(SyntaxKind::LabeledArg);
     let open = parser.bump(T!['{']).range;
+    let err_start = parser.error_count();
 
     let mut entry_ranges = Vec::new();
+    let mut commas = Vec::new();
+    let mut all_prefixed = true;
     let mut index = 0_usize;
 
     loop {
-        match recovery::next_object_entry(parser, index) {
+        match recovery::next_object_entry(parser, open, index) {
             ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item => {
+            ContainerStep::Item { separator } => {
+                if let Some(comma) = separator {
+                    commas.push(comma);
+                }
                 index += 1;
                 parser.start_node(SyntaxKind::LabeledArgEntry);
                 let key = parser.bump(T![string]);
 
-                if let Some(decoded) = parser.decode_string(key)
-                    && !decoded.starts_with(':')
-                {
-                    parser.error(
-                        key.range,
-                        SyntaxErrorKind::LabeledArgumentMissingPrefix {
-                            actual: decoded.into_owned(),
-                        },
-                    );
+                if let Some(decoded) = parser.decode_string(key) {
+                    if !decoded.starts_with(':') {
+                        all_prefixed = false;
+                        parser.error(
+                            key.range,
+                            SyntaxErrorKind::Array(ArrayErrorKind::LabeledArgumentMissingPrefix {
+                                actual: decoded.into_owned(),
+                            }),
+                        );
+                    }
+                } else {
+                    all_prefixed = false;
                 }
 
-                if recovery::expect_colon(parser) {
+                if recovery::expect_colon(parser, key.range) {
                     parse_expr(parser);
                 }
 
@@ -150,14 +153,41 @@ fn parse_labeled_arg(parser: &mut Parser<'_, ExprGrammar>) {
     }
 
     if entry_ranges.len() != 1 {
-        let object_range = TextRange::new(open.start(), parser.last_token_end());
-        let extra = entry_ranges.iter().skip(1).copied().collect();
+        let count = entry_ranges.len();
+        let (primary_range, first_entry, extra) = if let Some((&first, rest)) =
+            entry_ranges.split_first()
+            && let Some((&second, tail)) = rest.split_first()
+        {
+            (second, Some(first), tail.to_vec())
+        } else {
+            let object_range = TextRange::new(open.start(), parser.last_token_end());
+            (object_range, None, Vec::new())
+        };
+
+        let split_comma =
+            (count == 2 && all_prefixed && commas.len() == 1 && parser.error_count() == err_start)
+                .then(|| {
+                    let comma = commas[0];
+                    let between = TextRange::new(comma.end(), primary_range.start());
+                    if parser
+                        .slice(between)
+                        .bytes()
+                        .all(|byte| matches!(byte, b' ' | b'\t'))
+                    {
+                        TextRange::new(comma.start(), primary_range.start())
+                    } else {
+                        comma
+                    }
+                });
+
         parser.error(
-            object_range,
-            SyntaxErrorKind::LabeledArgumentLengthMismatch {
+            primary_range,
+            SyntaxErrorKind::Array(ArrayErrorKind::LabeledArgumentLengthMismatch {
+                first_entry,
                 extra,
-                count: entry_ranges.len(),
-            },
+                split_comma,
+                count,
+            }),
         );
     }
 

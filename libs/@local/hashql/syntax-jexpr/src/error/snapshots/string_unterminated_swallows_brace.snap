@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": \"unterminated}"
+---
+error[jexpr::lexer::invalid-string]: Invalid string literal
+  ╭▸ 
+1 │ {"#literal": "unterminated}
+  │              ┬             ━ expected closing `"` before end of input
+  │              │
+  │              string started here
+  ╰╴
+help: add a closing quote
+  ╭╴
+1 │ {"#literal": "unterminated}"
+  ╰╴                           +

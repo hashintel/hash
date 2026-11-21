@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"fn\", \":123bad\"]"
+---
+error[jexpr::parser::array::labeled-argument-invalid-identifier]: Invalid identifier in labeled argument
+  ╭▸ 
+1 │ ["fn", ":123bad"]
+  │          ━ invalid labeled argument identifier starting with `1`
+  │
+  ├ help: use a valid HashQL identifier after `:`, starting with a letter, `_`, or symbol
+  ╰ note: labeled argument names must be valid HashQL identifiers

@@ -1,24 +1,34 @@
 use alloc::borrow::Cow;
 
-use hashql_core::span::{SpanAncestors, SpanId, SpanTable};
+use hashql_core::{
+    algorithms::did_you_mean,
+    heap::Heap,
+    span::{SpanAncestors, SpanId, SpanTable},
+};
 use hashql_diagnostics::{
     Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
     severity::Critical,
 };
-use text_size::TextRange;
+use text_size::{TextRange, TextSize};
 
-use crate::{span::Span, syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet};
+use crate::{span::Span, syntax_kind::SyntaxKind};
 
 pub(crate) mod array;
 pub(crate) mod constructor;
 pub(crate) mod lexer;
+pub(crate) mod number;
 pub(crate) mod object;
+pub(crate) mod string;
+mod syntax;
+#[cfg(test)]
+mod tests;
 
+pub(crate) use self::syntax::{ArrayErrorKind, LexerErrorKind, ObjectErrorKind, SyntaxErrorKind};
 pub use self::{
     array::ArrayDiagnosticCategory, lexer::LexerDiagnosticCategory,
-    object::ObjectDiagnosticCategory,
+    object::ObjectDiagnosticCategory, syntax::SyntaxError,
 };
 pub use crate::{
     embedded::error::StringDiagnosticCategory,
@@ -30,11 +40,6 @@ pub use crate::{
 };
 
 pub type JExprDiagnostic<K = Critical> = Diagnostic<JExprDiagnosticCategory, SpanId, K>;
-
-const EXPECTED_LANGUAGE_ITEM: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "unexpected-token",
-    name: "Unexpected token",
-};
 
 const EXPECTED_EOF: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "expected-eof",
@@ -69,34 +74,25 @@ pub enum ParserDiagnosticCategory {
     String(StringDiagnosticCategory),
     Array(ArrayDiagnosticCategory),
     Object(ObjectDiagnosticCategory),
-    ExpectedLanguageItem,
     ExpectedEof,
 }
 
 impl DiagnosticCategory for ParserDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
         match self {
-            Self::Lexer(category)
-            | Self::Object(ObjectDiagnosticCategory::Lexer(category))
-            | Self::Array(ArrayDiagnosticCategory::Lexer(category)) => category.id(),
-            Self::String(_)
-            | Self::Array(_)
-            | Self::Object(_)
-            | Self::ExpectedLanguageItem
-            | Self::ExpectedEof => Cow::Borrowed("parser"),
+            Self::Lexer(category) => category.id(),
+            Self::String(_) | Self::Array(_) | Self::Object(_) | Self::ExpectedEof => {
+                Cow::Borrowed("parser")
+            }
         }
     }
 
     fn name(&self) -> Cow<'_, str> {
         match self {
-            Self::Lexer(category)
-            | Self::Object(ObjectDiagnosticCategory::Lexer(category))
-            | Self::Array(ArrayDiagnosticCategory::Lexer(category)) => category.name(),
-            Self::String(_)
-            | Self::Array(_)
-            | Self::Object(_)
-            | Self::ExpectedLanguageItem
-            | Self::ExpectedEof => Cow::Borrowed("Parser"),
+            Self::Lexer(category) => category.name(),
+            Self::String(_) | Self::Array(_) | Self::Object(_) | Self::ExpectedEof => {
+                Cow::Borrowed("Parser")
+            }
         }
     }
 
@@ -104,9 +100,8 @@ impl DiagnosticCategory for ParserDiagnosticCategory {
         match self {
             Self::Lexer(category) => category.subcategory(),
             Self::String(category) => Some(category),
-            Self::Array(category) => Some(category.hoist()),
-            Self::Object(category) => Some(category.hoist()),
-            Self::ExpectedLanguageItem => Some(&EXPECTED_LANGUAGE_ITEM),
+            Self::Array(category) => Some(category),
+            Self::Object(category) => Some(category),
             Self::ExpectedEof => Some(&EXPECTED_EOF),
         }
     }
@@ -140,321 +135,243 @@ impl From<ObjectDiagnosticCategory> for ParserDiagnosticCategory {
     }
 }
 
-const EXPECTED_EOF_HELP: &str =
-    "Remove this token or check for missing delimiters in the preceding expression";
+/// High-level JSON value shape used for constructor mismatch diagnostics.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum ValueKind {
+    String,
+    Number,
+    Boolean,
+    Null,
+    Object,
+    Array,
+}
+
+impl ValueKind {
+    #[expect(
+        clippy::wildcard_enum_match_arm,
+        reason = "only JSON value starter tokens map to a ValueKind"
+    )]
+    pub(crate) const fn from_syntax_kind(kind: SyntaxKind) -> Option<Self> {
+        match kind {
+            SyntaxKind::String => Some(Self::String),
+            SyntaxKind::Number => Some(Self::Number),
+            SyntaxKind::True | SyntaxKind::False => Some(Self::Boolean),
+            SyntaxKind::Null => Some(Self::Null),
+            SyntaxKind::LBrace => Some(Self::Object),
+            SyntaxKind::LBracket => Some(Self::Array),
+            _ => None,
+        }
+    }
+
+    pub(crate) const fn article_phrase(self) -> &'static str {
+        match self {
+            Self::String => "a string",
+            Self::Number => "a number",
+            Self::Boolean => "a boolean",
+            Self::Null => "`null`",
+            Self::Object => "an object",
+            Self::Array => "an array",
+        }
+    }
+}
+
+/// J-Expr constructor or annotation field name used in contextual object diagnostics.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum ConstructorKind {
+    Literal,
+    Struct,
+    Tuple,
+    List,
+    Dict,
+    Type,
+}
+
+impl ConstructorKind {
+    pub(crate) const fn key(self) -> &'static str {
+        match self {
+            Self::Literal => "#literal",
+            Self::Struct => "#struct",
+            Self::Tuple => "#tuple",
+            Self::List => "#list",
+            Self::Dict => "#dict",
+            Self::Type => "#type",
+        }
+    }
+}
+
+/// Pair of matching container delimiters tracked for unclosed and mismatched delimiter diagnostics.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum DelimiterKind {
+    Brace,
+    Bracket,
+}
+
+impl DelimiterKind {
+    pub(crate) const fn open_str(self) -> &'static str {
+        match self {
+            Self::Brace => "{",
+            Self::Bracket => "[",
+        }
+    }
+
+    pub(crate) const fn close_str(self) -> &'static str {
+        match self {
+            Self::Brace => "}",
+            Self::Bracket => "]",
+        }
+    }
+
+    pub(crate) const fn close_kind(self) -> SyntaxKind {
+        match self {
+            Self::Brace => SyntaxKind::RBrace,
+            Self::Bracket => SyntaxKind::RBracket,
+        }
+    }
+}
+
+/// Additional source context captured for lexical string failures.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct StringErrorContext {
+    pub open_quote: TextRange,
+    pub control_byte: Option<u8>,
+    pub high_surrogate: Option<TextRange>,
+    pub invalid_unit: Option<u16>,
+}
+
+/// Syntactic context at an unexpected end of input.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum EofContext {
+    Document,
+    FieldColon {
+        key: TextRange,
+    },
+    FieldValue {
+        key: TextRange,
+        constructor: Option<ConstructorKind>,
+    },
+    UnclosedDelimiters(Vec<(DelimiterKind, TextRange)>),
+}
+
+/// Syntactic context at an unexpected token.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum UnexpectedTokenContext {
+    General,
+    MismatchedDelimiter {
+        open: TextRange,
+        expected_close: DelimiterKind,
+    },
+    MissingComma {
+        after: TextSize,
+        container: DelimiterKind,
+    },
+    MissingColon {
+        key: TextRange,
+    },
+    BarePrimitiveInExpr {
+        text: String,
+    },
+    ObjectKey,
+}
 
 pub(crate) fn expected_eof(span: SpanId) -> JExprDiagnostic {
     let mut diagnostic = Diagnostic::new(
         JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::ExpectedEof),
         Critical::ERROR,
     )
-    .primary(Label::new(span, "Extra content after expression"));
-    diagnostic.add_message(Message::help(EXPECTED_EOF_HELP));
+    .primary(Label::new(
+        span,
+        "unexpected trailing content after expression",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "remove the trailing content, or check for an extra closing delimiter in the preceding \
+         expression",
+    ));
+    diagnostic.add_message(Message::note(
+        "a J-Expr document must contain a single top-level expression",
+    ));
     diagnostic
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum SyntaxErrorKind {
-    InvalidString(StringError),
-    InvalidNumber(ParseNumberErrorKind),
-    InvalidCharacter,
-    UnterminatedBlockComment,
-    UnexpectedEof {
-        expected: SyntaxKindSet,
-    },
-    UnexpectedToken {
-        found: SyntaxKind,
-        expected: SyntaxKindSet,
-    },
-    ExpectedEof,
-
-    EmptyArray,
-    ArrayLeadingCommas(Vec<TextRange>),
-    ArrayTrailingCommas(Vec<TextRange>),
-    ArrayConsecutiveCommas(Vec<TextRange>),
-    LabeledArgumentMissingPrefix {
-        actual: String,
-    },
-    LabeledArgumentLengthMismatch {
-        extra: Vec<TextRange>,
-        count: usize,
-    },
-
-    EmptyObject,
-    ObjectLeadingCommas(Vec<TextRange>),
-    ObjectTrailingCommas(Vec<TextRange>),
-    ObjectConsecutiveCommas(Vec<TextRange>),
-    ObjectConsecutiveColons(Vec<TextRange>),
-    UnknownKey {
-        key: String,
-        expected: &'static [&'static str],
-    },
-    DuplicateKey {
-        first: TextRange,
-        key: &'static str,
-    },
-    OrphanedType,
-    StructExpectedObject {
-        found: SyntaxKind,
-    },
-    TupleExpectedArray {
-        found: SyntaxKind,
-    },
-    ListExpectedArray {
-        found: SyntaxKind,
-    },
-    DictExpectedFormat {
-        found: SyntaxKind,
-    },
-    DictEntryExpectedArray {
-        found: SyntaxKind,
-    },
-    DictEntryTooFewItems {
-        found: usize,
-    },
-    DictEntryTooManyItems(Vec<TextRange>),
-    TypeExpectedString {
-        found: SyntaxKind,
-    },
-    LiteralExpectedPrimitive {
-        found: SyntaxKind,
-    },
+pub(crate) fn insert_range(spans: &mut SpanTable<Span>, range: TextRange) -> SpanId {
+    spans.insert(Span::new(range), SpanAncestors::EMPTY)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SyntaxError {
-    range: TextRange,
-    kind: SyntaxErrorKind,
-}
-
-impl SyntaxError {
-    pub(crate) const fn new(range: TextRange, kind: SyntaxErrorKind) -> Self {
-        Self { range, kind }
-    }
-
-    #[must_use]
-    pub const fn range(&self) -> TextRange {
-        self.range
-    }
-
-    #[must_use]
-    pub const fn category(&self) -> JExprDiagnosticCategory {
-        let parser_category = match &self.kind {
-            SyntaxErrorKind::InvalidString(_) => {
-                ParserDiagnosticCategory::Lexer(LexerDiagnosticCategory::InvalidString)
-            }
-            SyntaxErrorKind::InvalidNumber(_) => {
-                ParserDiagnosticCategory::Lexer(LexerDiagnosticCategory::InvalidNumber)
-            }
-            SyntaxErrorKind::InvalidCharacter => {
-                ParserDiagnosticCategory::Lexer(LexerDiagnosticCategory::InvalidCharacter)
-            }
-            SyntaxErrorKind::UnterminatedBlockComment => {
-                ParserDiagnosticCategory::Lexer(LexerDiagnosticCategory::UnterminatedBlockComment)
-            }
-            SyntaxErrorKind::UnexpectedEof { .. } => {
-                ParserDiagnosticCategory::Lexer(LexerDiagnosticCategory::UnexpectedEof)
-            }
-            SyntaxErrorKind::UnexpectedToken { .. } => {
-                ParserDiagnosticCategory::Lexer(LexerDiagnosticCategory::UnexpectedToken)
-            }
-            SyntaxErrorKind::ExpectedEof => ParserDiagnosticCategory::ExpectedEof,
-            SyntaxErrorKind::EmptyArray => {
-                ParserDiagnosticCategory::Array(ArrayDiagnosticCategory::Empty)
-            }
-            SyntaxErrorKind::ArrayLeadingCommas(_) => {
-                ParserDiagnosticCategory::Array(ArrayDiagnosticCategory::LeadingComma)
-            }
-            SyntaxErrorKind::ArrayTrailingCommas(_) => {
-                ParserDiagnosticCategory::Array(ArrayDiagnosticCategory::TrailingComma)
-            }
-            SyntaxErrorKind::ArrayConsecutiveCommas(_) => {
-                ParserDiagnosticCategory::Array(ArrayDiagnosticCategory::ConsecutiveComma)
-            }
-            SyntaxErrorKind::LabeledArgumentMissingPrefix { .. } => {
-                ParserDiagnosticCategory::Array(
-                    ArrayDiagnosticCategory::LabeledArgumentMissingPrefix,
-                )
-            }
-            SyntaxErrorKind::LabeledArgumentLengthMismatch { .. } => {
-                ParserDiagnosticCategory::Array(
-                    ArrayDiagnosticCategory::LabeledArgumentLengthMismatch,
-                )
-            }
-            SyntaxErrorKind::EmptyObject => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::Empty)
-            }
-            SyntaxErrorKind::ObjectLeadingCommas(_) => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::LeadingComma)
-            }
-            SyntaxErrorKind::ObjectTrailingCommas(_) => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::TrailingComma)
-            }
-            SyntaxErrorKind::ObjectConsecutiveCommas(_) => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::ConsecutiveComma)
-            }
-            SyntaxErrorKind::ObjectConsecutiveColons(_) => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::ConsecutiveColon)
-            }
-            SyntaxErrorKind::UnknownKey { .. } => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::UnknownKey)
-            }
-            SyntaxErrorKind::DuplicateKey { .. } => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::DuplicateKey)
-            }
-            SyntaxErrorKind::OrphanedType => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::OrphanedType)
-            }
-            SyntaxErrorKind::StructExpectedObject { .. } => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::StructExpectedObject)
-            }
-            SyntaxErrorKind::TupleExpectedArray { .. } => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::TupleExpectedArray)
-            }
-            SyntaxErrorKind::ListExpectedArray { .. } => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::ListExpectedArray)
-            }
-            SyntaxErrorKind::DictExpectedFormat { .. } => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::DictExpectedFormat)
-            }
-            SyntaxErrorKind::DictEntryExpectedArray { .. } => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::DictEntryExpectedArray)
-            }
-            SyntaxErrorKind::DictEntryTooFewItems { .. } => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::DictEntryTooFewItems)
-            }
-            SyntaxErrorKind::DictEntryTooManyItems(_) => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::DictEntryTooManyItems)
-            }
-            SyntaxErrorKind::TypeExpectedString { .. } => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::TypeExpectedString)
-            }
-            SyntaxErrorKind::LiteralExpectedPrimitive { .. } => {
-                ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::LiteralExpectedPrimitive)
-            }
-        };
-
-        JExprDiagnosticCategory::Parser(parser_category)
-    }
-
-    pub fn to_diagnostic(&self, spans: &mut SpanTable<Span>) -> JExprDiagnostic {
-        let primary = spans.insert(Span::new(self.range), SpanAncestors::EMPTY);
-
-        match &self.kind {
-            SyntaxErrorKind::InvalidString(err) => {
-                lexer::from_string_error(*err, primary).map_category(wrap_lexer)
-            }
-            SyntaxErrorKind::InvalidNumber(err) => {
-                lexer::from_number_error(*err, primary).map_category(wrap_lexer)
-            }
-            SyntaxErrorKind::InvalidCharacter => {
-                lexer::from_unrecognized_character_error(primary).map_category(wrap_lexer)
-            }
-            SyntaxErrorKind::UnterminatedBlockComment => {
-                lexer::unterminated_block_comment(primary).map_category(wrap_lexer)
-            }
-            SyntaxErrorKind::UnexpectedEof { expected } => {
-                lexer::unexpected_eof(primary, *expected).map_category(wrap_lexer)
-            }
-            SyntaxErrorKind::UnexpectedToken { found, expected } => {
-                lexer::unexpected_token(primary, *found, *expected).map_category(wrap_lexer)
-            }
-            SyntaxErrorKind::ExpectedEof => expected_eof(primary),
-            SyntaxErrorKind::EmptyArray => array::empty(primary).map_category(wrap_array),
-            SyntaxErrorKind::ArrayLeadingCommas(rest) => {
-                let rest = insert_ranges(spans, rest);
-                array::leading_commas(primary, &rest).map_category(wrap_array)
-            }
-            SyntaxErrorKind::ArrayTrailingCommas(rest) => {
-                let rest = insert_ranges(spans, rest);
-                array::trailing_commas(primary, &rest).map_category(wrap_array)
-            }
-            SyntaxErrorKind::ArrayConsecutiveCommas(rest) => {
-                let rest = insert_ranges(spans, rest);
-                array::consecutive_commas(primary, &rest).map_category(wrap_array)
-            }
-            SyntaxErrorKind::LabeledArgumentMissingPrefix { actual } => {
-                array::labeled_argument_missing_prefix(primary, actual).map_category(wrap_array)
-            }
-            SyntaxErrorKind::LabeledArgumentLengthMismatch { extra, count } => {
-                let extra = insert_ranges(spans, extra);
-                array::labeled_arguments_length_mismatch(primary, extra, *count)
-                    .map_category(wrap_array)
-            }
-            SyntaxErrorKind::EmptyObject => object::empty(primary).map_category(wrap_object),
-            SyntaxErrorKind::ObjectLeadingCommas(rest) => {
-                let rest = insert_ranges(spans, rest);
-                object::leading_commas(primary, &rest).map_category(wrap_object)
-            }
-            SyntaxErrorKind::ObjectTrailingCommas(rest) => {
-                let rest = insert_ranges(spans, rest);
-                object::trailing_commas(primary, &rest).map_category(wrap_object)
-            }
-            SyntaxErrorKind::ObjectConsecutiveCommas(rest) => {
-                let rest = insert_ranges(spans, rest);
-                object::consecutive_commas(primary, &rest).map_category(wrap_object)
-            }
-            SyntaxErrorKind::ObjectConsecutiveColons(rest) => {
-                let rest = insert_ranges(spans, rest);
-                object::consecutive_colons(primary, &rest).map_category(wrap_object)
-            }
-            SyntaxErrorKind::UnknownKey { key, expected } => {
-                object::unknown_key(primary, key, expected).map_category(wrap_object)
-            }
-            SyntaxErrorKind::DuplicateKey { first, key } => {
-                let first_span = spans.insert(Span::new(*first), SpanAncestors::EMPTY);
-                object::duplicate_key(first_span, primary, key).map_category(wrap_object)
-            }
-            SyntaxErrorKind::OrphanedType => {
-                object::orphaned_type(primary).map_category(wrap_object)
-            }
-            SyntaxErrorKind::StructExpectedObject { found } => {
-                constructor::struct_expected_object(primary, *found).map_category(wrap_object)
-            }
-            SyntaxErrorKind::TupleExpectedArray { found } => {
-                constructor::tuple_expected_array(primary, *found).map_category(wrap_object)
-            }
-            SyntaxErrorKind::ListExpectedArray { found } => {
-                constructor::list_expected_array(primary, *found).map_category(wrap_object)
-            }
-            SyntaxErrorKind::DictExpectedFormat { found } => {
-                constructor::dict_expected_format(primary, *found).map_category(wrap_object)
-            }
-            SyntaxErrorKind::DictEntryExpectedArray { found } => {
-                constructor::dict_entry_expected_array(primary, *found).map_category(wrap_object)
-            }
-            SyntaxErrorKind::DictEntryTooFewItems { found } => {
-                constructor::dict_entry_too_few_items(primary, *found).map_category(wrap_object)
-            }
-            SyntaxErrorKind::DictEntryTooManyItems(rest) => {
-                let rest = insert_ranges(spans, rest);
-                constructor::dict_entry_too_many_items(primary, &rest).map_category(wrap_object)
-            }
-            SyntaxErrorKind::TypeExpectedString { found } => {
-                constructor::type_expected_string(primary, *found).map_category(wrap_object)
-            }
-            SyntaxErrorKind::LiteralExpectedPrimitive { found } => {
-                constructor::literal_expected_primitive(primary, *found).map_category(wrap_object)
-            }
-        }
-    }
-}
-
-fn insert_ranges(spans: &mut SpanTable<Span>, ranges: &[TextRange]) -> Vec<SpanId> {
+pub(crate) fn insert_ranges(spans: &mut SpanTable<Span>, ranges: &[TextRange]) -> Vec<SpanId> {
     ranges
         .iter()
-        .map(|&range| spans.insert(Span::new(range), SpanAncestors::EMPTY))
+        .map(|&range| insert_range(spans, range))
         .collect()
 }
 
-const fn wrap_lexer(category: LexerDiagnosticCategory) -> JExprDiagnosticCategory {
+/// Returns similar candidate strings ordered by similarity using [`did_you_mean`].
+pub(crate) fn suggest_similar(
+    lookup: &str,
+    candidates: &[&'static str],
+    heap: Option<&Heap>,
+    top_n: usize,
+) -> Vec<&'static str> {
+    if candidates.is_empty() {
+        return Vec::new();
+    }
+
+    heap.map_or_else(
+        || suggest_similar_in(lookup, candidates, &Heap::with_capacity(512), top_n),
+        |heap| suggest_similar_in(lookup, candidates, heap, top_n),
+    )
+}
+
+fn suggest_similar_in(
+    lookup: &str,
+    candidates: &[&'static str],
+    heap: &Heap,
+    top_n: usize,
+) -> Vec<&'static str> {
+    let lookup_sym = heap.intern_symbol(lookup);
+    let interned: Vec<_> = candidates
+        .iter()
+        .map(|candidate| heap.intern_symbol(candidate))
+        .collect();
+
+    did_you_mean(lookup_sym, &interned, Some(top_n), None)
+        .into_iter()
+        .filter_map(|matched| {
+            candidates
+                .iter()
+                .copied()
+                .find(|&candidate| candidate == matched.as_str())
+        })
+        .collect()
+}
+
+/// Formats a list of code items as backticked prose with `or` before the final item.
+pub(crate) fn format_backticked_or_list(items: &[&str]) -> String {
+    let mut list = String::new();
+    for (index, item) in items.iter().enumerate() {
+        if index > 0 {
+            if items.len() == 2 {
+                list.push_str(" or ");
+            } else if index == items.len() - 1 {
+                list.push_str(", or ");
+            } else {
+                list.push_str(", ");
+            }
+        }
+        list.push('`');
+        list.push_str(item);
+        list.push('`');
+    }
+    list
+}
+
+pub(crate) const fn wrap_lexer(category: LexerDiagnosticCategory) -> JExprDiagnosticCategory {
     JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(category))
 }
 
-const fn wrap_array(category: ArrayDiagnosticCategory) -> JExprDiagnosticCategory {
+pub(crate) const fn wrap_array(category: ArrayDiagnosticCategory) -> JExprDiagnosticCategory {
     JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Array(category))
 }
 
-const fn wrap_object(category: ObjectDiagnosticCategory) -> JExprDiagnosticCategory {
+pub(crate) const fn wrap_object(category: ObjectDiagnosticCategory) -> JExprDiagnosticCategory {
     JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Object(category))
 }

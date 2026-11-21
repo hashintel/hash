@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": True}"
+---
+error[jexpr::lexer::invalid-token]: Invalid token
+  ╭▸ 
+1 │ {"#literal": True}
+  │              ━━━━ unexpected bare identifier `True`
+  │
+  ╰ note: J-Expr uses JSON syntax, where identifiers and paths must be double-quoted strings
+help: a similar JSON keyword exists
+  ╭╴
+1 - {"#literal": True}
+1 + {"#literal": true}
+  ╰╴

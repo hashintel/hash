@@ -23,8 +23,10 @@ impl<'tree> StringToken<'tree> {
 pub type NumberToken<'tree> = SyntaxToken<'tree, kind::Number>;
 
 impl NumberToken<'_> {
-    /// Reports whether the spelling includes a decimal point or exponent (`1.0` and `1e0` are
-    /// floats).
+    /// Reports whether the literal spelling includes a decimal point or exponent.
+    ///
+    /// Inspects the token text rather than its numeric value. Spellings such as `1.0` and `1e0`
+    /// return `true`.
     #[must_use]
     pub fn is_float(self) -> bool {
         memchr::memchr3(b'.', b'e', b'E', self.syntax.text().as_bytes()).is_some()

@@ -105,6 +105,8 @@ fn lower_struct_body<'heap>(
                     let diagnostic = constructor::struct_key_expected_identifier(
                         lowerer.spans_mut(),
                         key_span,
+                        token.text(),
+                        &decoded,
                         error,
                     )
                     .map_category(wrap_object)

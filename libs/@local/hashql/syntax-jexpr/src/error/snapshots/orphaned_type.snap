@@ -1,0 +1,14 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#type\": \"Int\"}"
+---
+error[jexpr::parser::object::orphaned-type]: Orphaned `#type` field
+  ╭▸ 
+1 │ {"#type": "Int"}
+  │  ━━━━━━━━━━━━━━ `#type` cannot be used without a constructor key
+  │
+  ├ help: add a constructor key such as `#literal`, `#struct`, `#tuple`, `#list`, or `#dict` to this object
+  ╰ note: `#type` annotates a constructor in the same object:
+          - `{"#literal": 42, "#type": "Int"}`
+          - `{"#struct": {"x": {"#literal": 1}}, "#type": "Point"}`
+          - `{"#list": [], "#type": "List<Int>"}`

@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": \"abc\\u12"
+---
+error[jexpr::lexer::invalid-string]: Invalid string literal
+  ╭▸ 
+1 │ {"#literal": "abc\u12
+  │              ┬   ━━━━ incomplete escape sequence before end of input
+  │              │
+  │              string started here
+  │
+  ╰ help: complete the escape sequence and close the string with `"`

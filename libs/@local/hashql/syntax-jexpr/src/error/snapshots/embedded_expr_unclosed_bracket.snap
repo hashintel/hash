@@ -1,0 +1,14 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "\"foo[0\""
+---
+error[jexpr::parser::string::invalid-expression]: Invalid string expression
+  ╭▸ 
+1 │ "foo[0"
+  │       ━ expected `]` before end of expression
+  │
+  ╰ note: string expressions support paths (`a::b`), field accesses (`a.b`), index accesses (`a[0]`), and `_`
+help: add the missing `]`
+  ╭╴
+1 │ "foo[0]"
+  ╰╴      +

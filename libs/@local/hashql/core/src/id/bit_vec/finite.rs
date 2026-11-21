@@ -200,6 +200,11 @@ impl<I, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
 }
 
 impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
+    /// Builds a bitset from an iterator of IDs covering the full domain of `I`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `I::MAX` does not fit within the bit width of `T`.
     pub const fn from_items(
         items: impl [const] IntoIterator<Item = I, IntoIter: [const] Iterator + [const] Destruct>
         + [const] Destruct,
@@ -208,7 +213,9 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
         I: [const] Id,
         T: [const] FiniteBitSetIntegral,
     {
-        let mut set = Self::new_empty(I::MAX.as_u32());
+        assert!(I::MAX.as_u32() < T::MAX_DOMAIN_SIZE);
+
+        let mut set = Self::new_empty(I::MAX.as_u32() + 1);
 
         for item in items {
             set.insert(item);
@@ -217,14 +224,15 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
         set
     }
 
+    /// Builds a bitset from a slice of IDs, asserting at compile time that `I::MAX` fits in `T`.
     pub const fn from_slice(slice: &[I]) -> Self
     where
         I: const Id,
         T: [const] FiniteBitSetIntegral,
     {
-        const { assert!(I::MAX.as_u32() <= T::MAX_DOMAIN_SIZE) };
+        const { assert!(I::MAX.as_u32() < T::MAX_DOMAIN_SIZE) };
 
-        let mut set = Self::new_empty(I::MAX.as_u32());
+        let mut set = Self::new_empty(I::MAX.as_u32() + 1);
         let mut index = 0;
 
         while index < slice.len() {
@@ -1010,5 +1018,34 @@ mod tests {
         assert!(set.contains(TestId::from_usize(6)));
         assert!(!set.contains(TestId::from_usize(7)));
         assert_eq!(set.len(), 6);
+    }
+
+    #[test]
+    fn from_slice_and_items_exact_width_domain() {
+        newtype!(
+            #[id(crate = crate, const)]
+            struct ExactU8Id(u32 is 0..=7)
+        );
+
+        let from_slice: FiniteBitSet<ExactU8Id, u8> =
+            FiniteBitSet::from_slice(&[ExactU8Id::MIN, ExactU8Id::MAX]);
+        let from_items: FiniteBitSet<ExactU8Id, u8> =
+            FiniteBitSet::from_items([ExactU8Id::MIN, ExactU8Id::MAX]);
+
+        assert_eq!(from_slice, from_items);
+        assert!(from_slice.contains(ExactU8Id::MIN));
+        assert!(from_slice.contains(ExactU8Id::MAX));
+        assert_eq!(from_slice.len(), 2);
+    }
+
+    #[test]
+    #[should_panic(expected = "I::MAX.as_u32() < T::MAX_DOMAIN_SIZE")]
+    fn from_items_rejects_domain_one_over_width() {
+        newtype!(
+            #[id(crate = crate, const)]
+            struct NineValuesId(u32 is 0..=8)
+        );
+
+        let _: FiniteBitSet<NineValuesId, u8> = FiniteBitSet::from_items([]);
     }
 }

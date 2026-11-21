@@ -46,11 +46,8 @@ impl SyntaxKindSet {
         SyntaxKind::LBracket,
         SyntaxKind::RBracket,
     ]);
-    #[cfg(test)] // exercised by `syntax_kind_set::tests::empty_set_display`.
-    pub(crate) const EMPTY: Self = Self(FiniteBitSet::new_empty(DOMAIN_SIZE));
     pub(crate) const OPENING_DELIMITER: Self =
         Self::from_slice(&[SyntaxKind::LBracket, SyntaxKind::LBrace]);
-    pub(crate) const SEPARATORS: Self = Self::from_slice(&[SyntaxKind::Comma, SyntaxKind::Colon]);
     pub(crate) const VALUE: Self = Self::from_slice(&[
         SyntaxKind::String,
         SyntaxKind::Number,
@@ -110,18 +107,8 @@ impl SyntaxKindSet {
     }
 
     #[must_use]
-    pub(crate) const fn contains_opening_delimiter(self) -> bool {
-        self.contains_any(Self::OPENING_DELIMITER)
-    }
-
-    #[must_use]
     pub(crate) const fn contains_value(self) -> bool {
         self.contains_any(Self::VALUE)
-    }
-
-    #[must_use]
-    pub(crate) const fn contains_separator(self) -> bool {
-        self.contains_any(Self::SEPARATORS)
     }
 
     pub(crate) const fn display(self, conjunction: Option<Conjunction>) -> impl Display {
@@ -179,7 +166,7 @@ mod tests {
 
     #[test]
     fn empty_set_display() {
-        let set = SyntaxKindSet::EMPTY;
+        let set = SyntaxKindSet::from_slice(&[]);
         assert_eq!(set.display(None).to_string(), "none");
         assert_eq!(set.display(Some(Conjunction::Or)).to_string(), "none");
     }

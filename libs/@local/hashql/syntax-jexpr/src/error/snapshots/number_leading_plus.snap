@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": +42}"
+---
+error[jexpr::lexer::invalid-number]: Invalid number literal
+  ╭▸ 
+1 │ {"#literal": +42}
+  │              ━ leading `+` is not allowed in JSON numbers
+  │
+  ╰ note: JSON numbers follow the format `[-]digits[.digits][(e|E)[+|-]digits]`
+help: remove the leading `+`
+  ╭╴
+1 - {"#literal": +42}
+1 + {"#literal": 42}
+  ╰╴

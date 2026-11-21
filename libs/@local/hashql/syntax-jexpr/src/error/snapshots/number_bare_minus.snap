@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": -}"
+---
+error[jexpr::lexer::invalid-number]: Invalid number literal
+  ╭▸ 
+1 │ {"#literal": -}
+  │               ━ expected a digit after `-`
+  │
+  ├ help: add digits after `-`, for example `-42`
+  ╰ note: JSON numbers follow the format `[-]digits[.digits][(e|E)[+|-]digits]`

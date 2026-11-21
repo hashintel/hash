@@ -14,9 +14,10 @@ mod r#type;
 use hashql_ast::node::{expr::Expr, r#type::Type};
 use hashql_core::{
     heap::Heap,
-    span::{SpanId, SpanTable},
+    span::{SpanAncestors, SpanId, SpanTable},
     symbol::Ident,
 };
+use text_size::TextRange;
 use winnow::{
     LocatingSlice, ModalParser, Stateful,
     error::{ContextError, ParseError},
@@ -25,7 +26,7 @@ use winnow::{
 
 use self::{
     context::Context,
-    error::{StringDiagnostic, invalid_expr},
+    error::{StringDiagnostic, invalid_expr, invalid_type},
     expr::parse_expr,
     ident::{parse_ident, parse_ident_labelled_argument},
     r#type::parse_type,
@@ -63,13 +64,14 @@ pub(crate) fn parse_expr_from_string<'heap>(
     heap: &'heap Heap,
     spans: &mut SpanTable<Span>,
     parent: SpanId,
+    raw_quoted: &str,
     value: &str,
 ) -> Result<Expr<'heap>, StringDiagnostic> {
     match parse_from_string(parse_expr, heap, spans, parent, value) {
         Ok(expr) => Ok(expr),
         Err(error) => {
             let error = (error.offset(), error.into_inner());
-            Err(invalid_expr(spans, parent, error))
+            Err(invalid_expr(spans, parent, raw_quoted, value, error))
         }
     }
 }
@@ -79,13 +81,19 @@ pub(crate) fn parse_type_from_string<'heap>(
     heap: &'heap Heap,
     spans: &mut SpanTable<Span>,
     parent: SpanId,
+    key_range: Option<TextRange>,
+    raw_quoted: &str,
     value: &str,
 ) -> Result<Type<'heap>, StringDiagnostic> {
     match parse_from_string(parse_type, heap, spans, parent, value) {
         Ok(r#type) => Ok(r#type),
         Err(error) => {
             let error = (error.offset(), error.into_inner());
-            Err(invalid_expr(spans, parent, error))
+            let key_span =
+                key_range.map(|range| spans.insert(Span::new(range), SpanAncestors::EMPTY));
+            Err(invalid_type(
+                spans, parent, key_span, raw_quoted, value, error,
+            ))
         }
     }
 }

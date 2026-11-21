@@ -1,14 +1,14 @@
 use alloc::borrow::Cow;
 
-use hashql_core::span::SpanId;
+use hashql_core::{heap::Heap, span::SpanId};
 use hashql_diagnostics::{
-    Diagnostic, Label,
+    Diagnostic, Label, Patch, Suggestions,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
     severity::Critical,
 };
 
-use super::lexer::LexerDiagnosticCategory;
+use super::{ConstructorKind, format_backticked_or_list, suggest_similar};
 
 pub(crate) type ObjectDiagnostic<K = Critical> = Diagnostic<ObjectDiagnosticCategory, SpanId, K>;
 
@@ -29,12 +29,17 @@ const CONSECUTIVE_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory
 
 const CONSECUTIVE_COLON: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "consecutive-colon",
-    name: "Multiple colons between key and value",
+    name: "Consecutive colons in object",
 };
 
 const UNKNOWN_KEY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "unknown-key",
-    name: "Unknown or unsupported object key",
+    name: "Unknown object key",
+};
+
+const CONFLICTING_CONSTRUCTOR: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "conflicting-constructor",
+    name: "Conflicting constructor keys",
 };
 
 const EMPTY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -44,7 +49,7 @@ const EMPTY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
 
 const ORPHANED_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "orphaned-type",
-    name: "Orphaned #type field without parent construct",
+    name: "Orphaned `#type` field",
 };
 
 const DUPLICATE_KEY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -54,22 +59,22 @@ const DUPLICATE_KEY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
 
 const STRUCT_EXPECTED_OBJECT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "struct-expected-object",
-    name: "Expected object for #struct definition",
+    name: "Expected object for `#struct`",
 };
 
 const STRUCT_KEY_EXPECTED_IDENTIFIER: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "struct-key-expected-identifier",
-    name: "Expected identifier for struct field key",
+    name: "Invalid struct field identifier",
 };
 
 const DICT_EXPECTED_FORMAT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "dict-expected-format",
-    name: "Expected valid dictionary format",
+    name: "Expected object or array of pairs for `#dict`",
 };
 
 const DICT_ENTRY_TOO_FEW_ITEMS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "dict-entry-too-few-items",
-    name: "Not enough items in dictionary entry",
+    name: "Too few items in dictionary entry",
 };
 
 const DICT_ENTRY_TOO_MANY_ITEMS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -84,32 +89,33 @@ const DICT_ENTRY_EXPECTED_ARRAY: TerminalDiagnosticCategory = TerminalDiagnostic
 
 const TUPLE_EXPECTED_ARRAY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "tuple-expected-array",
-    name: "Expected array for #tuple definition",
+    name: "Expected array for `#tuple`",
 };
 
 const LIST_EXPECTED_ARRAY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "list-expected-array",
-    name: "Expected array for #list definition",
+    name: "Expected array for `#list`",
 };
 
 const TYPE_EXPECTED_STRING: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "type-expected-string",
-    name: "Expected string for type definition",
+    name: "Expected string for `#type`",
 };
 
 const LITERAL_EXPECTED_PRIMITIVE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "literal-expected-primitive",
-    name: "Expected primitive for literal definition",
+    name: "Expected primitive value for `#literal`",
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ObjectDiagnosticCategory {
-    Lexer(LexerDiagnosticCategory),
     LeadingComma,
     TrailingComma,
     ConsecutiveComma,
     ConsecutiveColon,
     UnknownKey,
+    /// Multiple distinct primary constructor keys in the same object.
+    ConflictingConstructor,
     Empty,
     /// `#type` field without a primary constructor field in the same object.
     OrphanedType,
@@ -127,89 +133,23 @@ pub enum ObjectDiagnosticCategory {
     LiteralExpectedPrimitive,
 }
 
-impl ObjectDiagnosticCategory {
-    pub(crate) fn hoist(&self) -> &dyn DiagnosticCategory {
-        match self {
-            Self::Lexer(category) => category.subcategory().unwrap_or(category),
-            Self::LeadingComma
-            | Self::TrailingComma
-            | Self::ConsecutiveComma
-            | Self::ConsecutiveColon
-            | Self::UnknownKey
-            | Self::Empty
-            | Self::OrphanedType
-            | Self::DuplicateKey
-            | Self::StructExpectedObject
-            | Self::StructKeyExpectedIdentifier
-            | Self::DictExpectedFormat
-            | Self::DictEntryTooFewItems
-            | Self::DictEntryTooManyItems
-            | Self::DictEntryExpectedArray
-            | Self::TupleExpectedArray
-            | Self::ListExpectedArray
-            | Self::TypeExpectedString
-            | Self::LiteralExpectedPrimitive => self,
-        }
-    }
-}
-
 impl DiagnosticCategory for ObjectDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
-        match self {
-            Self::Lexer(category) => category.id(),
-            Self::LeadingComma
-            | Self::TrailingComma
-            | Self::ConsecutiveComma
-            | Self::ConsecutiveColon
-            | Self::UnknownKey
-            | Self::Empty
-            | Self::OrphanedType
-            | Self::DuplicateKey
-            | Self::StructExpectedObject
-            | Self::StructKeyExpectedIdentifier
-            | Self::DictExpectedFormat
-            | Self::DictEntryTooFewItems
-            | Self::DictEntryTooManyItems
-            | Self::DictEntryExpectedArray
-            | Self::TupleExpectedArray
-            | Self::ListExpectedArray
-            | Self::TypeExpectedString
-            | Self::LiteralExpectedPrimitive => Cow::Borrowed("object"),
-        }
+        Cow::Borrowed("object")
     }
 
     fn name(&self) -> Cow<'_, str> {
-        match self {
-            Self::Lexer(category) => category.name(),
-            Self::LeadingComma
-            | Self::TrailingComma
-            | Self::ConsecutiveComma
-            | Self::ConsecutiveColon
-            | Self::UnknownKey
-            | Self::Empty
-            | Self::OrphanedType
-            | Self::DuplicateKey
-            | Self::StructExpectedObject
-            | Self::StructKeyExpectedIdentifier
-            | Self::DictExpectedFormat
-            | Self::DictEntryTooFewItems
-            | Self::DictEntryTooManyItems
-            | Self::DictEntryExpectedArray
-            | Self::TupleExpectedArray
-            | Self::ListExpectedArray
-            | Self::TypeExpectedString
-            | Self::LiteralExpectedPrimitive => Cow::Borrowed("Object"),
-        }
+        Cow::Borrowed("Object")
     }
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
-            Self::Lexer(lexer) => lexer.subcategory(),
             Self::LeadingComma => Some(&LEADING_COMMA),
             Self::TrailingComma => Some(&TRAILING_COMMA),
             Self::ConsecutiveComma => Some(&CONSECUTIVE_COMMA),
             Self::ConsecutiveColon => Some(&CONSECUTIVE_COLON),
             Self::UnknownKey => Some(&UNKNOWN_KEY),
+            Self::ConflictingConstructor => Some(&CONFLICTING_CONSTRUCTOR),
             Self::Empty => Some(&EMPTY),
             Self::OrphanedType => Some(&ORPHANED_TYPE),
             Self::DuplicateKey => Some(&DUPLICATE_KEY),
@@ -227,151 +167,308 @@ impl DiagnosticCategory for ObjectDiagnosticCategory {
     }
 }
 
-impl From<LexerDiagnosticCategory> for ObjectDiagnosticCategory {
-    #[inline]
-    fn from(value: LexerDiagnosticCategory) -> Self {
-        Self::Lexer(value)
-    }
-}
+const MAX_EXTRA_LABELS: usize = 2;
 
-const EMPTY_HELP: &str = r##"J-Expr objects must contain at least one key-value pair with a specific structure. For example: `{"#literal": 42}` or `{"#struct": {"name": {"#literal": "value"}}}`"##;
+const EMPTY_HELP: &str = r##"specify a constructor key such as `{"#literal": 42}`, `{"#struct": {}}`, or `{"#dict": {}}`"##;
 
-const EMPTY_NOTE: &str = r##"J-Expr requires objects to have a specific structure represented by one of these constructs:
-- `{"#struct": {...}, "#type"?: ...}` - For structured data with named fields
-- `{"#dict": {...}, "#type"?: ...}` - For dictionary/map-like data
-- `{"#tuple": [...], "#type"?: ...}` - For fixed-size ordered collections
-- `{"#list": [...], "#type"?: ...}` - For variable-length ordered collections
-- `{"#literal": value}` - For simple scalar values
-- `{"#type": "typename"}` - For type declarations
+const EMPTY_NOTE_TYPED: &str = r##"J-Expr objects must contain a constructor key:
+- `{"#literal": value}` for primitive literals
+- `{"#struct": {...}}` for structs with named fields
+- `{"#dict": {...}}` or `{"#dict": [[k, v], ...]}` for dictionaries
+- `{"#tuple": [...]}` for fixed-size tuples
+- `{"#list": [...]}` for lists
+each construct also accepts an optional `"#type"` annotation"##;
 
-Empty objects don't have semantic meaning in J-Expr.
-"##;
+const EMPTY_NOTE_UNTYPED: &str = r##"J-Expr objects must contain a constructor key:
+- `{"#literal": value}` for primitive literals
+- `{"#struct": {...}}` for structs with named fields
+- `{"#dict": {...}}` or `{"#dict": [[k, v], ...]}` for dictionaries
+- `{"#tuple": [...]}` for fixed-size tuples
+- `{"#list": [...]}` for lists"##;
 
-pub(crate) fn empty(span: SpanId) -> ObjectDiagnostic {
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::Empty, Critical::ERROR)
-        .primary(Label::new(span, "Add required fields to this object"));
+pub(crate) fn empty(span: SpanId, allow_type_annotations: bool) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::Empty, Critical::ERROR).primary(
+        Label::new(span, "empty objects are not allowed as expressions"),
+    );
     diagnostic.add_message(Message::help(EMPTY_HELP));
-    diagnostic.add_message(Message::note(EMPTY_NOTE));
-    diagnostic
-}
-
-const TRAILING_COMMA_HELP: &str = r#"J-Expr does not support trailing commas in objects. Use `{"key": value}` instead of `{"key": value,}`"#;
-
-pub(crate) fn trailing_commas(first: SpanId, rest: &[SpanId]) -> ObjectDiagnostic {
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::TrailingComma, Critical::ERROR)
-        .primary(Label::new(first, "Remove this trailing comma"));
-    for &span in rest {
-        diagnostic
-            .labels
-            .push(Label::new(span, "... and this trailing comma"));
-    }
-    diagnostic.add_message(Message::help(TRAILING_COMMA_HELP));
-    diagnostic
-}
-
-const LEADING_COMMA_HELP: &str = r#"J-Expr does not support leading commas in objects. Use `{"key1": value1, "key2": value2}` format."#;
-
-pub(crate) fn leading_commas(first: SpanId, rest: &[SpanId]) -> ObjectDiagnostic {
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::LeadingComma, Critical::ERROR)
-        .primary(Label::new(first, "Remove this leading comma"));
-    for &span in rest {
-        diagnostic
-            .labels
-            .push(Label::new(span, "... and this leading comma"));
-    }
-    diagnostic.add_message(Message::help(LEADING_COMMA_HELP));
-    diagnostic
-}
-
-const CONSECUTIVE_COMMA_HELP: &str = r#"J-Expr requires exactly one comma between key-value pairs. Use `{"key1": value1, "key2": value2}` format."#;
-
-pub(crate) fn consecutive_commas(first: SpanId, rest: &[SpanId]) -> ObjectDiagnostic {
-    let mut diagnostic =
-        Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveComma, Critical::ERROR)
-            .primary(Label::new(first, "Remove this extra comma"));
-    for &span in rest {
-        diagnostic
-            .labels
-            .push(Label::new(span, "... and this extra comma"));
-    }
-    diagnostic.add_message(Message::help(CONSECUTIVE_COMMA_HELP));
-    diagnostic
-}
-
-const CONSECUTIVE_COLON_HELP: &str = r#"J-Expr requires exactly one colon between a key and its value. Use `{"key": value}` format."#;
-
-pub(crate) fn consecutive_colons(first: SpanId, rest: &[SpanId]) -> ObjectDiagnostic {
-    let mut diagnostic =
-        Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveColon, Critical::ERROR)
-            .primary(Label::new(first, "Remove this extra colon"));
-    for &span in rest {
-        diagnostic
-            .labels
-            .push(Label::new(span, "... and this extra colon"));
-    }
-    diagnostic.add_message(Message::help(CONSECUTIVE_COLON_HELP));
-    diagnostic
-}
-
-pub(crate) fn unknown_key(span: SpanId, key: &str, expected: &[&'static str]) -> ObjectDiagnostic {
-    // Labels are not escaped by annotate-snippets, so escape control characters in user keys.
-    let key = key.escape_debug();
-
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::UnknownKey, Critical::ERROR)
-        .primary(Label::new(
-            span,
-            if expected.is_empty() {
-                format!("Remove the `{key}` key")
-            } else {
-                format!("Replace `{key}` with a valid key")
-            },
-        ));
-
-    let help_message = if expected.is_empty() {
-        Cow::Borrowed(
-            "No additional keys are allowed in this context. Each J-Expr construct accepts only \
-             specific keys (e.g., #literal can only have #type as an additional key).",
-        )
+    diagnostic.add_message(Message::note(if allow_type_annotations {
+        EMPTY_NOTE_TYPED
     } else {
-        let mut list = String::new();
-        for (index, item) in expected.iter().enumerate() {
-            if index != 0 {
-                list.push_str(", ");
-            }
-            if index == expected.len() - 1 && expected.len() > 1 {
-                list.push_str("or ");
-            }
-            list.push('`');
-            list.push_str(item);
-            list.push('`');
+        EMPTY_NOTE_UNTYPED
+    }));
+    diagnostic
+}
+
+pub(crate) fn trailing_commas(
+    first: SpanId,
+    rest: &[SpanId],
+    patch_span: Option<SpanId>,
+) -> ObjectDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(ObjectDiagnosticCategory::TrailingComma, Critical::ERROR).primary(
+            Label::new(first, "trailing comma is not allowed in objects"),
+        );
+
+    for &span in rest.iter().take(MAX_EXTRA_LABELS) {
+        diagnostic.add_label(Label::new(span, "additional trailing comma"));
+    }
+
+    let help_text = if rest.is_empty() {
+        "remove the trailing comma"
+    } else {
+        "remove the trailing commas"
+    };
+    if let Some(patch_span) = patch_span {
+        let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
+        diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
+    } else {
+        diagnostic.add_message(Message::help(help_text));
+    }
+
+    diagnostic.add_message(Message::note(
+        "J-Expr follows JSON syntax, which does not allow trailing commas",
+    ));
+    diagnostic
+}
+
+pub(crate) fn leading_commas(
+    first: SpanId,
+    rest: &[SpanId],
+    patch_span: Option<SpanId>,
+) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::LeadingComma, Critical::ERROR)
+        .primary(Label::new(first, "leading comma is not allowed in objects"));
+
+    for &span in rest.iter().take(MAX_EXTRA_LABELS) {
+        diagnostic.add_label(Label::new(span, "additional leading comma"));
+    }
+
+    let help_text = if rest.is_empty() {
+        "remove the leading comma"
+    } else {
+        "remove the leading commas"
+    };
+    if let Some(patch_span) = patch_span {
+        let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
+        diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
+    } else {
+        diagnostic.add_message(Message::help(help_text));
+    }
+
+    diagnostic.add_message(Message::note(
+        "J-Expr follows JSON syntax, which does not allow leading commas",
+    ));
+    diagnostic
+}
+
+pub(crate) fn consecutive_commas(
+    first: SpanId,
+    rest: &[SpanId],
+    patch_span: Option<SpanId>,
+) -> ObjectDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveComma, Critical::ERROR).primary(
+            Label::new(first, "consecutive comma is not allowed in objects"),
+        );
+
+    for &span in rest.iter().take(MAX_EXTRA_LABELS) {
+        diagnostic.add_label(Label::new(span, "additional extra comma"));
+    }
+
+    let help_text = if rest.is_empty() {
+        "remove the extra comma"
+    } else {
+        "remove the extra commas"
+    };
+    if let Some(patch_span) = patch_span {
+        let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
+        diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
+    } else {
+        diagnostic.add_message(Message::help(help_text));
+    }
+
+    diagnostic.add_message(Message::note(
+        "object entries must be separated by a single comma",
+    ));
+    diagnostic
+}
+
+pub(crate) fn consecutive_colons(
+    first: SpanId,
+    rest: &[SpanId],
+    patch_span: Option<SpanId>,
+) -> ObjectDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveColon, Critical::ERROR).primary(
+            Label::new(
+                first,
+                "consecutive colon is not allowed between key and value",
+            ),
+        );
+
+    for &span in rest.iter().take(MAX_EXTRA_LABELS) {
+        diagnostic.add_label(Label::new(span, "additional extra colon"));
+    }
+
+    let help_text = if rest.is_empty() {
+        "remove the extra colon"
+    } else {
+        "remove the extra colons"
+    };
+    if let Some(patch_span) = patch_span {
+        let suggestion = Suggestions::patch(Patch::new(patch_span, ""));
+        diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
+    } else {
+        diagnostic.add_message(Message::help(help_text));
+    }
+
+    diagnostic.add_message(Message::note(
+        "object keys and values must be separated by a single `:`",
+    ));
+    diagnostic
+}
+
+pub(crate) fn unknown_key(
+    span: SpanId,
+    key: &str,
+    expected: &[&'static str],
+    primary_context: Option<(ConstructorKind, SpanId)>,
+    type_annotations_disallowed: bool,
+    heap: Option<&Heap>,
+) -> ObjectDiagnostic {
+    // Labels are not escaped by annotate-snippets, so escape control characters in user keys.
+    let escaped_key = key.escape_debug().to_string();
+
+    if type_annotations_disallowed {
+        let mut diagnostic =
+            Diagnostic::new(ObjectDiagnosticCategory::UnknownKey, Critical::ERROR).primary(
+                Label::new(span, "`#type` annotations are not allowed in this grammar"),
+            );
+        if let Some((ctor, primary_span)) = primary_context {
+            diagnostic.add_label(Label::new(
+                primary_span,
+                format!("in this `{}` object", ctor.key()),
+            ));
         }
-        Cow::Owned(format!(
-            "This J-Expr object only accepts these specific keys: {list}"
-        ))
+        diagnostic.add_message(Message::help("remove the `#type` field"));
+        return diagnostic;
+    }
+
+    let primary_label = match primary_context {
+        Some((ctor, _)) if expected.is_empty() => {
+            format!("unexpected key `{escaped_key}` in `{}` object", ctor.key())
+        }
+        _ => format!("unknown object key `{escaped_key}`"),
     };
 
-    diagnostic.add_message(Message::help(help_message));
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::UnknownKey, Critical::ERROR)
+        .primary(Label::new(span, primary_label));
+
+    if let Some((ctor, primary_span)) = primary_context {
+        diagnostic.add_label(Label::new(
+            primary_span,
+            format!("in this `{}` object", ctor.key()),
+        ));
+    }
+
+    if expected.is_empty() {
+        diagnostic.add_message(Message::help(format!("remove the `{escaped_key}` key")));
+        let note = primary_context.map_or_else(
+            || Cow::Borrowed("no additional keys are allowed in this J-Expr object"),
+            |(ctor, _)| {
+                Cow::Owned(format!(
+                    "a `{}` object accepts no additional keys",
+                    ctor.key()
+                ))
+            },
+        );
+        diagnostic.add_message(Message::note(note));
+        return diagnostic;
+    }
+
+    let similar = suggest_similar(key, expected, heap, 2);
+    if let Some(suggestions) = Suggestions::try_from_iter(
+        similar
+            .into_iter()
+            .map(|candidate| Patch::new(span, format!("\"{candidate}\""))),
+    ) {
+        diagnostic.add_message(
+            Message::help("a similar J-Expr key exists").with_suggestions(suggestions),
+        );
+    } else if primary_context.is_none() {
+        diagnostic.add_message(Message::help(
+            r##"wrap named fields in `{"#struct": {...}}` or `{"#dict": {...}}`, or use a constructor key"##,
+        ));
+    } else {
+        let list = format_backticked_or_list(expected);
+        diagnostic.add_message(Message::help(format!(
+            "remove `{escaped_key}` or replace it with {list}"
+        )));
+    }
+
+    let list = format_backticked_or_list(expected);
+    diagnostic.add_message(Message::note(format!(
+        "valid keys in this position are {list}"
+    )));
     diagnostic
 }
+
+pub(crate) fn conflicting_constructor(
+    existing_span: SpanId,
+    found_span: SpanId,
+    existing: ConstructorKind,
+    found: ConstructorKind,
+    allow_type: bool,
+) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ObjectDiagnosticCategory::ConflictingConstructor,
+        Critical::ERROR,
+    )
+    .primary(Label::new(
+        found_span,
+        format!(
+            "cannot combine `{}` with `{}` in the same object",
+            found.key(),
+            existing.key()
+        ),
+    ));
+
+    diagnostic.add_label(Label::new(
+        existing_span,
+        format!("object already defined as `{}` here", existing.key()),
+    ));
+
+    let help = if allow_type {
+        format!(
+            "keep a single constructor key; `{}` only accepts `#type` as an additional key",
+            existing.key()
+        )
+    } else {
+        format!("remove `{}` or move it into its own object", found.key())
+    };
+    diagnostic.add_message(Message::help(help));
+    diagnostic.add_message(Message::note(
+        "each J-Expr object represents a single constructor",
+    ));
+    diagnostic
+}
+
+const ORPHANED_TYPE_NOTE: &str = r##"`#type` annotates a constructor in the same object:
+- `{"#literal": 42, "#type": "Int"}`
+- `{"#struct": {"x": {"#literal": 1}}, "#type": "Point"}`
+- `{"#list": [], "#type": "List<Int>"}`"##;
 
 pub(crate) fn orphaned_type(span: SpanId) -> ObjectDiagnostic {
     let mut diagnostic =
         Diagnostic::new(ObjectDiagnosticCategory::OrphanedType, Critical::ERROR).primary(
-            Label::new(span, "Add a primary construct to use with #type"),
+            Label::new(span, "`#type` cannot be used without a constructor key"),
         );
 
     diagnostic.add_message(Message::help(
-        "The `#type` field must be used alongside a primary construct like `#struct`, `#list`, \
-         etc. It cannot be used alone in an object.",
+        "add a constructor key such as `#literal`, `#struct`, `#tuple`, `#list`, or `#dict` to \
+         this object",
     ));
-
-    diagnostic.add_message(Message::note(
-        r##"The `#type` field is used to annotate the type of a construct. Valid examples include:
-    - `{"#struct": {...}, "#type": "Person"}`
-    - `{"#list": [...], "#type": "List<Number>"}`
-    - `{"#literal": 42, "#type": "Int"}`"##,
-    ));
-
+    diagnostic.add_message(Message::note(ORPHANED_TYPE_NOTE));
     diagnostic
 }
 
@@ -381,13 +478,16 @@ pub(crate) fn duplicate_key(
     key: &str,
 ) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::DuplicateKey, Critical::ERROR)
-        .primary(Label::new(duplicate_span, "Duplicate key"));
-    diagnostic.labels.push(Label::new(
+        .primary(Label::new(duplicate_span, format!("duplicate key `{key}`")));
+    diagnostic.add_label(Label::new(
         first_span,
-        format!("First occurrence of `{key}`"),
+        format!("first occurrence of `{key}` here"),
     ));
-    diagnostic.add_message(Message::help(
-        "J-Expr does not allow duplicate keys in the same object. Each key must be unique.",
+    diagnostic.add_message(Message::help(format!(
+        "remove one of the duplicate `{key}` entries"
+    )));
+    diagnostic.add_message(Message::note(
+        "object keys must be unique within the same object",
     ));
     diagnostic
 }

@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#dict\": [[{\"#literal\": \"k\"}, {\"#literal\": \"v\"}, {\"#literal\": \"x\"}]]}"
+---
+error[jexpr::parser::object::dict-entry-too-many-items]: Too many items in dictionary entry
+  ╭▸ 
+1 │ {"#dict": [[{"#literal": "k"}, {"#literal": "v"}, {"#literal": "x"}]]}
+  │  ─────── in this `#dict`                          ━━━━━━━━━━━━━━━━━ unexpected extra element in dictionary entry
+  │
+  ├ help: remove the extra element; expected 2 elements (`[key, value]`), found 3
+  ╰ note: in array-of-pairs format, each `#dict` entry must be a two-element array `[key, value]`

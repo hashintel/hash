@@ -4,7 +4,11 @@ use std::io::Write as _;
 
 use proptest::{prop_assert_eq, property_test, sample::SizeRange};
 
-use super::{EscapeError, StringError, decode, decode_quoted, validate};
+use super::{DecodeSink, EscapeError, LexedStr, StringError, decode_quoted, scan};
+
+fn decode<'source>(source: &mut &'source [u8]) -> Result<Cow<'source, str>, StringError> {
+    scan(&mut DecodeSink::new(), source)
+}
 
 #[test]
 fn vector_boundaries() {
@@ -35,9 +39,54 @@ fn vector_boundaries() {
 #[test]
 fn escape_spellings() {
     let mut source = br#"\"\\\/\b\f\n\r\t\u00aB\u0000"tail"#.as_slice();
-    let value = decode(&mut source).expect("should decode simple and Unicode escapes");
+    let value = decode(&mut source).expect("should decode single-character and Unicode escapes");
     assert_eq!(value, "\"\\/\x08\x0c\n\r\t\u{ab}\0");
     assert_eq!(source, b"tail");
+}
+
+#[test]
+fn single_ascii_escape_borrows() {
+    for code in 0_u8..=0x7F {
+        let body = format!(r#"\u{code:04X}""#);
+        let lexed = LexedStr::new(&body).expect("ASCII unicode escape validates");
+        assert!(lexed.has_escapes());
+        assert_eq!(lexed.consumed(), body.len());
+
+        let expected = char::from(code);
+        let decoded = lexed.decode();
+        assert_matches!(decoded, Cow::Borrowed(_));
+        assert_eq!(decoded.as_ref(), expected.encode_utf8(&mut [0; 4]));
+
+        let quoted = format!("\"{body}");
+        let quoted_decoded = decode_quoted(&quoted).expect("quoted ASCII escape decodes");
+        assert_matches!(quoted_decoded, Cow::Borrowed(_));
+        assert_eq!(quoted_decoded.as_ref(), decoded.as_ref());
+    }
+}
+
+#[test]
+fn lexed_str_decode_cases() {
+    for (body, expected, borrowed) in [
+        (r#"""#, "", true),
+        (r#"hello""#, "hello", true),
+        (r#"\n""#, "\n", true),
+        (r#"\"""#, "\"", true),
+        (r#"a\nb""#, "a\nb", false),
+        (r#"a\"b""#, "a\"b", false),
+        (r#"\n\n""#, "\n\n", false),
+        (r#"\u00E9""#, "\u{00E9}", false),
+    ] {
+        let lexed = LexedStr::new(body).expect("valid string body");
+        let decoded = lexed.decode();
+        assert_eq!(matches!(decoded, Cow::Borrowed(_)), borrowed);
+        assert_eq!(decoded.as_ref(), expected);
+    }
+}
+
+#[test]
+fn decode_quoted_rejects_trailing_bytes() {
+    assert_eq!(decode_quoted(r#""a"b"#), Err(StringError::Eof));
+    assert_eq!(decode_quoted(r#""a\nb"c"#), Err(StringError::Eof));
 }
 
 #[test]
@@ -145,7 +194,7 @@ fn validate_matches_decode_on_mixed_escapes(characters: Vec<(char, bool)>) {
             let spelling = quoted
                 .strip_prefix('"')
                 .and_then(|rest| rest.strip_suffix('"'))
-                .expect("serialized character should be quoted");
+                .expect("serde_json wraps serialized characters in quotes");
             if spelling.contains('\\') {
                 had_escape = true;
             }
@@ -154,9 +203,9 @@ fn validate_matches_decode_on_mixed_escapes(characters: Vec<(char, bool)>) {
     }
     body.push_str("\"tail");
 
-    let (consumed, has_escapes) = validate(&body).expect("valid string body should validate");
-    prop_assert_eq!(has_escapes, had_escape);
-    prop_assert_eq!(body.get(consumed..), Some("tail"));
+    let lexed = LexedStr::new(&body).expect("valid string body should validate");
+    prop_assert_eq!(lexed.has_escapes(), had_escape);
+    prop_assert_eq!(body.get(lexed.consumed()..), Some("tail"));
 
     let quoted = format!(
         "\"{}",
@@ -164,6 +213,7 @@ fn validate_matches_decode_on_mixed_escapes(characters: Vec<(char, bool)>) {
     );
     let mut decode_src = body.as_bytes();
     let expected = decode(&mut decode_src).expect("should decode valid string");
+    prop_assert_eq!(lexed.decode(), expected.as_ref());
     let actual = decode_quoted(&quoted).expect("should decode quoted string");
     prop_assert_eq!(actual, expected);
 }
@@ -175,12 +225,36 @@ fn validate_utf8_escape_error_stays_on_char_boundary() {
         "\\u12\u{1f980}4\"tail",
         "\u{0007}\u{1f980}\"tail",
     ] {
-        let error = validate(input).expect_err("input should report string error");
+        let error = LexedStr::new(input).expect_err("input should report string error");
         assert!(
-            input.is_char_boundary(error.offset),
-            "error offset {} must lie on a UTF-8 boundary in {input:?}",
-            error.offset
+            input.is_char_boundary(error.span.start) && input.is_char_boundary(error.span.end),
+            "error span {:?} must lie on UTF-8 boundaries in {input:?}",
+            error.span
         );
         assert_eq!(input.get(error.consumed..), Some("tail"));
     }
+}
+
+#[test]
+fn validate_error_spans_target_offending_slice() {
+    let err = LexedStr::new(r#"hello\zworld""#).expect_err("unknown escape");
+    assert_eq!(r#"hello\zworld""#.get(err.span), Some(r"\z"));
+
+    let err = LexedStr::new(r#"hello\u12g4""#).expect_err("bad hex digit");
+    assert_eq!(r#"hello\u12g4""#.get(err.span), Some("g"));
+
+    let err = LexedStr::new(r#"\uDC00""#).expect_err("unpaired low surrogate");
+    assert_eq!(r#"\uDC00""#.get(err.span), Some(r"\uDC00"));
+
+    let err = LexedStr::new(r#"\uD800""#).expect_err("unpaired high surrogate");
+    assert_eq!(r#"\uD800""#.get(err.span), Some(r"\uD800"));
+
+    let err = LexedStr::new(r#"\uD800\u1234""#).expect_err("invalid low surrogate");
+    assert_eq!(r#"\uD800\u1234""#.get(err.span), Some(r"\u1234"));
+
+    let err = LexedStr::new("a\nb\"").expect_err("unescaped newline");
+    assert_eq!("a\nb\"".get(err.span), Some("\n"));
+
+    let err = LexedStr::new(r"\u12").expect_err("incomplete unicode escape at EOF");
+    assert_eq!(r"\u12".get(err.span), Some(r"\u12"));
 }

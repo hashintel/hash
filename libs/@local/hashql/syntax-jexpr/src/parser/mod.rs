@@ -1,109 +1,27 @@
 use alloc::borrow::Cow;
-use core::{fmt, marker::PhantomData};
+use core::marker::PhantomData;
 
-use jsonptr::PointerBuf;
-use rowan::{Checkpoint, GreenNode, GreenNodeBuilder};
+use rowan::{Checkpoint, GreenNodeBuilder};
 use text_size::{TextRange, TextSize};
 
 use crate::{
     cst,
-    error::{SyntaxError, SyntaxErrorKind},
-    lexer::{LexError, Lexer, ScannedToken, decode_quoted},
-    pointer,
-    syntax_kind::{SyntaxKind, SyntaxNode, T},
+    error::{
+        DelimiterKind, EofContext, LexerErrorKind, StringErrorContext, SyntaxError, SyntaxErrorKind,
+    },
+    lexer::{LexError, LexedStr, Lexer, ScannedToken, StringError, string::EscapeError},
+    syntax_kind::{SyntaxKind, T},
     syntax_kind_set::SyntaxKindSet,
 };
 
+pub(crate) mod dict;
+mod document;
 pub(crate) mod expr;
+pub(crate) mod json;
 pub(crate) mod object;
 pub(crate) mod recovery;
 
-/// Lossless Rowan parse tree whose root marker `R` selects the item from [`Document::tree`].
-pub struct Document<R> {
-    tree: GreenNode,
-    errors: Vec<SyntaxError>,
-    _root: PhantomData<fn() -> R>,
-}
-
-impl<R> Document<R> {
-    pub(crate) fn new(tree: GreenNode, errors: Vec<SyntaxError>) -> Self {
-        debug_assert_eq!(SyntaxKind::from_raw(tree.kind()), SyntaxKind::Root);
-
-        Self {
-            tree,
-            errors,
-            _root: PhantomData,
-        }
-    }
-
-    #[must_use]
-    pub const fn green(&self) -> &GreenNode {
-        &self.tree
-    }
-
-    /// Builds an owned red-tree [`SyntaxNode`] root on demand.
-    #[must_use]
-    pub fn syntax(&self) -> SyntaxNode {
-        SyntaxNode::new_root(self.tree.clone())
-    }
-
-    #[must_use]
-    pub const fn errors(&self) -> &[SyntaxError] {
-        self.errors.as_slice()
-    }
-
-    #[must_use]
-    pub const fn is_valid(&self) -> bool {
-        self.errors.is_empty()
-    }
-
-    /// Derives the RFC 6901 JSON Pointer for `range`, or `None` outside the source bounds.
-    #[must_use]
-    pub fn json_pointer(&self, range: TextRange) -> Option<PointerBuf> {
-        pointer::json_pointer_for_range(
-            cst::SyntaxNodeData::new(&self.tree, TextSize::new(0)),
-            range,
-        )
-    }
-}
-
-impl<R> Document<R>
-where
-    R: cst::TreeRoot,
-{
-    #[inline]
-    #[must_use]
-    pub fn tree(&self) -> cst::Root<'_, R::Item<'_>> {
-        cst::Root::from_root(&self.tree)
-    }
-}
-
-impl<R> fmt::Debug for Document<R> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("Parse")
-            .field("green", &self.tree)
-            .field("errors", &self.errors)
-            .finish()
-    }
-}
-
-impl<R> Clone for Document<R> {
-    fn clone(&self) -> Self {
-        Self {
-            tree: self.tree.clone(),
-            errors: self.errors.clone(),
-            _root: PhantomData,
-        }
-    }
-}
-
-impl<R> PartialEq for Document<R> {
-    fn eq(&self, other: &Self) -> bool {
-        self.tree == other.tree && self.errors == other.errors
-    }
-}
-
-impl<R> Eq for Document<R> {}
+pub use self::document::Document;
 
 pub(crate) trait Grammar {
     type Root: cst::TreeRoot;
@@ -127,6 +45,8 @@ pub(crate) struct Parser<'source, G> {
 }
 
 impl<'source, G: Grammar> Parser<'source, G> {
+    /// Parses `source` under grammar `G` into a lossless CST document.
+    ///
     /// # Panics
     ///
     /// Panics if `source.len()` exceeds `u32::MAX` bytes.
@@ -153,30 +73,29 @@ impl<'source, G: Grammar> Parser<'source, G> {
         self.builder.start_node(SyntaxKind::Root.into());
 
         if self.current().is_none() {
-            let eof = self.eof_range();
-            self.error(
-                eof,
-                SyntaxErrorKind::UnexpectedEof {
-                    expected: G::ITEM_FIRST,
-                },
-            );
+            self.record_eof(G::ITEM_FIRST, EofContext::Document);
         } else {
             G::parse_item(self);
 
             if let Some(trailing) = self.current() {
+                let trailing_start = trailing.range.start();
+                let is_invalid = trailing.kind == SyntaxKind::InvalidToken;
                 let already_reported = self
                     .errors
                     .last()
                     .is_some_and(|err| err.range() == trailing.range);
-                if !already_reported && trailing.kind != SyntaxKind::InvalidToken {
-                    self.error(trailing.range, SyntaxErrorKind::ExpectedEof);
-                }
+                let err_before = self.error_count();
 
                 self.start_node(SyntaxKind::Error);
                 while self.current().is_some() {
                     self.bump_any();
                 }
                 self.finish_node();
+
+                if !already_reported && !is_invalid && self.error_count() == err_before {
+                    let trailing_range = TextRange::new(trailing_start, self.last_token_end());
+                    self.error(trailing_range, SyntaxErrorKind::ExpectedEof);
+                }
             }
         }
 
@@ -235,16 +154,8 @@ impl<'source, G: Grammar> Parser<'source, G> {
         self.current().is_some_and(|token| token.kind == kind)
     }
 
-    /// # Panics
+    /// Emits the current non-trivia token into the green builder regardless of kind.
     ///
-    /// Panics at EOF, or in debug builds if the current token's kind differs from `expected`.
-    #[inline]
-    pub(crate) fn bump(&mut self, expected: SyntaxKind) -> ScannedToken {
-        let token = self.bump_any();
-        debug_assert_eq!(token.kind, expected);
-        token
-    }
-
     /// # Panics
     ///
     /// Panics at EOF.
@@ -260,6 +171,18 @@ impl<'source, G: Grammar> Parser<'source, G> {
         self.builder
             .token(token.kind.into(), self.lexer.slice(token.range));
         self.last_token_end = token.range.end();
+        token
+    }
+
+    /// Emits the current non-trivia token into the green builder, asserting it matches `expected`.
+    ///
+    /// # Panics
+    ///
+    /// Panics at EOF, or in debug builds if the current token's kind differs from `expected`.
+    #[inline]
+    pub(crate) fn bump(&mut self, expected: SyntaxKind) -> ScannedToken {
+        let token = self.bump_any();
+        debug_assert_eq!(token.kind, expected);
         token
     }
 
@@ -282,7 +205,7 @@ impl<'source, G: Grammar> Parser<'source, G> {
         self.builder.start_node_at(checkpoint, kind.into());
     }
 
-    /// Closes the current node before any trailing trivia is flushed.
+    /// Closes the current node before flushing any trailing trivia.
     #[inline]
     pub(crate) fn finish_node(&mut self) {
         self.builder.finish_node();
@@ -304,14 +227,74 @@ impl<'source, G: Grammar> Parser<'source, G> {
     }
 
     #[inline]
+    pub(crate) fn slice(&self, range: TextRange) -> &'source str {
+        self.lexer.slice(range)
+    }
+
+    #[inline]
+    pub(crate) fn is_pure_separator_span(&self, range: TextRange, separator: u8) -> bool {
+        self.lexer
+            .slice(range)
+            .bytes()
+            .all(|byte| byte == separator || matches!(byte, b' ' | b'\t' | b'\r' | b'\n' | b'\x0c'))
+    }
+
+    #[inline]
     pub(crate) fn error(&mut self, range: TextRange, kind: SyntaxErrorKind) {
         self.errors.push(SyntaxError::new(range, kind));
+    }
+
+    /// Records an unexpected EOF, merging nested unclosed containers and skipping cascades.
+    pub(crate) fn record_eof(&mut self, expected: SyntaxKindSet, context: EofContext) {
+        let eof = self.eof_range();
+
+        if let Some(last) = self.errors.last_mut() {
+            let at_eof = last.range() == eof;
+            #[expect(
+                clippy::wildcard_enum_match_arm,
+                reason = "only EOF and unterminated-token errors merge or suppress follow-on EOF"
+            )]
+            match last.kind_mut() {
+                SyntaxErrorKind::Lexer(
+                    LexerErrorKind::UnterminatedBlockComment { .. }
+                    | LexerErrorKind::InvalidString {
+                        error: StringError::Eof | StringError::Escape(EscapeError::Eof),
+                        ..
+                    },
+                ) => return,
+                SyntaxErrorKind::Lexer(LexerErrorKind::UnexpectedEof {
+                    context: EofContext::UnclosedDelimiters(existing),
+                    ..
+                }) if at_eof => {
+                    if let EofContext::UnclosedDelimiters(additional) = context {
+                        existing.extend(additional);
+                    }
+                    return;
+                }
+                SyntaxErrorKind::Lexer(LexerErrorKind::UnexpectedEof { .. }) if at_eof => {
+                    return;
+                }
+                _ => {}
+            }
+        }
+
+        self.error(
+            eof,
+            SyntaxErrorKind::Lexer(LexerErrorKind::UnexpectedEof { expected, context }),
+        );
+    }
+
+    pub(crate) fn record_unclosed_eof(&mut self, open: TextRange, delimiter: DelimiterKind) {
+        self.record_eof(
+            SyntaxKindSet::from_kind(delimiter.close_kind()),
+            EofContext::UnclosedDelimiters(vec![(delimiter, open)]),
+        );
     }
 
     /// Decodes a validated string token, returning `None` if it carried a lex error.
     #[expect(
         clippy::string_slice,
-        reason = "validated JSON string token begins and ends with ASCII quotes"
+        reason = "validated JSON string token begins with ASCII `\"`"
     )]
     pub(crate) fn decode_string(&self, token: ScannedToken) -> Option<Cow<'source, str>> {
         debug_assert_eq!(token.kind, T![string]);
@@ -320,27 +303,138 @@ impl<'source, G: Grammar> Parser<'source, G> {
         }
 
         let raw = self.lexer.slice(token.range);
-        if !token.has_escapes {
-            return Some(Cow::Borrowed(&raw[1..raw.len() - 1]));
-        }
-
-        decode_quoted(raw).ok()
+        Some(LexedStr::from_validated(&raw[1..], token.has_escapes).decode())
     }
 
     fn record_lex_error(&mut self, token_range: TextRange, error: LexError) {
         match error {
             LexError::String { error, range } => {
-                self.error(range, SyntaxErrorKind::InvalidString(error));
+                let context = self.string_error_context(token_range, range, error);
+                self.error(
+                    range,
+                    SyntaxErrorKind::Lexer(LexerErrorKind::InvalidString { error, context }),
+                );
+            }
+            LexError::SingleQuotedString => {
+                let replacement = single_quoted_to_double_quoted(self.lexer.slice(token_range));
+                self.error(
+                    token_range,
+                    SyntaxErrorKind::Lexer(LexerErrorKind::SingleQuotedString { replacement }),
+                );
             }
             LexError::Number(error) => {
-                self.error(error.range, SyntaxErrorKind::InvalidNumber(error.kind));
+                let raw = self.lexer.slice(token_range).to_owned();
+                self.error(
+                    error.range,
+                    SyntaxErrorKind::Lexer(LexerErrorKind::InvalidNumber {
+                        error: error.kind,
+                        token_range,
+                        raw,
+                    }),
+                );
+            }
+            LexError::InvalidWord => {
+                let text = self.lexer.slice(token_range).to_owned();
+                self.error(
+                    token_range,
+                    SyntaxErrorKind::Lexer(LexerErrorKind::InvalidToken { text }),
+                );
             }
             LexError::UnterminatedBlockComment => {
-                self.error(token_range, SyntaxErrorKind::UnterminatedBlockComment);
+                let opener =
+                    TextRange::at(token_range.start(), TextSize::new(2).min(token_range.len()));
+                let eof = self.lexer.eof_offset();
+                self.error(
+                    opener,
+                    SyntaxErrorKind::Lexer(LexerErrorKind::UnterminatedBlockComment { eof }),
+                );
             }
             LexError::UnrecognizedCharacter => {
-                self.error(token_range, SyntaxErrorKind::InvalidCharacter);
+                let character = self
+                    .lexer
+                    .slice(token_range)
+                    .chars()
+                    .next()
+                    .unwrap_or('\u{FFFD}');
+                self.error(
+                    token_range,
+                    SyntaxErrorKind::Lexer(LexerErrorKind::InvalidCharacter { character }),
+                );
             }
         }
     }
+
+    fn string_error_context(
+        &self,
+        token_range: TextRange,
+        error_range: TextRange,
+        error: StringError,
+    ) -> StringErrorContext {
+        let open_quote =
+            TextRange::at(token_range.start(), TextSize::new(1).min(token_range.len()));
+        let control_byte = (error == StringError::Control)
+            .then(|| self.lexer.slice(error_range).as_bytes().first().copied())
+            .flatten();
+
+        let (high_surrogate, invalid_unit) = if error
+            == StringError::Escape(EscapeError::ExpectedLowSurrogate)
+        {
+            let slice = self.lexer.slice(error_range);
+            let parsed = slice
+                .strip_prefix(r"\u")
+                .and_then(|hex| u16::from_str_radix(hex, 16).ok());
+            match parsed {
+                Some(unit) if (0xD800..=0xDBFF).contains(&unit) => (None, Some(unit)),
+                Some(unit) if error_range.start() >= token_range.start() + TextSize::new(7) => {
+                    let prev =
+                        TextRange::new(error_range.start() - TextSize::new(6), error_range.start());
+                    let high = self.lexer.slice(prev).starts_with(r"\u").then_some(prev);
+                    (high, Some(unit))
+                }
+                other => (None, other),
+            }
+        } else {
+            (None, None)
+        };
+
+        StringErrorContext {
+            open_quote,
+            control_byte,
+            high_surrogate,
+            invalid_unit,
+        }
+    }
+}
+
+/// Converts a single-line single-quoted string `'...'` into a verified double-quoted JSON string.
+#[expect(
+    clippy::string_slice,
+    reason = "single-quoted tokens always begin and end with ASCII `'`, so +1/-1 are char bounds"
+)]
+fn single_quoted_to_double_quoted(raw: &str) -> Option<String> {
+    if raw.len() < 2 || !raw.starts_with('\'') || !raw.ends_with('\'') {
+        return None;
+    }
+
+    let inner = &raw[1..(raw.len() - 1)];
+    let mut body = String::with_capacity(inner.len() + 2);
+    let mut chars = inner.chars();
+    while let Some(character) = chars.next() {
+        match character {
+            '\\' => match chars.next() {
+                Some('\'') => body.push('\''),
+                Some(other) => {
+                    body.push('\\');
+                    body.push(other);
+                }
+                None => return None,
+            },
+            '"' => body.push_str(r#"\""#),
+            other => body.push(other),
+        }
+    }
+    body.push('"');
+
+    let lexed = LexedStr::new(&body).ok()?;
+    (lexed.consumed() == body.len()).then(|| format!("\"{body}"))
 }

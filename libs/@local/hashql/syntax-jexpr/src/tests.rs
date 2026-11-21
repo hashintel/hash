@@ -195,7 +195,7 @@ fn multi_diagnostic_recovery_across_phases() {
                 ObjectDiagnosticCategory::StructKeyExpectedIdentifier
             )),
             JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::String(
-                StringDiagnosticCategory::InvalidExpression
+                StringDiagnosticCategory::InvalidType
             )),
             JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::String(
                 StringDiagnosticCategory::InvalidExpression
@@ -277,7 +277,7 @@ const SINGLE_ERROR_CASES: &[(&str, JExprDiagnosticCategory)] = &[
     (
         r##"{"#literal": 1, "#list": []}"##,
         JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Object(
-            ObjectDiagnosticCategory::UnknownKey,
+            ObjectDiagnosticCategory::ConflictingConstructor,
         )),
     ),
     (
@@ -372,13 +372,11 @@ fn single_error_without_cascade() {
             categories[0], expected,
             "primary diagnostic mismatch for {input}: got {categories:?}"
         );
-        if input != "/* unclosed" {
-            assert_eq!(
-                categories.len(),
-                1,
-                "unexpected cascade diagnostics for {input}: {categories:?}"
-            );
-        }
+        assert_eq!(
+            categories.len(),
+            1,
+            "unexpected cascade diagnostics for {input}: {categories:?}"
+        );
     }
 }
 
@@ -391,9 +389,10 @@ fn generic_value_grammar_rejects_type_annotations() {
     }
 
     impl<'tree> Node<'tree> for ValueNode<'tree> {
-        fn can_cast(kind: SyntaxKind) -> bool {
-            matches!(kind, SyntaxKind::Literal | SyntaxKind::Struct)
-        }
+        const SYNTAX_KINDS: SyntaxKindSet = SyntaxKindSet::from_union(&[
+            cst::Literal::SYNTAX_KINDS,
+            cst::Struct::<Self>::SYNTAX_KINDS,
+        ]);
 
         #[expect(
             clippy::wildcard_enum_match_arm,

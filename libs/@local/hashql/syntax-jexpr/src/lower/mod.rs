@@ -42,7 +42,9 @@ pub(crate) fn lower_expr<'heap>(
     let mut lowerer = Lowerer::new(heap, spans);
 
     for error in parse.errors() {
-        let diagnostic = error.to_diagnostic(lowerer.spans).generalize();
+        let diagnostic = error
+            .to_diagnostic_in(lowerer.heap, lowerer.spans)
+            .generalize();
         lowerer.push_diagnostic(diagnostic);
     }
 
@@ -90,7 +92,7 @@ fn into_ordered_failure(
         .expect("critical diagnostics must be present");
 
     let Err(primary) = diagnostics.remove(position).specialize() else {
-        unreachable!("located diagnostic was verified critical");
+        unreachable!("located diagnostic passed critical check");
     };
 
     Failure {
@@ -145,8 +147,9 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
         }
     }
 
-    /// Lowers a constructor's primary and `#type` fields in source order so diagnostics stay
-    /// ordered.
+    /// Lowers a constructor's primary and `#type` fields in source order.
+    ///
+    /// Preserving source order keeps multi-field diagnostics ordered by byte offset.
     pub(crate) fn lower_typed_pair<'tree, Field, Output>(
         &mut self,
         type_field: Option<cst::TypeField<'tree>>,
@@ -193,7 +196,7 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
         };
 
         let parent = self.insert_range(token.text_range());
-        match parse_expr_from_string(self.heap, self.spans, parent, &decoded) {
+        match parse_expr_from_string(self.heap, self.spans, parent, token.text(), &decoded) {
             Ok(expr) => Some(expr),
             Err(diagnostic) => {
                 self.diagnostics
@@ -282,10 +285,15 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
             Ok(ident) => ident,
             Err(error) => {
                 let error = (error.offset(), error.into_inner());
-                let diagnostic =
-                    array::labeled_argument_invalid_identifier(self.spans, token_span, error)
-                        .map_category(wrap_array)
-                        .generalize();
+                let diagnostic = array::labeled_argument_invalid_identifier(
+                    self.spans,
+                    token_span,
+                    token.text(),
+                    &decoded,
+                    error,
+                )
+                .map_category(wrap_array)
+                .generalize();
                 self.diagnostics.push(diagnostic);
                 return None;
             }
@@ -339,10 +347,15 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
                 Ok(ident) => Some(ident),
                 Err(error) => {
                     let error = (error.offset(), error.into_inner());
-                    let diagnostic =
-                        array::labeled_argument_invalid_identifier(self.spans, key_span, error)
-                            .map_category(wrap_array)
-                            .generalize();
+                    let diagnostic = array::labeled_argument_invalid_identifier(
+                        self.spans,
+                        key_span,
+                        token.text(),
+                        &decoded,
+                        error,
+                    )
+                    .map_category(wrap_array)
+                    .generalize();
                     self.diagnostics.push(diagnostic);
                     None
                 }
@@ -376,8 +389,16 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
             return None;
         };
 
+        let key_range = field.key().map(cst::Token::text_range);
         let parent = self.insert_range(token.text_range());
-        match parse_type_from_string(self.heap, self.spans, parent, &decoded) {
+        match parse_type_from_string(
+            self.heap,
+            self.spans,
+            parent,
+            key_range,
+            token.text(),
+            &decoded,
+        ) {
             Ok(r#type) => Some(Box::new_in(r#type, self.heap)),
             Err(diagnostic) => {
                 self.diagnostics

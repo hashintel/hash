@@ -2,6 +2,8 @@ use core::hint::black_box;
 
 use crate::{Parser, lexer::Lexer};
 
+/// Tokenizes `source` without constructing a syntax tree.
+///
 /// # Panics
 ///
 /// Panics if the input contains a lexical error.
@@ -16,6 +18,8 @@ pub fn tokenize(source: &str) {
     }
 }
 
+/// Parses `source` into a lossless CST without lowering to an AST.
+///
 /// # Panics
 ///
 /// Panics if the input contains a syntax error.

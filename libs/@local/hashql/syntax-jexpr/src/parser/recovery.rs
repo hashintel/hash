@@ -1,8 +1,11 @@
 use text_size::TextRange;
 
-use super::{Grammar, Parser};
+use super::{Grammar, Parser, json};
 use crate::{
-    error::SyntaxErrorKind,
+    error::{
+        ArrayErrorKind, DelimiterKind, EofContext, LexerErrorKind, ObjectErrorKind,
+        SyntaxErrorKind, UnexpectedTokenContext,
+    },
     syntax_kind::{SyntaxKind, T},
     syntax_kind_set::SyntaxKindSet,
 };
@@ -13,7 +16,12 @@ const EXPECTED_OBJECT_SEP: SyntaxKindSet = SyntaxKindSet::from_slice(&[T![,], T!
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum ContainerStep {
-    Item,
+    /// Ready to parse the next element or entry.
+    ///
+    /// `separator` holds the single comma before this item when one was cleanly consumed.
+    Item {
+        separator: Option<TextRange>,
+    },
     Closed,
     /// Stopped on EOF or an enclosing container's closing delimiter.
     Aborted,
@@ -21,12 +29,13 @@ pub(crate) enum ContainerStep {
 
 pub(crate) fn next_array_element<G: Grammar>(
     parser: &mut Parser<'_, G>,
+    open: TextRange,
     index: usize,
     can_start_item: impl Fn(SyntaxKind) -> bool,
 ) -> ContainerStep {
     loop {
         let Some(token) = parser.current() else {
-            return abort_eof(parser);
+            return abort_eof(parser, open, DelimiterKind::Bracket);
         };
 
         if token.kind == T![']'] {
@@ -36,19 +45,28 @@ pub(crate) fn next_array_element<G: Grammar>(
 
         if index == 0 {
             if token.kind == T![,] {
-                let (first, rest) = eat_commas(parser);
-                parser.error(first, SyntaxErrorKind::ArrayLeadingCommas(rest));
+                let (first, rest, patch_range) = eat_separator_run(parser, T![,], b',');
+                parser.error(
+                    first,
+                    SyntaxErrorKind::Array(ArrayErrorKind::LeadingCommas { rest, patch_range }),
+                );
                 continue;
             }
             if token.kind == T!['}'] {
-                report_unexpected(parser, token.range, token.kind, EXPECTED_ARRAY_SEP);
+                report_mismatched_delimiter(
+                    parser,
+                    token.range,
+                    token.kind,
+                    open,
+                    DelimiterKind::Bracket,
+                );
                 return ContainerStep::Aborted;
             }
-            return ContainerStep::Item;
+            return ContainerStep::Item { separator: None };
         }
 
         if token.kind == T![,] {
-            return consume_array_comma(parser);
+            return consume_array_comma(parser, open);
         }
 
         if token.kind == SyntaxKind::InvalidToken {
@@ -56,70 +74,82 @@ pub(crate) fn next_array_element<G: Grammar>(
             continue;
         }
 
-        report_unexpected(parser, token.range, token.kind, EXPECTED_ARRAY_SEP);
         if token.kind == T!['}'] {
+            report_mismatched_delimiter(
+                parser,
+                token.range,
+                token.kind,
+                open,
+                DelimiterKind::Bracket,
+            );
             return ContainerStep::Aborted;
         }
+
         if can_start_item(token.kind) {
-            return ContainerStep::Item;
+            report_missing_comma(parser, token.range, token.kind, DelimiterKind::Bracket);
+            return ContainerStep::Item { separator: None };
         }
+
+        report_unexpected(
+            parser,
+            token.range,
+            token.kind,
+            EXPECTED_ARRAY_SEP,
+            UnexpectedTokenContext::General,
+        );
         bump_error_token(parser);
     }
 }
 
-fn consume_array_comma<G: Grammar>(parser: &mut Parser<'_, G>) -> ContainerStep {
-    let first_comma = parser.bump(T![,]).range;
-    let mut extra = Vec::new();
-    while parser.at(T![,]) {
-        extra.push(parser.bump(T![,]).range);
-    }
+fn consume_array_comma<G: Grammar>(parser: &mut Parser<'_, G>, open: TextRange) -> ContainerStep {
+    let (first_comma, extra, patch_range) = eat_separator_run(parser, T![,], b',');
 
     let Some(after) = parser.current() else {
-        if let Some((&first_extra, rest)) = extra.split_first() {
-            parser.error(
-                first_extra,
-                SyntaxErrorKind::ArrayConsecutiveCommas(rest.to_vec()),
-            );
-        }
-        return abort_eof(parser);
+        report_consecutive_commas(parser, DelimiterKind::Bracket, &extra);
+        return abort_eof(parser, open, DelimiterKind::Bracket);
     };
 
     if after.kind == T![']'] {
-        parser.error(first_comma, SyntaxErrorKind::ArrayTrailingCommas(extra));
+        parser.error(
+            first_comma,
+            SyntaxErrorKind::Array(ArrayErrorKind::TrailingCommas {
+                rest: extra,
+                patch_range,
+            }),
+        );
         parser.bump(T![']']);
         return ContainerStep::Closed;
     }
 
-    if let Some((&first_extra, rest)) = extra.split_first() {
-        parser.error(
-            first_extra,
-            SyntaxErrorKind::ArrayConsecutiveCommas(rest.to_vec()),
-        );
-    }
+    let separator =
+        (!report_consecutive_commas(parser, DelimiterKind::Bracket, &extra)).then_some(first_comma);
 
     if after.kind == T!['}'] {
-        report_unexpected(
+        report_mismatched_delimiter(
             parser,
             after.range,
             after.kind,
-            SyntaxKindSet::from_kind(T![']']),
+            open,
+            DelimiterKind::Bracket,
         );
         return ContainerStep::Aborted;
     }
 
-    ContainerStep::Item
+    ContainerStep::Item { separator }
 }
 
 /// Guarantees the current token is [`SyntaxKind::String`] when returning [`ContainerStep::Item`].
 pub(crate) fn next_object_entry<G: Grammar>(
     parser: &mut Parser<'_, G>,
+    open: TextRange,
     index: usize,
 ) -> ContainerStep {
     let mut need_comma = index > 0;
+    let mut separator = None;
 
     loop {
         let Some(token) = parser.current() else {
-            return abort_eof(parser);
+            return abort_eof(parser, open, DelimiterKind::Brace);
         };
 
         if token.kind == T!['}'] {
@@ -128,9 +158,10 @@ pub(crate) fn next_object_entry<G: Grammar>(
         }
 
         if need_comma {
-            match advance_object_separator(parser, token.kind, token.range) {
-                SeparatorStep::ReadyForKey => {
+            match advance_object_separator(parser, open, token.kind, token.range) {
+                SeparatorStep::ReadyForKey(comma) => {
                     need_comma = false;
+                    separator = comma;
                     continue;
                 }
                 SeparatorStep::RetrySeparator => continue,
@@ -139,18 +170,34 @@ pub(crate) fn next_object_entry<G: Grammar>(
         }
 
         if token.kind == T![,] {
-            let (first, rest) = eat_commas(parser);
-            parser.error(first, SyntaxErrorKind::ObjectLeadingCommas(rest));
+            let (first, rest, patch_range) = eat_separator_run(parser, T![,], b',');
+            parser.error(
+                first,
+                SyntaxErrorKind::Object(ObjectErrorKind::LeadingCommas { rest, patch_range }),
+            );
             continue;
         }
 
         if token.kind == T![string] {
-            return ContainerStep::Item;
+            return ContainerStep::Item { separator };
         }
 
         if token.kind == SyntaxKind::InvalidToken {
-            bump_error_token(parser);
+            if skip_malformed_object_entry(parser) {
+                need_comma = true;
+            }
             continue;
+        }
+
+        if token.kind == T![']'] {
+            report_mismatched_delimiter(
+                parser,
+                token.range,
+                token.kind,
+                open,
+                DelimiterKind::Brace,
+            );
+            return ContainerStep::Aborted;
         }
 
         report_unexpected(
@@ -158,56 +205,50 @@ pub(crate) fn next_object_entry<G: Grammar>(
             token.range,
             token.kind,
             SyntaxKindSet::from_kind(T![string]),
+            UnexpectedTokenContext::ObjectKey,
         );
-        if token.kind == T![']'] {
-            return ContainerStep::Aborted;
+        if skip_malformed_object_entry(parser) {
+            need_comma = true;
         }
-        skip_unexpected_object_token(parser);
     }
 }
 
 enum SeparatorStep {
-    ReadyForKey,
+    ReadyForKey(Option<TextRange>),
     RetrySeparator,
     Return(ContainerStep),
 }
 
 fn advance_object_separator<G: Grammar>(
     parser: &mut Parser<'_, G>,
+    open: TextRange,
     kind: SyntaxKind,
     range: TextRange,
 ) -> SeparatorStep {
     if kind == T![,] {
-        let first_comma = parser.bump(T![,]).range;
-        let mut extra = Vec::new();
-        while parser.at(T![,]) {
-            extra.push(parser.bump(T![,]).range);
-        }
+        let (first_comma, extra, patch_range) = eat_separator_run(parser, T![,], b',');
 
         let Some(after) = parser.current() else {
-            if let Some((&first_extra, rest)) = extra.split_first() {
-                parser.error(
-                    first_extra,
-                    SyntaxErrorKind::ObjectConsecutiveCommas(rest.to_vec()),
-                );
-            }
-            return SeparatorStep::Return(abort_eof(parser));
+            report_consecutive_commas(parser, DelimiterKind::Brace, &extra);
+            return SeparatorStep::Return(abort_eof(parser, open, DelimiterKind::Brace));
         };
 
         if after.kind == T!['}'] {
-            parser.error(first_comma, SyntaxErrorKind::ObjectTrailingCommas(extra));
+            parser.error(
+                first_comma,
+                SyntaxErrorKind::Object(ObjectErrorKind::TrailingCommas {
+                    rest: extra,
+                    patch_range,
+                }),
+            );
             parser.bump(T!['}']);
             return SeparatorStep::Return(ContainerStep::Closed);
         }
 
-        if let Some((&first_extra, rest)) = extra.split_first() {
-            parser.error(
-                first_extra,
-                SyntaxErrorKind::ObjectConsecutiveCommas(rest.to_vec()),
-            );
-        }
+        let clean_comma = (!report_consecutive_commas(parser, DelimiterKind::Brace, &extra))
+            .then_some(first_comma);
 
-        return SeparatorStep::ReadyForKey;
+        return SeparatorStep::ReadyForKey(clean_comma);
     }
 
     if kind == SyntaxKind::InvalidToken {
@@ -215,27 +256,33 @@ fn advance_object_separator<G: Grammar>(
         return SeparatorStep::RetrySeparator;
     }
 
-    report_unexpected(parser, range, kind, EXPECTED_OBJECT_SEP);
     if kind == T![']'] {
+        report_mismatched_delimiter(parser, range, kind, open, DelimiterKind::Brace);
         return SeparatorStep::Return(ContainerStep::Aborted);
     }
+
     if kind == T![string] {
-        return SeparatorStep::Return(ContainerStep::Item);
+        report_missing_comma(parser, range, kind, DelimiterKind::Brace);
+        return SeparatorStep::Return(ContainerStep::Item { separator: None });
     }
 
+    report_unexpected(
+        parser,
+        range,
+        kind,
+        EXPECTED_OBJECT_SEP,
+        UnexpectedTokenContext::General,
+    );
     skip_unexpected_object_token(parser);
     SeparatorStep::RetrySeparator
 }
 
 /// Returns `true` when the caller should proceed to parse the field value.
-pub(crate) fn expect_colon<G: Grammar>(parser: &mut Parser<'_, G>) -> bool {
+pub(crate) fn expect_colon<G: Grammar>(parser: &mut Parser<'_, G>, key_range: TextRange) -> bool {
     let Some(token) = parser.current() else {
-        let eof = parser.eof_range();
-        parser.error(
-            eof,
-            SyntaxErrorKind::UnexpectedEof {
-                expected: SyntaxKindSet::from_kind(T![:]),
-            },
+        parser.record_eof(
+            SyntaxKindSet::from_kind(T![:]),
+            EofContext::FieldColon { key: key_range },
         );
         return false;
     };
@@ -243,12 +290,11 @@ pub(crate) fn expect_colon<G: Grammar>(parser: &mut Parser<'_, G>) -> bool {
     if token.kind == T![:] {
         parser.bump(T![:]);
         if parser.at(T![:]) {
-            let first = parser.bump(T![:]).range;
-            let mut rest = Vec::new();
-            while parser.at(T![:]) {
-                rest.push(parser.bump(T![:]).range);
-            }
-            parser.error(first, SyntaxErrorKind::ObjectConsecutiveColons(rest));
+            let (first, rest, patch_range) = eat_separator_run(parser, T![:], b':');
+            parser.error(
+                first,
+                SyntaxErrorKind::Object(ObjectErrorKind::ConsecutiveColons { rest, patch_range }),
+            );
         }
         return true;
     }
@@ -259,100 +305,18 @@ pub(crate) fn expect_colon<G: Grammar>(parser: &mut Parser<'_, G>) -> bool {
             token.range,
             token.kind,
             SyntaxKindSet::from_kind(T![:]),
+            UnexpectedTokenContext::MissingColon { key: key_range },
         );
     }
 
     !matches!(token.kind, T![,] | T!['}'] | T![']'])
 }
 
-pub(crate) fn parse_json_value<G: Grammar>(parser: &mut Parser<'_, G>) {
-    let Some(token) = parser.current() else {
-        return;
-    };
-
-    if token.kind == T!['{'] {
-        parse_json_object(parser);
-    } else if token.kind == T!['['] {
-        parse_json_array(parser);
-    } else if SyntaxKindSet::VALUE.contains(token.kind) {
-        parser.start_node(SyntaxKind::JsonLiteral);
-        parser.bump(token.kind);
-        parser.finish_node();
-    } else {
-        bump_error_token(parser);
-    }
-}
-
-fn parse_json_object<G: Grammar>(parser: &mut Parser<'_, G>) {
-    parser.start_node(SyntaxKind::JsonObject);
-    parser.bump(T!['{']);
-
-    let mut index = 0;
-    loop {
-        match next_object_entry(parser, index) {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item => {
-                index += 1;
-                parser.start_node(SyntaxKind::JsonField);
-                parser.bump(T![string]);
-                if expect_colon(parser) {
-                    match parser.current() {
-                        None => {
-                            let eof = parser.eof_range();
-                            parser.error(
-                                eof,
-                                SyntaxErrorKind::UnexpectedEof {
-                                    expected: SyntaxKindSet::VALUE
-                                        | SyntaxKindSet::OPENING_DELIMITER,
-                                },
-                            );
-                        }
-                        Some(tok) if matches!(tok.kind, T![,] | T!['}'] | T![']']) => {}
-                        Some(_) => parse_json_value(parser),
-                    }
-                }
-                parser.finish_node();
-            }
-        }
-    }
-
-    parser.finish_node();
-}
-
-fn parse_json_array<G: Grammar>(parser: &mut Parser<'_, G>) {
-    parser.start_node(SyntaxKind::JsonArray);
-    parser.bump(T!['[']);
-
-    let mut index = 0;
-    loop {
-        match next_array_element(parser, index, is_json_value_start) {
-            ContainerStep::Closed | ContainerStep::Aborted => break,
-            ContainerStep::Item => {
-                index += 1;
-                parse_json_value(parser);
-            }
-        }
-    }
-
-    parser.finish_node();
-}
-
-pub(crate) const fn is_json_value_start(kind: SyntaxKind) -> bool {
-    matches!(
-        kind,
-        T!['{'] | T!['['] | T![string] | T![number] | T![true] | T![false] | T![null]
-    )
-}
+pub(crate) use self::json::parse_json_value;
 
 pub(crate) fn recover_unexpected_item<G: Grammar>(parser: &mut Parser<'_, G>) {
     let Some(token) = parser.current() else {
-        let eof = parser.eof_range();
-        parser.error(
-            eof,
-            SyntaxErrorKind::UnexpectedEof {
-                expected: G::ITEM_FIRST,
-            },
-        );
+        parser.record_eof(G::ITEM_FIRST, EofContext::Document);
         return;
     };
 
@@ -361,22 +325,67 @@ pub(crate) fn recover_unexpected_item<G: Grammar>(parser: &mut Parser<'_, G>) {
         return;
     }
 
-    report_unexpected(parser, token.range, token.kind, G::ITEM_FIRST);
+    let context = if SyntaxKindSet::VALUE.contains(token.kind) && G::ITEM_FIRST.contains(T!['{']) {
+        UnexpectedTokenContext::BarePrimitiveInExpr {
+            text: parser.slice(token.range).to_owned(),
+        }
+    } else {
+        UnexpectedTokenContext::General
+    };
+
+    report_unexpected(parser, token.range, token.kind, G::ITEM_FIRST, context);
 
     if !matches!(token.kind, T![,] | T!['}'] | T![']']) {
-        parse_json_value(parser);
+        json::parse_json_value(parser);
     }
 }
 
-fn abort_eof<G: Grammar>(parser: &mut Parser<'_, G>) -> ContainerStep {
-    let eof = parser.eof_range();
-    parser.error(
-        eof,
-        SyntaxErrorKind::UnexpectedEof {
-            expected: SyntaxKindSet::COMPLETE,
+fn abort_eof<G: Grammar>(
+    parser: &mut Parser<'_, G>,
+    open: TextRange,
+    delimiter: DelimiterKind,
+) -> ContainerStep {
+    parser.record_unclosed_eof(open, delimiter);
+    ContainerStep::Aborted
+}
+
+fn report_mismatched_delimiter<G: Grammar>(
+    parser: &mut Parser<'_, G>,
+    range: TextRange,
+    found: SyntaxKind,
+    open: TextRange,
+    expected_close: DelimiterKind,
+) {
+    report_unexpected(
+        parser,
+        range,
+        found,
+        SyntaxKindSet::from_kind(expected_close.close_kind()),
+        UnexpectedTokenContext::MismatchedDelimiter {
+            open,
+            expected_close,
         },
     );
-    ContainerStep::Aborted
+}
+
+fn report_missing_comma<G: Grammar>(
+    parser: &mut Parser<'_, G>,
+    range: TextRange,
+    found: SyntaxKind,
+    container: DelimiterKind,
+) {
+    let expected = match container {
+        DelimiterKind::Bracket => EXPECTED_ARRAY_SEP,
+        DelimiterKind::Brace => EXPECTED_OBJECT_SEP,
+    };
+    let after = parser.last_token_end();
+    report_unexpected(
+        parser,
+        range,
+        found,
+        expected,
+        UnexpectedTokenContext::MissingComma { after, container },
+    );
 }
 
 fn report_unexpected<G: Grammar>(
@@ -384,23 +393,93 @@ fn report_unexpected<G: Grammar>(
     range: TextRange,
     found: SyntaxKind,
     expected: SyntaxKindSet,
+    context: UnexpectedTokenContext,
 ) {
-    parser.error(range, SyntaxErrorKind::UnexpectedToken { found, expected });
+    parser.error(
+        range,
+        SyntaxErrorKind::Lexer(LexerErrorKind::UnexpectedToken {
+            found,
+            expected,
+            context,
+        }),
+    );
 }
 
-fn bump_error_token<G: Grammar>(parser: &mut Parser<'_, G>) {
+pub(crate) fn bump_error_token<G: Grammar>(parser: &mut Parser<'_, G>) {
     parser.start_node(SyntaxKind::Error);
     parser.bump_any();
     parser.finish_node();
 }
 
-fn eat_commas<G: Grammar>(parser: &mut Parser<'_, G>) -> (TextRange, Vec<TextRange>) {
-    let first = parser.bump(T![,]).range;
+fn separator_patch_range<G: Grammar>(
+    parser: &Parser<'_, G>,
+    first: TextRange,
+    rest: &[TextRange],
+    separator: u8,
+) -> Option<TextRange> {
+    let end = rest
+        .last()
+        .copied()
+        .map_or_else(|| first.end(), TextRange::end);
+    let span = TextRange::new(first.start(), end);
+    parser
+        .is_pure_separator_span(span, separator)
+        .then_some(span)
+}
+
+fn eat_separator_run<G: Grammar>(
+    parser: &mut Parser<'_, G>,
+    kind: SyntaxKind,
+    separator: u8,
+) -> (TextRange, Vec<TextRange>, Option<TextRange>) {
+    let first = parser.bump(kind).range;
     let mut rest = Vec::new();
-    while parser.at(T![,]) {
-        rest.push(parser.bump(T![,]).range);
+    while parser.at(kind) {
+        rest.push(parser.bump(kind).range);
     }
-    (first, rest)
+    let patch_range = separator_patch_range(parser, first, &rest, separator);
+    (first, rest, patch_range)
+}
+
+fn report_consecutive_commas<G: Grammar>(
+    parser: &mut Parser<'_, G>,
+    delimiter: DelimiterKind,
+    extra: &[TextRange],
+) -> bool {
+    let Some((&first_extra, rest)) = extra.split_first() else {
+        return false;
+    };
+    let patch_range = separator_patch_range(parser, first_extra, rest, b',');
+    let kind = match delimiter {
+        DelimiterKind::Bracket => SyntaxErrorKind::Array(ArrayErrorKind::ConsecutiveCommas {
+            rest: rest.to_vec(),
+            patch_range,
+        }),
+        DelimiterKind::Brace => SyntaxErrorKind::Object(ObjectErrorKind::ConsecutiveCommas {
+            rest: rest.to_vec(),
+            patch_range,
+        }),
+    };
+    parser.error(first_extra, kind);
+    true
+}
+
+fn skip_malformed_object_entry<G: Grammar>(parser: &mut Parser<'_, G>) -> bool {
+    skip_unexpected_object_token(parser);
+    if !parser.at(T![:]) {
+        return false;
+    }
+
+    parser.start_node(SyntaxKind::Error);
+    parser.bump(T![:]);
+    if !matches!(
+        parser.current().map(|tok| tok.kind),
+        None | Some(T![,] | T!['}'] | T![']'])
+    ) {
+        json::parse_json_value(parser);
+    }
+    parser.finish_node();
+    true
 }
 
 fn skip_unexpected_object_token<G: Grammar>(parser: &mut Parser<'_, G>) {
@@ -408,7 +487,7 @@ fn skip_unexpected_object_token<G: Grammar>(parser: &mut Parser<'_, G>) {
         parser.current().map(|tok| tok.kind),
         Some(T!['{'] | T!['['])
     ) {
-        parse_json_value(parser);
+        json::parse_json_value(parser);
     } else {
         bump_error_token(parser);
     }

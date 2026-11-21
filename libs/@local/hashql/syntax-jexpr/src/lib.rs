@@ -35,6 +35,7 @@
 
     // Library Features
     ascii_char,
+    bstr,
     const_convert,
     portable_simd,
 )]

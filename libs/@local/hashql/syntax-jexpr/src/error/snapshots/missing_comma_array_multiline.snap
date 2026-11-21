@@ -1,0 +1,13 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\n  \"a\"\n  \"b\"\n]"
+---
+error[jexpr::lexer::unexpected-token]: Unexpected token
+  ╭▸ 
+3 │   "b"
+  │   ━━━ expected `,` or `]`, found string
+  ╰╴
+help: insert `,` between array elements
+  ╭╴
+2 │   "a",
+  ╰╴     +

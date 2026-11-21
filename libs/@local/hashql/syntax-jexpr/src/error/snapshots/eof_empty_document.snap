@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: ""
+---
+error[jexpr::lexer::unexpected-eof]: Unexpected end of file
+  ╭▸ 
+1 │
+  │ ━ unexpected end of input, expected string, `{`, or `[`
+  │
+  ╰ help: provide a J-Expr expression such as `"x"`, `["fn", arg]`, or `{"#literal": 42}`
