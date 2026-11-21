@@ -220,9 +220,7 @@ export const DiffEqMainContent: React.FC = () => {
           </PropertyValue>
         </Form.Field>
 
-        {presentation.showSourceCode && (
-          <DifferentialEquationCodeField />
-        )}
+        {presentation.showSourceCode && <DifferentialEquationCodeField />}
       </Form.Section>
 
       {pendingTypeId !== null && (
