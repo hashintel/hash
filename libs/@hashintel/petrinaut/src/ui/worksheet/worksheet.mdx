@@ -22,6 +22,9 @@ for each piece.
   enclosing stack.
 - `useFocusStops`: a table whose lines are not uniform: full-width stops,
   sparse lines, and a gutter lane, declared as an ordered stop list.
+- `useFocusMemory`: the last-focused position of a grid or a stops table.
+  Both hooks keep it there, in a ref for the move that enters and, under the
+  roving tab stop, in state for `tabIndexFor`.
 - `useFocusHeader` / `useFocusMember`: single-element members (collapsible
   headers, lone cells) and custom navigators.
 - `FocusControls`: ordinary controls, such as a row's button and its
@@ -37,8 +40,9 @@ Each numbered rule is a test target; `focus-flow.test.tsx` covers them.
 1. Tab order is never rerouted. Each grid is one tab stop (roving
    tabindex: `tabIndexFor` marks the remembered cell 0 and the rest -1),
    or, with `tabStop: "native"`, leaves Tab to the cells' own stops and
-   remembers the cell without a render; plain controls keep their own stops. Arrow-crossing between siblings is
-   an enhancement over that intact order.
+   remembers the cell without a render. Plain controls keep their own
+   stops. Arrow-crossing between siblings is an enhancement over that intact
+   order.
 2. Arrows move within a member; a move that runs off the member's edge
    asks the nearest enclosing stack whose axis matches the direction to
    carry focus to a sibling. A stack at its own edge asks its parent.

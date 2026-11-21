@@ -23,10 +23,11 @@
  * elements; a nearest-column policy lives with the table that owns it.
  */
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
 import { arrowDirection, type FocusEntry, type FocusFold } from "./focus-flow";
 import { useFocusMember } from "./use-focus-member";
+import { useFocusMemory, type FocusTabStop } from "./use-focus-memory";
 
 export type FocusStop =
   | ({ id: string; kind: "row"; gutter?: boolean } & FocusFold)
@@ -45,13 +46,8 @@ interface FocusStopsOptions {
   columnCount: number;
   /** Focus the target; returns whether an element took focus. */
   focusTarget: (target: FocusStopTarget) => boolean;
-  /**
-   * "roving" (default) makes the table one tab stop, which takes a render
-   * per move of the focus. "native" is for a table that leaves Tab to the
-   * browser and never asks `tabIndexFor`: the last-focused position is
-   * remembered without a render.
-   */
-  tabStop?: "roving" | "native";
+  /** Defaults to "roving". */
+  tabStop?: FocusTabStop;
 }
 
 export interface FocusStops {
@@ -69,14 +65,10 @@ const samePosition = (a: FocusStopTarget, b: FocusStopTarget): boolean =>
   a.stopId === b.stopId && a.column === b.column;
 
 export function useFocusStops(options: FocusStopsOptions): FocusStops {
-  const { stops, columnCount, focusTarget, tabStop: tabStopMode } = options;
-  // The last-focused position, for a move that enters the table. Read by
-  // `enter` only, which runs from a key handler.
-  const remembered = useRef<FocusStopTarget | null>(null);
+  const { stops, columnCount, focusTarget, tabStop = "roving" } = options;
+  const { remember, recall, tabbable } = useFocusMemory(tabStop, samePosition);
   // The column vertical moves aim at, persisted across full-width stops.
   const lastColumnRef = useRef(0);
-  // The roving tab stop, in state because it renders as tabIndex.
-  const [tabbable, setTabbable] = useState<FocusStopTarget | null>(null);
 
   const stopIndexOf = (stopId: string): number =>
     stops.findIndex((stop) => stop.id === stopId);
@@ -142,7 +134,8 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
         fromEnd ? -1 : 1,
       );
     }
-    if (remembered.current && focusTarget(remembered.current)) {
+    const last = recall();
+    if (last && focusTarget(last)) {
       return true;
     }
     const fromEnd = entry.direction === "up" || entry.direction === "left";
@@ -248,7 +241,7 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
   // The roving tab stop: the remembered position while its stop and column
   // still exist, else the first stop. A row removed or filtered away, or a
   // column dropped, must not take the table out of the tab order.
-  const tabStop: FocusStopTarget =
+  const rovingStop: FocusStopTarget =
     tabbable &&
     stops.some((stop) => stop.id === tabbable.stopId) &&
     (tabbable.column === "gutter" || tabbable.column < columnCount)
@@ -267,15 +260,9 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
       if (position.column !== "gutter" && stop?.kind !== "full") {
         lastColumnRef.current = position.column;
       }
-      remembered.current = position;
-      if (tabStopMode === "native") {
-        return;
-      }
-      setTabbable((current) =>
-        current && samePosition(current, position) ? current : position,
-      );
+      remember(position);
     },
-    tabIndexFor: (position) => (samePosition(tabStop, position) ? 0 : -1),
+    tabIndexFor: (position) => (samePosition(rovingStop, position) ? 0 : -1),
     attach,
   };
 }
