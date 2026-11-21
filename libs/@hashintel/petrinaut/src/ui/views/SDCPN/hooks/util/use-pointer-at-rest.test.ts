@@ -126,6 +126,29 @@ describe("usePointerAtRest", () => {
     expect(result.current).toBe(true);
   });
 
+  it("hears a release before a handler on its target does", () => {
+    const { result } = renderAtRest();
+    // The handler of a control that stops the release there: only a
+    // listener that ran before it has heard the release.
+    const control = document.createElement("button");
+    control.addEventListener("pointerup", (event) => event.stopPropagation());
+    canvas.append(control);
+
+    movePointer(100, 100);
+    wait(150);
+    act(() => {
+      control.dispatchEvent(
+        new MouseEvent("pointerup", {
+          bubbles: true,
+          clientX: 100,
+          clientY: 100,
+        }),
+      );
+    });
+
+    expect(result.current).toBe(false);
+  });
+
   it("ignores movement outside its element", () => {
     const { result } = renderAtRest();
 

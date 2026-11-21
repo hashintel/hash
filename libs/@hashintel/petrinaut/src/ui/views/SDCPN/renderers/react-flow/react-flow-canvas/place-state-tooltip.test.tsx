@@ -17,7 +17,7 @@ import {
 } from "../../../canvas-pointer";
 import { PlaceStateTooltip } from "./place-state-tooltip";
 
-import type { ReactNode } from "react";
+import type { PointerEventHandler, ReactNode } from "react";
 
 vi.mock("@xyflow/react", () => ({
   NodeToolbar: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -32,14 +32,23 @@ vi.mock("./place-state-tooltip/visualizer-window", () => ({
     children,
     onClose,
     onKeepOpen,
+    onPointerEnter,
+    onPointerLeave,
     editing,
   }: {
     children: (size: { width: number; height: number }) => ReactNode;
     onClose: () => void;
     onKeepOpen: () => void;
+    onPointerEnter: PointerEventHandler;
+    onPointerLeave: PointerEventHandler;
     editing: boolean;
   }) => (
-    <div role="group" data-editing={editing}>
+    <div
+      role="group"
+      data-editing={editing}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+    >
       <button type="button" onClick={onClose}>
         Close
       </button>
@@ -129,6 +138,16 @@ const Harness = ({
     </ActiveNetContext>
   );
 };
+
+/**
+ * The pointer comes onto an element or leaves it, with `buttons` down. React
+ * reports an enter and a leave from the over and the out of the browser.
+ */
+const movePointer = (
+  type: "pointerover" | "pointerout",
+  element: Element,
+  buttons = 0,
+) => fireEvent(element, new MouseEvent(type, { bubbles: true, buttons }));
 
 afterEach(() => {
   cleanup();
@@ -265,4 +284,46 @@ it("previews from keyboard focus and dismisses with Escape", async () => {
   fireEvent.keyDown(eye, { key: "Escape" });
   await act(() => vi.advanceTimersByTimeAsync(250));
   expect(screen.queryByRole("group")).toBeNull();
+});
+
+it("hovers the place of a window kept open when the pointer comes onto the window", () => {
+  const pointer = createCanvasPointer();
+  render(<Harness keptOpen pointer={pointer} />);
+  const visualizer = screen.getByRole("group");
+
+  movePointer("pointerover", visualizer);
+  expect(pointer.hoveredId.get()).toBe("place");
+
+  movePointer("pointerout", visualizer);
+  expect(pointer.hoveredId.get()).toBeNull();
+});
+
+it("keeps the place of a window kept open for the release when a pan carries the window under the pointer", () => {
+  const pointer = createCanvasPointer();
+  render(<Harness keptOpen pointer={pointer} />);
+  const visualizer = screen.getByRole("group");
+
+  movePointer("pointerover", visualizer, 1);
+  expect(pointer.hoveredId.get()).toBeNull();
+  expect(pointer.hoverOnReleaseId.get()).toBe("place");
+
+  // The pan carries the window on, and the release finds nothing to hover.
+  movePointer("pointerout", visualizer, 1);
+  expect(pointer.hoverOnReleaseId.get()).toBeNull();
+});
+
+it("hovers the place of a preview whatever the buttons, so the preview stays open", async () => {
+  vi.useFakeTimers();
+  const pointer = createCanvasPointer();
+  render(<Harness typed hovered pointer={pointer} />);
+  const eye = screen.getByRole("button", { name: "Show state visualizer" });
+  fireEvent.pointerEnter(eye);
+  await act(() => vi.advanceTimersByTimeAsync(15));
+  fireEvent.pointerLeave(eye);
+
+  movePointer("pointerover", screen.getByRole("group"), 1);
+  expect(pointer.hoveredId.get()).toBe("place");
+  expect(pointer.hoverOnReleaseId.get()).toBeNull();
+  await act(() => vi.advanceTimersByTimeAsync(250));
+  expect(screen.getByRole("group")).toBeDefined();
 });

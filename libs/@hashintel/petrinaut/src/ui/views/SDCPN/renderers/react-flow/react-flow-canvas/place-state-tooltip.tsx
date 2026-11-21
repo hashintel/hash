@@ -86,7 +86,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
     closePlaceVisualizer,
     openPlaceVisualizer,
   } = useEditorActions();
-  const { hoveredId } = use(CanvasPointerContext);
+  const { hoveredId, hoverOnReleaseId } = use(CanvasPointerContext);
   const hovered = useIsHovered(nodeId);
   // While the preview is open, what the pointer is on: each node or line it
   // crosses on its way to the preview starts the grace period again.
@@ -143,7 +143,15 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
     return null;
 
   const keepHovered = {
-    onPointerEnter: () => hoveredId.set(nodeId),
+    onPointerEnter: (event: PointerEvent) => {
+      // A window kept open stays through a pan, which carries it under the
+      // pressed pointer as it does a node: its place is hovered at the
+      // release. A preview would close under a pointer that does not hover
+      // its place, and the place of an eye is lit already, so both hover it
+      // whatever the buttons.
+      const waitsForRelease = keptOpen && event.buttons !== 0;
+      (waitsForRelease ? hoverOnReleaseId : hoveredId).set(nodeId);
+    },
     onPointerLeave: (event: PointerEvent) => {
       if (
         event.relatedTarget instanceof Element &&
@@ -151,6 +159,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
       )
         return;
       hoveredId.set(null);
+      hoverOnReleaseId.set(null);
     },
   };
 
@@ -161,6 +170,9 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
     closePlaceVisualizer(nodeId);
     if (hoveredId.get() === nodeId) {
       hoveredId.set(null);
+    }
+    if (hoverOnReleaseId.get() === nodeId) {
+      hoverOnReleaseId.set(null);
     }
   };
 
@@ -199,8 +211,8 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
               : undefined
           }
           {...keepHovered}
-          onPointerEnter={() => {
-            keepHovered.onPointerEnter();
+          onPointerEnter={(event) => {
+            keepHovered.onPointerEnter(event);
             openPlaceVisualizer(nodeId);
           }}
         >
@@ -228,8 +240,8 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
             title="Click to keep open"
             data-animated={showAnimations}
             {...keepHovered}
-            onPointerEnter={() => {
-              keepHovered.onPointerEnter();
+            onPointerEnter={(event) => {
+              keepHovered.onPointerEnter(event);
               setEyeHovered(true);
             }}
             onPointerLeave={(event) => {

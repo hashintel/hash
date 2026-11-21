@@ -229,6 +229,17 @@ each of the 30 took 140 to 290 ms. Now the longest frame of a pan takes 17 to
 35 ms. A pan grabbed 12 px or more from an arc changed no highlight before
 either, and its median is 77 to 92 frames a second in both builds.
 
+A visualizer window that is kept open travels with the net, and the pointer
+on it hovers its place, so a pan grabbed beside one changed the highlight in
+the same way. The window now waits for the release as a node does. On a copy
+of that net with a visualizer on its places and one window kept open, a
+stepped pan grabbed 3 px from the window ran at 31 frames a second (30..32)
+with 56 highlight changes, and runs at 81 (79..83) with none. That is the
+median of five alternating rounds from one grab point, with GPU raster. Two
+frames of that pan still take near 200 ms each. The window stops at the edge
+of the canvas there, and the line that joins it to its place is removed in
+one of the two frames and drawn again in the other.
+
 ## Where the cost is now
 
 - **Selecting a node** still has one frame near 190 ms. Most of what renders

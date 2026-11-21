@@ -21,7 +21,9 @@ const REST_DELAY_MS = 150;
  *
  * The release of a button counts as a move: it ends a gesture where the
  * pointer may have held still for a while, and what follows the pointer
- * waits from there as it does for a pointer that has just arrived.
+ * waits from there as it does for a pointer that has just arrived. A release
+ * is heard on its way down to its target, so the pointer is moving by the
+ * time a handler of that release sets what follows it.
  */
 export const usePointerAtRest = (
   ref: React.RefObject<HTMLElement | null>,
@@ -70,11 +72,14 @@ export const usePointerAtRest = (
     };
 
     element.addEventListener("pointermove", onPointerMove, { passive: true });
-    element.addEventListener("pointerup", countMove, { passive: true });
+    element.addEventListener("pointerup", countMove, {
+      capture: true,
+      passive: true,
+    });
 
     return () => {
       element.removeEventListener("pointermove", onPointerMove);
-      element.removeEventListener("pointerup", countMove);
+      element.removeEventListener("pointerup", countMove, { capture: true });
       clearTimeout(restTimer);
     };
   }, [ref]);

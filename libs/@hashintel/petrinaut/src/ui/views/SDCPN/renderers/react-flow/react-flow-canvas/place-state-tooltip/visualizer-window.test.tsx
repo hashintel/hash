@@ -498,6 +498,24 @@ it("keeps its dragged layout when leaving the editor and while content loads", a
   expect(visualizer.getAttribute("style")).toBe(bounds);
 });
 
+it("stops the release of its own drag and lets any other through to the canvas", () => {
+  const release = vi.fn();
+  // The element around the window stands for the canvas.
+  render(<div onPointerUp={release}>{panel()}</div>);
+  const visualizer = screen.getByRole("group");
+
+  // A pan that began on the canvas ends over the window.
+  pointerEvent(visualizer, "pointerup");
+  expect(release).toHaveBeenCalledOnce();
+  release.mockClear();
+
+  const handle = screen.getByRole("button", { name: "Move Space visualizer" });
+  mockPointerCapture(handle);
+  pointerEvent(handle, "pointerdown");
+  pointerEvent(handle, "pointerup");
+  expect(release).not.toHaveBeenCalled();
+});
+
 it("opts out of the canvas's key-started selection box", () => {
   render(panel());
 
