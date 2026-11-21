@@ -58,7 +58,6 @@ export const EditorResizers = ({ canvasShows }: { canvasShows: boolean }) => {
       minSize={MIN_AI_ASSISTANT_WIDTH}
       maxSize={MAX_AI_ASSISTANT_WIDTH}
       label="Resize AI assistant"
-      paintsBorder={false}
       className={layerStyle}
       restClassName={docksStyle}
       separatorClassName={assistantSeparatorStyle}

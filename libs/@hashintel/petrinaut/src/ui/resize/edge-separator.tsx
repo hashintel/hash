@@ -19,7 +19,7 @@ import { edgeSeparatorStyle } from "./edge-separator-style";
 export const EdgeSeparator = ({
   edge,
   label,
-  paintsBorder = true,
+  paintsBorder,
   disabled,
   className,
 }: {

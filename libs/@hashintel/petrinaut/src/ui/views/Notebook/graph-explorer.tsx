@@ -339,11 +339,7 @@ export const GraphExplorer: React.FC<GraphExplorerProps> = ({
           />
         </Panel>
 
-        <EdgeSeparator
-          edge="top"
-          label="Resize the connection lists"
-          paintsBorder={false}
-        />
+        <EdgeSeparator edge="top" label="Resize the connection lists" />
 
         {/* The lists keep their height, and the graph takes what is left. */}
         <Panel

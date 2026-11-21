@@ -31,6 +31,7 @@ const DockResizer = ({
       minSize={dock.minSize}
       maxSize={dock.maxSize}
       label={dock.label}
+      paintsBorder
       onCommit={saveSize}
     >
       {children}

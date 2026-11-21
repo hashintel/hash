@@ -439,7 +439,6 @@ const NotebookViewContent = ({
         <EdgeSeparator
           edge="left"
           label="Resize the graph explorer"
-          paintsBorder={false}
           className={explorerSeparatorStyle}
         />
 

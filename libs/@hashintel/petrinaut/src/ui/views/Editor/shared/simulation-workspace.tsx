@@ -183,7 +183,6 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
             minSize={minWidth}
             maxSize={maxWidth}
             label="Resize simulation panel"
-            paintsBorder={false}
             className={resizerLayerStyle}
             onCommit={(pixels) => {
               if (Math.abs(pixels - panelWidth) < 0.5) {

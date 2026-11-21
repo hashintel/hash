@@ -40,7 +40,6 @@ export const edgeSeparatorStyle = cva({
             "[linear-gradient(var(--line-direction), transparent 2px, {colors.blue.a40} 2px 3px, transparent 3px), linear-gradient(var(--line-direction), transparent 2px, {colors.blue.a70} 2px 3px, transparent 3px), linear-gradient(var(--line-direction), transparent 2px, {colors.neutral.s00} 2px 3px, transparent 3px)]",
         },
       },
-      false: {},
     },
     edge: {
       // The strip that shows is five pixels around the panel's border, which

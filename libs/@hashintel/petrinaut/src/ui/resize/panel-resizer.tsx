@@ -97,7 +97,7 @@ export const PanelResizer = ({
   maxSize,
   label,
   onCommit,
-  paintsBorder = true,
+  paintsBorder,
   className,
   restClassName = restStyle,
   separatorClassName,
