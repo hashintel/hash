@@ -21,20 +21,26 @@ It owns no document state and no geometry: the [editor state](layer:react.state)
 
 ## What mounts when
 
-| Region                             | Mounted                            | Visible                                           |
-| ---------------------------------- | ---------------------------------- | ------------------------------------------------- |
-| `TopBar`                           | Always                             | Always                                            |
-| `SimulateViewTabs`, `SimulateView` | `globalMode` is `simulate`         | While mounted                                     |
-| Canvas workspace                   | `globalMode` is `edit` or `actual` | `actual`, or `editViewMode` is `canvas`           |
-| `NotebookView`                     | `globalMode` is `edit` or `actual` | `edit` and `editViewMode` is `definitions`        |
-| `BottomBar`                        | Always                             | `actual`, or `edit` on the canvas                 |
-| `LeftSideBar`                      | With the canvas workspace          | `isLeftSidebarOpen` or `isSearchOpen`             |
-| `PropertiesPanel`                  | With the canvas workspace          | `usePanelTarget` returns a kind other than `none` |
-| `BottomPanel`                      | With the canvas workspace          | `isBottomPanelOpen`                               |
+| Region                             | Mounted                                                                      | Visible                                    |
+| ---------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------ |
+| `TopBar`                           | Always                                                                       | Always                                     |
+| `SimulateViewTabs`, `SimulateView` | `globalMode` is `simulate`                                                   | While mounted                              |
+| Canvas workspace                   | `globalMode` is `edit` or `actual`                                           | `actual`, or `editViewMode` is `canvas`    |
+| `NotebookView`                     | `globalMode` is `edit` or `actual`                                           | `edit` and `editViewMode` is `definitions` |
+| `BottomBar`                        | Always                                                                       | `actual`, or `edit` on the canvas          |
+| The panel of `LeftSideBar`         | `isLeftSidebarOpen` or `isSearchOpen`, and until it has slid out             | While mounted                              |
+| The panel of `PropertiesPanel`     | `usePanelTarget` returns a kind other than `none`, and until it has slid out | While mounted                              |
+| The panel of `BottomPanel`         | `isBottomPanelOpen`, and until it has slid out                               | While mounted                              |
 
 A region that is mounted and not visible sits in a hidden `Activity`: React keeps its state and removes its effects.
 
-The three panels are children of the canvas workspace, so they follow its row first. `EditorResizers`, a layer over the editor's row, holds the separators that resize them and the docked assistant: see [Panel geometry outside React state](doc:react.state/panel-sizes). A closed panel stays mounted and is moved out of view, because the user setting `keepPanelsMounted` is true by default. With the setting off, a panel returns null once it is closed and has finished sliding out.
+The three panels are children of the canvas workspace, so they follow its row first. `EditorResizers`, a layer over the editor's row, holds the separators that resize them and the docked assistant: see [Panel geometry outside React state](doc:react.state/panel-sizes).
+
+## A closed panel
+
+`LeftSideBar`, `PropertiesPanel` and `BottomPanel` each render one `DockedPanel`, in `ui/views/Editor/shared/docked-panel.tsx`. The entry component is always rendered with the canvas workspace. It reads whether the panel is open and builds the panel's content as elements. `DockedPanel` mounts the panel in the render that opens it, and unmounts it when it is closed and its presence value has reached 0. No setting keeps a closed panel mounted.
+
+What stays of a closed panel is its dock: an empty element with `display: contents`, in the panel's place among the children of the canvas workspace.
 
 ## Data flow
 
@@ -54,6 +60,8 @@ A user runs the command that toggles the bottom panel:
 **Panel size and position never enter React state.** `panel-presence-provider.test.tsx` covers the presence values. Step 4 and the linked page give the reason.
 
 **A command's `shortcut` string is display text.** The command registry binds no key. `useEditorCommands`, `UserSettings` and `useKeyboardShortcuts` each bind theirs in a `keydown` handler.
+
+**A panel mounts inside its dock, never straight beside the canvas.** The browser works out again the style of the element after an inserted element, and of the element after a removed one, with everything inside it: the design system has rules of the form `x + *`, which can match whatever follows any element. A panel inserted before the canvas costs a style recalculation of every node and arc, and its removal costs as much again. Inside the dock the panel has no element after it. The tests in `docked-panel.test.tsx` hold that a panel mounts inside the element that was there.
 
 **A list row mounts its menu on demand.** A menu reads editor state and code navigation, so one menu per row renders every row for a toggle. `EntityList`, the entities tree of the left sidebar, mounts the menu of the row last pointed at and the row last focused. The test "mounts no menu until a row is pointed at or focused" in `entity-list.test.tsx` holds this.
 

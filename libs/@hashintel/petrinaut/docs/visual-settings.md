@@ -14,7 +14,7 @@ Changes apply immediately and are saved as your preferences across nets. On host
 
 | Section      | Settings                                                                         |
 | ------------ | -------------------------------------------------------------------------------- |
-| **General**  | Animations, panel loading, the AI assistant, browser FPS, and the document view. |
+| **General**  | Animations, the AI assistant, browser FPS, and the document view.                |
 | **Viewport** | Minimap, Petricon, compact nodes, hover highlight, grid snapping, and selection. |
 | **Plugins**  | The host's plugins: switch each on or off and see what it adds.                  |
 | **Labs**     | Experimental modeling views, code layouts, and developer tools.                  |
@@ -31,10 +31,6 @@ Toggle panel transition and UI interaction animations. Disable for a snappier fe
 Settings titles fade into focus with a small vertical movement as you change sections. Titles and the Experimental badge rise slightly from below while subtitles stay still. The animation is disabled when Animations is off or your system requests reduced motion.
 
 Canvas hover rings and the fading of nodes, arcs, and minimap shapes also follow this setting and your system's reduced-motion preference.
-
-### Keep panels mounted
-
-When enabled, hidden panels remain loaded in the background. Switching between panels is faster, but uses more memory. When disabled, panels are unmounted when hidden and re-created when opened.
 
 ### AI assistant
 

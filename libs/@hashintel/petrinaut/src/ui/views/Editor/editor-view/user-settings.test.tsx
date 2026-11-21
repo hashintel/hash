@@ -361,23 +361,23 @@ describe("user settings", () => {
   });
 
   it("walks settings with worksheet arrows and restores focus across columns", async () => {
-    renderSettings({ overlay: { type: "user-settings" } });
-    const general = await screen.findByRole("tab", { name: "General" });
-    act(() => general.focus());
-    fireEvent.keyDown(general, { key: "ArrowRight" });
-    const animations = screen.getByRole("checkbox", { name: "Animations" });
-    expect(document.activeElement).toBe(animations);
-    fireEvent.keyDown(animations, { key: "ArrowDown" });
-    const panels = screen.getByRole("checkbox", {
-      name: "Keep panels mounted",
+    renderSettings({ overlay: { type: "user-settings", section: "viewport" } });
+    const viewport = await screen.findByRole("tab", { name: "Viewport" });
+    act(() => viewport.focus());
+    fireEvent.keyDown(viewport, { key: "ArrowRight" });
+    const minimap = screen.getByRole("checkbox", { name: "Minimap" });
+    expect(document.activeElement).toBe(minimap);
+    fireEvent.keyDown(minimap, { key: "ArrowDown" });
+    const compactNodes = screen.getByRole("checkbox", {
+      name: "Compact nodes",
     });
-    expect(document.activeElement).toBe(panels);
-    fireEvent.keyDown(panels, { key: "ArrowLeft" });
-    expect(document.activeElement).toBe(general);
-    fireEvent.keyDown(general, { key: "ArrowRight" });
-    expect(document.activeElement).toBe(panels);
-    fireEvent.keyDown(panels, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(animations);
+    expect(document.activeElement).toBe(compactNodes);
+    fireEvent.keyDown(compactNodes, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(viewport);
+    fireEvent.keyDown(viewport, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(compactNodes);
+    fireEvent.keyDown(compactNodes, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(minimap);
   });
 
   it("keeps one content panel and walks a section from the top", async () => {
@@ -560,15 +560,13 @@ describe("AI assistant settings", () => {
   it("lets the picker own its keyboard interaction while it is open", async () => {
     renderPluginSettings("general", [chat, composer]);
     const picker = await screen.findByRole("combobox", { name: "Assistant" });
-    const panels = screen.getByRole("checkbox", {
-      name: "Keep panels mounted",
-    });
-    act(() => panels.focus());
-    fireEvent.keyDown(panels, { key: "ArrowDown" });
+    const animations = screen.getByRole("checkbox", { name: "Animations" });
+    act(() => animations.focus());
+    fireEvent.keyDown(animations, { key: "ArrowDown" });
     expect(document.activeElement).toBe(picker);
     fireEvent.keyDown(picker, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(panels);
-    fireEvent.keyDown(panels, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(animations);
+    fireEvent.keyDown(animations, { key: "ArrowDown" });
     fireEvent.keyDown(picker, { key: "Enter" });
     await waitFor(() =>
       expect(picker.getAttribute("aria-expanded")).toBe("true"),
@@ -578,7 +576,7 @@ describe("AI assistant settings", () => {
     );
     fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
     expect(screen.getByRole("listbox")).toBeTruthy();
-    expect(document.activeElement).not.toBe(panels);
+    expect(document.activeElement).not.toBe(animations);
     fireEvent.keyDown(document.activeElement!, { key: "Escape" });
     await waitFor(() =>
       expect(picker.getAttribute("aria-expanded")).toBe("false"),

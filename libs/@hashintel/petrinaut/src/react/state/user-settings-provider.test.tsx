@@ -93,6 +93,7 @@ describe("UserSettingsProvider", () => {
             showWalkthroughOnInit: enabled,
             enableAutomaticArcConnections: enabled,
             arcRendering: "smoothstep",
+            keepPanelsMounted: enabled,
             showAnimations: false,
           }),
         ],
@@ -121,6 +122,7 @@ describe("UserSettingsProvider", () => {
           "showWalkthroughOnInit",
           "enableAutomaticArcConnections",
           "arcRendering",
+          "keepPanelsMounted",
         ]) {
           expect(key in persisted).toBe(false);
         }

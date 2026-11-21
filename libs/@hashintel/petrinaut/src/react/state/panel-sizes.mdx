@@ -126,10 +126,16 @@ Held by `panel-presence-provider.test.tsx`.
   by zero pixels. Any transform would make the panel the containing block of
   the fixed elements inside it, such as a code editor's suggestion list.
   Held by `slide-from-edge.test.ts`.
-- **A closed panel leaves when it has slid out.** A panel reads
-  `useReading(() => shown.leftSidebar.get() > 0)`. The answer flips once
-  when the panel starts to open and once when it has closed, and the panel
-  unmounts or hides once it is false.
+- **A closed panel leaves when it has slid out.** `DockedPanel` reads
+  `useReading(() => shown.get() > 0)` for its panel. The answer flips once
+  when the panel starts to open and once when it has closed, and a closed
+  panel unmounts once it is false. An open panel mounts in the render that
+  opens it, before its value has moved. Held by `docked-panel.test.tsx`.
+- **A panel that mounts is bound before its value moves.** The panel's
+  styles are bound when its element attaches, with the value still at 0.
+  The provider's layout effect then starts the slide, or sets the value to 1
+  where nothing animates, and Motion writes the style before the browser
+  paints. No frame shows a panel that jumps at the place it slides from.
 - **The docked assistant covers its room before it takes it.** While it
   arrives, `assistantCover` says how much of its width lies over the editor.
   The insets add that to the right edge, and the Properties panel moves by

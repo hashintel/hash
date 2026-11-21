@@ -504,12 +504,6 @@ export const UserSettingsDialog = ({
                           value={settings.showAnimations}
                           onChange={settings.setShowAnimations}
                         />
-                        <SettingToggle
-                          label="Keep panels mounted"
-                          description="Keep hidden panels ready for faster switching. Uses more memory."
-                          value={settings.keepPanelsMounted}
-                          onChange={settings.setKeepPanelsMounted}
-                        />
                       </SettingsGroup>
                       <AssistantGroup />
                       <PluginSettingsRows

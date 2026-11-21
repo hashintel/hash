@@ -31,7 +31,6 @@ type SubViewPanelsSettings = Record<
 
 export type UserSettings = {
   showAnimations: boolean;
-  keepPanelsMounted: boolean;
   compactNodes: boolean;
   enableExperimentalIconPack: boolean;
   cursorMode: CursorMode;
@@ -78,7 +77,6 @@ export type UserSettings = {
  */
 const plainSettingKeys = [
   "showAnimations",
-  "keepPanelsMounted",
   "compactNodes",
   "enableExperimentalIconPack",
   "cursorMode",
@@ -134,7 +132,6 @@ export type UserSettingsContextValue = UserSettings & UserSettingsActions;
 
 export const defaultUserSettings: UserSettings = {
   showAnimations: true,
-  keepPanelsMounted: true,
   compactNodes: false,
   enableExperimentalIconPack: true,
   cursorMode: "pan",

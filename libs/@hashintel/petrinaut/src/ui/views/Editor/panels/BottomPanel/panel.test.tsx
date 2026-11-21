@@ -220,7 +220,8 @@ describe("BottomPanel", () => {
   it("opens on the Timeline when a run starts", () => {
     const { rerender } = renderPlugins([], panelWith("NotRun"));
     expect(panelState().textContent).toBe("closed");
-    expect(selectedTab()).toBe("Diagnostics");
+    // A closed panel is not mounted.
+    expect(screen.queryByRole("tab")).toBeNull();
 
     rerender([], panelWith("Running"));
 

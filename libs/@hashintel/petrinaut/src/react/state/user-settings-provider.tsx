@@ -54,6 +54,11 @@ type PersistedUserSettings = Partial<UserSettings> & {
    * Dropped on the next write.
    */
   arcRendering?: "smoothstep" | "bezier" | "custom";
+  /**
+   * Kept the closed panels mounted. A closed panel always unmounts, so the
+   * key is dropped on the next write.
+   */
+  keepPanelsMounted?: boolean;
 };
 
 const loadSettings = (): UserSettings => {
@@ -75,6 +80,7 @@ const loadSettings = (): UserSettings => {
         showWalkthroughOnInit: _showWalkthroughOnInit,
         enableAutomaticArcConnections: _enableAutomaticArcConnections,
         arcRendering: _arcRendering,
+        keepPanelsMounted: _keepPanelsMounted,
         ...parsed
       } = JSON.parse(raw) as PersistedUserSettings;
       return {
