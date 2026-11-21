@@ -63,11 +63,18 @@ median of five alternating rounds on the production build.
 | Type a value in the ad-hoc form, script per key                |  17 ms |  7 ms |
 | Move with an arrow key in the ad-hoc form, key to drawn frame  |  38 ms | 14 ms |
 | Open the first differential equation, until its code is usable | 356 ms | 63 ms |
+| Open the menu a second time, longest frame                     | 167 ms | 12 ms |
+| Select a transition while a place is selected, longest frame   | 235 ms | 67 ms |
 
 The form rows are for Supply Chain tiled four times, in the Create scenario
 drawer. In Simulation Settings on Supply Chain, typing a value is about as
 fast as before: the time left there is the simulation context, which renders
 the settings around the form on every key.
+
+The last two rows are overlays and drag announcements mounting in a host of
+their own: before, an overlay that closed restyled the editor, 40,160 elements
+for the menu, and now 1,382. While the Properties panel slides out it shows
+what was selected, where it slid out empty.
 
 ## Closed panels
 
@@ -179,6 +186,8 @@ Each rule is written, with the test that holds it, in the guide of its layer.
   runs no effect. A closed panel is not mounted, and a panel mounts inside
   its dock, never as a sibling of the canvas:
   [The editor shell](doc:ui.views.editor/editor-shell).
+- An overlay mounts in the overlay host, and a box around the canvas clips
+  with `overflow: clip`: [The editor shell](doc:ui.views.editor/editor-shell).
 - A panel's size is a Motion value, so a resize renders no component:
   [Panel geometry outside React state](doc:react.state/panel-sizes).
 - A value that changes on every frame is written on the element that uses it,
