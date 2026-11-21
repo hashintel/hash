@@ -13,13 +13,18 @@ import { simulationPanelWidth } from "./simulation-workspace/panel-width";
 import { useElementWidth } from "./simulation-workspace/use-element-width";
 import { useHasOpenPanel } from "./simulation-workspace/use-has-open-panel";
 
+// `clip`, not `hidden`, on both boxes: a box that hides its overflow can
+// still be scrolled by the browser. A docked panel slides in from beyond the
+// edge, and focus moving into it while it was out there scrolled the box
+// sideways, with the canvas and the other panels in it. `clip` forbids all
+// scrolling of the box.
 const workspaceStyle = css({
   position: "relative",
   display: "flex",
   flex: "[1]",
   minWidth: "[0]",
   minHeight: "[0]",
-  overflow: "hidden",
+  overflow: "clip",
   "&:has([data-bottom-bar]:hover)": { overflow: "visible" },
 });
 
@@ -29,7 +34,7 @@ const contentStyle = css({
   flex: "[1]",
   minWidth: "[0]",
   minHeight: "[0]",
-  overflow: "hidden",
+  overflow: "clip",
   "&:has(> div > [data-bottom-bar]:hover)": {
     overflow: "visible",
   },

@@ -272,3 +272,21 @@ it("leaves an editor that only composes usable when its navigation says fullscre
   view({ edit: "compose" });
   expect(inert()).toBe(false);
 });
+
+it("clips its overflow, so the browser cannot scroll it to a panel still out of view", () => {
+  const view = render(
+    <PetrinautNavigationProvider>
+      <SimulationWorkspace>
+        <p>Resource list</p>
+      </SimulationWorkspace>
+    </PetrinautNavigationProvider>,
+  );
+  const workspace = view.container.querySelector<HTMLElement>(
+    "[data-simulation-workspace]",
+  )!;
+
+  for (const box of [workspace, workspace.firstElementChild!]) {
+    expect(box.className).toContain("ov_clip");
+    expect(box.className).not.toContain("ov_hidden");
+  }
+});
