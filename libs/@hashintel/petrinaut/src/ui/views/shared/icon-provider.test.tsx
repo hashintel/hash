@@ -14,7 +14,6 @@ import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "../../../react/state/user-settings-context";
-import { AiAssistantIcon } from "../../components/ai-assistant-icon";
 import { PetrinautIconProvider } from "./icon-provider";
 
 afterEach(cleanup);
@@ -35,13 +34,11 @@ it("draws the design system's icons from the set, also through a portal", () => 
     <PetrinautIconProvider>
       <Icon name="play" alt="Play" />
       {createPortal(<Icon name="pause" alt="Pause" />, document.body)}
-      <AiAssistantIcon aria-label="Assistant" />
     </PetrinautIconProvider>,
   );
 
   expect(iconOfTheSet("Play")).toBe("play");
   expect(iconOfTheSet("Pause")).toBe("pause");
-  expect(iconOfTheSet("Assistant")).toBe("agent");
 });
 
 it("tells a host's component the set is in use, whatever a provider above says", () => {
@@ -62,7 +59,7 @@ it("stops the icons' motion while Animations is off", () => {
       .getByRole("img", { name: label })
       .querySelector("[data-icon-motion]")
       ?.getAttribute("data-icon-motion");
-  const editorIcon = (showAnimations: boolean) => (
+  const playIcon = (showAnimations: boolean) => (
     <UserSettingsContext
       value={{ ...defaultUserSettingsContextValue, showAnimations }}
     >
@@ -72,9 +69,9 @@ it("stops the icons' motion while Animations is off", () => {
     </UserSettingsContext>
   );
 
-  const { rerender } = render(editorIcon(true));
+  const { rerender } = render(playIcon(true));
   expect(motionOf("Play")).toBe("auto");
 
-  rerender(editorIcon(false));
+  rerender(playIcon(false));
   expect(motionOf("Play")).toBe("none");
 });

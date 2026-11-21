@@ -1,6 +1,10 @@
-import { HashIcon, type HashIconComponentProps } from "@hashintel/ds-icons";
+import { HashIcon } from "@hashintel/ds-icons";
 
 /** The assistant's mark, the same wherever the editor shows it. */
-export const AiAssistantIcon = (props: HashIconComponentProps) => (
-  <HashIcon {...props} name="agent" />
-);
+export const AiAssistantIcon = ({
+  size,
+  className,
+}: {
+  size: number;
+  className?: string;
+}) => <HashIcon name="agent" size={size} className={className} />;
