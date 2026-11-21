@@ -1,6 +1,6 @@
 ---
 title: Editor performance on a large net
-description: What a selection, a hover, a drag and a pan cost on a net of about 500 nodes, how to measure it, and where the cost is.
+description: What a selection, a hover, a drag, a pan and a panel resize cost on a net of about 500 nodes, how to measure it, and where the cost is.
 sidebar_order: 5
 ---
 
@@ -51,6 +51,24 @@ share. Loading the net is no faster: the page is ready after 1.1 s and holds
 about 42,800 elements, and the script time of the load rose from 545 ms to
 577 ms.
 
+## Panels and forms
+
+The same benchmark app measures the panels on the same net. Each value is the
+median of five alternating rounds on the production build.
+
+| Action                                                         | Before | After |
+| -------------------------------------------------------------- | -----: | ----: |
+| Resize the bottom panel over Simulation Settings, per move     |  46 ms | 15 ms |
+| The same resize, frames over 20 ms                             |     38 |     2 |
+| Type a value in the ad-hoc form, script per key                |  17 ms |  7 ms |
+| Move with an arrow key in the ad-hoc form, key to drawn frame  |  38 ms | 14 ms |
+| Open the first differential equation, until its code is usable | 356 ms | 63 ms |
+
+The form rows are for Supply Chain tiled four times, in the Create scenario
+drawer. In Simulation Settings on Supply Chain, typing a value is about as
+fast as before: the time left there is the simulation context, which renders
+the settings around the form on every key.
+
 ## Where the cost is now
 
 - **Selecting a node** still has one frame near 190 ms. Most of what renders
@@ -79,6 +97,11 @@ Each rule is written, with the test that holds it, in the guide of its layer.
   runs no effect: [The editor shell](doc:ui.views.editor/editor-shell).
 - A panel's size is a Motion value, so a resize renders no component:
   [Panel geometry outside React state](doc:react.state/panel-sizes).
+- A value that changes on every frame is written on the element that uses it,
+  never as a custom property on an ancestor: the overlay scroll area writes
+  each thumb's size and place on the thumb.
+- A cell of the ad-hoc form reads its own part of what the form knows:
+  [The ad-hoc scenario form](doc:ui.adhoc-form/ad-hoc-form).
 
 ## Measure it
 
