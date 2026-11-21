@@ -109,6 +109,19 @@ const EditorViewContent = ({
   const [isEmptyNetPromptDismissed, setEmptyNetPromptDismissed] =
     useState(false);
 
+  // The Definitions view of a net mounts when it first shows, and stays in a
+  // hidden `Activity` from then on. A session that never opens it does not
+  // pay for a cell per entity at load.
+  const netKey = petriNetId ?? "no-net";
+  const showsDefinitions =
+    globalMode === "edit" && editViewMode === "definitions";
+  const [netWithDefinitions, setNetWithDefinitions] = useState<string | null>(
+    null,
+  );
+  if (showsDefinitions && netWithDefinitions !== netKey) {
+    setNetWithDefinitions(netKey);
+  }
+
   return (
     <>
       <EditorCommands
@@ -149,17 +162,11 @@ const EditorViewContent = ({
                   <BottomPanel />
                 </Box>
               </Activity>
-              {/* An editor that only composes has no Definitions view to keep warm. */}
-              {!composesOnly && (
-                <Activity
-                  mode={
-                    globalMode === "edit" && editViewMode === "definitions"
-                      ? "visible"
-                      : "hidden"
-                  }
-                >
+              {/* An editor that only composes has no Definitions view. */}
+              {!composesOnly && netWithDefinitions === netKey && (
+                <Activity mode={showsDefinitions ? "visible" : "hidden"}>
                   <NotebookView
-                    key={petriNetId ?? "no-net"}
+                    key={netKey}
                     toolbarStart={
                       <div aria-hidden className={editViewSelectorSpaceStyle} />
                     }

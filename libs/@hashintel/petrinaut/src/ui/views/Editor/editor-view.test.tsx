@@ -245,6 +245,20 @@ describe("Edit workspace views", () => {
     expect(notebook.scrollTop).toBe(240);
   });
 
+  test("mounts the Definitions view when it first shows, and keeps it from then on", async () => {
+    // By label: a hidden view has no accessible name to find its region by.
+    const definitions = () => screen.queryByLabelText("Definitions search");
+    render(<EditableWorkspace />);
+    expect(definitions()).toBeNull();
+
+    fireEvent.click(screen.getByRole("radio", { name: "Definitions" }));
+    await screen.findByRole("region", { name: "Definitions" });
+    fireEvent.click(screen.getByRole("radio", { name: "Canvas" }));
+    await screen.findByRole("button", { name: /Canvas zoom/u });
+
+    expect(definitions()).not.toBeNull();
+  });
+
   test.each(["simulate", "actual"] as const)(
     "does not offer Edit views in %s",
     (mode) => {

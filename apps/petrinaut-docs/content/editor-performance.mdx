@@ -115,6 +115,16 @@ Simulation Settings form no longer follows the net.
 
 `benchmarks/monaco-performance/panel-mount.mjs` measures these.
 
+## The Definitions view
+
+The Definitions view renders a cell for every entity of the net. It mounts
+when it first shows and stays in a hidden `Activity` from then on, so a
+session that never opens it does not pay for it. On the 468-node net the view
+is 18,100 of the 42,800 elements the page had with it and 11 MiB of an 88 MiB
+heap, and the script time of the load is 469 ms without it against 595 ms.
+The first opening mounts the cells and takes 294 ms where it took 223 ms. Each
+later one shows the hidden view again, in 206 ms.
+
 ## Where the cost is now
 
 - **Selecting a node** still has one frame near 190 ms. Most of what renders
@@ -178,15 +188,10 @@ that uses every core moves the times by more than a change does.
 Each of these changes what the canvas draws or which library version it runs
 on, so none is part of the rules above.
 
-The Definitions view stays mounted in a hidden `Activity` while the canvas
-shows. On the 468-node net it holds 18,100 of the page's 42,800 elements and
-11 MiB of its 88 MiB heap, and the script time of the load is 595 ms with it
-and 469 ms without.
-
 | Change                                                        | What it would cost                                         |
 | ------------------------------------------------------------- | ---------------------------------------------------------- |
 | Draw simpler nodes when zoomed out                            | Labels and token counts disappear below a zoom level       |
 | Render only the nodes on screen (`onlyRenderVisibleElements`) | Nodes mount and unmount while panning                      |
 | Promote the viewport to its own layer (`will-change`)         | Text is rastered at one scale and blurs during a zoom      |
-| Mount the Definitions view when it shows                      | Each opening takes 294 ms where it takes 223 ms            |
+| Unmount the Definitions view whenever the canvas shows        | Each opening takes 266 ms where it takes 206 ms            |
 | Upgrade React Flow                                            | A behaviour check of every gesture against the new version |
