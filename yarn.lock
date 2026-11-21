@@ -853,7 +853,10 @@ __metadata:
     "@local/tsconfig": "workspace:*"
     "@tsconfig/bases": "catalog:"
     "@types/node": "catalog:"
+    "@types/react": "npm:19.2.14"
+    react: "npm:19.2.6"
     typescript: "catalog:"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 

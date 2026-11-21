@@ -21,7 +21,10 @@
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
     "@types/node": "catalog:",
-    "typescript": "catalog:"
+    "@types/react": "19.2.14",
+    "react": "19.2.6",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
     "node": "22.x"
