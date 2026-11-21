@@ -3,6 +3,10 @@
 // panel on each of its tabs. A closed panel is not mounted, so each opening
 // mounts the panel's content.
 //
+// This script times the frames of one panel. It does not say which
+// components started the renders or which providers gave out a new context
+// value: panel-toggles.mjs lists those for the same toggles.
+//
 // For each action the script reports, from the press:
 //   drawn    ms to the first frame that shows the panel (for a close, the
 //            first frame in which it has moved)

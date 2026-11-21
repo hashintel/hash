@@ -3,6 +3,11 @@
 // left sidebar. Each one slides for 150 ms, and the minimap, the bottom bar,
 // the viewport controls and the neighbouring panels move with it.
 //
+// This script totals each toggle: script, style and layout time, commits and
+// who rendered. It does not say when the panel is first drawn or when its
+// content is complete: panel-mount.mjs follows a panel frame by frame for
+// that.
+//
 // React commit counts and render time need the profiling build
 // (BENCH_REACT_PROFILING=true, port 6028), and component names an unminified
 // one (see render-counts.mjs). `details=1` prints, for each toggle, the
