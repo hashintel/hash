@@ -51,10 +51,9 @@ export const EditorResizers = ({ canvasShows }: { canvasShows: boolean }) => {
 
   return (
     <PanelResizer
-      id="aiAssistant"
       edge="right"
       size={aiAssistantWidth}
-      isOpen={isAssistantInPlace}
+      isInPlace={isAssistantInPlace}
       minSize={MIN_AI_ASSISTANT_WIDTH}
       maxSize={MAX_AI_ASSISTANT_WIDTH}
       label="Resize AI assistant"

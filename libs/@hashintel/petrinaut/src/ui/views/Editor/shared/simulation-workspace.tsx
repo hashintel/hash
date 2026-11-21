@@ -176,10 +176,9 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
         </div>
         {hasOpenPanel && !fullscreen && (
           <PanelResizer
-            id="simulationPanel"
             edge="right"
             size={width}
-            isOpen
+            isInPlace
             minSize={minWidth}
             maxSize={maxWidth}
             label="Resize simulation panel"

@@ -2,12 +2,15 @@
  * @layerRoot ui.resize
  * @role Resizing a panel by its edge with the separators of react-resizable-panels
  */
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import {
   Group,
   Panel,
   usePanelRef,
+  type Layout,
+  type LayoutChangedMeta,
   type PanelImperativeHandle,
+  type PanelSize,
 } from "react-resizable-panels";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -51,14 +54,16 @@ const follow = (
 };
 
 interface PanelResizerProps {
-  /** A name for the stand-in, unique among the resizers nested together. */
-  id: string;
   /** The edge of this group the panel sits on. */
   edge: "left" | "right" | "bottom";
   /** The panel's size along the resized axis, in pixels. */
   size: MotionValue<number>;
-  /** Whether the panel is in place. Otherwise its separator does nothing. */
-  isOpen: boolean;
+  /**
+   * Whether the panel is where its stand-in is: open, and neither sliding
+   * nor floating. Otherwise the stand-in takes no room and the separator
+   * does nothing.
+   */
+  isInPlace: boolean;
   minSize: number;
   maxSize: number;
   /** The separator's accessible name. */
@@ -89,10 +94,9 @@ interface PanelResizerProps {
  * the two separators cross resizes both.
  */
 export const PanelResizer = ({
-  id,
   edge,
   size,
-  isOpen,
+  isInPlace,
   minSize,
   maxSize,
   label,
@@ -103,42 +107,64 @@ export const PanelResizer = ({
   separatorClassName,
   children,
 }: PanelResizerProps) => {
-  const isVertical = edge === "bottom";
+  const standInId = useId();
   const standInRef = usePanelRef();
   const groupRef = useRef<HTMLDivElement>(null);
+  const isVertical = edge === "bottom";
 
+  // The stand-in follows the panel: now, and each time the size changes.
   useEffect(() => {
-    if (!isOpen) {
+    if (!isInPlace) {
       return;
     }
     const followSize = () => follow(standInRef.current, groupRef.current, size);
     followSize();
     return size.on("change", followSize);
-  }, [isOpen, size, standInRef]);
+  }, [isInPlace, size, standInRef]);
+
+  /**
+   * A drag leads the panel. Anything else that moved the stand-in, such as a
+   * window that shrank or a layout the library kept from before the view was
+   * hidden, is undone as far as there is room.
+   */
+  const leadOrFollow = ({ inPixels }: PanelSize) => {
+    if (!isInPlace) {
+      return;
+    }
+    if (isDragged(groupRef.current)) {
+      // Whole pixels: the library lays out in shares of the group, which
+      // come back as a size just off the pixel the pointer is on.
+      size.set(Math.round(inPixels));
+    } else {
+      follow(standInRef.current, groupRef.current, size);
+    }
+  };
+
+  /**
+   * A drag ends: the panel takes the size and keeps it. The size is read off
+   * the layout, which the library may report before the stand-in has it.
+   */
+  const commit = (layout: Layout, { isUserInteraction }: LayoutChangedMeta) => {
+    const group = groupRef.current?.getBoundingClientRect();
+    const share = layout[standInId];
+    if (isInPlace && isUserInteraction && group && share !== undefined) {
+      const pixels = Math.round(
+        (share / 100) * (isVertical ? group.height : group.width),
+      );
+      size.set(pixels);
+      onCommit?.(pixels);
+    }
+  };
 
   const standIn = (
     <Panel
-      id={id}
+      id={standInId}
       panelRef={standInRef}
-      defaultSize={isOpen ? size.get() : 0}
-      minSize={isOpen ? minSize : 0}
-      maxSize={isOpen ? maxSize : 0}
+      defaultSize={isInPlace ? size.get() : 0}
+      minSize={isInPlace ? minSize : 0}
+      maxSize={isInPlace ? maxSize : 0}
       groupResizeBehavior="preserve-pixel-size"
-      onResize={({ inPixels }) => {
-        if (!isOpen) {
-          return;
-        }
-        // A drag leads the panel. Anything else that moved the stand-in,
-        // such as a window that shrank or a layout the library kept from
-        // before the view was hidden, is undone as far as there is room.
-        // Whole pixels: the library lays out in shares of the group, which
-        // come back as a size just off the pixel the pointer is on.
-        if (isDragged(groupRef.current)) {
-          size.set(Math.round(inPixels));
-        } else {
-          follow(standInRef.current, groupRef.current, size);
-        }
-      }}
+      onResize={leadOrFollow}
     />
   );
   const separator = (
@@ -146,7 +172,7 @@ export const PanelResizer = ({
       edge={edge}
       label={label}
       paintsBorder={paintsBorder}
-      disabled={!isOpen}
+      disabled={!isInPlace}
       className={separatorClassName}
     />
   );
@@ -163,20 +189,7 @@ export const PanelResizer = ({
       elementRef={groupRef}
       className={cx(groupStyle, className)}
       style={{ overflow: "visible" }}
-      onLayoutChanged={(layout, { isUserInteraction }) => {
-        const group = groupRef.current?.getBoundingClientRect();
-        const share = layout[id];
-        // A drag ends here: the panel takes the size and keeps it. The size
-        // is read off the layout, which the library may report before the
-        // stand-in has it.
-        if (isOpen && isUserInteraction && group && share !== undefined) {
-          const pixels = Math.round(
-            (share / 100) * (isVertical ? group.height : group.width),
-          );
-          size.set(pixels);
-          onCommit?.(pixels);
-        }
-      }}
+      onLayoutChanged={commit}
     >
       {edge === "left" ? (
         <>

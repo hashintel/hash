@@ -20,14 +20,13 @@ const DockResizer = ({
   const shown = usePanelPresence().shown[panel];
   const saveSize = useUserSettings((settings) => settings[dock.saveSize]);
   // A panel that slides is not where its stand-in is.
-  const isOpen = useReading(() => shown.get() === 1);
+  const isInPlace = useReading(() => shown.get() === 1);
 
   return (
     <PanelResizer
-      id={panel}
       edge={dock.edge}
       size={size}
-      isOpen={isOpen}
+      isInPlace={isInPlace}
       minSize={dock.minSize}
       maxSize={dock.maxSize}
       label={dock.label}
