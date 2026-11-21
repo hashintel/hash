@@ -323,6 +323,30 @@ describe("arrowheads", () => {
 
     expect(headOf(result.current.edges, "output")).not.toBe(plain);
   });
+
+  it("leaves an arc the head of its role when the focus ends, until the next focus", () => {
+    const withFocusOn = (arcId: string | null): CanvasScene => ({
+      ...scene,
+      focusActive: arcId !== null,
+      arcs: scene.arcs.map((arc) =>
+        arc.id === arcId ? { ...arc, focus: "incoming" } : arc,
+      ),
+    });
+    const { result, rerender } = renderHook(
+      (input: CanvasScene) => useReactFlowElements(input, "canvas"),
+      { initialProps: withFocusOn("output") },
+    );
+    const ofRole = headOf(result.current.edges, "output");
+
+    // The head the other arcs share is still faded when the focus ends.
+    rerender(withFocusOn(null));
+    expect(headOf(result.current.edges, "output")).toBe(ofRole);
+
+    rerender(withFocusOn("input"));
+    expect(headOf(result.current.edges, "output")).toBe(
+      arcHeadOf("canvas", { color: arcBase.color, focus: "none" }).id,
+    );
+  });
 });
 
 describe("node placement", () => {

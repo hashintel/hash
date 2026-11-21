@@ -128,9 +128,16 @@ const paneStyle = css({
       "[stroke-opacity 0s linear var(--canvas-focus-duration, 200ms)]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
+  // The head of a role wears the casing's colour for as long as the canvas
+  // has a focus, and never fades. Once the focus ends it is in the arc's own
+  // colour, for the arcs that keep it: see `useArcHeadRoles`.
   "& .arc-head": {
+    fill: "[var(--arc-head-color)]",
     transition: "[fill-opacity var(--canvas-focus-duration, 200ms) ease]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
+  "&[data-focus-active] .arc-head.canvas-focus-role": {
+    fill: "[var(--arc-head-halo)]",
   },
   // A component instance's height animates between folded and unfolded, so
   // the card grows and shrinks rather than jumping. React Flow reads the pins

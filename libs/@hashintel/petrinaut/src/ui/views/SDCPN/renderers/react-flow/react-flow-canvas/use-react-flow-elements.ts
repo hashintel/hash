@@ -3,7 +3,9 @@ import { arcHeadOf } from "./arc-head";
 import { instanceFlowOrigin, instanceFlowPosition } from "./instance-anchor";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 import { getOutlineNode } from "./shared/outline-arcs";
+import { useArcHeadRoles } from "./use-arc-head-roles";
 
+import type { CanvasArcFocus } from "../../../canvas-focus";
 import type {
   CanvasArc,
   CanvasFusionLink,
@@ -68,7 +70,8 @@ const edgeBase = (link: CanvasLinkEnds & Pick<CanvasArc, "id" | "focus">) => ({
 
 const toArcEdge = (
   arc: CanvasArc,
-  canvasId: string,
+  /** The id of the arrowhead, for an arc that ends in one. */
+  headId: string | undefined,
   attachments: Pick<
     ArcData,
     "sourceOutline" | "targetOutline" | "hasReverseArc"
@@ -78,8 +81,7 @@ const toArcEdge = (
   type: "default",
   selected: arc.selected,
   // The id of a marker the canvas draws itself: React Flow adds none for it.
-  // A read or an inhibitor arc ends in a mark of its own.
-  markerEnd: arc.kind === "standard" ? arcHeadOf(canvasId, arc).id : undefined,
+  markerEnd: headId,
   style: {
     stroke: arc.color,
     strokeWidth: ARC_STROKE_WIDTH,
@@ -111,6 +113,7 @@ type ReactFlowElements = { nodes: NodeType[]; edges: CanvasEdgeType[] };
 const toReactFlowElements = (
   scene: CanvasScene,
   canvasId: string,
+  headRoles: ReadonlyMap<string, CanvasArcFocus>,
 ): ReactFlowElements => {
   const nodesById = new Map(scene.nodes.map((node) => [node.id, node]));
   const outlineOf = (nodeId: string) => {
@@ -127,13 +130,23 @@ const toReactFlowElements = (
     nodes: scene.nodes.map(toReactFlowNode),
     edges: [
       ...scene.arcs.map((arc) =>
-        toArcEdge(arc, canvasId, {
-          sourceOutline: outlineOf(arc.sourceId),
-          targetOutline: outlineOf(arc.targetId),
-          hasReverseArc: connections.has(
-            JSON.stringify([arc.targetId, arc.sourceId]),
-          ),
-        }),
+        toArcEdge(
+          arc,
+          // A read or an inhibitor arc ends in a mark of its own.
+          arc.kind === "standard"
+            ? arcHeadOf(canvasId, {
+                color: arc.color,
+                focus: headRoles.get(arc.id) ?? "none",
+              }).id
+            : undefined,
+          {
+            sourceOutline: outlineOf(arc.sourceId),
+            targetOutline: outlineOf(arc.targetId),
+            hasReverseArc: connections.has(
+              JSON.stringify([arc.targetId, arc.sourceId]),
+            ),
+          },
+        ),
       ),
       ...scene.fusions.map(toFusionEdge),
     ],
@@ -146,7 +159,8 @@ const toReactFlowElements = (
  * port ends at the port's handle. No per-frame value rides here: a place's
  * token count and a transition's firing state reach them by subscription, so
  * a playback frame leaves this list untouched. `canvasId` names the
- * arrowheads of this canvas: see `arcHeadOf`.
+ * arrowheads of this canvas: see `arcHeadOf`. An arc points at the head of
+ * the role `useArcHeadRoles` gives it, which outlasts the focus.
  *
  * The elements are rebuilt when the scene is, then held at their previous
  * identity where nothing changed, so React Flow renders only what changed.
@@ -155,6 +169,7 @@ export const useReactFlowElements = (
   scene: CanvasScene,
   canvasId: string,
 ): ReactFlowElements => {
-  const { nodes, edges } = toReactFlowElements(scene, canvasId);
+  const headRoles = useArcHeadRoles(scene);
+  const { nodes, edges } = toReactFlowElements(scene, canvasId, headRoles);
   return { nodes: useStableItems(nodes), edges: useStableItems(edges) };
 };

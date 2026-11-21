@@ -20,18 +20,30 @@ const arc = (overrides: Partial<CanvasArc>): CanvasArc => ({
 });
 
 describe("the head of an arc", () => {
-  it("wears the arc's colour, and the casing's colour at the focused item", () => {
+  it("carries the arc's colour, and the casing's colour at the focused item", () => {
     expect(arcHeadOf("canvas", arc({}))).toMatchObject({
       color: "#123456",
-      inFocus: false,
+      haloColor: undefined,
     });
 
     const incoming = arcHeadOf("canvas", arc({ focus: "incoming" }));
-    expect(incoming.inFocus).toBe(true);
-    expect(incoming.color).not.toBe("#123456");
-    expect(incoming.color).not.toBe(
-      arcHeadOf("canvas", arc({ focus: "outgoing" })).color,
+    expect(incoming.color).toBe("#123456");
+    expect(incoming.haloColor).toBeDefined();
+    expect(incoming.haloColor).not.toBe(
+      arcHeadOf("canvas", arc({ focus: "outgoing" })).haloColor,
     );
+  });
+
+  it("is one marker per colour and role", () => {
+    const ids = [
+      arcHeadOf("canvas", arc({})),
+      arcHeadOf("canvas", arc({ focus: "incoming" })),
+      arcHeadOf("canvas", arc({ focus: "outgoing" })),
+      arcHeadOf("canvas", arc({ focus: "incoming", color: "#abcdef" })),
+    ].map((head) => head.id);
+
+    expect(new Set(ids).size).toBe(4);
+    expect(arcHeadOf("canvas", arc({ id: "another" })).id).toBe(ids[0]);
   });
 
   it("is another marker on another canvas", () => {
@@ -40,42 +52,34 @@ describe("the head of an arc", () => {
 });
 
 describe("the heads a canvas draws", () => {
-  it("draws one head per colour, however many arcs wear it", () => {
-    const heads = arcHeadsOf("canvas", [
+  const idsOf = (arcs: CanvasArc[]) =>
+    arcHeadsOf("canvas", arcs).map((head) => head.id);
+
+  it("draws the heads of a colour once, however many arcs wear it", () => {
+    const ids = idsOf([
       arc({ id: "a" }),
       arc({ id: "b" }),
       arc({ id: "c", color: "#abcdef" }),
     ]);
 
-    expect(heads.map((head) => head.color).sort()).toEqual([
-      "#123456",
-      "#abcdef",
-    ]);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toContain(arcHeadOf("canvas", arc({})).id);
+    expect(ids).toContain(arcHeadOf("canvas", arc({ color: "#abcdef" })).id);
   });
 
-  it("keeps the heads of the arcs in focus apart from those that fade", () => {
-    const heads = arcHeadsOf("canvas", [
-      arc({ id: "a" }),
-      arc({ id: "b", focus: "incoming" }),
-      arc({ id: "c", focus: "incoming", color: "#abcdef" }),
-    ]);
-
-    expect(heads.filter((head) => head.inFocus)).toHaveLength(1);
-    expect(heads.filter((head) => !head.inFocus)).toHaveLength(1);
-    expect(new Set(heads.map((head) => head.id)).size).toBe(2);
-  });
+  // An arc points at the head of a role for longer than it has the role.
+  it.each(["focused", "incoming", "outgoing"] as const)(
+    "draws the head of an arc that is %s, whether or not an arc is",
+    (focus) => {
+      expect(idsOf([arc({})])).toContain(
+        arcHeadOf("canvas", arc({ focus })).id,
+      );
+    },
+  );
 
   it("draws none for an arc that ends in a mark of its own", () => {
     expect(
       arcHeadsOf("canvas", [arc({ kind: "read" }), arc({ kind: "inhibitor" })]),
     ).toEqual([]);
-  });
-
-  it("lists the heads in the same order whatever order the arcs come in", () => {
-    const arcs = [arc({ id: "a" }), arc({ id: "b", color: "#abcdef" })];
-
-    expect(arcHeadsOf("canvas", arcs)).toEqual(
-      arcHeadsOf("canvas", [...arcs].reverse()),
-    );
   });
 });

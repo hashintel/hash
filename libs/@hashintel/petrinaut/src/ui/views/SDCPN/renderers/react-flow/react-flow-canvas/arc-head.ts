@@ -1,23 +1,29 @@
 /**
- * The arrowhead of a standard arc: a marker the canvas draws once per colour
- * and every arc of that colour points at.
+ * The arrowhead of a standard arc: a marker the canvas draws once, which
+ * every arc of one colour and one focus role points at.
  *
- * The arcs at the focused item wear the colour of their casing and share
- * markers of their own. The markers left to the other arcs are then the heads
- * of the arcs that fade, so the pane fades those heads by one rule on their
- * shape.
+ * An arc with no role points at the head the pane fades, so one rule on that
+ * shape fades the head of every such arc. An arc at the focused item points
+ * at the head of its role, which never fades. That head wears the colour of
+ * the arc's casing while the canvas has a focus, and the arc's own colour
+ * otherwise.
  */
 
 import { arcHaloColor } from "../../../styles/focus";
 
+import type { CanvasArcFocus } from "../../../canvas-focus";
 import type { CanvasArc } from "../../../canvas-scene";
 
 export type ArcHead = {
   /** The marker's id, unique in the document. */
   id: string;
+  /** The colour of the arcs that point at it. */
   color: string;
-  /** Whether the arcs that wear this head stand at the focused item. */
-  inFocus: boolean;
+  /**
+   * The colour of the casing those arcs wear, for the head of a role. A head
+   * without one is the head of the arcs with no role.
+   */
+  haloColor: string | undefined;
 };
 
 /**
@@ -34,10 +40,27 @@ export const ARC_HEAD_OUTLINE =
 /** How far the head reaches back from its tip, in stroke widths. */
 export const ARC_HEAD_LENGTH = 5.5;
 
+const arcFocuses: CanvasArcFocus[] = [
+  "none",
+  "focused",
+  "incoming",
+  "outgoing",
+];
+
+const arcHead = (
+  canvasId: string,
+  color: string,
+  focus: CanvasArcFocus,
+): ArcHead => ({
+  id: `${canvasId}-arc-head-${focus}-${color}`,
+  color,
+  haloColor: arcHaloColor(focus),
+});
+
 /**
- * The head an arc wears. A cased arc runs into a head of the casing's colour:
- * the casing cannot wrap the head, and a head left in the arc's own colour
- * would end the casing short of the node.
+ * The head an arc points at. A cased arc runs into a head of the casing's
+ * colour: the casing cannot wrap the head, and a head left in the arc's own
+ * colour would end the casing short of the node.
  *
  * `canvasId` tells this canvas's markers from those of another canvas in the
  * same document, which fades its heads at other times.
@@ -45,27 +68,21 @@ export const ARC_HEAD_LENGTH = 5.5;
 export const arcHeadOf = (
   canvasId: string,
   arc: Pick<CanvasArc, "color" | "focus">,
-): ArcHead => {
-  const haloColor = arcHaloColor(arc.focus);
-  const inFocus = haloColor !== undefined;
-  const color = haloColor ?? arc.color;
-  return {
-    id: `${canvasId}-arc-head-${inFocus ? "focus" : "plain"}-${color}`,
-    color,
-    inFocus,
-  };
-};
+): ArcHead => arcHead(canvasId, arc.color, arc.focus);
 
-/** One head for each colour the standard arcs wear, in a stable order. */
+/**
+ * The heads a canvas draws: for each colour the standard arcs wear, the head
+ * of every role, whether or not an arc has that role now. An arc points at
+ * the head of a role for longer than it has the role: see `useArcHeadRoles`.
+ */
 export const arcHeadsOf = (canvasId: string, arcs: CanvasArc[]): ArcHead[] => {
-  const heads = new Map<string, ArcHead>();
+  const colors = new Set<string>();
   for (const arc of arcs) {
     if (arc.kind === "standard") {
-      const head = arcHeadOf(canvasId, arc);
-      heads.set(head.id, head);
+      colors.add(arc.color);
     }
   }
-  return [...heads.values()].sort((left, right) =>
-    left.id.localeCompare(right.id),
+  return [...colors].flatMap((color) =>
+    arcFocuses.map((focus) => arcHead(canvasId, color, focus)),
   );
 };

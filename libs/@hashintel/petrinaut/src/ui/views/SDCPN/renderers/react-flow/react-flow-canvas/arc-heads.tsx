@@ -14,14 +14,17 @@ const holderStyle = css({
 /**
  * The arrowheads the standard arcs point at. A head scales with the stroke
  * of its arc and turns with the arc's end, as React Flow's own markers do.
- * Its shape carries `arc-head`, and `canvas-focus-role` on the heads of the
- * arcs in focus, so the pane fades a head as it fades the node or the line
- * that has no role.
+ *
+ * Its shape carries `arc-head`, and `canvas-focus-role` on the head of a
+ * role, with the colours the pane's rules for those classes fill it from.
+ * The pane fades the head of the arcs with no role as it fades their lines.
+ * It gives the head of a role the casing's colour while the canvas has a
+ * focus, and the arc's own colour otherwise.
  */
 export const ArcHeads: React.FC<{ heads: ArcHead[] }> = ({ heads }) => (
   <svg className={holderStyle} aria-hidden="true">
     <defs>
-      {heads.map(({ id, color, inFocus }) => (
+      {heads.map(({ id, color, haloColor }) => (
         <marker
           key={id}
           id={id}
@@ -34,9 +37,17 @@ export const ArcHeads: React.FC<{ heads: ArcHead[] }> = ({ heads }) => (
           markerUnits="strokeWidth"
         >
           <path
-            className={inFocus ? "arc-head canvas-focus-role" : "arc-head"}
+            className={
+              haloColor === undefined
+                ? "arc-head"
+                : "arc-head canvas-focus-role"
+            }
             d={ARC_HEAD_OUTLINE}
-            style={{ fill: color }}
+            style={{
+              // @ts-expect-error CSS variables work at runtime, but are not in the type system
+              "--arc-head-color": color,
+              "--arc-head-halo": haloColor,
+            }}
           />
         </marker>
       ))}
