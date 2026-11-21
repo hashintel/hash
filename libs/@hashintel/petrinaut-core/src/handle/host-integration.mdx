@@ -685,6 +685,13 @@ on handles whose persisted document should also be restricted; for a read-only
 view of a richer document, prefer `readonly: true` with all extensions
 enabled.
 
+The pass after a change also runs when no extension is disabled. It is what
+blanks a kernel on a transition with no coloured output place, and a lambda
+of a kind the transition cannot have, so `createJsonDocHandle` cannot leave
+it out. The test "drops the kernel a direct change writes on a transition
+with no coloured output place, with every extension enabled" in
+`create-json-doc-handle.test.ts` holds that.
+
 ### What the pass after a change costs
 
 The pass runs inside every `change()`, so every edit pays for it. Its cost

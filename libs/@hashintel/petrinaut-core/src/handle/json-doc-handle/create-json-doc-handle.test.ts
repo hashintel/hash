@@ -238,6 +238,26 @@ describe("createJsonDocHandle", () => {
     y: 0,
   });
 
+  // The pass after a change cannot be left out when no extension is
+  // disabled: it is also what removes code a transition cannot have.
+  it("drops the kernel a direct change writes on a transition with no coloured output place, with every extension enabled", () => {
+    const handle = createJsonDocHandle({ initial: empty() });
+
+    handle.change((draft) => {
+      draft.places.push({
+        id: "p1",
+        name: "Place 1",
+        colorId: null,
+        dynamicsEnabled: false,
+        x: 0,
+        y: 0,
+      });
+      draft.transitions.push(transitionTo("p1"));
+    });
+
+    expect(handle.doc()?.transitions[0]?.transitionKernelCode).toBe("");
+  });
+
   it("settles the transitions of a direct change against the places that change leaves", () => {
     const handle = createJsonDocHandle({ initial: coloured() });
 
