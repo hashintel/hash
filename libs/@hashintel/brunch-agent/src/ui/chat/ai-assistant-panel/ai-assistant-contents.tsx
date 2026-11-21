@@ -10,7 +10,7 @@ import {
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { ExperimentalIcon } from "@hashintel/petrinaut/ui";
+import { HashIcon } from "@hashintel/ds-icons";
 import { AssistantPanelTitle } from "@hashintel/petrinaut/ui/plugin";
 
 import { AiVoiceModeIcon } from "../ai-voice-mode-button";
@@ -540,7 +540,7 @@ export const AiAssistantContents = ({
                   setVoiceAlerts([]);
                   onClearMessages?.();
                 }}
-                prefix={<ExperimentalIcon name="trash" size={14} />}
+                prefix={<HashIcon name="trash" size={14} />}
                 tooltip="Clear AI chat"
               />
             )}

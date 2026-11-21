@@ -1,12 +1,12 @@
-import { useHashIconPackEnabled } from "@hashintel/ds-icons";
-import { MicrophoneIcon as ExperimentalMicrophoneIcon } from "@hashintel/petrinaut/ui";
+import {
+  MicrophoneIcon as HashMicrophoneIcon,
+  useHashIconPackEnabled,
+} from "@hashintel/ds-icons";
 
 export const MicrophoneIcon = ({ muted = false }: { muted?: boolean }) => {
-  const experimentalIcons = useHashIconPackEnabled();
-  if (experimentalIcons) {
-    return (
-      <ExperimentalMicrophoneIcon size={16} muted={muted} duration={200} />
-    );
+  const iconPackEnabled = useHashIconPackEnabled();
+  if (iconPackEnabled) {
+    return <HashMicrophoneIcon size={16} muted={muted} duration={200} />;
   }
   return (
     <svg

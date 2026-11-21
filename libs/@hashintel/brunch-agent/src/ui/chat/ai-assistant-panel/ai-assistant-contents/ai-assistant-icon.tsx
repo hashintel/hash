@@ -1,5 +1,4 @@
-import { useHashIconPackEnabled } from "@hashintel/ds-icons";
-import { ExperimentalIcon } from "@hashintel/petrinaut/ui";
+import { HashIcon, useHashIconPackEnabled } from "@hashintel/ds-icons";
 
 import type { SVGProps } from "react";
 
@@ -13,10 +12,10 @@ export const AiAssistantIcon = ({
   title,
   ...props
 }: AiAssistantIconProps) => {
-  const experimentalIcons = useHashIconPackEnabled();
-  if (experimentalIcons) {
+  const iconPackEnabled = useHashIconPackEnabled();
+  if (iconPackEnabled) {
     return (
-      <ExperimentalIcon
+      <HashIcon
         width={size}
         height={size}
         aria-label={title}
