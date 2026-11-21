@@ -11,7 +11,7 @@ pub fn tokenize(source: &str) {
     let mut lexer = Lexer::new(source);
     while let Some(token) = lexer.next_token() {
         assert!(
-            token.error.is_none(),
+            token.error().is_none(),
             "benchmark input should contain only valid tokens"
         );
         black_box(token.kind);

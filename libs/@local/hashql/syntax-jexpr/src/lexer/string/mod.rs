@@ -341,22 +341,9 @@ impl<'source> LexedStr<'source> {
         }
     }
 
-    // `value` holds the body after the opening `"` through the closing `"` of a string already
-    // validated by `LexedStr::new`, with `has_escapes` matching its scan result.
-    #[inline]
-    pub(crate) fn from_validated(value: &'source str, has_escapes: bool) -> Self {
-        debug_assert!(value.ends_with('"'));
-        Self { value, has_escapes }
-    }
-
     #[inline]
     pub(crate) const fn consumed(&self) -> usize {
         self.value.len()
-    }
-
-    #[inline]
-    pub(crate) const fn has_escapes(&self) -> bool {
-        self.has_escapes
     }
 
     #[inline]

@@ -1,53 +1,29 @@
 use core::fmt::{self, Display};
 
-use crate::lexer::{
-    LexError, lex_block_comment, lex_invalid_word, lex_line_comment, lex_number,
-    lex_single_quoted_string, lex_string,
-};
-
-#[derive(
-    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, hashql_core::id::Id, logos::Logos,
-)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, hashql_core::id::Id)]
 #[id(const, display = !)]
-#[logos(error = LexError, extras = bool)]
 #[repr(u8)]
 pub enum SyntaxKind {
     // Syntactic JSON tokens (ordered for diagnostic display)
-    #[token("\"", lex_string)]
     String,
-    #[regex(r"[0-9-]|\.[0-9]|\+[0-9]", lex_number)]
     Number,
-    #[token("true")]
     True,
-    #[token("false")]
     False,
-    #[token("null")]
     Null,
-    #[token(",")]
     Comma,
-    #[token(":")]
     Colon,
-    #[token("{")]
     LBrace,
-    #[token("}")]
     RBrace,
-    #[token("[")]
     LBracket,
-    #[token("]")]
     RBracket,
 
     // Trivia tokens
-    #[regex(r"[ \t\r\n\f]+")]
     Whitespace,
     /// Single-line `//` comment, excluding the terminating line break.
-    #[token("//", lex_line_comment)]
     LineComment,
-    #[token("/*", lex_block_comment)]
     BlockComment,
 
     /// Malformed number or unrecognized input preserved for lossless recovery.
-    #[regex(r"[A-Za-z_][A-Za-z0-9_]*", lex_invalid_word)]
-    #[token("'", lex_single_quoted_string)]
     InvalidToken,
 
     /// Document root, retaining leading and trailing trivia.

@@ -49,7 +49,7 @@ fn single_ascii_escape_borrows() {
     for code in 0_u8..=0x7F {
         let body = format!(r#"\u{code:04X}""#);
         let lexed = LexedStr::new(&body).expect("ASCII unicode escape validates");
-        assert!(lexed.has_escapes());
+        assert!(lexed.has_escapes);
         assert_eq!(lexed.consumed(), body.len());
 
         let expected = char::from(code);
@@ -204,7 +204,7 @@ fn validate_matches_decode_on_mixed_escapes(characters: Vec<(char, bool)>) {
     body.push_str("\"tail");
 
     let lexed = LexedStr::new(&body).expect("valid string body should validate");
-    prop_assert_eq!(lexed.has_escapes(), had_escape);
+    prop_assert_eq!(lexed.has_escapes, had_escape);
     prop_assert_eq!(body.get(lexed.consumed()..), Some("tail"));
 
     let quoted = format!(

@@ -1,4 +1,3 @@
-use alloc::borrow::Cow;
 use core::marker::PhantomData;
 
 use rowan::{Checkpoint, GreenNodeBuilder};
@@ -10,7 +9,7 @@ use crate::{
         DelimiterKind, EofContext, LexerErrorKind, StringErrorContext, SyntaxError, SyntaxErrorKind,
     },
     lexer::{LexError, LexedStr, Lexer, ScannedToken, StringError, string::EscapeError},
-    syntax_kind::{SyntaxKind, T},
+    syntax_kind::SyntaxKind,
     syntax_kind_set::SyntaxKindSet,
 };
 
@@ -37,7 +36,7 @@ pub(crate) trait Grammar {
 
 pub(crate) struct Parser<'source, G> {
     lexer: Lexer<'source>,
-    peeked: Option<ScannedToken>,
+    peeked: Option<ScannedToken<'source>>,
     builder: GreenNodeBuilder<'static>,
     errors: Vec<SyntaxError>,
     last_token_end: TextSize,
@@ -110,19 +109,19 @@ impl<'source, G: Grammar> Parser<'source, G> {
 
     #[inline]
     fn flush_trivia(&mut self) {
-        let _: Option<ScannedToken> = self.current();
+        let _: Option<ScannedToken<'source>> = self.current();
     }
 
     /// Emits leading trivia into the open node and returns the next non-trivia token.
     #[inline]
-    pub(crate) fn current(&mut self) -> Option<ScannedToken> {
+    pub(crate) fn current(&mut self) -> Option<ScannedToken<'source>> {
         if let Some(token) = self.peeked {
             return Some(token);
         }
 
         while let Some(token) = self.lexer.next_token() {
             if token.kind.is_trivia() {
-                if let Some(error) = token.error {
+                if let Some(error) = token.error() {
                     self.record_lex_error(token.range, error);
                 }
                 self.builder
@@ -138,8 +137,8 @@ impl<'source, G: Grammar> Parser<'source, G> {
     }
 
     /// Peeks the second non-trivia token without mutating the builder or recording diagnostics.
-    pub(crate) fn peek2(&mut self) -> Option<ScannedToken> {
-        let _: ScannedToken = self.current()?;
+    pub(crate) fn peek2(&mut self) -> Option<ScannedToken<'source>> {
+        let _: ScannedToken<'source> = self.current()?;
         let mut lookahead = self.lexer.clone();
         while let Some(token) = lookahead.next_token() {
             if !token.kind.is_trivia() {
@@ -160,11 +159,11 @@ impl<'source, G: Grammar> Parser<'source, G> {
     ///
     /// Panics at EOF.
     #[inline]
-    pub(crate) fn bump_any(&mut self) -> ScannedToken {
+    pub(crate) fn bump_any(&mut self) -> ScannedToken<'source> {
         let token = self.current().expect("bump called at EOF");
         self.peeked = None;
 
-        if let Some(error) = token.error {
+        if let Some(error) = token.error() {
             self.record_lex_error(token.range, error);
         }
 
@@ -180,7 +179,7 @@ impl<'source, G: Grammar> Parser<'source, G> {
     ///
     /// Panics at EOF, or in debug builds if the current token's kind differs from `expected`.
     #[inline]
-    pub(crate) fn bump(&mut self, expected: SyntaxKind) -> ScannedToken {
+    pub(crate) fn bump(&mut self, expected: SyntaxKind) -> ScannedToken<'source> {
         let token = self.bump_any();
         debug_assert_eq!(token.kind, expected);
         token
@@ -289,21 +288,6 @@ impl<'source, G: Grammar> Parser<'source, G> {
             SyntaxKindSet::from_kind(delimiter.close_kind()),
             EofContext::UnclosedDelimiters(vec![(delimiter, open)]),
         );
-    }
-
-    /// Decodes a validated string token, returning `None` if it carried a lex error.
-    #[expect(
-        clippy::string_slice,
-        reason = "validated JSON string token begins with ASCII `\"`"
-    )]
-    pub(crate) fn decode_string(&self, token: ScannedToken) -> Option<Cow<'source, str>> {
-        debug_assert_eq!(token.kind, T![string]);
-        if token.error.is_some() {
-            return None;
-        }
-
-        let raw = self.lexer.slice(token.range);
-        Some(LexedStr::from_validated(&raw[1..], token.has_escapes).decode())
     }
 
     fn record_lex_error(&mut self, token_range: TextRange, error: LexError) {

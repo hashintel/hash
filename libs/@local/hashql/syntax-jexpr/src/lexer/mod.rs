@@ -1,3 +1,5 @@
+use alloc::borrow::Cow;
+
 use text_size::{TextRange, TextSize};
 
 use crate::syntax_kind::SyntaxKind;
@@ -24,21 +26,106 @@ pub enum LexError {
     UnrecognizedCharacter,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct ScannedToken {
-    pub kind: SyntaxKind,
-    pub range: TextRange,
-    pub has_escapes: bool,
-    pub error: Option<LexError>,
+#[derive(Debug, Copy, Clone, PartialEq, Eq, logos::Logos)]
+#[logos(error = LexError)]
+enum LexToken<'source> {
+    #[token("\"", lex_string)]
+    String(LexedStr<'source>),
+    #[regex(r"[0-9-]|\.[0-9]|\+[0-9]", lex_number)]
+    Number,
+    #[token("true")]
+    True,
+    #[token("false")]
+    False,
+    #[token("null")]
+    Null,
+    #[token(",")]
+    Comma,
+    #[token(":")]
+    Colon,
+    #[token("{")]
+    LBrace,
+    #[token("}")]
+    RBrace,
+    #[token("[")]
+    LBracket,
+    #[token("]")]
+    RBracket,
+    #[regex(r"[ \t\r\n\f]+")]
+    Whitespace,
+    #[token("//", lex_line_comment)]
+    LineComment,
+    #[token("/*", lex_block_comment)]
+    BlockComment,
+    #[regex(r"[A-Za-z_][A-Za-z0-9_]*", lex_invalid_word)]
+    #[token("'", lex_single_quoted_string)]
+    InvalidToken,
 }
 
-pub(crate) fn lex_line_comment(lexer: &mut logos::Lexer<'_, SyntaxKind>) {
+impl<'source> LexToken<'source> {
+    #[inline]
+    const fn into_parts(self) -> (SyntaxKind, ScannedPayload<'source>) {
+        match self {
+            Self::String(string) => (SyntaxKind::String, ScannedPayload::String(string)),
+            Self::Number => (SyntaxKind::Number, ScannedPayload::None),
+            Self::True => (SyntaxKind::True, ScannedPayload::None),
+            Self::False => (SyntaxKind::False, ScannedPayload::None),
+            Self::Null => (SyntaxKind::Null, ScannedPayload::None),
+            Self::Comma => (SyntaxKind::Comma, ScannedPayload::None),
+            Self::Colon => (SyntaxKind::Colon, ScannedPayload::None),
+            Self::LBrace => (SyntaxKind::LBrace, ScannedPayload::None),
+            Self::RBrace => (SyntaxKind::RBrace, ScannedPayload::None),
+            Self::LBracket => (SyntaxKind::LBracket, ScannedPayload::None),
+            Self::RBracket => (SyntaxKind::RBracket, ScannedPayload::None),
+            Self::Whitespace => (SyntaxKind::Whitespace, ScannedPayload::None),
+            Self::LineComment => (SyntaxKind::LineComment, ScannedPayload::None),
+            Self::BlockComment => (SyntaxKind::BlockComment, ScannedPayload::None),
+            Self::InvalidToken => (SyntaxKind::InvalidToken, ScannedPayload::None),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum ScannedPayload<'source> {
+    None,
+    String(LexedStr<'source>),
+    Error(LexError),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct ScannedToken<'source> {
+    pub kind: SyntaxKind,
+    pub range: TextRange,
+    payload: ScannedPayload<'source>,
+}
+
+impl<'source> ScannedToken<'source> {
+    #[inline]
+    pub(crate) fn decode_string(self) -> Option<Cow<'source, str>> {
+        match self.payload {
+            ScannedPayload::String(string) => Some(string.decode()),
+            ScannedPayload::None | ScannedPayload::Error(_) => None,
+        }
+    }
+
+    #[inline]
+    pub(crate) const fn error(self) -> Option<LexError> {
+        match self.payload {
+            ScannedPayload::Error(error) => Some(error),
+            ScannedPayload::None | ScannedPayload::String(_) => None,
+        }
+    }
+}
+
+fn lex_line_comment<'source>(lexer: &mut logos::Lexer<'source, LexToken<'source>>) {
     let remainder = lexer.remainder().as_bytes();
     let len = memchr::memchr(b'\n', remainder).unwrap_or(remainder.len());
     lexer.bump(len);
 }
 
-pub(crate) fn lex_block_comment(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(), LexError> {
+fn lex_block_comment<'source>(
+    lexer: &mut logos::Lexer<'source, LexToken<'source>>,
+) -> Result<(), LexError> {
     let remainder = lexer.remainder().as_bytes();
     let mut pos = 0;
     while let Some(offset) = memchr::memchr(b'*', &remainder[pos..]) {
@@ -59,17 +146,17 @@ pub(crate) fn lex_block_comment(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Res
     reason = "Lexer::new asserts source length fits in u32"
 )]
 #[inline]
-pub(crate) fn lex_string(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(), LexError> {
+fn lex_string<'source>(
+    lexer: &mut logos::Lexer<'source, LexToken<'source>>,
+) -> Result<LexedStr<'source>, LexError> {
     let start = lexer.span().start as u32;
     match LexedStr::new(lexer.remainder()) {
         Ok(string) => {
             lexer.bump(string.consumed());
-            lexer.extras = string.has_escapes();
-            Ok(())
+            Ok(string)
         }
         Err(err) => {
             lexer.bump(err.consumed);
-            lexer.extras = false;
             Err(LexError::String {
                 error: err.kind,
                 range: TextRange::new(
@@ -86,7 +173,9 @@ pub(crate) fn lex_string(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(),
     reason = "Lexer::new asserts source length fits in u32"
 )]
 #[inline]
-pub(crate) fn lex_number(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(), LexError> {
+fn lex_number<'source>(
+    lexer: &mut logos::Lexer<'source, LexToken<'source>>,
+) -> Result<(), LexError> {
     let start = lexer.span().start;
     let already_consumed = lexer.span().len();
     let slice = &lexer.source().as_bytes()[start..];
@@ -109,14 +198,16 @@ pub(crate) fn lex_number(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(),
 }
 
 // Consumes an entire bare ASCII word as one invalid token instead of failing per character.
-pub(crate) const fn lex_invalid_word(_: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(), LexError> {
+const fn lex_invalid_word<'source>(
+    _: &mut logos::Lexer<'source, LexToken<'source>>,
+) -> Result<(), LexError> {
     Err(LexError::InvalidWord)
 }
 
 // Consumes a single-line `'...'` string as one invalid token when a closing `'` exists on the same
 // line. An unmatched `'` falls back to an unrecognized character so later tokens stay intact.
-pub(crate) fn lex_single_quoted_string(
-    lexer: &mut logos::Lexer<'_, SyntaxKind>,
+fn lex_single_quoted_string<'source>(
+    lexer: &mut logos::Lexer<'source, LexToken<'source>>,
 ) -> Result<(), LexError> {
     let remainder = lexer.remainder().as_bytes();
     let mut index = 0;
@@ -143,7 +234,7 @@ pub(crate) fn lex_single_quoted_string(
 
 #[derive(Clone)]
 pub(crate) struct Lexer<'source> {
-    inner: logos::Lexer<'source, SyntaxKind>,
+    inner: logos::Lexer<'source, LexToken<'source>>,
 }
 
 impl<'source> Lexer<'source> {
@@ -186,7 +277,7 @@ impl<'source> Lexer<'source> {
         reason = "constructor asserts source length fits in u32"
     )]
     #[inline]
-    pub(crate) fn next_token(&mut self) -> Option<ScannedToken> {
+    pub(crate) fn next_token(&mut self) -> Option<ScannedToken<'source>> {
         let result = self.inner.next()?;
         let span = self.inner.span();
         let range = TextRange::new(
@@ -195,12 +286,14 @@ impl<'source> Lexer<'source> {
         );
 
         match result {
-            Ok(kind) => Some(ScannedToken {
-                kind,
-                range,
-                has_escapes: kind == SyntaxKind::String && self.inner.extras,
-                error: None,
-            }),
+            Ok(token) => {
+                let (kind, payload) = token.into_parts();
+                Some(ScannedToken {
+                    kind,
+                    range,
+                    payload,
+                })
+            }
             Err(error) => {
                 let kind = match error {
                     LexError::String { .. } => SyntaxKind::String,
@@ -213,8 +306,7 @@ impl<'source> Lexer<'source> {
                 Some(ScannedToken {
                     kind,
                     range,
-                    has_escapes: false,
-                    error: Some(error),
+                    payload: ScannedPayload::Error(error),
                 })
             }
         }
@@ -230,7 +322,7 @@ mod tests {
     use super::{LexError, Lexer, ScannedToken, number::ParseNumberErrorKind, string::StringError};
     use crate::syntax_kind::SyntaxKind;
 
-    fn lex_all(source: &str) -> Vec<ScannedToken> {
+    fn lex_all(source: &str) -> Vec<ScannedToken<'_>> {
         let mut lexer = Lexer::new(source);
         let mut tokens = Vec::new();
         while let Some(token) = lexer.next_token() {
@@ -239,7 +331,7 @@ mod tests {
         tokens
     }
 
-    fn lex_significant(source: &str) -> Vec<ScannedToken> {
+    fn lex_significant(source: &str) -> Vec<ScannedToken<'_>> {
         lex_all(source)
             .into_iter()
             .filter(|token| !token.kind.is_trivia())
@@ -257,7 +349,7 @@ mod tests {
             .map(|token| lexer.slice(token.range))
             .collect();
         assert_eq!(reconstructed, source);
-        assert!(tokens.iter().all(|token| token.error.is_none()));
+        assert!(tokens.iter().all(|token| token.error().is_none()));
     }
 
     #[test]
@@ -266,7 +358,7 @@ mod tests {
         assert_eq!(tokens.len(), 2);
         assert_eq!(tokens[0].kind, SyntaxKind::BlockComment);
         assert_eq!(tokens[0].range, TextRange::new(0.into(), 29.into()));
-        assert!(tokens[0].error.is_none());
+        assert!(tokens[0].error().is_none());
         assert_eq!(tokens[1].kind, SyntaxKind::Number);
         assert_eq!(tokens[1].range, TextRange::new(29.into(), 31.into()));
     }
@@ -277,7 +369,7 @@ mod tests {
             let tokens = lex_all(source);
             assert_eq!(tokens.len(), 1);
             assert_eq!(tokens[0].kind, SyntaxKind::BlockComment);
-            assert_eq!(tokens[0].error, Some(LexError::UnterminatedBlockComment));
+            assert_eq!(tokens[0].error(), Some(LexError::UnterminatedBlockComment));
         }
     }
 
@@ -295,14 +387,14 @@ mod tests {
         assert_eq!(tokens.len(), 9);
         assert_eq!(tokens[3].kind, SyntaxKind::String);
         assert_matches!(
-            tokens[3].error,
+            tokens[3].error(),
             Some(LexError::String {
                 error: StringError::Escape(_),
                 ..
             })
         );
         assert_eq!(tokens[7].kind, SyntaxKind::Number);
-        assert!(tokens[7].error.is_none());
+        assert!(tokens[7].error().is_none());
     }
 
     #[test]
@@ -311,7 +403,7 @@ mod tests {
         assert_eq!(tokens.len(), 5);
         assert_eq!(tokens[3].kind, SyntaxKind::InvalidToken);
         assert_eq!(
-            tokens[3].error,
+            tokens[3].error(),
             Some(LexError::Number(super::ParseNumberError {
                 kind: ParseNumberErrorKind::ExpectedDigit,
                 range: TextRange::empty(TextSize::new(14)),
@@ -325,7 +417,7 @@ mod tests {
         let tokens = lex_significant("true truex false null");
         assert_eq!(tokens[0].kind, SyntaxKind::True);
         assert_eq!(tokens[1].kind, SyntaxKind::InvalidToken);
-        assert_eq!(tokens[1].error, Some(LexError::InvalidWord));
+        assert_eq!(tokens[1].error(), Some(LexError::InvalidWord));
         assert_eq!(tokens[2].kind, SyntaxKind::False);
         assert_eq!(tokens[3].kind, SyntaxKind::Null);
     }
@@ -334,11 +426,11 @@ mod tests {
     fn single_quoted_and_prefixed_numbers_lex_as_single_tokens() {
         let tokens = lex_significant("'hello' +42 .5 'unterminated");
         assert_eq!(tokens.len(), 5);
-        assert_eq!(tokens[0].error, Some(LexError::SingleQuotedString));
-        assert_matches!(tokens[1].error, Some(LexError::Number(_)));
-        assert_matches!(tokens[2].error, Some(LexError::Number(_)));
-        assert_eq!(tokens[3].error, Some(LexError::UnrecognizedCharacter));
-        assert_eq!(tokens[4].error, Some(LexError::InvalidWord));
+        assert_eq!(tokens[0].error(), Some(LexError::SingleQuotedString));
+        assert_matches!(tokens[1].error(), Some(LexError::Number(_)));
+        assert_matches!(tokens[2].error(), Some(LexError::Number(_)));
+        assert_eq!(tokens[3].error(), Some(LexError::UnrecognizedCharacter));
+        assert_eq!(tokens[4].error(), Some(LexError::InvalidWord));
     }
 
     #[test]
@@ -354,7 +446,7 @@ mod tests {
         assert!(
             tokens
                 .iter()
-                .all(|token| token.error == Some(LexError::UnrecognizedCharacter))
+                .all(|token| token.error() == Some(LexError::UnrecognizedCharacter))
         );
     }
 }

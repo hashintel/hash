@@ -119,12 +119,12 @@ pub(crate) fn parse_object<G: Grammar>(parser: &mut Parser<'_, G>) {
 
 fn parse_object_field<G: Grammar>(
     parser: &mut Parser<'_, G>,
-    key: ScannedToken,
+    key: ScannedToken<'_>,
     primary: &mut Option<(PrimaryKind, TextRange)>,
     type_field: &mut Option<(TextRange, TextRange)>,
     has_unknown_or_error: &mut bool,
 ) {
-    let Some(decoded) = parser.decode_string(key) else {
+    let Some(decoded) = key.decode_string() else {
         *has_unknown_or_error = true;
         parse_unknown_field(parser);
         return;

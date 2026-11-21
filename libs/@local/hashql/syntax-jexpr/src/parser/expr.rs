@@ -79,8 +79,7 @@ fn parse_call_arg(parser: &mut Parser<'_, ExprGrammar>) {
     };
 
     // Shorthand labeled argument: `":label"`, excluding rooted paths starting with `"::"`.
-    if first.kind == T![string]
-        && let Some(decoded) = parser.decode_string(first)
+    if let Some(decoded) = first.decode_string()
         && decoded.starts_with(':')
         && !decoded.starts_with("::")
     {
@@ -93,8 +92,7 @@ fn parse_call_arg(parser: &mut Parser<'_, ExprGrammar>) {
     // Object-form labeled argument: LL(2) check for `{` followed by a `":..."` key string.
     if first.kind == T!['{']
         && let Some(second) = parser.peek2()
-        && second.kind == T![string]
-        && let Some(decoded) = parser.decode_string(second)
+        && let Some(decoded) = second.decode_string()
         && decoded.starts_with(':')
     {
         parse_labeled_arg(parser);
@@ -127,7 +125,7 @@ fn parse_labeled_arg(parser: &mut Parser<'_, ExprGrammar>) {
                 parser.start_node(SyntaxKind::LabeledArgEntry);
                 let key = parser.bump(T![string]);
 
-                if let Some(decoded) = parser.decode_string(key) {
+                if let Some(decoded) = key.decode_string() {
                     if !decoded.starts_with(':') {
                         all_prefixed = false;
                         parser.error(
