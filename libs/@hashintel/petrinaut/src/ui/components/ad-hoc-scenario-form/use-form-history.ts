@@ -81,9 +81,9 @@ export function useAdHocFormHistory(
    * Whether the host owns part of the state and recomputes it from the
    * form's own edits. In run mode the computed parameters and marking are
    * derived, so they belong to the host rather than to the undo stack: an
-   * external change adopts in place instead of adding a step. Recording it
-   * as a step made an edit land twice — the value, then the preview it
-   * derived — and undo could never get back past the second one.
+   * external change adopts in place instead of adding a step. Recorded as a
+   * step, an edit would land twice (the value, then the preview derived
+   * from it) and undo could never get back past the second one.
    */
   hostDerivesState = false,
 ): AdHocFormHistory {
