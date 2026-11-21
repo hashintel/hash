@@ -1,5 +1,5 @@
 import { useStableItems } from "../../../use-stable-items";
-import { arcHeadOf } from "./arc-head";
+import { ARC_STROKE_WIDTH, arcHeadOf } from "./arc-head";
 import { instanceFlowOrigin, instanceFlowPosition } from "./instance-anchor";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 import { getOutlineNode } from "./shared/outline-arcs";
@@ -20,8 +20,6 @@ import type {
   FusionEdgeType,
   NodeType,
 } from "./react-flow-types";
-
-const ARC_STROKE_WIDTH = 2;
 
 const toReactFlowNode = (node: CanvasNode): NodeType => {
   const size = { width: node.width, height: node.height };

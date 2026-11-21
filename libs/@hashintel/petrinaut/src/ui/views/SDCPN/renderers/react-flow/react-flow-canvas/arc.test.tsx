@@ -49,6 +49,11 @@ describe("how the pane can fade an arc", () => {
 
     // An opacity on an element every arc has is a buffer per arc.
     expect(container.querySelector(".arc-strokes")).toBeNull();
+    // Nor any group around what it draws, which would be an element per arc
+    // that draws nothing.
+    expect(container.querySelector(".arc-line")?.parentElement).toBe(
+      container.querySelector("svg"),
+    );
   });
 
   it("marks the two strokes of a standard arc, the second on the edge that wears the head", () => {
@@ -84,7 +89,8 @@ describe("how the pane can fade an arc", () => {
 
       const group = container.querySelector(".arc-strokes");
       expect(group).not.toBeNull();
-      expect(group?.querySelector(".react-flow__edge-path")).not.toBeNull();
+      const edge = group?.querySelector(".react-flow__edge-path");
+      expect(edge?.getAttribute("marker-end")).toMatch(/^url\(#.+-arc\)$/);
       expect(container.querySelector(".arc-line, .arc-line-twin")).toBeNull();
       // Its own dashes keep the units they were written in.
       expect(container.querySelector("[pathLength]")).toBeNull();

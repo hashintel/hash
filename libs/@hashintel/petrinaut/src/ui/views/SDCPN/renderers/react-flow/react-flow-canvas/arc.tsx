@@ -6,20 +6,19 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useTransitionFrame } from "../../../canvas-frame-store-context";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import { arcHaloColor } from "../../../styles/focus";
-import { ARC_HEAD_LENGTH } from "./arc-head";
+import { ARC_HEAD_LENGTH, ARC_STROKE_WIDTH } from "./arc-head";
 import { firingIsVisible } from "./firing-animation-visibility";
 import { EdgeUnderlay } from "./shared/edge-underlay";
 import { fixedEndpoint, getOutlineArcPath } from "./shared/outline-arcs";
 
 import type { ArcData, ArcEdgeType } from "./react-flow-types";
 
-const BASE_STROKE_WIDTH = 2;
 const ANIMATION_DURATION_MS = 500;
 const READ_DASH_PATTERN = "2 6";
 const INHIBITOR_MARKER_RADIUS = 10;
-const INHIBITOR_MARKER_SIZE = (INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH) * 2;
+const INHIBITOR_MARKER_SIZE = (INHIBITOR_MARKER_RADIUS + ARC_STROKE_WIDTH) * 2;
 const READ_MARKER_RADIUS = 4;
-const READ_MARKER_SIZE = (READ_MARKER_RADIUS + BASE_STROKE_WIDTH) * 2;
+const READ_MARKER_SIZE = (READ_MARKER_RADIUS + ARC_STROKE_WIDTH) * 2;
 
 // Perpendicular tick marks for inhibitor arcs
 const INHIBITOR_TICK_SPACING = 13;
@@ -83,14 +82,14 @@ function useFiringAnimation(
     // Stroke width based on total transitions
     const peakStrokeWidth = Math.min(
       65,
-      BASE_STROKE_WIDTH +
+      ARC_STROKE_WIDTH +
         Math.log(1 + transitionsToAnimate) * Math.min(6 * weight, 25),
     );
 
     const animation = path.animate(
       [
         { strokeWidth: `${peakStrokeWidth}px` },
-        { strokeWidth: `${BASE_STROKE_WIDTH}px` },
+        { strokeWidth: `${ARC_STROKE_WIDTH}px` },
       ],
       {
         duration: ANIMATION_DURATION_MS,
@@ -276,7 +275,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   // where one lay on the other.
   const headShare = Math.min(
     1,
-    (ARC_HEAD_LENGTH * BASE_STROKE_WIDTH) / arcLength,
+    (ARC_HEAD_LENGTH * ARC_STROKE_WIDTH) / arcLength,
   );
 
   const tickMarks = arcType === "inhibitor" ? computeArcTickMarks(arcPath) : [];
@@ -287,9 +286,88 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
         ? `url(#${readMarkerId})`
         : markerEnd;
 
+  // Everything that draws the arc, apart from its weight label, which stays
+  // readable on an arc outside the neighbourhood.
+  const strokes = (
+    <>
+      <EdgeUnderlay
+        id={id}
+        path={arcPath}
+        selected={selected}
+        haloColor={haloColor}
+        strokeWidth={ARC_STROKE_WIDTH}
+        strokeDasharray={strokeDasharray}
+        strokeLinecap={arcType === "read" ? "round" : "butt"}
+      />
+
+      {/*
+        The line a firing widens, and the line a faded arc keeps. The edge
+        below draws the arc again over it: it carries the head, which would
+        grow with a wider stroke.
+      */}
+      <path
+        ref={arcPathRef}
+        className={fadesAsGroup ? undefined : "arc-line"}
+        d={arcPath}
+        pathLength={fadesAsGroup ? undefined : 1}
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth={ARC_STROKE_WIDTH}
+        strokeDasharray={strokeDasharray}
+        strokeLinecap={arcType === "read" ? "round" : undefined}
+        style={
+          fadesAsGroup
+            ? { pointerEvents: "none" }
+            : {
+                pointerEvents: "none",
+                // @ts-expect-error CSS variables work at runtime, but are not in the type system
+                "--arc-faded-dash": `${1 - headShare} 1`,
+              }
+        }
+      />
+
+      {/* Main edge with marker - using BaseEdge for proper interaction handling */}
+      <BaseEdge
+        id={id}
+        className={fadesAsGroup ? undefined : "arc-line-twin"}
+        path={arcPath}
+        markerEnd={markerEndOverride}
+        style={
+          strokeDasharray
+            ? {
+                ...style,
+                strokeDasharray,
+                strokeLinecap: arcType === "read" ? "round" : undefined,
+                stroke: strokeColor,
+              }
+            : { ...style, stroke: strokeColor }
+        }
+      />
+
+      {/* Perpendicular tick marks crossing inhibitor arcs */}
+      {arcType === "inhibitor" && tickMarks.length > 0 && (
+        <g style={{ pointerEvents: "none" }}>
+          {tickMarks.map((tick, index) => (
+            <line
+              // eslint-disable-next-line react/no-array-index-key -- ticks are derived purely from path geometry and re-rendered as a whole
+              key={index}
+              x1={tick.x1}
+              y1={tick.y1}
+              x2={tick.x2}
+              y2={tick.y2}
+              stroke={strokeColor}
+              strokeWidth={ARC_STROKE_WIDTH}
+              strokeLinecap="round"
+            />
+          ))}
+        </g>
+      )}
+    </>
+  );
+
   return (
     <>
-      {(arcType === "inhibitor" || arcType === "read") && (
+      {fadesAsGroup && (
         <defs>
           {arcType === "inhibitor" ? (
             <marker
@@ -297,18 +375,18 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
               markerWidth={INHIBITOR_MARKER_SIZE}
               markerHeight={INHIBITOR_MARKER_SIZE}
               refX={INHIBITOR_MARKER_RADIUS * 2}
-              refY={INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH}
+              refY={INHIBITOR_MARKER_RADIUS + ARC_STROKE_WIDTH}
               orient="auto"
               markerUnits="userSpaceOnUse"
               style={{ zIndex: 1 }}
             >
               <circle
-                cx={INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH}
-                cy={INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH}
+                cx={INHIBITOR_MARKER_RADIUS + ARC_STROKE_WIDTH}
+                cy={INHIBITOR_MARKER_RADIUS + ARC_STROKE_WIDTH}
                 r={INHIBITOR_MARKER_RADIUS}
                 fill="white"
                 stroke={strokeColor}
-                strokeWidth={BASE_STROKE_WIDTH}
+                strokeWidth={ARC_STROKE_WIDTH}
               />
             </marker>
           ) : (
@@ -317,14 +395,14 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
               markerWidth={READ_MARKER_SIZE}
               markerHeight={READ_MARKER_SIZE}
               refX={READ_MARKER_RADIUS * 2}
-              refY={READ_MARKER_RADIUS + BASE_STROKE_WIDTH}
+              refY={READ_MARKER_RADIUS + ARC_STROKE_WIDTH}
               orient="auto"
               markerUnits="userSpaceOnUse"
               style={{ zIndex: 1 }}
             >
               <circle
-                cx={READ_MARKER_RADIUS + BASE_STROKE_WIDTH}
-                cy={READ_MARKER_RADIUS + BASE_STROKE_WIDTH}
+                cx={READ_MARKER_RADIUS + ARC_STROKE_WIDTH}
+                cy={READ_MARKER_RADIUS + ARC_STROKE_WIDTH}
                 r={READ_MARKER_RADIUS}
                 fill={strokeColor}
               />
@@ -334,84 +412,10 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
       )}
 
       {/*
-        Everything that draws the arc, apart from the weight label below,
-        which stays readable on an arc outside the neighbourhood. The pane
-        fades this group whole only where it carries `arc-strokes`.
+        Only an arc whose marks lie on its line has a group around what draws
+        it: the pane fades that group whole.
       */}
-      <g className={fadesAsGroup ? "arc-strokes" : undefined}>
-        <EdgeUnderlay
-          id={id}
-          path={arcPath}
-          selected={selected}
-          haloColor={haloColor}
-          strokeWidth={BASE_STROKE_WIDTH}
-          strokeDasharray={strokeDasharray}
-          strokeLinecap={arcType === "read" ? "round" : "butt"}
-        />
-
-        {/*
-          The line a firing widens, and the line a faded arc keeps. The edge
-          below draws the arc again over it: it carries the head, which would
-          grow with a wider stroke.
-        */}
-        <path
-          ref={arcPathRef}
-          className={fadesAsGroup ? undefined : "arc-line"}
-          d={arcPath}
-          pathLength={fadesAsGroup ? undefined : 1}
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth={BASE_STROKE_WIDTH}
-          strokeDasharray={strokeDasharray}
-          strokeLinecap={arcType === "read" ? "round" : undefined}
-          style={
-            fadesAsGroup
-              ? { pointerEvents: "none" }
-              : {
-                  pointerEvents: "none",
-                  // @ts-expect-error CSS variables work at runtime, but are not in the type system
-                  "--arc-faded-dash": `${1 - headShare} 1`,
-                }
-          }
-        />
-
-        {/* Main edge with marker - using BaseEdge for proper interaction handling */}
-        <BaseEdge
-          id={id}
-          className={fadesAsGroup ? undefined : "arc-line-twin"}
-          path={arcPath}
-          markerEnd={markerEndOverride}
-          style={
-            strokeDasharray
-              ? {
-                  ...style,
-                  strokeDasharray,
-                  strokeLinecap: arcType === "read" ? "round" : undefined,
-                  stroke: strokeColor,
-                }
-              : { ...style, stroke: strokeColor }
-          }
-        />
-
-        {/* Perpendicular tick marks crossing inhibitor arcs */}
-        {arcType === "inhibitor" && tickMarks.length > 0 && (
-          <g style={{ pointerEvents: "none" }}>
-            {tickMarks.map((tick, index) => (
-              <line
-                // eslint-disable-next-line react/no-array-index-key -- ticks are derived purely from path geometry and re-rendered as a whole
-                key={index}
-                x1={tick.x1}
-                y1={tick.y1}
-                x2={tick.x2}
-                y2={tick.y2}
-                stroke={strokeColor}
-                strokeWidth={BASE_STROKE_WIDTH}
-                strokeLinecap="round"
-              />
-            ))}
-          </g>
-        )}
-      </g>
+      {fadesAsGroup ? <g className="arc-strokes">{strokes}</g> : strokes}
 
       {/* Labels container */}
       <g transform={`translate(${labelX}, ${labelY})`}>

@@ -27,6 +27,12 @@ export type ArcHead = {
 };
 
 /**
+ * The width of an arc's stroke. The head is drawn in units of it, so where a
+ * faded line stops and how large its head is come from this one number.
+ */
+export const ARC_STROKE_WIDTH = 2;
+
+/**
  * The shape of the head in units of the arc's stroke width, with the tip at
  * the origin and the arc arriving from the left. It is React Flow's closed
  * arrow, a triangle 5 long and 8 wide under a round stroke 1 wide, as the one
