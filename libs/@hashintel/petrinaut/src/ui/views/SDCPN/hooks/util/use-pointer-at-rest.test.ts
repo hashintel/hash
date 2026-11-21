@@ -108,6 +108,24 @@ describe("usePointerAtRest", () => {
     wait(10);
     expect(result.current).toBe(true);
   });
+
+  it("starts the wait again when a button is released", () => {
+    const { result } = renderAtRest();
+
+    // Held still through a press, as at the end of a pan.
+    movePointer(100, 100);
+    wait(150);
+    act(() => {
+      canvas.dispatchEvent(
+        new MouseEvent("pointerup", { clientX: 100, clientY: 100 }),
+      );
+    });
+    expect(result.current).toBe(false);
+
+    wait(150);
+    expect(result.current).toBe(true);
+  });
+
   it("ignores movement outside its element", () => {
     const { result } = renderAtRest();
 

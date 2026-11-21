@@ -19,12 +19,18 @@ type WritableStore<Value> = ReadableStore<Value> & { set(next: Value): void };
 export type CanvasPointer = {
   /** The node or line under the pointer, before the hover has settled. */
   hoveredId: WritableStore<string | null>;
+  /**
+   * The node or line that came under the pointer while a button was down. It
+   * is hovered when the button is released, if the pointer is still on it.
+   */
+  hoverOnReleaseId: WritableStore<string | null>;
   /** Where each node of a drag under way is shown, until the drop commits it. */
   dragPreview: WritableStore<CanvasDragPreview>;
 };
 
 export const createCanvasPointer = (): CanvasPointer => ({
   hoveredId: createReadableStore<string | null>(null),
+  hoverOnReleaseId: createReadableStore<string | null>(null),
   dragPreview: createReadableStore<CanvasDragPreview>(new Map()),
 });
 

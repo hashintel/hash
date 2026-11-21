@@ -50,10 +50,7 @@ import { MiniMap } from "./react-flow-canvas/mini-map";
 import { OutlineConnectionLine } from "./react-flow-canvas/outline-connection-line";
 import { PlaceNode } from "./react-flow-canvas/place-node";
 import { toCanvasConnection } from "./react-flow-canvas/port-handles";
-import {
-  linkItemOf,
-  type NodeType,
-} from "./react-flow-canvas/react-flow-types";
+import { linkItemOf } from "./react-flow-canvas/react-flow-types";
 import {
   isMac,
   selectionKeyCode,
@@ -173,6 +170,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     connect,
     selectLink,
     hover,
+    enter,
     clickPane,
     dropNode,
     dropComponent,
@@ -266,8 +264,11 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     event.dataTransfer.dropEffect = "move";
   };
 
-  const hoverFlowNode = (_event: React.MouseEvent, node: NodeType) =>
-    hover(node.id);
+  const enterItem = (event: React.MouseEvent, id: string) =>
+    enter(id, {
+      pressed: event.buttons !== 0,
+      connecting: flowStore.getState().connection.inProgress,
+    });
 
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
@@ -284,6 +285,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     <CanvasControllerContext value={controller}>
       <div
         {...readOnlyDragHandlers}
+        onPointerUp={interactions.releasePointer}
         className={paneStyle}
         data-animated={showAnimations}
         data-focus-active={scene.focusActive ? "" : undefined}
@@ -313,10 +315,12 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
             // Node click selection is handled by ReactFlow's internal
             // handleNodeClick, which fires select changes through
             // onNodesChange; an onNodeClick handler would conflict with it.
-            onNodeMouseEnter={hoverFlowNode}
+            onNodeMouseEnter={(event, node) => enterItem(event, node.id)}
             onNodeMouseLeave={interactions.clearHover}
-            onNodeDragStart={hoverFlowNode}
-            onEdgeMouseEnter={(_event, edge) => hover(linkItemOf(edge).id)}
+            onNodeDragStart={(_event, node) => hover(node.id)}
+            onEdgeMouseEnter={(event, edge) =>
+              enterItem(event, linkItemOf(edge).id)
+            }
             onEdgeMouseLeave={interactions.clearHover}
             onSelectionStart={interactions.beginSelectionGesture}
             onSelectionEnd={interactions.endSelectionGesture}

@@ -53,6 +53,7 @@ A user drags a node:
 
 The focus of a node or an arc is its `CanvasNodeFocus` or `CanvasArcFocus` in `canvas-focus.ts`: how it relates to the hovered or selected items.
 The pointer rests after 150 ms with no move above 2 px, and a hover changes focus only while the `highlightOnHover` setting is on. A place with visualizer code reaches the scene before the rest, so its visualizer shows at once.
+The release of a button counts as a move, so a hover that begins at the release waits the same 150 ms.
 
 `benchmarks/monaco-performance/canvas-scale.mjs`, from the package root, measures each gesture on a net of about 500 nodes and, with `details=1`, lists who rendered. Its header says which build to serve.
 
@@ -65,6 +66,8 @@ The pointer rests after 150 ms with no move above 2 px, and a hover changes focu
 **A value that changes per playback frame is read by id from the frame store.** A frame moves one number per place and per transition, and a scene rebuild for each frame would compare every node. The test "re-renders only the items whose values moved" in `canvas-frame-store.test.tsx` holds this.
 
 **Hover and drag preview stay in `CanvasPointer`.** No panel subscribes to it, so a pointer move renders no panel. `use-canvas-scene.test.tsx` covers the hover delay and the drag.
+
+**A node or arc that comes under the pointer while a button is down is hovered at the release.** A pan moves the net one frame after the pointer, so nodes and arcs pass under the pointer. Hovered on the way, each would fade the rest of the net and clear again, which takes most of the frames of a pan on a large net. A renderer reports each item with `enter` and says whether a button is down and whether a connection is being drawn. `enter` keeps an item that has to wait in `hoverOnReleaseId` of the canvas pointer, and `releasePointer` hovers it. Two gestures hover without that wait: a node is hovered from the start of its drag, and a connection being drawn hovers the item it comes onto. The tests under "the hover of what the pointer comes onto" in `use-canvas-interactions.test.tsx` hold this, and "waits as long for the hover a released button leaves behind" in `use-canvas-scene.test.tsx` holds the delay after the release. No test checks what the React Flow renderer passes to `enter`.
 
 **A control drawn over the canvas has the class `nokey`.** While the selection key is held, React Flow starts a selection box from a press anywhere inside the pane, and takes the press from the control. A control that is no part of the net (the visualizer window, the eye that opens it, the fold toggle of a component card) opts out with React Flow's `nokey` class. `useSelectionKeyRelease` covers the case where the page saw Shift go down and not come up, as after a system shortcut: the next press that says Shift is up sends the missing keyup. The tests in `selection-keys.test.tsx` and `visualizer-window.test.tsx` hold both.
 

@@ -121,6 +121,23 @@ describe("canvas hover during dragging", () => {
     ).toMatchObject({ focus: "focused" });
   });
 
+  it("waits as long for the hover a released button leaves behind", () => {
+    const { result, hover } = renderScene();
+    // The pointer held still through the press, and the release hovers what
+    // the gesture brought under it.
+    act(() => {
+      canvas.dispatchEvent(new MouseEvent("pointerup"));
+    });
+    hover("input");
+    advanceTime(149);
+    expect(result.current.focusActive).toBe(false);
+
+    advanceTime(1);
+    expect(
+      result.current.nodes.find((node) => node.id === "input"),
+    ).toMatchObject({ focus: "focused" });
+  });
+
   it("offers a place's visualizer before the pointer rests on it", () => {
     const { result, hover } = renderScene();
     movePointer(100);

@@ -12,6 +12,7 @@ import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { logisticsLibrary } from "../../libraries-story-fixtures";
+import { CanvasPointerContext, createCanvasPointer } from "./canvas-pointer";
 import { fusionLinks } from "./fusion-links";
 import { useCanvasInteractions } from "./use-canvas-interactions";
 
@@ -172,11 +173,86 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
   </PetrinautInstanceContext>
 );
 
-const renderInteractions = () => ({
-  interactions: renderHook(() => useCanvasInteractions(), {
-    wrapper: Wrapper,
-  }).result.current,
-  selectedIds: () => [...editor.selection.keys()],
+const renderInteractions = () => {
+  const pointer = createCanvasPointer();
+  const WithPointer = ({ children }: { children: ReactNode }) => (
+    <CanvasPointerContext value={pointer}>
+      <Wrapper>{children}</Wrapper>
+    </CanvasPointerContext>
+  );
+  return {
+    interactions: renderHook(() => useCanvasInteractions(), {
+      wrapper: WithPointer,
+    }).result.current,
+    selectedIds: () => [...editor.selection.keys()],
+    hoveredId: () => pointer.hoveredId.get(),
+  };
+};
+
+const free = { pressed: false, connecting: false };
+const pressed = { pressed: true, connecting: false };
+const connecting = { pressed: true, connecting: true };
+
+describe("the hover of what the pointer comes onto", () => {
+  it("is the item, with no button down", () => {
+    const { interactions, hoveredId } = renderInteractions();
+
+    interactions.enter("store", free);
+    expect(hoveredId()).toBe("store");
+
+    interactions.clearHover();
+    expect(hoveredId()).toBeNull();
+  });
+
+  it("waits for the release while a button is down", () => {
+    const { interactions, hoveredId } = renderInteractions();
+
+    // What a pan reports as it carries a node, then an arc, under the pointer.
+    interactions.enter("store", pressed);
+    interactions.clearHover();
+    interactions.enter("t", pressed);
+    expect(hoveredId()).toBeNull();
+
+    interactions.releasePointer();
+    expect(hoveredId()).toBe("t");
+  });
+
+  it("is nothing after a release on the empty canvas", () => {
+    const { interactions, hoveredId } = renderInteractions();
+
+    interactions.enter("store", pressed);
+    interactions.clearHover();
+    interactions.releasePointer();
+
+    expect(hoveredId()).toBeNull();
+  });
+
+  it("leaves an item hovered before the press as it is at the release", () => {
+    const { interactions, hoveredId } = renderInteractions();
+
+    interactions.enter("store", free);
+    interactions.releasePointer();
+
+    expect(hoveredId()).toBe("store");
+  });
+
+  it("is the node a connection is drawn onto, at once", () => {
+    const { interactions, hoveredId } = renderInteractions();
+
+    interactions.enter("t", connecting);
+
+    expect(hoveredId()).toBe("t");
+  });
+
+  it("stays the dragged node, whatever the drag carries it over", () => {
+    const { interactions, hoveredId } = renderInteractions();
+
+    // A drag starts with the button down and hovers its node at once.
+    interactions.hover("store");
+    interactions.enter("t", pressed);
+
+    expect(hoveredId()).toBe("store");
+  });
 });
 
 describe("useCanvasInteractions", () => {

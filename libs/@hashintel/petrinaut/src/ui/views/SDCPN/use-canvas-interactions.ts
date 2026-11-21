@@ -77,6 +77,14 @@ export type CanvasNodeDrop = { id: string; position: CanvasPoint | null };
 
 export type CanvasSelectionChange = { id: string; selected: boolean };
 
+/** What the pointer is doing as it comes onto an item. */
+export type CanvasPointerPress = {
+  /** A button is down. */
+  pressed: boolean;
+  /** A connection is being drawn, or the end of a link moved. */
+  connecting: boolean;
+};
+
 type CanvasPaneCursor = "copy" | "grab" | "default";
 
 type CanvasModes = {
@@ -96,9 +104,20 @@ type CanvasModes = {
  * a renderer can hand them to memoized nodes and arcs.
  */
 type CanvasActions = {
-  /** The pointer is over a node, an arc or a fusion: a link of a fusion hovers its fusion. */
+  /**
+   * The pointer came onto a node, an arc or a fusion: a link of a fusion
+   * hovers its fusion. With a button down the item waits for the release to
+   * be hovered, so a canvas that pans under a pressed pointer lights up
+   * nothing it carries past. A connection being drawn is aimed at the item
+   * it enters, which is hovered at once.
+   */
+  enter: (id: string, press: CanvasPointerPress) => void;
+  /** Hovers an item whatever the buttons: a node is hovered from the start of its drag. */
   hover: (id: string) => void;
+  /** The pointer left the item it was on. */
   clearHover: () => void;
+  /** The last button was released over the canvas: the item that waited for it is hovered. */
+  releasePointer: () => void;
   /** Arcs and fusions are selected only by a direct click, never by box selection. */
   selectLink: (item: CanvasLinkItem) => void;
   /** Node selection changes from clicks and box selection. */
@@ -521,8 +540,22 @@ export const useCanvasInteractions = (): CanvasInteractions => {
   };
 
   const actions = useStableActions<CanvasActions>({
+    enter: (id, { pressed, connecting }) => {
+      const waitsForRelease = pressed && !connecting;
+      (waitsForRelease ? pointer.hoverOnReleaseId : pointer.hoveredId).set(id);
+    },
     hover: (id) => pointer.hoveredId.set(id),
-    clearHover: () => pointer.hoveredId.set(null),
+    clearHover: () => {
+      pointer.hoveredId.set(null);
+      pointer.hoverOnReleaseId.set(null);
+    },
+    releasePointer: () => {
+      const entered = pointer.hoverOnReleaseId.get();
+      if (entered !== null) {
+        pointer.hoverOnReleaseId.set(null);
+        pointer.hoveredId.set(entered);
+      }
+    },
     // Queued with the changes React Flow reports for the same click, so a
     // sibling link it deselects does not land after and undo the selection.
     selectLink: (item) =>
