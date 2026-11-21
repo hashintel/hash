@@ -149,9 +149,10 @@ describe("ExperimentScenarioRun", () => {
     // A net with many places — or one coloured place with many token rows —
     // would otherwise push Metrics and the drawer's footer out of view.
     expect(region).not.toBeNull();
+    // The scroll area's viewport scrolls inside the region.
     expect(
-      region!.querySelector('[data-part="viewport"]')?.getAttribute("style"),
-    ).toContain("overflow: auto");
+      region!.querySelector('[data-part="viewport"]')?.className,
+    ).toContain("ov_auto");
     expect(region!.className).toMatch(/max-h_\[\d+px\]/);
     // Parameters and initial state scroll together inside it.
     expect(region!.textContent).toContain("Parameters");
