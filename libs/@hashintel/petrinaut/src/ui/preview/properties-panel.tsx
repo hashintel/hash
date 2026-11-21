@@ -46,7 +46,7 @@ export const PreviewPropertiesPanel: React.FC = () => {
       className={previewPanelStyle}
       contentClassName={previewPanelContentStyle}
     >
-      <SelectedItemProperties />
+      <SelectedItemProperties panelTarget={panelTarget} />
     </GlassPanel>
   );
 };

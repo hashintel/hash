@@ -6,7 +6,6 @@ import { resolveComponent } from "@hashintel/petrinaut-core";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { CompositionContext } from "../../../../../react/state/composition-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
-import { usePanelTarget } from "../../../../../react/state/use-selection";
 import { ArcProperties } from "./arc-properties/main";
 import { ComponentInstanceProperties } from "./component-instance-properties/main";
 import { DifferentialEquationProperties } from "./differential-equation-properties/main";
@@ -16,6 +15,8 @@ import { ParameterProperties } from "./parameter-properties/main";
 import { PlaceProperties } from "./place-properties/main";
 import { TransitionProperties } from "./transition-properties/main";
 import { TypeProperties } from "./type-properties/main";
+
+import type { PanelTarget } from "@hashintel/petrinaut-core";
 
 const propertiesStyle = css({
   display: "flex",
@@ -30,11 +31,12 @@ const propertiesStyle = css({
  * The properties of what is selected. The editor's panel and the preview's
  * panel both render this, so the two cannot drift.
  */
-const SelectedItemPropertiesContent: React.FC = () => {
+const SelectedItemPropertiesContent: React.FC<{
+  panelTarget: PanelTarget;
+}> = ({ panelTarget }) => {
   const { activeNet: petriNetDefinition } = use(ActiveNetContext);
   const { extensions, petriNetDefinition: fullSdcpn } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
-  const panelTarget = usePanelTarget();
 
   if (panelTarget.kind === "single") {
     const { item } = panelTarget;
@@ -143,8 +145,13 @@ const SelectedItemPropertiesContent: React.FC = () => {
   return null;
 };
 
-export const SelectedItemProperties: React.FC = () => (
-  <div className={propertiesStyle}>
-    <SelectedItemPropertiesContent />
+export const SelectedItemProperties: React.FC<{
+  /** What to show the properties of. */
+  panelTarget: PanelTarget;
+  /** Shown and not usable: what a panel shows while it slides out. */
+  inert?: boolean;
+}> = ({ panelTarget, inert = false }) => (
+  <div className={propertiesStyle} inert={inert}>
+    <SelectedItemPropertiesContent panelTarget={panelTarget} />
   </div>
 );

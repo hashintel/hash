@@ -12,7 +12,10 @@ import { assistantCover } from "../../../../../react/state/panel-presence";
 import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
-import { usePanelTarget } from "../../../../../react/state/use-selection";
+import {
+  useLastPanelTarget,
+  usePanelTarget,
+} from "../../../../../react/state/use-selection";
 import { PANEL_MARGIN } from "../../../../constants/ui";
 import { DockedPanel } from "../../shared/docked-panel";
 import { SelectedItemProperties } from "./selected-item-properties";
@@ -42,6 +45,9 @@ export const PropertiesPanel: React.FC = () => {
   const { petriNetId } = use(SDCPNContext);
   const { activeComponentId } = use(ActiveNetContext);
   const panelTarget = usePanelTarget();
+  // The panel slides out after the selection is gone. It shows what was
+  // selected until it is out of view, and does not slide out empty.
+  const shownTarget = useLastPanelTarget();
 
   return (
     <DockedPanel
@@ -62,6 +68,8 @@ export const PropertiesPanel: React.FC = () => {
     >
       <SelectedItemProperties
         key={JSON.stringify([petriNetId, activeComponentId])}
+        panelTarget={shownTarget}
+        inert={panelTarget.kind === "none"}
       />
     </DockedPanel>
   );
