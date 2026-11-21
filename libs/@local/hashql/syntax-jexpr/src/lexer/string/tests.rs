@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::assert_matches;
 use std::io::Write as _;
 
 use proptest::{prop_assert_eq, property_test, sample::SizeRange};
@@ -12,14 +13,14 @@ fn vector_boundaries() {
         let plain = format!("{prefix}\u{1f980}\"tail");
         let mut source = plain.as_bytes();
         let value = decode(&mut source).expect("valid UTF-8 crossing a lane");
-        assert!(matches!(value, Cow::Borrowed(_)));
+        assert_matches!(value, Cow::Borrowed(_));
         assert_eq!(value, format!("{prefix}\u{1f980}"));
         assert_eq!(source, b"tail");
 
         let escaped = format!(r#"{prefix}\n{prefix}\uD800\uDC00"tail"#);
         let mut source = escaped.as_bytes();
         let value = decode(&mut source).expect("valid surrogate pair");
-        assert!(matches!(value, Cow::Owned(_)));
+        assert_matches!(value, Cow::Owned(_));
         assert_eq!(value, format!("{prefix}\n{prefix}\u{10000}"));
         assert_eq!(source, b"tail");
 
