@@ -7,6 +7,8 @@ import { PanelPresenceContext } from "../../../../react/state/panel-presence-con
 import { nextFrame } from "../../../lib/readings.test-helpers";
 import { EditorResizers } from "./editor-resizers";
 
+import type { DockName } from "./docks";
+
 beforeEach(() => {
   vi.stubGlobal(
     "ResizeObserver",
@@ -23,15 +25,13 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-type PanelName = "leftSidebar" | "propertiesPanel" | "bottomPanel";
-
 /** The editor's resizers with the named panels open and the assistant docked, open or not. */
 const renderResizers = ({
   open = [],
   assistant = false,
   canvasShows = true,
 }: {
-  open?: PanelName[];
+  open?: DockName[];
   assistant?: boolean;
   canvasShows?: boolean;
 } = {}) => {
