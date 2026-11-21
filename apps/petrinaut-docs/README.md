@@ -27,6 +27,19 @@ or under `content/diagrams/` as `@diagrams/<name>.svg` when pages share it;
 formulas go between `$` signs and KaTeX renders them when the site builds.
 The archinaut README holds the full contract.
 
+## Components
+
+A page imports a React component from `content/components/` as
+`@diagrams/<file name>`. The folder is copied into the site, so a component
+imports only what the site can resolve: React, its own files, plain CSS and
+the built `@hashintel/petrinaut-core`. `lint:tsc` checks the components and
+`test:unit` runs the tests beside them.
+
+Most components are static diagrams. An interactive one keeps the file a page
+imports small and loads the rest when the figure comes near the viewport, as
+`token-encoding-playground.tsx` does, so the page pays for it only when a
+reader reaches it.
+
 ## Deployment
 
 Vercel builds from [`vercel.json`](vercel.json), which runs

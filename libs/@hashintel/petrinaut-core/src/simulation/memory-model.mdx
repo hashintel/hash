@@ -6,6 +6,7 @@ sidebar_order: 10
 
 import { ByteMap } from "@diagrams/byte-map";
 import { Lanes } from "@diagrams/lanes";
+import { TokenEncodingPlayground } from "@diagrams/token-encoding-playground";
 
 Everything the simulation computes is stored in raw `ArrayBuffer`s read through
 typed-array views. There is no object graph of tokens: tokens are packed structs,
@@ -172,6 +173,13 @@ its byte offset, giving $O(1)$ access to any place. Uncoloured places have strid
 Fields are ordered per colour by decreasing alignment, and the stride is rounded
 up to 8 bytes. One module owns all token-byte indexing; every whole-token move is
 a byte-range copy.
+
+The playground below runs the engine's own codec on one token. Change a type or
+a value and read the layout, the padding and the bits it produces: an `integer`
+written as `2.7` reads back as `3`, and a `string` leaves only its pool ID in the
+bytes.
+
+<TokenEncodingPlayground />
 
 Because the string pool never crosses the worker boundary with the frames, each
 frame payload ships an append-only delta of new strings that the main-thread

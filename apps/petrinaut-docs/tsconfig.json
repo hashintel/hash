@@ -2,10 +2,13 @@
   "extends": ["@tsconfig/bases/node22", "@local/tsconfig/policy.json"],
   "compilerOptions": {
     "isolatedModules": true,
-    "lib": ["ESNext"],
+    "jsx": "react-jsx",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "preserve",
     "moduleResolution": "bundler",
-    "noEmit": true
+    "noEmit": true,
+    // The components import their stylesheets, which the site's Vite resolves.
+    "noUncheckedSideEffectImports": false
   },
-  "include": ["archinaut.config.ts"]
+  "include": ["archinaut.config.ts", "content/components"]
 }
