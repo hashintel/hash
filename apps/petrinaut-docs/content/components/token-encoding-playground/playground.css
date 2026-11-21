@@ -72,6 +72,10 @@
   min-width: 0;
 }
 
+.pnd-dimension input[aria-invalid="true"] {
+  border-color: var(--sl-color-red, #c44);
+}
+
 .pnd-playground-order {
   display: flex;
   flex-wrap: wrap;

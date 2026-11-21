@@ -41,6 +41,19 @@ describe("encodeToken", () => {
 
     expect(decoded).toEqual({ count: 0 });
   });
+
+  it("refuses two dimensions of one name", () => {
+    expect(() =>
+      encodeToken(
+        [
+          { name: "a", type: "real" },
+          { name: "b", type: "boolean" },
+          { name: "a", type: "integer" },
+        ],
+        { a: 2.7 },
+      ),
+    ).toThrow('Two dimensions are named "a". Give each a name of its own.');
+  });
 });
 
 describe("encodeTokenSource", () => {

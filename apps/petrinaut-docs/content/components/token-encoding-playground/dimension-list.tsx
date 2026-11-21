@@ -5,6 +5,8 @@
 
 import { COLOR_ELEMENT_TYPES } from "@hashintel/petrinaut-core";
 
+import { isNameShared } from "./encode-token";
+
 import type { Dimension } from "./encode-token";
 
 /** The first `dim_N` no dimension has; a count alone repeats after a removal. */
@@ -33,10 +35,12 @@ export const DimensionList = ({
   return (
     <div className="pnd-dimensions">
       {dimensions.map((dimension, index) => (
-        // A row is its position: two dimensions may share a name while typing.
+        // A row is its position: two dimensions may share a name while typing,
+        // which the encoding refuses and each of the two rows marks.
         <div key={index} className="pnd-dimension">
           <input
             aria-label={`Name of dimension ${index + 1}`}
+            aria-invalid={isNameShared(dimensions, dimension.name)}
             spellCheck={false}
             value={dimension.name}
             onChange={(event) => change(index, { name: event.target.value })}

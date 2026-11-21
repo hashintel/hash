@@ -36,14 +36,31 @@ export interface EncodedToken {
 /** An encoded token, or why the source or its values could not be encoded. */
 export type TokenEncoding = EncodedToken | { error: string };
 
+/** Whether more than one of `dimensions` has `name`. */
+export const isNameShared = (
+  dimensions: readonly Dimension[],
+  name: string,
+): boolean =>
+  dimensions.filter((dimension) => dimension.name === name).length > 1;
+
 /**
  * Encodes `input` as one token of the type `dimensions` declare. Throws the
- * codec's own message when a value cannot be coerced to its dimension's type.
+ * codec's own message when a value cannot be coerced to its dimension's type,
+ * and refuses two dimensions of one name: a token holds one value per name,
+ * so the second would be read back in place of the first.
  */
 export const encodeToken = (
   dimensions: readonly Dimension[],
   input: Record<string, unknown>,
 ): EncodedToken => {
+  const repeated = dimensions.find(({ name }) =>
+    isNameShared(dimensions, name),
+  );
+  if (repeated !== undefined) {
+    throw new Error(
+      `Two dimensions are named "${repeated.name}". Give each a name of its own.`,
+    );
+  }
   const layout = computeTokenSlotLayout(
     dimensions.map((dimension, index) => ({
       elementId: `dimension-${index}`,
