@@ -1,63 +1,20 @@
+import { useLayoutEffect, useRef } from "react";
 import { Separator } from "react-resizable-panels";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { edgeSeparatorStyle } from "./edge-separator-style";
 
-import type { FocusEvent } from "react";
-
-// Whether the user last pressed a pointer or a key. Heard on the window while
-// the event travels down, so before the library hears a press on the document.
-let lastInput: "pointer" | "key" = "key";
-if (typeof window !== "undefined") {
-  window.addEventListener(
-    "pointerdown",
-    () => {
-      lastInput = "pointer";
-    },
-    true,
-  );
-  window.addEventListener(
-    "keydown",
-    () => {
-      lastInput = "key";
-    },
-    true,
-  );
-}
-
-/**
- * The library focuses a separator that is pressed. A press then takes the
- * focus from where the user was typing, keeps the strip painted as focused
- * after the drag, and sends the next arrow key to the separator. Focus that
- * arrives with a press goes back to where it was.
- */
-const returnFocusAfterPress = (event: FocusEvent<HTMLDivElement>) => {
-  if (lastInput !== "pointer") {
-    return;
-  }
-  // The library does not hear of this focus, so it does not mark the
-  // separator as focused once the focus has gone back.
-  event.stopPropagation();
-  if (event.relatedTarget instanceof HTMLElement) {
-    event.relatedTarget.focus({ preventScroll: true });
-  } else {
-    event.currentTarget.blur();
-  }
-};
-
-const keepOutOfTabOrder = (element: HTMLDivElement | null) => {
-  element?.setAttribute("tabindex", "-1");
-};
-
 /**
  * A separator of `react-resizable-panels` on the edge of a panel: a line with
  * no thickness, a strip around it that a pointer grabs, and the strip that
  * tints on hover and turns blue while it is dragged.
  *
- * It is kept out of the Tab order: the panels either side are what a key
- * should reach. The library puts every separator in it and takes no
- * `tabIndex`, so the element is given one when it attaches.
+ * It cannot take the keyboard focus. The library gives every separator a tab
+ * index and focuses the one that is pressed. Each would then be a Tab stop
+ * between the panels either side, and a press would take the focus from the
+ * field the user was typing in and send the next arrow key to the separator.
+ * An element without a tab index is not focusable, so neither happens.
  */
 export const EdgeSeparator = ({
   edge,
@@ -74,13 +31,21 @@ export const EdgeSeparator = ({
   paintsBorder?: boolean;
   disabled?: boolean;
   className?: string;
-}) => (
-  <Separator
-    elementRef={keepOutOfTabOrder}
-    aria-label={label}
-    disabled={disabled}
-    disableDoubleClick
-    className={cx(edgeSeparatorStyle({ edge, paintsBorder }), className)}
-    onFocusCapture={returnFocusAfterPress}
-  />
-);
+}) => {
+  const separatorRef = useRef<HTMLDivElement>(null);
+  // The library takes no `tabIndex`. It writes its own when the separator
+  // mounts and each time `disabled` changes.
+  useLayoutEffect(() => {
+    separatorRef.current?.removeAttribute("tabindex");
+  }, [disabled]);
+
+  return (
+    <Separator
+      elementRef={separatorRef}
+      aria-label={label}
+      disabled={disabled}
+      disableDoubleClick
+      className={cx(edgeSeparatorStyle({ edge, paintsBorder }), className)}
+    />
+  );
+};

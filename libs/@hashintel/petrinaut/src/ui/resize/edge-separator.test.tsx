@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { Group, Panel } from "react-resizable-panels";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
@@ -21,36 +21,39 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const renderSplit = () => {
-  render(
-    <>
-      <input aria-label="Name" />
-      <Group>
-        <Panel />
-        <EdgeSeparator edge="left" label="Resize the panel" />
-        <Panel />
-      </Group>
-    </>,
-  );
-  return {
-    field: screen.getByRole("textbox", { name: "Name" }),
-    separator: screen.getByRole("separator", { name: "Resize the panel" }),
-  };
-};
+const split = ({ disabled = false } = {}) => (
+  <>
+    <input aria-label="Name" />
+    <Group>
+      <Panel />
+      <EdgeSeparator edge="left" label="Resize the panel" disabled={disabled} />
+      <Panel />
+    </Group>
+  </>
+);
 
-it("hands the focus back to where it was when a press focuses the separator", () => {
-  const { field, separator } = renderSplit();
+const parts = () => ({
+  field: screen.getByRole("textbox", { name: "Name" }),
+  separator: screen.getByRole("separator", { name: "Resize the panel" }),
+});
+
+it("leaves the focus where it is when it is asked to take it, as the library asks on a press", () => {
+  render(split());
+  const { field, separator } = parts();
   field.focus();
 
-  fireEvent.pointerDown(separator);
   separator.focus();
 
   expect(document.activeElement).toBe(field);
-  expect(separator.getAttribute("data-separator")).not.toBe("focus");
 });
 
-it("stays out of the Tab order", () => {
-  const { separator } = renderSplit();
+it("is no Tab stop, also once it has been disabled and enabled again", () => {
+  const view = render(split());
+  const { separator } = parts();
+  expect(separator.hasAttribute("tabindex")).toBe(false);
 
-  expect(separator.tabIndex).toBe(-1);
+  view.rerender(split({ disabled: true }));
+  view.rerender(split());
+
+  expect(separator.hasAttribute("tabindex")).toBe(false);
 });

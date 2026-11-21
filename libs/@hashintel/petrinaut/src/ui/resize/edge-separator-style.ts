@@ -27,7 +27,6 @@ export const edgeSeparatorStyle = cva({
       transition: "[background-color 0.3s ease]",
     },
     "&[data-separator=hover]::after": { backgroundColor: "neutral.a30" },
-    "&[data-separator=focus]::after": { backgroundColor: "blue.a40" },
     "&[data-separator=active]::after": { backgroundColor: "blue.a40" },
   },
   variants: {

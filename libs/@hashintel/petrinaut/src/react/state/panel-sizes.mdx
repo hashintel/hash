@@ -196,8 +196,8 @@ the Properties panel beside the canvas.
 - **A separator takes no keyboard focus.** The library focuses a separator
   that is pressed and puts each in the Tab order. A press would then take the
   focus from the field the user was in, and each view would gain Tab stops
-  between its regions. `EdgeSeparator` hands focus that arrives with a press
-  back and keeps the separator out of the Tab order.
+  between its regions. `EdgeSeparator` removes the tab index the library
+  writes, and an element without one cannot be focused.
   `edge-separator.test.tsx` holds this.
 - **A panel that is not in place has a disabled separator.** A panel that
   slides is not where its stand-in is, and neither is an assistant that
