@@ -61,4 +61,4 @@ A user runs the command that toggles the bottom panel:
 
 - A component rendered inside a hidden `Activity` runs no effect. Code that must run in every mode belongs in a leaf at the top of `EditorViewContent`.
 - `useKeyboardShortcuts` runs in `BottomBar`, whose `Activity` is hidden in Simulate mode and in the Definitions view. Its keys do nothing there.
-- `EditorIconProvider` sits above the view because it gives every icon a new context value each time it renders.
+- `PetrinautIconProvider` sits above the view because it gives every icon a new context value each time it renders.

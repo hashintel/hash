@@ -39,6 +39,7 @@ import {
 import { SimulationProvider } from "../../react/simulation/provider";
 import { SimulatorsProvider } from "../../react/simulators/provider";
 import { SDCPNView } from "../views/SDCPN/sdcpn-view";
+import { PetrinautIconProvider } from "../views/shared/icon-provider";
 import { PetrinautPresentationProvider } from "../views/shared/presentation-provider";
 import {
   createPreviewNavigationAdapter,
@@ -342,45 +343,47 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
         instance={instance}
         netManagement={netManagement}
       >
-        <PetrinautNavigationProvider
-          controller={navigationAdapter}
-          initialState={{
-            mode,
-            simulateView: "scenarios",
-          }}
-          key={handle.id}
-        >
-          <PetrinautPresentationProvider profile="preview">
-            {quickSimulation && simulationCompiler ? (
-              <NotificationsProvider>
-                <SimulatorsProvider
-                  key={runSettingsKey}
-                  runWorkerFactory={quickSimulation.workerFactory}
-                  defaultSelections={{
-                    quick: {
-                      simulatorId: FIXED_STEP_SIMULATOR_ID,
-                      ...(quickSimulation.dt === undefined
-                        ? {}
-                        : { parameters: { dt: quickSimulation.dt } }),
-                    },
-                  }}
-                >
-                  <SimulationProvider
-                    compiler={simulationCompiler}
-                    initialConfiguration={{
-                      maxTime: quickSimulation.maxTime,
+        <PetrinautIconProvider>
+          <PetrinautNavigationProvider
+            controller={navigationAdapter}
+            initialState={{
+              mode,
+              simulateView: "scenarios",
+            }}
+            key={handle.id}
+          >
+            <PetrinautPresentationProvider profile="preview">
+              {quickSimulation && simulationCompiler ? (
+                <NotificationsProvider>
+                  <SimulatorsProvider
+                    key={runSettingsKey}
+                    runWorkerFactory={quickSimulation.workerFactory}
+                    defaultSelections={{
+                      quick: {
+                        simulatorId: FIXED_STEP_SIMULATOR_ID,
+                        ...(quickSimulation.dt === undefined
+                          ? {}
+                          : { parameters: { dt: quickSimulation.dt } }),
+                      },
                     }}
-                    requireScenario
                   >
-                    {canvas}
-                  </SimulationProvider>
-                </SimulatorsProvider>
-              </NotificationsProvider>
-            ) : (
-              canvas
-            )}
-          </PetrinautPresentationProvider>
-        </PetrinautNavigationProvider>
+                    <SimulationProvider
+                      compiler={simulationCompiler}
+                      initialConfiguration={{
+                        maxTime: quickSimulation.maxTime,
+                      }}
+                      requireScenario
+                    >
+                      {canvas}
+                    </SimulationProvider>
+                  </SimulatorsProvider>
+                </NotificationsProvider>
+              ) : (
+                canvas
+              )}
+            </PetrinautPresentationProvider>
+          </PetrinautNavigationProvider>
+        </PetrinautIconProvider>
       </PetrinautDocumentProvider>
     </PortalContainerContext>
   );

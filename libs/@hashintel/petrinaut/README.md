@@ -150,9 +150,9 @@ guide lives in the architecture docs:
 
 ## Icons
 
-The editor draws its icons from
+The editor and `PetrinautPreview` draw their icons from
 [`@hashintel/ds-icons`](https://github.com/hashintel/hash/tree/main/libs/%40hashintel/ds-icons),
-and inside the editor the design-system `Icon` draws from the same set. A host
+and inside them the design-system `Icon` draws from the same set. A host
 or a plugin that needs an icon imports it from that package, whose README
 describes the components and their props.
 

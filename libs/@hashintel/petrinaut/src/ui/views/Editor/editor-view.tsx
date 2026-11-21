@@ -22,6 +22,7 @@ import { useCanvasRegistration } from "../../plugins/plugin-editor";
 import { PluginRoots } from "../../plugins/plugin-outlets";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
+import { PetrinautIconProvider } from "../shared/icon-provider";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { TopBar } from "./components/TopBar/top-bar";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
@@ -29,7 +30,6 @@ import {
   AssistantCommands,
   EditorAssistantPanel,
 } from "./editor-view/editor-assistant";
-import { EditorIconProvider } from "./editor-view/editor-icon-provider";
 import { EmptyNetPrompt } from "./editor-view/empty-net-prompt";
 import { UserSettings } from "./editor-view/user-settings";
 import { BottomPanel } from "./panels/BottomPanel/panel";
@@ -196,10 +196,10 @@ export const EditorView = ({
   hideNetManagementControls,
 }: React.ComponentProps<typeof EditorViewContent>) => (
   <CodeNavigationProvider>
-    <EditorIconProvider>
+    <PetrinautIconProvider>
       <EditorViewContent
         hideNetManagementControls={hideNetManagementControls}
       />
-    </EditorIconProvider>
+    </PetrinautIconProvider>
   </CodeNavigationProvider>
 );

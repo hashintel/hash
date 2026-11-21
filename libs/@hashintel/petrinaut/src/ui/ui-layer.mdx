@@ -22,6 +22,8 @@ It renders what the [React layer](layer:react) holds and calls its hooks to chan
 
 `PetrinautPreview` in [`ui.preview`](layer:ui.preview) mounts the same canvas without the shell. It takes one component from the shell's folder, `SelectedItemProperties`, to show the properties of the selected item.
 
+`EditorView` and `PetrinautPreview` each mount `PetrinautIconProvider` from `ui/views/shared`. Below it the design system's `Icon` draws from the `@hashintel/ds-icons` set, and the icons of that set move only while the Animations setting is on.
+
 ## Where a thing goes
 
 | To add                                                     | Put it in                                                         | Read                                                                    |
