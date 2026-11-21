@@ -13,6 +13,15 @@ const scrollbarPadding = 2;
 
 type Orientation = "vertical" | "horizontal";
 
+/** One scrollbar and its thumb, with the size and the place last written on the thumb. */
+interface Bar {
+  orientation: Orientation;
+  scrollbar: HTMLElement;
+  thumb: HTMLElement;
+  size: string;
+  place: string;
+}
+
 const part = (root: HTMLElement, name: string, orientation?: Orientation) =>
   root.querySelector<HTMLElement>(
     `:scope > [data-part="${name}"]${
@@ -28,6 +37,165 @@ const flag = (element: HTMLElement, name: string, on: boolean) => {
 
 const clamp = (value: number, max: number) => Math.min(max, Math.max(0, value));
 
+const barsOf = (root: HTMLElement): Bar[] =>
+  (["vertical", "horizontal"] as const).flatMap((orientation) => {
+    const scrollbar = part(root, "scrollbar", orientation);
+    const thumb = scrollbar?.firstElementChild;
+    return scrollbar && thumb instanceof HTMLElement
+      ? [{ orientation, scrollbar, thumb, size: "", place: "" }]
+      : [];
+  });
+
+/** What a bar scrolls along: the lengths of its axis, and how far in it is. */
+const axisOf = (viewport: HTMLElement, orientation: Orientation) =>
+  orientation === "vertical"
+    ? {
+        visible: viewport.clientHeight,
+        whole: viewport.scrollHeight,
+        scrolled: viewport.scrollTop,
+      }
+    : {
+        visible: viewport.clientWidth,
+        whole: viewport.scrollWidth,
+        // Right to left, scrollLeft runs from 0 down to minus the range.
+        scrolled: Math.abs(viewport.scrollLeft),
+      };
+
+/** The thumb's length and the farthest it can move, for the lengths of an axis. */
+const thumbOf = ({ visible, whole }: { visible: number; whole: number }) => {
+  const length = Math.max(
+    minThumbSize,
+    ((visible - 2 * scrollbarPadding) * visible) / whole,
+  );
+  return { length, travel: visible - length - 2 * scrollbarPadding };
+};
+
+/* eslint-disable no-param-reassign -- the three functions below write on
+   the caller's elements: the thumb's size and place, with what was written
+   remembered on the bar, and the viewport's scroll offset. */
+
+/**
+ * Writes whether a bar's axis overflows on the scrollbar, and the size and
+ * the place of its thumb on the thumb, each only where it changed.
+ */
+const placeThumb = (viewport: HTMLElement, bar: Bar) => {
+  const vertical = bar.orientation === "vertical";
+  const axis = axisOf(viewport, bar.orientation);
+  const overflows = axis.whole > 0 && axis.visible < axis.whole;
+  flag(
+    bar.scrollbar,
+    vertical ? "data-overflow-y" : "data-overflow-x",
+    overflows,
+  );
+  if (!overflows) {
+    return;
+  }
+  const { length, travel } = thumbOf(axis);
+  const offset = clamp(
+    (axis.scrolled / (axis.whole - axis.visible)) * travel,
+    travel,
+  );
+  const size = `${length}px`;
+  const place = vertical
+    ? `translate3d(0,${offset}px,0)`
+    : `translate3d(${viewport.scrollLeft < 0 ? -offset : offset}px,0,0)`;
+  if (size !== bar.size) {
+    // The bar remembers what it wrote, so the comparison reads no style.
+    bar.size = size;
+    bar.thumb.style[vertical ? "height" : "width"] = size;
+  }
+  if (place !== bar.place) {
+    bar.place = place;
+    bar.thumb.style.transform = place;
+  }
+};
+
+/**
+ * Follows the pointer from a press on a thumb or on the track beside it,
+ * until the pointer is released or the scrollbars are unbound.
+ */
+const dragThumb = (
+  viewport: HTMLElement,
+  bar: Bar,
+  press: PointerEvent,
+  unbound: AbortSignal,
+) => {
+  if (press.button !== 0) {
+    return;
+  }
+  const vertical = bar.orientation === "vertical";
+  const view = viewport.ownerDocument.defaultView ?? window;
+  // Right to left, the thumb starts at the right and scrollLeft goes negative.
+  const rightToLeft =
+    !vertical && view.getComputedStyle(viewport).direction === "rtl";
+  const sign = rightToLeft ? -1 : 1;
+  const pointer = (event: PointerEvent) =>
+    vertical ? event.clientY : event.clientX;
+  const scrollTo = (value: number) => {
+    viewport[vertical ? "scrollTop" : "scrollLeft"] = sign * value;
+  };
+  const axis = axisOf(viewport, bar.orientation);
+  const { length, travel } = thumbOf(axis);
+  if (travel <= 0) {
+    return;
+  }
+  const scrollPerPixel = (axis.whole - axis.visible) / travel;
+  let startScroll = axis.scrolled;
+  if (press.target === bar.scrollbar) {
+    // A press on the track brings the middle of the thumb under the pointer.
+    const track = bar.scrollbar.getBoundingClientRect();
+    const fromStart = rightToLeft
+      ? track.right - pointer(press)
+      : pointer(press) - (vertical ? track.top : track.left);
+    startScroll = (fromStart - length / 2 - scrollbarPadding) * scrollPerPixel;
+    scrollTo(startScroll);
+  }
+  press.stopPropagation();
+  const start = pointer(press);
+  flag(bar.scrollbar, "data-dragging", true);
+  const drag = new AbortController();
+  const end = () => {
+    drag.abort();
+    flag(bar.scrollbar, "data-dragging", false);
+  };
+  unbound.addEventListener("abort", end, { signal: drag.signal });
+  view.addEventListener(
+    "pointermove",
+    (move) =>
+      scrollTo(startScroll + sign * (pointer(move) - start) * scrollPerPixel),
+    { signal: drag.signal },
+  );
+  view.addEventListener("pointerup", end, { signal: drag.signal });
+  view.addEventListener("pointercancel", end, { signal: drag.signal });
+};
+
+/**
+ * A wheel over a scrollbar scrolls the viewport, as one over the content
+ * does. At either end of the axis the event is left to scroll what is
+ * around the area.
+ */
+const scrollByWheel = (viewport: HTMLElement, bar: Bar, event: WheelEvent) => {
+  const vertical = bar.orientation === "vertical";
+  const delta = vertical ? event.deltaY : event.deltaX;
+  const axis = axisOf(viewport, bar.orientation);
+  const atStart = axis.scrolled === 0 && delta < 0;
+  // A zoomed page can stop a fraction of a pixel short of the end.
+  const atEnd = axis.scrolled >= axis.whole - axis.visible - 1 && delta > 0;
+  if (
+    event.ctrlKey ||
+    delta === 0 ||
+    axis.whole <= axis.visible ||
+    atStart ||
+    atEnd
+  ) {
+    return;
+  }
+  event.preventDefault();
+  viewport[vertical ? "scrollTop" : "scrollLeft"] += delta;
+};
+
+/* eslint-enable no-param-reassign */
+
 /**
  * Binds the scrollbars of the scroll area whose root is `root`. A ref
  * callback: it returns the function that unbinds them.
@@ -38,192 +206,52 @@ export const bindOverlayScrollbars = (root: HTMLElement | null) => {
   if (!root || !viewport || !content) {
     return undefined;
   }
-  const bars = (["vertical", "horizontal"] as const).flatMap((orientation) => {
-    const scrollbar = part(root, "scrollbar", orientation);
-    const thumb = scrollbar?.firstElementChild;
-    return scrollbar && thumb instanceof HTMLElement
-      ? [{ orientation, scrollbar, thumb, size: "", place: "" }]
-      : [];
-  });
-  type Bar = (typeof bars)[number];
-
-  /** What a bar scrolls along: the lengths of its axis, and how far in it is. */
-  const axisOf = ({ orientation }: Bar) =>
-    orientation === "vertical"
-      ? {
-          visible: viewport.clientHeight,
-          whole: viewport.scrollHeight,
-          scrolled: viewport.scrollTop,
-        }
-      : {
-          visible: viewport.clientWidth,
-          whole: viewport.scrollWidth,
-          // Right to left, scrollLeft runs from 0 down to minus the range.
-          scrolled: Math.abs(viewport.scrollLeft),
-        };
-
-  /** The thumb's length and the farthest it can move, for the lengths of an axis. */
-  const thumbOf = ({ visible, whole }: { visible: number; whole: number }) => {
-    const length = Math.max(
-      minThumbSize,
-      ((visible - 2 * scrollbarPadding) * visible) / whole,
-    );
-    return { length, travel: visible - length - 2 * scrollbarPadding };
-  };
-
+  const bars = barsOf(root);
   const measure = () => {
     for (const bar of bars) {
-      const axis = axisOf(bar);
-      const overflows = axis.whole > 0 && axis.visible < axis.whole;
-      const vertical = bar.orientation === "vertical";
-      flag(
-        bar.scrollbar,
-        vertical ? "data-overflow-y" : "data-overflow-x",
-        overflows,
-      );
-      if (!overflows) {
-        continue;
-      }
-      const { length, travel } = thumbOf(axis);
-      const offset = clamp(
-        (axis.scrolled / (axis.whole - axis.visible)) * travel,
-        travel,
-      );
-      const size = `${length}px`;
-      const place = vertical
-        ? `translate3d(0,${offset}px,0)`
-        : `translate3d(${viewport.scrollLeft < 0 ? -offset : offset}px,0,0)`;
-      if (size !== bar.size) {
-        bar.size = size;
-        bar.thumb.style[vertical ? "height" : "width"] = size;
-      }
-      if (place !== bar.place) {
-        bar.place = place;
-        bar.thumb.style.transform = place;
-      }
+      placeThumb(viewport, bar);
     }
   };
-
   const hover = (on: boolean) => {
     for (const bar of bars) {
       flag(bar.scrollbar, "data-hover", on);
     }
   };
   const enter = () => hover(true);
-  const leave = () => hover(false);
 
-  const controller = new AbortController();
-  const { signal } = controller;
-
-  /** Follows the pointer from a press on a thumb or on the track beside it. */
-  const startDrag = (bar: Bar, event: PointerEvent) => {
-    if (event.button !== 0) {
-      return;
-    }
-    const vertical = bar.orientation === "vertical";
-    const pointer = (pointerEvent: PointerEvent) =>
-      vertical ? pointerEvent.clientY : pointerEvent.clientX;
-    const rightToLeft =
-      !vertical &&
-      root.ownerDocument.defaultView?.getComputedStyle(viewport).direction ===
-        "rtl";
-    // Right to left, the thumb starts at the right and scrollLeft goes negative.
-    const sign = rightToLeft ? -1 : 1;
-    const scrollTo = (value: number) => {
-      viewport[vertical ? "scrollTop" : "scrollLeft"] = sign * value;
-    };
-    const axis = axisOf(bar);
-    const { length, travel } = thumbOf(axis);
-    if (travel <= 0) {
-      return;
-    }
-    const scrollPerPixel = (axis.whole - axis.visible) / travel;
-    let startScroll = axis.scrolled;
-    if (event.target === bar.scrollbar) {
-      // A press on the track brings the middle of the thumb under the pointer.
-      const track = bar.scrollbar.getBoundingClientRect();
-      const fromStart = rightToLeft
-        ? track.right - pointer(event)
-        : pointer(event) - (vertical ? track.top : track.left);
-      const offset = fromStart - length / 2 - scrollbarPadding;
-      startScroll = offset * scrollPerPixel;
-      scrollTo(startScroll);
-    }
-    event.stopPropagation();
-    const start = pointer(event);
-    flag(bar.scrollbar, "data-dragging", true);
-    const drag = new AbortController();
-    const end = () => {
-      drag.abort();
-      flag(bar.scrollbar, "data-dragging", false);
-    };
-    signal.addEventListener("abort", end, { signal: drag.signal });
-    const view = root.ownerDocument.defaultView ?? window;
-    view.addEventListener(
-      "pointermove",
-      (move) =>
-        scrollTo(startScroll + sign * (pointer(move) - start) * scrollPerPixel),
-      { signal: drag.signal },
-    );
-    view.addEventListener("pointerup", end, { signal: drag.signal });
-    view.addEventListener("pointercancel", end, { signal: drag.signal });
-  };
-
-  /** A wheel over a scrollbar scrolls the viewport, as one over the content does. */
-  const wheel = (bar: Bar, event: WheelEvent) => {
-    const vertical = bar.orientation === "vertical";
-    const delta = vertical ? event.deltaY : event.deltaX;
-    const axis = axisOf(bar);
-    const atStart = axis.scrolled === 0 && delta < 0;
-    // A zoomed page can stop a fraction of a pixel short of the end.
-    const atEnd = axis.scrolled >= axis.whole - axis.visible - 1 && delta > 0;
-    if (
-      event.ctrlKey ||
-      delta === 0 ||
-      axis.whole <= axis.visible ||
-      atStart ||
-      atEnd
-    ) {
-      return;
-    }
-    event.preventDefault();
-    viewport[vertical ? "scrollTop" : "scrollLeft"] += delta;
-  };
-
+  const unbind = new AbortController();
+  const { signal } = unbind;
   viewport.addEventListener("scroll", measure, { passive: true, signal });
   root.addEventListener("pointerenter", enter, { signal });
   root.addEventListener("pointermove", enter, { signal });
-  root.addEventListener("pointerleave", leave, { signal });
+  root.addEventListener("pointerleave", () => hover(false), { signal });
   for (const bar of bars) {
     bar.scrollbar.addEventListener(
       "pointerdown",
-      (event) => startDrag(bar, event),
+      (press) => dragThumb(viewport, bar, press, signal),
       { signal },
     );
-    bar.scrollbar.addEventListener("wheel", (event) => wheel(bar, event), {
-      passive: false,
-      signal,
-    });
-  }
-  // The observer's first callback measures the bars after layout and before
-  // paint, so binding them reads no layout inside React's commit. jsdom has
-  // no ResizeObserver: there they are measured once, at once.
-  const resize =
-    typeof ResizeObserver === "function"
-      ? new ResizeObserver(measure)
-      : undefined;
-  if (resize) {
-    resize.observe(root);
-    resize.observe(content);
-  } else {
-    measure();
+    bar.scrollbar.addEventListener(
+      "wheel",
+      (event) => scrollByWheel(viewport, bar, event),
+      { passive: false, signal },
+    );
   }
   if (root.matches(":hover")) {
     hover(true);
   }
-
+  // The observer's first callback measures the bars after layout and before
+  // paint, so binding them reads no layout inside React's commit. jsdom has
+  // no ResizeObserver: there they are measured once, at once.
+  if (typeof ResizeObserver !== "function") {
+    measure();
+    return () => unbind.abort();
+  }
+  const resize = new ResizeObserver(measure);
+  resize.observe(root);
+  resize.observe(content);
   return () => {
-    controller.abort();
-    resize?.disconnect();
+    unbind.abort();
+    resize.disconnect();
   };
 };
