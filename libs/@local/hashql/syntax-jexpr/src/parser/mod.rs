@@ -20,7 +20,7 @@ pub(crate) mod json;
 pub(crate) mod object;
 pub(crate) mod recovery;
 
-pub use self::document::Document;
+pub(crate) use self::document::Document;
 
 /// Converts a single-line single-quoted string `'...'` into a verified double-quoted JSON string.
 #[expect(
@@ -312,6 +312,11 @@ impl<'source, G: Grammar> Parser<'source, G> {
         self.current().is_some_and(|token| token.kind == kind)
     }
 
+    #[inline]
+    pub(crate) fn at_set(&mut self, set: SyntaxKindSet) -> bool {
+        self.current().is_some_and(|token| set.contains(token.kind))
+    }
+
     /// Emits the current non-trivia token into the green builder regardless of kind.
     ///
     /// # Panics
@@ -381,8 +386,8 @@ impl<'source, G: Grammar> Parser<'source, G> {
                 let already_reported = self
                     .errors
                     .last()
-                    .is_some_and(|err| err.range() == trailing.range);
-                let err_before = self.error_count();
+                    .is_some_and(|error| error.range() == trailing.range);
+                let error_before = self.error_count();
 
                 self.start_node(SyntaxKind::Error);
                 while self.current().is_some() {
@@ -390,7 +395,7 @@ impl<'source, G: Grammar> Parser<'source, G> {
                 }
                 self.finish_node();
 
-                if !already_reported && !is_invalid && self.error_count() == err_before {
+                if !already_reported && !is_invalid && self.error_count() == error_before {
                     let trailing_range = TextRange::new(trailing_start, self.last_token_end());
                     self.error(trailing_range, SyntaxErrorKind::ExpectedEof);
                 }

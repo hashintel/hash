@@ -1,5 +1,5 @@
 use hash_graph_authorization::policies::action::ActionName;
-use hashql_ast::error::AstDiagnosticCategory;
+use hashql_ast::{error::AstDiagnosticCategory, node::expr::Expr};
 use hashql_core::{
     heap::{self, Heap, ResetAllocator as _, Scratch},
     module::ModuleRegistry,
@@ -22,7 +22,7 @@ use hashql_mir::{
         execution::{ExecutionAnalysisResidual, VertexType},
     },
 };
-use hashql_syntax_jexpr::{Document, cst, span::Span};
+use hashql_syntax_jexpr::{JsonPointers, error::JExprDiagnosticCategory, span::Span};
 
 use super::error::HashQlDiagnosticCategory;
 
@@ -51,21 +51,28 @@ pub(crate) struct Compilation<'heap> {
 }
 
 impl<'heap> Compilation<'heap> {
-    #[expect(clippy::too_many_lines, reason = "orchestration of sequential tasks")]
     pub(crate) fn compile(
         heap: &'heap Heap,
         scratch: &mut Scratch,
         spans: &mut SpanTable<Span>,
-        parse: &Document<cst::ExprRoot>,
-    ) -> Status<Self, HashQlDiagnosticCategory, SpanId> {
-        // Lower the parsed J-Expr CST into an AST
+        source: &str,
+    ) -> (Status<Self, HashQlDiagnosticCategory, SpanId>, JsonPointers) {
         let mut parser = hashql_syntax_jexpr::Parser::new(heap, spans);
+        let (parsed, pointers) = parser.parse_expr_with_pointers(source);
+        let status = Self::compile_parsed(heap, scratch, parsed);
+        (status, pointers)
+    }
+
+    #[expect(clippy::too_many_lines, reason = "orchestration of sequential tasks")]
+    fn compile_parsed(
+        heap: &'heap Heap,
+        scratch: &mut Scratch,
+        parsed: Status<Expr<'heap>, JExprDiagnosticCategory, SpanId>,
+    ) -> Status<Self, HashQlDiagnosticCategory, SpanId> {
         let Success {
             value: mut ast,
             advisories,
-        } = parser
-            .lower_expr(parse)
-            .map_category(HashQlDiagnosticCategory::JExpr)?;
+        } = parsed.map_category(HashQlDiagnosticCategory::JExpr)?;
 
         let root_span = ast.span;
 

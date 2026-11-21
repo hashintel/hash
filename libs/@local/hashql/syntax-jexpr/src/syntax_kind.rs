@@ -3,7 +3,7 @@ use core::fmt::{self, Display};
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, hashql_core::id::Id)]
 #[id(const, display = !)]
 #[repr(u8)]
-pub enum SyntaxKind {
+pub(crate) enum SyntaxKind {
     // Syntactic JSON tokens (ordered for diagnostic display)
     String,
     Number,
@@ -87,7 +87,7 @@ impl SyntaxKind {
     /// Panics if `raw` does not match a defined [`SyntaxKind`] discriminant.
     #[inline]
     #[must_use]
-    pub const fn from_raw(raw: rowan::SyntaxKind) -> Self {
+    pub(crate) const fn from_raw(raw: rowan::SyntaxKind) -> Self {
         assert!(raw.0 <= u8::MAX as u16, "invalid SyntaxKind raw value");
 
         #[expect(
@@ -99,7 +99,7 @@ impl SyntaxKind {
 
     #[inline]
     #[must_use]
-    pub const fn is_trivia(self) -> bool {
+    pub(crate) const fn is_trivia(self) -> bool {
         matches!(
             self,
             Self::Whitespace | Self::LineComment | Self::BlockComment
@@ -108,13 +108,7 @@ impl SyntaxKind {
 
     #[inline]
     #[must_use]
-    pub const fn is_token(self) -> bool {
-        self.into_discriminant() < Self::Root.into_discriminant()
-    }
-
-    #[inline]
-    #[must_use]
-    pub const fn is_object_field(self) -> bool {
+    pub(crate) const fn is_object_field(self) -> bool {
         matches!(
             self,
             Self::LiteralField
@@ -133,7 +127,7 @@ impl SyntaxKind {
 
     #[inline]
     #[must_use]
-    pub const fn is_array_container(self) -> bool {
+    pub(crate) const fn is_array_container(self) -> bool {
         matches!(
             self,
             Self::CallExpr
@@ -251,25 +245,3 @@ macro_rules! T {
 }
 
 pub(crate) use T;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct JExprLanguage(!);
-
-impl rowan::Language for JExprLanguage {
-    type Kind = SyntaxKind;
-
-    #[inline]
-    fn kind_from_raw(raw: rowan::SyntaxKind) -> Self::Kind {
-        SyntaxKind::from_raw(raw)
-    }
-
-    #[inline]
-    fn kind_to_raw(kind: Self::Kind) -> rowan::SyntaxKind {
-        kind.into()
-    }
-}
-
-pub type SyntaxNode = rowan::SyntaxNode<JExprLanguage>;
-pub type SyntaxToken = rowan::SyntaxToken<JExprLanguage>;
-pub type SyntaxElement = rowan::SyntaxElement<JExprLanguage>;
-pub type SyntaxNodeChildren = rowan::SyntaxNodeChildren<JExprLanguage>;

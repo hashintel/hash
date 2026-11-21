@@ -46,6 +46,8 @@ impl SyntaxKindSet {
         SyntaxKind::LBracket,
         SyntaxKind::RBracket,
     ]);
+    pub(crate) const ITEM_BOUNDARY: Self =
+        Self::from_union(&[Self::CLOSING_DELIMITER, Self::from_kind(SyntaxKind::Comma)]);
     pub(crate) const OPENING_DELIMITER: Self =
         Self::from_slice(&[SyntaxKind::LBracket, SyntaxKind::LBrace]);
     pub(crate) const VALUE: Self = Self::from_slice(&[

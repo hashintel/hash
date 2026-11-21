@@ -4,7 +4,10 @@ use core::ops::ControlFlow;
 use rowan::Checkpoint;
 use text_size::TextRange;
 
-use super::{Grammar, Parser, dict, recovery};
+use super::{
+    Grammar, Parser, dict,
+    recovery::{self, FieldValue},
+};
 use crate::{
     error::{ConstructorKind, EofContext, FieldKind, ObjectErrorKind, SyntaxErrorKind, ValueKind},
     lexer::Token,
@@ -18,12 +21,7 @@ const TYPE_ONLY_KEYS: &[&str] = &["#type"];
 fn parse_unknown_field<G: Grammar>(parser: &mut Parser<'_, G>) {
     parser.start_node(SyntaxKind::UnknownField);
     let key_range = parser.bump(T![string]).range;
-    if recovery::expect_colon(parser, key_range)
-        && !matches!(
-            parser.current().map(|tok| tok.kind),
-            None | Some(T![,] | T!['}'] | T![']'])
-        )
-    {
+    if let ControlFlow::Continue(FieldValue::Token(_)) = recovery::expect_colon(parser, key_range) {
         recovery::parse_json_value(parser);
     }
     parser.finish_node();
@@ -36,9 +34,10 @@ fn parse_struct_body<G: Grammar>(parser: &mut Parser<'_, G>) {
     let mut index = 0_usize;
     while let ControlFlow::Continue(_) = recovery::next_object_entry(parser, open, index) {
         index += 1;
+
         parser.start_node(SyntaxKind::StructEntry);
         let key_range = parser.bump(T![string]).range;
-        if recovery::expect_colon(parser, key_range) {
+        if let ControlFlow::Continue(_) = recovery::expect_colon(parser, key_range) {
             G::parse_item(parser);
         }
         parser.finish_node();
@@ -106,10 +105,10 @@ fn parse_known_field<G: Grammar>(parser: &mut Parser<'_, G>, field: FieldKind) -
     parser.start_node(field.syntax_kind());
     let key_range = parser.bump(T![string]).range;
 
-    if recovery::expect_colon(parser, key_range) {
+    if let ControlFlow::Continue(value) = recovery::expect_colon(parser, key_range) {
         let expected = field.expected_value();
-        match parser.current() {
-            None => {
+        match value {
+            FieldValue::Eof => {
                 parser.record_eof(
                     expected,
                     EofContext::FieldValue {
@@ -118,15 +117,15 @@ fn parse_known_field<G: Grammar>(parser: &mut Parser<'_, G>, field: FieldKind) -
                     },
                 );
             }
-            Some(token) if expected.contains(token.kind) => {
+            FieldValue::Token(token) if expected.contains(token.kind) => {
                 parse_field_body(parser, field, key_range, token.kind);
             }
-            Some(token) if token.kind == SyntaxKind::InvalidToken => {
+            FieldValue::Token(token) if token.kind == SyntaxKind::InvalidToken => {
                 parser.error_node();
             }
-            Some(token) if matches!(token.kind, T![,] | T!['}'] | T![']']) => {
+            FieldValue::Missing(boundary) => {
                 parser.error(
-                    TextRange::empty(token.range.start()),
+                    TextRange::empty(boundary.range.start()),
                     SyntaxErrorKind::Object(ObjectErrorKind::ExpectedValue {
                         field,
                         key: key_range,
@@ -134,7 +133,7 @@ fn parse_known_field<G: Grammar>(parser: &mut Parser<'_, G>, field: FieldKind) -
                     }),
                 );
             }
-            Some(token) => {
+            FieldValue::Token(token) => {
                 let start = token.range.start();
                 let found = ValueKind::from_syntax_kind(token.kind);
                 recovery::parse_json_value(parser);
@@ -288,7 +287,7 @@ impl ObjectFields {
         self,
         parser: &mut Parser<'_, G>,
         open: TextRange,
-        err_start: usize,
+        error_start: usize,
         count: usize,
     ) -> SyntaxKind {
         if let Some(primary) = self.primary {
@@ -296,13 +295,13 @@ impl ObjectFields {
         }
 
         if let Some(type_field) = self.type_field {
-            if !self.has_unknown_or_error && parser.error_count() == err_start {
+            if !self.has_unknown_or_error && parser.error_count() == error_start {
                 parser.error(
                     type_field.range,
                     SyntaxErrorKind::Object(ObjectErrorKind::OrphanedType),
                 );
             }
-        } else if count == 0 && !self.has_unknown_or_error && parser.error_count() == err_start {
+        } else if count == 0 && !self.has_unknown_or_error && parser.error_count() == error_start {
             let range = TextRange::new(open.start(), parser.last_token_end());
             parser.error(
                 range,
@@ -323,18 +322,19 @@ impl ObjectFields {
 pub(crate) struct OpenObject {
     pub checkpoint: Checkpoint,
     pub open: TextRange,
-    pub err_start: usize,
+    pub error_start: usize,
 }
 
 impl OpenObject {
     pub(crate) fn open<G: Grammar>(parser: &mut Parser<'_, G>) -> Self {
         let checkpoint = parser.checkpoint();
         let open = parser.bump(T!['{']).range;
-        let err_start = parser.error_count();
+        let error_start = parser.error_count();
+
         Self {
             checkpoint,
             open,
-            err_start,
+            error_start,
         }
     }
 
@@ -348,7 +348,8 @@ impl OpenObject {
             fields.parse_field(parser, key);
         }
 
-        let node_kind = fields.resolve_node_kind(parser, self.open, self.err_start, count);
+        let node_kind = fields.resolve_node_kind(parser, self.open, self.error_start, count);
+
         parser.start_node_at(self.checkpoint, node_kind);
         parser.finish_node();
     }

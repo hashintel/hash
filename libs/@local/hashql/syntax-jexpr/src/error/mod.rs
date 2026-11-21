@@ -121,6 +121,20 @@ pub enum JExprDiagnosticCategory {
     Parser(ParserDiagnosticCategory),
 }
 
+impl JExprDiagnosticCategory {
+    pub(crate) const fn string(category: StringDiagnosticCategory) -> Self {
+        Self::Parser(ParserDiagnosticCategory::String(category))
+    }
+
+    pub(crate) const fn array(category: ArrayDiagnosticCategory) -> Self {
+        Self::Parser(ParserDiagnosticCategory::Array(category))
+    }
+
+    pub(crate) const fn object(category: ObjectDiagnosticCategory) -> Self {
+        Self::Parser(ParserDiagnosticCategory::Object(category))
+    }
+}
+
 impl DiagnosticCategory for JExprDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
         Cow::Borrowed("jexpr")

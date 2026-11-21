@@ -1,6 +1,9 @@
 use core::ops::ControlFlow;
 
-use super::{Grammar, Parser, recovery};
+use super::{
+    Grammar, Parser,
+    recovery::{self, FieldValue},
+};
 use crate::{
     error::EofContext,
     syntax_kind::{SyntaxKind, T},
@@ -32,22 +35,21 @@ fn parse_json_object<G: Grammar>(parser: &mut Parser<'_, G>) {
     let mut index = 0;
     while let ControlFlow::Continue(_) = recovery::next_object_entry(parser, open, index) {
         index += 1;
+
         parser.start_node(SyntaxKind::JsonField);
         let key_range = parser.bump(T![string]).range;
-        if recovery::expect_colon(parser, key_range) {
-            match parser.current() {
-                None => {
-                    parser.record_eof(
-                        JSON_VALUE_FIRST,
-                        EofContext::FieldValue {
-                            key: key_range,
-                            field: None,
-                        },
-                    );
-                }
-                Some(token) if matches!(token.kind, T![,] | T!['}'] | T![']']) => {}
-                Some(_) => parse_json_value(parser),
+        match recovery::expect_colon(parser, key_range) {
+            ControlFlow::Continue(FieldValue::Token(_)) => parse_json_value(parser),
+            ControlFlow::Continue(FieldValue::Eof) => {
+                parser.record_eof(
+                    JSON_VALUE_FIRST,
+                    EofContext::FieldValue {
+                        key: key_range,
+                        field: None,
+                    },
+                );
             }
+            ControlFlow::Continue(FieldValue::Missing(_)) | ControlFlow::Break(()) => {}
         }
         parser.finish_node();
     }

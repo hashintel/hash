@@ -21,7 +21,7 @@ fn parse_labeled_arg_after_open(
     OpenObject {
         checkpoint,
         open,
-        err_start,
+        error_start,
     }: OpenObject,
 ) {
     let mut entry_ranges = Vec::new();
@@ -53,7 +53,7 @@ fn parse_labeled_arg_after_open(
             all_prefixed = false;
         }
 
-        if recovery::expect_colon(parser, key.range) {
+        if let ControlFlow::Continue(_) = recovery::expect_colon(parser, key.range) {
             parse_expr(parser);
         }
 
@@ -74,21 +74,23 @@ fn parse_labeled_arg_after_open(
             (object_range, None, Vec::new())
         };
 
-        let split_comma =
-            (count == 2 && all_prefixed && commas.len() == 1 && parser.error_count() == err_start)
-                .then(|| {
-                    let comma = commas[0];
-                    let between = TextRange::new(comma.end(), primary_range.start());
-                    if parser
-                        .slice(between)
-                        .bytes()
-                        .all(|byte| matches!(byte, b' ' | b'\t'))
-                    {
-                        TextRange::new(comma.start(), primary_range.start())
-                    } else {
-                        comma
-                    }
-                });
+        let split_comma = (count == 2
+            && all_prefixed
+            && commas.len() == 1
+            && parser.error_count() == error_start)
+            .then(|| {
+                let comma = commas[0];
+                let between = TextRange::new(comma.end(), primary_range.start());
+                if parser
+                    .slice(between)
+                    .bytes()
+                    .all(|byte| matches!(byte, b' ' | b'\t'))
+                {
+                    TextRange::new(comma.start(), primary_range.start())
+                } else {
+                    comma
+                }
+            });
 
         parser.error(
             primary_range,
@@ -133,6 +135,7 @@ fn parse_call_arg(parser: &mut Parser<'_, ExprGrammar>) {
             parser.start_node_at(opened.checkpoint, SyntaxKind::PositionalArg);
             parser.finish_node();
         }
+
         return;
     }
 
@@ -144,7 +147,7 @@ fn parse_call_arg(parser: &mut Parser<'_, ExprGrammar>) {
 fn parse_call(parser: &mut Parser<'_, ExprGrammar>) {
     parser.start_node(SyntaxKind::CallExpr);
     let open = parser.bump(T!['[']).range;
-    let err_start = parser.error_count();
+    let error_start = parser.error_count();
 
     let mut count = 0_usize;
     while let ControlFlow::Continue(_) =
@@ -155,10 +158,11 @@ fn parse_call(parser: &mut Parser<'_, ExprGrammar>) {
         } else {
             parse_call_arg(parser);
         }
+
         count += 1;
     }
 
-    if count == 0 && parser.error_count() == err_start {
+    if count == 0 && parser.error_count() == error_start {
         let range = TextRange::new(open.start(), parser.last_token_end());
         parser.error(range, SyntaxErrorKind::Array(ArrayErrorKind::Empty));
     }

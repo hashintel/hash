@@ -330,6 +330,11 @@ impl<S> Labels<S> {
         self.labels.iter()
     }
 
+    #[must_use]
+    pub const fn primary(&self) -> &Label<S> {
+        &self.labels.as_slice()[0]
+    }
+
     #[cfg(feature = "render")]
     pub(crate) const fn as_slice(&self) -> &[Label<S>] {
         &self.labels

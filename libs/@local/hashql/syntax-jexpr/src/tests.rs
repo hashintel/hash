@@ -19,11 +19,16 @@ use crate::{
         ArrayDiagnosticCategory, LexerDiagnosticCategory, ObjectDiagnosticCategory,
         ParserDiagnosticCategory, StringDiagnosticCategory,
     },
-    parser::{self, Grammar},
+    lower,
+    parser::{self, Document, Grammar, expr::ExprGrammar},
     span::Span,
     syntax_kind::{SyntaxKind, T},
     syntax_kind_set::SyntaxKindSet,
 };
+
+fn parse_expr_cst(source: &str) -> Document<cst::ExprRoot> {
+    parser::Parser::<ExprGrammar>::parse_cst(source)
+}
 
 fn render_diagnostic<C, K>(
     source: &str,
@@ -67,12 +72,12 @@ fn parse_err_categories(input: &str) -> Vec<JExprDiagnosticCategory> {
         Ok(_) => panic!("expected `{input}` to fail parsing"),
         Err(Failure { primary, secondary }) => {
             let mut categories = vec![primary.category];
-            categories.extend(secondary.iter().map(|diag| diag.category));
+            categories.extend(secondary.iter().map(|diagnostic| diagnostic.category));
             // Verify every produced diagnostic renders cleanly against `input` and `spans`.
             let rendered_primary = render_diagnostic(input, &primary, &spans);
             assert_ne!(rendered_primary, "");
-            for diag in secondary.iter() {
-                assert_ne!(render_diagnostic(input, diag, &spans), "");
+            for diagnostic in secondary.iter() {
+                assert_ne!(render_diagnostic(input, diagnostic, &spans), "");
             }
             categories
         }
@@ -83,10 +88,9 @@ fn parse_err_categories(input: &str) -> Vec<JExprDiagnosticCategory> {
 fn lossless_round_trip_and_trivia_trimming() {
     let source = "// head\n  { /* c1 **/\n  \"#type\": \"Int\", /* c2 */ \"#literal\": 42 // \
                   inline\n} // tail";
-    let parse = Parser::parse_expr_cst(source);
+    let parse = parse_expr_cst(source);
     assert!(parse.is_valid(), "unexpected errors: {:?}", parse.errors());
     assert_eq!(parse.green().to_string(), source);
-    assert_eq!(parse.syntax().text().to_string(), source);
 
     let root = parse.tree();
     let Some(cst::Expr::Literal(literal)) = root.item() else {
@@ -121,7 +125,7 @@ fn lossless_round_trip_and_trivia_trimming() {
     assert!(
         root_syntax
             .tokens()
-            .any(|tok| tok.kind() == SyntaxKind::LineComment)
+            .any(|token| token.kind() == SyntaxKind::LineComment)
     );
     assert!(format!("{literal:?}").starts_with("Literal"));
 }
@@ -160,7 +164,7 @@ fn type_field_order_equivalence() {
 #[test]
 fn call_arguments_and_escaped_keys() {
     let source = r##"["greet", "::core::id", {":name": {"#literal": "Alice"}}, ":age", {"\u0023literal": true}, {"\u003aflag": {"#literal": null}}]"##;
-    let parse = Parser::parse_expr_cst(source);
+    let parse = parse_expr_cst(source);
     assert!(parse.is_valid(), "errors: {:?}", parse.errors());
 
     let Some(cst::Expr::Call(call)) = parse.tree().item() else {
@@ -184,7 +188,7 @@ fn call_arguments_and_escaped_keys() {
 fn call_object_args_with_trivia() {
     let source = "[\"greet\", /* lead1 */ { /* inner1 */\n  \":name\": {\"#literal\": \"Alice\"} \
                   }, /* lead2 */ { /* inner2 */\n  \"#literal\": 1 }]";
-    let parse = Parser::parse_expr_cst(source);
+    let parse = parse_expr_cst(source);
     assert!(parse.is_valid(), "errors: {:?}", parse.errors());
     assert_eq!(parse.green().to_string(), source);
 
@@ -197,7 +201,7 @@ fn call_object_args_with_trivia() {
     assert!(args[0].green().to_string().starts_with('{'));
     assert!(matches!(
         args[1],
-        cst::CallArg::Positional(pos) if matches!(pos.expr(), Some(cst::Expr::Literal(_)))
+        cst::CallArg::Positional(positional) if matches!(positional.expr(), Some(cst::Expr::Literal(_)))
     ));
     assert!(args[1].green().to_string().starts_with('{'));
 
@@ -485,12 +489,12 @@ fn generic_value_grammar_rejects_type_annotations() {
 
 #[property_test]
 fn arbitrary_input_is_lossless_and_never_panics(input: String) {
-    let parse = Parser::parse_expr_cst(&input);
+    let parse = parse_expr_cst(&input);
     prop_assert_eq!(parse.green().to_string(), input.as_str());
 
     let heap = Heap::new();
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let status = Parser::new(&heap, &mut spans).lower_expr(&parse);
+    let status = lower::lower_expr(&heap, &mut spans, &parse);
     if !parse.is_valid() {
         prop_assert!(status.is_err());
     }
@@ -501,12 +505,12 @@ fn structured_random_jexpr_tokens_are_lossless(
     #[strategy = r#"(\{|\}|\[|\]|:|,|"(#literal|#struct|#tuple|#list|#dict|#type|:a|foo|\\z|)"|42|3\.14|42\.|true|false|null|/\*.*\*/|//[^\n]*\n|[ \t\n]){0,40}"#]
     input: String,
 ) {
-    let parse = Parser::parse_expr_cst(&input);
+    let parse = parse_expr_cst(&input);
     prop_assert_eq!(parse.green().to_string(), input.as_str());
 
     let heap = Heap::new();
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let status = Parser::new(&heap, &mut spans).lower_expr(&parse);
+    let status = lower::lower_expr(&heap, &mut spans, &parse);
     if !parse.is_valid() {
         prop_assert!(status.is_err());
     }

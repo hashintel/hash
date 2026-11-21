@@ -1,43 +1,55 @@
 use alloc::borrow::Cow;
+use core::fmt::Write as _;
 
-use jsonptr::PointerBuf;
-use text_size::TextRange;
+use rowan::GreenNode;
+use text_size::{TextRange, TextSize};
 
 use crate::{
     cst::{self, Token as _},
     syntax_kind::SyntaxKind,
 };
 
-fn push_first_field_key(node: cst::SyntaxNodeData<'_>, pointer: &mut PointerBuf) {
+fn push_segment(pointer: &mut String, segment: &str) {
+    pointer.push('/');
+    if memchr::memchr2(b'~', b'/', segment.as_bytes()).is_none() {
+        pointer.push_str(segment);
+        return;
+    }
+
+    for character in segment.chars() {
+        match character {
+            '~' => pointer.push_str("~0"),
+            '/' => pointer.push_str("~1"),
+            other => pointer.push(other),
+        }
+    }
+}
+
+fn push_first_field_key(node: cst::SyntaxNodeData<'_>, pointer: &mut String) {
     let Some(token) = node.first_token::<cst::StringToken<'_>>() else {
         return;
     };
 
     match token.decode() {
-        Ok(Cow::Borrowed(decoded)) => pointer.push_back(decoded),
-        Ok(Cow::Owned(decoded)) => pointer.push_back(decoded.as_str()),
+        Ok(Cow::Borrowed(decoded)) => push_segment(pointer, decoded),
+        Ok(Cow::Owned(decoded)) => push_segment(pointer, &decoded),
         Err(_) => {
             // Fall back to the raw slice without surrounding quotes when the key had a lex error.
             let text = token.text();
             let stripped = text
                 .strip_prefix('"')
                 .map_or(text, |rest| rest.strip_suffix('"').unwrap_or(rest));
-            pointer.push_back(stripped);
+            push_segment(pointer, stripped);
         }
     }
 }
 
-/// Derives the RFC 6901 [`PointerBuf`] for `range`, or `None` outside `root`.
-#[must_use]
-pub(crate) fn json_pointer_for_range(
-    root: cst::SyntaxNodeData<'_>,
-    range: TextRange,
-) -> Option<PointerBuf> {
+fn json_pointer_for_range(root: cst::SyntaxNodeData<'_>, range: TextRange) -> Option<String> {
     if !root.text_range().contains_range(range) {
         return None;
     }
 
-    let mut pointer = PointerBuf::new();
+    let mut pointer = String::new();
     let mut current = root;
 
     loop {
@@ -51,7 +63,7 @@ pub(crate) fn json_pointer_for_range(
 
             if child.text_range().contains_range(range) {
                 if is_element {
-                    pointer.push_back(element_index);
+                    write!(pointer, "/{element_index}").expect("writing to String is infallible");
                 } else if child_kind.is_object_field() {
                     push_first_field_key(child, &mut pointer);
                 } else {
@@ -75,22 +87,47 @@ pub(crate) fn json_pointer_for_range(
     Some(pointer)
 }
 
+/// Resolves byte ranges in a J-Expr document to RFC 6901 JSON Pointers.
+pub struct JsonPointers {
+    tree: GreenNode,
+}
+
+impl JsonPointers {
+    pub(crate) const fn from_green(tree: GreenNode) -> Self {
+        Self { tree }
+    }
+
+    /// Resolves the RFC 6901 JSON Pointer for `range`, or `None` outside the source bounds.
+    #[must_use]
+    pub fn resolve(&self, range: TextRange) -> Option<String> {
+        json_pointer_for_range(
+            cst::SyntaxNodeData {
+                data: &self.tree,
+                offset: TextSize::new(0),
+            },
+            range,
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use hashql_core::{heap::Heap, span::SpanTable};
+    use hashql_diagnostics::source::SourceId;
     use text_size::{TextRange, TextSize};
 
     use crate::Parser;
 
     fn pointer_at(source: &str, needle: &str) -> Option<String> {
-        let parse = Parser::parse_expr_cst(source);
+        let heap = Heap::new();
+        let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+        let (_, pointers) = Parser::new(&heap, &mut spans).parse_expr_with_pointers(source);
         let start = source.find(needle).expect("needle must exist in source");
         let range = TextRange::new(
             TextSize::try_from(start).expect("start fits in TextSize"),
             TextSize::try_from(start + needle.len()).expect("end fits in TextSize"),
         );
-        parse
-            .json_pointer(range)
-            .map(|pointer| pointer.as_str().to_owned())
+        pointers.resolve(range)
     }
 
     #[test]
@@ -149,8 +186,11 @@ mod tests {
 
     #[test]
     fn out_of_bounds_range_returns_none() {
-        let parse = Parser::parse_expr_cst(r##"{"#literal": 1}"##);
+        let heap = Heap::new();
+        let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+        let (_, pointers) =
+            Parser::new(&heap, &mut spans).parse_expr_with_pointers(r##"{"#literal": 1}"##);
         let range = TextRange::new(TextSize::new(0), TextSize::new(999));
-        assert!(parse.json_pointer(range).is_none());
+        assert!(pointers.resolve(range).is_none());
     }
 }

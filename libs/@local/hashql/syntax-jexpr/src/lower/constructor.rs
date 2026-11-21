@@ -7,8 +7,9 @@ use hashql_ast::node::{
 };
 use hashql_core::value::{self, Primitive};
 
-use super::{Lowerer, wrap_object};
+use super::Lowerer;
 use crate::{
+    JExprDiagnosticCategory,
     cst::{self, Node as _, Token as _},
     embedded::parse_ident_from_string,
     error::constructor,
@@ -33,6 +34,7 @@ fn lower_literal_value<'heap>(
             let Ok(decoded) = token.decode() else {
                 return None;
             };
+
             Primitive::String(value::String::new(lowerer.heap().intern_symbol(&decoded)))
         }
     };
@@ -90,8 +92,9 @@ fn lower_struct_body<'heap>(
                         &decoded,
                         error,
                     )
-                    .map_category(wrap_object)
+                    .map_category(JExprDiagnosticCategory::object)
                     .generalize();
+
                     lowerer.push_diagnostic(diagnostic);
                     None
                 }

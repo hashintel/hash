@@ -3,57 +3,57 @@ use super::{
 };
 use crate::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet};
 
-pub type PathExpr<'tree> = SyntaxNode<'tree, kind::PathExpr>;
+pub(crate) type PathExpr<'tree> = SyntaxNode<'tree, kind::PathExpr>;
 
 impl<'tree> PathExpr<'tree> {
     #[must_use]
-    pub fn token(self) -> Option<StringToken<'tree>> {
+    pub(crate) fn token(self) -> Option<StringToken<'tree>> {
         self.data.first_token()
     }
 }
 
-pub type ShorthandLabeledArg<'tree> = SyntaxNode<'tree, kind::ShorthandLabeledArg>;
+pub(crate) type ShorthandLabeledArg<'tree> = SyntaxNode<'tree, kind::ShorthandLabeledArg>;
 
 impl<'tree> ShorthandLabeledArg<'tree> {
     #[must_use]
-    pub fn token(self) -> Option<StringToken<'tree>> {
+    pub(crate) fn token(self) -> Option<StringToken<'tree>> {
         self.data.first_token()
     }
 }
 
-pub type LabeledArgEntry<'tree> = SyntaxNode<'tree, kind::LabeledArgEntry>;
+pub(crate) type LabeledArgEntry<'tree> = SyntaxNode<'tree, kind::LabeledArgEntry>;
 
 impl<'tree> LabeledArgEntry<'tree> {
     #[must_use]
-    pub fn key(self) -> Option<StringToken<'tree>> {
+    pub(crate) fn key(self) -> Option<StringToken<'tree>> {
         self.data.first_token()
     }
 
     #[must_use]
-    pub fn value(self) -> Option<Expr<'tree>> {
+    pub(crate) fn value(self) -> Option<Expr<'tree>> {
         self.data.child_node()
     }
 }
 
-pub type LabeledArg<'tree> = SyntaxNode<'tree, kind::LabeledArg>;
+pub(crate) type LabeledArg<'tree> = SyntaxNode<'tree, kind::LabeledArg>;
 
 impl<'tree> LabeledArg<'tree> {
-    pub fn entries(self) -> impl Iterator<Item = LabeledArgEntry<'tree>> + 'tree {
+    pub(crate) fn entries(self) -> impl Iterator<Item = LabeledArgEntry<'tree>> + 'tree {
         self.data.child_nodes()
     }
 }
 
-pub type PositionalArg<'tree> = SyntaxNode<'tree, kind::PositionalArg>;
+pub(crate) type PositionalArg<'tree> = SyntaxNode<'tree, kind::PositionalArg>;
 
 impl<'tree> PositionalArg<'tree> {
     #[must_use]
-    pub fn expr(self) -> Option<Expr<'tree>> {
+    pub(crate) fn expr(self) -> Option<Expr<'tree>> {
         self.data.child_node()
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum CallArg<'tree> {
+pub(crate) enum CallArg<'tree> {
     Positional(PositionalArg<'tree>),
     /// Object-form `{":label": value}` argument.
     Labeled(LabeledArg<'tree>),
@@ -62,7 +62,7 @@ pub enum CallArg<'tree> {
 }
 
 impl<'tree> Node<'tree> for CallArg<'tree> {
-    const SYNTAX_KINDS: crate::syntax_kind_set::SyntaxKindSet = SyntaxKindSet::from_union(&[
+    const SYNTAX_KINDS: SyntaxKindSet = SyntaxKindSet::from_union(&[
         PositionalArg::SYNTAX_KINDS,
         LabeledArg::SYNTAX_KINDS,
         ShorthandLabeledArg::SYNTAX_KINDS,
@@ -92,21 +92,21 @@ impl<'tree> Node<'tree> for CallArg<'tree> {
     }
 }
 
-pub type CallExpr<'tree> = SyntaxNode<'tree, kind::CallExpr>;
+pub(crate) type CallExpr<'tree> = SyntaxNode<'tree, kind::CallExpr>;
 
 impl<'tree> CallExpr<'tree> {
     #[must_use]
-    pub fn callee(self) -> Option<Expr<'tree>> {
+    pub(crate) fn callee(self) -> Option<Expr<'tree>> {
         self.data.child_node()
     }
 
-    pub fn args(self) -> impl Iterator<Item = CallArg<'tree>> + 'tree {
+    pub(crate) fn args(self) -> impl Iterator<Item = CallArg<'tree>> + 'tree {
         self.data.child_nodes()
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Expr<'tree> {
+pub(crate) enum Expr<'tree> {
     Path(PathExpr<'tree>),
     Call(CallExpr<'tree>),
     Literal(Literal<'tree>),
@@ -117,7 +117,7 @@ pub enum Expr<'tree> {
 }
 
 impl<'tree> Node<'tree> for Expr<'tree> {
-    const SYNTAX_KINDS: crate::syntax_kind_set::SyntaxKindSet = SyntaxKindSet::from_union(&[
+    const SYNTAX_KINDS: SyntaxKindSet = SyntaxKindSet::from_union(&[
         PathExpr::SYNTAX_KINDS,
         CallExpr::SYNTAX_KINDS,
         Literal::SYNTAX_KINDS,

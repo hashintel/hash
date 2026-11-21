@@ -1,27 +1,23 @@
 //! # HashQL J-Expr syntax
 //!
-//! Lossless Rowan concrete syntax tree parser and HashQL AST lowerer for J-Expr.
+//! Parser and HashQL AST lowerer for J-Expr.
 //!
-//! If you just want API documentation, start with [`Parser::parse_expr_cst`] for lossless CST
-//! parsing and [`Parser`] for lowering into a [`hashql_ast::node::expr::Expr`].
+//! Start with [`Parser`] for parsing a J-Expr document into a [`hashql_ast::node::expr::Expr`],
+//! or [`JsonPointers`] for RFC 6901 JSON Pointer resolution.
 //!
 //! # Example
 //!
 //! ```
 //! use hashql_core::{heap::Heap, span::SpanTable};
 //! use hashql_diagnostics::source::SourceId;
-//! use hashql_syntax_jexpr::{Parser, cst};
+//! use hashql_syntax_jexpr::Parser;
 //!
 //! let source = r##"{"#literal": 42}"##;
-//! let parse = Parser::parse_expr_cst(source);
-//! assert!(parse.is_valid());
-//! assert!(matches!(parse.tree().item(), Some(cst::Expr::Literal(_))));
-//!
 //! let heap = Heap::new();
 //! let mut spans = SpanTable::new(SourceId::new_unchecked(0));
 //! let success = Parser::new(&heap, &mut spans)
-//!     .lower_expr(&parse)
-//!     .expect("valid literal lowers to an AST expression");
+//!     .parse_expr(source)
+//!     .expect("valid literal parses to an AST expression");
 //! assert!(success.advisories.is_empty());
 //! ```
 //!
@@ -52,7 +48,7 @@ use hashql_diagnostics::Status;
 #[cfg(feature = "bench")]
 #[doc(hidden)]
 pub mod bench;
-pub mod cst;
+pub(crate) mod cst;
 pub(crate) mod embedded;
 pub mod error;
 pub(crate) mod lexer;
@@ -60,14 +56,14 @@ pub(crate) mod lower;
 pub(crate) mod parser;
 pub(crate) mod pointer;
 pub mod span;
-pub mod syntax_kind;
+pub(crate) mod syntax_kind;
 pub(crate) mod syntax_kind_set;
 #[cfg(test)]
 mod tests;
 
 pub use self::{
     error::{JExprDiagnostic, JExprDiagnosticCategory},
-    parser::Document,
+    pointer::JsonPointers,
     span::Span,
 };
 
@@ -82,27 +78,21 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
         Self { heap, spans }
     }
 
-    /// Parses a J-Expr expression document into a lossless CST without lowering.
+    /// Parses a J-Expr document into an [`Expr`] alongside an RFC 6901 [`JsonPointers`] resolver.
     ///
     /// # Panics
     ///
     /// Panics if `source.len()` exceeds `u32::MAX` bytes.
-    #[must_use]
-    pub fn parse_expr_cst(source: &str) -> Document<cst::ExprRoot> {
-        parser::Parser::<parser::expr::ExprGrammar>::parse_cst(source)
-    }
-
-    /// Lowers a parsed J-Expr CST into an arena-allocated HashQL [`Expr`].
-    ///
-    /// # Errors
-    ///
-    /// Returns a [`hashql_diagnostics::Failure`] containing all lexical, syntactic, and
-    /// embedded-DSL diagnostics collected across the document.
-    pub fn lower_expr(
+    pub fn parse_expr_with_pointers(
         &mut self,
-        parse: &Document<cst::ExprRoot>,
-    ) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
-        lower::lower_expr(self.heap, self.spans, parse)
+        source: &str,
+    ) -> (
+        Status<Expr<'heap>, JExprDiagnosticCategory, SpanId>,
+        JsonPointers,
+    ) {
+        let parse = parser::Parser::<parser::expr::ExprGrammar>::parse_cst(source);
+        let status = lower::lower_expr(self.heap, self.spans, &parse);
+        (status, JsonPointers::from_green(parse.into_green()))
     }
 
     /// Parses a J-Expr document and lowers it into an arena-allocated HashQL [`Expr`].
@@ -111,11 +101,14 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
     ///
     /// Returns a [`hashql_diagnostics::Failure`] containing all lexical, syntactic, and
     /// embedded-DSL diagnostics collected across the document.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `source.len()` exceeds `u32::MAX` bytes.
     pub fn parse_expr(
         &mut self,
         source: &str,
     ) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
-        let parse = Self::parse_expr_cst(source);
-        self.lower_expr(&parse)
+        self.parse_expr_with_pointers(source).0
     }
 }

@@ -14,27 +14,19 @@ use crate::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet};
 mod constructor;
 mod dict;
 mod expr;
-pub mod kind;
+pub(crate) mod kind;
 mod token;
 
-pub use self::{
-    constructor::{
-        List, ListBody, ListElement, ListField, Literal, LiteralField, LiteralValue, Struct,
-        StructBody, StructEntry, StructField, Tuple, TupleBody, TupleElement, TupleField,
-    },
-    dict::{
-        Dict, DictArrayBody, DictArrayEntry, DictBody, DictField, DictObjectBody, DictObjectEntry,
-    },
-    expr::{
-        CallArg, CallExpr, Expr, LabeledArg, LabeledArgEntry, PathExpr, PositionalArg,
-        ShorthandLabeledArg,
-    },
+pub(crate) use self::{
+    constructor::{List, ListBody, Literal, LiteralValue, Struct, StructBody, Tuple, TupleBody},
+    dict::{Dict, DictArrayBody, DictBody, DictObjectBody},
+    expr::{CallArg, CallExpr, Expr, LabeledArgEntry, PathExpr, ShorthandLabeledArg},
     kind::{NodeKind, TokenKind},
-    token::{BoolToken, LiteralToken, NullToken, NumberToken, StringToken},
+    token::{LiteralToken, StringToken},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct SyntaxTokenData<'tree> {
+pub(crate) struct SyntaxTokenData<'tree> {
     data: &'tree GreenTokenData,
     offset: TextSize,
 }
@@ -42,44 +34,32 @@ pub struct SyntaxTokenData<'tree> {
 impl<'tree> SyntaxTokenData<'tree> {
     #[inline]
     #[must_use]
-    pub const fn new(data: &'tree GreenTokenData, offset: TextSize) -> Self {
+    pub(crate) const fn new(data: &'tree GreenTokenData, offset: TextSize) -> Self {
         Self { data, offset }
     }
 
     #[inline]
     #[must_use]
-    pub const fn green(self) -> &'tree GreenTokenData {
-        self.data
-    }
-
-    #[inline]
-    #[must_use]
-    pub const fn offset(self) -> TextSize {
-        self.offset
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn kind(self) -> SyntaxKind {
+    pub(crate) fn kind(self) -> SyntaxKind {
         SyntaxKind::from_raw(self.data.kind())
     }
 
     #[inline]
     #[must_use]
-    pub fn text_range(self) -> TextRange {
+    pub(crate) fn text_range(self) -> TextRange {
         TextRange::at(self.offset, self.data.text_len())
     }
 
     #[inline]
     #[must_use]
-    pub fn text(self) -> &'tree str {
+    pub(crate) fn text(self) -> &'tree str {
         self.data.text()
     }
 }
 
 impl Eq for SyntaxTokenData<'_> {}
 
-pub trait Token<'tree>: Copy {
+pub(crate) trait Token<'tree>: Copy {
     const SYNTAX_KINDS: SyntaxKindSet;
 
     #[must_use]
@@ -87,24 +67,6 @@ pub trait Token<'tree>: Copy {
 
     #[must_use]
     fn syntax(self) -> SyntaxTokenData<'tree>;
-
-    #[inline]
-    #[must_use]
-    fn green(self) -> &'tree GreenTokenData {
-        self.syntax().green()
-    }
-
-    #[inline]
-    #[must_use]
-    fn offset(self) -> TextSize {
-        self.syntax().offset()
-    }
-
-    #[inline]
-    #[must_use]
-    fn kind(self) -> SyntaxKind {
-        self.syntax().kind()
-    }
 
     #[inline]
     #[must_use]
@@ -119,7 +81,7 @@ pub trait Token<'tree>: Copy {
     }
 }
 
-pub struct SyntaxToken<'tree, K> {
+pub(crate) struct SyntaxToken<'tree, K> {
     syntax: SyntaxTokenData<'tree>,
     _kind: PhantomData<fn() -> K>,
 }
@@ -171,7 +133,7 @@ pub(crate) struct SyntaxNodeData<'tree> {
     pub offset: TextSize,
 }
 
-pub trait Node<'tree>: Copy {
+pub(crate) trait Node<'tree>: Copy {
     const SYNTAX_KINDS: SyntaxKindSet;
 
     #[must_use]
@@ -180,22 +142,17 @@ pub trait Node<'tree>: Copy {
     #[must_use]
     fn syntax(self) -> SyntaxNodeData<'tree>;
 
+    #[cfg(test)] // Consumed by lossless round-trip assertions in crate tests.
     #[inline]
     #[must_use]
     fn green(self) -> &'tree GreenNodeData {
-        &self.syntax().data
+        self.syntax().data
     }
 
     #[inline]
     #[must_use]
     fn offset(self) -> TextSize {
         self.syntax().offset
-    }
-
-    #[inline]
-    #[must_use]
-    fn kind(self) -> SyntaxKind {
-        self.syntax().kind()
     }
 
     #[inline]
@@ -214,11 +171,11 @@ impl<'tree> SyntaxNodeData<'tree> {
 
     #[inline]
     #[must_use]
-    pub fn text_range(self) -> TextRange {
+    pub(crate) fn text_range(self) -> TextRange {
         TextRange::at(self.offset, self.data.text_len())
     }
 
-    pub fn children_with_tokens(
+    pub(crate) fn children_with_tokens(
         self,
     ) -> impl Iterator<Item = NodeOrToken<Self, SyntaxTokenData<'tree>>> + 'tree {
         let mut offset = self.offset;
@@ -237,32 +194,32 @@ impl<'tree> SyntaxNodeData<'tree> {
         })
     }
 
-    pub fn children(self) -> impl Iterator<Item = Self> + 'tree {
+    pub(crate) fn children(self) -> impl Iterator<Item = Self> + 'tree {
         self.children_with_tokens()
             .filter_map(NodeOrToken::into_node)
     }
 
-    pub fn tokens(self) -> impl Iterator<Item = SyntaxTokenData<'tree>> + 'tree {
+    pub(crate) fn tokens(self) -> impl Iterator<Item = SyntaxTokenData<'tree>> + 'tree {
         self.children_with_tokens()
             .filter_map(NodeOrToken::into_token)
     }
 
     #[must_use]
-    pub fn child_node<N: Node<'tree>>(self) -> Option<N> {
+    pub(crate) fn child_node<N: Node<'tree>>(self) -> Option<N> {
         self.children().find_map(N::cast)
     }
 
-    pub fn child_nodes<N: Node<'tree>>(self) -> impl Iterator<Item = N> + use<'tree, N> {
+    pub(crate) fn child_nodes<N: Node<'tree>>(self) -> impl Iterator<Item = N> + use<'tree, N> {
         self.children().filter_map(N::cast)
     }
 
     #[must_use]
-    pub fn first_token<T: Token<'tree>>(self) -> Option<T> {
+    pub(crate) fn first_token<T: Token<'tree>>(self) -> Option<T> {
         self.tokens().find_map(T::cast)
     }
 }
 
-pub struct SyntaxNode<'tree, K> {
+pub(crate) struct SyntaxNode<'tree, K> {
     data: SyntaxNodeData<'tree>,
     _kind: PhantomData<fn() -> K>,
 }
@@ -308,18 +265,19 @@ impl<K> PartialEq for SyntaxNode<'_, K> {
 
 impl<K> Eq for SyntaxNode<'_, K> {}
 
-/// Associates an owned [`Document`](crate::Document) root marker with its borrowed CST item type.
-pub trait TreeRoot {
+/// Associates an owned [`Document`](crate::parser::Document) root marker with its borrowed CST
+/// item type.
+pub(crate) trait TreeRoot {
     type Item<'tree>: Node<'tree>;
 }
 
-pub struct ExprRoot(!);
+pub(crate) struct ExprRoot(!);
 
 impl TreeRoot for ExprRoot {
     type Item<'tree> = Expr<'tree>;
 }
 
-pub type Root<'tree, T> = SyntaxNode<'tree, kind::Root<T>>;
+pub(crate) type Root<'tree, T> = SyntaxNode<'tree, kind::Root<T>>;
 
 impl<'tree, T> Root<'tree, T> {
     // Document::new establishes that the root green node has kind SyntaxKind::Root.
@@ -342,39 +300,30 @@ where
     T: Node<'tree>,
 {
     #[must_use]
-    pub fn item(self) -> Option<T> {
+    pub(crate) fn item(self) -> Option<T> {
         self.data.child_node()
     }
 }
 
-pub type TypeAnnotation<'tree> = SyntaxNode<'tree, kind::TypeAnnotation>;
+pub(crate) type TypeAnnotation<'tree> = SyntaxNode<'tree, kind::TypeAnnotation>;
 
 impl<'tree> TypeAnnotation<'tree> {
     #[must_use]
-    pub fn token(self) -> Option<StringToken<'tree>> {
+    pub(crate) fn token(self) -> Option<StringToken<'tree>> {
         self.data.first_token()
     }
 }
 
-pub type TypeField<'tree> = SyntaxNode<'tree, kind::TypeField>;
+pub(crate) type TypeField<'tree> = SyntaxNode<'tree, kind::TypeField>;
 
 impl<'tree> TypeField<'tree> {
     #[must_use]
-    pub fn key(self) -> Option<StringToken<'tree>> {
+    pub(crate) fn key(self) -> Option<StringToken<'tree>> {
         self.data.first_token()
     }
 
     #[must_use]
-    pub fn annotation(self) -> Option<TypeAnnotation<'tree>> {
+    pub(crate) fn annotation(self) -> Option<TypeAnnotation<'tree>> {
         self.data.child_node()
-    }
-}
-
-pub type UnknownField<'tree> = SyntaxNode<'tree, kind::UnknownField>;
-
-impl<'tree> UnknownField<'tree> {
-    #[must_use]
-    pub fn key(self) -> Option<StringToken<'tree>> {
-        self.data.first_token()
     }
 }

@@ -1,6 +1,9 @@
 use core::hint::black_box;
 
-use crate::{Parser, lexer::Lexer};
+use crate::{
+    lexer::Lexer,
+    parser::{Parser, expr::ExprGrammar},
+};
 
 /// Tokenizes `source` without constructing a syntax tree.
 ///
@@ -24,7 +27,7 @@ pub fn tokenize(source: &str) {
 ///
 /// Panics if the input contains a syntax error.
 pub fn parse_cst(source: &str) {
-    let parse = Parser::parse_expr_cst(source);
+    let parse = Parser::<ExprGrammar>::parse_cst(source);
     assert!(
         parse.is_valid(),
         "benchmark input should parse without syntax errors"

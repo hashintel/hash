@@ -496,27 +496,27 @@ mod tests {
     fn peek_token_and_eof() {
         let mut lexer = Lexer::new("{1}");
         assert_eq!(
-            lexer.peek_token().map(|tok| tok.kind),
+            lexer.peek_token().map(|token| token.kind),
             Some(SyntaxKind::LBrace)
         );
         assert_eq!(
-            lexer.peek_token().map(|tok| tok.kind),
+            lexer.peek_token().map(|token| token.kind),
             Some(SyntaxKind::LBrace)
         );
         assert_eq!(
-            lexer.next_token().map(|tok| tok.kind),
+            lexer.next_token().map(|token| token.kind),
             Some(SyntaxKind::LBrace)
         );
         assert_eq!(
-            lexer.next_token().map(|tok| tok.kind),
+            lexer.next_token().map(|token| token.kind),
             Some(SyntaxKind::Number)
         );
         assert_eq!(
-            lexer.peek_token().map(|tok| tok.kind),
+            lexer.peek_token().map(|token| token.kind),
             Some(SyntaxKind::RBrace)
         );
         assert_eq!(
-            lexer.next_token().map(|tok| tok.kind),
+            lexer.next_token().map(|token| token.kind),
             Some(SyntaxKind::RBrace)
         );
         assert_eq!(lexer.peek_token(), None);

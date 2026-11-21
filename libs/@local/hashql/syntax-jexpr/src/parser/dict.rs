@@ -16,9 +16,10 @@ pub(crate) fn parse_dict_object_body<G: Grammar>(parser: &mut Parser<'_, G>) {
     let mut index = 0_usize;
     while let ControlFlow::Continue(_) = recovery::next_object_entry(parser, open, index) {
         index += 1;
+
         parser.start_node(SyntaxKind::DictObjectEntry);
         let key_range = parser.bump(T![string]).range;
-        if recovery::expect_colon(parser, key_range) {
+        if let ControlFlow::Continue(_) = recovery::expect_colon(parser, key_range) {
             G::parse_item(parser);
         }
         parser.finish_node();
@@ -42,20 +43,23 @@ fn parse_dict_array_entry<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: Text
     if token.kind != T!['['] {
         let start = token.range.start();
         let found = ValueKind::from_syntax_kind(token.kind);
+
         parser.start_node(SyntaxKind::DictArrayEntry);
         recovery::parse_json_value(parser);
         let value_range = TextRange::new(start, parser.last_token_end());
         parser.finish_node();
+
         parser.error(
             value_range,
             SyntaxErrorKind::Object(ObjectErrorKind::DictEntryExpectedArray { dict_key, found }),
         );
+
         return;
     }
 
     parser.start_node(SyntaxKind::DictArrayEntry);
     let open = parser.bump(T!['[']).range;
-    let err_start = parser.error_count();
+    let error_start = parser.error_count();
 
     let mut count = 0_usize;
     let mut excess = Vec::new();
@@ -63,13 +67,15 @@ fn parse_dict_array_entry<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: Text
     while let ControlFlow::Continue(_) =
         recovery::next_array_element(parser, open, count, G::ITEM_FIRST)
     {
-        let item_start = parser.current().map(|tok| tok.range.start());
+        let item_start = parser.current().map(|token| token.range.start());
         G::parse_item(parser);
+
         if count >= 2
             && let Some(start) = item_start
         {
             excess.push(TextRange::new(start, parser.last_token_end()));
         }
+
         count += 1;
     }
 
@@ -81,7 +87,7 @@ fn parse_dict_array_entry<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: Text
                 rest: rest.to_vec(),
             }),
         );
-    } else if count < 2 && parser.error_count() == err_start {
+    } else if count < 2 && parser.error_count() == error_start {
         let range = TextRange::new(open.start(), parser.last_token_end());
         parser.error(
             range,

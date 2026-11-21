@@ -13,8 +13,6 @@ hashql-core        = { workspace = true, public = true }
 hashql-diagnostics = { workspace = true, public = true }
 
 # Public third-party dependencies
-jsonptr   = { workspace = true, public = true }
-rowan     = { workspace = true, public = true }
 text-size = { workspace = true, public = true }
 
 # Private workspace dependencies
@@ -22,6 +20,7 @@ text-size = { workspace = true, public = true }
 # Private third-party dependencies
 logos                 = { workspace = true, features = ["export_derive"] }
 memchr                = { workspace = true }
+rowan                 = { workspace = true }
 simple-mermaid        = { workspace = true }
 unicode-ident         = { workspace = true }
 unicode-normalization = { workspace = true }

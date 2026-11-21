@@ -9,13 +9,14 @@ use crate::{
         ArrayErrorKind, DelimiterKind, EofContext, LexerErrorKind, ObjectErrorKind,
         SyntaxErrorKind, UnexpectedTokenContext,
     },
+    lexer::Token,
     syntax_kind::{SyntaxKind, T},
     syntax_kind_set::SyntaxKindSet,
 };
 
-const EXPECTED_ARRAY_SEP: SyntaxKindSet = SyntaxKindSet::from_slice(&[T![,], T![']']]);
+const EXPECTED_ARRAY_SEPARATOR: SyntaxKindSet = SyntaxKindSet::from_slice(&[T![,], T![']']]);
 
-const EXPECTED_OBJECT_SEP: SyntaxKindSet = SyntaxKindSet::from_slice(&[T![,], T!['}']]);
+const EXPECTED_OBJECT_SEPARATOR: SyntaxKindSet = SyntaxKindSet::from_slice(&[T![,], T!['}']]);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum ContainerBreak {
@@ -30,6 +31,15 @@ pub(crate) enum ContainerBreak {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct Item {
     pub separator: Option<TextRange>,
+}
+
+pub(crate) enum FieldValue<'source> {
+    /// A non-boundary token ready for value parsing.
+    Token(Token<'source>),
+    /// A container boundary (`,`, `}`, or `]`) immediately following a colon.
+    Missing(Token<'source>),
+    /// End of input immediately following a colon.
+    Eof,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -135,8 +145,8 @@ fn report_missing_comma<G: Grammar>(
     container: DelimiterKind,
 ) {
     let expected = match container {
-        DelimiterKind::Bracket => EXPECTED_ARRAY_SEP,
-        DelimiterKind::Brace => EXPECTED_OBJECT_SEP,
+        DelimiterKind::Bracket => EXPECTED_ARRAY_SEPARATOR,
+        DelimiterKind::Brace => EXPECTED_OBJECT_SEPARATOR,
     };
     let after = parser.last_token_end();
     report_unexpected(
@@ -149,32 +159,32 @@ fn report_missing_comma<G: Grammar>(
 }
 
 fn skip_unexpected_object_token<G: Grammar>(parser: &mut Parser<'_, G>) {
-    if matches!(
-        parser.current().map(|tok| tok.kind),
-        Some(T!['{'] | T!['['])
-    ) {
+    if parser.at_set(SyntaxKindSet::OPENING_DELIMITER) {
         json::parse_json_value(parser);
     } else {
         parser.error_node();
     }
 }
 
-fn skip_malformed_object_entry<G: Grammar>(parser: &mut Parser<'_, G>) -> bool {
+enum MalformedEntry {
+    StrayToken,
+    KeyValue,
+}
+
+fn skip_malformed_object_entry<G: Grammar>(parser: &mut Parser<'_, G>) -> MalformedEntry {
     skip_unexpected_object_token(parser);
     if !parser.at(T![:]) {
-        return false;
+        return MalformedEntry::StrayToken;
     }
 
     parser.start_node(SyntaxKind::Error);
     parser.bump(T![:]);
-    if !matches!(
-        parser.current().map(|tok| tok.kind),
-        None | Some(T![,] | T!['}'] | T![']'])
-    ) {
+    if !parser.at_set(SyntaxKindSet::ITEM_BOUNDARY) {
         json::parse_json_value(parser);
     }
     parser.finish_node();
-    true
+
+    MalformedEntry::KeyValue
 }
 
 fn consume_array_comma<G: Grammar>(
@@ -279,7 +289,7 @@ pub(crate) fn next_array_element<G: Grammar>(
             parser,
             token.range,
             token.kind,
-            EXPECTED_ARRAY_SEP,
+            EXPECTED_ARRAY_SEPARATOR,
             UnexpectedTokenContext::General,
         );
         parser.error_node();
@@ -344,7 +354,7 @@ fn advance_object_separator<G: Grammar>(
         parser,
         range,
         kind,
-        EXPECTED_OBJECT_SEP,
+        EXPECTED_OBJECT_SEPARATOR,
         UnexpectedTokenContext::General,
     );
     skip_unexpected_object_token(parser);
@@ -396,7 +406,10 @@ pub(crate) fn next_object_entry<G: Grammar>(
         }
 
         if token.kind == SyntaxKind::InvalidToken {
-            if skip_malformed_object_entry(parser) {
+            if matches!(
+                skip_malformed_object_entry(parser),
+                MalformedEntry::KeyValue
+            ) {
                 need_comma = true;
             }
             continue;
@@ -421,14 +434,20 @@ pub(crate) fn next_object_entry<G: Grammar>(
             SyntaxKindSet::from_kind(T![string]),
             UnexpectedTokenContext::ObjectKey,
         );
-        if skip_malformed_object_entry(parser) {
+
+        if matches!(
+            skip_malformed_object_entry(parser),
+            MalformedEntry::KeyValue
+        ) {
             need_comma = true;
         }
     }
 }
 
-/// Returns `true` when the caller should proceed to parse the field value.
-pub(crate) fn expect_colon<G: Grammar>(parser: &mut Parser<'_, G>, key_range: TextRange) -> bool {
+pub(crate) fn expect_colon<'source, G: Grammar>(
+    parser: &mut Parser<'source, G>,
+    key_range: TextRange,
+) -> ControlFlow<(), FieldValue<'source>> {
     if parser.try_bump(T![:]).is_some() {
         if let Some(separators) = Separators::try_eat(parser, T![:]) {
             parser.error(
@@ -437,7 +456,15 @@ pub(crate) fn expect_colon<G: Grammar>(parser: &mut Parser<'_, G>, key_range: Te
             );
         }
 
-        return true;
+        let value = match parser.current() {
+            None => FieldValue::Eof,
+            Some(token) if SyntaxKindSet::ITEM_BOUNDARY.contains(token.kind) => {
+                FieldValue::Missing(token)
+            }
+            Some(token) => FieldValue::Token(token),
+        };
+
+        return ControlFlow::Continue(value);
     }
 
     let Some(token) = parser.current() else {
@@ -446,7 +473,7 @@ pub(crate) fn expect_colon<G: Grammar>(parser: &mut Parser<'_, G>, key_range: Te
             EofContext::FieldColon { key: key_range },
         );
 
-        return false;
+        return ControlFlow::Break(());
     };
 
     if token.kind != SyntaxKind::InvalidToken {
@@ -459,7 +486,11 @@ pub(crate) fn expect_colon<G: Grammar>(parser: &mut Parser<'_, G>, key_range: Te
         );
     }
 
-    !matches!(token.kind, T![,] | T!['}'] | T![']'])
+    if SyntaxKindSet::ITEM_BOUNDARY.contains(token.kind) {
+        ControlFlow::Break(())
+    } else {
+        ControlFlow::Continue(FieldValue::Token(token))
+    }
 }
 
 pub(crate) fn recover_unexpected_item<G: Grammar>(parser: &mut Parser<'_, G>) {
@@ -483,7 +514,7 @@ pub(crate) fn recover_unexpected_item<G: Grammar>(parser: &mut Parser<'_, G>) {
 
     report_unexpected(parser, token.range, token.kind, G::ITEM_FIRST, context);
 
-    if !matches!(token.kind, T![,] | T!['}'] | T![']']) {
+    if !SyntaxKindSet::ITEM_BOUNDARY.contains(token.kind) {
         json::parse_json_value(parser);
     }
 }

@@ -1,3 +1,4 @@
+use alloc::collections::{VecDeque, vec_deque};
 use core::mem;
 
 use crate::{
@@ -86,7 +87,7 @@ pub type AdvisoryDiagnosticIssues<C, S> = DiagnosticIssues<C, S, Advisory>;
 #[must_use]
 #[derive(Debug)]
 pub struct DiagnosticIssues<C, S, K = Severity> {
-    diagnostics: Vec<Diagnostic<C, S, K>>,
+    diagnostics: VecDeque<Diagnostic<C, S, K>>,
     critical: usize,
 }
 
@@ -105,7 +106,7 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// ```
     pub const fn new() -> Self {
         Self {
-            diagnostics: Vec::new(),
+            diagnostics: VecDeque::new(),
             critical: 0,
         }
     }
@@ -300,7 +301,7 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// assert_eq!(issues.critical(), 1);
     /// ```
     #[must_use]
-    pub const fn advisory(&self) -> usize {
+    pub fn advisory(&self) -> usize {
         self.len() - self.critical
     }
 
@@ -326,7 +327,7 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// assert_eq!(issues.len(), 2);
     /// ```
     #[must_use]
-    pub const fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.diagnostics.len()
     }
 
@@ -350,7 +351,7 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// assert!(!issues.is_empty());
     /// ```
     #[must_use]
-    pub const fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.diagnostics.is_empty()
     }
 
@@ -486,7 +487,7 @@ where
     where
         K2: SeverityKind,
     {
-        let diagnostics: Vec<_> = self.diagnostics.into_iter().map(func).collect();
+        let diagnostics: VecDeque<_> = self.diagnostics.into_iter().map(func).collect();
 
         // re-calculate the fatal count as it might have changed during iteration
         let critical = diagnostics
@@ -525,7 +526,7 @@ where
     /// ```
     pub fn insert_front(&mut self, diagnostic: Diagnostic<C, S, K>) {
         self.critical += usize::from(diagnostic.severity.is_critical());
-        self.diagnostics.insert(0, diagnostic);
+        self.diagnostics.push_front(diagnostic);
     }
 
     /// Adds a diagnostic to the collection.
@@ -551,7 +552,7 @@ where
     /// ```
     pub fn push(&mut self, diagnostic: Diagnostic<C, S, K>) {
         self.critical += usize::from(diagnostic.severity.is_critical());
-        self.diagnostics.push(diagnostic);
+        self.diagnostics.push_back(diagnostic);
     }
 
     /// Removes and returns the last diagnostic.
@@ -585,7 +586,7 @@ where
     /// assert!(issues.pop().is_none());
     /// ```
     pub fn pop(&mut self) -> Option<Diagnostic<C, S, K>> {
-        let diagnostic = self.diagnostics.pop();
+        let diagnostic = self.diagnostics.pop_back();
 
         if let Some(diagnostic) = &diagnostic {
             self.critical -= usize::from(diagnostic.severity.is_critical());
@@ -633,9 +634,17 @@ where
         }
     }
 
+    pub fn sort_by_key<F, T>(&mut self, func: F)
+    where
+        F: FnMut(&Diagnostic<C, S, K>) -> T,
+        T: Ord,
+    {
+        self.diagnostics.make_contiguous().sort_by_key(func);
+    }
+
     #[must_use]
     pub fn into_vec(self) -> Vec<Diagnostic<C, S, K>> {
-        self.diagnostics
+        Vec::from(self.diagnostics)
     }
 }
 
@@ -653,10 +662,14 @@ impl<C, S> DiagnosticIssues<C, S, Severity> {
                 )
             });
 
-        let primary = self
-            .diagnostics
-            .swap_remove(position)
-            .into_critical_unchecked();
+        let primary = if position == 0 {
+            self.diagnostics.pop_front()
+        } else {
+            self.diagnostics.remove(position)
+        }
+        .unwrap_or_else(|| unreachable!("`position` was located in `self.diagnostics`"))
+        .into_critical_unchecked();
+
         self.critical -= 1;
 
         Failure {
@@ -825,7 +838,6 @@ impl<C, S, K> Extend<Diagnostic<C, S, K>> for DiagnosticIssues<C, S, K>
 where
     K: SeverityKind,
 {
-    #[expect(clippy::indexing_slicing, reason = "indexing is checked")]
     fn extend<T: IntoIterator<Item = Diagnostic<C, S, K>>>(&mut self, iter: T) {
         let previous = self.diagnostics.len();
         self.diagnostics.extend(iter);
@@ -834,15 +846,16 @@ where
             return;
         }
 
-        self.critical += self.diagnostics[previous..]
-            .iter()
+        self.critical += self
+            .diagnostics
+            .range(previous..)
             .filter(|diagnostic| diagnostic.severity.is_critical())
             .count();
     }
 }
 
 impl<C, S, K> IntoIterator for DiagnosticIssues<C, S, K> {
-    type IntoIter = alloc::vec::IntoIter<Self::Item>;
+    type IntoIter = vec_deque::IntoIter<Self::Item>;
     type Item = Diagnostic<C, S, K>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -861,7 +874,7 @@ where
             .count();
 
         Self {
-            diagnostics,
+            diagnostics: VecDeque::from(diagnostics),
             critical,
         }
     }

@@ -1,3 +1,5 @@
+use core::ops::ControlFlow;
+
 use hashql_ast::node::{
     expr::{
         CallExpr, Expr, ExprKind,
@@ -11,22 +13,15 @@ use hashql_core::{
     heap::{self, Heap},
     span::{SpanAncestors, SpanId, SpanTable},
 };
-use hashql_diagnostics::{
-    Diagnostic, DiagnosticIssues, Failure, Severity, Status, StatusExt as _,
-    severity::SeverityKind as _,
-};
+use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity, Status};
 use text_size::{TextRange, TextSize};
 
 use crate::{
     cst::{self, Node, Token as _},
     embedded::{
-        error::StringDiagnosticCategory, parse_expr_from_string,
-        parse_ident_labelled_argument_from_string, parse_type_from_string,
+        parse_expr_from_string, parse_ident_labelled_argument_from_string, parse_type_from_string,
     },
-    error::{
-        ArrayDiagnosticCategory, JExprDiagnosticCategory, ObjectDiagnosticCategory,
-        ParserDiagnosticCategory, array,
-    },
+    error::{JExprDiagnosticCategory, array},
     parser::Document,
     span::Span,
     syntax_kind::SyntaxKind,
@@ -34,57 +29,14 @@ use crate::{
 
 mod constructor;
 
-fn precedes<'tree, First, Second>(first: Option<First>, second: Option<Second>) -> bool
+fn precedes<'tree, T, U>(first: Option<T>, second: Option<U>) -> bool
 where
-    First: Node<'tree>,
-    Second: Node<'tree>,
+    T: Node<'tree>,
+    U: Node<'tree>,
 {
     match (first, second) {
         (Some(first), Some(second)) => first.offset() < second.offset(),
         _ => false,
-    }
-}
-
-const fn wrap_string(category: StringDiagnosticCategory) -> JExprDiagnosticCategory {
-    JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::String(category))
-}
-
-const fn wrap_array(category: ArrayDiagnosticCategory) -> JExprDiagnosticCategory {
-    JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Array(category))
-}
-
-pub(crate) const fn wrap_object(category: ObjectDiagnosticCategory) -> JExprDiagnosticCategory {
-    JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Object(category))
-}
-
-// Orders accumulated diagnostics by primary span start offset so multi-phase errors appear in
-// source order.
-fn into_ordered_failure(
-    issues: DiagnosticIssues<JExprDiagnosticCategory, SpanId, Severity>,
-    spans: &SpanTable<Span>,
-) -> Failure<JExprDiagnosticCategory, SpanId> {
-    let mut diagnostics = issues.into_vec();
-    diagnostics.sort_by_key(|diagnostic| {
-        diagnostic
-            .labels
-            .iter()
-            .next()
-            .and_then(|label| spans.absolute(*label.span()))
-            .map_or(TextSize::new(u32::MAX), |span| span.range().start())
-    });
-
-    let position = diagnostics
-        .iter()
-        .position(|diagnostic| diagnostic.severity.is_critical())
-        .expect("critical diagnostics must be present");
-
-    let Err(primary) = diagnostics.remove(position).specialize() else {
-        unreachable!("located diagnostic passed critical check");
-    };
-
-    Failure {
-        primary: Box::new(primary),
-        secondary: DiagnosticIssues::from(diagnostics),
     }
 }
 
@@ -144,8 +96,11 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
         ) {
             Ok(r#type) => Some(Box::new_in(r#type, self.heap)),
             Err(diagnostic) => {
-                self.diagnostics
-                    .push(diagnostic.map_category(wrap_string).generalize());
+                self.diagnostics.push(
+                    diagnostic
+                        .map_category(JExprDiagnosticCategory::string)
+                        .generalize(),
+                );
                 None
             }
         }
@@ -154,11 +109,15 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
     fn lower_optional_type(
         &mut self,
         type_field: Option<cst::TypeField<'_>>,
-    ) -> (Option<heap::Box<'heap, Type<'heap>>>, bool) {
-        type_field.map_or((None, true), |field| {
-            self.lower_type_field(field)
-                .map_or((None, false), |r#type| (Some(r#type), true))
-        })
+    ) -> ControlFlow<(), Option<heap::Box<'heap, Type<'heap>>>> {
+        let Some(field) = type_field else {
+            return ControlFlow::Continue(None);
+        };
+
+        self.lower_type_field(field)
+            .map_or(ControlFlow::Break(()), |r#type| {
+                ControlFlow::Continue(Some(r#type))
+            })
     }
 
     fn check_orphaned_type_fields(&mut self, root: cst::SyntaxNodeData<'_>) {
@@ -183,23 +142,17 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
     where
         Field: Node<'tree>,
     {
-        let type_first = precedes(type_field, primary_field);
-
-        let (primary, r#type, type_ok) = if type_first {
-            let (r#type, type_ok) = self.lower_optional_type(type_field);
+        let (primary, r#type) = if precedes(type_field, primary_field) {
+            let r#type = self.lower_optional_type(type_field);
             let primary = primary_field.and_then(|field| lower_primary(self, field));
-            (primary, r#type, type_ok)
+            (primary, r#type)
         } else {
             let primary = primary_field.and_then(|field| lower_primary(self, field));
-            let (r#type, type_ok) = self.lower_optional_type(type_field);
-            (primary, r#type, type_ok)
+            let r#type = self.lower_optional_type(type_field);
+            (primary, r#type)
         };
 
-        let primary = primary?;
-        if !type_ok {
-            return None;
-        }
-        Some((primary, r#type))
+        Some((primary?, r#type.continue_value()?))
     }
 
     fn lower_path(&mut self, node: cst::PathExpr<'_>) -> Option<Expr<'heap>> {
@@ -213,8 +166,12 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
         match parse_expr_from_string(self.heap, self.spans, parent, token.text(), &decoded) {
             Ok(expr) => Some(expr),
             Err(diagnostic) => {
-                self.diagnostics
-                    .push(diagnostic.map_category(wrap_string).generalize());
+                self.diagnostics.push(
+                    diagnostic
+                        .map_category(JExprDiagnosticCategory::string)
+                        .generalize(),
+                );
+
                 None
             }
         }
@@ -243,8 +200,9 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
                     &decoded,
                     error,
                 )
-                .map_category(wrap_array)
+                .map_category(JExprDiagnosticCategory::array)
                 .generalize();
+
                 self.diagnostics.push(diagnostic);
                 return None;
             }
@@ -305,8 +263,9 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
                         &decoded,
                         error,
                     )
-                    .map_category(wrap_array)
+                    .map_category(JExprDiagnosticCategory::array)
                     .generalize();
+
                     self.diagnostics.push(diagnostic);
                     None
                 }
@@ -337,10 +296,10 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
         let mut labeled_arguments = Vec::new_in(self.heap);
         let mut ok = callee.is_some();
 
-        for arg in node.args() {
-            match arg {
-                cst::CallArg::Positional(pos) => {
-                    if let Some(expr) = pos.expr().and_then(|expr| self.lower_expr(expr)) {
+        for argument in node.args() {
+            match argument {
+                cst::CallArg::Positional(positional) => {
+                    if let Some(expr) = positional.expr().and_then(|expr| self.lower_expr(expr)) {
                         arguments.push(Argument {
                             id: NodeId::PLACEHOLDER,
                             span: expr.span,
@@ -361,8 +320,8 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
                     let mut entry_count = 0_usize;
                     for entry in labeled.entries() {
                         entry_count += 1;
-                        if let Some(arg) = self.lower_labeled_arg_entry(entry) {
-                            labeled_arguments.push(arg);
+                        if let Some(argument) = self.lower_labeled_arg_entry(entry) {
+                            labeled_arguments.push(argument);
                         } else {
                             ok = false;
                         }
@@ -428,16 +387,17 @@ pub(crate) fn lower_expr<'heap>(
         None
     };
 
-    if lowerer.diagnostics.is_empty() {
-        let expr = expr.expect("valid CST with no diagnostics must lower to an expression");
-        return Status::success(expr);
-    }
+    // Orders accumulated diagnostics by primary span start offset so multi-phase errors appear in
+    // source order.
+    lowerer.diagnostics.sort_by_key(|diagnostic| {
+        let &span = diagnostic.labels.primary().span();
 
-    if lowerer.diagnostics.critical() == 0 {
-        let expr =
-            expr.expect("valid CST with no critical diagnostics must lower to an expression");
-        return lowerer.diagnostics.into_status(expr);
-    }
-
-    Err(into_ordered_failure(lowerer.diagnostics, lowerer.spans))
+        lowerer
+            .spans
+            .absolute(span)
+            .map_or(TextSize::new(u32::MAX), |span| span.range().start())
+    });
+    lowerer.diagnostics.into_status_with(|| {
+        expr.expect("valid CST with no critical diagnostics must lower to an expression")
+    })
 }
