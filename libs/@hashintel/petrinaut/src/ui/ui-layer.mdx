@@ -48,7 +48,7 @@ A component and its private parts share a name: `x.tsx` is the entry, and the fo
 
 **A component reads the part of the state it draws.** `useEditorState` and `useUserSettings` take a selector, `useEditorFields` and `useUserSettingsFields` take field names, and `useEditorActions` returns functions that keep their identity. A component that reads a whole context renders for every change to it. [The editor shell](doc:ui.views.editor/editor-shell) names the benchmark that lists who renders.
 
-**The React Compiler memoizes.** A `useMemo`, `useCallback` or `memo` carries a comment that says what the compiler cannot cover, as on `PluginHost` and `EntityRow`. No lint rule checks the comment, and the three `useCallback` calls of `useResizeDrag` have none. The lint rules `react/refs` and `react/set-state-in-effect` keep render free of what the compiler refuses.
+**The React Compiler memoizes.** A `useMemo`, `useCallback` or `memo` carries a comment that says what the compiler cannot cover, as on `PluginHost` and `EntityRow`. No lint rule checks the comment. The lint rules `react/refs` and `react/set-state-in-effect` keep render free of what the compiler refuses.
 
 ## Pitfalls
 

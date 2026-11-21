@@ -192,7 +192,8 @@ the Properties panel beside the canvas.
   the panel. The strip a pointer grabs and the strip that shows are the
   separator's pseudo-elements. `EdgeSeparator` in `ui/resize` is that
   separator, also where a split is a group of the library itself, as in the
-  Definitions view.
+  Definitions view. Its group takes `grabSize` as `resizeTargetMinimumSize`,
+  so that the library takes a press anywhere on the strip.
 - **A separator takes no keyboard focus.** The library focuses a separator
   that is pressed and puts each in the Tab order. A press would then take the
   focus from the field the user was in, and each view would gain Tab stops

@@ -37,5 +37,5 @@ explorer and the lists keep their size in pixels when the window resizes. The
 library holds both sizes, so neither is React state. The two separators meet
 in a T, and a press there resizes both panes: the library takes it for both
 groups because the explorer's panel is stacked over the separator beside it
-(`explorerColumnStyle`). `edgeSeparatorStyle` in `ui/resize` gives the
-separators the look of the ones that resize the docked panels.
+(`explorerColumnStyle`). Both separators are the `EdgeSeparator` of
+`ui/resize`, the one that resizes the docked panels.
