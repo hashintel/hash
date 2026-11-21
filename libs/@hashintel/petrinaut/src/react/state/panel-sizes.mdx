@@ -169,7 +169,8 @@ that writes them on the window as custom properties.
   panel below.
 
 The scripts `geometry.mjs`, `panel-toggles.mjs` and `assistant-dock.mjs` in
-`benchmarks/monaco-performance/` measure a drag, a slide and a dock.
+`benchmarks/monaco-performance/` measure a drag, a slide and a dock, and
+`panel-edges.mjs` a pointer that crosses a panel's edge.
 
 ## Resizing a docked panel
 
@@ -206,6 +207,29 @@ the Properties panel beside the canvas.
   between its regions. `EdgeSeparator` removes the tab index the library
   writes, and an element without one cannot be focused.
   `edge-separator.test.tsx` holds this.
+- **A separator shows the resize cursor itself.** The library's own cursor is
+  a style rule for every element of the document. It writes the rule when the
+  pointer comes within reach of a separator and removes it when the pointer
+  leaves, and each write makes the browser work out the style of the whole
+  editor again. With separators along the canvas's edges that happened on
+  every pass of the pointer over a panel edge. Every split of the editor is
+  therefore a `ResizeGroup` from `ui/resize`, which turns the library's cursor
+  off, and a separator sets the cursor of its axis on itself, so on the strip
+  a pointer grabs. The sections inside a panel do the same with a strip of
+  their own. `resize-group.test.tsx` and `edge-separator.test.tsx` hold this,
+  and the lint rule `no-restricted-imports` refuses the library's `Group`
+  anywhere else. The cursor no longer says which way a panel at its narrowest
+  or widest can still move.
+- **A dragged separator keeps its cursor wherever the pointer goes.** While
+  the library marks a separator as dragged, the strip a pointer grabs covers
+  the window, over the groups inside the separator's own: `dragStripStyle`.
+  The library also gives the separator the pointer for the drag, and a
+  browser that takes the cursor from the element that holds the pointer keeps
+  it by that alone. No unit test holds this.
+- **Where two separators cross, each shows the cursor of the two axes.** The
+  library marks both as hovered or dragged there. One rule in
+  `edgeSeparatorStyle` reads that with `:has()` on the two groups, whose
+  style no drag writes. No unit test holds this.
 - **A panel that is not in place has a disabled separator.** A panel that
   slides is not where its stand-in is, and neither is an assistant that
   floats. `PanelResizer` takes this as `isInPlace`, and

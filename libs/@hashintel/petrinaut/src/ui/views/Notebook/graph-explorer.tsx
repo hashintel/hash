@@ -1,10 +1,11 @@
-import { Group, Panel } from "react-resizable-panels";
+import { Panel } from "react-resizable-panels";
 
 import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { EdgeSeparator } from "../../resize/edge-separator";
 import { grabSize } from "../../resize/edge-separator-style";
+import { ResizeGroup } from "../../resize/resize-group";
 import { useFocusGrid } from "../../worksheet/use-focus-grid";
 import { CELL_KIND_ICONS, CELL_KIND_LABELS } from "./cell-kinds";
 import { NetGraphView } from "./net-graph";
@@ -315,7 +316,7 @@ export const GraphExplorer: React.FC<GraphExplorerProps> = ({
         </div>
       </div>
 
-      <Group
+      <ResizeGroup
         orientation="vertical"
         className={splitStyle}
         style={{ overflow: "visible" }}
@@ -366,7 +367,7 @@ export const GraphExplorer: React.FC<GraphExplorerProps> = ({
             )}
           </div>
         </Panel>
-      </Group>
+      </ResizeGroup>
     </div>
   );
 };

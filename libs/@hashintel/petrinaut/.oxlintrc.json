@@ -89,6 +89,13 @@
     "no-restricted-imports": [
       "error",
       {
+        "paths": [
+          {
+            "name": "react-resizable-panels",
+            "importNames": ["Group"],
+            "message": "Use ResizeGroup from ui/resize: the library's own cursor restyles the whole document."
+          }
+        ],
         "patterns": [
           {
             "group": ["@local/*"],

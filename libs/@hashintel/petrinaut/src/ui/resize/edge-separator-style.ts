@@ -1,4 +1,4 @@
-import { cva } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 const fineGrabSize = 8;
 const coarseGrabSize = 24;
@@ -11,9 +11,47 @@ const coarseGrabSize = 24;
  */
 export const grabSize = { fine: fineGrabSize, coarse: coarseGrabSize };
 
+/**
+ * For a separator whose `::before` is the strip a pointer grabs. While the
+ * separator is dragged the strip covers the window, over the groups inside
+ * the separator's own, so that the pointer keeps the separator's cursor
+ * wherever it goes.
+ */
+export const dragStripStyle = css({
+  "&[data-separator=active]::before": {
+    position: "fixed",
+    inset: "[0]",
+    width: "auto",
+    height: "auto",
+    zIndex: "[2]",
+  },
+});
+
+/**
+ * For a pane right of a separator's line that is stacked over the separator,
+ * as a pane with a group of its own is. The pane lies over the half of the
+ * strip that is inside it, and shows the strip's cursor there with a strip of
+ * its own: from its left border, which is inside its size, as far as the
+ * separator's reaches.
+ */
+export const paneStripStyle = css({
+  _before: {
+    content: '""',
+    position: "absolute",
+    insetBlock: "[0]",
+    left: "[-1px]",
+    width: `[calc(${fineGrabSize}px / 2)]`,
+    cursor: "ew-resize",
+  },
+  "@media (pointer: coarse)": {
+    _before: { width: `[calc(${coarseGrabSize}px / 2)]` },
+  },
+});
+
 /** A line down the group, with the strip a pointer grabs centred on it. */
 const verticalLine = {
   width: "[0]",
+  cursor: "ew-resize",
   "--line-direction": "to right",
   _before: {
     insetBlock: "[0]",
@@ -25,6 +63,7 @@ const verticalLine = {
 /** A line across the group, with the strip a pointer grabs centred on it. */
 const horizontalLine = {
   height: "[0]",
+  cursor: "ns-resize",
   "--line-direction": "to bottom",
   _before: {
     insetInline: "[0]",
@@ -36,7 +75,8 @@ const horizontalLine = {
 /**
  * The separator is a line with no thickness on the panel's edge, so that
  * the stand-in beside it is as large as the panel. `::before` is the strip a
- * pointer grabs and `::after` the one that shows.
+ * pointer grabs, which shows the resize cursor of the separator's axis, and
+ * `::after` the strip that shows.
  *
  * The strip that shows is five pixels around the panel's border: two either
  * side of it. `edge` says where that border lies.
@@ -59,6 +99,11 @@ export const edgeSeparatorStyle = cva({
     },
     "&[data-separator=hover]::after": { backgroundColor: "neutral.a30" },
     "&[data-separator=active]::after": { backgroundColor: "blue.a40" },
+    // Where the separator of a group crosses that of a group inside it, a
+    // press takes both, and the library marks both. Each then shows the
+    // cursor of the two axes.
+    "[data-group]:has(> :is([data-separator=hover], [data-separator=active])):has([data-group] > :is([data-separator=hover], [data-separator=active])) :is([data-separator=hover], [data-separator=active])&":
+      { cursor: "move" },
   },
   variants: {
     paintsBorder: {

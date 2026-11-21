@@ -65,6 +65,8 @@ median of five alternating rounds on the production build.
 | Open the first differential equation, until its code is usable | 356 ms | 63 ms |
 | Open the menu a second time, longest frame                     | 167 ms | 12 ms |
 | Select a transition while a place is selected, longest frame   | 235 ms | 67 ms |
+| Cross the sidebar's edge with the pointer ten times, style     |  3.5 s | 96 ms |
+| The same, longest frame                                        | 208 ms | 17 ms |
 
 The form rows are for Supply Chain tiled four times, in the Create scenario
 drawer. In Simulation Settings on Supply Chain, typing a value is about as
@@ -75,6 +77,15 @@ The last two rows are overlays and drag announcements mounting in a host of
 their own: before, an overlay that closed restyled the editor, 40,160 elements
 for the menu, and now 1,382. While the Properties panel slides out it shows
 what was selected, where it slid out empty.
+
+The crossing is a pointer that goes from the left sidebar onto the canvas and
+back, no button down, with the bottom panel open. Its "before" is the editor
+with the resize library's own cursor: a style rule for every element of the
+page, written each time the pointer came within reach of a panel's edge and
+removed when it left. That was 20 rules in the ten crossings and 789,000
+elements restyled, where no rule is written now and 10,400 elements are.
+`benchmarks/monaco-performance/panel-edges.mjs` measures it and counts the
+rules.
 
 ## A change of the document
 
@@ -229,6 +240,9 @@ Each rule is written, with the test that holds it, in the guide of its layer.
   with `overflow: clip`: [The editor shell](doc:ui.views.editor/editor-shell).
 - A panel's size is a Motion value, so a resize renders no component:
   [Panel geometry outside React state](doc:react.state/panel-sizes).
+- A split is a `ResizeGroup`, and a separator shows the resize cursor
+  itself, so no style rule is written for every element when the pointer
+  passes a panel's edge: [The editor shell](doc:ui.views.editor/editor-shell).
 - A value that changes on every frame is written on the element that uses it,
   never as a custom property on an ancestor: the overlay scroll area writes
   each thumb's size and place on the thumb.

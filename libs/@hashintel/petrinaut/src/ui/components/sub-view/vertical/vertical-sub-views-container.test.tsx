@@ -558,3 +558,11 @@ it("retains visited code while collapsed and releases it when selecting another 
     screen.queryByRole("textbox", { name: "Code", hidden: true }),
   ).toBeNull();
 });
+
+it("shows the resize cursor itself, on the strip a pointer grabs the separator between two sections by", () => {
+  render(<Harness />);
+
+  const separator = screen.getByRole("separator");
+  expect(separator.className).toContain("cursor_ns-resize");
+  expect(separator.className).toContain("before:h_[var(--grab-size)]");
+});

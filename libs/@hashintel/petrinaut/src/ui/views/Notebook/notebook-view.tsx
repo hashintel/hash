@@ -1,9 +1,9 @@
 import { use, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
-import { Group, Panel } from "react-resizable-panels";
+import { Panel } from "react-resizable-panels";
 
 import { Button, SegmentedControl, TextInput } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import {
@@ -12,7 +12,8 @@ import {
 } from "../../../react/state/editor-context";
 import { useUndoRedoShortcuts } from "../../../react/state/use-undo-redo-shortcuts";
 import { EdgeSeparator } from "../../resize/edge-separator";
-import { grabSize } from "../../resize/edge-separator-style";
+import { grabSize, paneStripStyle } from "../../resize/edge-separator-style";
+import { ResizeGroup } from "../../resize/resize-group";
 import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
 import { CELL_KIND_PLURAL_LABELS, CELL_KINDS } from "./cell-kinds";
 import { GraphExplorer } from "./graph-explorer";
@@ -404,7 +405,7 @@ const NotebookViewContent = ({
         </div>
       </div>
 
-      <Group
+      <ResizeGroup
         className={bodyStyle}
         style={{ overflow: "visible" }}
         resizeTargetMinimumSize={grabSize}
@@ -443,7 +444,7 @@ const NotebookViewContent = ({
         />
 
         <Panel
-          className={explorerColumnStyle}
+          className={cx(explorerColumnStyle, paneStripStyle)}
           style={{ overflow: "visible" }}
           defaultSize={DEFAULT_EXPLORER_WIDTH}
           minSize={MIN_EXPLORER_WIDTH}
@@ -461,7 +462,7 @@ const NotebookViewContent = ({
             onNavigate={navigateToNode}
           />
         </Panel>
-      </Group>
+      </ResizeGroup>
     </div>
   );
 };

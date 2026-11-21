@@ -1,9 +1,12 @@
 /** @vitest-environment jsdom */
 import { cleanup, render, screen } from "@testing-library/react";
-import { Group, Panel } from "react-resizable-panels";
+import { Panel } from "react-resizable-panels";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { EdgeSeparator } from "./edge-separator";
+import { ResizeGroup } from "./resize-group";
+
+import type { ComponentProps } from "react";
 
 beforeEach(() => {
   vi.stubGlobal(
@@ -21,14 +24,20 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const split = ({ disabled = false } = {}) => (
+const split = ({
+  disabled = false,
+  edge = "left",
+}: {
+  disabled?: boolean;
+  edge?: ComponentProps<typeof EdgeSeparator>["edge"];
+} = {}) => (
   <>
     <input aria-label="Name" />
-    <Group>
+    <ResizeGroup>
       <Panel />
-      <EdgeSeparator edge="left" label="Resize the panel" disabled={disabled} />
+      <EdgeSeparator edge={edge} label="Resize the panel" disabled={disabled} />
       <Panel />
-    </Group>
+    </ResizeGroup>
   </>
 );
 
@@ -57,3 +66,17 @@ it("is no Tab stop, also once it has been disabled and enabled again", () => {
 
   expect(separator.hasAttribute("tabindex")).toBe(false);
 });
+
+it.each([
+  ["left", "ew-resize"],
+  ["right", "ew-resize"],
+  ["bottom", "ns-resize"],
+  ["top", "ns-resize"],
+] as const)(
+  "shows the resize cursor itself: on the %s edge, %s",
+  (edge, cursor) => {
+    render(split({ edge }));
+
+    expect(parts().separator.className).toContain(`cursor_${cursor}`);
+  },
+);

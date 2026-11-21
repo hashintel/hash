@@ -4,7 +4,6 @@
  */
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import {
-  Group,
   Panel,
   usePanelRef,
   type Layout,
@@ -17,6 +16,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { EdgeSeparator } from "./edge-separator";
 import { grabSize } from "./edge-separator-style";
+import { ResizeGroup } from "./resize-group";
 
 import type { MotionValue } from "motion";
 
@@ -183,7 +183,7 @@ export const PanelResizer = ({
   );
 
   return (
-    <Group
+    <ResizeGroup
       orientation={isVertical ? "vertical" : "horizontal"}
       resizeTargetMinimumSize={grabSize}
       elementRef={groupRef}
@@ -204,6 +204,6 @@ export const PanelResizer = ({
           {standIn}
         </>
       )}
-    </Group>
+    </ResizeGroup>
   );
 };

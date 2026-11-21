@@ -1,9 +1,11 @@
 import { Fragment } from "react";
-import { Group, Panel, Separator } from "react-resizable-panels";
+import { Panel, Separator } from "react-resizable-panels";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useUserSettings } from "../../../../react/state/user-settings-context";
+import { dragStripStyle } from "../../../resize/edge-separator-style";
+import { ResizeGroup } from "../../../resize/resize-group";
 import { SubViewContent } from "./vertical-sub-views-container/sub-view-content";
 import { SubViewHeader } from "./vertical-sub-views-container/sub-view-header";
 import { useDebouncedHeightSave } from "./vertical-sub-views-container/use-debounced-height-save";
@@ -19,6 +21,17 @@ const HEADER_HEIGHT = 44;
 
 /** Default minimum panel height when no per-subview minHeight is set */
 const DEFAULT_MIN_PANEL_HEIGHT = 100;
+
+const fineGrabSize = 10;
+const coarseGrabSize = 20;
+
+/**
+ * How tall the strip around a section's separator is that a pointer can grab,
+ * in pixels: for a mouse and for a finger. The group takes this as its
+ * `resizeTargetMinimumSize`, so that the library takes a press where the
+ * strip shows the cursor.
+ */
+const grabSize = { fine: fineGrabSize, coarse: coarseGrabSize };
 
 const containerStyle = css({
   position: "relative",
@@ -71,11 +84,27 @@ const sectionMotionStyle = css({
   "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
 });
 
+/**
+ * The separator between two sections is a line: its top border. `::before` is
+ * the strip a pointer grabs, around the line, which shows the cursor.
+ */
 const resizeHandleStyle = css({
+  position: "relative",
   borderTopWidth: "thin",
   borderTopColor:
     "[var(--petrinaut-panel-divider-color, {colors.neutral.a20})]",
   cursor: "ns-resize",
+  "--grab-size": `[${fineGrabSize}px]`,
+  "@media (pointer: coarse)": {
+    "--grab-size": `[${coarseGrabSize}px]`,
+  },
+  _before: {
+    content: '""',
+    position: "absolute",
+    insetInline: "[0]",
+    top: "[calc(var(--grab-size) / -2)]",
+    height: "[var(--grab-size)]",
+  },
   backgroundColor: "[transparent]",
   transition: "[background-color 0.15s ease]",
   "&[data-separator=hover]": {
@@ -155,9 +184,10 @@ export const VerticalSubViewsContainer: React.FC<
   );
 
   return (
-    <Group
+    <ResizeGroup
       elementRef={containerRef}
       orientation="vertical"
+      resizeTargetMinimumSize={grabSize}
       className={cx(containerStyle, isAnimating && panelTransitionStyle)}
       onKeyDown={(event) => {
         if (
@@ -237,7 +267,7 @@ export const VerticalSubViewsContainer: React.FC<
 
             {index < subViews.length - 1 && (
               <Separator
-                className={resizeHandleStyle}
+                className={cx(resizeHandleStyle, dragStripStyle)}
                 style={
                   maximizedId !== null ? { visibility: "hidden" } : undefined
                 }
@@ -250,6 +280,6 @@ export const VerticalSubViewsContainer: React.FC<
 
       {/* Spacer absorbs remaining space when panels are collapsed */}
       <Panel minSize={0} maxSize={allCollapsed ? "100%" : 0} />
-    </Group>
+    </ResizeGroup>
   );
 };

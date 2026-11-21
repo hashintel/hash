@@ -38,4 +38,6 @@ library holds both sizes, so neither is React state. The two separators meet
 in a T, and a press there resizes both panes: the library takes it for both
 groups because the explorer's panel is stacked over the separator beside it
 (`explorerColumnStyle`). Both separators are the `EdgeSeparator` of
-`ui/resize`, the one that resizes the docked panels.
+`ui/resize`, the one that resizes the docked panels. The explorer's panel
+also lies over the half of the first separator's strip that is inside it, so
+it shows the resize cursor there with a strip of its own (`paneStripStyle`).

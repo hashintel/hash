@@ -3,12 +3,13 @@ import { Separator } from "react-resizable-panels";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { edgeSeparatorStyle } from "./edge-separator-style";
+import { dragStripStyle, edgeSeparatorStyle } from "./edge-separator-style";
 
 /**
  * A separator of `react-resizable-panels` on the edge of a panel: a line with
- * no thickness, a strip around it that a pointer grabs, and the strip that
- * tints on hover and turns blue while it is dragged.
+ * no thickness, a strip around it that a pointer grabs and that shows the
+ * resize cursor, and the strip that tints on hover and turns blue while it is
+ * dragged.
  *
  * It cannot take the keyboard focus. The library gives every separator a tab
  * index and focuses the one that is pressed. Each would then be a Tab stop
@@ -45,7 +46,11 @@ export const EdgeSeparator = ({
       aria-label={label}
       disabled={disabled}
       disableDoubleClick
-      className={cx(edgeSeparatorStyle({ edge, paintsBorder }), className)}
+      className={cx(
+        edgeSeparatorStyle({ edge, paintsBorder }),
+        dragStripStyle,
+        className,
+      )}
     />
   );
 };
