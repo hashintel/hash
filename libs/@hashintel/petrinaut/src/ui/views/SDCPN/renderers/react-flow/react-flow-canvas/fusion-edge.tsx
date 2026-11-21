@@ -87,10 +87,13 @@ export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
         strokeDasharray={dashPattern}
         strokeLinecap="round"
       />
-      {/* A line the pane fades by its stroke, as it does an arc's. */}
+      {/*
+        A line the pane fades by its stroke, as it does an arc's. Its class
+        is its own: the rules for an arc's line also end it short of a head.
+      */}
       <BaseEdge
         id={id}
-        className="arc-line"
+        className="fusion-line"
         path={path}
         style={{
           stroke: strokeColor,

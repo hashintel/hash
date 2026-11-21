@@ -121,6 +121,12 @@ const paneStyle = css({
     transitionBehavior: "[allow-discrete]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
+  // The line of a fusion link fades as an arc's does. It ends in no head, so
+  // it keeps its own dashes.
+  "& .fusion-line": {
+    transition: "[stroke-opacity var(--canvas-focus-duration, 200ms) ease]",
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
   // The second stroke of a line comes back once the line has faded back in:
   // any sooner and it would show through the line.
   "& .arc-line-twin": {
@@ -178,6 +184,10 @@ const paneStyle = css({
     {
       strokeOpacity: "[0]",
       transition: "[none]",
+    },
+  "&[data-focus-active] .react-flow__edge:not(.canvas-focus-role) .fusion-line":
+    {
+      strokeOpacity: "[0.45]",
     },
   "&[data-focus-active] .arc-head:not(.canvas-focus-role)": {
     fillOpacity: "[0.45]",

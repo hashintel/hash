@@ -89,7 +89,7 @@ When the focus ends, the shared head takes the 200 ms of the fade to come back f
 
 The tests in `arc.test.tsx`, `arc-head.test.ts`, `arc-heads.test.tsx`, `use-arc-head-roles.test.ts` and `fusion-edge.test.tsx` hold the classes, that the head of every role is drawn whether or not an arc has that role, that an arc keeps the head of its role past the focus, and that a standard arc has no group that fades. No test reads the rules in `paneStyle`.
 
-A mark that lies on its line can only fade with it as one group: the ticks and the circle of an inhibitor arc, the dot of a read arc and the knot of a fusion link. Those groups carry `arc-strokes` and keep an opacity, so each costs a buffer. A node keeps its opacity too: on that net the 470 nodes cost a zoom 3 of its 40 frames a second.
+A mark that lies on its line can only fade with it as one group: the ticks and the circle of an inhibitor arc, the dot of a read arc and the knot of a fusion link. Those groups carry `arc-strokes` and keep an opacity, so each costs a buffer. The line of a fusion link is outside its group and fades by its stroke under a class of its own, `fusion-line`: it has no head to stop short of, so it keeps its own dashes. A node keeps its opacity too: on that net the 470 nodes cost a zoom 3 of its 40 frames a second.
 
 ## Pitfalls
 

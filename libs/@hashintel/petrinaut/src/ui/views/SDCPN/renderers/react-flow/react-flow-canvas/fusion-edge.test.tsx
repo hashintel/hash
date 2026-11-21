@@ -49,7 +49,9 @@ it("leaves the line out of that group, to fade by its stroke", () => {
     </svg>,
   );
 
-  const line = container.querySelector(".arc-line");
+  const line = container.querySelector(".fusion-line");
   expect(line).not.toBeNull();
   expect(line?.closest(".arc-strokes")).toBeNull();
+  // An arc's line stops short of its head while it is faded. This one has none.
+  expect(container.querySelector(".arc-line")).toBeNull();
 });
