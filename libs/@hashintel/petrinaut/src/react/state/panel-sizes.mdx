@@ -201,8 +201,8 @@ the Properties panel beside the canvas.
   `edge-separator.test.tsx` holds this.
 - **A panel that is not in place has a disabled separator.** A panel that
   slides is not where its stand-in is, and neither is an assistant that
-  floats. The tests in `dock-resizers.test.tsx` and
-  `editor-resizers.test.tsx` hold this.
+  floats. `PanelResizer` takes this as `isInPlace`, and
+  `editor-resizers.test.tsx` holds it for the editor's four.
 - **The layer has no place in the stacking order of its own.** The docks'
   separators lie under what floats over the editor, such as the bottom bar
   and an assistant that is a window. The assistant's separator lies over the

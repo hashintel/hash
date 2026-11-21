@@ -2,13 +2,16 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { usePanelPresence } from "../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
+import { useUserSettings } from "../../../../react/state/user-settings-context";
 import {
   MAX_AI_ASSISTANT_WIDTH,
   MIN_AI_ASSISTANT_WIDTH,
 } from "../../../constants/ui";
 import { useReading } from "../../../lib/readings";
 import { PanelResizer } from "../../../resize/panel-resizer";
-import { DockResizers } from "./dock-resizers";
+import { docks, type DockName } from "./docks";
+
+import type { ReactNode } from "react";
 
 // Over the editor's row, and out of the pointer's way everywhere but on the
 // separators. It has no place in the stacking order of its own: the docks'
@@ -31,11 +34,45 @@ const assistantSeparatorStyle = css({
   zIndex: "[calc(var(--z-index-sticky) + 3)]",
 });
 
+/** The resizer of one docked panel, around the resizers of the panels inside it. */
+const DockResizer = ({
+  panel,
+  children,
+}: {
+  panel: DockName;
+  children?: ReactNode;
+}) => {
+  const dock = docks[panel];
+  const size = usePanelSizes()[dock.size];
+  const shown = usePanelPresence().shown[panel];
+  const saveSize = useUserSettings((settings) => settings[dock.saveSize]);
+  // A panel that slides is not where its stand-in is.
+  const isInPlace = useReading(() => shown.get() === 1);
+
+  return (
+    <PanelResizer
+      edge={dock.edge}
+      size={size}
+      isInPlace={isInPlace}
+      minSize={dock.minSize}
+      maxSize={dock.maxSize}
+      label={dock.label}
+      paintsBorder
+      onCommit={saveSize}
+    >
+      {children}
+    </PanelResizer>
+  );
+};
+
 /**
- * The separators that resize what is docked in the editor: the AI assistant
- * beside the workspace and, while the canvas shows, the three panels around
- * it. One layer, so that the assistant and the bottom panel share a corner
- * like the panels do among themselves.
+ * The separators that resize what is docked in the editor, in one layer over
+ * the editor's row.
+ *
+ * The resizers nest the way the panels sit: the AI assistant beside the
+ * workspace and, while the canvas shows, the left sidebar beside everything
+ * else, the bottom panel under what is left, and the properties panel beside
+ * the canvas. A press where two separators cross resizes both panels.
  */
 export const EditorResizers = ({ canvasShows }: { canvasShows: boolean }) => {
   const { aiAssistantWidth } = usePanelSizes();
@@ -61,7 +98,13 @@ export const EditorResizers = ({ canvasShows }: { canvasShows: boolean }) => {
       restClassName={docksStyle}
       separatorClassName={assistantSeparatorStyle}
     >
-      {canvasShows && <DockResizers />}
+      {canvasShows && (
+        <DockResizer panel="leftSidebar">
+          <DockResizer panel="bottomPanel">
+            <DockResizer panel="propertiesPanel" />
+          </DockResizer>
+        </DockResizer>
+      )}
     </PanelResizer>
   );
 };
