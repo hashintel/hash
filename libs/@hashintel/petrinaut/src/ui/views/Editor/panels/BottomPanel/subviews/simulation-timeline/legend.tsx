@@ -216,6 +216,11 @@ export const TimelineLegend: FC<{
         collection={collection}
         closeOnSelect={false}
         inputValue={inputValue}
+        // The options mount with the dropdown and not with the timeline: a
+        // run has one for each of its series, and the dropdown is closed
+        // while the timeline is read.
+        lazyMount
+        unmountOnExit
         multiple
         onInputValueChange={(details) => setInputValue(details.inputValue)}
         onOpenChange={(details) => {

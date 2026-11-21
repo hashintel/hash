@@ -194,6 +194,17 @@ describe("TimelineLegend", () => {
     ).toBeDefined();
   });
 
+  it("mounts the options with the dropdown, and none while it is closed", async () => {
+    render(<StatefulLegend series={createSeries(3)} />);
+    expect(screen.queryAllByRole("option", { hidden: true })).toHaveLength(0);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /3 of 3 series shown/u }),
+    );
+
+    expect(await screen.findAllByRole("option")).toHaveLength(3);
+  });
+
   it("clears the search text without changing the selection", async () => {
     const series = createSeries(3);
     const onHiddenSeriesChange = vi.fn();
