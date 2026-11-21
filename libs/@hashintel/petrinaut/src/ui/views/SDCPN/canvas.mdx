@@ -14,7 +14,7 @@ The editor and the [preview](layer:ui.preview) both mount it, so it imports noth
 `SDCPNView` in `ui/views/SDCPN/sdcpn-view.tsx` composes four parts, in this order:
 
 1. `useCanvasScene` builds a `CanvasScene`: plain data that says what to draw and holds no React Flow type.
-2. `CanvasPointerContext` carries a `CanvasPointer`, the store of the hover and the drag preview of this canvas. `SDCPNView` creates it once with `createCanvasPointer`.
+2. `CanvasPointerContext` carries a `CanvasPointer`: the hover, the item that waits for a release to be hovered, and the drag preview of this canvas. `SDCPNView` creates it once with `createCanvasPointer`.
 3. `CanvasFrameStoreProvider` holds the values of the viewed simulation frame. It is keyed by `petriNetId`, the id of the document, so another document starts with an empty store.
 4. `ReactFlowCanvas`, the [React Flow renderer](layer:ui.views.canvas.react-flow), draws the scene and publishes a `CanvasController`. It mounts once the size of the container is known.
 
