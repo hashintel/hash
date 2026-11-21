@@ -74,56 +74,80 @@ the settings around the form on every key.
 A closed sidebar, Properties panel or bottom panel is not mounted. Its content
 mounts when it opens, inside an empty element that stays in the panel's place:
 see [The editor shell](doc:ui.views.editor/editor-shell). The table compares
-three builds on the same net. "Kept" leaves a closed panel mounted and out of
-view. "Beside the canvas" unmounts it and inserts it again as a sibling of the
-canvas. "In its dock" is the editor now. Each value is the median of five
-alternating rounds on the production build, from the press to the first frame
-that shows the panel.
+three ways to do it on the same net. "Kept" leaves a closed panel mounted and
+out of view. "Beside the canvas" unmounts it and inserts it again as a sibling
+of the canvas. Both are the build before this change, with its setting to keep
+panels mounted on and off. "In its dock" is the editor now. Each value is the
+median of five alternating rounds on the production build, from the press to
+the first frame that shows the panel.
 
-| Action                                                |  Kept | Beside the canvas | In its dock |
-| ----------------------------------------------------- | ----: | ----------------: | ----------: |
-| Open the left sidebar                                 | 19 ms |            186 ms |       41 ms |
-| The same, longest frame                               | 10 ms |            167 ms |       25 ms |
-| Close the left sidebar, longest frame                 | 10 ms |            133 ms |       10 ms |
-| Select a transition, which opens the Properties panel | 78 ms |            209 ms |       81 ms |
-| Deselect it, longest frame                            | 26 ms |            143 ms |       18 ms |
-| Open the bottom panel on Diagnostics                  | 22 ms |             25 ms |       24 ms |
-| Open the bottom panel on Simulation Settings          | 47 ms |             39 ms |       39 ms |
-| The same, until the form is complete                  | 47 ms |             83 ms |       86 ms |
-| Open the bottom panel on the Timeline of a run        | 26 ms |             80 ms |       66 ms |
+| Action                                                |   Kept | Beside the canvas | In its dock |
+| ----------------------------------------------------- | -----: | ----------------: | ----------: |
+| Open the left sidebar                                 |  28 ms |            194 ms |       52 ms |
+| The same, longest frame                               |  17 ms |            175 ms |       33 ms |
+| Close the left sidebar, longest frame                 |  17 ms |            125 ms |       17 ms |
+| Select a place, the first selection of a session      | 125 ms |            302 ms |      150 ms |
+| Select a transition, which opens the Properties panel |  82 ms |            198 ms |       83 ms |
+| Deselect it, longest frame                            |  35 ms |            149 ms |       25 ms |
+| Open the bottom panel on Diagnostics                  |  48 ms |             50 ms |       41 ms |
+| Open the bottom panel on Simulation Settings          |  62 ms |             59 ms |      101 ms |
+| The same, until the form is complete                  |  62 ms |             98 ms |      101 ms |
+| Open the bottom panel on the Timeline of a run        |  42 ms |             95 ms |       72 ms |
+| The same on a metric, until the metric is drawn       |  46 ms |            163 ms |       63 ms |
 
 An element inserted before the canvas, or removed from there, makes the
-browser recalculate the style of the canvas: 130 ms of the 186 ms in the
+browser recalculate the style of the canvas: 120 ms of the 194 ms in the
 second column. The dock removes that cost. What is left is the mounting
 itself:
 
-- **The sidebar** renders one row per entity. It mounts the 80 a sidebar can
-  show with the panel and the others one render later, 99 ms after the press.
-- **Simulation Settings** with a scenario selected compiles the preview of
-  its initial state again each time it mounts. The form shows a notice for two
-  or three frames, and the frame that brings the rows takes 58 ms.
-- **The Timeline** draws its chart again: 40 ms more than a kept panel. The
+- **The sidebar** renders one row per entity. It mounts every group header
+  and the 80 entities a sidebar can show with the panel, and the others one
+  render later, 100 ms after the press. A list that was left scrolled mounts
+  in one step, at the offset it was left at.
+- **Simulation Settings** mounts a block for every place of the net in the
+  frame that opens the panel. The scenario it previews is lowered once and
+  remembered, so the form opens complete. Before that it opened in 59 ms with
+  a notice in place of the preview for three frames, and the rows came in a
+  58 ms frame during the slide.
+- **The Timeline** draws its chart again: 30 ms more than a kept panel. The
   options of its series dropdown mount when the dropdown opens, which takes
-  1,500 of 1,980 component renders out of the opening.
+  1,500 of 1,980 component renders out of the opening. A metric it compiled
+  is kept while the panel is closed. Before that the chart showed gaps for
+  seven frames while the metric compiled again.
+- **The Properties panel** mounted its content at the selection before this
+  change as well, so it costs what it did. No code editor mounts in that
+  frame on these selections: the sections that hold one are collapsed until
+  the user opens them.
 
-On Supply Chain itself, 43 nodes, the three columns read 15, 28 and 17 ms for
-the sidebar and 36, 54 and 33 ms for the transition.
+On Supply Chain itself, 43 nodes, the three columns read 22, 48 and 37 ms for
+the sidebar, 44, 62 and 42 ms for the transition, and 33, 66 and 47 ms for
+the complete Simulation Settings form. Those are medians of three rounds.
 
-With the sidebar and the bottom panel closed, the page of the 468-node net
-has 35,300 elements where it had 46,000, and its heap is 68 MiB where it was 78. A node dragged then renders 580 components and not 1,331: a closed
-Simulation Settings form no longer follows the net.
+With the sidebar and the bottom panel closed, and the Definitions view not
+yet shown, the page of the 468-node net has 17,200 elements where it had
+46,000, and its heap is 51 MiB where it was 78. A node dragged then renders
+580 components and not 1,331: a closed Simulation Settings form no longer
+follows the net.
 
-`benchmarks/monaco-performance/panel-mount.mjs` measures these.
+`benchmarks/monaco-performance/panel-mount.mjs` measures the last column on
+a build of the editor. The first two need the build before this change.
 
 ## The Definitions view
 
 The Definitions view renders a cell for every entity of the net. It mounts
 when it first shows and stays in a hidden `Activity` from then on, so a
 session that never opens it does not pay for it. On the 468-node net the view
-is 18,100 of the 42,800 elements the page had with it and 11 MiB of an 88 MiB
-heap, and the script time of the load is 469 ms without it against 595 ms.
-The first opening mounts the cells and takes 294 ms where it took 223 ms. Each
-later one shows the hidden view again, in 206 ms.
+is 18,100 of the 42,800 elements the page had with it and 18 MiB of an 85 MiB
+heap, and the script time of the load is 446 ms without it against 565 ms.
+The first opening mounts the cells and takes 292 ms where it took 208 ms. Each
+later one shows the hidden view again, in 215 ms.
+
+The hidden view also ran, at load, code that the Properties panel shares with
+it. Without it the first selection of a session is the first to run that
+code: a place on the 468-node net takes 150 ms where it took 125 ms. Shown
+once before that selection, the Definitions view takes the difference away:
+118 ms against 157 ms in three alternating runs. On Supply Chain the first
+selection takes 75 ms either way.
 
 ## Where the cost is now
 
@@ -136,8 +160,10 @@ later one shows the hidden view again, in 206 ms.
   browser draws 97 frames of it against 91.
 - **Paint per drawn frame during a drag**, zoomed in, rose from 3.6 ms to
   5.3 ms. The cause is not known.
-- **Loading** did not get faster. The cost follows the number of elements, and
-  no rule on this page lowers it.
+- **Loading** takes as long. Without the Definitions view the load runs
+  120 ms less script, and the page is ready after the same 0.9 s. That time
+  follows the elements of the canvas, and no rule on this page lowers their
+  number.
 
 ## The rules that hold the numbers
 
@@ -193,5 +219,5 @@ on, so none is part of the rules above.
 | Draw simpler nodes when zoomed out                            | Labels and token counts disappear below a zoom level       |
 | Render only the nodes on screen (`onlyRenderVisibleElements`) | Nodes mount and unmount while panning                      |
 | Promote the viewport to its own layer (`will-change`)         | Text is rastered at one scale and blurs during a zoom      |
-| Unmount the Definitions view whenever the canvas shows        | Each opening takes 266 ms where it takes 206 ms            |
+| Unmount the Definitions view whenever the canvas shows        | Each opening takes 292 ms where it takes 215 ms            |
 | Upgrade React Flow                                            | A behaviour check of every gesture against the new version |
