@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
-import { entityGroups, firstEntityRows } from "./entity-groups";
+import { entitiesMountedFirst, entityGroups } from "./entity-groups";
 
 import type { Place, Transition } from "@hashintel/petrinaut-core";
 
@@ -109,28 +109,30 @@ describe("entityGroups", () => {
   });
 });
 
-describe("firstEntityRows", () => {
+describe("entitiesMountedFirst", () => {
   const groups = entityGroups(net, DEFAULT_PETRINAUT_EXTENSIONS);
-  const rowIds = (top: typeof groups) =>
-    top.map((group) => [group.id, ...group.children.map((child) => child.id)]);
+  const ids = (limit: number, collapsed: string[] = []) =>
+    entitiesMountedFirst(groups, new Set(collapsed), limit).map((entities) =>
+      entities.map((entity) => entity.id),
+    );
 
-  it("keeps a list that fits as it is, each group the same object", () => {
-    const top = firstEntityRows(groups, 7);
-
-    expect(top).toEqual(groups);
-    expect(top.every((group, index) => group === groups[index])).toBe(true);
+  it("gives every entity of a list that fits", () => {
+    expect(ids(7)).toEqual([["p1", "p2", "t1", "t2"], ["c1"], ["e1"], ["r1"]]);
   });
 
-  it("cuts the group that reaches the limit and leaves out the groups after it", () => {
-    expect(rowIds(firstEntityRows(groups, 3))).toEqual([
-      ["group-nodes", "p1", "p2", "t1"],
-    ]);
-    expect(rowIds(firstEntityRows(groups, 4))).toEqual([
-      ["group-nodes", "p1", "p2", "t1", "t2"],
-    ]);
-    expect(rowIds(firstEntityRows(groups, 5))).toEqual([
-      ["group-nodes", "p1", "p2", "t1", "t2"],
-      ["group-types", "c1"],
+  it("cuts the group that reaches the limit and gives the groups after it none", () => {
+    expect(ids(3)).toEqual([["p1", "p2", "t1"], [], [], []]);
+    expect(ids(4)).toEqual([["p1", "p2", "t1", "t2"], [], [], []]);
+    expect(ids(5)).toEqual([["p1", "p2", "t1", "t2"], ["c1"], [], []]);
+  });
+
+  it("counts no entity of a collapsed group, and gives it none", () => {
+    expect(ids(2, ["group-nodes"])).toEqual([[], ["c1"], ["e1"], []]);
+    expect(ids(5, ["group-types"])).toEqual([
+      ["p1", "p2", "t1", "t2"],
+      [],
+      ["e1"],
+      [],
     ]);
   });
 });

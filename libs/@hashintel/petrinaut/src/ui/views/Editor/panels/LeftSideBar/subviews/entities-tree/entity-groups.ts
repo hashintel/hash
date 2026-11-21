@@ -56,27 +56,23 @@ export const selectionItemOf = ({ type, id }: EntityItem): SelectionItem => ({
 });
 
 /**
- * The top of the list, down to its first `limit` entities: the groups before
- * the one that reaches the limit, then that group with the entities that fit.
+ * The entities each group mounts with the list, in the order of `groups`: the
+ * first `limit` entities in sight, from the top. A collapsed group shows none
+ * of its entities, so none of them counts and none mounts.
  */
-export const firstEntityRows = (
+export const entitiesMountedFirst = (
   groups: EntityGroup[],
+  collapsedGroups: ReadonlySet<string>,
   limit: number,
-): EntityGroup[] => {
-  const top: EntityGroup[] = [];
+): EntityItem[][] => {
   let rowsLeft = limit;
-  for (const group of groups) {
-    if (rowsLeft <= 0) {
-      break;
-    }
-    top.push(
-      group.children.length > rowsLeft
-        ? { ...group, children: group.children.slice(0, rowsLeft) }
-        : group,
-    );
-    rowsLeft -= group.children.length;
-  }
-  return top;
+  return groups.map((group) => {
+    const entities = collapsedGroups.has(group.id)
+      ? []
+      : group.children.slice(0, rowsLeft);
+    rowsLeft -= entities.length;
+    return entities;
+  });
 };
 
 /**

@@ -8,6 +8,7 @@ import {
   render,
   screen,
 } from "@testing-library/react";
+import { useLayoutEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { usePublished } from "../../../../../../../react/select-from-context";
@@ -241,6 +242,85 @@ describe("entity list keyboard flow", () => {
     fireEvent.click(rowOf("Group"));
     fireEvent.click(rowOf("Beta"));
     expect(selectedIds()).toEqual(["b"]);
+  });
+});
+
+describe("entity list mounting", () => {
+  const nodes: EntityGroup = {
+    ...groupOf(
+      Array.from({ length: 100 }, (_, index) => ({
+        id: `p${index}`,
+        type: "place" as const,
+        name: `Place ${index}`,
+      })),
+    ),
+    name: "Nodes",
+  };
+  const types: EntityGroup = {
+    id: "group-types",
+    name: "Token Types",
+    emptyGroupMessage: "No token types",
+    children: [{ id: "c1", type: "type", name: "Pallet" }],
+  };
+
+  /** Calls `onMount` in the commit that mounts its children, before any render they deferred. */
+  const MountProbe = ({
+    onMount,
+    children,
+  }: {
+    onMount: () => void;
+    children: ReactNode;
+  }) => {
+    useLayoutEffect(onMount, [onMount]);
+    return children;
+  };
+
+  /**
+   * The list under a probe that notes the rows of the commit that mounts it.
+   * A new `mount` mounts the list again under the same collapsed groups.
+   */
+  const listMount = (mount: string) => {
+    const rows: { first: (string | null)[] } = { first: [] };
+    const noteRows = () => {
+      rows.first = screen.getAllByRole("option").map((row) => row.textContent);
+    };
+    const tree = (
+      <EditorContext value={makeSelectionStub().value}>
+        <CollapsedGroupsProvider>
+          <MountProbe key={mount} onMount={noteRows}>
+            <EntityList groups={[nodes, types]} />
+          </MountProbe>
+        </CollapsedGroupsProvider>
+      </EditorContext>
+    );
+    return { tree, rows };
+  };
+
+  it("mounts the rows a sidebar can show with the list, and the others after", () => {
+    const { tree, rows } = listMount("first");
+    render(tree);
+
+    // Both headers and the first 80 entities.
+    expect(rows.first).toHaveLength(82);
+    expect(rows.first.slice(0, 2)).toEqual(["Nodes", "Place 0"]);
+    expect(rows.first).toContain("Place 79");
+    expect(rows.first).toContain("Token Types");
+    expect(rows.first).not.toContain("Pallet");
+
+    expect(screen.getAllByRole("option")).toHaveLength(103);
+  });
+
+  it("mounts the rows below a collapsed group with the list", () => {
+    const first = listMount("first");
+    const view = render(first.tree);
+    fireEvent.click(rowOf("Nodes"));
+
+    const second = listMount("second");
+    view.rerender(second.tree);
+
+    expect(second.rows.first).toEqual(["Nodes", "Token Types", "Pallet"]);
+    // The rows of the collapsed group mount after, for its height animation.
+    expect(screen.getAllByRole("option", { hidden: true })).toHaveLength(103);
   });
 });
 

@@ -13,7 +13,7 @@ import { useEditorActions } from "../../../../../../../react/state/editor-contex
 import { focusLands } from "../../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../../worksheet/use-focus-stops";
 import { CollapsedGroupsContext } from "./collapsed-groups-context";
-import { firstEntityRows, selectionItemOf } from "./entity-groups";
+import { entitiesMountedFirst, selectionItemOf } from "./entity-groups";
 import { EmptyGroupRow, EntityRow, GroupRow } from "./entity-rows";
 
 import type { FocusStop } from "../../../../../../worksheet/use-focus-stops";
@@ -37,8 +37,8 @@ const groupChildrenStyle = css({
   transition: "[height 150ms ease-out]",
 });
 
-/** More entities than a sidebar of any height shows at once. */
-const ENTITIES_MOUNTED_FIRST = 80;
+/** The entities that mount with the list: at 33 px a row, what a sidebar 2,600 px high shows. */
+const firstMountLimit = 80;
 
 type Row = EntityItem | EntityGroup;
 
@@ -90,14 +90,14 @@ export const EntityList: React.FC<{ groups: EntityGroup[] }> = ({ groups }) => {
   });
   // The Shift-range anchor: the entity the last plain selection landed on.
   const anchorId = useRef<string | null>(null);
-  // A long list mounts in two steps: the rows a sidebar can show, then the
-  // rows below them, in a render that React interrupts for a frame. The rows
-  // of several hundred entities would otherwise hold back the frame in which
-  // the sidebar opens.
+  // A long list mounts in two steps: every group header with the rows a
+  // sidebar can show, then the other rows, in a render that React interrupts
+  // for a frame. The rows of several hundred entities would otherwise hold
+  // back the frame in which the sidebar opens.
   const mountsEveryRow = useDeferredValue(true, false);
-  const mountedGroups = mountsEveryRow
-    ? groups
-    : firstEntityRows(groups, ENTITIES_MOUNTED_FIRST);
+  const firstEntities = mountsEveryRow
+    ? null
+    : entitiesMountedFirst(groups, collapsedGroups, firstMountLimit);
 
   // The rows the keyboard flow walks, in document order. A collapsed group's
   // children stay mounted for the height animation; they are out of `stops`,
@@ -267,8 +267,9 @@ export const EntityList: React.FC<{ groups: EntityGroup[] }> = ({ groups }) => {
         }
       }}
     >
-      {mountedGroups.map((group) => {
+      {groups.map((group, index) => {
         const expanded = !collapsedGroups.has(group.id);
+        const entities = firstEntities?.[index] ?? group.children;
         return (
           <Fragment key={group.id}>
             <GroupRow
@@ -285,7 +286,7 @@ export const EntityList: React.FC<{ groups: EntityGroup[] }> = ({ groups }) => {
               style={{ height: expanded ? "auto" : 0 }}
             >
               {group.children.length > 0 ? (
-                group.children.map((entity) => (
+                entities.map((entity) => (
                   <EntityRow
                     key={entity.id}
                     elementId={listId + entity.id}
