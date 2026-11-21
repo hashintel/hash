@@ -14,8 +14,8 @@
  */
 
 import { createContext, use } from "react";
+import { useSyncExternalStoreWithSelector } from "use-sync-external-store/with-selector";
 
-import { useStoreSelector } from "../../../react/use-store";
 import { adHocVariableKey } from "./dependency-highlight";
 
 import type { AdHocFocusTarget, AdHocHighlight } from "./dependency-highlight";
@@ -179,7 +179,14 @@ export const useAdHocFormFact = <Selected>(
   isSame?: (previous: Selected, next: Selected) => boolean,
 ): Selected => {
   const { facts } = useAdHocForm();
-  return useStoreSelector(facts, select, isSame);
+  return useSyncExternalStoreWithSelector(
+    (onStoreChange) => facts.subscribe(onStoreChange),
+    () => facts.get(),
+    // The same value where a component is rendered to a string.
+    () => facts.get(),
+    select,
+    isSame,
+  );
 };
 
 /**
