@@ -1,4 +1,11 @@
-import { Fragment, use, useId, useReducer, useRef } from "react";
+import {
+  Fragment,
+  use,
+  useDeferredValue,
+  useId,
+  useReducer,
+  useRef,
+} from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -6,7 +13,7 @@ import { useEditorActions } from "../../../../../../../react/state/editor-contex
 import { focusLands } from "../../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../../worksheet/use-focus-stops";
 import { CollapsedGroupsContext } from "./collapsed-groups-context";
-import { selectionItemOf } from "./entity-groups";
+import { firstEntityRows, selectionItemOf } from "./entity-groups";
 import { EmptyGroupRow, EntityRow, GroupRow } from "./entity-rows";
 
 import type { FocusStop } from "../../../../../../worksheet/use-focus-stops";
@@ -29,6 +36,9 @@ const groupChildrenStyle = css({
   overflow: "hidden",
   transition: "[height 150ms ease-out]",
 });
+
+/** More entities than a sidebar of any height shows at once. */
+const ENTITIES_MOUNTED_FIRST = 80;
 
 type Row = EntityItem | EntityGroup;
 
@@ -80,6 +90,14 @@ export const EntityList: React.FC<{ groups: EntityGroup[] }> = ({ groups }) => {
   });
   // The Shift-range anchor: the entity the last plain selection landed on.
   const anchorId = useRef<string | null>(null);
+  // A long list mounts in two steps: the rows a sidebar can show, then the
+  // rows below them, in a render that React interrupts for a frame. The rows
+  // of several hundred entities would otherwise hold back the frame in which
+  // the sidebar opens.
+  const mountsEveryRow = useDeferredValue(true, false);
+  const mountedGroups = mountsEveryRow
+    ? groups
+    : firstEntityRows(groups, ENTITIES_MOUNTED_FIRST);
 
   // The rows the keyboard flow walks, in document order. A collapsed group's
   // children stay mounted for the height animation; they are out of `stops`,
@@ -249,7 +267,7 @@ export const EntityList: React.FC<{ groups: EntityGroup[] }> = ({ groups }) => {
         }
       }}
     >
-      {groups.map((group) => {
+      {mountedGroups.map((group) => {
         const expanded = !collapsedGroups.has(group.id);
         return (
           <Fragment key={group.id}>

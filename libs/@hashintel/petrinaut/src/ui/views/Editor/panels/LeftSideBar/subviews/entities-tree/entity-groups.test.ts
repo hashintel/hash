@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
-import { entityGroups } from "./entity-groups";
+import { entityGroups, firstEntityRows } from "./entity-groups";
 
 import type { Place, Transition } from "@hashintel/petrinaut-core";
 
@@ -106,5 +106,31 @@ describe("entityGroups", () => {
     ]);
     // Equations are written over token types, so they go with the colours.
     expect(groupNames({ colors: false })).toEqual(["Nodes", "Parameters"]);
+  });
+});
+
+describe("firstEntityRows", () => {
+  const groups = entityGroups(net, DEFAULT_PETRINAUT_EXTENSIONS);
+  const rowIds = (top: typeof groups) =>
+    top.map((group) => [group.id, ...group.children.map((child) => child.id)]);
+
+  it("keeps a list that fits as it is, each group the same object", () => {
+    const top = firstEntityRows(groups, 7);
+
+    expect(top).toEqual(groups);
+    expect(top.every((group, index) => group === groups[index])).toBe(true);
+  });
+
+  it("cuts the group that reaches the limit and leaves out the groups after it", () => {
+    expect(rowIds(firstEntityRows(groups, 3))).toEqual([
+      ["group-nodes", "p1", "p2", "t1"],
+    ]);
+    expect(rowIds(firstEntityRows(groups, 4))).toEqual([
+      ["group-nodes", "p1", "p2", "t1", "t2"],
+    ]);
+    expect(rowIds(firstEntityRows(groups, 5))).toEqual([
+      ["group-nodes", "p1", "p2", "t1", "t2"],
+      ["group-types", "c1"],
+    ]);
   });
 });

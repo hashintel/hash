@@ -65,10 +65,13 @@ A user runs the command that toggles the bottom panel:
 
 **What a panel must remember while it is closed lives above its `DockedPanel`.** Closing a panel unmounts its content, and state held inside is gone when it opens again. `LeftSideBar` holds the text searched for and the collapsed groups of the entities tree in two providers around its `DockedPanel`. A section's collapsed state and height are in the user settings, and the bottom panel's tab is in the editor state. The scroll offset of a list, and state a tab of the bottom panel holds itself, start again when the panel opens.
 
+**A long list in a panel mounts in two steps.** `EntityList` renders the entities a sidebar can show and reads `useDeferredValue(true, false)` to render the others one render later, in a render React interrupts for each frame. The rows of a large net would otherwise hold back the frame in which the sidebar opens. `entity-groups.test.ts` holds where the list is cut.
+
 **A list row mounts its menu on demand.** A menu reads editor state and code navigation, so one menu per row renders every row for a toggle. `EntityList`, the entities tree of the left sidebar, mounts the menu of the row last pointed at and the row last focused. The test "mounts no menu until a row is pointed at or focused" in `entity-list.test.tsx` holds this.
 
 ## Pitfalls
 
+- Content that a panel shows with a delay must not wait in a deferred render while the panel slides. A component that renders on every frame of a slide, as an open visualizer window does, restarts the deferred render each frame, and the content arrives only when the slide is over. Defer what is out of sight, as the entities tree does.
 - A component rendered inside a hidden `Activity` runs no effect. Code that must run in every mode belongs in a leaf at the top of `EditorViewContent`.
 - `useKeyboardShortcuts` runs in `BottomBar`, whose `Activity` is hidden in Simulate mode and in the Definitions view. Its keys do nothing there.
 - `PetrinautIconProvider` sits above the view because it gives every icon a new context value each time it renders.

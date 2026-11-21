@@ -56,6 +56,30 @@ export const selectionItemOf = ({ type, id }: EntityItem): SelectionItem => ({
 });
 
 /**
+ * The top of the list, down to its first `limit` entities: the groups before
+ * the one that reaches the limit, then that group with the entities that fit.
+ */
+export const firstEntityRows = (
+  groups: EntityGroup[],
+  limit: number,
+): EntityGroup[] => {
+  const top: EntityGroup[] = [];
+  let rowsLeft = limit;
+  for (const group of groups) {
+    if (rowsLeft <= 0) {
+      break;
+    }
+    top.push(
+      group.children.length > rowsLeft
+        ? { ...group, children: group.children.slice(0, rowsLeft) }
+        : group,
+    );
+    rowsLeft -= group.children.length;
+  }
+  return top;
+};
+
+/**
  * The entities of a net in the order the sidebar lists them, under the groups
  * the document's extensions allow.
  */
