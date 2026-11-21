@@ -264,31 +264,43 @@ is the median of five alternating rounds on the production build.
 
 | Gesture                                                    | Before | After |
 | ---------------------------------------------------------- | -----: | ----: |
-| Pan with a node selected, every node on screen             |      6 |    25 |
+| Pan with a node selected, every node on screen             |      6 |    26 |
 | Zoom with a node selected, every node on screen            |      8 |    36 |
-| Pan with a node selected, at zoom 0.5                      |      8 |    27 |
-| Zoom with a node selected, at zoom 0.5                     |     12 |    42 |
-| Drag a node, every node on screen                          |      7 |    22 |
-| Drag a node, at zoom 0.5                                   |     15 |    29 |
-| Rest the pointer on a node until the fade ends, then leave |     24 |    47 |
+| Pan with a node selected, at zoom 0.5                      |      8 |    29 |
+| Zoom with a node selected, at zoom 0.5                     |     13 |    45 |
+| Drag a node, every node on screen                          |      7 |    25 |
+| Drag a node, at zoom 0.5                                   |     15 |    30 |
+| Rest the pointer on a node until the fade ends, then leave |     28 |    49 |
 
 A zoom with the pointer resting on a node, one wheel step per frame, went
-from 23 to 76 frames a second, and its longest frame from 308 ms to 84 ms.
-During the half-second zoom of the table, the GPU process waited 1,162 ms on
-its queue, and now waits 233 ms. After a zoom and a pan over a node it holds
-207 MB where it held 370 MB.
+from 20 to 77 frames a second, and its longest frame from 300 ms to 90 ms.
+During the half-second zoom of the table, the GPU process waited 1,244 ms on
+its queue, and now waits 225 ms. After a zoom and a pan over a node it holds
+218 MB where it held 386 MB.
 
-The nodes keep their opacity. Without it, the zoom of the table would show 40
-frames a second where it shows 37, and the pan would show as many as it does.
-For the 200 ms of the fade each node is a layer of its own: 706 layers with
-27 MB of tiles.
+The nodes keep their opacity. Without it, the zoom of the table would show 42
+frames a second where it shows 37, and the pan 31 where it shows 27. For the
+200 ms of the fade each node is a layer of its own. The page then has 951
+layers where it had 2,787, and the compositor holds 27 MB of tiles for them,
+15 MB of which it holds at rest. The tiles of the build before could not be
+read while its fade ran.
 
-On the GPU of the Mac this was measured on, the canvas draws what it drew. In a crop of 760 by 560 pixels with
+On the GPU of the Mac this was measured on, Chromium draws what it drew, at
+rest and for as long as a highlight holds. In a crop of 760 by 560 pixels with
 a node selected, 0.4% to 2.9% of the pixels differ by more than 6 of 255
 between the two builds, and 0.1% to 0.6% by more than 16. They lie where
-faded arcs cross or run along each other. With the browser rastering on the
-CPU a faded arc is lighter than it was, most where its line is thinner than
-a pixel: [The canvas](doc:ui.views.canvas/canvas) says why.
+faded arcs cross or run along each other. One thing differs while a highlight
+changes: when the focus moves from one item straight to another, the
+arrowhead of an arc that gains or loses its role changes at once while its
+line fades.
+
+Where the browser antialiases by coverage, a faded arc is lighter than it
+was, most where its line is thinner than a pixel. In Chromium rastering on
+the CPU, 7% to 20% of that crop differs by more than 6 of 255. In WebKit 26.5,
+the engine of Safari, 20% does, and 12% by more than 16, the largest by 70.
+No pair of opacities for the two strokes of a line gives the old picture
+there. Firefox was not measured.
+[The canvas](doc:ui.views.canvas/canvas) says why.
 
 ## Where the cost is now
 
