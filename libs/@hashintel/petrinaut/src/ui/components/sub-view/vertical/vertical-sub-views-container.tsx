@@ -11,6 +11,7 @@ import { useHeldWhile } from "./vertical-sub-views-container/use-held-while";
 import { useSubViewMaximization } from "./vertical-sub-views-container/use-sub-view-maximization";
 import { useTransientTransition } from "./vertical-sub-views-container/use-transient-transition";
 
+import type { SubViewSectionSettings } from "../../../../react/state/user-settings-context";
 import type { SubView } from "../types";
 
 /** Height of the header row in pixels */
@@ -88,6 +89,12 @@ const resizeHandleStyle = css({
   },
 });
 
+const isCollapsedIn = (
+  settings: Record<string, SubViewSectionSettings> | undefined,
+  subView: SubView,
+): boolean =>
+  settings?.[subView.id]?.collapsed ?? subView.defaultCollapsed ?? false;
+
 interface VerticalSubViewsContainerProps {
   /** Unique name used as a key in UserSettingsContext to persist section state */
   name: string;
@@ -128,8 +135,6 @@ export const VerticalSubViewsContainer: React.FC<
   // so the layout they are in holds still until then: expanding the section
   // would give its panel a new height and move every section below the fold.
   const shownSettings = useHeldWhile(isArriving, containerSettings);
-  const isSectionCollapsed = (sv: SubView, settings = shownSettings): boolean =>
-    settings?.[sv.id]?.collapsed ?? sv.defaultCollapsed ?? false;
 
   const saveHeight = useDebouncedHeightSave(name, updateSubViewSection);
 
@@ -141,12 +146,12 @@ export const VerticalSubViewsContainer: React.FC<
       triggerTransition();
     }
     updateSubViewSection(name, sv.id, {
-      collapsed: !isSectionCollapsed(sv, containerSettings),
+      collapsed: !isCollapsedIn(containerSettings, sv),
     });
   };
 
   const allCollapsed = subViews.every(
-    (sv) => !sv.main && isSectionCollapsed(sv),
+    (sv) => !sv.main && isCollapsedIn(shownSettings, sv),
   );
 
   return (
@@ -170,7 +175,7 @@ export const VerticalSubViewsContainer: React.FC<
         const fillsContainer = maximizedId === subView.id;
         const isHidden = maximizedId !== null && !fillsContainer;
         const isMain = subView.main ?? false;
-        const isExpanded = isMain || !isSectionCollapsed(subView);
+        const isExpanded = isMain || !isCollapsedIn(shownSettings, subView);
         const minSize =
           subView.resizable?.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
 
