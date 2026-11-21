@@ -44,8 +44,6 @@ const Playground = lazy(async () => {
 /** How far outside the viewport the figure is when its code starts to load. */
 const loadMargin = "400px";
 
-const placeholder = <p className="pnd-box-note">Loading the playground…</p>;
-
 export const TokenEncodingPlayground = () => {
   const [isNear, setIsNear] = useState(false);
 
@@ -67,9 +65,20 @@ export const TokenEncodingPlayground = () => {
   return (
     <figure className="pnd" ref={watch}>
       <figcaption className="pnd-title">Token encoding playground</figcaption>
-      <Suspense fallback={placeholder}>
-        {isNear ? <Playground /> : placeholder}
-      </Suspense>
+      {isNear ? (
+        <Suspense
+          fallback={<p className="pnd-box-note">Loading the playground…</p>}
+        >
+          <Playground />
+        </Suspense>
+      ) : (
+        // True in every state the figure can stay in: without JavaScript and
+        // in print the code never loads.
+        <p className="pnd-box-note">
+          An interactive figure. It loads when it scrolls into view, and needs
+          JavaScript.
+        </p>
+      )}
     </figure>
   );
 };
