@@ -26,19 +26,19 @@ It renders what the [React layer](layer:react) holds and calls its hooks to chan
 
 ## Where a thing goes
 
-| To add                                                     | Put it in                                                         | Read                                                                    |
-| ---------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| A section or tab of a panel                                | The `sub-views.ts` of the panel, and a component module beside it | [Sub-views](doc:ui.sub-view/sub-views)                                  |
-| A node, an arc or a canvas gesture                         | `ui/views/SDCPN`                                                  | [The canvas](doc:ui.views.canvas/canvas)                                |
-| A region, a mode or a command                              | `ui/views/Editor`                                                 | [The editor shell](doc:ui.views.editor/editor-shell)                    |
-| A code input                                               | `CodeEditor`                                                      | [Monaco](doc:ui.monaco/monaco)                                          |
-| A table                                                    | `ui/components/spreadsheet-kit`                                   | [Building a spreadsheet](doc:ui.spreadsheet-kit/building-a-spreadsheet) |
-| Arrow-key movement between controls                        | `ui/worksheet`                                                    | [The worksheet keyboard flow](doc:ui.worksheet/worksheet)               |
-| A component two views share                                | `ui/components`                                                   |                                                                         |
-| Code that two views share and no other part of the UI uses | `ui/views/shared`                                                 |                                                                         |
-| A value that follows a panel on every frame                | `styleRef` or `useReading` from `ui/lib/readings.ts`              | [Panel geometry outside React state](doc:react.state/panel-sizes)       |
-| Something only one host needs                              | A plugin                                                          | [Plugins](doc:ui.plugins/overview)                                      |
-| An icon                                                    | `@hashintel/ds-icons`, imported where it is drawn                 | The README of that package                                              |
+| To add                                                     | Put it in                                                         | Read                                                                                 |
+| ---------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| A section or tab of a panel                                | The `sub-views.ts` of the panel, and a component module beside it | [Sub-views](doc:ui.sub-view/sub-views)                                               |
+| A node, an arc or a canvas gesture                         | `ui/views/SDCPN`                                                  | [The canvas](doc:ui.views.canvas/canvas)                                             |
+| A region, a mode or a command                              | `ui/views/Editor`                                                 | [The editor shell](doc:ui.views.editor/editor-shell)                                 |
+| A code input                                               | `CodeEditor`                                                      | [Monaco](doc:ui.monaco/monaco)                                                       |
+| A table                                                    | `ui/components/spreadsheet-kit`                                   | [Building a spreadsheet](doc:ui.spreadsheet-kit/building-a-spreadsheet)              |
+| Arrow-key movement between controls                        | `ui/worksheet`                                                    | [The worksheet keyboard flow](doc:ui.worksheet/worksheet)                            |
+| A component two views share                                | `ui/components`                                                   |                                                                                      |
+| Code that two views share and no other part of the UI uses | `ui/views/shared`                                                 |                                                                                      |
+| A value that follows a panel on every frame                | `styleRef` or `useReading` from `ui/lib/readings.ts`              | [Panel geometry outside React state](doc:react.state/panel-sizes)                    |
+| Something only one host needs                              | A plugin                                                          | [Plugins](doc:ui.plugins/overview)                                                   |
+| An icon                                                    | `@hashintel/ds-icons`, imported where it is drawn                 | [Its README](https://github.com/hashintel/hash/tree/main/libs/%40hashintel/ds-icons) |
 
 A component and its private parts share a name: `x.tsx` is the entry, and the folder `x/` holds what only it uses. The entry file calls hooks, then composes parts. The panels under `ui/views/Editor/panels` differ: the entry is `panel.tsx` or `main.tsx`, and the sections sit in `subviews/`.
 
