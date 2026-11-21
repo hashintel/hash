@@ -82,12 +82,23 @@ export const encodeToken = (
 };
 
 /**
- * The object a token source evaluates to. The source is a JavaScript
- * expression the reader typed, run in the reader's own page.
+ * The function that evaluates a token source: a JavaScript expression the
+ * reader typed, run in the reader's own page.
  */
+const compileTokenSource = (source: string): (() => unknown) => {
+  try {
+    // The line break keeps a trailing `//` comment from swallowing the bracket.
+    return new Function(`"use strict"; return (${source}\n);`) as () => unknown;
+  } catch {
+    // The parser's own message names the bracket above, which the reader
+    // never typed, so the playground says it in its own words.
+    throw new Error("The token is not valid JavaScript yet.");
+  }
+};
+
+/** The object a token source evaluates to. */
 const evaluateTokenSource = (source: string): Record<string, unknown> => {
-  // The line break keeps a trailing `//` comment from swallowing the bracket.
-  const value: unknown = new Function(`"use strict"; return (${source}\n);`)();
+  const value = compileTokenSource(source)();
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("The token must be an object, such as { amount: 1.25 }");
   }

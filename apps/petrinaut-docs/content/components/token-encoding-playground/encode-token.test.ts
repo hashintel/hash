@@ -65,10 +65,19 @@ describe("encodeTokenSource", () => {
     expect(encoding).toMatchObject({ decoded: { count: 4 } });
   });
 
-  it("reports a source that does not parse", () => {
-    expect(encodeTokenSource(dimensions, "{ count: ")).toEqual({
-      error: expect.any(String),
-    });
+  it.each(["", "{ count: ", "{ count: 1 ] }"])(
+    "says in one sentence of its own that the source %j does not parse",
+    (source) => {
+      expect(encodeTokenSource(dimensions, source)).toEqual({
+        error: "The token is not valid JavaScript yet.",
+      });
+    },
+  );
+
+  it("reports what the source throws when it runs", () => {
+    expect(encodeTokenSource(dimensions, "{ count: JSON.parse('{') }")).toEqual(
+      { error: expect.stringContaining("JSON") },
+    );
   });
 
   it("reports a source that is not an object", () => {
