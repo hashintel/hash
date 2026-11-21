@@ -1,0 +1,23 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/embedded/type.rs
+description: Nested generic types
+expression: Container<Wrapper<T>>
+info:
+  kind: Ok
+---
+Type#4294967040@13
+  TypeKind (Path)
+    Path#4294967040@13 (rooted: false)
+      PathSegment#4294967040@12 (name: Container)
+        PathSegmentArgument (GenericArgument)
+          GenericArgument#4294967040@11
+            Type#4294967040@10
+              TypeKind (Path)
+                Path#4294967040@10 (rooted: false)
+                  PathSegment#4294967040@9 (name: Wrapper)
+                    PathSegmentArgument (GenericArgument)
+                      GenericArgument#4294967040@8
+                        Type#4294967040@7
+                          TypeKind (Path)
+                            Path#4294967040@7 (rooted: false)
+                              PathSegment#4294967040@6 (name: T)

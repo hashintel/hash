@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/embedded/expr.rs
+description: Multi-digit index
+expression: "[123]"
+info:
+  kind: Ok
+---
+IndexByLiteral(
+    LiteralExpr {
+        id: NodeId(
+            4294967040,
+        ),
+        span: SpanId(
+            1,
+        ),
+        kind: Integer(
+            Integer {
+                value: Symbol(
+                    "123",
+                ),
+            },
+        ),
+        type: None,
+    },
+)

@@ -17,7 +17,7 @@ use hashql_diagnostics::{
 use hashql_eval::error::EvalDiagnosticCategory;
 use hashql_hir::error::HirDiagnosticCategory;
 use hashql_mir::error::MirDiagnosticCategory;
-use hashql_syntax_jexpr::{error::JExprDiagnosticCategory, span::Span};
+use hashql_syntax_jexpr::{Parse, cst, error::JExprDiagnosticCategory, span::Span};
 use http::StatusCode;
 
 use super::{
@@ -190,21 +190,16 @@ struct PointerSpan {
 }
 
 impl PointerSpan {
-    fn resolve(id: SpanId, spans: &SpanTable<Span>) -> Option<Self> {
+    fn resolve(id: SpanId, spans: &SpanTable<Span>, parse: &Parse<cst::ExprRoot>) -> Option<Self> {
         let absolute = spans.absolute(id)?;
 
-        let mut pointer = None;
-
-        for ancestor in spans.ancestors(id) {
-            let Some(span) = spans.get(ancestor) else {
-                continue;
-            };
-
-            if let Some(span_pointer) = &span.pointer {
-                pointer = Some(span_pointer.as_str().to_owned());
-                break;
-            }
-        }
+        let pointer = if id == SpanId::SYNTHETIC {
+            None
+        } else {
+            parse
+                .json_pointer(absolute.range())
+                .map(|pointer| pointer.as_str().to_owned())
+        };
 
         Some(Self {
             range: absolute.range().into(),
@@ -217,11 +212,12 @@ pub(crate) fn status_to_response(
     status: Status<OwnedValue, HashQlDiagnosticCategory, SpanId>,
     sources: &Sources<'_>,
     mut spans: &SpanTable<Span>,
+    parse: &Parse<cst::ExprRoot>,
     options: &CompilationOutputOptions,
 ) -> BoxedResponse {
     match status {
         Ok(Success { value, advisories }) => {
-            let advisories = advisories.map_spans(|span| PointerSpan::resolve(span, spans));
+            let advisories = advisories.map_spans(|span| PointerSpan::resolve(span, spans, parse));
 
             if options.json_compat {
                 Json(Success {
@@ -251,8 +247,10 @@ pub(crate) fn status_to_response(
                 Html(output).into_response()
             } else {
                 Json(Failure {
-                    primary: Box::new(primary.map_spans(|span| PointerSpan::resolve(span, spans))),
-                    secondary: secondary.map_spans(|span| PointerSpan::resolve(span, spans)),
+                    primary: Box::new(
+                        primary.map_spans(|span| PointerSpan::resolve(span, spans, parse)),
+                    ),
+                    secondary: secondary.map_spans(|span| PointerSpan::resolve(span, spans, parse)),
                 })
                 .into_response()
             };

@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/embedded/type.rs
+description: Missing field type
+expression: "(name: )"
+info:
+  kind: Err
+---
+(name: )
+       ^
+invalid identifier

@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/embedded/generic.rs
+description: Camel case identifier
+expression: CamelCase
+info:
+  kind: Err
+---
+CamelCase
+         ^
+invalid generic constraint

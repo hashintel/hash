@@ -7,7 +7,7 @@ use hashql_core::{
     symbol::sym,
     r#type::environment::Environment,
 };
-use hashql_diagnostics::{DiagnosticIssues, IntoStatus as _, Status, StatusExt as _, Success};
+use hashql_diagnostics::{DiagnosticIssues, Status, StatusExt as _, Success};
 use hashql_eval::{
     context::{CodeExecutionContext, CodeGenerationContext},
     postgres::{PostgresCompiler, PreparedQueries},
@@ -22,7 +22,7 @@ use hashql_mir::{
         execution::{ExecutionAnalysisResidual, VertexType},
     },
 };
-use hashql_syntax_jexpr::span::Span;
+use hashql_syntax_jexpr::{Parse, cst, span::Span};
 
 use super::error::HashQlDiagnosticCategory;
 
@@ -56,16 +56,15 @@ impl<'heap> Compilation<'heap> {
         heap: &'heap Heap,
         scratch: &mut Scratch,
         spans: &mut SpanTable<Span>,
-        query: &[u8],
+        parse: &Parse<cst::ExprRoot>,
     ) -> Status<Self, HashQlDiagnosticCategory, SpanId> {
-        // Parse the query
+        // Lower the parsed J-Expr CST into an AST
         let mut parser = hashql_syntax_jexpr::Parser::new(heap, spans);
         let Success {
             value: mut ast,
             advisories,
         } = parser
-            .parse_expr(query)
-            .into_status()
+            .lower_expr(parse)
             .map_category(HashQlDiagnosticCategory::JExpr)?;
 
         let root_span = ast.span;

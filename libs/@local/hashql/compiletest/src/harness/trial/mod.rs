@@ -93,9 +93,12 @@ fn parse_source<'heap>(
     let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
     let mut parser = Parser::new(heap, &mut spans);
 
-    let expr = parser
-        .parse_expr(source.as_bytes())
-        .change_context(TrialError::SourceParsing)?;
+    let expr = match parser.parse_expr(source) {
+        Ok(success) => success.value,
+        Err(failure) => {
+            return Err(Report::new(*failure.primary).change_context(TrialError::SourceParsing));
+        }
+    };
 
     Ok((expr, spans))
 }

@@ -2771,12 +2771,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "circular-buffer"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a77b57ca5f8cc834a94656d3186a8c515a7ba9026af03cf7694c29908b169205"
-
-[[package]]
 name = "clang-sys"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3197,6 +3191,12 @@ dependencies = [
  "num_cpus",
  "winapi",
 ]
+
+[[package]]
+name = "countme"
+version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7704b5fdd17b18ae31c4c1da5a2e0305a2bf17b5249300a9ee9ed7b72114c636"
 
 [[package]]
 name = "cow-utils"
@@ -7537,7 +7537,6 @@ dependencies = [
 name = "hashql-syntax-jexpr"
 version = "0.0.0"
 dependencies = [
- "circular-buffer",
  "codspeed-criterion-compat",
  "hashql-ast",
  "hashql-core",
@@ -7547,6 +7546,7 @@ dependencies = [
  "logos",
  "memchr",
  "proptest",
+ "rowan",
  "rstest",
  "serde",
  "serde_json",
@@ -13248,6 +13248,18 @@ dependencies = [
  "serde_derive",
  "typeid",
  "unicode-ident",
+]
+
+[[package]]
+name = "rowan"
+version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "417a3a9f582e349834051b8a10c8d71ca88da4211e4093528e36b9845f6b5f21"
+dependencies = [
+ "countme",
+ "hashbrown 0.14.5",
+ "rustc-hash 1.1.0",
+ "text-size",
 ]
 
 [[package]]

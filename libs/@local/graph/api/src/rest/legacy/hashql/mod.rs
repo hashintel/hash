@@ -28,7 +28,7 @@ use hashql_eval::{
     postgres::{AuthorizationPatch, PreparedQueryPatch},
 };
 use hashql_mir::interpret::Inputs;
-use hashql_syntax_jexpr::span::Span;
+use hashql_syntax_jexpr::{Parse, Parser, cst, span::Span};
 use http::StatusCode;
 use serde_json::value::RawValue;
 use tokio_util::task::LocalPoolHandle;
@@ -99,7 +99,7 @@ async fn query_local_impl<S>(
     ctx: Arc<CompilerContext>,
     exec: ExecutionContext<S>,
     spans: &mut SpanTable<Span>,
-    query: &[u8],
+    parse: &Parse<cst::ExprRoot>,
 ) -> Status<OwnedValue, HashQlDiagnosticCategory, SpanId>
 where
     S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>,
@@ -115,7 +115,7 @@ where
     let Success {
         value: mut compilation,
         advisories,
-    } = Compilation::compile(&heap, &mut scratch, spans, query)?;
+    } = Compilation::compile(&heap, &mut scratch, spans, parse)?;
 
     let Success {
         value: store,
@@ -183,9 +183,10 @@ where
     let source_id = sources.push(Source::new(query.get()));
 
     let mut spans = SpanTable::new(source_id);
+    let parse = Parser::parse_expr_cst(query.get());
 
-    let status = query_local_impl(ctx, exec, &mut spans, query.get().as_bytes()).await;
-    status_to_response(status, &sources, &spans, &options)
+    let status = query_local_impl(ctx, exec, &mut spans, &parse).await;
+    status_to_response(status, &sources, &spans, &parse, &options)
 }
 
 /// Spawns a query onto the local thread pool and awaits the response.

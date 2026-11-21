@@ -1,459 +1,337 @@
-use hashql_core::span::{SpanAncestors, SpanTable};
-use logos::SpannedIter;
+//! Logos-driven lexer callbacks and lossless token stream for J-Expr.
+
 use text_size::{TextRange, TextSize};
 
-pub(crate) use self::number::Number;
-use self::{
-    error::{
-        LexerDiagnostic, LexerError, from_invalid_utf8_error, from_number_error, from_string_error,
-        from_unrecognized_character_error,
-    },
-    number::ParseNumberError,
-    token::Token,
-    token_kind::TokenKind,
+use crate::syntax_kind::SyntaxKind;
+
+pub(crate) mod number;
+pub(crate) mod string;
+
+pub(crate) use self::{
+    number::{Number, ParseNumberError, ParseNumberErrorKind},
+    string::{StringError, decode_quoted},
 };
-use crate::span::Span;
 
-pub(crate) mod error;
-mod number;
-mod parse;
-mod string;
-pub(crate) mod syntax_kind;
-pub(crate) mod syntax_kind_set;
-pub(crate) mod token;
-pub(crate) mod token_kind;
-
-pub(crate) struct LexerContext<'source> {
-    pub spans: &'source mut SpanTable<Span>,
+/// Lexical error encountered while tokenizing J-Expr input.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub enum LexError {
+    /// Invalid string literal with the exact byte offset where validation failed.
+    String {
+        /// Specific string lexing failure.
+        error: StringError,
+        /// Byte range where string validation failed.
+        range: TextRange,
+    },
+    /// Invalid number literal.
+    Number(ParseNumberError),
+    /// Unterminated `/* ...` block comment.
+    UnterminatedBlockComment,
+    /// Unrecognized character or bare word.
+    #[default]
+    UnrecognizedCharacter,
 }
 
+/// One scanned token produced on demand by [`Lexer`].
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct ScannedToken {
+    /// Syntax kind emitted into the green tree.
+    pub kind: SyntaxKind,
+    /// Byte range in the source string.
+    pub range: TextRange,
+    /// Whether a [`SyntaxKind::String`] token contained escape sequences.
+    pub has_escapes: bool,
+    /// Lex error associated with this token, if any.
+    pub error: Option<LexError>,
+}
+
+/// Logos callback for `//` line comments up to the line break.
+pub(crate) fn lex_line_comment(lexer: &mut logos::Lexer<'_, SyntaxKind>) {
+    let remainder = lexer.remainder().as_bytes();
+    let len = memchr::memchr(b'\n', remainder).unwrap_or(remainder.len());
+    lexer.bump(len);
+}
+
+/// Logos callback for `/* ... */` block comments, including consecutive asterisks before `/`.
+pub(crate) fn lex_block_comment(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(), LexError> {
+    let remainder = lexer.remainder().as_bytes();
+    let mut pos = 0;
+    while let Some(offset) = memchr::memchr(b'*', &remainder[pos..]) {
+        let star = pos + offset;
+        if remainder.get(star + 1) == Some(&b'/') {
+            lexer.bump(star + 2);
+            return Ok(());
+        }
+        pos = star + 1;
+    }
+
+    lexer.bump(remainder.len());
+    Err(LexError::UnterminatedBlockComment)
+}
+
+/// Logos callback for zero-allocation SIMD JSON string validation.
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "Lexer::new asserts source length fits in u32"
+)]
+#[inline]
+pub(crate) fn lex_string(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(), LexError> {
+    let start = lexer.span().start as u32;
+    match string::validate(lexer.remainder()) {
+        Ok((consumed, has_escapes)) => {
+            lexer.bump(consumed);
+            lexer.extras = has_escapes;
+            Ok(())
+        }
+        Err(err) => {
+            lexer.bump(err.consumed);
+            lexer.extras = false;
+            Err(LexError::String {
+                error: err.kind,
+                range: TextRange::empty(TextSize::new(start + 1 + err.offset as u32)),
+            })
+        }
+    }
+}
+
+/// Logos callback that validates JSON numbers via [`Number::parse`].
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "Lexer::new asserts source length fits in u32"
+)]
+#[inline]
+pub(crate) fn lex_number(lexer: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(), LexError> {
+    let start = lexer.span().start;
+    let slice = &lexer.source().as_bytes()[start..];
+    match Number::parse(slice) {
+        Ok(number) => {
+            // The leading `[0-9-]` byte was already consumed by the regex.
+            lexer.bump(number.as_str().len() - 1);
+            Ok(())
+        }
+        Err(mut error) => {
+            error.range += TextSize::new(start as u32);
+            // Consume the malformed number run so recovery does not re-fail on its tail.
+            let extra = slice[1..]
+                .iter()
+                .take_while(|byte| matches!(byte, b'0'..=b'9' | b'.' | b'e' | b'E' | b'+' | b'-'))
+                .count();
+            lexer.bump(extra);
+            Err(LexError::Number(error))
+        }
+    }
+}
+
+/// Logos callback for unrecognized bare words so they emit one invalid token.
+pub(crate) const fn lex_invalid_word(_: &mut logos::Lexer<'_, SyntaxKind>) -> Result<(), LexError> {
+    Err(LexError::UnrecognizedCharacter)
+}
+
+/// Streaming, cloneable lexer wrapping [`logos::Lexer`] over [`SyntaxKind`].
+#[derive(Clone)]
 pub(crate) struct Lexer<'source> {
-    inner: SpannedIter<'source, TokenKind<'source>>,
+    inner: logos::Lexer<'source, SyntaxKind>,
 }
 
 impl<'source> Lexer<'source> {
-    /// Create a new lexer from the given source.
+    /// Creates a lexer positioned at the start of `source`.
     ///
     /// # Panics
     ///
-    /// Panics if the source is larger than 4GiB.
+    /// Panics if `source.len()` exceeds `u32::MAX` bytes.
     #[must_use]
-    pub(crate) fn new(source: &'source [u8]) -> Self {
+    pub(crate) fn new(source: &'source str) -> Self {
         assert!(
             u32::try_from(source.len()).is_ok(),
             "source is larger than 4GiB"
         );
-
         Self {
-            inner: logos::Lexer::new(source).spanned(),
+            inner: logos::Lexer::new(source),
         }
     }
 
-    #[must_use]
-    pub(crate) fn span(&self) -> TextRange {
-        let span = self.inner.span();
-
-        // The constructor verifies that the span is always less than `u32::MAX`.
-        let start = TextSize::try_from(span.start).unwrap_or_else(|_error| unreachable!());
-        let end = TextSize::try_from(span.end).unwrap_or_else(|_error| unreachable!());
-
-        TextRange::new(start, end)
+    /// Returns the end byte offset of the underlying source string.
+    #[inline]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "constructor asserts source length fits in u32"
+    )]
+    pub(crate) fn eof_offset(&self) -> TextSize {
+        TextSize::new(self.inner.source().len() as u32)
     }
 
-    pub(crate) fn advance(
-        &mut self,
-        context: &mut LexerContext,
-    ) -> Option<Result<Token<'source>, LexerDiagnostic>> {
-        let (kind, span) = self.inner.next()?;
+    /// Returns the slice covered by `range` in the underlying source string.
+    #[inline]
+    #[expect(
+        clippy::string_slice,
+        reason = "token ranges produced by logos on &str begin and end on UTF-8 boundaries"
+    )]
+    pub(crate) fn slice(&self, range: TextRange) -> &'source str {
+        &self.inner.source()[usize::from(range.start())..usize::from(range.end())]
+    }
 
-        let span = {
-            // The constructor verifies that the span is always less than `u32::MAX`.
-            let start = TextSize::try_from(span.start).unwrap_or_else(|_error| unreachable!());
-            let end = TextSize::try_from(span.end).unwrap_or_else(|_error| unreachable!());
+    /// Scans the next token (including trivia tokens) and advances the lexer past it.
+    #[inline]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "constructor asserts source length fits in u32"
+    )]
+    pub(crate) fn next_token(&mut self) -> Option<ScannedToken> {
+        let result = self.inner.next()?;
+        let span = self.inner.span();
+        let range = TextRange::new(
+            TextSize::new(span.start as u32),
+            TextSize::new(span.end as u32),
+        );
 
-            TextRange::new(start, end)
-        };
-
-        match kind {
-            Ok(kind) => Some(Ok(Token { kind, span })),
-            Err(LexerError::Number(ParseNumberError { kind, range })) => {
-                let span = context.spans.insert(Span::new(range), SpanAncestors::EMPTY);
-
-                Some(Err(from_number_error(kind, span)))
-            }
-            Err(LexerError::String { error, range }) => {
-                let span = context.spans.insert(Span::new(range), SpanAncestors::EMPTY);
-
-                Some(Err(from_string_error(error, span)))
-            }
-            Err(LexerError::UnrecognizedCharacter) => {
-                // we need to make sure that we're not inside of a unicode character
-                // The current slice is always a byte long, if we error out.
-                let current = self.inner.slice();
-
-                let first_byte = current[0];
-
-                // Determine UTF-8 sequence length from the leading byte
-                let expected_len = if first_byte & 0x80 == 0 {
-                    // ASCII character (0xxxxxxx)
-                    1
-                } else if first_byte & 0xE0 == 0xC0 {
-                    // 2-byte sequence (110xxxxx)
-                    2
-                } else if first_byte & 0xF0 == 0xE0 {
-                    // 3-byte sequence (1110xxxx)
-                    3
-                } else if first_byte & 0xF8 == 0xF0 {
-                    // 4-byte sequence (11110xxx)
-                    4
-                } else {
-                    // Invalid UTF-8 sequence
-                    let span = context.spans.insert(Span::new(span), SpanAncestors::EMPTY);
-                    return Some(Err(from_invalid_utf8_error(span)));
+        match result {
+            Ok(kind) => Some(ScannedToken {
+                kind,
+                range,
+                has_escapes: kind == SyntaxKind::String && self.inner.extras,
+                error: None,
+            }),
+            Err(error) => {
+                let kind = match error {
+                    LexError::String { .. } => SyntaxKind::String,
+                    LexError::UnterminatedBlockComment => SyntaxKind::BlockComment,
+                    LexError::Number(_) | LexError::UnrecognizedCharacter => {
+                        SyntaxKind::InvalidToken
+                    }
                 };
-
-                // Create a span that covers the entire sequence
-                let span =
-                    TextRange::new(span.start(), span.start() + TextSize::from(expected_len));
-
-                // make sure that the when advancing the parser we do not error out the next token
-                let length = self.inner.remainder().len();
-                self.inner
-                    .bump(usize::min((expected_len as usize) - 1, length));
-
-                let span = context.spans.insert(Span::new(span), SpanAncestors::EMPTY);
-                Some(Err(from_unrecognized_character_error(span)))
+                Some(ScannedToken {
+                    kind,
+                    range,
+                    has_escapes: false,
+                    error: Some(error),
+                })
             }
         }
     }
 }
 
 #[cfg(test)]
-mod test {
-    #![expect(clippy::non_ascii_literal)]
+mod tests {
     use core::assert_matches;
 
-    use hashql_core::span::SpanTable;
-    use hashql_diagnostics::source::SourceId;
-    use insta::{assert_snapshot, with_settings};
-    use text_size::TextRange;
+    use text_size::{TextRange, TextSize};
 
-    use super::{
-        Lexer, LexerContext,
-        error::{LexerDiagnostic, LexerDiagnosticCategory},
-        token::Token,
-    };
-    use crate::{span::Span, test::render_diagnostic};
+    use super::{LexError, Lexer, ScannedToken, number::ParseNumberErrorKind, string::StringError};
+    use crate::syntax_kind::SyntaxKind;
 
-    fn parse<'source>(
-        source: &'source str,
-        spans: &mut SpanTable<Span>,
-    ) -> Result<Vec<Token<'source>>, LexerDiagnostic> {
-        let mut lexer = Lexer::new(source.as_bytes());
-
+    fn lex_all(source: &str) -> Vec<ScannedToken> {
+        let mut lexer = Lexer::new(source);
         let mut tokens = Vec::new();
-        while let Some(token) = lexer.advance(&mut LexerContext { spans }) {
-            let token = token?;
+        while let Some(token) = lexer.next_token() {
             tokens.push(token);
         }
-
-        Ok(tokens)
+        tokens
     }
 
-    macro assert_parse($source:expr, $description:literal) {{
-        let tokens = parse($source, &mut SpanTable::new(SourceId::new_unchecked(0x00))).expect("should parse successfully");
-        // we're not super interested in the spans (a different test covers these)
-        let compiled = tokens
+    fn lex_significant(source: &str) -> Vec<ScannedToken> {
+        lex_all(source)
             .into_iter()
-            .map(|token| token.kind.to_string())
-            .collect::<Vec<_>>()
-            .join(" ");
-
-        with_settings!({
-            description => $description
-        }, {
-            assert_snapshot!(insta::_macro_support::AutoName, compiled, $source);
-        })
-    }}
-
-    macro assert_parse_fail($source:expr, $description:literal) {{
-        let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
-        let diagnostic = parse($source, &mut spans).expect_err("should fail to parse");
-
-        let report = render_diagnostic($source, &diagnostic, &spans);
-
-        with_settings!({
-            description => $description
-        }, {
-            assert_snapshot!(insta::_macro_support::AutoName, report, $source);
-        })
-    }}
-
-    macro test_cases(
-        $(
-            $name:ident($source:expr) => $description:expr,
-        )*
-    ) {
-        $(
-            #[test]
-            fn $name() {
-                assert_parse!($source, $description);
-            }
-        )*
-    }
-
-    macro test_cases_fail(
-        $(
-            $name:ident($source:expr) => $description:expr,
-        )*
-    ) {
-        $(
-            #[test]
-            fn $name() {
-                assert_parse_fail!($source, $description);
-            }
-        )*
-    }
-
-    test_cases! {
-        // Object tests
-        empty_object("{}") => "Empty object",
-        simple_object(r#"{"key": "value"}"#) => "Simple key-value object",
-        nested_object(r#"{"outer": {"inner": "value"}}"#) => "Nested objects",
-        complex_object(r#"{"string": "text", "number": 42, "boolean": true, "null": null, "array": [1, 2, 3]}"#) =>
-            "Complex object with multiple value types",
-        multiple_properties(r#"{"prop1": "val1", "prop2": "val2", "prop3": "val3"}"#) =>
-            "Object with multiple properties",
-
-        // Array tests
-        empty_array("[]") => "Empty array",
-        simple_array("[1, 2, 3]") => "Simple number array",
-        mixed_array(r#"[1, "text", true, null]"#) => "Array with mixed types",
-        nested_array("[[1, 2], [3, 4]]") => "Nested arrays",
-        array_of_objects(r#"[{"id": 1}, {"id": 2}]"#) => "Array of objects",
-        object_with_arrays(r#"{"numbers": [1, 2, 3], "strings": ["a", "b", "c"]}"#) =>
-            "Object containing arrays",
-
-        // Value tests
-        bool_true("true") => "Boolean true value",
-        bool_false("false") => "Boolean false value",
-        null_value("null") => "Null value",
-
-        // String tests
-        empty_string(r#""""#) => "Empty string",
-        simple_string(r#""hello world""#) => "Simple string",
-        escaped_string(r#""hello \"world\"""#) => "String with escaped quotes",
-        unicode_string(r#""こんにちは世界""#) => "Unicode string",
-        escaped_unicode(r#""\u3053\u3093\u306B\u3061\u306F""#) => "String with escaped unicode",
-        special_chars(r#""\b\f\n\r\t""#) => "String with special characters",
-        surrogate_pair(r#""\uD834\uDD1E""#) => "String with surrogate pair",
-
-        // Number tests
-        integer("42") => "Integer number",
-        negative_integer("-42") => "Negative integer",
-        zero("0") => "Zero",
-        decimal("3.14159") => "Decimal number",
-        exponent("1.0e10") => "Number with exponent",
-        neg_exponent("1.0e-10") => "Number with negative exponent",
-
-        // Whitespace handling
-        space_indentation("  {  \n  \"key\"  :  42  \n  }  ") =>
-            "JSON with space indentation",
-        tab_indentation("\t{\t\"key\"\t:\t42\t}\t") =>
-            "JSON with tab indentation",
-        mixed_whitespace(" \t\r\n{ \t\r\n\"key\" \t\r\n: \t\r\n42 \t\r\n} \t\r\n") =>
-            "JSON with mixed whitespace",
-
-        // Complex combinations
-        complex_nested(r#"{"data": {"users": [{"name": "Alice", "roles": ["admin", "user"], "active": true}, {"name": "Bob", "roles": ["user"], "active": false}]}}"#) =>
-            "Complex nested structure",
-
-        // Syntax errors - these are completely valid as we're not parsing, we're just lexing
-        trailing_comma("[1, 2, 3,]") => "Array with trailing comma",
-        missing_comma("[1 2 3]") => "Array with missing commas",
-        extra_comma("[1,,2]") => "Array with extra comma",
-
-        // Number edge cases
-        max_precision_number("1.7976931348623157e308") => "Maximum precision double value",
-        min_precision_number("5e-324") => "Minimum precision double value",
-        integer_precision("9007199254740991") => "Maximum integer precision (2^53-1)",
-        arbitrary_precision("9007199254740992") => "Arbitrary precision integer",
-
-        // String escape sequences
-        serialized_json(r#""This JSON string has \"quotes\" and a \\ backslash""#) =>
-            "JSON with already-escaped characters",
-        escaped_controls(r#""\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007""#) =>
-            "String with escaped control characters",
-
-        // JSONC
-        // Single line comments
-        preceded_comment("// This is a comment\n42") => "Comment at the beginning should be skipped",
-        trailing_comment("42\n// This is a comment") => "Comment at the end should be skipped",
-        separated_comment("42\n// This is a comment\n42") => "Comment in the middle should be skipped",
-        adjacent_comment("42 // This is a comment\n42") => "Comment after element should be skipped",
-        adjacent_comment_no_space("42//This is a comment\n42") => "Comment after element without space",
-        empty_comment("42\n//\n42") => "Empty comment should be skipped",
-        comment_json_inside(r#"//"{"key": "value"}""#) => "JSON inside comment",
-        comment_no_space_between("//abc") => "JSON inside comment without space",
-        consecutive_comments("// first\n// second\n42") => "Multiple consecutive line comments",
-
-        // Multi line comments
-        preceded_multiline_comment("/* This is a multi-line comment */42") => "Simple multi-line comment should be skipped",
-        trailing_multiline_comment("42/* This is a multi-line comment */") => "Simple multi-line comment should be skipped",
-        separated_multiline_comment("42/* This is a multi-line comment */42") => "Simple multi-line comment should be skipped",
-        empty_multiline_comment("42/**/42") => "Empty multi-line comment should be skipped",
-        multiline_comment_json_inside(r#"42/* This is a multi-line comment with JSON {"key": "value"} */42"#) => "JSON inside multi-line comment",
-        multiline_linebreak("42/* This is a multi-line comment with line break\n inside*/42") => "Line break inside multi-line comment",
-        // see: https://linear.app/hash/issue/H-4325/hashql-j-expr-more-comprehensive-multiline-comment-support
-        // multiline_almost_end("/* Almost closing comment **/42") => "Multi-line comment with extra asterisk that isn't the closing delimiter",
-        multiline_with_asterisks("/* * * *\n * comment *\n * * */42") => "Multi-line comment with decorative asterisks",
-    }
-
-    test_cases_fail! {
-        // String errors
-        invalid_escape(r#""\z""#) => "Invalid escape sequence",
-        unterminated_string(r#""hello"#) => "Unterminated string literal",
-        control_character("\"hello \u{0007} world") => "String with ASCII control character",
-        missing_surrogate_pair(r#""\uD800""#) => "Missing low surrogate in surrogate pair",
-
-        // Number errors
-        invalid_number(r#"{"number": 42.}"#) => "Invalid number format (trailing decimal point)",
-        invalid_exponent("1e") => "Invalid exponent format",
-        plus_prefix("+42") => "Number with plus prefix",
-        double_minus("--42") => "Number with double minus",
-        leading_zero("042") => "Number with leading zero",
-
-        // Structure errors
-        unrecognized_character(r#"{"ferris": 🦀}"#) => "Unrecognized emoji character",
-        invalid_literal(r#"{"value": True}"#) => "Incorrect case for true literal",
-
-        // Additional control character tests
-        control_char_null("\"hello\u{0000}world\"") => "String with null control character",
-        control_char_tab_inside_quotes("\"\thello\"") => "Tab character inside quotes",
-        control_char_newline_inside_quotes("\"\nhello\"") => "Newline character inside quotes",
-
-        // Emoji tests - single emoji characters
-        emoji_simple("😀") => "Simple emoji (4 bytes)",
-        emoji_crab("🦀") => "Crab emoji (4 bytes)",
-        emoji_rocket("🚀") => "Rocket emoji (4 bytes)",
-        emoji_flag("🇺🇸") => "Flag emoji (multiple bytes)",
-
-        // Complex emoji sequences
-        emoji_family("👨‍👩‍👧‍👦") => "Family emoji with zero-width joiners",
-        emoji_scientist("👩🏾‍🔬") => "Emoji with skin tone modifier and profession",
-        emoji_variation("❤️") => "Emoji with variation selector",
-
-        // Multi-character Unicode sequences
-        emoji_sequence("🚀🦀💻") => "Multiple emoji characters in sequence",
-        japanese_text("こんにちは") => "Multiple Japanese characters",
-        mixed_characters("あa三b") => "Mix of single and multi-byte characters",
-
-        // JSONC
-        unclosed_multiline_comment("/* This comment never ends") => "Unclosed multi-line comment",
-        multiline_comment_too_smol("/*/") => "Multi-line comment is missing closing *",
+            .filter(|token| !token.kind.is_trivia())
+            .collect()
     }
 
     #[test]
-    fn span_range() {
-        let source = r#"{"key": 42}"#;
-        let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
-        let mut lexer = Lexer::new(source.as_bytes());
+    fn lossless_round_trip_with_comments_and_whitespace() {
+        let source =
+            "// lead\n  { /* block **/\n\"#literal\": 42, /* * * * */ \"x\": 3.14 } // tail";
+        let tokens = lex_all(source);
+        let lexer = Lexer::new(source);
+        let reconstructed: String = tokens
+            .iter()
+            .map(|token| lexer.slice(token.range))
+            .collect();
+        assert_eq!(reconstructed, source);
+        assert!(tokens.iter().all(|token| token.error.is_none()));
+    }
 
-        let mut advance = |lexer: &mut Lexer| {
-            lexer
-                .advance(&mut LexerContext { spans: &mut spans })
-                .expect("should have a token")
-                .expect("token should be valid")
-                .span
-        };
+    #[test]
+    fn block_comment_almost_closing_asterisks() {
+        let tokens = lex_all("/* Almost closing comment **/42");
+        assert_eq!(tokens.len(), 2);
+        assert_eq!(tokens[0].kind, SyntaxKind::BlockComment);
+        assert_eq!(tokens[0].range, TextRange::new(0.into(), 29.into()));
+        assert!(tokens[0].error.is_none());
+        assert_eq!(tokens[1].kind, SyntaxKind::Number);
+        assert_eq!(tokens[1].range, TextRange::new(29.into(), 31.into()));
+    }
 
-        // First token should be '{'
-        let span = advance(&mut lexer);
-        assert_eq!(span, TextRange::new(0.into(), 1.into()));
+    #[test]
+    fn unclosed_block_comments() {
+        for source in ["/* This comment never ends", "/*/"] {
+            let tokens = lex_all(source);
+            assert_eq!(tokens.len(), 1);
+            assert_eq!(tokens[0].kind, SyntaxKind::BlockComment);
+            assert_eq!(tokens[0].error, Some(LexError::UnterminatedBlockComment));
+        }
+    }
 
-        // Next token should be the string "key"
-        let span = advance(&mut lexer);
-        assert_eq!(span, TextRange::new(1.into(), 6.into()));
+    #[test]
+    fn numbers_emit_single_syntax_kind() {
+        let tokens = lex_significant("0 -42 3.14 1e10 1.5e-3");
+        let kinds: Vec<_> = tokens.into_iter().map(|token| token.kind).collect();
+        assert_eq!(kinds, [SyntaxKind::Number; 5]);
+    }
 
-        // Next token should be ':'
-        let span = advance(&mut lexer);
-        assert_eq!(span, TextRange::new(6.into(), 7.into()));
-
-        // Next token should be the number 42
-        let span = advance(&mut lexer);
-        assert_eq!(span, TextRange::new(8.into(), 10.into()));
-
-        // Next token should be '}'
-        let span = advance(&mut lexer);
-        assert_eq!(span, TextRange::new(10.into(), 11.into()));
-
-        // Lexer should be exhausted
-        assert!(
-            lexer
-                .advance(&mut LexerContext { spans: &mut spans })
-                .is_none()
+    #[test]
+    fn string_error_recovery_preserves_following_tokens() {
+        let source = r#"{"a": "bad\zstring", "b": 42}"#;
+        let tokens = lex_significant(source);
+        assert_eq!(tokens.len(), 9);
+        assert_eq!(tokens[3].kind, SyntaxKind::String);
+        assert_matches!(
+            tokens[3].error,
+            Some(LexError::String {
+                error: StringError::Escape(_),
+                ..
+            })
         );
+        assert_eq!(tokens[7].kind, SyntaxKind::Number);
+        assert!(tokens[7].error.is_none());
     }
 
     #[test]
-    fn custom_error_handling() {
-        let source = r#"{"key": 42.}"#;
-        let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
-        let result = parse(source, &mut spans);
-
-        assert!(result.is_err(), "should fail to parse invalid number");
-        let diagnostic = result.expect_err("should fail to parse invalid number");
-
-        match diagnostic.category {
-            LexerDiagnosticCategory::InvalidNumber => {}
-            category @ (LexerDiagnosticCategory::InvalidString
-            | LexerDiagnosticCategory::InvalidCharacter
-            | LexerDiagnosticCategory::InvalidUtf8
-            | LexerDiagnosticCategory::UnexpectedEof
-            | LexerDiagnosticCategory::UnexpectedToken) => {
-                panic!("Expected InvalidNumber error, got {category:?}")
-            }
-        }
+    fn invalid_number_consumes_run() {
+        let tokens = lex_significant(r#"{"number": 42.}"#);
+        assert_eq!(tokens.len(), 5);
+        assert_eq!(tokens[3].kind, SyntaxKind::InvalidToken);
+        assert_eq!(
+            tokens[3].error,
+            Some(LexError::Number(super::ParseNumberError {
+                kind: ParseNumberErrorKind::ExpectedDigit,
+                range: TextRange::empty(TextSize::new(14)),
+            }))
+        );
+        assert_eq!(tokens[4].kind, SyntaxKind::RBrace);
     }
 
     #[test]
-    fn invalid_utf8_sequences() {
-        // We need to create some invalid UTF-8 sequences - this requires unsafe code
-        // or preparing binary data. Since this is a test, we'll use a controlled approach:
+    fn keyword_boundary_rejects_identifier_suffix() {
+        let tokens = lex_significant("true truex false null");
+        assert_eq!(tokens[0].kind, SyntaxKind::True);
+        assert_eq!(tokens[1].kind, SyntaxKind::InvalidToken);
+        assert_eq!(tokens[1].error, Some(LexError::UnrecognizedCharacter));
+        assert_eq!(tokens[2].kind, SyntaxKind::False);
+        assert_eq!(tokens[3].kind, SyntaxKind::Null);
+    }
 
-        let invalid_sequences: [&[u8]; 8] = [
-            // Construct byte sequences for testing
-            &[0xC0, 0x80],             // Overlong encoding of NUL character
-            &[0xE0, 0x80, 0x80],       // Overlong encoding of NUL character
-            &[0xF0, 0x80, 0x80, 0x80], // Overlong encoding of NUL character
-            &[0xC0],                   // Incomplete 2-byte sequence
-            &[0xE0, 0x80],             // Incomplete 3-byte sequence
-            &[0xF0, 0x80, 0x80],       // Incomplete 4-byte sequence
-            &[0xF8],                   // Invalid leading byte
-            &[0xFF],                   // Invalid leading byte
-        ];
-
-        for bytes in invalid_sequences {
-            // Create a storage for spans
-            let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
-
-            // Create a lexer directly from the bytes
-            let mut lexer = Lexer::new(bytes);
-
-            // Get the first token
-            let result = lexer.advance(&mut LexerContext { spans: &mut spans });
-
-            let diagnostic = result
-                .expect("Lexer should produce a result for invalid UTF-8")
-                .expect_err("Invalid UTF-8 should produce an error");
-
-            // For invalid UTF-8 we expect either InvalidCharacter or InvalidUtf8
-            assert_matches!(
-                diagnostic.category,
-                LexerDiagnosticCategory::InvalidCharacter | LexerDiagnosticCategory::InvalidUtf8,
-                "Expected InvalidCharacter or InvalidUtf8 error, got {:?}",
-                diagnostic.category
-            );
-        }
+    #[test]
+    fn unrecognized_multibyte_utf8_preserves_char_boundaries() {
+        let source = "\u{1f980}\u{3053}\u{3093}\u{306b}\u{3061}\u{306f}";
+        let tokens = lex_all(source);
+        let lexer = Lexer::new(source);
+        let reconstructed: String = tokens
+            .iter()
+            .map(|token| lexer.slice(token.range))
+            .collect();
+        assert_eq!(reconstructed, source);
+        assert!(
+            tokens
+                .iter()
+                .all(|token| token.error == Some(LexError::UnrecognizedCharacter))
+        );
     }
 }

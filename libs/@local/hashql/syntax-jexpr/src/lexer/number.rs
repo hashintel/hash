@@ -19,7 +19,7 @@ use text_size::{TextRange, TextSize};
 
 /// The kind of error encountered while parsing a JSON number.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub(crate) enum ParseNumberErrorKind {
+pub enum ParseNumberErrorKind {
     /// Input ended unexpectedly while parsing a number.
     UnexpectedEof,
     /// Expected a digit but found something else (e.g., `42.` with no digits after the dot).
@@ -57,7 +57,7 @@ const fn skip_digits(mut rest: &[u8]) -> &[u8] {
 /// Contains both the [`ParseNumberErrorKind`] describing what went wrong and a [`TextRange`]
 /// indicating where in the input the error occurred.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct ParseNumberError {
+pub struct ParseNumberError {
     /// The kind of parsing error.
     pub kind: ParseNumberErrorKind,
     /// The location in the input where the error occurred.

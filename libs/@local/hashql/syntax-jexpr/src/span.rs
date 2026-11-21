@@ -1,18 +1,19 @@
-use hashql_core::span::TextRange;
-use jsonptr::PointerBuf;
+//! Source spans recorded in the compiler's span table.
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+use hashql_core::span::TextRange;
+
+/// Byte range in a J-Expr source string.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Span {
+    /// Byte offset interval covered by this span in the source text.
     pub range: TextRange,
-    pub pointer: Option<PointerBuf>,
 }
 
 impl Span {
-    pub(crate) const fn new(range: TextRange) -> Self {
-        Self {
-            range,
-            pointer: None,
-        }
+    /// Creates a span covering `range`.
+    #[must_use]
+    pub const fn new(range: TextRange) -> Self {
+        Self { range }
     }
 }
 

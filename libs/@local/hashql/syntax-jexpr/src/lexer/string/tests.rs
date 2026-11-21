@@ -3,7 +3,7 @@ use std::io::Write as _;
 
 use proptest::{prop_assert_eq, property_test, sample::SizeRange};
 
-use super::{EscapeError, StringError, decode};
+use super::{EscapeError, StringError, decode, decode_quoted, validate};
 
 #[test]
 fn vector_boundaries() {
@@ -126,4 +126,60 @@ fn decode_mixed_escapes(characters: Vec<(char, bool)>) {
     let decoded = decode(&mut source).expect("should decode a valid JSON string body");
     prop_assert_eq!(decoded, expected);
     prop_assert_eq!(source, b"tail");
+}
+
+#[property_test]
+fn validate_matches_decode_on_mixed_escapes(characters: Vec<(char, bool)>) {
+    let mut body = String::new();
+    let mut had_escape = false;
+    for (character, unicode_escape) in characters {
+        if unicode_escape {
+            had_escape = true;
+            for unit in character.encode_utf16(&mut [0; 2]) {
+                use core::fmt::Write as _;
+                write!(body, "\\u{unit:04X}").expect("should format unicode escape");
+            }
+        } else {
+            let quoted = serde_json::to_string(&character).expect("should serialize a character");
+            let spelling = quoted
+                .strip_prefix('"')
+                .and_then(|rest| rest.strip_suffix('"'))
+                .expect("serialized character should be quoted");
+            if spelling.contains('\\') {
+                had_escape = true;
+            }
+            body.push_str(spelling);
+        }
+    }
+    body.push_str("\"tail");
+
+    let (consumed, has_escapes) = validate(&body).expect("valid string body should validate");
+    prop_assert_eq!(has_escapes, had_escape);
+    prop_assert_eq!(body.get(consumed..), Some("tail"));
+
+    let quoted = format!(
+        "\"{}",
+        body.strip_suffix("tail").expect("body ends with test tail")
+    );
+    let mut decode_src = body.as_bytes();
+    let expected = decode(&mut decode_src).expect("should decode valid string");
+    let actual = decode_quoted(&quoted).expect("should decode quoted string");
+    prop_assert_eq!(actual, expected);
+}
+
+#[test]
+fn validate_utf8_escape_error_stays_on_char_boundary() {
+    for input in [
+        "\\\u{1f980}\"tail",
+        "\\u12\u{1f980}4\"tail",
+        "\u{0007}\u{1f980}\"tail",
+    ] {
+        let error = validate(input).expect_err("input should report string error");
+        assert!(
+            input.is_char_boundary(error.offset),
+            "error offset {} must lie on a UTF-8 boundary in {input:?}",
+            error.offset
+        );
+        assert_eq!(input.get(error.consumed..), Some("tail"));
+    }
 }

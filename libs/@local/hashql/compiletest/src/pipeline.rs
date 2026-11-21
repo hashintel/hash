@@ -112,21 +112,18 @@ impl<'heap> Pipeline<'heap> {
         }
     }
 
-    /// Parses J-Expr source bytes into an AST expression.
+    /// Parses J-Expr source text into an AST expression.
     ///
     /// # Errors
     ///
     /// Returns a diagnostic if the input is not valid J-Expr syntax.
     pub fn parse(
         &mut self,
-        content: impl AsRef<[u8]>,
+        content: impl AsRef<str>,
     ) -> Result<hashql_ast::node::expr::Expr<'heap>, BoxedDiagnostic<'static, SpanId>> {
         let mut parser = hashql_syntax_jexpr::Parser::new(self.heap, &mut self.spans);
 
-        parser
-            .parse_expr(content.as_ref())
-            .map_err(Diagnostic::generalize)
-            .map_err(Diagnostic::boxed)
+        process_status(&mut self.diagnostics, parser.parse_expr(content.as_ref()))
     }
 
     /// Lowers an AST expression through HIR into MIR.
