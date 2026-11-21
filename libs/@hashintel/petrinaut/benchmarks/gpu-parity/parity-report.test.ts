@@ -111,8 +111,11 @@ describe("ksStatistic", () => {
     ).toBe(0.25);
   });
 
-  it("is NaN when a frame is a scalar", () => {
-    expect(ksStatistic(scalar(0, 1), distribution(0, [[1, 1]]))).toBeNaN();
+  it("is NaN when a frame is a scalar or has no samples", () => {
+    const samples = distribution(0, [[1, 1]]);
+    expect(ksStatistic(scalar(0, 1), samples)).toBeNaN();
+    expect(ksStatistic(samples, distribution(0, []))).toBeNaN();
+    expect(ksStatistic(distribution(0, []), distribution(0, []))).toBeNaN();
   });
 });
 
@@ -188,16 +191,22 @@ describe("compareRuns", () => {
     expect(report.meanRelativeDifference).toBe(0);
   });
 
-  it("takes the KS statistic from the last common frame", () => {
+  it("takes the KS statistic from the last frame both backends sampled", () => {
     const report = compare(
-      [distribution(0, [[1, 1]]), distribution(1, [[1, 1]])],
+      [
+        distribution(0, [[1, 1]]),
+        distribution(1, [[1, 1]]),
+        distribution(2, []),
+      ],
       [
         distribution(0, [[1, 1]]),
         distribution(1, [[2, 1]]),
-        // The CPU has no frame 2, so this one is not compared.
-        distribution(2, [[1, 1]]),
+        distribution(2, []),
+        // The CPU has no frame 3, so this one is not compared.
+        distribution(3, [[1, 1]]),
       ],
     );
+    expect(report.frames).toBe(3);
     expect(report.finalKs).toBe(1);
   });
 

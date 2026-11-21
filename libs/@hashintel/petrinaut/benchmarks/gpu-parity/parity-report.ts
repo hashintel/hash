@@ -15,11 +15,14 @@ export type ParityReport = {
   frames: number;
   cpuMs: number;
   gpuMs: number;
-  /** Mean over frames of |cpuMean - gpuMean| / max(|cpuMean|, 1). */
+  /** Mean over the sampled frames of |cpuMean - gpuMean| / max(|cpuMean|, 1). */
   meanRelativeDifference: number;
   /** The worst frame's relative difference. */
   maxRelativeDifference: number;
-  /** Kolmogorov–Smirnov statistic between the last common distributions. */
+  /**
+   * Kolmogorov–Smirnov statistic between the distributions of the last frame
+   * both backends sampled.
+   */
   finalKs: number;
 };
 
@@ -50,7 +53,7 @@ export const frameMean = (
 /**
  * The Kolmogorov–Smirnov statistic of two distribution frames: the largest
  * gap between their cumulative distributions, from 0 (identical) to 1
- * (disjoint). `NaN` when either frame is a scalar.
+ * (disjoint). `NaN` when either frame is a scalar or holds no samples.
  */
 export const ksStatistic = (
   left: MonteCarloUserDefinedMetricFrame,
@@ -68,6 +71,9 @@ export const ksStatistic = (
     [...bins.values()].reduce((sum, frequency) => sum + frequency, 0);
   const leftTotal = total(leftBins);
   const rightTotal = total(rightBins);
+  if (leftTotal === 0 || rightTotal === 0) {
+    return Number.NaN;
+  }
   const values = [...new Set([...leftBins.keys(), ...rightBins.keys()])].sort(
     (a, b) => a - b,
   );
@@ -98,6 +104,8 @@ const framesOf = (run: BackendRun, metricId: string) =>
  * Compares what the two backends streamed for one metric, over the frames
  * both produced. The backends use different random generators, so the
  * comparison is of statistics: the frame means, and the last distributions.
+ * A frame one backend took no sample for has no mean and is left out, as the
+ * final frame is for a metric that samples the runs still stepping.
  */
 export const compareRuns = ({
   label,
@@ -122,14 +130,21 @@ export const compareRuns = ({
     })
     .sort((a, b) => a.frameNumber - b.frameNumber);
 
-  const differences = common.flatMap(({ cpuFrame, gpuFrame }) => {
+  const sampled = common.flatMap(({ cpuFrame, gpuFrame }) => {
     const cpuMean = frameMean(cpuFrame);
     const gpuMean = frameMean(gpuFrame);
     return cpuMean === null || gpuMean === null
       ? []
-      : [Math.abs(cpuMean - gpuMean) / Math.max(Math.abs(cpuMean), 1)];
+      : [
+          {
+            cpuFrame,
+            gpuFrame,
+            difference:
+              Math.abs(cpuMean - gpuMean) / Math.max(Math.abs(cpuMean), 1),
+          },
+        ];
   });
-  const last = common.at(-1);
+  const last = sampled.at(-1);
 
   return {
     model: label,
@@ -138,12 +153,12 @@ export const compareRuns = ({
     cpuMs: Math.round(cpu.ms),
     gpuMs: Math.round(gpu.ms),
     meanRelativeDifference:
-      differences.length > 0
-        ? differences.reduce((sum, difference) => sum + difference, 0) /
-          differences.length
+      sampled.length > 0
+        ? sampled.reduce((sum, { difference }) => sum + difference, 0) /
+          sampled.length
         : Number.NaN,
-    maxRelativeDifference: differences.reduce(
-      (worst, difference) => Math.max(worst, difference),
+    maxRelativeDifference: sampled.reduce(
+      (worst, { difference }) => Math.max(worst, difference),
       0,
     ),
     finalKs:

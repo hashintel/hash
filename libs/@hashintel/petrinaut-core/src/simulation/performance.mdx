@@ -499,7 +499,7 @@ browser with WebGPU on real hardware. The page runs SIR, Café Queue and Drone
 Patrol through the worker pool and then the GPU, and shows one row per
 measure: the frames both backends produced, the time of each run, the mean and
 the worst relative difference of the frame means, and the KS statistic of the
-last frame both produced. It logs the same rows as one `gpu-parity:` JSON line
+last frame both sampled. It logs the same rows as one `gpu-parity:` JSON line
 for a script to read off the console. The query string sets the experiment:
 `runs` (2000), `maxTime` (30), `dt` (0.1) and `seed` (42). Without WebGPU the
 CPU times are still measured, and the row says why the GPU backend is
