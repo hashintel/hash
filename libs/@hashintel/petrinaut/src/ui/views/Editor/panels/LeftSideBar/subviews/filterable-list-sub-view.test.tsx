@@ -102,6 +102,55 @@ const FLAT_ITEMS: TestItem[] = [
   { id: "c", name: "Gamma" },
 ];
 
+const rowOf = (name: string): HTMLElement => {
+  const row = screen.getByText(name).closest("[role='option']");
+  if (!(row instanceof HTMLElement)) {
+    throw new Error(`no option row for ${name}`);
+  }
+  return row;
+};
+
+const menuButtonOf = (name: string) =>
+  rowOf(name).querySelector("[aria-label='Row menu']");
+
+describe("filterable list row menus", () => {
+  it("mounts no menu until a row is pointed at or focused", () => {
+    renderList(FLAT_ITEMS);
+
+    expect(screen.queryAllByLabelText("Row menu")).toHaveLength(0);
+  });
+
+  it("mounts the menu of the row under the pointer, and moves it with the pointer", () => {
+    renderList(FLAT_ITEMS);
+
+    fireEvent.pointerEnter(rowOf("Beta"));
+    expect(menuButtonOf("Beta")).not.toBeNull();
+    expect(screen.queryAllByLabelText("Row menu")).toHaveLength(1);
+
+    fireEvent.pointerEnter(rowOf("Gamma"));
+    expect(menuButtonOf("Gamma")).not.toBeNull();
+    expect(screen.queryAllByLabelText("Row menu")).toHaveLength(1);
+  });
+
+  it("keeps the menu of the row that holds focus while the pointer is on another", () => {
+    renderList(FLAT_ITEMS);
+
+    fireEvent.pointerEnter(rowOf("Alpha"));
+    const button = menuButtonOf("Alpha");
+    if (!(button instanceof HTMLElement)) {
+      throw new Error("no menu button on the row under the pointer");
+    }
+    // As when the menu is opened: focus goes to the button, then the pointer
+    // moves on to the menu's items, which are drawn outside the row.
+    act(() => button.focus());
+    fireEvent.pointerEnter(rowOf("Beta"));
+
+    expect(menuButtonOf("Alpha")).toBe(button);
+    expect(document.activeElement).toBe(button);
+    expect(menuButtonOf("Beta")).not.toBeNull();
+  });
+});
+
 describe("filterable list keyboard flow", () => {
   it("is one tab stop with a roving tabindex over real rows", () => {
     const { view } = renderList(FLAT_ITEMS);

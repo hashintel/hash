@@ -39,15 +39,10 @@ const definition: SDCPN = {
 };
 
 const sdcpnContextValue: SDCPNContextValue = {
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
   petriNetId: "actual-test",
   petriNetDefinition: definition,
   readonly: true,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "Actual test",
   getItemType: () => null,
 };
 

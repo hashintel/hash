@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { UserSettingsContext } from "./user-settings-context";
+import { UserSettingsContext, useUserSettings } from "./user-settings-context";
 import { UserSettingsProvider } from "./user-settings-provider";
 
 afterEach(cleanup);
@@ -32,7 +32,48 @@ const CompactNodesProbe = ({ name }: { name: string }) => {
   );
 };
 
+const onCompactNodesRender = vi.fn();
+
+// Counted from inside: a `Profiler` around a reader misses a render that a
+// context or a published value starts.
+const CompactNodesBySelector = () => {
+  "use no memo"; // The count below has to run on every render.
+  onCompactNodesRender();
+  const compactNodes = useUserSettings((settings) => settings.compactNodes);
+  return <output aria-label="compact">{compactNodes ? "on" : "off"}</output>;
+};
+
+const MinimapToggle = () => {
+  const { showMinimap, setShowMinimap } = use(UserSettingsContext);
+  return (
+    <button type="button" onClick={() => setShowMinimap(!showMinimap)}>
+      minimap: {showMinimap ? "on" : "off"}
+    </button>
+  );
+};
+
 describe("UserSettingsProvider", () => {
+  it("renders a reader of one setting when that setting changes, and not when another is saved", () => {
+    render(
+      <UserSettingsProvider>
+        <CompactNodesBySelector />
+        <CompactNodesProbe name="compact" />
+        <MinimapToggle />
+      </UserSettingsProvider>,
+    );
+    onCompactNodesRender.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: /minimap/ }));
+    expect(screen.getByRole("button", { name: /minimap/ }).textContent).toBe(
+      "minimap: off",
+    );
+    expect(onCompactNodesRender).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /compact/ }));
+    expect(screen.getByLabelText("compact").textContent).toBe("on");
+    expect(onCompactNodesRender).toHaveBeenCalledOnce();
+  });
+
   it.each([false, true])(
     "drops retired flags from saved settings (legacy value=%s)",
     (enabled) => {

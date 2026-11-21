@@ -20,10 +20,20 @@ import {
   type PetrinautNavigationState,
 } from "../navigation";
 import { ActiveNetContext } from "./active-net-context";
+import {
+  useAssistantPlacement,
+  type AssistantPlacementContextValue,
+} from "./assistant-placement-context";
 import { CompositionContext } from "./composition-context";
-import { EditorContext, type EditorContextValue } from "./editor-context";
+import {
+  EditorContext,
+  useEditorFields,
+  useEditorState,
+  type EditorContextValue,
+} from "./editor-context";
 import { EditorProvider } from "./editor-provider";
 import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
+import { useIsReadOnly } from "./use-is-read-only";
 import { useSelectionCleanup } from "./use-selection-cleanup";
 import {
   defaultUserSettingsContextValue,
@@ -45,15 +55,10 @@ const makeSdcpnContextValue = (
   getItemType: SDCPNContextValue["getItemType"],
   petriNetDefinition: SDCPN = emptySdcpn,
 ): SDCPNContextValue => ({
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
   petriNetId: "test-net",
   petriNetDefinition,
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "Test",
   getItemType,
 });
 
@@ -68,6 +73,20 @@ const EditorContextGrabber = ({
   onContextValue: (value: EditorContextValue) => void;
 }) => {
   onContextValue(use(EditorContext));
+  return null;
+};
+
+type Panels = {
+  editor: EditorContextValue;
+  assistant: AssistantPlacementContextValue;
+};
+
+/** The editor context with the placement that is kept out of it. */
+const PanelsGrabber = ({ onValue }: { onValue: (value: Panels) => void }) => {
+  onValue({
+    editor: use(EditorContext),
+    assistant: useAssistantPlacement(),
+  });
   return null;
 };
 
@@ -114,68 +133,126 @@ describe("EditorProvider assistant animation", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it.each([true, false])(
-    "coordinates assistant layout changes with animations enabled: %s",
-    (showAnimations) => {
-      let editor: EditorContextValue;
-      const { unmount } = render(
-        <UserSettingsContext
-          value={{ ...defaultUserSettingsContextValue, showAnimations }}
-        >
-          <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
-            <TestHost recorded={[]}>
-              <EditorProvider>
-                <EditorContextGrabber
-                  onContextValue={(value) => {
-                    editor = value;
-                  }}
-                />
-              </EditorProvider>
-            </TestHost>
-          </SDCPNContext>
-        </UserSettingsContext>,
-      );
+  it("renders no reader of the editor context when the assistant docks or floats", () => {
+    // Counted from inside the reader: a `Profiler` around it misses a render
+    // that a context starts.
+    const onEditorReaderRender = vi.fn();
+    const EditorReader = () => {
+      "use no memo"; // The call below has to run on every render.
+      onEditorReaderRender();
+      use(EditorContext);
+      return null;
+    };
+    let panels: Panels;
+    const { unmount } = render(
+      <UserSettingsContext
+        value={{ ...defaultUserSettingsContextValue, showAnimations: true }}
+      >
+        <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
+          <TestHost recorded={[]}>
+            <EditorProvider>
+              <EditorReader />
+              <PanelsGrabber
+                onValue={(value) => {
+                  panels = value;
+                }}
+              />
+            </EditorProvider>
+          </TestHost>
+        </SDCPNContext>
+      </UserSettingsContext>,
+    );
+    expect(onEditorReaderRender).toHaveBeenCalled();
+    onEditorReaderRender.mockClear();
 
-      const transitions = [
-        {
-          run: () => editor.setAiAssistantOpen(true),
-          state: { isAiAssistantOpen: true },
-        },
-        {
-          run: () => editor.setAiAssistantPlacement("floating"),
-          state: { aiAssistantPlacement: "floating" },
-        },
-        {
-          run: () => editor.setAiAssistantPlacement("docked"),
-          state: { aiAssistantPlacement: "docked" },
-        },
-        {
-          run: () => editor.setAiAssistantOpen(false),
-          state: { isAiAssistantOpen: false },
-        },
-        {
-          run: () => editor.toggleAiAssistant(),
-          state: { isAiAssistantOpen: true },
-        },
-        {
-          run: () => editor.toggleAiAssistant(),
-          state: { isAiAssistantOpen: false },
-        },
-      ];
-      for (const transition of transitions) {
-        act(transition.run);
-        expect(editor!).toMatchObject({
-          ...transition.state,
-          isPanelAnimating: showAnimations,
-        });
-        act(() => {
-          vi.advanceTimersByTime(500);
-        });
-        expect(editor!.isPanelAnimating).toBe(false);
-      }
-      unmount();
-    },
-  );
+    act(() => panels.assistant.setPlacement("floating"));
+
+    expect(panels!.assistant.placement).toBe("floating");
+    expect(onEditorReaderRender).not.toHaveBeenCalled();
+    unmount();
+  });
+});
+
+describe("EditorProvider readers of one part", () => {
+  it("renders them when their part changes, and not when a panel opens", () => {
+    // Counted from inside each reader: a `Profiler` around one misses a
+    // render that a context or a published value starts.
+    const onRender = {
+      mode: vi.fn(),
+      fields: vi.fn(),
+      readOnly: vi.fn(),
+      whole: vi.fn(),
+    };
+    const renders = () => ({
+      mode: onRender.mode.mock.calls.length,
+      fields: onRender.fields.mock.calls.length,
+      readOnly: onRender.readOnly.mock.calls.length,
+      whole: onRender.whole.mock.calls.length,
+    });
+    const ModeReader = () => {
+      "use no memo"; // The count below has to run on every render.
+      onRender.mode();
+      return (
+        <output aria-label="mode">{useEditorState((e) => e.globalMode)}</output>
+      );
+    };
+    const FieldsReader = () => {
+      "use no memo";
+      onRender.fields();
+      const { cursorMode, globalMode } = useEditorFields(
+        "cursorMode",
+        "globalMode",
+      );
+      return (
+        <output aria-label="fields">
+          {cursorMode} {globalMode}
+        </output>
+      );
+    };
+    const ReadOnlyReader = () => {
+      "use no memo";
+      onRender.readOnly();
+      return (
+        <output aria-label="read-only">{useIsReadOnly() ? "yes" : "no"}</output>
+      );
+    };
+    const WholeReader = () => {
+      "use no memo";
+      onRender.whole();
+      use(EditorContext);
+      return null;
+    };
+    let editor: EditorContextValue;
+    const view = render(
+      <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
+        <TestHost recorded={[]}>
+          <EditorProvider>
+            <ModeReader />
+            <FieldsReader />
+            <ReadOnlyReader />
+            <WholeReader />
+            <EditorContextGrabber
+              onContextValue={(value) => {
+                editor = value;
+              }}
+            />
+          </EditorProvider>
+        </TestHost>
+      </SDCPNContext>,
+    );
+
+    vi.clearAllMocks();
+    act(() => editor!.setBottomPanelOpen(!editor!.isBottomPanelOpen));
+    expect(renders()).toEqual({ mode: 0, fields: 0, readOnly: 0, whole: 1 });
+
+    vi.clearAllMocks();
+    act(() => editor!.setGlobalMode("simulate"));
+    expect(view.getByLabelText("mode").textContent).toBe("simulate");
+    expect(view.getByLabelText("fields").textContent).toContain("simulate");
+    expect(view.getByLabelText("read-only").textContent).toBe("yes");
+    expect(renders()).toMatchObject({ mode: 1, fields: 1, readOnly: 1 });
+    view.unmount();
+  });
 });
 
 describe("EditorProvider selection gestures", () => {

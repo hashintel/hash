@@ -1,7 +1,7 @@
 import { use } from "react";
 
-import { NetManagementContext } from "../net-management-context";
 import { NotificationsContext } from "../notifications/context";
+import { ReadOnlyActionContext } from "../read-only-action-context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useReadOnlyReason } from "../state/use-read-only-reason";
 
@@ -11,7 +11,7 @@ import { useReadOnlyReason } from "../state/use-read-only-reason";
  */
 export const useReadOnlyFeedback = () => {
   const reason = useReadOnlyReason();
-  const { readOnlyAction } = use(NetManagementContext);
+  const readOnlyAction = use(ReadOnlyActionContext);
   const { petriNetId } = use(SDCPNContext);
   const { addNotification } = use(NotificationsContext);
 

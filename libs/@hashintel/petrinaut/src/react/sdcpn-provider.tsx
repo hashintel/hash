@@ -1,27 +1,61 @@
-import { use, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import {
   ARC_ID_PREFIX,
   isSelectionTypeAvailableForExtensions,
 } from "@hashintel/petrinaut-core";
 
-import { NetManagementContext } from "./net-management-context";
+import { createVisualizerDefinitionStore } from "./sdcpn-provider/visualizer-definition-store";
 import { SDCPNContext, type SDCPNContextValue } from "./state/sdcpn-context";
 import { usePetrinautInstance } from "./use-petrinaut-instance";
 import { useStore } from "./use-store";
 
 /**
- * Bridge: reads document state from the Core instance and net-management info
- * from {@link NetManagementContext}, republishes through the existing
- * {@link SDCPNContext} so `/ui` consumers don't change.
+ * Bridge: reads document state from the Core instance and republishes it
+ * through {@link SDCPNContext}.
  */
 export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const instance = usePetrinautInstance();
-  const netManagement = use(NetManagementContext);
 
-  const petriNetDefinition = useStore(instance.definition);
+  const [definition, setDefinition] = useState(() => ({
+    source: instance.definition,
+    store: createVisualizerDefinitionStore(
+      instance.definition,
+      instance.handle,
+    ),
+  }));
+  if (definition.source !== instance.definition) {
+    setDefinition({
+      source: instance.definition,
+      store: createVisualizerDefinitionStore(
+        instance.definition,
+        instance.handle,
+      ),
+    });
+  }
+  useEffect(() => {
+    const flush = definition.store.flush;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.metaKey ||
+        event.ctrlKey ||
+        event.key === "Tab" ||
+        event.key === "Escape"
+      )
+        flush();
+    };
+    window.addEventListener("pointerdown", flush, true);
+    window.addEventListener("blur", flush, true);
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      window.removeEventListener("pointerdown", flush, true);
+      window.removeEventListener("blur", flush, true);
+      window.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [definition.store]);
+  const petriNetDefinition = useStore(definition.store);
   const allNets = [
     petriNetDefinition,
     ...(petriNetDefinition.components ?? []),
@@ -32,12 +66,6 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
     petriNetDefinition,
     readonly: instance.readonly,
     extensions: instance.extensions,
-    title: netManagement.title,
-    setTitle: netManagement.setTitle ?? (() => {}),
-    titleEditable: netManagement.setTitle !== undefined,
-    existingNets: netManagement.existingNets,
-    createNewNet: netManagement.createNewNet,
-    loadPetriNet: netManagement.loadPetriNet,
     getItemType(id) {
       // TODO: Selection and elements IDs should be reworked
       if (id.startsWith(ARC_ID_PREFIX)) {

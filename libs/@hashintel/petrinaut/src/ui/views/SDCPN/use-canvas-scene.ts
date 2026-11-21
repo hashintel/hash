@@ -7,9 +7,9 @@ import {
 
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { CompositionContext } from "../../../react/state/composition-context";
-import { EditorContext } from "../../../react/state/editor-context";
+import { useEditorFields } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
-import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { useUserSettingsFields } from "../../../react/state/user-settings-context";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
 import { fusionStatuses } from "./fusion-links";
@@ -26,6 +26,9 @@ export const useCanvasScene = (
   const { activeNet, activeComponentId } = use(ActiveNetContext);
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
+  // By name: the scene is built again whenever this hook's component
+  // renders, and the editor context and the settings also change with each
+  // panel that opens.
   const {
     draggingStateByNodeId,
     isSelected,
@@ -35,8 +38,20 @@ export const useCanvasScene = (
     openVisualizerPlaceId,
     focusedVisualizerPlaceId,
     unfoldedComponentInstanceIds,
-  } = use(EditorContext);
-  const { compactNodes, highlightOnHover } = use(UserSettingsContext);
+  } = useEditorFields(
+    "draggingStateByNodeId",
+    "isSelected",
+    "selection",
+    "hoveredItem",
+    "keptOpenVisualizerPlaceIds",
+    "openVisualizerPlaceId",
+    "focusedVisualizerPlaceId",
+    "unfoldedComponentInstanceIds",
+  );
+  const { compactNodes, highlightOnHover } = useUserSettingsFields(
+    "compactNodes",
+    "highlightOnHover",
+  );
 
   /*
    * The hover follows the pointer only once it stops. Sweeping across the

@@ -72,6 +72,8 @@ export interface SubView {
    * Defaults to false (expanded). Ignored when `main` is true.
    */
   defaultCollapsed?: boolean;
+  /** Keep visited content mounted until its panel is removed. */
+  retainOnCollapse?: boolean;
   /**
    * When true, the header action is always visible instead of only on hover/focus.
    * Defaults to false.

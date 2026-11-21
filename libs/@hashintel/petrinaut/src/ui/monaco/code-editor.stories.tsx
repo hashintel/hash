@@ -94,15 +94,10 @@ const LAMBDA_SDCPN: SDCPN = {
 };
 
 const LSP_CONTEXT: SDCPNContextValue = {
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
   petriNetId: "story-net",
   petriNetDefinition: LAMBDA_SDCPN,
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "Story Net",
   getItemType: () => null,
 };
 

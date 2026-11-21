@@ -1,6 +1,11 @@
 import { createContext } from "react";
 
 import {
+  useSelected,
+  useSelectedFields,
+  type Published,
+} from "../select-from-context";
+import {
   DEFAULT_BOTTOM_PANEL_HEIGHT,
   DEFAULT_LEFT_SIDEBAR_WIDTH,
   DEFAULT_PROPERTIES_PANEL_WIDTH,
@@ -160,3 +165,41 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
 export const UserSettingsContext = createContext<UserSettingsContextValue>(
   defaultUserSettingsContextValue,
 );
+
+/** Where the settings provider publishes the context value for {@link useUserSettings}. */
+export const UserSettingsPublishedContext =
+  createContext<Published<UserSettingsContextValue>>(null);
+
+/**
+ * One setting, or one of the functions that change them. The reader renders
+ * when that part changes.
+ *
+ * The settings hold what the editor saves as it is used: which panels are
+ * open, their sizes, the canvas viewport. `use(UserSettingsContext)` renders
+ * its reader each time any of them is saved. A component with many
+ * components below it, or one of many like it, reads the settings it needs
+ * through this hook instead.
+ *
+ * ```tsx
+ * const compactNodes = useUserSettings((settings) => settings.compactNodes);
+ * ```
+ */
+export const useUserSettings = <Selected>(
+  select: (settings: UserSettingsContextValue) => Selected,
+): Selected =>
+  useSelected(UserSettingsContext, UserSettingsPublishedContext, select);
+
+/**
+ * Several settings, or functions that change them, by name. The reader
+ * renders when one of them changes.
+ *
+ * ```tsx
+ * const { compactNodes, showMinimap } = useUserSettingsFields("compactNodes", "showMinimap");
+ * ```
+ */
+export const useUserSettingsFields = <
+  Key extends keyof UserSettingsContextValue,
+>(
+  ...keys: Key[]
+): Pick<UserSettingsContextValue, Key> =>
+  useSelectedFields(UserSettingsContext, UserSettingsPublishedContext, keys);

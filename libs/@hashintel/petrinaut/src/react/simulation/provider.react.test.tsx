@@ -47,15 +47,10 @@ const makeSdcpn = (scenarios: Scenario[]): SDCPN => ({
 });
 
 const makeSdcpnContextValue = (scenarios: Scenario[]): SDCPNContextValue => ({
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
   petriNetId: "test-net",
   petriNetDefinition: makeSdcpn(scenarios),
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "Test",
   getItemType: () => null,
 });
 

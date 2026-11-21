@@ -34,9 +34,11 @@ import { PetrinautProvider } from "../react/petrinaut-provider";
 import { ResolvingOverlay } from "./components/resolving-overlay";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
+import { useHeldNetManagement } from "./petrinaut/use-held-net-management";
 import { documentViewPlugin } from "./plugins/document-view-plugin";
 import { fpsCounterPlugin } from "./plugins/fps-counter-plugin";
 import { PetrinautPluginsProvider } from "./plugins/plugins-provider";
+import { noSlots, PetrinautSlotsContext } from "./slots-context";
 import { EditorView } from "./views/Editor/editor-view";
 import {
   PetrinautPresentationProvider,
@@ -55,7 +57,6 @@ const editorRootStyle = css({
 });
 
 import type { PetrinautNavigationController } from "../react/navigation";
-import type { NetManagement } from "../react/net-management-context";
 import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
 import type { PetrinautSlots } from "./types/petrinaut-slots";
 
@@ -155,6 +156,7 @@ export type PetrinautProps = {
 const noop = () => {};
 const noPlugins: readonly PetrinautPlugin[] = [];
 const noRules: PetrinautRules = {};
+const noNets: MinimalNetMetadata[] = [];
 
 /**
  * Handle-driven entry point. Creates a Core {@link Instance} from the given
@@ -174,7 +176,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   libraries,
   rules = noRules,
   hideNetManagementControls,
-  existingNets = [],
+  existingNets = noNets,
   createNewNet = noop,
   loadPetriNet = noop,
   slots,
@@ -207,13 +209,13 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
 
   useEffect(() => () => instance.dispose(), [instance]);
 
-  const netManagement: NetManagement = {
+  const netManagement = useHeldNetManagement({
     title,
     setTitle,
     existingNets,
     createNewNet,
     loadPetriNet,
-  };
+  });
   // Plugin buttons run commands; without a host registry they register in
   // the editor's own.
   const hostRegistry = useCommandRegistry();
@@ -240,7 +242,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
               >
                 <EditorView
                   hideNetManagementControls={hideNetManagementControls}
-                  slots={slots}
                   titleEditable={titleEditable}
                 />
               </PetrinautPluginsProvider>
@@ -252,9 +253,12 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
     </PortalContainerContext>
   );
 
+  // The slots go around the editor, not into it: see `PetrinautSlotsContext`.
   return (
-    <CommandRegistryProvider registry={hostRegistry ?? undefined}>
-      {editor}
-    </CommandRegistryProvider>
+    <PetrinautSlotsContext value={slots ?? noSlots}>
+      <CommandRegistryProvider registry={hostRegistry ?? undefined}>
+        {editor}
+      </CommandRegistryProvider>
+    </PetrinautSlotsContext>
   );
 };

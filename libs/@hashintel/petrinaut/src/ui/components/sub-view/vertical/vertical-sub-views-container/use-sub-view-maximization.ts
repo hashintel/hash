@@ -4,7 +4,8 @@ import { usePetrinautNavigation } from "../../../../../react/navigation";
 
 import type { SubView } from "../../types";
 
-type Bounds = { top: number; left: number; width: number; height: number };
+/** Where a section shows inside its container, top to bottom. */
+type Bounds = { top: number; height: number };
 type Maximization = {
   id: string;
   restoring: boolean;
@@ -15,19 +16,40 @@ type Maximization = {
 const relativeBounds = (element: Element, container: Element): Bounds => {
   const bounds = element.getBoundingClientRect();
   const containerBounds = container.getBoundingClientRect();
-  return {
-    top: bounds.top - containerBounds.top,
-    left: bounds.left - containerBounds.left,
-    width: bounds.width,
-    height: bounds.height,
-  };
+  return { top: bounds.top - containerBounds.top, height: bounds.height };
 };
 
-const keyframe = (bounds: Bounds) => ({
-  top: `${bounds.top}px`,
-  left: `${bounds.left}px`,
-  width: `${bounds.width}px`,
-  height: `${bounds.height}px`,
+/** What a running animation clips off the section's bottom, in pixels. */
+const clippedBottom = (section: HTMLElement): number => {
+  const inset = /inset\(([^)]*)\)/.exec(getComputedStyle(section).clipPath);
+  if (!inset?.[1]) {
+    return 0;
+  }
+  // `inset()` shortens like a margin: its third value is the bottom, and with
+  // fewer than three the bottom equals the top.
+  const values = inset[1].trim().split(/\s+/);
+  return Number.parseFloat(values[2] ?? values[0] ?? "0");
+};
+
+/**
+ * The part of the section that shows. During an animation the section is laid
+ * out at the container's size, moved by a transform and clipped at the bottom,
+ * so its box says where it is and not how much of it shows.
+ */
+const visibleBounds = (section: HTMLElement, container: Element): Bounds => {
+  const bounds = relativeBounds(section, container);
+  return { ...bounds, height: bounds.height - clippedBottom(section) };
+};
+
+/**
+ * How a section that is laid out to fill a container of `fullHeight` is drawn
+ * so that it shows as `bounds`: moved down to their top and clipped to their
+ * height. Neither changes layout, so an animation between two of these lays
+ * the section's content out once, not once per frame.
+ */
+const drawnAs = (bounds: Bounds, fullHeight: number): Keyframe => ({
+  transform: `translateY(${bounds.top}px)`,
+  clipPath: `inset(0px 0px ${Math.max(0, fullHeight - bounds.height)}px 0px)`,
 });
 
 const focusHeader = (
@@ -116,7 +138,7 @@ export const useSubViewMaximization = (
     if (!targetId && !animated) {
       restoreFocusRef.current = section;
     }
-    const from = relativeBounds(section, container);
+    const from = visibleBounds(section, container);
     // Measure the current DOM bounds before moving a routed section; the destination guard prevents repeated updates.
     setMaximization(
       !targetId && !animated
@@ -153,11 +175,14 @@ export const useSubViewMaximization = (
       : relativeBounds(container, container);
     const options: KeyframeAnimationOptions = {
       ...animationOptions,
-      // Keep the destination bounds until React restores the normal layout.
+      // Keep the destination drawing until React restores the normal layout.
       fill: maximization.restoring ? "forwards" : "none",
     };
+    // The section fills the container for the whole animation, in both
+    // directions. Only how it is drawn changes from frame to frame.
+    const fullHeight = container.getBoundingClientRect().height;
     const animation = section.animate(
-      [keyframe(maximization.from), keyframe(target)],
+      [drawnAs(maximization.from, fullHeight), drawnAs(target, fullHeight)],
       options,
     );
     const title = section.querySelector<HTMLElement>("[data-subview-title]");

@@ -9,6 +9,8 @@ import {
   type BottomPanelTab,
   EditorContext,
 } from "../../../../../react/state/editor-context";
+import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
+import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
@@ -29,7 +31,9 @@ import {
   COMPILATION_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
+import { styleRef, useReading } from "../../../../lib/readings";
 import { usePluginBottomPanelViews } from "../../../../plugins/plugin-outlets";
+import { slideFromEdge } from "../../shared/slide-from-edge";
 import { fallbackBottomPanelTab } from "./fallback-tab";
 import { diagnosticsSubView } from "./subviews/diagnostics";
 
@@ -45,17 +49,10 @@ const panelStyle = cva({
   variants: {
     open: {
       true: {},
+      // Where the panel is comes from its presence value; this is only what
+      // a closed panel must not do.
       false: {
-        transform: "translateY(100%)",
         pointerEvents: "none",
-      },
-    },
-    animating: {
-      true: {
-        transitionProperty:
-          "[width, opacity, height, top, left, right, bottom, transform]",
-        transitionDuration: "[150ms]",
-        transitionTimingFunction: "[cubic-bezier(0.16, 1, 0.3, 1)]",
       },
     },
   },
@@ -129,19 +126,20 @@ export const BottomPanel: React.FC = () => {
   const {
     isBottomPanelOpen: isOpen,
     setBottomPanelOpen,
-    isLeftSidebarOpen,
-    isSearchOpen,
-    leftSidebarWidth,
-    bottomPanelHeight: panelHeight,
-    setBottomPanelHeight,
     activeBottomPanelTab: activeTab,
     setActiveBottomPanelTab: setActiveTab,
     toggleBottomPanel,
-    isPanelAnimating,
     globalMode,
   } = use(EditorContext);
+  const { shown } = usePanelPresence();
+  // Still sliding out, where a closed panel is not kept mounted.
+  const isInView = useReading(() => shown.bottomPanel.get() > 0);
 
-  const { keepPanelsMounted, showCompilationOutput } = use(UserSettingsContext);
+  const {
+    keepPanelsMounted,
+    showCompilationOutput,
+    setBottomPanelHeight: saveHeight,
+  } = use(UserSettingsContext);
   const composesOnly = useComposesOnly();
 
   // Simulation state for conditional subviews
@@ -229,34 +227,30 @@ export const BottomPanel: React.FC = () => {
     setActiveTab(tabId as BottomPanelTab);
   };
 
-  // Calculate left position based on left sidebar visibility.
-  // The sidebar is visible when explicitly opened OR when search is active.
-  const isSidebarVisible = isLeftSidebarOpen || isSearchOpen;
-  const leftOffset = isSidebarVisible
-    ? leftSidebarWidth + PANEL_MARGIN * 2
-    : PANEL_MARGIN;
+  const { leftSidebarWidth, bottomPanelHeight } = usePanelSizes();
 
-  if (!isOpen && !isPanelAnimating && !keepPanelsMounted) {
+  if (!isOpen && !isInView && !keepPanelsMounted) {
     return null;
   }
 
   return (
     <GlassPanel
-      className={cx(
-        glassPanelBaseStyle,
-        panelStyle({ open: isOpen, animating: isPanelAnimating }),
-      )}
-      style={{
-        bottom: PANEL_MARGIN,
-        left: leftOffset,
-        right: PANEL_MARGIN,
-        height: panelHeight,
-      }}
+      className={cx(glassPanelBaseStyle, panelStyle({ open: isOpen }))}
+      // The panel starts beside the left sidebar, as far as that is in view.
+      ref={styleRef({
+        left: () =>
+          PANEL_MARGIN +
+          shown.leftSidebar.get() * (leftSidebarWidth.get() + PANEL_MARGIN),
+        height: bottomPanelHeight,
+        transform: () => slideFromEdge("bottom", shown.bottomPanel.get()),
+      })}
+      style={{ bottom: PANEL_MARGIN, right: PANEL_MARGIN }}
       contentClassName={panelContainerStyle}
       resizable={{
         edge: "top",
-        size: panelHeight,
-        onResize: setBottomPanelHeight,
+        getSize: () => bottomPanelHeight.get(),
+        onResize: (height) => bottomPanelHeight.set(height),
+        onResizeEnd: () => saveHeight(bottomPanelHeight.get()),
         minSize: MIN_BOTTOM_PANEL_HEIGHT,
         maxSize: MAX_BOTTOM_PANEL_HEIGHT,
       }}

@@ -217,6 +217,14 @@
       "rules": {
         "no-restricted-imports": "off"
       }
+    },
+    {
+      "files": ["benchmarks/monaco-performance/*.mjs"],
+      "rules": {
+        "@typescript-eslint/no-unsafe-assignment": "off",
+        "@typescript-eslint/no-unsafe-call": "off",
+        "no-console": "off"
+      }
     }
   ]
 }

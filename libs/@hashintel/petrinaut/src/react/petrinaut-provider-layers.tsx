@@ -7,11 +7,13 @@ import {
   NetManagementContext,
   type NetManagement,
 } from "./net-management-context";
+import { ReadOnlyActionContext } from "./read-only-action-context";
 import { SDCPNProvider } from "./sdcpn-provider";
 import { ActiveNetProvider } from "./state/active-net-provider";
 import { CanvasViewportProvider } from "./state/canvas-viewport-provider";
 import { CompositionContext } from "./state/composition-context";
 import { EditorProvider } from "./state/editor-provider";
+import { PanelSizesProvider } from "./state/panel-sizes-provider";
 import { UndoRedoContext } from "./state/undo-redo-context";
 import { UserSettingsProvider } from "./state/user-settings-provider";
 import { useHandleHistoryAsUndoRedo } from "./use-handle-history-as-undo-redo";
@@ -74,13 +76,15 @@ export const PetrinautDocumentProvider: React.FC<
   return (
     <PetrinautInstanceContext value={instance}>
       <NetManagementContext value={netManagement}>
-        {handleHistoryUndoRedo ? (
-          <UndoRedoContext value={handleHistoryUndoRedo}>
-            {document}
-          </UndoRedoContext>
-        ) : (
-          document
-        )}
+        <ReadOnlyActionContext value={netManagement.readOnlyAction}>
+          {handleHistoryUndoRedo ? (
+            <UndoRedoContext value={handleHistoryUndoRedo}>
+              {document}
+            </UndoRedoContext>
+          ) : (
+            document
+          )}
+        </ReadOnlyActionContext>
       </NetManagementContext>
     </PetrinautInstanceContext>
   );
@@ -106,9 +110,11 @@ export const PetrinautCanvasProvider: React.FC<
   <CanvasViewportProvider>
     <EventPlaybackProvider initialSpeed={initialPlaybackSpeed}>
       <ActiveNetProvider>
-        <EditorProvider>
-          <ExecutionFrameProvider>{children}</ExecutionFrameProvider>
-        </EditorProvider>
+        <PanelSizesProvider>
+          <EditorProvider>
+            <ExecutionFrameProvider>{children}</ExecutionFrameProvider>
+          </EditorProvider>
+        </PanelSizesProvider>
       </ActiveNetProvider>
     </EventPlaybackProvider>
   </CanvasViewportProvider>

@@ -1,7 +1,7 @@
 import { use, useEffect, useRef } from "react";
 
 import { Icon } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
@@ -73,18 +73,6 @@ const bottomBarStyle = css({
   flexShrink: 0,
 });
 
-/** Keep the bar's vertical movement in step with the panel beneath it. */
-const barAnimatingStyle = cva({
-  base: {},
-  variants: {
-    animating: {
-      true: {
-        transition: "[transform 150ms cubic-bezier(0.16, 1, 0.3, 1)]",
-      },
-    },
-  },
-});
-
 type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];
 
@@ -111,7 +99,6 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     setBottomPanelOpen,
     setActiveBottomPanelTab,
     isAiAssistantOpen,
-    isPanelAnimating,
     toggleAiAssistant,
   } = use(EditorContext);
 
@@ -155,14 +142,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
       className={bottomBarLaneStyle}
       style={{ bottom: BOTTOM_BAR_GAP }}
     >
-      <div
-        ref={barRef}
-        data-bottom-bar
-        className={`${bottomBarStyle} ${barAnimatingStyle({ animating: isPanelAnimating })}`}
-        style={{
-          transform: `translate(${layout.offsetX}, ${-layout.liftY}px)`,
-        }}
-      >
+      <div ref={barRef} data-bottom-bar className={bottomBarStyle}>
         <BottomBarCollapseContext
           value={{
             isCollapsed: layout.isCollapsed,

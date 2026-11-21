@@ -29,7 +29,7 @@ vi.mock("@xyflow/react", () => ({
 const defaultProps = {
   bounds: { x: 0, y: 0, width: 100, height: 100 },
   containerSize: { width: 1000, height: 600 },
-  insets: { left: 100, right: 300, bottom: 100 },
+  insets: () => ({ left: 100, right: 300, bottom: 100 }),
   animated: false,
 };
 

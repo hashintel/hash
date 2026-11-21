@@ -4,6 +4,8 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { CompositionContext } from "../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
+import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
+import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
@@ -14,7 +16,9 @@ import {
   MIN_LEFT_SIDEBAR_WIDTH,
 } from "../../../../constants/ui";
 import { LEFT_SIDEBAR_SUBVIEWS } from "../../../../constants/ui-subviews";
+import { styleRef, useReading } from "../../../../lib/readings";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
+import { slideFromEdge } from "../../shared/slide-from-edge";
 import { searchSubView } from "./subviews/search-panel";
 
 const glassPanelBaseStyle = css({
@@ -32,17 +36,10 @@ const panelStyle = cva({
   variants: {
     open: {
       true: {},
+      // Where the panel is comes from its presence value; this is only what
+      // a closed panel must not do.
       false: {
-        transform: "translateX(-100%)",
         pointerEvents: "none",
-      },
-    },
-    animating: {
-      true: {
-        transitionProperty:
-          "[width, opacity, height, top, left, right, bottom, transform]",
-        transitionDuration: "[150ms]",
-        transitionTimingFunction: "[cubic-bezier(0.16, 1, 0.3, 1)]",
       },
     },
   },
@@ -100,18 +97,17 @@ const contentLayerStyle = cva({
  * Resizable from the right edge.
  */
 export const LeftSideBar: React.FC = () => {
-  const {
-    isLeftSidebarOpen: isOpen,
-    leftSidebarWidth,
-    setLeftSidebarWidth,
-    isPanelAnimating,
-    isSearchOpen,
-  } = use(EditorContext);
+  const { isLeftSidebarOpen: isOpen, isSearchOpen } = use(EditorContext);
+  const { shown } = usePanelPresence();
+  // Still sliding out, where a closed panel is not kept mounted.
+  const isInView = useReading(() => shown.leftSidebar.get() > 0);
   const { offered } = use(CompositionContext);
   const composesOnly = useComposesOnly();
   const isCompositionInterfaceOn = useIsCompositionInterfaceOn();
 
-  const { keepPanelsMounted } = use(UserSettingsContext);
+  const { leftSidebarWidth } = usePanelSizes();
+  const { keepPanelsMounted, setLeftSidebarWidth: saveWidth } =
+    use(UserSettingsContext);
 
   // The sidebar is visible when explicitly opened OR when search is active
   const isVisible = isOpen || isSearchOpen;
@@ -131,21 +127,22 @@ export const LeftSideBar: React.FC = () => {
 
   const searchSubViews = useMemo(() => [searchSubView], []);
 
-  if (!isVisible && !isPanelAnimating && !keepPanelsMounted) {
+  if (!isVisible && !isInView && !keepPanelsMounted) {
     return null;
   }
 
   return (
     <GlassPanel
-      className={cx(
-        glassPanelBaseStyle,
-        panelStyle({ open: isVisible, animating: isPanelAnimating }),
-      )}
-      style={{ width: leftSidebarWidth }}
+      className={cx(glassPanelBaseStyle, panelStyle({ open: isVisible }))}
+      ref={styleRef({
+        width: leftSidebarWidth,
+        transform: () => slideFromEdge("left", shown.leftSidebar.get()),
+      })}
       resizable={{
         edge: "right",
-        size: leftSidebarWidth,
-        onResize: setLeftSidebarWidth,
+        getSize: () => leftSidebarWidth.get(),
+        onResize: (width) => leftSidebarWidth.set(width),
+        onResizeEnd: () => saveWidth(leftSidebarWidth.get()),
         minSize: MIN_LEFT_SIDEBAR_WIDTH,
         maxSize: MAX_LEFT_SIDEBAR_WIDTH,
       }}

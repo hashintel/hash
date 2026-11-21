@@ -1,11 +1,10 @@
 import { createContext, createRef } from "react";
 
 import {
-  DEFAULT_AI_ASSISTANT_WIDTH,
-  DEFAULT_BOTTOM_PANEL_HEIGHT,
-  DEFAULT_LEFT_SIDEBAR_WIDTH,
-  DEFAULT_PROPERTIES_PANEL_WIDTH,
-} from "./panel-defaults";
+  useSelected,
+  useSelectedFields,
+  type Published,
+} from "../select-from-context";
 
 import type {
   ComponentReference,
@@ -91,18 +90,9 @@ export type EditorState = {
   editionMode: EditorEditionMode;
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
-  leftSidebarWidth: number;
-  propertiesPanelWidth: number;
   isBottomPanelOpen: boolean;
-  bottomPanelHeight: number;
-  /**
-   * Width of the AI assistant panel. Held here rather than inside the panel so
-   * the surfaces that have to keep clear of it can read it.
-   */
-  aiAssistantWidth: number;
   /** Rendered compact dock height; null when expanded or closed. */
   aiAssistantDockHeight: number | null;
-  aiAssistantPlacement: "docked" | "floating";
   isAiAssistantCollapsed: boolean;
   activeBottomPanelTab: BottomPanelTab;
   /** The component the next click on the canvas places an instance of. */
@@ -144,7 +134,6 @@ export type EditorState = {
    */
   simulateViewMode: SimulateViewMode;
   simulateDrawer: SimulateDrawerState;
-  isPanelAnimating: boolean;
   isSearchOpen: boolean;
   isAiAssistantOpen: boolean;
 };
@@ -160,15 +149,10 @@ export type EditorActions = {
   setEditionMode: (mode: EditorEditionMode) => void;
   setCursorMode: (mode: CursorMode) => void;
   setLeftSidebarOpen: (isOpen: boolean) => void;
-  setLeftSidebarWidth: (width: number) => void;
-  setPropertiesPanelWidth: (width: number) => void;
-  setAiAssistantWidth: (width: number) => void;
   setAiAssistantDockHeight: (height: number | null) => void;
-  setAiAssistantPlacement: (placement: "docked" | "floating") => void;
   setAiAssistantCollapsed: (collapsed: boolean) => void;
   setBottomPanelOpen: (isOpen: boolean) => void;
   toggleBottomPanel: () => void;
-  setBottomPanelHeight: (height: number) => void;
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
   setAddComponentMode: (component: ComponentReference) => void;
   /** Check whether a given ID is in the current selection. */
@@ -206,7 +190,6 @@ export type EditorActions = {
   setSearchOpen: (isOpen: boolean) => void;
   setAiAssistantOpen: (isOpen: boolean) => void;
   toggleAiAssistant: () => void;
-  triggerPanelAnimation: () => void;
 };
 
 export type EditorContextValue = EditorState &
@@ -221,13 +204,8 @@ export const initialEditorState: EditorState = {
   editionMode: "cursor",
   cursorMode: "pan",
   isLeftSidebarOpen: true,
-  leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
-  propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
   isBottomPanelOpen: false,
-  bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
-  aiAssistantWidth: DEFAULT_AI_ASSISTANT_WIDTH,
   aiAssistantDockHeight: null,
-  aiAssistantPlacement: "docked",
   isAiAssistantCollapsed: false,
   activeBottomPanelTab: "diagnostics",
   componentToAdd: null,
@@ -245,7 +223,6 @@ export const initialEditorState: EditorState = {
   hiddenTimelineSeriesIds: new Set(),
   simulateViewMode: "experiments",
   simulateDrawer: { type: "closed" },
-  isPanelAnimating: false,
   isSearchOpen: false,
   isAiAssistantOpen: false,
 };
@@ -258,15 +235,10 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setEditionMode: () => {},
   setCursorMode: () => {},
   setLeftSidebarOpen: () => {},
-  setLeftSidebarWidth: () => {},
-  setPropertiesPanelWidth: () => {},
-  setAiAssistantWidth: () => {},
   setAiAssistantDockHeight: () => {},
-  setAiAssistantPlacement: () => {},
   setAiAssistantCollapsed: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},
-  setBottomPanelHeight: () => {},
   setActiveBottomPanelTab: () => {},
   setAddComponentMode: () => {},
   isSelected: () => false,
@@ -297,9 +269,42 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setAiAssistantOpen: () => {},
   toggleAiAssistant: () => {},
   searchInputRef: createRef<HTMLInputElement | null>(),
-  triggerPanelAnimation: () => {},
 };
 
 export const EditorContext = createContext<EditorContextValue>(
   DEFAULT_CONTEXT_VALUE,
 );
+
+/** Where `EditorProvider` publishes the context value for {@link useEditorState}. */
+export const EditorPublishedContext =
+  createContext<Published<EditorContextValue>>(null);
+
+/**
+ * One part of the editor's state, or one of its actions. The reader renders
+ * when that part changes.
+ *
+ * Almost every change in the editor is a change of the editor context: a
+ * panel opening, a selection, a hover. `use(EditorContext)` renders its
+ * reader for each of them. A component with many components below it, or one
+ * of many like it, reads the parts it needs through this hook instead.
+ *
+ * ```tsx
+ * const globalMode = useEditorState((editor) => editor.globalMode);
+ * ```
+ */
+export const useEditorState = <Selected>(
+  select: (editor: EditorContextValue) => Selected,
+): Selected => useSelected(EditorContext, EditorPublishedContext, select);
+
+/**
+ * Several fields of the editor's state and actions, by name, for a reader
+ * that needs more than one. It renders when one of them changes.
+ *
+ * ```tsx
+ * const { cursorMode, selectItem } = useEditorFields("cursorMode", "selectItem");
+ * ```
+ */
+export const useEditorFields = <Key extends keyof EditorContextValue>(
+  ...keys: Key[]
+): Pick<EditorContextValue, Key> =>
+  useSelectedFields(EditorContext, EditorPublishedContext, keys);

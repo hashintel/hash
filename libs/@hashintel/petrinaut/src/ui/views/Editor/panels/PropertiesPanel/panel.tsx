@@ -3,7 +3,9 @@ import { use } from "react";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
-import { EditorContext } from "../../../../../react/state/editor-context";
+import { assistantCover } from "../../../../../react/state/panel-presence";
+import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
+import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { usePanelTarget } from "../../../../../react/state/use-selection";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
@@ -13,6 +15,8 @@ import {
   MIN_PROPERTIES_PANEL_WIDTH,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
+import { styleRef, useReading } from "../../../../lib/readings";
+import { slideFromEdge } from "../../shared/slide-from-edge";
 import { SelectedItemProperties } from "./selected-item-properties";
 
 const glassPanelStyle = css({
@@ -30,17 +34,10 @@ const panelStyle = cva({
   variants: {
     open: {
       true: {},
+      // Where the panel is comes from its presence value; this is only what
+      // a closed panel must not do.
       false: {
-        transform: "translateX(100%)",
         pointerEvents: "none",
-      },
-    },
-    animating: {
-      true: {
-        transitionProperty:
-          "[width, opacity, height, top, left, right, bottom, transform]",
-        transitionDuration: "[150ms]",
-        transitionTimingFunction: "[cubic-bezier(0.16, 1, 0.3, 1)]",
       },
     },
   },
@@ -54,13 +51,12 @@ const glassPanelContentStyle = css({
  * PropertiesPanel displays properties and controls for the selected node/edge.
  */
 export const PropertiesPanel: React.FC = () => {
-  const {
-    propertiesPanelWidth,
-    setPropertiesPanelWidth,
-    isBottomPanelOpen,
-    bottomPanelHeight,
-    isPanelAnimating,
-  } = use(EditorContext);
+  const { propertiesPanelWidth, bottomPanelHeight, aiAssistantWidth } =
+    usePanelSizes();
+  const presence = usePanelPresence();
+  const { shown } = presence;
+  // Still sliding out, where a closed panel is not kept mounted.
+  const isInView = useReading(() => shown.propertiesPanel.get() > 0);
 
   const { petriNetId } = use(SDCPNContext);
   const { activeComponentId } = use(ActiveNetContext);
@@ -68,32 +64,38 @@ export const PropertiesPanel: React.FC = () => {
 
   const isOpen = panelTarget.kind !== "none";
 
-  // Calculate bottom offset based on bottom panel visibility
-  // Gap between PropertiesPanel and BottomPanel matches gap between LeftSideBar and BottomPanel
-  const bottomOffset = isBottomPanelOpen ? bottomPanelHeight + PANEL_MARGIN : 0;
+  const { keepPanelsMounted, setPropertiesPanelWidth: saveWidth } =
+    use(UserSettingsContext);
 
-  const { keepPanelsMounted } = use(UserSettingsContext);
-
-  if (!isOpen && !isPanelAnimating && !keepPanelsMounted) {
+  if (!isOpen && !isInView && !keepPanelsMounted) {
     return null;
   }
 
   return (
     <GlassPanel
-      className={cx(
-        glassPanelStyle,
-        panelStyle({ open: isOpen, animating: isPanelAnimating }),
-      )}
-      style={{
-        bottom: bottomOffset,
-        padding: PANEL_MARGIN,
+      className={cx(glassPanelStyle, panelStyle({ open: isOpen }))}
+      // The box follows the drags and the panels around it by direct writes,
+      // with no render. It ends above the bottom panel, with the gap there is
+      // beside the left sidebar, and it makes way for an AI assistant that is
+      // docking over the editor.
+      ref={styleRef({
         width: propertiesPanelWidth,
-      }}
+        bottom: () =>
+          shown.bottomPanel.get() * (bottomPanelHeight.get() + PANEL_MARGIN),
+        transform: () =>
+          slideFromEdge(
+            "right",
+            shown.propertiesPanel.get(),
+            assistantCover(presence, aiAssistantWidth.get()),
+          ),
+      })}
+      style={{ padding: PANEL_MARGIN }}
       contentClassName={glassPanelContentStyle}
       resizable={{
         edge: "left",
-        size: propertiesPanelWidth,
-        onResize: setPropertiesPanelWidth,
+        getSize: () => propertiesPanelWidth.get(),
+        onResize: (width) => propertiesPanelWidth.set(width),
+        onResizeEnd: () => saveWidth(propertiesPanelWidth.get()),
         minSize: MIN_PROPERTIES_PANEL_WIDTH,
         maxSize: MAX_PROPERTIES_PANEL_WIDTH,
       }}

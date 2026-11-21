@@ -32,6 +32,7 @@ const transitionFiringTimeSubView = createDeferredSubView({
   headerActionMutates: true,
   title: "Firing Time",
   defaultCollapsed: true,
+  retainOnCollapse: true,
   tooltip:
     "Define the rate at or conditions under which this transition will fire, optionally based on each set of input tokens' data (where input tokens have types).",
   hasHeaderAction: true,
@@ -51,6 +52,7 @@ const transitionResultsSubView = createDeferredSubView({
   headerActionMutates: true,
   title: "Transition Results",
   defaultCollapsed: true,
+  retainOnCollapse: true,
   tooltip:
     "This function determines the data for output tokens, optionally based on the input token data and any global parameters defined.",
   hasHeaderAction: true,

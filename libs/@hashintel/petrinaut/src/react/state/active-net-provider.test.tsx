@@ -1,9 +1,9 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { use, useState } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -15,6 +15,7 @@ import {
 import {
   defaultPetrinautNavigationState,
   PetrinautNavigationProvider,
+  usePetrinautNavigation,
   type PetrinautNavigationController,
   type PetrinautNavigationIntent,
   type PetrinautNavigationState,
@@ -48,15 +49,10 @@ const sdcpn: SDCPN = {
 };
 
 const sdcpnContextValue: SDCPNContextValue = {
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
   petriNetId: toPetrinautId("test-net"),
   petriNetDefinition: sdcpn,
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "Test",
   getItemType: () => null,
 };
 
@@ -108,7 +104,56 @@ const normalizationTo = (target: string | null): RecordedNavigation => ({
   intent: { cause: "normalization", action: "component" },
 });
 
+const onActiveNetReaderRender = vi.fn();
+
+// Counted from inside: a `Profiler` around a reader misses a render that a
+// context starts.
+const ActiveNetReader = () => {
+  "use no memo"; // The count below has to run on every render.
+  onActiveNetReaderRender();
+  use(ActiveNetContext);
+  return null;
+};
+
+const SelectPlace = () => {
+  const { navigate } = usePetrinautNavigation();
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        navigate(
+          (current) => ({
+            ...current,
+            selection: [{ type: "place", id: "place-a" }],
+          }),
+          { cause: "user", action: "selection", phase: "discrete" },
+        )
+      }
+    >
+      Select a place
+    </button>
+  );
+};
+
 describe("ActiveNetProvider", () => {
+  it("renders no reader of the active net for a selection", () => {
+    render(
+      <SDCPNContext value={sdcpnContextValue}>
+        <PetrinautNavigationProvider>
+          <ActiveNetProvider>
+            <ActiveNetReader />
+            <SelectPlace />
+          </ActiveNetProvider>
+        </PetrinautNavigationProvider>
+      </SDCPNContext>,
+    );
+    onActiveNetReaderRender.mockClear();
+
+    act(() => screen.getByRole("button", { name: "Select a place" }).click());
+
+    expect(onActiveNetReaderRender).not.toHaveBeenCalled();
+  });
+
   it("opens a component requested by its legacy id and rewrites the location", () => {
     const recorded: RecordedNavigation[] = [];
     render(

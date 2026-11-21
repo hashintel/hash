@@ -31,6 +31,7 @@ const placeVisualizerSubView = createDeferredSubView({
   tooltip:
     "Custom visualization of tokens in this place, defined by visualizer code.",
   defaultCollapsed: true,
+  retainOnCollapse: true,
   alwaysShowHeaderAction: true,
   hasHeaderAction: true,
   resizable: {
@@ -42,6 +43,8 @@ const placeVisualizerSubView = createDeferredSubView({
     (await import("./subviews/place-visualizer/subview"))
       .placeVisualizerSubView,
 });
+
+placeVisualizerSubView.preload();
 
 interface PlacePropertiesProps {
   place: Place;

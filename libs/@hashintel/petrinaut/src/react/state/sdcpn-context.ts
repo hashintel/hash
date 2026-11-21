@@ -2,25 +2,22 @@ import { createContext } from "react";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
-  type MinimalNetMetadata,
   type PetrinautExtensionSettings,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-export type SDCPNProviderProps = {
-  createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
-  existingNets: MinimalNetMetadata[];
-  loadPetriNet: (petriNetId: string) => void;
+/**
+ * The open document and what the instance says about it.
+ *
+ * Nothing the host owns is in here: its title, its list of nets and its
+ * callbacks are in `NetManagementContext`. A host may change those on every
+ * edit, and almost every part of the editor reads this context.
+ */
+export type SDCPNContextValue = {
   petriNetId: string | null;
   petriNetDefinition: SDCPN;
   readonly: boolean;
   extensions: PetrinautExtensionSettings;
-  setTitle: (title: string) => void;
-  title: string;
-  titleEditable?: boolean;
-};
-
-export type SDCPNContextValue = SDCPNProviderProps & {
   getItemType: (
     id: string,
   ) =>
@@ -36,9 +33,6 @@ export type SDCPNContextValue = SDCPNProviderProps & {
 };
 
 const DEFAULT_CONTEXT_VALUE: SDCPNContextValue = {
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
   petriNetId: null,
   petriNetDefinition: {
     places: [],
@@ -51,9 +45,6 @@ const DEFAULT_CONTEXT_VALUE: SDCPNContextValue = {
   },
   readonly: true,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "",
-  titleEditable: false,
   getItemType: () => null,
 };
 

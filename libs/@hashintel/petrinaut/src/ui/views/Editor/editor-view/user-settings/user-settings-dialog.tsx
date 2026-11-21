@@ -1,4 +1,5 @@
 import { Tabs } from "@ark-ui/react/tabs";
+import { motionValue } from "motion";
 import {
   use,
   useId,
@@ -15,6 +16,7 @@ import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { useAssistantChoice } from "../../../../plugins/plugin-assistant";
 import { PluginSettingsRows } from "../../../../plugins/plugin-settings-rows";
+import { PetrinautSlotsContext } from "../../../../slots-context";
 import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
@@ -395,14 +397,25 @@ const SettingsTabs = () => {
   );
 };
 
+/**
+ * What the host adds to the Labs section. The slot is read here, where it
+ * shows: a host may pass a new node on every render, and nothing else should
+ * render for it.
+ */
+const HostLabsSettings = () => {
+  const { settingsLabs } = use(PetrinautSlotsContext);
+
+  return settingsLabs === undefined || settingsLabs === null ? null : (
+    <FocusControls>{settingsLabs}</FocusControls>
+  );
+};
+
 export const UserSettingsDialog = ({
   section,
-  settingsLabs,
   onSectionChange,
   onClose,
 }: {
   section: PetrinautSettingsSection;
-  settingsLabs?: ReactNode;
   onSectionChange: (section: PetrinautSettingsSection) => void;
   onClose: () => void;
 }) => {
@@ -411,11 +424,10 @@ export const UserSettingsDialog = ({
   const item =
     sections.find((candidate) => candidate.id === section) ?? sections[0];
   const headingRef = useRef<HTMLElement>(null);
-  const [width, setWidth] = useState(760);
-  const { panelRef, handleProps, getResizeHandleProps, style } =
+  const [width] = useState(() => motionValue(760));
+  const { bindPanel, handleProps, getResizeHandleProps, box } =
     useFloatingPanel<HTMLDivElement>({
       width,
-      onWidthChange: setWidth,
       initialHeight: 480,
       initialPosition: "center",
       limits: { minWidth: 520, maxWidth: Infinity, gap: 20 },
@@ -423,8 +435,8 @@ export const UserSettingsDialog = ({
 
   return (
     <Dialog
-      ref={panelRef}
-      style={style}
+      ref={bindPanel()}
+      style={box}
       size="lg"
       aria-label="User settings"
       className={settingsDialogStyle}
@@ -597,9 +609,7 @@ export const UserSettingsDialog = ({
                         section="labs"
                         components={pluginRowComponents}
                       />
-                      {settingsLabs !== undefined && settingsLabs !== null && (
-                        <FocusControls>{settingsLabs}</FocusControls>
-                      )}
+                      <HostLabsSettings />
                     </>
                   )}
                 </FocusStack>

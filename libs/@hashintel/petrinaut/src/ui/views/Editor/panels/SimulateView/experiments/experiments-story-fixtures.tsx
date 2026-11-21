@@ -40,15 +40,10 @@ import type { Constraint, Scenario } from "@hashintel/petrinaut-core";
 const sirDefinition = canonicalizePetrinautIds(sirModel.petriNetDefinition);
 
 export const sirSdcpnContextValue: SDCPNContextValue = {
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
   petriNetId: "sir-story-net",
   petriNetDefinition: sirDefinition,
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: sirModel.title,
   getItemType: (id) => {
     if (sirDefinition.places.some((place) => place.id === id)) {
       return "place";
@@ -871,15 +866,10 @@ export function FakeEditorProvider({
     setAddComponentMode: () => {},
     setCursorMode: () => {},
     setLeftSidebarOpen: () => {},
-    setLeftSidebarWidth: () => {},
-    setPropertiesPanelWidth: () => {},
-    setAiAssistantWidth: () => {},
     setAiAssistantDockHeight: () => {},
-    setAiAssistantPlacement: () => {},
     setAiAssistantCollapsed: () => {},
     setBottomPanelOpen: () => {},
     toggleBottomPanel: () => {},
-    setBottomPanelHeight: () => {},
     setActiveBottomPanelTab: () => {},
     isSelected: () => false,
     setSelection: () => {},
@@ -919,7 +909,6 @@ export function FakeEditorProvider({
     setHiddenTimelineSeriesIds: () => {},
     setSimulateViewMode,
     setSearchOpen: () => {},
-    triggerPanelAnimation: () => {},
     searchInputRef,
   };
 

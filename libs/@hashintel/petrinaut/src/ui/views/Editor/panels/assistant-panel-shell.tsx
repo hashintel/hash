@@ -3,12 +3,16 @@ import { type ReactNode, use, useEffect, useState } from "react";
 import { Button, Icon, Menu } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../react/state/editor-context";
+import { useAssistantPlacement } from "../../../../react/state/assistant-placement-context";
+import { usePanelPresence } from "../../../../react/state/panel-presence-context";
+import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
+import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
 import {
   ExperimentalIcon,
   useExperimentalIconMotionAllowed,
 } from "../../../experimental-icons";
+import { styleRef, useReading } from "../../../lib/readings";
 import {
   type AssistantPanel,
   AssistantPanelContext,
@@ -17,55 +21,33 @@ import {
 } from "../../../plugins/plugin-assistant";
 import { ResizeHandle } from "../../../resize/resize-handle";
 import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
+import { slideFromEdge } from "../shared/slide-from-edge";
 import { useFloatingPanel } from "../shared/use-floating-panel";
 
+// The room the docked panel takes beside the editor. Its width is bound to
+// `aiAssistantHasRoom`, which changes in one step: a width that eases makes
+// the browser lay the whole editor out on every frame, which takes longer
+// than a frame.
 const dockSpaceStyle = css({
   flexShrink: 0,
   minWidth: "[0]",
   maxWidth: "[100%]",
   pointerEvents: "none",
-  '&[data-animating="true"]': {
-    transition: "[width 150ms ease-in-out]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  },
 });
 
+// The panel's box and its slide from the right edge are bound to the panels'
+// presence and to the floating window's position, and are no part of this
+// style.
 const shellStyle = cva({
   base: {
     position: "absolute",
-    top: "[0]",
-    right: "[0]",
-    height: "full",
-    maxHeight: "full",
-    maxWidth: "full",
-    transform: "[translateX(0)]",
-    visibility: "visible",
     zIndex: "[calc(var(--z-index-sticky) + 2)]",
     pointerEvents: "auto",
-    '&[data-animating="true"]': {
-      transition:
-        "[top 150ms ease-in-out, right 150ms ease-in-out, height 150ms ease-in-out, max-height 150ms ease-in-out, transform 150ms ease-in-out, visibility 0s]",
-      "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-    },
   },
   variants: {
-    floating: {
-      true: {
-        top: "[12px]",
-        right: "[12px]",
-        height: "[calc(100% - 24px)]",
-        maxHeight: "[640px]",
-        maxWidth: "[calc(100% - 24px)]",
-      },
-    },
     open: {
       false: {
-        transform: "[translateX(100%)]",
-        visibility: "hidden",
         pointerEvents: "none",
-        '&[data-animating="true"]': {
-          transitionDelay: "[0s, 0s, 0s, 0s, 0s, 150ms]",
-        },
       },
     },
   },
@@ -89,7 +71,9 @@ const cardStyle = cva({
     backgroundColor: "neutral.s00",
     borderLeft: "[1px solid {colors.neutral.s40}]",
     borderRadius: "[0]",
-    '&[data-animating="true"]': {
+    // Neither is laid out, so the browser eases them itself when the panel
+    // docks or floats.
+    '&[data-animated="true"]': {
       transition:
         "[border-radius 150ms ease-in-out, box-shadow 150ms ease-in-out]",
       "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
@@ -233,6 +217,20 @@ const AssistantSwitcher = () => {
 };
 
 /**
+ * A CSS length between the floating window's and the docked column's, for how
+ * far the panel is docked: the first at 0, the second at 1.
+ */
+const between = (floating: string, docked: string, howDocked: number) => {
+  if (howDocked === 0) {
+    return floating;
+  }
+  if (howDocked === 1) {
+    return docked;
+  }
+  return `calc(${floating} * ${1 - howDocked} + ${docked} * ${howDocked})`;
+};
+
+/**
  * The AI assistant panel around a plugin's content: the space it takes beside
  * the canvas, its docked or floating placement, resizing, and a title bar with
  * the assistant icon, the dock toggle and Close. The content fills the rest,
@@ -249,30 +247,25 @@ export const PluginAssistantPanel = ({
   focusRequest: number;
   children: ReactNode;
 }) => {
-  const {
-    aiAssistantPlacement,
-    aiAssistantWidth,
-    isPanelAnimating,
-    setAiAssistantPlacement,
-    setAiAssistantWidth,
-  } = use(EditorContext);
+  const { placement, setPlacement } = useAssistantPlacement();
+  const { showAnimations } = use(UserSettingsContext);
+  const { aiAssistantWidth } = usePanelSizes();
+  const { shown, aiAssistantDocked, aiAssistantHasRoom } = usePanelPresence();
   const { isOpen, close } = panel;
 
-  const isFloating = aiAssistantPlacement === "floating";
+  const isFloating = placement === "floating";
   const HeaderLabel = isFloating ? "button" : "div";
   const iconMotionAllowed = useExperimentalIconMotionAllowed();
   const {
     panelRef,
-    isInteracting,
+    bindPanel,
     handleProps,
     getResizeHandleProps,
-    style: floatingPositionStyle,
-  } = useFloatingPanel({
-    width: aiAssistantWidth,
-    onWidthChange: setAiAssistantWidth,
-  });
-  const panelWidth = `min(${aiAssistantWidth}px, 100cqw)`;
-  const animating = isPanelAnimating && !isInteracting;
+    box: floating,
+  } = useFloatingPanel({ width: aiAssistantWidth });
+  const dockedWidth = () => `min(${aiAssistantWidth.get()}px, 100cqw)`;
+  // A closed panel is hidden once it has slid out, and not before.
+  const isInView = useReading(() => shown.aiAssistant.get() > 0);
   const placementLabel = isFloating
     ? "Dock AI assistant"
     : "Float AI assistant";
@@ -307,22 +300,38 @@ export const PluginAssistantPanel = ({
         <div
           aria-hidden="true"
           className={dockSpaceStyle}
-          data-animating={animating}
-          style={{ width: isOpen && !isFloating ? panelWidth : 0 }}
+          ref={styleRef({
+            width: () => {
+              const width = dockedWidth();
+              return aiAssistantHasRoom.get() === 1 ? width : "0px";
+            },
+          })}
         />
         <aside
-          ref={panelRef}
+          // The panel's box, anywhere between the floating window and the
+          // docked column. Motion animates `aiAssistantDocked` from one to
+          // the other, and `shown.aiAssistant` as the panel slides in or out.
+          ref={bindPanel({
+            transform: () => slideFromEdge("right", shown.aiAssistant.get()),
+            width: () =>
+              between(floating.width, dockedWidth(), aiAssistantDocked.get()),
+            maxWidth: () =>
+              between(floating.maxWidth, "100%", aiAssistantDocked.get()),
+            top: () => between(floating.top, "0px", aiAssistantDocked.get()),
+            right: () =>
+              between(floating.right, "0px", aiAssistantDocked.get()),
+            height: () =>
+              between(floating.height, "100%", aiAssistantDocked.get()),
+            maxHeight: () =>
+              between(floating.maxHeight, "100%", aiAssistantDocked.get()),
+          })}
           aria-hidden={!isOpen ? true : undefined}
           aria-label="AI assistant"
           tabIndex={-1}
           inert={!isOpen}
-          className={shellStyle({ open: isOpen, floating: isFloating })}
-          data-placement={aiAssistantPlacement}
-          data-animating={animating}
-          style={{
-            width: panelWidth,
-            ...(isFloating ? floatingPositionStyle : {}),
-          }}
+          className={shellStyle({ open: isOpen })}
+          data-placement={placement}
+          style={{ visibility: isOpen || isInView ? undefined : "hidden" }}
         >
           {isFloating ? (
             <FloatingResizeHandles
@@ -334,8 +343,8 @@ export const PluginAssistantPanel = ({
               <ResizeHandle
                 edge="left"
                 appearance="hidden"
-                size={aiAssistantWidth}
-                onResize={setAiAssistantWidth}
+                getSize={() => aiAssistantWidth.get()}
+                onResize={(width) => aiAssistantWidth.set(width)}
                 minSize={320}
                 maxSize={720}
                 label="Resize AI assistant"
@@ -344,7 +353,7 @@ export const PluginAssistantPanel = ({
           )}
           <div
             className={cardStyle({ floating: isFloating })}
-            data-animating={animating}
+            data-animated={showAnimations}
           >
             <div className={headerStyle}>
               <HeaderLabel
@@ -366,9 +375,7 @@ export const PluginAssistantPanel = ({
                 variant="ghost"
                 className={buttonStyle}
                 aria-label={placementLabel}
-                onClick={() =>
-                  setAiAssistantPlacement(isFloating ? "docked" : "floating")
-                }
+                onClick={() => setPlacement(isFloating ? "docked" : "floating")}
                 prefix={
                   <ExperimentalIcon
                     name={isFloating ? "sidebar" : "externalLink"}

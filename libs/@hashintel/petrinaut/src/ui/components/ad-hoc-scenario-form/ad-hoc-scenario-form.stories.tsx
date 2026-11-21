@@ -240,15 +240,10 @@ const toSdcpn = (context: AdHocSynthesisContext): SDCPN => ({
 const toSdcpnContextValue = (
   context: AdHocSynthesisContext,
 ): SDCPNContextValue => ({
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
   petriNetId: "story-net",
   petriNetDefinition: toSdcpn(context),
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "Story Net",
   getItemType: () => null,
 });
 

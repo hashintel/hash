@@ -22,10 +22,10 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { CanvasViewportContext } from "../../../../../react/state/canvas-viewport-context";
-import { EditorContext } from "../../../../../react/state/editor-context";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { useEditorState } from "../../../../../react/state/editor-context";
+import { useUserSettings } from "../../../../../react/state/user-settings-context";
 import { SNAP_GRID_SIZE } from "../../../../constants/ui";
-import { useCanvasInsets } from "../../../../hooks/use-canvas-insets";
+import { useCanvasInsetsReader } from "../../../../hooks/use-canvas-insets";
 import {
   readDraggedComponent,
   readDraggedNodeKind,
@@ -143,9 +143,15 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   registerController,
 }) => {
   const presentation = usePetrinautPresentation();
-  const { compactNodes, showMinimap, showAnimations, partialSelection } =
-    use(UserSettingsContext);
-  const { globalMode } = use(EditorContext);
+  // Each by selector: a panel that opens or a selection changes both
+  // contexts, and every node and arc of the net renders with this component.
+  const compactNodes = useUserSettings((settings) => settings.compactNodes);
+  const showMinimap = useUserSettings((settings) => settings.showMinimap);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
+  const partialSelection = useUserSettings(
+    (settings) => settings.partialSelection,
+  );
+  const globalMode = useEditorState((editor) => editor.globalMode);
   const { savedViewport, rememberViewport } = use(CanvasViewportContext);
   const isActualMode = globalMode === "actual";
   const nodeTypes = compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES;
@@ -158,7 +164,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   });
   const { nodes, edges } = useReactFlowElements(scene);
   const applyChanges = useApplyNodeChanges(interactions);
-  const insets = useCanvasInsets();
+  const insets = useCanvasInsetsReader();
 
   const { isValidConnection, reconnectProps, isRewiring } = useLinkRewiring(
     interactions,
@@ -194,7 +200,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   // net. Bounds and container changes must not recompute it. The saved
   // viewport also restores the camera when the canvas resumes from Activity.
   const [initialViewport] = useState(
-    () => savedViewport ?? getInitialViewport(bounds, containerSize, insets),
+    () => savedViewport ?? getInitialViewport(bounds, containerSize, insets()),
   );
 
   // The min zoom (ie the max you can zoom out to) keeps the net at a readable

@@ -1,9 +1,11 @@
 import { use, useEffect, useState } from "react";
 
+import { usePublished } from "../select-from-context";
 import {
   defaultUserSettings,
   defaultUserSettingsContextValue,
   UserSettingsContext,
+  UserSettingsPublishedContext,
 } from "./user-settings-context";
 import { rememberCanvasViewport } from "./user-settings-provider/remember-canvas-viewport";
 
@@ -191,8 +193,12 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       }),
   };
 
+  const published = usePublished(contextValue);
+
   return (
-    <UserSettingsContext value={contextValue}>{children}</UserSettingsContext>
+    <UserSettingsPublishedContext value={published}>
+      <UserSettingsContext value={contextValue}>{children}</UserSettingsContext>
+    </UserSettingsPublishedContext>
   );
 };
 

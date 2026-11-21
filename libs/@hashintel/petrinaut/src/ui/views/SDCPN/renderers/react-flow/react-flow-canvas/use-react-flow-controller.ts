@@ -28,7 +28,8 @@ const frameRequestTimeoutMs = 1_500;
 type FrameState = {
   bounds: Rect | null;
   containerSize: Size;
-  insets: CanvasViewportInsets;
+  /** Called when the camera frames the scene, so a panel drag renders nothing here. */
+  insets: () => CanvasViewportInsets;
 };
 
 const fitScene = async (
@@ -45,7 +46,7 @@ const fitScene = async (
       getMinZoomForBounds(bounds, containerSize),
       MAX_FIT_ZOOM,
       ZOOM_PADDING,
-      insets,
+      insets(),
     ),
   );
   return "framed";

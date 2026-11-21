@@ -1,33 +1,22 @@
 import { useState } from "react";
 
+import { deriveStore } from "./derive-store";
 import {
   historyFloor,
   markCurrentEntry,
 } from "./use-handle-history-as-undo-redo/history-floor";
-import { useStore } from "./use-store";
 
 import type { UndoRedoContextValue } from "./state/undo-redo-context";
-import type {
-  HistoryEntry,
-  PetrinautHistory,
-  ReadableStore,
-} from "@hashintel/petrinaut-core";
-
-function constStore<T>(value: T): ReadableStore<T> {
-  return {
-    get: () => value,
-    subscribe: () => () => {},
-  };
-}
-
-const EMPTY_BOOL_STORE = constStore(false);
-const EMPTY_ENTRIES_STORE = constStore<readonly HistoryEntry[]>([]);
-const EMPTY_INDEX_STORE = constStore(0);
+import type { PetrinautHistory } from "@hashintel/petrinaut-core";
 
 /**
  * Adapt a {@link PetrinautHistory} (Core handle's optional history surface)
- * into the legacy {@link UndoRedoContextValue} shape consumed by the editor's
- * top bar / version-history button / keyboard shortcuts.
+ * into the {@link UndoRedoContextValue} the editor's top bar, version-history
+ * button and keyboard shortcuts read.
+ *
+ * It subscribes to nothing itself: the flags and the list it hands out are
+ * stores derived from the handle's, so an edit renders only the reader that
+ * shows what the edit changed.
  *
  * With `sinceTaken`, the history is the part from the entry it was at when
  * the editor took it: an undo or a jump goes no further back, and the older
@@ -39,11 +28,6 @@ export function useHandleHistoryAsUndoRedo(
   history: PetrinautHistory | undefined,
   { sinceTaken }: { sinceTaken: boolean },
 ): UndoRedoContextValue | undefined {
-  const canUndo = useStore(history?.canUndo ?? EMPTY_BOOL_STORE);
-  const canRedo = useStore(history?.canRedo ?? EMPTY_BOOL_STORE);
-  const entries = useStore(history?.entries ?? EMPTY_ENTRIES_STORE);
-  const currentIndex = useStore(history?.currentIndex ?? EMPTY_INDEX_STORE);
-
   // Where the history was when the editor took it, marked again when the
   // editor is handed another history or starts to scope the one it has.
   const scoped = sinceTaken ? history : undefined;
@@ -60,18 +44,28 @@ export function useHandleHistoryAsUndoRedo(
     return undefined;
   }
 
-  const floor = historyFloor(entries, taken.start);
+  const { entries, currentIndex, canUndo, canRedo } = history;
   // Asked of the history as it is when the user acts: a second undo can come
   // before the first has rendered.
-  const floorNow = () => historyFloor(history.entries.get(), taken.start);
+  const floorNow = () => historyFloor(entries.get(), taken.start);
 
   return {
-    canUndo: canUndo && currentIndex > floor,
+    canUndo: deriveStore(
+      { canUndo, currentIndex, entries },
+      (now) =>
+        now.canUndo &&
+        now.currentIndex > historyFloor(now.entries, taken.start),
+    ),
     canRedo,
-    history: entries.slice(floor).map((e) => ({ timestamp: e.timestamp })),
-    currentIndex: currentIndex - floor,
+    history: deriveStore({ entries, currentIndex }, (now) => {
+      const floor = historyFloor(now.entries, taken.start);
+      return {
+        entries: now.entries.slice(floor),
+        currentIndex: now.currentIndex - floor,
+      };
+    }),
     undo: () => {
-      if (history.currentIndex.get() > floorNow()) {
+      if (currentIndex.get() > floorNow()) {
         history.undo();
       }
     },

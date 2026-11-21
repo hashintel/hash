@@ -7,6 +7,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
+import { NetManagementContext } from "../net-management-context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { usePetrinautInstance } from "../use-petrinaut-instance";
 import { useStore } from "../use-store";
@@ -30,14 +31,16 @@ export function usePetrinautDefinitionSelector<T>(
   return selector(usePetrinautDefinition());
 }
 
-/** Set the current net's title. */
+const ignoreTitle = () => {};
+
+/** Set the current net's title. Does nothing where the host takes no title. */
 export function useSetTitle(): (title: string) => void {
-  return use(SDCPNContext).setTitle;
+  return use(NetManagementContext).setTitle ?? ignoreTitle;
 }
 
 /** Current net title. */
 export function useTitle(): string {
-  return use(SDCPNContext).title;
+  return use(NetManagementContext).title;
 }
 
 /** Stable identifier for the currently loaded net. `null` when none is loaded. */

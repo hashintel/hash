@@ -18,9 +18,14 @@ import { ExperimentsProvider } from "../../../../../react/experiments/provider";
 import { useLatest } from "../../../../../react/hooks/use-latest";
 import { LanguageClientProvider } from "../../../../../react/lsp/provider";
 import { PetrinautNavigationProvider } from "../../../../../react/navigation";
+import {
+  NetManagementContext,
+  type NetManagement,
+} from "../../../../../react/net-management-context";
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
 import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
 import { OptimizationsProvider } from "../../../../../react/optimizations/provider";
+import { usePublished } from "../../../../../react/select-from-context";
 import { SimulatorsProvider } from "../../../../../react/simulators/provider";
 import {
   SDCPNContext,
@@ -29,6 +34,7 @@ import {
 import {
   type UserSettings,
   UserSettingsContext,
+  UserSettingsPublishedContext,
 } from "../../../../../react/state/user-settings-context";
 import { UserSettingsProvider } from "../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../monaco/provider";
@@ -76,15 +82,10 @@ export const createSdcpnContextValue = ({
   petriNetDefinition,
   title,
 }: StoryExample): SDCPNContextValue => ({
-  createNewNet: () => {},
-  existingNets: [],
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  loadPetriNet: () => {},
   petriNetId: `${title.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")}-story-net`,
   petriNetDefinition,
   readonly: false,
-  setTitle: () => {},
-  title,
   getItemType: (id) => {
     if (petriNetDefinition.places.some((place) => place.id === id)) {
       return "place";
@@ -118,11 +119,14 @@ export const WithUserSettings = ({
   overrides,
   children,
 }: PropsWithChildren<{ overrides: Partial<UserSettings> }>) => {
-  const value = use(UserSettingsContext);
+  const settings = use(UserSettingsContext);
+  const value = { ...settings, ...overrides };
+  // Published as well, for the readers that follow one setting.
+  const published = usePublished(value);
   return (
-    <UserSettingsContext value={{ ...value, ...overrides }}>
-      {children}
-    </UserSettingsContext>
+    <UserSettingsPublishedContext value={published}>
+      <UserSettingsContext value={value}>{children}</UserSettingsContext>
+    </UserSettingsPublishedContext>
   );
 };
 
@@ -167,40 +171,49 @@ export const RunnableSimulateViewStory = ({
   settings?: Partial<UserSettings>;
 }>) => {
   const sdcpnContextValue = createSdcpnContextValue(example);
+  // The title is the host's, so it is not in the document context.
+  const netManagement: NetManagement = {
+    title: example.title,
+    existingNets: [],
+    createNewNet: () => {},
+    loadPetriNet: () => {},
+  };
 
   const story = (
-    <SDCPNContext value={sdcpnContextValue}>
-      <PetrinautNavigationProvider
-        initialState={{
-          mode: "simulate",
-          simulateView: initialSimulateViewMode,
-        }}
-      >
-        <LanguageClientProvider>
-          <MonacoProvider>
-            <NotificationsProvider>
-              <UserSettingsProvider>
-                <WithUserSettings overrides={settings ?? {}}>
-                  <FakeEditorProvider
-                    initialSimulateViewMode={initialSimulateViewMode}
-                  >
-                    <SimulatorsProvider>
-                      <ExperimentsProvider>
-                        <OptimizationsProvider>
-                          <SimulateViewStoryStage>
-                            {children}
-                          </SimulateViewStoryStage>
-                        </OptimizationsProvider>
-                      </ExperimentsProvider>
-                    </SimulatorsProvider>
-                  </FakeEditorProvider>
-                </WithUserSettings>
-              </UserSettingsProvider>
-            </NotificationsProvider>
-          </MonacoProvider>
-        </LanguageClientProvider>
-      </PetrinautNavigationProvider>
-    </SDCPNContext>
+    <NetManagementContext value={netManagement}>
+      <SDCPNContext value={sdcpnContextValue}>
+        <PetrinautNavigationProvider
+          initialState={{
+            mode: "simulate",
+            simulateView: initialSimulateViewMode,
+          }}
+        >
+          <LanguageClientProvider>
+            <MonacoProvider>
+              <NotificationsProvider>
+                <UserSettingsProvider>
+                  <WithUserSettings overrides={settings ?? {}}>
+                    <FakeEditorProvider
+                      initialSimulateViewMode={initialSimulateViewMode}
+                    >
+                      <SimulatorsProvider>
+                        <ExperimentsProvider>
+                          <OptimizationsProvider>
+                            <SimulateViewStoryStage>
+                              {children}
+                            </SimulateViewStoryStage>
+                          </OptimizationsProvider>
+                        </ExperimentsProvider>
+                      </SimulatorsProvider>
+                    </FakeEditorProvider>
+                  </WithUserSettings>
+                </UserSettingsProvider>
+              </NotificationsProvider>
+            </MonacoProvider>
+          </LanguageClientProvider>
+        </PetrinautNavigationProvider>
+      </SDCPNContext>
+    </NetManagementContext>
   );
 
   return optimization ? (
@@ -327,7 +340,8 @@ export const AutoSweepStudy = ({
   study: AutoSweepStudyDescription;
   computeBackend?: ExperimentComputeBackend;
 }) => {
-  const { petriNetDefinition, title } = use(SDCPNContext);
+  const { petriNetDefinition } = use(SDCPNContext);
+  const { title } = use(NetManagementContext);
   const createOptimizedExperiment = useCreateOptimizedExperiment();
   const startRef = useLatest(() =>
     createOptimizedExperiment(

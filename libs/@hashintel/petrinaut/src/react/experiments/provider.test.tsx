@@ -245,15 +245,10 @@ const withWebGpuAvailable = async (body: () => Promise<void>) => {
 };
 
 const sdcpnContextValue: SDCPNContextValue = {
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
   petriNetId: "test-net",
   petriNetDefinition: EMPTY_SDCPN,
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "Test",
   getItemType: () => null,
 };
 

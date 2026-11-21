@@ -2,6 +2,7 @@ import { use, useEffect, type ReactNode } from "react";
 
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
+import { useStableCallback } from "../hooks/use-stable-callback";
 import { openPetrinautComponent, usePetrinautNavigation } from "../navigation";
 import { ActiveNetContext } from "./active-net-context";
 import { SDCPNContext } from "./sdcpn-context";
@@ -29,12 +30,18 @@ export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
   const navigation = usePetrinautNavigation();
   const requestedComponentId = navigation.state.componentId;
 
-  const setActiveComponentId = (componentId: string | null) => {
-    navigation.navigate(openPetrinautComponent(componentId), {
-      cause: "user",
-      action: "component",
-    });
-  };
+  // One function for the provider's life. `navigation.navigate` is a new
+  // function after every navigation, a selection included, and a function
+  // made from it here would give every reader of the active net a new context
+  // value each time something is selected.
+  const setActiveComponentId = useStableCallback(
+    (componentId: string | null) => {
+      navigation.navigate(openPetrinautComponent(componentId), {
+        cause: "user",
+        action: "component",
+      });
+    },
+  );
 
   const canonicalComponentId =
     requestedComponentId !== null ? toPetrinautId(requestedComponentId) : null;
