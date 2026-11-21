@@ -290,17 +290,15 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     }
   };
 
-  // Both index the state once for the whole render: the slots beneath ask
-  // for one label each and every place block asks for its total, and doing
-  // that work per slot made a render quadratic in the net's size.
+  // Both index the state once for the whole render: every value beneath
+  // asks for its label and every place block for its total, and indexing per
+  // value would make a render quadratic in the net's size.
   const labelFor = createAdHocTargetLabeler(state, context);
   const placeTotal = createAdHocPlaceTotalResolver(state, context);
 
-  // What changes while the form is used goes out through a store the cells
-  // read by selector; what does not goes out through the context. So an
-  // edit, a diagnostic or a move of the focus renders this component and the
-  // cells whose own part changed, where one context for both rendered every
-  // cell of the form each time.
+  // The two parts of what the form gives out, as `form-context.ts` splits
+  // them: the facts, which change, through a store, and the services, which
+  // do not, through the context.
   const facts = usePublished<AdHocFormFacts>({
     state,
     errorFor: (slot: AdHocSlot) => {

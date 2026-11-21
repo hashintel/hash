@@ -19,36 +19,17 @@ import {
   staticTypeCellStyle,
 } from "../spreadsheet-kit/form-table";
 import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
-import { adHocVariableKey } from "./dependency-highlight";
 import {
   useAdHocForm,
   useAdHocFormFact,
   adHocIntervalSelection,
   adHocSelectionApplies,
   adHocSelectionText,
+  sameParts,
+  variableHighlights,
+  variablesOf,
 } from "./form-context";
 import { ValueEditor } from "./value-editor";
-
-import type { AdHocVariable } from "@hashintel/petrinaut-core";
-
-interface ScenarioParameterFacts {
-  /**
-   * The form's top-level Variables, exposed and auxiliary alike; the rows
-   * render the exposed ones under their original indices, so value edits
-   * dispatch against the right slot.
-   */
-  variables: AdHocVariable[];
-  /** Per Variable: whether the focused value reads it. */
-  highlighted: boolean[];
-}
-
-const sameScenarioParameterFacts = (
-  previous: ScenarioParameterFacts,
-  next: ScenarioParameterFacts,
-): boolean =>
-  previous.variables === next.variables &&
-  previous.highlighted.length === next.highlighted.length &&
-  previous.highlighted.every((flag, index) => flag === next.highlighted[index]);
 
 const toggleCellStyle = css({
   width: "[92px]",
@@ -58,14 +39,13 @@ const toggleCellStyle = css({
 
 export const ScenarioParameterRows: React.FC = () => {
   const { selection, setFocusedValue, dispatch } = useAdHocForm();
-  const { variables, highlighted: highlightedRows } = useAdHocFormFact(
-    (facts): ScenarioParameterFacts => ({
-      variables: facts.state.variables,
-      highlighted: facts.state.variables.map((variable) =>
-        facts.highlight.variableKeys.has(adHocVariableKey(null, variable.name)),
-      ),
-    }),
-    sameScenarioParameterFacts,
+  // The top-level Variables, exposed and auxiliary alike: the rows show the
+  // exposed ones under their indices in that list, so a value edit
+  // dispatches against the right Variable.
+  const variables = useAdHocFormFact((facts) => variablesOf(facts, null));
+  const highlightedRows = useAdHocFormFact(
+    (facts) => variableHighlights(facts, null),
+    sameParts,
   );
   const { register, onKeyDown, attach } = useFocusGrid({ tabStop: "native" });
   const withToggles = adHocIntervalSelection(selection);

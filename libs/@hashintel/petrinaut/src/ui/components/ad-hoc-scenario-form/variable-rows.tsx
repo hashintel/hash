@@ -35,68 +35,18 @@ import { GutterCell } from "../spreadsheet-kit/gutter-cell";
 import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
 import { PhantomLine } from "../spreadsheet-kit/phantom-line";
 import { TextCell } from "../spreadsheet-kit/text-cell";
-import { adHocVariableKey } from "./dependency-highlight";
 import {
   useAdHocForm,
   useAdHocFormFact,
   adHocIntervalSelection,
   adHocSelectionApplies,
   adHocSelectionText,
+  sameParts,
+  variableHighlights,
+  variableNameErrors,
+  variablesOf,
 } from "./form-context";
 import { ValueEditor } from "./value-editor";
-
-import type { AdHocFormFacts } from "./form-context";
-import type { AdHocVariable } from "@hashintel/petrinaut-core";
-
-const noVariables: AdHocVariable[] = [];
-
-interface VariableRowFacts {
-  variables: AdHocVariable[];
-  /** Per row: the error of its name, if any. */
-  nameErrors: (string | undefined)[];
-  /** Per row: whether the focused value reads it. */
-  highlighted: boolean[];
-}
-
-/** What a Variables table shows of the form: its own rows and what marks them. */
-const variableRowFacts = (
-  facts: AdHocFormFacts,
-  placeId: string | null,
-): VariableRowFacts => {
-  const place = placeId === null ? undefined : facts.state.places[placeId];
-  const variables =
-    placeId === null
-      ? facts.state.variables
-      : place?.kind === "coloured"
-        ? place.variables
-        : noVariables;
-  return {
-    variables,
-    nameErrors: variables.map((_, index) =>
-      facts.errorFor({
-        target: { kind: "variable", placeId, index },
-        part: "name",
-      }),
-    ),
-    highlighted: variables.map((variable) =>
-      facts.highlight.variableKeys.has(
-        adHocVariableKey(placeId, variable.name),
-      ),
-    ),
-  };
-};
-
-const sameItems = <Item,>(previous: Item[], next: Item[]): boolean =>
-  previous.length === next.length &&
-  previous.every((item, index) => item === next[index]);
-
-const sameVariableRowFacts = (
-  previous: VariableRowFacts,
-  next: VariableRowFacts,
-): boolean =>
-  previous.variables === next.variables &&
-  sameItems(previous.nameErrors, next.nameErrors) &&
-  sameItems(previous.highlighted, next.highlighted);
 
 const gutterColumnStyle = css({
   width: "[40px]",
@@ -138,15 +88,14 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   placeId,
 }) => {
   const { selection, setFocusedValue, dispatch } = useAdHocForm();
-  // The table's own rows, so an edit elsewhere in the form does not render
-  // it.
-  const {
-    variables,
-    nameErrors,
-    highlighted: highlightedRows,
-  } = useAdHocFormFact(
-    (facts) => variableRowFacts(facts, placeId),
-    sameVariableRowFacts,
+  const variables = useAdHocFormFact((facts) => variablesOf(facts, placeId));
+  const nameErrors = useAdHocFormFact(
+    (facts) => variableNameErrors(facts, placeId),
+    sameParts,
+  );
+  const highlightedRows = useAdHocFormFact(
+    (facts) => variableHighlights(facts, placeId),
+    sameParts,
   );
   // The trailing toggle column: the interval toggle (Optimize or Sweep) on
   // every numeric Variable; "Scenario Parameter" on top-level Variables only

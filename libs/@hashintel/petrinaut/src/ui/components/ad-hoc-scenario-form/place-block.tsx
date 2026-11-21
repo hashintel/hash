@@ -15,14 +15,13 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useFocusHeader } from "../../worksheet/use-focus-member";
 import { tableContainerStyle } from "../spreadsheet-kit/form-table";
-import { useAdHocForm, useAdHocFormFact } from "./form-context";
+import { sameParts, useAdHocForm, useAdHocFormFact } from "./form-context";
 import { TokenTable } from "./token-table";
 import { ValueEditor } from "./value-editor";
 import { VariableRows } from "./variable-rows";
 
 import type {
   AdHocColouredPlace,
-  AdHocPlaceTotal,
   AdHocUncolouredPlace,
   Color,
   Place,
@@ -41,14 +40,6 @@ const untouchedUncolouredPlace: AdHocUncolouredPlace = {
   kind: "uncoloured",
   count: { expression: "0", optimize: null },
 };
-
-const sameTotal = (
-  previous: AdHocPlaceTotal,
-  next: AdHocPlaceTotal,
-): boolean =>
-  previous.resolved
-    ? next.resolved && previous.total === next.total
-    : !next.resolved && previous.text === next.text;
 
 const blockStyle = css({
   display: "flex",
@@ -253,7 +244,7 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   });
   const total = useAdHocFormFact(
     (facts) => facts.placeTotal(place.id),
-    sameTotal,
+    sameParts,
   );
   const totalText = total.resolved ? `${total.total}` : total.text;
 
@@ -353,10 +344,7 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
   );
 };
 
-/**
- * One place of the Initial state list. It reads its own part of the
- * definition, so an edit elsewhere in the form does not render it.
- */
+/** One place of the Initial state list, reading its own part of the definition. */
 export const PlaceBlock: React.FC<{
   place: Place;
   /** The place's token colour, where it has one the net still defines. */

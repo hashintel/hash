@@ -343,15 +343,21 @@ and compiles on every change. The Create Experiment drawer hands the state to
 start and turns swept fields into parameter axes. The scenario drawers save the
 state as `initialState.type "adhoc"`.
 
-`AdHocFormContext` is what the form gives the components beneath it and keeps
-for its life: the `dispatch` write path, the net context, the selection mode,
-the URI of each `AdHocSlot` and the focused-value reporter. A component beneath
-reads it with `useAdHocForm`. What changes while the form is used (the
-definition, the error of each slot, the labels, the place totals, the
+`form-context.ts` holds what the form gives the components beneath it, in two
+parts. `AdHocFormContext` carries what an edit, a diagnostic or a move of the
+focus leaves as it is: the `dispatch` write path, the net context, the
+selection mode, the URI of each `AdHocSlot` and the focused-value reporter. A
+component beneath reads it with `useAdHocForm`. What those three change (the
+definition, the error of each value, the labels, the place totals, the
 dependency highlight) is a store in that context, and a component reads its
 own part of it with `useAdHocFormFact`. A group, a place or a cell renders when
-its part changes, so an edit, a diagnostic or a move of the focus renders the
-cells it changes and no other; one context for both would render every cell.
+its part changes, so an edit renders the cells it changes and no other; one
+context for both would render every cell.
+
+A selector passed to `useAdHocFormFact` returns a value that keeps its identity
+while it says the same: a string, a boolean, or an object the definition
+holds. Where it builds a list or a record of such values, as a table does for
+the marks of its rows, the caller passes `sameParts` as the equality.
 
 The form keeps the objects of the definition it shows wherever a new one says
 the same (`share-definition.ts`): a host may build the whole definition again

@@ -29,10 +29,7 @@ import {
   usePortalContainerRef,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import {
-  adHocNeutralExpression,
-  adHocSlotKey,
-} from "@hashintel/petrinaut-core";
+import { adHocNeutralExpression } from "@hashintel/petrinaut-core";
 
 import { CodeEditor } from "../../monaco/code-editor";
 import { useSelectFirstActivation } from "../../worksheet/use-select-first";
@@ -48,10 +45,11 @@ import {
   useAdHocFormFact,
   adHocSelectionApplies,
   adHocSelectionText,
-  sameFlatFacts,
+  sameParts,
 } from "./form-context";
 import { stepAdHocValue } from "./step-value";
 import { ComputedExpression } from "./value-editor/computed-expression";
+import { valueFacts } from "./value-editor/value-facts";
 
 import type {
   AdHocValue,
@@ -436,9 +434,6 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   // rows), never value slots.
   const selectable = adHocSelectionApplies(selection, kind);
   const optimized = selectable && value.optimize !== null;
-  // What the form knows about this cell and no other: its path, whether the
-  // focused value reads it, and its errors. The cell renders when one of
-  // them changes, so an edit elsewhere in the form does not render it.
   const {
     label,
     dependencyHighlighted,
@@ -448,20 +443,8 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     stepError,
     sourceExpression,
   } = useAdHocFormFact(
-    (facts) => ({
-      label: facts.labelFor(target),
-      dependencyHighlighted: facts.highlight.slotKeys.has(
-        adHocSlotKey({ target, part: "expression" }),
-      ),
-      expressionError: facts.errorFor({ target, part: "expression" }),
-      minError: optimized ? facts.errorFor({ target, part: "min" }) : undefined,
-      maxError: optimized ? facts.errorFor({ target, part: "max" }) : undefined,
-      stepError: optimized
-        ? facts.errorFor({ target, part: "step" })
-        : undefined,
-      sourceExpression: readOnly ? facts.expressionFor(target) : undefined,
-    }),
-    sameFlatFacts,
+    (facts) => valueFacts(facts, target, { optimized, readOnly }),
+    sameParts,
   );
   const portalContainerRef = usePortalContainerRef();
   const editorId = useId();

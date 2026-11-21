@@ -1,18 +1,22 @@
 /**
- * Everything the form provides to the slots beneath it, so per-slot
- * components carry only their own value and location:
+ * What the form gives the components beneath it, so each carries only its
+ * own value and location. It comes in two parts:
  *
- * - the net context, and the attribution labels and place totals read
- *   from the whole form state;
- * - what the selection toggle means in this consumer, if it exists at all;
- * - the Monaco document of each slot in the form's LSP session;
- * - per-slot error lookup, joining synthesis errors with LSP diagnostics
- *   through `adHocSlotKey`.
+ * - {@link AdHocFormServices}, through the context: what an edit, a
+ *   diagnostic or a move of the focus leaves as it is (the write path, the
+ *   net, the mode). Reading it with {@link useAdHocForm} renders nothing
+ *   while the form is used.
+ * - {@link AdHocFormFacts}, through a store the context holds: what those
+ *   three change (the definition, the errors, the labels, the totals, the
+ *   highlight). A component reads its own part with
+ *   {@link useAdHocFormFact} and renders when that part changes, so an edit
+ *   renders the cells it changes and no other.
  */
 
 import { createContext, use } from "react";
 
 import { useStoreSelector } from "../../../react/use-store";
+import { adHocVariableKey } from "./dependency-highlight";
 
 import type { AdHocFocusTarget, AdHocHighlight } from "./dependency-highlight";
 import type {
@@ -22,6 +26,7 @@ import type {
   AdHocSlot,
   AdHocSynthesisContext,
   AdHocValueTarget,
+  AdHocVariable,
   ReadableStore,
 } from "@hashintel/petrinaut-core";
 
@@ -78,11 +83,8 @@ export const adHocSelectionApplies = (
 export type AdHocFormMode = "author" | "run";
 
 /**
- * What the form knows that changes while it is used: the definition, and
- * what the form derives from it, from the language service and from the
- * focused value. A component reads the part it shows with
- * {@link useAdHocFormFact}, so an edit renders the cells it changes and no
- * other.
+ * What changes while the form is used: the definition, and what the form
+ * derives from it, from the language service and from the focused value.
  */
 export interface AdHocFormFacts {
   /** The definition the form shows. */
@@ -108,11 +110,7 @@ export interface AdHocFormFacts {
   expressionFor: (target: AdHocValueTarget) => string | undefined;
 }
 
-/**
- * What the form gives the components beneath it and keeps for its whole
- * life: none of it changes with an edit, a diagnostic or a move of the
- * focus, so reading it renders nothing.
- */
+/** What an edit, a diagnostic or a move of the focus leaves as it is. */
 export interface AdHocFormServices {
   /** What the form lets the user change; see {@link AdHocFormMode}. */
   mode: AdHocFormMode;
@@ -170,12 +168,11 @@ export const useAdHocForm = (): AdHocFormServices => {
 };
 
 /**
- * One part of what the form knows. The caller renders when that part
- * changes, and not for the rest of an edit.
+ * One part of the form's facts. The caller renders when that part changes.
  *
  * `select` picks a value that stays the same while it says the same: a
- * string, a boolean, or an object the definition holds. For a part built in
- * `select`, pass `isSame`.
+ * string, a boolean, or an object the definition holds. For a list or a
+ * record built in `select`, pass {@link sameParts}.
  */
 export const useAdHocFormFact = <Selected>(
   select: (facts: AdHocFormFacts) => Selected,
@@ -185,14 +182,52 @@ export const useAdHocFormFact = <Selected>(
   return useStoreSelector(facts, select, isSame);
 };
 
-/** Whether two flat records of strings, numbers and booleans say the same. */
-export const sameFlatFacts = <Facts extends Record<string, unknown>>(
-  previous: Facts,
-  next: Facts,
+/**
+ * Whether two lists, or two records, hold the same values: the equality of
+ * a fact that a selector builds from values that keep their identity.
+ */
+export const sameParts = <Parts extends object>(
+  previous: Parts,
+  next: Parts,
 ): boolean => {
-  const keys = Object.keys(next);
+  const keys = Object.keys(next) as (keyof Parts)[];
   return (
     keys.length === Object.keys(previous).length &&
     keys.every((key) => previous[key] === next[key])
   );
 };
+
+const noVariables: AdHocVariable[] = [];
+
+/** The Variables of a scope: the form's own (`null`), or a coloured place's. */
+export const variablesOf = (
+  facts: AdHocFormFacts,
+  placeId: string | null,
+): AdHocVariable[] => {
+  if (placeId === null) {
+    return facts.state.variables;
+  }
+  const place = facts.state.places[placeId];
+  return place?.kind === "coloured" ? place.variables : noVariables;
+};
+
+/** Per Variable of a scope: whether the focused value reads it. */
+export const variableHighlights = (
+  facts: AdHocFormFacts,
+  placeId: string | null,
+): boolean[] =>
+  variablesOf(facts, placeId).map((variable) =>
+    facts.highlight.variableKeys.has(adHocVariableKey(placeId, variable.name)),
+  );
+
+/** Per Variable of a scope: the error of its name, if it has one. */
+export const variableNameErrors = (
+  facts: AdHocFormFacts,
+  placeId: string | null,
+): (string | undefined)[] =>
+  variablesOf(facts, placeId).map((_, index) =>
+    facts.errorFor({
+      target: { kind: "variable", placeId, index },
+      part: "name",
+    }),
+  );
