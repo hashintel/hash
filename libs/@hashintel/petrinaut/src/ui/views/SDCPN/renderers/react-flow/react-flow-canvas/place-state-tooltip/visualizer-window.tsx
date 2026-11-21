@@ -3,8 +3,8 @@ import { createPortal } from "react-dom";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { PinIcon } from "@hashintel/ds-icons";
 
-import { PinIcon } from "../../../../../../components/pin-icon";
 import { useCanvasInsets } from "../../../../../../hooks/use-canvas-insets";
 import { FloatingResizeHandles } from "../../../../../shared/floating-resize-handles";
 import { useVisualizerLayout } from "./visualizer-window/use-visualizer-layout";
@@ -257,7 +257,7 @@ export const VisualizerWindow = ({
           <Button
             size="xxs"
             variant="ghost"
-            prefix={<PinIcon />}
+            prefix={<PinIcon size={12} />}
             aria-label="Fix position on screen"
             aria-pressed={fixed}
             tooltip={fixed ? "Follow place" : "Fix position on screen"}
