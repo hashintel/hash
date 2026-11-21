@@ -4,7 +4,7 @@ import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { EdgeSeparator } from "../../resize/edge-separator";
-import { COARSE_GRAB_SIZE, GRAB_SIZE } from "../../resize/edge-separator-style";
+import { grabSize } from "../../resize/edge-separator-style";
 import { useFocusGrid } from "../../worksheet/use-focus-grid";
 import { CELL_KIND_ICONS, CELL_KIND_LABELS } from "./cell-kinds";
 import { NetGraphView } from "./net-graph";
@@ -319,7 +319,7 @@ export const GraphExplorer: React.FC<GraphExplorerProps> = ({
         orientation="vertical"
         className={splitStyle}
         style={{ overflow: "visible" }}
-        resizeTargetMinimumSize={{ fine: GRAB_SIZE, coarse: COARSE_GRAB_SIZE }}
+        resizeTargetMinimumSize={grabSize}
       >
         <Panel
           className={graphPaneStyle}

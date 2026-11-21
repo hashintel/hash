@@ -1,22 +1,53 @@
 import { cva } from "@hashintel/ds-helpers/css";
 
-/** How wide the strip along a panel's edge is that a pointer can grab, in pixels. */
-export const GRAB_SIZE = 8;
-/** The same for a finger. */
-export const COARSE_GRAB_SIZE = 24;
+const fineGrabSize = 8;
+const coarseGrabSize = 24;
+
+/**
+ * How wide the strip along a separator is that a pointer can grab, in
+ * pixels: for a mouse and for a finger. A group with an `EdgeSeparator` takes
+ * this as its `resizeTargetMinimumSize`, so that the library takes a press
+ * where the strip shows the cursor.
+ */
+export const grabSize = { fine: fineGrabSize, coarse: coarseGrabSize };
+
+/** A line down the group, with the strip a pointer grabs centred on it. */
+const verticalLine = {
+  width: "[0]",
+  "--line-direction": "to right",
+  _before: {
+    insetBlock: "[0]",
+    left: "[calc(var(--grab-size) / -2)]",
+    width: "[var(--grab-size)]",
+  },
+} as const;
+
+/** A line across the group, with the strip a pointer grabs centred on it. */
+const horizontalLine = {
+  height: "[0]",
+  "--line-direction": "to bottom",
+  _before: {
+    insetInline: "[0]",
+    top: "[calc(var(--grab-size) / -2)]",
+    height: "[var(--grab-size)]",
+  },
+} as const;
 
 /**
  * The separator is a line with no thickness on the panel's edge, so that
  * the stand-in beside it is as large as the panel. `::before` is the strip a
  * pointer grabs and `::after` the one that shows.
+ *
+ * The strip that shows is five pixels around the panel's border: two either
+ * side of it. `edge` says where that border lies.
  */
 export const edgeSeparatorStyle = cva({
   base: {
     position: "relative",
     pointerEvents: "auto",
-    "--grab-size": `[${GRAB_SIZE}px]`,
+    "--grab-size": `[${fineGrabSize}px]`,
     "@media (pointer: coarse)": {
-      "--grab-size": `[${COARSE_GRAB_SIZE}px]`,
+      "--grab-size": `[${coarseGrabSize}px]`,
     },
     "&[aria-disabled]": { pointerEvents: "none" },
     _before: { content: '""', position: "absolute" },
@@ -42,30 +73,20 @@ export const edgeSeparatorStyle = cva({
       },
     },
     edge: {
-      // The strip that shows is five pixels around the panel's border, which
-      // lies just outside the size the stand-in has: two inside the panel,
-      // the border, and two outside.
+      // A panel on the left of the group, whose border lies just outside its
+      // size and so just right of the line. Also a pane right of the line
+      // that has its border inside its size.
       left: {
-        width: "[0]",
-        "--line-direction": "to right",
-        _before: {
-          insetBlock: "[0]",
-          left: "[calc(var(--grab-size) / -2)]",
-          width: "[var(--grab-size)]",
-        },
+        ...verticalLine,
         _after: { insetBlock: "[0]", left: "[-2px]", width: "[5px]" },
       },
+      // A panel on the right of the group, whose border lies just left of the
+      // line.
       right: {
-        width: "[0]",
+        ...verticalLine,
         // Down to the bottom panel's edge and over it, so that the two
         // separators cross.
         marginBottom: "[calc(var(--grab-size) / -2)]",
-        "--line-direction": "to right",
-        _before: {
-          insetBlock: "[0]",
-          left: "[calc(var(--grab-size) / -2)]",
-          width: "[var(--grab-size)]",
-        },
         _after: {
           top: "[0]",
           bottom: "[calc(var(--grab-size) / 2)]",
@@ -73,20 +94,13 @@ export const edgeSeparatorStyle = cva({
           width: "[5px]",
         },
       },
-      // The top edge of a panel that is in the group itself, in a group that
-      // is in a panel of another. The panel's border is inside its size, so
-      // just under the line, as a border is just right of a `left` line.
+      // A pane under the line that has its border inside its size, so just
+      // under the line, in a group that is in a panel of another.
       top: {
-        height: "[0]",
+        ...horizontalLine,
         // Over the border and the edge of the panel the group is in, so that
         // this separator crosses the one on that edge.
         marginLeft: "[calc(var(--grab-size) / -2 - 1px)]",
-        "--line-direction": "to bottom",
-        _before: {
-          insetInline: "[0]",
-          top: "[calc(var(--grab-size) / -2)]",
-          height: "[var(--grab-size)]",
-        },
         _after: {
           // From inside that border.
           left: "[calc(var(--grab-size) / 2 + 1px)]",
@@ -95,16 +109,12 @@ export const edgeSeparatorStyle = cva({
           height: "[5px]",
         },
       },
+      // A panel at the bottom of the group, whose border lies just above the
+      // line.
       bottom: {
-        height: "[0]",
+        ...horizontalLine,
         // Over the left sidebar's edge, so that the two separators cross.
         marginLeft: "[calc(var(--grab-size) / -2)]",
-        "--line-direction": "to bottom",
-        _before: {
-          insetInline: "[0]",
-          top: "[calc(var(--grab-size) / -2)]",
-          height: "[var(--grab-size)]",
-        },
         _after: {
           left: "[calc(var(--grab-size) / 2)]",
           right: "[0]",

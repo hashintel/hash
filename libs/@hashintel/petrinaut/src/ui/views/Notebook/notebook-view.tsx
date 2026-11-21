@@ -12,7 +12,7 @@ import {
 } from "../../../react/state/editor-context";
 import { useUndoRedoShortcuts } from "../../../react/state/use-undo-redo-shortcuts";
 import { EdgeSeparator } from "../../resize/edge-separator";
-import { COARSE_GRAB_SIZE, GRAB_SIZE } from "../../resize/edge-separator-style";
+import { grabSize } from "../../resize/edge-separator-style";
 import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
 import { CELL_KIND_PLURAL_LABELS, CELL_KINDS } from "./cell-kinds";
 import { GraphExplorer } from "./graph-explorer";
@@ -407,7 +407,7 @@ const NotebookViewContent = ({
       <Group
         className={bodyStyle}
         style={{ overflow: "visible" }}
-        resizeTargetMinimumSize={{ fine: GRAB_SIZE, coarse: COARSE_GRAB_SIZE }}
+        resizeTargetMinimumSize={grabSize}
       >
         <Panel
           elementRef={cellsColumnRef}

@@ -13,7 +13,7 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { EdgeSeparator } from "./edge-separator";
-import { COARSE_GRAB_SIZE, GRAB_SIZE } from "./edge-separator-style";
+import { grabSize } from "./edge-separator-style";
 
 import type { MotionValue } from "motion";
 
@@ -159,7 +159,7 @@ export const PanelResizer = ({
   return (
     <Group
       orientation={isVertical ? "vertical" : "horizontal"}
-      resizeTargetMinimumSize={{ fine: GRAB_SIZE, coarse: COARSE_GRAB_SIZE }}
+      resizeTargetMinimumSize={grabSize}
       elementRef={groupRef}
       className={cx(groupStyle, className)}
       style={{ overflow: "visible" }}

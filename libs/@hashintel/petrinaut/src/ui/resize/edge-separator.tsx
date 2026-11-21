@@ -23,7 +23,7 @@ export const EdgeSeparator = ({
   disabled,
   className,
 }: {
-  /** Where the panel it resizes lies: see `edgeSeparatorStyle`. */
+  /** Where the border of the panel it resizes lies: see `edgeSeparatorStyle`. */
   edge: "left" | "right" | "bottom" | "top";
   /** The separator's accessible name. */
   label: string;
