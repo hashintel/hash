@@ -480,7 +480,7 @@ pub struct QueryEntitiesTableResponse {
 
 #[cfg(test)]
 mod tests {
-    use core::str::FromStr as _;
+    use core::{assert_matches, str::FromStr as _};
 
     use serde_json::json;
     use type_system::knowledge::entity::id::{EntityEditionId, EntityUuid};
@@ -608,10 +608,10 @@ mod tests {
         let params: QueryEntitiesTableParams =
             serde_json::from_value(json).expect("the params should deserialize");
 
-        assert!(matches!(
+        assert_matches!(
             params.filter.webs,
-            EntityTableWebScope::Exclude { webs } if webs.len() == 1,
-        ));
+            EntityTableWebScope::Exclude { webs } if webs.len() == 1
+        );
     }
 
     #[test]
@@ -710,21 +710,21 @@ mod tests {
             serde_json::from_value(json).expect("the params should deserialize");
 
         assert_eq!(params.filter.property_filters.len(), 3);
-        assert!(matches!(
+        assert_matches!(
             &params.filter.property_filters[0],
             EntityTablePropertyFilter::Equals {
                 value: EntityTablePropertyValue::String(value),
                 ..
-            } if value == "Alice",
-        ));
-        assert!(matches!(
+            } if value == "Alice"
+        );
+        assert_matches!(
             &params.filter.property_filters[1],
             EntityTablePropertyFilter::GreaterThan { .. },
-        ));
-        assert!(matches!(
+        );
+        assert_matches!(
             &params.filter.property_filters[2],
             EntityTablePropertyFilter::HasAnyValue { .. },
-        ));
+        );
     }
 
     #[test]

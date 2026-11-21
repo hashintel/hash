@@ -234,8 +234,9 @@ async fn layers_actor_budget() {
         .iter()
         .map(|item| item.to_str().expect("the item should be ASCII"))
         .collect::<Vec<_>>();
-    assert!(
-        matches!(items.as_slice(), [actor, gate] if *actor == r#""actor";r=0"# && gate.starts_with(r#""gate";"#)),
+    assert_matches!(
+        items.as_slice(),
+        [actor, gate] if *actor == r#""actor";r=0"# && gate.starts_with(r#""gate";"#),
         "the problem should report the crossed budget ahead of the gate, got {items:?}"
     );
     let document = problem(response).await;

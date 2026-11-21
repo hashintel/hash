@@ -3,7 +3,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use core::time::Duration;
+use core::{assert_matches, time::Duration};
 use std::{
     fs::{self, File},
     path::Path,
@@ -240,12 +240,14 @@ async fn capture_disk_limit_context(#[case] load: bool) {
         );
         report
     };
-    assert!(
-        matches!(report.current_context(), CaptureError::DiskUsage),
+    assert_matches!(
+        report.current_context(),
+        CaptureError::DiskUsage,
         "the error should identify the disk-limit check: {report:?}"
     );
-    assert!(
-        matches!(report.downcast_ref::<StatementError>(), Some(StatementError::DiskLimit { used, limit }) if used > limit),
+    assert_matches!(
+        report.downcast_ref::<StatementError>(),
+        Some(StatementError::DiskLimit { used, limit }) if used > limit,
         "the error should retain the measured usage and limit: {report:?}"
     );
     workspace
@@ -294,10 +296,7 @@ async fn capture_existing_target() {
         .capture("SELECT 2 AS id".into(), target.clone())
         .await
         .expect_err("a capture should never be replaced");
-    assert!(matches!(
-        error.current_context(),
-        CaptureError::Exists { .. }
-    ));
+    assert_matches!(error.current_context(), CaptureError::Exists { .. });
     assert_eq!(
         fs::read(target).expect("should read the original"),
         original
@@ -325,7 +324,7 @@ async fn capture_failed_query_cleanup() {
         )
         .await
         .expect_err("a late conversion failure should abort the capture");
-    assert!(matches!(error.current_context(), CaptureError::Query));
+    assert_matches!(error.current_context(), CaptureError::Query);
     assert_eq!(entries(output.path()), 0, "partial files should be removed");
     workspace
         .query("SELECT 1".into())
@@ -374,10 +373,7 @@ async fn capture_workspace_file() {
         )
         .await
         .expect_err("workspace files should be protected");
-    assert!(matches!(
-        error.current_context(),
-        CaptureError::WorkspaceFile { .. }
-    ));
+    assert_matches!(error.current_context(), CaptureError::WorkspaceFile { .. });
     workspace
         .query("SELECT 1".into())
         .await
@@ -440,10 +436,7 @@ async fn copy_local_capture_independence() {
     assert_eq!(capture.rows(), 1);
     let error = SourceCapture::copy_from(&source, &target)
         .expect_err("retry should preserve the published capture");
-    assert!(matches!(
-        error.current_context(),
-        CaptureError::Exists { .. }
-    ));
+    assert_matches!(error.current_context(), CaptureError::Exists { .. });
 }
 
 #[test]
@@ -453,7 +446,7 @@ fn copy_invalid_parquet_cleanup() {
     fs::write(&source, b"invalid parquet").expect("the source should be written");
     let error = SourceCapture::copy_from(&source, &directory.path().join("capture.parquet"))
         .expect_err("an invalid source should not be published");
-    assert!(matches!(error.current_context(), CaptureError::Read));
+    assert_matches!(error.current_context(), CaptureError::Read);
     assert_eq!(
         entries(directory.path()),
         1,
@@ -560,8 +553,9 @@ async fn load_invalid_capture_preserves_table() {
         .load_capture(capture, "existing".into())
         .await
         .expect_err("should reject a corrupt capture");
-    assert!(
-        matches!(error.current_context(), CaptureError::Read),
+    assert_matches!(
+        error.current_context(),
+        CaptureError::Read,
         "should report a read failure"
     );
     let rows = workspace
@@ -589,11 +583,9 @@ async fn load_invalid_capture_preserves_table() {
         )
         .await
         .expect_err("should keep internal schema access out of user SQL");
-    assert!(
-        matches!(
-            error.current_context(),
-            StatementError::TableFunction { .. }
-        ),
+    assert_matches!(
+        error.current_context(),
+        StatementError::TableFunction { .. },
         "should reject the internal table function"
     );
     workspace.close().await.expect("should close the workspace");

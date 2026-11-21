@@ -168,6 +168,8 @@ Write tests for each documented error case:
 ```rust
 #[cfg(test)]
 mod tests {
+    use core::assert_matches;
+
     use super::*;
 
     #[test]
@@ -177,11 +179,9 @@ mod tests {
         let err = result.expect_err("should return error for nonexistent user");
 
         // Check the error type
-        assert!(
-            matches!(
-                err.current_context(),
-                UserError::NotFound
-            ),
+        assert_matches!(
+            err.current_context(),
+            UserError::NotFound,
             "should return NotFound error"
         );
     }
@@ -192,11 +192,9 @@ mod tests {
 
         let err = result.expect_err("should return error for unauthorized access");
 
-        assert!(
-            matches!(
-                err.current_context(),
-                UserError::Unauthorized
-            ),
+        assert_matches!(
+            err.current_context(),
+            UserError::Unauthorized,
             "should return Unauthorized error"
         );
     }
@@ -214,7 +212,7 @@ mod tests {
 
 - Test **every** error variant mentioned in docs
 - Use `.expect_err("should...")` format
-- Assert on specific error types with `matches!`
+- Assert on specific error types with `assert_matches!`, imported from `core`
 - Include success case tests too
 
 ---

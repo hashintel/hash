@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::str::FromStr as _;
+use core::{assert_matches, str::FromStr as _};
 
 use hash_codec::numeric::Real;
 use hash_graph_store::{
@@ -1532,11 +1532,9 @@ fn filter_entity_by_type_starts_with_rejected() {
     let error = compiler
         .add_filter(&filter)
         .expect_err("string operation on a cached array path should be rejected");
-    assert!(
-        matches!(
-            error.current_context(),
-            SelectCompilerError::UnsupportedTextArrayOperation
-        ),
+    assert_matches!(
+        error.current_context(),
+        SelectCompilerError::UnsupportedTextArrayOperation,
         "unexpected error: {error:?}"
     );
 }
@@ -1974,10 +1972,10 @@ fn semantic_ordering_rejects_non_embedding_paths() {
     let error = compiler
         .rank_by_quantized_distance(&EntityQueryPath::Uuid, &embedding)
         .expect_err("a non-embedding path should have no quantized form to rank on");
-    assert!(matches!(
+    assert_matches!(
         error.current_context(),
         SelectCompilerError::UnsupportedEmbeddingPath
-    ));
+    );
 }
 
 #[test]
@@ -1998,10 +1996,10 @@ fn cursor_after_semantic_ordering_is_rejected() {
             None,
         )
         .expect_err("a cursor is not allowed after a semantic ranking");
-    assert!(matches!(
+    assert_matches!(
         error.current_context(),
         SelectCompilerError::CursorDisallowed { .. }
-    ));
+    );
 }
 
 #[test]

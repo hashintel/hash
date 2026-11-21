@@ -269,6 +269,8 @@ impl Default for DatabasePoolConfig {
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches;
+
     use hash_crypto::Secret;
     use tokio_postgres::config::Host;
 
@@ -334,8 +336,9 @@ mod tests {
             .tls()
             .err()
             .expect("verify-full without a root certificate should be rejected");
-        assert!(
-            matches!(report.current_context(), RootCertificateError::Missing),
+        assert_matches!(
+            report.current_context(),
+            RootCertificateError::Missing,
             "verify-full should require a root certificate"
         );
     }

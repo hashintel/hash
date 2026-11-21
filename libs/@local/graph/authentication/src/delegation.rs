@@ -177,12 +177,10 @@ mod tests {
         )
         .await;
 
-        assert!(
-            matches!(
-                decision,
-                ControlFlow::Break(Ok(ActorId::User(user_id)))
-                    if ActorEntityUuid::new(user_id) == actor_id
-            ),
+        assert_matches!(
+            decision,
+            ControlFlow::Break(Ok(ActorId::User(user_id)))
+                if ActorEntityUuid::new(user_id) == actor_id,
             "the service secret with an actor-ID header should delegate to the named actor"
         );
     }
@@ -199,8 +197,9 @@ mod tests {
         );
 
         let decision = authenticate::<ActorId>(&provider(), &request_headers).await;
-        assert!(
-            matches!(decision, ControlFlow::Continue(())),
+        assert_matches!(
+            decision,
+            ControlFlow::Continue(()),
             "a credential of another scheme should not be read as the service secret"
         );
     }
@@ -218,12 +217,10 @@ mod tests {
 
         let decision =
             authenticate::<ActorId>(&provider_for(known_user(actor_id)), &request_headers).await;
-        assert!(
-            matches!(
-                decision,
-                ControlFlow::Break(Ok(ActorId::User(user_id)))
-                    if ActorEntityUuid::new(user_id) == actor_id
-            ),
+        assert_matches!(
+            decision,
+            ControlFlow::Break(Ok(ActorId::User(user_id)))
+                if ActorEntityUuid::new(user_id) == actor_id,
             "the authorization scheme should match case-insensitively"
         );
     }
@@ -271,8 +268,9 @@ mod tests {
     async fn actor_header_without_secret_carries_no_credential() {
         let decision =
             authenticate::<ActorId>(&provider(), &headers(None, Some(random_actor()))).await;
-        assert!(
-            matches!(decision, ControlFlow::Continue(())),
+        assert_matches!(
+            decision,
+            ControlFlow::Continue(()),
             "an actor-ID header without the service secret should not be recognized"
         );
     }
@@ -318,8 +316,9 @@ mod tests {
         )
         .await;
 
-        assert!(
-            matches!(decision, ControlFlow::Break(Ok(None))),
+        assert_matches!(
+            decision,
+            ControlFlow::Break(Ok(None)),
             "the nil actor header should resolve to no actor, got {decision:?}"
         );
     }
@@ -346,8 +345,9 @@ mod tests {
     #[tokio::test]
     async fn requests_without_credentials_carry_no_credential() {
         let decision = authenticate::<ActorId>(&provider(), &HeaderMap::new()).await;
-        assert!(
-            matches!(decision, ControlFlow::Continue(())),
+        assert_matches!(
+            decision,
+            ControlFlow::Continue(()),
             "a request without either header should not be recognized"
         );
     }

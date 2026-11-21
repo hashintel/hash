@@ -74,6 +74,7 @@ pub(crate) fn connector(roots: RootCertStore) -> MakeRustlsConnect {
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches;
     use std::path::Path;
 
     use super::{RootCertificateError, load_root_certificates};
@@ -82,8 +83,9 @@ mod tests {
     fn missing_file() {
         let report = load_root_certificates(Path::new("/nonexistent/root.pem"))
             .expect_err("a missing file should be rejected");
-        assert!(
-            matches!(report.current_context(), RootCertificateError::Read),
+        assert_matches!(
+            report.current_context(),
+            RootCertificateError::Read,
             "a missing file should fail to be read"
         );
     }
@@ -93,8 +95,9 @@ mod tests {
         let not_pem = Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml");
         let report = load_root_certificates(&not_pem)
             .expect_err("a file without a certificate should be rejected");
-        assert!(
-            matches!(report.current_context(), RootCertificateError::Empty),
+        assert_matches!(
+            report.current_context(),
+            RootCertificateError::Empty,
             "a file without a certificate should be reported as empty"
         );
     }

@@ -244,6 +244,8 @@ fn execute_query(sql: &str) -> Result<Rows, Report<QueryError>> {
 ## Testing Error Types
 
 ```rust
+use core::assert_matches;
+
 #[test]
 fn error_display_format() {
     let error = MyError::NotFound {
@@ -262,10 +264,7 @@ fn error_with_report() {
     let report = Report::new(MyError::Timeout { seconds: 30 })
         .attach_printable("During database query");
 
-    assert!(matches!(
-        report.current_context(),
-        MyError::Timeout { seconds: 30 }
-    ));
+    assert_matches!(report.current_context(), MyError::Timeout { seconds: 30 });
 }
 ```
 

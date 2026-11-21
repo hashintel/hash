@@ -14,7 +14,7 @@
 //! sudo -E cargo test --package darwin-kperf --test sampler -- --ignored --nocapture --test-threads=1
 //! ```
 
-use core::hint::black_box;
+use core::{assert_matches, hint::black_box};
 
 use darwin_kperf::{Sampler, SamplerError, event::Event};
 
@@ -238,8 +238,9 @@ fn sample_while_stopped_returns_error() {
 
     // Never started; sample should fail.
     let result = thread.sample();
-    assert!(
-        matches!(result, Err(SamplerError::SamplerNotRunning)),
+    assert_matches!(
+        result,
+        Err(SamplerError::SamplerNotRunning),
         "expected SamplerNotRunning, got: {result:?}"
     );
 }
