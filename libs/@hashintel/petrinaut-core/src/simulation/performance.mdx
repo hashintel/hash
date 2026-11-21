@@ -472,9 +472,9 @@ both engines now test the per-frame hazard over `dt`, and `seeded-rng.ts`
 computes the LCG recurrence exactly with 32-bit integer arithmetic. (The 21%
 figure predates FE-1499: redrawing diverged against the then-inflated CPU
 test. With the CPU fixed, one consumed draw per enabled transition per frame
-is the shared rule, and FE-1553 aligned the shader to it — the committed
-`Dev / GpuParity` Storybook harness now measures the agreement instead of a
-hand-run comparison. The harness also carries SIR's **Infected Fraction**
+is the shared rule, and FE-1553 aligned the shader to it. The GPU parity
+harness in `libs/@hashintel/petrinaut/benchmarks/gpu-parity` now measures the
+agreement instead of a hand-run comparison. The harness also carries SIR's **Infected Fraction**
 expression metric beside the place count, sampling `all` runs as the optimizer
 objective does, so the same run checks a metric body evaluated in f32 on the
 device against the CPU's f64, the shader's run-status guard and the final
@@ -486,6 +486,26 @@ noise — at 158 ms on the GPU against 1028 ms on the four-shard CPU pool. Its
 final-frame KS statistic of 0.06 is a binning artefact: the CPU bins each f64
 fraction exactly while the device bins into a calibrated 1024-bin window, so
 the two step functions are compared at different resolutions.)
+
+The harness is a page of the editor's benchmark app. From
+`libs/@hashintel/petrinaut`, build the app and serve it:
+
+```sh
+yarn exec vite build --config benchmarks/monaco-performance/vite.config.ts && yarn exec vite preview --config benchmarks/monaco-performance/vite.config.ts
+```
+
+Then open `http://127.0.0.1:6027/benchmarks/gpu-parity/gpu-parity.html` in a
+browser with WebGPU on real hardware. The page runs SIR, Café Queue and Drone
+Patrol through the worker pool and then the GPU, and shows one row per
+measure: the frames both backends produced, the time of each run, the mean and
+the worst relative difference of the frame means, and the KS statistic of the
+last frame both produced. It logs the same rows as one `gpu-parity:` JSON line
+for a script to read off the console. The query string sets the experiment:
+`runs` (2000), `maxTime` (30), `dt` (0.1) and `seed` (42). Without WebGPU the
+CPU times are still measured, and the row says why the GPU backend is
+unavailable. Headless Chromium finds no adapter by default. On macOS,
+`--use-angle=metal` gives it the hardware one; `--enable-unsafe-webgpu` alone
+gives SwiftShader, a software adapter whose times say nothing about the GPU.
 
 The run-count bound is gone: an experiment larger than the device's buffers
 runs as sequential tiles over one shared histogram buffer, which merges itself

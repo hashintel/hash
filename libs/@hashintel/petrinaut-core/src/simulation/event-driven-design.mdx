@@ -621,8 +621,9 @@ advances `H_T` by `Λ_T · dt` per step and counts the thresholds crossed sees
 the same Poisson path, so the two engines produce the same trajectory up to
 discretisation error, which is what makes a parity test between them sharp.
 The GPU keeps independent Poisson draws (next section) and agrees in
-distribution only, which the `Dev / GpuParity` harness already measures
-between CPU and GPU.
+distribution only, which the GPU parity harness already measures between CPU
+and GPU ([Simulation performance](doc:core.simulation/performance) says how to
+run it).
 
 ### Cost
 

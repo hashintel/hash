@@ -61,7 +61,11 @@ export default defineConfig({
     sourcemap: true,
     cssMinify: "esbuild",
     rolldownOptions: {
-      input: `${root}/benchmarks/monaco-performance/bench.html`,
+      // The editor's page, and the GPU parity harness on a page of its own.
+      input: [
+        `${root}/benchmarks/monaco-performance/bench.html`,
+        `${root}/benchmarks/gpu-parity/gpu-parity.html`,
+      ],
     },
   },
   server: { host: "127.0.0.1", port: 6026, strictPort: true },
