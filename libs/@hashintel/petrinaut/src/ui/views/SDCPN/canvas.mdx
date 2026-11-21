@@ -66,6 +66,8 @@ The pointer rests after 150 ms with no move above 2 px, and a hover changes focu
 
 **Hover and drag preview stay in `CanvasPointer`.** No panel subscribes to it, so a pointer move renders no panel. `use-canvas-scene.test.tsx` covers the hover delay and the drag.
 
+**A control drawn over the canvas has the class `nokey`.** While the selection key is held, React Flow starts a selection box from a press anywhere inside the pane, and takes the press from the control. A control that is no part of the net (the visualizer window, the eye that opens it, the fold toggle of a component card) opts out with React Flow's `nokey` class. `useSelectionKeyRelease` covers the case where the page saw Shift go down and not come up, as after a system shortcut: the next press that says Shift is up sends the missing keyup. The tests in `selection-keys.test.tsx` and `visualizer-window.test.tsx` hold both.
+
 ## Pitfalls
 
 - `useStableItems` reads a ref during render and opts out of the React Compiler with `"use no memo"`. It compares against the previous render's objects, which no effect can do in time. Keep scene items plain data: the comparison handles primitives, plain objects and arrays only.

@@ -58,6 +58,7 @@ import {
   isMac,
   selectionKeyCode,
   useMultiSelectionModifier,
+  useSelectionKeyRelease,
 } from "./react-flow-canvas/selection-keys";
 import { TransitionNode } from "./react-flow-canvas/transition-node";
 import { useApplyNodeChanges } from "./react-flow-canvas/use-apply-node-changes";
@@ -211,6 +212,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   useEscapeCancelsConnection();
   useMonacoKeyboardIsolation();
   useMultiSelectionModifier(isMac);
+  useSelectionKeyRelease();
 
   // The viewport at mount: where this net was last left, or centered on the
   // net, or the origin for an empty one. Bounds and container changes must

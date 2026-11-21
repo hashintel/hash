@@ -497,3 +497,10 @@ it("keeps its dragged layout when leaving the editor and while content loads", a
   expect(screen.queryByRole("status")).toBeNull();
   expect(visualizer.getAttribute("style")).toBe(bounds);
 });
+
+it("opts out of the canvas's key-started selection box", () => {
+  render(panel());
+
+  // React Flow starts no selection from a press inside a `nokey` element.
+  expect(screen.getByRole("group").classList.contains("nokey")).toBe(true);
+});

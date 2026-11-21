@@ -7,7 +7,7 @@ import {
 import { lazy, Suspense, use, useEffect, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 import { getDocumentUri } from "@hashintel/petrinaut-core";
 
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
@@ -223,7 +223,8 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
           offset={-11}
         >
           <div
-            className={triggerStyle}
+            // nokey: a press here draws no selection box, as on the window.
+            className={cx(triggerStyle, "nokey")}
             title="Click to keep open"
             data-animated={showAnimations}
             {...keepHovered}

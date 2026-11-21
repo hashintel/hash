@@ -201,7 +201,9 @@ export const VisualizerWindow = ({
       )}
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Drag the picture while keeping control events from reaching the source node. */}
       <div
-        className={`${panelStyle} nodrag nopan nowheel`}
+        // nokey: with the selection key held, a press on the canvas draws a
+        // selection box. A press on the window is not one on the canvas.
+        className={`${panelStyle} nodrag nopan nowheel nokey`}
         style={{
           zIndex: 1001 + stackIndex,
           left: layout.position.x,

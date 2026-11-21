@@ -17,6 +17,46 @@ export const getSelectionKeyCode = (mac: boolean): string[] => [
 export const selectionKeyCode = getSelectionKeyCode(isMac);
 
 /**
+ * Releases React Flow's selection key when the page missed its keyup. A
+ * system shortcut that holds Shift, such as the one that takes a screenshot,
+ * gives the page the keydown and keeps the keyup, and React Flow then draws
+ * a selection box from every press until Shift is pressed again. A press
+ * that says Shift is up while the page last saw it go down sends the keyup
+ * the page did not get.
+ */
+export const useSelectionKeyRelease = () => {
+  useEffect(() => {
+    let shiftSeenDown = false;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Shift") {
+        shiftSeenDown = event.type === "keydown";
+      }
+    };
+    const onPress = (event: PointerEvent) => {
+      if (shiftSeenDown && !event.shiftKey) {
+        window.dispatchEvent(
+          new KeyboardEvent("keyup", { key: "Shift", code: "ShiftLeft" }),
+        );
+      }
+    };
+    const forget = () => {
+      shiftSeenDown = false;
+    };
+
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("keyup", onKey, true);
+    window.addEventListener("pointerdown", onPress, true);
+    window.addEventListener("blur", forget);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("keyup", onKey, true);
+      window.removeEventListener("pointerdown", onPress, true);
+      window.removeEventListener("blur", forget);
+    };
+  }, []);
+};
+
+/**
  * Keeps React Flow's `multiSelectionActive` equal to whether Cmd (macOS) or
  * Ctrl (elsewhere) is held, read from the modifier flags of every key and
  * pointer event. The canvas passes `multiSelectionKeyCode={null}` so React
