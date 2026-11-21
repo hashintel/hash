@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from "react";
+import { use, useEffect } from "react";
 
 import {
   createHirMetricEvaluator,
@@ -12,6 +12,7 @@ import { fingerprintHirCompilationInput } from "@hashintel/petrinaut-core/hir-ru
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
+import { useKeptState } from "../../../../../../lib/kept-state";
 
 import type { TimelineMetricEvaluator } from "../simulation-timeline/series-config/metric";
 
@@ -43,7 +44,10 @@ export function useTimelineMetric(metric: Metric | null): TimelineMetricState {
     (document) => document.petriNetDefinition,
   );
   const { parameterValues } = use(SimulationContext);
-  const [state, setState] = useState<TimelineMetricState>(
+  // Kept while a closed panel has the Timeline unmounted: it then mounts with
+  // the metric compiled, and draws it in its first frame.
+  const [state, setState] = useKeptState<TimelineMetricState>(
+    "timeline-metric",
     EMPTY_TIMELINE_METRIC_STATE,
   );
   // Resolved net parameter values bound to ambient `parameters.<name>` reads
@@ -62,8 +66,10 @@ export function useTimelineMetric(metric: Metric | null): TimelineMetricState {
     ? `${compilationFingerprint}\u0000${metric.id}\u0000${metric.code}\u0000${JSON.stringify(netParameterValues)}`
     : null;
 
+  const isCompiled = state.key === key && state.evaluate !== null;
+
   useEffect(() => {
-    if (!metric || !key) {
+    if (!metric || !key || isCompiled) {
       return;
     }
 
@@ -124,6 +130,8 @@ export function useTimelineMetric(metric: Metric | null): TimelineMetricState {
   }, [
     metric,
     key,
+    isCompiled,
+    setState,
     extensions,
     petriNetDefinition,
     requestHirArtifacts,
