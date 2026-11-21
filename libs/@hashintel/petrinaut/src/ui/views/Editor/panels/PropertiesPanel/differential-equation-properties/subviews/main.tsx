@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { useState } from "react";
 
 import {
   Button,
@@ -24,6 +24,7 @@ import { usePetrinautPresentation } from "../../../../../shared/presentation-con
 import { CodeTemplateMenu } from "../../code-template-menu";
 import { tokenCountLabel } from "../../token-count-label";
 import { useDiffEqPropertiesContext } from "../context";
+import { DifferentialEquationCodeField } from "./code-field";
 
 import type { Color, DifferentialEquation } from "@hashintel/petrinaut-core";
 
@@ -98,11 +99,6 @@ const codeForArity = (
     ? generateDefaultDifferentialEquationCode(type, arity)
     : code;
 };
-
-const DeferredDifferentialEquationCodeField = lazy(async () => {
-  const { DifferentialEquationCodeField } = await import("./code-field");
-  return { default: DifferentialEquationCodeField };
-});
 
 export const DiffEqMainContent: React.FC = () => {
   const { differentialEquation, types, places } = useDiffEqPropertiesContext();
@@ -225,9 +221,7 @@ export const DiffEqMainContent: React.FC = () => {
         </Form.Field>
 
         {presentation.showSourceCode && (
-          <Suspense fallback={null}>
-            <DeferredDifferentialEquationCodeField />
-          </Suspense>
+          <DifferentialEquationCodeField />
         )}
       </Form.Section>
 
