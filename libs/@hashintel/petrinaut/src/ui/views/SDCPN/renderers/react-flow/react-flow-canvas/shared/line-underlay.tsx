@@ -1,11 +1,9 @@
-import { BaseEdge } from "@xyflow/react";
-
 import {
   ARC_HALO_OVERHANG,
   ARC_WHITE_OVERHANG,
 } from "../../../../styles/focus";
 
-const selectionBandStyle = {
+const selectionBand = {
   stroke: "rgba(249, 115, 22, 0.4)",
   strokeWidth: 8,
 } as const;
@@ -14,9 +12,9 @@ const selectionBandStyle = {
  * What a line on the canvas wears beneath its own stroke: a thick band while
  * it is selected, and the focus casing, white around the stroke and the
  * role's colour around that, matching the bands a highlighted node wears.
+ * None of it takes the pointer: the line it lies under does.
  */
-export const EdgeUnderlay: React.FC<{
-  id: string;
+export const LineUnderlay: React.FC<{
   path: string;
   selected: boolean | undefined;
   /** The focus role's colour, or `undefined` for a line with no role. */
@@ -26,7 +24,6 @@ export const EdgeUnderlay: React.FC<{
   strokeDasharray: string | undefined;
   strokeLinecap: "round" | "butt";
 }> = ({
-  id,
   path,
   selected,
   haloColor,
@@ -39,17 +36,13 @@ export const EdgeUnderlay: React.FC<{
     fill: "none",
     strokeDasharray,
     strokeLinecap,
-    style: { pointerEvents: "none" },
+    pointerEvents: "none",
   } as const;
 
   return (
     <>
       {selected ? (
-        <BaseEdge
-          id={`${id}-selection`}
-          path={path}
-          style={selectionBandStyle}
-        />
+        <path d={path} fill="none" pointerEvents="none" {...selectionBand} />
       ) : null}
       {haloColor === undefined ? null : (
         <>

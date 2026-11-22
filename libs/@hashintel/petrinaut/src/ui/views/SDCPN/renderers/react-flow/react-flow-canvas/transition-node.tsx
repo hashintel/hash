@@ -63,7 +63,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   const firingDelta = useFiringDelta(frame?.firingCount ?? null);
 
   // Animate when firing occurs
-  useTransitionFiringAnimation(boxRef, boltRef, firingDelta, {
+  useTransitionFiringAnimation(id, boxRef, boltRef, firingDelta, {
     x: positionAbsoluteX,
     y: positionAbsoluteY,
   });

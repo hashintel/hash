@@ -14,7 +14,7 @@ import type {
   FrameSceneResult,
 } from "../../../canvas-renderer";
 import type { CanvasViewportInsets } from "../../../canvas-viewport";
-import type { ArcEdgeType, NodeType } from "./react-flow-types";
+import type { CanvasEdgeType, NodeType } from "./react-flow-types";
 import type { Rect, Size } from "@hashintel/petrinaut-core";
 
 const frameRequestTimeoutMs = 1_500;
@@ -59,7 +59,7 @@ export const useReactFlowController = ({
   /** Whether programmatic moves ease; off, they jump. */
   animated: boolean;
 }): { controller: CanvasController; camera: ViewportAnimator } => {
-  const reactFlow = useReactFlow<NodeType, ArcEdgeType>();
+  const reactFlow = useReactFlow<NodeType, CanvasEdgeType>();
   const [frameRequestGeneration, setFrameRequestGeneration] = useState(0);
   const frameStateRef = useLatest({
     bounds,

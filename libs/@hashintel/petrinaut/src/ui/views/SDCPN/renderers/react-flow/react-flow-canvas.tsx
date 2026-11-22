@@ -13,7 +13,7 @@ import {
   useStore,
   useStoreApi,
 } from "@xyflow/react";
-import { use, useEffect, useId, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -40,9 +40,12 @@ import { ViewportControls } from "../../components/viewport-controls";
 import { useKeepSelectionInView } from "../../hooks/use-keep-selection-in-view";
 import { useDebouncedValue } from "../../hooks/util/use-debounced-value";
 import { useCanvasInteractions } from "../../use-canvas-interactions";
-import { Arc } from "./react-flow-canvas/arc";
-import { arcHeadsOf } from "./react-flow-canvas/arc-head";
-import { ArcHeads } from "./react-flow-canvas/arc-heads";
+import { ArcLayer } from "./react-flow-canvas/arc-layer";
+import { ArcLayerContext } from "./react-flow-canvas/arc-layer-context";
+import {
+  ArcPulsesContext,
+  createArcPulses,
+} from "./react-flow-canvas/arc-pulses";
 import { ClassicPlaceNode } from "./react-flow-canvas/classic-place-node";
 import { ClassicTransitionNode } from "./react-flow-canvas/classic-transition-node";
 import { ComponentInstanceNode } from "./react-flow-canvas/component-instance-node";
@@ -52,7 +55,7 @@ import { MiniMap } from "./react-flow-canvas/mini-map";
 import { OutlineConnectionLine } from "./react-flow-canvas/outline-connection-line";
 import { PlaceNode } from "./react-flow-canvas/place-node";
 import { toCanvasConnection } from "./react-flow-canvas/port-handles";
-import { linkItemOf } from "./react-flow-canvas/react-flow-types";
+import { fusionItemOf } from "./react-flow-canvas/react-flow-types";
 import {
   isMac,
   selectionKeyCode,
@@ -83,7 +86,7 @@ const CLASSIC_NODE_TYPES = {
 };
 
 const REACTFLOW_EDGE_TYPES = {
-  default: Arc,
+  arcs: ArcLayer,
   fusion: FusionEdge,
 };
 
@@ -111,19 +114,8 @@ const paneStyle = css({
     transition: "[opacity var(--canvas-focus-duration, 200ms) ease]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
-  // The fade of the arcs: see the rules that set these opacities, below. The
-  // dashes that keep a faded line off its head stay until the line has faded
-  // back in. `allow-discrete` lets a value that cannot be blended wait: a
-  // browser without it drops the dashes when the fade back starts.
-  "& .arc-line": {
-    transition:
-      "[stroke-opacity var(--canvas-focus-duration, 200ms) ease, stroke-dasharray 0s linear var(--canvas-focus-duration, 200ms)]",
-    transitionBehavior: "[allow-discrete]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  },
-  // The line of a fusion link fades as an arc's does. It ends in no head, so
-  // it keeps its own dashes.
-  "& .fusion-line": {
+  // The fade of the arcs: see the rules that set these opacities, below.
+  "& .arc-shaft, & .arc-pulse, & .fusion-line": {
     transition: "[stroke-opacity var(--canvas-focus-duration, 200ms) ease]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
@@ -134,16 +126,9 @@ const paneStyle = css({
       "[stroke-opacity 0s linear var(--canvas-focus-duration, 200ms)]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
-  // The head of a role wears the casing's colour for as long as the canvas
-  // has a focus, and never fades. Once the focus ends it is in the arc's own
-  // colour, for the arcs that keep it: see `useArcHeadRoles`.
   "& .arc-head": {
-    fill: "[var(--arc-head-color)]",
     transition: "[fill-opacity var(--canvas-focus-duration, 200ms) ease]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  },
-  "&[data-focus-active] .arc-head.canvas-focus-role": {
-    fill: "[var(--arc-head-halo)]",
   },
   // A component instance's height animates between folded and unfolded, so
   // the card grows and shrinks rather than jumping. React Flow reads the pins
@@ -172,30 +157,36 @@ const paneStyle = css({
   // frame of a pan, a zoom or a drag, and a net has one group per arc. So
   // each thing a faded arc draws is drawn once, at 0.45 by an opacity of its
   // own: the line by its stroke and the head by its fill. What would lie
-  // under another is not drawn, since both would show: the line stops where
-  // the head begins, and the second stroke of the line goes, at once.
-  "&[data-focus-active] .react-flow__edge:not(.canvas-focus-role) .arc-line": {
-    strokeOpacity: "[0.45]",
-    strokeDasharray: "[var(--arc-faded-dash)]",
-    transition: "[stroke-opacity var(--canvas-focus-duration, 200ms) ease]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  },
-  "&[data-focus-active] .react-flow__edge:not(.canvas-focus-role) .arc-line-twin":
-    {
-      strokeOpacity: "[0]",
-      transition: "[none]",
-    },
-  "&[data-focus-active] .react-flow__edge:not(.canvas-focus-role) .fusion-line":
+  // under another is not drawn, since both would show: the line is the
+  // shaft, which stops where the head begins, and the second stroke of the
+  // line goes, at once.
+  //
+  // The rules name the arc's own element, and its strokes as its children.
+  // React Flow's wrapper around the arc layer is an edge with no role too,
+  // and a rule that matched through it would fade every arc.
+  "&[data-focus-active] .arc-item:not(.canvas-focus-role) > .arc-shaft, &[data-focus-active] .react-flow__edge-fusion:not(.canvas-focus-role) .fusion-line":
     {
       strokeOpacity: "[0.45]",
     },
-  "&[data-focus-active] .arc-head:not(.canvas-focus-role)": {
+  "&[data-focus-active] .arc-item:not(.canvas-focus-role) > .arc-line-twin": {
+    strokeOpacity: "[0]",
+    transition: "[none]",
+  },
+  "&[data-focus-active] .arc-item:not(.canvas-focus-role) > .arc-head": {
     fillOpacity: "[0.45]",
   },
+  // The pulse of a firing is the whole line, which runs on under the head.
+  // On a faded arc it stops where the head begins, as the line does: a pulse
+  // says what share of its length that is.
+  "&[data-focus-active] .arc-item:not(.canvas-focus-role) > .arc-pulses > .arc-pulse":
+    {
+      strokeOpacity: "[0.45]",
+      strokeDasharray: "[var(--arc-faded-dash)]",
+    },
   // Marks that lie on their line can only fade with it as one group: the
   // ticks, the circle and the dot of an inhibitor or a read arc, and the knot
   // of a fusion link. Those keep an opacity, and a net has few of them.
-  "&[data-focus-active] .react-flow__edge:not(.canvas-focus-role) .arc-strokes":
+  "&[data-focus-active] .arc-item:not(.canvas-focus-role) > .arc-strokes, &[data-focus-active] .react-flow__edge-fusion:not(.canvas-focus-role) .arc-strokes":
     {
       opacity: "[0.45]",
     },
@@ -236,15 +227,15 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     selectLink,
     hover,
     enter,
+    clearHover,
     clickPane,
     dropNode,
     dropComponent,
   } = interactions;
   const flowStore = useStoreApi();
   const readOnlyDragHandlers = useReadOnlyNodeDrag({ readonly, isPanMode });
-  const canvasId = useId();
-  const { nodes, edges } = useReactFlowElements(scene, canvasId);
-  const arcHeads = arcHeadsOf(canvasId, scene.arcs);
+  const { nodes, edges } = useReactFlowElements(scene);
+  const [arcPulses] = useState(createArcPulses);
   const applyChanges = useApplyNodeChanges(interactions);
   const insets = useCanvasInsetsReader();
 
@@ -362,74 +353,97 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
         }}
       >
         <LinkRewiringContext value={isRewiring}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            edgeTypes={REACTFLOW_EDGE_TYPES}
-            onNodesChange={applyChanges}
-            onEdgesChange={applyChanges}
-            // A port can be joined from either of its pins to either pin of
-            // another, so a connection may run between two handles of one kind.
-            connectionMode={ConnectionMode.Loose}
-            connectionLineComponent={OutlineConnectionLine}
-            isValidConnection={isValidConnection}
-            onConnect={readonly ? undefined : onConnect}
-            // Only a fusion link offers its ends to drag: each says so itself.
-            edgesReconnectable={false}
-            {...reconnectProps}
-            onEdgeClick={(_event, edge) => selectLink(linkItemOf(edge))}
-            // Node click selection is handled by ReactFlow's internal
-            // handleNodeClick, which fires select changes through
-            // onNodesChange; an onNodeClick handler would conflict with it.
-            onNodeMouseEnter={(event, node) => enterItem(event, node.id)}
-            onNodeMouseLeave={interactions.clearHover}
-            onNodeDragStart={(_event, node) => hover(node.id)}
-            onEdgeMouseEnter={(event, edge) =>
-              enterItem(event, linkItemOf(edge).id)
-            }
-            onEdgeMouseLeave={interactions.clearHover}
-            onSelectionStart={interactions.beginSelectionGesture}
-            onSelectionEnd={interactions.endSelectionGesture}
-            onPaneClick={(event) => clickPane(scenePositionOf(event))}
-            // A gesture takes the camera back from any move under way. Frames
-            // of the camera's own moves are not remembered, only where it stops.
-            onMoveStart={(event) => {
-              if (event) {
-                camera.cancel();
-              }
-            }}
-            onMoveEnd={(_event, viewport) => {
-              if (!camera.isAnimating()) {
-                rememberViewport(viewport);
-              }
-            }}
-            onDrop={readonly ? undefined : onDrop}
-            onDragOver={readonly ? undefined : onDragOver}
-            defaultViewport={savedViewport ?? initialViewport}
-            proOptions={{ hideAttribution: true }}
-            panOnDrag={isPanMode ? true : isAddMode ? false : [1, 2]}
-            selectionOnDrag={interactions.isSelectMode}
-            nodesDraggable={!readonly}
-            nodesConnectable={!readonly}
-            elementsSelectable={!isAddMode}
-            selectionMode={
-              partialSelection ? SelectionMode.Partial : SelectionMode.Full
-            }
-            selectionKeyCode={selectionKeyCode}
-            multiSelectionKeyCode={null}
-            selectNodesOnDrag={false}
-            nodeOrigin={[0.5, 0.5]}
-            deleteKeyCode={null}
-            panOnScroll={false}
-            zoomOnScroll
-            minZoom={minZoom}
-          >
-            <Background gap={SNAP_GRID_SIZE} size={1} />
-            <ArcHeads heads={arcHeads} />
-            {showMinimap && presentation.showMinimap && <MiniMap />}
-            {!isActualMode && <ViewportControls />}
-          </ReactFlow>
+          <ArcPulsesContext value={arcPulses}>
+            <ArcLayerContext
+              value={{
+                scene,
+                gestures: { selectLink, enterItem, clearHover, isAddMode },
+              }}
+            >
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                edgeTypes={REACTFLOW_EDGE_TYPES}
+                onNodesChange={applyChanges}
+                onEdgesChange={applyChanges}
+                // A port can be joined from either of its pins to either pin of
+                // another, so a connection may run between two handles of one kind.
+                connectionMode={ConnectionMode.Loose}
+                connectionLineComponent={OutlineConnectionLine}
+                isValidConnection={isValidConnection}
+                onConnect={readonly ? undefined : onConnect}
+                // Only a fusion link offers its ends to drag: each says so itself.
+                edgesReconnectable={false}
+                {...reconnectProps}
+                // The arcs answer for themselves inside their layer: these three
+                // are for the fusion links. With no click handler React Flow
+                // would take the pointer off the layer's edge.
+                onEdgeClick={(_event, edge) => {
+                  const fusion = fusionItemOf(edge);
+                  if (fusion) {
+                    selectLink(fusion);
+                  }
+                }}
+                // Node click selection is handled by ReactFlow's internal
+                // handleNodeClick, which fires select changes through
+                // onNodesChange; an onNodeClick handler would conflict with it.
+                onNodeMouseEnter={(event, node) => enterItem(event, node.id)}
+                onNodeMouseLeave={clearHover}
+                onNodeDragStart={(_event, node) => hover(node.id)}
+                onEdgeMouseEnter={(event, edge) => {
+                  const fusion = fusionItemOf(edge);
+                  if (fusion) {
+                    enterItem(event, fusion.id);
+                  }
+                }}
+                onEdgeMouseLeave={(_event, edge) => {
+                  if (fusionItemOf(edge)) {
+                    clearHover();
+                  }
+                }}
+                onSelectionStart={interactions.beginSelectionGesture}
+                onSelectionEnd={interactions.endSelectionGesture}
+                onPaneClick={(event) => clickPane(scenePositionOf(event))}
+                // A gesture takes the camera back from any move under way. Frames
+                // of the camera's own moves are not remembered, only where it stops.
+                onMoveStart={(event) => {
+                  if (event) {
+                    camera.cancel();
+                  }
+                }}
+                onMoveEnd={(_event, viewport) => {
+                  if (!camera.isAnimating()) {
+                    rememberViewport(viewport);
+                  }
+                }}
+                onDrop={readonly ? undefined : onDrop}
+                onDragOver={readonly ? undefined : onDragOver}
+                defaultViewport={savedViewport ?? initialViewport}
+                proOptions={{ hideAttribution: true }}
+                panOnDrag={isPanMode ? true : isAddMode ? false : [1, 2]}
+                selectionOnDrag={interactions.isSelectMode}
+                nodesDraggable={!readonly}
+                nodesConnectable={!readonly}
+                elementsSelectable={!isAddMode}
+                selectionMode={
+                  partialSelection ? SelectionMode.Partial : SelectionMode.Full
+                }
+                selectionKeyCode={selectionKeyCode}
+                multiSelectionKeyCode={null}
+                selectNodesOnDrag={false}
+                nodeOrigin={[0.5, 0.5]}
+                deleteKeyCode={null}
+                panOnScroll={false}
+                zoomOnScroll
+                minZoom={minZoom}
+              >
+                <Background gap={SNAP_GRID_SIZE} size={1} />
+                {showMinimap && presentation.showMinimap && <MiniMap />}
+                {!isActualMode && <ViewportControls />}
+              </ReactFlow>
+            </ArcLayerContext>
+          </ArcPulsesContext>
         </LinkRewiringContext>
       </div>
     </CanvasControllerContext>

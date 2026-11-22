@@ -10,7 +10,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { problemStrokeColor } from "../../../../../constants/problem-severity";
 import { arcHaloColor } from "../../../styles/focus";
 import { fusionLoopPath } from "./fusion-loop-path";
-import { EdgeUnderlay } from "./shared/edge-underlay";
+import { LineUnderlay } from "./shared/line-underlay";
 
 import type { FusionEdgeType } from "./react-flow-types";
 
@@ -78,8 +78,7 @@ export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
 
   return (
     <>
-      <EdgeUnderlay
-        id={id}
+      <LineUnderlay
         path={path}
         selected={selected}
         haloColor={arcHaloColor(data?.focus ?? "none")}

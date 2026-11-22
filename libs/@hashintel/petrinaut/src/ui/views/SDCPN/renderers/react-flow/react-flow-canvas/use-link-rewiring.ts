@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { linkEnd, type CanvasLinkEndName } from "../../../canvas-scene";
 import { toCanvasConnection, type FlowConnection } from "./port-handles";
 import {
-  linkItemOf,
+  fusionItemOf,
   type CanvasEdgeType,
   type NodeType,
 } from "./react-flow-types";
@@ -95,9 +95,14 @@ export const useLinkRewiring = (
       ? {}
       : {
           onReconnectStart: (_event, edge, keptEnd) => {
+            // Only a fusion link offers its ends to drag.
+            const fusion = fusionItemOf(edge);
+            if (!fusion) {
+              return;
+            }
             const end = keptEnd === "source" ? "target" : "source";
             moving.current = {
-              fusionId: linkItemOf(edge).id,
+              fusionId: fusion.id,
               from: linkEnd(toCanvasConnection(edge), end),
               end,
             };

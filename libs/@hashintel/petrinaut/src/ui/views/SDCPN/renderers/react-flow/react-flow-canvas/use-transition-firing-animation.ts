@@ -1,17 +1,20 @@
 import { useStoreApi } from "@xyflow/react";
-import { useEffect } from "react";
+import { use, useEffect } from "react";
 
 import { useLatest } from "../../../../../../react/hooks/use-latest";
+import { ArcPulsesContext } from "./arc-pulses";
 import { firingIsVisible } from "./firing-animation-visibility";
 
 const FIRING_ANIMATION_DURATION_MS = 300;
 
 /**
- * Flashes a transition's box and its lightning bolt when it fires, through
- * the Web Animations API. Skipped for a transition that is off screen or
- * drawn too small to see.
+ * Shows that a transition fired: its arcs pulse, and its box and its
+ * lightning bolt flash through the Web Animations API. The flash is skipped
+ * for a transition that is off screen or drawn too small to see, and each
+ * arc decides the same for itself.
  */
 export const useTransitionFiringAnimation = (
+  transitionId: string,
   boxRef: React.RefObject<HTMLDivElement | null>,
   boltRef: React.RefObject<HTMLDivElement | null>,
   firingDelta: number | null,
@@ -20,6 +23,7 @@ export const useTransitionFiringAnimation = (
   // The viewport is read when a firing lands rather than subscribed to, so a
   // pan or a zoom does not re-render every transition on the canvas.
   const store = useStoreApi();
+  const arcPulses = use(ArcPulsesContext);
   // Held in a ref so a node drag during a firing does not restart it.
   const positionRef = useLatest(position);
 
@@ -28,6 +32,8 @@ export const useTransitionFiringAnimation = (
     if (firingDelta === null || firingDelta <= 0) {
       return;
     }
+
+    arcPulses.fire(transitionId, firingDelta);
 
     const box = boxRef.current;
     const bolt = boltRef.current;
@@ -71,5 +77,13 @@ export const useTransitionFiringAnimation = (
         fill: "forwards",
       },
     );
-  }, [firingDelta, boxRef, boltRef, positionRef, store]);
+  }, [
+    firingDelta,
+    transitionId,
+    arcPulses,
+    boxRef,
+    boltRef,
+    positionRef,
+    store,
+  ]);
 };

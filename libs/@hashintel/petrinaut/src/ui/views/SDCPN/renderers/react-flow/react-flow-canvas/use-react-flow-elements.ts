@@ -1,11 +1,8 @@
 import { useStableItems } from "../../../use-stable-items";
-import { ARC_STROKE_WIDTH, arcHeadOf } from "./arc-head";
+import { arcLayerEdgeId } from "./arc-layer-context";
 import { instanceFlowOrigin, instanceFlowPosition } from "./instance-anchor";
 import { portInHandleId, portOutHandleId } from "./port-handles";
-import { getOutlineNode } from "./shared/outline-arcs";
-import { useArcHeadRoles } from "./use-arc-head-roles";
 
-import type { CanvasArcFocus } from "../../../canvas-focus";
 import type {
   CanvasArc,
   CanvasFusionLink,
@@ -14,11 +11,11 @@ import type {
   CanvasScene,
 } from "../../../canvas-scene";
 import type {
-  ArcData,
-  ArcEdgeType,
+  ArcLayerEdgeType,
   CanvasEdgeType,
   FusionEdgeType,
   NodeType,
+  SelectedArcEdgeType,
 } from "./react-flow-types";
 
 const toReactFlowNode = (node: CanvasNode): NodeType => {
@@ -50,8 +47,8 @@ const toReactFlowNode = (node: CanvasNode): NodeType => {
   }
 };
 
-/** What every edge takes from the line it draws: its ends, and its focus class. */
-const edgeBase = (link: CanvasLinkEnds & Pick<CanvasArc, "id" | "focus">) => ({
+/** The ends of a line as React Flow names them. */
+const edgeEnds = (link: CanvasLinkEnds & Pick<CanvasArc, "id">) => ({
   id: link.id,
   source: link.sourceId,
   target: link.targetId,
@@ -61,41 +58,44 @@ const edgeBase = (link: CanvasLinkEnds & Pick<CanvasArc, "id" | "focus">) => ({
   targetHandle: link.targetPortId
     ? portInHandleId(link.targetPortId)
     : undefined,
-  // Only an edge carrying a role is marked, so the pane can mute the rest
-  // without touching them.
-  className: link.focus === "none" ? undefined : "canvas-focus-role",
 });
 
-const toArcEdge = (
-  arc: CanvasArc,
-  /** The id of the arrowhead, for an arc that ends in one. */
-  headId: string | undefined,
-  attachments: Pick<
-    ArcData,
-    "sourceOutline" | "targetOutline" | "hasReverseArc"
-  >,
-): ArcEdgeType => ({
-  ...edgeBase(arc),
-  type: "default",
-  selected: arc.selected,
-  // The id of a marker the canvas draws itself: React Flow adds none for it.
-  markerEnd: headId,
-  style: {
-    stroke: arc.color,
-    strokeWidth: ARC_STROKE_WIDTH,
-  },
-  data: {
-    kind: arc.kind,
-    weight: arc.weight,
-    focus: arc.focus,
-    transitionId: arc.transitionId,
-    ...attachments,
-  },
+/**
+ * The edge that draws every arc. React Flow draws an edge between two nodes
+ * it has measured, so the layer's edge runs from a transition to itself: a
+ * transition has a handle of each kind in every mode, and every arc has a
+ * transition at one end. Anchored at an arc's own ends, one arc at a
+ * component that cannot be read would hide them all.
+ *
+ * The wrapper React Flow puts around an edge says nothing to a screen
+ * reader here and takes no focus: each arc has an element of its own inside
+ * it. React Flow names an edge unless its label is `null`, which its type
+ * leaves out.
+ */
+const toArcLayerEdge = (transitionId: string): ArcLayerEdgeType => ({
+  id: arcLayerEdgeId,
+  type: "arcs",
+  source: transitionId,
+  target: transitionId,
+  focusable: false,
+  selectable: false,
+  ariaRole: "none",
+  ariaLabel: null as unknown as undefined,
+  domAttributes: { "aria-roledescription": undefined },
+});
+
+const toSelectedArcEdge = (arc: CanvasArc): SelectedArcEdgeType => ({
+  ...edgeEnds(arc),
+  hidden: true,
+  selected: true,
 });
 
 const toFusionEdge = (link: CanvasFusionLink): FusionEdgeType => ({
-  ...edgeBase(link),
+  ...edgeEnds(link),
   type: "fusion",
+  // Only an edge carrying a role is marked, so the pane can mute the rest
+  // without touching them.
+  className: link.focus === "none" ? undefined : "canvas-focus-role",
   selected: link.selected,
   reconnectable: link.movableEnds === "both" ? true : link.movableEnds,
   data: {
@@ -108,66 +108,31 @@ const toFusionEdge = (link: CanvasFusionLink): FusionEdgeType => ({
 
 type ReactFlowElements = { nodes: NodeType[]; edges: CanvasEdgeType[] };
 
-const toReactFlowElements = (
-  scene: CanvasScene,
-  canvasId: string,
-  headRoles: ReadonlyMap<string, CanvasArcFocus>,
-): ReactFlowElements => {
-  const nodesById = new Map(scene.nodes.map((node) => [node.id, node]));
-  const outlineOf = (nodeId: string) => {
-    const node = nodesById.get(nodeId);
-    return node ? getOutlineNode(node) : null;
-  };
-  // Node pairs only, ports aside: an arc into a component port and one out of
-  // the same component would otherwise meet the transition at one point.
-  const connections = new Set(
-    scene.arcs.map((arc) => JSON.stringify([arc.sourceId, arc.targetId])),
-  );
-
+const toReactFlowElements = (scene: CanvasScene): ReactFlowElements => {
+  const anchor = scene.arcs[0]?.transitionId;
   return {
     nodes: scene.nodes.map(toReactFlowNode),
     edges: [
-      ...scene.arcs.map((arc) =>
-        toArcEdge(
-          arc,
-          // A read or an inhibitor arc ends in a mark of its own.
-          arc.kind === "standard"
-            ? arcHeadOf(canvasId, {
-                color: arc.color,
-                focus: headRoles.get(arc.id) ?? "none",
-              }).id
-            : undefined,
-          {
-            sourceOutline: outlineOf(arc.sourceId),
-            targetOutline: outlineOf(arc.targetId),
-            hasReverseArc: connections.has(
-              JSON.stringify([arc.targetId, arc.sourceId]),
-            ),
-          },
-        ),
-      ),
+      // First, so the arcs lie under the fusion links and come before them
+      // in the order of the Tab key.
+      ...(anchor === undefined ? [] : [toArcLayerEdge(anchor)]),
+      ...scene.arcs.filter((arc) => arc.selected).map(toSelectedArcEdge),
       ...scene.fusions.map(toFusionEdge),
     ],
   };
 };
 
 /**
- * The scene as React Flow nodes and edges. Each arc carries the outlines of
- * the nodes it joins; a component instance has none, so an arc at a component
- * port ends at the port's handle. No per-frame value rides here: a place's
- * token count and a transition's firing state reach them by subscription, so
- * a playback frame leaves this list untouched. `canvasId` names the
- * arrowheads of this canvas: see `arcHeadOf`. An arc points at the head of
- * the role `useArcHeadRoles` gives it, which outlasts the focus.
+ * The scene as React Flow nodes and edges. React Flow holds one edge for all
+ * the arcs, which draws them from the scene, an edge it does not draw for
+ * each selected arc, and the fusion links. No per-frame value rides here: a
+ * place's token count and a transition's firing state reach them by
+ * subscription, so a playback frame leaves this list untouched.
  *
  * The elements are rebuilt when the scene is, then held at their previous
  * identity where nothing changed, so React Flow renders only what changed.
  */
-export const useReactFlowElements = (
-  scene: CanvasScene,
-  canvasId: string,
-): ReactFlowElements => {
-  const headRoles = useArcHeadRoles(scene);
-  const { nodes, edges } = toReactFlowElements(scene, canvasId, headRoles);
+export const useReactFlowElements = (scene: CanvasScene): ReactFlowElements => {
+  const { nodes, edges } = toReactFlowElements(scene);
   return { nodes: useStableItems(nodes), edges: useStableItems(edges) };
 };
