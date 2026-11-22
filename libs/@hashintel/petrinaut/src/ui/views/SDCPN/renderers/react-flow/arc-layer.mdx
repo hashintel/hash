@@ -36,7 +36,7 @@ This page is longer than a guide should be: it holds the rules of the fade of a 
 
 A user rests the pointer on a node:
 
-1. The scene gives the node's arcs a focus role, and `data-focus-active` goes on the pane.
+1. The scene gives the node's arcs a focus role. `data-focus-active` goes on the pane a commit later, once React Flow holds the nodes of the neighbourhood: [The fade of a node](doc:ui.views.canvas.react-flow/node-fade) says why.
 2. `arcShapes` returns a new shape for each of those arcs, with `alone` set, and the shape of the scene before for every other arc.
 3. `arcRuns` returns a new run for each run that held one of them. The merged paths of that run are written again without the arc, and `ArcOwnStrokes` draws the arc in a group of its own inside the run, with its casing.
 4. The pane's rules fade the merged paths of every run and leave the groups that carry `canvas-focus-role`.
@@ -72,7 +72,7 @@ An arc draws its own strokes, in a group `arc-own` inside its run, while it is n
 
 **Nothing an arc paints takes the pointer.** `pointer-events` inherits, and React Flow sets `visibleStroke` on the wrapper around the layer. A pulse is up to 65 units wide. If it took the pointer, a press beside a pulsing arc would land on the pulse and reach neither the arc nor the pane. A run sets `pointer-events="none"` on its group, which holds every painted stroke. The tests "takes no pointer, with all it holds" in `arc-run-strokes.test.tsx` and "is the only path of its element" in `arc-item.test.tsx` hold this.
 
-**No opacity goes on an element that every arc has.** While the canvas has a focus, the pane fades each node and arc that has no role. For an opacity on a group, the browser draws the group into a buffer of its own on every frame, and a group per arc is a buffer per arc. On a net of 1,742 arcs with a node selected, a zoom showed 8 frames a second with those buffers and shows 36 without them, on a GPU: [Editor performance on a large net](doc:editor-performance) has the numbers. So each thing a faded standard arc draws is drawn once, at 0.45 by an opacity of its own, and what would lie under another is not drawn, because both would show. The rules are in `paneStyle` in `react-flow-canvas/pane-style.ts`:
+**No opacity goes on an element that every arc has.** While the canvas has a focus, the pane dims each node and fades each arc that has no role. For an opacity on a group, the browser draws the group into a buffer of its own on every frame, and a group per arc is a buffer per arc. On a net of 1,742 arcs with a node selected, a zoom showed 8 frames a second with those buffers and shows 36 without them, on a GPU: [Editor performance on a large net](doc:editor-performance) has the numbers. So each thing a faded standard arc draws is drawn once, at 0.45 by an opacity of its own, and what would lie under another is not drawn, because both would show. The rules are in `paneStyle` in `react-flow-canvas/pane-style.ts`:
 
 | What a standard arc draws                       | Class       | While the arc is faded                                                                   |
 | ----------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------- |

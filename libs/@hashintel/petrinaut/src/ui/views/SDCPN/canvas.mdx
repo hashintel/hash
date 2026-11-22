@@ -84,7 +84,7 @@ A release has to count as a move before `releasePointer` hovers the item, or the
 
 **No opacity goes on an element that every arc has.** The browser draws a group with an opacity into a buffer of its own on every frame, and a group per arc is a buffer per arc. [The arc layer](doc:ui.views.canvas.react-flow/arc-layer) has how a faded arc is drawn without one, and the tests that hold it.
 
-**No opacity goes on a node, or on an element inside one that draws more than one thing.** The browser draws such an element into a buffer of its own on every frame of a pan, a zoom or a drag, and a net has one per node. So each thing a node outside the focused neighbourhood draws is drawn at 0.25 by the alpha of its own colour, and a part added to a node carries the class of what it draws. [The fade of a node](doc:ui.views.canvas.react-flow/node-fade) has the classes, the rules of the pane, the tests that hold them, and where a faded node differs from a node under an opacity.
+**No opacity goes on a node, or on an element inside one that draws more than one thing.** The browser draws such an element into a buffer of its own on every frame of a pan, a zoom or a drag, and a net has one per node. So each thing a node outside the focused neighbourhood draws is drawn at 0.25 by the alpha of its own colour, and a part added to a node carries the class of what it draws. No part takes a transition for it: a node dims in one frame, and the arcs fade. [The fade of a node](doc:ui.views.canvas.react-flow/node-fade) has the classes, the rules of the pane, the tests that hold them, and where a faded node differs from a node under an opacity.
 
 ## Pitfalls
 

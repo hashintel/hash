@@ -23,13 +23,14 @@ glyph: "The shapes of an icon" {style.fill: "#ffffff"; style.stroke: "#6b6b6b"}
 rules: "paneStyle\nthe rules of a faded node" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
 
 scene -> canvas: "says whether a focus is active"
+wrapper -> canvas: "says that it holds a node with a role"
 canvas -> pane: "sets the attribute"
 scene -> wrapper: "gives a node with a role its class"
 names -> node: "names the class of each part"
 node -> parts: "renders with their classes"
 node -> glyph: "renders"
 names -> rules: "names what the rules find"
-rules -> parts: "draws at 0.4 by its own colour" {style.stroke-dash: 3}
-rules -> glyph: "draws at 0.4 by fill and stroke" {style.stroke-dash: 3}
+rules -> parts: "draws at 0.25 by its own colour" {style.stroke-dash: 3}
+rules -> glyph: "draws at 0.25 by fill and stroke" {style.stroke-dash: 3}
 firing -> wrapper: "asks whether its node is faded"
 firing -> parts: "flashes as faded as the node" {style.stroke-dash: 3}

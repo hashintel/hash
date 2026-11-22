@@ -510,135 +510,153 @@ arc names the pane.
 
 A node outside the neighbourhood faded by an opacity on its element, and the
 browser drew each such node into a buffer of its own on every frame. Now each
-thing a faded node draws takes the fade in the alpha of its own colour, and no
-node has a buffer. [The fade of a node](doc:ui.views.canvas.react-flow/node-fade)
-has the rules. A pan with a highlight is twice as fast for it. The 200 ms in
-which the highlight arrives are slower, and on a large net they are no longer
-a fade.
+thing a faded node draws is drawn at 0.25 by the alpha of its own colour, no
+node has a buffer, and a node dims in one frame: no part of it runs a
+transition. [The fade of a node](doc:ui.views.canvas.react-flow/node-fade) has
+the rules. A pan with a highlight is twice as fast for it, and the 200 ms in
+which a highlight arrives show more frames than they did, because only the
+arcs fade in them.
 
-The table is for the net of 470 nodes and 1,742 arcs with every node on
+The tables are for the net of 470 nodes and 1,742 arcs with every node on
 screen, in a window of 1183 by 792 at two device pixels a pixel, with the
-browser rastering on the GPU. "Before" is the editor with the arc layer. A pan
-sends one move every 8 ms for a second. Each value is the median of five
-alternating rounds on the production build, or of three for a pan with nothing
-selected, compact nodes and a slowed CPU, with the least and the greatest in
-brackets. Nothing reads the page while a fade runs: a script that asks for the
-animations or the layers in the middle of a fade costs the build before most
-of its frames. Another process shared the machine: its load was between 1.3
-and 4.
+browser rastering on the GPU. They compare three builds:
 
-| Measure                                                         |            Before |                   After |
-| --------------------------------------------------------------- | ----------------: | ----------------------: |
-| Pan with nothing selected, frames a second                      |       92 (92..92) |             92 (92..92) |
-| Pan with a node selected, frames a second                       |       44 (43..44) |             86 (85..86) |
-| The same with compact nodes                                     |       17 (16..18) |             44 (43..45) |
-| Rest the pointer on a node: frames in the 320 ms that follow    |       21 (21..21) |                8 (8..8) |
-| Of those, in the 200 ms of the fade                             |          9 (8..9) |                3 (3..4) |
-| Leave the node: frames in the 320 ms that follow                |       20 (20..21) |               9 (9..10) |
-| Of those, in the 200 ms of the fade                             |       11 (10..11) |                5 (5..5) |
-| The longest frame of the hover                                  |    75 ms (65..75) |         92 ms (91..100) |
-| The longest frame of the leave                                  |    83 ms (83..85) |       133 ms (126..134) |
-| Style over the hover and the leave                              | 199 ms (197..203) |       290 ms (289..298) |
-| Script over the hover and the leave                             |             95 ms |                  156 ms |
-| Main thread over the hover and the leave                        | 911 ms (857..942) | 1,240 ms (1,184..1,250) |
-| Compact nodes: frames in the 320 ms after the hover             |       20 (19..21) |                4 (4..5) |
-| Compact nodes: frames in the 320 ms after the leave             |       17 (16..17) |                5 (5..6) |
-| Compact nodes: the longest frame of the hover                   |    67 ms (67..75) |       158 ms (158..183) |
-| Compact nodes: the longest frame of the leave                   |    84 ms (83..92) |       166 ms (158..167) |
-| CPU slowed four times: the longest frame of the hover           | 217 ms (217..218) |       400 ms (399..402) |
-| CPU slowed four times: the longest frame of the leave           | 251 ms (249..251) |       459 ms (450..467) |
-| CPU slowed four times: main thread over the hover and the leave |          1,694 ms |                2,713 ms |
+- **Opacity** is the editor with the arc layer, where a node fades by an
+  opacity on its element.
+- **Fading parts** draws a faded node by the colours of its parts and gives
+  every part a transition of 200 ms. The editor does not do this: the column
+  is the reason.
+- **Now** is the editor.
 
-With the opacity of the nodes switched off by an injected rule, the build
-before pans at 83 frames a second (82..85) with a node selected. The fade of
-the nodes now costs a pan nothing that this measures. With compact nodes the
-pan with a node selected is faster than the pan at rest, which shows 22
-frames a second: the elevation of a compact card is a blurred shadow, which is
-what that pan is spent on, and a faded node draws none.
+A pan sends one move every 8 ms for a second. Each value is the median of five
+rounds on the production builds, taken in rotating order, or of three for
+compact nodes and a slowed CPU, with the least and the greatest in brackets.
+Nothing reads the page while a fade runs: a script that asks for the
+animations or the layers in the middle of a fade costs the first build most of
+its frames. Another process shared the machine: its load was between 1.5 and
+4.1.
 
-No other gesture with a highlight is slower. A zoom with a node selected and
-the pointer on a faded node shows 117 frames a second (116..118) where it
+| Measure                                                         |           Opacity |            Fading parts |               Now |
+| --------------------------------------------------------------- | ----------------: | ----------------------: | ----------------: |
+| Pan with a node selected, frames a second                       |       45 (44..46) |             86 (85..86) |       86 (86..89) |
+| The same with compact nodes                                     |       17 (17..18) |             45 (43..45) |       45 (44..45) |
+| Rest the pointer on a node: frames in the 320 ms that follow    |       20 (20..21) |                7 (7..8) |       29 (28..30) |
+| Of those, in the 200 ms of the fade                             |          8 (8..9) |                3 (3..3) |       15 (13..15) |
+| Leave the node: frames in the 320 ms that follow                |       18 (18..20) |                9 (8..9) |       23 (22..24) |
+| Of those, in the 200 ms of the fade                             |       10 (10..11) |                4 (4..5) |       12 (12..13) |
+| The longest frame of the hover                                  |    67 ms (67..76) |        100 ms (92..100) |    83 ms (74..83) |
+| The longest frame of the leave                                  |    75 ms (67..83) |       126 ms (117..134) | 100 ms (100..100) |
+| From the pointer on the node to the highlight on screen         | 242 ms (230..245) |       294 ms (280..303) | 246 ms (245..254) |
+| Style over the hover and the leave                              | 195 ms (191..203) |       292 ms (285..302) | 228 ms (224..231) |
+| Script over the hover and the leave                             |             95 ms |                  157 ms |             82 ms |
+| Main thread over the hover and the leave                        | 902 ms (857..935) | 1,150 ms (1,089..1,235) | 905 ms (885..917) |
+| Compact nodes: frames in the 320 ms after the hover             |       17 (16..18) |                4 (4..4) |       14 (14..15) |
+| Compact nodes: frames in the 320 ms after the leave             |       16 (16..16) |                6 (5..6) |       10 (10..11) |
+| Compact nodes: the longest frame of the hover                   |    75 ms (67..83) |       175 ms (167..175) |    92 ms (91..92) |
+| Compact nodes: the longest frame of the leave                   |    82 ms (75..84) |       158 ms (158..167) | 109 ms (100..109) |
+| CPU slowed four times: the longest frame of the hover           | 227 ms (225..233) |       407 ms (401..419) | 307 ms (301..309) |
+| CPU slowed four times: the longest frame of the leave           | 252 ms (252..260) |       451 ms (450..452) | 334 ms (334..350) |
+| CPU slowed four times: main thread over the hover and the leave |          1,772 ms |                2,725 ms |          1,771 ms |
+
+The 320 ms are counted from the change of the pane's attribute. In the first
+two builds the pane has it a commit before the nodes have their roles, so the
+320 ms hold the frame in which React gives them. Now the pane has it in that
+commit. With the attribute set as early as in the other two builds, a hover
+shows 28 frames (26..29) and a leave 23 (22..24).
+
+With the opacity of the nodes switched off by an injected rule, the first
+build pans at 83 frames a second (82..85) with a node selected. The fade of
+the nodes costs a pan nothing that this measures. With compact nodes the pan
+with a node selected is faster than the pan at rest, which shows 22 frames a
+second: the elevation of a compact card is a blurred shadow, which is what
+that pan is spent on, and a faded node draws none.
+
+No other gesture with a highlight is slower than under an opacity. A
+selection that moves between two nodes ten times shows 103 frames a second
+(103..104) where it showed 82 (82..83), and takes 2,678 ms of the main thread
+where it took 2,570 ms. The next figures were measured with fading parts,
+which draw the same once a highlight has arrived. A zoom with a node selected
+and the pointer on a faded node shows 117 frames a second (116..118) where it
 showed 105 (98..106). The drag of a faded node with another node selected
-shows 102 (98..102) where it showed 91 (91..92). A selection that moves
-between two nodes ten times shows 99 where it showed 82, and takes 3,057 ms
-of the main thread where it took 2,524 ms. In a window of 1440 by 1000 at one
-device pixel a pixel, over five rounds, a zoom with a hub selected shows 117
-frames a second (115..117) where it showed 112 (110..113), and the drag of
-that hub 66 (64..69) where it showed 65 (64..65). The frame in which the
-highlight of the dragged hub arrives takes 158 ms (158..168) where it took
-125 ms (117..126). The page has as many elements as it had.
+shows 102 (98..102) where it showed 91 (91..92). In a window of 1440 by 1000
+at one device pixel a pixel, over five rounds, a zoom with a hub selected
+shows 117 frames a second (115..117) where it showed 112 (110..113), and the
+drag of that hub 66 (64..69) where it showed 65 (64..65). The page has as many
+elements as it had.
 
-### What the fade costs now
+### What a change of focus costs
 
 An opacity ran on the compositor, with a layer per node for the 200 ms, and
-the main thread had nothing to do for it. A colour runs on the main thread.
-These numbers are for one change of focus with the attribute of the pane set
-by hand, so that React renders nothing and every node fades. Each is the
-median of three rounds.
+the main thread had nothing to do for it. A colour that fades runs on the main
+thread, and a colour that changes at once is restyled and painted once. These
+numbers are for one change of focus with the attribute of the pane set by
+hand, so that React renders nothing and every node is outside the focus. Each
+is the median of three rounds.
 
-| Measure                                    | Before |  After | After, compact nodes |
-| ------------------------------------------ | -----: | -----: | -------------------: |
-| Elements the change restyles               |  2,942 |  9,562 |               11,574 |
-| That style recalculation                   |  20 ms |  61 ms |                81 ms |
-| Elements each frame of the fade restyles   |  2,588 |  5,192 |                6,706 |
-| Transitions the change starts              |  1,294 |  3,315 |                6,173 |
-| Script for the events of those transitions |  49 ms | 125 ms |               225 ms |
-| The first frame after the change           |  41 ms |  83 ms |               125 ms |
-| Frames in the 320 ms that follow           |     22 |      8 |                    5 |
-| Layers held 100 ms into the fade           |    962 |    491 |                      |
+| Measure                                    | Opacity | Fading parts |    Now | Now, compact nodes |
+| ------------------------------------------ | ------: | -----------: | -----: | -----------------: |
+| Elements the change restyles               |   2,942 |        9,562 |  9,562 |             11,574 |
+| That style recalculation                   |   21 ms |        64 ms |  45 ms |              51 ms |
+| Elements each frame of the fade restyles   |   2,588 |        5,192 |  1,648 |              1,648 |
+| Transitions the change starts              |   1,294 |        3,315 |    824 |                824 |
+| Script for the events of those transitions |   51 ms |       125 ms |  33 ms |              35 ms |
+| The first frame after the change           |   41 ms |        91 ms |  58 ms |              74 ms |
+| Frames in the 320 ms that follow           |      20 |            7 |     29 |                 14 |
+| The same when the focus ends               |      21 |            7 |     26 |                  9 |
+| CPU slowed four times: the first frame     |  174 ms |       375 ms | 249 ms |                    |
 
-Three things make up the difference:
+With fading parts and compact nodes the change starts 6,173 transitions, their
+events take 229 ms of script, the first frame comes after 149 ms and the
+320 ms show 4 frames.
 
-- **The change of focus restyles more.** One rule found a node. Now a rule
-  finds each part, and the browser looks again at every element under the pane
-  that a rule could apply to by its last selector. 4,016 of the 9,562 are
-  shapes outside the icons of the faded nodes: the rule for icons ends in
-  `path` and the other shapes, and the arcs have a path each for the pointer.
-  A shape of an icon has no class to end that rule in. Those cost about 15
-  of the 61 ms.
-- **Each frame restyles and paints every faded node.** A frame of the fade
-  takes about 33 ms of the main thread: 12 ms of style, 10 ms of paint, and
-  the rest for its animations, its layers and the commit.
-- **Each transition tells the page that it ran, started and ended.** React
-  listens for those events at its root and is called four times for each. A
-  classic node starts five transitions where it started one, and a compact
-  node eleven: the border of its card alone is four colours.
+- **The change of focus restyles more than under an opacity.** One rule found
+  a node. Now a rule finds each part, and the browser looks again at every
+  element under the pane that a rule could apply to by its last selector.
+  4,016 of the 9,562 are shapes outside the icons of the faded nodes: the rule
+  for icons ends in `path` and the other shapes, and the arcs have a path each
+  for the pointer. A shape of an icon has no class to end that rule in. So the
+  first frame comes 17 ms later than it did, and on a CPU slowed four times
+  75 ms later.
+- **A transition on each part is what cost the frames.** A classic node
+  starts five transitions where it started one, and a compact node eleven:
+  the border of its card alone is four colours. Each frame of the fade
+  restyles and paints every faded node, and each transition tells the page
+  that it ran, started and ended: React listens for those events at its root
+  and is called four times for each.
+- **What still fades is the arcs, the shapes of the minimap, and the ring and
+  the glow of the nodes of the neighbourhood.** The 824 transitions are 354
+  of the arcs and 470 of the map. A hover on a node with 36 neighbours starts
+  74 more, an `outline-color` and a `box-shadow` for each node that gets a
+  role, and they cost no frame that this measures: the hover shows as many
+  frames as the change set by hand.
 
-So the first frame comes later, the second waits for the events, and the
-200 ms show 3 steps where they showed 9 frames. The cost follows the
-processor, which the compositor's did not: with the CPU slowed four times,
-the first frame after the change comes after 372 ms where it came after
-166 ms.
+On a small net a fade is as smooth as under an opacity. The Supply Chain
+example of 39 nodes shows 40 frames in the 320 ms after a hover and 40 after
+its leave, as it did, and takes 239 ms of the main thread where it took
+269 ms under an opacity and 383 ms with fading parts. With the CPU slowed
+four times it shows 38 and 38 frames, where it showed 38 and 37 under an
+opacity and 24 and 23 with fading parts.
 
-On a small net the fade is as smooth as it was. The Supply Chain example of 39
-nodes shows 38 and 39 frames in the 320 ms after a hover and its leave, where
-it showed 40 and 39, and takes 385 ms of the main thread where it took 270 ms.
-With the CPU slowed four times it shows 25 and 23 frames where it showed 37.
+### The marks of a read or an inhibitor arc
 
-A net with read or inhibitor arcs loses more, from about a hundred nodes on.
-The marks of such an arc fade as one group with an opacity, and the browser
-gives each group a layer for the 200 ms. While every node was a layer too,
-that cost nothing. Now the nodes share the layers the arcs are sorted into
-around those groups, and the browser sorts the page into layers again on
-every frame of the fade. The numbers are for the Supply Chain example copied
-side by side, which has one such arc per copy, with the attribute set by hand:
+The marks of such an arc lie on its line, so the arc fades as one group with
+an opacity. With a transition on that opacity the browser gives each group a
+layer for the 200 ms. While every node was a layer too, that cost nothing.
+Without a layer per node, the nodes share the layers the browser sorts the
+page into around those groups, and it sorts them again on every frame of the
+fade. So the opacity of such a group takes no transition, and the group
+changes at once, as a node does. The numbers are frames in the 320 ms after a
+change of focus set by hand and after its end, for the Supply Chain example
+copied side by side, which has one such arc per copy:
 
-| Net                 | Before, frames in 320 ms | After | After, the marks changing at once |
-| ------------------- | -----------------------: | ----: | --------------------------------: |
-| 3 copies, 117 nodes |                       39 |    20 |                                34 |
-| 5 copies, 195 nodes |                       34 |     8 |                                22 |
-| 8 copies, 312 nodes |                       29 |     5 |                                10 |
+| Net                 |   Opacity | Fading parts | Nodes at once, marks that fade |       Now |
+| ------------------- | --------: | -----------: | -----------------------------: | --------: |
+| 3 copies, 117 nodes | 38 and 38 |    20 and 17 |                      29 and 27 | 39 and 38 |
+| 5 copies, 195 nodes | 34 and 36 |      8 and 6 |                      16 and 13 | 38 and 35 |
+| 8 copies, 312 nodes | 30 and 33 |      5 and 5 |                        5 and 5 | 35 and 34 |
 
-On the net of 195 nodes the browser spends 160 ms of a fade sorting layers,
-where it spent 28 ms. The last column is one rule of the pane changed
-in the page: no transition on `arc-strokes`. That rule belongs to the arcs
-and is as it was.
-
-Without a transition on the parts of a node, the nodes would change in the
-frame the focus changes and only the arcs would fade. On the net of 470 nodes
-that frame comes after 58 ms, and the 320 ms show 29 frames, more than
-before. With compact nodes it comes after 75 ms and they show 14. The editor
-keeps the transition at every size of net.
+On the net of 195 nodes the browser spends 215 ms of a fade sorting layers
+while the marks fade, and 17 ms now. Under an opacity it spent 29 ms.
 
 ### What differs on screen
 
@@ -652,25 +670,37 @@ The largest difference is between 37 and 98. On small nets, where little lies
 behind a node, 0.01% to 0.4% differ. The differences are in the text and the
 icons of a place of a coloured token type, where an arc passes behind the
 text or the glyph of a faded node, on the rim of a filled icon, and along
-the edge of a card. Held 100 ms into the fade back, 0.8% of the pixels of
-that net differ with classic nodes and 1.7% with compact ones. In the WebKit
-build 2359 that Playwright ships, 0.8% and 1.2% differ at zoom 0.5 with a
-node selected, and none at rest. Firefox and Safari itself were not measured.
+the edge of a card. In the WebKit build 2359 that Playwright ships, 0.8% and
+1.2% differ at zoom 0.5 with a node selected, and none at rest. Firefox and
+Safari itself were not measured.
+
+While a highlight arrives or leaves, the nodes are a step ahead of the arcs: a
+node outside the neighbourhood is dimmed in the first frame, and at full
+strength again in the first frame after the focus ends. On the Supply Chain
+example at zoom 1.0, held 50 ms after a hover lands, 2.3% of the pixels of the
+canvas differ by more than 6 of 255 from the build with fading parts, with
+classic nodes. Held 100 ms after it, 1.8% differ, and from 200 ms on none
+does. With a node selected, no pixel differs between those two builds on
+that example, on the net of 470 nodes, or on a net of component instances.
 
 ## Where the cost is now
 
 - **Selecting a node** still has one frame near 190 ms. Most of what renders
   is the properties panel of the node, and the browser recalculates style for
   about 90 ms.
-- **Style and paint** are most of a hover and a drag. A hover that rests fades
-  every node outside the neighbourhood, and each frame of that fade restyles
-  and paints the nodes on screen: a node fades by the colours of its parts,
-  on the main thread. Hover paints more than before, 306 ms against 270 ms: the
-  browser draws 97 frames of it against 91.
-- **The fade of a highlight** on a large net is a few steps, and its first
-  frame comes after 83 ms. The events of its transitions take 125 ms of
-  script, and 225 ms with compact nodes. A net with read or inhibitor arcs
-  also sorts its layers again on every frame of the fade.
+- **Style and paint** are most of a hover and a drag. A hover that rests dims
+  every node outside the neighbourhood, and that one change restyles 9,562
+  elements in 45 ms on the net of 470 nodes.
+- **The first frame of a highlight** on a large net comes after 58 ms, where
+  it came after 41 ms under an opacity, and after 249 ms on a CPU slowed four
+  times.
+- **The fade of the arcs under compact cards** shows 14 frames of a possible
+  38 on the net of 470 nodes, and 9 on the way back. On the way back the cards
+  have their elevation again, a blurred shadow, and each frame of the fade
+  paints the cards that lie above the arcs: with the shadows switched off by
+  an injected rule those 320 ms show 18 frames. Why the fade shows half the
+  frames under dimmed compact cards that it shows under dimmed classic boxes
+  is not known.
 - **Paint per drawn frame during a drag**, zoomed in, rose from 3.6 ms to
   5.3 ms. The cause is not known.
 - **A change of the document** is followed by two loops in the editor that
@@ -700,10 +730,13 @@ Each rule is written, with the test that holds it, in the guide of its layer.
   opacity of its stroke and of its arrowhead:
   [The arc layer](doc:ui.views.canvas.react-flow/arc-layer).
 - No opacity goes on a node, or on an element inside one that draws more than
-  one thing: each thing a faded node draws fades by the alpha of its own
-  colour. No rule of that fade changes what an element hands down to the
-  elements inside it, and none ends in a class that every handle has:
+  one thing: each thing a faded node draws is drawn by the alpha of its own
+  colour. No part of a node runs a transition at a change of focus. No rule
+  of the fade changes what an element hands down to the elements inside it,
+  and none ends in a class that every handle has:
   [The fade of a node](doc:ui.views.canvas.react-flow/node-fade).
+- The opacity of a group of marks of an arc takes no transition:
+  [The arc layer](doc:ui.views.canvas.react-flow/arc-layer).
 - The arcs at rest are drawn together, an arc that draws the same is the same
   shape, a playback frame renders no arc, and nothing an arc paints takes the
   pointer: [The arc layer](doc:ui.views.canvas.react-flow/arc-layer).

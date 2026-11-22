@@ -1,17 +1,17 @@
 ---
 title: The fade of a node
-description: How the React Flow renderer draws a node outside the focused neighbourhood without an opacity, which class each part of a node carries for it, and where the result differs from a node under an opacity.
+description: How the React Flow renderer draws a node outside the focused neighbourhood without an opacity and in one frame, which class each part of a node carries for it, and where the result differs from a node under an opacity.
 sidebar_order: 12
 ---
 
-The fade of a node draws a node outside the focused neighbourhood at 0.25 of its strength, with no opacity on the node or on a group inside it. [The canvas](doc:ui.views.canvas/canvas) says which nodes are in the neighbourhood, and [the arc layer](doc:ui.views.canvas.react-flow/arc-layer) fades the arcs.
+The fade of a node draws a node outside the focused neighbourhood at 0.25 of its strength, with no opacity on the node or on a group inside it, and from one frame to the next. [The canvas](doc:ui.views.canvas/canvas) says which nodes are in the neighbourhood, and [the arc layer](doc:ui.views.canvas.react-flow/arc-layer) fades the arcs.
 This page is longer than a guide should be: it lists every place where a faded node is not the picture of a node under an opacity.
 
-![A node says what it draws with a class per part, the pane holds one rule per class for a node without a role while a focus is active, and a firing asks whether its node is faded](./node-fade.d2)
+![A node says what it draws with a class per part, the pane holds one rule per class for a node without a role while a focus is drawn, and a firing asks whether its node is faded](./node-fade.d2)
 
 ## Entry point
 
-`paneStyle` in `react-flow-canvas/pane-style.ts` is the class of the element around React Flow. `ReactFlowCanvas` sets `data-focus-active` on that element while the scene has a focus, and React Flow's wrapper of a node with a role carries `canvas-focus-role`. Every rule of the fade starts with the pane that has a focus and a node that has no role and is not selected. `insideFadedNode` in `styles/node-fade.ts` is that selector for code to ask with.
+`paneStyle` in `react-flow-canvas/pane-style.ts` is the class of the element around React Flow. `ReactFlowCanvas` sets `data-focus-active` on that element while the focus of the scene is drawn, which `useReactFlowElements` says, and React Flow's wrapper of a node with a role carries `canvas-focus-role`. Every rule of the fade starts with the pane that has a focus and a node that has no role and is not selected. `insideFadedNode` in `styles/node-fade.ts` is that selector for code to ask with.
 
 ## Interface
 
@@ -27,13 +27,13 @@ A node says what it draws with these classes, which `styles/node-fade.ts` names:
 | A token count, the pin of a port           | `node-cover`   | Opaque, mixed 0.25 toward the colour of the canvas                   |
 | The shapes of an icon                      | none           | `fill-opacity` and `stroke-opacity` 0.25, no stroke on a filled icon |
 
-`node-folds` marks a part that times its own changes, and the pane gives it no transition. `node-bolt` marks the bolt of a firing, which the rule for icons leaves alone. `data-arc-target` is on the handle of a node while the outline of an arc's target is drawn around it.
+`node-bolt` marks the bolt of a firing, which the rule for icons leaves alone. `data-arc-target` is on the handle of a node while the outline of an arc's target is drawn around it.
 
 ## Data flow
 
 1. A hover rests on an item, or the selection changes. The scene _says whether a focus is active_ and _gives a node with a role its class_. React renders the nodes whose role changed and no other.
-2. `ReactFlowCanvas` _sets the attribute_ on the pane. The browser restyles what a rule of the pane ends in: each part by its class, and each shape of an icon.
-3. Each rule _draws_ its part _at 0.25 by its own colour_. Each part runs a transition of that colour over `--canvas-focus-duration`, on the main thread.
+2. React Flow takes those nodes up, and _says that it holds a node with a role_. In that commit `ReactFlowCanvas` _sets the attribute_ on the pane. The browser restyles what a rule of the pane ends in: each part by its class, and each shape of an icon.
+3. Each rule _draws_ its part _at 0.25 by its own colour_, in that frame. The arcs start their fade, and a node of the neighbourhood fades its ring and its glow in, over `--canvas-focus-duration`.
 4. A transition that fires _asks whether its node is faded_ and _flashes as faded as the node_.
 
 ## Rules
@@ -42,7 +42,13 @@ A node says what it draws with these classes, which `styles/node-fade.ts` names:
 
 **Every part of a node carries the class of what it draws.** A part without one stays at full strength in a faded node. `faded-node-parts.test.tsx` draws every component of `node-types.ts` with each node of its list. It fails for a property that is not known to draw nothing, on an element without the class that fades that property. It also fails for a pseudo-element that draws, for a style written in place that draws, for an element that is neither a `div`, a `span` nor a `button`, and for text outside `node-text`. The test reads the class names Panda gives a style. It does not draw a faded node: [Editor performance on a large net](doc:editor-performance) has the pictures.
 
-**No rule changes what an element hands down to the elements inside it.** A custom property or a `color` on a faded node restyles every element of every node, at the change of focus and on every frame of the fade. So a colour a rule has to mix is a custom property its element sets once, `node-text` goes on the element that holds the text, and the fade of an icon is set on each shape. "sets no custom property and no inherited colour on an element that holds others" in `pane-style.test.ts` holds it.
+**No part of a node runs a transition at a change of focus.** A node outside the neighbourhood dims in one frame and comes back in one, while the arcs fade. A transition on each part is several a node, each a colour the main thread mixes, restyles and paints on every frame, and each tells the page when it runs, starts and ends. With them a large net shows a fade of the arcs and the nodes in a few steps: [Editor performance on a large net](doc:editor-performance) has the numbers. "times nothing that a node draws" in `pane-style.test.ts` reads the rules of the pane, and "times no colour of a part, and nothing of its surface but the ring and the glow" in `faded-node-parts.test.tsx` reads the styles of every node. The second also keeps what a part shows under the pointer at once.
+
+**The surface times its ring and its glow, and a faded surface cannot run that transition.** `nodeFocusStyle` gives the surface one transition, of `outline-color` for the ring and of `box-shadow` for the glow, so a node of the neighbourhood arrives and leaves as a fade. The shadows of a faded surface differ too: the ring of a classic box is its faded twin, and the elevation goes. So the list of shadows of a faded surface starts with an inset shadow that draws nothing. The browser cannot mix a list that starts inset with one that does not, and changes it at once. "starts the shadows of a faded surface inset" in `pane-style.test.ts` holds it.
+
+**The pane says that a focus is active in the commit that gives the nodes their roles.** React Flow takes the nodes of a scene up in an effect, a commit after the canvas renders with them, and the browser may show a frame in between. With the attribute set from the scene, that frame shows the neighbourhood dimmed with the rest of the net. So `useReactFlowElements` returns `focusDrawn`: the scene has a focus, and a node React Flow holds has a role. "is drawn once React Flow holds a node with a role, and ends with the scene" in `use-react-flow-elements.test.tsx` holds it.
+
+**No rule changes what an element hands down to the elements inside it.** A custom property or a `color` on a faded node restyles every element of every node at the change of focus. So a colour a rule has to mix is a custom property its element sets once, `node-text` goes on the element that holds the text, and the fade of an icon is set on each shape. "sets no custom property and no inherited colour on an element that holds others" in `pane-style.test.ts` holds it.
 
 **No rule ends in a class that every handle has.** At a change of focus the browser looks again at every element under the pane that a rule could apply to by its last selector, whatever comes before it. A rule for the handle under the pointer that ends in the class of a handle restyles the handles of every node. So the outline of an arc's target is found by `data-arc-target`, which one handle has, and "ends no rule in a class that every handle of every node has" holds it. The rule for icons ends in the shapes, which the paths of the arcs and of the minimap are too: a shape of an icon has no class of its own.
 
@@ -51,7 +57,7 @@ A node says what it draws with these classes, which `styles/node-fade.ts` names:
 Where two things of a node lie on each other, two alphas show the lower one through the upper. Four parts are drawn another way for that reason:
 
 - The icon box of a transition or of a component instance is an inlay. It is nearly the white of its card, so the card under it draws that colour and the box is left out. A firing flash changes the colour of the card, so the animation draws the box for as long, as a cover.
-- The icon box of a compact place lies on the colour of a token type. The fill of a faded place is a gradient with a hole under the box. A gradient does not fade, so the colour under it does, and the gradient goes once the fade back is over.
+- The icon box of a compact place lies on the colour of a token type. The fill of a faded place is a gradient with a hole under the box, with no colour under it.
 - A token count and a pin are covers. Each lies across the border of its node, and a count is white on black. They stay opaque and take the colour they would have over the bare canvas.
 - A filled icon is a fill under a stroke of one colour, and the inner half of the stroke would show as a darker rim. Its stroke goes.
 
@@ -69,16 +75,13 @@ At rest, while it is faded:
 - One device pixel along the inner edge of a card's border, and of the ring of a classic box, is darker: the fill stops where the border begins, and the two meet in that pixel.
 - The dot a node under the pointer offers an arc from is at full strength, and so is the outline of keyboard focus on a handle an arc can land on.
 
-While the fade runs:
+At a change of focus:
 
-- The hairline of an icon box, the rule under a component's header, the white ring of a pin and an inlay change at the start of a fade. Everything else takes the time of the fade.
-- A token count and a pin are darker midway than under an opacity: the browser mixes their two colours in Oklab.
-- When the focus moves straight from one item to another, the ring of a node that joins the neighbourhood arrives a little sooner, and the ring of one that leaves it goes a little later.
-- A browser without `transition-behavior: allow-discrete` drops the gradient of a compact place at the start of the fade back, and the fill comes back from nothing.
-- The fade is a transition of each colour, on the main thread, where the opacity of a node ran on the compositor. A small net shows as many frames of it. A large net shows a few steps.
+- The nodes and the arcs do not change together. A node outside the neighbourhood is dimmed in the first frame, and the arcs take the time of the fade. On the way back the nodes are at full strength in the first frame.
+- When the focus moves straight from one item to another, the white band of a node that joins or leaves the neighbourhood changes at once, with its fill, and its ring takes the time of the fade. It is in the shadows of the surface, which a faded surface changes at once.
+- The casing of the arcs of the neighbourhood is drawn a commit before the nodes dim: the arcs read the scene, and the pane waits for React Flow. On a large net that is one long frame.
 
 Under the pointer and in a run:
 
-- The border of a compact transition or of a component card takes the time of the fade to darken under the pointer, as the ring of a classic box does: one transition serves the hover and the fade.
 - A flash is as faded as its node was when the firing landed. A focus that changes during the flash does not change it.
 - The glyph of a faded classic transition takes a tint of the flash behind it.
