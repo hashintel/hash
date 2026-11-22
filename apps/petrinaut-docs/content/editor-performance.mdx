@@ -21,11 +21,11 @@ React's profiling build, with every node on screen.
 
 | Gesture             | Before | After |
 | ------------------- | -----: | ----: |
-| Select a node       |  8,055 |   369 |
-| Select another node |  8,279 |   512 |
-| Hover a node        | 13,130 |   164 |
-| Drag a node         | 67,945 | 1,316 |
-| Pan                 | 13,686 |   381 |
+| Select a node       |  8,055 |   374 |
+| Select another node |  8,279 |   509 |
+| Hover a node        | 13,130 |   144 |
+| Drag a node         | 67,945 |   949 |
+| Pan                 | 13,686 |   359 |
 | Zoom                |  2,260 |   118 |
 | Open a panel        |    160 |    36 |
 | Deselect            |  2,173 |    31 |
@@ -34,17 +34,19 @@ React's profiling build, with every node on screen.
 
 Script time is the main-thread time spent in JavaScript during the gesture. A
 late frame is one that took more than 20 ms. Each value is the median of six
-samples on the production build, with every node on screen.
+samples on the production build, with every node on screen. The values after
+are from two passes of three samples, run in turn with the editor before the
+[arc layer](doc:ui.views.canvas.react-flow/arc-layer).
 
 | Gesture             | Script before | Script after | Late frames before | Late frames after | Longest frame before | Longest frame after |
 | ------------------- | ------------: | -----------: | -----------------: | ----------------: | -------------------: | ------------------: |
-| Select a node       |        220 ms |       112 ms |                  6 |                 6 |               275 ms |              192 ms |
-| Select another node |        173 ms |        57 ms |                  3 |                 1 |               166 ms |               91 ms |
-| Hover a node        |        224 ms |        50 ms |                  6 |                 1 |                50 ms |               42 ms |
-| Drag a node         |      1,078 ms |       355 ms |                 27 |                 7 |               117 ms |               50 ms |
-| Pan                 |        375 ms |       205 ms |                  8 |                 7 |               125 ms |              102 ms |
-| Zoom                |        103 ms |        69 ms |                  0 |                 0 |                17 ms |               17 ms |
-| Deselect            |         47 ms |        16 ms |                  0 |                 0 |                17 ms |               15 ms |
+| Select a node       |        220 ms |       102 ms |                  6 |                 6 |               275 ms |              158 ms |
+| Select another node |        173 ms |        58 ms |                  3 |                 1 |               166 ms |               71 ms |
+| Hover a node        |        224 ms |        47 ms |                  6 |                 1 |                50 ms |               33 ms |
+| Drag a node         |      1,078 ms |       211 ms |                 27 |                 3 |               117 ms |               40 ms |
+| Pan                 |        375 ms |       143 ms |                  8 |                 7 |               125 ms |               63 ms |
+| Zoom                |        103 ms |        56 ms |                  0 |                 0 |                17 ms |               17 ms |
+| Deselect            |         47 ms |        23 ms |                  0 |                 1 |                17 ms |               25 ms |
 
 Zoomed in to where the labels read, the script times fall by about the same
 share. Loading the net is no faster: the page is ready after 1.1 s and holds
@@ -297,7 +299,7 @@ the CPU, 7% to 20% of that crop differs by more than 6 of 255. In WebKit 26.5,
 the engine of Safari, 20% does, and 12% by more than 16, the largest by 70.
 No pair of opacities for the two strokes of a line gives the old picture
 there. Firefox was not measured.
-[The canvas](doc:ui.views.canvas/canvas) says why.
+[The arc layer](doc:ui.views.canvas.react-flow/arc-layer) says why.
 
 ## Arcs in one layer
 
@@ -308,48 +310,80 @@ That edge is a layer. It draws the arcs at rest together, each run of 64
 consecutive arcs of the document as one path per colour for their lines, one
 for the same lines again and one for their heads. It keeps one element per
 arc for the pointer, the focus and the name. A firing adds a path for each
-arc it pulses and renders nothing. [The canvas](doc:ui.views.canvas/canvas)
-says how.
+arc it pulses and renders nothing.
+[The arc layer](doc:ui.views.canvas.react-flow/arc-layer) says how.
 
 The table is for the net of 470 nodes and 1,742 arcs, with the browser
 rastering on the GPU. "Before" is the editor with the fade of the section
 above, and "after" the editor with the layer. A gesture sends one input per
 frame. Each value is the median of five alternating rounds on the production
 build, with the least and the greatest of them in brackets. Another process
-shared the machine: its load was between 2.3 and 5.
+shared the machine: its load was between 2.7 and 4.3.
 
 | Measure                                                         |                  Before |                   After |
 | --------------------------------------------------------------- | ----------------------: | ----------------------: |
-| Elements in the page                                            |                  31,931 |                  25,472 |
-| Elements of the arcs                                            |                  10,476 |                   4,099 |
+| Elements in the page, at rest                                   |                  31,931 |                  25,472 |
+| Elements of the arcs, at rest                                   |                  10,476 |                   4,099 |
+| Elements in the page, every node selected                       |                  35,460 |                  37,180 |
 | JS heap after a collection                                      |                   76 MB |                   58 MB |
-| Load, until the canvas has settled                              | 1,355 ms (1,351..1,426) | 1,186 ms (1,150..1,203) |
-| Zoom, script per wheel step                                     |       5.4 ms (5.3..5.6) |       2.5 ms (2.3..2.6) |
-| Zoom, frames a second                                           |          109 (108..111) |          113 (113..116) |
-| Pan, script per move                                            |       5.1 ms (5.0..5.3) |       2.5 ms (2.4..2.6) |
-| Pan, frames a second                                            |          118 (118..118) |          120 (119..120) |
-| Zoom with a hub selected, frames a second                       |          106 (104..107) |          115 (115..117) |
-| Pan with a hub selected, frames a second                        |          111 (110..115) |          119 (118..119) |
-| Rest the pointer on a hub of 86 arcs and leave, frames a second |             36 (35..37) |             76 (75..76) |
-| The same, script per change of focus                            |         99 ms (99..102) |          48 ms (48..49) |
-| The same, style per change of focus                             |       157 ms (154..158) |       128 ms (127..130) |
-| Drag a node with one arc, frames a second                       |             53 (52..54) |             59 (57..60) |
-| The same, script per move                                       |    20.8 ms (20.7..21.0) |       9.7 ms (9.7..9.9) |
-| Drag a hub of 86 arcs, frames a second                          |             47 (46..47) |             68 (68..69) |
-| The same, script per move                                       |    22.9 ms (22.9..23.1) |    10.8 ms (10.8..10.9) |
-| Draw a selection box over 280 nodes, frames a second            |             29 (29..31) |             39 (37..41) |
-| The same, script per move                                       |    27.2 ms (26.8..27.8) |    14.4 ms (14.2..14.5) |
-| Drag all 470 nodes, frames a second                             |             18 (17..19) |             22 (21..22) |
-| The same, script per move                                       |    71.5 ms (71.1..73.7) |    52.3 ms (50.2..53.3) |
-| Move the pointer over the arcs, main thread per move            |       7.4 ms (7.2..7.7) |       5.5 ms (5.3..5.6) |
+| Load, until the canvas has settled                              | 1,351 ms (1,343..1,431) | 1,170 ms (1,162..1,185) |
+| Zoom, script per wheel step                                     |       5.6 ms (5.6..5.8) |       2.5 ms (2.4..2.6) |
+| Zoom, frames a second                                           |          108 (107..110) |          112 (111..114) |
+| Pan, script per move                                            |       5.3 ms (5.3..5.5) |       2.6 ms (2.4..2.6) |
+| Pan, frames a second                                            |          116 (115..117) |          118 (118..120) |
+| Zoom with a hub selected, frames a second                       |          106 (104..108) |          115 (112..119) |
+| Pan with a hub selected, frames a second                        |          113 (110..115) |          119 (118..119) |
+| Rest the pointer on a hub of 86 arcs and leave, frames a second |             36 (34..36) |             75 (75..76) |
+| The same, script per change of focus                            |        101 ms (97..104) |          49 ms (48..49) |
+| The same, style per change of focus                             |       158 ms (154..160) |       127 ms (126..129) |
+| Drag a node with one arc, frames a second                       |             53 (52..53) |             59 (57..62) |
+| The same, script per move                                       |    20.8 ms (20.7..20.9) |       9.7 ms (9.6..9.9) |
+| Drag a hub of 86 arcs, frames a second                          |             47 (47..47) |             67 (67..68) |
+| The same, script per move                                       |    23.1 ms (23.0..23.4) |    10.8 ms (10.8..10.8) |
+| Draw a selection box over 280 nodes, frames a second            |             30 (29..30) |             39 (38..40) |
+| The same, script per move                                       |    27.2 ms (26.8..28.4) |    14.5 ms (14.4..14.6) |
+| Drag all 470 nodes, frames a second                             |             18 (18..19) |             22 (21..23) |
+| The same, script per move                                       |    72.7 ms (71.1..73.0) |    51.8 ms (50.5..52.6) |
+| Move the pointer over the arcs, main thread per move            |       7.4 ms (7.4..7.6) |       5.7 ms (5.6..5.7) |
 | The browser's search for the element under one point            |                  1.5 ms |                  1.2 ms |
-| Play a run back at zoom 0.62, frames a second                   |             53 (53..54) |             85 (82..86) |
-| The same, pulses started a second                               |            92 (90..100) |             88 (69..95) |
-| Play a run back at zoom 1.1, frames a second                    |             59 (58..61) |          111 (110..111) |
-| The same, pulses started a second                               |             37 (34..40) |              10 (7..14) |
+| Play a run back at zoom 0.62, frames a second                   |             53 (53..54) |             83 (82..86) |
+| The same, pulses started a second                               |            97 (89..100) |             83 (71..91) |
+| Play a run back at zoom 1.1, frames a second                    |             61 (59..62) |          109 (105..110) |
+| The same, pulses started a second                               |             37 (33..39) |              14 (8..18) |
+
+The element counts are for the net at rest. An arc that draws its own strokes
+has one element more than an arc had as an edge of React Flow: the group that
+holds its pulse. With every node selected, every arc draws its own strokes,
+and the page has 37,180 elements where it had 35,460. While all 470 nodes are
+dragged it has 33,698 where it had 31,978. Those gestures are faster all the
+same: the longest frame of a select-all is 325 ms where it was 475 ms.
+
+The GPU holds as much as it did. A memory dump of the browser gives 51.5 MB
+of images in the GPU process and 35 MB of tiles at rest on both builds, and
+70.6 MB and 54 MB after a zoom to 1.1. Skia's GPU resources are 8.0 MB where
+they were 7.3 MB at rest, and 28.9 MB where they were 27.0 MB at zoom 1.1.
 
 The drag of all nodes gains least: every arc then ends at a dragged node and
-draws its own strokes, as every arc did before.
+draws its own strokes, as an edge of React Flow does. At its drop the arcs
+without a role join their runs again, and the longest frame of the drop is
+83 ms where it was 68 ms. The drop of a hub of 86 arcs takes the same 42 ms.
+
+With the CPU slowed four times, in three rounds, the same gestures show these
+frames a second:
+
+| Gesture                             | Before | After |
+| ----------------------------------- | -----: | ----: |
+| Zoom                                |     46 |    60 |
+| Pan                                 |     49 |    67 |
+| Rest the pointer on a hub and leave |    5.3 |  12.8 |
+| Drag a node with one arc            |     21 |    33 |
+| Drag a hub of 86 arcs               |   13.7 |  21.1 |
+| Draw a selection box over 280 nodes |    9.9 |  12.2 |
+| Drag all 470 nodes                  |    4.7 |   5.7 |
+| Play a run back at zoom 0.62        |    8.0 |  10.9 |
+| The same, pulses started a second   |    117 |   112 |
+| Play a run back at zoom 1.1         |    8.7 |  12.2 |
+| The same, pulses started a second   |     39 |    45 |
 
 Two changes make up the layer. The first takes the arcs out of React Flow's
 edges and into one `svg`, each arc still drawing its own strokes. The second
@@ -375,8 +409,13 @@ A transition pulses its arcs when the number of its firings in a frame
 differs from the number in the frame before. The rule is the editor's from
 before the layer, and the box of the transition flashes by it. With more
 frames a second a frame holds fewer firings, their number changes less often,
-and fewer pulses start: 10 a second at zoom 1.1, where 37 did. So part of the
-frames gained there is pulses that no longer start.
+and fewer pulses start: 14 a second at zoom 1.1, where 37 did. The boxes flash
+3 times a second there, where they flashed 9, and each flash still comes with
+3.6 to 3.9 pulses. So part of the frames gained at zoom 1.1 is pulses and
+flashes that do not start. Where the two builds start about as many pulses,
+the layer still shows more frames: at zoom 0.62, and at both zooms with the
+CPU slowed, where a run plays at 10.9 and 12.2 frames a second against 8.0
+and 8.7.
 
 The layer changes the picture where arcs cross or lie on each other. The
 stacking follows the document run by run: within a run the lines of one
@@ -396,14 +435,74 @@ between the two builds is:
 
 The largest difference of one pixel is 76 to 191 of 255: a crossing of two
 lines of different colours, or a place where faded strokes lay on each other.
-On small nets with read and inhibitor arcs, arcs at component ports, fusion
-links, and compact or classic nodes, at most 0.01% of the pixels differ, and
-none with fusion links alone. Safari and Firefox were not measured.
+A weight label is the third such place. The weight of an arc is drawn above
+every stroke, where the line of a later arc lay across the label: on the
+pixels of such a label the difference is up to about 200 of 255. That net has
+6 labels. On small nets with read and inhibitor arcs, arcs at component
+ports, fusion links, and compact or classic nodes, at most 0.01% of the
+pixels differ, and none with fusion links alone.
+
+Three things make the pixels at rest. At zoom 0.52 with CPU raster, 1.35% of
+the pixels differ. The page of the layer was then changed one step at a time
+and compared again. With the first stroke of each line drawn as the whole
+line, as an edge draws it, 0.90% differ. Without the heads on either build,
+0.88%. With every arc drawn by itself in the order of the document, 0.28%. So
+the merging makes 0.61 points of the 1.35, the line whose first stroke stops
+at the head 0.45, and the head as a path 0.01. The cause of the last 0.28 was
+not found.
+
+In the middle of a fade the pictures differ a little more than once it has
+settled. With the transitions held 100 ms after a change, at zoom 0.37 with
+CPU raster, 0.43% of the pixels differ while a hover arrives and 0.32% once it
+has. While the focus moves straight from one node to another it is 0.78%, and
+0.30% once it has: an arc that gains a role is at full strength at once. While
+a hover leaves it is 0.52%, and 0.48% at rest. With the Animations setting
+off, or reduced motion asked for, the picture right after a change is the
+settled one on both builds. A component card half way between open and closed, with
+arcs at its pins, differs in 0.02% of the pixels.
+
+Where the browser rasters on the CPU, the layer costs raster work in a close
+view. A run is consecutive arcs of the document, wherever they are on the
+canvas, so a tile that shows a few arcs replays the merged paths of every run
+whose box it touches. On the net of 468 nodes, zoomed in to where the labels
+read, the raster work of each gesture, off the main thread, is:
+
+| Gesture             | Raster before | Raster after |
+| ------------------- | ------------: | -----------: |
+| Select a node       |         26 ms |        53 ms |
+| Select another node |         35 ms |        51 ms |
+| Hover a node        |        142 ms |       214 ms |
+| Drag a node         |         85 ms |       115 ms |
+| Pan                 |        449 ms |       686 ms |
+| Zoom                |        264 ms |       320 ms |
+
+The pan draws 67 frames where it drew 72. Its script falls in the same rows,
+from 216 ms to 144 ms, and the drag's from 199 ms to 153 ms. With every node
+on screen the raster work is the same, 771 ms and 726 ms for the pan. With
+GPU raster, the pan of the net of 1,742 arcs shows as many frames as before.
+
+In WebKit 26.5, the engine of Safari, 0.77% of the pixels differ at rest on
+that net with every node on screen, 0.93% with a hub hovered and 0.75% with
+it selected, the largest by 144 of 255. On Supply Chain it is 0.03% at rest
+and under 0.01% with a focus. Firefox was not measured: the build of it that
+the test tooling has does not start in the sandbox these measurements ran in.
 
 A press takes the same arc. The element under each of 33,405 points of a grid
 over that net was read on both builds at the three zooms. Of the 5,513 points
 on an arc, 11 name another arc, all at zoom 1.1: an `svg` per arc cut the
 reach of an arc at the box of its curve, and one `svg` for all does not.
+
+In Safari an arc has a wider reach than it had. WebKit tests a press against
+the box of a path first, and counts the width of a stroke into that box only
+when the stroke has a paint. The unpainted path of an edge of React Flow has
+none, so the reach of an arc was cut to the box of its curve, and a straight
+arc along an axis took a press on its painted line alone, 2 units wide. In the layer no painted line takes the pointer, so the
+unpainted path has a stroke paint at opacity 0, and an arc takes the pointer
+within 10 units of its curve, as in Chromium. On Supply Chain, of 1,296 points
+across the bands of its 48 arcs, 826 took their arc and 1,228 do now. Over a
+grid on the net of 1,742 arcs, 133 of 37,045 points that named the pane name
+an arc, and 88 of the 2,141 on an arc name a later arc. No point that named an
+arc names the pane.
 
 ## Where the cost is now
 
@@ -424,7 +523,7 @@ reach of an arc at the box of its curve, and one `svg` for all does not.
 - **Loading** follows the elements of the canvas. Without the Definitions
   view the load runs 120 ms less script, and the page is ready after the same
   0.9 s. The arc layer takes a fifth of the elements off the net of 1,742
-  arcs, and that net loads 170 ms sooner.
+  arcs, and that net loads 180 ms sooner.
 
 ## The rules that hold the numbers
 
@@ -441,10 +540,10 @@ Each rule is written, with the test that holds it, in the guide of its layer.
 
 - No opacity goes on an element that every arc has: an arc fades by the
   opacity of its stroke and of its arrowhead:
-  [The canvas](doc:ui.views.canvas/canvas).
+  [The arc layer](doc:ui.views.canvas.react-flow/arc-layer).
 - The arcs at rest are drawn together, an arc that draws the same is the same
   shape, a playback frame renders no arc, and nothing an arc paints takes the
-  pointer: [The canvas](doc:ui.views.canvas/canvas).
+  pointer: [The arc layer](doc:ui.views.canvas.react-flow/arc-layer).
 - No custom property is registered. With one registered anywhere in the
   document, Chromium restyles the net of the highlight table in 480 to 850 ms
   for a change of focus, where it takes 40 to 80 ms:
