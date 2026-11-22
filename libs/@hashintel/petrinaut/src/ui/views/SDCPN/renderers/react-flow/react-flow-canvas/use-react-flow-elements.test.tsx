@@ -1,14 +1,38 @@
 /** @vitest-environment jsdom */
-import { cleanup, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import {
+  cleanup,
+  render,
+  renderHook as renderBareHook,
+} from "@testing-library/react";
+import {
+  ConnectionMode,
+  type Node,
+  Position,
+  ReactFlow,
+  ReactFlowProvider,
+} from "@xyflow/react";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
-import { arcLayerEdgeId } from "./arc-layer-context";
-import { nodes, scene, withArcs } from "./scene.test-helpers";
+import { ArcLayer } from "./arc-layer";
+import { ArcLayerContext, arcLayerEdgeId } from "./arc-layer-context";
+import { arcBase, nodes, scene, withArcs } from "./scene.test-helpers";
 import { useReactFlowElements } from "./use-react-flow-elements";
 
 import type { CanvasScene } from "../../../canvas-scene";
 
 afterEach(cleanup);
+
+/** The hook reads React Flow's store, so it runs inside a provider. */
+const renderHook: typeof renderBareHook = (callback, options) =>
+  renderBareHook(callback, { wrapper: ReactFlowProvider, ...options });
 
 const linkBase = {
   fusionId: "belt",
@@ -184,5 +208,177 @@ describe("nodes", () => {
 
     expect(byId.get("place")?.origin).toBeUndefined();
     expect(byId.get("place")?.position).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe("inside React Flow", () => {
+  class ResizeObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+
+  beforeAll(() => {
+    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+  });
+  afterAll(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // What a browser measures on a place or a transition: a handle of each
+  // kind. A node without them is one React Flow has not measured yet.
+  const handles: Node["handles"] = [
+    { type: "source", position: Position.Right, x: 0, y: 0 },
+    { type: "target", position: Position.Left, x: 0, y: 0 },
+  ];
+
+  const NodeStub = () => null;
+  const nodeTypes = {
+    place: NodeStub,
+    transition: NodeStub,
+    componentInstance: NodeStub,
+  };
+  const edgeTypes = { arcs: ArcLayer };
+
+  const gestures = {
+    selectLink: () => {},
+    enterItem: () => {},
+    clearHover: () => {},
+    isAddMode: false,
+  };
+  const onEdgeClick = () => {};
+
+  type CanvasProps = {
+    scene: CanvasScene;
+    /** The nodes React Flow has not measured yet. */
+    unmeasured?: string[];
+    onEdgeClick?: () => void;
+  };
+
+  const Canvas = ({ scene: input, unmeasured = [], ...rest }: CanvasProps) => {
+    const elements = useReactFlowElements(input);
+    return (
+      <ArcLayerContext value={{ scene: input, gestures }}>
+        <ReactFlow
+          nodes={elements.nodes.map((node) =>
+            unmeasured.includes(node.id) ? node : { ...node, handles },
+          )}
+          edges={elements.edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          connectionMode={ConnectionMode.Loose}
+          {...rest}
+        />
+      </ArcLayerContext>
+    );
+  };
+
+  const mount = (props: CanvasProps) => {
+    const tree = (next: CanvasProps) => (
+      <ReactFlowProvider>
+        <Canvas {...next} />
+      </ReactFlowProvider>
+    );
+    const { container, rerender } = render(tree(props));
+    return {
+      container,
+      /** React Flow's wrapper around the arc layer. */
+      layer: () => container.querySelector(".react-flow__edge-arcs"),
+      arc: (id: string) =>
+        container.querySelector(`.arc-item[data-id="${id}"]`),
+      show: (next: CanvasProps) => rerender(tree(next)),
+    };
+  };
+
+  // The arcs between the place and the transition: the component of the
+  // scene has no pin here.
+  const plainScene: CanvasScene = { ...scene, arcs: scene.arcs.slice(0, 2) };
+
+  // A second transition, later in the document, with an arc each way.
+  const twoTransitions: CanvasScene = {
+    ...plainScene,
+    nodes: [
+      ...nodes,
+      ...nodes
+        .filter((node) => node.id === "transition")
+        .map((node) => ({ ...node, id: "other" })),
+    ],
+    arcs: [
+      ...plainScene.arcs,
+      {
+        ...arcBase,
+        id: "other-input",
+        sourceId: "place",
+        targetId: "other",
+        transitionId: "other",
+      },
+      {
+        ...arcBase,
+        id: "other-output",
+        sourceId: "other",
+        targetId: "place",
+        transitionId: "other",
+      },
+    ],
+  };
+  const withoutFirstTransition: CanvasScene = {
+    ...twoTransitions,
+    nodes: twoTransitions.nodes.filter((node) => node.id !== "transition"),
+    arcs: twoTransitions.arcs.filter(
+      (arc) => arc.transitionId !== "transition",
+    ),
+  };
+
+  it("draws the layer as one edge that says nothing and takes no focus", () => {
+    const { container, layer } = mount({ scene: plainScene, onEdgeClick });
+    const wrapper = layer();
+
+    expect(container.querySelectorAll(".react-flow__edge-arcs")).toHaveLength(
+      1,
+    );
+    expect(wrapper?.getAttribute("class")).toBe(
+      "react-flow__edge react-flow__edge-arcs nopan",
+    );
+    expect(wrapper?.getAttribute("role")).toBe("none");
+    expect(wrapper?.hasAttribute("aria-label")).toBe(false);
+    expect(wrapper?.hasAttribute("aria-roledescription")).toBe(false);
+    expect(wrapper?.hasAttribute("tabindex")).toBe(false);
+    expect(wrapper?.querySelectorAll(".arc-item")).toHaveLength(2);
+  });
+
+  it("describes each arc by the element React Flow describes an edge with", () => {
+    const { arc, container } = mount({ scene: plainScene, onEdgeClick });
+    const describedBy = arc("input")?.getAttribute("aria-describedby") ?? "";
+
+    expect(describedBy).not.toBe("");
+    expect(container.ownerDocument.getElementById(describedBy)).not.toBeNull();
+  });
+
+  it("leaves the pointer to the arcs only while React Flow has a click handler for edges", () => {
+    const { layer, show } = mount({ scene: plainScene, onEdgeClick });
+    expect(layer()?.classList.contains("inactive")).toBe(false);
+
+    show({ scene: plainScene });
+    expect(layer()?.classList.contains("inactive")).toBe(true);
+  });
+
+  it("keeps every arc on the page while the first arc's transition is deleted and comes back unmeasured", () => {
+    const { layer, arc, show } = mount({ scene: twoTransitions, onEdgeClick });
+    const wrapper = layer();
+    const kept = arc("other-input");
+    expect(wrapper).not.toBeNull();
+    expect(kept).not.toBeNull();
+
+    show({ scene: withoutFirstTransition, onEdgeClick });
+    expect(layer()).toBe(wrapper);
+    expect(arc("other-input")).toBe(kept);
+    expect(arc("input")).toBeNull();
+
+    // An undo: the transition is a new node, which React Flow measures a
+    // frame after it appears.
+    show({ scene: twoTransitions, unmeasured: ["transition"], onEdgeClick });
+    expect(layer()).toBe(wrapper);
+    expect(arc("other-input")).toBe(kept);
+    expect(arc("input")).not.toBeNull();
   });
 });
