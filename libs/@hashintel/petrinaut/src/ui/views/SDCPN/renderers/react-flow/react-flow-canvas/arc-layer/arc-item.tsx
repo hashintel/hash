@@ -103,6 +103,12 @@ const ArcItemComponent: React.FC<ArcItemProps> = ({
       className="react-flow__edge-interaction"
       d={shape.paths.curve}
       fill="none"
+      // A paint for a stroke that is never seen. WebKit tests a press
+      // against the box of a path first, and counts the width of the stroke
+      // into that box only for a stroke that has a paint. Without one, a
+      // straight arc along an axis has a box without area and takes no
+      // press at all.
+      stroke="#000"
       strokeOpacity={0}
       strokeWidth={20}
     />

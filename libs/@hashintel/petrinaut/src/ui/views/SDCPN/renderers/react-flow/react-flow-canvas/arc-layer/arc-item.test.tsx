@@ -79,6 +79,16 @@ describe("what of an arc takes the pointer", () => {
     expect(band?.getAttribute("pointer-events")).toBeNull();
   });
 
+  it("has a stroke paint, which WebKit needs to count the width into the box it tests a press against", () => {
+    const { item } = renderArc();
+    const band = item.querySelector(".react-flow__edge-interaction");
+
+    expect(band?.getAttribute("stroke")).not.toBeNull();
+    expect(band?.getAttribute("stroke")).not.toBe("none");
+    // Still not painted.
+    expect(band?.getAttribute("stroke-opacity")).toBe("0");
+  });
+
   it.each([
     {},
     { focus: "focused", selected: true },
