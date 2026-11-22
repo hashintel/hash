@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
 import {
+  act,
   cleanup,
   render,
   renderHook as renderBareHook,
@@ -10,6 +11,7 @@ import {
   Position,
   ReactFlow,
   ReactFlowProvider,
+  useStoreApi,
 } from "@xyflow/react";
 import {
   afterAll,
@@ -208,6 +210,46 @@ describe("nodes", () => {
 
     expect(byId.get("place")?.origin).toBeUndefined();
     expect(byId.get("place")?.position).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe("the focus", () => {
+  const focusOn = (id: string): CanvasScene => ({
+    ...scene,
+    focusActive: true,
+    nodes: nodes.map((node) =>
+      node.id === id ? { ...node, focus: "focused" } : node,
+    ),
+  });
+
+  it("is drawn once React Flow holds a node with a role, and ends with the scene", () => {
+    const { result, rerender } = renderHook(
+      (input: CanvasScene) => ({
+        elements: useReactFlowElements(input),
+        store: useStoreApi(),
+      }),
+      { initialProps: scene },
+    );
+    const takeNodesUp = () =>
+      act(() =>
+        result.current.store.getState().setNodes(result.current.elements.nodes),
+      );
+    takeNodesUp();
+    expect(result.current.elements.focusDrawn).toBe(false);
+
+    // The scene has a focus, and React Flow still holds the nodes without it.
+    rerender(focusOn("place"));
+    expect(result.current.elements.focusDrawn).toBe(false);
+    takeNodesUp();
+    expect(result.current.elements.focusDrawn).toBe(true);
+
+    // The focus moves: the nodes React Flow holds have the roles of the last.
+    rerender(focusOn("transition"));
+    expect(result.current.elements.focusDrawn).toBe(true);
+
+    // The focus ends, and React Flow still holds a node with a role.
+    rerender(scene);
+    expect(result.current.elements.focusDrawn).toBe(false);
   });
 });
 

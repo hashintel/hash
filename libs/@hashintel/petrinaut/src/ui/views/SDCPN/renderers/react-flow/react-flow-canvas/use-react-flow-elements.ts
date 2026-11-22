@@ -1,3 +1,5 @@
+import { useStore } from "@xyflow/react";
+
 import { useStableItems } from "../../../use-stable-items";
 import { arcLayerEdgeId } from "./arc-layer-context";
 import { instanceFlowOrigin, instanceFlowPosition } from "./instance-anchor";
@@ -19,12 +21,16 @@ import type {
   SelectedArcEdgeType,
 } from "./react-flow-types";
 
+/**
+ * Marks a node or a fusion link that has a role in the focus. Only those are
+ * marked, so the pane can mute the rest without touching them.
+ */
+const focusRoleClass = "canvas-focus-role";
+
 const toReactFlowNode = (node: CanvasNode): NodeType => {
   const size = { width: node.width, height: node.height };
   const common = {
-    // Only a node carrying a role is marked, so the pane can mute the rest
-    // without touching them.
-    className: node.focus === "none" ? undefined : "canvas-focus-role",
+    className: node.focus === "none" ? undefined : focusRoleClass,
     id: node.id,
     position: node.position,
     ...size,
@@ -93,9 +99,7 @@ const toSelectedArcEdge = (arc: CanvasArc): SelectedArcEdgeType => ({
 const toFusionEdge = (link: CanvasFusionLink): FusionEdgeType => ({
   ...edgeEnds(link),
   type: "fusion",
-  // Only an edge carrying a role is marked, so the pane can mute the rest
-  // without touching them.
-  className: link.focus === "none" ? undefined : "canvas-focus-role",
+  className: link.focus === "none" ? undefined : focusRoleClass,
   selected: link.selected,
   reconnectable: link.movableEnds === "both" ? true : link.movableEnds,
   data: {
@@ -107,6 +111,24 @@ const toFusionEdge = (link: CanvasFusionLink): FusionEdgeType => ({
 });
 
 type ReactFlowElements = { nodes: NodeType[]; edges: CanvasEdgeType[] };
+
+/**
+ * Whether React Flow draws the focus of the scene.
+ *
+ * React Flow takes the nodes of a scene up in an effect, a commit after the
+ * render that made them, and the browser may show a frame in between. A node
+ * outside the focus dims in one frame, so a pane that said "a focus is
+ * active" with the scene would show that frame with the neighbourhood dimmed
+ * too. The focus is drawn once a node React Flow holds has a role. While a
+ * focus moves from one item to another the nodes of the one before have
+ * theirs, and when it ends the scene says so at once.
+ */
+const useFocusDrawn = (scene: CanvasScene): boolean =>
+  useStore(
+    (state) =>
+      scene.focusActive &&
+      state.nodes.some((node) => node.className === focusRoleClass),
+  );
 
 const toReactFlowElements = (
   scene: CanvasScene,
@@ -134,8 +156,14 @@ const toReactFlowElements = (
  * The elements are rebuilt when the scene is, then held at their previous
  * identity where nothing changed, so React Flow renders only what changed.
  */
-export const useReactFlowElements = (scene: CanvasScene): ReactFlowElements => {
+export const useReactFlowElements = (
+  scene: CanvasScene,
+): ReactFlowElements & { focusDrawn: boolean } => {
   const anchor = useArcLayerAnchor(scene);
   const { nodes, edges } = toReactFlowElements(scene, anchor);
-  return { nodes: useStableItems(nodes), edges: useStableItems(edges) };
+  return {
+    nodes: useStableItems(nodes),
+    edges: useStableItems(edges),
+    focusDrawn: useFocusDrawn(scene),
+  };
 };

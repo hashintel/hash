@@ -117,7 +117,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   } = interactions;
   const flowStore = useStoreApi();
   const readOnlyDragHandlers = useReadOnlyNodeDrag({ readonly, isPanMode });
-  const { nodes, edges } = useReactFlowElements(scene);
+  const { nodes, edges, focusDrawn } = useReactFlowElements(scene);
   const [arcPulses] = useState(createArcPulses);
   const applyChanges = useApplyNodeChanges(interactions);
   const insets = useCanvasInsetsReader();
@@ -229,7 +229,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
         onPointerUp={interactions.releasePointer}
         className={paneStyle}
         data-animated={showAnimations}
-        data-focus-active={scene.focusActive ? "" : undefined}
+        data-focus-active={focusDrawn ? "" : undefined}
         style={{
           // @ts-expect-error CSS variables work at runtime, but are not in the type system
           "--pane-cursor": interactions.paneCursor,
