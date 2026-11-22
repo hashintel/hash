@@ -229,7 +229,8 @@ try {
             .querySelector(".petrinaut-root")
             .querySelectorAll("*").length,
           nodes: document.querySelectorAll(".react-flow__node").length,
-          edges: document.querySelectorAll(".react-flow__edge").length,
+          edges: document.querySelectorAll(".react-flow__edge[aria-label]")
+            .length,
         }))),
       });
 
