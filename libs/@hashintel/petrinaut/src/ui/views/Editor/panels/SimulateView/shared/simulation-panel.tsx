@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
+import { useAnimationsEnabled } from "../../../../shared/use-animations-enabled";
 import { useSimulationWorkspaceContainer } from "../../../shared/simulation-workspace-context";
 import {
   PanelBody,
@@ -13,7 +14,6 @@ import {
   panelExitDuration,
   type SimulationPanelProps,
 } from "./simulation-panel/panel-context";
-import { useAnimationsEnabled } from "./use-animations-enabled";
 
 export { SimulationPanelControls } from "./simulation-panel/panel-controls";
 export { SimulationPanelTitle } from "./simulation-panel/panel-title";

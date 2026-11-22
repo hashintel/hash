@@ -21,8 +21,8 @@ const focusOn = (...ids: string[]): CanvasArc[] =>
   withArcs(Object.fromEntries(ids.map((id) => [id, { focus: "incoming" }])))
     .arcs;
 
-const mount = (arcs: CanvasArc[] = scene.arcs) =>
-  renderHook((input: CanvasArc[]) => [...useArcsLeavingFocus(input)], {
+const mount = (arcs: CanvasArc[] = scene.arcs, fades = true) =>
+  renderHook((input: CanvasArc[]) => [...useArcsLeavingFocus(input, fades)], {
     initialProps: arcs,
   });
 
@@ -64,6 +64,15 @@ describe("the arcs that had a focus role a moment ago", () => {
     act(() => {
       vi.advanceTimersByTime(150);
     });
+    expect(result.current).toEqual([]);
+  });
+
+  it("are none where the pane does not fade a focus", () => {
+    const { result, rerender } = mount(focusOn("input", "output"), false);
+
+    rerender(focusOn("output"));
+    expect(result.current).toEqual([]);
+    rerender(scene.arcs);
     expect(result.current).toEqual([]);
   });
 

@@ -22,6 +22,7 @@ import { type ReactNode, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useAnimationsEnabled } from "../../../../shared/use-animations-enabled";
 import { FrameAnimateContext } from "./drawer-frame/frame-animate-context";
 import { FrameHeader } from "./drawer-frame/frame-header";
 import { useBodyScrolled } from "./drawer-frame/use-body-scrolled";
@@ -31,7 +32,6 @@ import {
   SimulationPanelControls,
   SimulationPanelTitle,
 } from "./simulation-panel";
-import { useAnimationsEnabled } from "./use-animations-enabled";
 
 export {
   type ComputeBatch,

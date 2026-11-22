@@ -16,6 +16,14 @@ import { cva } from "@hashintel/ds-helpers/css";
 
 import type { CanvasArcFocus, CanvasNodeFocus } from "../canvas-focus";
 
+/**
+ * How long a focus takes to arrive and to leave, in milliseconds. The pane
+ * of a canvas writes it to `--canvas-focus-duration`, which every fade of a
+ * focus reads, and the arc layer waits this long for a fade to end. The
+ * `200ms` in the styles is what a node drawn outside a pane falls back to.
+ */
+export const focusFadeMs = 200;
+
 const FOCUSED_COLOR = "var(--colors-neutral-s115)";
 const UPSTREAM_COLOR = "var(--colors-blue-s90)";
 const DOWNSTREAM_COLOR = "var(--colors-orange-s90)";

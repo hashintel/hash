@@ -1,4 +1,4 @@
-import { useUserSettings } from "../../../../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../react/state/user-settings-context";
 import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
 
 /** Whether transitions play: the animations setting is on and the viewer did not ask for reduced motion. */

@@ -96,7 +96,7 @@ An edge gets only its own props, so the scene reaches the layer through `ArcLaye
 An arc draws its own strokes, in a group `arc-own` inside its run, while it is not like the arcs at rest:
 
 - It has a focus role or is selected: it wears a casing or a band, and it never fades.
-- It lost its role, and the roles last changed less than 250 ms ago: it fades, or stays at full strength, on its own. `useArcsLeavingFocus` names these arcs.
+- It lost its role, and the pane is still fading: it fades, or stays at full strength, on its own. `useArcsLeavingFocus` names these arcs for the length of the fade, `focusFadeMs`, which the pane also writes to `--canvas-focus-duration`. With the Animations setting off, or reduced motion asked for, the pane does not fade and no arc waits.
 - A node at one of its ends is being dragged: its curve changes on every frame.
 - It is a read or an inhibitor arc: its marks lie on its line.
 - It ends at a component port: the pin moves while its card opens or closes.
@@ -163,7 +163,7 @@ A mark that lies on its line can only fade with it as one group: the ticks and t
 - Faded strokes of one colour in one run do not darken where they overlap, because they are one path. A fan of faded heads on a busy place is one flat 0.45 within a run, where heads drawn one by one pile up to a darker crescent.
 - The weight of an arc is in the arc's element, above every stroke of every arc, also of an arc later in the document.
 - When the focus moves from one item straight to another, an arc that gains a role is at full strength at once, under a casing that also appears at once. Its strokes are new elements, and a new element runs no transition.
-- An arc that leaves its run or joins it changes where it lies among the arcs of that run: at a change of focus, 250 ms after one, at the start of a drag and at the drop.
+- An arc that leaves its run or joins it changes where it lies among the arcs of that run: at a change of focus, once the fade after it is over, at the start of a drag and at the drop.
 - The arcs share one `svg`, so the accessibility tree has one `img` around all their groups, where it had one per arc. The groups, their names and their order are the same.
 - An arc takes the pointer within 10 units of its curve, all along it. An `svg` per arc would cut that reach at the box of the curve, by up to 2 units on one side, and one `svg` for all the arcs does not. So a point beside an arc can be within the reach of a later arc, which then takes it.
 - React Flow turns the pointer off on an edge that is not selectable and has no click handler. The edge of the layer is not selectable, so the arcs take the pointer only while `ReactFlow` is given `onEdgeClick`. The canvas's three edge handlers answer for the fusion links and return at once for the layer's edge. The tests under "inside React Flow" in `use-react-flow-elements.test.tsx` hold this, and that the wrapper of the layer has no name, no role and no tab stop.

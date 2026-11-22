@@ -1,6 +1,7 @@
 import { useStore, useStoreApi } from "@xyflow/react";
 import { use, useEffect, useLayoutEffect, useRef } from "react";
 
+import { useAnimationsEnabled } from "../../../../shared/use-animations-enabled";
 import { useArcLayerInput } from "./arc-layer-context";
 import { ArcItem } from "./arc-layer/arc-item";
 import { ArcRunStrokes } from "./arc-layer/arc-run-strokes";
@@ -30,7 +31,8 @@ export const ArcLayer: React.FC = () => {
     (state) => `react-flow__edge-desc-${state.rfId}`,
   );
   const portEnds = usePortEnds(scene.arcs);
-  const { shapes, runs } = useArcLayerModel(scene, portEnds);
+  const fades = useAnimationsEnabled();
+  const { shapes, runs } = useArcLayerModel(scene, portEnds, fades);
   const handlers = useArcGestures(gestures, shapes);
   const runsRef = useRef<SVGGElement>(null);
 

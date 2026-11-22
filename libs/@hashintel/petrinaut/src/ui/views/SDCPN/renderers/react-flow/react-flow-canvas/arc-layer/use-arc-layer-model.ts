@@ -21,7 +21,8 @@ type ArcLayerModel = {
 /**
  * What the arc layer draws for a scene: one shape per arc, and the runs that
  * draw the arcs at rest together. A shape or a run is the same object for as
- * long as it draws the same.
+ * long as it draws the same. `fades` says whether the pane fades a focus in
+ * and out, which an arc that lost its role waits for.
  *
  * This is a render-time memory of the render before, as `useStableItems` is:
  * the shapes of the previous scene are what the new ones are compared with,
@@ -32,10 +33,11 @@ type ArcLayerModel = {
 export const useArcLayerModel = (
   scene: CanvasScene,
   portEnds: PortEnds,
+  fades: boolean,
 ): ArcLayerModel => {
   "use no memo";
 
-  const leavingFocus = useArcsLeavingFocus(scene.arcs);
+  const leavingFocus = useArcsLeavingFocus(scene.arcs, fades);
   const memory = useRef<{
     scene: CanvasScene;
     portEnds: PortEnds;

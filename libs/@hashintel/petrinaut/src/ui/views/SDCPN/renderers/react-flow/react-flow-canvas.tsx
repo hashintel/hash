@@ -39,6 +39,7 @@ import { fitSceneViewport } from "../../canvas-viewport";
 import { ViewportControls } from "../../components/viewport-controls";
 import { useKeepSelectionInView } from "../../hooks/use-keep-selection-in-view";
 import { useDebouncedValue } from "../../hooks/util/use-debounced-value";
+import { focusFadeMs } from "../../styles/focus";
 import { useCanvasInteractions } from "../../use-canvas-interactions";
 import { ArcLayer } from "./react-flow-canvas/arc-layer";
 import { ArcLayerContext } from "./react-flow-canvas/arc-layer-context";
@@ -97,7 +98,6 @@ const paneStyle = css({
   height: "[100%]",
   "--canvas-fold-easing": "cubic-bezier(0.22, 1, 0.36, 1)",
   "&[data-animated=false]": {
-    "--canvas-focus-duration": "0ms",
     "--canvas-fold-duration": "0ms",
   },
   "@media (prefers-reduced-motion: reduce)": {
@@ -355,6 +355,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
         style={{
           // @ts-expect-error CSS variables work at runtime, but are not in the type system
           "--pane-cursor": interactions.paneCursor,
+          "--canvas-focus-duration": `${showAnimations ? focusFadeMs : 0}ms`,
         }}
       >
         <LinkRewiringContext value={isRewiring}>
