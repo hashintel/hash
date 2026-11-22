@@ -89,9 +89,17 @@ export const paneStyle = css({
   // rules find the parts by.
   //
   // No rule here changes what an element hands down to the elements inside
-  // it, so a change of focus restyles the elements that draw and no others.
-  // A custom property or a `color` set on a faded node would restyle every
-  // element of every node.
+  // it. A custom property or a `color` set on a faded node would restyle
+  // every element of every node, at the change of focus and on every frame
+  // of the fade.
+  //
+  // A change of focus restyles more than the parts of the faded nodes. The
+  // browser looks again at every element under the pane that a rule here
+  // could apply to by its last selector, whatever comes before it: every
+  // part with one of these classes, and for the rule of the icons every
+  // shape, which the paths of the arcs and of the minimap are too. A shape
+  // of an icon has no class for that rule to end in. No other rule ends in
+  // something the pane has many of outside the parts.
   //
   // The card or box. Its fill stops at its border, which would darken over
   // it. The ring of a classic box is its faded twin. The elevation under the

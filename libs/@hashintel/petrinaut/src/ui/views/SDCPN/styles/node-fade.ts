@@ -11,8 +11,8 @@
  * the React Flow renderer. They find what a node draws by the classes below.
  * A colour a rule has to mix is a custom property that its element sets and
  * never changes, and a rule changes nothing that an element with elements
- * inside it hands down. So a change of focus restyles the elements that draw
- * and no others.
+ * inside it hands down: a change of focus then restyles the parts, and not
+ * every element of every node.
  *
  * | Class          | What it draws                               | While its node is faded                        |
  * | -------------- | ------------------------------------------- | ---------------------------------------------- |
@@ -40,8 +40,11 @@
  * behind it does not show.
  *
  * The pane also gives the parts their transition, over the time every fade of
- * a focus takes. A part that moves with a fold as well writes its own and
- * says so with `node-folds`. The surface has its own in `nodeFocusStyle`.
+ * a focus takes. A part that times its own changes says so with
+ * `node-folds`, and takes none from the pane: a part that moves with a fold
+ * writes a transition for both clocks, and the toggle of a fold writes none,
+ * because it answers the pointer. The surface has its own in
+ * `nodeFocusStyle`.
  */
 
 /** How strongly a faded node draws, of 1. The rules of the pane spell it out. */
