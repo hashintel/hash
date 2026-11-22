@@ -149,10 +149,8 @@ export const paneStyle = css({
       borderColor:
         "[color-mix(in srgb, var(--node-border) 40%, var(--colors-neutral-s25))]",
     },
-  // The dot a node under the pointer offers an arc from, and the outline of
-  // a node an arc can land on. Each handle names its colours. The rules
-  // match while the dot or the outline shows, so that a change of focus does
-  // not restyle the handles of every node.
+  // The dot a node under the pointer offers an arc from. Its handle names its
+  // colours.
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected):is(:hover, :focus-within) .react-flow__handle.source::after":
     {
       backgroundColor:
@@ -160,7 +158,11 @@ export const paneStyle = css({
       borderColor:
         "[color-mix(in srgb, var(--node-border, transparent) 40%, transparent)]",
     },
-  "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) .react-flow__handle.target:is(.connectingto, :focus-visible)::after":
+  // The outline of a node an arc is being drawn onto. Its handle names the
+  // colour, and says that the outline is drawn with an attribute that no
+  // other handle has: a rule that ended in a class of every handle would
+  // restyle the handles of every node at each change of focus.
+  "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) [data-arc-target]::after":
     {
       outlineColor:
         "[color-mix(in srgb, var(--node-outline, transparent) 40%, transparent)]",

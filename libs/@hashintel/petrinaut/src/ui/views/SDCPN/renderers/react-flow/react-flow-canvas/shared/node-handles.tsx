@@ -35,7 +35,8 @@ const launchHandleStyle = css({
 });
 
 // Pseudo-elements expand hit areas without moving the anchors of component
-// arcs.
+// arcs. The handle names the colour of its outline: the pane of the canvas
+// reads it to draw the outline of a node outside the focused neighbourhood.
 const targetHandleStyle = css({
   "--node-outline": "var(--colors-blue-s80)",
   _after: {
@@ -107,6 +108,9 @@ export const NodeHandles = ({
         aria-label="Connect arc to this node"
         onKeyDown={activateHandle}
         className={targetHandleStyle}
+        // Says that the outline of a target is drawn, for the pane to fade
+        // it with a faded node.
+        data-arc-target={isActiveTarget ? "" : undefined}
         style={
           {
             "--arc-target-width": `${width}px`,
