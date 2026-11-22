@@ -6,6 +6,7 @@ import {
   fadedColor,
   fadedCoverColor,
   fadedNodeStrength,
+  fadedSurfaceShadows,
   insideFadedNode,
 } from "../../../styles/node-fade";
 import { ArcPulsesContext } from "./arc-pulses";
@@ -56,16 +57,18 @@ export const useTransitionFiringAnimation = (
     // animation runs back to whatever the stylesheet says, so the focus ring's
     // white band in `box-shadow` returns once it is over instead of staying
     // replaced by the glow's transparent end. A transition outside the focused
-    // neighbourhood flashes as faded as it is drawn.
+    // neighbourhood flashes as faded as it is drawn, with its shadows listed
+    // as the pane lists them, so that the glow fades into them.
     const faded = box.matches(insideFadedNode);
-    const ring = faded ? "--node-faded-outline-ring" : "--node-outline-ring";
     const flash = "rgba(255, 224, 132, 0.7)";
     const glow = "rgba(255, 132, 0, 0.59)";
     box.animate(
       [
         {
           background: faded ? fadedColor(flash) : flash,
-          boxShadow: `var(${ring}, 0 0 #0000), 0 0 6px 1px ${faded ? fadedColor(glow) : glow}`,
+          boxShadow: faded
+            ? fadedSurfaceShadows(`0 0 6px 1px ${fadedColor(glow)}`)
+            : `var(--node-outline-ring, 0 0 #0000), 0 0 6px 1px ${glow}`,
           offset: 0,
         },
       ],

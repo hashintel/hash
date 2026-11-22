@@ -46,6 +46,8 @@ A node says what it draws with these classes, which `styles/node-fade.ts` names:
 
 **The surface times its ring and its glow, and a faded surface cannot run that transition.** `nodeFocusStyle` gives the surface one transition, of `outline-color` for the ring and of `box-shadow` for the glow, so a node of the neighbourhood arrives and leaves as a fade. The shadows of a faded surface differ too: the ring of a classic box is its faded twin, and the elevation goes. So the list of shadows of a faded surface starts with an inset shadow that draws nothing. The browser cannot mix a list that starts inset with one that does not, and changes it at once. "starts the shadows of a faded surface inset" in `pane-style.test.ts` holds it.
 
+**The flash of a faded transition lists its shadows as the pane lists those of a faded surface.** The glow of a flash is a shadow in a keyframe, and it fades out into the shadows of the surface. The two lists mix only where they pair up, an inset shadow with an inset one. So `fadedSurfaceShadows` in `styles/node-fade.ts` writes the list of a faded keyframe around its glow, and "lists the shadows of a faded surface as the flash of a firing lists them" in `pane-style.test.ts` holds the rule of the pane equal to it.
+
 **The pane says that a focus is active in the commit that gives the nodes their roles.** React Flow takes the nodes of a scene up in an effect, a commit after the canvas renders with them, and the browser may show a frame in between. With the attribute set from the scene, that frame shows the neighbourhood dimmed with the rest of the net. So `useReactFlowElements` returns `focusDrawn`: the scene has a focus, and a node React Flow holds has a role. "is drawn once React Flow holds a node with a role, and ends with the scene" in `use-react-flow-elements.test.tsx` holds it.
 
 **No rule changes what an element hands down to the elements inside it.** A custom property or a `color` on a faded node restyles every element of every node at the change of focus. So a colour a rule has to mix is a custom property its element sets once, `node-text` goes on the element that holds the text, and the fade of an icon is set on each shape. "sets no custom property and no inherited colour on an element that holds others" in `pane-style.test.ts` holds it.
@@ -83,5 +85,5 @@ At a change of focus:
 
 Under the pointer and in a run:
 
-- A flash is as faded as its node was when the firing landed. A focus that changes during the flash does not change it.
+- A flash is as faded as its node was when the firing landed. A focus that changes during the flash does not change it, and the glow of that flash ends in one step: its shadows no longer pair up with those of the surface.
 - The glyph of a faded classic transition takes a tint of the flash behind it.

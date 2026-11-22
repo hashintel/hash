@@ -124,7 +124,7 @@ describe("a transition that fired", () => {
     ]);
   });
 
-  it("flashes as faded as its node, with the ring of a faded node", () => {
+  it("flashes as faded as its node, with the shadows of a faded surface around its glow", () => {
     const { flashes } = mount(
       { firingDelta: 1 },
       nodeOnPane({ focusActive: true }),
@@ -135,7 +135,7 @@ describe("a transition that fired", () => {
         background:
           "color-mix(in srgb, rgba(255, 224, 132, 0.7) 25%, transparent)",
         boxShadow:
-          "var(--node-faded-outline-ring, 0 0 #0000), 0 0 6px 1px color-mix(in srgb, rgba(255, 132, 0, 0.59) 25%, transparent)",
+          "inset 0 0 #0000, var(--node-faded-outline-ring, 0 0 #0000), 0 0 6px 1px color-mix(in srgb, rgba(255, 132, 0, 0.59) 25%, transparent)",
         offset: 0,
       },
     ]);

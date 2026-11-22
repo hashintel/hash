@@ -89,7 +89,9 @@ export const paneStyle = css({
   // pan. The first shadow is inset and draws nothing. The browser cannot mix
   // a list of shadows that starts inset with one that does not, so the
   // shadows of a surface change at once on the way here and on the way back,
-  // where the transition of `nodeFocusStyle` would fade them.
+  // where the transition of `nodeFocusStyle` would fade them. The flash of a
+  // firing fades its glow into this list, so its keyframe has the same
+  // shadows in the same order: `fadedSurfaceShadows` in `node-fade.ts`.
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) .node-surface":
     {
       backgroundColor:

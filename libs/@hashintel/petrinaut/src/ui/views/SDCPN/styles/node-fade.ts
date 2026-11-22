@@ -29,9 +29,11 @@
  * node by the opacity of its fill and of its stroke. The flash and the bolt
  * of a firing are keyframes, which no rule reaches, so the animation asks
  * whether its node is faded, and the bolt carries `node-bolt` to be left out
- * of the rule for icons. A flash changes the colour of the card under an
- * inlay, so the animation draws the inlay of a faded card for as long, as a
- * cover.
+ * of the rule for icons. The glow of a flash fades back into the shadows of
+ * the surface, so the keyframe of a faded flash lists its shadows as the pane
+ * lists those of a faded surface. A flash changes the colour of the card
+ * under an inlay, so the animation draws the inlay of a faded card for as
+ * long, as a cover.
  *
  * A cover is a token count or a port's pin. Each lies across the border of
  * its node, which a translucent part would show through it, and a count is
@@ -64,6 +66,16 @@ export const fadedColor = (colour: string): string =>
  * pane. A cover mixes toward it.
  */
 export const canvasColor = "var(--colors-neutral-s25)";
+
+/**
+ * The shadows of a faded surface with `glow` for its last, for a keyframe.
+ * The list has the shape of the one the pane gives a faded surface, an inset
+ * shadow that draws nothing first and one shadow for each of its own: the
+ * browser mixes two lists of shadows only where they pair up, and changes
+ * from one to the other in one step where they do not.
+ */
+export const fadedSurfaceShadows = (glow: string): string =>
+  `inset 0 0 #0000, var(--node-faded-outline-ring, 0 0 #0000), ${glow}`;
 
 /** `colour` as a cover of a faded node draws it, for a keyframe. */
 export const fadedCoverColor = (colour: string): string =>

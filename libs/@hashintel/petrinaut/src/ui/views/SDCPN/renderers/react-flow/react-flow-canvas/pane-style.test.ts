@@ -5,6 +5,7 @@ import {
   canvasColor,
   fadedCoverColor,
   fadedNodeStrength,
+  fadedSurfaceShadows,
   insideFadedNode,
 } from "../../../styles/node-fade";
 import { paneStyle } from "./pane-style";
@@ -96,6 +97,14 @@ describe("the fade of a node", () => {
     ).toHaveLength(1);
     expect(fadedShadows).toHaveLength(1);
     expect(fadedShadows[0]).toMatch(/^bx-sh_\[inset_/);
+  });
+
+  it("lists the shadows of a faded surface as the flash of a firing lists them, which fades its glow into them", () => {
+    const glow = "var(--focus-glow, 0 0 0 3px #fff0)";
+
+    expect(paneStyle.split(" ")).toContain(
+      `[${fadedNode}_.node-surface]:bx-sh_[${fadedSurfaceShadows(glow).replaceAll(" ", "_")}]`,
+    );
   });
 
   it("changes nothing on the node itself, which every element of it would inherit from", () => {
