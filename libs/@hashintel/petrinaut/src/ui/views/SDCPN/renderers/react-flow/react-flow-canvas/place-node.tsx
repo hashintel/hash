@@ -23,12 +23,7 @@ import type { NodeProps } from "@xyflow/react";
  * fill in a colour of its own. With each at 0.25 the box would be tinted by
  * the fill, and would hide more of what is behind the place than the rest of
  * the card does. So the fill of a faded place is a gradient that leaves a
- * hole under the box.
- *
- * A gradient cannot fade, so the colour under it does. As the place fades,
- * the gradient is there from the start and the colour runs out under it. As
- * it comes back, the colour returns under the gradient, which goes once the
- * fade is over: `nodeFocusStyle` holds that delay.
+ * hole under the box, with no colour under it.
  */
 const placeCardStyle = css({
   borderRadius: "full",

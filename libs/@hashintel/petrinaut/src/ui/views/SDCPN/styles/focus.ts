@@ -40,10 +40,9 @@ const BIDIRECTIONAL_COLOR = "var(--colors-purple-s90)";
  * lifting the node off the dotted canvas, then the role's colour. Both are
  * anchored on the border box, so they stay concentric whatever the node's
  * shape. They fade over 200ms, so a neighbourhood arrives and leaves as a fade
- * rather than a switch. The fill and the border of a node fade on the same
- * clock, when the node leaves the neighbourhood or returns to it:
- * `node-fade.ts` says how. A background image changes at once, after that
- * fade: a compact place says why it has one.
+ * rather than a switch. Nothing else of a node takes a transition at a change
+ * of focus: a node outside the neighbourhood dims in one frame, and
+ * `node-fade.ts` says how.
  */
 export const nodeFocusStyle = cva({
   base: {
@@ -52,8 +51,7 @@ export const nodeFocusStyle = cva({
     boxShadow:
       "[var(--node-outline-ring, 0 0 #0000), var(--focus-glow, 0 0 0 3px #fff0), var(--node-elevation, 0 0 #0000)]",
     transition:
-      "[outline-color var(--canvas-focus-duration, 200ms) ease, box-shadow var(--canvas-focus-duration, 200ms) ease, background-color var(--canvas-focus-duration, 200ms) ease, border-color var(--canvas-focus-duration, 200ms) ease, background-image 0s linear var(--canvas-focus-duration, 200ms)]",
-    transitionBehavior: "allow-discrete",
+      "[outline-color var(--canvas-focus-duration, 200ms) ease, box-shadow var(--canvas-focus-duration, 200ms) ease]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
   variants: {

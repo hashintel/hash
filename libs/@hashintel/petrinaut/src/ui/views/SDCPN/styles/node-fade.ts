@@ -39,12 +39,10 @@
  * behind a cover it looks as it would under an opacity, and what else is
  * behind it does not show.
  *
- * The pane also gives the parts their transition, over the time every fade of
- * a focus takes. A part that times its own changes says so with
- * `node-folds`, and takes none from the pane: a part that moves with a fold
- * writes a transition for both clocks, and the toggle of a fold writes none,
- * because it answers the pointer. The surface has its own in
- * `nodeFocusStyle`.
+ * No part takes a transition for the fade: a node dims in one frame and comes
+ * back in one, and the arcs fade around it. A transition per part is work on
+ * the main thread for every part on every frame of a fade. The surface times
+ * the ring and the glow of a node in the neighbourhood, in `nodeFocusStyle`.
  */
 
 /** How strongly a faded node draws, of 1. The rules of the pane spell it out. */

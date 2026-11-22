@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { nodeFocusStyle } from "../../../styles/focus";
 import {
   canvasColor,
   fadedCoverColor,
@@ -42,6 +43,49 @@ describe("the fade of a node", () => {
     ].filter(({ declaration }) => /^op_|(?<![a-z-])opacity/.test(declaration));
 
     expect(opacities.map(({ name }) => name)).toEqual([]);
+  });
+
+  it("times nothing that a node draws, so that a node dims in one frame", () => {
+    const timed = rules.filter(
+      ({ declaration }) =>
+        /^(trs|transition)/.test(declaration) &&
+        !declaration.endsWith("_[none]"),
+    );
+    // What the pane fades: the strokes of the arcs and the shapes of the map.
+    const outsideNodes = timed.filter(({ selector }) =>
+      selector
+        .split(",_")
+        .every((part) =>
+          /_\.(arc-[a-z]+|fusion-line|minimap-shape)$/.test(part),
+        ),
+    );
+
+    expect(outsideNodes.length).toBeGreaterThan(3);
+    expect(
+      timed
+        .filter((rule) => !outsideNodes.includes(rule))
+        .map(({ name }) => name),
+    ).toEqual([
+      // The wrapper of a component instance grows and shrinks with a fold.
+      "[&_.react-flow__node.react-flow__node-componentInstance]:trs_[height_var(--canvas-fold-duration,_180ms)_var(--canvas-fold-easing)]",
+    ]);
+  });
+
+  it("starts the shadows of a faded surface inset, which the transition of a surface cannot mix", () => {
+    const surface = nodeFocusStyle({ focus: "none" }).split(" ");
+    const fadedShadows = nodeRules
+      .filter(({ selector }) => selector === `${fadedNode}_.node-surface`)
+      .map(({ declaration }) => declaration)
+      .filter((declaration) => declaration.startsWith("bx-sh_"));
+
+    expect(
+      surface.filter((name) => /^trs_.*box-shadow/.test(name)),
+    ).toHaveLength(1);
+    expect(
+      surface.filter((name) => /^bx-sh_\[(?!inset)/.test(name)),
+    ).toHaveLength(1);
+    expect(fadedShadows).toHaveLength(1);
+    expect(fadedShadows[0]).toMatch(/^bx-sh_\[inset_/);
   });
 
   it("changes nothing on the node itself, which every element of it would inherit from", () => {

@@ -217,6 +217,25 @@ const fadedBy: [string, RegExp][] = [
   ["node-border", /^(bd(-[a-z])?(-[cws])?|border-style)$/],
 ];
 
+/**
+ * What a part of a node may time: where it is, how large it is and whether
+ * it shows, which a fold of a component instance moves. No part times a
+ * colour: a node outside the focus dims in one frame, and a part answers the
+ * pointer at once.
+ */
+const partTimes = [
+  "none",
+  "top",
+  "opacity",
+  "width",
+  "height",
+  "border-width",
+  "transform",
+];
+
+/** What the surface times: the ring and the glow of a node in the focus. */
+const surfaceTimes = ["none", "outline-color", "box-shadow"];
+
 /** Whether a style of `element` draws something no rule of the pane fades. */
 const drawsUnfaded = (
   element: Element,
@@ -387,22 +406,31 @@ describe.each(cases)("%s", (_name, Component, data) => {
     ).toEqual([]);
   });
 
-  it("gives no transition of the pane to a part that changes under the pointer", () => {
-    const answering = elementsOf(draw(Component, data)).filter(
-      (element) =>
-        !has(element, "node-surface") &&
-        stylesOf(element).some(({ condition }) => /\bhover\b/.test(condition)),
-    );
+  it("times no colour of a part, and nothing of its surface but the ring and the glow", () => {
+    const timed = elementsOf(draw(Component, data)).flatMap((element) => {
+      const styles = stylesOf(element);
+      const named = styles
+        .filter(({ property }) => /^trs(-prop)?$/.test(property))
+        .flatMap(({ value }) =>
+          value
+            .replaceAll(/^\[|\]$/g, "")
+            // A comma between two transitions, not one inside a `var()`.
+            .split(/,_(?![^()]*\))/)
+            .map((one) => one.replace(/_.*$/, "")),
+        );
+      // A duration with no property named times every property.
+      const properties =
+        named.length === 0 &&
+        styles.some(({ property }) => property === "trs-dur")
+          ? ["all"]
+          : named;
+      const allowed = has(element, "node-surface") ? surfaceTimes : partTimes;
+      return properties
+        .filter((property) => !allowed.includes(property))
+        .map((property) => `${property} on ${describeElement(element)}`);
+    });
 
-    expect(
-      answering
-        .filter(
-          (element) =>
-            has(element, "node-text", "node-fill", "node-cover") &&
-            !has(element, "node-folds"),
-        )
-        .map(describeElement),
-    ).toEqual([]);
+    expect(timed).toEqual([]);
   });
 });
 

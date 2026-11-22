@@ -99,13 +99,8 @@ const textStyle = cx(
   css({ flex: "1", color: "neutral.s120" }),
 );
 
-/**
- * The toggle answers the pointer at once, so it takes no transition from the
- * pane: `node-folds` keeps that off it, and it writes none of its own.
- */
 const foldToggleStyle = cx(
   "node-fill",
-  "node-folds",
   css({
     display: "flex",
     alignItems: "center",
@@ -128,9 +123,7 @@ const foldToggleStyle = cx(
 
 /**
  * Every part of a fold moves on one clock, which the canvas sets: the card's
- * height, its pins, their labels and the count that stands in for them. A
- * part that also fades with a focus carries `node-folds`, which keeps the
- * transition of the pane off it, and names both clocks in one of its own.
+ * height, its pins, their labels and the count that stands in for them.
  */
 const foldMotionStyle = css({
   transitionDuration: "[var(--canvas-fold-duration, 180ms)]",
@@ -159,7 +152,6 @@ const foldChevronTurnedStyle = css({
  */
 const foldedBodyStyle = cx(
   "node-text",
-  "node-folds",
   css({
     flexShrink: "0",
     display: "flex",
@@ -168,15 +160,12 @@ const foldedBodyStyle = cx(
     fontSize: "xs",
     "--node-text": "var(--colors-neutral-a90)",
     color: "[var(--node-text)]",
-    transition:
-      "[opacity var(--canvas-fold-duration, 180ms) var(--canvas-fold-easing), color var(--canvas-focus-duration, 200ms) ease]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+    transitionProperty: "[opacity]",
   }),
 );
 
 const portLabelStyle = cx(
   "node-text",
-  "node-folds",
   css({
     position: "absolute",
     fontSize: "[11px]",
@@ -191,21 +180,14 @@ const portLabelStyle = cx(
     whiteSpace: "nowrap",
     pointerEvents: "none",
     transform: "translateY(-50%)",
-    transition:
-      "[top var(--canvas-fold-duration, 180ms) var(--canvas-fold-easing), opacity var(--canvas-fold-duration, 180ms) var(--canvas-fold-easing), color var(--canvas-focus-duration, 200ms) ease]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+    transitionProperty: "[top, opacity]",
   }),
 );
 
 /** A pin slides to its row, and grows to its full size, as the card unfolds. */
-const pinMotionStyle = cx(
-  "node-folds",
-  css({
-    transition:
-      "[top var(--canvas-fold-duration, 180ms) var(--canvas-fold-easing), width var(--canvas-fold-duration, 180ms) var(--canvas-fold-easing), height var(--canvas-fold-duration, 180ms) var(--canvas-fold-easing), border-width var(--canvas-fold-duration, 180ms) var(--canvas-fold-easing), background-color var(--canvas-focus-duration, 200ms) ease, border-color var(--canvas-focus-duration, 200ms) ease]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  }),
-);
+const pinMotionStyle = css({
+  transitionProperty: "[top, width, height, border-width]",
+});
 
 /** How far in from the card's edge a port's name starts. */
 const portLabelInset = 12;
@@ -337,6 +319,7 @@ export const ComponentInstanceNode: React.FC<
           <div
             className={cx(
               foldedBodyStyle,
+              foldMotionStyle,
               unfolded ? fadedOutStyle : undefined,
             )}
             // The body of the card folded, whatever height the card has now:
@@ -380,6 +363,7 @@ export const ComponentInstanceNode: React.FC<
                     hidden: !shown,
                   }),
                   pinMotionStyle,
+                  foldMotionStyle,
                   "node-cover",
                   "node-border",
                 )}
@@ -388,7 +372,11 @@ export const ComponentInstanceNode: React.FC<
             );
           })}
           <span
-            className={cx(portLabelStyle, unfolded ? undefined : fadedOutStyle)}
+            className={cx(
+              portLabelStyle,
+              foldMotionStyle,
+              unfolded ? undefined : fadedOutStyle,
+            )}
             style={{
               top: tops.left,
               [port.direction === "out" ? "right" : "left"]: portLabelInset,

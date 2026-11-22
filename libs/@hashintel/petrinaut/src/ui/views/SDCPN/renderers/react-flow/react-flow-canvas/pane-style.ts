@@ -26,29 +26,6 @@ export const paneStyle = css({
     transition: "[opacity var(--canvas-focus-duration, 200ms) ease]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
-  // The fade of the nodes: see the rules that set these colours, below. The
-  // card or box of a node fades by `nodeFocusStyle`, and a part that moves
-  // with a fold by a transition of its own. The border of a part and the fill
-  // of an inlay change at once: each is a hairline or a shade of its card
-  // that no eye follows, and every transition a fade starts is work on every
-  // frame of it.
-  "& :is(.node-text, .node-fill, .node-cover):not(.node-surface):not(.node-folds)":
-    {
-      transition:
-        "[color var(--canvas-focus-duration, 200ms) ease, background-color var(--canvas-focus-duration, 200ms) ease]",
-      "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-    },
-  "& .react-flow__node svg :is(path, circle, ellipse, rect, line, polyline, polygon)":
-    {
-      transition: "[stroke-opacity var(--canvas-focus-duration, 200ms) ease]",
-      "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-    },
-  "& .react-flow__node svg[fill=currentColor] :is(path, circle, ellipse, rect, line, polyline, polygon)":
-    {
-      transition:
-        "[stroke-opacity var(--canvas-focus-duration, 200ms) ease, fill-opacity var(--canvas-focus-duration, 200ms) ease]",
-      "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-    },
   // The fade of the arcs: see the rules that set these opacities, below.
   "& .arc-shaft, & .arc-pulse, & .fusion-line": {
     transition: "[stroke-opacity var(--canvas-focus-duration, 200ms) ease]",
@@ -88,10 +65,14 @@ export const paneStyle = css({
   // as it would through an opacity. `node-fade.ts` names the classes these
   // rules find the parts by.
   //
+  // No part of a node takes a transition for this: a node dims in one frame
+  // and comes back in one. A transition per part would be thousands of them
+  // at a change of focus, each one work on the main thread on every frame of
+  // the fade, and the arcs would fade in a few steps for it.
+  //
   // No rule here changes what an element hands down to the elements inside
   // it. A custom property or a `color` set on a faded node would restyle
-  // every element of every node, at the change of focus and on every frame
-  // of the fade.
+  // every element of every node at the change of focus.
   //
   // A change of focus restyles more than the parts of the faded nodes. The
   // browser looks again at every element under the pane that a rule here
@@ -105,8 +86,10 @@ export const paneStyle = css({
   // it. The ring of a classic box is its faded twin. The elevation under the
   // node goes: at 0.25 it would darken the canvas by 3 of 255 at most, and a
   // blurred shadow is the costliest thing a card draws on every frame of a
-  // pan. The delay is the one a compact place's fill needs: see
-  // `placeCardStyle`.
+  // pan. The first shadow is inset and draws nothing. The browser cannot mix
+  // a list of shadows that starts inset with one that does not, so the
+  // shadows of a surface change at once on the way here and on the way back,
+  // where the transition of `nodeFocusStyle` would fade them.
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) .node-surface":
     {
       backgroundColor:
@@ -114,8 +97,7 @@ export const paneStyle = css({
       backgroundImage: "[var(--node-faded-fill-image, none)]",
       backgroundClip: "[padding-box]",
       boxShadow:
-        "[var(--node-faded-outline-ring, 0 0 #0000), var(--focus-glow, 0 0 0 3px #fff0)]",
-      transitionDelay: "[0s]",
+        "[inset 0 0 #0000, var(--node-faded-outline-ring, 0 0 #0000), var(--focus-glow, 0 0 0 3px #fff0)]",
     },
   // Text. A text with a colour of its own names it as `--node-text`, and
   // any other inherits one. `color` is inherited, so the class goes on the
