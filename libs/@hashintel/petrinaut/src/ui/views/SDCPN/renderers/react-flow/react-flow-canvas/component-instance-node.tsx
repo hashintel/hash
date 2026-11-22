@@ -99,8 +99,13 @@ const textStyle = cx(
   css({ flex: "1", color: "neutral.s120" }),
 );
 
+/**
+ * The toggle answers the pointer at once, so it takes no transition from the
+ * pane: `node-folds` keeps that off it, and it writes none of its own.
+ */
 const foldToggleStyle = cx(
   "node-fill",
+  "node-folds",
   css({
     display: "flex",
     alignItems: "center",
@@ -124,8 +129,8 @@ const foldToggleStyle = cx(
 /**
  * Every part of a fold moves on one clock, which the canvas sets: the card's
  * height, its pins, their labels and the count that stands in for them. A
- * part that also fades with a focus carries `node-folds` and names both
- * clocks in a transition of its own.
+ * part that also fades with a focus carries `node-folds`, which keeps the
+ * transition of the pane off it, and names both clocks in one of its own.
  */
 const foldMotionStyle = css({
   transitionDuration: "[var(--canvas-fold-duration, 180ms)]",

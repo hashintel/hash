@@ -258,4 +258,22 @@ describe.each(kinds)("%s", (_name, node) => {
         .map(describeElement),
     ).toEqual([]);
   });
+
+  it("gives no transition of the pane to a part that changes under the pointer", () => {
+    const answering = [...draw(node).querySelectorAll("*")].filter(
+      (element) =>
+        !has(element, "node-surface") &&
+        stylesOf(element).some(({ condition }) => /\bhover\b/.test(condition)),
+    );
+
+    expect(
+      answering
+        .filter(
+          (element) =>
+            has(element, "node-text", "node-fill", "node-cover") &&
+            !has(element, "node-folds"),
+        )
+        .map(describeElement),
+    ).toEqual([]);
+  });
 });
