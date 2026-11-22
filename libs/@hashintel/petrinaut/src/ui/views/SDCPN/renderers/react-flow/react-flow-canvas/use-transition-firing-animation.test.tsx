@@ -133,14 +133,14 @@ describe("a transition that fired", () => {
     expect(flashes.mock.calls[0]?.[0]).toEqual([
       {
         background:
-          "color-mix(in srgb, rgba(255, 224, 132, 0.7) 40%, transparent)",
+          "color-mix(in srgb, rgba(255, 224, 132, 0.7) 25%, transparent)",
         boxShadow:
-          "var(--node-faded-outline-ring, 0 0 #0000), 0 0 6px 1px color-mix(in srgb, rgba(255, 132, 0, 0.59) 40%, transparent)",
+          "var(--node-faded-outline-ring, 0 0 #0000), 0 0 6px 1px color-mix(in srgb, rgba(255, 132, 0, 0.59) 25%, transparent)",
         offset: 0,
       },
     ]);
     expect(flashes.mock.calls[1]?.[0]).toEqual([
-      { opacity: 0.4, transform: "scale(1)" },
+      { opacity: 0.25, transform: "scale(1)" },
       { opacity: 0, transform: "scale(0.5)" },
     ]);
   });
@@ -156,7 +156,7 @@ describe("a transition that fired", () => {
         [
           {
             backgroundColor:
-              "color-mix(in srgb, var(--node-fill) 40%, var(--colors-neutral-s25))",
+              "color-mix(in srgb, var(--node-fill) 25%, var(--colors-neutral-s25))",
             offset: 0,
           },
         ],

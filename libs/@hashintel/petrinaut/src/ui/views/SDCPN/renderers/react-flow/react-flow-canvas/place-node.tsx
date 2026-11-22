@@ -20,7 +20,7 @@ import type { NodeProps } from "@xyflow/react";
 
 /**
  * A place's fill is its token type's colour, and its icon box lies on that
- * fill in a colour of its own. With each at 0.4 the box would be tinted by
+ * fill in a colour of its own. With each at 0.25 the box would be tinted by
  * the fill, and would hide more of what is behind the place than the rest of
  * the card does. So the fill of a faded place is a gradient that leaves a
  * hole under the box.
@@ -34,7 +34,7 @@ const placeCardStyle = css({
   borderRadius: "full",
   "--node-faded-fill": "transparent",
   "--node-faded-fill-image":
-    "radial-gradient(circle at 24px 50%, transparent 19.5px, color-mix(in srgb, var(--node-fill) 40%, transparent) 20.5px)",
+    "radial-gradient(circle at 24px 50%, transparent 19.5px, color-mix(in srgb, var(--node-fill) 25%, transparent) 20.5px)",
 });
 
 const placeIconContainerStyle = css({

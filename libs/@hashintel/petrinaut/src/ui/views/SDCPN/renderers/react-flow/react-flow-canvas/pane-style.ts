@@ -83,7 +83,7 @@ export const paneStyle = css({
   // No opacity goes on a node, or on an element inside one that draws more
   // than one thing. For such an opacity the browser draws the element into a
   // buffer of its own, on every frame of a pan, a zoom or a drag, and a net
-  // has one per node. So each thing a faded node draws is drawn at 0.4 by the
+  // has one per node. So each thing a faded node draws is drawn at 0.25 by the
   // alpha of its own colour, and what lies behind the node shows through it
   // as it would through an opacity. `node-fade.ts` names the classes these
   // rules find the parts by.
@@ -103,14 +103,14 @@ export const paneStyle = css({
   //
   // The card or box. Its fill stops at its border, which would darken over
   // it. The ring of a classic box is its faded twin. The elevation under the
-  // node goes: at 0.4 it would darken the canvas by 4 of 255 at most, and a
+  // node goes: at 0.25 it would darken the canvas by 3 of 255 at most, and a
   // blurred shadow is the costliest thing a card draws on every frame of a
   // pan. The delay is the one a compact place's fill needs: see
   // `placeCardStyle`.
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) .node-surface":
     {
       backgroundColor:
-        "[var(--node-faded-fill, color-mix(in srgb, var(--node-fill) 40%, transparent))]",
+        "[var(--node-faded-fill, color-mix(in srgb, var(--node-fill) 25%, transparent))]",
       backgroundImage: "[var(--node-faded-fill-image, none)]",
       backgroundClip: "[padding-box]",
       boxShadow:
@@ -123,17 +123,17 @@ export const paneStyle = css({
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) .node-text":
     {
       color:
-        "[color-mix(in srgb, var(--node-text, currentColor) 40%, transparent)]",
+        "[color-mix(in srgb, var(--node-text, currentColor) 25%, transparent)]",
     },
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) .node-fill":
     {
       backgroundColor:
-        "[color-mix(in srgb, var(--node-fill) 40%, transparent)]",
+        "[color-mix(in srgb, var(--node-fill) 25%, transparent)]",
     },
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) .node-border":
     {
       borderColor:
-        "[color-mix(in srgb, var(--node-border, currentColor) 40%, transparent)]",
+        "[color-mix(in srgb, var(--node-border, currentColor) 25%, transparent)]",
     },
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) .node-inlay":
     {
@@ -145,17 +145,17 @@ export const paneStyle = css({
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) .node-cover":
     {
       backgroundColor:
-        "[color-mix(in srgb, var(--node-fill) 40%, var(--colors-neutral-s25))]",
+        "[color-mix(in srgb, var(--node-fill) 25%, var(--colors-neutral-s25))]",
     },
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) .node-cover.node-text":
     {
       color:
-        "[color-mix(in srgb, var(--node-text, currentColor) 40%, var(--colors-neutral-s25))]",
+        "[color-mix(in srgb, var(--node-text, currentColor) 25%, var(--colors-neutral-s25))]",
     },
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) .node-cover.node-border":
     {
       borderColor:
-        "[color-mix(in srgb, var(--node-border) 40%, var(--colors-neutral-s25))]",
+        "[color-mix(in srgb, var(--node-border) 25%, var(--colors-neutral-s25))]",
     },
   // The outline of a node an arc is being drawn onto. Its handle names the
   // colour, and says that the outline is drawn with an attribute that no
@@ -167,18 +167,18 @@ export const paneStyle = css({
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) [data-arc-target]::after":
     {
       outlineColor:
-        "[color-mix(in srgb, var(--node-outline, transparent) 40%, transparent)]",
+        "[color-mix(in srgb, var(--node-outline, transparent) 25%, transparent)]",
     },
   // An icon keeps its colour, and each of its shapes fades by the opacity of
   // its fill and of its stroke. The bolt of a firing is left out: it is drawn
   // for the length of its animation, which fades it.
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) :not(.node-bolt) > svg :is(path, circle, ellipse, rect, line, polyline, polygon)":
     {
-      fillOpacity: "[0.4]",
-      strokeOpacity: "[0.4]",
+      fillOpacity: "[0.25]",
+      strokeOpacity: "[0.25]",
     },
   // A filled icon is a fill under a stroke of the same colour, and both at
-  // 0.4 would show the inner half of the stroke as a darker rim. So its
+  // 0.25 would show the inner half of the stroke as a darker rim. So its
   // stroke goes, and the shape is smaller by half the width of that stroke.
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) :not(.node-bolt) > svg[fill=currentColor] :is(path, circle, ellipse, rect, line, polyline, polygon)":
     {

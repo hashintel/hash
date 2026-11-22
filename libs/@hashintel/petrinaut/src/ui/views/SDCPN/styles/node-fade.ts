@@ -16,14 +16,14 @@
  *
  * | Class          | What it draws                               | While its node is faded                        |
  * | -------------- | ------------------------------------------- | ---------------------------------------------- |
- * | `node-surface` | The card or box: a fill of `--node-fill`    | The fill at 0.4, and the ring of a classic box |
- * | `node-text`    | Text of `--node-text`, or of the colour it  | That colour at 0.4                             |
+ * | `node-surface` | The card or box: a fill of `--node-fill`    | The fill and the ring of a classic box at 0.25 |
+ * | `node-text`    | Text of `--node-text`, or of the colour it  | That colour at 0.25                            |
  * |                | inherits. It holds no element.              |                                                |
- * | `node-fill`    | A background of `--node-fill`               | 0.4                                            |
- * | `node-border`  | A border of `--node-border`, or of the      | 0.4                                            |
+ * | `node-fill`    | A background of `--node-fill`               | 0.25                                           |
+ * | `node-border`  | A border of `--node-border`, or of the      | 0.25                                           |
  * |                | text's colour                               |                                                |
  * | `node-inlay`   | A background nearly its card's own          | Not drawn: the card under it draws that colour |
- * | `node-cover`   | A part that hides what it lies on           | Opaque, mixed 0.4 toward the canvas colour     |
+ * | `node-cover`   | A part that hides what it lies on           | Opaque, mixed 0.25 toward the canvas colour    |
  *
  * An icon needs no class: the pane fades every shape of an `svg` in a faded
  * node by the opacity of its fill and of its stroke. The flash and the bolt
@@ -48,7 +48,7 @@
  */
 
 /** How strongly a faded node draws, of 1. The rules of the pane spell it out. */
-export const fadedNodeStrength = 0.4;
+export const fadedNodeStrength = 0.25;
 
 /** Matches every element inside a node that is faded now. */
 export const insideFadedNode =

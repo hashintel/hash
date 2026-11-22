@@ -4,7 +4,7 @@ description: How the React Flow renderer draws a node outside the focused neighb
 sidebar_order: 12
 ---
 
-The fade of a node draws a node outside the focused neighbourhood at 0.4 of its strength, with no opacity on the node or on a group inside it. [The canvas](doc:ui.views.canvas/canvas) says which nodes are in the neighbourhood, and [the arc layer](doc:ui.views.canvas.react-flow/arc-layer) fades the arcs.
+The fade of a node draws a node outside the focused neighbourhood at 0.25 of its strength, with no opacity on the node or on a group inside it. [The canvas](doc:ui.views.canvas/canvas) says which nodes are in the neighbourhood, and [the arc layer](doc:ui.views.canvas.react-flow/arc-layer) fades the arcs.
 This page is longer than a guide should be: it lists every place where a faded node is not the picture of a node under an opacity.
 
 ![A node says what it draws with a class per part, the pane holds one rule per class for a node without a role while a focus is active, and a firing asks whether its node is faded](./node-fade.d2)
@@ -17,15 +17,15 @@ This page is longer than a guide should be: it lists every place where a faded n
 
 A node says what it draws with these classes, which `styles/node-fade.ts` names:
 
-| What a node draws                          | Class          | While the node is faded                                             |
-| ------------------------------------------ | -------------- | ------------------------------------------------------------------- |
-| The card or box                            | `node-surface` | Its fill, `--node-fill`, at 0.4, the ring of a classic box at 0.4   |
-| Text                                       | `node-text`    | Its colour at 0.4: `--node-text`, or the colour it inherits         |
-| A background of its own                    | `node-fill`    | `--node-fill` at 0.4                                                |
-| A border                                   | `node-border`  | `--node-border` at 0.4                                              |
-| A background nearly the colour of the card | `node-inlay`   | Not drawn                                                           |
-| A token count, the pin of a port           | `node-cover`   | Opaque, mixed 0.4 toward the colour of the canvas                   |
-| The shapes of an icon                      | none           | `fill-opacity` and `stroke-opacity` 0.4, no stroke on a filled icon |
+| What a node draws                          | Class          | While the node is faded                                              |
+| ------------------------------------------ | -------------- | -------------------------------------------------------------------- |
+| The card or box                            | `node-surface` | Its fill, `--node-fill`, at 0.25, the ring of a classic box at 0.25  |
+| Text                                       | `node-text`    | Its colour at 0.25: `--node-text`, or the colour it inherits         |
+| A background of its own                    | `node-fill`    | `--node-fill` at 0.25                                                |
+| A border                                   | `node-border`  | `--node-border` at 0.25                                              |
+| A background nearly the colour of the card | `node-inlay`   | Not drawn                                                            |
+| A token count, the pin of a port           | `node-cover`   | Opaque, mixed 0.25 toward the colour of the canvas                   |
+| The shapes of an icon                      | none           | `fill-opacity` and `stroke-opacity` 0.25, no stroke on a filled icon |
 
 `node-folds` marks a part that times its own changes, and the pane gives it no transition. `node-bolt` marks the bolt of a firing, which the rule for icons leaves alone. `data-arc-target` is on the handle of a node while the outline of an arc's target is drawn around it.
 
@@ -33,7 +33,7 @@ A node says what it draws with these classes, which `styles/node-fade.ts` names:
 
 1. A hover rests on an item, or the selection changes. The scene _says whether a focus is active_ and _gives a node with a role its class_. React renders the nodes whose role changed and no other.
 2. `ReactFlowCanvas` _sets the attribute_ on the pane. The browser restyles what a rule of the pane ends in: each part by its class, and each shape of an icon.
-3. Each rule _draws_ its part _at 0.4 by its own colour_. Each part runs a transition of that colour over `--canvas-focus-duration`, on the main thread.
+3. Each rule _draws_ its part _at 0.25 by its own colour_. Each part runs a transition of that colour over `--canvas-focus-duration`, on the main thread.
 4. A transition that fires _asks whether its node is faded_ and _flashes as faded as the node_.
 
 ## Rules
@@ -61,8 +61,8 @@ A faded node is not the picture of a node under an opacity in these places.
 
 At rest, while it is faded:
 
-- A part that lies on the fill of its node lets 36% of what is behind the node through, where the whole node let 60% through: its text, the glyph of a classic transition and the disc of a badge. It shows where an arc passes behind a faded node.
-- Such a part is also darker and takes the tint of the fill, by 0.24 of the difference between the canvas and the fill in each channel. On the green of a place of the Supply Chain example a label is 35 of 255 darker in one channel.
+- A part that lies on the fill of its node lets 56% of what is behind the node through, where the whole node would let 75% through: its text, the glyph of a classic transition and the disc of a badge. It shows where an arc passes behind a faded node.
+- Such a part is also darker and takes the tint of the fill, by 0.19 of the difference between the canvas and the fill in each channel. On the green of a place of the Supply Chain example a label is 27 of 255 darker in one channel.
 - A token count and a pin hide what is behind them.
 - A filled icon is smaller by half the width of its stroke, and the corners of the transition's square are sharp.
 - A faded node has no elevation, and none more under the pointer.

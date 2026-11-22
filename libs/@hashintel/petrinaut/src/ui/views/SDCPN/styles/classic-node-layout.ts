@@ -16,7 +16,7 @@ const OUTLINE_WIDTH = "1.5px";
 export const classicNodeBoxStyle = css({
   // currentColor inside color-mix can become transparent during shadow interpolation.
   "--node-outline-ring": `0 0 0 ${OUTLINE_WIDTH} color-mix(in oklab, var(--node-outline-color, var(--colors-neutral-s120)) 75%, var(--colors-neutral-s70))`,
-  "--node-faded-outline-ring": `0 0 0 ${OUTLINE_WIDTH} color-mix(in srgb, color-mix(in oklab, var(--node-outline-color, var(--colors-neutral-s120)) 75%, var(--colors-neutral-s70)) 40%, transparent)`,
+  "--node-faded-outline-ring": `0 0 0 ${OUTLINE_WIDTH} color-mix(in srgb, color-mix(in oklab, var(--node-outline-color, var(--colors-neutral-s120)) 75%, var(--colors-neutral-s70)) 25%, transparent)`,
   "--node-elevation": "0px 2px 9px rgba(0, 0, 0, 0.04)",
   _hover: {
     "--node-elevation": "0px 4px 11px rgba(0, 0, 0, 0.1)",
