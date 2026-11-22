@@ -251,6 +251,27 @@ describe("the focus", () => {
     rerender(scene);
     expect(result.current.elements.focusDrawn).toBe(false);
   });
+
+  it("reads the role of a node React Flow holds, and not the classes of its element", () => {
+    const { result } = renderHook(
+      (input: CanvasScene) => ({
+        elements: useReactFlowElements(input),
+        store: useStoreApi(),
+      }),
+      { initialProps: focusOn("place") },
+    );
+
+    act(() =>
+      result.current.store.getState().setNodes(
+        result.current.elements.nodes.map((node) => ({
+          ...node,
+          className: `${node.className ?? ""} another`,
+        })),
+      ),
+    );
+
+    expect(result.current.elements.focusDrawn).toBe(true);
+  });
 });
 
 describe("inside React Flow", () => {

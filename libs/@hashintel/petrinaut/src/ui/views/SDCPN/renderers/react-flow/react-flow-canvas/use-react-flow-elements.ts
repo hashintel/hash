@@ -127,7 +127,7 @@ const useFocusDrawn = (scene: CanvasScene): boolean =>
   useStore(
     (state) =>
       scene.focusActive &&
-      state.nodes.some((node) => node.className === focusRoleClass),
+      (state.nodes as NodeType[]).some((node) => node.data.focus !== "none"),
   );
 
 const toReactFlowElements = (
