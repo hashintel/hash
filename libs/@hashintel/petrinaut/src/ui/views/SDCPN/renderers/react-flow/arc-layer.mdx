@@ -89,7 +89,7 @@ When the focus ends, the merged paths take the fade to come back from 0.45, and 
 
 The tests in `arc-own-strokes.test.tsx`, `arc-run-strokes.test.tsx`, `use-arcs-leaving-focus.test.ts` and `fusion-edge.test.tsx` hold the classes and their parents, that a standard arc has no group that fades, and how long an arc keeps its own strokes. No test reads the rules of the arcs in `paneStyle`.
 
-A mark that lies on its line can only fade with it as one group: the ticks and the circle of an inhibitor arc, the dot of a read arc and the knot of a fusion link. Those groups carry `arc-strokes` and keep an opacity, so each costs a buffer. For a read or an inhibitor arc it is the `arc-own` group itself. The line of a fusion link is outside its group and fades by its stroke under a class of its own, `fusion-line`: it has no head to stop short of, so it keeps its own dashes. A node has no opacity either: [The canvas](doc:ui.views.canvas/canvas) says how each thing a node draws fades by its own colour.
+A mark that lies on its line can only fade with it as one group: the ticks and the circle of an inhibitor arc, the dot of a read arc and the knot of a fusion link. Those groups carry `arc-strokes` and keep an opacity, so each costs a buffer. For a read or an inhibitor arc it is the `arc-own` group itself. The line of a fusion link is outside its group and fades by its stroke under a class of its own, `fusion-line`: it has no head to stop short of, so it keeps its own dashes. A node has no opacity either: [The fade of a node](doc:ui.views.canvas.react-flow/node-fade) says how each thing a node draws fades by its own colour.
 
 ## Pitfalls
 

@@ -1,0 +1,35 @@
+# Hand-written; rendered by the arch-docs build. React components and hooks
+# use the purple palette, stores the blue one, the page the white one.
+direction: down
+
+vars: {
+  d2-legend: {
+    a -> b: passes data or calls
+    a -> b: applies a style {style.stroke-dash: 3}
+    a.style.opacity: 0
+    b.style.opacity: 0
+  }
+}
+
+scene: "Canvas scene\nfocusActive, a role per node" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+canvas: "ReactFlowCanvas" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+node: "A node component\nplace, transition, instance" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+firing: "useTransitionFiringAnimation" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+names: "node-fade.ts\nthe classes and the strength" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+pane: "The pane\ndata-focus-active" {style.fill: "#ffffff"; style.stroke: "#6b6b6b"}
+wrapper: "React Flow's node\ncanvas-focus-role" {style.fill: "#ffffff"; style.stroke: "#6b6b6b"}
+parts: "The parts of the node\nsurface, text, fill, border, cover" {style.fill: "#ffffff"; style.stroke: "#6b6b6b"}
+glyph: "The shapes of an icon" {style.fill: "#ffffff"; style.stroke: "#6b6b6b"}
+rules: "paneStyle\nthe rules of a faded node" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+
+scene -> canvas: "says whether a focus is active"
+canvas -> pane: "sets the attribute"
+scene -> wrapper: "gives a node with a role its class"
+names -> node: "names the class of each part"
+node -> parts: "renders with their classes"
+node -> glyph: "renders"
+names -> rules: "names what the rules find"
+rules -> parts: "draws at 0.4 by its own colour" {style.stroke-dash: 3}
+rules -> glyph: "draws at 0.4 by fill and stroke" {style.stroke-dash: 3}
+firing -> wrapper: "asks whether its node is faded"
+firing -> parts: "flashes as faded as the node" {style.stroke-dash: 3}
