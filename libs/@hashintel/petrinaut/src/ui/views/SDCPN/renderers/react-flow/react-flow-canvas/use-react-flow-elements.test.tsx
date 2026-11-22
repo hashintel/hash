@@ -8,7 +8,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { arcHeadOf } from "./arc-head";
-import { getOutlineArcPath } from "./shared/outline-arcs";
+import { getOutlineArcCurve } from "./shared/outline-arcs";
 import { useReactFlowElements } from "./use-react-flow-elements";
 
 import type { CanvasArc, CanvasNode, CanvasScene } from "../../../canvas-scene";
@@ -188,12 +188,14 @@ describe("arc rendering", () => {
       if (!data?.sourceOutline || !data.targetOutline) {
         throw new Error("an arc between nodes should carry both outlines");
       }
-      const [path] = getOutlineArcPath(data.sourceOutline, data.targetOutline);
-      const endpoint = path.split(" ").at(-1)?.split(",").map(Number);
-      expect(endpoint?.[0]).toBeCloseTo(
+      const { end } = getOutlineArcCurve(
+        data.sourceOutline,
+        data.targetOutline,
+      );
+      expect(end.x).toBeCloseTo(
         transitionPosition.x - transitionSize.width / 2,
       );
-      expect(endpoint?.[1]).toBeCloseTo(
+      expect(end.y).toBeCloseTo(
         transitionPosition.y - transitionSize.height / 2,
       );
     },

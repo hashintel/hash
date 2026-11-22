@@ -2,14 +2,12 @@ import { Position } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 
 import {
+  curvePath,
   fixedEndpoint,
-  getOutlineArcPath,
+  getOutlineArcCurve,
   getOutlineAttachment,
   type OutlineNode,
 } from "./outline-arcs";
-
-const numbersOf = (path: string) =>
-  [...path.matchAll(/-?\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
 
 const circle: OutlineNode = {
   position: { x: 40, y: 60 },
@@ -67,127 +65,86 @@ describe("outline attachments", () => {
   });
 });
 
-describe("outline arc paths", () => {
+describe("outline arc curves", () => {
   const source = { ...circle, position: { x: 0, y: 0 } };
   const target = { ...circle, position: { x: 300, y: 0 } };
 
-  it("places the label halfway along a symmetric connection", () => {
-    const [path, labelX, labelY] = getOutlineArcPath(source, target);
-    expect(path).toMatch(/^M 50,0 C /);
-    expect(path).toMatch(/ 250,0$/);
-    expect(labelX).toBe(150);
-    expect(labelY).toBe(0);
-  });
-
-  it("measures a straight connection as the distance between its ends", () => {
-    const [, , , length] = getOutlineArcPath(source, target);
-    expect(length).toBeCloseTo(200);
-  });
-
-  it("measures a bent connection to within a hundredth", () => {
-    // Leaves along x and arrives along y, a quarter turn.
-    const [path, , , length] = getOutlineArcPath(
-      fixedEndpoint(0, 0, Position.Right),
-      fixedEndpoint(100, 100, Position.Top),
-    );
-    const [x0 = 0, y0 = 0, x1 = 0, y1 = 0, x2 = 0, y2 = 0, x3 = 0, y3 = 0] =
-      numbersOf(path);
-    const pointAt = (along: number) => {
-      const back = 1 - along;
-      return {
-        x:
-          back ** 3 * x0 +
-          3 * back ** 2 * along * x1 +
-          3 * back * along ** 2 * x2 +
-          along ** 3 * x3,
-        y:
-          back ** 3 * y0 +
-          3 * back ** 2 * along * y1 +
-          3 * back * along ** 2 * y2 +
-          along ** 3 * y3,
-      };
-    };
-    // The same curve in two thousand steps.
-    let fine = 0;
-    for (let step = 1; step <= 2000; step++) {
-      const from = pointAt((step - 1) / 2000);
-      const to = pointAt(step / 2000);
-      fine += Math.hypot(to.x - from.x, to.y - from.y);
-    }
-
-    expect(fine).toBeGreaterThan(Math.hypot(100, 100));
-    expect(Math.abs(length - fine) / fine).toBeLessThan(0.01);
+  it("runs from the outline of the source to the outline of the target", () => {
+    const { start, end } = getOutlineArcCurve(source, target);
+    expect(start).toEqual({ x: 50, y: 0 });
+    expect(end).toEqual({ x: 250, y: 0 });
   });
 
   it("separates both directions onto opposite sides", () => {
-    const [forward, forwardX, forwardY] = getOutlineArcPath(
-      source,
-      target,
-      true,
-    );
-    const [reverse, reverseX, reverseY] = getOutlineArcPath(
-      target,
-      source,
-      true,
-    );
-    expect(forward).not.toBe(reverse);
-    expect(forwardX).toBeCloseTo(reverseX);
-    expect(forwardY).toBeGreaterThan(0);
-    expect(reverseY).toBeCloseTo(-forwardY);
+    const forward = getOutlineArcCurve(source, target, true);
+    const reverse = getOutlineArcCurve(target, source, true);
+    expect(forward.start.y).toBeGreaterThan(0);
+    expect(forward.end.y).toBeGreaterThan(0);
+    expect(reverse.end.x).toBeCloseTo(forward.start.x);
+    expect(reverse.end.y).toBeCloseTo(-forward.start.y);
+    expect(reverse.start.y).toBeCloseTo(-forward.end.y);
   });
 
   it("ends an unsnapped preview at the pointer", () => {
-    const [path] = getOutlineArcPath(source, fixedEndpoint(75, 200));
-    expect(path).toMatch(/ 75,200$/);
+    const { end } = getOutlineArcCurve(source, fixedEndpoint(75, 200));
+    expect(end).toEqual({ x: 75, y: 200 });
   });
 
   it("leaves a component port along the side its handle sits on", () => {
-    const [path] = getOutlineArcPath(
+    const { start, firstControl } = getOutlineArcCurve(
       fixedEndpoint(-200, 100, Position.Right),
       target,
     );
-    const [, firstX, firstY] =
-      path.match(/^M -200,100 C ([-\d.]+),([-\d.]+) /) ?? [];
-    expect(Number(firstX)).toBeGreaterThan(-200);
-    expect(Number(firstY)).toBe(100);
+    expect(start).toEqual({ x: -200, y: 100 });
+    expect(firstControl.x).toBeGreaterThan(-200);
+    expect(firstControl.y).toBe(100);
   });
 
   it("arrives at a component port from the side its handle sits on", () => {
-    const [path] = getOutlineArcPath(
+    const { lastControl, end } = getOutlineArcCurve(
       source,
       fixedEndpoint(300, 100, Position.Left),
     );
-    const lastControlX = Number(path.match(/ ([-\d.]+),[-\d.]+ 300,100$/)?.[1]);
-    expect(lastControlX).toBeLessThan(300);
+    expect(end).toEqual({ x: 300, y: 100 });
+    expect(lastControl.x).toBeLessThan(300);
   });
 
   it("separates arcs into and out of one component at the transition", () => {
     const transition = { ...circle, width: 160, height: 80, cornerRadius: 0 };
-    const startY = (path: string) => numbersOf(path)[1] ?? Number.NaN;
-    const endY = (path: string) => numbersOf(path).at(-1) ?? Number.NaN;
     const intoPort = fixedEndpoint(400, 110, Position.Left);
     const outOfPort = fixedEndpoint(600, 110, Position.Right);
 
-    const [together] = getOutlineArcPath(transition, intoPort);
-    const [back] = getOutlineArcPath(outOfPort, transition);
-    expect(Math.abs(startY(together) - endY(back))).toBeLessThan(10);
+    const together = getOutlineArcCurve(transition, intoPort);
+    const back = getOutlineArcCurve(outOfPort, transition);
+    expect(Math.abs(together.start.y - back.end.y)).toBeLessThan(10);
 
-    const [into] = getOutlineArcPath(transition, intoPort, true);
-    const [outOf] = getOutlineArcPath(outOfPort, transition, true);
-    expect(Math.abs(startY(into) - endY(outOf))).toBeGreaterThan(30);
+    const into = getOutlineArcCurve(transition, intoPort, true);
+    const outOf = getOutlineArcCurve(outOfPort, transition, true);
+    expect(Math.abs(into.start.y - outOf.end.y)).toBeGreaterThan(30);
   });
 
   it.each([0, 1, 50, 100])(
     "stays finite with %s pixels between centers",
     (distance) => {
-      const result = getOutlineArcPath(
+      const curve = getOutlineArcCurve(
         source,
         { ...target, position: { x: distance, y: 0 } },
         true,
       );
-      expect(result[0]).not.toMatch(/NaN|Infinity/);
-      expect(Number.isFinite(result[1])).toBe(true);
-      expect(Number.isFinite(result[2])).toBe(true);
+      expect(curvePath(curve)).not.toMatch(/NaN|Infinity/);
     },
   );
+});
+
+describe("path data", () => {
+  it("writes a curve to a hundredth of a unit", () => {
+    expect(
+      curvePath({
+        start: { x: 0.004, y: 1 / 3 },
+        firstControl: { x: 10, y: -20.129 },
+        lastControl: { x: 30.5, y: 40 },
+        end: { x: 50, y: 60 },
+      }),
+    ).toBe("M0,0.33C10,-20.13 30.5,40 50,60");
+  });
 });

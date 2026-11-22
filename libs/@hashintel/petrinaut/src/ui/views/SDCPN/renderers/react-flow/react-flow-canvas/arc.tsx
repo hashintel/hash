@@ -7,9 +7,10 @@ import { useTransitionFrame } from "../../../canvas-frame-store-context";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import { arcHaloColor } from "../../../styles/focus";
 import { ARC_HEAD_LENGTH, ARC_STROKE_WIDTH } from "./arc-head";
+import { arcGeometry } from "./arc-layer/arc-geometry";
 import { firingIsVisible } from "./firing-animation-visibility";
 import { EdgeUnderlay } from "./shared/edge-underlay";
-import { fixedEndpoint, getOutlineArcPath } from "./shared/outline-arcs";
+import { curvePath, fixedEndpoint } from "./shared/outline-arcs";
 
 import type { ArcData, ArcEdgeType } from "./react-flow-types";
 
@@ -255,11 +256,14 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
 
   // An end at a component port has no outline: it starts at the port's handle
   // and leaves along the side the handle sits on, as the arc's preview did.
-  const [arcPath, labelX, labelY, arcLength] = getOutlineArcPath(
+  const geometry = arcGeometry(
     data?.sourceOutline ?? fixedEndpoint(sourceX, sourceY, sourcePosition),
     data?.targetOutline ?? fixedEndpoint(targetX, targetY, targetPosition),
-    data?.hasReverseArc,
+    data?.hasReverseArc ?? false,
   );
+  const arcPath = curvePath(geometry.curve);
+  const { x: labelX, y: labelY } = geometry.label;
+  const arcLength = geometry.length;
 
   const strokeColor = style?.stroke ?? "#b1b1b7";
   const arcType = data?.kind;

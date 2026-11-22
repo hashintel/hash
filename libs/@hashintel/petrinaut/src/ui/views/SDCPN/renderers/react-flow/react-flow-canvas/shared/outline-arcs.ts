@@ -9,15 +9,18 @@ export type OutlineNode = {
 };
 
 /** Where an arc meets an endpoint, and the direction it leaves in. */
-type FixedEndpoint = { point: CanvasPoint; normal: CanvasPoint };
+export type FixedEndpoint = { point: CanvasPoint; normal: CanvasPoint };
 
-type OutlineArcPath = [
-  path: string,
-  labelX: number,
-  labelY: number,
-  /** How long the curve is, to within a hundredth of it. */
-  length: number,
-];
+/** What an arc ends at: the outline of a node, or a point. */
+export type ArcEnd = OutlineNode | FixedEndpoint;
+
+/** The cubic curve an arc follows, as its four points. */
+export type ArcCurve = {
+  start: CanvasPoint;
+  firstControl: CanvasPoint;
+  lastControl: CanvasPoint;
+  end: CanvasPoint;
+};
 
 // Keyed by React Flow's side names, so this module needs only its types.
 const sideNormals: Record<`${Position}`, CanvasPoint> = {
@@ -110,61 +113,24 @@ export const getOutlineAttachment = (
   };
 };
 
-const attach = (
-  endpoint: OutlineNode | FixedEndpoint,
-  direction: CanvasPoint,
-): FixedEndpoint =>
+const attach = (endpoint: ArcEnd, direction: CanvasPoint): FixedEndpoint =>
   "position" in endpoint ? getOutlineAttachment(endpoint, direction) : endpoint;
 
-const centerOf = (endpoint: OutlineNode | FixedEndpoint): CanvasPoint =>
+const centerOf = (endpoint: ArcEnd): CanvasPoint =>
   "position" in endpoint ? endpoint.position : endpoint.point;
 
-const LENGTH_STEPS = 24;
-
 /**
- * The length of a cubic curve, as the chords of equal steps along it. Near
- * enough to say what share of the curve a few pixels are, which is what the
- * canvas asks of it. Every arc is measured on every render of it, so the
- * loop keeps its points in numbers and allocates nothing.
+ * The curve of an arc between two ends. It leaves an outline where the line
+ * between the two centres crosses it, along the outline's normal there, and
+ * a fixed end along that end's own normal. An arc that has one running the
+ * other way between the same two nodes takes a lane to one side, so the two
+ * do not lie on each other.
  */
-const cubicLength = (
-  start: CanvasPoint,
-  firstControl: CanvasPoint,
-  lastControl: CanvasPoint,
-  end: CanvasPoint,
-): number => {
-  let length = 0;
-  let previousX = start.x;
-  let previousY = start.y;
-  for (let step = 1; step <= LENGTH_STEPS; step++) {
-    const along = step / LENGTH_STEPS;
-    const back = 1 - along;
-    const startShare = back ** 3;
-    const firstShare = 3 * back ** 2 * along;
-    const lastShare = 3 * back * along ** 2;
-    const endShare = along ** 3;
-    const x =
-      startShare * start.x +
-      firstShare * firstControl.x +
-      lastShare * lastControl.x +
-      endShare * end.x;
-    const y =
-      startShare * start.y +
-      firstShare * firstControl.y +
-      lastShare * lastControl.y +
-      endShare * end.y;
-    length += Math.hypot(x - previousX, y - previousY);
-    previousX = x;
-    previousY = y;
-  }
-  return length;
-};
-
-export const getOutlineArcPath = (
-  source: OutlineNode | FixedEndpoint,
-  target: OutlineNode | FixedEndpoint,
+export const getOutlineArcCurve = (
+  source: ArcEnd,
+  target: ArcEnd,
   hasReverseArc = false,
-): OutlineArcPath => {
+): ArcCurve => {
   const sourceCenter = centerOf(source);
   const targetCenter = centerOf(target);
   const direction = {
@@ -189,18 +155,35 @@ export const getOutlineArcPath = (
     80,
     Math.hypot(end.x - start.x, end.y - start.y) * 0.35,
   );
-  const firstControl = {
-    x: start.x + sourceAttachment.normal.x * controlDistance,
-    y: start.y + sourceAttachment.normal.y * controlDistance,
+  return {
+    start,
+    firstControl: {
+      x: start.x + sourceAttachment.normal.x * controlDistance,
+      y: start.y + sourceAttachment.normal.y * controlDistance,
+    },
+    lastControl: {
+      x: end.x + targetAttachment.normal.x * controlDistance,
+      y: end.y + targetAttachment.normal.y * controlDistance,
+    },
+    end,
   };
-  const lastControl = {
-    x: end.x + targetAttachment.normal.x * controlDistance,
-    y: end.y + targetAttachment.normal.y * controlDistance,
-  };
-  return [
-    `M ${start.x},${start.y} C ${firstControl.x},${firstControl.y} ${lastControl.x},${lastControl.y} ${end.x},${end.y}`,
-    (start.x + 3 * firstControl.x + 3 * lastControl.x + end.x) / 8,
-    (start.y + 3 * firstControl.y + 3 * lastControl.y + end.y) / 8,
-    cubicLength(start, firstControl, lastControl, end),
-  ];
 };
+
+/**
+ * A number of path data to a hundredth of a unit. A net's arcs are written
+ * out together, and the digits past that are most of what they would write.
+ */
+const rounded = (value: number): number => Math.round(value * 100) / 100;
+
+/** A point as path data. */
+export const pathPoint = ({ x, y }: CanvasPoint): string =>
+  `${rounded(x)},${rounded(y)}`;
+
+/** A curve as path data. */
+export const curvePath = ({
+  start,
+  firstControl,
+  lastControl,
+  end,
+}: ArcCurve): string =>
+  `M${pathPoint(start)}C${pathPoint(firstControl)} ${pathPoint(lastControl)} ${pathPoint(end)}`;

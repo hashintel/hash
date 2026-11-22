@@ -2,8 +2,9 @@ import { useStore, type ConnectionLineComponent } from "@xyflow/react";
 import { useId } from "react";
 
 import {
+  curvePath,
   fixedEndpoint,
-  getOutlineArcPath,
+  getOutlineArcCurve,
   getOutlineNode,
 } from "./shared/outline-arcs";
 
@@ -37,10 +38,13 @@ export const OutlineConnectionLine: ConnectionLineComponent<NodeType> = ({
   const sourceOutline = getOutlineNode(fromNode.data);
   const snapped = connectionStatus === "valid" && toNode !== null;
   const targetOutline = snapped ? getOutlineNode(toNode.data) : null;
-  const [path] = getOutlineArcPath(
-    sourceOutline ?? fixedEndpoint(fromX, fromY, fromPosition),
-    targetOutline ?? fixedEndpoint(toX, toY, snapped ? toPosition : undefined),
-    snapped && hasReverseArc,
+  const path = curvePath(
+    getOutlineArcCurve(
+      sourceOutline ?? fixedEndpoint(fromX, fromY, fromPosition),
+      targetOutline ??
+        fixedEndpoint(toX, toY, snapped ? toPosition : undefined),
+      snapped && hasReverseArc,
+    ),
   );
   return (
     <>
