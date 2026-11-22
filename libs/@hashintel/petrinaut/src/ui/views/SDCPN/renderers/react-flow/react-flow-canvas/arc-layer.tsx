@@ -5,7 +5,7 @@ import { useAnimationsEnabled } from "../../../../shared/use-animations-enabled"
 import { useArcLayerInput } from "./arc-layer-context";
 import { ArcItem } from "./arc-layer/arc-item";
 import { ArcRunStrokes } from "./arc-layer/arc-run-strokes";
-import { arcsPerRun } from "./arc-layer/arc-runs";
+import { pulseHolderOf } from "./arc-layer/pulse-holder";
 import { useArcGestures } from "./arc-layer/use-arc-gestures";
 import { useArcLayerModel } from "./arc-layer/use-arc-layer-model";
 import { usePortEnds } from "./arc-layer/use-port-ends";
@@ -39,24 +39,13 @@ export const ArcLayer: React.FC = () => {
 
   // The pulses are drawn outside React, on a firing: they are told which
   // arcs are on the page once the page has them, and where each one's pulse
-  // goes. That is in the arc's run, under the arc's line: among the arc's
-  // own strokes when it draws them, and under the merged ones otherwise.
+  // goes.
   useLayoutEffect(() => {
     arcPulses.show({
       arcs: shapes,
       holderOf: (index) => {
         const shape = shapes[index];
-        const run = runsRef.current?.children[Math.floor(index / arcsPerRun)];
-        if (!shape || !run) {
-          return null;
-        }
-        if (!shape.alone) {
-          return run.firstElementChild;
-        }
-        const own = Array.from(run.children).find(
-          (child) => child.getAttribute("data-arc") === shape.id,
-        );
-        return own?.querySelector(".arc-pulses") ?? null;
+        return shape ? pulseHolderOf(runsRef.current, shape, index) : null;
       },
       viewport: () => store.getState(),
     });
