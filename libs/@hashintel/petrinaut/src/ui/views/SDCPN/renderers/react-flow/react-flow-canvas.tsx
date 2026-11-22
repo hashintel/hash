@@ -46,15 +46,15 @@ import {
   ArcPulsesContext,
   createArcPulses,
 } from "./react-flow-canvas/arc-pulses";
-import { ClassicPlaceNode } from "./react-flow-canvas/classic-place-node";
-import { ClassicTransitionNode } from "./react-flow-canvas/classic-transition-node";
-import { ComponentInstanceNode } from "./react-flow-canvas/component-instance-node";
 import { FusionEdge } from "./react-flow-canvas/fusion-edge";
 import { LinkRewiringContext } from "./react-flow-canvas/link-rewiring-context";
 import { MiniMap } from "./react-flow-canvas/mini-map";
+import {
+  classicNodeTypes,
+  compactNodeTypes,
+} from "./react-flow-canvas/node-types";
 import { OutlineConnectionLine } from "./react-flow-canvas/outline-connection-line";
 import { paneStyle } from "./react-flow-canvas/pane-style";
-import { PlaceNode } from "./react-flow-canvas/place-node";
 import { toCanvasConnection } from "./react-flow-canvas/port-handles";
 import { fusionItemOf } from "./react-flow-canvas/react-flow-types";
 import {
@@ -63,7 +63,6 @@ import {
   useMultiSelectionModifier,
   useSelectionKeyRelease,
 } from "./react-flow-canvas/selection-keys";
-import { TransitionNode } from "./react-flow-canvas/transition-node";
 import { useApplyNodeChanges } from "./react-flow-canvas/use-apply-node-changes";
 import { useEscapeCancelsConnection } from "./react-flow-canvas/use-escape-cancels-connection";
 import { useLinkRewiring } from "./react-flow-canvas/use-link-rewiring";
@@ -73,18 +72,6 @@ import { useReactFlowElements } from "./react-flow-canvas/use-react-flow-element
 import { useReadOnlyNodeDrag } from "./react-flow-canvas/use-read-only-node-drag";
 
 import type { Connection } from "@xyflow/react";
-
-const COMPACT_NODE_TYPES = {
-  place: PlaceNode,
-  transition: TransitionNode,
-  componentInstance: ComponentInstanceNode,
-};
-
-const CLASSIC_NODE_TYPES = {
-  place: ClassicPlaceNode,
-  transition: ClassicTransitionNode,
-  componentInstance: ComponentInstanceNode,
-};
 
 const REACTFLOW_EDGE_TYPES = {
   arcs: ArcLayer,
@@ -110,7 +97,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   const globalMode = useEditorState((editor) => editor.globalMode);
   const { savedViewport, rememberViewport } = use(CanvasViewportContext);
   const isActualMode = globalMode === "actual";
-  const nodeTypes = compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES;
+  const nodeTypes = compactNodes ? compactNodeTypes : classicNodeTypes;
 
   // Each action apart: a closure over `interactions` would be new whenever a
   // mode changes, and React Flow renders every node and arc for a new handler.

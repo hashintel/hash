@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { insideFadedNode } from "../../../styles/node-fade";
+import {
+  canvasColor,
+  fadedCoverColor,
+  fadedNodeStrength,
+  insideFadedNode,
+} from "../../../styles/node-fade";
 import { paneStyle } from "./pane-style";
 
 /**
@@ -56,6 +61,63 @@ describe("the fade of a node", () => {
       );
 
     expect(inherited.map(({ name }) => name)).toEqual([]);
+  });
+
+  it("draws every part of a faded node at the one strength `node-fade.ts` names", () => {
+    const faded = nodeRules.filter(({ selector }) =>
+      selector.startsWith(fadedNode),
+    );
+    const mixed = faded.filter(({ declaration }) =>
+      declaration.includes("color-mix"),
+    );
+    const shapes = faded.filter(({ declaration }) =>
+      /^(fill-opacity|stk-op)_/.test(declaration),
+    );
+
+    expect(mixed.length).toBeGreaterThan(6);
+    expect(
+      mixed
+        .filter(
+          ({ declaration }) =>
+            !declaration.includes(`_${fadedNodeStrength * 100}%,`),
+        )
+        .map(({ name }) => name),
+    ).toEqual([]);
+    expect(shapes.length).toBeGreaterThan(1);
+    // A shape is drawn at that strength, or not at all.
+    expect(
+      shapes
+        .map(({ declaration }) => declaration.replace(/^.*_/, ""))
+        .filter(
+          (value) => value !== `[${fadedNodeStrength}]` && value !== "[0]",
+        ),
+    ).toEqual([]);
+  });
+
+  it("mixes a cover toward the colour of the canvas, as the flash of a firing does", () => {
+    const covers = nodeRules.filter(({ selector }) =>
+      selector.includes(".node-cover"),
+    );
+
+    expect(covers.length).toBeGreaterThan(2);
+    expect(
+      covers
+        .filter(
+          ({ declaration }) => !declaration.endsWith(`,_${canvasColor})]`),
+        )
+        .map(({ name }) => name),
+    ).toEqual([]);
+    expect(fadedCoverColor("black")).toBe(
+      `color-mix(in srgb, black ${fadedNodeStrength * 100}%, ${canvasColor})`,
+    );
+  });
+
+  it("ends no rule in a class that every handle of every node has", () => {
+    const onHandles = rules.filter(({ selector }) =>
+      /react-flow__handle|\.source|\.target/.test(selector),
+    );
+
+    expect(onHandles.map(({ name }) => name)).toEqual([]);
   });
 
   it("finds the parts of a faded node by the classes `node-fade.ts` names", () => {
