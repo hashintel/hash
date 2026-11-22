@@ -280,8 +280,8 @@ During the half-second zoom of the table, the GPU process waited 1,244 ms on
 its queue, and now waits 225 ms. After a zoom and a pan over a node it holds
 218 MB where it held 386 MB.
 
-The nodes keep their opacity. Without it, the zoom of the table would show 42
-frames a second where it shows 37, and the pan 31 where it shows 27. For the
+The nodes of this build keep their opacity. Without it, the zoom of the table
+would show 42 frames a second where it shows 37, and the pan 31 where it shows 27. The section "A highlight on a net with many nodes" takes it off. For the
 200 ms of the fade each node is a layer of its own. The page then has 951
 layers where it had 2,787, and the compositor holds 27 MB of tiles for them,
 15 MB of which it holds at rest. The tiles of the build before could not be
@@ -506,14 +506,82 @@ grid on the net of 1,742 arcs, 133 of 37,045 points that named the pane name
 an arc, and 88 of the 2,141 on an arc name a later arc. No point that named an
 arc names the pane.
 
+## A highlight on a net with many nodes
+
+A node outside the neighbourhood faded by an opacity on its element, and the
+browser drew each such node into a buffer of its own on every frame. Now each
+thing a faded node draws takes the fade in the alpha of its own colour, and no
+node has a buffer. [The canvas](doc:ui.views.canvas/canvas) has the rules.
+
+The table is for the net of 470 nodes and 1,742 arcs with every node on
+screen, in a window of 1183 by 792 at two device pixels a pixel, with the
+browser rastering on the GPU. "Before" is the editor with the arc layer. A pan
+sends one move every 8 ms for a second. Each value is the median of three
+alternating rounds on the production build, with the least and the greatest
+in brackets. Another process shared the machine: its load was between 2 and
+3.5.
+
+| Measure                                                      |            Before |                   After |
+| ------------------------------------------------------------ | ----------------: | ----------------------: |
+| Pan with nothing selected, frames a second                   |       89 (86..89) |             89 (88..89) |
+| Pan with a node selected, frames a second                    |       43 (43..44) |             84 (83..85) |
+| The same with compact nodes                                  |       16 (16..17) |             44 (43..45) |
+| Rest the pointer on a node, frames in the 320 ms that follow |          8 (8..9) |                6 (6..6) |
+| Leave the node, frames in the 320 ms that follow             |       19 (19..20) |                8 (8..9) |
+| The longest frame of the hover                               |    83 ms (75..92) |       108 ms (108..108) |
+| The longest frame of the leave                               |    74 ms (67..75) |       133 ms (133..135) |
+| Layers 100 ms into the fade                                  |               895 |                     455 |
+| Transitions the hover starts                                 |             1,280 |                   3,119 |
+| Style over the hover and the leave                           | 157 ms (156..162) |       301 ms (288..304) |
+| Main thread over the hover and the leave                     | 841 ms (835..843) | 1,123 ms (1,078..1,131) |
+
+With the opacity of the nodes switched off by an injected rule, the build
+before pans at 83 frames a second (82..85) with a node selected. The fade of
+the nodes now costs a pan nothing that this measures. With compact nodes the
+pan with a node selected is faster than the pan at rest, which shows 22
+frames a second: the elevation of a compact card is a blurred shadow, which is
+what that pan is spent on, and a faded node draws none.
+
+The page has as many elements as it had, 25,955 with a node hovered. In a
+window of 1440 by 1000 at one device pixel a pixel, over five rounds, a zoom
+with a hub selected shows 116 frames a second (115..118) where it showed 112
+(110..114), and the drag of that hub 65 (63..66) where it showed 64 (63..65).
+The frame in which the highlight of the dragged hub arrives takes 183 ms
+(176..185) where it took 125 ms (117..133).
+
+The fade itself costs more. An opacity ran on the compositor, with a layer per
+node for the 200 ms. A colour runs on the main thread: the browser restyles
+and paints each part of each node on every frame of the fade, and the frame
+in which the fade starts restyles about 1,600 elements where it restyled 433. The
+net of 470 nodes shows 6 frames of a fade where it showed 8, and 8 where it
+showed 19 once the pointer has left. With compact nodes, which draw more
+parts, it shows 4 and 6 where it showed 10 and 17. On the Supply Chain
+example of 39 nodes both builds show 39 or 40 frames in those 320 ms, and the
+hover and its leave take 357 ms of the main thread where they took 238 ms.
+
+Chromium draws a net at rest as it drew it: no pixel differs on that net or
+on five small ones, with classic or compact nodes. With a node selected on
+the net of 470 nodes, at zooms 0.18, 0.5 and 1.1, 0.4% to 1.1% of the pixels
+of the canvas differ by more than 6 of 255 with classic nodes, and 0.9% to
+1.9% with compact nodes. Rastering on the CPU gives 0.4% to 1.2% and 0.9% to
+2.1%. The largest difference is between 37 and 98. On small nets, where
+little lies behind a node, 0.01% to 0.13% differ. The differences are where
+an arc passes behind the text or the glyph of a faded node, on the rim of a
+filled icon, and along the edge of a card. Held 100 ms into the fade back,
+0.8% of the pixels of that net differ with classic nodes and 1.7% with
+compact ones. In the WebKit build 2359 that Playwright ships, 0.8% and 1.2%
+differ at zoom 0.5 with a node selected, and none at rest. Firefox was not
+measured.
+
 ## Where the cost is now
 
 - **Selecting a node** still has one frame near 190 ms. Most of what renders
   is the properties panel of the node, and the browser recalculates style for
   about 90 ms.
 - **Style and paint** are most of a hover and a drag. A hover that rests fades
-  every node outside the neighbourhood, and each frame of that fade paints the
-  nodes on screen. Hover paints more than before, 306 ms against 270 ms: the
+  every node outside the neighbourhood, and each frame of that fade restyles
+  and paints the nodes on screen: a node fades by the colours of its parts,
+  on the main thread. Hover paints more than before, 306 ms against 270 ms: the
   browser draws 97 frames of it against 91.
 - **Paint per drawn frame during a drag**, zoomed in, rose from 3.6 ms to
   5.3 ms. The cause is not known.
@@ -543,6 +611,10 @@ Each rule is written, with the test that holds it, in the guide of its layer.
 - No opacity goes on an element that every arc has: an arc fades by the
   opacity of its stroke and of its arrowhead:
   [The arc layer](doc:ui.views.canvas.react-flow/arc-layer).
+- No opacity goes on a node, or on an element inside one that draws more than
+  one thing: each thing a faded node draws fades by the alpha of its own
+  colour, and no rule of that fade changes what an element hands down to the
+  elements inside it: [The canvas](doc:ui.views.canvas/canvas).
 - The arcs at rest are drawn together, an arc that draws the same is the same
   shape, a playback frame renders no arc, and nothing an arc paints takes the
   pointer: [The arc layer](doc:ui.views.canvas.react-flow/arc-layer).

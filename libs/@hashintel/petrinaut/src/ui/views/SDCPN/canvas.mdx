@@ -84,6 +84,41 @@ A release has to count as a move before `releasePointer` hovers the item, or the
 
 **No opacity goes on an element that every arc has.** The browser draws a group with an opacity into a buffer of its own on every frame, and a group per arc is a buffer per arc. [The arc layer](doc:ui.views.canvas.react-flow/arc-layer) has how a faded arc is drawn without one, and the tests that hold it.
 
+**No opacity goes on a node, or on an element inside one that draws more than one thing.** The browser draws such an element into a buffer of its own on every frame of a pan, a zoom or a drag, and a net has one per node. So a node outside the focused neighbourhood draws each of its things at 0.4 by the alpha of that thing's own colour, and what lies behind the node shows through it as it would through an opacity. On a net of 470 nodes with a node selected, a pan showed 43 frames a second with those buffers and shows 84 without them, on a GPU: [Editor performance on a large net](doc:editor-performance) has the numbers. The rules are in `paneStyle`, in `pane-style.ts` of the [React Flow renderer](layer:ui.views.canvas.react-flow), and find what a node draws by class:
+
+| What a node draws                          | Class          | While the node is faded                                             |
+| ------------------------------------------ | -------------- | ------------------------------------------------------------------- |
+| The card or box                            | `node-surface` | Its fill, `--node-fill`, at 0.4, the ring of a classic box at 0.4   |
+| Text                                       | `node-text`    | Its colour at 0.4: `--node-text`, or the colour it inherits         |
+| A background of its own                    | `node-fill`    | `--node-fill` at 0.4                                                |
+| A border                                   | `node-border`  | `--node-border` at 0.4                                              |
+| A background nearly the colour of the card | `node-inlay`   | Not drawn                                                           |
+| A token count, the pin of a port           | `node-cover`   | Opaque, mixed 0.4 toward the colour of the canvas                   |
+| The shapes of an icon                      | none           | `fill-opacity` and `stroke-opacity` 0.4, no stroke on a filled icon |
+
+Where two things of a node lie on each other, two alphas show the lower one through the upper, which an opacity on the node did not. Four parts differ from a plain alpha for that reason:
+
+- The icon box of a transition or of a component instance is an inlay: it is nearly the white of its card, so the card under it draws that colour and the box is left out.
+- The icon box of a compact place lies on the colour of a token type. The fill of a faded place is a gradient with a hole under the box. A gradient does not fade, so the colour under it does, and the gradient goes once the fade back is over.
+- A token count and a pin are covers. Each lies across the border of its node, and a count is white on black. They stay opaque and take the colour they would have over the bare canvas.
+- A filled icon is a fill under a stroke of one colour, and the inner half of the stroke would show as a darker rim. Its stroke goes.
+
+The flash and the bolt of a firing are keyframes that no rule reaches. `useTransitionFiringAnimation` asks whether its node is faded when the firing lands, and the bolt carries `node-bolt` so the rule for icons leaves it alone.
+
+**No rule of that fade changes what an element hands down to the elements inside it.** A custom property or a `color` on a faded node restyles every element of every node. On the net of 470 nodes that added 100 ms of style to a hover and its leave. So a colour a rule has to mix is a custom property its element sets once and never changes, `node-text` goes on the element that holds the text, and the fade of an icon is set on each shape.
+
+A part added to a node carries the class of what it draws, or it stays at full strength in a faded node. `faded-node-parts.test.tsx` renders each kind of node and fails for an element that draws text, a background or a border without its class, and for an opacity between 0 and 1. `pane-style.test.ts` reads the rules: none gives a node or a part an opacity, none changes the node itself, and none sets a custom property, or a `color` outside `node-text`, on a part. The tests in `use-transition-firing-animation.test.tsx` hold the flash. No test draws a faded node: the tests read class names, and the pictures are in [Editor performance on a large net](doc:editor-performance).
+
+A faded node is not the picture of a node under an opacity in these places:
+
+- A part that lies on the fill of its node lets 36% of what is behind the node through, where the whole node let 60% through: its text, the glyph of a classic transition and the disc of a badge. It shows where an arc passes behind a faded node.
+- A token count and a pin hide what is behind them.
+- A filled icon is smaller by half the width of its stroke, 0.9 px on each side at zoom 1.
+- A faded node has no elevation. At 0.4 its shadow darkened the canvas by 4 of 255 at most, and a blurred shadow is what a compact card costs most on every frame of a pan.
+- The hairline of an icon box, the rule under a component's header, the white ring of a port place's pin and an inlay change at the start of a fade. Everything else takes the 200 ms.
+- The border of a compact transition or of a component card takes those 200 ms to darken under the pointer, as the ring of a classic box does: one transition serves the hover and the fade.
+- The fade runs on the main thread, as a transition of each colour, where the opacity of a node ran on the compositor with a layer per node. A small net shows as many frames of it as before. A net of 470 nodes shows fewer: the same page of the performance guide has the frames.
+
 ## Pitfalls
 
 - No custom property is registered for the canvas, by `@property` or by `CSS.registerProperty`. A registered property with a delayed transition could hold an arc's head through the fade back in CSS alone. With any property registered, used or not, Chromium 145 takes 550 to 850 ms to restyle that net for a change of focus, where it takes 77 ms. A registration holds for the whole document, so one made by the page around the editor costs the same. The test in `panda.config.shared.test.ts` holds that the Panda preset makes none. WebKit 26.5, the engine of Safari, also paints the next marker while such a transition waits. A transition on `marker-end` itself makes Chromium paint no head for as long as it runs.
