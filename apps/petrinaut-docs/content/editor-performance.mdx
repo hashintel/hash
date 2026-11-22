@@ -530,11 +530,12 @@ browser rastering on the GPU. They compare three builds:
 
 A pan sends one move every 8 ms for a second. Each value is the median of five
 rounds on the production builds, taken in rotating order, or of three for
-compact nodes and a slowed CPU, with the least and the greatest in brackets.
+the pan and the longest frames of compact nodes and for a slowed CPU, with
+the least and the greatest in brackets.
 Nothing reads the page while a fade runs: a script that asks for the
 animations or the layers in the middle of a fade costs the first build most of
 its frames. Another process shared the machine: its load was between 1.5 and
-4.1.
+5.9.
 
 | Measure                                                         |           Opacity |            Fading parts |               Now |
 | --------------------------------------------------------------- | ----------------: | ----------------------: | ----------------: |
@@ -542,6 +543,7 @@ its frames. Another process shared the machine: its load was between 1.5 and
 | The same with compact nodes                                     |       17 (17..18) |             45 (43..45) |       45 (44..45) |
 | Rest the pointer on a node: frames in the 320 ms that follow    |       20 (20..21) |                7 (7..8) |       29 (28..30) |
 | Of those, in the 200 ms of the fade                             |          8 (8..9) |                3 (3..3) |       15 (13..15) |
+| Frames in the 700 ms after the pointer comes onto the node      |       63 (63..64) |             44 (43..45) |       71 (71..72) |
 | Leave the node: frames in the 320 ms that follow                |       18 (18..20) |                9 (8..9) |       23 (22..24) |
 | Of those, in the 200 ms of the fade                             |       10 (10..11) |                4 (4..5) |       12 (12..13) |
 | The longest frame of the hover                                  |    67 ms (67..76) |        100 ms (92..100) |    83 ms (74..83) |
@@ -550,19 +552,26 @@ its frames. Another process shared the machine: its load was between 1.5 and
 | Style over the hover and the leave                              | 195 ms (191..203) |       292 ms (285..302) | 228 ms (224..231) |
 | Script over the hover and the leave                             |             95 ms |                  157 ms |             82 ms |
 | Main thread over the hover and the leave                        | 902 ms (857..935) | 1,150 ms (1,089..1,235) | 905 ms (885..917) |
-| Compact nodes: frames in the 320 ms after the hover             |       17 (16..18) |                4 (4..4) |       14 (14..15) |
-| Compact nodes: frames in the 320 ms after the leave             |       16 (16..16) |                6 (5..6) |       10 (10..11) |
+| Compact nodes: frames in the 320 ms after the hover             |       18 (17..19) |                2 (2..3) |       13 (12..13) |
+| Compact nodes: frames in the 700 ms after the pointer comes on  |       62 (61..63) |             22 (21..23) |       52 (50..54) |
+| Compact nodes: frames in the 320 ms after the leave             |       15 (15..16) |                4 (3..4) |          8 (7..9) |
 | Compact nodes: the longest frame of the hover                   |    75 ms (67..83) |       175 ms (167..175) |    92 ms (91..92) |
 | Compact nodes: the longest frame of the leave                   |    82 ms (75..84) |       158 ms (158..167) | 109 ms (100..109) |
 | CPU slowed four times: the longest frame of the hover           | 227 ms (225..233) |       407 ms (401..419) | 307 ms (301..309) |
 | CPU slowed four times: the longest frame of the leave           | 252 ms (252..260) |       451 ms (450..452) | 334 ms (334..350) |
+| CPU slowed four times: style over the hover and the leave       | 396 ms (375..403) |       860 ms (851..928) | 594 ms (581..602) |
 | CPU slowed four times: main thread over the hover and the leave |          1,772 ms |                2,725 ms |          1,771 ms |
 
 The 320 ms are counted from the change of the pane's attribute. In the first
 two builds the pane has it a commit before the nodes have their roles, so the
 320 ms hold the frame in which React gives them. Now the pane has it in that
 commit. With the attribute set as early as in the other two builds, a hover
-shows 28 frames (26..29) and a leave 23 (22..24).
+shows 28 frames (26..29) and a leave 23 (22..24). Counted in every build from
+the frame in which the nodes have their roles, a hover shows 24 frames
+(24..25) under an opacity and 10 (10..12) with fading parts, and with compact
+nodes 23 (23..24) and 2 (2..3). The rows of 700 ms start when the pointer
+comes onto the node, which is one moment in all three builds: the highlight
+is on screen about 250 ms into them.
 
 With the opacity of the nodes switched off by an injected rule, the first
 build pans at 83 frames a second (82..85) with a node selected. The fade of
@@ -679,7 +688,8 @@ node outside the neighbourhood is dimmed in the first frame, and at full
 strength again in the first frame after the focus ends. On the Supply Chain
 example at zoom 1.0, held 50 ms after a hover lands, 2.3% of the pixels of the
 canvas differ by more than 6 of 255 from the build with fading parts, with
-classic nodes. Held 100 ms after it, 1.8% differ, and from 200 ms on none
+classic nodes. Held 100 ms after it, 1.8% or 3.1% differ, depending on which
+frame of the build with fading parts is caught, and from 200 ms on none
 does. With a node selected, no pixel differs between those two builds on
 that example, on the net of 470 nodes, or on a net of component instances.
 
@@ -694,8 +704,9 @@ that example, on the net of 470 nodes, or on a net of component instances.
 - **The first frame of a highlight** on a large net comes after 58 ms, where
   it came after 41 ms under an opacity, and after 249 ms on a CPU slowed four
   times.
-- **The fade of the arcs under compact cards** shows 14 frames of a possible
-  38 on the net of 470 nodes, and 9 on the way back. On the way back the cards
+- **The fade of the arcs under compact cards** shows 13 frames of a possible
+  38 on the net of 470 nodes, and 8 on the way back, where it showed 18 and
+  15 under an opacity. On the way back the cards
   have their elevation again, a blurred shadow, and each frame of the fade
   paints the cards that lie above the arcs: with the shadows switched off by
   an injected rule those 320 ms show 18 frames. Why the fade shows half the
@@ -724,7 +735,8 @@ Each rule is written, with the test that holds it, in the guide of its layer.
 - Hover and the drag preview stay in the canvas and reach no panel:
   [The canvas](doc:ui.views.canvas/canvas).
 - A node or arc that comes under the pointer while a button is down is
-  hovered at the release: [The canvas](doc:ui.views.canvas/canvas).
+  hovered at the release, and one that the camera carries under it is hovered
+  when the camera stops: [The canvas](doc:ui.views.canvas/canvas).
 
 - No opacity goes on an element that every arc has: an arc fades by the
   opacity of its stroke and of its arrowhead:

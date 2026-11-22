@@ -81,6 +81,7 @@ At a change of focus:
 
 - The nodes and the arcs do not change together. A node outside the neighbourhood is dimmed in the first frame, and the arcs take the time of the fade. On the way back the nodes are at full strength in the first frame.
 - When the focus moves straight from one item to another, the white band of a node that joins or leaves the neighbourhood changes at once, with its fill, and its ring takes the time of the fade. It is in the shadows of the surface, which a faded surface changes at once.
+- A neighbourhood that is shown for a moment shows in full. A pointer that rests just long enough for the highlight and moves on dims every node outside the neighbourhood for about 130 ms and brings them back in one frame. A fade of 200 ms that turned back that soon hardly showed.
 - The casing of the arcs of the neighbourhood is drawn a commit before the nodes dim: the arcs read the scene, and the pane waits for React Flow. On a large net that is one long frame.
 
 Under the pointer and in a run:
