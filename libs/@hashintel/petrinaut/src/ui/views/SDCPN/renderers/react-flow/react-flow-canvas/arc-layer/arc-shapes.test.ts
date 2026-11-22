@@ -14,8 +14,10 @@ import {
   withNodeAt,
 } from "../scene.test-helpers";
 import { fixedEndpoint } from "../shared/outline-arcs";
-import * as geometry from "./arc-geometry";
-import { arcShapes, joinedPairs, type PortEnds } from "./arc-shapes";
+import { arcShapes, type PortEnds } from "./arc-shapes";
+import * as geometry from "./arc-shapes/arc-geometry";
+
+import type { CanvasArc } from "../../../../canvas-scene";
 
 const portEnds: PortEnds = new Map([
   [
@@ -57,9 +59,9 @@ describe("the shapes of a scene's arcs", () => {
           ],
         },
         new Map(),
+        none,
       );
 
-        none,
       const end = list[0]?.geometry.curve.end;
       expect(end?.x).toBeCloseTo(position.x - size.width / 2);
       expect(end?.y).toBeCloseTo(position.y - size.height / 2);
@@ -112,9 +114,9 @@ describe("the shapes of a scene's arcs", () => {
     const { list } = arcShapes(
       { ...scene, nodes: nodes.filter((node) => node.id !== "place") },
       portEnds,
+      none,
     );
     expect(list.map((shape) => shape.id)).toEqual([
-      none,
       "port-input",
       "port-output",
     ]);
@@ -158,6 +160,29 @@ describe("the shapes of the scene after", () => {
     expect(after.list[0]?.geometry).toBe(before.list[0]?.geometry);
     expect(after.list[0]?.paths).toBe(before.list[0]?.paths);
   });
+
+  it.each<Partial<CanvasArc>>([
+    { color: "#abcdef" },
+    { weight: 3 },
+    { kind: "read" },
+  ])(
+    "give an arc that changed to %o a new shape, on the curve it had",
+    (change) => {
+      const before = arcShapes(scene, portEnds, none);
+      const after = arcShapes(
+        withArcs({ input: change }),
+        portEnds,
+        none,
+        before,
+      );
+
+      expect(after.list[0]).not.toBe(before.list[0]);
+      expect(after.list[0]).toMatchObject(change);
+      expect(after.list[0]?.geometry).toBe(before.list[0]?.geometry);
+      expect(after.list[0]?.paths).toBe(before.list[0]?.paths);
+      expect(after.list[1]).toBe(before.list[1]);
+    },
+  );
 
   it("recompute the arcs of a moved node only, without changing the scene", () => {
     const snapshot = structuredClone(scene);

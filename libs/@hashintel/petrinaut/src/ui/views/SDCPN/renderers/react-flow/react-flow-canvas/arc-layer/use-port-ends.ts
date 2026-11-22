@@ -26,24 +26,12 @@ const pinOf = (
   }
   const left = node.internals.positionAbsolute.x + handle.x;
   const top = node.internals.positionAbsolute.y + handle.y;
-  switch (handle.position) {
-    case Position.Left:
-      return fixedEndpoint(left, top + handle.height / 2, handle.position);
-    case Position.Right:
-      return fixedEndpoint(
-        left + handle.width,
-        top + handle.height / 2,
-        handle.position,
-      );
-    case Position.Top:
-      return fixedEndpoint(left + handle.width / 2, top, handle.position);
-    case Position.Bottom:
-      return fixedEndpoint(
-        left + handle.width / 2,
-        top + handle.height,
-        handle.position,
-      );
-  }
+  // A pin sits on the left or on the right side of its card.
+  return fixedEndpoint(
+    handle.position === Position.Left ? left : left + handle.width,
+    top + handle.height / 2,
+    handle.position,
+  );
 };
 
 const sameEnd = (

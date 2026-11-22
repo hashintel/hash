@@ -254,6 +254,19 @@ describe("a pulse under way when the page changes", () => {
     expect(started[0]?.animation.cancel).not.toHaveBeenCalled();
   });
 
+  it("ends when its arc becomes an arc of another kind, which draws another line", () => {
+    const pulses = createArcPulses();
+    const view = viewOf([arc()]);
+    pulses.show(view);
+    pulses.fire("transition", 1);
+
+    const after = viewOf([arc({ kind: "read" })]);
+    pulses.show(after);
+
+    expect(started[0]?.animation.cancel).toHaveBeenCalled();
+    expect(document.querySelectorAll("path")).toHaveLength(0);
+  });
+
   it("ends with an arc that is gone, or that has no place on the page", () => {
     const pulses = createArcPulses();
     const view = viewOf([arc({ id: "kept" }), arc({ id: "gone" })]);

@@ -36,6 +36,14 @@ describe("the head of an arc as a path", () => {
     }
   });
 
+  it("rounds the tip and the two back corners by half the stroke of the arc", () => {
+    const path = arcHeadPath({ x: 0, y: 0 }, { x: 1, y: 0 });
+
+    expect(path.match(/A1,1 0 0 1 /g)).toHaveLength(3);
+    // Around the tip, from its upper side to its lower.
+    expect(path).toContain("L0.62,-0.78A1,1 0 0 1 0.62,0.78L");
+  });
+
   it("is one closed outline, so that a fill covers it once", () => {
     const path = arcHeadPath({ x: 0, y: 0 }, { x: 1, y: 0 });
     expect(path.match(/M/g)).toHaveLength(1);

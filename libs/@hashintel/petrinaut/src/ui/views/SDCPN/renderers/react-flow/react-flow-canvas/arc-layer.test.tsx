@@ -203,6 +203,48 @@ describe("the arcs on the page", () => {
     expect(item("output")).toBe(kept);
   });
 
+  it("show the weight of an arc in its element once the weight is above one", () => {
+    const { item, show } = mount();
+    expect(item("input").querySelector("text")).toBeNull();
+
+    show(withArcs({ input: { weight: 3 } }));
+    expect(item("input").textContent).toBe("×3");
+    expect(item("output").querySelector("text")).toBeNull();
+  });
+
+  it("draw an arc at a pin once React Flow has measured the pin, and follow the pin when it moves", () => {
+    const { container, store, item, band } = mount(scene, { measured: false });
+    const output = item("output");
+    const outputCurve = band("output").getAttribute("d");
+    /** What React Flow does when it measures a node: a new lookup in its store. */
+    const measure = (instance: InternalNode) =>
+      act(() =>
+        store.setState({ nodeLookup: new Map([["component", instance]]) }),
+      );
+
+    measure(measuredInstance);
+    expect(
+      [...container.querySelectorAll(".arc-item")].map((element) =>
+        element.getAttribute("data-id"),
+      ),
+    ).toEqual(["input", "output", "port-input", "port-output"]);
+    const atPin = band("port-input").getAttribute("d");
+    expect(atPin).toMatch(/^M654,14C/);
+
+    // The card grows above its pins: they are 40 units lower.
+    measure({
+      ...measuredInstance,
+      internals: {
+        ...measuredInstance.internals,
+        positionAbsolute: { x: 550, y: -10 },
+      },
+    } as InternalNode);
+    expect(band("port-input").getAttribute("d")).toMatch(/^M654,54C/);
+    expect(band("port-output").getAttribute("d")).toMatch(/ 546,54$/);
+    expect(item("output")).toBe(output);
+    expect(band("output").getAttribute("d")).toBe(outputCurve);
+  });
+
   it("do not render for a pan or a zoom, with an arc at a pin", () => {
     const { renders, store } = mount();
     const before = renders.mock.calls.length;
