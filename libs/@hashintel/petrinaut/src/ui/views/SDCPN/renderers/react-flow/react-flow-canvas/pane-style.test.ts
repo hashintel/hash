@@ -28,6 +28,16 @@ const nodeRules = rules.filter(({ selector }) =>
 /** How a rule names a node outside the focused neighbourhood. */
 const fadedNode = `&${insideFadedNode.replace(/ \*$/, "").replaceAll(" ", "_")}`;
 
+describe("the fade of the arcs", () => {
+  it("times the opacity of no group of an arc, which would be a layer for the length of the fade", () => {
+    const timed = rules.filter(({ declaration }) =>
+      /^trs_\[(.*,_)?opacity_/.test(declaration),
+    );
+
+    expect(timed.map(({ selector }) => selector)).toEqual(["&_.minimap-shape"]);
+  });
+});
+
 describe("the fade of a node", () => {
   it("has rules to read", () => {
     expect(nodeRules.length).toBeGreaterThan(10);

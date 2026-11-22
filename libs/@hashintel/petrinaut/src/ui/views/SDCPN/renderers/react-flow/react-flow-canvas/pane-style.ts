@@ -22,7 +22,7 @@ export const paneStyle = css({
   // never a layout root: an arc that moves lays out the pane. With the insets
   // it already sits at, the layout stops at the arc.
   "& .react-flow__edges svg": { top: "[0]", left: "[0]" },
-  "& .arc-strokes, & .minimap-shape": {
+  "& .minimap-shape": {
     transition: "[opacity var(--canvas-focus-duration, 200ms) ease]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
@@ -208,7 +208,10 @@ export const paneStyle = css({
     },
   // Marks that lie on their line can only fade with it as one group: the
   // ticks, the circle and the dot of an inhibitor or a read arc, and the knot
-  // of a fusion link. Those keep an opacity, and a net has few of them.
+  // of a fusion link. Those keep an opacity, and a net has few of them. The
+  // opacity takes no transition, so such a group changes at once: while an
+  // opacity runs a transition its group is a layer, and the browser sorts
+  // every node above it into layers on each frame of the fade.
   "&[data-focus-active] .arc-own.arc-strokes:not(.canvas-focus-role), &[data-focus-active] .react-flow__edge-fusion:not(.canvas-focus-role) .arc-strokes":
     {
       opacity: "[0.45]",
