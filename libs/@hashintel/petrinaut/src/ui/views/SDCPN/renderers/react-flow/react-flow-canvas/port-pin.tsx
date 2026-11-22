@@ -36,7 +36,12 @@ export const PortPins = ({
     .map((side) => (
       <span
         key={side}
-        className={cx(pinStyle(), decorativePinStyle({ side }))}
+        className={cx(
+          "node-cover",
+          "node-border",
+          pinStyle(),
+          decorativePinStyle({ side }),
+        )}
         style={pinColorStyle(typeColor)}
       />
     ));

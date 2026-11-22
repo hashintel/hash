@@ -8,7 +8,11 @@ import { receivesDrag } from "./receives-drag";
 
 import type { CSSProperties, KeyboardEvent } from "react";
 
+// Each handle names its colours on itself. The pane of the canvas reads them
+// to draw the dot and the outline of a node outside the focused neighbourhood.
 const launchHandleStyle = css({
+  "--node-fill": "var(--colors-blue-s80)",
+  "--node-border": "white",
   opacity: "[0]",
   ".react-flow__node:hover &, .react-flow__node:focus-within &": {
     opacity: "[1]",
@@ -24,8 +28,8 @@ const launchHandleStyle = css({
     position: "absolute",
     inset: "[0]",
     borderRadius: "full",
-    background: "blue.s80",
-    border: "[1px solid white]",
+    backgroundColor: "[var(--node-fill)]",
+    border: "[1px solid var(--node-border)]",
     pointerEvents: "none",
   },
 });
@@ -33,6 +37,7 @@ const launchHandleStyle = css({
 // Pseudo-elements expand hit areas without moving the anchors of component
 // arcs.
 const targetHandleStyle = css({
+  "--node-outline": "var(--colors-blue-s80)",
   _after: {
     content: '""',
     position: "absolute",
@@ -43,7 +48,7 @@ const targetHandleStyle = css({
     borderRadius: "[var(--arc-target-radius)]",
     outline: "[var(--arc-target-outline)]",
   },
-  _focusVisible: { _after: { outline: "[3px solid var(--colors-blue-s80)]" } },
+  _focusVisible: { _after: { outline: "[3px solid var(--node-outline)]" } },
 });
 
 const activateHandle = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -108,7 +113,7 @@ export const NodeHandles = ({
             "--arc-target-height": `${height}px`,
             "--arc-target-radius": kind === "place" ? "999px" : "0",
             "--arc-target-outline": isActiveTarget
-              ? "3px solid var(--colors-blue-s80)"
+              ? "3px solid var(--node-outline)"
               : "none",
             width: 9,
             height: 9,

@@ -1,5 +1,5 @@
 import { Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { iconMaskImage } from "../lib/icon-mask";
 
@@ -30,7 +30,9 @@ export const ComponentGlyph: React.FC<{
   iconSvg: string | null | undefined;
   fallback: IconProps["name"];
   size?: IconProps["size"];
-}> = ({ iconSvg, fallback, size = "md" }) => {
+  /** A class for the element that paints a component's own icon. */
+  maskClassName?: string;
+}> = ({ iconSvg, fallback, size = "md", maskClassName }) => {
   const image = iconSvg ? iconMaskImage(iconSvg) : null;
   if (image === null) {
     return <Icon name={fallback} size={size} />;
@@ -40,7 +42,7 @@ export const ComponentGlyph: React.FC<{
   return (
     <span
       aria-hidden
-      className={maskedGlyphStyle}
+      className={cx(maskedGlyphStyle, maskClassName)}
       style={{ width: side, height: side, mask, WebkitMask: mask }}
     />
   );

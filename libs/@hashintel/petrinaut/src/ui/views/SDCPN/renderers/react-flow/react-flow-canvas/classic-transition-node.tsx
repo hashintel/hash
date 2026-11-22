@@ -61,7 +61,8 @@ const transitionLabelStyle = css({
 const transitionTypeStyle = css({
   fontSize: "[11px]",
   lineHeight: "[1.2]",
-  color: "neutral.a90",
+  "--node-text": "var(--colors-neutral-a90)",
+  color: "[var(--node-text)]",
 });
 
 const stochasticIconStyle = css({
@@ -127,9 +128,9 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
           <div className={`${classicNodeLabelStyle} ${transitionLabelStyle}`}>
             {label}
           </div>
-          <div className={transitionTypeStyle}>{subtitle}</div>
+          <div className={`node-text ${transitionTypeStyle}`}>{subtitle}</div>
         </div>
-        <div ref={boltRef} className={firingIndicatorStyle}>
+        <div ref={boltRef} className={`node-bolt ${firingIndicatorStyle}`}>
           <Icon name="lightning" size="sm" />
         </div>
       </div>

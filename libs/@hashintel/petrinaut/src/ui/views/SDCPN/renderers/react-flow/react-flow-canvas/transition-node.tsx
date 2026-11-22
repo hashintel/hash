@@ -19,10 +19,10 @@ import type { TransitionNodeType } from "./react-flow-types";
 import type { NodeProps } from "@xyflow/react";
 
 const transitionCardStyle = css({
-  borderColor: "neutral.s70",
-  background: "neutral.s00",
+  "--node-border": "var(--colors-neutral-s70)",
+  "--node-fill": "var(--colors-neutral-s00)",
   _hover: {
-    borderColor: "neutral.s100",
+    "--node-border": "var(--colors-neutral-s100)",
   },
 });
 
@@ -85,7 +85,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
       cardRef={boxRef}
       iconContainer={
         <div
-          className={`${iconContainerBaseStyle} ${transitionIconContainerStyle}`}
+          className={`node-inlay ${iconContainerBaseStyle} ${transitionIconContainerStyle}`}
         >
           <Icon name="squareFilled" />
           {data.lambdaType === "stochastic" && (
@@ -98,7 +98,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
       title={label}
       subtitle={subtitle}
       badge={
-        <div ref={boltRef} className={firingIndicatorStyle}>
+        <div ref={boltRef} className={`node-bolt ${firingIndicatorStyle}`}>
           <Icon name="lightning" />
         </div>
       }

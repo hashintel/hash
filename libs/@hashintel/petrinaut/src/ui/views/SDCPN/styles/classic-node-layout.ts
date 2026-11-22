@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 /** Half a pixel heavier than the compact card's hairline. */
 const OUTLINE_WIDTH = "1.5px";
@@ -10,11 +10,13 @@ const OUTLINE_WIDTH = "1.5px";
  * from its token type, and `--node-outline-ring` the shadow that draws it,
  * which the firing flash reuses so a transition keeps its outline while it
  * glows. Only a classic node sets the ring, so a compact card's flash draws
- * none.
+ * none. `--node-faded-outline-ring` is the ring of a node outside the focused
+ * neighbourhood, which the pane of the canvas draws in its place.
  */
 export const classicNodeBoxStyle = css({
   // currentColor inside color-mix can become transparent during shadow interpolation.
   "--node-outline-ring": `0 0 0 ${OUTLINE_WIDTH} color-mix(in oklab, var(--node-outline-color, var(--colors-neutral-s120)) 75%, var(--colors-neutral-s70))`,
+  "--node-faded-outline-ring": `0 0 0 ${OUTLINE_WIDTH} color-mix(in srgb, color-mix(in oklab, var(--node-outline-color, var(--colors-neutral-s120)) 75%, var(--colors-neutral-s70)) 40%, transparent)`,
   "--node-elevation": "0px 2px 9px rgba(0, 0, 0, 0.04)",
   _hover: {
     "--node-elevation": "0px 4px 11px rgba(0, 0, 0, 0.1)",
@@ -29,12 +31,15 @@ export const classicNodeRowStyle = css({
   lineHeight: "[1]",
 });
 
-export const classicNodeLabelStyle = css({
-  fontSize: "[13px]",
-  fontWeight: "medium",
-  maxWidth: "[100%]",
-  overflowWrap: "break-word",
-  textOverflow: "ellipsis",
-  overflow: "hidden",
-  lineHeight: "[1.2]",
-});
+export const classicNodeLabelStyle = cx(
+  "node-text",
+  css({
+    fontSize: "[13px]",
+    fontWeight: "medium",
+    maxWidth: "[100%]",
+    overflowWrap: "break-word",
+    textOverflow: "ellipsis",
+    overflow: "hidden",
+    lineHeight: "[1.2]",
+  }),
+);

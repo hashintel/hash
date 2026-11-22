@@ -7,15 +7,18 @@ import { arcStrokeColor } from "../../../styles/type-colors";
  * the border, in the stroke colour of the arcs its token type draws. An
  * instance's pins are its React Flow handles and take this class; a port
  * place draws the same dot as decoration, so a port looks alike from inside
- * its component and outside.
+ * its component and outside. Both carry `node-cover` and `node-border`: a pin
+ * lies across the border of its node.
  */
 export const pinStyle = cva({
   base: {
     borderRadius: "full",
     borderStyle: "solid",
-    borderColor: "[white]",
+    "--node-border": "white",
+    "--node-fill": "var(--port-pin-color)",
+    borderColor: "[var(--node-border)]",
     boxSizing: "border-box",
-    background: "[var(--port-pin-color)]",
+    background: "[var(--node-fill)]",
     zIndex: "[3]",
   },
   variants: {

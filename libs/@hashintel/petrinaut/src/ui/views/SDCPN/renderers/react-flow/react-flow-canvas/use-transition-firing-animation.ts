@@ -2,6 +2,11 @@ import { useStoreApi } from "@xyflow/react";
 import { use, useEffect } from "react";
 
 import { useLatest } from "../../../../../../react/hooks/use-latest";
+import {
+  fadedColor,
+  fadedNodeStrength,
+  insideFadedNode,
+} from "../../../styles/node-fade";
 import { ArcPulsesContext } from "./arc-pulses";
 import { firingIsVisible } from "./firing-animation-visibility";
 
@@ -49,13 +54,17 @@ export const useTransitionFiringAnimation = (
     // Flash the box yellow with a glow. Only the flash is a keyframe: the
     // animation runs back to whatever the stylesheet says, so the focus ring's
     // white band in `box-shadow` returns once it is over instead of staying
-    // replaced by the glow's transparent end.
+    // replaced by the glow's transparent end. A transition outside the focused
+    // neighbourhood flashes as faded as it is drawn.
+    const faded = box.matches(insideFadedNode);
+    const ring = faded ? "--node-faded-outline-ring" : "--node-outline-ring";
+    const flash = "rgba(255, 224, 132, 0.7)";
+    const glow = "rgba(255, 132, 0, 0.59)";
     box.animate(
       [
         {
-          background: "rgba(255, 224, 132, 0.7)",
-          boxShadow:
-            "var(--node-outline-ring, 0 0 #0000), 0 0 6px 1px rgba(255, 132, 0, 0.59)",
+          background: faded ? fadedColor(flash) : flash,
+          boxShadow: `var(${ring}, 0 0 #0000), 0 0 6px 1px ${faded ? fadedColor(glow) : glow}`,
           offset: 0,
         },
       ],
@@ -68,7 +77,7 @@ export const useTransitionFiringAnimation = (
     // Animate the lightning bolt: appear then fade out
     bolt.animate(
       [
-        { opacity: 1, transform: "scale(1)" },
+        { opacity: faded ? fadedNodeStrength : 1, transform: "scale(1)" },
         { opacity: 0, transform: "scale(0.5)" },
       ],
       {

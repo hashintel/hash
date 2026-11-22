@@ -15,7 +15,16 @@ type Input = {
   drawn?: boolean;
 };
 
-const mount = (initial: Input) => {
+/** A node on a pane, for the box of a transition to be inside of. */
+const nodeOnPane = ({ focusActive }: { focusActive: boolean }) => {
+  const pane = document.createElement("div");
+  pane.toggleAttribute("data-focus-active", focusActive);
+  const node = pane.appendChild(document.createElement("div"));
+  node.className = "react-flow__node";
+  return node;
+};
+
+const mount = (initial: Input, node = document.createElement("div")) => {
   const pulses = {
     fire: vi.fn<ArcPulses["fire"]>(),
     show: vi.fn<ArcPulses["show"]>(),
@@ -27,8 +36,8 @@ const mount = (initial: Input) => {
     div.animate = flashes;
     return div;
   };
-  const box = { current: element() };
-  const bolt = { current: element() };
+  const box = { current: node.appendChild(element()) };
+  const bolt = { current: node.appendChild(element()) };
   const none = { current: null };
 
   const { rerender } = renderHook(
@@ -92,6 +101,43 @@ describe("a transition that fired", () => {
 
     expect(pulses.fire.mock.calls).toEqual([["transition", 1]]);
     expect(flashes).not.toHaveBeenCalled();
+  });
+
+  it("flashes at full strength while its node is not faded", () => {
+    const { flashes } = mount(
+      { firingDelta: 1 },
+      nodeOnPane({ focusActive: false }),
+    );
+
+    expect(flashes.mock.calls[0]?.[0]).toEqual([
+      {
+        background: "rgba(255, 224, 132, 0.7)",
+        boxShadow:
+          "var(--node-outline-ring, 0 0 #0000), 0 0 6px 1px rgba(255, 132, 0, 0.59)",
+        offset: 0,
+      },
+    ]);
+  });
+
+  it("flashes as faded as its node, with the ring of a faded node", () => {
+    const { flashes } = mount(
+      { firingDelta: 1 },
+      nodeOnPane({ focusActive: true }),
+    );
+
+    expect(flashes.mock.calls[0]?.[0]).toEqual([
+      {
+        background:
+          "color-mix(in srgb, rgba(255, 224, 132, 0.7) 40%, transparent)",
+        boxShadow:
+          "var(--node-faded-outline-ring, 0 0 #0000), 0 0 6px 1px color-mix(in srgb, rgba(255, 132, 0, 0.59) 40%, transparent)",
+        offset: 0,
+      },
+    ]);
+    expect(flashes.mock.calls[1]?.[0]).toEqual([
+      { opacity: 0.4, transform: "scale(1)" },
+      { opacity: 0, transform: "scale(0.5)" },
+    ]);
   });
 
   it("pulses its arcs though its box is not on the page", () => {

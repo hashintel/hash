@@ -47,7 +47,8 @@ const portCaptionStyle = css({
   fontSize: "[11px]",
   fontWeight: "medium",
   lineHeight: "[1]",
-  color: "neutral.s90",
+  "--node-text": "var(--colors-neutral-s90)",
+  color: "[var(--node-text)]",
   whiteSpace: "nowrap",
 });
 
@@ -69,8 +70,10 @@ const tokenCountBadgeStyle = css({
   borderRadius: "[9px]",
   padding: "[0 6px]",
   fontSize: "sm",
-  color: "neutral.s00",
-  backgroundColor: "[black]",
+  "--node-text": "var(--colors-neutral-s00)",
+  "--node-fill": "black",
+  color: "[var(--node-text)]",
+  backgroundColor: "[var(--node-fill)]",
   fontWeight: "semibold",
   fontVariantNumeric: "tabular-nums",
 });
@@ -102,7 +105,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         style={
           {
             "--node-outline-color": placeBorderColor(data.typeColor),
-            backgroundColor: placeFillColor(data.typeColor),
+            "--node-fill": placeFillColor(data.typeColor),
           } as React.CSSProperties
         }
       >
@@ -113,7 +116,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             </div>
           ) : null}
           {data.portDirection === null ? null : (
-            <span className={portCaptionStyle}>
+            <span className={`node-text ${portCaptionStyle}`}>
               {portPlaceLabels[data.portDirection]}
             </span>
           )}
@@ -123,7 +126,9 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         </div>
         <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
           {tokenLabel === null ? null : (
-            <div className={tokenCountBadgeStyle}>{tokenLabel}</div>
+            <div className={`node-cover node-text ${tokenCountBadgeStyle}`}>
+              {tokenLabel}
+            </div>
           )}
         </div>
         {data.portDirection === null ? null : (

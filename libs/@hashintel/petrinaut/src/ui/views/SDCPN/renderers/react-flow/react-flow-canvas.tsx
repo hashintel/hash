@@ -15,7 +15,6 @@ import {
 } from "@xyflow/react";
 import { use, useEffect, useState } from "react";
 
-import { css } from "@hashintel/ds-helpers/css";
 import {
   getBoundsOfCenteredBoxes,
   getMinZoomForBounds,
@@ -54,6 +53,7 @@ import { FusionEdge } from "./react-flow-canvas/fusion-edge";
 import { LinkRewiringContext } from "./react-flow-canvas/link-rewiring-context";
 import { MiniMap } from "./react-flow-canvas/mini-map";
 import { OutlineConnectionLine } from "./react-flow-canvas/outline-connection-line";
+import { paneStyle } from "./react-flow-canvas/pane-style";
 import { PlaceNode } from "./react-flow-canvas/place-node";
 import { toCanvasConnection } from "./react-flow-canvas/port-handles";
 import { fusionItemOf } from "./react-flow-canvas/react-flow-types";
@@ -92,115 +92,6 @@ const REACTFLOW_EDGE_TYPES = {
 };
 
 const MIN_ZOOM_DEBOUNCE_MS = 100;
-
-const paneStyle = css({
-  width: "[100%]",
-  height: "[100%]",
-  "--canvas-fold-easing": "cubic-bezier(0.22, 1, 0.36, 1)",
-  "&[data-animated=false]": {
-    "--canvas-fold-duration": "0ms",
-  },
-  "@media (prefers-reduced-motion: reduce)": {
-    "--canvas-fold-duration": "0ms",
-  },
-  "& .react-flow__pane": {
-    cursor: `var(--pane-cursor) !important`,
-  },
-  // React Flow positions each edge's `svg` with no insets, and such a box is
-  // never a layout root: an arc that moves lays out the pane. With the insets
-  // it already sits at, the layout stops at the arc.
-  "& .react-flow__edges svg": { top: "[0]", left: "[0]" },
-  "& .react-flow__node, & .arc-strokes, & .minimap-shape": {
-    transition: "[opacity var(--canvas-focus-duration, 200ms) ease]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  },
-  // The fade of the arcs: see the rules that set these opacities, below.
-  "& .arc-shaft, & .arc-pulse, & .fusion-line": {
-    transition: "[stroke-opacity var(--canvas-focus-duration, 200ms) ease]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  },
-  // The second stroke of a line comes back once the line has faded back in:
-  // any sooner and it would show through the line.
-  "& .arc-line": {
-    transition:
-      "[stroke-opacity 0s linear var(--canvas-focus-duration, 200ms)]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  },
-  "& .arc-head": {
-    transition: "[fill-opacity var(--canvas-focus-duration, 200ms) ease]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  },
-  // A component instance's height animates between folded and unfolded, so
-  // the card grows and shrinks rather than jumping. React Flow reads the pins
-  // again on every frame the node resizes, which keeps the links on them.
-  "& .react-flow__node.react-flow__node-componentInstance": {
-    transition:
-      "[opacity var(--canvas-focus-duration, 200ms) ease, height var(--canvas-fold-duration, 180ms) var(--canvas-fold-easing)]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  },
-  // A node outside the neighbourhood recedes from here, whole: card, label,
-  // token count and handles together, so nothing of it stays at full strength
-  // while the neighbourhood carries the colour. A node React Flow has marked
-  // selected is kept out of the fade as well: a drag-selection marks nodes
-  // before the change reaches the editor's selection, and until it does they
-  // wear the focus ring, so they must not be faded under it.
-  "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected)":
-    {
-      opacity: "[0.4]",
-    },
-  // An arc outside the neighbourhood recedes from here, so a hover leaves
-  // every arc it did not touch alone. Only the strokes fade: an arc's weight
-  // is worth reading whether or not the arc carrying it is in focus.
-  //
-  // No opacity goes on an element that every arc has. For an opacity on a
-  // group the browser draws the group into a buffer of its own, on every
-  // frame of a pan, a zoom or a drag, and a net has one group per arc. So
-  // each thing a faded arc draws is drawn once, at 0.45 by an opacity of its
-  // own: the line by its stroke and the head by its fill. What would lie
-  // under another is not drawn, since both would show: the line is the
-  // shaft, which stops where the head begins, and the second stroke of the
-  // line goes, at once.
-  //
-  // The arcs at rest are drawn together, a few paths for each run of them,
-  // and fade there: no arc at rest has a role. An arc that draws its own
-  // strokes has them in a group that says whether it has one, and fades
-  // unless it does. The rules name that group and its children: React Flow's
-  // wrapper around the arc layer is an edge with no role too, and a rule
-  // that matched through it would fade every arc.
-  "&[data-focus-active] .arc-run > .arc-shaft, &[data-focus-active] .arc-own:not(.canvas-focus-role) > .arc-shaft, &[data-focus-active] .react-flow__edge-fusion:not(.canvas-focus-role) .fusion-line":
-    {
-      strokeOpacity: "[0.45]",
-    },
-  "&[data-focus-active] .arc-run > .arc-line, &[data-focus-active] .arc-own:not(.canvas-focus-role) > .arc-line":
-    {
-      strokeOpacity: "[0]",
-      transition: "[none]",
-    },
-  "&[data-focus-active] .arc-run > .arc-head, &[data-focus-active] .arc-own:not(.canvas-focus-role) > .arc-head":
-    {
-      fillOpacity: "[0.45]",
-    },
-  // The pulse of a firing is the whole line, which runs on under the head.
-  // On a faded arc it stops where the head begins, as the line does: a pulse
-  // says what share of its length that is.
-  "&[data-focus-active] .arc-run > .arc-pulses > .arc-pulse, &[data-focus-active] .arc-own:not(.canvas-focus-role) > .arc-pulses > .arc-pulse":
-    {
-      strokeOpacity: "[0.45]",
-      strokeDasharray: "[var(--arc-faded-dash)]",
-    },
-  // Marks that lie on their line can only fade with it as one group: the
-  // ticks, the circle and the dot of an inhibitor or a read arc, and the knot
-  // of a fusion link. Those keep an opacity, and a net has few of them.
-  "&[data-focus-active] .arc-own.arc-strokes:not(.canvas-focus-role), &[data-focus-active] .react-flow__edge-fusion:not(.canvas-focus-role) .arc-strokes":
-    {
-      opacity: "[0.45]",
-    },
-  // A minimap shape outside the neighbourhood drops right back: the map is
-  // small enough that anything short of that competes with the neighbourhood.
-  "&[data-focus-active] .minimap-shape:not(.canvas-focus-role)": {
-    opacity: "[0.12]",
-  },
-});
 
 const ReactFlowCanvasInner: CanvasRenderer = ({
   scene,
