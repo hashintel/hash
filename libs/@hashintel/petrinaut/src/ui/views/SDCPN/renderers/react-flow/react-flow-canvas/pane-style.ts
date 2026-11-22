@@ -149,19 +149,13 @@ export const paneStyle = css({
       borderColor:
         "[color-mix(in srgb, var(--node-border) 40%, var(--colors-neutral-s25))]",
     },
-  // The dot a node under the pointer offers an arc from. Its handle names its
-  // colours.
-  "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected):is(:hover, :focus-within) .react-flow__handle.source::after":
-    {
-      backgroundColor:
-        "[color-mix(in srgb, var(--node-fill, transparent) 40%, transparent)]",
-      borderColor:
-        "[color-mix(in srgb, var(--node-border, transparent) 40%, transparent)]",
-    },
   // The outline of a node an arc is being drawn onto. Its handle names the
   // colour, and says that the outline is drawn with an attribute that no
-  // other handle has: a rule that ended in a class of every handle would
-  // restyle the handles of every node at each change of focus.
+  // other handle has. No rule here ends in a class that every handle has:
+  // the browser would restyle the handles of every node at each change of
+  // focus to find the one it applies to. So the dot a node under the pointer
+  // offers an arc from, and the outline of keyboard focus on a handle, are
+  // drawn at full strength on a faded node.
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) [data-arc-target]::after":
     {
       outlineColor:

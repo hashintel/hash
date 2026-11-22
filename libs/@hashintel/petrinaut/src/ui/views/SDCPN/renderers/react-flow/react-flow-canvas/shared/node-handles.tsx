@@ -8,11 +8,9 @@ import { receivesDrag } from "./receives-drag";
 
 import type { CSSProperties, KeyboardEvent } from "react";
 
-// Each handle names its colours on itself. The pane of the canvas reads them
-// to draw the dot and the outline of a node outside the focused neighbourhood.
+// The dot is the pointer's own feedback, so it is drawn at full strength on
+// a node outside the focused neighbourhood too.
 const launchHandleStyle = css({
-  "--node-fill": "var(--colors-blue-s80)",
-  "--node-border": "white",
   opacity: "[0]",
   ".react-flow__node:hover &, .react-flow__node:focus-within &": {
     opacity: "[1]",
@@ -28,8 +26,8 @@ const launchHandleStyle = css({
     position: "absolute",
     inset: "[0]",
     borderRadius: "full",
-    backgroundColor: "[var(--node-fill)]",
-    border: "[1px solid var(--node-border)]",
+    background: "blue.s80",
+    border: "[1px solid white]",
     pointerEvents: "none",
   },
 });

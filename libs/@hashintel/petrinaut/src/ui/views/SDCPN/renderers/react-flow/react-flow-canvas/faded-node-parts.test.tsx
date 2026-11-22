@@ -258,22 +258,4 @@ describe.each(kinds)("%s", (_name, node) => {
         .map(describeElement),
     ).toEqual([]);
   });
-
-  it("draws the dot of a handle in the colours the handle names", () => {
-    const drawn = [
-      ...draw(node).querySelectorAll(".react-flow__handle"),
-    ].flatMap((handle) =>
-      stylesOf(handle).filter(
-        ({ condition, property }) =>
-          condition.includes("after") &&
-          (isBackground(property) || property === "bd"),
-      ),
-    );
-
-    expect(
-      drawn
-        .filter(({ value }) => !/var\(--node-(fill|border)\)/.test(value))
-        .map(({ name }) => name),
-    ).toEqual([]);
-  });
 });
