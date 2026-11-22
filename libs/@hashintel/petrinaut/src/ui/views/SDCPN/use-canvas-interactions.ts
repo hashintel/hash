@@ -79,7 +79,7 @@ export type CanvasSelectionChange = { id: string; selected: boolean };
 
 /** What the pointer is doing as it comes onto an item. */
 export type CanvasPointerPress = {
-  /** A button is down. */
+  /** A button is down, or the camera is moving by itself. */
   pressed: boolean;
   /** A connection is being drawn, or the end of a link moved. */
   connecting: boolean;
@@ -108,7 +108,8 @@ type CanvasActions = {
    * The pointer came onto a node, an arc or a fusion: a link of a fusion
    * hovers its fusion. With a button down the item waits for the release to
    * be hovered, so a canvas that pans under a pressed pointer lights up
-   * nothing it carries past. A connection being drawn is aimed at the item
+   * nothing it carries past, and neither does a camera that moves by itself
+   * under a pointer at rest. A connection being drawn is aimed at the item
    * it enters, which is hovered at once.
    */
   enter: (id: string, press: CanvasPointerPress) => void;
@@ -116,7 +117,10 @@ type CanvasActions = {
   hover: (id: string) => void;
   /** The pointer left the item it was on. */
   clearHover: () => void;
-  /** The last button was released over the canvas: the item that waited for it is hovered. */
+  /**
+   * The last button was released over the canvas, or the camera came to rest:
+   * the item that waited for it is hovered.
+   */
   releasePointer: () => void;
   /** Arcs and fusions are selected only by a direct click, never by box selection. */
   selectLink: (item: CanvasLinkItem) => void;

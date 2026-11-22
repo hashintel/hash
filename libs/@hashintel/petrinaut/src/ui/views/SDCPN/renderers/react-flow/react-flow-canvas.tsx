@@ -205,9 +205,12 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     event.dataTransfer.dropEffect = "move";
   };
 
+  // A move of the camera carries items under a pointer at rest, as a pan
+  // carries them under a pressed one, so what comes under it meanwhile waits
+  // the same way: for the camera to stop.
   const enterItem = (event: React.MouseEvent, id: string) =>
     enter(id, {
-      pressed: event.buttons !== 0,
+      pressed: event.buttons !== 0 || camera.isAnimating(),
       connecting: flowStore.getState().connection.inProgress,
     });
 
@@ -290,7 +293,8 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
                 onSelectionEnd={interactions.endSelectionGesture}
                 onPaneClick={(event) => clickPane(scenePositionOf(event))}
                 // A gesture takes the camera back from any move under way. Frames
-                // of the camera's own moves are not remembered, only where it stops.
+                // of the camera's own moves are not remembered, only where it stops,
+                // and there the item that waited under the pointer is hovered.
                 onMoveStart={(event) => {
                   if (event) {
                     camera.cancel();
@@ -299,6 +303,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
                 onMoveEnd={(_event, viewport) => {
                   if (!camera.isAnimating()) {
                     rememberViewport(viewport);
+                    interactions.releasePointer();
                   }
                 }}
                 onDrop={readonly ? undefined : onDrop}
