@@ -7,7 +7,7 @@ sidebar_order: 10
 The canvas renders the active net as an interactive graph and owns its scene, its pointer state, the per-frame simulation values and the gestures.
 The editor and the [preview](layer:ui.preview) both mount it, so it imports nothing from the [editor shell](layer:ui.views.editor). No rule of `archinaut check` enforces that.
 
-![A gesture changes one store, the scene is derived again, and React Flow renders the nodes whose object changed](./canvas-flow.d2)
+![A gesture changes one store, the scene is derived again, React Flow renders the nodes whose object changed, and the arc layer the arcs whose shape changed](./canvas-flow.d2)
 
 ## Entry point
 
@@ -37,19 +37,19 @@ A user drags a node:
 
 1. React Flow reports position changes. `useApplyNodeChanges` passes them to `moveNodes`, which writes the positions to `dragPreview` in the canvas pointer, snapped to the grid while the `snapToGrid` setting is on.
 2. `useCanvasScene` derives the scene again with the previewed positions.
-3. `useReactFlowElements` maps the scene to nodes and edges, and `useStableItems` returns the previous object for each item whose content is the same.
-4. React Flow renders the dragged nodes and their arcs.
+3. `useReactFlowElements` maps the scene to nodes and edges, and `useStableItems` returns the previous object for each item whose content is the same. The edges are one edge for all the arcs, one for each selected arc, and the fusion links.
+4. React Flow renders the dragged nodes. The arc layer reads the scene from a context and renders the arcs that end at them.
 5. On release, `dropNodes` commits the positions in one document mutation and clears the preview in the same tick.
 
 ## What renders
 
 | Gesture        | Nodes and arcs that render                                                                                                                                      |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Select         | The nodes whose selected state or focus changed, and their arcs                                                                                                 |
-| Hover          | The state tooltip of the place under the pointer, at once. After the pointer rests, the nodes whose focus changed.                                              |
-| Drag frame     | The dragged nodes and their arcs                                                                                                                                |
+| Select         | The nodes whose selected state or focus changed, the arcs whose role changed, and the runs that hold those arcs                                                 |
+| Hover          | The state tooltip of the place under the pointer, at once. After the pointer rests, the nodes and arcs whose focus changed, and the runs of those arcs.         |
+| Drag frame     | The dragged nodes and the arcs that end at them. The merged paths of a run are written at the first frame and at the drop, and not in between.                  |
 | Pan, zoom      | No node and no arc: React Flow writes one transform on the viewport element. An open place state tooltip renders on each frame, because it reads `useViewport`. |
-| Playback frame | The places, transitions and arcs whose value moved                                                                                                              |
+| Playback frame | The places and transitions whose value moved. No arc: a firing adds a path to the page outside React.                                                           |
 
 The focus of a node or an arc is its `CanvasNodeFocus` or `CanvasArcFocus` in `canvas-focus.ts`: how it relates to the hovered or selected items.
 The pointer rests after 150 ms with no move above 2 px, and a hover changes focus only while the `highlightOnHover` setting is on. A place with visualizer code reaches the scene before the rest, so its visualizer shows at once.
@@ -57,13 +57,73 @@ The release of a button counts as a move, so a hover that begins at the release 
 
 `benchmarks/monaco-performance/canvas-scale.mjs`, from the package root, measures each gesture on a net of about 500 nodes and, with `details=1`, lists who rendered. Its header says which build to serve.
 
+## The arc layer
+
+React Flow draws the nodes and the fusion links. `ArcLayer` in `renderers/react-flow/react-flow-canvas/arc-layer.tsx` draws the arcs, all of them in one `svg`.
+React Flow renders the layer as one edge of the type `arcs`, the first of its edges. So the arcs sit where its edges sit: inside the pane, under the fusion links and the nodes, and first in the order of the Tab key.
+An edge gets only its own props, so the scene reaches the layer through `ArcLayerContext`, and a new scene renders the layer without a new edge object.
+
+```text
+.react-flow__edges
+  svg                                  React Flow's, for the edge of the layer
+    g.react-flow__edge.nopan           React Flow's wrapper: role none, no name
+      g.arc-runs
+        g.arc-run                      64 consecutive arcs of the document
+          g.arc-pulses                 the pulses of its arcs at rest
+          path.arc-shaft               their lines up to the heads, one path per colour
+          path.arc-line-twin           their whole lines, one path per colour
+          path.arc-head                their heads, one path per colour
+          g.arc-own                    the strokes of an arc that draws its own
+      g.arc-items
+        g.arc-item.react-flow__edge    one per arc: focus, name, pointer, weight
+  svg                                  one per fusion link
+```
+
+| Part                                        | File                                  | What it does                                                                                    |
+| ------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `arcGeometry`                               | `arc-layer/arc-geometry.ts`           | The curve between two ends as numbers: shaft, arrival, label point, length, box.                |
+| `arcShapes`                                 | `arc-layer/arc-shapes.ts`             | One shape per arc of a scene, with its path data and whether it draws its own strokes.          |
+| `arcRuns`                                   | `arc-layer/arc-runs.ts`               | Cuts the shapes into runs of `arcsPerRun` and merges the strokes of the arcs at rest by colour. |
+| `useArcLayerModel`                          | `arc-layer/use-arc-layer-model.ts`    | Holds each shape and each run at its identity from one scene to the next.                       |
+| `useArcsLeavingFocus`                       | `arc-layer/use-arcs-leaving-focus.ts` | Names the arcs that had a focus role until a moment ago.                                        |
+| `usePortEnds`                               | `arc-layer/use-port-ends.ts`          | Reads from React Flow's store where it measured the pins of the arcs at a component port.       |
+| `ArcRunStrokes`, `ArcOwnStrokes`, `ArcItem` | `arc-layer/*.tsx`                     | Draw a run, the strokes of one arc, and the element of one arc.                                 |
+| `useArcGestures`                            | `arc-layer/use-arc-gestures.ts`       | Turns a click, the pointer and the keys on an arc into the canvas interactions.                 |
+| `createArcPulses`                           | `arc-pulses.ts`                       | Draws the pulse of a firing as a path it animates and removes, with no render.                  |
+
+**The arcs at rest are drawn together.** An arc that is in no focus and does not move looks like every other arc of its colour. The layer cuts the arcs into runs of 64 consecutive arcs of the document, and a run draws its arcs at rest as one path per colour for each thing an arc draws. The browser styles, fades and paints a path as one element, so a change of focus fades about 530 paths on a net of 1,742 arcs, where it faded three elements per arc. Each run is drawn whole above the run before it.
+
+An arc draws its own strokes, in a group `arc-own` inside its run, while it is not like the arcs at rest:
+
+- It has a focus role or is selected: it wears a casing or a band, and it never fades.
+- It lost its role, and the roles last changed less than 250 ms ago: it fades, or stays at full strength, on its own. `useArcsLeavingFocus` names these arcs.
+- A node at one of its ends is being dragged: its curve changes on every frame.
+- It is a read or an inhibitor arc: its marks lie on its line.
+- It ends at a component port: the pin moves while its card opens or closes.
+
+**React Flow holds three kinds of edge.** The first is the edge of the layer. It runs from a transition to itself, because React Flow draws an edge only between nodes whose handles it has measured, and a transition has both handles in every mode. It takes no focus and no selection, and its wrapper has the role `none` and no name. The second is one edge for each selected arc, with `hidden: true`, which React Flow holds and does not draw. Every way it has of deselecting an edge then reports the arc: a click on a node, the start of a selection box, a click on a fusion link. The third is the fusion links. React Flow knows no other arc, so a selection box reports none.
+
+**The browser finds the arc under the pointer.** The element of an arc, `arc-item`, holds one path that is not painted: the arc's curve, 20 units wide. It takes the pointer through `pointer-events: visibleStroke`, as the same path does in an edge of React Flow. Where several arcs are within reach, the browser takes the last in the document. No script tests geometry. `useArcGestures` puts one set of handlers on the element that holds every `arc-item`: a click tells React Flow's own selection about the arc and then calls `selectLink`, and the pointer coming onto an arc or leaving it calls `enter` and `clearHover`.
+
+**A firing pulses its arcs outside React.** `useTransitionFiringAnimation` flashes the box of a transition that fired, and from the same effect calls `fire` on the canvas's `ArcPulses`. For each arc of the transition that is on screen, `fire` adds a path under the arc's line, animates its width through the Web Animations API and removes it at the end. The layer tells the pulses which arcs are on the page and where the pulse of each goes, so a pulse under way follows its arc when the arc moves or changes how it is drawn.
+
 ## Rules
 
 **A handler given to `ReactFlow` keeps its identity.** React Flow renders every node and arc when a handler prop is a new function. `useCanvasInteractions` returns its actions through `useStableActions`, and each action reads the latest state when called. `use-stable-actions.test.ts` holds this for the actions. The handlers that `ReactFlowCanvasInner` writes inline keep their identity through the React Compiler, and no test checks those.
 
-**An unchanged node or edge is the same object, and an unchanged list the same array.** React Flow renders an item for a new object and walks every item for a new array. `use-stable-items.test.ts` and the test "preserves unaffected nodes and arcs when focus changes" in `use-react-flow-elements.test.tsx` hold this.
+**An unchanged node or edge is the same object, and an unchanged list the same array.** React Flow renders an item for a new object and walks every item for a new array. `use-stable-items.test.ts` and the test "preserves unaffected nodes when focus changes" in `use-react-flow-elements.test.tsx` hold this.
+
+**An arc that draws the same is the same shape, and a run whose arcs do is the same run.** The layer renders on every scene, and `ArcItem`, `ArcOwnStrokes` and `ArcRunStrokes` are memoised on that object. `arcShapes` compares each arc with its shape of the scene before, field by field, and computes a curve only for an arc whose end moved. The tests under "the shapes of the scene after" in `arc-shapes.test.ts` and "the runs of the scene after" in `arc-runs.test.ts` hold this, and "change only the elements of the arcs that draw differently" and "writes no merged path while a dragged node moves" in `arc-layer.test.tsx` hold it for the page.
+
+**Every arc is drawn exactly once.** An arc changes between its run's merged paths and its own strokes at each change of focus, at the start of a drag and at the drop. "draw every arc at rest exactly once, and no arc that draws its own strokes" in `arc-runs.test.ts` and "draws every arc exactly once through a focus, its end, and a drag" in `arc-layer.test.tsx` hold this.
 
 **A value that changes per playback frame is read by id from the frame store.** A frame moves one number per place and per transition, and a scene rebuild for each frame would compare every node. The test "re-renders only the items whose values moved" in `canvas-frame-store.test.tsx` holds this.
+
+**A playback frame renders no arc.** No arc reads the frame store. The transition that fired starts the pulses of its arcs, and `arc-pulses.test.ts` holds what a pulse draws, how wide it starts, that it adds what is left of a pulse under way, and that it skips an arc that is off screen.
+
+**A pan or a zoom renders no arc.** React Flow's store changes on every frame of either, and the layer reads the pins of the arcs at a component port from that store. `usePortEnds` returns the same object while no pin moved. The test "do not render for a pan or a zoom, with an arc at a pin" in `arc-layer.test.tsx` holds this.
+
+**Nothing an arc paints takes the pointer.** `pointer-events` inherits, and React Flow sets `visibleStroke` on the wrapper around the layer. A pulse is up to 65 units wide. If it took the pointer, a press beside a pulsing arc would land on the pulse and reach neither the arc nor the pane. A run sets `pointer-events="none"` on its group, which holds every painted stroke. The tests "takes no pointer, with all it holds" in `arc-run-strokes.test.tsx` and "is the only path of its element" in `arc-item.test.tsx` hold this.
 
 **Hover and drag preview stay in `CanvasPointer`.** No panel subscribes to it, so a pointer move renders no panel. `use-canvas-scene.test.tsx` covers the hover delay and the drag.
 
@@ -77,25 +137,37 @@ A release has to count as a move before `releasePointer` hovers the item, or the
 
 **No opacity goes on an element that every arc has.** While the canvas has a focus, the pane fades each node and arc that has no role. For an opacity on a group, the browser draws the group into a buffer of its own on every frame, and a group per arc is a buffer per arc. On a net of 1,742 arcs with a node selected, a zoom showed 8 frames a second with those buffers and shows 36 without them, on a GPU: [Editor performance on a large net](doc:editor-performance) has the numbers. So each thing a faded standard arc draws is drawn once, at 0.45 by an opacity of its own, and what would lie under another is not drawn, because both would show. The rules are in `paneStyle` in `react-flow-canvas.tsx`:
 
-| What a standard arc draws                              | Class           | While the arc is faded                                                                   |
-| ------------------------------------------------------ | --------------- | ---------------------------------------------------------------------------------------- |
-| The line, which a firing widens                        | `arc-line`      | `stroke-opacity` 0.45, and it stops where the head begins (`--arc-faded-dash`)           |
-| The same line again, on the edge that carries the head | `arc-line-twin` | Not drawn: `stroke-opacity` 0, from the start of the fade until the end of the fade back |
-| The arrowhead, one filled shape                        | `arc-head`      | `fill-opacity` 0.45                                                                      |
+| What a standard arc draws                       | Class           | While the arc is faded                                                                   |
+| ----------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------- |
+| The line up to the head                         | `arc-shaft`     | `stroke-opacity` 0.45                                                                    |
+| The whole line again, which runs under the head | `arc-line-twin` | Not drawn: `stroke-opacity` 0, from the start of the fade until the end of the fade back |
+| The arrowhead, one filled outline               | `arc-head`      | `fill-opacity` 0.45                                                                      |
+| The pulse of a firing, the whole line           | `arc-pulse`     | `stroke-opacity` 0.45, and it stops where the head begins (`--arc-faded-dash`)           |
 
-`ArcHeads` draws the heads as markers of the canvas's own, because React Flow's arrow is a fill under a stroke and the two overlap. A marker is shared, so it cannot fade with one arc. For each colour the arcs wear, the arcs with no role share one head, which the pane fades. Each role has a head that never fades: it wears the casing's colour while the canvas has a focus, and the arc's own colour otherwise.
+The three strokes are children of a run, for the arcs at rest, or of the group `arc-own` of an arc that draws its own. The arcs of a run have no role, so a run fades whenever the canvas has a focus. An `arc-own` group carries `canvas-focus-role` when its arc has a role, and fades when it does not. The rules name those parents and their children: `.arc-run > .arc-shaft`, and `.arc-own:not(.canvas-focus-role) > .arc-shaft`. React Flow's wrapper around the layer is a `.react-flow__edge` with no role, so a rule that matched an arc through any edge above it would fade every arc.
 
-When the focus ends, the shared head takes the 200 ms of the fade to come back from 0.45, and an arc that had a role is at full strength already. So that arc keeps the head of its role until the canvas has a focus again: `useArcHeadRoles` remembers the roles of the last focus. At rest the head of a role and the shared head look the same.
+The head is the outline that the fill and the stroke of React Flow's arrow cover together, as one filled path placed at the end of the curve: `arcHeadPath`. A fill under a stroke would show the stroke's inner half as a darker rim on a faded head. A cased arc has a head of the casing's colour.
 
-The tests in `arc.test.tsx`, `arc-head.test.ts`, `arc-heads.test.tsx`, `use-arc-head-roles.test.ts` and `fusion-edge.test.tsx` hold the classes, that the head of every role is drawn whether or not an arc has that role, that an arc keeps the head of its role past the focus, and that a standard arc has no group that fades. No test reads the rules in `paneStyle`.
+When the focus ends, the merged paths take the 200 ms of the fade to come back from 0.45, and an arc that had a role is at full strength already. When the focus moves straight to another item, the merged paths are at 0.45, and an arc that lost its role has to fade down to there. So an arc that loses its role keeps its own strokes for 250 ms after the roles last changed, and then joins its run, where it looks the same.
 
-A mark that lies on its line can only fade with it as one group: the ticks and the circle of an inhibitor arc, the dot of a read arc and the knot of a fusion link. Those groups carry `arc-strokes` and keep an opacity, so each costs a buffer. The line of a fusion link is outside its group and fades by its stroke under a class of its own, `fusion-line`: it has no head to stop short of, so it keeps its own dashes. A node keeps its opacity too: on that net the 470 nodes cost a zoom 5 of its 42 frames a second.
+The tests in `arc-own-strokes.test.tsx`, `arc-run-strokes.test.tsx`, `use-arcs-leaving-focus.test.ts` and `fusion-edge.test.tsx` hold the classes and their parents, that a standard arc has no group that fades, and how long an arc keeps its own strokes. No test reads the rules in `paneStyle`.
+
+A mark that lies on its line can only fade with it as one group: the ticks and the circle of an inhibitor arc, the dot of a read arc and the knot of a fusion link. Those groups carry `arc-strokes` and keep an opacity, so each costs a buffer. For a read or an inhibitor arc it is the `arc-own` group itself. The line of a fusion link is outside its group and fades by its stroke under a class of its own, `fusion-line`: it has no head to stop short of, so it keeps its own dashes. A node keeps its opacity too: on that net the 470 nodes cost a zoom 5 of its 42 frames a second.
 
 ## Pitfalls
 
 - A faded arc is the picture of a faded group where the browser antialiases by samples, as Chromium does when it rasters on the GPU of a Mac, the one machine this was measured on. There, in a crop of that net with a node selected, under 3% of the pixels differ by more than 6 of 255 from the faded groups. Where the browser antialiases by coverage, as Safari does and as Chromium does when it rasters on the CPU, the two strokes of a line at full strength add up along its edges, and a faded line, drawn once, is lighter than the faded group was. It is up to half as strong where the line is thinner than a pixel, and it takes that step at the start of the fade, when the second stroke goes. In WebKit 26.5, the engine of Safari, 20% of that crop differs by more than 6 of 255, and the largest difference is 70. Keeping both strokes does not give the old picture either: at opacities a and b they would need a + b = 0.9 and ab = 0.45, and no two numbers do that.
-- An arrowhead is shared, so it cannot follow one arc through a fade. When the focus moves from one item straight to another, the head of an arc that gains or loses its role changes at once while its line fades.
+- A run is drawn in one piece, so the stacking of the arcs follows the document run by run and not arc by arc. Inside a run the lines of one colour are one path: where two arcs of one run cross, the colour that comes later in the run is on top, whichever arc is later in the document. The heads of a run lie above its lines, and an arc that draws its own strokes lies above the merged strokes of its run. `arcsPerRun` sets how much of this there is: a shorter run keeps more of the document's order and makes more paths. [Editor performance on a large net](doc:editor-performance) has the pixels that differ.
+- Faded strokes of one colour in one run do not darken where they overlap, because they are one path. A fan of faded heads on a busy place is one flat 0.45 within a run, where heads drawn one by one pile up to a darker crescent.
+- The weight of an arc is in the arc's element, above every stroke of every arc, also of an arc later in the document.
+- When the focus moves from one item straight to another, an arc that gains a role is at full strength at once, under a casing that also appears at once. Its strokes are new elements, and a new element runs no transition.
+- An arc that leaves its run or joins it changes where it lies among the arcs of that run: at a change of focus, 250 ms after one, at the start of a drag and at the drop.
+- The arcs share one `svg`, so the accessibility tree has one `img` around all their groups, where it had one per arc. The groups, their names and their order are the same.
+- An arc takes the pointer within 10 units of its curve, all along it. An `svg` per arc would cut that reach at the box of the curve, by up to 2 units on one side, and one `svg` for all the arcs does not. So a point beside an arc can be within the reach of a later arc, which then takes it.
+- React Flow turns the pointer off on an edge that is not selectable and has no click handler. The edge of the layer is not selectable, so the arcs take the pointer only while `ReactFlow` is given `onEdgeClick`. The canvas's three edge handlers answer for the fusion links and return at once for the layer's edge. No test holds this.
+- The layer calls into React Flow's store: `addSelectedEdges`, `unselectNodesAndEdges`, `nodesSelectionActive`, `rfId`, and the handle bounds of a node. Check them when React Flow is upgraded.
 - No custom property is registered for the canvas, by `@property` or by `CSS.registerProperty`. A registered property with a delayed transition could hold an arc's head through the fade back in CSS alone. With any property registered, used or not, Chromium 145 takes 550 to 850 ms to restyle that net for a change of focus, where it takes 77 ms. A registration holds for the whole document, so one made by the page around the editor costs the same. The test in `panda.config.shared.test.ts` holds that the Panda preset makes none. WebKit 26.5, the engine of Safari, also paints the next marker while such a transition waits. A transition on `marker-end` itself makes Chromium paint no head for as long as it runs.
-- A firing on a faded arc widens a line that stops at the head, so a pulse wider than the head ends at the head's base, where it ran on to the node. A line that ran on for the length of a pulse would lie under the head again, and the head would be darker than its line for those 500 ms.
-- `useStableItems` reads a ref during render and opts out of the React Compiler with `"use no memo"`. It compares against the previous render's objects, which no effect can do in time. Keep scene items plain data: the comparison handles primitives, plain objects and arrays only.
+- A pulse is a path of its own, under the arc's line, and runs on to the node under the head. On a faded arc it stops where the head begins, so a pulse wider than the head ends at the head's base: a pulse that ran on would lie under the head, and the head would be darker than its line for those 500 ms. Line and pulse are both at 0.45 there, so the line shows through its pulse as a darker strip.
+- A transition pulses its arcs when the number of its firings in a frame differs from the number in the frame before, as it flashes its own box. At more frames a second a frame holds fewer firings and their number changes less often, so fewer pulses start.
+- `useStableItems` and `useArcLayerModel` read a ref during render and opt out of the React Compiler with `"use no memo"`. They compare against the previous render's objects, which no effect can do in time. Keep scene items plain data: the comparison of `useStableItems` handles primitives, plain objects and arrays only.
 - An action from `useCanvasInteractions` is for an event. Calling one during render reads state of an earlier render.

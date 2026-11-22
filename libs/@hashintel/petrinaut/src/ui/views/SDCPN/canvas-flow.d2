@@ -19,7 +19,8 @@ frames: "Canvas frame store\ntoken counts and firings by id" {style.fill: "#dcec
 scene: "useCanvasScene\nnodes, arcs, focus roles" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
 elements: "useReactFlowElements\nuseStableItems" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
 flow: "ReactFlow" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
-items: "Node and arc components" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+items: "Node components" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+layer: "ArcLayer\nshapes and runs of the arcs" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
 pane: "Viewport element" {style.fill: "#ffffff"; style.stroke: "#6b6b6b"}
 interactions: "useCanvasInteractions\nactions that keep their identity" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
 
@@ -29,6 +30,9 @@ pointer -> scene: "hover, drag preview"
 scene -> elements: "maps to nodes and edges"
 elements -> flow: "same object for an unchanged node"
 flow -> items: "renders the changed ones"
+flow -> layer: "renders it as one edge"
+scene -> layer: "by context: the same shape for an unchanged arc"
+items -> layer: "a firing pulses its arcs" {style.stroke-dash: 3}
 frames -> items: "each reads its own value by id"
 flow -> pane: "pan and zoom transform" {style.stroke-dash: 3}
 flow -> interactions: "reports gestures"
