@@ -258,7 +258,7 @@ describe("how the arcs are drawn", () => {
   const drawn = (container: Element) => ({
     own: container.querySelectorAll(".arc-run > .arc-own").length,
     shafts: subpaths(container, ".arc-run > .arc-shaft"),
-    lines: subpaths(container, ".arc-run > .arc-line-twin"),
+    lines: subpaths(container, ".arc-run > .arc-line"),
     heads: subpaths(container, ".arc-run > .arc-head"),
   });
 

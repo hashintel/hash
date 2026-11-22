@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
-import { focusFadeMs } from "../../../../styles/focus";
+import { focusFadeMs } from "../../../../../styles/focus";
 
-import type { CanvasArc } from "../../../../canvas-scene";
+import type { CanvasArc } from "../../../../../canvas-scene";
 
 const noArcs: ReadonlySet<string> = new Set();
 

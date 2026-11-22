@@ -7,7 +7,7 @@ import {
   arcShapes,
   type PortEnds,
 } from "./arc-shapes";
-import { useArcsLeavingFocus } from "./use-arcs-leaving-focus";
+import { useArcsLeavingFocus } from "./use-arc-layer-model/use-arcs-leaving-focus";
 
 import type { CanvasScene } from "../../../../canvas-scene";
 

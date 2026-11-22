@@ -2,17 +2,21 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { withArcs } from "../scene.test-helpers";
+import { withArcs } from "../../scene.test-helpers";
+import { arcShapes } from "../arc-shapes";
 import { ArcOwnStrokes } from "./arc-own-strokes";
-import { arcShapes } from "./arc-shapes";
 
-import type { CanvasArc } from "../../../../canvas-scene";
+import type { CanvasArc } from "../../../../../canvas-scene";
 
 afterEach(cleanup);
 
 /** The strokes of the scene's arc from the place to the transition. */
 const renderStrokes = (arc: Partial<CanvasArc> = {}) => {
-  const [shape] = arcShapes(withArcs({ input: arc }), new Map()).list;
+  const [shape] = arcShapes(
+    withArcs({ input: arc }),
+    new Map(),
+    new Set(),
+  ).list;
   if (!shape) {
     throw new Error("the scene has an arc between two nodes");
   }
@@ -32,7 +36,7 @@ describe("the strokes of a standard arc", () => {
   it("are a line up to the head, the whole line again, and the head", () => {
     const { group, shape } = renderStrokes();
     const shaft = group.querySelector(".arc-shaft");
-    const twin = group.querySelector(".arc-line-twin");
+    const twin = group.querySelector(".arc-line");
     const head = group.querySelector(".arc-head");
 
     expect(shaft?.getAttribute("d")).toBe(shape.paths.shaft);
@@ -96,7 +100,7 @@ describe("the strokes of an arc with marks on its line", () => {
 
       expect(group.classList.contains("arc-strokes")).toBe(true);
       expect(
-        group.querySelector(".arc-shaft, .arc-line-twin, .arc-head"),
+        group.querySelector(".arc-shaft, .arc-line, .arc-head"),
       ).toBeNull();
       // Casing, pulse, line and mark are children of the group. The mark
       // sits on the line a little before its end.

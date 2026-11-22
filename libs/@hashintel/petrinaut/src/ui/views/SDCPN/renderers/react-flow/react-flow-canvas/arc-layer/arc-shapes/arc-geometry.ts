@@ -3,14 +3,14 @@
  * from the curve between its two ends.
  */
 
-import { ARC_HEAD_LENGTH, ARC_STROKE_WIDTH } from "../arc-head";
+import { ARC_HEAD_LENGTH, ARC_STROKE_WIDTH } from "../../arc-head";
 import {
   type ArcCurve,
   type ArcEnd,
   getOutlineArcCurve,
-} from "../shared/outline-arcs";
+} from "../../shared/outline-arcs";
 
-import type { CanvasPoint } from "../../../../canvas-scene";
+import type { CanvasPoint } from "../../../../../canvas-scene";
 
 export type ArcBox = { x: number; y: number; width: number; height: number };
 

@@ -14,6 +14,7 @@ afterEach(cleanup);
 const own = arcShapes(
   withArcs({ output: { focus: "incoming" } }),
   new Map(),
+  new Set(),
 ).list.filter((shape) => shape.alone);
 
 const run: ArcRun = {
@@ -50,9 +51,9 @@ it("draws each colour's lines up to their heads, the lines again, and all heads 
   ).toEqual([
     ["arc-pulses", null, null],
     ["arc-shaft", "#111111", "M0,0L1,1"],
-    ["arc-line-twin", "#111111", "M0,0L2,2"],
+    ["arc-line", "#111111", "M0,0L2,2"],
     ["arc-shaft", "#222222", "M5,5L6,6"],
-    ["arc-line-twin", "#222222", "M5,5L7,7"],
+    ["arc-line", "#222222", "M5,5L7,7"],
     ["arc-head", "#111111", "M2,2Z"],
     ["arc-head", "#222222", "M7,7Z"],
     ["arc-own canvas-focus-role", null, null],
@@ -89,7 +90,7 @@ it("takes no pointer, with all it holds: each arc has an element of its own for 
 it("puts no group around the merged paths, for the pane to fade stroke by stroke", () => {
   const group = renderRun();
   for (const path of group.querySelectorAll(
-    ":scope > .arc-shaft, :scope > .arc-line-twin, :scope > .arc-head",
+    ":scope > .arc-shaft, :scope > .arc-line, :scope > .arc-head",
   )) {
     expect(path.getAttribute("opacity")).toBeNull();
   }

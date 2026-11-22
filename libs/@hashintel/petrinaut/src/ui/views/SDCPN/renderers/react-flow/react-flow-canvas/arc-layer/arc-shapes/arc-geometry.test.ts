@@ -5,10 +5,10 @@ import {
   type ArcCurve,
   fixedEndpoint,
   type OutlineNode,
-} from "../shared/outline-arcs";
+} from "../../shared/outline-arcs";
 import { arcGeometry } from "./arc-geometry";
 
-import type { CanvasPoint } from "../../../../canvas-scene";
+import type { CanvasPoint } from "../../../../../canvas-scene";
 
 const circle: OutlineNode = {
   position: { x: 0, y: 0 },

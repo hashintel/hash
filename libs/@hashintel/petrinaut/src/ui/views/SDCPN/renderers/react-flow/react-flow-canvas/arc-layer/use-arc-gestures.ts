@@ -19,10 +19,10 @@ type ArcHandlers = Pick<
  * What a click, the pointer and the keys do on an arc, as handlers for the
  * one element that holds every arc's element.
  *
- * React Flow's wrapper around an edge did the same for each arc: it tells
- * React Flow's own selection about the arc, which deselects the nodes and
- * the other edges, and the canvas then selects the arc. The calls into React
- * Flow's store are the wrapper's, in its order.
+ * They make the calls React Flow's wrapper makes for an edge it holds, in
+ * its order: React Flow's own selection is told about the arc, which
+ * deselects the nodes and the other edges, and the canvas then selects the
+ * arc.
  */
 export const useArcGestures = (
   { selectLink, enterItem, clearHover, isAddMode }: ArcLayerGestures,

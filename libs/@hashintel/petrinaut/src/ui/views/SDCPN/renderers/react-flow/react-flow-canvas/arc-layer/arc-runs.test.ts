@@ -37,7 +37,7 @@ const shapesOf = (
   count: number,
   changes: Record<number, Partial<CanvasArc>> = {},
   previous?: ReturnType<typeof arcShapes>,
-) => arcShapes(sceneOf(count, changes), new Map(), undefined, previous);
+) => arcShapes(sceneOf(count, changes), new Map(), new Set(), previous);
 
 const subpaths = (path: string) => (path.match(/M/g) ?? []).length;
 
@@ -169,9 +169,9 @@ describe("the runs of the scene after", () => {
         ),
       };
     };
-    const first = arcShapes(moving(300), new Map());
+    const first = arcShapes(moving(300), new Map(), new Set());
     const runs = arcRuns(first.list);
-    const next = arcShapes(moving(340), new Map(), undefined, first);
+    const next = arcShapes(moving(340), new Map(), new Set(), first);
     const after = arcRuns(next.list, runs);
 
     expect(next.list[2]).not.toBe(first.list[2]);

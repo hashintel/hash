@@ -2,10 +2,10 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { scene, withArcs } from "../scene.test-helpers";
+import { scene, withArcs } from "../../scene.test-helpers";
 import { useArcsLeavingFocus } from "./use-arcs-leaving-focus";
 
-import type { CanvasArc } from "../../../../canvas-scene";
+import type { CanvasArc } from "../../../../../canvas-scene";
 
 beforeEach(() => {
   vi.useFakeTimers();

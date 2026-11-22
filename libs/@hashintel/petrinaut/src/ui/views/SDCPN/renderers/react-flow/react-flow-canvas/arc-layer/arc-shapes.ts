@@ -10,6 +10,7 @@
  */
 
 import { arcHeadPath } from "../arc-head";
+import { joinedPairs } from "../shared/joined-pairs";
 import {
   type ArcEnd,
   curvePath,
@@ -17,11 +18,10 @@ import {
   getOutlineNode,
   type OutlineNode,
 } from "../shared/outline-arcs";
-import { type ArcGeometry, arcGeometry } from "./arc-geometry";
+import { type ArcGeometry, arcGeometry } from "./arc-shapes/arc-geometry";
 
 import type {
   CanvasArc,
-  CanvasLinkEnds,
   CanvasNode,
   CanvasScene,
 } from "../../../../canvas-scene";
@@ -65,35 +65,12 @@ export type ArcShape = Pick<
   alone: boolean;
 };
 
-const noArcs: ReadonlySet<string> = new Set();
-
 export type ArcShapes = {
   /** One shape per arc that has both its ends, in the order of the scene. */
   list: ArcShape[];
   byId: ReadonlyMap<string, ArcShape>;
   /** The outline of each node that has one, by node id. */
   outlines: ReadonlyMap<string, OutlineNode>;
-};
-
-/**
- * Whether a line already runs from one node to another, among `links`. Node
- * pairs only, ports aside: an arc into a component port and one out of the
- * same component would otherwise meet the transition at one point.
- */
-export const joinedPairs = (
-  links: readonly Pick<CanvasLinkEnds, "sourceId" | "targetId">[],
-): ((sourceId: string, targetId: string) => boolean) => {
-  const targetsBySource = new Map<string, Set<string>>();
-  for (const { sourceId, targetId } of links) {
-    const targets = targetsBySource.get(sourceId);
-    if (targets) {
-      targets.add(targetId);
-    } else {
-      targetsBySource.set(sourceId, new Set([targetId]));
-    }
-  }
-  return (sourceId, targetId) =>
-    targetsBySource.get(sourceId)?.has(targetId) ?? false;
 };
 
 const sameOutline = (left: OutlineNode, right: OutlineNode): boolean =>
@@ -193,7 +170,7 @@ const toShape = (
 export const arcShapes = (
   scene: Pick<CanvasScene, "nodes" | "arcs">,
   portEnds: PortEnds,
-  leavingFocus: ReadonlySet<string> = noArcs,
+  leavingFocus: ReadonlySet<string>,
   previous?: ArcShapes,
 ): ArcShapes => {
   const outlines = outlinesOf(scene.nodes, previous?.outlines);

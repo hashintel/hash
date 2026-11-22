@@ -1,11 +1,14 @@
 import { memo } from "react";
 
-import { arcHaloColor } from "../../../../styles/focus";
-import { ARC_STROKE_WIDTH, READ_ARC_DASH } from "../arc-head";
-import { LineUnderlay } from "../shared/line-underlay";
-import { computeArcTickMarks, INHIBITOR_CIRCLE_RADIUS } from "./arc-tick-marks";
+import { arcHaloColor } from "../../../../../styles/focus";
+import { ARC_STROKE_WIDTH, READ_ARC_DASH } from "../../arc-head";
+import { LineUnderlay } from "../../shared/line-underlay";
+import {
+  computeArcTickMarks,
+  INHIBITOR_CIRCLE_RADIUS,
+} from "./arc-own-strokes/arc-tick-marks";
 
-import type { ArcShape } from "./arc-shapes";
+import type { ArcShape } from "../arc-shapes";
 
 const READ_DOT_RADIUS = 4;
 /** How far before the end of its arc the circle or the dot is centred. */
@@ -38,7 +41,7 @@ const StandardStrokes: React.FC<{ shape: ArcShape }> = ({ shape }) => {
       />
       <g className="arc-pulses" />
       <path className="arc-shaft" d={paths.shaft} {...line} />
-      <path className="arc-line-twin" d={paths.curve} {...line} />
+      <path className="arc-line" d={paths.curve} {...line} />
       {/*
         A cased arc runs into a head of the casing's colour: the casing
         cannot wrap the head, and a head left in the arc's own colour would

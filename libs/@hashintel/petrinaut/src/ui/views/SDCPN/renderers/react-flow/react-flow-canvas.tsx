@@ -121,7 +121,7 @@ const paneStyle = css({
   },
   // The second stroke of a line comes back once the line has faded back in:
   // any sooner and it would show through the line.
-  "& .arc-line-twin": {
+  "& .arc-line": {
     transition:
       "[stroke-opacity 0s linear var(--canvas-focus-duration, 200ms)]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
@@ -171,7 +171,7 @@ const paneStyle = css({
     {
       strokeOpacity: "[0.45]",
     },
-  "&[data-focus-active] .arc-run > .arc-line-twin, &[data-focus-active] .arc-own:not(.canvas-focus-role) > .arc-line-twin":
+  "&[data-focus-active] .arc-run > .arc-line, &[data-focus-active] .arc-own:not(.canvas-focus-role) > .arc-line":
     {
       strokeOpacity: "[0]",
       transition: "[none]",

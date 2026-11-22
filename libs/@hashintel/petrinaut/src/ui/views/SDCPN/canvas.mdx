@@ -71,7 +71,7 @@ An edge gets only its own props, so the scene reaches the layer through `ArcLaye
         g.arc-run                      64 consecutive arcs of the document
           g.arc-pulses                 the pulses of its arcs at rest
           path.arc-shaft               their lines up to the heads, one path per colour
-          path.arc-line-twin           their whole lines, one path per colour
+          path.arc-line           their whole lines, one path per colour
           path.arc-head                their heads, one path per colour
           g.arc-own                    the strokes of an arc that draws its own
       g.arc-items
@@ -139,12 +139,12 @@ A release has to count as a move before `releasePointer` hovers the item, or the
 
 **No opacity goes on an element that every arc has.** While the canvas has a focus, the pane fades each node and arc that has no role. For an opacity on a group, the browser draws the group into a buffer of its own on every frame, and a group per arc is a buffer per arc. On a net of 1,742 arcs with a node selected, a zoom showed 8 frames a second with those buffers and shows 36 without them, on a GPU: [Editor performance on a large net](doc:editor-performance) has the numbers. So each thing a faded standard arc draws is drawn once, at 0.45 by an opacity of its own, and what would lie under another is not drawn, because both would show. The rules are in `paneStyle` in `react-flow-canvas.tsx`:
 
-| What a standard arc draws                       | Class           | While the arc is faded                                                                   |
-| ----------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------- |
-| The line up to the head                         | `arc-shaft`     | `stroke-opacity` 0.45                                                                    |
-| The whole line again, which runs under the head | `arc-line-twin` | Not drawn: `stroke-opacity` 0, from the start of the fade until the end of the fade back |
-| The arrowhead, one filled outline               | `arc-head`      | `fill-opacity` 0.45                                                                      |
-| The pulse of a firing, the whole line           | `arc-pulse`     | `stroke-opacity` 0.45, and it stops where the head begins (`--arc-faded-dash`)           |
+| What a standard arc draws                       | Class       | While the arc is faded                                                                   |
+| ----------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------- |
+| The line up to the head                         | `arc-shaft` | `stroke-opacity` 0.45                                                                    |
+| The whole line again, which runs under the head | `arc-line`  | Not drawn: `stroke-opacity` 0, from the start of the fade until the end of the fade back |
+| The arrowhead, one filled outline               | `arc-head`  | `fill-opacity` 0.45                                                                      |
+| The pulse of a firing, the whole line           | `arc-pulse` | `stroke-opacity` 0.45, and it stops where the head begins (`--arc-faded-dash`)           |
 
 The three strokes are children of a run, for the arcs at rest, or of the group `arc-own` of an arc that draws its own. The arcs of a run have no role, so a run fades whenever the canvas has a focus. An `arc-own` group carries `canvas-focus-role` when its arc has a role, and fades when it does not. The rules name those parents and their children: `.arc-run > .arc-shaft`, and `.arc-own:not(.canvas-focus-role) > .arc-shaft`. React Flow's wrapper around the layer is a `.react-flow__edge` with no role, so a rule that matched an arc through any edge above it would fade every arc.
 

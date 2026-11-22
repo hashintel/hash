@@ -1,4 +1,4 @@
-import { ARC_STROKE_WIDTH } from "../arc-head";
+import { ARC_STROKE_WIDTH } from "../../../arc-head";
 
 /** The circle an inhibitor arc ends in. */
 export const INHIBITOR_CIRCLE_RADIUS = 10;

@@ -59,6 +59,7 @@ describe("the shapes of a scene's arcs", () => {
         new Map(),
       );
 
+        none,
       const end = list[0]?.geometry.curve.end;
       expect(end?.x).toBeCloseTo(position.x - size.width / 2);
       expect(end?.y).toBeCloseTo(position.y - size.height / 2);
@@ -66,7 +67,7 @@ describe("the shapes of a scene's arcs", () => {
   );
 
   it("attaches arcs to node outlines and component port arcs to the port's pin", () => {
-    const shapes = byId(arcShapes(scene, portEnds));
+    const shapes = byId(arcShapes(scene, portEnds, none));
 
     for (const id of ["input", "output"]) {
       expect(shapes[id]?.source).toHaveProperty("cornerRadius");
@@ -91,7 +92,7 @@ describe("the shapes of a scene's arcs", () => {
   });
 
   it("keeps the order of the scene and the ids of the nodes each arc joins", () => {
-    const { list } = arcShapes(scene, portEnds);
+    const { list } = arcShapes(scene, portEnds, none);
     expect(
       list.map((shape) => [shape.id, shape.sourceId, shape.targetId]),
     ).toEqual([
@@ -103,7 +104,7 @@ describe("the shapes of a scene's arcs", () => {
   });
 
   it("leaves out an arc whose pin is not measured, and draws the others", () => {
-    const { list } = arcShapes(scene, new Map());
+    const { list } = arcShapes(scene, new Map(), none);
     expect(list.map((shape) => shape.id)).toEqual(["input", "output"]);
   });
 
@@ -113,13 +114,14 @@ describe("the shapes of a scene's arcs", () => {
       portEnds,
     );
     expect(list.map((shape) => shape.id)).toEqual([
+      none,
       "port-input",
       "port-output",
     ]);
   });
 
   it("writes the curve, the curve up to the head, and the head", () => {
-    const shape = byId(arcShapes(scene, portEnds)).input;
+    const shape = byId(arcShapes(scene, portEnds, none)).input;
 
     expect(shape?.paths.curve).toMatch(/^M[-\d.]+,[-\d.]+C/);
     expect(shape?.paths.shaft).toMatch(/^M[-\d.]+,[-\d.]+C/);
@@ -130,7 +132,7 @@ describe("the shapes of a scene's arcs", () => {
 
 describe("the shapes of the scene after", () => {
   it("are the same objects, and the same list, when nothing draws differently", () => {
-    const before = arcShapes(scene, portEnds);
+    const before = arcShapes(scene, portEnds, none);
     // A scene is rebuilt with every node and arc a new object.
     const after = arcShapes(withArcs({}), new Map(portEnds), none, before);
 
@@ -138,7 +140,7 @@ describe("the shapes of the scene after", () => {
   });
 
   it("keep every arc but the ones whose focus or selection changed", () => {
-    const before = arcShapes(scene, portEnds);
+    const before = arcShapes(scene, portEnds, none);
     const after = arcShapes(
       withArcs({ input: { focus: "outgoing" }, output: { selected: true } }),
       portEnds,
@@ -159,7 +161,7 @@ describe("the shapes of the scene after", () => {
 
   it("recompute the arcs of a moved node only, without changing the scene", () => {
     const snapshot = structuredClone(scene);
-    const before = arcShapes(scene, portEnds);
+    const before = arcShapes(scene, portEnds, none);
     const computed = vi.spyOn(geometry, "arcGeometry");
 
     const after = arcShapes(
@@ -182,7 +184,7 @@ describe("the shapes of the scene after", () => {
   });
 
   it("follow a pin that moved", () => {
-    const before = arcShapes(scene, portEnds);
+    const before = arcShapes(scene, portEnds, none);
     const after = arcShapes(
       scene,
       new Map([
@@ -203,7 +205,7 @@ describe("the shapes of the scene after", () => {
 
   it("take a new lane when an arc the other way appears", () => {
     const oneWay = { ...scene, arcs: scene.arcs.slice(0, 1) };
-    const before = arcShapes(oneWay, portEnds);
+    const before = arcShapes(oneWay, portEnds, none);
     const after = arcShapes(
       { ...scene, arcs: scene.arcs.slice(0, 2) },
       portEnds,
@@ -250,7 +252,7 @@ describe("the arcs that draw their own strokes", () => {
     expect(aloneIn(dragging)).toContain("input");
     expect(aloneIn(dragging)).toContain("output");
 
-    const before = arcShapes(dragging, portEnds);
+    const before = arcShapes(dragging, portEnds, none);
     const dropped = arcShapes(
       {
         ...dragging,
@@ -263,19 +265,5 @@ describe("the arcs that draw their own strokes", () => {
     // The same curve, drawn with the arcs at rest again.
     expect(dropped.list[0]?.alone).toBe(false);
     expect(dropped.list[0]?.paths).toBe(before.list[0]?.paths);
-  });
-});
-
-describe("the pairs of nodes a line joins", () => {
-  it("says whether a line runs from one node to another, in that direction", () => {
-    const joined = joinedPairs(scene.arcs);
-
-    expect(joined("place", "transition")).toBe(true);
-    expect(joined("transition", "place")).toBe(true);
-    expect(joined("component", "transition")).toBe(true);
-    expect(joined("place", "component")).toBe(false);
-    expect(joinedPairs(scene.arcs.slice(0, 1))("transition", "place")).toBe(
-      false,
-    );
   });
 });

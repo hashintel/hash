@@ -12,7 +12,11 @@ afterEach(cleanup);
 
 /** The element of the scene's arc from the place to the transition. */
 const renderArc = (arc: Partial<CanvasArc> = {}, selectable = true) => {
-  const [shape] = arcShapes(withArcs({ input: arc }), new Map()).list;
+  const [shape] = arcShapes(
+    withArcs({ input: arc }),
+    new Map(),
+    new Set(),
+  ).list;
   if (!shape) {
     throw new Error("the scene has an arc between two nodes");
   }

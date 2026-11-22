@@ -18,10 +18,11 @@ import { ArcPulsesContext } from "./arc-pulses";
  *
  * React Flow renders this as one edge, the first, so the arcs sit where its
  * edges sit: inside the pane, under the fusion links and the nodes, and
- * first in the order of the Tab key. It knows none of the arcs. What it did
- * for each is done here: the curve between the two ends, the element that
- * takes the focus and the pointer, and what a click, a hover and the keys
- * do. The props of the edge are not read: the scene comes by context.
+ * first in the order of the Tab key. It knows none of the arcs, so the layer
+ * does for each what React Flow does for an edge: the curve between the two
+ * ends, the element that takes the focus and the pointer, and what a click,
+ * a hover and the keys do. The props of the edge are not read: the scene
+ * comes by context.
  */
 export const ArcLayer: React.FC = () => {
   const { scene, gestures } = useArcLayerInput();

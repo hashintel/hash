@@ -1,6 +1,7 @@
 import { useId } from "react";
 
 import { useArcLayerInput } from "./arc-layer-context";
+import { joinedPairs } from "./shared/joined-pairs";
 import {
   curvePath,
   fixedEndpoint,
@@ -34,11 +35,7 @@ export const OutlineConnectionLine: ConnectionLineComponent<NodeType> = ({
   const { scene } = useArcLayerInput();
   const hasReverseArc =
     toNode !== null &&
-    [scene.arcs, scene.fusions].some((links) =>
-      links.some(
-        (link) => link.sourceId === toNode.id && link.targetId === fromNode.id,
-      ),
-    );
+    joinedPairs([...scene.arcs, ...scene.fusions])(toNode.id, fromNode.id);
   const sourceOutline = getOutlineNode(fromNode.data);
   const snapped = connectionStatus === "valid" && toNode !== null;
   const targetOutline = snapped ? getOutlineNode(toNode.data) : null;

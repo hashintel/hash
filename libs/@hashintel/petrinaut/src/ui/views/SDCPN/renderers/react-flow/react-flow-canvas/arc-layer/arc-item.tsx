@@ -72,8 +72,8 @@ type ArcItemProps = {
  * wide, as in an edge of React Flow. Where several arcs are within reach the
  * browser takes the last in the document. Nothing that is painted takes the
  * pointer, so a pulse of any width leaves the pane beside its arc pressable.
- * The weight's box is the exception React Flow's edges had: its border is
- * part of the arc.
+ * The weight's box is the exception: its border takes the pointer for the
+ * arc, as it does in an edge of React Flow.
  */
 const ArcItemComponent: React.FC<ArcItemProps> = ({
   shape,

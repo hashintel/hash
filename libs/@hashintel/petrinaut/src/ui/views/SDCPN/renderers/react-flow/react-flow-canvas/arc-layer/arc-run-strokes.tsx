@@ -1,7 +1,7 @@
 import { Fragment, memo } from "react";
 
 import { ARC_STROKE_WIDTH } from "../arc-head";
-import { ArcOwnStrokes } from "./arc-own-strokes";
+import { ArcOwnStrokes } from "./arc-run-strokes/arc-own-strokes";
 
 import type { ArcRun, MergedStrokes } from "./arc-runs";
 
@@ -27,7 +27,7 @@ const MergedStrokesComponent: React.FC<{
     {strokes.map(({ color, shafts, lines }) => (
       <Fragment key={color}>
         <path className="arc-shaft" d={shafts} stroke={color} {...line} />
-        <path className="arc-line-twin" d={lines} stroke={color} {...line} />
+        <path className="arc-line" d={lines} stroke={color} {...line} />
       </Fragment>
     ))}
     {strokes.map(({ color, heads }) => (
