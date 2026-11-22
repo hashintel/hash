@@ -27,7 +27,7 @@ React's profiling build, with every node on screen.
 | Drag a node         | 67,945 |   949 |
 | Pan                 | 13,686 |   359 |
 | Zoom                |  2,260 |   118 |
-| Open a panel        |    160 |    36 |
+| Open a panel        |    160 |    96 |
 | Deselect            |  2,173 |    31 |
 
 ## What a gesture costs
@@ -491,6 +491,8 @@ A press takes the same arc. The element under each of 33,405 points of a grid
 over that net was read on both builds at the three zooms. Of the 5,513 points
 on an arc, 11 name another arc, all at zoom 1.1: an `svg` per arc cut the
 reach of an arc at the box of its curve, and one `svg` for all does not.
+On Supply Chain, where arcs lie apart, 156 of 48,556 grid points at two zooms
+went from the canvas to an arc, each within the 10 units of that arc.
 
 In Safari an arc has a wider reach than it had. WebKit tests a press against
 the box of a path first, and counts the width of a stroke into that box only

@@ -19,7 +19,7 @@ import type { CanvasScene } from "../../../../canvas-scene";
  * a handle an edge can start at. In the loose connection mode of the canvas
  * the edge may end at the same handle.
  */
-export const canAnchor = (node: InternalNode | undefined): boolean =>
+const canAnchor = (node: InternalNode | undefined): boolean =>
   (node?.internals.handleBounds?.source?.length ?? 0) > 0;
 
 /**
