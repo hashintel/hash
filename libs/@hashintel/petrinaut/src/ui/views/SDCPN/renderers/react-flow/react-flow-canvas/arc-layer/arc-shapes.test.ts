@@ -28,6 +28,9 @@ const portEnds: PortEnds = new Map([
   ],
 ]);
 
+/** No arc has just lost a focus role. */
+const none: ReadonlySet<string> = new Set();
+
 const byId = (shapes: ReturnType<typeof arcShapes>) =>
   Object.fromEntries(shapes.list.map((shape) => [shape.id, shape]));
 
@@ -129,7 +132,7 @@ describe("the shapes of the scene after", () => {
   it("are the same objects, and the same list, when nothing draws differently", () => {
     const before = arcShapes(scene, portEnds);
     // A scene is rebuilt with every node and arc a new object.
-    const after = arcShapes(withArcs({}), new Map(portEnds), before);
+    const after = arcShapes(withArcs({}), new Map(portEnds), none, before);
 
     expect(after.list).toBe(before.list);
   });
@@ -139,6 +142,7 @@ describe("the shapes of the scene after", () => {
     const after = arcShapes(
       withArcs({ input: { focus: "outgoing" }, output: { selected: true } }),
       portEnds,
+      none,
       before,
     );
 
@@ -161,6 +165,7 @@ describe("the shapes of the scene after", () => {
     const after = arcShapes(
       withNodeAt("place", { x: -200, y: 100 }),
       portEnds,
+      none,
       before,
     );
 
@@ -187,6 +192,7 @@ describe("the shapes of the scene after", () => {
           { source: fixedEndpoint(650, 60, Position.Right), target: null },
         ],
       ]),
+      none,
       before,
     );
 
@@ -201,12 +207,62 @@ describe("the shapes of the scene after", () => {
     const after = arcShapes(
       { ...scene, arcs: scene.arcs.slice(0, 2) },
       portEnds,
+      none,
       before,
     );
 
     expect(before.list[0]?.hasReverseArc).toBe(false);
     expect(after.list[0]?.hasReverseArc).toBe(true);
     expect(after.list[0]?.paths.curve).not.toBe(before.list[0]?.paths.curve);
+  });
+});
+
+describe("the arcs that draw their own strokes", () => {
+  const aloneIn = (
+    input: Parameters<typeof arcShapes>[0],
+    leavingFocus: ReadonlySet<string> = none,
+  ) =>
+    arcShapes(input, portEnds, leavingFocus)
+      .list.filter((shape) => shape.alone)
+      .map((shape) => shape.id);
+
+  it("are not the arcs at rest between two nodes", () => {
+    // The arcs at the component's port follow its pin.
+    expect(aloneIn(scene)).toEqual(["port-input", "port-output"]);
+  });
+
+  it.each([
+    ["has a focus role", { focus: "incoming" }],
+    ["is selected", { selected: true }],
+    ["is a read arc", { kind: "read" }],
+    ["is an inhibitor arc", { kind: "inhibitor" }],
+  ] as const)("include an arc that %s", (_why, change) => {
+    expect(aloneIn(withArcs({ input: change }))).toContain("input");
+    expect(aloneIn(withArcs({ input: change }))).not.toContain("output");
+  });
+
+  it("include an arc that had a role a moment ago", () => {
+    expect(aloneIn(scene, new Set(["output"]))).toContain("output");
+  });
+
+  it("include the arcs of a node that is being dragged, until it is dropped", () => {
+    const dragging = withNodeAt("place", { x: -200, y: 100 });
+    expect(aloneIn(dragging)).toContain("input");
+    expect(aloneIn(dragging)).toContain("output");
+
+    const before = arcShapes(dragging, portEnds);
+    const dropped = arcShapes(
+      {
+        ...dragging,
+        nodes: dragging.nodes.map((node) => ({ ...node, dragging: false })),
+      },
+      portEnds,
+      none,
+      before,
+    );
+    // The same curve, drawn with the arcs at rest again.
+    expect(dropped.list[0]?.alone).toBe(false);
+    expect(dropped.list[0]?.paths).toBe(before.list[0]?.paths);
   });
 });
 

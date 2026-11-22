@@ -42,7 +42,7 @@ export type ArcPulseView = {
    * The element that holds the pulse of the arc at `index` of `arcs`, under
    * the arc's own line.
    */
-  slotOf: (index: number) => Element | null;
+  holderOf: (index: number) => Element | null;
   viewport: () => ViewportState;
 };
 
@@ -111,7 +111,7 @@ export const createArcPulses = (): ArcPulses => {
     running.delete(pulse.arc.id);
   };
 
-  const start = (arc: PulsingArc, slot: Element, count: number) => {
+  const start = (arc: PulsingArc, holder: Element, count: number) => {
     const now = performance.now();
     const before = running.get(arc.id);
     // What is left of a pulse under way falls off evenly over its length.
@@ -127,8 +127,8 @@ export const createArcPulses = (): ArcPulses => {
 
     before?.animation.cancel();
     const path = before?.path ?? createPulsePath(arc);
-    if (path.parentNode !== slot) {
-      slot.append(path);
+    if (path.parentNode !== holder) {
+      holder.append(path);
     }
     const animation = path.animate(
       [
@@ -168,9 +168,9 @@ export const createArcPulses = (): ArcPulses => {
         // The box the curve fills, in flow units: a curve can sweep well
         // past its ends, so where it is drawn is what decides.
         if (arc && firingIsVisible(viewport, arc.geometry.box)) {
-          const slot = view.slotOf(index);
-          if (slot) {
-            start(arc, slot, count);
+          const holder = view.holderOf(index);
+          if (holder) {
+            start(arc, holder, count);
           }
         }
       }
@@ -188,9 +188,9 @@ export const createArcPulses = (): ArcPulses => {
       for (const pulse of running.values()) {
         const index = indexById.get(pulse.arc.id);
         const arc = index === undefined ? undefined : next?.arcs[index];
-        const slot = index === undefined ? null : next?.slotOf(index);
+        const holder = index === undefined ? null : next?.holderOf(index);
         // An arc of another kind draws another line: its pulse starts afresh.
-        if (!arc || !slot || arc.kind !== pulse.arc.kind) {
+        if (!arc || !holder || arc.kind !== pulse.arc.kind) {
           end(pulse);
           continue;
         }
@@ -198,8 +198,8 @@ export const createArcPulses = (): ArcPulses => {
           drawPulse(pulse.path, arc);
           pulse.arc = arc;
         }
-        if (pulse.path.parentNode !== slot) {
-          slot.append(pulse.path);
+        if (pulse.path.parentNode !== holder) {
+          holder.append(pulse.path);
         }
       }
     },

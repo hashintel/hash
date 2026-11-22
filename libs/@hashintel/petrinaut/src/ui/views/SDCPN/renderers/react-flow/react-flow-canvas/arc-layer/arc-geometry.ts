@@ -27,7 +27,7 @@ export type ArcGeometry = {
   label: CanvasPoint;
   /** How long the curve is, to within a hundredth of it. */
   length: number;
-  /** The box of the curve itself, which decides whether a firing is on screen. */
+  /** The box of the curve, which decides whether a firing is on screen. */
   box: ArcBox;
 };
 

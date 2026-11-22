@@ -56,20 +56,20 @@ const onScreen: ViewportState = {
   height: 600,
 };
 
-/** A page with one slot per arc. */
+/** A page with one holder per arc. */
 const viewOf = (
   arcs: PulsingArc[],
   viewport: ViewportState = onScreen,
-): ArcPulseView & { slots: Element[] } => {
-  const slots = arcs.map(() => {
-    const slot = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    document.body.append(slot);
-    return slot;
+): ArcPulseView & { holders: Element[] } => {
+  const holders = arcs.map(() => {
+    const holder = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    document.body.append(holder);
+    return holder;
   });
   return {
     arcs,
-    slots,
-    slotOf: (index) => slots[index] ?? null,
+    holders,
+    holderOf: (index) => holders[index] ?? null,
     viewport: () => viewport,
   };
 };
@@ -89,8 +89,10 @@ describe("the pulse of a firing", () => {
 
     pulses.fire("transition", 1);
 
-    expect(view.slots.map((slot) => slot.children.length)).toEqual([1, 0, 1]);
-    const path = view.slots[2]?.firstElementChild;
+    expect(view.holders.map((holder) => holder.children.length)).toEqual([
+      1, 0, 1,
+    ]);
+    const path = view.holders[2]?.firstElementChild;
     expect(path?.getAttribute("d")).toBe("M0,0C50,0 150,40 200,40");
     expect(path?.getAttribute("stroke")).toBe("#abcdef");
     expect(path?.getAttribute("fill")).toBe("none");
@@ -132,7 +134,7 @@ describe("the pulse of a firing", () => {
     // firings are left.
     expect(started[1]?.peak).toBeCloseTo(peakFor(1 + 2 * 0.75));
     expect(started[0]?.animation.cancel).toHaveBeenCalled();
-    expect(view.slots[0]?.children.length).toBe(1);
+    expect(view.holders[0]?.children.length).toBe(1);
 
     // A pulse that has run its length adds nothing.
     now += 500;
@@ -148,7 +150,7 @@ describe("the pulse of a firing", () => {
 
     started[0]?.animation.onfinish?.();
 
-    expect(view.slots[0]?.children.length).toBe(0);
+    expect(view.holders[0]?.children.length).toBe(0);
     // The next firing starts afresh.
     now += 10;
     pulses.fire("transition", 1);
@@ -168,7 +170,9 @@ describe("the pulse of a firing", () => {
     pulses.show(view);
 
     pulses.fire("transition", 1);
-    expect(view.slots.map((slot) => slot.children.length)).toEqual([1, 0]);
+    expect(view.holders.map((holder) => holder.children.length)).toEqual([
+      1, 0,
+    ]);
 
     const small = viewOf([arc({ id: "small" })], {
       ...onScreen,
@@ -176,7 +180,7 @@ describe("the pulse of a firing", () => {
     });
     pulses.show(small);
     pulses.fire("transition", 1);
-    expect(small.slots[0]?.children.length).toBe(0);
+    expect(small.holders[0]?.children.length).toBe(0);
   });
 
   it("does nothing for a firing count of zero, or with no arcs on the page", () => {
@@ -195,7 +199,7 @@ describe("where a pulse stops", () => {
     const view = viewOf([arc()]);
     pulses.show(view);
     pulses.fire("transition", 1);
-    const path = view.slots[0]?.querySelector<SVGPathElement>("path");
+    const path = view.holders[0]?.querySelector<SVGPathElement>("path");
 
     expect(path?.getAttribute("class")).toBe("arc-pulse");
     expect(path?.getAttribute("pathLength")).toBe("1");
@@ -217,7 +221,9 @@ describe("where a pulse stops", () => {
     ]);
     pulses.show(view);
     pulses.fire("transition", 1);
-    const [read, inhibitor] = view.slots.map((slot) => slot.firstElementChild);
+    const [read, inhibitor] = view.holders.map(
+      (holder) => holder.firstElementChild,
+    );
 
     expect(read?.getAttribute("stroke-dasharray")).toBe("2 6");
     expect(read?.getAttribute("stroke-linecap")).toBe("round");
@@ -236,13 +242,13 @@ describe("a pulse under way when the page changes", () => {
     const before = viewOf([arc()]);
     pulses.show(before);
     pulses.fire("transition", 1);
-    const path = before.slots[0]?.firstElementChild;
+    const path = before.holders[0]?.firstElementChild;
 
     const moved = arc({ paths: { curve: "M0,0C50,0 150,90 200,90" } });
     const after = viewOf([arc({ id: "new" }), moved]);
     pulses.show(after);
 
-    expect(after.slots[1]?.firstElementChild).toBe(path);
+    expect(after.holders[1]?.firstElementChild).toBe(path);
     expect(path?.getAttribute("d")).toBe("M0,0C50,0 150,90 200,90");
     expect(started).toHaveLength(1);
     expect(started[0]?.animation.cancel).not.toHaveBeenCalled();

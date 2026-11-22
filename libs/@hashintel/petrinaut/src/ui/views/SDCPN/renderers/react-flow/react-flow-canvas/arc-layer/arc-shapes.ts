@@ -58,7 +58,14 @@ export type ArcShape = Pick<
   geometry: ArcGeometry;
   /** The whole curve, the curve up to the arrowhead, and the arrowhead. */
   paths: { curve: string; shaft: string; head: string };
+  /**
+   * Whether the arc draws its own strokes. An arc at rest does not: the arcs
+   * at rest of one colour are drawn together, in the paths of their run.
+   */
+  alone: boolean;
 };
+
+const noArcs: ReadonlySet<string> = new Set();
 
 export type ArcShapes = {
   /** One shape per arc that has both its ends, in the order of the scene. */
@@ -149,6 +156,7 @@ const curveOf = (
 const toShape = (
   arc: CanvasArc,
   { source, target, hasReverseArc, geometry, paths }: ArcCurveShape,
+  alone: boolean,
 ): ArcShape => ({
   id: arc.id,
   kind: arc.kind,
@@ -164,14 +172,37 @@ const toShape = (
   hasReverseArc,
   geometry,
   paths,
+  alone,
 });
 
+/**
+ * The shapes of a scene's arcs. `leavingFocus` names the arcs that had a
+ * focus role until a moment ago.
+ *
+ * An arc draws its own strokes while it is not like the arcs at rest:
+ *
+ * - it has a focus role or is selected, so it wears a casing or a band and
+ *   never fades;
+ * - it just lost its role, and is fading on its own;
+ * - a node at one of its ends is being dragged, so its curve changes on
+ *   every frame, and a merged path would be written again for each;
+ * - it is a read or an inhibitor arc, whose marks lie on its line;
+ * - it ends at a component port, whose pin moves while its card opens or
+ *   closes.
+ */
 export const arcShapes = (
   scene: Pick<CanvasScene, "nodes" | "arcs">,
   portEnds: PortEnds,
+  leavingFocus: ReadonlySet<string> = noArcs,
   previous?: ArcShapes,
 ): ArcShapes => {
   const outlines = outlinesOf(scene.nodes, previous?.outlines);
+  const dragged = new Set<string>();
+  for (const node of scene.nodes) {
+    if (node.dragging) {
+      dragged.add(node.id);
+    }
+  }
   const hasArc = joinedPairs(scene.arcs);
   const byId = new Map<string, ArcShape>();
   const list: ArcShape[] = [];
@@ -188,6 +219,15 @@ export const arcShapes = (
       continue;
     }
     const hasReverseArc = hasArc(arc.targetId, arc.sourceId);
+    const alone =
+      arc.kind !== "standard" ||
+      arc.focus !== "none" ||
+      arc.selected ||
+      arc.sourcePortId !== null ||
+      arc.targetPortId !== null ||
+      leavingFocus.has(arc.id) ||
+      dragged.has(arc.sourceId) ||
+      dragged.has(arc.targetId);
     const was = previous?.byId.get(arc.id);
     const sameCurve =
       was !== undefined &&
@@ -200,11 +240,16 @@ export const arcShapes = (
       was.weight === arc.weight &&
       was.color === arc.color &&
       was.selected === arc.selected &&
-      was.focus === arc.focus;
+      was.focus === arc.focus &&
+      was.alone === alone;
 
     const shape = kept
       ? was
-      : toShape(arc, sameCurve ? was : curveOf(source, target, hasReverseArc));
+      : toShape(
+          arc,
+          sameCurve ? was : curveOf(source, target, hasReverseArc),
+          alone,
+        );
     byId.set(arc.id, shape);
     list.push(shape);
   }

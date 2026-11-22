@@ -161,24 +161,29 @@ const paneStyle = css({
   // shaft, which stops where the head begins, and the second stroke of the
   // line goes, at once.
   //
-  // The rules name the arc's own element, and its strokes as its children.
-  // React Flow's wrapper around the arc layer is an edge with no role too,
-  // and a rule that matched through it would fade every arc.
-  "&[data-focus-active] .arc-item:not(.canvas-focus-role) > .arc-shaft, &[data-focus-active] .react-flow__edge-fusion:not(.canvas-focus-role) .fusion-line":
+  // The arcs at rest are drawn together, a few paths for each run of them,
+  // and fade there: no arc at rest has a role. An arc that draws its own
+  // strokes has them in a group that says whether it has one, and fades
+  // unless it does. The rules name that group and its children: React Flow's
+  // wrapper around the arc layer is an edge with no role too, and a rule
+  // that matched through it would fade every arc.
+  "&[data-focus-active] .arc-run > .arc-shaft, &[data-focus-active] .arc-own:not(.canvas-focus-role) > .arc-shaft, &[data-focus-active] .react-flow__edge-fusion:not(.canvas-focus-role) .fusion-line":
     {
       strokeOpacity: "[0.45]",
     },
-  "&[data-focus-active] .arc-item:not(.canvas-focus-role) > .arc-line-twin": {
-    strokeOpacity: "[0]",
-    transition: "[none]",
-  },
-  "&[data-focus-active] .arc-item:not(.canvas-focus-role) > .arc-head": {
-    fillOpacity: "[0.45]",
-  },
+  "&[data-focus-active] .arc-run > .arc-line-twin, &[data-focus-active] .arc-own:not(.canvas-focus-role) > .arc-line-twin":
+    {
+      strokeOpacity: "[0]",
+      transition: "[none]",
+    },
+  "&[data-focus-active] .arc-run > .arc-head, &[data-focus-active] .arc-own:not(.canvas-focus-role) > .arc-head":
+    {
+      fillOpacity: "[0.45]",
+    },
   // The pulse of a firing is the whole line, which runs on under the head.
   // On a faded arc it stops where the head begins, as the line does: a pulse
   // says what share of its length that is.
-  "&[data-focus-active] .arc-item:not(.canvas-focus-role) > .arc-pulses > .arc-pulse":
+  "&[data-focus-active] .arc-run > .arc-pulses > .arc-pulse, &[data-focus-active] .arc-own:not(.canvas-focus-role) > .arc-pulses > .arc-pulse":
     {
       strokeOpacity: "[0.45]",
       strokeDasharray: "[var(--arc-faded-dash)]",
@@ -186,7 +191,7 @@ const paneStyle = css({
   // Marks that lie on their line can only fade with it as one group: the
   // ticks, the circle and the dot of an inhibitor or a read arc, and the knot
   // of a fusion link. Those keep an opacity, and a net has few of them.
-  "&[data-focus-active] .arc-item:not(.canvas-focus-role) > .arc-strokes, &[data-focus-active] .react-flow__edge-fusion:not(.canvas-focus-role) .arc-strokes":
+  "&[data-focus-active] .arc-own.arc-strokes:not(.canvas-focus-role), &[data-focus-active] .react-flow__edge-fusion:not(.canvas-focus-role) .arc-strokes":
     {
       opacity: "[0.45]",
     },

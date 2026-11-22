@@ -7,7 +7,7 @@ import {
   useStoreApi,
 } from "@xyflow/react";
 import { Profiler } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ArcLayer } from "./arc-layer";
 import { ArcLayerContext, type ArcLayerGestures } from "./arc-layer-context";
@@ -214,7 +214,7 @@ describe("the arcs on the page", () => {
   });
 
   it("tell the pulses which arcs are on the page, and where the pulse of each goes", () => {
-    const { pulses, item, show } = mount();
+    const { container, pulses, show } = mount();
     const view = pulses.show.mock.lastCall?.[0];
 
     expect(view?.arcs.map((arc) => arc.id)).toEqual([
@@ -223,8 +223,16 @@ describe("the arcs on the page", () => {
       "port-input",
       "port-output",
     ]);
-    expect(view?.slotOf(1)).toBe(item("output").querySelector(".arc-pulses"));
-    expect(view?.slotOf(9)).toBeNull();
+    // An arc at rest pulses in its run, and an arc that draws its own strokes
+    // among them.
+    expect(view?.holderOf(1)).toBe(
+      container.querySelector(".arc-run > .arc-pulses"),
+    );
+    expect(view?.holderOf(2)).toBe(
+      container.querySelector('.arc-own[data-arc="port-input"] > .arc-pulses'),
+    );
+    expect(view?.holderOf(1)).not.toBeNull();
+    expect(view?.holderOf(2)).not.toBeNull();
 
     // The same arcs again: nothing to tell.
     const told = pulses.show.mock.calls.length;
@@ -236,6 +244,108 @@ describe("the arcs on the page", () => {
     const { pulses } = mount();
     cleanup();
     expect(pulses.show.mock.lastCall?.[0]).toBeNull();
+  });
+});
+
+describe("how the arcs are drawn", () => {
+  const subpaths = (container: Element, selector: string) =>
+    [...container.querySelectorAll(selector)].reduce(
+      (count, path) =>
+        count + (path.getAttribute("d")?.match(/M/g) ?? []).length,
+      0,
+    );
+  /** How many arcs draw their own strokes, and how many each merged path holds. */
+  const drawn = (container: Element) => ({
+    own: container.querySelectorAll(".arc-run > .arc-own").length,
+    shafts: subpaths(container, ".arc-run > .arc-shaft"),
+    lines: subpaths(container, ".arc-run > .arc-line-twin"),
+    heads: subpaths(container, ".arc-run > .arc-head"),
+  });
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("draws the arcs at rest together, under the elements of the arcs", () => {
+    const { container, item } = mount();
+
+    // The two arcs at the component's port follow its pin.
+    expect(drawn(container)).toEqual({ own: 2, shafts: 2, lines: 2, heads: 2 });
+    expect(
+      [...container.querySelectorAll(".arc-own")].map((own) =>
+        own.getAttribute("data-arc"),
+      ),
+    ).toEqual(["port-input", "port-output"]);
+    // The element of an arc paints none of it.
+    expect(item("port-input").querySelector(".arc-shaft")).toBeNull();
+    const runs = container.querySelector(".arc-runs");
+    expect(runs?.nextElementSibling).toBe(
+      container.querySelector(".arc-items"),
+    );
+  });
+
+  it("draws every arc exactly once through a focus, its end, and a drag", () => {
+    const { container, show } = mount();
+    const once = () => {
+      const { own, shafts, lines, heads } = drawn(container);
+      expect([own + shafts, own + lines, own + heads]).toEqual([4, 4, 4]);
+      return own;
+    };
+
+    show(withArcs({ input: { focus: "incoming" } }));
+    expect(once()).toBe(3);
+
+    // The focus moves on: the arc it left fades by its own strokes.
+    show(withArcs({ output: { focus: "outgoing" } }));
+    expect(once()).toBe(4);
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(once()).toBe(3);
+
+    // The focus ends: its arc is at full strength, the arcs at rest are not.
+    show(scene);
+    expect(once()).toBe(3);
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(once()).toBe(2);
+
+    show(withNodeAt("place", { x: -100, y: 60 }));
+    expect(once()).toBe(4);
+    show(scene);
+    expect(once()).toBe(2);
+  });
+
+  it("writes no merged path while a dragged node moves", () => {
+    const { container, show } = mount(withNodeAt("place", { x: -100, y: 60 }));
+    const runs = container.querySelector(".arc-runs");
+    if (!runs) {
+      throw new Error("no runs");
+    }
+    const observer = new MutationObserver(() => {});
+    observer.observe(runs, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+    });
+
+    show(withNodeAt("place", { x: -120, y: 80 }));
+    show(withNodeAt("place", { x: -140, y: 90 }));
+
+    // Only the strokes of the two arcs that move with the place changed.
+    const written = observer
+      .takeRecords()
+      .map((record) =>
+        record.target instanceof Element
+          ? record.target.closest(".arc-own")?.getAttribute("data-arc")
+          : undefined,
+      );
+    expect(new Set(written)).toEqual(new Set(["input", "output"]));
+    observer.disconnect();
   });
 });
 

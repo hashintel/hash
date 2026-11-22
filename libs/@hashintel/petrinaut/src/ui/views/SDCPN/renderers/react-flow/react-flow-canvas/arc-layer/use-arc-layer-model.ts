@@ -1,17 +1,27 @@
 import { useRef } from "react";
 
+import { type ArcRun, arcRuns } from "./arc-runs";
 import {
   type ArcShape,
   type ArcShapes,
   arcShapes,
   type PortEnds,
 } from "./arc-shapes";
+import { useArcsLeavingFocus } from "./use-arcs-leaving-focus";
 
 import type { CanvasScene } from "../../../../canvas-scene";
 
+type ArcLayerModel = {
+  /** One shape per arc, in the order of the scene. */
+  shapes: ArcShape[];
+  /** The merged strokes of the arcs at rest, by runs of consecutive arcs. */
+  runs: readonly ArcRun[];
+};
+
 /**
- * What the arc layer draws for a scene: one shape per arc, the same object
- * for as long as the arc draws the same.
+ * What the arc layer draws for a scene: one shape per arc, and the runs that
+ * draw the arcs at rest together. A shape or a run is the same object for as
+ * long as it draws the same.
  *
  * This is a render-time memory of the render before, as `useStableItems` is:
  * the shapes of the previous scene are what the new ones are compared with,
@@ -22,24 +32,34 @@ import type { CanvasScene } from "../../../../canvas-scene";
 export const useArcLayerModel = (
   scene: CanvasScene,
   portEnds: PortEnds,
-): { shapes: ArcShape[] } => {
+): ArcLayerModel => {
   "use no memo";
 
+  const leavingFocus = useArcsLeavingFocus(scene.arcs);
   const memory = useRef<{
     scene: CanvasScene;
     portEnds: PortEnds;
+    leavingFocus: ReadonlySet<string>;
     shapes: ArcShapes;
+    model: ArcLayerModel;
   } | null>(null);
 
   /* eslint-disable react/refs -- see the function-level comment. */
   const before = memory.current;
-  if (before?.scene !== scene || before.portEnds !== portEnds) {
-    memory.current = {
-      scene,
-      portEnds,
-      shapes: arcShapes(scene, portEnds, before?.shapes),
-    };
+  if (
+    before?.scene === scene &&
+    before.portEnds === portEnds &&
+    before.leavingFocus === leavingFocus
+  ) {
+    return before.model;
   }
-  return { shapes: memory.current?.shapes.list ?? [] };
+  const shapes = arcShapes(scene, portEnds, leavingFocus, before?.shapes);
+  const runs = arcRuns(shapes.list, before?.model.runs);
+  const model =
+    before?.model.shapes === shapes.list && before.model.runs === runs
+      ? before.model
+      : { shapes: shapes.list, runs };
+  memory.current = { scene, portEnds, leavingFocus, shapes, model };
+  return model;
   /* eslint-enable react/refs */
 };

@@ -103,8 +103,8 @@ const portEndsOf = (
 
 /**
  * Where the arcs that end at a component port meet its pins. React Flow
- * measures the pins, and measures them again on every frame a card folds,
- * so this reads its store.
+ * measures the pins, and measures them again on every frame a card opens or
+ * closes, so this reads its store.
  *
  * The store changes on every frame of a pan or a zoom. The value returned is
  * the same object for as long as no pin moved, and one constant for a net
