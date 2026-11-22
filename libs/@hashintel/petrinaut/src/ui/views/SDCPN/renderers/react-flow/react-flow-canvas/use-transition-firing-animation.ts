@@ -4,6 +4,7 @@ import { use, useEffect } from "react";
 import { useLatest } from "../../../../../../react/hooks/use-latest";
 import {
   fadedColor,
+  fadedCoverColor,
   fadedNodeStrength,
   insideFadedNode,
 } from "../../../styles/node-fade";
@@ -73,6 +74,19 @@ export const useTransitionFiringAnimation = (
         easing: "ease-out",
       },
     );
+
+    // The icon box of a faded card is not drawn, because the card under it
+    // draws its colour. For the length of the flash the card is another
+    // colour, so the box is drawn for as long: opaque, as a cover is, so that
+    // the flash does not show through it.
+    if (faded) {
+      box
+        .querySelector(":scope > .node-inlay")
+        ?.animate(
+          [{ backgroundColor: fadedCoverColor("var(--node-fill)"), offset: 0 }],
+          { duration: FIRING_ANIMATION_DURATION_MS, easing: "ease-out" },
+        );
+    }
 
     // Animate the lightning bolt: appear then fade out
     bolt.animate(

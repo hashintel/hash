@@ -29,7 +29,9 @@
  * node by the opacity of its fill and of its stroke. The flash and the bolt
  * of a firing are keyframes, which no rule reaches, so the animation asks
  * whether its node is faded, and the bolt carries `node-bolt` to be left out
- * of the rule for icons.
+ * of the rule for icons. A flash changes the colour of the card under an
+ * inlay, so the animation draws the inlay of a faded card for as long, as a
+ * cover.
  *
  * A cover is a token count or a port's pin. Each lies across the border of
  * its node, which a translucent part would show through it, and a count is
@@ -55,3 +57,13 @@ export const insideFadedNode =
  */
 export const fadedColor = (colour: string): string =>
   `color-mix(in srgb, ${colour} ${fadedNodeStrength * 100}%, transparent)`;
+
+/**
+ * The colour of the canvas, which the editor and the preview paint behind the
+ * pane. A cover mixes toward it.
+ */
+export const canvasColor = "var(--colors-neutral-s25)";
+
+/** `colour` as a cover of a faded node draws it, for a keyframe. */
+export const fadedCoverColor = (colour: string): string =>
+  `color-mix(in srgb, ${colour} ${fadedNodeStrength * 100}%, ${canvasColor})`;

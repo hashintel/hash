@@ -37,6 +37,11 @@ const mount = (initial: Input, node = document.createElement("div")) => {
     return div;
   };
   const box = { current: node.appendChild(element()) };
+  // The icon box of a compact card, which a faded card does not draw.
+  const inlayFlashes = vi.fn();
+  const inlay = box.current.appendChild(document.createElement("div"));
+  inlay.className = "node-inlay";
+  inlay.animate = inlayFlashes;
   const bolt = { current: node.appendChild(element()) };
   const none = { current: null };
 
@@ -62,7 +67,7 @@ const mount = (initial: Input, node = document.createElement("div")) => {
       ),
     },
   );
-  return { pulses, flashes, rerender };
+  return { pulses, flashes, inlayFlashes, rerender };
 };
 
 describe("a transition that fired", () => {
@@ -138,6 +143,35 @@ describe("a transition that fired", () => {
       { opacity: 0.4, transform: "scale(1)" },
       { opacity: 0, transform: "scale(0.5)" },
     ]);
+  });
+
+  it("draws the icon box of a faded card for the length of the flash, as a cover", () => {
+    const { inlayFlashes } = mount(
+      { firingDelta: 1 },
+      nodeOnPane({ focusActive: true }),
+    );
+
+    expect(inlayFlashes.mock.calls).toEqual([
+      [
+        [
+          {
+            backgroundColor:
+              "color-mix(in srgb, var(--node-fill) 40%, var(--colors-neutral-s25))",
+            offset: 0,
+          },
+        ],
+        { duration: 300, easing: "ease-out" },
+      ],
+    ]);
+  });
+
+  it("leaves the icon box alone while its node is not faded", () => {
+    const { inlayFlashes } = mount(
+      { firingDelta: 1 },
+      nodeOnPane({ focusActive: false }),
+    );
+
+    expect(inlayFlashes).not.toHaveBeenCalled();
   });
 
   it("pulses its arcs though its box is not on the page", () => {
