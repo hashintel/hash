@@ -29,13 +29,36 @@ const nodeRules = rules.filter(({ selector }) =>
 /** How a rule names a node outside the focused neighbourhood. */
 const fadedNode = `&${insideFadedNode.replace(/ \*$/, "").replaceAll(" ", "_")}`;
 
+/**
+ * The rules that give an element a transition, in whichever property of a
+ * transition they are written.
+ */
+const timedRules = rules.filter(
+  ({ declaration }) =>
+    /^(trs|transition)/.test(declaration) && !declaration.endsWith("_[none]"),
+);
+
 describe("the fade of the arcs", () => {
-  it("times the opacity of no group of an arc, which would be a layer for the length of the fade", () => {
-    const timed = rules.filter(({ declaration }) =>
-      /^trs_\[(.*,_)?opacity_/.test(declaration),
+  it("has timed rules to read", () => {
+    expect(timedRules.length).toBeGreaterThan(4);
+  });
+
+  it("times no group of an arc, which would be a layer for the length of the fade", () => {
+    const onGroups = timedRules.filter(({ selector }) =>
+      /\.arc-(strokes|own|run|pulses)(?![a-z-])/.test(selector),
     );
 
-    expect(timed.map(({ selector }) => selector)).toEqual(["&_.minimap-shape"]);
+    expect(onGroups.map(({ name }) => name)).toEqual([]);
+  });
+
+  it("times an opacity, or every property, on the shapes of the minimap alone", () => {
+    const opacities = timedRules.filter(({ declaration }) =>
+      /(?<![a-z-])(opacity|all)(?![a-z-])/.test(declaration),
+    );
+
+    expect(opacities.map(({ selector }) => selector)).toEqual([
+      "&_.minimap-shape",
+    ]);
   });
 });
 
@@ -57,13 +80,8 @@ describe("the fade of a node", () => {
   });
 
   it("times nothing that a node draws, so that a node dims in one frame", () => {
-    const timed = rules.filter(
-      ({ declaration }) =>
-        /^(trs|transition)/.test(declaration) &&
-        !declaration.endsWith("_[none]"),
-    );
     // What the pane fades: the strokes of the arcs and the shapes of the map.
-    const outsideNodes = timed.filter(({ selector }) =>
+    const outsideNodes = timedRules.filter(({ selector }) =>
       selector
         .split(",_")
         .every((part) =>
@@ -73,7 +91,7 @@ describe("the fade of a node", () => {
 
     expect(outsideNodes.length).toBeGreaterThan(3);
     expect(
-      timed
+      timedRules
         .filter((rule) => !outsideNodes.includes(rule))
         .map(({ name }) => name),
     ).toEqual([
