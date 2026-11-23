@@ -9,6 +9,7 @@ Functions that read or normalise an SDCPN document and hold no state. The
 types they work on are declared in [the document types](layer:core.types).
 Editing a document is the job of [the actions](layer:core.actions), and
 reading one from a file the job of [the file format](layer:core.file-format).
+The id check uses the UUID test of [the token value model](layer:core.tokens).
 
 ## Interface
 
@@ -42,3 +43,9 @@ changes: ids derived from it are stored in documents, URLs and host storage.
 | `selection.ts` imports `arc-id.ts` and nothing else.                                | The package entry `./selection` promises a host an import with no dependency.                       | No test: read the imports of `dist/selection.js` after a build |
 | The hash ignores the order of object keys, and the parts a caller excludes.         | Two saves of one net must hash alike, and a moved node must not look like a change to a simulation. | `hash-petrinaut-document.test.ts`                              |
 | Two documents are equal when one has a key set to `undefined` that the other lacks. | A JSON round trip drops such a key.                                                                 | `deep-equal.test.ts`                                           |
+
+## Pitfalls
+
+| Symptom                                                                    | Cause                                                                                                                                                                                                     | What avoids it                                                                                                                                             |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| This layer and [composition](layer:core.composition) depend on each other. | `getComponentPortEndpointComponent` in `arc-endpoints.ts` calls `resolveComponent` of composition to find the component behind a port. Composition reads ids, arc endpoints and place dynamics from here. | A function that needs a resolved component belongs in composition. Add no second import of composition here: the pair ends when this function moves there. |
