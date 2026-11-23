@@ -8,14 +8,14 @@ import { ActiveNetContext } from "../../../../../react/document/active-net-conte
 import { UndoRedoContext } from "../../../../../react/document/undo-redo-context";
 import { useComposesOnly } from "../../../../../react/document/use-composes-only";
 import { useDocumentId } from "../../../../../react/document/use-document";
-import { useMutationRefusal } from "../../../../../react/hooks/use-mutation-refusal";
-import { useReadOnlyFeedback } from "../../../../../react/hooks/use-read-only-feedback";
+import { useIsReadOnly } from "../../../../../react/editing/use-is-read-only";
+import { useMutationRefusal } from "../../../../../react/editing/use-mutation-refusal";
+import { useReadOnlyFeedback } from "../../../../../react/editing/use-read-only-feedback";
+import { useReadOnlyReason } from "../../../../../react/editing/use-read-only-reason";
 import {
   useEditorActions,
   useEditorFields,
 } from "../../../../../react/state/editor-context";
-import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
-import { useReadOnlyReason } from "../../../../../react/state/use-read-only-reason";
 import {
   copySelectionToClipboard,
   pasteFromClipboard,

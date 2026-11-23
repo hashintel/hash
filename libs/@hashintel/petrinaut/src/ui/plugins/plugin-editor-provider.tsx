@@ -2,6 +2,7 @@ import { type ReactNode, use, useLayoutEffect, useState } from "react";
 
 import { ActiveNetContext } from "../../react/document/active-net-context";
 import { PetrinautInstanceContext } from "../../react/document/instance-context";
+import { useReadOnlyReason } from "../../react/editing/use-read-only-reason";
 import { ExperimentHostContext } from "../../react/experiment-host/context";
 import { ExperimentsContext } from "../../react/experiments/context";
 import { useRevealInEditor } from "../../react/hooks/use-reveal-in-editor";
@@ -11,7 +12,6 @@ import { LanguageClientContext } from "../../react/lsp/context";
 import { usePetrinautNavigation } from "../../react/navigation/navigation";
 import { NotificationsContext } from "../../react/notifications/context";
 import { OptimizationsContext } from "../../react/optimizations/context";
-import { useReadOnlyReason } from "../../react/state/use-read-only-reason";
 import {
   createPluginEditor,
   PluginEditorContext,

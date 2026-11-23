@@ -1,6 +1,6 @@
 import { Button } from "@hashintel/ds-components";
 
-import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
+import { useIsReadOnly } from "../../../../../react/editing/use-is-read-only";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
 
 /**

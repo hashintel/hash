@@ -5,13 +5,13 @@ import { css } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 
 import { useComposesOnly } from "../../../../../react/document/use-composes-only";
+import { useIsReadOnly } from "../../../../../react/editing/use-is-read-only";
 import { LanguageClientContext } from "../../../../../react/lsp/context";
 import {
   useEditorActions,
   useEditorFields,
   useEditorMode,
 } from "../../../../../react/state/editor-context";
-import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { BOTTOM_BAR_GAP } from "../../../../constants/ui";
 import { BottomBarCollapseContext } from "./collapse-context";

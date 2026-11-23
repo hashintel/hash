@@ -19,6 +19,8 @@ import {
   SDCPNContext,
   type SDCPNContextValue,
 } from "../document/sdcpn-context";
+import { ReadOnlyReasonProvider } from "../editing/read-only-reason-provider";
+import { useIsReadOnly } from "../editing/use-is-read-only";
 import {
   defaultPetrinautNavigationState,
   type PetrinautNavigationController,
@@ -35,8 +37,6 @@ import {
 } from "./editor-context";
 import { EditorProvider } from "./editor-provider";
 import { PanelPresenceProvider } from "./panel-presence-provider";
-import { ReadOnlyReasonProvider } from "./read-only-reason-provider";
-import { useIsReadOnly } from "./use-is-read-only";
 import { useSelectionCleanup } from "./use-selection-cleanup";
 
 const emptySdcpn: SDCPN = {

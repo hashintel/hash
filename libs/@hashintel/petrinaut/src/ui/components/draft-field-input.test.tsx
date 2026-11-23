@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ReadOnlyReasonContext } from "../../react/state/use-read-only-reason";
+import { ReadOnlyReasonContext } from "../../react/editing/use-read-only-reason";
 import { DraftFieldInput } from "./draft-field-input";
 
 afterEach(cleanup);

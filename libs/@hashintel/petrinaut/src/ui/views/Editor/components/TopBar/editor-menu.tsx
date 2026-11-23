@@ -11,10 +11,10 @@ import {
 
 import { CompositionContext } from "../../../../../react/document/composition-context";
 import { SDCPNContext } from "../../../../../react/document/sdcpn-context";
+import { useIsReadOnly } from "../../../../../react/editing/use-is-read-only";
 import { NetManagementContext } from "../../../../../react/host/net-management-context";
 import { usePetrinautNavigate } from "../../../../../react/navigation/navigation";
 import { useEditorActions } from "../../../../../react/state/editor-context";
-import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { exportSDCPN } from "../../../../file-io/export-sdcpn";
 import { exportTikZ } from "../../../../file-io/export-tikz";
 import { importSDCPN } from "../../../../file-io/import-sdcpn";

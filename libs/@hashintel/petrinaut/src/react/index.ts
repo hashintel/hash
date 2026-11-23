@@ -148,17 +148,17 @@ export {
   useDocumentId,
   usePetrinautDefinitionSelector,
 } from "./document/use-document";
-export { useIsReadOnly } from "./state/use-is-read-only";
+export { useIsReadOnly } from "./editing/use-is-read-only";
 export {
   formatReadOnlyReason,
   useReadOnlyReason,
   type ReadOnlyReason,
-} from "./state/use-read-only-reason";
+} from "./editing/use-read-only-reason";
 export {
   usePetrinautMutations,
   type GuardedPetrinautMutations,
-} from "./hooks/use-petrinaut-mutations";
-export { usePetrinautCommands } from "./hooks/use-petrinaut-commands";
+} from "./editing/use-petrinaut-mutations";
+export { usePetrinautCommands } from "./editing/use-petrinaut-commands";
 export type {
   PetrinautCommands,
   PetrinautMutations,

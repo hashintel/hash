@@ -2,7 +2,7 @@ import { createContext, use } from "react";
 
 import { SDCPNContext } from "../document/sdcpn-context";
 import { SimulationContext, type SimulationState } from "../simulation/context";
-import { EditorContext } from "./editor-context";
+import { EditorContext } from "../state/editor-context";
 import { simulateModeAllowedMutationNames } from "./simulate-mode-allowed-mutation-names";
 
 import type { EditorGlobalMode } from "../navigation/navigation";

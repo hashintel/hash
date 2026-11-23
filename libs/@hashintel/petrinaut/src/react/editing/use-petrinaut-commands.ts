@@ -2,8 +2,8 @@ import { use } from "react";
 
 import { ActiveNetContext } from "../document/active-net-context";
 import { useCoreInstance } from "../document/use-petrinaut-instance";
-import { useIsReadOnly } from "../state/use-is-read-only";
 import { useHostRulesFeedback } from "./use-host-rules-feedback";
+import { useIsReadOnly } from "./use-is-read-only";
 import { useReadOnlyFeedback } from "./use-read-only-feedback";
 
 import type { PetrinautCommands } from "@hashintel/petrinaut-core";

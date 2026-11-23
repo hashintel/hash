@@ -4,8 +4,8 @@ import {
   getPlaceDynamicsEquationIds,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../react/hooks/use-petrinaut-mutations";
-import { useIsReadOnly } from "../../../../react/state/use-is-read-only";
+import { useIsReadOnly } from "../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../react/editing/use-petrinaut-mutations";
 import { arcPlaceId, placeName } from "../notebook-model";
 import { fieldLabelStyle, fieldRowStyle, fieldValueStyle } from "./part-styles";
 import {

@@ -6,6 +6,7 @@ import { PetrinautInstanceContext } from "./document/instance-context";
 import { SDCPNProvider } from "./document/sdcpn-provider";
 import { UndoRedoContext } from "./document/undo-redo-context";
 import { useHandleHistoryAsUndoRedo } from "./document/use-handle-history-as-undo-redo";
+import { ReadOnlyReasonProvider } from "./editing/read-only-reason-provider";
 import { EventPlaybackProvider } from "./event-playback/provider";
 import { ExecutionFrameProvider } from "./execution-frame/provider";
 import { ExperimentHostProvider } from "./experiment-host/provider";
@@ -24,7 +25,6 @@ import { CanvasViewportProvider } from "./state/canvas-viewport-provider";
 import { EditorProvider } from "./state/editor-provider";
 import { PanelPresenceProvider } from "./state/panel-presence-provider";
 import { PanelSizesProvider } from "./state/panel-sizes-provider";
-import { ReadOnlyReasonProvider } from "./state/read-only-reason-provider";
 import { UserSettingsProvider } from "./state/user-settings-provider";
 
 import type {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PetrinautInstanceContext } from "../../../../../../../react/document/instance-context";
-import { ReadOnlyReasonContext } from "../../../../../../../react/state/use-read-only-reason";
+import { ReadOnlyReasonContext } from "../../../../../../../react/editing/use-read-only-reason";
 import { selectedRowCellStyle } from "../../../../../../components/spreadsheet-kit/form-table";
 import { TypePropertiesContext } from "../context";
 import { DimensionsTable } from "./dimensions-table";

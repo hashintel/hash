@@ -2,12 +2,9 @@ import { use } from "react";
 
 import { ActiveNetContext } from "../document/active-net-context";
 import { useCoreInstance } from "../document/use-petrinaut-instance";
-import {
-  mutationBlockedBy,
-  useReadOnlyReason,
-} from "../state/use-read-only-reason";
 import { useHostRulesFeedback } from "./use-host-rules-feedback";
 import { useReadOnlyFeedback } from "./use-read-only-feedback";
+import { mutationBlockedBy, useReadOnlyReason } from "./use-read-only-reason";
 
 import type { PetrinautMutations } from "@hashintel/petrinaut-core";
 

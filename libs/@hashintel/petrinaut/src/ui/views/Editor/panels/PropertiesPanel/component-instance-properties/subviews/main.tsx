@@ -21,8 +21,8 @@ import {
 import { usePetrinautMutations } from "../../../../../../../react";
 import { CompositionContext } from "../../../../../../../react/document/composition-context";
 import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context";
-import { useMutationRefusal } from "../../../../../../../react/hooks/use-mutation-refusal";
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
+import { useMutationRefusal } from "../../../../../../../react/editing/use-mutation-refusal";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";

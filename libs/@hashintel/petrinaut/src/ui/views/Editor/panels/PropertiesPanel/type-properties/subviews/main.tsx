@@ -2,7 +2,7 @@ import { Form, Tooltip } from "@hashintel/ds-components";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
 import { ColorSelect } from "../../../../../../components/color-select";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";

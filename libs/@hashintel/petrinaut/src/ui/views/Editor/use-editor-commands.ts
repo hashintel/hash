@@ -3,11 +3,11 @@ import { use, useEffect, useEffectEvent } from "react";
 import { useCommand } from "../../../react/commands/command-registry";
 import { UndoRedoContext } from "../../../react/document/undo-redo-context";
 import { useComposesOnly } from "../../../react/document/use-composes-only";
+import { useIsReadOnly } from "../../../react/editing/use-is-read-only";
 import {
   useEditorActions,
   useEditorFields,
 } from "../../../react/state/editor-context";
-import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import {
   autoLayoutShortcut,
   useAutoLayoutAndFrame,

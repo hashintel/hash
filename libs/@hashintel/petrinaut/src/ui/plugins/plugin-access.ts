@@ -8,12 +8,12 @@
 
 import { inlineImports, resolvedLibraries } from "@hashintel/petrinaut-core";
 
-import { petrinautNavigationStatesMatch } from "../../react/navigation/navigation";
 import {
   formatReadOnlyReason,
   mutationBlockedBy,
   type ReadOnlyReason,
-} from "../../react/state/use-read-only-reason";
+} from "../../react/editing/use-read-only-reason";
+import { petrinautNavigationStatesMatch } from "../../react/navigation/navigation";
 
 import type { ExperimentRecord } from "../../react/experiments/context";
 import type { PetrinautRevealTarget } from "../../react/hooks/use-reveal-in-editor";

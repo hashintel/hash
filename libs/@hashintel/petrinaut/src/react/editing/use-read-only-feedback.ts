@@ -3,7 +3,7 @@ import { use } from "react";
 import { SDCPNContext } from "../document/sdcpn-context";
 import { ReadOnlyActionContext } from "../host/read-only-action-context";
 import { NotificationsContext } from "../notifications/context";
-import { useReadOnlyReason } from "../state/use-read-only-reason";
+import { useReadOnlyReason } from "./use-read-only-reason";
 
 /**
  * A function that tells the user why an edit was just blocked, or does nothing

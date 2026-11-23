@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ActiveNetContext } from "../../../../../../../../react/document/active-net-context";
 import { PetrinautInstanceContext } from "../../../../../../../../react/document/instance-context";
+import { ReadOnlyReasonContext } from "../../../../../../../../react/editing/use-read-only-reason";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
-import { ReadOnlyReasonContext } from "../../../../../../../../react/state/use-read-only-reason";
 import { selectedRowCellStyle } from "../../../../../../../components/spreadsheet-kit/form-table";
 import { PlacePropertiesContext } from "../../context";
 import { PlaceDynamicsContent, PlaceDynamicsHeaderActions } from "./subview";

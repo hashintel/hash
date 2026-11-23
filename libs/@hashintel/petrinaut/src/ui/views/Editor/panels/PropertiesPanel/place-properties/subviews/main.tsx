@@ -14,8 +14,8 @@ import { validateEntityName } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
 import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
+import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";

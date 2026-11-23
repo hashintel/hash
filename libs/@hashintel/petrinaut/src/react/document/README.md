@@ -8,7 +8,7 @@ the instance, the definition of the open document, the net the editor shows,
 the state of the document's imports and the undo history. It holds no state
 of the editing session: the mode, the selection and the panels belong to
 [the editor state](layer:react.state), and whether an edit is allowed
-belongs to the edit guard.
+belongs to [the edit guard](layer:react.editing).
 
 ## Interface
 

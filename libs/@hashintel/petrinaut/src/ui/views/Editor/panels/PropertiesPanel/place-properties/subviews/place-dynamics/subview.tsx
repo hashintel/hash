@@ -5,8 +5,8 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../../../../../../../react";
 import { ActiveNetContext } from "../../../../../../../../react/document/active-net-context";
+import { useIsReadOnly } from "../../../../../../../../react/editing/use-is-read-only";
 import { useEditorActions } from "../../../../../../../../react/state/editor-context";
-import { useIsReadOnly } from "../../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { usePlacePropertiesContext } from "../../context";
 import { composableEquations } from "./compose-dynamics";

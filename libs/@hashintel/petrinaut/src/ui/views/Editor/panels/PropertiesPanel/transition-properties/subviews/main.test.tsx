@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ActiveNetContext } from "../../../../../../../react/document/active-net-context";
 import { PetrinautInstanceContext } from "../../../../../../../react/document/instance-context";
 import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context";
-import { ReadOnlyReasonContext } from "../../../../../../../react/state/use-read-only-reason";
+import { ReadOnlyReasonContext } from "../../../../../../../react/editing/use-read-only-reason";
 import { TransitionPropertiesContext } from "../context";
 import { TransitionMainContent } from "./main";
 

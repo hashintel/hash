@@ -7,8 +7,8 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../../react";
+import { useIsReadOnly } from "../../../../../../../../react/editing/use-is-read-only";
 import { useEditorState } from "../../../../../../../../react/state/editor-context";
-import { useIsReadOnly } from "../../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { CodeTemplateMenu } from "../../../code-template-menu";

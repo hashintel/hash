@@ -16,7 +16,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { PropertyValue } from "../../../../../../components/property-value";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";

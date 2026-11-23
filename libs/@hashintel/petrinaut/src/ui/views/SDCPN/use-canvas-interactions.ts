@@ -21,14 +21,14 @@ import { ActiveNetContext } from "../../../react/document/active-net-context";
 import { CompositionContext } from "../../../react/document/composition-context";
 import { SDCPNContext } from "../../../react/document/sdcpn-context";
 import { useComposesOnly } from "../../../react/document/use-composes-only";
-import { usePetrinautMutations } from "../../../react/hooks/use-petrinaut-mutations";
-import { useReadOnlyFeedback } from "../../../react/hooks/use-read-only-feedback";
+import { useIsReadOnly } from "../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../react/editing/use-petrinaut-mutations";
+import { useReadOnlyFeedback } from "../../../react/editing/use-read-only-feedback";
 import { NotificationsContext } from "../../../react/notifications/context";
 import {
   useEditorActions,
   useEditorFields,
 } from "../../../react/state/editor-context";
-import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useUserSettings } from "../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
 import { CanvasPointerContext } from "./canvas-pointer";

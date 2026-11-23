@@ -11,11 +11,11 @@ import {
 
 import { ActiveNetContext } from "../../../../../../react/document/active-net-context";
 import { CompositionContext } from "../../../../../../react/document/composition-context";
+import { useIsReadOnly } from "../../../../../../react/editing/use-is-read-only";
 import {
   useEditorActions,
   useEditorState,
 } from "../../../../../../react/state/editor-context";
-import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { ComponentGlyph } from "../../../../../components/component-glyph";
 import { problemTextStyle } from "../../../../../constants/problem-severity";
 import { writeDraggedComponent } from "../../../../shared/canvas-node-drag";

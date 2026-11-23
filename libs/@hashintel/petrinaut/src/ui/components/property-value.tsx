@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useIsReadOnly } from "../../react/state/use-is-read-only";
+import { useIsReadOnly } from "../../react/editing/use-is-read-only";
 
 const valueStyle = css({
   fontSize: "sm",

@@ -1,7 +1,7 @@
 import { Form, TextInput, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useIsReadOnly } from "../../react/state/use-is-read-only";
+import { useIsReadOnly } from "../../react/editing/use-is-read-only";
 import { useDraftField } from "../hooks/use-draft-field";
 import { PropertyValue } from "./property-value";
 

@@ -2,7 +2,7 @@ import { use } from "react";
 
 import { SDCPNContext } from "../document/sdcpn-context";
 import { SimulationContext } from "../simulation/context";
-import { useEditorMode } from "./editor-context";
+import { useEditorMode } from "../state/editor-context";
 import {
   ReadOnlyReasonContext,
   readOnlyReasonOf,

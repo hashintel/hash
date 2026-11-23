@@ -31,14 +31,14 @@ vi.mock("../../../../../react", () => ({
   usePetrinautMutations: () => ({ deleteItemsByIds: actions.remove }),
   usePetrinautCommands: () => ({ applyClipboardPaste: actions.paste }),
 }));
-vi.mock("../../../../../react/hooks/use-read-only-feedback", () => ({
+vi.mock("../../../../../react/editing/use-read-only-feedback", () => ({
   useReadOnlyFeedback: () => actions.notify,
 }));
-vi.mock("../../../../../react/state/use-is-read-only", () => ({
+vi.mock("../../../../../react/editing/use-is-read-only", () => ({
   useIsReadOnly: () => actions.readOnly,
 }));
 vi.mock(
-  import("../../../../../react/state/use-read-only-reason"),
+  import("../../../../../react/editing/use-read-only-reason"),
   async (importOriginal) => ({
     ...(await importOriginal()),
     useReadOnlyReason: () =>

@@ -1,8 +1,8 @@
 import { Button, Menu } from "@hashintel/ds-components";
 
-import { usePetrinautMutations } from "../../../../../../../react/hooks/use-petrinaut-mutations";
+import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
 import { useEditorState } from "../../../../../../../react/state/editor-context";
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { useCodeNavigation } from "../../../../../../monaco/code-navigation-context";
 
 import type { EntityItem } from "./entity-groups";

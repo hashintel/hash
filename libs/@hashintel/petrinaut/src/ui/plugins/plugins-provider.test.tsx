@@ -16,7 +16,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { CommandRegistryProvider } from "../../react/commands/command-registry-provider";
-import { useReadOnlyFeedback } from "../../react/hooks/use-read-only-feedback";
+import { useReadOnlyFeedback } from "../../react/editing/use-read-only-feedback";
 import {
   type ErrorTracker,
   ErrorTrackerContext,

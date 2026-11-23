@@ -8,6 +8,7 @@ import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { ActiveNetContext } from "../../../react/document/active-net-context";
 import { PetrinautInstanceContext } from "../../../react/document/instance-context";
 import { SDCPNContext } from "../../../react/document/sdcpn-context";
+import { ReadOnlyReasonProvider } from "../../../react/editing/read-only-reason-provider";
 import {
   defaultPetrinautNavigationState,
   type PetrinautNavigationState,
@@ -16,7 +17,6 @@ import { PetrinautNavigationProvider } from "../../../react/navigation/navigatio
 import { EditorContext } from "../../../react/state/editor-context";
 import { EditorProvider } from "../../../react/state/editor-provider";
 import { PanelPresenceProvider } from "../../../react/state/panel-presence-provider";
-import { ReadOnlyReasonProvider } from "../../../react/state/read-only-reason-provider";
 import { fusionLinks } from "./fusion-links";
 import { useCanvasInteractions } from "./use-canvas-interactions";
 
