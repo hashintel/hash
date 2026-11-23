@@ -11,7 +11,7 @@ import {
   type TimelineView,
 } from "../../../../../../../react/state/editor-context";
 import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
-import { ViewMetricDrawer } from "../../../SimulateView/metrics/view-metric-drawer";
+import { MetricDrawer } from "../../../SimulateView/metrics/metric-drawer";
 import { useMetricShapes } from "./use-metric-shapes";
 import {
   useRunTimelineView,
@@ -195,13 +195,14 @@ export const TimelineViewPicker: React.FC = () => {
           }}
         />
       </div>
-      <ViewMetricDrawer
-        // Gate on the metric existing — the picker can swap to a non-metric
-        // view while the drawer is open, and we don't want an empty overlay.
-        open={isViewOpen && !!selectedMetric}
-        onClose={() => setIsViewOpen(false)}
-        metric={selectedMetric}
-      />
+      {/* The picker can swap to a non-metric view while the drawer is open. */}
+      {isViewOpen && selectedMetric ? (
+        <MetricDrawer
+          key={selectedMetric.id}
+          metric={selectedMetric}
+          onClose={() => setIsViewOpen(false)}
+        />
+      ) : null}
     </>
   );
 };
