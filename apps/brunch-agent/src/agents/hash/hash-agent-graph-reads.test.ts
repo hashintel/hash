@@ -22,6 +22,11 @@ import { afterAll, beforeAll, expect, test, vi } from "vitest";
 import {
   type BrowserCallClaim,
   type ClientToolResult,
+  type HashEntityCountInput,
+  type HashEntityCountJoinResult,
+  type HashEntityReadInput,
+  type HashEntityReadResult,
+  type HashEntityTypeReadResult,
   brunchTools,
   canonicalContent,
   hashProcessEditorId,
@@ -159,7 +164,7 @@ const supplierRead = {
     },
   ],
   entities: [supplier],
-};
+} satisfies HashEntityReadResult;
 /** What the model is shown of `supplierRead`. */
 const supplierText = [
   "entities: 1",
@@ -439,7 +444,7 @@ const supplierType = {
       ],
     },
   ],
-};
+} satisfies HashEntityTypeReadResult["entityTypes"][number];
 
 test("the entity type read is offered, issued as a read in a fresh conversation with the entities' type ids as given, and the model next sees the page's types", async () => {
   const input = {
@@ -755,13 +760,13 @@ const salesOrdersUndeliveredByCustomer = {
     exists: false,
   },
   groupBy: { linkType: "Has Customer", direction: "outgoing" },
-};
+} satisfies HashEntityCountInput;
 const salesOrderJoinReads = [
   { role: "counted", entityTypes: ["Sales Order"], entities: 3 },
   { role: "link", entityTypes: ["Has Line Item"], entities: 4 },
   { role: "link", entityTypes: ["Fulfills"], entities: 2 },
   { role: "link", entityTypes: ["Has Customer"], entities: 3 },
-];
+] satisfies HashEntityCountJoinResult["reads"];
 
 test("an entity count across links is issued to the page as asked, and the model sees how many qualified, by group, with examples", async () => {
   const { claim, seen } = await readOnce(
@@ -868,6 +873,46 @@ test.each([
     });
   },
 );
+
+test("an entity type read whose text exceeds maxTokens reaches the model as a refusal with narrowing and maxTokens advice", async () => {
+  const manyTypes = Array.from({ length: 120 }, (_, index) => ({
+    entityTypeId: `https://hash.ai/@acme/types/entity-type/type-${index}/v/1`,
+    title: `Type ${index}`,
+    description: "Detailed catalog record schema description. ".repeat(15),
+    properties: Array.from({ length: 5 }, (_, propIndex) => ({
+      baseUrl: `https://hash.ai/@acme/types/property-type/prop-${index}-${propIndex}/`,
+      title: `Property ${propIndex}`,
+    })),
+    links: [],
+  }));
+  const { seen } = await readOnce(
+    brunchTools.hashQueryEntityTypes,
+    { limit: 120 },
+    {
+      entityTypes: manyTypes,
+      cursor: "https://hash.ai/@acme/types/entity-type/type-119/v/1",
+    },
+  );
+  expect(seen).toContain("Refused: this type read's text would be about");
+  expect(seen).toContain(
+    "over the 20,000 token limit (default 20,000, max 60,000)",
+  );
+  expect(seen).toContain("pass a smaller limit");
+  expect(seen).not.toContain("type-119/v/1");
+});
+
+test("an empty final cursor page reaches the model as end-of-pagination rather than nothing matched", async () => {
+  const input = {
+    ...readInput,
+    cursor: "WyJwcmV2aW91cyJd",
+  } satisfies HashEntityReadInput;
+  const { seen } = await readOnce(brunchTools.hashQueryEntities, input, {
+    propertyTypes: [],
+    entityTypes: [],
+    entities: [],
+  });
+  expect(seen).toBe("No more entities matched; all pages have been read.");
+});
 
 test.each([-1, 1.5, 4])(
   "a traversal depth of %s never reaches the browser",

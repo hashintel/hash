@@ -3,11 +3,18 @@
  * page returns. The reads' path through the agent is in
  * `../hash-agent-graph-reads.test.ts`.
  */
-import { expect, test } from "vitest";
-
-import { brunchTools } from "@hashintel/brunch-agent";
+import { expect, test, vi } from "vitest";
 
 import {
+  browserToolEnvelopeOf,
+  brunchTools,
+  type HashEntityCountInput,
+  type HashEntityCountJoinResult,
+  type HashEntityReadResult,
+} from "@hashintel/brunch-agent";
+
+import {
+  createHashEntityReadTool,
   createHashGraphReadTools,
   hashEntityCountForModel,
   hashEntityCountJoinForModel,
@@ -18,6 +25,8 @@ import {
   hashEntityTypeReadForModel,
   hashWebReadForModel,
 } from "./hash-graph-reads.ts";
+
+import type { FlueLogger } from "@flue/runtime";
 
 const personWebId = "7bb3aed2-1d4c-447b-bc75-6ca7028a9b5a";
 const personTypeId = "https://hash.ai/@h/types/entity-type/user/v/7";
@@ -85,7 +94,9 @@ const net = {
   matched: true,
 };
 
-const read = (entities: object[]) => ({
+type ReadEntity = HashEntityReadResult["entities"][number];
+
+const read = (entities: ReadEntity[]): HashEntityReadResult => ({
   propertyTypes: [
     {
       baseUrl: property("email"),
@@ -175,7 +186,7 @@ test("ids in fullValuesFor that match no entity read are named", () => {
   expect(text).not.toContain(`matched no entity read: ${net.entityId}`);
 });
 
-const pathRead = (entities: object[], entityId: string, path: string[]) =>
+const pathRead = (entities: ReadEntity[], entityId: string, path: string[]) =>
   hashEntityReadForModel(read(entities), [{ entityId, path }]);
 
 const pathLine = (text: string, path: string[]) =>
@@ -477,7 +488,7 @@ test("an entity from a web outside the user's is marked external in its heading,
     ...net,
     entityId: "stranger-web~net",
     webId: "stranger-web",
-    external: true,
+    external: true as const,
   };
   const { label: _label, ...unlabelled } = net;
   const outsideLink = {
@@ -487,7 +498,7 @@ test("an entity from a web outside the user's is marked external in its heading,
     entityTypeIds: ["https://hash.ai/@h/types/entity-type/has/v/1"],
     properties: {},
     matched: false,
-    external: true,
+    external: true as const,
     linkData: {
       leftEntityId: person.entityId,
       rightEntityId: outsider.entityId,
@@ -1356,14 +1367,14 @@ const undeliveredByCustomer = {
     exists: false,
   },
   groupBy: { linkType: "Has Customer", direction: "outgoing" as const },
-};
+} satisfies HashEntityCountInput;
 const joinReads = [
   { role: "counted", entityTypes: ["Sales Order"], entities: 520 },
   { role: "link", entityTypes: ["Has Line Item"], entities: 1500 },
   { role: "link", entityTypes: ["Fulfills"], entities: 1200 },
   { role: "link", entityTypes: ["Has Customer"], entities: 520 },
   { role: "grouped", entityTypes: [], entities: 40 },
-];
+] satisfies HashEntityCountJoinResult["reads"];
 
 test("a count by links renders how many qualified of the type, its path, the largest groups, examples and what it read", () => {
   expect(
@@ -1795,6 +1806,124 @@ test("a browser transport-ceiling refusal renders narrowing advice and no cursor
   expect(text).toContain("fewer properties");
   expect(text).toContain("{ entityId, path }");
   expect(text).not.toContain("cursor:");
+});
+
+test("a refused inventory page suggests a smaller limit whose page actually fits, and a failed read surfaces its error instead of empty", async () => {
+  const orderTypeId = "https://example.com/types/entity-type/order/v/1";
+  const output: HashEntityReadResult = {
+    entityTypes: [{ entityTypeId: orderTypeId, title: "Order" }],
+    propertyTypes: [],
+    entities: Array.from({ length: 1_000 }, (_, index) => ({
+      entityId: `${personWebId}~00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+      editionId: `order-edition-${index}`,
+      webId: personWebId,
+      entityTypeIds: [orderTypeId],
+      properties: {},
+      draft: false,
+      matched: true,
+    })),
+    cursor: "WyIyMDI2LTEwLTI2Iiwib3JkZXIiXQ",
+  };
+  const refused = hashEntityReadForModel(output, [], { traversalDepth: 0 });
+  const suggestedLimit = Number(
+    /^- a smaller limit, such as (\d+), then read the rest page by page$/mu.exec(
+      refused,
+    )?.[1],
+  );
+  expect(suggestedLimit).toBeGreaterThan(0);
+  expect(suggestedLimit).toBeLessThan(1_000);
+  expect(refused).not.toContain("WyIyMDI2LTEwLTI2Iiwib3JkZXIiXQ");
+  expect(refused).not.toContain("entityId:");
+
+  // A page of the suggested limit actually fits within the token budget.
+  const page = hashEntityReadForModel(
+    { ...output, entities: output.entities.slice(0, suggestedLimit) },
+    [],
+    { traversalDepth: 0, limit: suggestedLimit },
+  );
+  expect(page.split("\n")[0]).toBe(`entities: ${suggestedLimit}`);
+  expect(page).not.toContain("Refused:");
+
+  // A failed read reaches the model as `{ error, note }`, never disguised as an empty read.
+  const log = {
+    info: vi.fn<FlueLogger["info"]>(),
+    warn: vi.fn<FlueLogger["warn"]>(),
+    error: vi.fn<FlueLogger["error"]>(),
+  };
+  const tool = createHashEntityReadTool(async () => ({
+    output: { error: "GraphQL query timed out" },
+  }));
+  const result = await tool.run({
+    data: { entityTypes: ["Order"] },
+    toolCallId: "failed-read",
+    log,
+  });
+  const envelope = browserToolEnvelopeOf(
+    typeof result === "object" ? result.output : undefined,
+  );
+  expect(envelope?.output).toEqual({
+    error: "GraphQL query timed out",
+    note: "The read failed; the document is unchanged.",
+  });
+});
+
+test("an oversized inventory page refusal suggests a smaller limit that fits on re-read, and a failed browser read settles as an error rather than empty", async () => {
+  const manyOrders: ReadEntity[] = Array.from(
+    { length: 1_000 },
+    (_, index) => ({
+      entityId: `${personWebId}~order-${String(index).padStart(4, "0")}`,
+      editionId: `order-edition-${index}`,
+      webId: personWebId,
+      entityTypeIds: [personTypeId],
+      properties: {},
+      draft: false,
+      matched: true,
+    }),
+  );
+  const refused = hashEntityReadForModel(
+    { ...read(manyOrders), cursor: "WyJuZXh0Il0" },
+    [],
+    { traversalDepth: 0 },
+  );
+  const limitMatch =
+    /^- a smaller limit, such as ([\d,]+), then read the rest page by page$/mu.exec(
+      refused,
+    );
+  const suggestedLimit = Number(limitMatch?.[1]?.replaceAll(",", ""));
+  expect(suggestedLimit).toBeGreaterThan(0);
+  expect(suggestedLimit).toBeLessThan(1_000);
+  expect(refused).not.toContain("WyJuZXh0Il0");
+
+  // Re-reading at the suggested limit fits inside the token budget.
+  const page = hashEntityReadForModel(
+    { ...read(manyOrders.slice(0, suggestedLimit)), cursor: "WyJuZXh0Il0" },
+    [],
+    { traversalDepth: 0, limit: suggestedLimit },
+  );
+  expect(page.split("\n")[0]).toBe(`entities: ${suggestedLimit}`);
+  expect(page).not.toContain("Refused:");
+
+  // A failed browser read reaches the model as `{ error, note }`, never as an empty read.
+  const log: FlueLogger = {
+    info: vi.fn<FlueLogger["info"]>(),
+    warn: vi.fn<FlueLogger["warn"]>(),
+    error: vi.fn<FlueLogger["error"]>(),
+  };
+  const tool = createHashEntityReadTool(async () => ({
+    output: { error: "GraphQL timeout" },
+  }));
+  const toolResult = await tool.run({
+    data: { entityTypes: ["Order"], traversalDepth: 0 },
+    toolCallId: "failed-read",
+    log,
+  });
+  const envelope = browserToolEnvelopeOf(
+    typeof toolResult === "object" ? toolResult.output : undefined,
+  );
+  expect(envelope?.output).toEqual({
+    error: "GraphQL timeout",
+    note: "The read failed; the document is unchanged.",
+  });
 });
 
 test("the HASH agent defines its four graph reads", () => {
