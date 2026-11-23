@@ -24,10 +24,6 @@ import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useUserSettings } from "../../../../../react/state/user-settings-context";
 import { KeptState } from "../../../../components/kept-state";
-import {
-  HorizontalTabPanel,
-  HorizontalTabsHeader,
-} from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
 import { PANEL_MARGIN } from "../../../../constants/ui";
 import { usePluginBottomPanelViews } from "../../../../plugins/use-plugin-bottom-panel-views";
 import { DockedPanel } from "../../shared/docked-panel";
@@ -40,6 +36,7 @@ import {
   eventTimelineSubView,
   simulationSettingsSubView,
 } from "./sub-views";
+import { HorizontalTabPanel, HorizontalTabsHeader } from "./tabs";
 import { useOpenTimelineOnRunStart } from "./use-open-timeline-on-run-start";
 
 const glassPanelBaseStyle = css({

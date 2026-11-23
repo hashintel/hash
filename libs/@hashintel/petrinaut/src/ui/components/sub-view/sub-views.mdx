@@ -16,7 +16,7 @@ The panel decides which descriptors show. A container, or the panel itself, rend
 Two sets of components draw them:
 
 - `VerticalSubViewsContainer` takes the descriptors as `subViews`, stacks them as sections and renders their components. The left sidebar and every properties panel use it.
-- `HorizontalTabsHeader` draws a tab bar from the `id`, `title` and `tooltip` of each descriptor, and `HorizontalTabPanel` wraps the content of one tab. `BottomPanel` uses them and renders the `component` and `headerAction` of the active descriptor itself.
+- `HorizontalTabsHeader`, in `BottomPanel/tabs.tsx`, draws a tab bar from the `id`, `title` and `tooltip` of each descriptor, and `HorizontalTabPanel` wraps the content of one tab. `BottomPanel` uses them and renders the `component` and `headerAction` of the active descriptor itself.
 
 ## Interface
 

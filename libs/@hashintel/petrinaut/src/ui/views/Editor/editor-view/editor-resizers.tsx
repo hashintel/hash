@@ -9,7 +9,7 @@ import {
 } from "../../../constants/ui";
 import { useReading } from "../../../lib/readings";
 import { PanelResizer } from "../../../resize/panel-resizer";
-import { docks, type DockName } from "./docks";
+import { docks, type DockName } from "../shared/docks";
 
 import type { ReactNode } from "react";
 

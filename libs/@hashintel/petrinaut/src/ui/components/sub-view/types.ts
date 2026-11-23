@@ -1,6 +1,6 @@
 /**
  * @layerRoot ui.sub-view
- * @role The descriptor a panel lists for each view it shows, and the two containers that render one as a collapsible section or as a tab
+ * @role The descriptor a panel lists for each view it shows, and the container that renders one as a collapsible section
  */
 
 import type { ComponentType } from "react";

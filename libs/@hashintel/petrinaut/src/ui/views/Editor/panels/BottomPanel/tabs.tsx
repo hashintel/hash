@@ -3,9 +3,9 @@ import { useRef } from "react";
 import { HelpTooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { useKeptScroll } from "../../../lib/kept-state";
+import { useKeptScroll } from "../../../../lib/kept-state";
 
-import type { SubView } from "../types";
+import type { SubView } from "../../../../components/sub-view/types";
 
 const tabsContainerStyle = css({
   display: "flex",

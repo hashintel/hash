@@ -30,6 +30,7 @@ import {
   AssistantCommands,
   EditorAssistantPanel,
 } from "./editor-view/editor-assistant";
+import { EditorResizers } from "./editor-view/editor-resizers";
 import { EmptyNetPrompt } from "./editor-view/empty-net-prompt";
 import { UserSettings } from "./editor-view/user-settings";
 import { BottomPanel } from "./panels/BottomPanel/panel";
@@ -39,7 +40,6 @@ import {
   SimulateView,
   SimulateViewTabs,
 } from "./panels/SimulateView/simulate-view";
-import { EditorResizers } from "./shared/editor-resizers";
 import { SimulationWorkspace } from "./shared/simulation-workspace";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { EditorCommands } from "./use-editor-commands";

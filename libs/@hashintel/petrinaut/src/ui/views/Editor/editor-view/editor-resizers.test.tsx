@@ -7,7 +7,7 @@ import { PanelPresenceContext } from "../../../../react/state/panel-presence-con
 import { nextFrame } from "../../../lib/readings.test-helpers";
 import { EditorResizers } from "./editor-resizers";
 
-import type { DockName } from "./docks";
+import type { DockName } from "../shared/docks";
 
 beforeEach(() => {
   vi.stubGlobal(
