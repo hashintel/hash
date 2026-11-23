@@ -7,7 +7,7 @@
  * `@hashintel/petrinaut-core` to include DOM types.
  *
  * @layerRoot core.environment
- * @role The worker and abort-signal shapes Core is typed against, so it needs no DOM types
+ * @role The worker and abort-signal shapes Core is typed against, so it needs no DOM types, and the one file that reads the real worker and abort globals
  */
 
 export type WorkerMessageEnvelope<TMessage = unknown> = {
