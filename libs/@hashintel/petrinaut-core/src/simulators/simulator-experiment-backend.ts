@@ -1,12 +1,12 @@
-import { STEP_SAMPLE_PERIOD, type RunClock } from "../../extensions/net-class";
+import { STEP_SAMPLE_PERIOD, type RunClock } from "../extensions/net-class";
 import { resolveSimulatorSelection, simulatorUnavailable } from "./simulator";
 
-import type { ExperimentAssessment } from "../../experiments/experiment-assessment";
+import type { ExperimentAssessment } from "../experiments/experiment-assessment";
 import type {
   ExperimentBackend,
   ExperimentBackendRegistration,
-} from "../../experiments/experiment-backend";
-import type { ExperimentRequest } from "../../experiments/experiment-request";
+} from "../experiments/experiment-backend";
+import type { ExperimentRequest } from "../experiments/experiment-request";
 import type { StoredSimulatorParameters } from "./parameters";
 import type {
   Simulator,

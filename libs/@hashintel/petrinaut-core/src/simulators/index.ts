@@ -1,5 +1,5 @@
 /**
- * @layerRoot core.simulation.simulators
+ * @layerRoot core.simulators
  * @role Declares what a simulator is to a host: a manifest with its parameters, an assessment of a request, and the single runs and experiments it starts
  *
  * A simulator computes a net one way: a fixed step in JS, a fixed step on

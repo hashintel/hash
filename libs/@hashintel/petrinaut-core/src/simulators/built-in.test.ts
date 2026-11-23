@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { compileHirArtifacts } from "../../hir/compile";
-import { createStepperRunDriverFactory } from "../event-trace/worker/stepper-run-driver";
-import { createInProcessMonteCarloWorker } from "../monte-carlo/worker/in-process-worker";
+import { compileHirArtifacts } from "../hir/compile";
+import { createStepperRunDriverFactory } from "../simulation/event-trace/worker/stepper-run-driver";
+import { createInProcessMonteCarloWorker } from "../simulation/monte-carlo/worker/in-process-worker";
 import {
   createJsAdaptiveSimulator,
   createJsFixedStepSimulator,
@@ -14,8 +14,8 @@ import {
 } from "./experiment-reader";
 import { assessSimulator } from "./simulator";
 
-import type { SDCPN } from "../../types/sdcpn";
-import type { MonteCarloExperiment } from "../monte-carlo/runtime/experiment";
+import type { MonteCarloExperiment } from "../simulation/monte-carlo/runtime/experiment";
+import type { SDCPN } from "../types/sdcpn";
 import type { SimulationRequestBase, SimulatorRegistration } from "./simulator";
 
 /** A source firing at rate 5 into `sink`. */

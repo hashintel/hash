@@ -1,19 +1,19 @@
 import { resolveSimulatorParameters } from "./parameters";
 
-import type { AbortSignalLike } from "../../environment/environment";
+import type { AbortSignalLike } from "../environment/environment";
 import type {
   ExperimentBlocker,
   ExperimentBlockers,
   ExperimentNote,
-} from "../../experiments/experiment-assessment";
-import type { ExperimentRunPlan } from "../../experiments/experiment-request";
-import type { PetrinautExtensionSettings } from "../../extensions/extensions";
-import type { HirArtifacts } from "../../hir-runtime";
-import type { SDCPN } from "../../types/sdcpn";
-import type { InitialMarking } from "../api";
-import type { EventSimulation } from "../event-trace";
-import type { MonteCarloMetricSpec } from "../monte-carlo/metrics/types";
-import type { MonteCarloExperiment } from "../monte-carlo/runtime/experiment";
+} from "../experiments/experiment-assessment";
+import type { ExperimentRunPlan } from "../experiments/experiment-request";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
+import type { HirArtifacts } from "../hir-runtime";
+import type { InitialMarking } from "../simulation/api";
+import type { EventSimulation } from "../simulation/event-trace";
+import type { MonteCarloMetricSpec } from "../simulation/monte-carlo/metrics/types";
+import type { MonteCarloExperiment } from "../simulation/monte-carlo/runtime/experiment";
+import type { SDCPN } from "../types/sdcpn";
 import type {
   SimulatorParameterSpecs,
   SimulatorParameterValues,

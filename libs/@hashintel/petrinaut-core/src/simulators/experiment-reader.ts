@@ -1,11 +1,11 @@
-import type { ReadableStore } from "../../store";
-import type { SDCPN } from "../../types/sdcpn";
 import type {
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricDistributionBin,
   MonteCarloUserDefinedMetricFrame,
-} from "../monte-carlo/metrics/types";
-import type { MonteCarloExperimentMetrics } from "../monte-carlo/runtime/experiment-stores";
+} from "../simulation/monte-carlo/metrics/types";
+import type { MonteCarloExperimentMetrics } from "../simulation/monte-carlo/runtime/experiment-stores";
+import type { ReadableStore } from "../store";
+import type { SDCPN } from "../types/sdcpn";
 
 /** The id of the metric that carries a place's token count across runs. */
 export const placeCountMetricId = (placeId: string): string =>

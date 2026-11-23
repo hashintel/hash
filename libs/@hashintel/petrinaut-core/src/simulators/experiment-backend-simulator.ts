@@ -1,8 +1,8 @@
-import { runClockOf, STEP_SAMPLE_PERIOD } from "../../extensions/net-class";
+import { runClockOf, STEP_SAMPLE_PERIOD } from "../extensions/net-class";
 
-import type { ExperimentBackend } from "../../experiments/experiment-backend";
-import type { ExperimentRequest } from "../../experiments/experiment-request";
-import type { MonteCarloSimulatorSelection } from "../monte-carlo/run-driver";
+import type { ExperimentBackend } from "../experiments/experiment-backend";
+import type { ExperimentRequest } from "../experiments/experiment-request";
+import type { MonteCarloSimulatorSelection } from "../simulation/monte-carlo/run-driver";
 import type {
   SimulatorParameterSpecs,
   SimulatorParameterValues,

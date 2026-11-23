@@ -3,10 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 import { simulatorFromExperimentBackend } from "./experiment-backend-simulator";
 import { assessSimulator, defineSimulator } from "./simulator";
 
-import type { ExperimentBackend } from "../../experiments/experiment-backend";
-import type { ExperimentRequest } from "../../experiments/experiment-request";
-import type { SDCPN } from "../../types/sdcpn";
-import type { MonteCarloExperiment } from "../monte-carlo/runtime/experiment";
+import type { ExperimentBackend } from "../experiments/experiment-backend";
+import type { ExperimentRequest } from "../experiments/experiment-request";
+import type { MonteCarloExperiment } from "../simulation/monte-carlo/runtime/experiment";
+import type { SDCPN } from "../types/sdcpn";
 import type { SimulatorParameterSpecs } from "./parameters";
 import type { SimulationRequest, SimulationRequestBase } from "./simulator";
 

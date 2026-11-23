@@ -463,7 +463,7 @@ export {
   simulatorFromExperimentBackend,
   simulatorSamplePeriod,
   WEBGPU_FIXED_STEP_SIMULATOR_ID,
-} from "./simulation/simulators";
+} from "./simulators";
 export type {
   CountStatistics,
   ExperimentBackendStepping,
@@ -489,7 +489,7 @@ export type {
   SimulatorStartOptions,
   StoredSimulatorParameters,
   WebGpuFixedStepSimulatorOptions,
-} from "./simulation/simulators";
+} from "./simulators";
 
 // --- Playback ---
 export {

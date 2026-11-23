@@ -1,4 +1,4 @@
-import type { StepperParameters } from "../event-trace";
+import type { StepperParameters } from "../simulation/event-trace";
 
 type ParameterRow = {
   readonly label: string;

@@ -1,18 +1,21 @@
-import { createWorkerPoolExperimentBackend } from "../../experiments/worker-pool-experiment-backend";
-import { isWebGpuAvailable } from "../../webgpu/support";
+import { createWorkerPoolExperimentBackend } from "../experiments/worker-pool-experiment-backend";
 import {
   ADAPTIVE_SIMULATOR_ID,
   createEventSimulation,
   DEFAULT_SOLVER_TOLERANCE,
   FIXED_STEP_SIMULATOR_ID,
-} from "../event-trace";
+} from "../simulation/event-trace";
+import { isWebGpuAvailable } from "../webgpu/support";
 import { simulatorFromExperimentBackend } from "./experiment-backend-simulator";
 import { defineSimulator } from "./simulator";
 
-import type { ExperimentBackend } from "../../experiments/experiment-backend";
-import type { GpuOdeMethod } from "../../webgpu/compile-net-shader/dynamics";
-import type { WorkerFactory } from "../api";
-import type { EventSimulation, StepperSelection } from "../event-trace";
+import type { ExperimentBackend } from "../experiments/experiment-backend";
+import type { WorkerFactory } from "../simulation/api";
+import type {
+  EventSimulation,
+  StepperSelection,
+} from "../simulation/event-trace";
+import type { GpuOdeMethod } from "../webgpu/compile-net-shader/dynamics";
 import type { ExperimentBackendStepping } from "./experiment-backend-simulator";
 import type { SimulatorParameterSpecs } from "./parameters";
 import type {

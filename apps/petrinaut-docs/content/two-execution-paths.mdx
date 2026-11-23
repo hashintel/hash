@@ -9,7 +9,7 @@ experiment of many runs that returns aggregates. Each way has a runtime and a
 memory model of its own.
 
 **Quick Simulation** is a single run, recorded as events. The
-[simulator registry](layer:core.simulation.simulators) starts it through
+[simulator registry](layer:core.simulators) starts it through
 `createEventSimulation`. The worker records the states its stepper finds worth
 keeping, and the main thread reads the state at any time by interpolating
 between them. The [event trace](layer:core.simulation.event-trace) layer holds

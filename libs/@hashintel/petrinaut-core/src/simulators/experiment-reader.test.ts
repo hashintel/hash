@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { sirModel } from "../../examples";
-import { compileHirArtifacts } from "../../hir/compile";
-import { createMonteCarloUserDefinedMetricConfigsFromSpecs } from "../monte-carlo/metrics/specs";
-import { createMonteCarloUserDefinedMetric } from "../monte-carlo/metrics/user-defined";
-import { createMonteCarloSimulator } from "../monte-carlo/monte-carlo-simulator";
+import { sirModel } from "../examples";
+import { compileHirArtifacts } from "../hir/compile";
+import { createMonteCarloUserDefinedMetricConfigsFromSpecs } from "../simulation/monte-carlo/metrics/specs";
+import { createMonteCarloUserDefinedMetric } from "../simulation/monte-carlo/metrics/user-defined";
+import { createMonteCarloSimulator } from "../simulation/monte-carlo/monte-carlo-simulator";
 import {
   appendMetricFrames,
   createEmptyMetricsState,
-} from "../monte-carlo/runtime/experiment-stores";
+} from "../simulation/monte-carlo/runtime/experiment-stores";
 import {
   countStatisticsOfBins,
   createExperimentReader,
@@ -16,7 +16,7 @@ import {
   placeCountMetricSpecs,
 } from "./experiment-reader";
 
-import type { MonteCarloExperimentMetrics } from "../monte-carlo/runtime/experiment-stores";
+import type { MonteCarloExperimentMetrics } from "../simulation/monte-carlo/runtime/experiment-stores";
 
 const sdcpn = sirModel.petriNetDefinition;
 const dt = 0.1;
