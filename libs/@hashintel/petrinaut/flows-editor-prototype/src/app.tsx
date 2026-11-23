@@ -14,7 +14,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { AddNodePicker } from "./add-node-picker";
 import { AllRuns } from "./all-runs";
 import { ConfirmDialog, useConfirmTake } from "./confirm-dialog";
-import { updateDocument, useAppState } from "./app-store";
+import { restoreVersion, updateDocument, useAppState } from "./app-store";
 import { Briefing, markBriefingSeen, TaskCard } from "./briefing";
 import { FlowCanvas } from "./canvas";
 import { EditorContext, type EditorUi } from "./editor-context";
@@ -191,12 +191,20 @@ export const Editor = ({
     ? appState.flows.find((flow) => flow.id === flowId)?.document
     : undefined;
   const [localDocument, setLocalDocument] = useState(initialDocument);
-  const document = stored ?? localDocument;
+  const draftDocument = stored ?? localDocument;
   const setDocumentState = (
     update: (current: EditorDocument) => EditorDocument,
   ) => (flowId ? updateDocument(flowId, update) : setLocalDocument(update));
   const [uiState, setUiState] = useState(initialUi);
   const location = useLocation();
+  // `?version=N` opens that published version read-only: the flow as it was published, when it kept a snapshot.
+  const viewedVersion = Number(location.query.get("version"));
+  const viewedSnapshot = flowId
+    ? appState.flows
+        .find((flow) => flow.id === flowId)
+        ?.meta.version.published.find((entry) => entry.n === viewedVersion)?.document
+    : undefined;
+  const document = viewedSnapshot ?? draftDocument;
   const urlStep = location.query.get("step");
   // Back and Forward: the step in the URL is the step selected.
   const href = `${location.pathname}${location.search}`;
@@ -916,8 +924,10 @@ export const Editor = ({
                         version={version}
                         viewing={viewingVersion}
                         onRestore={() => {
+                          if (flowId) {
+                            restoreVersion(flowId, viewingVersion);
+                          }
                           setQuery("version", null);
-                          // MOCK: restoring copies nothing yet; the draft stays as it is.
                           setNotice(
                             `Restored v${viewingVersion} into the v${version.state === "draft" ? version.current : version.current + 1} draft`,
                           );

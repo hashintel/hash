@@ -745,6 +745,18 @@ const addButtonStyle = css({
   "&[class]:not([data-variant=solid])": { color: "neutral.fg.muted" },
 });
 
+/** The Add step header's back arrow and × are one bare 28 px control, the top bar's icon button size. */
+const addHeaderButtonStyle = css({
+  "&[class]": {
+    width: "[28px]",
+    height: "[28px]",
+    minWidth: "[28px]",
+    padding: "[0]",
+    justifyContent: "center",
+  },
+  "&[class]:not([data-variant=solid])": { color: "neutral.fg.muted" },
+});
+
 const panelTabs = [
   { value: "steps", label: "Steps", region: "Steps" },
   { value: "add", label: "Add", region: "Add a step" },
@@ -785,7 +797,7 @@ export const LeftPanel = ({
           <div className={css({ display: "flex", alignItems: "center" })}>
             <Button
               size="sm"
-              className={addButtonStyle}
+              className={addHeaderButtonStyle}
               variant="ghost"
               iconName="chevronLeft"
               aria-label="Back to steps"
@@ -796,7 +808,7 @@ export const LeftPanel = ({
           </div>
           <Button
             size="sm"
-            className={addButtonStyle}
+            className={addHeaderButtonStyle}
             variant="ghost"
             key="panel-close"
             iconName="close"

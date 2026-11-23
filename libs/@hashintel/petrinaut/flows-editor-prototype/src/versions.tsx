@@ -9,6 +9,7 @@ import {
   Button,
   Checkbox,
   Dialog,
+  Drawer,
   Icon,
   Menu,
   TextInput,
@@ -108,6 +109,7 @@ export const VersionMenu = ({
   trigger: React.ReactElement;
 }) => {
   const labelCase = useVersionLabelCase();
+  const [sheetOpen, setSheetOpen] = useState(false);
   const draft =
     version.state === "draft"
       ? [
@@ -156,6 +158,7 @@ export const VersionMenu = ({
     };
   });
   return (
+    <>
     <Menu
       position="bottom-start"
       className={css({ width: "[300px]" })}
@@ -169,16 +172,139 @@ export const VersionMenu = ({
               id: "all-versions",
               text: "All versions",
               icon: "clockRotateLeft",
-              // MOCK: the full version list is not built yet.
-              onClick: () => undefined,
+              onClick: () => setSheetOpen(true),
             },
           ],
         },
       ]}
       trigger={trigger}
     />
+    {sheetOpen ? (
+      <AllVersionsSheet version={version} viewing={viewing} onClose={() => setSheetOpen(false)} />
+    ) : null}
+    </>
   );
 };
+
+/** All versions: the long list opens in the 640 px sheet (registry "Open something bigger"), × and Esc close it. */
+const AllVersionsSheet = ({
+  version,
+  viewing,
+  onClose,
+}: {
+  version: FlowVersion;
+  viewing: number | null;
+  onClose: () => void;
+}) => {
+  const labelCase = useVersionLabelCase();
+  const rows = [
+    ...(version.state === "draft"
+      ? [
+          {
+            n: version.current,
+            draft: true,
+            title: versionName(version.current, labelCase),
+            state: "Draft" as const,
+            meta: `Edited ${version.editedAt ?? "just now"} · not published`,
+            notes: undefined as string | undefined,
+          },
+        ]
+      : []),
+    ...version.published.map((entry, index) => ({
+      n: entry.n,
+      draft: false,
+      title:
+        entry.name && entry.name !== `v${entry.n}`
+          ? `${versionName(entry.n, labelCase)} · ${entry.name}`
+          : versionName(entry.n, labelCase),
+      state: index === 0 ? ("Live" as const) : undefined,
+      meta: `Published ${entry.at} · ${entry.by}`,
+      notes: entry.notes,
+    })),
+  ];
+  return (
+    <Drawer
+      size="md"
+      position="right"
+      variant="plain"
+      showBackdrop={false}
+      shouldCloseOn="none"
+      onClose={onClose}
+      aria-label="All versions"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          onClose();
+        }
+      }}
+    >
+      <Drawer.Header
+        title={`All versions · ${rows.length}`}
+        actions={
+          <Button
+            size="sm"
+            variant="ghost"
+            tone="neutral"
+            iconName="close"
+            aria-label="Close"
+            tooltip="Close · Esc"
+            onClick={onClose}
+          />
+        }
+      />
+      <Drawer.Body>
+        <div data-all-versions-sheet className={css({ display: "flex", flexDirection: "column" })}>
+          {rows.map((row) => {
+            const current = row.draft || (version.state === "live" && row.state === "Live");
+            const selected = current ? viewing === null : viewing === row.n;
+            return (
+              <button
+                key={row.n}
+                type="button"
+                className={sheetRowStyle}
+                data-selected={selected ? true : undefined}
+                data-version-row={row.n}
+                onClick={() => {
+                  setQuery("version", current ? null : String(row.n));
+                  onClose();
+                }}
+              >
+                <span className={menuTitleStyle}>
+                  <VersionLabel number={row.title} state={row.state} />
+                </span>
+                <span className={menuMetaStyle}>{row.meta}</span>
+                {row.notes ? <span className={sheetNotesStyle}>{row.notes}</span> : null}
+              </button>
+            );
+          })}
+        </div>
+      </Drawer.Body>
+    </Drawer>
+  );
+};
+
+const sheetRowStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "[2px]",
+  padding: "[6px 12px]",
+  borderRadius: "lg",
+  border: "none",
+  background: "[transparent]",
+  textAlign: "left",
+  textStyle: "sm",
+  cursor: "pointer",
+  _hover: { backgroundColor: "neutral.bg.subtle.hover" },
+  "&[data-selected]": { backgroundColor: "neutral.bg.subtle.active" },
+});
+
+const sheetNotesStyle = css({
+  textStyle: "sm",
+  color: "neutral.fg.body",
+  marginTop: "[2px]",
+});
 
 const quietButtonStyle = css({
   "&[class]": { color: "neutral.fg.muted", fontWeight: "medium" },
@@ -448,7 +574,7 @@ const PublishDialog = ({
   /** A run in progress, which finishes on the version it started on. */
   liveRun: number | null;
   onClose: () => void;
-  onPublish: (name: string) => void;
+  onPublish: (name: string, notes: string) => void;
 }) => {
   const next = version.current;
   const live = version.published[0]?.n;
@@ -535,7 +661,7 @@ const PublishDialog = ({
               variant="solid"
               tone="neutral"
               data-publish-confirm
-              onClick={() => onPublish(name.trim())}
+              onClick={() => onPublish(name.trim(), notes.trim())}
             >
               Publish {versionName(next, labelCase)}
             </Button>
@@ -664,11 +790,12 @@ export const PublishButton = ({
           version={version}
           liveRun={liveRun}
           onClose={() => setOpen(false)}
-          onPublish={(name) => {
+          onPublish={(name, notes) => {
             if (flowId) {
               publishFlow(
                 flowId,
                 name === `v${version.current}` ? undefined : name,
+                notes || undefined,
               );
             }
             setOpen(false);
@@ -718,7 +845,7 @@ export const VersionBanner = ({
           Viewing <VersionLabel number={versionName(viewing, labelCase)} state="Read-only" />
         </>
       }
-      description={`Published ${entry?.at ?? ""} by ${entry?.by ?? ""}. Your edits stay in the ${versionName(draft, labelCase)} draft.`}
+      description={`Published ${entry?.at ?? ""} by ${entry?.by ?? ""}.${entry?.notes ? ` ${entry.notes.replace(/\.$/, "")}.` : ""} Your edits stay in the ${versionName(draft, labelCase)} draft.`}
       action={
         <span className={css({ display: "flex", gap: "2" })}>
           <Button size="sm" variant="ghost" tone="neutral" onClick={onRestore}>

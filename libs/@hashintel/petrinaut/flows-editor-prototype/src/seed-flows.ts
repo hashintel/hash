@@ -25,6 +25,10 @@ export type PublishedVersion = {
   at: string;
   by: string;
   name?: string;
+  /** What changed, as typed in the Publish dialog. */
+  notes?: string;
+  /** The flow as it was published, what Restore copies back. Versions seeded before the prototype ran have none. */
+  document?: EditorDocument;
 };
 
 /**

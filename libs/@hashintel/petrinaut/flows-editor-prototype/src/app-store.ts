@@ -160,6 +160,18 @@ export const updateDocument = (
     true,
   );
 
+/** Restore: the draft becomes the flow as it was when version `n` was published. Returns false when that version kept no snapshot. */
+export const restoreVersion = (id: string, n: number) => {
+  const snapshot = store.state.flows
+    .find((flow) => flow.id === id)
+    ?.meta.version.published.find((entry) => entry.n === n)?.document;
+  if (!snapshot) {
+    return false;
+  }
+  updateDocument(id, () => snapshot);
+  return true;
+};
+
 /** New flow: a draft with Start only, first in the list. Returns its id. */
 export const createFlow = () => {
   const taken = new Set(store.state.flows.map((flow) => flow.id));
@@ -175,8 +187,8 @@ export const createFlow = () => {
   return id;
 };
 
-/** V4 → V7: the draft goes live. MOCK: notes are not kept. */
-export const publishFlow = (id: string, name?: string) =>
+/** V4 → V7: the draft goes live, keeping its name, notes and a snapshot of the flow for Restore. */
+export const publishFlow = (id: string, name?: string, notes?: string) =>
   setState(
     (state) => ({
       ...state,
@@ -196,6 +208,8 @@ export const publishFlow = (id: string, name?: string) =>
                       at: "Today",
                       by: "Aakarsh Singh",
                       ...(name ? { name } : {}),
+                      ...(notes ? { notes } : {}),
+                      document: flow.document,
                     },
                     ...flow.meta.version.published,
                   ],

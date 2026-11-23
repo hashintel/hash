@@ -2,7 +2,7 @@ import { useReactFlow, useViewport } from "@xyflow/react";
 import { useEffect } from "react";
 
 import { Button, Icon, Menu } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { START_ID, type EditorDocument } from "./document";
 import { showFull, useEditor } from "./editor-context";
@@ -48,6 +48,13 @@ const toolStyle = css({
   "&[class]:not([data-variant=solid])": { color: "neutral.fg.muted" },
   "&[class][data-variant=subtle]": { color: "neutral.fg.heading" },
 });
+
+/**
+ * The caret-to-Hand and Hand-to-Select ink gaps are both 19.5 px (ICON-28-EVEN). The Hand glyph is wider than the
+ * Select one, so equal boxes leave 20.25 and 19.0; these sub-pixel margins even them.
+ */
+const handNudgeStyle = css({ "&[class]": { marginLeft: "[-0.5px]" } });
+const selectNudgeStyle = css({ "&[class]": { marginLeft: "[0.25px]" } });
 
 /** The zoom button's text: 14 px medium #646464 between two 14 px icons. */
 const zoomStyle = css({
@@ -234,7 +241,7 @@ export const FlowToolbar = ({
       />
       <Button
         size="sm"
-        className={toolStyle}
+        className={cx(toolStyle, handNudgeStyle)}
         variant={mode === "hand" ? "subtle" : "ghost"}
         tone="neutral"
         iconName="hand"
@@ -245,7 +252,7 @@ export const FlowToolbar = ({
       />
       <Button
         size="sm"
-        className={toolStyle}
+        className={cx(toolStyle, selectNudgeStyle)}
         variant={mode === "select" ? "subtle" : "ghost"}
         tone="neutral"
         iconName="cursor"
