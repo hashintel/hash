@@ -369,41 +369,6 @@ const typeGlyph = (
   return { icon: kindIcon(first) };
 };
 
-/** The model as DS Menu groups and items. The fill marks a picked value; a disabled row says why a list is empty. */
-const toMenuItem = (item: SourceItem): TiledItem => ({
-  id: item.id,
-  // A property's type is a pill after its name, as in the "@" popover (AT-PILL-24-NEUTRAL).
-  text: item.types ? (
-    <span className={popoverTitleStyle}>
-      <span>{item.text}</span>
-      <TypeLabel types={item.types} pill />
-    </span>
-  ) : (
-    item.text
-  ),
-  description: item.description,
-  icon: item.icon,
-  glyph: item.glyph,
-  avatar: item.avatar,
-  plain: item.plain,
-  action: item.action,
-  tint: item.tint,
-  selected: item.selected,
-  suffix: item.types ? undefined : item.suffix,
-  selectedStyle: "highlight" as const,
-  disabled: item.disabled,
-  keepOpenOnSelect: item.keepOpen,
-  onClick: () => item.onPick?.(),
-  ...(item.subItems ? { subItems: item.subItems.map(toMenuItem) } : {}),
-});
-
-const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<TiledItem>> =>
-  groups.map((group) => ({
-    id: group.id,
-    label: group.label ?? "",
-    items: group.items.map(toMenuItem),
-  }));
-
 /**
  * The DS Menu at its own width: 208 px (DS `_menuContent`), growing with long rows up to 380 px. Was 240 px from our
  * mocks, which left empty space right of the types (Aakarsh, 30 Oct).
@@ -552,6 +517,41 @@ const TypeLabel = ({ types, pill = false }: { types: string[]; pill?: boolean })
     label
   );
 };
+
+/** The model as DS Menu groups and items. The fill marks a picked value; a disabled row says why a list is empty. */
+const toMenuItem = (item: SourceItem): TiledItem => ({
+  id: item.id,
+  // A property's type is a pill after its name, as in the "@" popover (AT-PILL-24-NEUTRAL).
+  text: item.types ? (
+    <span className={popoverTitleStyle}>
+      <span>{item.text}</span>
+      <TypeLabel types={item.types} pill />
+    </span>
+  ) : (
+    item.text
+  ),
+  description: item.description,
+  icon: item.icon,
+  glyph: item.glyph,
+  avatar: item.avatar,
+  plain: item.plain,
+  action: item.action,
+  tint: item.tint,
+  selected: item.selected,
+  suffix: item.types ? undefined : item.suffix,
+  selectedStyle: "highlight" as const,
+  disabled: item.disabled,
+  keepOpenOnSelect: item.keepOpen,
+  onClick: () => item.onPick?.(),
+  ...(item.subItems ? { subItems: item.subItems.map(toMenuItem) } : {}),
+});
+
+const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<TiledItem>> =>
+  groups.map((group) => ({
+    id: group.id,
+    label: group.label ?? "",
+    items: group.items.map(toMenuItem),
+  }));
 
 export type TypedChoice = {
   label: string;

@@ -18,7 +18,6 @@ import { selectedLabel } from "./menu-rows";
 import { RunGlyph } from "./run-glyph";
 import { RunIdsIn } from "./run-id";
 import {
-  appliedChips,
   FilterByMenu,
   newChip,
   type RunFilterChip,
@@ -363,7 +362,6 @@ export const Home = ({
       { key: "isNot" as const, label: "is not", input: { type: "select" as const, items: choices } },
     ];
   };
-  const applied = appliedChips(chips);
   const sortItems = [
     {
       id: "sort-by",

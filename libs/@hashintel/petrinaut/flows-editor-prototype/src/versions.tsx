@@ -97,94 +97,28 @@ const menuMetaStyle = css({
   whiteSpace: "nowrap",
 });
 
-/** V3: the draft (current), then published versions newest first, then All versions. */
-export const VersionMenu = ({
-  version,
-  viewing,
-  trigger,
-}: {
-  version: FlowVersion;
-  /** The past version open read-only (V6), if any. */
-  viewing: number | null;
-  trigger: React.ReactElement;
-}) => {
-  const labelCase = useVersionLabelCase();
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const draft =
-    version.state === "draft"
-      ? [
-          {
-            id: `v${version.current}`,
-            text: (
-              <span className={menuRowStyle}>
-                <span className={cx(menuTitleStyle, viewing === null && selectedLabelStyle)}>
-                  <VersionLabel {...versionLabel(version, labelCase)} />
-                </span>
-                <span className={menuMetaStyle}>
-                  Edited {version.editedAt ?? "just now"} · not published
-                </span>
-              </span>
-            ),
-            selected: viewing === null,
-            selectedStyle: "highlight" as const,
-            onClick: () => setQuery("version", null),
-          },
-        ]
-      : [];
-  const published = version.published.slice(0, 4).map((entry, index) => {
-    const live = index === 0;
-    const current = version.state === "live" && live;
-    const selected = current ? viewing === null : viewing === entry.n;
-    return {
-      id: `v${entry.n}`,
-      text: (
-        <span className={menuRowStyle}>
-          <span className={cx(menuTitleStyle, selected && selectedLabelStyle)}>
-            <VersionLabel
-              number={entry.name && entry.name !== `v${entry.n}`
-                ? `${versionName(entry.n, labelCase)} · ${entry.name}`
-                : versionName(entry.n, labelCase)}
-              state={live ? "Live" : undefined}
-            />
-          </span>
-          <span className={menuMetaStyle}>
-            Published {entry.at} · {entry.by}
-          </span>
-        </span>
-      ),
-      selected,
-      selectedStyle: "highlight" as const,
-      onClick: () => setQuery("version", current ? null : String(entry.n)),
-    };
-  });
-  return (
-    <>
-    <Menu
-      position="bottom-start"
-      className={css({ width: "[300px]" })}
-      items={[
-        { id: "versions", label: "", items: [...draft, ...published] },
-        {
-          id: "all",
-          label: "",
-          items: [
-            {
-              id: "all-versions",
-              text: "All versions",
-              icon: "clockRotateLeft",
-              onClick: () => setSheetOpen(true),
-            },
-          ],
-        },
-      ]}
-      trigger={trigger}
-    />
-    {sheetOpen ? (
-      <AllVersionsSheet version={version} viewing={viewing} onClose={() => setSheetOpen(false)} />
-    ) : null}
-    </>
-  );
-};
+const sheetRowStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "[2px]",
+  padding: "[6px 12px]",
+  borderRadius: "lg",
+  border: "none",
+  background: "[transparent]",
+  textAlign: "left",
+  textStyle: "sm",
+  cursor: "pointer",
+  _hover: { backgroundColor: "neutral.bg.subtle.hover" },
+  "&[data-selected]": { backgroundColor: "neutral.bg.subtle.active" },
+});
+
+const sheetNotesStyle = css({
+  textStyle: "sm",
+  color: "neutral.fg.body",
+  marginTop: "[2px]",
+});
+
 
 /** All versions: the long list opens in the 640 px sheet (registry "Open something bigger"), × and Esc close it. */
 const AllVersionsSheet = ({
@@ -284,27 +218,94 @@ const AllVersionsSheet = ({
   );
 };
 
-const sheetRowStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  gap: "[2px]",
-  padding: "[6px 12px]",
-  borderRadius: "lg",
-  border: "none",
-  background: "[transparent]",
-  textAlign: "left",
-  textStyle: "sm",
-  cursor: "pointer",
-  _hover: { backgroundColor: "neutral.bg.subtle.hover" },
-  "&[data-selected]": { backgroundColor: "neutral.bg.subtle.active" },
-});
-
-const sheetNotesStyle = css({
-  textStyle: "sm",
-  color: "neutral.fg.body",
-  marginTop: "[2px]",
-});
+/** V3: the draft (current), then published versions newest first, then All versions. */
+export const VersionMenu = ({
+  version,
+  viewing,
+  trigger,
+}: {
+  version: FlowVersion;
+  /** The past version open read-only (V6), if any. */
+  viewing: number | null;
+  trigger: React.ReactElement;
+}) => {
+  const labelCase = useVersionLabelCase();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const draft =
+    version.state === "draft"
+      ? [
+          {
+            id: `v${version.current}`,
+            text: (
+              <span className={menuRowStyle}>
+                <span className={cx(menuTitleStyle, viewing === null && selectedLabelStyle)}>
+                  <VersionLabel {...versionLabel(version, labelCase)} />
+                </span>
+                <span className={menuMetaStyle}>
+                  Edited {version.editedAt ?? "just now"} · not published
+                </span>
+              </span>
+            ),
+            selected: viewing === null,
+            selectedStyle: "highlight" as const,
+            onClick: () => setQuery("version", null),
+          },
+        ]
+      : [];
+  const published = version.published.slice(0, 4).map((entry, index) => {
+    const live = index === 0;
+    const current = version.state === "live" && live;
+    const selected = current ? viewing === null : viewing === entry.n;
+    return {
+      id: `v${entry.n}`,
+      text: (
+        <span className={menuRowStyle}>
+          <span className={cx(menuTitleStyle, selected && selectedLabelStyle)}>
+            <VersionLabel
+              number={entry.name && entry.name !== `v${entry.n}`
+                ? `${versionName(entry.n, labelCase)} · ${entry.name}`
+                : versionName(entry.n, labelCase)}
+              state={live ? "Live" : undefined}
+            />
+          </span>
+          <span className={menuMetaStyle}>
+            Published {entry.at} · {entry.by}
+          </span>
+        </span>
+      ),
+      selected,
+      selectedStyle: "highlight" as const,
+      onClick: () => setQuery("version", current ? null : String(entry.n)),
+    };
+  });
+  return (
+    <>
+    <Menu
+      position="bottom-start"
+      className={css({ width: "[300px]" })}
+      items={[
+        { id: "versions", label: "", items: [...draft, ...published] },
+        {
+          id: "all",
+          label: "",
+          items: [
+            {
+              id: "all-versions",
+              text: "All versions",
+              icon: "clockRotateLeft",
+              onClick: () => setSheetOpen(true),
+            },
+          ],
+        },
+      ]}
+      trigger={trigger}
+    />
+    {sheetOpen ? (
+      <AllVersionsSheet version={version} viewing={viewing} onClose={() => setSheetOpen(false)} />
+    ) : null}
+    </>
+  );
+};
 
 const quietButtonStyle = css({
   "&[class]": { color: "neutral.fg.muted", fontWeight: "medium" },
