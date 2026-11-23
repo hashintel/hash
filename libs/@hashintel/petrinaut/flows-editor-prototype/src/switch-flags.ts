@@ -61,10 +61,20 @@ export const switchPorts = (
 
 /** A step's paths as its card and panel show them: renamed paths take their names; Default goes when turned off. */
 export const namedPorts = (
-  step: { pathNames?: Record<string, string>; noDefault?: boolean },
+  step: {
+    pathNames?: Record<string, string>;
+    noDefault?: boolean;
+    extraAnswers?: string[];
+  },
   ports: { outputName: string; label: string }[],
 ) =>
-  ports
+  [
+    ...ports,
+    ...(step.extraAnswers ?? []).map((outputName) => ({
+      outputName,
+      label: "New answer",
+    })),
+  ]
     .filter((port) => !(step.noDefault && port.outputName === "default"))
     .map((port) => ({
       ...port,

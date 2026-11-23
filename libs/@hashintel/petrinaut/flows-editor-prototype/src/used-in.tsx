@@ -240,7 +240,10 @@ const headStyle = css({
   textStyle: "sm",
   lineHeight: "[20px]",
   color: "neutral.fg.heading",
-  "& > [data-type-icon]": { display: "flex", flexShrink: 0, width: "[var(--lead-col)]", color: "neutral.fg.heading" },
+  // Icon and name read as one unit (6 px visible between the 14 px glyph and the name); the name, the type chip and the
+  // star then sit 8 px apart, glyph to glyph.
+  "& > [data-type-icon]": { display: "flex", flexShrink: 0, width: "[var(--lead-col)]", marginRight: "[-6px]", color: "neutral.fg.heading" },
+  "& > [data-type-icon] ~ *": { minWidth: "[0]" },
 });
 
 const headNameStyle = css({
@@ -258,6 +261,7 @@ const typeChipStyle = css({
   alignItems: "center",
   flexShrink: 0,
   height: "[16px]",
+  marginLeft: "[-2px]",
   paddingX: "1",
   borderRadius: "sm",
   backgroundColor: "neutral.a10",
@@ -1777,8 +1781,9 @@ const restLabelStyle = css({
   color: "neutral.fg.muted",
   fontVariantNumeric: "tabular-nums",
   whiteSpace: "nowrap",
-  _hover: { color: "neutral.fg.heading", backgroundColor: "neutral.bg.surface.hover" },
-  "&[aria-expanded=true]": { color: "neutral.fg.heading" },
+  // "Used in" stays #8D8D8D (Salt s90), closed, open and on hover (registry, 17 Nov).
+  _hover: { color: "neutral.fg.muted", backgroundColor: "neutral.bg.surface.hover" },
+  "&[aria-expanded=true]": { color: "neutral.fg.muted" },
 });
 
 /** r2's tiles: 16 px hue tiles (10 px icon), each over the last by 4 px with a 1.5 px panel-coloured ring between. */
@@ -2004,7 +2009,8 @@ const RestBlock = ({
         )}
         <span className={headEndStyle}>
           {end}
-          {atRest}
+          {/* While the list is open its rows say it all: the at-rest summary goes (registry, 17 Nov). */}
+          {open ? null : atRest}
         </span>
       </div>
       {open && count > 0 ? (

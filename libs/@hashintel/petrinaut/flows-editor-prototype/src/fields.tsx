@@ -124,13 +124,17 @@ const SourceHover = ({
   source,
   stepId,
   children,
+  listSlot = false,
 }: {
   source: StepInputSource;
   stepId: string;
   children: React.ReactNode;
+  /** A reference in a list field: leaves room for the field's "+" on its line. */
+  listSlot?: boolean;
 }) => (
   <span
-    className={css({ display: "inline-flex", minWidth: "[0]" })}
+    data-ref-slot={listSlot || undefined}
+    className={css({ display: "inline-flex", minWidth: "[0]", maxWidth: "[100%]" })}
     {...useSourceHover(source, stepId)}
   >
     {children}
@@ -164,6 +168,17 @@ export const RefField = ({
   );
 };
 
+/** A list field's reference chip text: the whole path as one line, cut at its END with an ellipsis; the chip's tooltip has it all. */
+const endCutStyle = css({
+  display: "inline-block",
+  verticalAlign: "top",
+  minWidth: "[0]",
+  maxWidth: "[100%]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
 const ListRefText = ({
   document,
   item,
@@ -172,14 +187,38 @@ const ListRefText = ({
   document: EditorDocument;
   item: StepInputSource;
   stepId: string;
-}) => {
-  const look = refLook(document, item, stepId);
-  return look ? (
-    <RefChipText look={look} />
-  ) : (
-    <>{collapsePath(tokenPath(document, item, stepId))}</>
-  );
-};
+}) => <span className={endCutStyle}>{refHover(document, item, stepId)}</span>;
+
+/** The tooltip's trigger shrinks with the field, so a long path is cut inside it. */
+const refTipStyle = css({ "&[class]": { display: "flex", minWidth: "[0]", maxWidth: "[100%]" } });
+
+/** A reference chip in a list field: no ×; hover shows "…" with Change and Remove (registry "Reference pill"). */
+const refChipWrapStyle = css({
+  position: "relative",
+  display: "inline-flex",
+  minWidth: "[0]",
+  maxWidth: "[100%]",
+  "& > div": { minWidth: "[0]", maxWidth: "[100%]", flexWrap: "nowrap" },
+  "& > div > span:last-child": { flex: "[0 1 auto]", minWidth: "[0]" },
+  "& [data-ref-more]": {
+    position: "absolute",
+    top: "[1px]",
+    bottom: "[1px]",
+    right: "[1px]",
+    display: "none",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    width: "[28px]",
+    paddingRight: "[4px]",
+    border: "none",
+    cursor: "pointer",
+    borderTopRightRadius: "[5px]",
+    borderBottomRightRadius: "[5px]",
+    background: "[linear-gradient(to right, transparent, var(--colors-neutral-bg-solid-subtle) 10px)]",
+    color: "neutral.fg.link",
+  },
+  "&:hover [data-ref-more], &:focus-within [data-ref-more], & [data-ref-more][aria-expanded=true]": { display: "flex" },
+});
 
 const TokenChip = ({
   source,
@@ -949,7 +988,6 @@ export const listModeOf = (input: InputView): ListMode => {
 /** The DS input frame at `sm` (1 px border, 8 px corners, 32 px tall), holding chips and the "+" action. */
 const listFieldStyle = css({
   display: "flex",
-  flexWrap: "nowrap",
   alignItems: "center",
   gap: "1",
   minWidth: "[0]",
@@ -957,7 +995,8 @@ const listFieldStyle = css({
   "& > *": { minWidth: "[0]" },
   // t2: a reference chip shrinks inside the field, its step name cut first (`ref-path.tsx`).
   "& > * > div": { minWidth: "[0]", maxWidth: "[100%]" },
-  "&[data-all]": { flexWrap: "wrap" },
+  "& > [data-ref-slot]": { maxWidth: "[calc(100% - 32px)]" },
+  flexWrap: "wrap",
   // Spec Error state: a red border with the one line under the field.
   "&[data-invalid]": { borderColor: "red.bd.strong" },
   paddingY: "1",
@@ -983,18 +1022,6 @@ const typeInlineStyle = css({
   textStyle: "sm",
   color: "neutral.fg.heading",
   "&::placeholder": { color: "neutral.fg.muted" },
-});
-
-/** "+N" after the first chip: hover lists the rest, click shows them all. */
-const moreStyle = css({
-  flexShrink: 0,
-  paddingX: "1.5",
-  borderRadius: "md",
-  textStyle: "xs",
-  fontWeight: "medium",
-  color: "neutral.fg.muted",
-  cursor: "pointer",
-  _hover: { backgroundColor: "neutral.bg.surface.active" },
 });
 
 /** A file picked from the computer: MOCK, nothing uploads; the chip keeps its name. */
@@ -1053,7 +1080,8 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const { open, setOpen } = useFieldMenu(step.stepId, input.name);
   const [typing, setTyping] = useState("");
-  const [showAll, setShowAll] = useState(false);
+  /** Index of the reference being changed: the next pick replaces it. */
+  const [changing, setChanging] = useState<number | null>(null);
   /** Email only: the field is open for typing, every address shows and wraps (Dora, 26 Oct). */
   const [editing, setEditing] = useState(false);
   const typeRef = useRef<HTMLInputElement>(null);
@@ -1113,7 +1141,6 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
 
   const startTyping = () => {
     setEditing(true);
-    setShowAll(true);
     requestAnimationFrame(() => typeRef.current?.focus());
   };
 
@@ -1154,10 +1181,14 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
                 variant: "naked" as const,
               },
             })}
-        removeable={{
-          onRemove: () => setItems(items.filter((_, other) => other !== index)),
-          "aria-label": `Remove ${itemLabel(item)}`,
-        }}
+        {...(item.kind === "constant"
+          ? {
+              removeable: {
+                onRemove: () => setItems(items.filter((_, other) => other !== index)),
+                "aria-label": `Remove ${itemLabel(item)}`,
+              },
+            }
+          : {})}
       >
         {item.kind === "constant" ? (
           itemLabel(item)
@@ -1177,8 +1208,46 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
         key={JSON.stringify(item)}
         source={item}
         stepId={step.stepId}
+        listSlot
       >
-        {content}
+        <Tooltip content={itemLabel(item)} openDelay="fast" className={refTipStyle}>
+          <span className={refChipWrapStyle} data-ref-chip>
+            {content}
+            <Menu
+              position="bottom-end"
+              items={[
+                {
+                  id: "ref",
+                  label: "",
+                  items: [
+                    {
+                      id: "change",
+                      text: "Change",
+                      onClick: () => {
+                        setChanging(index);
+                        setOpen(true);
+                      },
+                    },
+                    {
+                      id: "remove",
+                      text: "Remove",
+                      onClick: () => setItems(items.filter((_, other) => other !== index)),
+                    },
+                  ],
+                },
+              ]}
+              trigger={
+                <button
+                  type="button"
+                  data-ref-more
+                  aria-label={`More for ${itemLabel(item)}`}
+                >
+                  <Icon name="ellipsis" size="xs" />
+                </button>
+              }
+            />
+          </span>
+        </Tooltip>
       </SourceHover>
     );
   };
@@ -1306,7 +1375,6 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
           ref={anchorRef}
           className={listFieldStyle}
           data-invalid={items.some(badEmail) || undefined}
-          data-all={showAll || editing || undefined}
           onClick={(event) => {
             // A click on the field itself (not a chip or "+") opens it for typing.
             if (mode === "email" && event.target === event.currentTarget) {
@@ -1314,30 +1382,8 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
             }
           }}
         >
-          {/* One line: the first chip (an invalid one first), then "+N" (spec F7). */}
-          {(showAll
-            ? items
-            : items.length > 0
-              ? [items.find(badEmail) ?? items[0]!]
-              : []
-          ).map(chip)}
-          {!showAll && items.length > 1 ? (
-            <Tooltip
-              content={items
-                .filter((item) => item !== (items.find(badEmail) ?? items[0]))
-                .map(itemLabel)
-                .join(", ")}
-            >
-              <button
-                type="button"
-                className={moreStyle}
-                aria-label={`Show ${items.length - 1} more`}
-                onClick={() => setShowAll(true)}
-              >
-                +{items.length - 1}
-              </button>
-            </Tooltip>
-          ) : null}
+          {/* Every reference wraps inside the field; no "+N" fold (L822). */}
+          {items.map(chip)}
           {mode === "email" && (editing || items.length === 0) ? (
             // An email client's To: type, or paste a list; Enter, comma or Tab makes a chip; Backspace takes the last.
             <input
@@ -1355,7 +1401,6 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
               onBlur={() => {
                 addTyped();
                 setEditing(false);
-                setShowAll(false);
               }}
               onKeyDown={(event) => {
                 if (
@@ -1448,9 +1493,17 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
           stepId={step.stepId}
           input={input}
           entry={entry}
-          onClose={() => setOpen(false)}
+          onClose={() => {
+            setChanging(null);
+            setOpen(false);
+          }}
           onPick={(picked) => {
-            setItems([...items, picked]);
+            setItems(
+              changing === null
+                ? [...items, picked]
+                : items.map((item, other) => (other === changing ? picked : item)),
+            );
+            setChanging(null);
             setOpen(false);
           }}
           onTypeValue={

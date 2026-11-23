@@ -1140,7 +1140,7 @@ const ConditionRowView = ({
       >
         <Filter
           key={`${resetCount}:${row.propertyBaseUrl}:${row.valueSource ? "token" : "typed"}`}
-          size="sm"
+          size="md"
           className={filterFitStyle}
           property={`${row.id}:${row.propertyBaseUrl}`}
           propertyLabel={title}

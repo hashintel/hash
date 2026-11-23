@@ -354,6 +354,9 @@ export const switchEntry: CatalogEntry = {
     : {}),
 };
 
+// Switch is listed with the other steps, under Flow control (Lead's call, 20 Nov build B).
+catalog.push(switchEntry);
+
 export const getCatalogEntry = (id: string): CatalogEntry | undefined =>
   catalog.find((entry) => entry.id === id) ??
   (id === switchEntry.id ? switchEntry : undefined);
@@ -385,7 +388,7 @@ export const stepGroups: Array<{
   {
     name: "Flow control",
     icon: "rotate",
-    ids: ["if", "forEach", "filterList"],
+    ids: ["if", "switch", "forEach", "filterList"],
   },
 ];
 

@@ -209,7 +209,7 @@ const compactPanelStyle = css({
     marginLeft: "[calc(var(--u-px) - 34px)]",
     gap: "[calc(var(--u-tx) - var(--u-px) - 16px)]",
   },
-  "&[class] [data-used-names]": { paddingLeft: "[calc(var(--u-lx) - 6px)]" },
+  "&[class] [data-used-names]": { paddingLeft: "[calc(var(--u-lx) + 4px)]" },
   "&[class] [data-used-names] > button": { gap: "[calc(var(--u-lt) - var(--u-lx) - 20px)]" },
   "&[class] [data-output] [data-row]": { minHeight: "[var(--u-rh)]" },
   "&[class] [data-output] [data-row] > span.ml_auto": { display: "contents" },
@@ -603,7 +603,7 @@ const ExpandableTextRow = ({
   );
   return (
     <PropertyRow label={label} icon={icon} hover={hover} required={required} invalid={invalid}>
-      <div className={cx(expandWrapStyle, expanded && expandedBoxStyle)} data-multiline>
+      <div className={cx(expandWrapStyle, expanded && expandedBoxStyle)} data-multiline={expanded || undefined}>
         {children}
         {control}
       </div>

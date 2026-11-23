@@ -27,6 +27,7 @@ import {
   menuSegmentStyle,
   rowStackStyle,
   fullChipStyle,
+  fullRowStackStyle,
   rowStyle,
   showConditionOnHover,
   takeColumnStyle,
@@ -95,7 +96,7 @@ const targetStyle = css({
   display: "flex",
   minWidth: "[0]",
   "& > *": { flex: "1", minWidth: "[0]" },
-  "& button, & [data-part='trigger']": { height: "[32px]" },
+  "& button, & [data-part='trigger']": { height: "[30px]" },
   // The × on a chosen step stays in view, as drawn; the DS shows it only on hover.
   "& [data-part='clear']:not([data-hidden])": { opacity: "1", visibility: "visible" },
 });
@@ -145,32 +146,6 @@ const chipsStyle = css({
 
 /** S3: a case's conditions on the panel grid: the joiner in the label column, the chip in the value column. */
 const conditionsStyle = css({ display: "contents" });
-
-/** Full-width rows (field-conditions 2): "Where" or the joiner above the chip, both across the panel. */
-const fullConditionRowStyle = css({
-  "&[class]": {
-    gridColumn: "1 / -1",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "stretch",
-    gap: "2",
-  },
-  "& > [data-joiner]": { minHeight: "[0]" },
-});
-
-/** Plain muted lowercase "and" / "or"; a click switches it. */
-const fullJoinerButtonStyle = css({
-  alignSelf: "flex-start",
-  padding: "[0]",
-  border: "none",
-  background: "[none]",
-  cursor: "pointer",
-  color: "neutral.fg.muted",
-  fontSize: "[13px]",
-  lineHeight: "[16px]",
-  _hover: { color: "neutral.fg.heading" },
-  _disabled: { cursor: "default", _hover: { color: "neutral.fg.muted" } },
-});
 
 const conditionRowStyle = css({
   display: "contents",
@@ -333,18 +308,21 @@ const PathName = ({
   port,
   renamable,
   heading = false,
+  startEditing = false,
 }: {
   stepId: string;
   port: Port;
   renamable: boolean;
   /** A stacked case's title: medium, as the panel's titles. */
   heading?: boolean;
+  startEditing?: boolean;
 }) => {
   const rename = useRenamePath(stepId);
   return renamable ? (
     <ToggleableTextInput
       value={port.label}
       label={`${port.label} path name`}
+      startEditing={startEditing}
       className={cx(renameStyle, heading && headingRenameStyle)}
       onSave={(next) => rename(port.outputName, next)}
     />
@@ -613,7 +591,7 @@ const ConditionChip = ({
   ];
   return (
     <Filter<{ is: string; gt: string }>
-      size="sm"
+      size="md"
       className={className}
       property={row.field}
       propertyLabel={row.field}
@@ -838,10 +816,12 @@ export const PathHead = ({
   stepId,
   port,
   renamable,
+  startEditing = false,
 }: {
   stepId: string;
   port: Port;
   renamable: boolean;
+  startEditing?: boolean;
 }) => {
   const readOnly = useReadOnlyPanel();
   return (
@@ -850,6 +830,7 @@ export const PathHead = ({
         stepId={stepId}
         port={port}
         renamable={renamable && !readOnly}
+        startEditing={startEditing}
         heading
       />
     </span>
@@ -886,7 +867,10 @@ export const GoesToRow = ({
   );
 };
 
-/** A path's condition rows on the paths grid: "Where", then the joiner, each with its chip; then Add condition. */
+/**
+ * A path's condition rows, the way Find entities' filters work: "Where" and the and / or joiner in the label column
+ * beside their rows, the joiner opening its two-option menu, each row with its ⋮ menu, then Add condition.
+ */
 const PathConditionRows = ({
   group,
   onChange,
@@ -898,40 +882,35 @@ const PathConditionRows = ({
 }) => {
   const readOnly = useReadOnlyPanel();
   return (
-    <div className={conditionsStyle}>
+    <div
+      className={cx(
+        css({ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: "2" }),
+        labelColumnStyle,
+      )}
+      data-condition-builder
+    >
       {group.rows.map((row, rowIndex) => (
         <div
           // oxlint-disable-next-line react/no-array-index-key -- rows have no id in this mock
           key={rowIndex}
-          className={cx(
-            conditionRowStyle,
-            fullConditionRowStyle,
-            fullChipStyle,
-          )}
+          className={cx(rowStackStyle, fullRowStackStyle, fullChipStyle)}
         >
-          <span data-joiner>
-            {rowIndex === 0 ? (
-              "Where"
-            ) : (
-              <button
-                type="button"
-                className={fullJoinerButtonStyle}
-                disabled={readOnly}
-                aria-label={`Join with ${group.join}`}
-                onClick={() =>
-                  onChange({
-                    ...group,
-                    join: group.join === "or" ? "and" : "or",
-                  })
-                }
-              >
-                {group.join}
-              </button>
-            )}
-          </span>
-          <span data-chip onPointerEnter={showConditionOnHover}>
+          <Joiner
+            conjunction={rowIndex === 0 ? undefined : group.join}
+            onPick={
+              rowIndex === 0 || readOnly
+                ? undefined
+                : (join) => onChange({ ...group, join })
+            }
+          />
+          <div
+            className={rowStyle}
+            data-condition-row={rowIndex}
+            onPointerEnter={showConditionOnHover}
+          >
             <ConditionChip
               row={row}
+              className={filterFitStyle}
               onChange={(value) =>
                 onChange({
                   ...group,
@@ -943,29 +922,47 @@ const PathConditionRows = ({
                 })
               }
             />
-          </span>
+            {readOnly ? null : (
+              <Menu
+                position="bottom-end"
+                items={[
+                  {
+                    id: "delete",
+                    text: "Delete condition",
+                    onClick: () =>
+                      onChange({
+                        ...group,
+                        rows: group.rows.filter(
+                          (_row, candidateIndex) => candidateIndex !== rowIndex,
+                        ),
+                      }),
+                  },
+                ]}
+                trigger={
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={menuSegmentStyle}
+                    iconName="ellipsisVertical"
+                    aria-label="Condition options"
+                  />
+                }
+              />
+            )}
+          </div>
         </div>
       ))}
       {readOnly ? null : (
-        <>
-          <span
-            className={cx(
-              css({ display: "flex" }),
-              css({ gridColumn: "1 / -1" }),
-            )}
+        <span className={css({ display: "flex" })}>
+          <Button
+            size="sm"
+            variant="ghost"
+            iconName="plus"
+            onClick={() => onChange({ ...group, rows: [...group.rows, newRow] })}
           >
-            <Button
-              size="sm"
-              variant="ghost"
-              iconName="plus"
-              onClick={() =>
-                onChange({ ...group, rows: [...group.rows, newRow] })
-              }
-            >
-              Add condition
-            </Button>
-          </span>
-        </>
+            Add condition
+          </Button>
+        </span>
       )}
     </div>
   );
@@ -1093,19 +1090,41 @@ export const AnswerPathGroups = ({
   iconOf: (id: string) => IconName;
 }) => {
   const readOnly = useReadOnlyPanel();
+  const { setDocument } = useEditor();
+  const [added, setAdded] = useState<string | null>(null);
+  const addAnswer = () => {
+    const id = `answer-${(step.extraAnswers?.length ?? 0) + 1}`;
+    setAdded(id);
+    setDocument((document) =>
+      updateStep(document, step.stepId, (current) =>
+        current.kind === "action"
+          ? {
+              ...current,
+              extraAnswers: [...(current.extraAnswers ?? []), id],
+              pathNames: { ...current.pathNames, [id]: "New answer" },
+            }
+          : current,
+      ),
+    );
+  };
   return (
     <Section title="Paths">
       <div className={pathGroupsStyle} data-paths="answers">
         {namedPorts(step, ports).map((port, index) => (
           <Fragment key={port.outputName}>
             {index > 0 ? <PathHairline /> : null}
-            <PathHead stepId={step.stepId} port={port} renamable />
+            <PathHead
+              stepId={step.stepId}
+              port={port}
+              renamable
+              startEditing={port.outputName === added}
+            />
             <GoesToRow stepId={step.stepId} port={port} iconOf={iconOf} />
           </Fragment>
         ))}
         {readOnly ? null : (
           <div className={css({ gridColumn: "1 / -1", marginTop: "2" })}>
-            <Button size="sm" variant="subtle" iconName="plus">
+            <Button size="sm" variant="subtle" iconName="plus" onClick={addAnswer}>
               Add answer
             </Button>
           </div>

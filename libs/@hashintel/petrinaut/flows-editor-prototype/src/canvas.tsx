@@ -146,7 +146,7 @@ const portRows = (step: DraftStep) => {
   const ports = getCatalogEntry(step.actionDefinitionId)?.ports ?? null;
   return ports && pathsTake === "i2" && step.actionDefinitionId !== "if"
     ? [...ports, otherwisePort]
-    : ports && (step.pathNames !== undefined || step.noDefault === true)
+    : ports && (step.pathNames !== undefined || step.noDefault === true || step.extraAnswers !== undefined)
       ? namedPorts(step, ports)
       : ports;
 };

@@ -34,6 +34,8 @@ export type DraftActionStep = {
   inputs: Record<string, StepInputSource>;
   /** `?ifrename=`, `?switch=`: a path renamed in place, by port; the card's port shows the name. */
   pathNames?: Record<string, string>;
+  /** Answers added in the panel (Ask a person's "Add answer"), by port name, after the catalog's ports. */
+  extraAnswers?: string[];
   /** `?switch=s3`: Default turned off, so the card has no Default port. */
   noDefault?: boolean;
 };

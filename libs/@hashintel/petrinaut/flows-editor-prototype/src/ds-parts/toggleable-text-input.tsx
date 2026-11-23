@@ -123,6 +123,7 @@ export const ToggleableTextInput = ({
   placeholder,
   className,
   compact = false,
+  startEditing = false,
 }: {
   value: string;
   onSave: (value: string) => void;
@@ -131,8 +132,10 @@ export const ToggleableTextInput = ({
   className?: string;
   /** A line of small text (a card's description) rather than a title. */
   compact?: boolean;
+  /** Opens already in its input, as a just-added item does. */
+  startEditing?: boolean;
 }) => {
-  const [draft, setDraft] = useState<string | null>(null);
+  const [draft, setDraft] = useState<string | null>(startEditing ? value : null);
   // Where the caret goes when the field opens: where the click landed in the text, else the end (Attio: no select-all).
   const [caretAt, setCaretAt] = useState<number | null>(null);
   if (draft !== null) {
