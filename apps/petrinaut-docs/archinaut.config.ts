@@ -119,9 +119,27 @@ export default defineConfig({
     },
     {
       from: "ui.sub-view",
-      to: "ui.views.editor",
+      to: "ui.views",
       reason:
-        "a container renders the descriptors it is given and never names a panel",
+        "a container renders the descriptors it is given and never names a panel or a view",
+    },
+    {
+      from: "ui.monaco",
+      to: "ui.views",
+      reason:
+        "the code editor serves every view and the scenario form, so it cannot need one of the views",
+    },
+    {
+      from: "ui.shared",
+      to: "ui.views",
+      reason:
+        "several views draw with a shared piece, so it cannot need one of them",
+    },
+    {
+      from: "ui.shared",
+      to: "ui.plugins",
+      reason:
+        "a shared piece is also drawn where no plugin runs, as in the preview",
     },
   ],
 

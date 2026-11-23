@@ -43,6 +43,9 @@ to use one.
 
 ## Rules
 
+- **No file here imports a view or the plugin runtime.** Several views draw
+  with a piece, and the preview draws with them where no plugin runs. Two
+  rules of `archinaut check` hold it.
 - **What a `KeptState` holds is dropped when its `scope` changes.** The
   scope names what the values belong to, such as the tab of the bottom panel,
   and a value kept for one tab must not reach another. Held by the test "drops
