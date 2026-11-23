@@ -18,7 +18,10 @@ import {
   hashEntityReadOversizedSchema,
   hashEntityTypeReadDefaultLimit,
   hashEntityTypeReadResultSchema,
+  hashEntityTypeSelectorKind,
+  hashIsPublishedVersionedUrl,
   hashPropertyBaseUrl,
+  hashPropertySlug,
   hashReadDefaultMaxTokens,
   hashReadMaxMaxTokens,
   hashReadMinMaxTokens,
@@ -148,18 +151,64 @@ test("an entity read pages by a limit of 1 to the maximum, optional includeArchi
   );
 });
 
-test("entity type reads accept base URLs, published versioned URLs, titles, pagination and maxTokens", () => {
-  const valid = {
+test("entity type reads accept base URLs, published versioned URLs, titles, allVersions, pagination and maxTokens", () => {
+  const validWithAllVersions = {
     entityTypeIds: [
       "https://hash.ai/@h/types/entity-type/user/",
       "https://hash.ai/@h/types/entity-type/user/v/7",
     ],
     titles: ["User"],
+    allVersions: true,
     limit: hashEntityTypeReadDefaultLimit,
     cursor: "https://hash.ai/@h/types/entity-type/user/v/7",
     maxTokens: hashReadDefaultMaxTokens,
   };
-  expect(parseHashEntityTypeReadInput(valid)).toEqual(valid);
+  expect(parseHashEntityTypeReadInput(validWithAllVersions)).toEqual(
+    validWithAllVersions,
+  );
+  // Exact published versioned entityTypeIds also permit cursor without allVersions.
+  expect(
+    parseHashEntityTypeReadInput({
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/user/v/7"],
+      cursor: "https://hash.ai/@h/types/entity-type/user/v/7",
+    }),
+  ).toEqual({
+    entityTypeIds: ["https://hash.ai/@h/types/entity-type/user/v/7"],
+    cursor: "https://hash.ai/@h/types/entity-type/user/v/7",
+  });
+  // Latest-only type reads refuse cursor with H-1442 guidance.
+  for (const invalidCursor of [
+    { cursor: "https://hash.ai/@h/types/entity-type/user/v/7" },
+    {
+      titles: ["User"],
+      cursor: "https://hash.ai/@h/types/entity-type/user/v/7",
+    },
+    {
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/user/"],
+      cursor: "https://hash.ai/@h/types/entity-type/user/v/7",
+    },
+  ]) {
+    expect(() => parseHashEntityTypeReadInput(invalidCursor)).toThrow(
+      /allVersions: true.*latest-version filtering/u,
+    );
+  }
+  expect(hashEntityTypeSelectorKind("dept:ops/")).toBe("title");
+  expect(
+    hashEntityTypeSelectorKind("https://hash.ai/@h/types/entity-type/user/"),
+  ).toBe("baseUrl");
+  expect(
+    hashEntityTypeSelectorKind("https://hash.ai/@h/types/entity-type/user/v/7"),
+  ).toBe("versionedUrl");
+  expect(
+    hashIsPublishedVersionedUrl(
+      "https://hash.ai/@h/types/entity-type/user/v/2-draft.lane.1",
+    ),
+  ).toBe(false);
+  expect(
+    hashPropertySlug(
+      "https://hash.ai/@h/types/property-type/planned-delivery-time/",
+    ),
+  ).toBe("planned_delivery_time");
   for (const bad of [
     "User",
     "https://hash.ai/@h/types/entity-type/user/v/0",
@@ -194,6 +243,15 @@ test("entity type reads accept base URLs, published versioned URLs, titles, pagi
     cursor: "https://hash.ai/@h/types/entity-type/user/v/7",
   };
   expect(v.parse(hashEntityTypeReadResultSchema, result)).toEqual(result);
+  expect(
+    v.parse(hashEntityTypeReadResultSchema, {
+      entityTypes: result.entityTypes,
+      hasMore: true,
+    }),
+  ).toEqual({
+    entityTypes: result.entityTypes,
+    hasMore: true,
+  });
 });
 
 test.each([

@@ -35,6 +35,12 @@ export const hashEntityReadMaxLimit = 1000;
  */
 export const hashEntityReadDefaultLimit = 100;
 
+/**
+ * Maximum UTF-8 byte length of a serialized entity read result the browser
+ * will POST back to Brunch (kept safely below Brunch's 16 MiB body limit).
+ */
+export const hashEntityReadMaxPayloadBytes = 12 * 1024 * 1024;
+
 /** How many entity types one type-read page holds when the model names no limit. */
 export const hashEntityTypeReadDefaultLimit = 50;
 
@@ -130,6 +136,30 @@ const baseUrlPattern = /^https?:\/\/\S+\/$/u;
 const publishedVersionedUrlPattern = /^https?:\/\/\S+\/v\/[1-9]\d*$/u;
 const propertyTypeIdPattern =
   /^https?:\/\/\S+\/v\/[1-9]\d*(?:-draft\.[^\s/]+\.[1-9]\d*)?$/u;
+
+/** Whether `url` is a published versioned Block Protocol URL (excluding draft versions, BE-161). */
+export const hashIsPublishedVersionedUrl = (url: string) =>
+  publishedVersionedUrlPattern.test(url);
+
+/**
+ * Classifies an entity-type selector consistently with `hashEntityTypeSelectorSchema`:
+ * HTTP(S) base URL ending in `/`, HTTP(S) published versioned URL, or title.
+ */
+export const hashEntityTypeSelectorKind = (
+  selector: string,
+): "baseUrl" | "versionedUrl" | "title" =>
+  baseUrlPattern.test(selector)
+    ? "baseUrl"
+    : publishedVersionedUrlPattern.test(selector)
+      ? "versionedUrl"
+      : "title";
+
+/**
+ * The slug portion of a Block Protocol property-type or entity-type URL,
+ * normalised with underscores (`…/property-type/planned-delivery-time/` -> `planned_delivery_time`).
+ */
+export const hashPropertySlug = (url: string): string | undefined =>
+  /\/(?:property|entity)-type\/([^/]+)\//u.exec(url)?.[1]?.replaceAll("-", "_");
 
 /**
  * The base URL of a property, named by its base URL or its versioned
@@ -278,7 +308,7 @@ export const hashEntityReadInputSchema = v.strictObject({
     v.pipe(
       v.boolean(),
       v.description(
-        "Whether to include archived entities. Defaults to false (both metadata-archived entities and entities with archived: true are excluded from matches and traversed links).",
+        "Whether to include archived entities. Defaults to false (excluding both flag-archived entities and property-archived entities such as pages/notifications). Note: the graph SDK still omits flag-archived entities reached only by link traversal, and temporal-archived entities fall outside live queries; read a known archived entity directly by entityIds with includeArchived: true.",
       ),
     ),
   ),
@@ -358,48 +388,70 @@ export type HashEntityReadInput = v.InferOutput<
 export const parseHashEntityReadInput = (input: unknown): HashEntityReadInput =>
   v.parse(hashEntityReadInputSchema, input);
 
-export const hashEntityTypeReadInputSchema = v.strictObject({
-  entityTypeIds: v.optional(
-    v.pipe(
-      v.array(hashEntityTypeIdSelectorSchema),
-      v.minLength(1, "entityTypeIds cannot be empty; omit it instead."),
-      v.description(
-        `Entity types to read by URL: a published versioned URL (for example from ${brunchTools.hashQueryEntities}) reads that exact version, or a base URL ending in \`/\` reads its latest version (or all matching versions when paired with exact versioned URLs).`,
+const typeCursorRequiresAllVersionsMessage =
+  "Cursor pagination on entity types requires allVersions: true (or exact published versioned entityTypeIds), because the graph does not support cursors with latest-version filtering. Otherwise raise limit up to 1,000 or filter by titles or entityTypeIds.";
+
+export const hashEntityTypeReadInputSchema = v.pipe(
+  v.strictObject({
+    entityTypeIds: v.optional(
+      v.pipe(
+        v.array(hashEntityTypeIdSelectorSchema),
+        v.minLength(1, "entityTypeIds cannot be empty; omit it instead."),
+        v.description(
+          `Entity types to read by URL: a published versioned URL (for example from ${brunchTools.hashQueryEntities}) reads that exact version; a base URL ending in \`/\` reads its latest version (or every version when allVersions: true).`,
+        ),
       ),
     ),
-  ),
-  titles: identifiersSchemaWith({
-    name: "titles",
-    description:
-      "Entity type titles to match, for example `Sales Order`. Matches the latest version of every entity type with a listed title.",
+    titles: identifiersSchemaWith({
+      name: "titles",
+      description:
+        "Entity type titles to match, for example `Sales Order`. Matches the latest version of each type by default (or every version when allVersions: true).",
+    }),
+    webIds: identifiersSchemaWith({
+      name: "webIds",
+      description:
+        "Web ids whose own entity types to list. Most types live in HASH's shared webs, not the user's or their organizations'.",
+    }),
+    allVersions: v.optional(
+      v.pipe(
+        v.boolean(),
+        v.description(
+          "Whether to include historical versions of matching types instead of only the latest version. Defaults to false. Required to paginate with cursor across latest-eligible queries (the graph does not support cursors with latest-version filtering).",
+        ),
+      ),
+    ),
+    limit: v.optional(
+      v.pipe(
+        v.number(entityTypeReadLimitMessage),
+        v.integer(entityTypeReadLimitMessage),
+        v.minValue(1, entityTypeReadLimitMessage),
+        v.maxValue(hashEntityReadMaxLimit, entityTypeReadLimitMessage),
+        v.description(
+          `How many entity types one page holds, from 1 to ${formattedMaxLimit}. Defaults to ${formattedTypeDefaultLimit}.`,
+        ),
+      ),
+    ),
+    cursor: v.optional(
+      v.pipe(
+        v.string(),
+        v.minLength(1),
+        v.description(
+          "The cursor a full type-read page gave (when allVersions: true or reading exact versioned entityTypeIds), copied exactly, to read the next page. Omit it to read the first page.",
+        ),
+      ),
+    ),
+    maxTokens: maxTokensSchema,
   }),
-  webIds: identifiersSchemaWith({
-    name: "webIds",
-    description:
-      "Web ids whose own entity types to list. Most types live in HASH's shared webs, not the user's or their organizations'.",
-  }),
-  limit: v.optional(
-    v.pipe(
-      v.number(entityTypeReadLimitMessage),
-      v.integer(entityTypeReadLimitMessage),
-      v.minValue(1, entityTypeReadLimitMessage),
-      v.maxValue(hashEntityReadMaxLimit, entityTypeReadLimitMessage),
-      v.description(
-        `How many entity types one page holds, from 1 to ${formattedMaxLimit}. Defaults to ${formattedTypeDefaultLimit}.`,
-      ),
-    ),
-  ),
-  cursor: v.optional(
-    v.pipe(
-      v.string(),
-      v.minLength(1),
-      v.description(
-        "The cursor a full type-read page gave, copied exactly, to read the next page. Omit it to read the first page.",
-      ),
-    ),
-  ),
-  maxTokens: maxTokensSchema,
-});
+  v.check(({ cursor, allVersions, entityTypeIds }) => {
+    if (cursor === undefined || allVersions === true) return true;
+    return (
+      entityTypeIds !== undefined &&
+      entityTypeIds.every(
+        (id) => hashEntityTypeSelectorKind(id) === "versionedUrl",
+      )
+    );
+  }, typeCursorRequiresAllVersionsMessage),
+);
 
 export type HashEntityTypeReadInput = v.InferOutput<
   typeof hashEntityTypeReadInputSchema
@@ -592,7 +644,7 @@ export type HashReadFailure = v.InferOutput<typeof hashReadFailureSchema>;
  * Which webs a read or count covered: the user's own and organization webs
  * when the input named none (`default`), else the webs it named (`named`).
  */
-export const hashWebScopeSchema = v.picklist(["default", "named"]);
+const hashWebScopeSchema = v.picklist(["default", "named"]);
 
 export type HashWebScope = v.InferOutput<typeof hashWebScopeSchema>;
 
@@ -686,7 +738,16 @@ const hashEntityTypeSchema = v.object({
 
 export const hashEntityTypeReadResultSchema = v.object({
   entityTypes: v.array(hashEntityTypeSchema),
+  /**
+   * Set when more types match and cursor pagination is supported (`allVersions: true`
+   * or exact versioned `entityTypeIds`).
+   */
   cursor: v.optional(v.pipe(v.string(), v.minLength(1))),
+  /**
+   * Set when a `version == "latest"` type read stopped at `limit` (the graph
+   * cannot combine `version == "latest"` with `after` cursors, H-1442).
+   */
+  hasMore: v.optional(v.literal(true)),
 });
 
 export type HashEntityTypeReadResult = v.InferOutput<

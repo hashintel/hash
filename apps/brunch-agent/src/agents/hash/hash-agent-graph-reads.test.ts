@@ -604,12 +604,12 @@ test("an entity read asking for an entity's full values is issued as asked, and 
   expect(part.seen).toMatch(/definition_object: <object, /);
 });
 
-test("a full page of the type read shows the model its cursor, and the last page says nothing of more", async () => {
+test("a full page of the type read shows the model its cursor (allVersions) or hasMore guidance (latest), and the last page says nothing of more", async () => {
   const cursor = supplierType.entityTypeId;
   const output = { entityTypes: [supplierType] };
   const paged = await readOnce(
     brunchTools.hashQueryEntityTypes,
-    { limit: 25 },
+    { allVersions: true, limit: 25 },
     {
       ...output,
       cursor,
@@ -619,8 +619,21 @@ test("a full page of the type read shows the model its cursor, and the last page
     `This page is full (limit 25, max 1,000), so more entity types may match. To read the next page, repeat the same read with cursor: ${cursor}`,
   );
 
+  const latestMore = await readOnce(
+    brunchTools.hashQueryEntityTypes,
+    { limit: 25 },
+    {
+      ...output,
+      hasMore: true,
+    },
+  );
+  expect(latestMore.seen?.split("\n")[1]).toBe(
+    "More latest entity types matched than limit (25, max 1,000). Raise limit up to 1,000, filter by titles, entityTypeIds or webIds, or pass allVersions: true to paginate across all versions with cursor.",
+  );
+
   const whole = await readOnce(brunchTools.hashQueryEntityTypes, {}, output);
   expect(whole.seen).not.toContain("more entity types may match");
+  expect(whole.seen).not.toContain("More latest entity types matched");
 });
 
 test("a full page of the entity read shows the model its cursor, as given, and how to read the next page; the last page says nothing of more", async () => {

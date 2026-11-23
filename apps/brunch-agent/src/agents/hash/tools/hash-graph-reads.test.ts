@@ -938,7 +938,7 @@ test("entity types render one block each, with each property by its short name, 
   });
   expect(text).toBe(
     [
-      "entity types: 1 (latest versions only; pass versioned entityTypeIds for older versions)",
+      "entity types: 1 (latest versions only; pass versioned entityTypeIds for older versions, or allVersions: true for all versions)",
       "- Supplier: http://localhost:3000/@example-web/types/entity-type/supplier/v/1",
       "  description: A vendor that supplies goods.",
       "  properties:",
@@ -967,6 +967,30 @@ test("entity types render one block each, with each property by its short name, 
     },
   );
   expect(exact.split("\n")[0]).toBe("entity types: 1");
+
+  // Mixed base URL + versioned URL keeps the base-URL latest note.
+  const mixed = hashEntityTypeReadForModel(
+    {
+      entityTypes: [
+        {
+          entityTypeId:
+            "http://localhost:3000/@example-web/types/entity-type/supplier/v/1",
+          title: "Supplier",
+          properties: [],
+          links: [],
+        },
+      ],
+    },
+    {
+      entityTypeIds: [
+        "http://localhost:3000/@example-web/types/entity-type/order/",
+        "http://localhost:3000/@example-web/types/entity-type/supplier/v/1",
+      ],
+    },
+  );
+  expect(mixed.split("\n")[0]).toBe(
+    "entity types: 1 (base-URL selectors return latest versions only; pass allVersions: true for older versions)",
+  );
 });
 
 test("entity type and property descriptions render in full without silent 160/300-char clipping, and huge ones are governed by maxTokens", () => {
@@ -991,7 +1015,7 @@ test("entity type and property descriptions render in full without silent 160/30
     ],
   });
   expect(typeText.split("\n")).toEqual([
-    "entity types: 2 (latest versions only; pass versioned entityTypeIds for older versions)",
+    "entity types: 2 (latest versions only; pass versioned entityTypeIds for older versions, or allVersions: true for all versions)",
     "- Supplier: https://hash.ai/@acme/types/entity-type/supplier/v/1",
     `  description: ${collapsedType}`,
     "- Order: https://hash.ai/@acme/types/entity-type/order/v/1",
@@ -1075,9 +1099,9 @@ test("an entity type read whose text would be too large is refused whole, with i
     /^Refused: this type read's text would be about [\d,]+ tokens, over the 20,000 token limit \(default 20,000, max 60,000\), so none of it is shown and it gives no cursor\.$/u,
   );
   expect(rest).toEqual([
-    "It held 400 entity types (with more pages available).",
+    "It held 400 entity types (with more matching types available).",
     "Narrow it (or raise maxTokens) and read again:",
-    "- pass a smaller limit (default 50, max 1,000) and page with cursor",
+    "- pass a smaller limit (default 50, max 1,000); to paginate with cursor, also pass allVersions: true",
     "- filter by entityTypeIds (from hash_count_entities or hash_query_entities) or by titles",
     "- filter by webIds only when you know which web defines the types",
   ]);
@@ -1096,7 +1120,7 @@ test("an entity type read within the budget is shown whole", () => {
   }));
   const text = hashEntityTypeReadForModel({ entityTypes: types });
   expect(text.split("\n")[0]).toBe(
-    "entity types: 10 (latest versions only; pass versioned entityTypeIds for older versions)",
+    "entity types: 10 (latest versions only; pass versioned entityTypeIds for older versions, or allVersions: true for all versions)",
   );
   expect(text).not.toContain("Refused");
 });
@@ -1318,7 +1342,7 @@ test("a count by property values states the conditions it counted under, and whe
         ],
         webs: [{ webId: "alice-web", kind: "user", count: 1 }],
       },
-      propertyEquals,
+      { propertyEquals },
     ).split("\n"),
   ).toEqual([
     "entities: 1",
@@ -1338,7 +1362,7 @@ test("a count by property values states the conditions it counted under, and whe
         entityTypes: [],
         webs: [{ webId: "alice-web", count: 0 }],
       },
-      propertyEquals,
+      { propertyEquals },
     )
       .split("\n")
       .slice(3),
@@ -1801,70 +1825,169 @@ test("a browser transport-ceiling refusal renders narrowing advice and no cursor
     { properties: ["https://hash.ai/@h/types/property-type/name/"] },
   );
   expect(text).toContain("Refused: this read's raw payload was 13.4 MB");
+  expect(text).toContain("over the browser-to-agent transport limit (12.6 MB)");
   expect(text).toContain("320 entities: 80 matched and 240 reached by links");
   expect(text).toContain("traversalDepth: 0");
   expect(text).toContain("fewer properties");
-  expect(text).toContain("{ entityId, path }");
+  expect(text).toContain("drop the bare entityId from fullValuesFor");
   expect(text).not.toContain("cursor:");
 });
 
-test("a refused inventory page suggests a smaller limit whose page actually fits, and a failed read surfaces its error instead of empty", async () => {
-  const orderTypeId = "https://example.com/types/entity-type/order/v/1";
-  const output: HashEntityReadResult = {
-    entityTypes: [{ entityTypeId: orderTypeId, title: "Order" }],
-    propertyTypes: [],
-    entities: Array.from({ length: 1_000 }, (_, index) => ({
-      entityId: `${personWebId}~00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
-      editionId: `order-edition-${index}`,
-      webId: personWebId,
-      entityTypeIds: [orderTypeId],
-      properties: {},
-      draft: false,
-      matched: true,
-    })),
-    cursor: "WyIyMDI2LTEwLTI2Iiwib3JkZXIiXQ",
+test("multi-hop traversalDepth BFS stamps hop-2 traversed links without stamping hop-2 frontier link targets", () => {
+  const a = { ...person, entityId: `${personWebId}~a`, matched: true };
+  const b = { ...person, entityId: `${personWebId}~b`, matched: false };
+  const l1 = {
+    ...person,
+    entityId: `${personWebId}~l1`,
+    label: undefined,
+    matched: false,
+    linkData: { leftEntityId: a.entityId, rightEntityId: b.entityId },
   };
-  const refused = hashEntityReadForModel(output, [], { traversalDepth: 0 });
-  const suggestedLimit = Number(
-    /^- a smaller limit, such as (\d+), then read the rest page by page$/mu.exec(
-      refused,
-    )?.[1],
-  );
-  expect(suggestedLimit).toBeGreaterThan(0);
-  expect(suggestedLimit).toBeLessThan(1_000);
-  expect(refused).not.toContain("WyIyMDI2LTEwLTI2Iiwib3JkZXIiXQ");
-  expect(refused).not.toContain("entityId:");
-
-  // A page of the suggested limit actually fits within the token budget.
-  const page = hashEntityReadForModel(
-    { ...output, entities: output.entities.slice(0, suggestedLimit) },
+  // Hop-2 link from hop-1 entity `b` to missing target `c` -> endpoints WERE traversed.
+  const l2 = {
+    ...person,
+    entityId: `${personWebId}~l2`,
+    label: undefined,
+    matched: false,
+    linkData: { leftEntityId: b.entityId, rightEntityId: `${personWebId}~c` },
+  };
+  // Hop-2 link from `b` to a frontier link entity `l3` -> `l3`'s own endpoints were NOT traversed.
+  const l2ToLink = {
+    ...person,
+    entityId: `${personWebId}~l2-to-link`,
+    label: undefined,
+    matched: false,
+    linkData: { leftEntityId: b.entityId, rightEntityId: `${personWebId}~l3` },
+  };
+  const frontierL3 = {
+    ...person,
+    entityId: `${personWebId}~l3`,
+    label: undefined,
+    matched: false,
+    linkData: {
+      leftEntityId: `${personWebId}~unreached-x`,
+      rightEntityId: `${personWebId}~unreached-y`,
+    },
+  };
+  const depth2 = hashEntityReadForModel(
+    read([a, b, l1, l2, l2ToLink, frontierL3]),
     [],
-    { traversalDepth: 0, limit: suggestedLimit },
+    { traversalDepth: 2 },
   );
-  expect(page.split("\n")[0]).toBe(`entities: ${suggestedLimit}`);
-  expect(page).not.toContain("Refused:");
+  expect(depth2).toContain(
+    `  linksTo: ${personWebId}~c ${hashEntityReadUnreadEndpointNote}`,
+  );
+  expect(depth2).toContain(`  linksFrom: ${personWebId}~unreached-x\n`);
+  expect(depth2).toContain(`  linksTo: ${personWebId}~unreached-y`);
+  expect(depth2).not.toContain(
+    `unreached-x ${hashEntityReadUnreadEndpointNote}`,
+  );
+});
 
-  // A failed read reaches the model as `{ error, note }`, never disguised as an empty read.
-  const log = {
-    info: vi.fn<FlueLogger["info"]>(),
-    warn: vi.fn<FlueLogger["warn"]>(),
-    error: vi.fn<FlueLogger["error"]>(),
+test("whole-entity fullValuesFor shows all properties and their legend even when properties is set, and nested scalar paths preserve nested property legends", () => {
+  const duration = property("duration");
+  const extra = property("extra-notes");
+  const fullTarget = {
+    ...person,
+    entityId: `${personWebId}~target`,
+    properties: {
+      [displayName]: "Target",
+      [extra]: "Keep me visible",
+      [property("container")]: { [duration]: 9 },
+    },
   };
-  const tool = createHashEntityReadTool(async () => ({
-    output: { error: "GraphQL query timed out" },
-  }));
-  const result = await tool.run({
-    data: { entityTypes: ["Order"] },
-    toolCallId: "failed-read",
-    log,
-  });
-  const envelope = browserToolEnvelopeOf(
-    typeof result === "object" ? result.output : undefined,
+  const other = {
+    ...person,
+    entityId: `${personWebId}~other`,
+    properties: { [displayName]: "Other", [extra]: "Hide me" },
+  };
+  const text = hashEntityReadForModel(
+    {
+      ...read([fullTarget, other]),
+      propertyTypes: [
+        {
+          baseUrl: displayName,
+          propertyTypeId: `${displayName}v/1`,
+          title: "Display Name",
+        },
+        {
+          baseUrl: extra,
+          propertyTypeId: `${extra}v/1`,
+          title: "Extra Notes",
+          description: "Notes unit.",
+        },
+        {
+          baseUrl: duration,
+          propertyTypeId: `${duration}v/1`,
+          title: "Duration",
+          description: "Measured in seconds.",
+        },
+      ],
+    },
+    [fullTarget.entityId],
+    { properties: [displayName] },
   );
-  expect(envelope?.output).toEqual({
-    error: "GraphQL query timed out",
-    note: "The read failed; the document is unchanged.",
-  });
+  expect(text).toContain("Extra Notes — Notes unit.");
+  expect(text).toContain('  extra_notes: "Keep me visible"');
+  expect(text).not.toContain("Hide me");
+
+  // Nested scalar leaf inside an unselected property preserves the nested leaf's property legend.
+  const nestedScalar = hashEntityReadForModel(
+    {
+      ...read([fullTarget]),
+      propertyTypes: [
+        {
+          baseUrl: duration,
+          propertyTypeId: `${duration}v/1`,
+          title: "Duration",
+          description: "Measured in seconds.",
+        },
+      ],
+    },
+    [{ entityId: fullTarget.entityId, path: ["container", "duration"] }],
+    { properties: [displayName] },
+  );
+  expect(nestedScalar).toContain("Duration — Measured in seconds.");
+  expect(nestedScalar).toContain('path ["container","duration"]: 9');
+});
+
+test("path stop at step 0 with > 20 keys omits parent-path advice, and empty/past-end slices format accurately", () => {
+  const manyProps = Object.fromEntries(
+    Array.from({ length: 25 }, (_, index) => [
+      property(`prop-${index}`),
+      index,
+    ]),
+  );
+  const holder = {
+    ...person,
+    properties: {
+      ...manyProps,
+      [property("empty-text")]: "",
+      [property("items")]: [1, 2],
+    },
+  };
+  const step0Miss = hashEntityReadForModel(read([holder]), [
+    { entityId: holder.entityId, path: ["missing"] },
+  ]);
+  expect(step0Miss).toContain(
+    "omit fullValuesFor or read the entity to see its top-level properties",
+  );
+  expect(step0Miss).not.toContain("read the parent path");
+
+  const emptyStringSlice = hashEntityReadForModel(read([holder]), [
+    { entityId: holder.entityId, path: ["empty_text"], offset: 0, limit: 10 },
+  ]);
+  expect(emptyStringSlice).toContain(
+    'path ["empty_text"] (chars 0..0 of 0): ""',
+  );
+  expect(emptyStringSlice).not.toContain("past end");
+
+  const pastEndContainer = hashEntityReadForModel(read([holder]), [
+    { entityId: holder.entityId, path: ["items"], offset: 5, limit: 2 },
+  ]);
+  expect(pastEndContainer).toContain(
+    'path ["items"] (entries 5..5 of 2 items; past end): []',
+  );
 });
 
 test("an oversized inventory page refusal suggests a smaller limit that fits on re-read, and a failed browser read settles as an error rather than empty", async () => {
@@ -1893,6 +2016,7 @@ test("an oversized inventory page refusal suggests a smaller limit that fits on 
   expect(suggestedLimit).toBeGreaterThan(0);
   expect(suggestedLimit).toBeLessThan(1_000);
   expect(refused).not.toContain("WyJuZXh0Il0");
+  expect(refused).not.toContain("entityId:");
 
   // Re-reading at the suggested limit fits inside the token budget.
   const page = hashEntityReadForModel(

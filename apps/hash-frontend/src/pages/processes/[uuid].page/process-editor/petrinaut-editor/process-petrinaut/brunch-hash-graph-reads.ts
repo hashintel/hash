@@ -1,5 +1,6 @@
 import { useApolloClient } from "@apollo/client";
 import { useEffect, useMemo, useRef } from "react";
+import { z } from "zod";
 
 import { type QueryTemporalAxes } from "@blockprotocol/graph";
 import { getEntities, getRoots } from "@blockprotocol/graph/stdlib";
@@ -11,7 +12,6 @@ import {
   extractBaseUrl,
   extractDraftIdFromEntityId,
   extractWebIdFromEntityId,
-  isBaseUrl,
   validateVersionedUrl,
 } from "@blockprotocol/type-system";
 import {
@@ -28,8 +28,12 @@ import {
   type HashWebScope,
   hashEntityReadDefaultLimit,
   hashEntityReadDefaultTraversalDepth,
+  hashEntityReadMaxPayloadBytes,
   hashEntityTypeReadDefaultLimit,
+  hashEntityTypeSelectorKind,
+  hashIsPublishedVersionedUrl,
   hashPropertyBaseUrl,
+  hashPropertySlug,
   parseHashEntityCountInput,
   parseHashEntityReadInput,
   parseHashEntityTypeReadInput,
@@ -79,20 +83,8 @@ import type {
 } from "@local/hash-graph-client";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 
-/**
- * Maximum UTF-8 byte length of a serialized entity read result the browser
- * will POST back to Brunch (kept safely below Brunch's 16 MiB body limit).
- */
-const hashEntityReadMaxPayloadBytes = 12 * 1024 * 1024;
-
-const isTypeUrl = (type: string) =>
-  type.startsWith("http://") || type.startsWith("https://");
-
 const anyOf = (filters: Filter[]): Filter[] =>
   filters.length === 0 ? [] : [{ any: filters }];
-
-const entityTypeFilterKey = (type: string) =>
-  isBaseUrl(type) ? "baseUrl" : isTypeUrl(type) ? "versionedUrl" : "title";
 
 /**
  * Entities of any of these types: a title matches every type with that title
@@ -103,7 +95,7 @@ const entityTypesFilter = (entityTypes: readonly string[] = []): Filter[] =>
   anyOf(
     entityTypes.map((type) => ({
       equal: [
-        { path: ["type", entityTypeFilterKey(type)] },
+        { path: ["type", hashEntityTypeSelectorKind(type)] },
         { parameter: type },
       ],
     })),
@@ -217,8 +209,10 @@ export const hashEntityReadWebIds = (
  * orgs'. Every other entity is external, and with no user signed in, all are.
  */
 const ownWebIdsOf = (user: HashWebReadUser | undefined): ReadonlySet<WebId> =>
-  new Set(
-    user === undefined ? [] : websOf(user).map(({ webId }) => webId as WebId),
+  new Set<WebId>(
+    user === undefined
+      ? []
+      : [user.accountId, ...user.memberOf.map(({ org }) => org.webId)],
   );
 
 /** One link from an entity, followed to the entity on its other end. */
@@ -283,45 +277,48 @@ export type HashEntityReadCursor = {
   readonly temporalAxes?: QueryTemporalAxes;
 };
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
+const limitedBoundSchema = z.strictObject({
+  kind: z.enum(["inclusive", "exclusive"]),
+  limit: z.string().min(1),
+});
 
-const isNonEmptyString = (value: unknown): value is string =>
-  typeof value === "string" && value.length > 0;
+const temporalBoundSchema = z.union([
+  z.strictObject({ kind: z.literal("unbounded") }),
+  limitedBoundSchema,
+]);
 
-const isValidLimitedBound = (value: unknown): boolean =>
-  isPlainObject(value) &&
-  (value.kind === "inclusive" || value.kind === "exclusive") &&
-  isNonEmptyString(value.limit);
+const temporalIntervalSchema = z.strictObject({
+  start: temporalBoundSchema,
+  end: limitedBoundSchema,
+});
 
-const isValidTemporalBound = (value: unknown): boolean =>
-  isPlainObject(value) &&
-  (value.kind === "unbounded" || isValidLimitedBound(value));
+const queryTemporalAxesSchema = z.union([
+  z.strictObject({
+    variable: z.strictObject({
+      axis: z.literal("decisionTime"),
+      interval: temporalIntervalSchema,
+    }),
+    pinned: z.strictObject({
+      axis: z.literal("transactionTime"),
+      timestamp: z.string().min(1),
+    }),
+  }),
+  z.strictObject({
+    variable: z.strictObject({
+      axis: z.literal("transactionTime"),
+      interval: temporalIntervalSchema,
+    }),
+    pinned: z.strictObject({
+      axis: z.literal("decisionTime"),
+      timestamp: z.string().min(1),
+    }),
+  }),
+]) as unknown as z.ZodType<QueryTemporalAxes>;
 
-/** Runtime guard for a server-resolved `QueryTemporalAxes` pinned across pages. */
-const isValidQueryTemporalAxes = (
-  value: unknown,
-): value is QueryTemporalAxes => {
-  if (!isPlainObject(value)) {
-    return false;
-  }
-  const { variable, pinned } = value;
-  if (!isPlainObject(variable) || !isPlainObject(pinned)) {
-    return false;
-  }
-  const validAxisPair =
-    (variable.axis === "decisionTime" && pinned.axis === "transactionTime") ||
-    (variable.axis === "transactionTime" && pinned.axis === "decisionTime");
-  if (!validAxisPair || !isNonEmptyString(pinned.timestamp)) {
-    return false;
-  }
-  const { interval } = variable;
-  return (
-    isPlainObject(interval) &&
-    isValidTemporalBound(interval.start) &&
-    isValidLimitedBound(interval.end)
-  );
-};
+const hashEntityReadCursorSchema = z.strictObject({
+  cursor: z.array(z.unknown()).min(1),
+  temporalAxes: queryTemporalAxesSchema.optional(),
+});
 
 /**
  * The graph's cursor and optional resolved snapshot time as opaque base64url
@@ -371,24 +368,15 @@ export const decodeHashEntityReadCursor = (
         Uint8Array.from(binary, (char) => char.charCodeAt(0)),
       ),
     );
-    if (!isPlainObject(decoded)) {
-      return malformedCursor;
-    }
-    for (const key of Object.keys(decoded)) {
-      if (key !== "cursor" && key !== "temporalAxes") {
-        return malformedCursor;
-      }
-    }
-    const { cursor, temporalAxes } = decoded;
-    if (!Array.isArray(cursor) || cursor.length === 0) {
-      return malformedCursor;
-    }
-    if (temporalAxes !== undefined && !isValidQueryTemporalAxes(temporalAxes)) {
+    const parsed = hashEntityReadCursorSchema.safeParse(decoded);
+    if (!parsed.success) {
       return malformedCursor;
     }
     return {
-      cursor: cursor as EntityQueryCursor,
-      ...(temporalAxes === undefined ? {} : { temporalAxes }),
+      cursor: parsed.data.cursor as EntityQueryCursor,
+      ...(parsed.data.temporalAxes === undefined
+        ? {}
+        : { temporalAxes: parsed.data.temporalAxes }),
     };
   } catch {
     return malformedCursor;
@@ -478,15 +466,11 @@ const collectPropertyKeys = (value: unknown, found: Set<string>) => {
   }
 };
 
-/** Property slug matching the agent renderer's short name (`…/property-type/foo-bar/` -> `foo_bar`). */
-const propertySlugName = (url: string) =>
-  /\/property-type\/([^/]+)\//u.exec(url)?.[1]?.replaceAll("-", "_");
-
 /**
  * When `properties` is set, keeps only chosen property base URLs plus any
  * property targeted by `fullValuesFor` (a whole-entity id keeps every property
  * on that entity; `{ entityId, path }` keeps the top-level property matching
- * `path[0]` by exact key, base URL, or slug).
+ * `path[0]` by exact key, base URL, or shared slug).
  */
 const projectEntityProperties = (
   entityId: string,
@@ -514,7 +498,7 @@ const projectEntityProperties = (
       (step) =>
         key === step ||
         key === hashPropertyBaseUrl(step) ||
-        propertySlugName(key) === step,
+        hashPropertySlug(key) === step,
     );
     if (keptBySelection || keptByPath) {
       projected[key] = value;
@@ -625,11 +609,7 @@ const hashEntityReadResult = (
   const usedTypeIds = new Set(
     entities.flatMap(({ entity }) => entity.metadata.entityTypeIds),
   );
-  const resolvedTemporalAxes = isValidQueryTemporalAxes(
-    subgraph.temporalAxes.resolved,
-  )
-    ? subgraph.temporalAxes.resolved
-    : undefined;
+  const resolvedTemporalAxes = subgraph.temporalAxes.resolved;
 
   return {
     propertyTypes,
@@ -770,46 +750,89 @@ const latestTypeVersionFilter: Filter = {
 const decodeHashEntityTypeReadCursor = (
   text: string,
 ): VersionedUrl | HashReadFailure => {
+  if (!hashIsPublishedVersionedUrl(text)) {
+    return malformedTypeCursor;
+  }
   const validated = validateVersionedUrl(text);
   return validated.type === "Ok" ? validated.inner : malformedTypeCursor;
 };
 
+/** Whether this type-read input emits a `version == "latest"` filter (incompatible with cursors, H-1442). */
+const typeReadUsesLatestFilter = (
+  input: Pick<HashEntityTypeReadInput, "entityTypeIds" | "allVersions">,
+) =>
+  input.allVersions !== true &&
+  (input.entityTypeIds === undefined ||
+    input.entityTypeIds.some(
+      (id) => hashEntityTypeSelectorKind(id) === "baseUrl",
+    ));
+
 /**
  * The `queryEntityTypes` request for one page: every given filter must match.
- * Exact versioned `entityTypeIds` are read at those versions; base URLs,
- * `titles`, or unfiltered reads default to each type's latest version.
+ * When `allVersions` is false (default), base URLs, `titles`, `webIds`, and
+ * unfiltered queries apply a single `version == "latest"` filter (grouped so
+ * Postgres emits the `ontology_ids` CTE at most once). When `allVersions` is
+ * true or every `entityTypeId` is an exact published version, no latest filter
+ * is added and cursor pagination (`after`) works natively.
  */
 export const hashEntityTypeReadRequest = (
   input: Omit<HashEntityTypeReadInput, "cursor">,
   after?: VersionedUrl,
 ): QueryEntityTypesRequest => {
   const entityTypeIds = input.entityTypeIds;
-  const hasExactVersion =
-    entityTypeIds !== undefined && entityTypeIds.some((id) => !isBaseUrl(id));
-  const idFilters: Filter[] =
-    entityTypeIds === undefined
-      ? [latestTypeVersionFilter]
-      : hasExactVersion
-        ? anyOf(
-            entityTypeIds.map((id) =>
-              isBaseUrl(id)
-                ? {
-                    all: [
-                      latestTypeVersionFilter,
-                      { equal: [{ path: ["baseUrl"] }, { parameter: id }] },
-                    ],
-                  }
-                : { equal: [{ path: ["versionedUrl"] }, { parameter: id }] },
-            ),
-          )
-        : [
+  const allVersions = input.allVersions === true;
+  let idFilters: Filter[];
+
+  if (entityTypeIds === undefined) {
+    idFilters = allVersions ? [] : [latestTypeVersionFilter];
+  } else if (allVersions) {
+    idFilters = anyOf(
+      entityTypeIds.map((id) => ({
+        equal: [{ path: [hashEntityTypeSelectorKind(id)] }, { parameter: id }],
+      })),
+    );
+  } else {
+    const baseUrls = entityTypeIds.filter(
+      (id) => hashEntityTypeSelectorKind(id) === "baseUrl",
+    );
+    const versionedUrls = entityTypeIds.filter(
+      (id) => hashEntityTypeSelectorKind(id) === "versionedUrl",
+    );
+    if (versionedUrls.length === 0) {
+      idFilters = [
+        latestTypeVersionFilter,
+        ...anyOf(
+          baseUrls.map((id) => ({
+            equal: [{ path: ["baseUrl"] }, { parameter: id }],
+          })),
+        ),
+      ];
+    } else if (baseUrls.length === 0) {
+      idFilters = anyOf(
+        versionedUrls.map((id) => ({
+          equal: [{ path: ["versionedUrl"] }, { parameter: id }],
+        })),
+      );
+    } else {
+      // Group all base URLs under a single `version == "latest"` branch so
+      // Postgres emits the `ontology_ids` CTE once, never duplicated.
+      idFilters = anyOf([
+        {
+          all: [
             latestTypeVersionFilter,
             ...anyOf(
-              entityTypeIds.map((id) => ({
+              baseUrls.map((id) => ({
                 equal: [{ path: ["baseUrl"] }, { parameter: id }],
               })),
             ),
-          ];
+          ],
+        },
+        ...versionedUrls.map((id) => ({
+          equal: [{ path: ["versionedUrl"] }, { parameter: id }],
+        })),
+      ]);
+    }
+  }
 
   return {
     filter: {
@@ -836,11 +859,13 @@ export const hashEntityTypeReadRequest = (
 
 /**
  * Each returned type with its properties (keyed by base URL, carrying title
- * and description/units where resolved), its links, and `cursor` when more
- * types may match.
+ * and description/units where resolved), its links, and either `cursor` (when
+ * cursor continuation is supported) or `hasMore: true` (when `version == "latest"`
+ * hit `limit` and cursors are unavailable under H-1442).
  */
 const hashEntityTypeReadResult = (
   response: QueryEntityTypesQuery,
+  { usesLatestFilter }: { readonly usesLatestFilter: boolean },
 ): HashEntityTypeReadResult => {
   const { entityTypes, closedEntityTypes, definitions, cursor } =
     response.queryEntityTypes;
@@ -888,7 +913,11 @@ const hashEntityTypeReadResult = (
         }),
       };
     }),
-    ...(cursor === undefined ? {} : { cursor }),
+    ...(cursor === undefined
+      ? {}
+      : usesLatestFilter
+        ? { hasMore: true as const }
+        : { cursor }),
   };
 };
 
@@ -917,9 +946,12 @@ export const createHashEntityTypeReadTool = (
     if (after !== undefined && typeof after === "object" && "error" in after) {
       return after;
     }
+    const usesLatestFilter = typeReadUsesLatestFilter(typeInput);
     const request = hashEntityTypeReadRequest(typeInput, after);
     return settlingQueryFailure(signal, async () =>
-      hashEntityTypeReadResult(await queryEntityTypes(request, signal)),
+      hashEntityTypeReadResult(await queryEntityTypes(request, signal), {
+        usesLatestFilter,
+      }),
     );
   },
 });
@@ -940,7 +972,9 @@ const endpointAnchorFilter = (
     : anyOf(
         anchor.entityTypes.map((type) => ({
           equal: [
-            { path: [anchor.endpoint, "type", entityTypeFilterKey(type)] },
+            {
+              path: [anchor.endpoint, "type", hashEntityTypeSelectorKind(type)],
+            },
             { parameter: type },
           ],
         })),
@@ -1084,53 +1118,33 @@ const hashJoinGraph = (
       return count;
     },
     page: async (selector, limit, pageCursor, signal) => {
-      const request: QueryEntitySubgraphRequest =
+      // For grouped entity ID lookups, `linkData` already carries the exact
+      // target `entityId` (live or draft), so always match that exact edition
+      // rather than fetching unrelated draft editions of live entities.
+      const filter: Filter =
         "entityIds" in selector
           ? {
-              filter: {
-                all: [
-                  ...anyOf(
-                    selector.entityIds.map((id) => {
-                      const entityId = id as EntityId;
-                      return includeDrafts
-                        ? generateEntityIdFilter({
-                            entityId,
-                            includeArchived: true,
-                          })
-                        : generateEntityEditionFilter(entityId);
-                    }),
+              all: [
+                ...anyOf(
+                  selector.entityIds.map((id) =>
+                    generateEntityEditionFilter(id as EntityId),
                   ),
-                  ...(includeArchived ? [] : notArchivedFilters),
-                ],
-              },
-              temporalAxes:
-                pageCursor?.temporalAxes ?? currentTimeInstantTemporalAxes,
-              traversalPaths: [],
-              includeDrafts,
-              includePermissions: false,
-              includeEntityTypes: "resolved",
-              limit,
-              ...(pageCursor === undefined
-                ? {}
-                : { cursor: pageCursor.cursor }),
+                ),
+                ...(includeArchived ? [] : notArchivedFilters),
+              ],
             }
-          : {
-              filter: entityCountFilter(
-                selector,
-                webScope.webIds,
-                includeArchived,
-              ),
-              temporalAxes:
-                pageCursor?.temporalAxes ?? currentTimeInstantTemporalAxes,
-              traversalPaths: [],
-              includeDrafts,
-              includePermissions: false,
-              includeEntityTypes: "resolved",
-              limit,
-              ...(pageCursor === undefined
-                ? {}
-                : { cursor: pageCursor.cursor }),
-            };
+          : entityCountFilter(selector, webScope.webIds, includeArchived);
+      const request: QueryEntitySubgraphRequest = {
+        filter,
+        temporalAxes:
+          pageCursor?.temporalAxes ?? currentTimeInstantTemporalAxes,
+        traversalPaths: [],
+        includeDrafts,
+        includePermissions: false,
+        includeEntityTypes: "resolved",
+        limit,
+        ...(pageCursor === undefined ? {} : { cursor: pageCursor.cursor }),
+      };
 
       const { subgraph, closedMultiEntityTypes, cursor } =
         deserializeQueryEntitySubgraphResponse(
@@ -1169,11 +1183,7 @@ const hashJoinGraph = (
                 }),
           };
         });
-      const resolvedTemporalAxes = isValidQueryTemporalAxes(
-        subgraph.temporalAxes.resolved,
-      )
-        ? subgraph.temporalAxes.resolved
-        : undefined;
+      const resolvedTemporalAxes = subgraph.temporalAxes.resolved;
       return {
         entities,
         ...(cursor === undefined || cursor === null
@@ -1181,9 +1191,7 @@ const hashJoinGraph = (
           : {
               cursor: {
                 cursor,
-                ...(resolvedTemporalAxes === undefined
-                  ? {}
-                  : { temporalAxes: resolvedTemporalAxes }),
+                temporalAxes: resolvedTemporalAxes,
               },
             }),
       };

@@ -1468,13 +1468,15 @@ test("a type read with no webs asks for the latest version of every visible type
   });
 });
 
-test("a type read supports titles, base URLs, mixed base/versioned URLs, limit and after cursor", () => {
+test("a type read supports titles, base URLs, mixed base/versioned URLs (single latest CTE), allVersions, limit and after cursor", () => {
   const supplierBase = "https://hash.ai/@h/types/entity-type/supplier/";
+  const orderBase = "https://hash.ai/@h/types/entity-type/order/";
   const productV3 = "https://hash.ai/@h/types/entity-type/product/v/3";
   expect(
     hashEntityTypeReadRequest(
       {
         titles: ["Supplier"],
+        allVersions: true,
         limit: 20,
       },
       productV3 as VersionedUrl,
@@ -1482,7 +1484,6 @@ test("a type read supports titles, base URLs, mixed base/versioned URLs, limit a
   ).toMatchObject({
     filter: {
       all: [
-        latestOnly,
         {
           any: [{ equal: [{ path: ["title"] }, { parameter: "Supplier" }] }],
         },
@@ -1490,6 +1491,19 @@ test("a type read supports titles, base URLs, mixed base/versioned URLs, limit a
     },
     limit: 20,
     after: productV3,
+  });
+
+  // Non-HTTP titles ending in `/` remain title filters on entity reads.
+  expect(
+    hashEntityReadRequest({ entityTypes: ["dept:ops/"] }, readerWebs).filter,
+  ).toMatchObject({
+    all: expect.arrayContaining([
+      {
+        any: [
+          { equal: [{ path: ["type", "title"] }, { parameter: "dept:ops/" }] },
+        ],
+      },
+    ]),
   });
 
   expect(
@@ -1503,10 +1517,10 @@ test("a type read supports titles, base URLs, mixed base/versioned URLs, limit a
     ],
   });
 
-  // Mixing a base URL with an exact version keeps latestOnly scoped to the base URL branch.
+  // Mixing 2+ base URLs with an exact version emits a SINGLE latestOnly branch (avoiding duplicate ontology_ids CTE).
   expect(
     hashEntityTypeReadRequest({
-      entityTypeIds: [supplierBase, productV3],
+      entityTypeIds: [supplierBase, orderBase, productV3],
     }).filter,
   ).toEqual({
     all: [
@@ -1515,7 +1529,16 @@ test("a type read supports titles, base URLs, mixed base/versioned URLs, limit a
           {
             all: [
               latestOnly,
-              { equal: [{ path: ["baseUrl"] }, { parameter: supplierBase }] },
+              {
+                any: [
+                  {
+                    equal: [{ path: ["baseUrl"] }, { parameter: supplierBase }],
+                  },
+                  {
+                    equal: [{ path: ["baseUrl"] }, { parameter: orderBase }],
+                  },
+                ],
+              },
             ],
           },
           { equal: [{ path: ["versionedUrl"] }, { parameter: productV3 }] },
@@ -1664,33 +1687,53 @@ test("the type read runs the request it built and returns each type closed, with
   });
 });
 
-test("a type response with a cursor returns that cursor, and an invalid input cursor settles with an error without querying", async () => {
+test("latest-version type reads report hasMore without a broken cursor, allVersions returns cursor, and draft/invalid cursors settle with an error without querying", async () => {
   const withCursor = {
     queryEntityTypes: {
       ...typesResponse.queryEntityTypes,
       cursor: typeUrl("supplier"),
     },
   } as unknown as QueryEntityTypesQuery;
+
+  // Latest-only reads report hasMore: true and NEVER emit a broken cursor (H-1442).
+  const latestResult = await runTool(
+    createHashEntityTypeReadTool(() => Promise.resolve(withCursor)),
+    {},
+  );
+  expect(latestResult).toMatchObject({ hasMore: true });
+  expect(latestResult).not.toHaveProperty("cursor");
+
+  // allVersions: true returns the real cursor for pagination.
   await expect(
     runTool(
       createHashEntityTypeReadTool(() => Promise.resolve(withCursor)),
-      {},
+      { allVersions: true },
     ),
   ).resolves.toMatchObject({ cursor: typeUrl("supplier") });
+
   await expect(
     runTool(
       createHashEntityTypeReadTool(() => Promise.resolve(typesResponse)),
-      {},
+      { allVersions: true },
     ),
   ).resolves.not.toHaveProperty("cursor");
 
+  // Invalid or draft versioned cursors settle with an error without querying (BE-161).
   const query = vi.fn<QueryEntityTypes>(() => Promise.resolve(typesResponse));
-  await expect(
-    runTool(createHashEntityTypeReadTool(query), { cursor: "not-a-url" }),
-  ).resolves.toEqual({
-    error:
-      "The cursor isn't one this type read gave. Repeat the read without a cursor to start from the first page.",
-  });
+  for (const badCursor of [
+    "not-a-url",
+    "https://hash.ai/@alice/types/entity-type/supplier/v/2-draft.lane.1",
+  ]) {
+    await expect(
+      runTool(createHashEntityTypeReadTool(query), {
+        allVersions: true,
+        cursor: badCursor,
+      }),
+    ).resolves.toEqual({
+      error:
+        "The cursor isn't one this type read gave. Repeat the read without a cursor to start from the first page.",
+    });
+  }
   expect(query).not.toHaveBeenCalled();
 });
 
