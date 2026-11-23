@@ -5,8 +5,8 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
-import { AiAssistantIcon } from "../../../../shared/ai-assistant-icon";
 import { styleRef } from "../../../../shared/readings";
+import { AiAssistantIcon } from "../../shared/ai-assistant-icon";
 
 const aiCtaModalLayerStyle = css({
   position: "absolute",

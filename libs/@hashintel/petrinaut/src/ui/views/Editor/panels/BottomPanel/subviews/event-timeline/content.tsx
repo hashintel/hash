@@ -4,7 +4,7 @@ import { usePetrinautDefinitionSelector } from "../../../../../../../react/docum
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { useEditorState } from "../../../../../../../react/state/editor-context";
-import { useElementOnScreen } from "../../../../../../shared/use-element-on-screen";
+import { useElementOnScreen } from "../simulation-timeline/use-element-on-screen";
 import { useRunTimelineView } from "../simulation-timeline/use-run-timeline-view";
 import { StochasticTimeline } from "./stochastic-content";
 import { TimelineFrame } from "./timeline-frame";

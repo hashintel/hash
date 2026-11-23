@@ -7,8 +7,8 @@ import { usePetrinautDefinitionSelector } from "../../../../../../../react/docum
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { useEditorState } from "../../../../../../../react/state/editor-context";
-import { useElementOnScreen } from "../../../../../../shared/use-element-on-screen";
 import { buildPerPlaceSeriesConfig } from "../simulation-timeline/series-config/per-place";
+import { useElementOnScreen } from "../simulation-timeline/use-element-on-screen";
 import { placeMeanTimeline } from "./stochastic-series";
 import { TimelineFrame } from "./timeline-frame";
 import { useTimelineViewRange } from "./use-view-range";

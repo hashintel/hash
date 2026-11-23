@@ -5,10 +5,10 @@ import {
   useEditorActions,
   useEditorFields,
 } from "../../../../../../../react/state/editor-context";
-import { useElementOnScreen } from "../../../../../../shared/use-element-on-screen";
 import { UPlotChart } from "./chart";
 import { TimelineLegend } from "./legend";
 import { chartAreaStyle, containerStyle } from "./styles";
+import { useElementOnScreen } from "./use-element-on-screen";
 import { PER_PLACE_VIEW } from "./use-run-timeline-view";
 import { useStreamingData } from "./use-streaming-data";
 
