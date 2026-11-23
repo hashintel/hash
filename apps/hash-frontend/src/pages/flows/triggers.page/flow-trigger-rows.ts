@@ -3,33 +3,28 @@ import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { toScheduleTriggerRow } from "../../@/[shortname]/flows/[flow-def-id]/edit.page/shared/flow-triggers";
 import { formatScheduleSpec } from "../../shared/use-flow-schedules";
 
-import type {
-  TriggerRow,
-  TriggerState,
-} from "../../@/[shortname]/flows/[flow-def-id]/edit.page/shared/flow-triggers";
+import type { TriggerRow } from "../../@/[shortname]/flows/[flow-def-id]/edit.page/shared/flow-triggers";
 import type { ScheduledFlow } from "../../shared/use-flow-schedules";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
+import type { SortDirection } from "@hashintel/ds-components";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
 import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/flowschedule";
 
-/** A schedule as the triggers page lists it, with the flow it starts and the web it's in. */
 export type FlowTriggerRow = TriggerRow & {
-  /** When it runs, in words, shown under its name, or `null` when it has none and `text` already says so. */
+  /** When it runs, shown under its name, or `null` when `text` already says so. */
   scheduleText: string | null;
-  /** Why it's paused, when it is and that was noted, e.g. "Its flow was archived". */
   pauseNote: string | null;
-  /** The flow it starts, or `null` if its schedule links to none. */
+  /** `null` when the schedule links to no flow. */
   flowEntityId: EntityId | null;
-  /** The flow's name, or `null` when the user can't read it. */
+  /** `null` when the user can't read the flow. */
   flowName: string | null;
   webId: WebId;
-  /** The web's shortname, e.g. "@aakarsh", or "" while it isn't known. */
+  /** e.g. "@aakarsh", or "" while it isn't known. */
   webName: string;
 };
 
-/** A schedule's row: it's shown by its name with when it runs under it, or only by when it runs if it has no name. */
 export const toFlowTriggerRow = ({
   schedule,
   flow,
@@ -62,26 +57,21 @@ export const toFlowTriggerRow = ({
   };
 };
 
-/**
- * Which triggers to show: those in the state, of the flow and web if one is picked, and with the search term in their
- * name, their schedule, their flow's name or their web's, ignoring case.
- */
 export type FlowTriggerFilters = {
-  state: TriggerState;
   search: string;
   flowEntityId: EntityId | null;
   webId: WebId | null;
 };
 
+/** The search matches the trigger's name, its schedule, its flow's name or its web's, ignoring case. */
 export const filterFlowTriggerRows = (
   rows: FlowTriggerRow[],
-  { state, search, flowEntityId, webId }: FlowTriggerFilters,
+  { search, flowEntityId, webId }: FlowTriggerFilters,
 ) => {
   const term = search.trim().toLowerCase();
 
   return rows.filter(
     (row) =>
-      (state === "all" || (state === "on") === row.on) &&
       (flowEntityId === null || row.flowEntityId === flowEntityId) &&
       (webId === null || row.webId === webId) &&
       [row.text, row.scheduleText ?? "", row.flowName ?? "", row.webName].some(
@@ -90,15 +80,15 @@ export const filterFlowTriggerRows = (
   );
 };
 
-export type FlowTriggerColumn = "flow" | "trigger" | "web" | "status";
+export type FlowTriggerSortKey = "flow" | "trigger" | "web" | "status";
 
 export type FlowTriggerSort = {
-  column: FlowTriggerColumn;
-  direction: "asc" | "desc";
+  key: FlowTriggerSortKey;
+  direction: SortDirection;
 };
 
-const compareColumn: Record<
-  FlowTriggerColumn,
+const compareBy: Record<
+  FlowTriggerSortKey,
   (left: FlowTriggerRow, right: FlowTriggerRow) => number
 > = {
   flow: (left, right) =>
@@ -109,14 +99,14 @@ const compareColumn: Record<
   status: (left, right) => Number(right.on) - Number(left.on),
 };
 
-/** Sorted by the column, then ties by flow and by trigger, ascending. */
+/** Ties are broken by flow, then trigger, always ascending. */
 export const sortFlowTriggerRows = (
   rows: FlowTriggerRow[],
-  { column, direction }: FlowTriggerSort,
+  { key, direction }: FlowTriggerSort,
 ) =>
   rows.toSorted(
     (left, right) =>
-      (direction === "asc" ? 1 : -1) * compareColumn[column](left, right) ||
-      compareColumn.flow(left, right) ||
-      compareColumn.trigger(left, right),
+      (direction === "ASCENDING" ? 1 : -1) * compareBy[key](left, right) ||
+      compareBy.flow(left, right) ||
+      compareBy.trigger(left, right),
   );

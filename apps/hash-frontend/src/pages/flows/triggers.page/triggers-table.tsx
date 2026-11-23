@@ -2,14 +2,21 @@ import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import type {
-  FlowTriggerColumn,
   FlowTriggerRow,
   FlowTriggerSort,
+  FlowTriggerSortKey,
 } from "./flow-trigger-rows";
+import type { Sorter } from "@hashintel/ds-components";
 
+export type TriggerColumn = Sorter<FlowTriggerSortKey> & {
+  /** Its width. The column without one takes the rest. */
+  className?: string;
+};
+
+/* The design's fill and lines have no semantic tokens, so the palette's are used. */
 const table = css({
   width: "full",
-  /* So that the columns keep their widths while a filter narrows the rows. */
+  /* So that the columns keep their widths as tabs and filters change the rows. */
   tableLayout: "fixed",
   borderCollapse: "collapse",
   textStyle: "sm",
@@ -20,11 +27,9 @@ const table = css({
     textStyle: "xs",
     fontWeight: "medium",
     color: "fg.body",
-    /* No semantic token has the designed fill; `bgSolid.surface` barely shows on white. */
     bg: "neutral.s20",
     borderBottomWidth: "1px",
     borderBottomStyle: "solid",
-    /* As the fill: `bd.subtle` is a shade darker than the designed line. */
     borderBottomColor: "neutral.s30",
   },
   "& td": {
@@ -41,118 +46,84 @@ const table = css({
 const sortButton = css({
   display: "inline-flex",
   alignItems: "center",
-  gap: "0.5",
+  gap: "1",
   cursor: "pointer",
-  _hover: { color: "fg.heading" },
-  _focusVisible: { color: "fg.heading" },
+  "& [data-sort-arrow]": { opacity: "0" },
+  "&:hover [data-sort-arrow]": { opacity: "0.5" },
+  "&[data-active]": { color: "fg.heading" },
+  "&[data-active] [data-sort-arrow]": { opacity: "1" },
 });
-/* An unsorted column's caret shows on hover, as the direction a click sorts it. */
-const sortCaret = css({ display: "inline-flex", opacity: "0" });
-const sortCaretShown = css({ opacity: "1" });
-const sortCaretOnHover = css({ "button:hover > &": { opacity: "1" } });
 const flowName = css({ fontWeight: "medium", color: "fg.body" });
 const trigger = css({ display: "flex", alignItems: "center", gap: "2" });
 const triggerIcon = css({ display: "flex", flexShrink: "0" });
 const truncated = css({ minWidth: "0", truncate: true });
 const lines = css({ display: "flex", flexDirection: "column", minWidth: "0" });
 const triggerName = css({ color: "fg.body" });
-/* Trigger takes the rest. */
-const flowColumn = css({ width: "[24%]" });
-const webColumn = css({ width: "[12%]" });
-const statusColumn = css({ width: "[18%]" });
 
-const columnLabels: Record<FlowTriggerColumn, string> = {
-  flow: "Flow",
-  trigger: "Trigger",
-  web: "Web",
-  status: "Status",
-};
-
-const SortableHeader = ({
+/** A column's header, which sorts the table by it, or flips the order when it already does. */
+const SortHeader = ({
   column,
   sort,
-  onSortChange,
-  className,
+  onSort,
 }: {
-  column: FlowTriggerColumn;
+  column: TriggerColumn;
   sort: FlowTriggerSort;
-  onSortChange: (sort: FlowTriggerSort) => void;
-  className?: string;
+  onSort: (sort: FlowTriggerSort) => void;
 }) => {
-  const sorted = sort.column === column;
-  const direction = sorted ? sort.direction : "asc";
+  const active = sort.key === column.sortKey;
+  const ascending = active && sort.direction === "ASCENDING";
 
   return (
     <th
-      className={className}
-      aria-sort={
-        sorted
-          ? sort.direction === "asc"
-            ? "ascending"
-            : "descending"
-          : undefined
-      }
+      className={column.className}
+      aria-sort={active ? (ascending ? "ascending" : "descending") : undefined}
     >
       <button
         type="button"
         className={sortButton}
+        data-active={active || undefined}
         onClick={() =>
-          onSortChange({
-            column,
-            direction: sorted && sort.direction === "asc" ? "desc" : "asc",
+          onSort({
+            key: column.sortKey,
+            direction: ascending ? "DESCENDING" : "ASCENDING",
           })
         }
       >
-        {columnLabels[column]}
-        <span
-          className={cx(sortCaret, sorted ? sortCaretShown : sortCaretOnHover)}
-        >
-          <Icon
-            name={direction === "asc" ? "arrowUp" : "arrowDown"}
-            size="xs"
-          />
+        {column.name}
+        <span data-sort-arrow>
+          <Icon name={ascending ? "sortUp" : "sortDown"} size="xs" />
         </span>
       </button>
     </th>
   );
 };
 
-/** The triggers, read-only: each one's flow, when it runs, its web unless that's left out, and whether it's on. */
+/** The columns' cells follow `columns`, which leaves Web out when it's hidden. */
 export const TriggersTable = ({
   rows,
-  showWeb,
+  columns,
   sort,
-  onSortChange,
+  onSort,
 }: {
   rows: FlowTriggerRow[];
-  showWeb: boolean;
+  columns: TriggerColumn[];
   sort: FlowTriggerSort;
-  onSortChange: (sort: FlowTriggerSort) => void;
+  onSort: (sort: FlowTriggerSort) => void;
 }) => {
-  const headerProps = { sort, onSortChange };
+  const showWeb = columns.some(({ sortKey }) => sortKey === "web");
 
   return (
     <table className={table}>
       <thead>
         <tr>
-          <SortableHeader
-            column="flow"
-            className={flowColumn}
-            {...headerProps}
-          />
-          <SortableHeader column="trigger" {...headerProps} />
-          {showWeb && (
-            <SortableHeader
-              column="web"
-              className={webColumn}
-              {...headerProps}
+          {columns.map((column) => (
+            <SortHeader
+              key={column.sortKey}
+              column={column}
+              sort={sort}
+              onSort={onSort}
             />
-          )}
-          <SortableHeader
-            column="status"
-            className={statusColumn}
-            {...headerProps}
-          />
+          ))}
         </tr>
       </thead>
       <tbody>

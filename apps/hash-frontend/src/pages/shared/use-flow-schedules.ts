@@ -35,7 +35,7 @@ import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-t
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/system-types/flowdefinition";
 import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/flowschedule";
 
-/** The flow a schedule starts runs of: its entity id, and its name, or `null` if the user can't read the flow. */
+/** `name` is `null` when the user can't read the flow. */
 export type ScheduledFlow = { entityId: EntityId; name: string | null };
 
 type UseFlowSchedulesResult = {
@@ -79,7 +79,7 @@ export const useFlowSchedules = ({
 }: {
   /** The flow whose schedules to fetch, if only one flow's. */
   flowDefinitionEntityId?: EntityId;
-  /** Whether to also read the flow each schedule starts, in the same query, e.g. to show its name. */
+  /** Also read the flow each schedule starts, e.g. for its name. */
   includeFlows?: boolean;
 } = {}): UseFlowSchedulesResult => {
   const { data, loading, error, refetch } = useQuery<
@@ -124,7 +124,7 @@ export const useFlowSchedules = ({
           inheritsFrom: 0,
           isOfType: false,
         },
-        /* A schedule `Uses` the flow it runs: from the schedule to its outgoing links, and on to their targets. */
+        /* A schedule `Uses` the flow it runs. */
         traversalPaths: includeFlows
           ? [
               {
@@ -219,7 +219,7 @@ export const useFlowSchedules = ({
     };
   }, [data, includeFlows]);
 
-  /* An archived flow can still be read on its own, so the flows the link left out are asked for by id. */
+  /* The traversal leaves archived flows out, but they can still be read by id. */
   const unnamedFlowEntityIds = useMemo(
     () => [
       ...new Set(

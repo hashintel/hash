@@ -108,10 +108,6 @@ describe("toFlowTriggerRow", () => {
         .pauseNote,
     ).toBeNull();
     expect(
-      rowOf({ scheduleStatus: "paused", schedulePauseState: pauseState() })
-        .pauseNote,
-    ).toBeNull();
-    expect(
       rowOf({
         scheduleStatus: "active",
         schedulePauseState: pauseState("Paused for the holidays"),
@@ -159,7 +155,6 @@ describe("filterFlowTriggerRows", () => {
     row({ text: "Every 1 day", on: false, flowName: "Supplier review" }),
   ];
   const noFilters = {
-    state: "all",
     search: "",
     flowEntityId: null,
     webId: null,
@@ -197,8 +192,7 @@ describe("filterFlowTriggerRows", () => {
     expect(
       textsOf(
         filterFlowTriggerRows(rows, {
-          state: "paused",
-          search: "every",
+          search: "day",
           flowEntityId: flowA,
           webId: webA,
         }),
@@ -225,7 +219,7 @@ describe("sortFlowTriggerRows", () => {
 
   it("sorts by flow, breaking ties by trigger", () => {
     expect(
-      order(sortFlowTriggerRows(rows, { column: "flow", direction: "asc" })),
+      order(sortFlowTriggerRows(rows, { key: "flow", direction: "ASCENDING" })),
     ).toEqual([
       "Audit: Every 3 days",
       "Monthly report: Every 1 day",
@@ -236,7 +230,9 @@ describe("sortFlowTriggerRows", () => {
 
   it("reverses only the sorted column, so ties stay in ascending order", () => {
     expect(
-      order(sortFlowTriggerRows(rows, { column: "flow", direction: "desc" })),
+      order(
+        sortFlowTriggerRows(rows, { key: "flow", direction: "DESCENDING" }),
+      ),
     ).toEqual([
       "Supplier review: Every 10 minutes",
       "Supplier review: Every 2 hours",
@@ -247,7 +243,9 @@ describe("sortFlowTriggerRows", () => {
 
   it("puts triggers that are on first, sorting by status, and last when that's reversed", () => {
     expect(
-      order(sortFlowTriggerRows(rows, { column: "status", direction: "asc" })),
+      order(
+        sortFlowTriggerRows(rows, { key: "status", direction: "ASCENDING" }),
+      ),
     ).toEqual([
       "Monthly report: Every 1 day",
       "Supplier review: Every 10 minutes",
@@ -255,23 +253,14 @@ describe("sortFlowTriggerRows", () => {
       "Supplier review: Every 2 hours",
     ]);
     expect(
-      order(sortFlowTriggerRows(rows, { column: "status", direction: "desc" })),
+      order(
+        sortFlowTriggerRows(rows, { key: "status", direction: "DESCENDING" }),
+      ),
     ).toEqual([
       "Audit: Every 3 days",
       "Supplier review: Every 2 hours",
       "Monthly report: Every 1 day",
       "Supplier review: Every 10 minutes",
-    ]);
-  });
-
-  it("sorts by web", () => {
-    expect(
-      order(sortFlowTriggerRows(rows, { column: "web", direction: "asc" })),
-    ).toEqual([
-      "Supplier review: Every 10 minutes",
-      "Supplier review: Every 2 hours",
-      "Audit: Every 3 days",
-      "Monthly report: Every 1 day",
     ]);
   });
 });

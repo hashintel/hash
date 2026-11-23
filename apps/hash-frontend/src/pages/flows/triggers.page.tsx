@@ -4,8 +4,8 @@ import { useMemo, useState } from "react";
 import {
   Button,
   LoadingSpinner,
-  SegmentedControl,
-  Select,
+  SortMenu,
+  Tabs,
   TextInput,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -22,6 +22,10 @@ import {
   sortFlowTriggerRows,
   toFlowTriggerRow,
 } from "./triggers.page/flow-trigger-rows";
+import {
+  AddTriggerFilter,
+  TriggerFilterBar,
+} from "./triggers.page/trigger-filters";
 import { TriggersTable } from "./triggers.page/triggers-table";
 
 import type { NextPageWithLayout } from "../../shared/layout";
@@ -30,10 +34,28 @@ import type {
   FlowTriggerRow,
   FlowTriggerSort,
 } from "./triggers.page/flow-trigger-rows";
+import type { TriggerFilterProperty } from "./triggers.page/trigger-filters";
+import type { TriggerColumn } from "./triggers.page/triggers-table";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 
-/** The Flow and Web filters' option for not filtering. */
-const all = "all";
+const tabs: { id: TriggerState; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "on", label: "On" },
+  { id: "paused", label: "Paused" },
+];
+
+/** The table's columns, in order, each also a choice in Sort. */
+const triggerColumns: TriggerColumn[] = [
+  { name: "Flow", sortKey: "flow", className: css({ width: "[24%]" }) },
+  { name: "Trigger", sortKey: "trigger" },
+  { name: "Web", sortKey: "web", className: css({ width: "[12%]" }) },
+  {
+    name: "Status",
+    sortKey: "status",
+    sortIcon: "generic",
+    className: css({ width: "[18%]" }),
+  },
+];
 
 const content = css({
   display: "flex",
@@ -43,7 +65,7 @@ const content = css({
 });
 const titles = css({ display: "flex", flexDirection: "column", gap: "0.5" });
 const title = css({
-  /* The design system's page title, between its 2xl and 3xl text styles. */
+  /* The design's page title, between the 2xl and 3xl text styles. */
   fontSize: "[28px]",
   lineHeight: "[32px]",
   fontWeight: "semibold",
@@ -51,21 +73,12 @@ const title = css({
 });
 const subtitle = css({ textStyle: "sm", color: "fg.body" });
 const body = css({ display: "flex", flexDirection: "column", gap: "4" });
-const filters = css({
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  gap: "2",
-});
-const searchInput = css({ width: "[240px]" });
-const flowSelect = css({ width: "[200px]" });
-const webSelect = css({ width: "[148px]" });
+const tabCount = css({ color: "fg.subtle", ml: "1.5" });
+const searchInput = css({ width: "[200px]", pl: "2" });
 const loading = css({ display: "flex", justifyContent: "center", py: "24" });
 
 /** The distinct values among the rows, sorted by their text, for a filter's options. */
-const toOptions = <Value extends string>(
-  entries: { value: Value | null; text: string }[],
-) =>
+const toOptions = (entries: { value: string | null; text: string }[]) =>
   [
     ...new Map(
       entries.flatMap(({ value, text }) =>
@@ -88,12 +101,16 @@ const TriggersPage: NextPageWithLayout = () => {
   } = useFlowSchedules({ includeFlows: true });
 
   const [search, setSearch] = useState("");
-  const [state, setState] = useState<TriggerState>("all");
+  const [tab, setTab] = useState<TriggerState>("all");
   const [webId, setWebId] = useState<WebId | null>(null);
   const [sort, setSort] = useState<FlowTriggerSort>({
-    column: "flow",
-    direction: "asc",
+    key: "flow",
+    direction: "ASCENDING",
   });
+  const [shownFilters, setShownFilters] = useState<TriggerFilterProperty[]>([]);
+  const [addedFilter, setAddedFilter] = useState<TriggerFilterProperty | null>(
+    null,
+  );
 
   /* In the URL, so the editor can link to one flow's triggers. */
   const flowParam = router.query[flowTriggersFlowFilterParam];
@@ -136,6 +153,19 @@ const TriggersPage: NextPageWithLayout = () => {
   const showWeb =
     authenticatedUser.memberOf.length > 0 ||
     rows.some((row) => row.webId !== authenticatedUser.accountId);
+  const columns = showWeb
+    ? triggerColumns
+    : triggerColumns.filter(({ sortKey }) => sortKey !== "web");
+  const filterProperties: TriggerFilterProperty[] = showWeb
+    ? ["flow", "web"]
+    : ["flow"];
+  /* A flow linked to from the editor shows its filter. */
+  const filtersShown = filterProperties.filter(
+    (property) =>
+      shownFilters.includes(property) ||
+      (property === "flow" && flowEntityId !== null),
+  );
+  const values = { flow: flowEntityId, web: showWeb ? webId : null };
 
   const flowOptions = useMemo(() => {
     const options = toOptions(
@@ -159,23 +189,40 @@ const TriggersPage: NextPageWithLayout = () => {
     [rows],
   );
 
+  const filtered = useMemo(
+    () =>
+      filterFlowTriggerRows(rows, {
+        search,
+        flowEntityId: values.flow,
+        webId: values.web,
+      }),
+    [rows, search, values.flow, values.web],
+  );
+  const counts: Record<TriggerState, number> = {
+    all: filtered.length,
+    on: filtered.filter((row) => row.on).length,
+    paused: filtered.filter((row) => !row.on).length,
+  };
   const shown = useMemo(
     () =>
       sortFlowTriggerRows(
-        filterFlowTriggerRows(rows, {
-          state,
-          search,
-          flowEntityId,
-          webId: showWeb ? webId : null,
-        }),
+        filtered.filter((row) => tab === "all" || (tab === "on") === row.on),
         sort,
       ),
-    [rows, state, search, flowEntityId, webId, showWeb, sort],
+    [filtered, tab, sort],
   );
 
   const flowWithoutTriggers =
     flowEntityId !== null &&
     !rows.some((row) => row.flowEntityId === flowEntityId);
+
+  const changeFilter = (
+    property: TriggerFilterProperty,
+    value: string | null,
+  ) =>
+    property === "flow"
+      ? setFlowEntityId(value as EntityId | null)
+      : setWebId(value as WebId | null);
 
   return (
     <DsComponentsScope>
@@ -213,57 +260,73 @@ const TriggersPage: NextPageWithLayout = () => {
           />
         ) : (
           <div className={body}>
-            <div className={filters}>
-              <div className={searchInput}>
-                <TextInput
-                  size="sm"
-                  value={search}
-                  onChange={setSearch}
-                  placeholder="Search triggers"
-                  aria-label="Search triggers"
-                  prefix={{ iconName: "search", variant: "subtle" }}
-                  clearable
-                />
-              </div>
-              <div className={flowSelect}>
-                <Select<string>
-                  size="sm"
-                  aria-label="Flow"
-                  searchable
-                  required
-                  items={[{ value: all, text: "All flows" }, ...flowOptions]}
-                  value={flowEntityId ?? all}
-                  onChange={(value) =>
-                    setFlowEntityId(value === all ? null : (value as EntityId))
-                  }
-                />
-              </div>
-              {showWeb && (
-                <div className={webSelect}>
-                  <Select<string>
-                    size="sm"
-                    aria-label="Web"
-                    required
-                    items={[{ value: all, text: "All webs" }, ...webOptions]}
-                    value={webId ?? all}
-                    onChange={(value) =>
-                      setWebId(value === all ? null : (value as WebId))
-                    }
-                  />
-                </div>
-              )}
-              <SegmentedControl<TriggerState>
-                size="sm"
-                aria-label="Show triggers"
-                items={[
-                  { value: "all", label: "All" },
-                  { value: "on", label: "On" },
-                  { value: "paused", label: "Paused" },
-                ]}
-                value={state}
-                onChange={setState}
+            <Tabs value={tab} onChange={setTab} variant="pill" size="sm">
+              <Tabs.TabList
+                items={tabs.map(({ id, label }) => ({
+                  id,
+                  children: (
+                    <>
+                      {label}
+                      <span className={tabCount}>{counts[id]}</span>
+                    </>
+                  ),
+                }))}
+                actions={
+                  <>
+                    <SortMenu
+                      items={columns}
+                      value={{ sortKey: sort.key, direction: sort.direction }}
+                      onChange={(key, direction) => setSort({ key, direction })}
+                      position="bottom-end"
+                    />
+                    <AddTriggerFilter
+                      properties={filterProperties}
+                      shown={filtersShown}
+                      appliedCount={
+                        filterProperties.filter(
+                          (property) => values[property] !== null,
+                        ).length
+                      }
+                      onAdd={(property) => {
+                        setShownFilters((current) => [...current, property]);
+                        setAddedFilter(property);
+                      }}
+                    />
+                    <div className={searchInput}>
+                      <TextInput
+                        size="sm"
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Search triggers"
+                        aria-label="Search triggers"
+                        prefix={{ iconName: "search", variant: "subtle" }}
+                        clearable
+                      />
+                    </div>
+                  </>
+                }
               />
-            </div>
+            </Tabs>
+            {filtersShown.length > 0 && (
+              <TriggerFilterBar
+                shown={filtersShown}
+                added={addedFilter}
+                options={{ flow: flowOptions, web: webOptions }}
+                values={values}
+                onChange={changeFilter}
+                onRemove={(property) => {
+                  setShownFilters((current) =>
+                    current.filter((each) => each !== property),
+                  );
+                  changeFilter(property, null);
+                }}
+                onClear={() => {
+                  setShownFilters([]);
+                  setFlowEntityId(null);
+                  setWebId(null);
+                }}
+              />
+            )}
             {shown.length === 0 ? (
               <FlowsEmptyState
                 title={
@@ -278,9 +341,9 @@ const TriggersPage: NextPageWithLayout = () => {
             ) : (
               <TriggersTable
                 rows={shown}
-                showWeb={showWeb}
+                columns={columns}
                 sort={sort}
-                onSortChange={setSort}
+                onSort={setSort}
               />
             )}
           </div>
