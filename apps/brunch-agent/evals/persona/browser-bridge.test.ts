@@ -11,7 +11,7 @@ import {
   sendPersonaCommand,
   type PersonaBridgeHandlers,
 } from "./browser-bridge.ts";
-import { writePersonaHelper } from "./launch/agent.ts";
+import { writePersonaHelper } from "./launch/driver.ts";
 
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {

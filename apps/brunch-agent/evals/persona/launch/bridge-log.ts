@@ -5,7 +5,8 @@ import { join } from "node:path";
 import * as v from "valibot";
 
 import type { PersonaAllowedEdit } from "../browser-turn.ts";
-import type { PersonaAgentSettings } from "./agent.ts";
+import type { PersonaDriver } from "./driver.ts";
+import type { PersonaScriptStep } from "./script.ts";
 
 const admittedEntrySchema = v.object({
   event: v.literal("admitted"),
@@ -22,16 +23,27 @@ const appendBridgeRecord = (run: string, record: Record<string, unknown>) =>
     { mode: 0o600 },
   );
 
-/** A persona utterance records the agent settings that wrote it, since a resume may start a different agent. */
+/** Every admitted utterance records the driver that sent it, since a resume may switch drivers. */
 export const appendAdmittedUtterance = (
   run: string,
   entry: {
     readonly source: "opening" | "persona";
     readonly message: string;
     readonly submissionId: string;
-    readonly personaAgent: PersonaAgentSettings;
+    readonly personaDriver: PersonaDriver;
   },
 ) => appendBridgeRecord(run, { event: "admitted", ...entry });
+
+/** Records the failing step when a scripted driver halts on an error. */
+export const appendScriptStepFailed = (
+  run: string,
+  entry: {
+    readonly stepIndex: number;
+    readonly step: PersonaScriptStep;
+    readonly error: string;
+    readonly personaDriver: PersonaDriver;
+  },
+) => appendBridgeRecord(run, { event: "script-step-failed", ...entry });
 
 /** The persona cannot see approval panels, so the launcher allows each destructive edit or save and records what the panel showed. */
 export const appendAllowedDestructiveEdit = (
