@@ -9,14 +9,14 @@ import {
   initialMarkingToAdHocPlaces,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautDefinitionSelector } from "../../../../../../react/hooks/use-document";
+import { useSDCPNState } from "../../../../../../react/document/sdcpn-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../react/document/use-document";
 import {
   SimulationContext,
   type SimulationState,
 } from "../../../../../../react/simulation/context";
 import { useScenarioHir } from "../../../../../../react/simulation/use-scenario-hir";
 import { useEditorActions } from "../../../../../../react/state/editor-context";
-import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
 import {
   AdHocScenarioForm,
   FormLayoutColumn,

@@ -8,6 +8,7 @@ import { use, useEffect } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useComposesOnly } from "../../../../../react/document/use-composes-only";
 import { ActualModeContext } from "../../../../../react/host/actual-mode-context";
 import {
   SimulationContext,
@@ -21,7 +22,6 @@ import {
 } from "../../../../../react/state/editor-context";
 import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
-import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useUserSettings } from "../../../../../react/state/user-settings-context";
 import { KeptState } from "../../../../components/kept-state";
 import { PANEL_MARGIN } from "../../../../constants/ui";

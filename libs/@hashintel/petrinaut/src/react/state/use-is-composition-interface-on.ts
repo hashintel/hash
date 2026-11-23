@@ -1,7 +1,7 @@
 import { use } from "react";
 
-import { SDCPNContext } from "./sdcpn-context";
-import { useComposesOnly } from "./use-composes-only";
+import { SDCPNContext } from "../document/sdcpn-context";
+import { useComposesOnly } from "../document/use-composes-only";
 import { useUserSettings } from "./user-settings-context";
 
 /**

@@ -7,7 +7,7 @@ import { use, useRef, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { SDCPNContext } from "../../../react/document/sdcpn-context";
 import { CanvasFrameStoreProvider } from "./canvas-frame-store";
 import { CanvasPointerContext, createCanvasPointer } from "./canvas-pointer";
 import { CursorTooltip } from "./components/cursor-tooltip";

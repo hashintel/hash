@@ -13,14 +13,18 @@ import {
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
 
+import { ActiveNetContext } from "../document/active-net-context";
+import { CompositionContext } from "../document/composition-context";
+import {
+  SDCPNContext,
+  type SDCPNContextValue,
+} from "../document/sdcpn-context";
 import {
   defaultPetrinautNavigationState,
   type PetrinautNavigationController,
   type PetrinautNavigationState,
 } from "../navigation/navigation";
 import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
-import { ActiveNetContext } from "./active-net-context";
-import { CompositionContext } from "./composition-context";
 import {
   EditorContext,
   useEditorActions,
@@ -30,7 +34,6 @@ import {
   type EditorContextValue,
 } from "./editor-context";
 import { EditorProvider } from "./editor-provider";
-import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
 import { useIsReadOnly } from "./use-is-read-only";
 import { useSelectionCleanup } from "./use-selection-cleanup";
 

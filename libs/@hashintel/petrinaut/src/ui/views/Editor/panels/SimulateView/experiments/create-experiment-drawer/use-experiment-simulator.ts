@@ -5,12 +5,12 @@ import {
   WEBGPU_FIXED_STEP_SIMULATOR_ID,
 } from "@hashintel/petrinaut-core";
 
+import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
+import { useExecutableDefinition } from "../../../../../../../react/document/use-executable-definition";
 import {
   findSimulator,
   SimulatorsContext,
 } from "../../../../../../../react/simulators/context";
-import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
-import { useExecutableDefinition } from "../../../../../../../react/state/use-executable-definition";
 import {
   type ExperimentSimulatorDraft,
   resolveExperimentSimulator,

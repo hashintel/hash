@@ -10,13 +10,13 @@ import {
   resolvedLibraries,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautInstance } from "../document/use-petrinaut-instance";
 import { ExperimentsContext } from "../experiments/context";
 import { NetManagementContext } from "../host/net-management-context";
 import { LanguageClientContext } from "../lsp/context";
 import { NotificationsContext } from "../notifications/context";
 import { OptimizationsContext } from "../optimizations/context";
 import { useStableCallback } from "../shared/use-stable-callback";
-import { usePetrinautInstance } from "../use-petrinaut-instance";
 import { ExperimentHostContext } from "./context";
 import { runExperiment as runHostExperiment } from "./run-experiment";
 

@@ -5,12 +5,12 @@ import { Panel } from "react-resizable-panels";
 import { Button, SegmentedControl, TextInput } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { ActiveNetContext } from "../../../react/state/active-net-context";
+import { ActiveNetContext } from "../../../react/document/active-net-context";
+import { useUndoRedoShortcuts } from "../../../react/document/use-undo-redo-shortcuts";
 import {
   useEditorActions,
   useEditorState,
 } from "../../../react/state/editor-context";
-import { useUndoRedoShortcuts } from "../../../react/state/use-undo-redo-shortcuts";
 import { EdgeSeparator } from "../../resize/edge-separator";
 import { grabSize, paneStripStyle } from "../../resize/edge-separator-style";
 import { ResizeGroup } from "../../resize/resize-group";
@@ -29,7 +29,7 @@ import { orderCellsTopologically } from "./notebook-order";
 import { CellList } from "./notebook-view/cell-list";
 import { buildNotebookViewModel } from "./notebook-view/view-model";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type { CellRef, NodeRef, NotebookCellKind } from "./notebook-model";
 import type { CellOrder } from "./notebook-order";
 import type { NotebookViewModel } from "./notebook-view/view-model";

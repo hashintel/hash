@@ -5,14 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createReadableStore } from "@hashintel/petrinaut-core";
 
+import { ActiveNetContext } from "../../../react/document/active-net-context";
+import { SDCPNContext } from "../../../react/document/sdcpn-context";
 import { useStore } from "../../../react/shared/use-store";
-import { ActiveNetContext } from "../../../react/state/active-net-context";
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { createCanvasPointer } from "./canvas-pointer";
 import { useCanvasScene } from "./use-canvas-scene";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type { CanvasDragPreview } from "./canvas-scene";
 
 const net: ActiveNetDefinition = {

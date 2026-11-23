@@ -9,13 +9,13 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { SidebarIcon } from "@hashintel/ds-icons";
 
+import { useComposesOnly } from "../../../../../react/document/use-composes-only";
 import { ActualModeContext } from "../../../../../react/host/actual-mode-context";
 import { NetManagementContext } from "../../../../../react/host/net-management-context";
 import {
   useEditorActions,
   useEditorFields,
 } from "../../../../../react/state/editor-context";
-import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { PluginToolbarItems } from "../../../../plugins/plugin-outlets";
 import { EditorMenu } from "./editor-menu";
 import { RunningExperimentsPopover } from "./running-experiments-popover";

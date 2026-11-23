@@ -7,10 +7,10 @@ import { describe, expect, it } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import { useAdHocScenarioAuthoring } from "./use-ad-hoc-scenario-authoring";
 
-import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
+import type { SDCPNContextValue } from "../../../../../../react/document/sdcpn-context";
 import type { UseAdHocScenarioAuthoringOptions } from "./use-ad-hoc-scenario-authoring";
 import type {
   AdHocScenarioState,

@@ -4,14 +4,14 @@ import { type MenuItem, Menu } from "@hashintel/ds-components";
 import { AddPlaceIcon, AddTransitionIcon } from "@hashintel/ds-icons";
 import { sameComponent } from "@hashintel/petrinaut-core";
 
-import { usePetrinautDefinitionSelector } from "../../../../../react/hooks/use-document";
-import { ActiveNetContext } from "../../../../../react/state/active-net-context";
+import { ActiveNetContext } from "../../../../../react/document/active-net-context";
+import { useComposesOnly } from "../../../../../react/document/use-composes-only";
+import { usePetrinautDefinitionSelector } from "../../../../../react/document/use-document";
 import {
   useEditorActions,
   useEditorFields,
   useEditorState,
 } from "../../../../../react/state/editor-context";
-import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
 import { writeDraggedNodeKind } from "../../../shared/canvas-node-drag";
 import { ToolbarButton } from "./toolbar-button";

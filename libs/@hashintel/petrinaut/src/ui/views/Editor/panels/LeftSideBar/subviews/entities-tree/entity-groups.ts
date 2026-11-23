@@ -6,7 +6,7 @@ import {
   TransitionIcon,
 } from "../../../../../../constants/entity-icons";
 
-import type { ActiveNetDefinition } from "../../../../../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../../../../../react/document/active-net-context";
 import type {
   PetrinautExtensionSettings,
   SelectionItem,

@@ -2,9 +2,9 @@ import { use, useEffect, useState, useSyncExternalStore } from "react";
 
 import { SOLVER_ERROR_DIAGNOSTIC } from "@hashintel/petrinaut-core";
 
-import { usePetrinautDefinitionSelector } from "../../../../../../../react/hooks/use-document";
+import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../../react/document/use-document";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
-import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "../simulation-timeline/series-config";
 import { useRunTimelineView } from "../simulation-timeline/use-run-timeline-view";
 import {

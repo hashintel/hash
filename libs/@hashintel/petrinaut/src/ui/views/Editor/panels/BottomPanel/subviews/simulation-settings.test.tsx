@@ -9,6 +9,7 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
 } from "@hashintel/petrinaut-core";
 
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
@@ -18,11 +19,10 @@ import {
   SimulationContext,
 } from "../../../../../../react/simulation/context";
 import { SimulatorsContext } from "../../../../../../react/simulators/context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { SimulationSettingsContent as SimulationSettings } from "./simulation-settings";
 
+import type { SDCPNContextValue } from "../../../../../../react/document/sdcpn-context";
 import type { SimulationContextValue } from "../../../../../../react/simulation/context";
-import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { Scenario, SDCPN } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
 

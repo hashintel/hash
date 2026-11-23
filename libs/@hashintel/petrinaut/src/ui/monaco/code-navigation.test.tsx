@@ -6,11 +6,11 @@ import { afterEach, expect, it, vi } from "vitest";
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { productionMachines } from "@hashintel/petrinaut-core/examples";
 
+import { ActiveNetContext } from "../../react/document/active-net-context";
+import { SDCPNContext } from "../../react/document/sdcpn-context";
 import { usePetrinautNavigation } from "../../react/navigation/navigation";
 import { PetrinautNavigationProvider } from "../../react/navigation/navigation-provider";
-import { ActiveNetContext } from "../../react/state/active-net-context";
 import { EditorContext } from "../../react/state/editor-context";
-import { SDCPNContext } from "../../react/state/sdcpn-context";
 import {
   defaultUserSettingsContextValue,
   UserSettingsContext,

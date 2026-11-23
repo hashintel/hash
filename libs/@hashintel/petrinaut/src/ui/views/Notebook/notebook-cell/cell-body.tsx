@@ -16,7 +16,7 @@ import {
   WidgetPart,
 } from "./part-widgets";
 
-import type { ActiveNetDefinition } from "../../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../../react/document/active-net-context";
 import type { NotebookCell } from "../notebook-model";
 import type { BodyPartContext } from "./cell-body-parts";
 import type {

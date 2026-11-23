@@ -4,13 +4,13 @@ import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { analyzeCompilation } from "@hashintel/petrinaut-core/webgpu";
 
+import { useSDCPNState } from "../../../../../../react/document/sdcpn-context";
+import { useExecutableDefinition } from "../../../../../../react/document/use-executable-definition";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import {
   useEditorActions,
   useEditorState,
 } from "../../../../../../react/state/editor-context";
-import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
-import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
 
 import type {
   CompilationItemReport,

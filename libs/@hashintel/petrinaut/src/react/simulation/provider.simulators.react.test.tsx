@@ -20,9 +20,12 @@ import {
   type SimulatorRegistration,
 } from "@hashintel/petrinaut-core";
 
+import {
+  SDCPNContext,
+  type SDCPNContextValue,
+} from "../document/sdcpn-context";
 import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
 import { SimulatorsContext } from "../simulators/context";
-import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import { SimulationContext, type SimulationContextValue } from "./context";
 import { SimulationProvider, type SimulationCompiler } from "./provider";
 

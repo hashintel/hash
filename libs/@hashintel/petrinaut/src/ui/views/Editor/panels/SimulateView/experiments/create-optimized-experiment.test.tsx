@@ -6,9 +6,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
 import {
   makeExperiment,

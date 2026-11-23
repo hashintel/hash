@@ -9,9 +9,9 @@ import {
 } from "@hashintel/petrinaut-core";
 import { fingerprintHirCompilationInput } from "@hashintel/petrinaut-core/hir-runtime";
 
+import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
-import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { useKeptState } from "../../../../../../lib/kept-state";
 
 import type { TimelineMetricEvaluator } from "../simulation-timeline/series-config/metric";

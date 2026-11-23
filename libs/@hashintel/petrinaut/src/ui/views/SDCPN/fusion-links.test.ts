@@ -8,7 +8,7 @@ import {
   planRewire,
 } from "./fusion-links";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type { Fusion, FusionMember, SDCPN } from "@hashintel/petrinaut-core";
 
 const place = (placeId: string): FusionMember => ({ kind: "place", placeId });

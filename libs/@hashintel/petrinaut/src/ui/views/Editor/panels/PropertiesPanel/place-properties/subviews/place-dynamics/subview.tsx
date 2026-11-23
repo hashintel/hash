@@ -4,7 +4,7 @@ import { Toggle, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../../../../../../../react";
-import { ActiveNetContext } from "../../../../../../../../react/state/active-net-context";
+import { ActiveNetContext } from "../../../../../../../../react/document/active-net-context";
 import { useEditorActions } from "../../../../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";

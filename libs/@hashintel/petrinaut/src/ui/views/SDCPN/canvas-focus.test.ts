@@ -4,7 +4,7 @@ import { generateArcId, getArcEndpointKey } from "@hashintel/petrinaut-core";
 
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type { Place, Transition } from "@hashintel/petrinaut-core";
 
 const place = (id: string): Place => ({

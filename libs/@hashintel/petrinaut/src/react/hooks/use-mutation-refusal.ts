@@ -1,7 +1,7 @@
 import { use } from "react";
 
-import { ActiveNetContext } from "../state/active-net-context";
-import { usePetrinautInstance } from "../use-petrinaut-instance";
+import { ActiveNetContext } from "../document/active-net-context";
+import { usePetrinautInstance } from "../document/use-petrinaut-instance";
 
 import type { PetrinautMutations } from "@hashintel/petrinaut-core";
 

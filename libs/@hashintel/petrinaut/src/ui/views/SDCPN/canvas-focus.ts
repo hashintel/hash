@@ -18,7 +18,7 @@ import {
 
 import { fusionLinks } from "./fusion-links";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 
 /**
  * Where a node sits relative to the focused item. An unrelated node has no

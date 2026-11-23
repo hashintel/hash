@@ -6,8 +6,8 @@ import {
   getActualModeTransitionFiringTimesMs,
 } from "@hashintel/petrinaut-core";
 
+import { SDCPNContext } from "../document/sdcpn-context";
 import { ActualModeContext } from "../host/actual-mode-context";
-import { SDCPNContext } from "../state/sdcpn-context";
 import {
   emptyExecutionFrameSource,
   type ExecutionFrameSource,

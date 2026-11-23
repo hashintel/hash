@@ -9,9 +9,9 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../../react";
+import { useSDCPNState } from "../../../../../../../../react/document/sdcpn-context";
 import { useStableCallback } from "../../../../../../../../react/shared/use-stable-callback";
 import { useEditorActions } from "../../../../../../../../react/state/editor-context";
-import { useSDCPNState } from "../../../../../../../../react/state/sdcpn-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { useCodeNavigation } from "../../../../../../../monaco/code-navigation-context";

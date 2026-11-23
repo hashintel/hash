@@ -10,12 +10,12 @@ import {
   type SelectionItem,
 } from "@hashintel/petrinaut-core";
 
-import { PetrinautInstanceContext } from "../../../../../react/instance-context";
+import { ActiveNetContext } from "../../../../../react/document/active-net-context";
+import { CompositionContext } from "../../../../../react/document/composition-context";
+import { PetrinautInstanceContext } from "../../../../../react/document/instance-context";
+import { UndoRedoContext } from "../../../../../react/document/undo-redo-context";
 import { constantStore } from "../../../../../react/shared/use-store";
-import { ActiveNetContext } from "../../../../../react/state/active-net-context";
-import { CompositionContext } from "../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
-import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 
 const actions = vi.hoisted(() => ({

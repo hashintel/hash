@@ -9,10 +9,10 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { CommandRegistryProvider } from "../../../react/commands/command-registry-provider";
+import { CompositionContext } from "../../../react/document/composition-context";
+import { SDCPNContext } from "../../../react/document/sdcpn-context";
 import { NetManagementContext } from "../../../react/host/net-management-context";
-import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { EditorCommands } from "./use-editor-commands";
 
 /** The layout the commands run: the auto-layout, then the fit of the canvas. */

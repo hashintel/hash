@@ -3,8 +3,8 @@ import { useLayoutEffect, useState, type ReactNode } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useComposesOnly } from "../../../../react/document/use-composes-only";
 import { usePetrinautNavigationState } from "../../../../react/navigation/navigation";
-import { useComposesOnly } from "../../../../react/state/use-composes-only";
 import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { bindStyle, styleRef } from "../../../lib/readings";
 import { PanelResizer } from "../../../resize/panel-resizer";

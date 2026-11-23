@@ -2,13 +2,13 @@ import { use } from "react";
 
 import { ADAPTIVE_SIMULATOR_ID } from "@hashintel/petrinaut-core";
 
-import { usePetrinautDefinitionSelector } from "../../../../../../../react/hooks/use-document";
+import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../../react/document/use-document";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import {
   useEditorState,
   type TimelineView,
 } from "../../../../../../../react/state/editor-context";
-import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { placesWithDynamics } from "./series-config/solver-error";
 
 /** The view a timeline draws when the picked one has nothing to show. */

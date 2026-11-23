@@ -1,11 +1,11 @@
 import { use } from "react";
 
-import { ActiveNetContext } from "../state/active-net-context";
+import { ActiveNetContext } from "../document/active-net-context";
+import { useCoreInstance } from "../document/use-petrinaut-instance";
 import {
   mutationBlockedBy,
   useReadOnlyReason,
 } from "../state/use-read-only-reason";
-import { useCoreInstance } from "../use-petrinaut-instance";
 import { useHostRulesFeedback } from "./use-host-rules-feedback";
 import { useReadOnlyFeedback } from "./use-read-only-feedback";
 

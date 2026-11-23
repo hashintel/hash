@@ -8,6 +8,7 @@
  */
 import { use } from "react";
 
+import { useExecutableDefinition } from "../../../../../../react/document/use-executable-definition";
 import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/parameter-grid";
 import { buildSweepOptimizationInput } from "../../../../../../react/experiments/sweep-optimization";
 import { NetManagementContext } from "../../../../../../react/host/net-management-context";
@@ -17,7 +18,6 @@ import {
   isOptimizationActive,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
-import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
 import { directionWord } from "./study-labels";
 
 import type {

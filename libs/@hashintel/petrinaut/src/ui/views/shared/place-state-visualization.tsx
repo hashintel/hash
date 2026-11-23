@@ -10,10 +10,10 @@ import {
   mergeParameterValues,
 } from "@hashintel/petrinaut-core";
 
+import { SDCPNContext } from "../../../react/document/sdcpn-context";
+import { useDefaultParameterValues } from "../../../react/document/use-default-parameter-values";
 import { ExecutionFrameSourceContext } from "../../../react/execution-frame/context";
-import { useDefaultParameterValues } from "../../../react/hooks/use-default-parameter-values";
 import { SimulationContext } from "../../../react/simulation/context";
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import {
   renderVisualizerHir,
   type VisualizerSize,

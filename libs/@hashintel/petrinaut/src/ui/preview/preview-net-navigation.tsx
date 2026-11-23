@@ -3,8 +3,8 @@ import { use, useRef, useState } from "react";
 import { Button, Icon, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePetrinautDefinitionSelector } from "../../react/hooks/use-document";
-import { ActiveNetContext } from "../../react/state/active-net-context";
+import { ActiveNetContext } from "../../react/document/active-net-context";
+import { usePetrinautDefinitionSelector } from "../../react/document/use-document";
 import { NetNavigationList } from "../views/Editor/panels/LeftSideBar/subviews/nets-list";
 
 const popoverWidthStyle = css({

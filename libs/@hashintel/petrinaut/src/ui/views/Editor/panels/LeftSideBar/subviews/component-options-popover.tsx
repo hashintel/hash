@@ -17,8 +17,8 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
-import { usePetrinautDefinitionSelector } from "../../../../../../react/hooks/use-document";
-import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../react/document/sdcpn-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../react/document/use-document";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { OptionalColorSelect } from "../../../../../components/color-select";
 import { ComponentGlyph } from "../../../../../components/component-glyph";

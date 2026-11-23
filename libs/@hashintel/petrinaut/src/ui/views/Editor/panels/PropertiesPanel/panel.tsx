@@ -7,11 +7,11 @@ import { use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { ActiveNetContext } from "../../../../../react/state/active-net-context";
+import { ActiveNetContext } from "../../../../../react/document/active-net-context";
+import { SDCPNContext } from "../../../../../react/document/sdcpn-context";
 import { assistantCover } from "../../../../../react/state/panel-presence";
 import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import {
   useLastPanelTarget,
   usePanelTarget,

@@ -9,11 +9,11 @@ import {
   type DocumentFormat,
 } from "@hashintel/petrinaut-core";
 
+import { CompositionContext } from "../../../../../react/document/composition-context";
+import { SDCPNContext } from "../../../../../react/document/sdcpn-context";
 import { NetManagementContext } from "../../../../../react/host/net-management-context";
 import { usePetrinautNavigate } from "../../../../../react/navigation/navigation";
-import { CompositionContext } from "../../../../../react/state/composition-context";
 import { useEditorActions } from "../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { exportSDCPN } from "../../../../file-io/export-sdcpn";
 import { exportTikZ } from "../../../../file-io/export-tikz";

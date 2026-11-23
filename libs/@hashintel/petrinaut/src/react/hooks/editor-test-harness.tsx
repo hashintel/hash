@@ -9,14 +9,17 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { PetrinautInstanceContext } from "../instance-context";
+import { PetrinautInstanceContext } from "../document/instance-context";
+import {
+  SDCPNContext,
+  type SDCPNContextValue,
+} from "../document/sdcpn-context";
 import {
   SimulationContext,
   type SimulationState,
   DEFAULT_SIMULATION_CONTEXT,
 } from "../simulation/context";
 import { EditorContext } from "../state/editor-context";
-import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 
 export const emptySdcpn: SDCPN = {
   places: [],

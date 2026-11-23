@@ -6,11 +6,11 @@ import {
   getTransitionLogicAvailability,
 } from "@hashintel/petrinaut-core";
 
+import { ActiveNetContext } from "../../react/document/active-net-context";
+import { CompositionContext } from "../../react/document/composition-context";
+import { useSDCPNState } from "../../react/document/sdcpn-context";
 import { usePetrinautNavigate } from "../../react/navigation/navigation";
-import { ActiveNetContext } from "../../react/state/active-net-context";
-import { CompositionContext } from "../../react/state/composition-context";
 import { useEditorActions } from "../../react/state/editor-context";
-import { useSDCPNState } from "../../react/state/sdcpn-context";
 import { useUserSettingsFields } from "../../react/state/user-settings-context";
 import { usePetrinautPresentation } from "../views/shared/presentation-context";
 import { CodeNavigationContext } from "./code-navigation-context";

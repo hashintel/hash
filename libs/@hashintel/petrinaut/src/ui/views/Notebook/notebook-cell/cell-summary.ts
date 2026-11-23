@@ -9,7 +9,7 @@ import {
   transitionOutputPlaceIds,
 } from "../notebook-model";
 
-import type { ActiveNetDefinition } from "../../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../../react/document/active-net-context";
 import type { NotebookCell } from "../notebook-model";
 import type {
   Color,

@@ -15,15 +15,15 @@ import {
   generatePetrinautId,
 } from "@hashintel/petrinaut-core";
 
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
 } from "../../../../../../react/lsp/context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { MetricDrawer } from "./metric-drawer";
 
+import type { SDCPNContextValue } from "../../../../../../react/document/sdcpn-context";
 import type { LanguageClientContextValue } from "../../../../../../react/lsp/context";
-import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { Metric } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
 

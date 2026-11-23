@@ -5,8 +5,8 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { generatePetrinautId, isInterface } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
-import { usePetrinautDefinitionSelector } from "../../../../../../react/hooks/use-document";
-import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
+import { ActiveNetContext } from "../../../../../../react/document/active-net-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../react/document/use-document";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { ComponentGlyph } from "../../../../../components/component-glyph";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";

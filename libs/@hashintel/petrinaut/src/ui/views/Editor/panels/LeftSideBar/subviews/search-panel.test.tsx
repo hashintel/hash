@@ -3,8 +3,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
 import {
   SearchContent,

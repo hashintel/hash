@@ -11,7 +11,7 @@ import {
   type SweepVisitedCell,
 } from "../../../../../../react/experiments/context";
 
-import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
+import type { SDCPNContextValue } from "../../../../../../react/document/sdcpn-context";
 import type { Constraint, Scenario } from "@hashintel/petrinaut-core";
 
 /** The SIR example as a document holds it, with its ids converted. */

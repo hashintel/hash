@@ -5,7 +5,7 @@ import {
   deriveDefaultParameterValues,
 } from "@hashintel/petrinaut-core";
 
-import { SDCPNContext } from "../state/sdcpn-context";
+import { SDCPNContext } from "./sdcpn-context";
 
 /**
  * Derives default parameter values from SDCPN Store Parameters.

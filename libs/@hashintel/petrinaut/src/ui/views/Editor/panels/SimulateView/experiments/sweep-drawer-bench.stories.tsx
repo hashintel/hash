@@ -2,13 +2,13 @@ import { use, useEffect, useRef, useState } from "react";
 
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
 import { ExperimentsProvider } from "../../../../../../react/experiments/provider";
 import { LanguageClientProvider } from "../../../../../../react/lsp/provider";
 import { PetrinautNavigationProvider } from "../../../../../../react/navigation/navigation-provider";
 import { NotificationsProvider } from "../../../../../../react/notifications/provider";
 import { SimulatorsProvider } from "../../../../../../react/simulators/provider";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsProvider } from "../../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../../monaco/provider";
 /**
@@ -23,8 +23,8 @@ import { SimulationWorkspace } from "../../../shared/simulation-workspace";
 import { sirSdcpnContextValue } from "./experiments-story-fixtures";
 import { ViewExperimentDrawer } from "./view-experiment-drawer";
 
+import type { SDCPNContextValue } from "../../../../../../react/document/sdcpn-context";
 import type { ExperimentComputeBackend } from "../../../../../../react/experiments/context";
-import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 

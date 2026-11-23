@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { usePetrinautDefinitionSelector } from "../../../../../../../react/hooks/use-document";
-import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../../react/document/use-document";
 import { buildTimelineSeriesConfig } from "./series-config";
 
 import type { ExecutionFrameSource } from "../../../../../../../react/execution-frame/context";

@@ -4,13 +4,13 @@ import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 
+import { useComposesOnly } from "../../../../../react/document/use-composes-only";
 import { LanguageClientContext } from "../../../../../react/lsp/context";
 import {
   useEditorActions,
   useEditorFields,
   useEditorMode,
 } from "../../../../../react/state/editor-context";
-import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { BOTTOM_BAR_GAP } from "../../../../constants/ui";

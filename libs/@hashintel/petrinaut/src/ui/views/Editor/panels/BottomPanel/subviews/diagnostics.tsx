@@ -3,10 +3,10 @@ import { use } from "react";
 import { Banner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useSDCPNState } from "../../../../../../react/document/sdcpn-context";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { useEditorActions } from "../../../../../../react/state/editor-context";
-import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
 import { useKeptState } from "../../../../../lib/kept-state";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation-context";
 import { useCompositionProblems } from "../../../shared/use-composition-problems";

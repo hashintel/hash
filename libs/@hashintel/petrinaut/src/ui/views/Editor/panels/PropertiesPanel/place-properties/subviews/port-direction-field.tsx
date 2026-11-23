@@ -9,7 +9,7 @@ import {
   type PortDirection,
 } from "@hashintel/petrinaut-core";
 
-import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
+import { ActiveNetContext } from "../../../../../../../react/document/active-net-context";
 
 /** The picker's value for a port that declares no direction. */
 const inferredOption = "auto";

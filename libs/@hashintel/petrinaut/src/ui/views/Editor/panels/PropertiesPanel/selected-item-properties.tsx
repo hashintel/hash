@@ -3,9 +3,9 @@ import { use } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 import { resolveComponent } from "@hashintel/petrinaut-core";
 
-import { ActiveNetContext } from "../../../../../react/state/active-net-context";
-import { CompositionContext } from "../../../../../react/state/composition-context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { ActiveNetContext } from "../../../../../react/document/active-net-context";
+import { CompositionContext } from "../../../../../react/document/composition-context";
+import { SDCPNContext } from "../../../../../react/document/sdcpn-context";
 import { ArcProperties } from "./arc-properties/main";
 import { ComponentInstanceProperties } from "./component-instance-properties/main";
 import { DifferentialEquationProperties } from "./differential-equation-properties/main";

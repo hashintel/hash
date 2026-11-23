@@ -7,7 +7,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import {
   SimulationPanel,
   SimulationPanelPresence,

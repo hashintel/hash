@@ -3,8 +3,8 @@ import { use, useEffect, useRef, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 import { resolveComponent } from "@hashintel/petrinaut-core";
 
-import { usePetrinautDefinitionSelector } from "../../../../react/hooks/use-document";
-import { CompositionContext } from "../../../../react/state/composition-context";
+import { CompositionContext } from "../../../../react/document/composition-context";
+import { usePetrinautDefinitionSelector } from "../../../../react/document/use-document";
 import { useEditorFields } from "../../../../react/state/editor-context";
 
 const tooltipStyle = css({

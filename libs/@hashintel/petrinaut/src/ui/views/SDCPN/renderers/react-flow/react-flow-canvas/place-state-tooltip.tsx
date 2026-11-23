@@ -10,8 +10,8 @@ import { Button } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { getDocumentUri } from "@hashintel/petrinaut-core";
 
+import { ActiveNetContext } from "../../../../../../react/document/active-net-context";
 import { useStoreSelector } from "../../../../../../react/shared/use-store";
-import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import {
   useEditorActions,
   useEditorState,

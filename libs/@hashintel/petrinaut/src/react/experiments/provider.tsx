@@ -16,6 +16,8 @@ import {
   type ExperimentBackend,
 } from "@hashintel/petrinaut-core/experiments";
 
+import { SDCPNContext } from "../document/sdcpn-context";
+import { useExecutableDefinition } from "../document/use-executable-definition";
 import { LanguageClientContext } from "../lsp/context";
 import {
   openPetrinautSimulationResource,
@@ -27,8 +29,6 @@ import { useBlockWindowClose } from "../shared/use-block-window-close";
 import { useLatest } from "../shared/use-latest";
 import { useStableCallback } from "../shared/use-stable-callback";
 import { findSimulator, SimulatorsContext } from "../simulators/context";
-import { SDCPNContext } from "../state/sdcpn-context";
-import { useExecutableDefinition } from "../state/use-executable-definition";
 import {
   type CreateExperimentOptions,
   type ExperimentRecord,

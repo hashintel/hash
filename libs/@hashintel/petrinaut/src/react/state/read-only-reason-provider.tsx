@@ -1,7 +1,7 @@
 import { use } from "react";
 
+import { SDCPNContext } from "../document/sdcpn-context";
 import { SimulationContext } from "../simulation/context";
-import { SDCPNContext } from "./sdcpn-context";
 import {
   ReadOnlyReasonContext,
   readOnlyReasonOf,

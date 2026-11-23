@@ -8,7 +8,7 @@ import {
   fuzzyMatchName,
 } from "./notebook-model";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type { NodeRef } from "./notebook-model";
 
 const emptyNet: ActiveNetDefinition = {

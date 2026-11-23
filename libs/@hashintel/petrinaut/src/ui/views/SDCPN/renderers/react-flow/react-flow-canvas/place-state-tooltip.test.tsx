@@ -9,7 +9,7 @@ import {
 import { use, useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
+import { ActiveNetContext } from "../../../../../../react/document/active-net-context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import {
   CanvasPointerContext,

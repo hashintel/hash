@@ -6,7 +6,7 @@
 
 import { getPlaceDynamicsEquationIds } from "@hashintel/petrinaut-core";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type {
   Color,
   DifferentialEquation,

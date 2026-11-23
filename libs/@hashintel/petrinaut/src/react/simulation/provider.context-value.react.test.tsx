@@ -17,12 +17,15 @@ import {
 import { lowerScenarioToHir } from "@hashintel/petrinaut-core/hir";
 
 import {
+  SDCPNContext,
+  type SDCPNContextValue,
+} from "../document/sdcpn-context";
+import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
   type LanguageClientContextValue,
 } from "../lsp/context";
 import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
-import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import { SimulationContext, type SimulationContextValue } from "./context";
 import { SimulationProvider } from "./provider";
 

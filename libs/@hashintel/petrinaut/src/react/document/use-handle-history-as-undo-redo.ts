@@ -1,12 +1,12 @@
 import { useState } from "react";
 
-import { deriveStore } from "./derive-store";
+import { deriveStore } from "./use-handle-history-as-undo-redo/derive-store";
 import {
   historyFloor,
   markCurrentEntry,
 } from "./use-handle-history-as-undo-redo/history-floor";
 
-import type { UndoRedoContextValue } from "./state/undo-redo-context";
+import type { UndoRedoContextValue } from "./undo-redo-context";
 import type { PetrinautHistory } from "@hashintel/petrinaut-core";
 
 /**

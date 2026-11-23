@@ -10,13 +10,13 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimizations/connected-optimizer-context";
 import {
   type OptimizationRecord,
   OptimizationsContext,
   type OptimizationsContextValue,
 } from "../../../../../../react/optimizations/context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { frameLayoutSignature } from "../shared/drawer-frame.test-helpers";
 import {
   makeConstrainedSweepExperiment,

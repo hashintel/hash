@@ -4,12 +4,12 @@ import { memo, use, useEffect, useId, useState } from "react";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
+import { useSDCPNState } from "../../../../../../react/document/sdcpn-context";
 import {
   useEditorActions,
   useEditorFields,
   useIsSelected,
 } from "../../../../../../react/state/editor-context";
-import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusMember } from "../../../../../worksheet/use-focus-member";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";

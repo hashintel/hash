@@ -12,6 +12,7 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { lowerVisualizerToHir } from "@hashintel/petrinaut-core/view-hir";
 
+import { SDCPNContext } from "../../../react/document/sdcpn-context";
 import {
   emptyExecutionFrameSource,
   ExecutionFrameSourceContext,
@@ -24,7 +25,6 @@ import {
   DEFAULT_SIMULATION_CONTEXT,
   SimulationContext,
 } from "../../../react/simulation/context";
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { PlaceStateVisualization } from "./place-state-visualization";
 
 import type { Color, Place, VisualizerHir } from "@hashintel/petrinaut-core";

@@ -1,5 +1,5 @@
 import { useCommand } from "../../../../react/commands/command-registry";
-import { useDocumentId } from "../../../../react/hooks/use-document";
+import { useDocumentId } from "../../../../react/document/use-document";
 import {
   useEditorActions,
   useEditorState,

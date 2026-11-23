@@ -12,7 +12,7 @@ import {
 import { Chip, Dialog, Icon, Select, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useSDCPNState } from "../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../react/document/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { useAssistantChoice } from "../../../../plugins/plugin-assistant";
 import { PluginSettingsRows } from "../../../../plugins/plugin-settings-rows";

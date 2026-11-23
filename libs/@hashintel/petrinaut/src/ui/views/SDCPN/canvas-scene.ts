@@ -24,7 +24,7 @@ import {
 import { fusionLinks } from "./fusion-links";
 import { arcStrokeColor } from "./styles/type-colors";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type {
   CanvasArcFocus,
   CanvasFocus,

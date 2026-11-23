@@ -1,7 +1,7 @@
 import { use, useRef } from "react";
 
+import { usePetrinautDefinitionSelector } from "../../../../../../../react/document/use-document";
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
-import { usePetrinautDefinitionSelector } from "../../../../../../../react/hooks/use-document";
 import { useElementOnScreen } from "../../../../../../../react/hooks/use-element-on-screen";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { useEditorState } from "../../../../../../../react/state/editor-context";

@@ -4,8 +4,8 @@ import { LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { isResolvingImports } from "@hashintel/petrinaut-core";
 
-import { CompositionContext } from "../../react/state/composition-context";
-import { useSDCPNState } from "../../react/state/sdcpn-context";
+import { CompositionContext } from "../../react/document/composition-context";
+import { useSDCPNState } from "../../react/document/sdcpn-context";
 
 const overlayStyle = css({
   position: "absolute",

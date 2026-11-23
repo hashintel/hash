@@ -25,18 +25,19 @@ import {
 } from "@hashintel/petrinaut-core";
 import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
 
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimizations/connected-optimizer-context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { SimulatorsContext } from "../../../../../../react/simulators/context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { CreateExperimentDrawer } from "./create-experiment-drawer";
 import {
   makeExperiment,
   sirSdcpnContextValue,
 } from "./experiments-story-fixtures";
 
+import type { SDCPNContextValue } from "../../../../../../react/document/sdcpn-context";
 import type {
   CreateExperimentInput,
   ExperimentRecord,
@@ -44,7 +45,6 @@ import type {
 import type { LanguageClientContextValue } from "../../../../../../react/lsp/context";
 import type { OptimizationsContextValue } from "../../../../../../react/optimizations/context";
 import type { SimulatorsContextValue } from "../../../../../../react/simulators/context";
-import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type {
   ConstraintSource,
   LowerConstraintResult,

@@ -1,10 +1,10 @@
 import { use, type FC, type PropsWithChildren } from "react";
 
+import { SDCPNContext } from "../document/sdcpn-context";
 import {
   CanvasViewportContext,
   type CanvasViewport,
 } from "./canvas-viewport-context";
-import { SDCPNContext } from "./sdcpn-context";
 import { useUserSettingsFields } from "./user-settings-context";
 
 /**

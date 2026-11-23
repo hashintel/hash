@@ -26,6 +26,10 @@ import {
   lowerScenarioToHir,
 } from "@hashintel/petrinaut-core/hir";
 
+import {
+  SDCPNContext,
+  type SDCPNContextValue,
+} from "../document/sdcpn-context";
 import { LanguageClientContext } from "../lsp/context";
 import { usePetrinautNavigation } from "../navigation/navigation";
 import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
@@ -40,7 +44,6 @@ import {
   type SimulatorsContextValue,
 } from "../simulators/context";
 import { SimulatorsProvider } from "../simulators/provider";
-import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import {
   type CreateExperimentInput,
   type ExperimentRecord,

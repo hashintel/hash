@@ -14,6 +14,11 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
+import {
+  SDCPNContext,
+  type SDCPNContextValue,
+  useSDCPNState,
+} from "../../../../../react/document/sdcpn-context";
 import { ExperimentsProvider } from "../../../../../react/experiments/provider";
 import {
   NetManagementContext,
@@ -26,11 +31,6 @@ import { PetrinautOptimizationContext } from "../../../../../react/optimizations
 import { OptimizationsProvider } from "../../../../../react/optimizations/provider";
 import { useLatest } from "../../../../../react/shared/use-latest";
 import { SimulatorsProvider } from "../../../../../react/simulators/provider";
-import {
-  SDCPNContext,
-  type SDCPNContextValue,
-  useSDCPNState,
-} from "../../../../../react/state/sdcpn-context";
 import { UserSettingsProvider } from "../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../monaco/provider";
 import { SimulationWorkspace } from "../../shared/simulation-workspace";

@@ -3,11 +3,11 @@ import { type ReactNode, useRef, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
-import { LanguageClientProvider } from "../../react/lsp/provider";
 import {
   SDCPNContext,
   type SDCPNContextValue,
-} from "../../react/state/sdcpn-context";
+} from "../../react/document/sdcpn-context";
+import { LanguageClientProvider } from "../../react/lsp/provider";
 import { CodeEditor } from "./code-editor";
 import { MonacoProvider } from "./provider";
 

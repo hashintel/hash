@@ -1,8 +1,8 @@
 import { use } from "react";
 
-import { ActiveNetContext } from "../state/active-net-context";
+import { ActiveNetContext } from "../document/active-net-context";
+import { useCoreInstance } from "../document/use-petrinaut-instance";
 import { useIsReadOnly } from "../state/use-is-read-only";
-import { useCoreInstance } from "../use-petrinaut-instance";
 import { useHostRulesFeedback } from "./use-host-rules-feedback";
 import { useReadOnlyFeedback } from "./use-read-only-feedback";
 

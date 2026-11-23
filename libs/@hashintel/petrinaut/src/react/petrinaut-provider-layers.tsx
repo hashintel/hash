@@ -1,5 +1,11 @@
 import { composesOnly, resolvedLibraries } from "@hashintel/petrinaut-core";
 
+import { ActiveNetProvider } from "./document/active-net-provider";
+import { CompositionContext } from "./document/composition-context";
+import { PetrinautInstanceContext } from "./document/instance-context";
+import { SDCPNProvider } from "./document/sdcpn-provider";
+import { UndoRedoContext } from "./document/undo-redo-context";
+import { useHandleHistoryAsUndoRedo } from "./document/use-handle-history-as-undo-redo";
 import { EventPlaybackProvider } from "./event-playback/provider";
 import { ExecutionFrameProvider } from "./execution-frame/provider";
 import {
@@ -7,17 +13,11 @@ import {
   type NetManagement,
 } from "./host/net-management-context";
 import { ReadOnlyActionContext } from "./host/read-only-action-context";
-import { PetrinautInstanceContext } from "./instance-context";
-import { SDCPNProvider } from "./sdcpn-provider";
 import { useStore } from "./shared/use-store";
-import { ActiveNetProvider } from "./state/active-net-provider";
 import { CanvasViewportProvider } from "./state/canvas-viewport-provider";
-import { CompositionContext } from "./state/composition-context";
 import { EditorProvider } from "./state/editor-provider";
 import { PanelSizesProvider } from "./state/panel-sizes-provider";
-import { UndoRedoContext } from "./state/undo-redo-context";
 import { UserSettingsProvider } from "./state/user-settings-provider";
-import { useHandleHistoryAsUndoRedo } from "./use-handle-history-as-undo-redo";
 
 import type { Petrinaut, PlaybackSpeed } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";

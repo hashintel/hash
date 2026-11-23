@@ -7,12 +7,12 @@ import { Activity, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useDocumentId } from "../../../react/hooks/use-document";
+import { useComposesOnly } from "../../../react/document/use-composes-only";
+import { useDocumentId } from "../../../react/document/use-document";
 import {
   useEditorActions,
   useEditorMode,
 } from "../../../react/state/editor-context";
-import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";

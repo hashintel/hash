@@ -7,8 +7,8 @@ import {
   synthesizeAdHocScenario,
 } from "@hashintel/petrinaut-core";
 
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { summarizeAdHocLspErrors } from "./ad-hoc-scenario-authoring/ad-hoc-lsp-errors";
 import { validateScenarioName } from "./ad-hoc-scenario-authoring/validate-scenario-name";
 

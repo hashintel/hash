@@ -9,12 +9,12 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
+import { SDCPNContext } from "../../../react/document/sdcpn-context";
 import { LanguageClientProvider } from "../../../react/lsp/provider";
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { MonacoProvider } from "../../monaco/provider";
 import { AdHocScenarioForm } from "./ad-hoc-scenario-form";
 
-import type { SDCPNContextValue } from "../../../react/state/sdcpn-context";
+import type { SDCPNContextValue } from "../../../react/document/sdcpn-context";
 import type { AdHocFormSelection } from "./form-context";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 

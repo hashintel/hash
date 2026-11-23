@@ -21,6 +21,8 @@ import {
   type CompiledScenarioResult,
 } from "@hashintel/petrinaut-core";
 
+import { SDCPNContext } from "../document/sdcpn-context";
+import { useExecutableDefinition } from "../document/use-executable-definition";
 import {
   LanguageClientContext,
   type LanguageClientContextValue,
@@ -35,8 +37,6 @@ import {
   SimulatorsContext,
   type SimulationMode,
 } from "../simulators/context";
-import { SDCPNContext } from "../state/sdcpn-context";
-import { useExecutableDefinition } from "../state/use-executable-definition";
 import {
   type InitialMarking,
   type PlaybackSource,

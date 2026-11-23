@@ -3,8 +3,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { PetrinautInstanceContext } from "../../../../../../../../react/instance-context";
-import { ActiveNetContext } from "../../../../../../../../react/state/active-net-context";
+import { ActiveNetContext } from "../../../../../../../../react/document/active-net-context";
+import { PetrinautInstanceContext } from "../../../../../../../../react/document/instance-context";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { ReadOnlyReasonContext } from "../../../../../../../../react/state/use-read-only-reason";
 import { selectedRowCellStyle } from "../../../../../../../components/spreadsheet-kit/form-table";

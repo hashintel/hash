@@ -1,14 +1,14 @@
 import { useEffect, useState, type ReactNode } from "react";
 
-import { createItemTypeLookup } from "./sdcpn-provider/item-type-lookup";
-import { createVisualizerDefinitionStore } from "./sdcpn-provider/visualizer-definition-store";
-import { usePublished } from "./shared/select-from-context";
-import { useStore } from "./shared/use-store";
+import { usePublished } from "../shared/select-from-context";
+import { useStore } from "../shared/use-store";
 import {
   SDCPNContext,
   SDCPNPublishedContext,
   type SDCPNContextValue,
-} from "./state/sdcpn-context";
+} from "./sdcpn-context";
+import { createItemTypeLookup } from "./sdcpn-provider/item-type-lookup";
+import { createVisualizerDefinitionStore } from "./sdcpn-provider/visualizer-definition-store";
 import { usePetrinautInstance } from "./use-petrinaut-instance";
 
 /**

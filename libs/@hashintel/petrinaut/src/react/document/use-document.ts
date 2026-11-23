@@ -1,4 +1,4 @@
-import { useSDCPNState } from "../state/sdcpn-context";
+import { useSDCPNState } from "./sdcpn-context";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 

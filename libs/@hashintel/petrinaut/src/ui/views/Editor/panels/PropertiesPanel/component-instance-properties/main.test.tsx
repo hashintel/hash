@@ -14,9 +14,9 @@ import {
   type Place,
 } from "@hashintel/petrinaut-core";
 
-import { PetrinautInstanceContext } from "../../../../../../react/instance-context";
-import { CompositionContext } from "../../../../../../react/state/composition-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { CompositionContext } from "../../../../../../react/document/composition-context";
+import { PetrinautInstanceContext } from "../../../../../../react/document/instance-context";
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import { ComponentInstanceProperties } from "./main";
 
 afterEach(cleanup);

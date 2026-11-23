@@ -15,10 +15,10 @@ import {
   type Component,
 } from "@hashintel/petrinaut-core";
 
-import { PetrinautInstanceContext } from "../../../../../../react/instance-context";
+import { ActiveNetContext } from "../../../../../../react/document/active-net-context";
+import { PetrinautInstanceContext } from "../../../../../../react/document/instance-context";
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import { useStore } from "../../../../../../react/shared/use-store";
-import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { PetrinautPresentationProvider } from "../../../../shared/presentation-provider";
 import { NetNavigationList } from "./nets-list";
 

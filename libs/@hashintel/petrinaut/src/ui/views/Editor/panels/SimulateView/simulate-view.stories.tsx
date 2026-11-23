@@ -1,6 +1,6 @@
+import { SDCPNContext } from "../../../../../react/document/sdcpn-context";
 import { LanguageClientProvider } from "../../../../../react/lsp/provider";
 import { PetrinautNavigationProvider } from "../../../../../react/navigation/navigation-provider";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { MonacoProvider } from "../../../../monaco/provider";
 import {
   makeExperiment,

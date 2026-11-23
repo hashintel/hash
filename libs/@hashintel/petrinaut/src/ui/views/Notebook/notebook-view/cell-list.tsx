@@ -13,7 +13,7 @@ import { cellBodyParts, partStopId } from "../notebook-cell/cell-body-parts";
 import { cellPresentation } from "../notebook-cell/cell-summary";
 import { cellName } from "../notebook-model";
 
-import type { ActiveNetDefinition } from "../../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../../react/document/active-net-context";
 import type { FocusStop } from "../../../worksheet/use-focus-stops";
 import type { CellRowActions } from "../notebook-cell";
 import type {

@@ -3,14 +3,14 @@ import { useState } from "react";
 import { Button, SegmentedControl, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePetrinautDefinitionSelector } from "../../../../../../../react/hooks/use-document";
+import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../../react/document/use-document";
 import {
   useEditorActions,
   useEditorState,
   type TimelineChartType,
   type TimelineView,
 } from "../../../../../../../react/state/editor-context";
-import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { MetricDrawer } from "../../../SimulateView/metrics/metric-drawer";
 import { useMetricShapes } from "./use-metric-shapes";
 import {

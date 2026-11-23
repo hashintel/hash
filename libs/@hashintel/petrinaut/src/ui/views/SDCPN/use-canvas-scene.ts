@@ -5,11 +5,11 @@ import {
   compactNodeDimensions,
 } from "@hashintel/petrinaut-core";
 
+import { ActiveNetContext } from "../../../react/document/active-net-context";
+import { CompositionContext } from "../../../react/document/composition-context";
+import { SDCPNContext } from "../../../react/document/sdcpn-context";
 import { useStore } from "../../../react/shared/use-store";
-import { ActiveNetContext } from "../../../react/state/active-net-context";
-import { CompositionContext } from "../../../react/state/composition-context";
 import { useEditorFields } from "../../../react/state/editor-context";
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useUserSettingsFields } from "../../../react/state/user-settings-context";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import {
@@ -20,7 +20,7 @@ import {
 import { fusionSeverities } from "./fusion-links";
 import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type { CanvasPointer } from "./canvas-pointer";
 import type {
   PetrinautExtensionSettings,

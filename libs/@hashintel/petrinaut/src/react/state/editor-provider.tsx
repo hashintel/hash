@@ -1,5 +1,6 @@
 import { use, useEffect, useRef, useState } from "react";
 
+import { useComposesOnly } from "../document/use-composes-only";
 import { ActualModeContext } from "../host/actual-mode-context";
 import { usePetrinautNavigation } from "../navigation/navigation";
 import { usePublished } from "../shared/select-from-context";
@@ -22,7 +23,6 @@ import { useResolvedLocation } from "./editor-provider/use-resolved-location";
 import { PanelPresenceProvider } from "./panel-presence-provider";
 import { ReadOnlyReasonProvider } from "./read-only-reason-provider";
 import { navigationResourceToSimulateDrawer } from "./simulate-drawer-location";
-import { useComposesOnly } from "./use-composes-only";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
 import { useUserSettingsFields } from "./user-settings-context";
 

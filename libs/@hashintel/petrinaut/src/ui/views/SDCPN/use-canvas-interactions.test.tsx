@@ -5,18 +5,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resolveLibrary } from "@hashintel/petrinaut-core";
 
-import { PetrinautInstanceContext } from "../../../react/instance-context";
+import { ActiveNetContext } from "../../../react/document/active-net-context";
+import { CompositionContext } from "../../../react/document/composition-context";
+import { PetrinautInstanceContext } from "../../../react/document/instance-context";
+import { SDCPNContext } from "../../../react/document/sdcpn-context";
 import { NotificationsContext } from "../../../react/notifications/context";
-import { ActiveNetContext } from "../../../react/state/active-net-context";
-import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { logisticsLibrary } from "../../libraries-story-fixtures";
 import { CanvasPointerContext, createCanvasPointer } from "./canvas-pointer";
 import { fusionLinks } from "./fusion-links";
 import { useCanvasInteractions } from "./use-canvas-interactions";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type {
   CanvasConnection,
   CanvasLinkRewire,

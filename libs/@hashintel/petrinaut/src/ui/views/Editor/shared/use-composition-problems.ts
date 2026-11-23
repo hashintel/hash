@@ -5,8 +5,8 @@ import {
   type CompositionProblem,
 } from "@hashintel/petrinaut-core";
 
-import { CompositionContext } from "../../../../react/state/composition-context";
-import { SDCPNContext } from "../../../../react/state/sdcpn-context";
+import { CompositionContext } from "../../../../react/document/composition-context";
+import { SDCPNContext } from "../../../../react/document/sdcpn-context";
 
 /**
  * The problems with the net's composition: what the Diagnostics tab lists

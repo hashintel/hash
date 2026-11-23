@@ -1,6 +1,7 @@
 import { use } from "react";
 import { expect, userEvent, within } from "storybook/test";
 
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import {
   type ExperimentRecord,
   ExperimentsContext,
@@ -14,7 +15,6 @@ import {
   type OptimizationRecord,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { SimulationWorkspace } from "../../../shared/simulation-workspace";
 import {
   makeConstrainedSweepExperiment,

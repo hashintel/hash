@@ -6,8 +6,11 @@ import { describe, expect, it } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
+import {
+  SDCPNContext,
+  type SDCPNContextValue,
+} from "../document/sdcpn-context";
 import { ActualModeContext } from "../host/actual-mode-context";
-import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import { useActualExecutionFrameSource } from "./use-actual-execution-frame-source";
 
 import type { ActualModeContextValue, SDCPN } from "@hashintel/petrinaut-core";

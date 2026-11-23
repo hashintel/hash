@@ -7,9 +7,9 @@ import {
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
 
-import { ActiveNetContext } from "./active-net-context";
+import { ActiveNetContext } from "../document/active-net-context";
+import { SDCPNContext } from "../document/sdcpn-context";
 import { useEditorActions, useEditorState } from "./editor-context";
-import { SDCPNContext } from "./sdcpn-context";
 
 /**
  * Reactively removes stale IDs from the selection when items are deleted from the SDCPN.

@@ -1,6 +1,6 @@
 import { Button, Icon } from "@hashintel/ds-components";
 
-import { usePetrinautDefinitionSelector } from "../../../../../../react/hooks/use-document";
+import { usePetrinautDefinitionSelector } from "../../../../../../react/document/use-document";
 import {
   useEditorActions,
   useEditorState,

@@ -17,10 +17,10 @@ import {
   type SelectionItem,
 } from "@hashintel/petrinaut-core";
 
-import { PetrinautInstanceContext } from "../../../../../../../react/instance-context";
-import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
+import { ActiveNetContext } from "../../../../../../../react/document/active-net-context";
+import { PetrinautInstanceContext } from "../../../../../../../react/document/instance-context";
+import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { CodeNavigationProvider } from "../../../../../../monaco/code-navigation";
 import { PlacePropertiesContext } from "../context";
 import { PlaceMainContent } from "./main";

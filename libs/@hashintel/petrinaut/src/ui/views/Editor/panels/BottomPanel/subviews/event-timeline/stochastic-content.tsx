@@ -2,12 +2,12 @@ import { use, useRef, useSyncExternalStore } from "react";
 
 import { placeCountMetricId } from "@hashintel/petrinaut-core";
 
+import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../../react/document/use-document";
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
-import { usePetrinautDefinitionSelector } from "../../../../../../../react/hooks/use-document";
 import { useElementOnScreen } from "../../../../../../../react/hooks/use-element-on-screen";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { useEditorState } from "../../../../../../../react/state/editor-context";
-import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { buildPerPlaceSeriesConfig } from "../simulation-timeline/series-config/per-place";
 import { placeMeanTimeline } from "./stochastic-series";
 import { TimelineFrame } from "./timeline-frame";

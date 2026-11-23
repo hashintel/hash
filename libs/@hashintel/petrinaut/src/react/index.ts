@@ -18,8 +18,8 @@ export { CommandRegistryProvider } from "./commands/command-registry-provider";
 export { formatShortcutKeys } from "./commands/format-shortcut";
 
 // --- Instance access + low-level adapters ---
-export { PetrinautInstanceContext } from "./instance-context";
-export { usePetrinautInstance } from "./use-petrinaut-instance";
+export { PetrinautInstanceContext } from "./document/instance-context";
+export { usePetrinautInstance } from "./document/use-petrinaut-instance";
 export { useStore, useStoreSelector } from "./shared/use-store";
 export { ActualModeContext } from "./host/actual-mode-context";
 export type { ActualModeContextValue } from "./host/actual-mode-context";
@@ -147,7 +147,7 @@ export type {
 export {
   useDocumentId,
   usePetrinautDefinitionSelector,
-} from "./hooks/use-document";
+} from "./document/use-document";
 export { useIsReadOnly } from "./state/use-is-read-only";
 export {
   formatReadOnlyReason,

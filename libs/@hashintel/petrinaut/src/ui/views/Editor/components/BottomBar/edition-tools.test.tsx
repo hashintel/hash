@@ -3,8 +3,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { use, type ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { CompositionContext } from "../../../../../react/state/composition-context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { CompositionContext } from "../../../../../react/document/composition-context";
+import { SDCPNContext } from "../../../../../react/document/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { EditionTools } from "./edition-tools";
 

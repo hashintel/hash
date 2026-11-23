@@ -5,16 +5,16 @@ import { afterEach, expect, it } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
-import { PetrinautInstanceContext } from "../../../react/instance-context";
+import { ActiveNetContext } from "../../../react/document/active-net-context";
+import { PetrinautInstanceContext } from "../../../react/document/instance-context";
+import { SDCPNContext } from "../../../react/document/sdcpn-context";
 import {
   defaultPetrinautNavigationState,
   type PetrinautNavigationState,
 } from "../../../react/navigation/navigation";
 import { PetrinautNavigationProvider } from "../../../react/navigation/navigation-provider";
-import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { EditorProvider } from "../../../react/state/editor-provider";
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { fusionLinks } from "./fusion-links";
 import { useCanvasInteractions } from "./use-canvas-interactions";
 

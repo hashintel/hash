@@ -19,9 +19,9 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
+import { CompositionContext } from "../../../../../../../react/document/composition-context";
+import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context";
 import { useMutationRefusal } from "../../../../../../../react/hooks/use-mutation-refusal";
-import { CompositionContext } from "../../../../../../../react/state/composition-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";

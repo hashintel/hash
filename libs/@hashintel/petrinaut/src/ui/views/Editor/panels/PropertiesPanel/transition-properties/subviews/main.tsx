@@ -11,9 +11,9 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
-import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
-import { CompositionContext } from "../../../../../../../react/state/composition-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { ActiveNetContext } from "../../../../../../../react/document/active-net-context";
+import { CompositionContext } from "../../../../../../../react/document/composition-context";
+import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import {
   ArcItem,

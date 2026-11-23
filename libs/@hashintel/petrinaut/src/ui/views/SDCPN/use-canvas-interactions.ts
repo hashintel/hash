@@ -17,17 +17,17 @@ import {
   resolveComponent,
 } from "@hashintel/petrinaut-core";
 
+import { ActiveNetContext } from "../../../react/document/active-net-context";
+import { CompositionContext } from "../../../react/document/composition-context";
+import { SDCPNContext } from "../../../react/document/sdcpn-context";
+import { useComposesOnly } from "../../../react/document/use-composes-only";
 import { usePetrinautMutations } from "../../../react/hooks/use-petrinaut-mutations";
 import { useReadOnlyFeedback } from "../../../react/hooks/use-read-only-feedback";
 import { NotificationsContext } from "../../../react/notifications/context";
-import { ActiveNetContext } from "../../../react/state/active-net-context";
-import { CompositionContext } from "../../../react/state/composition-context";
 import {
   useEditorActions,
   useEditorFields,
 } from "../../../react/state/editor-context";
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
-import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useUserSettings } from "../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
@@ -41,7 +41,7 @@ import {
 } from "./fusion-links";
 import { useStableActions } from "./use-stable-actions";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type { DraggedNodeKind } from "../shared/canvas-node-drag";
 import type {
   CanvasLinkEnd,

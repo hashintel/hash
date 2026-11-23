@@ -9,15 +9,15 @@ import {
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
 
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
 } from "../../../../../../react/lsp/context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { CreateScenarioDrawer } from "./create-scenario-drawer";
 import { ViewScenarioDrawer } from "./view-scenario-drawer";
 
-import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
+import type { SDCPNContextValue } from "../../../../../../react/document/sdcpn-context";
 import type { Scenario, SDCPN } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
 

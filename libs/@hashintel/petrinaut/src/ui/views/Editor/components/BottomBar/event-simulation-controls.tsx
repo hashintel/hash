@@ -3,10 +3,10 @@ import { use } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { PlaybackIcon } from "@hashintel/ds-icons";
 
+import { ActiveNetContext } from "../../../../../react/document/active-net-context";
 import { EventPlaybackContext } from "../../../../../react/event-playback/context";
 import { useStoreSelector } from "../../../../../react/shared/use-store";
 import { SimulationContext } from "../../../../../react/simulation/context";
-import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { useEditorActions } from "../../../../../react/state/editor-context";
 import { CollapsibleGroup } from "./collapsible-group";
 import { EventTimeControls } from "./event-time-controls";

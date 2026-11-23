@@ -6,8 +6,8 @@ import {
   generatePetrinautId,
 } from "@hashintel/petrinaut-core";
 
+import { ActiveNetContext } from "../../../../../../../react/document/active-net-context";
 import { usePetrinautMutations } from "../../../../../../../react/hooks/use-petrinaut-mutations";
-import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";

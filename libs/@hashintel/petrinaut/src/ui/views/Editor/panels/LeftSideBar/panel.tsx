@@ -7,9 +7,9 @@ import { use } from "react";
 
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { CompositionContext } from "../../../../../react/state/composition-context";
+import { CompositionContext } from "../../../../../react/document/composition-context";
+import { useComposesOnly } from "../../../../../react/document/use-composes-only";
 import { useEditorFields } from "../../../../../react/state/editor-context";
-import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
 import { KeptState } from "../../../../components/kept-state";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";

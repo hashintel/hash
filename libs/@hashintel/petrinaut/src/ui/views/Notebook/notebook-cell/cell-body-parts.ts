@@ -1,6 +1,6 @@
 import { arcPlaceId } from "../notebook-model";
 
-import type { ActiveNetDefinition } from "../../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../../react/document/active-net-context";
 import type { NotebookCell } from "../notebook-model";
 
 /** One focusable line inside an expanded cell body, in visual order. */

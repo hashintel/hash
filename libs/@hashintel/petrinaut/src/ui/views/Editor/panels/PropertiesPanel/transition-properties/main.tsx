@@ -2,9 +2,9 @@ import { use } from "react";
 
 import { getTransitionLogicAvailability } from "@hashintel/petrinaut-core";
 
-import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
-import { CompositionContext } from "../../../../../../react/state/composition-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { ActiveNetContext } from "../../../../../../react/document/active-net-context";
+import { CompositionContext } from "../../../../../../react/document/composition-context";
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { TransitionPropertiesContext } from "./context";

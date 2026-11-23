@@ -3,9 +3,9 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { PetrinautInstanceContext } from "../../../../../../../react/instance-context";
-import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { ActiveNetContext } from "../../../../../../../react/document/active-net-context";
+import { PetrinautInstanceContext } from "../../../../../../../react/document/instance-context";
+import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context";
 import { ReadOnlyReasonContext } from "../../../../../../../react/state/use-read-only-reason";
 import { TransitionPropertiesContext } from "../context";
 import { TransitionMainContent } from "./main";
