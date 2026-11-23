@@ -5946,6 +5946,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@flue/sdk@patch:@flue/sdk@npm%3A2.3.0#~/.yarn/patches/@flue-sdk-npm-2.3.0-brunch.patch":
+  version: 2.3.0
+  resolution: "@flue/sdk@patch:@flue/sdk@npm%3A2.3.0#~/.yarn/patches/@flue-sdk-npm-2.3.0-brunch.patch::version=2.3.0&hash=5c16dc"
+  dependencies:
+    "@durable-streams/client": "npm:^0.2.6"
+  checksum: 10c0/6a5a46374805c377ce796e91b86aeaa06e0bfbd8a57db5e2d8a342d3f7b6bae966b7c33242f691b7a2368b81dc7609c50095cd63e38d056d418982cce3665195
+  languageName: node
+  linkType: hard
+
 "@flue/vite@npm:2.3.0":
   version: 2.3.0
   resolution: "@flue/vite@npm:2.3.0"
