@@ -25,7 +25,7 @@ const laneRef = createRef<HTMLDivElement>();
 const barRef = createRef<HTMLDivElement>();
 let laneWidth = 2000;
 
-vi.mock("../../../../../react/hooks/use-element-size", () => ({
+vi.mock("../../../../shared/use-element-size", () => ({
   useElementSize: (ref: unknown) => ({
     width: ref === laneRef ? laneWidth : 600,
   }),

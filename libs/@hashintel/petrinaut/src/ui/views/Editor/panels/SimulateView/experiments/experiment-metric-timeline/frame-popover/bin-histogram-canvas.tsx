@@ -15,7 +15,7 @@ import { useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useElementSize } from "../../../../../../../../react/hooks/use-element-size";
+import { useElementSize } from "../../../../../../../shared/use-element-size";
 import { formatFixed } from "../../../shared/format-value";
 import {
   columnDensity,

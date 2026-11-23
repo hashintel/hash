@@ -61,7 +61,7 @@ export {
   useCommands,
 } from "../react/commands/command-registry";
 export { useStore, useStoreSelector } from "../react/shared/use-store";
-export type { PetrinautRevealTarget } from "../react/hooks/use-reveal-in-editor";
+export type { PetrinautRevealTarget } from "../react/state/use-reveal-in-editor";
 export type { AddNotificationInput } from "../react/notifications/context";
 export type { ReadOnlyReason } from "../react/editing/use-read-only-reason";
 export { parseDocumentUri } from "@hashintel/petrinaut-core";

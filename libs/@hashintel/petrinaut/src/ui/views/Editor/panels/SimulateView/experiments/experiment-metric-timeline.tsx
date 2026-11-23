@@ -8,7 +8,7 @@ import { useRef, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 import "uplot/dist/uPlot.min.css";
 
-import { useElementSize } from "../../../../../../react/hooks/use-element-size";
+import { useElementSize } from "../../../../../shared/use-element-size";
 import { formatFixed } from "../shared/format-value";
 import { FramePopover } from "./experiment-metric-timeline/frame-popover";
 import { MetricPlot } from "./experiment-metric-timeline/metric-plot";

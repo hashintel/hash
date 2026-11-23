@@ -7,7 +7,7 @@ import { definePetrinautPlugin } from "../../plugins/define-petrinaut-plugin";
 import { renderPlugins } from "../../plugins/plugins-test-harness";
 import { EditorView } from "./editor-view";
 
-vi.mock("../../../react/hooks/use-element-size", () => ({
+vi.mock("../../shared/use-element-size", () => ({
   useElementSize: () => ({ width: 1200, height: 800 }),
 }));
 vi.mock("./panels/SimulateView/simulate-view", () => ({

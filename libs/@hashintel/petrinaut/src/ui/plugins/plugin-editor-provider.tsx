@@ -5,13 +5,13 @@ import { PetrinautInstanceContext } from "../../react/document/instance-context"
 import { useReadOnlyReason } from "../../react/editing/use-read-only-reason";
 import { ExperimentHostContext } from "../../react/experiment-host/context";
 import { ExperimentsContext } from "../../react/experiments/context";
-import { useRevealInEditor } from "../../react/hooks/use-reveal-in-editor";
 import { ErrorTrackerContext } from "../../react/host/error-tracker-context";
 import { NetManagementContext } from "../../react/host/net-management-context";
 import { LanguageClientContext } from "../../react/lsp/context";
 import { usePetrinautNavigation } from "../../react/navigation/navigation";
 import { NotificationsContext } from "../../react/notifications/context";
 import { OptimizationsContext } from "../../react/optimizations/context";
+import { useRevealInEditor } from "../../react/state/use-reveal-in-editor";
 import {
   createPluginEditor,
   PluginEditorContext,

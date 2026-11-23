@@ -16,7 +16,6 @@ import {
 import { petrinautNavigationStatesMatch } from "../../react/navigation/navigation";
 
 import type { ExperimentRecord } from "../../react/experiments/context";
-import type { PetrinautRevealTarget } from "../../react/hooks/use-reveal-in-editor";
 import type {
   ErrorTracker,
   ErrorTrackerCaptureContext,
@@ -28,6 +27,7 @@ import type {
   PetrinautNavigationUpdate,
 } from "../../react/navigation/navigation";
 import type { AddNotificationInput } from "../../react/notifications/context";
+import type { PetrinautRevealTarget } from "../../react/state/use-reveal-in-editor";
 import type {
   ApplyAutoLayoutResult,
   DiagnosticsSnapshot,

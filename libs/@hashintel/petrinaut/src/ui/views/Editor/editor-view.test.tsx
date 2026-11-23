@@ -25,7 +25,7 @@ const lifecycle = vi.hoisted(() => ({
 vi.mock("../../../react/editing/use-petrinaut-commands", () => ({
   usePetrinautCommands: () => ({ applyAutoLayout: vi.fn() }),
 }));
-vi.mock("../../../react/hooks/use-element-size", () => ({
+vi.mock("../../shared/use-element-size", () => ({
   useElementSize: () => ({ width: 1200, height: 800 }),
 }));
 vi.mock("./panels/SimulateView/simulate-view", () => ({

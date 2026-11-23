@@ -2,9 +2,9 @@ import { use, useRef } from "react";
 
 import { usePetrinautDefinitionSelector } from "../../../../../../../react/document/use-document";
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
-import { useElementOnScreen } from "../../../../../../../react/hooks/use-element-on-screen";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { useEditorState } from "../../../../../../../react/state/editor-context";
+import { useElementOnScreen } from "../../../../../../shared/use-element-on-screen";
 import { useRunTimelineView } from "../simulation-timeline/use-run-timeline-view";
 import { StochasticTimeline } from "./stochastic-content";
 import { TimelineFrame } from "./timeline-frame";

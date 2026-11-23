@@ -3,10 +3,10 @@ import uPlot from "uplot";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
+import { useLatest } from "../../../../../../../react/shared/use-latest";
 import "uplot/dist/uPlot.min.css";
 
-import { useLatest } from "../../../../../../../react/shared/use-latest";
+import { useElementSize } from "../../../../../../shared/use-element-size";
 import {
   describeRunPosition,
   formatRunPosition,

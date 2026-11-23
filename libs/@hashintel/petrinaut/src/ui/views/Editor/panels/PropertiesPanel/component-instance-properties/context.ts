@@ -1,4 +1,4 @@
-import { requiredContext } from "../../../../../../react/required-context";
+import { requiredContext } from "../../../../../shared/required-context";
 
 import type { Component, ComponentInstance } from "@hashintel/petrinaut-core";
 

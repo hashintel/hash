@@ -1,7 +1,4 @@
-import {
-  useEditorActions,
-  type SimulateDrawerState,
-} from "../state/editor-context";
+import { useEditorActions, type SimulateDrawerState } from "./editor-context";
 
 import type { SimulateViewMode } from "../navigation/navigation";
 import type { SelectionItem } from "@hashintel/petrinaut-core";

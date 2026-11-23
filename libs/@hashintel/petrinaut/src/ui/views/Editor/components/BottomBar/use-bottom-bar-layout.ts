@@ -1,12 +1,12 @@
 import { useLayoutEffect, useState } from "react";
 
-import { useElementSize } from "../../../../../react/hooks/use-element-size";
 import { VIEWPORT_CONTROLS_CLEARANCE } from "../../../../constants/ui";
 import {
   useCanvasInsetsReader,
   type CanvasInsets,
 } from "../../../../hooks/use-canvas-insets";
 import { bindStyle, useReading } from "../../../../lib/readings";
+import { useElementSize } from "../../../../shared/use-element-size";
 import { fitsWithinBounds, getBottomBarOffset } from "./bottom-bar-placement";
 import {
   type BottomBarCollapseValue,

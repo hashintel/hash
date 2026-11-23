@@ -5,10 +5,7 @@ import { renderHook } from "@testing-library/react";
 import { use, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  EditorContext,
-  type EditorContextValue,
-} from "../state/editor-context";
+import { EditorContext, type EditorContextValue } from "./editor-context";
 import { useRevealInEditor } from "./use-reveal-in-editor";
 
 const renderReveal = () => {

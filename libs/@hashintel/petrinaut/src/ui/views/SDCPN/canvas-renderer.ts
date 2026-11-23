@@ -6,7 +6,7 @@
  * renderer only turns its own hit testing and gestures into those calls.
  */
 
-import { requiredContext } from "../../../react/required-context";
+import { requiredContext } from "../../shared/required-context";
 
 import type { CanvasViewport } from "../../../react/state/canvas-viewport-context";
 import type { CanvasPoint, CanvasScene } from "./canvas-scene";

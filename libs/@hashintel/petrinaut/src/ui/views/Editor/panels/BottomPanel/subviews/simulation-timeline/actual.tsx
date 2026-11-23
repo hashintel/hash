@@ -1,11 +1,11 @@
 import { use, useEffect, useRef, useState } from "react";
 
 import { ExecutionFrameSourceContext } from "../../../../../../../react/execution-frame/context";
-import { useElementOnScreen } from "../../../../../../../react/hooks/use-element-on-screen";
 import {
   useEditorActions,
   useEditorFields,
 } from "../../../../../../../react/state/editor-context";
+import { useElementOnScreen } from "../../../../../../shared/use-element-on-screen";
 import { UPlotChart } from "./chart";
 import { TimelineLegend } from "./legend";
 import { chartAreaStyle, containerStyle } from "./styles";

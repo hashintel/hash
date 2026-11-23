@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 
-import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
+import { useLatest } from "../../../../../../../react/shared/use-latest";
 import "uplot/dist/uPlot.min.css";
 
-import { useLatest } from "../../../../../../../react/shared/use-latest";
 import { useStableCallback } from "../../../../../../../react/shared/use-stable-callback";
+import { useElementSize } from "../../../../../../shared/use-element-size";
 import { createRunDataBuilder, createStackedDataBuilder } from "./chart-data";
 import { createChartTooltip, type ChartTooltip } from "./chart-tooltip";
 
