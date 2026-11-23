@@ -21,9 +21,7 @@ import {
   cellErrorUnderlineStyle,
   cellSelectStyle,
   cellStyle,
-  dependencyHighlightStyle as highlightStyle,
   gutterCellStyle,
-  lightGutterCellStyle,
   phantomCellButtonStyle,
   phantomRowCellStyle,
   selectedRowCellStyle,
@@ -45,6 +43,10 @@ import {
   variableNameErrors,
   variablesOf,
 } from "./form-context";
+import {
+  dependencyHighlightStyle as highlightStyle,
+  lightGutterCellStyle,
+} from "./form-row-styles";
 import { OptimizeToggle } from "./optimize-toggle";
 import { ValueEditor } from "./value-editor";
 

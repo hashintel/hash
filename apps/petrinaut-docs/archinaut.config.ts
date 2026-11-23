@@ -94,6 +94,12 @@ export default defineConfig({
         "the worksheet keyboard flow is generic: it must never know the form state it navigates",
     },
     {
+      from: "ui.spreadsheet-kit",
+      to: "ui.adhoc-form",
+      reason:
+        "the kit knows nothing about what its rows mean, so any table can be composed from it",
+    },
+    {
       from: "react.experiments",
       to: "react.optimizations",
       reason:

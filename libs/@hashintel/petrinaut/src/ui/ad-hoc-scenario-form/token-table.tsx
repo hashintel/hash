@@ -35,14 +35,10 @@ import {
 import { FormSpreadsheet } from "../spreadsheet-kit/form-spreadsheet";
 import {
   cellStyle,
-  columnHeaderStyle,
   gutterCellStyle,
   gutterHeaderStyle,
   phantomCellButtonStyle,
   phantomRowCellStyle,
-  rowPaletteVars,
-  rowTintCellStyle,
-  rowTintStrongStyle,
   selectedRowCellStyle,
 } from "../spreadsheet-kit/form-table";
 import { GutterCell } from "../spreadsheet-kit/gutter-cell";
@@ -52,6 +48,12 @@ import { useSelectFirstActivation } from "../spreadsheet-kit/use-select-first";
 import { useFocusStops, type FocusStop } from "../worksheet/use-focus-stops";
 import { useStopTargets } from "../worksheet/use-stop-targets";
 import { useAdHocForm, adHocIntervalSelection } from "./form-context";
+import {
+  columnHeaderStyle,
+  rowPaletteVars,
+  rowTintCellStyle,
+  rowTintStrongStyle,
+} from "./form-row-styles";
 import { ValueEditor } from "./value-editor";
 
 // A background image, not a solid color, so it composites over row tints.

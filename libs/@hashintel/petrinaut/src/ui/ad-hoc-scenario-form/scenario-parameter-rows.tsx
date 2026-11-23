@@ -11,12 +11,7 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { FormSpreadsheet } from "../spreadsheet-kit/form-spreadsheet";
-import {
-  cellStyle,
-  dependencyHighlightStyle as highlightStyle,
-  staticNameCellStyle,
-  staticTypeCellStyle,
-} from "../spreadsheet-kit/form-table";
+import { cellStyle } from "../spreadsheet-kit/form-table";
 import { useFocusGrid } from "../worksheet/use-focus-grid";
 import {
   useAdHocForm,
@@ -28,6 +23,11 @@ import {
   variableHighlights,
   variablesOf,
 } from "./form-context";
+import {
+  dependencyHighlightStyle as highlightStyle,
+  staticNameCellStyle,
+  staticTypeCellStyle,
+} from "./form-row-styles";
 import { OptimizeToggle } from "./optimize-toggle";
 import { ValueEditor } from "./value-editor";
 

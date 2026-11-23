@@ -9,44 +9,15 @@
 import { css } from "@hashintel/ds-helpers/css";
 
 /**
- * The row palette, centralized. A row kind sets two custom properties on
- * its `<tr>` (via `rowPaletteVars`): `--adhoc-row-rgb`, the kind's tint,
- * and `--adhoc-accent-rgb`, the base every interactive shade derives from.
- * Every row state below is then a shade of one colour — the tint at
- * `/ 0.08` on data cells and `/ 0.16` on the gutter and count strip, the
- * row-selection overlay at `/ 0.14`, hover at `/ 0.08`, and the focused
- * cell's wash at `/ 0.10` — so combinations (dynamic + selected,
- * optimized + hovered) compose without per-combination styles. Plain rows
- * leave the variables unset and the `var()` fallbacks supply the neutral
- * gutter and the blue selection.
+ * Row colour. The styles below read two custom properties from the row's
+ * `<tr>`: `--adhoc-row-rgb`, the tint of its gutter, and
+ * `--adhoc-accent-rgb`, the base of every interactive shade (hover, the
+ * focus outline and its wash, the row-selection overlay). A table that
+ * colours its rows sets the two on each `<tr>`, so a coloured row that is
+ * also hovered or selected needs no style of its own. A row that sets
+ * neither gets the `var()` fallbacks: the neutral gutter and the blue
+ * selection.
  */
-const BLUE_RGB = "59 130 246";
-const PURPLE_RGB = "147 51 234";
-
-export const rowPaletteVars: Record<
-  "fixed" | "dynamic" | "optimized",
-  React.CSSProperties | undefined
-> = {
-  fixed: undefined,
-  dynamic: {
-    "--adhoc-row-rgb": BLUE_RGB,
-    "--adhoc-accent-rgb": BLUE_RGB,
-  } as React.CSSProperties,
-  optimized: {
-    "--adhoc-row-rgb": PURPLE_RGB,
-    "--adhoc-accent-rgb": PURPLE_RGB,
-  } as React.CSSProperties,
-};
-
-/** A data cell's share of the row tint, lighter than gutter and strip. */
-export const rowTintCellStyle = css({
-  backgroundColor: "[rgb(var(--adhoc-row-rgb, 255 255 255) / 0.08)]",
-});
-
-/** The gutter's and the count strip's stronger share of the row tint. */
-export const rowTintStrongStyle = css({
-  backgroundColor: "[rgb(var(--adhoc-row-rgb, 255 255 255) / 0.16)!]",
-});
 
 export const tableContainerStyle = css({
   userSelect: "none",
@@ -81,20 +52,6 @@ export const gutterHeaderStyle = css({
   fontWeight: "medium",
   width: "[40px]",
   minWidth: "[40px]",
-});
-
-export const columnHeaderStyle = css({
-  backgroundColor: "neutral.s15",
-  borderBottom: "[1px solid {colors.neutral.bd.subtle}]",
-  borderRight: "[1px solid {colors.neutral.a05}]",
-  padding: "[0]",
-  textAlign: "left",
-  fontWeight: "medium",
-  fontFamily: "mono",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  _last: { borderRight: "none" },
 });
 
 export const gutterCellStyle = css({
@@ -243,18 +200,6 @@ export const selectedRowCellStyle = css({
     "[linear-gradient(rgb(var(--adhoc-accent-rgb, 37 99 235) / 0.14), rgb(var(--adhoc-accent-rgb, 37 99 235) / 0.14))!]",
 });
 
-/**
- * The dependency highlight: marks the rows a focused expression reads, and
- * the cells that read a focused Variable or Parameter. A neutral slate
- * wash — quiet enough not to fight the blue/purple row tints or the red
- * error underline, still clearly a marker. A background image so it
- * composites over the row tints; the selection overlay still wins.
- */
-export const dependencyHighlightStyle = css({
-  backgroundImage:
-    "[linear-gradient(rgba(100, 116, 139, 0.12), rgba(100, 116, 139, 0.12))]",
-});
-
 /** The add-line's cells are a little shorter than content rows. */
 export const phantomRowCellStyle = css({
   height: "[22px!]",
@@ -324,46 +269,6 @@ export const phantomGutterButtonStyle = css({
     color: "neutral.s120",
     opacity: "[1]",
   },
-});
-
-/**
- * A read-structure name cell (a parameter's or scenario parameter's name):
- * plain face, fading out under a mask when it overflows.
- */
-export const staticNameCellStyle = css({
-  display: "flex",
-  alignItems: "center",
-  height: "[28px]",
-  paddingX: "2",
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s110",
-  overflow: "hidden",
-  whiteSpace: "nowrap",
-  maskImage:
-    "[linear-gradient(to right, black calc(100% - 14px), transparent)]",
-});
-
-/**
- * A read-structure type cell, matching the variables' type-select face:
- * plain capitalized text at the same width.
- */
-export const staticTypeCellStyle = css({
-  display: "flex",
-  alignItems: "center",
-  height: "[28px]",
-  paddingX: "2",
-  fontSize: "xs",
-  color: "neutral.s80",
-  textTransform: "capitalize",
-});
-
-/**
- * Lightens a gutter cell one surface step. The Variables lists wear it so
- * their gutters read quieter than the token tables'.
- */
-export const lightGutterCellStyle = css({
-  backgroundColor: "[{colors.neutral.s05}!]",
 });
 
 /**

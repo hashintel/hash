@@ -8,12 +8,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { emptyAdHocValue } from "@hashintel/petrinaut-core";
 
 import { FormSpreadsheet } from "../spreadsheet-kit/form-spreadsheet";
-import {
-  cellStyle,
-  dependencyHighlightStyle as highlightStyle,
-  staticNameCellStyle,
-  staticTypeCellStyle,
-} from "../spreadsheet-kit/form-table";
+import { cellStyle } from "../spreadsheet-kit/form-table";
 import { useFocusGrid, type FocusGrid } from "../worksheet/use-focus-grid";
 import {
   useAdHocForm,
@@ -22,6 +17,11 @@ import {
   adHocSelectionApplies,
   adHocSelectionText,
 } from "./form-context";
+import {
+  dependencyHighlightStyle as highlightStyle,
+  staticNameCellStyle,
+  staticTypeCellStyle,
+} from "./form-row-styles";
 import { OptimizeToggle } from "./optimize-toggle";
 import { ValueEditor } from "./value-editor";
 

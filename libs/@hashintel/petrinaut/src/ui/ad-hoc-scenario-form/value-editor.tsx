@@ -35,7 +35,6 @@ import { CodeEditor } from "../monaco/code-editor";
 import {
   cellButtonStyle,
   cellErrorUnderlineStyle,
-  dependencyHighlightStyle,
 } from "../spreadsheet-kit/form-table";
 import { useSelectFirstActivation } from "../spreadsheet-kit/use-select-first";
 import { sameAdHocFocusTarget } from "./dependency-highlight";
@@ -46,6 +45,7 @@ import {
   adHocSelectionText,
   sameParts,
 } from "./form-context";
+import { dependencyHighlightStyle } from "./form-row-styles";
 import { OptimizeToggle } from "./optimize-toggle";
 import { stepAdHocValue } from "./step-value";
 import { ComputedExpression } from "./value-editor/computed-expression";
