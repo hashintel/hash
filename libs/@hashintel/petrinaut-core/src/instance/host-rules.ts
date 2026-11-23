@@ -4,10 +4,10 @@
  * rule is added here and nowhere else.
  */
 
-import { mutationActionInputSchemas } from "../action-schemas";
+import { mutationActionInputSchemas } from "../actions/action-schemas";
 
-import type { MutationHelperFunctions } from "../actions";
-import type { CommandHelperFunctions } from "../commands";
+import type { MutationHelperFunctions } from "../actions/actions";
+import type { CommandHelperFunctions } from "../actions/commands";
 import type { ComponentReference } from "../types/sdcpn";
 import type { z } from "zod";
 

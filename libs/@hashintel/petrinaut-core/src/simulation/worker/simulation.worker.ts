@@ -8,7 +8,7 @@
  * @see ../ARCHITECTURE.md for system overview
  */
 
-import { createWorkerThreadRuntime } from "../../environment";
+import { createWorkerThreadRuntime } from "../../environment/environment";
 import { SDCPNItemError } from "../../errors";
 import { buildSimulation } from "../engine/build-simulation";
 import { computeNextFrame } from "../engine/compute-next-frame";

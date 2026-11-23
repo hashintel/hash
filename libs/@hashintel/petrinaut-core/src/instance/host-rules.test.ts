@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import { logistics } from "../composition/libraries.test-helpers";
 import { toPetrinautId } from "../document/petrinaut-id";
 import { createJsonDocHandle } from "../handle/json-doc-handle";
-import { createPetrinaut } from "../instance";
 import { composesOnly, sameRules } from "./host-rules";
-import { logistics } from "./libraries.test-helpers";
+import { createPetrinaut } from "./instance";
 
+import type { Library } from "../composition/libraries";
 import type { ComponentReference, SDCPN } from "../types/sdcpn";
-import type { Library } from "./libraries";
 
 const warehouse: Library = {
   id: "@hashintel/warehouse",

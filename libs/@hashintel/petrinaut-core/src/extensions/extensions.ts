@@ -1,15 +1,20 @@
-import { resolveComponent } from "./composition/interfaces";
-import { getArcEndpoint } from "./document/arc-endpoints";
-import { cloneAdHocScenarioState } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-actions";
+/**
+ * @layerRoot core.extensions
+ * @role The Petri-net extensions a host can switch off, what that removes from a document, and the class of a net: timed, coloured, stochastic
+ */
 
-import type { ResolvedLibraries } from "./composition/libraries";
+import { resolveComponent } from "../composition/interfaces";
+import { getArcEndpoint } from "../document/arc-endpoints";
+import { cloneAdHocScenarioState } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-actions";
+
+import type { ResolvedLibraries } from "../composition/libraries";
 import type {
   ComponentInstance,
   InputArc,
   OutputArc,
   Place as SDCPNPlace,
   SDCPN,
-} from "./types/sdcpn";
+} from "../types/sdcpn";
 
 export const PETRINAUT_EXTENSION_NAMES = [
   "colors",

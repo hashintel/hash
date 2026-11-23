@@ -1,12 +1,12 @@
 import ts from "@typescript/typescript6";
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../extensions";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../extensions/extensions";
 import { checkSDCPN } from "./checker";
 import { createSDCPN } from "./helper/create-sdcpn";
 import { createLanguageServers, syncLanguageServers } from "./language-servers";
 
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { SDCPN } from "../../types/sdcpn";
 
 /** Check semantics; legacy-user-code.test.ts covers the independent migration hints. */

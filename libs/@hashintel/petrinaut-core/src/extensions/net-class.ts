@@ -1,10 +1,10 @@
-import { getPlaceDynamicsEquationIds } from "./document/place-dynamics";
+import { getPlaceDynamicsEquationIds } from "../document/place-dynamics";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   type PetrinautExtensionSettings,
 } from "./extensions";
 
-import type { Color, Place, SDCPN, Transition } from "./types/sdcpn";
+import type { Color, Place, SDCPN, Transition } from "../types/sdcpn";
 
 /**
  * Whether anything in the net takes time.

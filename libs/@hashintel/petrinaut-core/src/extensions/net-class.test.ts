@@ -9,7 +9,7 @@ import {
   runContinuityOf,
 } from "./net-class";
 
-import type { Place, SDCPN, Transition } from "./types/sdcpn";
+import type { Place, SDCPN, Transition } from "../types/sdcpn";
 
 const place = (overrides: Partial<Place> = {}): Place => ({
   id: "place",

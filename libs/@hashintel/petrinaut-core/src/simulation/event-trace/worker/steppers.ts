@@ -1,4 +1,4 @@
-import { netTimeOf } from "../../../net-class";
+import { netTimeOf } from "../../../extensions/net-class";
 import {
   ADAPTIVE_SIMULATOR_ID,
   createAdaptiveStepper,

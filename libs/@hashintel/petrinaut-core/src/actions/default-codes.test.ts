@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { compileHirArtifacts, lowerTypeScriptToHir } from "../hir";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
   generateDefaultDifferentialEquationCode,
 } from "./default-codes";
-import { compileHirArtifacts, lowerTypeScriptToHir } from "./hir";
 
-import type { Color, SDCPN } from "./types/sdcpn";
+import type { Color, SDCPN } from "../types/sdcpn";
 
 const body: Color = {
   id: "body",

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { netTimeOf } from "../extensions/net-class";
 import { compileHirArtifacts } from "../hir";
 import { lowerScenarioToHir } from "../hir/scenario";
 import { buildVisualizerContext } from "../hir/surface-context";
-import { netTimeOf } from "../net-class";
 import { PETRINAUT_DEFAULT_SEED } from "../simulation/api";
 import { compileScenario } from "../simulation/authoring/scenario/compile-scenario";
 import { createStepStepper } from "../simulation/event-trace/worker/step-stepper";

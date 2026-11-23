@@ -63,14 +63,14 @@ export {
   isSelectionTypeAvailableForExtensions,
   resolvePetrinautHandleCapabilities,
   sanitizeSDCPNForExtensions,
-} from "./extensions";
+} from "./extensions/extensions";
 export type {
   PetrinautExtension,
   PetrinautExtensionSettings,
   PetrinautHandleCapabilities,
   ResolvedPetrinautHandleCapabilities,
   TransitionLogicAvailability,
-} from "./extensions";
+} from "./extensions/extensions";
 
 // --- Composition: place fusion ---
 export {
@@ -163,16 +163,16 @@ export type {
 } from "./command-registry/command-registry";
 
 // --- Instance ---
-export { createPetrinaut } from "./instance";
+export { createPetrinaut } from "./instance/instance";
 export type {
   CreatePetrinautConfig,
   EventStream,
   Petrinaut,
   PetrinautCommands,
   PetrinautMutations,
-} from "./instance";
-export { composesOnly, sameRules } from "./composition/host-rules";
-export type { PetrinautRules } from "./composition/host-rules";
+} from "./instance/instance";
+export { composesOnly, sameRules } from "./instance/host-rules";
+export type { PetrinautRules } from "./instance/host-rules";
 export {
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
   PETRINAUT_OPTIMIZATION_MAX_SEED,
@@ -220,28 +220,31 @@ export type {
   PetrinautOptimizationConstraintPolicy,
   PetrinautIntegerOptimizationDomain,
 } from "./optimization";
-export { createPetrinautActions, updatePrunesReferences } from "./actions";
+export {
+  createPetrinautActions,
+  updatePrunesReferences,
+} from "./actions/actions";
 export type {
   CreatePetrinautActionsOptions,
   MutationHelperFunctions,
-} from "./actions";
-export { createPetrinautCommands } from "./commands";
+} from "./actions/actions";
+export { createPetrinautCommands } from "./actions/commands";
 export type {
   ApplyAutoLayoutResult,
   ApplyClipboardPasteResult,
   CommandHelperFunctions,
-} from "./commands";
+} from "./actions/commands";
 export {
   aiCommandActionInputSchemas,
   commandActionInputSchemas,
-} from "./command-schemas";
+} from "./actions/command-schemas";
 export type {
   AiCommandActionInput,
   AiCommandActionName,
   CommandActionInput,
   CommandActionName,
-} from "./command-schemas";
-export { mutationActionInputSchemas } from "./action-schemas";
+} from "./actions/command-schemas";
+export { mutationActionInputSchemas } from "./actions/action-schemas";
 export {
   calculateGraphLayout,
   classicNodeDimensions,
@@ -532,7 +535,7 @@ export type {
   AbortSignalLike,
   WorkerFactoryLike,
   WorkerLike,
-} from "./environment";
+} from "./environment/environment";
 export {
   ARC_ID_PREFIX,
   ARC_ID_SEPARATOR,
@@ -581,7 +584,7 @@ export {
   type NetTime,
   type RunClock,
   type RunContinuity,
-} from "./net-class";
+} from "./extensions/net-class";
 export { GRID_SIZE } from "./document/grid-size";
 export {
   type DefaultParameterValues,
@@ -610,7 +613,7 @@ export {
   generateDefaultLambdaCode,
   generateDefaultTransitionKernelCode,
   generateDefaultVisualizerCode,
-} from "./default-codes";
+} from "./actions/default-codes";
 export {
   compileScenario,
   prepareScenarioCompiler,

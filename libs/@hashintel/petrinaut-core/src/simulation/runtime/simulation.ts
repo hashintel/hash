@@ -10,12 +10,12 @@ import {
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,
-} from "../../extensions";
+} from "../../extensions/extensions";
 import { flattenComponentInstancesForSimulation } from "../engine/flatten-component-instances";
 import { createInMemorySimulationFrameStore } from "./frame-store";
 import { createWorkerTransport } from "./transport";
 
-import type { EventStream } from "../../instance";
+import type { EventStream } from "../../instance/instance";
 import type { ReadableStore } from "../../store";
 import type {
   CreateSimulationConfig,

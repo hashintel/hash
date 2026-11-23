@@ -1,6 +1,6 @@
-import { TYPE_POLICIES } from "./tokens/type-policies";
+import { TYPE_POLICIES } from "../tokens/type-policies";
 
-import type { Color } from "./types/sdcpn";
+import type { Color } from "../types/sdcpn";
 
 const defaultTokenAttributeSource = (
   element: Color["elements"][number],

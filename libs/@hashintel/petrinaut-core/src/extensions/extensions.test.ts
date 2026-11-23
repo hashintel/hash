@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isSDCPNEqual } from "./document/deep-equal";
+import { isSDCPNEqual } from "../document/deep-equal";
 import {
   createTransitionLogicAvailabilityReader,
   getTransitionLogicAvailability,
@@ -9,9 +9,9 @@ import {
   stripDisabledExtensionData,
 } from "./extensions";
 
-import type { ResolvedLibraries } from "./composition/libraries";
+import type { ResolvedLibraries } from "../composition/libraries";
+import type { SDCPN } from "../types/sdcpn";
 import type { PetrinautExtensionSettings } from "./extensions";
-import type { SDCPN } from "./types/sdcpn";
 
 const allEnabled: PetrinautExtensionSettings = {
   colors: true,

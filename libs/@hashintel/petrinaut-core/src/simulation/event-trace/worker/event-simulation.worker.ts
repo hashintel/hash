@@ -4,7 +4,7 @@
  * records, computing only as far as the host has demanded.
  */
 
-import { createWorkerThreadRuntime } from "../../../environment";
+import { createWorkerThreadRuntime } from "../../../environment/environment";
 import {
   COMPUTE_SLICE_MS,
   FLUSH_ADVANCES,

@@ -18,7 +18,7 @@ import {
   tokenSlotsValue,
 } from "./token-layout";
 
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { HirFunction } from "../../hir/hir";
 import type {
   HirInputPlaceCount,

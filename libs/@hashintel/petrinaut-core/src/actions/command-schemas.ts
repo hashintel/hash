@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { clipboardPayloadSchema } from "./clipboard/types";
+import { clipboardPayloadSchema } from "../clipboard/types";
 
 /**
  * AI-callable commands. Keys MUST also appear in

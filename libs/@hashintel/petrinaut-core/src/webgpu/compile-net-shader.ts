@@ -19,7 +19,7 @@
  * live state) and `run-parameters` (per-run buffer).
  */
 import { getArcEndpointPlaceId } from "../document/arc-endpoints";
-import { netTimeOf } from "../net-class";
+import { netTimeOf } from "../extensions/net-class";
 import { emitDynamics } from "./compile-net-shader/dynamics";
 import {
   emitFrameHistograms,
@@ -58,7 +58,7 @@ import { WgslBailError, emitF32Literal } from "./emit-wgsl";
 import { commentSafe } from "./wgsl-identifiers";
 import { wgslPrelude } from "./wgsl-prelude";
 
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirFunction } from "../hir/hir";
 import type { SDCPN } from "../types/sdcpn";
 import type { GpuOdeMethod } from "./compile-net-shader/dynamics";

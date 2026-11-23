@@ -29,7 +29,7 @@ import { hirFromArtifacts } from "./hir-from-artifacts";
 import { tryTranslateKernel } from "./try-translate-kernel";
 import { tryTranslateMetric } from "./try-translate-metric";
 
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirArtifacts } from "../hir-runtime";
 import type { MonteCarloMetricSpec } from "../simulation/monte-carlo/metrics/types";
 import type { SDCPN } from "../types/sdcpn";

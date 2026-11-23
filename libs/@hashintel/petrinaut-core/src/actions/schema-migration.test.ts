@@ -1,13 +1,13 @@
 import { describe, expect, test } from "vitest";
 
-import { toPetrinautId } from "./document/petrinaut-id";
-import { createJsonDocHandle } from "./handle";
-import { createPetrinaut } from "./instance";
+import { toPetrinautId } from "../document/petrinaut-id";
+import { createJsonDocHandle } from "../handle";
+import { createPetrinaut } from "../instance/instance";
+import { scenarioSchema } from "../schemas/scenario-schema";
+import { formatUuid, toUuid } from "../tokens/uuid";
 import { migrateScenarioRowsForTypeEdit } from "./schema-migration";
-import { scenarioSchema } from "./schemas/scenario-schema";
-import { formatUuid, toUuid } from "./tokens/uuid";
 
-import type { Place, SDCPN } from "./types/sdcpn";
+import type { Place, SDCPN } from "../types/sdcpn";
 
 const idOf = toPetrinautId;
 

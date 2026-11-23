@@ -3,7 +3,8 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,
   type PetrinautExtensionSettings,
-} from "../../extensions";
+} from "../../extensions/extensions";
+import { isSourcePredicate, netTimeOf } from "../../extensions/net-class";
 import {
   buildDynamicsContext,
   buildKernelContext,
@@ -14,7 +15,6 @@ import {
 import { classifyNet } from "../../hir/classify-net";
 import { lowerAndCheck } from "../../hir/compile";
 import { inferMetricShape } from "../../hir/metric-shape";
-import { isSourcePredicate, netTimeOf } from "../../net-class";
 import { getHirDiagnosticsForItem } from "./check-hir";
 import {
   sourcePredicateDiagnostic,
@@ -22,9 +22,9 @@ import {
 } from "./check-net-timing";
 import { getItemFilePath } from "./file-paths";
 
+import type { NetClass } from "../../extensions/net-class";
 import type { HirSurfaceContext } from "../../hir";
 import type { MetricShape } from "../../hir/metric-shape";
-import type { NetClass } from "../../net-class";
 import type { SDCPN } from "../../types/sdcpn";
 import type { LanguageServers } from "./language-servers";
 import type { VirtualFileLanguageServer } from "./virtual-file-language-server";

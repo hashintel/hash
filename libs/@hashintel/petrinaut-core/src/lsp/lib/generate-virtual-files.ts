@@ -9,7 +9,7 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   getEffectiveTransitionLambdaType,
   type PetrinautExtensionSettings,
-} from "../../extensions";
+} from "../../extensions/extensions";
 import {
   AMBIENT_INPUT_NAMES,
   buildLambdaContext,

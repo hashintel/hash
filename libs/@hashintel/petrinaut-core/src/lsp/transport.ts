@@ -1,4 +1,4 @@
-import type { WorkerFactoryLike, WorkerLike } from "../environment";
+import type { WorkerFactoryLike, WorkerLike } from "../environment/environment";
 import type { ClientMessage, ServerMessage } from "./worker/protocol";
 
 /**

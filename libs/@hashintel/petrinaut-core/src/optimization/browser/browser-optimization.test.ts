@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createAbortController } from "../../environment";
+import { createAbortController } from "../../environment/environment";
 import { createOptimizationManifestInput } from "../../shared/optimization-manifest.fixtures";
 import {
   isUnknownOptimizationRunError,
@@ -9,7 +9,7 @@ import {
 } from "../index";
 import { createBrowserOptimization } from "./browser-optimization";
 
-import type { WorkerMessageHandler } from "../../environment";
+import type { WorkerMessageHandler } from "../../environment/environment";
 import type {
   PetrinautOptimizationChannel,
   PetrinautOptimizationEvent,

@@ -1,13 +1,13 @@
 import { resolveSimulatorParameters } from "./parameters";
 
-import type { AbortSignalLike } from "../../environment";
+import type { AbortSignalLike } from "../../environment/environment";
 import type {
   ExperimentBlocker,
   ExperimentBlockers,
   ExperimentNote,
 } from "../../experiments/experiment-assessment";
 import type { ExperimentRunPlan } from "../../experiments/experiment-request";
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { HirArtifacts } from "../../hir-runtime";
 import type { SDCPN } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";

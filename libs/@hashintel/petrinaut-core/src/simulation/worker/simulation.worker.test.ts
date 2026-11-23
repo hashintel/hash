@@ -7,7 +7,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { WorkerMessageEnvelope } from "../../environment";
+import type { WorkerMessageEnvelope } from "../../environment/environment";
 import type { SDCPN } from "../../types/sdcpn";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 

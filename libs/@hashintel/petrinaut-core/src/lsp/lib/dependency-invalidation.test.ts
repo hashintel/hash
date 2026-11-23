@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { checkDefinition } from "../../diagnostics";
 import { toPetrinautId } from "../../document/petrinaut-id";
 import { createJsonDocHandle } from "../../handle";
-import { createPetrinaut } from "../../instance";
+import { createPetrinaut } from "../../instance/instance";
 import { SOURCE_PREDICATE_IN_TIMED_NET_CODE } from "./check-net-timing";
 import { createSDCPN } from "./helper/create-sdcpn";
 

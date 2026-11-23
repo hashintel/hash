@@ -20,11 +20,11 @@ import {
   positionSchema,
   componentSchema,
   transitionSchema,
-} from "./schemas/entity-schemas";
-import { metricSchema as simulationMetricSchema } from "./schemas/metric-schema";
-import { scenarioSchema as simulationScenarioSchema } from "./schemas/scenario-schema";
+} from "../schemas/entity-schemas";
+import { metricSchema as simulationMetricSchema } from "../schemas/metric-schema";
+import { scenarioSchema as simulationScenarioSchema } from "../schemas/scenario-schema";
 
-import type { SelectionItem } from "./document/selection";
+import type { SelectionItem } from "../document/selection";
 
 export {
   arcEndpointSchema,
@@ -41,16 +41,16 @@ export {
   positionSchema,
   componentSchema,
   transitionSchema,
-} from "./schemas/entity-schemas";
+} from "../schemas/entity-schemas";
 export {
   metricSchema as simulationMetricSchema,
   type MetricSchema,
-} from "./schemas/metric-schema";
+} from "../schemas/metric-schema";
 export {
   scenarioParameterSchema,
   scenarioSchema as simulationScenarioSchema,
   type ScenarioSchema,
-} from "./schemas/scenario-schema";
+} from "../schemas/scenario-schema";
 export {
   simulationMetricSchema as metricSchema,
   simulationScenarioSchema as scenarioSchema,

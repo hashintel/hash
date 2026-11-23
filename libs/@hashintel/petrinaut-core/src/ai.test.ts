@@ -15,7 +15,7 @@ import {
 import { generateArcId } from "./document/arc-id";
 import { toPetrinautId } from "./document/petrinaut-id";
 import { createJsonDocHandle } from "./handle";
-import { createPetrinaut } from "./instance";
+import { createPetrinaut } from "./instance/instance";
 
 const createInstance = () =>
   createPetrinaut({

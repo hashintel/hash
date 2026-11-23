@@ -5,7 +5,7 @@
  * part of the public simulation API.
  */
 
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type {
   HirArtifacts,
   HirCompiledBufferKernel,

@@ -4,7 +4,7 @@ import { resolveNetParameterValues } from "../document/parameter-values";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,
-} from "../extensions";
+} from "../extensions/extensions";
 import { compileHirArtifacts } from "../hir";
 import { readTokenRecord } from "../tokens/token-layout";
 import { getOwn } from "../validation/record-keys";
@@ -14,7 +14,7 @@ import { createHirMetricEvaluator } from "./frames/hir-metric";
 import { readEngineFrame } from "./frames/internal-frame";
 
 import type { DefaultParameterValues } from "../document/parameter-values";
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirArtifacts } from "../hir-runtime";
 import type { Color, Metric, Place, SDCPN, TokenRecord } from "../types/sdcpn";
 import type {

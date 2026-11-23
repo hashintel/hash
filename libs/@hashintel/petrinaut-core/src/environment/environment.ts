@@ -5,6 +5,9 @@
  * like `Worker`, `MessageEvent`, or `AbortSignal`. Browser, Node, and test
  * implementations can satisfy the same contract without forcing consumers of
  * `@hashintel/petrinaut-core` to include DOM types.
+ *
+ * @layerRoot core.environment
+ * @role The worker and abort-signal shapes Core is typed against, so it needs no DOM types
  */
 
 export type WorkerMessageEnvelope<TMessage = unknown> = {

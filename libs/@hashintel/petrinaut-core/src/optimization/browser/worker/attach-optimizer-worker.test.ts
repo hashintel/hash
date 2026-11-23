@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { attachOptimizerWorker } from "./attach-optimizer-worker";
 
-import type { WorkerThreadRuntime } from "../../../environment";
+import type { WorkerThreadRuntime } from "../../../environment/environment";
 import type { PetrinautOptimizationDescribeResult } from "../../index";
 import type {
   OptimizerStudySummary,

@@ -1,4 +1,4 @@
-import type { WorkerLike } from "../../environment";
+import type { WorkerLike } from "../../environment/environment";
 import type { SimulationTransport, WorkerFactory } from "../api";
 
 /**

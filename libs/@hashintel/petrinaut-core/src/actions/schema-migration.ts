@@ -1,7 +1,7 @@
-import { coerceToStoredTokenAttributeValue } from "./tokens/token-values";
-import { TYPE_POLICIES } from "./tokens/type-policies";
+import { coerceToStoredTokenAttributeValue } from "../tokens/token-values";
+import { TYPE_POLICIES } from "../tokens/type-policies";
 
-import type { ColorElementType, Color, SDCPN } from "./types/sdcpn";
+import type { ColorElementType, Color, SDCPN } from "../types/sdcpn";
 
 type ColorElement = Color["elements"][number];
 

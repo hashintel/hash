@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "../extensions";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "../extensions/extensions";
 import { fingerprintHirCompilationInput } from "./artifact-fingerprint";
 
 import type { SDCPN } from "../types/sdcpn";

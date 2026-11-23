@@ -4,7 +4,7 @@
  * @see ./README.md for detailed protocol documentation
  */
 
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { HirArtifacts } from "../../hir-runtime";
 import type { SDCPN } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";

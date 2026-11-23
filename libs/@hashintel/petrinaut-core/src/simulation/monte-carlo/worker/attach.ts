@@ -9,14 +9,14 @@ import { resolveNetParameterValues } from "../../../document/parameter-values";
  * receive messages, and yield between compute batches.
  */
 import { SDCPNItemError } from "../../../errors";
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../../extensions";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../../extensions/extensions";
 import {
   createMonteCarloUserDefinedMetric,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
 } from "../metrics";
 import { createMonteCarloSimulator } from "../monte-carlo-simulator";
 
-import type { WorkerThreadRuntime } from "../../../environment";
+import type { WorkerThreadRuntime } from "../../../environment/environment";
 import type {
   MonteCarloUserDefinedMetric,
   MonteCarloUserDefinedMetricFrame,

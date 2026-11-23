@@ -14,7 +14,7 @@ import {
   sanitizeSDCPNForExtensions,
   stripDisabledExtensionData,
   type PetrinautHandleCapabilities,
-} from "../../extensions";
+} from "../../extensions/extensions";
 import { createReadableStore } from "../../store";
 import { normalizeSDCPN } from "../../types/sdcpn-input";
 

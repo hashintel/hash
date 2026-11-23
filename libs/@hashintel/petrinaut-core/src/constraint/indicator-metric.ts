@@ -13,7 +13,7 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   type PetrinautExtensionSettings,
   sanitizeSDCPNForExtensions,
-} from "../extensions";
+} from "../extensions/extensions";
 import { emitBufferMetricJs } from "../hir/emit-buffer-js";
 import { walkHir } from "../hir/hir";
 import { inferMetricShape } from "../hir/metric-shape";

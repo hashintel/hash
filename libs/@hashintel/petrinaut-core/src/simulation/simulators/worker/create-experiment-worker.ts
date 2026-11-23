@@ -1,4 +1,4 @@
-import type { WorkerLike } from "../../../environment";
+import type { WorkerLike } from "../../../environment/environment";
 
 /** Dynamically import and instantiate the Monte Carlo worker (inlined as a blob URL). */
 export async function createMonteCarloWorker(): Promise<WorkerLike> {

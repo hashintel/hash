@@ -2,7 +2,7 @@ import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
 import { VisualizerLanguageServer } from "./create-visualizer-language-service";
 import { parsePlaceVisualizerCodeFilePath } from "./file-paths";
 
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { SDCPN } from "../../types/sdcpn";
 import type { VirtualFileLanguageServer } from "./virtual-file-language-server";
 

@@ -12,7 +12,7 @@ import {
 } from "./generate-virtual-files";
 import { VirtualFileLanguageServer } from "./virtual-file-language-server";
 
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { SDCPN } from "../../types/sdcpn";
 import type { VirtualFile } from "./create-language-service-host";
 

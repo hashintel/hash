@@ -6,7 +6,7 @@
  * worker reports the time its trace covers rather than a frame number.
  */
 
-import type { PetrinautExtensionSettings } from "../../../extensions";
+import type { PetrinautExtensionSettings } from "../../../extensions/extensions";
 import type { HirArtifacts } from "../../../hir-runtime";
 import type { SDCPN } from "../../../types/sdcpn";
 import type { InitialMarking } from "../../api";

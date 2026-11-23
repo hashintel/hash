@@ -1,3 +1,47 @@
+/**
+ * @layerRoot core.actions
+ * @role The mutations and commands that edit a document, and the input schemas the AI tools are derived from
+ */
+
+import {
+  findFusionWithMember,
+  fusionHolds,
+  nextFusionName,
+} from "../composition/fusions";
+import {
+  describeMissingComponent,
+  describeUnboundInstance,
+  isInterface,
+  resolveBinding,
+  resolveComponent,
+  sameComponent,
+} from "../composition/interfaces";
+import {
+  arcEndpointsEqual,
+  arcMatchesEndpoint,
+  createArcEndpointReference,
+  getArcEndpoint,
+  getArcEndpointKey,
+  getComponentPortEndpointComponent,
+  placeArcEndpoint,
+} from "../document/arc-endpoints";
+import { generateArcId } from "../document/arc-id";
+import { toPetrinautId } from "../document/petrinaut-id";
+import {
+  getPlaceDynamicsEquationIds,
+  placeUsesDifferentialEquation,
+  withoutDifferentialEquations,
+} from "../document/place-dynamics";
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  createArcPlaceResolver,
+  createTransitionLogicAvailabilityReader,
+  sanitizePlaceForExtensions,
+  sanitizeTransitionForAvailability,
+  stripDisabledExtensionData,
+  type PetrinautExtensionSettings,
+  type TransitionLogicAvailabilityReader,
+} from "../extensions/extensions";
 import {
   colorSchema,
   componentInstanceSchema,
@@ -12,49 +56,10 @@ import {
   transitionSchema,
   type MutationActionInput,
 } from "./action-schemas";
-import {
-  findFusionWithMember,
-  fusionHolds,
-  nextFusionName,
-} from "./composition/fusions";
-import {
-  describeMissingComponent,
-  describeUnboundInstance,
-  isInterface,
-  resolveBinding,
-  resolveComponent,
-  sameComponent,
-} from "./composition/interfaces";
 import { generateDefaultTransitionKernelCode } from "./default-codes";
-import {
-  arcEndpointsEqual,
-  arcMatchesEndpoint,
-  createArcEndpointReference,
-  getArcEndpoint,
-  getArcEndpointKey,
-  getComponentPortEndpointComponent,
-  placeArcEndpoint,
-} from "./document/arc-endpoints";
-import { generateArcId } from "./document/arc-id";
-import { toPetrinautId } from "./document/petrinaut-id";
-import {
-  getPlaceDynamicsEquationIds,
-  placeUsesDifferentialEquation,
-  withoutDifferentialEquations,
-} from "./document/place-dynamics";
-import {
-  DEFAULT_PETRINAUT_EXTENSIONS,
-  createArcPlaceResolver,
-  createTransitionLogicAvailabilityReader,
-  sanitizePlaceForExtensions,
-  sanitizeTransitionForAvailability,
-  stripDisabledExtensionData,
-  type PetrinautExtensionSettings,
-  type TransitionLogicAvailabilityReader,
-} from "./extensions";
 import { migrateScenarioRowsForTypeEdit } from "./schema-migration";
 
-import type { ResolvedLibraries } from "./composition/libraries";
+import type { ResolvedLibraries } from "../composition/libraries";
 import type {
   ArcEndpoint,
   Color,
@@ -68,7 +73,7 @@ import type {
   InputArc,
   OutputArc,
   SDCPN,
-} from "./types/sdcpn";
+} from "../types/sdcpn";
 
 export type MutationHelperFunctions = {
   [Name in keyof typeof mutationActionInputSchemas]: (

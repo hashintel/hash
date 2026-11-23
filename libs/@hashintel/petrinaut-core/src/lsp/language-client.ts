@@ -12,7 +12,7 @@ import type {
   LowerConstraintContext,
   LowerConstraintResult,
 } from "../constraint/lower";
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 // Type-only: must not pull the compiler (`typescript`) into client bundles.
 import type { HirCompileResult, ScenarioHir } from "../hir";
 import type { CompileHirArtifactsOptions } from "../hir/compile";
@@ -55,7 +55,7 @@ export type DiagnosticsSnapshot = {
 /**
  * `this: void` on every method makes the methods safe to pass as references
  * (e.g. `<X onChange={client.notifyDocumentChanged} />`) without `this`-loss
- * concerns. See [06-react-bindings.md §6.3]. Same applies to {@link import("../instance").Petrinaut}
+ * concerns. See [06-react-bindings.md §6.3]. Same applies to {@link import("../instance/instance").Petrinaut}
  * and the simulation handle (planned cleanup).
  */
 export interface LanguageClient {

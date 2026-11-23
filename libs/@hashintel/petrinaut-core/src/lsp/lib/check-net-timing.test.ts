@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../extensions";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../extensions/extensions";
 import { SOURCE_PREDICATE_IN_TIMED_NET_CODE } from "./check-net-timing";
 import { checkSDCPN } from "./checker";
 import { createSDCPN } from "./helper/create-sdcpn";
 import { createLanguageServers, syncLanguageServers } from "./language-servers";
 
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { SDCPN } from "../../types/sdcpn";
 
 const check = (sdcpn: SDCPN, extensions?: PetrinautExtensionSettings) => {

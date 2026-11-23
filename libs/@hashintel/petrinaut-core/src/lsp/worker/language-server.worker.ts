@@ -24,8 +24,8 @@ import {
   type SignatureInformation,
 } from "vscode-languageserver-types";
 
-import { createWorkerThreadRuntime } from "../../environment";
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../extensions";
+import { createWorkerThreadRuntime } from "../../environment/environment";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../extensions/extensions";
 import {
   buildMetricContext,
   buildScenarioCodeContext,
@@ -50,7 +50,7 @@ import {
 import { offsetToPosition, positionToOffset } from "../lib/position-utils";
 import { serializeDiagnostic, toCompletionItemKind } from "../lib/ts-to-lsp";
 
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { HirSurfaceContext } from "../../hir";
 import type { SDCPN } from "../../types/sdcpn";
 import type {

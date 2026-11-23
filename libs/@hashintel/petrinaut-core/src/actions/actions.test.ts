@@ -1,22 +1,22 @@
 import { describe, expect, test } from "vitest";
 
-import { mutationActionInputSchemas } from "./action-schemas";
-import { createPetrinautActions, updatePrunesReferences } from "./actions";
 import {
   gateLibrary,
   logistics,
   tankLibrary,
-} from "./composition/libraries.test-helpers";
-import { toPetrinautId } from "./document/petrinaut-id";
-import { createJsonDocHandle } from "./handle";
-import { createPetrinaut } from "./instance";
+} from "../composition/libraries.test-helpers";
+import { toPetrinautId } from "../document/petrinaut-id";
+import { createJsonDocHandle } from "../handle";
+import { createPetrinaut } from "../instance/instance";
 import {
   componentInstanceSchema,
   componentSchema,
   maxComponentIconLength,
-} from "./schemas/entity-schemas";
+} from "../schemas/entity-schemas";
+import { mutationActionInputSchemas } from "./action-schemas";
+import { createPetrinautActions, updatePrunesReferences } from "./actions";
 
-import type { ArcEndpoint, Component, SDCPN } from "./types/sdcpn";
+import type { ArcEndpoint, Component, SDCPN } from "../types/sdcpn";
 
 const idOf = toPetrinautId;
 

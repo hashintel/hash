@@ -10,9 +10,9 @@ import { getPlaceDynamicsEquationIds } from "../document/place-dynamics";
  *
  * Deliberately dependency-free beyond types, for the same reason.
  */
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "../extensions";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "../extensions/extensions";
 
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirArtifacts } from "../hir-runtime";
 import type { HirFunction } from "../hir/hir";
 import type { SDCPN } from "../types/sdcpn";

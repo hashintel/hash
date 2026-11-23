@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/default -- Vite resolves the `?worker&url` query to the bundled worker script's URL
 import workerUrl from "./optimizer.worker.ts?worker&url";
 
-import type { WorkerLike } from "../../../environment";
+import type { WorkerLike } from "../../../environment/environment";
 import type {
   OptimizerToMainMessage,
   OptimizerToWorkerMessage,

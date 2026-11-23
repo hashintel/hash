@@ -19,7 +19,7 @@ import {
 import { hirFromArtifacts } from "./hir-from-artifacts";
 import { requestGpuDevice } from "./runner";
 
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirArtifacts } from "../hir-runtime";
 import type { InitialMarking } from "../simulation/api";
 import type { SDCPN } from "../types/sdcpn";

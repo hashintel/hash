@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { mutationActionInputSchemas } from "./action-schemas";
-import { aiCommandActionInputSchemas } from "./command-schemas";
+import { mutationActionInputSchemas } from "./actions/action-schemas";
+import { aiCommandActionInputSchemas } from "./actions/command-schemas";
 import { probabilisticSatellitesSDCPN } from "./examples";
 import { petrinautExperimentRequestSchema } from "./experiments/host";
 import { typedKeys } from "./lib/typed-entries";
@@ -28,16 +28,16 @@ export {
   scenarioSchema,
   componentSchema,
   transitionSchema,
-} from "./action-schemas";
+} from "./actions/action-schemas";
 export type {
   MutationActionInput as PetrinautAiMutationToolInput,
   MutationActionName as PetrinautAiMutationToolName,
-} from "./action-schemas";
-export { aiCommandActionInputSchemas } from "./command-schemas";
+} from "./actions/action-schemas";
+export { aiCommandActionInputSchemas } from "./actions/command-schemas";
 export type {
   AiCommandActionInput as PetrinautAiCommandToolInput,
   AiCommandActionName as PetrinautAiCommandToolName,
-} from "./command-schemas";
+} from "./actions/command-schemas";
 
 export type PetrinautAiTool<InputSchema extends z.ZodType> = {
   description: string;

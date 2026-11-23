@@ -35,7 +35,7 @@ import {
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
-} from "../extensions";
+} from "../extensions/extensions";
 
 import type {
   Color,

@@ -1,37 +1,42 @@
+/**
+ * @layerRoot core.instance
+ * @role The live document instance a host creates: its handle, mutations, commands and patch stream, under the rules the host sets
+ */
+
 import {
   createPetrinautActions,
   type MutationHelperFunctions,
-} from "./actions";
+} from "../actions/actions";
 import {
   type CommandHelperFunctions,
   createPetrinautCommands,
-} from "./commands";
+} from "../actions/commands";
+import {
+  createImportStore,
+  resolvedLibraries,
+  type ImportStates,
+  type ResolveImport,
+} from "../composition/imports";
+import {
+  resolvePetrinautHandleCapabilities,
+  sanitizeSDCPNForExtensions,
+  stripDisabledExtensionData,
+} from "../extensions/extensions";
 import {
   commandRefusal,
   enforceHostRules,
   enforceHostRulesOnCommands,
   mutationRefusal,
   type PetrinautRules,
-} from "./composition/host-rules";
-import {
-  createImportStore,
-  resolvedLibraries,
-  type ImportStates,
-  type ResolveImport,
-} from "./composition/imports";
-import {
-  resolvePetrinautHandleCapabilities,
-  sanitizeSDCPNForExtensions,
-  stripDisabledExtensionData,
-} from "./extensions";
+} from "./host-rules";
 
 import type {
   PetrinautExtensionSettings,
   ResolvedPetrinautHandleCapabilities,
-} from "./extensions";
-import type { PetrinautDocHandle, PetrinautPatch } from "./handle";
-import type { ReadableStore } from "./store";
-import type { SDCPN } from "./types/sdcpn";
+} from "../extensions/extensions";
+import type { PetrinautDocHandle, PetrinautPatch } from "../handle";
+import type { ReadableStore } from "../store";
+import type { SDCPN } from "../types/sdcpn";
 
 const EMPTY_SDCPN: SDCPN = {
   places: [],

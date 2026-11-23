@@ -3,12 +3,12 @@ import { describe, expect, test } from "vitest";
 import {
   CLIPBOARD_FORMAT_VERSION,
   type ClipboardPayload,
-} from "./clipboard/types";
-import { toPetrinautId } from "./document/petrinaut-id";
-import { createJsonDocHandle } from "./handle";
-import { createPetrinaut } from "./instance";
+} from "../clipboard/types";
+import { toPetrinautId } from "../document/petrinaut-id";
+import { createJsonDocHandle } from "../handle";
+import { createPetrinaut } from "../instance/instance";
 
-import type { SDCPN } from "./types/sdcpn";
+import type { SDCPN } from "../types/sdcpn";
 
 const emptySDCPN: SDCPN = {
   places: [],

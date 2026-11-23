@@ -9,7 +9,7 @@
  */
 import { createUserKeyedRecord } from "../../../validation/record-keys";
 
-import type { EventStream } from "../../../instance";
+import type { EventStream } from "../../../instance/instance";
 import type { ReadableStore } from "../../../store";
 import type { MonteCarloUserDefinedMetricFrame } from "../metrics";
 

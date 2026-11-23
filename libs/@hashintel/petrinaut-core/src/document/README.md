@@ -7,8 +7,8 @@ role: Pure functions that read a document and hold no state, for ids, arc endpoi
 
 Functions that read or normalise an SDCPN document and hold no state. The
 types they work on are declared in [the document types](layer:core.types).
-Reading a document from a file is the job of
-[the file format](layer:core.file-format).
+Editing a document is the job of [the actions](layer:core.actions), and
+reading one from a file the job of [the file format](layer:core.file-format).
 
 ## Interface
 

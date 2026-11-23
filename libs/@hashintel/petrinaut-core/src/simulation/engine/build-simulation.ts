@@ -11,7 +11,7 @@ import {
   getTransitionLogicAvailability,
   sanitizeSDCPNForExtensions,
   type PetrinautExtensionSettings,
-} from "../../extensions";
+} from "../../extensions/extensions";
 import {
   fingerprintHirCompilationInput,
   instantiateHirBufferDynamics,

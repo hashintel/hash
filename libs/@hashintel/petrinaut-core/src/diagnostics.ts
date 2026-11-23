@@ -2,7 +2,7 @@
 // checker the editor's language-server worker runs, callable without a
 // browser so a host or test can ask whether a definition compiles cleanly.
 // Kept separate from the main entry because it loads the TypeScript compiler.
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "./extensions";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "./extensions/extensions";
 import { checkSDCPN } from "./lsp/lib/checker";
 import {
   createLanguageServers,
@@ -10,7 +10,7 @@ import {
   syncLanguageServers,
 } from "./lsp/lib/language-servers";
 
-import type { PetrinautExtensionSettings } from "./extensions";
+import type { PetrinautExtensionSettings } from "./extensions/extensions";
 import type { SDCPN } from "./types/sdcpn";
 
 export type {

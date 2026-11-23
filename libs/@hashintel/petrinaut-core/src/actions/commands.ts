@@ -1,3 +1,13 @@
+import { pastePayloadIntoSDCPN } from "../clipboard/paste";
+import { toPetrinautId } from "../document/petrinaut-id";
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  isSelectionTypeAvailableForExtensions,
+  stripDisabledExtensionData,
+  type PetrinautExtensionSettings,
+} from "../extensions/extensions";
+import { calculateGraphLayout } from "../layout/calculate-graph-layout";
+import { layoutNodeDimensions } from "../layout/dimensions";
 import {
   colorSchema,
   differentialEquationSchema,
@@ -5,20 +15,10 @@ import {
   placeSchema,
   transitionSchema,
 } from "./action-schemas";
-import { pastePayloadIntoSDCPN } from "./clipboard/paste";
 import { commandActionInputSchemas } from "./command-schemas";
-import { toPetrinautId } from "./document/petrinaut-id";
-import {
-  DEFAULT_PETRINAUT_EXTENSIONS,
-  isSelectionTypeAvailableForExtensions,
-  stripDisabledExtensionData,
-  type PetrinautExtensionSettings,
-} from "./extensions";
-import { calculateGraphLayout } from "./layout/calculate-graph-layout";
-import { layoutNodeDimensions } from "./layout/dimensions";
 
-import type { ClipboardPayload } from "./clipboard/types";
-import type { Component, SDCPN } from "./types/sdcpn";
+import type { ClipboardPayload } from "../clipboard/types";
+import type { Component, SDCPN } from "../types/sdcpn";
 
 export type ApplyClipboardPasteResult = {
   newItemIds: Array<{ type: string; id: string }>;

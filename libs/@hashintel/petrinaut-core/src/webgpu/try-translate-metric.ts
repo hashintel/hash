@@ -23,7 +23,7 @@ import {
 } from "./compile-net-shader";
 import { WgslBailError } from "./emit-wgsl";
 
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirFunction } from "../hir/hir";
 import type { SDCPN } from "../types/sdcpn";
 

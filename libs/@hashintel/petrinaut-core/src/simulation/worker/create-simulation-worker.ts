@@ -1,4 +1,4 @@
-import type { WorkerLike } from "../../environment";
+import type { WorkerLike } from "../../environment/environment";
 
 /** Dynamically import and instantiate the simulation worker (inlined as blob URL). */
 export async function createSimulationWorker(): Promise<WorkerLike> {

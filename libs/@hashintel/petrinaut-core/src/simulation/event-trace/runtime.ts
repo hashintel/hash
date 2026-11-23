@@ -5,23 +5,23 @@ import {
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,
-} from "../../extensions";
+} from "../../extensions/extensions";
 import {
   runClockOf,
   runContinuityOf,
   type RunClock,
   type RunContinuity,
-} from "../../net-class";
+} from "../../extensions/net-class";
 import { createReadableStore } from "../../store";
 import { flattenComponentInstancesForSimulation } from "../engine/flatten-component-instances";
 import { createEventStream } from "../monte-carlo/runtime/experiment-stores";
 import { createWorkerTransport } from "../runtime/transport";
 import { createInMemoryEventTraceStore } from "./trace-store";
 
-import type { AbortSignalLike } from "../../environment";
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { AbortSignalLike } from "../../environment/environment";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { HirArtifacts } from "../../hir-runtime";
-import type { EventStream } from "../../instance";
+import type { EventStream } from "../../instance/instance";
 import type { ReadableStore } from "../../store";
 import type { SDCPN } from "../../types/sdcpn";
 import type {

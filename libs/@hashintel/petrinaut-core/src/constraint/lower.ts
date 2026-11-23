@@ -20,7 +20,7 @@ import {
 import { typecheckHir } from "../hir/typecheck";
 import { CONSTRAINT_SURFACES } from "./constraint";
 
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirDiagnostic } from "../hir/hir";
 import type { Parameter, ScenarioParameter, SDCPN } from "../types/sdcpn";
 import type { Constraint, ConstraintSpace } from "./constraint";
