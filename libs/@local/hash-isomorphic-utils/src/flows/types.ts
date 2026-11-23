@@ -637,12 +637,11 @@ type StepDefinitionBase = {
   /** Where an editor shows the step. Nothing that runs or compiles a flow reads it. */
   position?: { x: number; y: number };
   /**
-   * Steps this step starts after, a line drawn in the editor. Only sets order: the step's values still come from its
-   * inputs. A skipped step counts as finished.
+   * Steps this step starts after, each a line drawn in the editor. The step's values still come from its inputs.
    *
-   * With `outputName`, the step is on that output's path, such as an If's `true`, and should start only when the
-   * output is given. TODO(FE-2277): the engine and the compiled net ignore `outputName` and would start it either
-   * way, so `validateFlowDefinition` rejects it for now.
+   * With `outputName`, the line is that output's path, such as an If's `true`. A run follows a line once its step
+   * has finished, unless that step was skipped or didn't give the path's output. The step waits until every step it
+   * runs after is finished or skipped, then runs if at least one line was followed, and is skipped otherwise.
    */
   runAfter?: { stepId: string; outputName?: string }[];
 };
