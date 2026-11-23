@@ -3,6 +3,7 @@
  *
  * Handles retain semantic parameters until conversion to syntax. Only the declaration wrappers are heterogeneous: each is already an AST operation, so their collection needs no type recovery. A child collector prevents branch declarations from escaping their lexical body. Callback exceptions retain their original cause inside construction failures.
  *
+ * @since 0.1.0
  * @module
  */
 // oxlint-disable import/max-dependencies -- the collector composes every construction module

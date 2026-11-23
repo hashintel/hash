@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   filterTriggerRows,
+  getRunTrigger,
   getScheduleSummary,
   toScheduleTriggerRow,
 } from "./flow-triggers";
 
 import type { TriggerRow } from "./flow-triggers";
-import type { EntityId } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
 import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -113,5 +114,42 @@ describe("filterTriggerRows", () => {
     expect(
       textsOf(filterTriggerRows(rows, { state: "paused", search: "mon" })),
     ).toEqual(["Monthly report"]);
+  });
+});
+
+describe("getRunTrigger", () => {
+  const scheduleUuid = "7f9d2b1e-3c4a-4e5f-8a6b-9c0d1e2f3a4b" as EntityUuid;
+  const otherSchedule: TriggerRow = {
+    entityId:
+      "0b5a5c4c-6d4d-4cd8-9d5e-2f2b0f7a6a11~11111111-2222-4333-8444-555555555555" as EntityId,
+    text: "Weekly digest",
+    on: true,
+  };
+
+  it("names a run started by hand Manual, with nothing to say who started it", () => {
+    expect(getRunTrigger(null, [row("Monthly review", true)])).toEqual({
+      kind: "manual",
+      line: "",
+    });
+  });
+
+  it("names the schedule that started a run, matched by its uuid", () => {
+    expect(
+      getRunTrigger(scheduleUuid, [
+        otherSchedule,
+        row("Monthly review", false),
+      ]),
+    ).toEqual({ kind: "schedule", line: "Monthly review" });
+  });
+
+  it("leaves out the name of a schedule that isn't one of the flow's, or while they aren't known", () => {
+    expect(getRunTrigger(scheduleUuid, [otherSchedule])).toEqual({
+      kind: "schedule",
+      line: "",
+    });
+    expect(getRunTrigger(scheduleUuid, "unavailable")).toEqual({
+      kind: "schedule",
+      line: "",
+    });
   });
 });

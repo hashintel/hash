@@ -1,15 +1,32 @@
+/**
+ * Labeled call arguments, written `{ ":name": value }`.
+ *
+ * {@link @local/hashql#JExpr.label | `JExpr.label`} assembles one without checking it. {@link make} checks a finished value against {@link Schema}. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
+ *
+ * @since 0.1.0
+ * @module
+ */
+
 import * as Overflow from "../internal/overflow.js";
 import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
-/** Schema for {@link LabeledArgument} values. */
+/**
+ * Schema for {@link LabeledArgument} values.
+ *
+ * @category Schemas
+ * @since 0.1.0
+ */
 export const Schema: typeof Defs.LabeledArgument = Defs.LabeledArgument;
 
 /**
  * A call argument labeled with a parameter name.
  *
  * The object has exactly one key: `:` followed by an identifier. The value is an expression. It can appear anywhere after the function in a call array, and HashQL's parser gathers it into the call's labeled arguments rather than its positional ones.
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export interface LabeledArgument extends Defs.LabeledArgumentType {}
 
@@ -26,7 +43,10 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  *
  * The object needs exactly one key, `:` followed by an identifier, and an expression as its value. `options.disableChecks` skips the key checks along with the checks inside the value. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
- * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (
@@ -34,7 +54,12 @@ export const make: (
   options?: $Schema.MakeOptions,
 ) => LabeledArgument = Overflow.make(Schema);
 
-/** Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing. */
+/**
+ * Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
@@ -42,7 +67,12 @@ export const makeEffect: (
 ) => Effect.Effect<LabeledArgument, SchemaIssue.Issue> =
   Overflow.makeEffect(Schema);
 
-/** Checks a value like {@link make}, returning `None` instead of throwing for a schema failure. */
+/**
+ * Checks a value like {@link make}, returning `None` instead of throwing for a schema failure.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,
