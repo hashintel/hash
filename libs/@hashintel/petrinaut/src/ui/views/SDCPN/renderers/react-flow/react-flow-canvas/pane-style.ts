@@ -50,48 +50,14 @@ export const paneStyle = css({
       "[height var(--canvas-fold-duration, 180ms) var(--canvas-fold-easing)]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
-  // A node outside the neighbourhood recedes from here, whole: card, label,
-  // token count and handles together, so nothing of it stays at full strength
-  // while the neighbourhood carries the colour. A node React Flow has marked
-  // selected is kept out of the fade as well: a drag-selection marks nodes
-  // before the change reaches the editor's selection, and until it does they
-  // wear the focus ring, so they must not be faded under it.
+  // A node outside the neighbourhood fades by the colour of each part, with
+  // no opacity and no transition: node-fade.mdx holds the rules and why. A
+  // node React Flow marks selected stays out: a selection box marks it before
+  // the editor's selection has it, and it wears the focus ring until then.
   //
-  // No opacity goes on a node, or on an element inside one that draws more
-  // than one thing. For such an opacity the browser draws the element into a
-  // buffer of its own, on every frame of a pan, a zoom or a drag, and a net
-  // has one per node. So each thing a faded node draws is drawn at 0.25 by the
-  // alpha of its own colour, and what lies behind the node shows through it
-  // as it would through an opacity. `node-fade.ts` names the classes these
-  // rules find the parts by.
-  //
-  // No part of a node takes a transition for this: a node dims in one frame
-  // and comes back in one. A transition per part would be thousands of them
-  // at a change of focus, each one work on the main thread on every frame of
-  // the fade, and the arcs would fade in a few steps for it.
-  //
-  // No rule here changes what an element hands down to the elements inside
-  // it. A custom property or a `color` set on a faded node would restyle
-  // every element of every node at the change of focus.
-  //
-  // A change of focus restyles more than the parts of the faded nodes. The
-  // browser looks again at every element under the pane that a rule here
-  // could apply to by its last selector, whatever comes before it: every
-  // part with one of these classes, and for the rule of the icons every
-  // shape, which the paths of the arcs and of the minimap are too. A shape
-  // of an icon has no class for that rule to end in. No other rule ends in
-  // something the pane has many of outside the parts.
-  //
-  // The card or box. Its fill stops at its border, which would darken over
-  // it. The ring of a classic box is its faded twin. The elevation under the
-  // node goes: at 0.25 it would darken the canvas by 3 of 255 at most, and a
-  // blurred shadow is the costliest thing a card draws on every frame of a
-  // pan. The first shadow is inset and draws nothing. The browser cannot mix
-  // a list of shadows that starts inset with one that does not, so the
-  // shadows of a surface change at once on the way here and on the way back,
-  // where the transition of `nodeFocusStyle` would fade them. The flash of a
-  // firing fades its glow into this list, so its keyframe has the same
-  // shadows in the same order: `fadedSurfaceShadows` in `node-fade.ts`.
+  // The card or box. Its first shadow is inset and draws nothing, so the
+  // shadows change at once instead of mixing with those of `nodeFocusStyle`;
+  // a faded flash lists them the same way, in `fadedSurfaceShadows`.
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) .node-surface":
     {
       backgroundColor:
@@ -141,13 +107,8 @@ export const paneStyle = css({
       borderColor:
         "[color-mix(in srgb, var(--node-border) 25%, var(--colors-neutral-s25))]",
     },
-  // The outline of a node an arc is being drawn onto. Its handle names the
-  // colour, and says that the outline is drawn with an attribute that no
-  // other handle has. No rule here ends in a class that every handle has:
-  // the browser would restyle the handles of every node at each change of
-  // focus to find the one it applies to. So the dot a node under the pointer
-  // offers an arc from, and the outline of keyboard focus on a handle, are
-  // drawn at full strength on a faded node.
+  // The outline of a node an arc is being drawn onto, found by an attribute
+  // one handle has: no rule ends in a class every handle has.
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected) [data-arc-target]::after":
     {
       outlineColor:
@@ -168,25 +129,9 @@ export const paneStyle = css({
     {
       strokeOpacity: "[0]",
     },
-  // An arc outside the neighbourhood recedes from here, so a hover leaves
-  // every arc it did not touch alone. Only the strokes fade: an arc's weight
-  // is worth reading whether or not the arc carrying it is in focus.
-  //
-  // No opacity goes on an element that every arc has. For an opacity on a
-  // group the browser draws the group into a buffer of its own, on every
-  // frame of a pan, a zoom or a drag, and a net has one group per arc. So
-  // each thing a faded arc draws is drawn once, at 0.45 by an opacity of its
-  // own: the line by its stroke and the head by its fill. What would lie
-  // under another is not drawn, since both would show: the line is the
-  // shaft, which stops where the head begins, and the second stroke of the
-  // line goes, at once.
-  //
-  // The arcs at rest are drawn together, a few paths for each run of them,
-  // and fade there: no arc at rest has a role. An arc that draws its own
-  // strokes has them in a group that says whether it has one, and fades
-  // unless it does. The rules name that group and its children: React Flow's
-  // wrapper around the arc layer is an edge with no role too, and a rule
-  // that matched through it would fade every arc.
+  // An arc outside the neighbourhood fades by its strokes, each at an opacity
+  // of its own, and its weight stays: arc-layer.mdx holds the rules and why.
+  // The whole line, which lies under the shaft and the head, goes at once.
   "&[data-focus-active] .arc-run > .arc-shaft, &[data-focus-active] .arc-own:not(.canvas-focus-role) > .arc-shaft, &[data-focus-active] .react-flow__edge-fusion:not(.canvas-focus-role) .fusion-line":
     {
       strokeOpacity: "[0.45]",
@@ -208,12 +153,9 @@ export const paneStyle = css({
       strokeOpacity: "[0.45]",
       strokeDasharray: "[var(--arc-faded-dash)]",
     },
-  // Marks that lie on their line can only fade with it as one group: the
-  // ticks, the circle and the dot of an inhibitor or a read arc, and the knot
-  // of a fusion link. Those keep an opacity, and a net has few of them. The
-  // opacity takes no transition, so such a group changes at once: while an
-  // opacity runs a transition its group is a layer, and the browser sorts
-  // every node above it into layers on each frame of the fade.
+  // Marks that lie on their line fade with it as one group, by an opacity
+  // with no transition: those of a read or an inhibitor arc and of a fusion
+  // link's knot.
   "&[data-focus-active] .arc-own.arc-strokes:not(.canvas-focus-role), &[data-focus-active] .react-flow__edge-fusion:not(.canvas-focus-role) .arc-strokes":
     {
       opacity: "[0.45]",

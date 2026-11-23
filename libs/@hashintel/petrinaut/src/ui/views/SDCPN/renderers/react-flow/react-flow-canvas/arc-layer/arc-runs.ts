@@ -1,16 +1,4 @@
-/**
- * The arcs at rest, merged into a few paths.
- *
- * An arc that is in no focus and does not move looks like every other arc of
- * its colour, so the arcs of one colour can be one path, which the browser
- * styles, fades and paints as one element. One path for a whole net would
- * put every line of one colour above every line of another, wherever they
- * are in the document. So the arcs are cut into runs of consecutive arcs,
- * and each run is drawn whole above the run before it: its merged strokes,
- * then the strokes of its arcs that draw their own. The shorter the run, the
- * closer the stacking stays to the order of the document, and the more
- * paths the net has.
- */
+/** The arcs at rest, merged run by run into a few paths: arc-layer.mdx. */
 
 import { sameItems } from "../../../../use-stable-items";
 

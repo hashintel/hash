@@ -219,9 +219,5 @@ const ArcOwnStrokesComponent: React.FC<{ shape: ArcShape }> = ({ shape }) => (
   </g>
 );
 
-/**
- * Memoised by hand: a run renders on every frame of a drag that moves one of
- * its arcs, and the compiler does not skip the items of a list whose parent
- * renders. An arc that draws the same has the same shape object.
- */
+/** Memoised by hand, as `ArcLayer` says. */
 export const ArcOwnStrokes = memo(ArcOwnStrokesComponent);

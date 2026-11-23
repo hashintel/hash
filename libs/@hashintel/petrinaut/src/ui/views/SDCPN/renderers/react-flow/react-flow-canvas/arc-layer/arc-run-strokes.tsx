@@ -36,11 +36,7 @@ const MergedStrokesComponent: React.FC<{
   </>
 );
 
-/**
- * Memoised by hand, as its run is. The strokes of a run are the same object
- * while its arcs at rest are, so a drag frame that moves an arc of the run
- * renders the run and not its merged paths.
- */
+/** Memoised by hand, as `ArcLayer` says: a drag keeps the merged paths. */
 const MergedStrokesOfRun = memo(MergedStrokesComponent);
 
 /**
@@ -62,9 +58,5 @@ const ArcRunStrokesComponent: React.FC<{ run: ArcRun }> = ({ run }) => (
   </g>
 );
 
-/**
- * Memoised by hand: the layer renders on every frame of a drag, and the
- * compiler does not skip the items of a list whose parent renders. A run
- * whose arcs draw the same is the same object.
- */
+/** Memoised by hand, as `ArcLayer` says. */
 export const ArcRunStrokes = memo(ArcRunStrokesComponent);

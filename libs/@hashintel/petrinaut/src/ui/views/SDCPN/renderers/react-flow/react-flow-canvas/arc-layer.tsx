@@ -12,17 +12,13 @@ import { usePortEnds } from "./arc-layer/use-port-ends";
 import { ArcPulsesContext } from "./arc-pulses";
 
 /**
- * Every arc of the net, drawn in one `svg`: the strokes of the arcs, run by
- * run, and above them one element per arc, which takes the focus and the
- * pointer for it.
+ * Every arc of the net in one `svg`, as the one edge of React Flow's type
+ * `arcs`: arc-layer.mdx. The scene comes by context, not by the edge's props.
  *
- * React Flow renders this as one edge, the first, so the arcs sit where its
- * edges sit: inside the pane, under the fusion links and the nodes, and
- * first in the order of the Tab key. It knows none of the arcs, so the layer
- * does for each what React Flow does for an edge: the curve between the two
- * ends, the element that takes the focus and the pointer, and what a click,
- * a hover and the keys do. The props of the edge are not read: the scene
- * comes by context.
+ * The items, the runs, the merged strokes of a run and the arcs that draw
+ * their own are memoised by hand: the layer renders on every frame of a drag,
+ * and the compiler does not skip the items of a list whose parent renders.
+ * An arc or a run that draws the same is the same object.
  */
 export const ArcLayer: React.FC = () => {
   const { scene, gestures } = useArcLayerInput();

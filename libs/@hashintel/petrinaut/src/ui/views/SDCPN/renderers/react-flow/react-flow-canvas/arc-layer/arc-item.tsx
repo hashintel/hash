@@ -65,17 +65,9 @@ type ArcItemProps = {
 };
 
 /**
- * One arc on the page: the element that takes the keyboard focus and the
- * pointer for it, with the name and the classes React Flow gives an edge,
- * and its weight. It paints nothing of the arc's line: the run of the arc
- * draws that.
- *
- * The pointer goes to a path that is not painted: the arc's curve, 20 units
- * wide, as in an edge of React Flow. Where several arcs are within reach the
- * browser takes the last in the document. Nothing that is painted takes the
- * pointer, so a pulse of any width leaves the pane beside its arc pressable.
- * The weight's box is the exception: its border takes the pointer for the
- * arc, as it does in an edge of React Flow.
+ * One arc on the page: the element that takes the focus and the pointer for
+ * it, with the name and the classes React Flow gives an edge, and its weight.
+ * Its run paints its line: arc-layer.mdx.
  */
 const ArcItemComponent: React.FC<ArcItemProps> = ({
   shape,
@@ -116,9 +108,5 @@ const ArcItemComponent: React.FC<ArcItemProps> = ({
   </g>
 );
 
-/**
- * Memoised by hand: the layer renders on every frame of a drag with one
- * element per arc, and the compiler does not skip the items of a list whose
- * parent renders. An arc that draws the same has the same shape object.
- */
+/** Memoised by hand, as `ArcLayer` says. */
 export const ArcItem = memo(ArcItemComponent);

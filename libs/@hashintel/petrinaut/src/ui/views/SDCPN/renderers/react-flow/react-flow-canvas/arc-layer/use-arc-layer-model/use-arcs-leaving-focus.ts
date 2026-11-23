@@ -20,17 +20,9 @@ const roleKeyOf = (arcs: readonly CanvasArc[]): string =>
     .join("\n");
 
 /**
- * The arcs that had a focus role until a moment ago.
- *
- * An arc with a role draws its own strokes, at full strength. When it loses
- * the role it cannot join the merged paths of the arcs at rest at once.
- * Either the focus has moved on, and those paths are at 0.45 while this
- * arc's line has to fade down to there. Or the focus has ended, and those
- * paths are fading back from 0.45 while this arc is at full strength
- * already. So it keeps its own strokes until the fade is over, when the two
- * look the same: for as long as the roles keep changing, and one fade more.
- * Where the pane does not animate there is no fade to wait for, and no arc
- * is held: `fades` says whether it does.
+ * The arcs that had a focus role until a moment ago. Each keeps its own
+ * strokes until the pane's fade is over, so it does not jump to the strength
+ * of the merged paths: arc-layer.mdx. Without `fades` no arc is held.
  *
  * The roles of the render before are state adjusted during render, so the
  * arcs that just lost theirs are known in the render that takes the role

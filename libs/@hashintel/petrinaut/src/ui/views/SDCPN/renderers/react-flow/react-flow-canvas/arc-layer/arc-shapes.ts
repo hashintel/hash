@@ -1,12 +1,7 @@
 /**
- * The arcs of a scene as shapes to draw: each with the curve between its two
- * ends, and the path data of everything drawn along it.
- *
- * A scene is rebuilt for every hover, selection and drag frame, with every
- * arc a new object. `arcShapes` takes the shapes of the scene before and
- * returns the same object for each arc that draws the same, and the same
- * list when every arc does. So a frame computes the curves of the arcs whose
- * ends moved, and the layer renders the arcs whose shape is a new object.
+ * The arcs of a scene as shapes to draw. An arc that draws as it did in the
+ * scene before keeps its shape object, and the list is kept when every arc
+ * does: arc-layer.mdx.
  */
 
 import { sameItems } from "../../../../use-stable-items";
@@ -147,18 +142,8 @@ const toShape = (
 
 /**
  * The shapes of a scene's arcs. `leavingFocus` names the arcs that had a
- * focus role until a moment ago.
- *
- * An arc draws its own strokes while it is not like the arcs at rest:
- *
- * - it has a focus role or is selected, so it wears a casing or a band and
- *   never fades;
- * - it just lost its role, and is fading on its own;
- * - a node at one of its ends is being dragged, so its curve changes on
- *   every frame, and a merged path would be written again for each;
- * - it is a read or an inhibitor arc, whose marks lie on its line;
- * - it ends at a component port, whose pin moves while its card opens or
- *   closes.
+ * focus role until a moment ago. arc-layer.mdx lists when an arc is
+ * `alone`.
  */
 export const arcShapes = (
   scene: Pick<CanvasScene, "nodes" | "arcs">,
