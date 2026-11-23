@@ -368,7 +368,15 @@ const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<TiledItem>> =>
     label: group.label ?? "",
     items: group.items.map((item) => ({
       id: item.id,
-      text: item.text,
+      // A property's type is a pill after its name, as in the "@" popover (AT-PILL-24-NEUTRAL).
+      text: item.types ? (
+        <span className={popoverTitleStyle}>
+          <span>{item.text}</span>
+          <TypeLabel types={item.types} pill />
+        </span>
+      ) : (
+        item.text
+      ),
       description: item.description,
       icon: item.icon,
       glyph: item.glyph,
@@ -377,7 +385,7 @@ const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<TiledItem>> =>
       action: item.action,
       tint: item.tint,
       selected: item.selected,
-      suffix: item.suffix,
+      suffix: item.types ? undefined : item.suffix,
       selectedStyle: "highlight" as const,
       disabled: item.disabled,
       keepOpenOnSelect: item.keepOpen,
@@ -1061,7 +1069,7 @@ export const SourceMenu = ({
                         title={
                           item.types ? (
                             <span className={popoverTitleStyle}>
-                              {item.text}
+                              <span>{item.text}</span>
                               <TypeLabel types={item.types} pill />
                             </span>
                           ) : (
