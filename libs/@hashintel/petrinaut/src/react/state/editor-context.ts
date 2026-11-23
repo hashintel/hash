@@ -37,6 +37,9 @@ export type BottomPanelTab =
 
 export type TimelineChartType = "run" | "stacked";
 
+/** Beside the editor in a column of its own, or over it as a window. */
+export type AssistantPlacement = "docked" | "floating";
+
 export type SimulateViewMode = "scenarios" | "metrics" | "experiments";
 
 export type SimulateDrawerState =
@@ -125,6 +128,7 @@ export type EditorState = {
   simulateDrawer: SimulateDrawerState;
   isSearchOpen: boolean;
   isAiAssistantOpen: boolean;
+  assistantPlacement: AssistantPlacement;
 };
 
 /**
@@ -168,6 +172,7 @@ export type EditorActions = {
   setSearchOpen: (isOpen: boolean) => void;
   setAiAssistantOpen: (isOpen: boolean) => void;
   toggleAiAssistant: () => void;
+  setAssistantPlacement: (placement: AssistantPlacement) => void;
 };
 
 export type EditorContextValue = EditorState &
@@ -199,6 +204,7 @@ export const initialEditorState: EditorState = {
   simulateDrawer: { type: "closed" },
   isSearchOpen: false,
   isAiAssistantOpen: false,
+  assistantPlacement: "docked",
 };
 
 const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
@@ -234,6 +240,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setSearchOpen: () => {},
   setAiAssistantOpen: () => {},
   toggleAiAssistant: () => {},
+  setAssistantPlacement: () => {},
   searchInputRef: createRef<HTMLInputElement | null>(),
 };
 

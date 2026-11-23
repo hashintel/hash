@@ -8,10 +8,6 @@ import {
 } from "../navigation/navigation";
 import { usePublished } from "../select-from-context";
 import {
-  type AssistantPlacement,
-  AssistantPlacementContext,
-} from "./assistant-placement-context";
-import {
   EditorActionsContext,
   EditorModeContext,
   EditorContext,
@@ -67,11 +63,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   }));
 
   const resolved = useResolvedLocation();
-
-  // Not part of `state`: a change to `state` renders every reader of the
-  // editor context, and the placement concerns the assistant panel alone.
-  const [assistantPlacement, setAssistantPlacement] =
-    useState<AssistantPlacement>("docked");
 
   const [selectionNavigator] = useState(() =>
     createSelectionNavigator(navigate),
@@ -130,28 +121,21 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   // The panels open, close, dock and float by this state. `PanelPresenceProvider`
   // reads it and has Motion animate them.
   return (
-    <AssistantPlacementContext
-      value={{
-        placement: assistantPlacement,
-        setPlacement: setAssistantPlacement,
-      }}
-    >
-      <EditorPublishedContext value={published}>
-        <EditorContext value={contextValue}>
-          <EditorActionsContext value={actions}>
-            <EditorModeContext
-              value={{
-                globalMode: effectiveState.globalMode,
-                editViewMode: effectiveState.editViewMode,
-              }}
-            >
-              <ReadOnlyReasonProvider globalMode={effectiveState.globalMode}>
-                <PanelPresenceProvider>{children}</PanelPresenceProvider>
-              </ReadOnlyReasonProvider>
-            </EditorModeContext>
-          </EditorActionsContext>
-        </EditorContext>
-      </EditorPublishedContext>
-    </AssistantPlacementContext>
+    <EditorPublishedContext value={published}>
+      <EditorContext value={contextValue}>
+        <EditorActionsContext value={actions}>
+          <EditorModeContext
+            value={{
+              globalMode: effectiveState.globalMode,
+              editViewMode: effectiveState.editViewMode,
+            }}
+          >
+            <ReadOnlyReasonProvider globalMode={effectiveState.globalMode}>
+              <PanelPresenceProvider>{children}</PanelPresenceProvider>
+            </ReadOnlyReasonProvider>
+          </EditorModeContext>
+        </EditorActionsContext>
+      </EditorContext>
+    </EditorPublishedContext>
   );
 };

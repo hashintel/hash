@@ -3,7 +3,7 @@
  */
 import { act, render } from "@testing-library/react";
 import { use, useState } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -20,10 +20,6 @@ import {
 } from "../navigation/navigation";
 import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
 import { ActiveNetContext } from "./active-net-context";
-import {
-  useAssistantPlacement,
-  type AssistantPlacementContextValue,
-} from "./assistant-placement-context";
 import { CompositionContext } from "./composition-context";
 import {
   EditorContext,
@@ -37,10 +33,6 @@ import { EditorProvider } from "./editor-provider";
 import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
 import { useIsReadOnly } from "./use-is-read-only";
 import { useSelectionCleanup } from "./use-selection-cleanup";
-import {
-  defaultUserSettingsContextValue,
-  UserSettingsContext,
-} from "./user-settings-context";
 
 const emptySdcpn: SDCPN = {
   places: [],
@@ -75,20 +67,6 @@ const EditorContextGrabber = ({
   onContextValue: (value: EditorContextValue) => void;
 }) => {
   onContextValue(use(EditorContext));
-  return null;
-};
-
-type Panels = {
-  editor: EditorContextValue;
-  assistant: AssistantPlacementContextValue;
-};
-
-/** The editor context with the placement that is kept out of it. */
-const PanelsGrabber = ({ onValue }: { onValue: (value: Panels) => void }) => {
-  onValue({
-    editor: use(EditorContext),
-    assistant: useAssistantPlacement(),
-  });
   return null;
 };
 
@@ -131,52 +109,8 @@ const SelectionCleanup = () => {
 const selectionOf = (...ids: string[]): SelectionMap =>
   new Map(ids.map((id) => [id, { type: "place" as const, id }]));
 
-describe("EditorProvider assistant animation", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
-
-  it("renders no reader of the editor context when the assistant docks or floats", () => {
-    // Counted from inside the reader: a `Profiler` around it misses a render
-    // that a context starts.
-    const onEditorReaderRender = vi.fn();
-    const EditorReader = () => {
-      "use no memo"; // The call below has to run on every render.
-      onEditorReaderRender();
-      use(EditorContext);
-      return null;
-    };
-    let panels: Panels;
-    const { unmount } = render(
-      <UserSettingsContext
-        value={{ ...defaultUserSettingsContextValue, showAnimations: true }}
-      >
-        <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
-          <TestHost recorded={[]}>
-            <EditorProvider>
-              <EditorReader />
-              <PanelsGrabber
-                onValue={(value) => {
-                  panels = value;
-                }}
-              />
-            </EditorProvider>
-          </TestHost>
-        </SDCPNContext>
-      </UserSettingsContext>,
-    );
-    expect(onEditorReaderRender).toHaveBeenCalled();
-    onEditorReaderRender.mockClear();
-
-    act(() => panels.assistant.setPlacement("floating"));
-
-    expect(panels!.assistant.placement).toBe("floating");
-    expect(onEditorReaderRender).not.toHaveBeenCalled();
-    unmount();
-  });
-});
-
 describe("EditorProvider readers of one part", () => {
-  it("renders them when their part changes, and not when a panel opens", () => {
+  it("renders them when their part changes, and not when a panel opens or the assistant docks", () => {
     // Counted from inside each reader: a `Profiler` around one misses a
     // render that a context or a published value starts.
     const onRender = {
@@ -245,6 +179,11 @@ describe("EditorProvider readers of one part", () => {
 
     vi.clearAllMocks();
     act(() => editor!.setBottomPanelOpen(!editor!.isBottomPanelOpen));
+    expect(renders()).toEqual({ mode: 0, fields: 0, readOnly: 0, whole: 1 });
+
+    vi.clearAllMocks();
+    act(() => editor!.setAssistantPlacement("floating"));
+    expect(editor!.assistantPlacement).toBe("floating");
     expect(renders()).toEqual({ mode: 0, fields: 0, readOnly: 0, whole: 1 });
 
     vi.clearAllMocks();

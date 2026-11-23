@@ -23,7 +23,6 @@ readonly: "ReadOnlyReasonProvider\nread-only reason" {class: react}
 part: "useEditorState(select)\nuseEditorFields(names)\nuseIsSelected(id)" {class: react}
 component: "Component"
 row: "List row, canvas node"
-placement: "Assistant placement\ndocked or floating" {class: react}
 presence: "Panel presence\nMotion values" {class: react}
 element: "Panel element style"
 
@@ -36,6 +35,5 @@ state -> readonly: "passes the mode to"
 state -> part: "notifies"
 part -> component: "renders when the part changes"
 part -> row: "renders when its answer flips"
-state -> presence: "animates an opened panel"
-placement -> presence: "says where the assistant sits"
+state -> presence: "animates an opened panel, a dock, a float"
 presence -> element: "writes each frame" {style.stroke-dash: 3}

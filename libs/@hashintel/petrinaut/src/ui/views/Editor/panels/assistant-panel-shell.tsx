@@ -4,7 +4,10 @@ import { Button, Icon, Menu } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { HashIcon, useHashIconMotionAllowed } from "@hashintel/ds-icons";
 
-import { useAssistantPlacement } from "../../../../react/state/assistant-placement-context";
+import {
+  useEditorActions,
+  useEditorState,
+} from "../../../../react/state/editor-context";
 import { usePanelPresence } from "../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
 import { useUserSettings } from "../../../../react/state/user-settings-context";
@@ -232,7 +235,8 @@ export const PluginAssistantPanel = ({
   panel: AssistantPanel;
   children: ReactNode;
 }) => {
-  const { placement, setPlacement } = useAssistantPlacement();
+  const placement = useEditorState((editor) => editor.assistantPlacement);
+  const { setAssistantPlacement } = useEditorActions();
   const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const { aiAssistantWidth } = usePanelSizes();
   const { shown, aiAssistantDocked, aiAssistantHasRoom } = usePanelPresence();
@@ -349,7 +353,9 @@ export const PluginAssistantPanel = ({
                 variant="ghost"
                 className={buttonStyle}
                 aria-label={placementLabel}
-                onClick={() => setPlacement(isFloating ? "docked" : "floating")}
+                onClick={() =>
+                  setAssistantPlacement(isFloating ? "docked" : "floating")
+                }
                 prefix={
                   <HashIcon
                     name={isFloating ? "sidebar" : "externalLink"}

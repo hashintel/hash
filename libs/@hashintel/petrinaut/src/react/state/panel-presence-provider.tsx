@@ -1,7 +1,6 @@
 import { animateValue, cancelFrame, frame, type MotionValue } from "motion";
 import { useLayoutEffect, useState } from "react";
 
-import { useAssistantPlacement } from "./assistant-placement-context";
 import { useEditorFields } from "./editor-context";
 import {
   assistantWantsRoom,
@@ -79,14 +78,15 @@ export const PanelPresenceProvider: React.FC<React.PropsWithChildren> = ({
     hasSelection,
     isBottomPanelOpen,
     isAiAssistantOpen,
+    assistantPlacement,
   } = useEditorFields(
     "isLeftSidebarOpen",
     "isSearchOpen",
     "hasSelection",
     "isBottomPanelOpen",
     "isAiAssistantOpen",
+    "assistantPlacement",
   );
-  const { placement: assistantPlacement } = useAssistantPlacement();
   const showAnimations = useUserSettings((settings) => settings.showAnimations);
 
   const placement: PanelPlacement = {

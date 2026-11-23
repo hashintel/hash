@@ -249,5 +249,7 @@ export const createEditorActions = ({
         isAiAssistantOpen: !prev.isAiAssistantOpen,
       }));
     },
+    setAssistantPlacement: (placement) =>
+      patch({ assistantPlacement: placement }),
   };
 };

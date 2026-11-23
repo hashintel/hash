@@ -28,7 +28,6 @@ editor that only composes, which `useComposesOnly` answers, the mode is
 | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------- |
 | Mode, Edit view, Simulate view and drawer, selection                                                                  | The location                                                      | `useEditorActions`, which navigate               | `useEditorState`, `useEditorFields`, `useIsSelected` |
 | The other fields of `EditorState`: open panels, tool, cursor, hovered item, search, timeline view, visualizer windows | A `useState` of `EditorProvider`                                  | `useEditorActions`                               | `useEditorState`, `useEditorFields`                  |
-| Where the assistant sits                                                                                              | A second `useState` of `EditorProvider`                           | `useAssistantPlacement`                          | `useAssistantPlacement`                              |
 | User settings                                                                                                         | `UserSettingsProvider`, saved in `localStorage`                   | The setters of `useUserSettingsFields`           | `useUserSettings`, `useUserSettingsFields`           |
 | Panel sizes, and how far each panel is in view                                                                        | Motion values, see [Panel geometry](doc:react.state/panel-sizes)  | A resize drag, `PanelPresenceProvider`           | `usePanelSizes`, `usePanelPresence`                  |
 | Read-only reason                                                                                                      | `ReadOnlyReasonProvider`, from the document, the mode and the run | Nothing: it is derived                           | `useReadOnlyReason`, `useIsReadOnly`                 |
@@ -76,9 +75,6 @@ Clicking a row of a list:
   the selection would render on every move of it. Held by
   `select-from-context.test.tsx`, which pins that a reader renders only when
   its part changes.
-- **The assistant's placement is outside the editor's state.** Docking the
-  assistant renders no reader of the editor context. Held by
-  `editor-provider.test.tsx`.
 - **What changes on every edit is handed out as a store.** `UndoRedoContext`
   carries its actions, and `canUndo`, `canRedo` and `history` as stores, so a
   reader that only undoes never renders for an edit. The type

@@ -4,10 +4,10 @@ import { use } from "react";
 import { afterEach, expect, it } from "vitest";
 
 import {
-  AssistantPlacementContext,
   type AssistantPlacement,
-} from "./assistant-placement-context";
-import { EditorContext, type EditorContextValue } from "./editor-context";
+  EditorContext,
+  type EditorContextValue,
+} from "./editor-context";
 import { usePanelPresence } from "./panel-presence-context";
 import { PanelPresenceProvider } from "./panel-presence-provider";
 import {
@@ -59,19 +59,17 @@ const setup = ({
     <UserSettingsContext
       value={{ ...defaultUserSettingsContextValue, showAnimations }}
     >
-      <AssistantPlacementContext
-        value={{ placement: nextPlacement, setPlacement: () => {} }}
+      <EditorContext
+        value={{ ...editor, ...nextFlags, assistantPlacement: nextPlacement }}
       >
-        <EditorContext value={{ ...editor, ...nextFlags }}>
-          <PanelPresenceProvider>
-            <Grabber
-              onPresence={(value) => {
-                presence = value;
-              }}
-            />
-          </PanelPresenceProvider>
-        </EditorContext>
-      </AssistantPlacementContext>
+        <PanelPresenceProvider>
+          <Grabber
+            onPresence={(value) => {
+              presence = value;
+            }}
+          />
+        </PanelPresenceProvider>
+      </EditorContext>
     </UserSettingsContext>
   );
   const view = render(tree(flags, placement));

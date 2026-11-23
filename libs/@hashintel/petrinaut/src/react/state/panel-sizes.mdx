@@ -109,10 +109,10 @@ panels, and called on its own it gives the insets at that moment.
 | `aiAssistantHasRoom` | 0 or 1, in one step    | The width of the room beside the editor. Each change lays the whole editor out, so it does not ease. |
 
 `PanelPresenceProvider` animates the values of `PanelPresence`. It reads
-which panels are open from the editor's state and where the assistant sits
-from `AssistantPlacementContext`, and takes each value to its target with
-`animateValue` over 150 ms. Where the setting `showAnimations` is off, or
-the system asks for reduced motion, the value jumps. A change of target while a
+which panels are open and where the assistant sits from the editor's state,
+and takes each value to its target with `animateValue` over 150 ms. Where
+the setting `showAnimations` is off, or the system asks for reduced motion,
+the value jumps. A change of target while a
 value animates starts the next animation from where the value is.
 Held by `panel-presence-provider.test.tsx`.
 
