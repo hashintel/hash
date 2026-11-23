@@ -26,14 +26,14 @@ import {
   isAbortError,
 } from "./provider/consume-optimization-run";
 import {
-  createSweepTrialEvaluator,
-  type SweepTrialEvaluator,
-} from "./provider/create-sweep-trial-evaluator";
-import {
   createOptimizationRecord,
   foldOptimizationEvent,
   isCancellationEvent,
 } from "./provider/optimization-records";
+import {
+  createSweepTrialEvaluator,
+  type SweepTrialEvaluator,
+} from "./sweep-evaluator/create-sweep-trial-evaluator";
 
 import type {
   PetrinautConnectedOptimization,
