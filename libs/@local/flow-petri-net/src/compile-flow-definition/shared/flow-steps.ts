@@ -148,7 +148,9 @@ export const indexFlowSteps = (flowDefinition: FlowDefinition) => {
   };
 };
 
-/** The ids of the steps a step runs after, each once. */
-export const getRunAfterStepIds = (step: StepDefinition) => [
-  ...new Set((step.runAfter ?? []).map(({ stepId }) => stepId)),
+/** The `runAfter` entries of a step, one per step it runs after. */
+export const getRunAfterEntries = (step: StepDefinition) => [
+  ...new Map(
+    (step.runAfter ?? []).map((entry) => [entry.stepId, entry]),
+  ).values(),
 ];

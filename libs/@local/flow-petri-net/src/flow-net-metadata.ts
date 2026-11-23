@@ -50,10 +50,16 @@ export type InputSource =
   | { kind: "absent" };
 
 /**
- * Where a step reads that the steps it runs after have finished. A token marked absent there still means finished.
- * Never an endpoint the step also takes a value from.
+ * Where a step reads that the steps it runs after have finished, for entries with no path. A token marked absent there
+ * still means finished. Never an endpoint the step also takes a value from.
  */
 export type RunAfterEndpoints = ArcEndpoint[];
+
+/**
+ * Where a step on a path reads that path's output, which may also be where it takes a value from. A token marked absent
+ * there means the path wasn't taken, so the step doesn't start: the executor skips it.
+ */
+export type PathEndpoints = ArcEndpoint[];
 
 /** A transition's metadata, by its role. Every transition of the root net names the step it's for. */
 export type TransitionMetadata =
@@ -63,6 +69,7 @@ export type TransitionMetadata =
       /** Action input name → where it gets its value. */
       inputSources: Record<string, InputSource>;
       runAfter?: RunAfterEndpoints;
+      paths?: PathEndpoints;
     }
   | {
       role: "startForEach";
@@ -70,6 +77,7 @@ export type TransitionMetadata =
       /** The array, when it's a constant rather than a connected value. */
       constant?: JsonValue;
       runAfter?: RunAfterEndpoints;
+      paths?: PathEndpoints;
     }
   | { role: "copyOutput"; stepId: string; outputName: string }
   | {

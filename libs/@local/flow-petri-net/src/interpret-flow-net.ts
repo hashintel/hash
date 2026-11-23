@@ -761,7 +761,21 @@ export const startFlowNetRun = (
     );
   };
 
-  /** A `forEach` step can't start while its array is missing. What it reads for `runAfter` isn't its array. */
+  /** A step on a path not taken waits, and the executor skips it. */
+  const isOnPathNotTaken = (
+    metadata: Extract<TransitionMetadata, { role: "startStep" }>,
+    bindings: Binding[],
+  ) =>
+    bindings.some(
+      ({ position, token }) =>
+        token.kind === "value" &&
+        !token.present &&
+        (metadata.paths ?? []).some((endpoint) =>
+          isAt(position, rootPosition(endpoint)),
+        ),
+    );
+
+  /** A `forEach` step can't start while its array or a path's output (`paths`) is missing; `runAfter` reads don't count. */
   const hasMissingArray = (
     metadata: Extract<TransitionMetadata, { role: "startForEach" }>,
     bindings: Binding[],
@@ -815,7 +829,9 @@ export const startFlowNetRun = (
           anchorAccepts: (anchor) =>
             fired?.role !== "startStep" ||
             isSamePath(anchor.itemPath, fired.stepRun.itemPath),
-          guard: (candidate) => !hasMissingSkipInput(metadata, candidate),
+          guard: (candidate) =>
+            !hasMissingSkipInput(metadata, candidate) &&
+            !isOnPathNotTaken(metadata, candidate),
         });
 
         if (!bindings) {
