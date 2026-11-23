@@ -19,8 +19,8 @@ import {
 } from "./describe-metric-view";
 import { AggregationDimension } from "./metric-view-menu/aggregation-dimension";
 
-import type { MetricFrame } from "../../experiments/experiment-metric-timeline/shared/metric-frames";
-import type { MetricViewSettings } from "../../experiments/experiment-metric-timeline/view-state";
+import type { MetricFrame } from "./shared/metric-frames";
+import type { MetricViewSettings } from "./view-state";
 
 const bodyStyle = css({
   display: "flex",

@@ -14,6 +14,8 @@ import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ExperimentMetricTimeline } from "../experiments/experiment-metric-timeline";
+import { describeMetricView } from "../experiments/experiment-metric-timeline/describe-metric-view";
+import { MetricViewMenu } from "../experiments/experiment-metric-timeline/metric-view-menu";
 import { DEFAULT_METRIC_VIEW_SETTINGS } from "../experiments/experiment-metric-timeline/view-state";
 import { ChartCard, ChartCardGrid, type ChartCardTone } from "./chart-card";
 import {
@@ -23,8 +25,6 @@ import {
   chartCardBodyHeight,
   chartCardHeight,
 } from "./chart-card-layout";
-import { describeMetricView } from "./metric-tiles/describe-metric-view";
-import { MetricViewMenu } from "./metric-tiles/metric-view-menu";
 
 import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_METRIC_VIEW_SETTINGS } from "../../experiments/experiment-metric-timeline/view-state";
 import { describeMetricView } from "./describe-metric-view";
+import { DEFAULT_METRIC_VIEW_SETTINGS } from "./view-state";
 
 describe("describeMetricView", () => {
   it.each([
