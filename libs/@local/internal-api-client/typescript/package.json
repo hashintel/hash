@@ -20,6 +20,7 @@
     "orval": "patch:orval@npm%3A8.47.0#~/.yarn/patches/orval-npm-8.47.0-54d40be37b.patch",
     "rimraf": "6.1.4",
     "typescript": "catalog:",
+    "vite": "catalog:",
     "vitest": "catalog:"
   }
 }
