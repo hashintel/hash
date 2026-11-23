@@ -25,6 +25,25 @@ TypeScript user code
 `emit-js.ts` is retained as an object-convention reference/test emitter. The
 simulator does not fall back to it; unsupported HIR shapes are compile errors.
 
+## Interface
+
+The folder has no entry file. Two package entries beside it are its interface,
+and they differ in whether the importer loads the TypeScript compiler.
+
+| Entry                                                      | Loads the compiler | Imported by                                                                                  |
+| ---------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------- |
+| `src/hir.ts`, published as `@hashintel/petrinaut-core/hir` | Yes                | The LSP worker, which bundles the compiler, and Node tooling, which loads it as a dependency |
+| `src/hir-runtime.ts`, published as `…/hir-runtime`         | No                 | The simulation runtimes, the experiment backends and the WebGPU backend                      |
+
+`lower-typescript.ts` and `user-code-form.ts` import the compiler.
+`compile.ts`, `classify-net.ts`, `lint.ts`, `print.ts` and `scenario.ts` reach
+it through `lower-typescript.ts`. Code that ships in the main entry, a
+simulation worker or the WebGPU entry imports none of these files at run time:
+it takes a type from them with `import type`, and everything else from
+`hir-runtime.ts` or from a compiler-free file of this folder by its path.
+`scripts/check-browser-safe-entries.mjs` holds this after a build: it fails
+when the built `index`, `webgpu` or `hir-runtime` entry reaches the compiler.
+
 ## Why HIR exists
 
 TypeScript is a good authoring surface, but the simulator needs a smaller
@@ -122,7 +141,7 @@ The emitted programs use shared views over packed token bytes:
 - a per-run string pool;
 - engine-handled sinks for distributions and UUIDs.
 
-The precise runtime contract is in [`BUFFER_ABI.md`](./BUFFER_ABI.md).
+The precise runtime contract is in [HIR buffer ABI](doc:core.hir/buffer-abi).
 
 ## Tests
 
@@ -136,4 +155,6 @@ The HIR test suite covers:
 
 ## Related notes
 
-- [`BUFFER_ABI.md`](./BUFFER_ABI.md): packed-buffer runtime contract.
+- [HIR buffer ABI](doc:core.hir/buffer-abi): packed-buffer runtime contract.
+- [Compiling user code](doc:core.hir/user-code): the pipeline from authored
+  code to buffer programs and interpreted HIR.

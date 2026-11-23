@@ -9,7 +9,7 @@
  *   kernel: (f64, u64, u8, placeBases, indices, outF64, outU64, outU8, sink) => void
  *   metric: (f64, u64, u8, placeCounts, placeOffsets) => number
  *
- * The full ABI is documented in `BUFFER_ABI.md`.
+ * The full ABI is documented in `buffer-abi.mdx`.
  *
  * Emission works by symbolic evaluation: structural values (input tuples,
  * tokens, records, arrays) exist only at compile time; everything that
