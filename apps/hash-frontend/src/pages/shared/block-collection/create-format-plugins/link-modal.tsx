@@ -1,12 +1,22 @@
-import DeleteIcon from "@mui/icons-material/Delete";
-import LanguageIcon from "@mui/icons-material/Language";
-import LinkIcon from "@mui/icons-material/LinkOutlined";
 import { Box } from "@mui/material";
 import { useRef, useState } from "react";
 
+import { HashSvgIcon } from "@hashintel/design-system";
+
 import { isValidLink } from "./util";
 
+import type { ComponentProps } from "react";
 import type { FormEvent, FunctionComponent } from "react";
+
+const DeleteIcon = (
+  props: Omit<ComponentProps<typeof HashSvgIcon>, "icon">,
+) => <HashSvgIcon {...props} icon="trash" />;
+const LanguageIcon = (
+  props: Omit<ComponentProps<typeof HashSvgIcon>, "icon">,
+) => <HashSvgIcon {...props} icon="globe" />;
+const LinkIcon = (props: Omit<ComponentProps<typeof HashSvgIcon>, "icon">) => (
+  <HashSvgIcon {...props} icon="link" />
+);
 
 type LinkModalProps = {
   savedLinkMarkHref?: string;

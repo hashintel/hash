@@ -1,9 +1,8 @@
-import { faPlus, faWarning } from "@fortawesome/free-solid-svg-icons";
 import { Box, Divider, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";
 
-import { Chip, FontAwesomeIcon, WhiteCard } from "@hashintel/design-system";
+import { Chip, HashInlineIcon, WhiteCard } from "@hashintel/design-system";
 
 import { useSnackbar } from "../../../../../components/hooks/use-snackbar";
 import { Button } from "../../../../../shared/ui";
@@ -14,6 +13,9 @@ import { LinksSectionEmptyState } from "../../../../shared/entity/shared/links-s
 import { PropertiesSectionEmptyState } from "../../../../shared/entity/shared/properties-section-empty-state";
 import { SectionWrapper } from "../../../../shared/section-wrapper";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
+
+const faPlus = { icon: "plus" } as const;
+const faWarning = { icon: "warning" } as const;
 
 const selectorOrButtonHeight = 46;
 
@@ -70,7 +72,7 @@ export const SelectEntityTypePage = () => {
                   fontWeight={600}
                   gap={1}
                 >
-                  <FontAwesomeIcon
+                  <HashInlineIcon
                     icon={faWarning}
                     sx={{ color: "yellow.80" }}
                   />
@@ -129,7 +131,7 @@ export const SelectEntityTypePage = () => {
                       loading={loading}
                       onClick={() => setIsSelectingType(true)}
                       size="small"
-                      startIcon={!loading && <FontAwesomeIcon icon={faPlus} />}
+                      startIcon={!loading && <HashInlineIcon icon={faPlus} />}
                       sx={{
                         fontSize: 14,
                         paddingX: 2,

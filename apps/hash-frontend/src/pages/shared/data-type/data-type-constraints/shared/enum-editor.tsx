@@ -15,7 +15,6 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Tooltip, Typography } from "@mui/material";
 import { Box, Stack, type SxProps, type Theme } from "@mui/system";
 import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
@@ -23,6 +22,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 
 import { PenToSquareIcon } from "@hashintel/block-design-system";
 import {
+  HashSvgIcon,
   CheckRegularIcon,
   CloseIcon,
   IconButton,
@@ -41,6 +41,11 @@ import { useInheritedConstraints } from "../../shared/use-inherited-constraints"
 import type { DataTypeFormData } from "../../data-type-form";
 import type { InheritedConstraints } from "../types";
 import type { StringFormat } from "@blockprotocol/type-system";
+import type { ComponentProps } from "react";
+
+const DragIndicatorIcon = (
+  props: Omit<ComponentProps<typeof HashSvgIcon>, "icon">,
+) => <HashSvgIcon {...props} icon="gripVertical" />;
 
 const SaveButton = ({ onClick }: { onClick: () => void }) => (
   <Tooltip title="Save" placement="top">

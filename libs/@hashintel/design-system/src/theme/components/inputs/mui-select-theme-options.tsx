@@ -1,4 +1,3 @@
-import { faAngleDown } from "@fortawesome/free-solid-svg-icons";
 import {
   listItemAvatarClasses,
   listItemIconClasses,
@@ -7,13 +6,15 @@ import {
   outlinedInputClasses,
 } from "@mui/material";
 
-import { FontAwesomeIcon } from "../../../fontawesome-icon";
+import { HashInlineIcon } from "../../../hash-svg-icon";
 
 import type { Components, Theme } from "@mui/material";
 
+const faAngleDown = { icon: "chevronDown" } as const;
+
 export const MuiSelectThemeOptions: Components<Theme>["MuiSelect"] = {
   defaultProps: {
-    IconComponent: (props) => <FontAwesomeIcon icon={faAngleDown} {...props} />,
+    IconComponent: (props) => <HashInlineIcon icon={faAngleDown} {...props} />,
     size: "medium",
   },
   styleOverrides: {

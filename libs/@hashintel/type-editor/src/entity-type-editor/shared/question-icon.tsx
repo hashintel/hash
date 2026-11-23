@@ -1,15 +1,16 @@
-import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import { Box, styled, Tooltip } from "@mui/material";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
 
 import type { BoxProps } from "@mui/material";
 import type { ComponentProps, ReactNode } from "react";
 
+const faQuestionCircle = { icon: "help" } as const;
+
 const StyledQuestionIcon = styled(
-  (props: Omit<ComponentProps<typeof FontAwesomeIcon>, "icon">) => (
-    <FontAwesomeIcon {...props} icon={faQuestionCircle} />
+  (props: Omit<ComponentProps<typeof HashInlineIcon>, "icon">) => (
+    <HashInlineIcon {...props} icon={faQuestionCircle} />
   ),
 )(({ theme }) =>
   theme.unstable_sx({

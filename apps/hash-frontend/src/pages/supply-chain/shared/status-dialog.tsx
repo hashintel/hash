@@ -15,6 +15,7 @@ import {
   type SelectItem,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 
 import { useUsers } from "../../../components/hooks/use-users";
 import { useAuthInfo } from "../../shared/auth-info-context";
@@ -434,19 +435,12 @@ export const StatusDialog = ({
 /** Speech-bubble glyph used by Status action buttons. */
 export const StatusIcon = () => {
   return (
-    <svg
+    <StaticHashIcon
       width="12"
       height="12"
-      viewBox="0 0 12 12"
       fill="none"
       aria-hidden="true"
-    >
-      <path
-        d="M2 2.5h8v5H6.2L3.5 9.5v-2H2v-5Z"
-        stroke="currentColor"
-        strokeWidth="1.1"
-        strokeLinejoin="round"
-      />
-    </svg>
+      name="message"
+    />
   );
 };

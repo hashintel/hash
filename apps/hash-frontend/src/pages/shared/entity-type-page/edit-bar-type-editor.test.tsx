@@ -19,7 +19,7 @@ vi.mock("@hashintel/type-editor", () => ({
 }));
 
 vi.mock("@hashintel/design-system", () => ({
-  FontAwesomeIcon: () => null,
+  HashInlineIcon: () => null,
 }));
 
 vi.mock("../../../shared/icons/svg", () => ({

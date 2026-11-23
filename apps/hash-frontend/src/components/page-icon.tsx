@@ -1,13 +1,14 @@
-import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { Box } from "@mui/material";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { iconVariantSizes } from "../shared/icon-variant-sizes";
 import { CanvasIcon } from "../shared/icons/canvas-icon";
 
 import type { SizeVariant } from "../shared/icon-variant-sizes";
 import type { BoxProps } from "@mui/material";
+
+const faFile = { icon: "file" } as const;
 
 interface PageIconProps {
   isCanvas?: boolean;
@@ -48,7 +49,7 @@ export const PageIcon = ({
             }}
           />
         ) : (
-          <FontAwesomeIcon
+          <HashInlineIcon
             icon={faFile}
             sx={(theme) => ({
               fontSize: `${sizes.font}px !important`,

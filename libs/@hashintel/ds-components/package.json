@@ -136,7 +136,6 @@
     "esbuild-plugin-svgr": "3.1.1",
     "eslint": "9.39.4",
     "lorem-ipsum": "2.0.8",
-    "lucide-react": "0.544.0",
     "mdast-util-mdx-jsx": "^3.0.0",
     "npm-run-all2": "8.0.4",
     "oxc-transform-react": "0.152.0",

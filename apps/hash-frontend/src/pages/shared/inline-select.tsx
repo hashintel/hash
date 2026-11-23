@@ -1,13 +1,14 @@
-import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 import { inputBaseClasses, selectClasses, styled } from "@mui/material";
 
-import { FontAwesomeIcon, Select } from "@hashintel/design-system";
+import { HashInlineIcon, Select } from "@hashintel/design-system";
 
 import type { SelectProps } from "@hashintel/design-system";
 import type { Ref } from "react";
 
+const faCaretDown = { icon: "caretDown" } as const;
+
 const InlineSelectChevronDown = () => (
-  <FontAwesomeIcon
+  <HashInlineIcon
     icon={faCaretDown}
     sx={{ fontSize: 12, position: "absolute", top: 3, right: 14 }}
   />

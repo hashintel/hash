@@ -1,4 +1,3 @@
-import { faLocationDot } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Divider,
@@ -12,7 +11,7 @@ import { useMemo } from "react";
 
 import {
   Avatar,
-  FontAwesomeIcon,
+  HashInlineIcon,
   IconButton,
   PenRegularIcon,
 } from "@hashintel/design-system";
@@ -30,6 +29,8 @@ import type { ProfilePageTab } from "./util";
 import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FunctionComponent, ReactNode } from "react";
+
+const faLocationDot = { icon: "location" } as const;
 
 const InfoItem: FunctionComponent<{
   icon: ReactNode;
@@ -101,7 +102,7 @@ const ProfileTabInfoSection: FunctionComponent<{ profile?: User | Org }> = ({
     <Box display="flex" flexDirection="column" rowGap={0.5}>
       {location ? (
         <InfoItem
-          icon={<FontAwesomeIcon icon={faLocationDot} sx={{ fontSize: 14 }} />}
+          icon={<HashInlineIcon icon={faLocationDot} sx={{ fontSize: 14 }} />}
           title={location}
         />
       ) : null}

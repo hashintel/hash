@@ -1,9 +1,8 @@
-import { faChevronRight, faList } from "@fortawesome/free-solid-svg-icons";
 import { Box, Collapse, Fade, Stack, TableCell, Tooltip } from "@mui/material";
 import { useWatch } from "react-hook-form";
 
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { HashInlineIcon, IconButton } from "@hashintel/design-system";
 
 import { useIsReadonly } from "../../shared/read-only-context";
 import { ArrowTurnDownRightIcon } from "../shared/arrow-turn-down-right-icon";
@@ -22,6 +21,9 @@ import type {
   OntologyTypeVersion,
   PropertyType,
 } from "@blockprotocol/type-system";
+
+const faChevronRight = { icon: "chevronRight" } as const;
+const faList = { icon: "list" } as const;
 
 interface PropertyTitleCellProps {
   property: PropertyType;
@@ -120,7 +122,7 @@ export const PropertyTitleCell = ({
               marginRight: 1,
             })}
           >
-            <FontAwesomeIcon icon={faChevronRight} />
+            <HashInlineIcon icon={faChevronRight} />
           </IconButton>
         </Collapse>
 
@@ -164,7 +166,7 @@ export const PropertyTitleCell = ({
         </Tooltip>
 
         <Fade in={array} appear={false}>
-          <FontAwesomeIcon
+          <HashInlineIcon
             sx={{
               color: ({ palette }) => palette.gray[70],
               fontSize: 14,

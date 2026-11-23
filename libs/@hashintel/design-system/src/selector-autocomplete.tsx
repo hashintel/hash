@@ -1,4 +1,3 @@
-import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   Autocomplete,
   ClickAwayListener,
@@ -13,7 +12,7 @@ import { Button } from "./button";
 import { Chip } from "./chip";
 import { GRID_CLICK_IGNORE_CLASS } from "./constants";
 import { fluidFontClassName } from "./fluid-fonts";
-import { FontAwesomeIcon } from "./fontawesome-icon";
+import { HashInlineIcon } from "./hash-svg-icon";
 import { StyledPlusCircleIcon } from "./icon-circle-plus";
 import {
   addPopperPositionClassPopperModifier,
@@ -27,6 +26,8 @@ import type { ButtonProps } from "./button";
 import type { SelectorAutocompleteOptionProps } from "./selector-autocomplete/selector-autocomplete-option";
 import type { AutocompleteProps, PaperProps, PopperProps } from "@mui/material";
 import type { Ref } from "react";
+
+const faSearch = { icon: "search" } as const;
 
 export const TYPE_SELECTOR_HEIGHT = 57;
 
@@ -273,7 +274,7 @@ export const SelectorAutocomplete = <
               InputProps={{
                 ...props.InputProps,
                 endAdornment: (
-                  <FontAwesomeIcon
+                  <HashInlineIcon
                     icon={faSearch}
                     sx={(theme) => ({
                       fontSize: 12,

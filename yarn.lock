@@ -641,8 +641,6 @@ __metadata:
     "@emotion/react": "npm:11.14.0"
     "@emotion/server": "npm:11.11.0"
     "@emotion/styled": "npm:11.14.1"
-    "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
-    "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@glideapps/glide-data-grid": "patch:@glideapps/glide-data-grid@npm%3A6.0.3#~/.yarn/patches/@glideapps-glide-data-grid-npm-6.0.3-f71d586425.patch"
     "@graphql-codegen/add": "npm:7.1.1"
     "@graphql-codegen/cli": "npm:^7.4.6"
@@ -670,7 +668,6 @@ __metadata:
     "@local/hash-isomorphic-utils": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@mantine/hooks": "npm:8.3.5"
-    "@mui/icons-material": "npm:5.18.0"
     "@mui/material": "npm:5.18.0"
     "@mui/system": "npm:5.18.0"
     "@next/bundle-analyzer": "npm:16.3.8"
@@ -898,7 +895,6 @@ __metadata:
     oxlint-tsgolint: "catalog:"
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
-    react-icons: "npm:5.5.0"
     react-markdown: "npm:10.1.0"
     sharp: "npm:0.35.5"
     typescript: "catalog:"
@@ -6040,31 +6036,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fortawesome/fontawesome-common-types@npm:6.7.2":
-  version: 6.7.2
-  resolution: "@fortawesome/fontawesome-common-types@npm:6.7.2"
-  checksum: 10c0/0785df560542d9c08a0ba07bb7a39902274a3cd65c018672eb2520a99efccce18bdb7f7f4b1c6089763bc5627bf0f0837c3af963a8427eaeb535bd57c820a723
-  languageName: node
-  linkType: hard
-
-"@fortawesome/free-regular-svg-icons@npm:6.7.2":
-  version: 6.7.2
-  resolution: "@fortawesome/free-regular-svg-icons@npm:6.7.2"
-  dependencies:
-    "@fortawesome/fontawesome-common-types": "npm:6.7.2"
-  checksum: 10c0/3a334cb0c837170f7b14759ddc8ef2a821b8d2c59b23a7b852d7e3fb16b066dd5fe8649e47bc1ef91764c78a78f51d1c0c8c5b8567e1680eeb21e8afdc70f5f7
-  languageName: node
-  linkType: hard
-
-"@fortawesome/free-solid-svg-icons@npm:6.7.2":
-  version: 6.7.2
-  resolution: "@fortawesome/free-solid-svg-icons@npm:6.7.2"
-  dependencies:
-    "@fortawesome/fontawesome-common-types": "npm:6.7.2"
-  checksum: 10c0/e900f3bb7b7d821421f11439ff78cd2b3c98ca31e848e1afebf7caa578d29a31fb6cf8ef283d4df342de777126a71fcbb154dd395b9d9ab6914a40a86df81413
-  languageName: node
-  linkType: hard
-
 "@glideapps/glide-data-grid@npm:6.0.3":
   version: 6.0.3
   resolution: "@glideapps/glide-data-grid@npm:6.0.3"
@@ -6980,7 +6951,6 @@ __metadata:
     oxlint-tsgolint: "catalog:"
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
-    react-icons: "npm:5.5.0"
     react-markdown: "npm:10.1.0"
     typescript: "catalog:"
     valibot: "npm:1.4.2"
@@ -7005,8 +6975,7 @@ __metadata:
     "@emotion/cache": "npm:11.14.0"
     "@emotion/react": "npm:11.14.0"
     "@emotion/styled": "npm:11.14.1"
-    "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
-    "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
+    "@hashintel/ds-icons": "workspace:*"
     "@local/eslint": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@mui/material": "npm:5.18.0"
@@ -7079,7 +7048,6 @@ __metadata:
     esbuild-plugin-svgr: "npm:3.1.1"
     eslint: "npm:9.39.4"
     lorem-ipsum: "npm:2.0.8"
-    lucide-react: "npm:0.544.0"
     mdast-util-mdx-jsx: "npm:^3.0.0"
     npm-run-all2: "npm:8.0.4"
     oxc-transform-react: "npm:0.152.0"
@@ -7260,8 +7228,6 @@ __metadata:
   dependencies:
     "@blockprotocol/graph": "workspace:*"
     "@blockprotocol/type-system": "workspace:*"
-    "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
-    "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@hashintel/design-system": "workspace:*"
     "@local/eslint": "workspace:*"
     "@local/tsconfig": "workspace:*"
@@ -7319,8 +7285,6 @@ __metadata:
   dependencies:
     "@blockprotocol/graph": "workspace:*"
     "@blockprotocol/type-system": "workspace:*"
-    "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
-    "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@hashintel/design-system": "workspace:*"
     "@local/eslint": "workspace:*"
     "@local/hash-isomorphic-utils": "workspace:*"
@@ -10073,22 +10037,6 @@ __metadata:
   version: 5.18.0
   resolution: "@mui/core-downloads-tracker@npm:5.18.0"
   checksum: 10c0/d82962a1b69878cf6a6785b6600302a943d474af00bba50169e207ce0bb5d072f1ed65783c7d5ca940cbe4228ab86bc95bb57545cf2cd039d588f2571bbefe0c
-  languageName: node
-  linkType: hard
-
-"@mui/icons-material@npm:5.18.0":
-  version: 5.18.0
-  resolution: "@mui/icons-material@npm:5.18.0"
-  dependencies:
-    "@babel/runtime": "npm:^7.23.9"
-  peerDependencies:
-    "@mui/material": ^5.0.0
-    "@types/react": ^17.0.0 || ^18.0.0 || ^19.0.0
-    react: ^17.0.0 || ^18.0.0 || ^19.0.0
-  peerDependenciesMeta:
-    "@types/react":
-      optional: true
-  checksum: 10c0/4fc61ea1b8ff276c8545b4f4f3881d9be590af24d8c2cbb076b34ec9a9230fd3147c30dd12399133c8d99c9eb748bd73014fa29b187b94229b90783023af4482
   languageName: node
   linkType: hard
 
@@ -27925,10 +27873,13 @@ __metadata:
   resolution: "hash@workspace:."
   dependencies:
     "@changesets/cli": "patch:@changesets/cli@npm%3A3.0.3#~/.yarn/patches/@changesets-cli-npm-3.0.3-37da92ed6c.patch"
+    "@hashintel/ds-icons": "workspace:*"
     "@yarnpkg/types": "npm:^4.0.1"
     lefthook: "npm:2.2.0"
     npm-run-all2: "npm:8.0.4"
     oxfmt: "npm:0.71.0"
+    react: "npm:19.2.6"
+    react-dom: "npm:19.2.6"
   languageName: unknown
   linkType: soft
 
@@ -31356,15 +31307,6 @@ __metadata:
   dependencies:
     es5-ext: "npm:~0.10.2"
   checksum: 10c0/83517032b46843601c4528be65e8aaf85f5a7860a9cfa3e4f2b5591da436e7cd748d95b450c91434c4ffb75d3ae4c069ddbdd9f71ada56a99a00c03088c51b4d
-  languageName: node
-  linkType: hard
-
-"lucide-react@npm:0.544.0":
-  version: 0.544.0
-  resolution: "lucide-react@npm:0.544.0"
-  peerDependencies:
-    react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/2503f8cf65e62915997073b6053423bf8091b9470cb397560b417ef2f1628ea162c49e821b787cf153afb86828482d941f051c3f2aa642a1fa58c3de227e0113
   languageName: node
   linkType: hard
 
@@ -36034,15 +35976,6 @@ __metadata:
   dependencies:
     html-element-attributes: "npm:^1.0.0"
   checksum: 10c0/f2ef5b80c6254a0bc4cc802d7412bee0bd5008a1ac1a96eb52cdfde9b7e5017e9373ee613361d6c83df3faa8743c71fb42d1fb238bb797ece481d97848c02be2
-  languageName: node
-  linkType: hard
-
-"react-icons@npm:5.5.0":
-  version: 5.5.0
-  resolution: "react-icons@npm:5.5.0"
-  peerDependencies:
-    react: "*"
-  checksum: 10c0/a24309bfc993c19cbcbfc928157e53a137851822779977b9588f6dd41ffc4d11ebc98b447f4039b0d309a858f0a42980f6bfb4477fb19f9f2d1bc2e190fcf79c
   languageName: node
   linkType: hard
 

@@ -1,8 +1,7 @@
-import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { Box, Stack } from "@mui/material";
 import { useFormContext } from "react-hook-form";
 
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { HashInlineIcon, IconButton } from "@hashintel/design-system";
 
 import { useReadonlyContext } from "../readonly-context";
 import { ChainOperatorSelector } from "./filter-row/chain-operator-selector";
@@ -16,6 +15,8 @@ import { ValueInput } from "./filter-row/value-input";
 
 import type { FormValues } from "../types";
 import type { EntityType, PropertyType } from "@blockprotocol/type-system";
+
+const faClose = { icon: "close" } as const;
 
 interface FilterRowProps {
   index: number;
@@ -78,7 +79,7 @@ export const FilterRow = ({
 
       {!readonly && (
         <IconButton onClick={onRemove}>
-          <FontAwesomeIcon icon={faClose} />
+          <HashInlineIcon icon={faClose} />
         </IconButton>
       )}
     </Stack>

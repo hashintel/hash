@@ -1,5 +1,3 @@
-import { faCopy } from "@fortawesome/free-regular-svg-icons";
-import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Divider,
@@ -23,13 +21,13 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { Fragment, useCallback, useId, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { useController, useFormContext } from "react-hook-form";
 
 import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 import {
   faCheck,
-  FontAwesomeIcon,
+  HashInlineIcon,
   IconButton,
   MenuItem,
   OntologyChip,
@@ -44,6 +42,9 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { MenuItemProps } from "@hashintel/design-system";
 import type { TooltipProps } from "@mui/material";
 import type { MouseEventHandler } from "react";
+
+const faCopy = { icon: "copy" } as const;
+const faEllipsis = { icon: "ellipsis" } as const;
 
 export const TYPE_MENU_CELL_WIDTH = 70;
 
@@ -148,7 +149,7 @@ export const TypeMenuCell = ({
         aria-label={`Options for ${typeTitle}`}
         {...bindTrigger(popupState)}
       >
-        <FontAwesomeIcon
+        <HashInlineIcon
           icon={faEllipsis}
           sx={(theme) => ({
             fontSize: 14,
@@ -264,7 +265,7 @@ export const TypeMenuCell = ({
                 align="center"
                 variant="smallTextLabels"
               >
-                <FontAwesomeIcon
+                <HashInlineIcon
                   icon={{ icon: hasCopied ? faCheck : faCopy.icon }}
                   sx={{ mr: 1 }}
                 />

@@ -1,9 +1,10 @@
-import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { Box } from "@mui/material";
 
-import { FontAwesomeIcon } from "../../../fontawesome-icon";
+import { HashInlineIcon } from "../../../hash-svg-icon";
 
 import type { ChipProps, Components, PaletteValue, Theme } from "@mui/material";
+
+const faClose = { icon: "close" } as const;
 
 const getColors = (
   theme: Theme,
@@ -87,7 +88,7 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
       // wrapping the icon in a box makes it possible for us to increase
       // the icons clickable area without increasing the size of the icon
       <Box>
-        <FontAwesomeIcon icon={faClose} />
+        <HashInlineIcon icon={faClose} />
       </Box>
     ),
   },

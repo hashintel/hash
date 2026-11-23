@@ -1,4 +1,3 @@
-import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Breadcrumbs as MuiBreadcrumbs,
@@ -13,12 +12,14 @@ import {
 } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { HashInlineIcon, IconButton } from "@hashintel/design-system";
 
 import { Button, MenuItem } from "../../shared/ui";
 import { PAGE_TITLE_PLACEHOLDER } from "./block-collection/page-title/page-title";
 
 import type { ReactNode } from "react";
+
+const faAngleRight = { icon: "chevronRight" } as const;
 
 export type Breadcrumb = {
   title: string;
@@ -88,7 +89,7 @@ export const Breadcrumbs = ({
   return (
     <MuiBreadcrumbs
       separator={
-        <FontAwesomeIcon
+        <HashInlineIcon
           icon={faAngleRight}
           sx={({ palette }) => ({
             fontSize: 14,

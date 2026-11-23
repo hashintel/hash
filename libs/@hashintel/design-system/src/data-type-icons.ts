@@ -10,8 +10,8 @@ import { faRulerRegular } from "./fa-icons/fa-ruler-regular";
 import { faSquareCheck } from "./fa-icons/fa-square-check";
 import { faText } from "./fa-icons/fa-text";
 
+import type { HashIconDefinition } from "./hash-svg-icon";
 import type { StringConstraints } from "@blockprotocol/type-system";
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 
 export const identifierTypeTitles = ["URL", "URI"];
 
@@ -39,7 +39,7 @@ export const getIconForDataType = ({
   title: string;
   format?: StringConstraints["format"];
   type: string;
-}): IconDefinition["icon"] => {
+}): HashIconDefinition["icon"] => {
   if (type === "boolean") {
     return faSquareCheck;
   }

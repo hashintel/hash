@@ -3,6 +3,7 @@ import { useMemo, type CSSProperties, type ReactNode } from "react";
 
 import { Tooltip, usePortalContainerRef } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 
 import {
   getCategoryColor,
@@ -479,51 +480,27 @@ const MiniBoxPlot = ({ stats }: { stats: GraphNode["stats"] }) => {
 
 const ClockIcon = () => {
   return (
-    <svg
+    <StaticHashIcon
       width="10"
       height="10"
-      viewBox="0 0 12 12"
       fill="none"
       className={iconShrink}
       aria-hidden="true"
-    >
-      <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2" />
-      <path
-        d="M6 3.5V6L7.5 7.5"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-    </svg>
+      name="clock"
+    />
   );
 };
 
 const WarningTriangleIcon = () => {
   return (
-    <svg
+    <StaticHashIcon
       width="10"
       height="10"
-      viewBox="0 0 12 12"
       fill="none"
       className={warnIcon}
       aria-hidden="true"
-    >
-      <path
-        d="M6 1.4 11 10H1L6 1.4Z"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-      />
-
-      <path
-        d="M6 4.3v2.4"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-
-      <circle cx="6" cy="8.6" r="0.45" fill="currentColor" />
-    </svg>
+      name="warning"
+    />
   );
 };
 export const StepCard = ({ node, onClick, timeRange }: StepCardProps) => {

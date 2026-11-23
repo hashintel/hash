@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 
 import { CATEGORIES, isDwellType } from "../../shared/categories";
 import { useCostParams, computePeriodCost } from "../../shared/cost";
@@ -121,30 +122,13 @@ const SortButton = ({
     >
       {label}
       {active && dir && (
-        <svg
+        <StaticHashIcon
           width="8"
           height="8"
-          viewBox="0 0 8 8"
-          fill="none"
           className={sortArrow}
           aria-hidden="true"
-        >
-          {dir === "desc" ? (
-            <path
-              d="M1.5 3L4 5.5L6.5 3"
-              stroke="currentColor"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-            />
-          ) : (
-            <path
-              d="M1.5 5.5L4 3L6.5 5.5"
-              stroke="currentColor"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-            />
-          )}
-        </svg>
+          name={dir === "desc" ? "chevronDown" : "chevronUp"}
+        />
       )}
     </button>
   );

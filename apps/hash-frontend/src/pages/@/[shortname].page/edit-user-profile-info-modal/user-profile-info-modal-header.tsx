@@ -275,7 +275,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
         ) : (
           <AvatarButton
             disabled={newCoverImageUploading}
-            startIcon={<FontAwesomeIcon icon={faImage} />}
+            startIcon={<HashInlineIcon icon={faImage} />}
             onClick={handleChangeCoverImage}
           >
             Add cover image

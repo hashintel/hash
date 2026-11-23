@@ -1,4 +1,3 @@
-import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   chipClasses,
@@ -9,13 +8,15 @@ import {
 } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import { Chip, HashInlineIcon } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
 
 import { useDataTypesOptions } from "../../../../../shared/data-types-options-context";
 
 import type { CustomExpectedValueTypeId } from "../../../../../shared/data-types-options-context";
 import type { ReactNode } from "react";
+
+const faClose = { icon: "close" } as const;
 
 interface ExpectedValueBadgeProps {
   typeId: CustomExpectedValueTypeId;
@@ -115,7 +116,7 @@ export const ExpectedValueBadge = ({
           py={1}
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <FontAwesomeIcon
+            <HashInlineIcon
               icon={{
                 icon,
               }}
@@ -183,7 +184,7 @@ export const ExpectedValueBadge = ({
                   },
                 })}
               >
-                <FontAwesomeIcon
+                <HashInlineIcon
                   icon={faClose}
                   sx={{
                     fontSize: "13px !important",

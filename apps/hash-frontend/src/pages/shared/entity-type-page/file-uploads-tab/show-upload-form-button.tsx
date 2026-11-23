@@ -1,6 +1,6 @@
 import { Box, Typography } from "@mui/material";
 
-import { faCirclePlus, FontAwesomeIcon } from "@hashintel/design-system";
+import { faCirclePlus, HashInlineIcon } from "@hashintel/design-system";
 
 export const ShowUploadFormButton = ({ onClick }: { onClick: () => void }) => (
   <Box
@@ -26,7 +26,7 @@ export const ShowUploadFormButton = ({ onClick }: { onClick: () => void }) => (
     }}
     type="button"
   >
-    <FontAwesomeIcon
+    <HashInlineIcon
       icon={{
         icon: faCirclePlus,
       }}

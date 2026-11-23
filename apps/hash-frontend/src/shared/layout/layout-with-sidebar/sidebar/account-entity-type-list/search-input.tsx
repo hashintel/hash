@@ -1,8 +1,7 @@
-import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import { Fade, outlinedInputClasses, Tooltip } from "@mui/material";
 
 import {
-  FontAwesomeIcon,
+  HashInlineIcon,
   IconButton,
   TextField,
 } from "@hashintel/design-system";
@@ -10,6 +9,8 @@ import {
 import { MagnifyingGlassLightIcon } from "../../../../icons/magnifying-glass-light";
 
 import type { FunctionComponent } from "react";
+
+const faXmark = { icon: "close" } as const;
 
 type SearchInputProps = {
   searchVisible: boolean;
@@ -90,7 +91,7 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
               }}
             >
               <IconButton onClick={hideSearchInput} size="small" unpadded>
-                <FontAwesomeIcon icon={faXmark} />
+                <HashInlineIcon icon={faXmark} />
               </IconButton>
             </Tooltip>
           ),

@@ -1,9 +1,3 @@
-import {
-  faList,
-  faListCheck,
-  faListOl,
-  faListUl,
-} from "@fortawesome/free-solid-svg-icons";
 import { createContext, useContext } from "react";
 
 import {
@@ -32,6 +26,11 @@ import type {
   ValueConstraints,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+
+const faList = { icon: "list" } as const;
+const faListCheck = { icon: "listCheck" } as const;
+const faListOl = { icon: "listOrdered" } as const;
+const faListUl = { icon: "list" } as const;
 
 const chipColors = {
   blue: {

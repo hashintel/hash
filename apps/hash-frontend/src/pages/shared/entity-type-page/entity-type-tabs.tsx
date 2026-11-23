@@ -1,9 +1,8 @@
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { Box } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { TabLink } from "../../../shared/ui/tab-link";
@@ -19,6 +18,8 @@ import { useEntityType } from "./shared/entity-type-context";
 
 import type { EntityTypeTab } from "./entity-type-tab-context";
 import type { PropsWithChildren } from "react";
+
+const faPlus = { icon: "plus" } as const;
 
 export const EntityTypeTabProvider = ({
   children,
@@ -147,7 +148,7 @@ export const EntityTypeTabs = ({
                     mr: 0,
                   })}
                   icon={
-                    <FontAwesomeIcon
+                    <HashInlineIcon
                       icon={faPlus}
                       sx={(theme) => ({
                         ...theme.typography.smallTextLabels,

@@ -18,6 +18,78 @@ describe("static artwork", () => {
     { renderer: "main", IconComponent: HashIcon },
     { renderer: "static", IconComponent: StaticHashIcon },
   ])(
+    "keeps Semi Fill's shade unstroked in the $renderer renderer",
+    ({ IconComponent }) => {
+      for (const variant of ["outline", "filled"] as const) {
+        const { container, unmount } = render(
+          <IconComponent name="fillSemi" variant={variant} />,
+        );
+        const shade = container.querySelector('rect[opacity=".4"]');
+        expect(shade?.getAttribute("stroke")).toBe("none");
+        expect(shade?.getAttribute("fill")).toBe("currentColor");
+        expect(container.querySelectorAll("rect")).toHaveLength(2);
+        unmount();
+      }
+    },
+  );
+
+  it("resolves stroke variables for raw artwork at every supported weight", () => {
+    for (const name of hashIconNames) {
+      for (const variant of ["outline", "filled"] as const) {
+        for (const weight of [100, 400, 700]) {
+          const markup = getHashIconArtwork(
+            name,
+            variant,
+            "raw",
+            getHashIconStrokeWidth(weight),
+          );
+          expect(markup, name).not.toContain("var(--hash-icon-");
+        }
+      }
+    }
+  });
+
+  it.each([
+    { name: "filePdf", scale: 0.6 },
+    { name: "logicNext", scale: 0.8 },
+    { name: "warning", scale: 1.25 },
+    { name: "chartBarSimple", scale: 1.4 },
+  ] as const)("scales $name details in raw SVG markup", ({ name, scale }) => {
+    for (const strokeWidth of [0, 1, 1.75, 2.5]) {
+      const markup = getHashIconArtwork(name, "outline", "raw", strokeWidth);
+      expect(markup).toContain(
+        `stroke-width="${Number((strokeWidth * scale).toFixed(6))}"`,
+      );
+    }
+  });
+
+  it.each([Number.NaN, Infinity, -Infinity, '"/><script>'])(
+    "uses the default raw stroke width for an invalid runtime width: %s",
+    (strokeWidth) => {
+      expect(
+        getHashIconArtwork("filePdf", "outline", "raw", strokeWidth as number),
+      ).toBe(getHashIconArtwork("filePdf", "outline", "raw"));
+    },
+  );
+
+  it("preserves CSS stroke sizing in the React renderer", () => {
+    const { container } = render(
+      <StaticHashIcon name="filePdf" strokeWidth="0.125em" />,
+    );
+    const artwork = container.querySelector("svg > g") as SVGGElement;
+    expect(artwork.getAttribute("stroke-width")).toBe("0.125em");
+    expect(artwork.style.getPropertyValue("--hash-icon-stroke-width")).toBe(
+      "0.125em",
+    );
+    expect(artwork.innerHTML).toContain(
+      "calc(var(--hash-icon-stroke-width) * .6)",
+    );
+  });
+
+  it.each([
+    { renderer: "main", IconComponent: HashIcon },
+    { renderer: "static", IconComponent: StaticHashIcon },
+  ])(
     "keeps filled logic state markers unstroked in the $renderer renderer",
     ({ IconComponent }) => {
       for (const name of [

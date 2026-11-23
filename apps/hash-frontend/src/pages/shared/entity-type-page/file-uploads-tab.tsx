@@ -1,4 +1,3 @@
-import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import {
   Box,
   CircularProgress,
@@ -14,11 +13,7 @@ import {
 } from "@mui/material";
 import { useContext, useState } from "react";
 
-import {
-  CheckIcon,
-  CloseIcon,
-  FontAwesomeIcon,
-} from "@hashintel/design-system";
+import { CheckIcon, CloseIcon, HashInlineIcon } from "@hashintel/design-system";
 
 import {
   useFileUploads,
@@ -33,6 +28,8 @@ import { useEntityType } from "./shared/entity-type-context";
 
 import type { CircularProgressProps, LinearProgressProps } from "@mui/material";
 import type { ReactNode } from "react";
+
+const faCircleQuestion = { icon: "help" } as const;
 
 const HeaderCell = ({ children }: { children: ReactNode }) => (
   <TableCell>
@@ -74,7 +71,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
       title="Upload file"
       titleTooltip={`This table lists all ‘${entityType.title}’ uploads you created during this session`}
       tooltipIcon={
-        <FontAwesomeIcon icon={faCircleQuestion} sx={{ fontSize: 14 }} />
+        <HashInlineIcon icon={faCircleQuestion} sx={{ fontSize: 14 }} />
       }
     >
       {showUploadForm && (

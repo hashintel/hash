@@ -1,8 +1,7 @@
-import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
 import { Box, Typography } from "@mui/material";
 import { useMemo } from "react";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { Circle1RegularIcon } from "../../shared/icons/circle-1-regular-icon";
 import { Circle2RegularIcon } from "../../shared/icons/circle-2-regular-icon";
@@ -11,6 +10,8 @@ import { Circle4RegularIcon } from "../../shared/icons/circle-4-regular-icon";
 import { CircleArrowRightRegularIcon } from "../../shared/icons/circle-arrow-right-regular-icon";
 
 import type { FunctionComponent, ReactNode } from "react";
+
+const faCircleCheck = { icon: "circleCheck" } as const;
 
 type StepName =
   | "verify-email"
@@ -116,7 +117,7 @@ export const SignupSteps: FunctionComponent<{
             {isCurrentStep ? (
               <CircleArrowRightRegularIcon />
             ) : isCompletedStep ? (
-              <FontAwesomeIcon icon={faCircleCheck} />
+              <HashInlineIcon icon={faCircleCheck} />
             ) : (
               stepNumberToCircleIcon[index + 1]
             )}

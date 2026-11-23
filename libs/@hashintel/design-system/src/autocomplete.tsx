@@ -1,4 +1,3 @@
-import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   Autocomplete as MUIAutocomplete,
   outlinedInputClasses,
@@ -6,7 +5,7 @@ import {
 import { useCallback, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
-import { FontAwesomeIcon } from "./fontawesome-icon";
+import { HashInlineIcon } from "./hash-svg-icon";
 import {
   addPopperPositionClassPopperModifier,
   popperPlacementInputNoBorder,
@@ -21,6 +20,8 @@ import type {
   PopperProps,
 } from "@mui/material";
 import type { Ref } from "react";
+
+const faSearch = { icon: "search" } as const;
 
 type AutocompleteProps<
   T,
@@ -170,7 +171,7 @@ export const Autocomplete = <
               inputProps && "endAdornment" in inputProps ? (
                 inputProps.endAdornment
               ) : (
-                <FontAwesomeIcon
+                <HashInlineIcon
                   icon={faSearch}
                   sx={{
                     fontSize: 14,

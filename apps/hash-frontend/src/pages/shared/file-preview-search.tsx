@@ -1,4 +1,3 @@
-import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Collapse,
@@ -13,13 +12,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownRegularIcon,
   ArrowUpRegularIcon,
-  FontAwesomeIcon,
+  HashInlineIcon,
   IconButton,
   TextField,
 } from "@hashintel/design-system";
 
 import { FontCaseRegularIcon } from "../../shared/icons/font-case-regular-icon";
 import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
+
+const faXmark = { icon: "close" } as const;
 
 type FilePreviewSearchProps = {
   closeSearch: () => void;
@@ -86,7 +87,7 @@ export const FilePreviewSearch = ({
                   size="small"
                   unpadded
                 >
-                  <FontAwesomeIcon icon={faXmark} />
+                  <HashInlineIcon icon={faXmark} />
                 </IconButton>
               </Tooltip>
             ),

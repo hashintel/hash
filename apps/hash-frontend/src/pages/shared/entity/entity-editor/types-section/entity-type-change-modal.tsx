@@ -1,4 +1,3 @@
-import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Stack,
@@ -12,13 +11,11 @@ import {
 } from "@mui/material";
 import { useCallback, useMemo } from "react";
 
-import {
-  AlertModal,
-  FontAwesomeIcon,
-  LinkIcon,
-} from "@hashintel/design-system";
+import { AlertModal, HashInlineIcon, LinkIcon } from "@hashintel/design-system";
 
 import type { BaseUrl, OntologyTypeVersion } from "@blockprotocol/type-system";
+
+const faArrowRight = { icon: "arrowRight" } as const;
 
 export type EntityTypeChangeDetails = {
   onAccept: (args: {
@@ -268,7 +265,7 @@ const ModalHeader = ({
       </Box>
       {proposedChange.type === "Update" && (
         <>
-          <FontAwesomeIcon icon={faArrowRight} sx={{ color: "gray.50" }} />
+          <HashInlineIcon icon={faArrowRight} sx={{ color: "gray.50" }} />
           <Box component="span" fontWeight={700} color="gray.90">
             v{proposedChange.newVersion.toString()}
           </Box>

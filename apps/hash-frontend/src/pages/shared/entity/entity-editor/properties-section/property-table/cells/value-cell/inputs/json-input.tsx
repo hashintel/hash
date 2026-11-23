@@ -1,13 +1,15 @@
-import { faCheck, faClose } from "@fortawesome/free-solid-svg-icons";
 import { Box, Popper, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { HashInlineIcon, IconButton } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 
 import { JsonEditor } from "./json-input/json-editor";
 
 import type { CellInputProps } from "./types";
+
+const faCheck = { icon: "check" } as const;
+const faClose = { icon: "close" } as const;
 
 const isJsonObjectString = (str?: string) => {
   if (!str || str.trim()[0] !== "{") {
@@ -93,7 +95,7 @@ export const JsonInput = ({ onChange, value }: CellInputProps<unknown>) => {
                   sx={{ color: "white" }}
                   onClick={() => onChange(value, true)}
                 >
-                  <FontAwesomeIcon icon={faClose} />
+                  <HashInlineIcon icon={faClose} />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Save Changes" placement="top" disableInteractive>
@@ -106,7 +108,7 @@ export const JsonInput = ({ onChange, value }: CellInputProps<unknown>) => {
                       onChange(JSON.parse(innerValue));
                     }}
                   >
-                    <FontAwesomeIcon icon={faCheck} />
+                    <HashInlineIcon icon={faCheck} />
                   </IconButton>
                 </Box>
               </Tooltip>

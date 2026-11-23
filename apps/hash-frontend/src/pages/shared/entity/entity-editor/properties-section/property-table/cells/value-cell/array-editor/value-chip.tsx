@@ -1,11 +1,12 @@
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { Box, Tooltip } from "@mui/material";
 
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import { Chip, HashInlineIcon } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { HashIconDefinition } from "@hashintel/design-system";
 import type { ReactNode } from "react";
+
+const faAsterisk = { icon: "asterisk" } as const;
 
 export const ValueChip = ({
   title,
@@ -15,7 +16,7 @@ export const ValueChip = ({
   tooltip = "",
 }: {
   title: ReactNode;
-  icon?: Pick<IconDefinition, "icon">;
+  icon?: Pick<HashIconDefinition, "icon">;
   imageSrc?: string;
   selected: boolean;
   tooltip?: string;
@@ -55,7 +56,7 @@ export const ValueChip = ({
             }}
             disableInteractive
           >
-            <FontAwesomeIcon
+            <HashInlineIcon
               icon={icon}
               sx={{
                 /**

@@ -21,8 +21,6 @@
   "dependencies": {
     "@blockprotocol/graph": "workspace:*",
     "@blockprotocol/type-system": "workspace:*",
-    "@fortawesome/free-regular-svg-icons": "6.7.2",
-    "@fortawesome/free-solid-svg-icons": "6.7.2",
     "@hashintel/design-system": "workspace:*",
     "@local/hash-isomorphic-utils": "workspace:*",
     "clsx": "2.1.1",

@@ -1,4 +1,3 @@
-import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Collapse,
@@ -9,7 +8,7 @@ import {
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { isItemArchived } from "../../../shared/is-archived";
@@ -29,6 +28,9 @@ import type {
 } from "@blockprotocol/type-system";
 import type { SxProps, Theme } from "@mui/material";
 import type { FunctionComponent, ReactElement, ReactNode } from "react";
+
+const faCheck = { icon: "check" } as const;
+const faFile = { icon: "file" } as const;
 
 const PageRestoredMessageWrapper: FunctionComponent<{
   children: ReactNode;
@@ -72,7 +74,7 @@ const PageRestoredMessageWrapper: FunctionComponent<{
       animationFillMode: "forwards",
     })}
   >
-    <FontAwesomeIcon
+    <HashInlineIcon
       icon={faCheck}
       sx={({ palette }) => ({
         fontSize: 14,
@@ -118,7 +120,7 @@ export const TopContextBar = ({
   actionMenuItems,
   breadcrumbsEndAdornment,
   crumbs,
-  defaultCrumbIcon = <FontAwesomeIcon icon={faFile} />,
+  defaultCrumbIcon = <HashInlineIcon icon={faFile} />,
   onItemUnarchived,
   item,
   scrollToTop = () => {},

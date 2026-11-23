@@ -1,4 +1,3 @@
-import { faQuestionCircle } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   ListItemIcon,
@@ -9,7 +8,7 @@ import {
 } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state/hooks";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { ArrowDownAZRegularIcon } from "../../../../icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../../../icons/arrow-up-a-z-regular-icon";
@@ -17,6 +16,8 @@ import { MenuItem } from "../../../../ui";
 
 import type { PopupState } from "material-ui-popup-state/hooks";
 import type { FunctionComponent, ReactNode } from "react";
+
+const faQuestionCircle = { icon: "help" } as const;
 
 export type SortType = "asc" | "desc" | "recent" | "most_used" | "least_used";
 
@@ -83,7 +84,7 @@ export const SortActionsDropdown: FunctionComponent<
           Sort By
         </Typography>
         <Tooltip title="Sort">
-          <FontAwesomeIcon
+          <HashInlineIcon
             icon={faQuestionCircle} // @todo-mui get a free icon that matches the design closely
             sx={({ palette }) => ({
               color: palette.gray[50],

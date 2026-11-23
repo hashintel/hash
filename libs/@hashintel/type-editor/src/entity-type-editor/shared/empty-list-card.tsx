@@ -1,14 +1,15 @@
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { Box, Stack, Typography, typographyClasses } from "@mui/material";
 
 import {
-  FontAwesomeIcon,
-  fontAwesomeIconClasses,
+  HashInlineIcon,
+  hashSvgIconClasses,
   WhiteCard,
 } from "@hashintel/design-system";
 
 import type { CardActionAreaProps } from "@mui/material";
 import type { ReactNode } from "react";
+
+const faPlus = { icon: "plus" } as const;
 
 type EmptyListCardProps = Pick<CardActionAreaProps, "onClick"> & {
   icon: ReactNode;
@@ -47,7 +48,7 @@ export const EmptyListCard = ({
       <Box
         sx={{
           fontSize: 20,
-          [`.${fontAwesomeIconClasses.icon}`]: { fontSize: "inherit" },
+          [`.${hashSvgIconClasses.icon}`]: { fontSize: "inherit" },
         }}
         className="EmptyListCard-icon"
       >
@@ -58,7 +59,7 @@ export const EmptyListCard = ({
           <Box component="span" mr={1} fontWeight={500}>
             {headline}
           </Box>
-          {onClick ? <FontAwesomeIcon icon={faPlus} /> : null}
+          {onClick ? <HashInlineIcon icon={faPlus} /> : null}
         </Typography>
         <Typography
           variant="microText"

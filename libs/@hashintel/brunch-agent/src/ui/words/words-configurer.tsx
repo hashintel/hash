@@ -1,8 +1,8 @@
 import { useId, useRef, useState } from "react";
-import { LuBookOpen } from "react-icons/lu";
 
 import { Button, Dialog, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 
 import {
   maxPronunciationLength,
@@ -14,6 +14,11 @@ import type {
   ConversationWord,
   useConversationWords,
 } from "./conversation-words";
+import type { ComponentProps } from "react";
+
+const LuBookOpen = (
+  props: Omit<ComponentProps<typeof StaticHashIcon>, "name">,
+) => <StaticHashIcon {...props} name="bookOpen" />;
 
 const stackStyle = css({
   display: "flex",

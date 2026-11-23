@@ -1,8 +1,8 @@
 import { faCirclePlus } from "./fa-icons/icons";
-import { FontAwesomeIcon } from "./fontawesome-icon";
+import { HashInlineIcon } from "./hash-svg-icon";
 
 export const StyledPlusCircleIcon = () => (
-  <FontAwesomeIcon
+  <HashInlineIcon
     icon={{
       icon: faCirclePlus,
     }}

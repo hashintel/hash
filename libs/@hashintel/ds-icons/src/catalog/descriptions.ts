@@ -68,6 +68,220 @@ export const descriptions = {
   cloudUpload:
     "An upward arrow entering a cloud represents uploading data to a remote service.",
   move: "Four cardinal arrows represent moving or panning in any direction.",
+  rectanglesOffset: "Three offset rectangles represent alternative views.",
+  gridPacked: "Four rectangles packed into two rows represent packing items.",
+  chevronsRight: "Two chevrons point right.",
+  chevronsLeft: "Two chevrons point left.",
+  checksStacked:
+    "Two check marks stacked vertically represent completed actions.",
+  scribbleSwatch:
+    "A dense diagonal scribble represents a freeform brush swatch.",
+  pencilBaseline:
+    "A pencil above a horizontal baseline represents writing on a line.",
+  presentationScreen: "A blank screen on a stand represents a presentation.",
+  truckRampBox:
+    "A truck with a ramp and unloading box represents loading freight.",
+  truckContainerFast:
+    "A container truck with speed lines represents freight in transit.",
+  gaugeMax:
+    "A gauge with its needle at the maximum represents maximum capacity.",
+  sparklesCluster: "Three four-pointed sparkles represent a sparkling effect.",
+
+  leftToLine:
+    "An arrow pointing left toward a vertical line represents returning to an edge.",
+  calendarBlank: "A calendar with no marked date represents a calendar.",
+  fileVideoCamera:
+    "A document containing a video camera represents a video file.",
+  filterList: "A funnel beside short rows represents filtering a list.",
+  gridNine: "Nine small squares represent a grid of applications.",
+  inboxArrowRight:
+    "An inbox with a right-arrow badge represents outgoing messages.",
+  noteTopFold: "A square note with a folded upper corner represents a note.",
+  pagePlain: "A page with a clipped upper corner represents a plain page.",
+  peopleGroup: "Three full figures represent a group of people.",
+  pizzaPie: "A circular pizza with a separated slice represents pizza.",
+  asteriskBolt:
+    "An asterisk with a lightning bolt represents creating an entity.",
+  noteBolt: "A note with a lightning bolt represents creating a quick note.",
+  codePen: "The CodePen mark represents CodePen.",
+  collapseDiagonal: "Two diagonal arrows point toward the center.",
+  lightbulbRays: "A light bulb surrounded by rays represents an idea.",
+  shapesThree: "A triangle, circle and square represent geometric shapes.",
+  diagramNestedBranches:
+    "Two boxes connected by an elbow represent nested items.",
+  networkHub:
+    "A central node linked to three surrounding nodes represents a network.",
+  arrowsRotateClockwise:
+    "Two clockwise arrows represent refresh or synchronization.",
+  rotateClockwise: "One clockwise circular arrow represents rotating right.",
+  chartBars: "Three columns without axes represent a bar chart.",
+  chartLineAxes:
+    "A line chart within horizontal and vertical axes represents a trend.",
+  sidebarList:
+    "A split panel with rows in its sidebar represents a navigation sidebar.",
+  twoLayers: "Two stacked diamond layers represent layers.",
+  layerPlusAbove:
+    "Two stacked layers with an upper plus represent creating layers.",
+  stackLinesHorizontal: "Four vertical lines represent a horizontal stack.",
+  stackLinesVertical: "Four horizontal lines represent a vertical stack.",
+  alignBarBottom: "A bar aligned to a lower edge represents bottom alignment.",
+  alignBarTop: "A bar aligned to an upper edge represents top alignment.",
+  alignBarLeft: "A bar aligned to a left edge represents left alignment.",
+  alignBarRight: "A bar aligned to a right edge represents right alignment.",
+  alignBarHorizontal:
+    "A horizontal bar on a vertical axis represents horizontal centering.",
+  alignBarVertical:
+    "A vertical bar on a horizontal axis represents vertical centering.",
+  triangleRight: "A right-facing triangle represents a triangular arrowhead.",
+  triangleLeft:
+    "A left-facing triangle represents a reversed triangular arrowhead.",
+  aspectRatioCorners: "Nested corners within a square represent aspect ratio.",
+  undoBent: "A bent arrow points left to represent undo.",
+  speechWave: "Three vertical strokes represent a voice sample.",
+  lockPlain: "A padlock without a keyhole represents a locked state.",
+  unlockPlain:
+    "An open padlock without a keyhole represents an unlocked state.",
+  gripDotsVertical: "Six dots in two columns represent a drag handle.",
+  thoughtCloud:
+    "A cloud-shaped thought bubble with two small trailing circles represents thought.",
+
+  stars:
+    "A five-pointed star with two smaller sparkles represents recognition or acknowledgements.",
+  shootingStar:
+    "A five-pointed star with trailing streaks represents a shooting star.",
+  fileCertificate:
+    "A document with a ribbon seal represents a license or certificate.",
+  road: "A road with a dashed center line represents a route or roadmap.",
+  personSparkles:
+    "A standing person beside sparkles represents personal preferences.",
+  shield: "An unmarked shield represents protection or privacy.",
+  comment: "An oval speech bubble represents a comment or conversation.",
+  comments: "Two overlapping oval speech bubbles represent a conversation.",
+  commentQuote:
+    "Quotation marks in an oval speech bubble represent a quoted comment.",
+  spinnerDots: "A ring of separate dots represents work in progress.",
+  layerUpload:
+    "Two stacked layers beneath an upward arrow represent updating layers.",
+  infinityPlus:
+    "An infinity loop with a plus represents adding a recurring flow.",
+  satelliteDish: "A dish receiving radio waves represents a signal or trigger.",
+  hourglass: "An hourglass represents a wait or elapsed time.",
+  noteList:
+    "A note with a folded lower corner and list marks represents a memo.",
+  rectanglePointer:
+    "A pointer over a rectangular chip represents selecting a chip.",
+  usersThree: "Three busts represent a group of people.",
+  triangleNodes: "Three connected circular nodes form a triangular network.",
+  arrowDownToBar:
+    "An arrow pointing down toward a bar represents alignment to that edge.",
+  arrowLeftToBar:
+    "An arrow pointing left toward a bar represents alignment to that edge.",
+  arrowUpToBar:
+    "An arrow pointing up toward a bar represents alignment to that edge.",
+  arrowRightToBar:
+    "An arrow pointing right toward a bar represents alignment to that edge.",
+  arrowDownLeftToCorner:
+    "An arrow pointing toward the downleft corner represents corner alignment.",
+  arrowUpLeftToCorner:
+    "An arrow pointing toward the upleft corner represents corner alignment.",
+  arrowUpRightToCorner:
+    "An arrow pointing toward the upright corner represents corner alignment.",
+  arrowDownRightToCorner:
+    "An arrow pointing toward the downright corner represents corner alignment.",
+  alignCenterMark:
+    "Four marks surrounding a dot represent centering in both directions.",
+  bringForwardArrow:
+    "An upward arrow under one bar represents bringing an object forward.",
+  bringToFrontArrow:
+    "An upward arrow under two bars represents bringing an object to the front.",
+  sendBackwardArrow:
+    "A downward arrow above one bar represents sending an object backward.",
+  sendToBackArrow:
+    "A downward arrow above two bars represents sending an object to the back.",
+  clipboardCopy:
+    "A clipboard and dotted selection represent copying to the clipboard.",
+  disc: "A solid circular swatch represents a color or visible mark.",
+  circleDashed: "A dashed circular outline represents a dashed stroke.",
+  circleDotted: "A dotted circular outline represents a dotted stroke.",
+  circleDrawn: "An uneven circular outline represents a hand-drawn stroke.",
+  layerFillNone: "Overlapping squares show the none fill treatment.",
+  layerFillPattern: "Overlapping squares show the pattern fill treatment.",
+  layerFillSemi: "Overlapping squares show the semi fill treatment.",
+  layerFillSolid: "Overlapping squares show the solid fill treatment.",
+  fontSansAa:
+    "Uppercase and lowercase A in a sans-serif style represent sans-serif text.",
+  fontMonoAa:
+    "Uppercase and lowercase A with equal widths represent monospaced text.",
+  fontSerifAa: "Serif uppercase and lowercase A represent serif text.",
+  fontDrawAa:
+    "Hand-drawn uppercase and lowercase A represent handwritten text.",
+  fontMixedAa:
+    "A small sans-serif a above a serif A represents mixed typefaces.",
+  ovalVertical: "An upright oval represents an oval shape.",
+  parallelogramLeft: "A parallelogram slanting left represents a skewed shape.",
+  groupDashed: "A dashed square represents a grouped selection.",
+  ungroupDashed: "A slashed dashed square represents ungrouping a selection.",
+  gridDots: "Nine dots in a square represent mixed or multiple values.",
+  questionMark:
+    "An unenclosed question mark represents an unknown value or help.",
+  zoomReset: "A magnifier with a reset arrow represents resetting zoom.",
+  rotateSquareClockwise:
+    "A clockwise arrow around a square represents rotating an object right.",
+  rotateSquareCounterclockwise:
+    "A counterclockwise arrow around a square represents rotating an object left.",
+  rulerCorner: "An L-shaped ruler represents measuring or guides.",
+  slidersVertical: "Two vertical sliders represent adjustable settings.",
+  sizeLetterSmall: "A capital S represents small text.",
+  sizeLetterMedium: "A capital M represents medium text.",
+  sizeLetterLarge: "A capital L represents large text.",
+  sizeLetterExtraLarge: "The letters XL represent extra-large text.",
+  cornerCurve: "A curved corner represents a curved connector.",
+  cornerLine: "A right-angle corner represents a straight connector.",
+  stretchBarsHorizontal:
+    "A horizontal bar between vertical edges represents stretching horizontally.",
+  stretchBarsVertical:
+    "A vertical bar between horizontal edges represents stretching vertically.",
+  lineDiagonal: "A single diagonal stroke represents a line.",
+  textCapital: "A single capital T represents a text tool.",
+  caretDown: "A solid downward triangle represents a dropdown.",
+  caretUp: "A solid upward triangle represents an upward disclosure.",
+  arrowsTurnToDots: "Two turning arrows point toward separate dots.",
+  diagramBranch:
+    "Three square nodes connected by a branching line represent a project graph.",
+  fileExcel: "A document marked X represents a spreadsheet file.",
+  boxesTransfer:
+    "Two boxes and an upward arrow represent packing or transferring boxes.",
+  memo: "An unfolded rectangular page with short lines represents a memo.",
+  memoCircleInfo:
+    "A memo with a circular information badge represents a note with details.",
+  banknoteTransfer:
+    "A banknote surrounded by arrows represents a money transfer.",
+  columnsMasonry: "Offset blocks in two columns represent a masonry layout.",
+  robotBust: "A robot head above a mechanical torso represents a robot user.",
+  greetingBust:
+    "A waving person shown from the waist up represents a greeting.",
+  hierarchyBranches:
+    "A parent node branching to child nodes represents links in a hierarchy.",
+  circlePlus: "A plus centered inside a circle represents adding an item.",
+  squarePlus: "A plus centered inside a square represents adding an item.",
+  penSquare: "A pencil crossing an open square represents editing.",
+  functionExpression:
+    "An f followed by a parenthesized x represents a function expression.",
+  inputField: "A rectangular input with a text cursor represents a text field.",
+  treeList: "A vertical branch beside three short rows represents a tree list.",
+  overlappingCircles: "Three overlapping circles represent intersecting sets.",
+  terminalPrompt: "A chevron and underscore represent a command prompt.",
+  featherQuill: "A curved feather with a central shaft represents writing.",
+  slidersHorizontalThree:
+    "Three horizontal sliders represent adjustable settings.",
+  barsDescending: "Three bars of decreasing width represent sorting.",
+  arrowsUpDown:
+    "Two opposing vertical arrows represent a bidirectional sort or transfer.",
+  arrowsFromCenterLine: "Two arrows point away from a central horizontal line.",
+  arrowsToCenterLine: "Two arrows point toward a central horizontal line.",
+  canvasPlus: "A rectangle with a plus badge represents creating a canvas.",
+  fileCirclePlus: "A document with a circled plus represents creating a file.",
+  earthAmericas: "A globe showing the Americas represents the Earth.",
 
   toolbox:
     "A handled tool case represents a toolkit or collection of utilities.",

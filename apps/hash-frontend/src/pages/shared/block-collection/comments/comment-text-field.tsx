@@ -1,4 +1,3 @@
-import { faAt } from "@fortawesome/free-solid-svg-icons";
 import { Box } from "@mui/material";
 import { debounce, isEqual } from "lodash";
 import { baseKeymap } from "prosemirror-commands";
@@ -7,7 +6,7 @@ import { EditorState } from "prosemirror-state";
 import { useContext, useEffect, useLayoutEffect, useRef } from "react";
 
 import {
-  FontAwesomeIcon,
+  HashInlineIcon,
   IconButton,
   LoadingSpinner,
 } from "@hashintel/design-system";
@@ -39,6 +38,8 @@ import styles from "./style.module.css";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { EditorView } from "prosemirror-view";
 import type { FunctionComponent } from "react";
+
+const faAt = { icon: "at" } as const;
 
 type CommentTextFieldProps = {
   value?: TextToken[];
@@ -270,7 +271,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
                 color: palette.gray[40],
               })}
             >
-              <FontAwesomeIcon icon={faAt} />
+              <HashInlineIcon icon={faAt} />
             </IconButton>
           )}
         </Box>
