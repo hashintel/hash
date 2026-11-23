@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { isPetrinautId, toPetrinautId } from "../../document/petrinaut-id";
 import { createPetrinaut } from "../../instance";
-import { isPetrinautId, toPetrinautId } from "../../petrinaut-id";
 import { createReadableStore } from "../../store";
 import { createJsonDocHandle } from "./create-json-doc-handle";
 

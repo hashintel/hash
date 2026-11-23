@@ -18,7 +18,7 @@
  * `histograms` (on-device metrics), `metric-sample` (metric bodies over the
  * live state) and `run-parameters` (per-run buffer).
  */
-import { getArcEndpointPlaceId } from "../arc-endpoints";
+import { getArcEndpointPlaceId } from "../document/arc-endpoints";
 import { netTimeOf } from "../net-class";
 import { emitDynamics } from "./compile-net-shader/dynamics";
 import {

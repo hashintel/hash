@@ -3,9 +3,9 @@
  * @role Reads and writes the on-disk SDCPN document format, plus export converters
  */
 
+import { canonicalizePetrinautIds } from "../document/petrinaut-id";
 import { migrateLegacyComponentKeys } from "../migrate-legacy-component-keys";
 import { migrateLegacyDynamics } from "../migrate-legacy-dynamics";
-import { canonicalizePetrinautIds } from "../petrinaut-id";
 import {
   describeDangerousSdcpnKeys,
   findDangerousSdcpnKeys,

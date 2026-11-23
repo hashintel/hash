@@ -1,8 +1,8 @@
+import { getPlaceDynamicsEquationIds } from "./document/place-dynamics";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   type PetrinautExtensionSettings,
 } from "./extensions";
-import { getPlaceDynamicsEquationIds } from "./place-dynamics";
 
 import type { Color, Place, SDCPN, Transition } from "./types/sdcpn";
 

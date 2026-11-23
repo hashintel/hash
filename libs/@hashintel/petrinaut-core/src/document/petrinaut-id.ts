@@ -8,10 +8,10 @@
 import { v4 as uuidv4, v5 as uuidv5 } from "uuid";
 import { z } from "zod";
 
+import { isUuidString } from "../tokens/uuid";
 import { getArcEndpointKey, parseArcEndpointKey } from "./arc-endpoints";
 import { generateArcId } from "./arc-id";
-import { isUuidString } from "./tokens/uuid";
-import { parseArcId } from "./types/selection";
+import { parseArcId } from "./selection";
 
 import type {
   AdHocScenarioState,
@@ -27,7 +27,7 @@ import type {
   Scenario,
   SDCPN,
   Transition,
-} from "./types/sdcpn";
+} from "../types/sdcpn";
 
 /**
  * UUIDv5 namespace under which non-UUID ids are converted. This value MUST

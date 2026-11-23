@@ -21,7 +21,7 @@
  * It is deliberately read-only and device-free: it answers "would this compile"
  * without acquiring a GPU, so it can run while editing.
  */
-import { resolveNetParameterValues } from "../parameter-values";
+import { resolveNetParameterValues } from "../document/parameter-values";
 import { compileNetShader } from "./compile-net-shader";
 import { assessGpuEligibility } from "./eligibility";
 import { toGpuMetricSpecs } from "./gpu-metric-frames";

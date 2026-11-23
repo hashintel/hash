@@ -13,16 +13,6 @@ import {
   type MutationActionInput,
 } from "./action-schemas";
 import {
-  arcEndpointsEqual,
-  arcMatchesEndpoint,
-  createArcEndpointReference,
-  getArcEndpoint,
-  getArcEndpointKey,
-  getComponentPortEndpointComponent,
-  placeArcEndpoint,
-} from "./arc-endpoints";
-import { generateArcId } from "./arc-id";
-import {
   findFusionWithMember,
   fusionHolds,
   nextFusionName,
@@ -37,6 +27,22 @@ import {
 } from "./composition/interfaces";
 import { generateDefaultTransitionKernelCode } from "./default-codes";
 import {
+  arcEndpointsEqual,
+  arcMatchesEndpoint,
+  createArcEndpointReference,
+  getArcEndpoint,
+  getArcEndpointKey,
+  getComponentPortEndpointComponent,
+  placeArcEndpoint,
+} from "./document/arc-endpoints";
+import { generateArcId } from "./document/arc-id";
+import { toPetrinautId } from "./document/petrinaut-id";
+import {
+  getPlaceDynamicsEquationIds,
+  placeUsesDifferentialEquation,
+  withoutDifferentialEquations,
+} from "./document/place-dynamics";
+import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   createArcPlaceResolver,
   createTransitionLogicAvailabilityReader,
@@ -46,12 +52,6 @@ import {
   type PetrinautExtensionSettings,
   type TransitionLogicAvailabilityReader,
 } from "./extensions";
-import { toPetrinautId } from "./petrinaut-id";
-import {
-  getPlaceDynamicsEquationIds,
-  placeUsesDifferentialEquation,
-  withoutDifferentialEquations,
-} from "./place-dynamics";
 import { migrateScenarioRowsForTypeEdit } from "./schema-migration";
 
 import type { ResolvedLibraries } from "./composition/libraries";

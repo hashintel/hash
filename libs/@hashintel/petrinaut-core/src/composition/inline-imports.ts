@@ -7,7 +7,7 @@
  * too, under ids that are the same from one call to the next.
  */
 
-import { toPetrinautId } from "../petrinaut-id";
+import { toPetrinautId } from "../document/petrinaut-id";
 import {
   bindsWithinDocument,
   componentKey,

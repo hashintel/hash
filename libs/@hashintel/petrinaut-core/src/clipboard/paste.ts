@@ -3,9 +3,9 @@
  * @role Serialises a selection and pastes it back, resolving name collisions
  */
 
-import { getArcEndpointPlaceId } from "../arc-endpoints";
-import { generatePetrinautId } from "../petrinaut-id";
-import { remapPlaceDynamics } from "../place-dynamics";
+import { getArcEndpointPlaceId } from "../document/arc-endpoints";
+import { generatePetrinautId } from "../document/petrinaut-id";
+import { remapPlaceDynamics } from "../document/place-dynamics";
 import { deduplicateName } from "./deduplicate-name";
 
 import type { Component, SDCPN } from "../types/sdcpn";

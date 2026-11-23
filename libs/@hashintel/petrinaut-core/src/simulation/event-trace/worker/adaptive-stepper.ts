@@ -1,5 +1,5 @@
 /* eslint-disable no-param-reassign -- Monte Carlo run state and frame buffers are mutable by design. */
-import { getPlaceDynamicsEquationIds } from "../../../place-dynamics";
+import { getPlaceDynamicsEquationIds } from "../../../document/place-dynamics";
 import { getOwn } from "../../../validation/record-keys";
 import { isScopedId, sourceItemId } from "../../engine/scoped-id";
 import { nextRandom } from "../../engine/seeded-rng";

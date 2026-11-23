@@ -524,8 +524,8 @@ export type {
   SDCPNPlaceInput,
   SDCPNTransitionInput,
 } from "./types/sdcpn-input";
-export { parseArcId } from "./types/selection";
-export type * from "./types/selection";
+export { parseArcId } from "./document/selection";
+export type * from "./document/selection";
 
 // --- Pure utilities ---
 export type {
@@ -538,7 +538,7 @@ export {
   ARC_ID_SEPARATOR,
   generateArcId,
   type ArcIdPrefix,
-} from "./arc-id";
+} from "./document/arc-id";
 export {
   canonicalizeArcId,
   canonicalizePetrinautIds,
@@ -546,7 +546,7 @@ export {
   isPetrinautId,
   petrinautIdSchema,
   toPetrinautId,
-} from "./petrinaut-id";
+} from "./document/petrinaut-id";
 export {
   arcEndpointsEqual,
   arcMatchesEndpoint,
@@ -561,15 +561,15 @@ export {
   getComponentPortEndpointComponent,
   parseArcEndpointKey,
   placeArcEndpoint,
-} from "./arc-endpoints";
+} from "./document/arc-endpoints";
 export {
   isSupportedArity,
   MAX_DIFFERENTIAL_EQUATION_ARITY,
-} from "./equation-arity";
+} from "./document/equation-arity";
 export {
   getPlaceDynamicsEquationIds,
   placeUsesDifferentialEquation,
-} from "./place-dynamics";
+} from "./document/place-dynamics";
 export {
   netColoringOf,
   netTimeOf,
@@ -582,7 +582,7 @@ export {
   type RunClock,
   type RunContinuity,
 } from "./net-class";
-export { GRID_SIZE } from "./grid-size";
+export { GRID_SIZE } from "./document/grid-size";
 export {
   type DefaultParameterValues,
   deriveDefaultParameterValues,
@@ -590,16 +590,16 @@ export {
   mergeParameterValues,
   parseParameterValue,
   resolveNetParameterValues,
-} from "./parameter-values";
+} from "./document/parameter-values";
 export { SDCPNItemError } from "./errors";
-export { isSDCPNEqual } from "./lib/deep-equal";
+export { isSDCPNEqual } from "./document/deep-equal";
 export {
   hashPetrinautDocument,
   petrinautNonSemanticParts,
   type HashPetrinautDocumentOptions,
   type PetrinautNonSemanticPart,
-} from "./lib/hash-petrinaut-document";
-export { getNodeConnections } from "./lib/get-connections";
+} from "./document/hash-petrinaut-document";
+export { getNodeConnections } from "./document/get-connections";
 
 // --- Authoring helpers ---
 export {

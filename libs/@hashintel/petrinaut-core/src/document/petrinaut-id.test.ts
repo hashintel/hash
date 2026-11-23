@@ -9,7 +9,7 @@ import {
   toPetrinautId,
 } from "./petrinaut-id";
 
-import type { Component, ComponentInstance, SDCPN } from "./types/sdcpn";
+import type { Component, ComponentInstance, SDCPN } from "../types/sdcpn";
 
 const emptyNet = {
   places: [],

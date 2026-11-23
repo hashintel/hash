@@ -1,3 +1,4 @@
+import { resolveNetParameterValues } from "../../../document/parameter-values";
 /**
  * The Monte Carlo worker protocol, detached from any thread host.
  *
@@ -9,7 +10,6 @@
  */
 import { SDCPNItemError } from "../../../errors";
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../../extensions";
-import { resolveNetParameterValues } from "../../../parameter-values";
 import {
   createMonteCarloUserDefinedMetric,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,

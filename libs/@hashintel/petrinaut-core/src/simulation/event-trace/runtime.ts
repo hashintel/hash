@@ -1,4 +1,8 @@
 import {
+  deriveDefaultParameterValues,
+  mergeParameterValues,
+} from "../../document/parameter-values";
+import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,
 } from "../../extensions";
@@ -8,10 +12,6 @@ import {
   type RunClock,
   type RunContinuity,
 } from "../../net-class";
-import {
-  deriveDefaultParameterValues,
-  mergeParameterValues,
-} from "../../parameter-values";
 import { createReadableStore } from "../../store";
 import { flattenComponentInstancesForSimulation } from "../engine/flatten-component-instances";
 import { createEventStream } from "../monte-carlo/runtime/experiment-stores";

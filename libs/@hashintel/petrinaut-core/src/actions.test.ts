@@ -7,9 +7,9 @@ import {
   logistics,
   tankLibrary,
 } from "./composition/libraries.test-helpers";
+import { toPetrinautId } from "./document/petrinaut-id";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
-import { toPetrinautId } from "./petrinaut-id";
 import {
   componentInstanceSchema,
   componentSchema,

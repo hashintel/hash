@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { isSDCPNEqual } from "./document/deep-equal";
 import {
   createTransitionLogicAvailabilityReader,
   getTransitionLogicAvailability,
@@ -7,7 +8,6 @@ import {
   sanitizeTransitionForAvailability,
   stripDisabledExtensionData,
 } from "./extensions";
-import { isSDCPNEqual } from "./lib/deep-equal";
 
 import type { ResolvedLibraries } from "./composition/libraries";
 import type { PetrinautExtensionSettings } from "./extensions";

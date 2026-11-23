@@ -1,3 +1,4 @@
+import { resolveNetParameterValues } from "../document/parameter-values";
 /**
  * Asks whether a metric body could be translated to WGSL, and whether its
  * value is a whole number.
@@ -15,7 +16,6 @@
  */
 import { buildMetricContext } from "../hir/surface-context";
 import { typecheckHir } from "../hir/typecheck";
-import { resolveNetParameterValues } from "../parameter-values";
 import {
   emitMetricSample,
   metricStateValue,

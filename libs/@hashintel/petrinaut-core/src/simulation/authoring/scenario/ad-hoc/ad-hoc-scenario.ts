@@ -43,7 +43,7 @@
  * values don't use `i`/`count` are legal there.
  */
 
-import { toPetrinautId } from "../../../../petrinaut-id";
+import { toPetrinautId } from "../../../../document/petrinaut-id";
 import { isDangerousRecordKey } from "../../../../validation/record-keys";
 import { runSandboxed, SHADOWED_GLOBALS } from "../../sandbox";
 import { range } from "../helpers";

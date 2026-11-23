@@ -1,6 +1,6 @@
+import { canonicalizePetrinautIds } from "../document/petrinaut-id";
 import { migrateLegacyComponentKeys } from "../migrate-legacy-component-keys";
 import { migrateLegacyDynamics } from "../migrate-legacy-dynamics";
-import { canonicalizePetrinautIds } from "../petrinaut-id";
 
 import type {
   ArcEndpoint,

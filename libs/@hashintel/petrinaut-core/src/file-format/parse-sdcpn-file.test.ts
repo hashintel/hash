@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../equation-arity";
-import { toPetrinautId } from "../petrinaut-id";
+import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../document/equation-arity";
+import { toPetrinautId } from "../document/petrinaut-id";
 import { parseSDCPNFile } from "./parse-sdcpn-file";
 
 const idOf = toPetrinautId;

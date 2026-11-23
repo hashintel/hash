@@ -7,7 +7,7 @@ import {
   withoutDifferentialEquations,
 } from "./place-dynamics";
 
-import type { Place } from "./types/sdcpn";
+import type { Place } from "../types/sdcpn";
 
 const place = (fields: Partial<Place>): Place => ({
   id: "space",

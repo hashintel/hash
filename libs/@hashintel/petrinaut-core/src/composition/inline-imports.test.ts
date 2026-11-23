@@ -4,7 +4,7 @@ import {
   generatePetrinautId,
   isPetrinautId,
   toPetrinautId,
-} from "../petrinaut-id";
+} from "../document/petrinaut-id";
 import { flattenComponentInstancesForSimulation } from "../simulation/engine/flatten-component-instances";
 import { checkComposition } from "./check-composition";
 import { inlineImports } from "./inline-imports";

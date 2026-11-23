@@ -4,9 +4,9 @@ import {
   CLIPBOARD_FORMAT_VERSION,
   type ClipboardPayload,
 } from "./clipboard/types";
+import { toPetrinautId } from "./document/petrinaut-id";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
-import { toPetrinautId } from "./petrinaut-id";
 
 import type { SDCPN } from "./types/sdcpn";
 

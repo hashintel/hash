@@ -1,6 +1,6 @@
-import { resolveComponent } from "./composition/interfaces";
+import { resolveComponent } from "../composition/interfaces";
 
-import type { ResolvedLibraries } from "./composition/libraries";
+import type { ResolvedLibraries } from "../composition/libraries";
 import type {
   ArcEndpoint,
   Component,
@@ -11,7 +11,7 @@ import type {
   OutputArc,
   PlaceArcEndpoint,
   SDCPN,
-} from "./types/sdcpn";
+} from "../types/sdcpn";
 
 type ArcWithEndpoint = Pick<InputArc | OutputArc, "endpoint" | "placeId">;
 

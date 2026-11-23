@@ -6,7 +6,7 @@
  * `indexCombinations` and fires on the first passing combination, so the
  * shader scans candidates in that same order.
  */
-import { getArcEndpointPlaceId } from "../../arc-endpoints";
+import { getArcEndpointPlaceId } from "../../document/arc-endpoints";
 import { buildLambdaContext } from "../../hir/surface-context";
 import { computeTransitionCapacityConstraints } from "../../simulation/engine/capacity";
 import { WgslBailError, WgslEmitter } from "../emit-wgsl";

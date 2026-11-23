@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { toPetrinautId } from "../document/petrinaut-id";
 import { createJsonDocHandle } from "../handle/json-doc-handle";
 import { createPetrinaut } from "../instance";
-import { toPetrinautId } from "../petrinaut-id";
 import { composesOnly, sameRules } from "./host-rules";
 import { logistics } from "./libraries.test-helpers";
 

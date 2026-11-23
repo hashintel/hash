@@ -14,7 +14,7 @@
  * the charts like every other attempt's instead of arriving en bloc once the
  * handle exists. A probe that concedes ends the run with its reason.
  */
-import { resolveNetParameterValues } from "../parameter-values";
+import { resolveNetParameterValues } from "../document/parameter-values";
 import {
   appendMetricFrames,
   createEmptyMetricsState,

@@ -59,7 +59,7 @@ export type PortDirection = "in" | "out" | "inout";
 /**
  * One member of a fusion: a place of the net the fusion belongs to, or a port
  * of one of that net's component instances. The same shape an arc uses to
- * name the place it touches, so the helpers in `arc-endpoints.ts` apply.
+ * name the place it touches, so the helpers in `document/arc-endpoints.ts` apply.
  */
 export type FusionMember = ArcEndpoint;
 

@@ -2,9 +2,9 @@ import {
   cloneUserKeyedRecord,
   createUserKeyedRecord,
   getOwn,
-} from "./validation/record-keys";
+} from "../validation/record-keys";
 
-import type { Parameter } from "./types/sdcpn";
+import type { Parameter } from "../types/sdcpn";
 
 /**
  * A type-safe representation of parameter values that can be used in the simulation.

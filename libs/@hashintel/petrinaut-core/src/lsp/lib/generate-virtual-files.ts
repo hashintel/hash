@@ -1,8 +1,8 @@
 import ts from "@typescript/typescript6";
 
-import { getArcEndpoint } from "../../arc-endpoints";
 import { resolveComponent } from "../../composition/interfaces";
-import { isSupportedArity } from "../../equation-arity";
+import { getArcEndpoint } from "../../document/arc-endpoints";
+import { isSupportedArity } from "../../document/equation-arity";
 import {
   createArcPlaceResolver,
   createTransitionLogicAvailabilityReader,

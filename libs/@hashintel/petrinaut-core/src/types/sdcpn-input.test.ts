@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { isSDCPNEqual } from "../lib/deep-equal";
-import { toPetrinautId } from "../petrinaut-id";
+import { isSDCPNEqual } from "../document/deep-equal";
+import { toPetrinautId } from "../document/petrinaut-id";
 import { normalizeSDCPN } from "./sdcpn-input";
 
 import type { SDCPN } from "./sdcpn";

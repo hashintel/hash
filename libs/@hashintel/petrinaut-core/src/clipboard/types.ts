@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { canonicalizePetrinautIds } from "../petrinaut-id";
+import { canonicalizePetrinautIds } from "../document/petrinaut-id";
 import {
   colorElementSchema as currentColorElementSchema,
   colorSchema as currentColorSchema,

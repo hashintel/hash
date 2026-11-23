@@ -1,4 +1,9 @@
-import { getArcEndpointPlaceId } from "../../arc-endpoints";
+import { getArcEndpointPlaceId } from "../../document/arc-endpoints";
+import {
+  deriveDefaultParameterValues,
+  mergeParameterValues,
+} from "../../document/parameter-values";
+import { getRunningEquationIds } from "../../document/place-dynamics";
 import { SDCPNItemError } from "../../errors";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -13,11 +18,6 @@ import {
   instantiateHirBufferKernel,
   instantiateHirBufferLambda,
 } from "../../hir-runtime";
-import {
-  deriveDefaultParameterValues,
-  mergeParameterValues,
-} from "../../parameter-values";
-import { getRunningEquationIds } from "../../place-dynamics";
 import { StringPool } from "../../tokens/string-pool";
 import {
   computeTokenSlotLayout,

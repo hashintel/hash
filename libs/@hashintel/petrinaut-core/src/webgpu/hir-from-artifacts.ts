@@ -1,3 +1,4 @@
+import { getPlaceDynamicsEquationIds } from "../document/place-dynamics";
 /**
  * Reads the HIR the GPU backend needs out of already-compiled artifacts.
  *
@@ -10,7 +11,6 @@
  * Deliberately dependency-free beyond types, for the same reason.
  */
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "../extensions";
-import { getPlaceDynamicsEquationIds } from "../place-dynamics";
 
 import type { PetrinautExtensionSettings } from "../extensions";
 import type { HirArtifacts } from "../hir-runtime";

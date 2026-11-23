@@ -1,3 +1,4 @@
+import { resolveNetParameterValues } from "../document/parameter-values";
 /**
  * Asks whether a transition kernel's expressions could be translated to WGSL.
  *
@@ -16,7 +17,6 @@
  * of the future slot support, not of the expression.
  */
 import { buildKernelContext } from "../hir/surface-context";
-import { resolveNetParameterValues } from "../parameter-values";
 import { tokenSlotsValue } from "./compile-net-shader/token-layout";
 import { WgslBailError, WgslEmitter } from "./emit-wgsl";
 

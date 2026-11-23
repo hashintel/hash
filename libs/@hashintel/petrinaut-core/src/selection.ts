@@ -4,10 +4,13 @@
  * HTTP request in a server function — can import this without pulling the model,
  * the simulation engine, or any React code.
  */
-export { canonicalizeSelection, selectionItemTypes } from "./types/selection";
+export {
+  canonicalizeSelection,
+  selectionItemTypes,
+} from "./document/selection";
 export type {
   PanelTarget,
   SelectionItem,
   SelectionItemType,
   SelectionMap,
-} from "./types/selection";
+} from "./document/selection";

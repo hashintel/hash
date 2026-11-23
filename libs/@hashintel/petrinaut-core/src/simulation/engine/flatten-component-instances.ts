@@ -1,4 +1,3 @@
-import { getArcEndpoint, getArcEndpointKey } from "../../arc-endpoints";
 import {
   applyFusions,
   type FusionGroup,
@@ -18,7 +17,11 @@ import {
   type DocumentIndex,
   type RunningComponent,
 } from "../../composition/interfaces";
-import { remapPlaceDynamics } from "../../place-dynamics";
+import {
+  getArcEndpoint,
+  getArcEndpointKey,
+} from "../../document/arc-endpoints";
+import { remapPlaceDynamics } from "../../document/place-dynamics";
 import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
 import { scopedId, scopeSeparator } from "./scoped-id";
 

@@ -5,7 +5,7 @@
  */
 
 /* eslint-disable no-param-reassign -- the flat net is merged in place. */
-import { getRunningEquationIds } from "../place-dynamics";
+import { getRunningEquationIds } from "../document/place-dynamics";
 import { scopeDepth } from "../simulation/engine/scoped-id";
 import { colorsStructurallyEqual } from "./fusions";
 

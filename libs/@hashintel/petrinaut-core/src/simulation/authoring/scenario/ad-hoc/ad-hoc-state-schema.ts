@@ -7,7 +7,7 @@
 
 import { z } from "zod";
 
-import { petrinautIdSchema } from "../../../../petrinaut-id";
+import { petrinautIdSchema } from "../../../../document/petrinaut-id";
 
 import type {
   AdHocPlaceState,

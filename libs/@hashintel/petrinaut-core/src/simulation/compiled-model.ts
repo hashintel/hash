@@ -1,11 +1,11 @@
 import { v4 as generateUuid } from "uuid";
 
+import { resolveNetParameterValues } from "../document/parameter-values";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,
 } from "../extensions";
 import { compileHirArtifacts } from "../hir";
-import { resolveNetParameterValues } from "../parameter-values";
 import { readTokenRecord } from "../tokens/token-layout";
 import { getOwn } from "../validation/record-keys";
 import { buildSimulation } from "./engine/build-simulation";
@@ -13,9 +13,9 @@ import { computeNextFrame } from "./engine/compute-next-frame";
 import { createHirMetricEvaluator } from "./frames/hir-metric";
 import { readEngineFrame } from "./frames/internal-frame";
 
+import type { DefaultParameterValues } from "../document/parameter-values";
 import type { PetrinautExtensionSettings } from "../extensions";
 import type { HirArtifacts } from "../hir-runtime";
-import type { DefaultParameterValues } from "../parameter-values";
 import type { Color, Metric, Place, SDCPN, TokenRecord } from "../types/sdcpn";
 import type {
   InitialMarking,

@@ -7,9 +7,9 @@ import { z } from "zod";
 
 import { fusionMemberIssues } from "../composition/fusions";
 import { portDirections } from "../composition/ports";
-import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../equation-arity";
-import { getParameterValueError } from "../parameter-values";
-import { canonicalizeArcId, petrinautIdSchema } from "../petrinaut-id";
+import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../document/equation-arity";
+import { getParameterValueError } from "../document/parameter-values";
+import { canonicalizeArcId, petrinautIdSchema } from "../document/petrinaut-id";
 import { COLOR_ELEMENT_TYPES } from "../tokens/type-policies";
 import { displayNameSchema } from "../validation/display-name";
 import { entityNameSchema } from "../validation/entity-name";

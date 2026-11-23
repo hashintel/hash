@@ -2,11 +2,11 @@ import {
   getArcEndpoint,
   getArcEndpointKey,
   getArcEndpointNodeId,
-} from "../arc-endpoints";
-import { generateArcId } from "../arc-id";
+} from "./arc-endpoints";
+import { generateArcId } from "./arc-id";
 
 import type { Transition } from "../types/sdcpn";
-import type { SelectionMap } from "../types/selection";
+import type { SelectionMap } from "./selection";
 
 /**
  * Given a list of transitions and a set of selected item IDs,

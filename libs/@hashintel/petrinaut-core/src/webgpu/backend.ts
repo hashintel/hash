@@ -9,7 +9,7 @@
  * @layerRoot core.webgpu
  * @role Generates a WGSL compute shader from a net's HIR and runs its experiment runs on the GPU
  */
-import { resolveNetParameterValues } from "../parameter-values";
+import { resolveNetParameterValues } from "../document/parameter-values";
 import { compileNetShader } from "./compile-net-shader";
 import {
   assessGpuEligibility,

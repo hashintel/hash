@@ -9,7 +9,10 @@
  * flattened for simulation.
  */
 
-import { arcEndpointsEqual, getArcEndpointKey } from "../arc-endpoints";
+import {
+  arcEndpointsEqual,
+  getArcEndpointKey,
+} from "../document/arc-endpoints";
 import { resolveComponent } from "./interfaces";
 
 import type {

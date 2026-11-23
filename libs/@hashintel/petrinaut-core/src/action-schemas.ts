@@ -24,7 +24,7 @@ import {
 import { metricSchema as simulationMetricSchema } from "./schemas/metric-schema";
 import { scenarioSchema as simulationScenarioSchema } from "./schemas/scenario-schema";
 
-import type { SelectionItem } from "./types/selection";
+import type { SelectionItem } from "./document/selection";
 
 export {
   arcEndpointSchema,

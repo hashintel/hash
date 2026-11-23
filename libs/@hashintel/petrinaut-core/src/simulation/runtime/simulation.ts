@@ -4,13 +4,13 @@
  */
 
 import {
+  deriveDefaultParameterValues,
+  mergeParameterValues,
+} from "../../document/parameter-values";
+import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,
 } from "../../extensions";
-import {
-  deriveDefaultParameterValues,
-  mergeParameterValues,
-} from "../../parameter-values";
 import { flattenComponentInstancesForSimulation } from "../engine/flatten-component-instances";
 import { createInMemorySimulationFrameStore } from "./frame-store";
 import { createWorkerTransport } from "./transport";

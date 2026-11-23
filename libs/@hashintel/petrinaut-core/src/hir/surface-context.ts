@@ -1,3 +1,4 @@
+import { resolveComponent } from "../composition/interfaces";
 /**
  * Surface contexts describe the model-derived environment a piece of user
  * code executes in: which parameters exist, which places deliver tokens (and
@@ -27,8 +28,7 @@
  * `input.<name>.count`. Counts are passed per arc, in `transition.inputArcs`
  * order, which matches the engine's `CompiledTransition.inputPlaces`.
  */
-import { getArcEndpoint } from "../arc-endpoints";
-import { resolveComponent } from "../composition/interfaces";
+import { getArcEndpoint } from "../document/arc-endpoints";
 import {
   createArcPlaceResolver,
   DEFAULT_PETRINAUT_EXTENSIONS,

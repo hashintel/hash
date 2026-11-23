@@ -1,4 +1,4 @@
-import type { ID, Place } from "./types/sdcpn";
+import type { ID, Place } from "../types/sdcpn";
 
 /**
  * The differential equations a place composes, in application order.

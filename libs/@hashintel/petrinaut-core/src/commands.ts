@@ -7,6 +7,7 @@ import {
 } from "./action-schemas";
 import { pastePayloadIntoSDCPN } from "./clipboard/paste";
 import { commandActionInputSchemas } from "./command-schemas";
+import { toPetrinautId } from "./document/petrinaut-id";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   isSelectionTypeAvailableForExtensions,
@@ -15,7 +16,6 @@ import {
 } from "./extensions";
 import { calculateGraphLayout } from "./layout/calculate-graph-layout";
 import { layoutNodeDimensions } from "./layout/dimensions";
-import { toPetrinautId } from "./petrinaut-id";
 
 import type { ClipboardPayload } from "./clipboard/types";
 import type { Component, SDCPN } from "./types/sdcpn";

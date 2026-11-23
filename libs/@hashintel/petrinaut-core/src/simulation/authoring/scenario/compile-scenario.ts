@@ -1,8 +1,8 @@
+import { parseParameterValue } from "../../../document/parameter-values";
 import {
   buildScenarioCodeContext,
   buildScenarioExpressionContext,
 } from "../../../hir/surface-context";
-import { parseParameterValue } from "../../../parameter-values";
 import { createUserKeyedRecord, getOwn } from "../../../validation/record-keys";
 import {
   compileCodeModeInitialState,
