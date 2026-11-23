@@ -164,7 +164,12 @@ export const getRepeatRuleKey = (rule: RepeatRule) =>
   getDayFields(rule).join(" ");
 
 const parseNumber = (field: string, min: number, max: number) => {
-  if (!/^\d{1,4}$/.test(field)) {
+  /* Plain digits only, so `Number` cannot accept forms such as "1e1", " 5" or "0x1". */
+  if (
+    field.length === 0 ||
+    field.length > 4 ||
+    [...field].some((char) => char < "0" || char > "9")
+  ) {
     return null;
   }
 

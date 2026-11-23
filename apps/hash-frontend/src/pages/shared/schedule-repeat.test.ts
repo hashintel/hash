@@ -139,6 +139,9 @@ describe("parseCronExpression", () => {
       "@daily",
       "0 9 * * MON",
       "60 9 * * *",
+      /* Numbers that aren't plain digits. */
+      "0 1e1 * * *",
+      "0x1 9 * * *",
     ]) {
       expect(parseCronExpression(cronExpression)).toBeNull();
     }
