@@ -70,6 +70,18 @@ export default defineConfig({
         "the core is the lower package of the pair and cannot depend on its consumer",
     },
     {
+      from: "core.simulation",
+      to: "core.experiments",
+      reason:
+        "an experiment backend starts a simulation runtime, so a runtime cannot know which backend chose it",
+    },
+    {
+      from: "core.simulation",
+      to: "core.webgpu",
+      reason:
+        "the GPU backend is opt-in and loads from its own entry, so no simulation runtime may pull the shader generator in",
+    },
+    {
       from: "react",
       to: "ui",
       reason:
