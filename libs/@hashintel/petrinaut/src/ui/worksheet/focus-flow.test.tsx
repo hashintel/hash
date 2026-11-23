@@ -36,8 +36,9 @@ const GridHarness: React.FC<
   // Destructured, not held as one object: the React Compiler rejects
   // `ref={grid.register(...)}` (member access into a hook result in ref
   // position reads as a ref access during render).
-  const { register, onKeyDown, onFocusCell, tabIndexFor, attach } =
-    useFocusGrid({ tabStop });
+  const { register, onKeyDown, tabIndexFor, attach } = useFocusGrid({
+    tabStop,
+  });
   onRender?.();
   return (
     <div role="grid" aria-label={label} ref={attach}>
@@ -52,7 +53,6 @@ const GridHarness: React.FC<
                 tabStop === "roving" ? tabIndexFor(row, column) : undefined
               }
               onKeyDown={onKeyDown(row, column)}
-              onFocus={() => onFocusCell(row, column)}
             >
               {`${label} ${row},${column}`}
             </button>

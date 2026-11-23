@@ -194,7 +194,6 @@ const GridCell = ({
     ref={grid.register(row, column)}
     tabIndex={grid.tabIndexFor(row, column)}
     onKeyDown={grid.onKeyDown(row, column)}
-    onFocus={() => grid.onFocusCell(row, column)}
     className={cellStyle()}
   >
     {label}

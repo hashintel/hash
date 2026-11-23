@@ -14,8 +14,9 @@
  * The grid is one tab stop: `tabIndexFor` roves the tabbable cell — the
  * last-focused one, falling back to (0, 0) — and entering the grid restores
  * that remembered cell (or the aligned/edge position of the arriving move).
- * The memory drops when the remembered cell unregisters. A grid whose cells
- * keep their own tab stops passes `tabStop: "native"`.
+ * When the remembered cell is gone, entering focuses the registered cell
+ * nearest the grid's start, or its end for a move up or left. A grid whose
+ * cells keep their own tab stops passes `tabStop: "native"`.
  */
 
 import { useEffect, useRef } from "react";
@@ -32,7 +33,7 @@ export interface FocusGrid {
   /** Focuses the cell at a position; false when none took focus. */
   focus: (row: number, column: number) => boolean;
   onKeyDown: (row: number, column: number) => React.KeyboardEventHandler;
-  /** Reports the cell that gained focus; wire to every cell's onFocus. */
+  /** Remembers a position the focused cell moved to with no focus event. */
   onFocusCell: (row: number, column: number) => void;
   /** 0 for the grid's one tabbable cell, -1 for the rest. */
   tabIndexFor: (row: number, column: number) => 0 | -1;
@@ -170,7 +171,7 @@ export function useFocusGrid({
 
   // Memory needs no consumer wiring: any focus landing inside the grid —
   // arrows, Tab, pointer clicks — is remembered via focusin on the grid's
-  // root. `onFocusCell` stays for cells rendered outside it.
+  // root.
   useEffect(() => {
     if (!element) {
       return undefined;

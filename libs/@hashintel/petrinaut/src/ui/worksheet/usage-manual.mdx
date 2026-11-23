@@ -99,9 +99,9 @@ const RatesGrid = ({ rows }: { rows: string[][] }) => {
   option) and never calls `tabIndexFor`: a move of the focus then renders
   nothing, where the roving stop renders the grid once per move.
 - Focus memory needs no wiring. Any focus landing inside the attached
-  container updates the remembered cell. Call `onFocusCell(row, column)` from
-  a cell's `onFocus` only when the cell renders outside the container (a
-  portal).
+  container updates the remembered cell. Call `onFocusCell(row, column)` only
+  when the focused cell moves to another position without a focus event, as
+  a row moved with Alt and an arrow does.
 - Cells register under their `(row, column)` position. Positions may have
   holes; arrows skip positions nothing registered.
 - `focus(row, column)` focuses a registered cell from code, for example the
