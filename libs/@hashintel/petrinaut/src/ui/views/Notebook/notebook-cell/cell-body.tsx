@@ -13,7 +13,7 @@ import {
   FieldRow,
   PartSelect,
   PartTextField,
-  WidgetCell,
+  WidgetPart,
 } from "./part-widgets";
 
 import type { ActiveNetDefinition } from "../../../../react/state/active-net-context";
@@ -123,7 +123,7 @@ const PlaceBody: React.FC<{
         <span className={fieldLabelStyle}>Dynamics</span>
         <span className={fieldValueStyle}>
           <span className={cellLineStyle}>
-            <WidgetCell parts={parts} partId="dynamics" column={0}>
+            <WidgetPart parts={parts} partId="dynamics" column={0}>
               <input
                 type="checkbox"
                 tabIndex={-1}
@@ -137,7 +137,7 @@ const PlaceBody: React.FC<{
                   })
                 }
               />
-            </WidgetCell>
+            </WidgetPart>
             {place.dynamicsEnabled ? (
               composedEquationNames.length > 0 ? (
                 <span>{composedEquationNames.join(" + ")}</span>
@@ -219,7 +219,7 @@ const ArcLine: React.FC<{
   return (
     <div className={cx(partLineStyle, cellLineStyle)}>
       <span>{index + 1}.</span>
-      <WidgetCell parts={parts} partId={partId} column={0}>
+      <WidgetPart parts={parts} partId={partId} column={0}>
         <button
           type="button"
           tabIndex={-1}
@@ -229,9 +229,9 @@ const ArcLine: React.FC<{
         >
           {placeName(net, placeId)}
         </button>
-      </WidgetCell>
+      </WidgetPart>
       <span>×</span>
-      <WidgetCell parts={parts} partId={partId} column={1}>
+      <WidgetPart parts={parts} partId={partId} column={1}>
         <PartTextField
           sourceId={`${transitionId} ${partId}`}
           value={String(weight)}
@@ -248,9 +248,9 @@ const ArcLine: React.FC<{
             })
           }
         />
-      </WidgetCell>
+      </WidgetPart>
       {arcType !== null && (
-        <WidgetCell parts={parts} partId={partId} column={2}>
+        <WidgetPart parts={parts} partId={partId} column={2}>
           <PartSelect
             aria-label="Arc type"
             value={arcType}
@@ -263,7 +263,7 @@ const ArcLine: React.FC<{
               })
             }
           />
-        </WidgetCell>
+        </WidgetPart>
       )}
     </div>
   );
@@ -421,7 +421,7 @@ const TypeBody: React.FC<{ color: Color; parts: BodyPartContext }> = ({
               key={element.elementId}
               className={cx(partLineStyle, cellLineStyle)}
             >
-              <WidgetCell
+              <WidgetPart
                 parts={parts}
                 partId={`field-${element.elementId}`}
                 column={0}
@@ -438,9 +438,9 @@ const TypeBody: React.FC<{ color: Color; parts: BodyPartContext }> = ({
                     })
                   }
                 />
-              </WidgetCell>
+              </WidgetPart>
               <span>:</span>
-              <WidgetCell
+              <WidgetPart
                 parts={parts}
                 partId={`field-${element.elementId}`}
                 column={1}
@@ -457,7 +457,7 @@ const TypeBody: React.FC<{ color: Color; parts: BodyPartContext }> = ({
                     })
                   }
                 />
-              </WidgetCell>
+              </WidgetPart>
             </div>
           ))}
         </div>

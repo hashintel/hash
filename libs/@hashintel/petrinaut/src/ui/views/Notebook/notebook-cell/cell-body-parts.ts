@@ -88,6 +88,8 @@ export const partStopId = (cellId: string, partId: string): string =>
   `${cellId} ${partId}`;
 
 export interface CellRowFocus {
+  /** The part's stop in the list's focus flow. */
+  stopId: string;
   /** 0 for the list's one tabbable row, -1 for the rest (roving tab stop). */
   tabIndex: 0 | -1;
   /** Reports row focus, keeping selection and the roving stop in step. */
@@ -100,6 +102,5 @@ export interface CellRowFocus {
 export type BodyPartContext = {
   /** Accessors for the part's stop; `column` defaults to the line's first. */
   focusFor: (partId: string, column?: number) => CellRowFocus;
-  stopIdFor: (partId: string) => string;
   navigateToCell: (cellId: string) => void;
 };

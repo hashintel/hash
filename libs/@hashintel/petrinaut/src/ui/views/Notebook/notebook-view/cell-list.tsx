@@ -197,10 +197,10 @@ export const CellList = ({
                     net={net}
                     cell={cell}
                     parts={{
-                      stopIdFor: (partId) => partStopId(cell.id, partId),
                       focusFor: (partId, column = 0) => {
                         const stopId = partStopId(cell.id, partId);
                         return {
+                          stopId,
                           tabIndex: listFocus.tabIndexFor({ stopId, column }),
                           onFocus: () => {
                             listFocus.onFocusTarget({ stopId, column });

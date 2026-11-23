@@ -9,7 +9,7 @@ import { focusLands } from "../../../worksheet/focus-flow";
 import { fieldLabelStyle, fieldRowStyle, fieldValueStyle } from "./part-styles";
 
 import type { CodeEditorProps } from "../../../monaco/code-editor";
-import type { BodyPartContext, CellRowFocus } from "./cell-body-parts";
+import type { BodyPartContext } from "./cell-body-parts";
 
 const CODE_LINE_HEIGHT = 18;
 
@@ -98,23 +98,25 @@ const activateOrEngage = (container: HTMLElement) => {
  *
  * With a `column`, the part is one cell of a multi-cell line rather than a
  * full-width line: horizontal arrows walk the line's cells too, and the
- * focus flow targets the cell by its `data-part-column`.
+ * focus flow targets the cell by its `data-part-column`. `className` styles
+ * a full-width part only.
  */
-const WidgetPart: React.FC<{
-  stopId: string;
-  focus: CellRowFocus;
+export const WidgetPart: React.FC<{
+  parts: BodyPartContext;
+  partId: string;
   column?: number;
   className?: string;
   children: React.ReactNode;
-}> = ({ stopId, focus, column, className, children }) => {
+}> = ({ parts, partId, column, className, children }) => {
+  const focus = parts.focusFor(partId, column);
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- each cell part is a roving focus stop.
     <div
-      data-cell-part={stopId}
+      data-cell-part={focus.stopId}
       data-part-column={column}
       role="group"
       tabIndex={focus.tabIndex}
-      className={className}
+      className={column === undefined ? className : widgetCellStyle}
       onFocus={(event) => {
         if (event.target === event.currentTarget) {
           focus.onFocus();
@@ -160,23 +162,6 @@ const WidgetPart: React.FC<{
     </div>
   );
 };
-
-/** One cell of a multi-cell body line, as a WidgetPart pinned to a column. */
-export const WidgetCell: React.FC<{
-  parts: BodyPartContext;
-  partId: string;
-  column: number;
-  children: React.ReactNode;
-}> = ({ parts, partId, column, children }) => (
-  <WidgetPart
-    stopId={parts.stopIdFor(partId)}
-    focus={parts.focusFor(partId, column)}
-    column={column}
-    className={widgetCellStyle}
-  >
-    {children}
-  </WidgetPart>
-);
 
 const inlineInputStyle = css({
   fontFamily: "mono",
@@ -306,7 +291,7 @@ export const BodyCodeBlock: React.FC<{
   path: string;
   onChange: (code: string) => void;
 }> = ({ parts, partId, code, path, onChange }) => (
-  <WidgetPart stopId={parts.stopIdFor(partId)} focus={parts.focusFor(partId)}>
+  <WidgetPart parts={parts} partId={partId}>
     <CellCodeBlock code={code} path={path} onChange={onChange} />
   </WidgetPart>
 );
@@ -318,11 +303,7 @@ export const FieldRow: React.FC<{
   partId: string;
   children: React.ReactNode;
 }> = ({ label, parts, partId, children }) => (
-  <WidgetPart
-    stopId={parts.stopIdFor(partId)}
-    focus={parts.focusFor(partId)}
-    className={fieldRowStyle}
-  >
+  <WidgetPart parts={parts} partId={partId} className={fieldRowStyle}>
     <span className={fieldLabelStyle}>{label}</span>
     <span className={fieldValueStyle}>{children}</span>
   </WidgetPart>
