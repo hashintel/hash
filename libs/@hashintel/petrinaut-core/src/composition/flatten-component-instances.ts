@@ -1,12 +1,9 @@
-import {
-  applyFusions,
-  type FusionGroup,
-} from "../../composition/apply-fusions";
-import {
-  checkImplementation,
-  indexImplementation,
-} from "../../composition/check-interfaces";
-import { equationKey, fusionMemberIssues } from "../../composition/fusions";
+import { getArcEndpoint, getArcEndpointKey } from "../document/arc-endpoints";
+import { remapPlaceDynamics } from "../document/place-dynamics";
+import { createUserKeyedRecord, getOwn } from "../validation/record-keys";
+import { applyFusions, type FusionGroup } from "./apply-fusions";
+import { checkImplementation, indexImplementation } from "./check-interfaces";
+import { equationKey, fusionMemberIssues } from "./fusions";
 import {
   bindingKey,
   describeMissingComponent,
@@ -16,15 +13,11 @@ import {
   runningComponent,
   type DocumentIndex,
   type RunningComponent,
-} from "../../composition/interfaces";
-import {
-  getArcEndpoint,
-  getArcEndpointKey,
-} from "../../document/arc-endpoints";
-import { remapPlaceDynamics } from "../../document/place-dynamics";
-import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
+} from "./interfaces";
 import { scopedId, scopeSeparator } from "./scoped-id";
 
+import type { InitialMarking } from "../simulation/api";
+import type { ParameterValues } from "../simulation/engine/types";
 import type {
   ArcEndpoint,
   Component,
@@ -36,9 +29,7 @@ import type {
   Place,
   SDCPN,
   Transition,
-} from "../../types/sdcpn";
-import type { InitialMarking } from "../api";
-import type { ParameterValues } from "./types";
+} from "../types/sdcpn";
 
 export type FlattenedSimulationDefinition = {
   sdcpn: SDCPN;

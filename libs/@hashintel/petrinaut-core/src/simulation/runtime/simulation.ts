@@ -3,6 +3,7 @@
  * @role Host-side controller for a run — owns the transport, the frame store and the status streams
  */
 
+import { flattenComponentInstancesForSimulation } from "../../composition/flatten-component-instances";
 import {
   deriveDefaultParameterValues,
   mergeParameterValues,
@@ -11,7 +12,6 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,
 } from "../../extensions/extensions";
-import { flattenComponentInstancesForSimulation } from "../engine/flatten-component-instances";
 import { createInMemorySimulationFrameStore } from "./frame-store";
 import { createWorkerTransport } from "./transport";
 

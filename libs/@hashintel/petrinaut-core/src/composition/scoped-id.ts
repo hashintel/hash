@@ -3,7 +3,7 @@
  * `instancePath::originalId`. These read and write that form.
  */
 
-import type { ID } from "../../types/sdcpn";
+import type { ID } from "../types/sdcpn";
 
 export const scopeSeparator = "::";
 

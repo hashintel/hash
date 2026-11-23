@@ -1,3 +1,4 @@
+import { flattenComponentInstancesForSimulation } from "../../composition/flatten-component-instances";
 import {
   deriveDefaultParameterValues,
   mergeParameterValues,
@@ -13,7 +14,6 @@ import {
   type RunContinuity,
 } from "../../extensions/net-class";
 import { createReadableStore } from "../../store";
-import { flattenComponentInstancesForSimulation } from "../engine/flatten-component-instances";
 import { createEventStream } from "../monte-carlo/runtime/experiment-stores";
 import { createWorkerTransport } from "../runtime/transport";
 import { createInMemoryEventTraceStore } from "./trace-store";

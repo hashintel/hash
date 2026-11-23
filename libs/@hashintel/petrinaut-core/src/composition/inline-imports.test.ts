@@ -5,8 +5,8 @@ import {
   isPetrinautId,
   toPetrinautId,
 } from "../document/petrinaut-id";
-import { flattenComponentInstancesForSimulation } from "../simulation/engine/flatten-component-instances";
 import { checkComposition } from "./check-composition";
+import { flattenComponentInstancesForSimulation } from "./flatten-component-instances";
 import { inlineImports } from "./inline-imports";
 import { resolveImplementation } from "./interfaces";
 import { resolveLibrary } from "./libraries";

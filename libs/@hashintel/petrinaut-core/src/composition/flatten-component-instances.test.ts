@@ -5,6 +5,8 @@ import {
   getArcPlaceNameOverrideKey,
 } from "./flatten-component-instances";
 
+import type { InitialMarking } from "../simulation/api";
+import type { ParameterValues } from "../simulation/engine/types";
 import type {
   Color,
   Component,
@@ -14,9 +16,7 @@ import type {
   Place,
   SDCPN,
   Transition,
-} from "../../types/sdcpn";
-import type { InitialMarking } from "../api";
-import type { ParameterValues } from "./types";
+} from "../types/sdcpn";
 
 const place = (id: string, overrides: Partial<Place> = {}): Place => ({
   id,

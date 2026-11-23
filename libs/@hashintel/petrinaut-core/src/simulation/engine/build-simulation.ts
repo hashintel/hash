@@ -1,3 +1,8 @@
+import {
+  flattenComponentInstancesForSimulation,
+  getArcPlaceNameOverrideKey,
+} from "../../composition/flatten-component-instances";
+import { sourceItemId } from "../../composition/scoped-id";
 import { getArcEndpointPlaceId } from "../../document/arc-endpoints";
 import {
   deriveDefaultParameterValues,
@@ -44,11 +49,6 @@ import {
   normalizePlaceCapacity,
 } from "./capacity";
 import { composeDerivatives } from "./compose-derivatives";
-import {
-  flattenComponentInstancesForSimulation,
-  getArcPlaceNameOverrideKey,
-} from "./flatten-component-instances";
-import { sourceItemId } from "./scoped-id";
 
 import type {
   HirArtifacts,
