@@ -34,7 +34,7 @@ Two sets of components draw them:
 | `fullWidthCodeEditor`                          | A section uses the maximized code-editor layout at all times                                                            |
 | `noPadding`                                    | A bottom tab's content fills the panel with no padding                                                                  |
 
-`createDeferredSubView` builds a descriptor whose components arrive through a dynamic import. Its `load` option returns a promise of the `component` and `headerAction` to show. The load starts when the content or the action first mounts, or earlier when a module calls `preload` on the result, as the `sub-views.ts` of the place properties does for the visualizer.
+`createDeferredSubView` builds a descriptor whose components arrive through a dynamic import. Its `load` option returns a promise of the `component` and `headerAction` to show. The load starts when the content or the action first mounts, or earlier when a module calls `preload` on the result, as the `sub-views.ts` of the place properties does for the visualizer. The result always sets `headerAction`, so the header renders an empty action container when `load` returns no action. Use it for a section that has an action.
 
 ## Data flow
 
