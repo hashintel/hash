@@ -8,7 +8,7 @@ import {
 import { createInMemorySimulationFrameStore } from "./frame-store";
 
 import type { Color, Place, SDCPN } from "../../types/sdcpn";
-import type { SimulationFramePayload } from "../worker/frame-payload";
+import type { SimulationFramePayload } from "../frames/frame-payload";
 
 const color: Color = {
   id: "color-1",

@@ -11,12 +11,12 @@
 import { createWorkerThreadRuntime } from "../../environment/environment";
 import { buildSimulation } from "../engine/build-simulation";
 import { computeNextFrame } from "../engine/compute-next-frame";
-import { SDCPNItemError } from "../sdcpn-item-error";
 import {
   framePayloadFromEngineFrame,
   type SimulationFrameNewStrings,
   type SimulationFramePayload,
-} from "./frame-payload";
+} from "../frames/frame-payload";
+import { SDCPNItemError } from "../sdcpn-item-error";
 
 import type { SimulationInstance } from "../engine/types";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";

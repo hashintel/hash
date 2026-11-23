@@ -1,7 +1,7 @@
 import { SOLVER_ERROR_DIAGNOSTIC } from "../steppers/run-stepper";
 
 import type { SimulationCompletionReason } from "../engine/compute-next-frame";
-import type { SimulationFrameNewStrings } from "../worker/frame-payload";
+import type { SimulationFrameNewStrings } from "../frames/frame-payload";
 
 export type TraceEventKind =
   /** The state the run starts from, at time 0. */

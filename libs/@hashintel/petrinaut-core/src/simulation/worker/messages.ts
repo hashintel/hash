@@ -8,7 +8,7 @@ import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { HirArtifacts } from "../../hir-runtime";
 import type { SDCPN } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
-import type { SimulationFramePayload } from "./frame-payload";
+import type { SimulationFramePayload } from "../frames/frame-payload";
 
 //
 // Main Thread → Worker Messages

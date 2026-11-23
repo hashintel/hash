@@ -1,4 +1,4 @@
-import type { EngineFrame } from "../frames/internal-frame";
+import type { EngineFrame } from "./internal-frame";
 
 /**
  * Append-only string pool delta shipped alongside a frame. The worker owns

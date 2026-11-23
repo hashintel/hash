@@ -1,6 +1,6 @@
 /**
  * @layerRoot core.simulation.runtime
- * @role Host-side controller for a run — owns the transport, the frame store and the status streams
+ * @role Host side of `createSimulation`, the runtime that keeps every frame of a run: its transport, frame store and status streams. The editor starts no run through it
  */
 
 import { flattenComponentInstancesForSimulation } from "../../composition/flatten-component-instances";
@@ -12,8 +12,8 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,
 } from "../../extensions/extensions";
+import { createWorkerTransport } from "../worker-transport";
 import { createInMemorySimulationFrameStore } from "./frame-store";
-import { createWorkerTransport } from "./transport";
 
 import type { EventStream, ReadableStore } from "../../store";
 import type {
@@ -25,7 +25,7 @@ import type {
   SimulationState,
   SimulationTransport,
 } from "../api";
-import type { SimulationFramePayload } from "../worker/frame-payload";
+import type { SimulationFramePayload } from "../frames/frame-payload";
 import type { ToMainMessage } from "../worker/messages";
 
 function createReadableStore<T>(initial: T): ReadableStore<T> & {

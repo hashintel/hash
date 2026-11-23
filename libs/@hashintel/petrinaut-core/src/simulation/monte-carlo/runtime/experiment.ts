@@ -1,6 +1,6 @@
 import { resolveNetParameterValues } from "../../../document/parameter-values";
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../../extensions/extensions";
-import { createWorkerTransport } from "../../runtime/transport";
+import { createWorkerTransport } from "../../worker-transport";
 import {
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,

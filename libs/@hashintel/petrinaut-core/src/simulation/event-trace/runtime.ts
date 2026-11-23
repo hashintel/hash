@@ -15,7 +15,7 @@ import {
 } from "../../extensions/net-class";
 import { createReadableStore } from "../../store";
 import { createEventStream } from "../monte-carlo/runtime/experiment-stores";
-import { createWorkerTransport } from "../runtime/transport";
+import { createWorkerTransport } from "../worker-transport";
 import { createInMemoryEventTraceStore } from "./trace-store";
 
 import type { AbortSignalLike } from "../../environment/environment";

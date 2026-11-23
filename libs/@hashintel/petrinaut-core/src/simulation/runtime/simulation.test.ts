@@ -13,7 +13,7 @@ import type {
 } from "../../environment/environment";
 import type { SDCPN } from "../../types/sdcpn";
 import type { SimulationFrameSummary, SimulationTransport } from "../api";
-import type { SimulationFramePayload } from "../worker/frame-payload";
+import type { SimulationFramePayload } from "../frames/frame-payload";
 import type { ToMainMessage, ToWorkerMessage } from "../worker/messages";
 
 const empty = (): SDCPN => ({

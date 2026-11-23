@@ -74,4 +74,4 @@ export type {
   MonteCarloWorkerProgress,
 } from "./monte-carlo";
 export { createSimulation } from "./runtime/simulation";
-export { createWorkerTransport } from "./runtime/transport";
+export { createWorkerTransport } from "./worker-transport";

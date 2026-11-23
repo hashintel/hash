@@ -20,7 +20,7 @@ import {
 import { createTraceRecorder, type TraceRecorder } from "./trace-recorder";
 
 import type { StringPool } from "../../../tokens/string-pool";
-import type { SimulationFrameNewStrings } from "../../worker/frame-payload";
+import type { SimulationFrameNewStrings } from "../../frames/frame-payload";
 import type { TraceEvent } from "../trace";
 import type { ToEventMainMessage, ToEventWorkerMessage } from "./messages";
 

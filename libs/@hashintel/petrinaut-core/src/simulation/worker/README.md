@@ -1,6 +1,6 @@
 ---
 layer: core.simulation.worker
-role: Computes simulation frames off the main thread under host backpressure
+role: Worker side of `createSimulation`, computing a run's frames off the main thread no faster than the host acknowledges them. The editor starts no run through it
 ---
 
 # Simulation Worker
