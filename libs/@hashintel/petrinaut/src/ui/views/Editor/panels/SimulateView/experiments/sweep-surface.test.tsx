@@ -13,7 +13,7 @@ import type {
   ExperimentRecord,
   ExperimentsActionsValue,
 } from "../../../../../../react/experiments/context";
-import type { ContourSurfaceFraction } from "../../../../../components/contour-surface";
+import type { ContourSurfaceFraction } from "./sweep-surface/contour-surface";
 import type { ReactNode } from "react";
 
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
@@ -29,11 +29,9 @@ const renderedFields: unknown[] = [];
 // The contour draws on a canvas jsdom cannot host; this one picks the plot's
 // centre-top when clicked and previews its centre when the pointer moves,
 // when the surface lets it pick at all.
-vi.mock("../../../../../components/contour-surface", async (importOriginal) => {
+vi.mock("./sweep-surface/contour-surface", async (importOriginal) => {
   const actual =
-    await importOriginal<
-      typeof import("../../../../../components/contour-surface")
-    >();
+    await importOriginal<typeof import("./sweep-surface/contour-surface")>();
   const ContourSurface = ({
     values,
     onPickFraction,

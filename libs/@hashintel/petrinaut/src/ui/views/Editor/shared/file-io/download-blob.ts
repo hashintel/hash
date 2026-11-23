@@ -5,7 +5,7 @@
  * payload + filename + MIME type.
  *
  * Side-effecting; safe only in a browser context (uses `document` and
- * `URL.createObjectURL`). Lives in `/ui/lib` because it's purely DOM-bound.
+ * `URL.createObjectURL`).
  */
 export function downloadBlob({
   content,

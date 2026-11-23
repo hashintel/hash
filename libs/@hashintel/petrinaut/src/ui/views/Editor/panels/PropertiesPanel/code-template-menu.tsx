@@ -1,7 +1,7 @@
 import { Button, Icon, Menu, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { UI_MESSAGES } from "../../../../constants/ui-messages";
+import { UI_MESSAGES } from "../../shared/ui-messages";
 
 const aiMenuItemStyle = css({
   display: "flex",

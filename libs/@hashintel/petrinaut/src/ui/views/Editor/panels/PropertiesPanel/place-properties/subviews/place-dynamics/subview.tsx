@@ -7,7 +7,7 @@ import { ActiveNetContext } from "../../../../../../../../react/document/active-
 import { useIsReadOnly } from "../../../../../../../../react/editing/use-is-read-only";
 import { usePetrinautMutations } from "../../../../../../../../react/editing/use-petrinaut-mutations";
 import { useEditorActions } from "../../../../../../../../react/state/editor-context";
-import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
+import { UI_MESSAGES } from "../../../../../shared/ui-messages";
 import { usePlacePropertiesContext } from "../../context";
 import { composableEquations } from "./compose-dynamics";
 import { DynamicsTable } from "./dynamics-table";

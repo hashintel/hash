@@ -17,7 +17,7 @@ import {
 import {
   copySelectionToClipboard,
   pasteFromClipboard,
-} from "../../../../clipboard/clipboard";
+} from "../../shared/clipboard";
 
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 

@@ -3,7 +3,6 @@ import { type NodeProps } from "@xyflow/react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
 import { usePlaceTokenLabel } from "../../../canvas-frame-store-context";
 import {
   classicNodeBoxStyle,
@@ -13,6 +12,7 @@ import {
 import { nodeFocusStyle } from "../../../styles/focus";
 import { nodeSurfaceStyle } from "../../../styles/node-surface";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
+import { withLabelWrapPoints } from "./label-wrap-points";
 import { PlaceStateTooltip } from "./place-state-tooltip";
 import { PortPins } from "./port-pin";
 import { portPlaceLabels } from "./port-place-labels";

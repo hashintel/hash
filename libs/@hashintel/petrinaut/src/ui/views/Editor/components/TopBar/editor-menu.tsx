@@ -15,11 +15,11 @@ import { useIsReadOnly } from "../../../../../react/editing/use-is-read-only";
 import { NetManagementContext } from "../../../../../react/host/net-management-context";
 import { usePetrinautNavigate } from "../../../../../react/navigation/navigation";
 import { useEditorActions } from "../../../../../react/state/editor-context";
-import { exportSDCPN } from "../../../../file-io/export-sdcpn";
-import { exportTikZ } from "../../../../file-io/export-tikz";
-import { importSDCPN } from "../../../../file-io/import-sdcpn";
 import { KeyboardShortcut } from "../../../../keyboard-shortcut";
 import { useCanvasRegistration } from "../../../../plugins/plugin-editor";
+import { exportSDCPN } from "../../shared/file-io/export-sdcpn";
+import { exportTikZ } from "../../shared/file-io/export-tikz";
+import { importSDCPN } from "../../shared/file-io/import-sdcpn";
 import {
   autoLayoutShortcut,
   useAutoLayoutAndFrame,

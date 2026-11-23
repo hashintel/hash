@@ -30,7 +30,6 @@ import {
   useEditorFields,
 } from "../../../react/state/editor-context";
 import { useUserSettings } from "../../../react/state/user-settings-context";
-import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
 import { CanvasPointerContext } from "./canvas-pointer";
 import { linkEnd } from "./canvas-scene";
 import {
@@ -39,6 +38,7 @@ import {
   planRewire,
   type RewirePlan,
 } from "./fusion-links";
+import { snapPositionToGrid } from "./snap-position-to-grid";
 import { useStableActions } from "./use-stable-actions";
 
 import type { ActiveNetDefinition } from "../../../react/document/active-net-context";

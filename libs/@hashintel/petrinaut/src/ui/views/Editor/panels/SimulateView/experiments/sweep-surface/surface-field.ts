@@ -9,7 +9,7 @@ import { surfaceColumnCount } from "./surface-sampling";
 import type {
   ContourSurfaceMarker,
   ContourSurfaceValues,
-} from "../../../../../../components/contour-surface";
+} from "./contour-surface";
 
 /** The axis shape the grid mapping needs: positions run 0..stepCount inclusive. */
 type SurfaceAxisLike = { stepCount: number };

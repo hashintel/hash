@@ -17,11 +17,11 @@ import {
 
 import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
 import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
-import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { PropertyValue } from "../../../../../../components/property-value";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { usePetrinautPresentation } from "../../../../../../presentation/presentation-context";
+import { UI_MESSAGES } from "../../../../shared/ui-messages";
 import { CodeTemplateMenu } from "../../code-template-menu";
+import { DraftFieldInput } from "../../draft-field-input";
+import { PropertyValue } from "../../property-value";
 import { tokenCountLabel } from "../../token-count-label";
 import { useDiffEqPropertiesContext } from "../context";
 import { DifferentialEquationCodeField } from "./code-field";

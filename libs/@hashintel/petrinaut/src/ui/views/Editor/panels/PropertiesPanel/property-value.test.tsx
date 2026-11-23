@@ -8,7 +8,7 @@ import { PropertyValue } from "./property-value";
 
 const isReadOnly = vi.hoisted(() => ({ current: false }));
 
-vi.mock("../../react/editing/use-is-read-only", () => ({
+vi.mock("../../../../../react/editing/use-is-read-only", () => ({
   useIsReadOnly: () => isReadOnly.current,
 }));
 

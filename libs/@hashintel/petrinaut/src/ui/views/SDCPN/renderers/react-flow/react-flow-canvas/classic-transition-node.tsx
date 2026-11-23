@@ -4,7 +4,6 @@ import { useRef } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
 import { useTransitionFrame } from "../../../canvas-frame-store-context";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import {
@@ -16,6 +15,7 @@ import {
   nodeSurfaceStyle,
   transitionSurfaceStyle,
 } from "../../../styles/node-surface";
+import { withLabelWrapPoints } from "./label-wrap-points";
 import { iconBadgeStyle } from "./node-card-styles";
 import { NodeHandles } from "./shared/node-handles";
 import { useTransitionFiringAnimation } from "./use-transition-firing-animation";

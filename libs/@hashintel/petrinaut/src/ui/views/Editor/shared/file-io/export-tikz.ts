@@ -1,6 +1,6 @@
 import { sdcpnToTikZ, type SDCPN } from "@hashintel/petrinaut-core";
 
-import { downloadBlob, timestampedFilename } from "../lib/download-blob";
+import { downloadBlob, timestampedFilename } from "./download-blob";
 
 /**
  * Exports the Petri net structure as a standalone TikZ/LaTeX document — the

@@ -4,7 +4,7 @@ import {
   MAGMA_STOPS,
   rampLut,
   rasterizeNormalized,
-} from "../../../../../../../shared/color-ramp";
+} from "../../shared/color-ramp";
 import { heatmapAlpha } from "./distribution-heatmap";
 import { buildHeatmapDensityGrid } from "./distribution-heatmap/density-grid";
 

@@ -16,13 +16,13 @@ import {
   FormLayoutColumn,
 } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { OverlayScrollArea } from "../../../../../components/overlay-scroll-area";
-import {
-  overlayScrollDrawerBodyStyle,
-  overlayScrollDrawerViewportStyle,
-} from "../../../../../components/overlay-scroll-drawer-styles";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { DrawerErrorDisplay } from "../drawer-error-display";
+import {
+  overlayScrollDrawerBodyStyle,
+  overlayScrollDrawerViewportStyle,
+} from "../shared/overlay-scroll-drawer-styles";
 import { SimulationPanel } from "../shared/simulation-panel";
 
 import type { AdHocScenarioAuthoring } from "./use-ad-hoc-scenario-authoring";

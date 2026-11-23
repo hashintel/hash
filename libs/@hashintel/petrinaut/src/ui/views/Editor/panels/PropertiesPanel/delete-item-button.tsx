@@ -1,7 +1,7 @@
 import { Button } from "@hashintel/ds-components";
 
 import { useIsReadOnly } from "../../../../../react/editing/use-is-read-only";
-import { UI_MESSAGES } from "../../../../constants/ui-messages";
+import { UI_MESSAGES } from "../../shared/ui-messages";
 
 /**
  * The delete button in the header of a properties panel. `label` says what

@@ -36,8 +36,8 @@ import { describeVisitedSurface } from "./sweep-surface/visited-field";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import type { ExperimentParameterAxis } from "../../../../../../react/experiments/parameter-grid";
-import type { ContourSurfaceFraction } from "../../../../../components/contour-surface";
 import type { ChartCardTone } from "../shared/chart-card";
+import type { ContourSurfaceFraction } from "./sweep-surface/contour-surface";
 
 export const SweepSurface = ({
   experiment,

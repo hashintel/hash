@@ -1,4 +1,4 @@
-import { SNAP_GRID_SIZE } from "../constants/ui";
+import { SNAP_GRID_SIZE } from "../../constants/ui";
 
 /**
  * Snap a position to the nearest grid point.

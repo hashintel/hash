@@ -17,11 +17,11 @@ import { PointerHelpTooltip } from "../../../../../../components/pointer-help-to
 import {
   SimulatorParameterInput,
   SimulatorParameterLabel,
-} from "../../../../../../components/simulator-parameter-input";
+} from "../../../../shared/simulator-parameter-input";
 import {
   acceptsSimulatorParameter,
   visibleSimulatorParameters,
-} from "../../../../../../components/simulator-parameters";
+} from "../../../../shared/simulator-parameters";
 
 const containerStyle = css({
   width: "[320px]",

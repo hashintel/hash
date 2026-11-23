@@ -15,16 +15,12 @@ import { CompositionContext } from "../../../../../../../react/document/composit
 import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
 import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
-import {
-  ArcItem,
-  ArcList,
-  type PlaceOption,
-} from "../../../../../../components/arc-item";
-import { DescriptionField } from "../../../../../../components/description-field";
-import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
 import { portLabel, resolvePort } from "../../arc-endpoint";
+import { ArcItem, ArcList, type PlaceOption } from "../../arc-item";
 import { DeleteItemButton } from "../../delete-item-button";
+import { DescriptionField } from "../../description-field";
+import { DraftFieldInput } from "../../draft-field-input";
 import { fieldsSectionStyle } from "../../styles";
 import { useTransitionPropertiesContext } from "../context";
 

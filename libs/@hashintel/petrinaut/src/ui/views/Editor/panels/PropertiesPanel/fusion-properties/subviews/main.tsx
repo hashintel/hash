@@ -18,13 +18,13 @@ import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context"
 import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
 import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
-import { DescriptionField } from "../../../../../../components/description-field";
-import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
-import { hintTextStyle } from "../../../../../../constants/hint-text";
 import { problemTextStyle } from "../../../../../../constants/problem-severity";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { hintTextStyle } from "../../../../shared/hint-text";
+import { UI_MESSAGES } from "../../../../shared/ui-messages";
 import { DeleteItemButton } from "../../delete-item-button";
+import { DescriptionField } from "../../description-field";
+import { DraftFieldInput } from "../../draft-field-input";
 import { fieldsSectionStyle, itemTitleStyle } from "../../styles";
 import { useFusion } from "../context";
 

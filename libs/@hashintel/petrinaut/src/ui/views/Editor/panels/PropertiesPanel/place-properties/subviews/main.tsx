@@ -17,12 +17,12 @@ import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-on
 import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
-import { DescriptionField } from "../../../../../../components/description-field";
-import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { PropertyValue } from "../../../../../../components/property-value";
 import { Section, SectionList } from "../../../../../../components/section";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { UI_MESSAGES } from "../../../../shared/ui-messages";
 import { DeleteItemButton } from "../../delete-item-button";
+import { DescriptionField } from "../../description-field";
+import { DraftFieldInput } from "../../draft-field-input";
+import { PropertyValue } from "../../property-value";
 import { fieldsSectionStyle } from "../../styles";
 import { usePlacePropertiesContext } from "../context";
 import { placeTypeChange } from "./place-dynamics/compose-dynamics";

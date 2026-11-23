@@ -9,10 +9,10 @@ import { usePetrinautDefinitionSelector } from "../../../../../../react/document
 import { useIsReadOnly } from "../../../../../../react/editing/use-is-read-only";
 import { usePetrinautMutations } from "../../../../../../react/editing/use-petrinaut-mutations";
 import { ComponentGlyph } from "../../../../../components/component-glyph";
-import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { usePetrinautPresentation } from "../../../../../presentation/presentation-context";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
+import { UI_MESSAGES } from "../../../shared/ui-messages";
 import { ComponentOptionsPopover } from "./component-options-popover";
 import { RowActionCell } from "./row-action-cell";
 

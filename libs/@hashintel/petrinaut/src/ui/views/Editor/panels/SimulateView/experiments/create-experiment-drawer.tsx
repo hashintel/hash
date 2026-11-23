@@ -8,14 +8,14 @@ import { useSDCPNState } from "../../../../../../react/document/sdcpn-context";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimizations/connected-optimizer-context";
 import { OverlayScrollArea } from "../../../../../components/overlay-scroll-area";
-import {
-  overlayScrollDrawerBodyStyle,
-  overlayScrollDrawerViewportStyle,
-} from "../../../../../components/overlay-scroll-drawer-styles";
 import { SectionList } from "../../../../../components/section";
 import { FocusControls } from "../../../../../worksheet/focus-controls";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
 import { scenarioFormContext } from "../scenarios/use-ad-hoc-scenario-authoring";
+import {
+  overlayScrollDrawerBodyStyle,
+  overlayScrollDrawerViewportStyle,
+} from "../shared/overlay-scroll-drawer-styles";
 import { SimulationPanel } from "../shared/simulation-panel";
 import {
   type ConstraintDraftsState,

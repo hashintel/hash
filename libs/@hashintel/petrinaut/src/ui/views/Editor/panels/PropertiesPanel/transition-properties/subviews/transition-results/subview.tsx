@@ -12,8 +12,8 @@ import { SDCPNContext } from "../../../../../../../../react/document/sdcpn-conte
 import { useIsReadOnly } from "../../../../../../../../react/editing/use-is-read-only";
 import { usePetrinautMutations } from "../../../../../../../../react/editing/use-petrinaut-mutations";
 import { useEditorState } from "../../../../../../../../react/state/editor-context";
-import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
+import { UI_MESSAGES } from "../../../../../shared/ui-messages";
 import { resolvePort } from "../../../arc-endpoint";
 import { CodeTemplateMenu } from "../../../code-template-menu";
 import { codeSectionStyle } from "../../../styles";

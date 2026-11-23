@@ -2,7 +2,7 @@ import { use } from "react";
 
 import { ExperimentsActionsContext } from "../../../../../../../react/experiments/context";
 import { selectionMidpoint } from "../../../../../../../react/experiments/parameter-grid";
-import { ContourSurface } from "../../../../../../components/contour-surface";
+import { ContourSurface } from "./contour-surface";
 import {
   mergeSurfaceFields,
   surfaceAxisPosition,
@@ -17,7 +17,7 @@ import type {
   ExperimentParameterAxis,
   SweepAxisSelection,
 } from "../../../../../../../react/experiments/parameter-grid";
-import type { ContourSurfaceFraction } from "../../../../../../components/contour-surface";
+import type { ContourSurfaceFraction } from "./contour-surface";
 
 /**
  * The contour of the visited points. A component of its own so that the field

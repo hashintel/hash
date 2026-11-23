@@ -4,7 +4,7 @@ import {
   maxComponentIconLength,
 } from "@hashintel/petrinaut-core";
 
-import { iconMaskImage } from "../lib/icon-mask";
+import { iconMaskImage } from "../../../../lib/icon-mask";
 import { pickFile, readFileText } from "./pick-file";
 
 type PickedIcon = { ok: true; iconSvg: string } | { ok: false; error: string };

@@ -10,8 +10,8 @@ import {
 import {
   SimulatorParameterInput,
   SimulatorParameterLabel,
-} from "../../../../../../components/simulator-parameter-input";
-import { visibleSimulatorParameters } from "../../../../../../components/simulator-parameters";
+} from "../../../../shared/simulator-parameter-input";
+import { visibleSimulatorParameters } from "../../../../shared/simulator-parameters";
 import {
   withSimulatorParameter,
   type ExperimentSimulatorDraft,

@@ -5,7 +5,7 @@
  * reads the record and hands the pieces in.
  */
 import { selectionMidpoint } from "../../../../../../../react/experiments/parameter-grid";
-import { contourSurfaceKey } from "../../../../../../components/contour-surface/paint-field";
+import { contourSurfaceKey } from "./contour-surface/paint-field";
 import { type SurfaceField, surfaceGridCoordinate } from "./surface-field";
 
 import type { SweepVisitedCell } from "../../../../../../../react/experiments/context";
@@ -13,7 +13,7 @@ import type {
   ExperimentParameterAxis,
   SweepSelection,
 } from "../../../../../../../react/experiments/parameter-grid";
-import type { ContourSurfaceMarker } from "../../../../../../components/contour-surface";
+import type { ContourSurfaceMarker } from "./contour-surface";
 
 /** Whether the selection is a single point on every axis. */
 const isPointSelection = (

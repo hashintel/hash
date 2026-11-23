@@ -6,8 +6,8 @@ import {
 
 import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
 import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
-import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { UI_MESSAGES } from "../../../../shared/ui-messages";
+import { DraftFieldInput } from "../../draft-field-input";
 import { fieldsSectionStyle } from "../../styles";
 import { useParameterPropertiesContext } from "../context";
 

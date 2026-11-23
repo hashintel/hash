@@ -12,9 +12,9 @@ import { useSDCPNState } from "../../../../../../../../react/document/sdcpn-cont
 import { usePetrinautMutations } from "../../../../../../../../react/editing/use-petrinaut-mutations";
 import { useStableCallback } from "../../../../../../../../react/shared/use-stable-callback";
 import { useEditorActions } from "../../../../../../../../react/state/editor-context";
-import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { useCodeNavigation } from "../../../../../../../monaco/code-navigation-context";
+import { UI_MESSAGES } from "../../../../../shared/ui-messages";
 import { CodeTemplateMenu } from "../../../code-template-menu";
 import { codeSectionStyle } from "../../../styles";
 import { usePlacePropertiesContext } from "../../context";

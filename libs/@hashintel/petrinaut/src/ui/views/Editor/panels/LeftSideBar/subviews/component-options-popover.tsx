@@ -22,8 +22,8 @@ import { useIsReadOnly } from "../../../../../../react/editing/use-is-read-only"
 import { usePetrinautMutations } from "../../../../../../react/editing/use-petrinaut-mutations";
 import { OptionalColorSelect } from "../../../../../components/color-select";
 import { ComponentGlyph } from "../../../../../components/component-glyph";
-import { hintTextStyle } from "../../../../../constants/hint-text";
-import { pickSvgIcon } from "../../../../../file-io/pick-svg-icon";
+import { pickSvgIcon } from "../../../shared/file-io/pick-svg-icon";
+import { hintTextStyle } from "../../../shared/hint-text";
 import { implementationItems } from "../../implementation-items";
 
 import type { Component } from "@hashintel/petrinaut-core";
