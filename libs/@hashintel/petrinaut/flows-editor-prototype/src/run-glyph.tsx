@@ -54,12 +54,12 @@ const progressDetail = (state: StepState, progress?: GlyphProgress) => {
     return undefined;
   }
   const { done, failed, total } = progress;
-  const failedPart = failed > 0 ? ` · ${failed} failed` : "";
+  const failedPart = failed > 0 ? `, ${failed} failed` : "";
   switch (state) {
     case "done":
     case "doneWithFailures": {
       const skipped = total - done - failed;
-      return `${done} of ${total}${failedPart}${skipped > 0 ? ` · ${skipped} skipped` : ""}`;
+      return `${done} of ${total}${failedPart}${skipped > 0 ? `, ${skipped} skipped` : ""}`;
     }
     case "running":
     case "abandoned":
@@ -82,7 +82,7 @@ export const glyphTooltip = (
     run && state === "abandoned"
       ? "Cancelled"
       : glyphLabel[state];
-  return extra ? `${word} · ${extra}` : word;
+  return extra ? `${word}, ${extra}` : word;
 };
 
 /**
@@ -776,7 +776,7 @@ export const barBreakdown = (segments: BarSegment[]) => {
   }
   return [...counts]
     .map(([state, count]) => `${count} ${barStateWord[state]}`)
-    .join(" · ");
+    .join(", ");
 };
 
 const barHitStyle = css({

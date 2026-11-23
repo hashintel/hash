@@ -735,7 +735,7 @@ export const RunTopBar = ({
                   }
                 />
                 <span className={runStatusStyle}>
-                  {`${statusWord[outcome]}${count} · ${run.when}`}
+                  {`${statusWord[outcome]}${count}, ${run.when}`}
                 </span>
               </span>
             </div>
@@ -830,7 +830,7 @@ export const RunTopBar = ({
               <RunIdText run={run} prefix />
             </span>
             <span className={runMetaStyle}>
-              {statusText(run, now)} · {run.when}
+              {statusText(run, now)}, {run.when}
             </span>
             <RunSwitcher
               history={history}

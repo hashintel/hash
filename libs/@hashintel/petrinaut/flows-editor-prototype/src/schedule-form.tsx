@@ -177,13 +177,13 @@ export const ruleWords = (rule: Rule, startIso: string) => {
 export const ruleSummary = (rule: Rule, startIso: string, at: string) =>
   `${ruleWords(rule, startIso)} at ${at}`;
 
-/** The detail line's end: " · until 1 Jan 2027", " · 10 runs". */
+/** The detail line's end: ", until 1 Jan 2027", ", 10 runs". */
 export const endsWords = (rule: Rule, startIso: string) =>
   rule.once || rule.ends === "never"
     ? ""
     : rule.ends === "on"
-      ? ` · until ${shortDate(parse(rule.endIso), parse(startIso).getUTCFullYear())}`
-      : ` · ${rule.count} runs`;
+      ? `, until ${shortDate(parse(rule.endIso), parse(startIso).getUTCFullYear())}`
+      : `, ${rule.count} runs`;
 
 const matches = (rule: Rule, start: Date, date: Date) => {
   const n = rule.every;
@@ -735,7 +735,7 @@ export const ScheduleFields = ({
           : runs.map((date, index) => (
               <span key={isoOf(date)}>
                 {runWords(date, at)}
-                {index < runs.length - 1 ? " ·" : ""}
+                {index < runs.length - 1 ? ", " : ""}
               </span>
             ))}
       </span>

@@ -376,7 +376,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
             ? "var(--flows-warnings-text)"
             : "var(--colors-neutral-fg-heading)";
   const trigger =
-    run.trigger.kind === "manual" ? `Manual · ${run.trigger.by}` : "Schedule";
+    run.trigger.kind === "manual" ? `Manual, ${run.trigger.by}` : "Schedule";
   const duration = live
     ? runLength(run, now)
     : tight(run.duration ?? "");
@@ -418,8 +418,8 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
           title={row.label ?? row.title}
           note={
             live
-              ? `${reached} of ${facts.n} suppliers${failed > 0 ? ` · ${failed} failed` : ""}`
-              : `${facts.n} suppliers${failed > 0 ? ` · ${failed} failed` : ""}`
+              ? `${reached} of ${facts.n} suppliers${failed > 0 ? `, ${failed} failed` : ""}`
+              : `${facts.n} suppliers${failed > 0 ? `, ${failed} failed` : ""}`
           }
           duration={live ? "" : tight(row.duration)}
           open={open}
@@ -633,7 +633,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
         </div>
         <span className={css({ textStyle: "sm", color: "neutral.fg.heading" })}>
           <span style={{ color: statusTone }}>{statusWord}</span>
-          {outcome !== "abandoned" && facts.n > 0 ? ` · ${reached} of ${facts.n} suppliers` : ""}
+          {outcome !== "abandoned" && facts.n > 0 ? `, ${reached} of ${facts.n} suppliers` : ""}
         </span>
         <span className={css({ textStyle: "sm" })}>
           <span className={mutedStyle}>
@@ -647,7 +647,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
                   runWhen(run),
                 ])
               .filter(Boolean)
-              .join(" · ")}
+              .join(", ")}
           </span>
         </span>
         {/* ?triggerfired=2: the summary names what started the run, beside the green path on the canvas. */}
@@ -657,8 +657,8 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
           >
             Triggered by{" "}
             {run.trigger.kind === "manual"
-              ? `Manual · ${run.trigger.by}`
-              : "Schedule · 1st of month at 09:00"}
+              ? `Manual, ${run.trigger.by}`
+              : "Schedule, 1st of month at 09:00"}
           </span>
         ) : null}
       </div>

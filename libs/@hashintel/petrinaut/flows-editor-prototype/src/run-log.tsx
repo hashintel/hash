@@ -111,8 +111,8 @@ export const logRows = (
       title: "Triggers",
       label:
         run.trigger.kind === "manual"
-          ? `Manual · ${run.trigger.by}`
-          : "Schedule · monthly",
+          ? `Manual, ${run.trigger.by}`
+          : "Schedule, monthly",
       note:
         run.trigger.kind === "manual"
           ? "Started from the Run button in the editor"
@@ -276,9 +276,9 @@ export const logRows = (
       label: "For each supplier",
       note:
         failed.length > 0
-          ? `${facts.n - failed.length} done · ${failed.length} failed`
+          ? `${facts.n - failed.length} done, ${failed.length} failed`
           : facts.abandoned
-            ? `${finished} done · ${facts.n - finished} not run`
+            ? `${finished} done, ${facts.n - finished} not run`
             : `${facts.n} done`,
       tone: failed.length > 0 ? "red" : "muted",
       duration: facts.abandoned

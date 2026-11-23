@@ -209,9 +209,9 @@ const runMenuLabel = (run: RunRecord, now: number) => {
   const outcome = outcomeOf(run, now);
   const timedOut =
     run.kind === "past" && run.facts.signOff === "timedOut"
-      ? " · timed out"
+      ? ", timed out"
       : "";
-  return `${runLabel(run)} · ${statusText(run, now)}${outcome === "error" ? timedOut : ""}`;
+  return `${runLabel(run)}, ${statusText(run, now)}${outcome === "error" ? timedOut : ""}`;
 };
 
 export const menuRowStyle = css({
@@ -407,16 +407,16 @@ export const RunSwitcher = ({
                   <>
                     {runIdStyled() ? <RunIdText run={run} prefix /> : runLabel(run)}
                     <span className={pickerTimeStyle} data-run-time>
-                      {` · ${time}`}
+                      {`, ${time}`}
                     </span>
                   </>
                 ) : runIdStyled() ? (
                   <>
                     <RunIdText run={run} prefix />
-                    {withTime ? ` · ${run.when}` : null}
+                    {withTime ? `, ${run.when}` : null}
                   </>
                 ) : withTime ? (
-                  `${runLabel(run)} · ${run.when}`
+                  `${runLabel(run)}, ${run.when}`
                 ) : (
                   `${runLabel(run)}`
                 )}

@@ -1176,7 +1176,7 @@ const DefaultScheduleFields = ({
           : runs.map((date, index) => (
               <span key={date.toISOString()}>
                 {runWords(date, at)}
-                {index < runs.length - 1 ? " ·" : ""}
+                {index < runs.length - 1 ? ", " : ""}
               </span>
             ))}
       </span>

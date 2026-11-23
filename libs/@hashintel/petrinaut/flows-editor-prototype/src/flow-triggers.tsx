@@ -166,13 +166,13 @@ export const useFlowTriggers = (): FlowTriggers => {
   return flowTriggersOf(document, ui.triggerSwitches);
 };
 
-/** u-ghost-muted-line's count split: "13 on · 1 paused", a zero part dropped; "None" when there are none. */
+/** u-ghost-muted-line's count split: "13 on, 1 paused", a zero part dropped; "None" when there are none. */
 const countSplit = (on: number, paused: number) =>
   on + paused === 0
     ? "None"
     : [on > 0 ? `${formatCount(on)} on` : "", paused > 0 ? `${formatCount(paused)} paused` : ""]
         .filter(Boolean)
-        .join(" · ");
+        .join(", ");
 
 /** What a ghost node says: its kind, a one-line summary, and whether any of it is on (50%) or not (25%). */
 export const ghostSummary = (
@@ -209,7 +209,7 @@ export const ghostSummary = (
           ? "None"
           : [on > 0 ? `${on} on` : "", paused > 0 ? `${paused} paused` : ""]
               .filter(Boolean)
-              .join(" · "),
+              .join(", "),
       icon: "calendar",
       on: on > 0,
     };
@@ -221,7 +221,7 @@ export const ghostSummary = (
         ? "None"
         : [on > 0 ? `${on} on` : "", paused > 0 ? `${paused} paused` : ""]
             .filter(Boolean)
-            .join(" · "),
+            .join(", "),
     icon: "cube",
     on: on > 0,
   };
@@ -298,7 +298,7 @@ export const ghostTakeSummary = (
             paused > 0 ? `${formatCount(paused)} paused` : "",
           ]
             .filter(Boolean)
-            .join(" · "),
+            .join(", "),
           icon,
           on: on > 0,
         };
@@ -354,7 +354,7 @@ export const ghostTakeSummary = (
         on,
       };
     default:
-      // u-ghost-muted-line (13 Nov): the kind as the title, then the count split, at every count ("2 on · 1 paused").
+      // u-ghost-muted-line (13 Nov): the kind as the title, then the count split, at every count ("2 on, 1 paused").
       // The counts are the Triggers panel's own (13 Nov), so the ghost and the panel never disagree.
       if (!ghostLineOld && triggerPanelAtScale) {
         const counts = scaleTotals[kind];
@@ -377,7 +377,7 @@ export const ghostTakeSummary = (
                   pausedCount > 0 ? `${formatCount(pausedCount)} paused` : "",
                 ]
                   .filter(Boolean)
-                  .join(" · "),
+                  .join(", "),
           icon,
           on,
         };

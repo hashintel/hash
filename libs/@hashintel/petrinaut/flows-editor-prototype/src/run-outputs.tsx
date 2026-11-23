@@ -634,12 +634,12 @@ const fileTitle = (file: OutputFile) =>
 
 const fileMeta = (file: OutputFile) =>
   file.kind === "certificate"
-    ? `PDF · ${file.sizeKb} KB`
-    : `Email · sent ${file.sentAt} · 1 attachment`;
+    ? `PDF, ${file.sizeKb} KB`
+    : `Email, sent ${file.sentAt}, 1 attachment`;
 
 const fileDetail = (file: OutputFile) =>
   file.kind === "certificate"
-    ? `ISO 9001 · ${file.issuerShort} · valid to ${file.validUntil}`
+    ? `ISO 9001, ${file.issuerShort}, valid to ${file.validUntil}`
     : file.subject;
 
 /* ----------------------------------------------------------------------------------------------------------------
@@ -1023,7 +1023,7 @@ const GridCard = ({
       </span>
       <span className={metaLineStyle}>
         {file.kind === "certificate"
-          ? `PDF · ${file.sizeKb} KB`
+          ? `PDF, ${file.sizeKb} KB`
           : file.supplier}
       </span>
       <span className={metaLineStyle}>
@@ -1586,7 +1586,7 @@ const FileModal = ({
         title={fileHeading(file)}
         description={
           <RunIdsIn
-            text={`${fileMeta(file)} · ${file.supplier} · ${runLabel(run)}`}
+            text={`${fileMeta(file)}, ${file.supplier}, ${runLabel(run)}`}
           />
         }
         actions={
@@ -1799,7 +1799,7 @@ const EntityTable = ({
 
 /** "For each supplier · Run 2C07 · Today, 08:15"; a run's own outputs say where they are listed instead. */
 const sourceLine = (from: string, run: RunRecord) =>
-  `${from === `${runLabel(run)} outputs` ? "Shown in Logs" : from} · ${runLabel(run)} · ${run.when}`;
+  `${from === `${runLabel(run)} outputs` ? "Shown in Logs" : from}, ${runLabel(run)}, ${run.when}`;
 
 type EntitiesView = Extract<ViewerState, { kind: "entities" }>;
 type MixedView = Extract<ViewerState, { kind: "mixed" }>;
@@ -1909,6 +1909,9 @@ const FileTable = ({
                 >
                   {file.kind === "certificate" ? file.fileName : file.supplier}
                 </button>
+                {file.kind === "certificate" ? (
+                  <span className={metaLineStyle}>{fileMeta(file)}</span>
+                ) : null}
               </td>
               {file.kind === "certificate" ? (
                 <>
@@ -2207,7 +2210,7 @@ const MixedBody = ({
               <ShowAllRow
                 className={css({ paddingX: "3" })}
                 total={size}
-                noun={groupLabel[group.type][1].toLowerCase()}
+                noun={group.type === "Certificate" ? "files" : groupLabel[group.type][1].toLowerCase()}
                 onClick={() =>
                   setShownAll((open) => [...open, group.type])
                 }
@@ -2976,7 +2979,7 @@ const ColumnList = ({
             {shown < size ? (
               <ShowAllRow
                 total={size}
-                noun={groupLabel[group.type][1].toLowerCase()}
+                noun={group.type === "Certificate" ? "files" : groupLabel[group.type][1].toLowerCase()}
                 onClick={onShowAll ?? (() => toggle(group.type))}
               />
             ) : null}
@@ -3062,7 +3065,7 @@ const OutputColumn = ({
             <div className={headBlockStyle}>
               <span className={strongTitleStyle}>{fileHeading(file)}</span>
               <span className={quietStyle}>
-                {fileMeta(file)} · {file.supplier}
+                {fileMeta(file)}, {file.supplier}
               </span>
             </div>
             {hashPdf ? (
@@ -3086,7 +3089,7 @@ const OutputColumn = ({
                   : view.title}
               </span>
               <span className={quietStyle}>
-                <RunIdsIn text={`${runLabel(run)} · ${run.when}`} />
+                <RunIdsIn text={`${runLabel(run)}, ${run.when}`} />
               </span>
             </div>
             <ColumnList
@@ -3153,9 +3156,9 @@ const OutputSheet = ({
         title={file ? fileHeading(file) : listTitle}
         description={
           file
-            ? <RunIdsIn text={`${fileMeta(file)} · ${file.supplier} · ${runLabel(run)}`} />
+            ? <RunIdsIn text={`${fileMeta(file)}, ${file.supplier}, ${runLabel(run)}`} />
             : byStep
-              ? <RunIdsIn text={`${view.from === `${runLabel(run)} outputs` ? "" : `${view.from} · `}${runLabel(run)} · ${run.when}`} />
+              ? <RunIdsIn text={`${view.from === `${runLabel(run)} outputs` ? "" : `${view.from}, `}${runLabel(run)}, ${run.when}`} />
               : <RunIdsIn text={sourceLine(view.from, run)} />
         }
         actions={
@@ -3323,7 +3326,7 @@ const CanvasPdfLayer = ({
             <span className={canvasLayerTitleStyle}>
               <span className={strongTitleStyle}>{fileHeading(file)}</span>
               <span className={quietStyle}>
-                {fileMeta(file)} · {file.supplier}
+                {fileMeta(file)}, {file.supplier}
               </span>
             </span>
             {controls}

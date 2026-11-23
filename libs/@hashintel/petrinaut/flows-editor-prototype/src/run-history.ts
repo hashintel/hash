@@ -576,20 +576,20 @@ export const bannerDetail = (
   if (run.kind === "live" && outcome === "running") {
     const seconds = runClock(run, now);
     if (facts.find === "running") {
-      return `${minutes(seconds)} · at Find active suppliers`;
+      return `${minutes(seconds)}, at Find active suppliers`;
     }
     const failedSoFar = failedBefore(facts, facts.processed[1]);
     return [
       minutes(seconds),
       `${facts.processed[0]} of ${facts.n} suppliers`,
       ...(failedSoFar > 0 ? [`${failedSoFar} failed so far`] : []),
-    ].join(" · ");
+    ].join(", ");
   }
   if (run.kind === "live" && outcome === "needsReview") {
     return `Head of quality signs off · waiting ${minutes(runClock(run, now) - signOffAt(run.n))}`;
   }
   if (run.kind === "live" && run.stopped) {
-    return `stopped by you at ${run.stopped.clock} · ${facts.processed[3]} of ${facts.n} suppliers done`;
+    return `stopped by you at ${run.stopped.clock}, ${facts.processed[3]} of ${facts.n} suppliers done`;
   }
   if (outcome === "warnings") {
     return narrow
@@ -625,7 +625,7 @@ export const statusText = (run: RunRecord, now: number) => {
   if (outcome === "error") {
     return `${label} at ${failedAtStep(run, now)}`;
   }
-  return warnings > 0 ? `${label} · ${failedItemsText(run, now)}` : label;
+  return warnings > 0 ? `${label}, ${failedItemsText(run, now)}` : label;
 };
 
 /** The banner's one button. */
@@ -687,7 +687,7 @@ const scheduled = (
   startClock: "09:00:00",
   trigger: { kind: "schedule", by: "monthly" },
   outcome: "completed",
-  ending: `${n} of ${n} suppliers reviewed · signed off`,
+  ending: `${n} of ${n} suppliers reviewed, signed off`,
   duration,
   facts: finished(n, [], "approved"),
 });
@@ -762,7 +762,7 @@ export const pastRuns = (): RunRecord[] => [
     startClock: "11:05:00",
     trigger: { kind: "manual", by: "Dora" },
     outcome: "abandoned",
-    ending: "cancelled by Dora at 11:07 · 6 of 20 suppliers done",
+    ending: "cancelled by Dora at 11:07, 6 of 20 suppliers done",
     duration: "2m 10s",
     facts: {
       n: suppliers.length,
@@ -834,13 +834,13 @@ export const triggerLabel = (run: RunRecord) =>
   run.trigger.kind === "manual"
     ? {
         title: "Manual run",
-        row: `Manual run · ${run.trigger.by}`,
-        line: `${run.trigger.by} · ${run.when}`,
+        row: `Manual run, ${run.trigger.by}`,
+        line: `${run.trigger.by}, ${run.when}`,
       }
     : {
         title: "Schedule",
-        row: "Schedule · monthly",
-        line: `Monthly · ${run.when}`,
+        row: "Schedule, monthly",
+        line: `Monthly, ${run.when}`,
       };
 
 /** Is any run still moving (so the clock needs to tick)? */

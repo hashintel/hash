@@ -124,8 +124,8 @@ export const ListSourceBlock = ({
               {look.output}
               {count === undefined ? null : (
                 <span className={countStyle}>
-                  {` · ${count}`}
-                  {failed ? ` · ${failed} failed` : ""}
+                  {`, ${count}`}
+                  {failed ? `, ${failed} failed` : ""}
                 </span>
               )}
             </>

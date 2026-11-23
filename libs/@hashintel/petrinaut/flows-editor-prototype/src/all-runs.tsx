@@ -128,11 +128,11 @@ const grammarCellOf = (
   const word = outcomeLabel[outcome];
   if (outcome === "error" || facts.find === "failed") {
     const at = `Failed at ${failedAtStep(run, now)}`;
-    return { state, text: at, detail: `${timeoutReason(run)} · ${at}` };
+    return { state, text: at, detail: `${timeoutReason(run)}, ${at}` };
   }
   switch (outcome) {
     case "running":
-      return { state, progress, text: `${word} · ${progress?.done ?? 0} of ${facts.n}` };
+      return { state, progress, text: `${word}, ${progress?.done ?? 0} of ${facts.n}` };
     case "needsReview":
       return { state, text: `${word} at Quality sign-off` };
     case "abandoned":
@@ -141,7 +141,7 @@ const grammarCellOf = (
       return {
         state,
         warnings: true,
-        text: `${word} · ${failedItemsText(run, now)}`,
+        text: `${word}, ${failedItemsText(run, now)}`,
       };
     default:
       return { state, progress, text: word };
@@ -763,7 +763,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                       color: "neutral.fg.heading",
                     })}
                   >
-                    Run <RunIdText run={run} take="b" copyable /> · {run.when}
+                    Run <RunIdText run={run} take="b" copyable />, {run.when}
                   </td>
                 )}
                 <td>
@@ -792,8 +792,8 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                 ) : (
                   <td>
                     {run.trigger.kind === "manual"
-                      ? `Manual · ${run.trigger.by}`
-                      : "Schedule · monthly"}
+                      ? `Manual, ${run.trigger.by}`
+                      : "Schedule, monthly"}
                   </td>
                 )}
                 <td
@@ -1224,7 +1224,7 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
     const runsText = `${bucket.runs.length} ${bucket.runs.length === 1 ? "run" : "runs"}`;
     return [bucket.label, runsText, failed > 0 ? `${failed} failed` : ""]
       .filter(Boolean)
-      .join(" · ");
+      .join(", ");
   };
 
   // The tooltip centres on its bar, clamped inside the chart so it never clips at either edge.
@@ -1439,7 +1439,7 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
                             }
                             setHover({
                               key: `run:${run.id}`,
-                              text: `${runLabel(run)} · ${run.when.replace(", ", " ")} · ${statusText(run, now)}`,
+                              text: `${runLabel(run)}, ${run.when.replace(", ", " ")}, ${statusText(run, now)}`,
                               x: square.left - box.left + square.width / 2,
                               top: square.top - box.top,
                             });
@@ -1541,7 +1541,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
     lastFailure
       ? {
           label: "Last failure",
-          text: `${runLabel(lastFailure)} · ${lastFailure.when}`,
+          text: `${runLabel(lastFailure)}, ${lastFailure.when}`,
           // The status marks' s85 red, not the strong text red: one soft red for failure (flows-colours O2).
           color: "var(--flows-failed-mark)",
           onOpen: () => history.open(lastFailure.id),
@@ -1553,7 +1553,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
           onlyWarning
             ? {
                 label: "Items failed",
-                text: `${runLabel(onlyWarning)} · ${onlyWarning.when}`,
+                text: `${runLabel(onlyWarning)}, ${onlyWarning.when}`,
                 color: "var(--flows-warnings-text)",
                 onOpen: () => history.open(onlyWarning.id),
               }
@@ -1575,8 +1575,8 @@ const Overview = ({ history }: { history: HistoryValue }) => {
         return [
           {
             runId: run.id,
-            title: `Done · ${failedItemsText(run, now)}`,
-            line: `${runLabel(run)} · ${run.when}`,
+            title: `Done, ${failedItemsText(run, now)}`,
+            line: `${runLabel(run)}, ${run.when}`,
           },
         ];
       }
@@ -1588,7 +1588,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
               facts.find === "failed"
                 ? `Failed at ${failedAtStep(run, now)}`
                 : `Failed at ${failedAtStep(run, now)}`,
-            line: `${runLabel(run)} · ${run.when}`,
+            line: `${runLabel(run)}, ${run.when}`,
           },
         ];
       }

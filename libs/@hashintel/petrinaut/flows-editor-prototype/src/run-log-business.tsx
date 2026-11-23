@@ -405,7 +405,7 @@ const Head = ({
           usual && typical ? `usually about ${typical.duration}` : undefined,
         ]
           .filter(Boolean)
-          .join(" · ")}
+          .join(", ")}
       </span>
     </div>
   );

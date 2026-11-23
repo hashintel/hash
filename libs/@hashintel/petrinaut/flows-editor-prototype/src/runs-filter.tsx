@@ -74,7 +74,7 @@ const statusWords: Record<RunOutcome, string> = {
   abandoned: "Cancelled",
   needsReview: "Needs review",
   running: "Running",
-  warnings: "Done · items failed",
+  warnings: "Done, items failed",
   completed: "Done",
 };
 
