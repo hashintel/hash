@@ -117,12 +117,14 @@ const Harness: React.FC<{
   initial?: AdHocScenarioState;
   renderLayout?: React.ComponentProps<typeof AdHocScenarioForm>["renderLayout"];
   mode?: React.ComponentProps<typeof AdHocScenarioForm>["mode"];
+  sessionId?: string;
 }> = ({
   selection = "optimize",
   onState,
   initial = EMPTY_AD_HOC_STATE,
   renderLayout,
   mode,
+  sessionId,
 }) => {
   const [state, setState] = useState(initial);
   return (
@@ -136,6 +138,7 @@ const Harness: React.FC<{
       selection={selection}
       renderLayout={renderLayout}
       mode={mode}
+      sessionId={sessionId}
     />
   );
 };
@@ -1776,6 +1779,43 @@ describe("what renders in AdHocScenarioForm", () => {
 
     expect(tokenTableRenders.count).toBe(before);
     expect(client.updateAdHocSession).not.toHaveBeenCalled();
+  });
+
+  it("sends each edit to its language session and ends it on unmount", async () => {
+    const client = {
+      ...DEFAULT_LANGUAGE_CLIENT_CONTEXT,
+      initializeAdHocSession: vi.fn(),
+      updateAdHocSession: vi.fn(),
+      killAdHocSession: vi.fn(),
+    };
+    let latest: AdHocScenarioState | undefined;
+    const { unmount } = render(
+      <LanguageClientContext value={client}>
+        <Harness
+          sessionId="session-1"
+          onState={(state) => {
+            latest = state;
+          }}
+        />
+      </LanguageClientContext>,
+    );
+    expect(client.initializeAdHocSession).toHaveBeenCalledWith({
+      sessionId: "session-1",
+      state: EMPTY_AD_HOC_STATE,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Queue › count" }));
+    const input = await screen.findByRole("textbox", { name: "Expression" });
+    fireEvent.change(input, { target: { value: "2" } });
+
+    expect(client.updateAdHocSession).toHaveBeenCalledTimes(1);
+    expect(client.updateAdHocSession).toHaveBeenCalledWith({
+      sessionId: "session-1",
+      state: latest,
+    });
+
+    unmount();
+    expect(client.killAdHocSession).toHaveBeenCalledWith("session-1");
   });
 
   it("renders no reader of its context when the host builds an equal context again", () => {
