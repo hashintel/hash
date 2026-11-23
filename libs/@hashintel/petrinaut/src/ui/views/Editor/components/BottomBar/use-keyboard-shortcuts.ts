@@ -1,15 +1,13 @@
 import { use, useEffect, useEffectEvent } from "react";
 
-import {
-  usePetrinautMutations,
-  usePetrinautCommands,
-} from "../../../../../react";
 import { ActiveNetContext } from "../../../../../react/document/active-net-context";
 import { UndoRedoContext } from "../../../../../react/document/undo-redo-context";
 import { useComposesOnly } from "../../../../../react/document/use-composes-only";
 import { useDocumentId } from "../../../../../react/document/use-document";
 import { useIsReadOnly } from "../../../../../react/editing/use-is-read-only";
 import { useMutationRefusal } from "../../../../../react/editing/use-mutation-refusal";
+import { usePetrinautCommands } from "../../../../../react/editing/use-petrinaut-commands";
+import { usePetrinautMutations } from "../../../../../react/editing/use-petrinaut-mutations";
 import { useReadOnlyFeedback } from "../../../../../react/editing/use-read-only-feedback";
 import { useReadOnlyReason } from "../../../../../react/editing/use-read-only-reason";
 import {

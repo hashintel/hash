@@ -16,10 +16,10 @@ import {
   isInterface,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../react";
 import { useSDCPNState } from "../../../../../../react/document/sdcpn-context";
 import { usePetrinautDefinitionSelector } from "../../../../../../react/document/use-document";
 import { useIsReadOnly } from "../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../react/editing/use-petrinaut-mutations";
 import { OptionalColorSelect } from "../../../../../components/color-select";
 import { ComponentGlyph } from "../../../../../components/component-glyph";
 import { hintTextStyle } from "../../../../../constants/hint-text";

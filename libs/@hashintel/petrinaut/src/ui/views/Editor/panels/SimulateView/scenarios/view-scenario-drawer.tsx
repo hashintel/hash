@@ -6,8 +6,8 @@ import {
   type Scenario,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../react";
 import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
+import { usePetrinautMutations } from "../../../../../../react/editing/use-petrinaut-mutations";
 import {
   SimulationPanel,
   SimulationPanelPresence,

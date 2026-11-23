@@ -7,8 +7,8 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePetrinautMutations } from "../../../../../../../react";
 import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { PropertyValue } from "../../../../../../components/property-value";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";

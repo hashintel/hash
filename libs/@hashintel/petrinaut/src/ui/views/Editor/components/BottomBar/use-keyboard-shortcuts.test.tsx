@@ -27,8 +27,10 @@ const actions = vi.hoisted(() => ({
   paste: vi.fn(),
   mode: vi.fn(),
 }));
-vi.mock("../../../../../react", () => ({
+vi.mock("../../../../../react/editing/use-petrinaut-mutations", () => ({
   usePetrinautMutations: () => ({ deleteItemsByIds: actions.remove }),
+}));
+vi.mock("../../../../../react/editing/use-petrinaut-commands", () => ({
   usePetrinautCommands: () => ({ applyClipboardPaste: actions.paste }),
 }));
 vi.mock("../../../../../react/editing/use-read-only-feedback", () => ({

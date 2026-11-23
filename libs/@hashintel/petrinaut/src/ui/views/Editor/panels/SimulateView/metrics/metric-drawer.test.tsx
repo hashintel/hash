@@ -32,7 +32,7 @@ const mutations = vi.hoisted(() => ({
   updateMetric: vi.fn(),
   removeMetric: vi.fn(),
 }));
-vi.mock("../../../../../../react", () => ({
+vi.mock("../../../../../../react/editing/use-petrinaut-mutations", () => ({
   usePetrinautMutations: () => mutations,
 }));
 

@@ -1,4 +1,4 @@
-import { usePetrinautCommands } from "../../../../react";
+import { usePetrinautCommands } from "../../../../react/editing/use-petrinaut-commands";
 import { useCanvasRegistration } from "../../../plugins/plugin-editor";
 
 export const autoLayoutShortcut = "mod+shift+l";

@@ -8,8 +8,8 @@ import {
   type Metric,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../react";
 import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
+import { usePetrinautMutations } from "../../../../../../react/editing/use-petrinaut-mutations";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { DrawerErrorDisplay } from "../drawer-error-display";
 import { MetricFormBody } from "./metric-form";

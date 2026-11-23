@@ -3,9 +3,9 @@ import { use } from "react";
 import { Toggle, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePetrinautMutations } from "../../../../../../../../react";
 import { ActiveNetContext } from "../../../../../../../../react/document/active-net-context";
 import { useIsReadOnly } from "../../../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../../../react/editing/use-petrinaut-mutations";
 import { useEditorActions } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { usePlacePropertiesContext } from "../../context";

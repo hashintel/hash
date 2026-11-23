@@ -18,7 +18,7 @@ import { EditorCommands } from "./use-editor-commands";
 /** The layout the commands run: the auto-layout, then the fit of the canvas. */
 const layout = vi.hoisted(() => vi.fn(async () => {}));
 
-vi.mock("../../../react", () => ({
+vi.mock("../../../react/editing/use-petrinaut-commands", () => ({
   usePetrinautCommands: () => ({ applyAutoLayout: layout }),
 }));
 

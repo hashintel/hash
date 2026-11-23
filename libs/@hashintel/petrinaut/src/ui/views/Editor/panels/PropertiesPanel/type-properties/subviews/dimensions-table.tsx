@@ -12,7 +12,7 @@ import { Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { generatePetrinautId, type Color } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../../react";
+import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
 import { FormSpreadsheet } from "../../../../../../components/spreadsheet-kit/form-spreadsheet";
 import {
   cellErrorUnderlineStyle,

@@ -6,8 +6,8 @@ import {
   getEffectiveTransitionLambdaType,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../../../react";
 import { useIsReadOnly } from "../../../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../../../react/editing/use-petrinaut-mutations";
 import { useEditorState } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";

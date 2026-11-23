@@ -2,8 +2,8 @@ import { Form } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { getDocumentUri } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../../react";
 import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
 import { useDiffEqPropertiesContext } from "../context";
 

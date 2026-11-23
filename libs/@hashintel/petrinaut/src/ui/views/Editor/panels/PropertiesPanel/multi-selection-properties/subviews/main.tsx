@@ -3,7 +3,7 @@ import { use } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePetrinautMutations } from "../../../../../../../react";
+import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { DeleteItemButton } from "../../delete-item-button";
 import { SelectedItemsContext } from "../context";

@@ -4,10 +4,10 @@ import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { generatePetrinautId, isInterface } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../react";
 import { ActiveNetContext } from "../../../../../../react/document/active-net-context";
 import { usePetrinautDefinitionSelector } from "../../../../../../react/document/use-document";
 import { useIsReadOnly } from "../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../react/editing/use-petrinaut-mutations";
 import { ComponentGlyph } from "../../../../../components/component-glyph";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { focusLands } from "../../../../../worksheet/focus-flow";

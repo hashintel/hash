@@ -4,8 +4,8 @@ import {
   validateVariableName,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../../react";
 import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { fieldsSectionStyle } from "../../styles";

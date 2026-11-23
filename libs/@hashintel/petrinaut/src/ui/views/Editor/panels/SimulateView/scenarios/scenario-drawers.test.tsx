@@ -25,7 +25,7 @@ const mutations = vi.hoisted(() => ({
   addScenario: vi.fn(),
   updateScenario: vi.fn(),
 }));
-vi.mock("../../../../../../react", () => ({
+vi.mock("../../../../../../react/editing/use-petrinaut-mutations", () => ({
   usePetrinautMutations: () => mutations,
 }));
 

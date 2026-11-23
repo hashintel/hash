@@ -22,7 +22,7 @@ const lifecycle = vi.hoisted(() => ({
   cancelPendingRequest: vi.fn(),
 }));
 
-vi.mock("../../../react", () => ({
+vi.mock("../../../react/editing/use-petrinaut-commands", () => ({
   usePetrinautCommands: () => ({ applyAutoLayout: vi.fn() }),
 }));
 vi.mock("../../../react/hooks/use-element-size", () => ({

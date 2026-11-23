@@ -12,9 +12,9 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 import { validateEntityName } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../../react";
 import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
 import { DescriptionField } from "../../../../../../components/description-field";

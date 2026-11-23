@@ -1,6 +1,6 @@
 import { generatePetrinautId } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../react";
+import { usePetrinautMutations } from "../../../../../../react/editing/use-petrinaut-mutations";
 import { SimulationPanel } from "../shared/simulation-panel";
 import {
   AdHocScenarioAuthoringBody,

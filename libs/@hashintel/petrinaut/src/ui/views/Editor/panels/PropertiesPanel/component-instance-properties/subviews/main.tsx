@@ -18,11 +18,11 @@ import {
   validateEntityName,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../../react";
 import { CompositionContext } from "../../../../../../../react/document/composition-context";
 import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
 import { useMutationRefusal } from "../../../../../../../react/editing/use-mutation-refusal";
+import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
