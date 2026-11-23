@@ -46,7 +46,7 @@ Records say what was entered, not what happens. What happened last Tuesday, or h
 - **Refused reads.** An entity read that says it was refused would have been too large to show, so you got none of it and no cursor. Narrow it as it suggests (a smaller `limit`, `traversalDepth: 0`, filters by `entityTypes`, `webIds`, `entityIds` or `propertyEquals`, `properties` to show only those you need, or `{ entityId, path }` in `fullValuesFor`) and repeat it from the same cursor, if it had one.
 - **Empty results.** An empty result means only that nothing visible matched. The record may be hidden from the USER, archived, filed under another type title, or in a web outside the scope read; don't report it as absent.
 - **Failed reads.** A result with `error` and `note` is a failed read, not an empty one. Narrow the read or retry it; if it still fails, tell the USER the lookup failed and ask instead.
-- **Too many types.** A type read that says more may match than shown stopped at the graph's limit of 1,000 types. Filter it by `entityTypeIds`.
+- **Too many types.** A type read that says it was refused would have been too large to show, so you got none of it: filter it by `entityTypeIds` (fewer types per read). A type read that says more may match than shown stopped at the graph's limit of 1,000 types.
 - **Incomplete counts.** A count across links that says `Incomplete: no count` stopped part-way, because a read failed or HASH grew past the 20,000 it may read. It is not an answer: report no count, group or example from it. Repeat it; if it stops again, narrow it by `webIds` or `propertyEquals`, or tell the USER the count couldn't be completed.
 
 ## Using what you found

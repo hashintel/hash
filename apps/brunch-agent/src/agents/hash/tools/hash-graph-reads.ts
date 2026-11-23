@@ -724,11 +724,35 @@ export const createHashEntityReadTool = (execute: BrowserToolExecutor) =>
 export const hashEntityTypeReadDescription = [
   "List the entity types in the HASH graph that the signed-in user can see: the versions named by entityTypeIds, or else each type's latest version. A type must match every filter given.",
   "Returns compact text: each type headed by its title and entityTypeId (a versioned URL); its description (cut short when long); its properties, inherited ones included, each by its short name, base URL and title; and its links, each by its title and linkEntityTypeId, with the entity types it may point to (any, when not limited). A type's links point from its entities (their left) to those types (their right). A short name holds within one read only; name a property by its base URL in propertyEquals, properties or a fullValuesFor path. A type's title or entityTypeId can filter an entity read or count, and a link's title can be a step in a count across links.",
-  `Filter by the entityTypeIds of entities you read with ${brunchTools.hashQueryEntities}; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists every type the user can see, up to the graph's limit of ${formattedQueryLimit}: a very large read. When it stops at that limit, the text says more may match than shown. A read that failed returns { error }.`,
+  `Filter by the entityTypeIds of entities you read with ${brunchTools.hashQueryEntities} or counted with ${brunchTools.hashCountEntities}; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists every type the user can see, up to the graph's limit of ${formattedQueryLimit}: a read whose text would exceed about ${hashEntityReadMaxTokens.toLocaleString("en-US")} tokens is refused whole, showing how large it would have been and how to narrow it. When it stops at that limit, the text says more may match than shown. A read that failed returns { error }.`,
 ].join("\n\n");
 
 const hashEntityTypeReadEmptyNote =
   "No entity types matched that the signed-in user can see.";
+
+/**
+ * What the model is shown in place of an entity type read whose text would
+ * cost more than `hashEntityReadMaxTokens`: how large it would have been, how
+ * many types it held, and how to narrow it.
+ */
+const hashEntityTypeReadRefusal = ({
+  tokens,
+  types,
+  truncated,
+}: {
+  tokens: number;
+  types: number;
+  truncated: true | undefined;
+}) => {
+  const count = (value: number) => value.toLocaleString("en-US");
+  return [
+    `Refused: this type read's text would be about ${count(tokens)} tokens, over the ${count(hashEntityReadMaxTokens)} a read may show, so none of it is shown.`,
+    `It held ${count(types)} entity ${types === 1 ? "type" : "types"}${truncated === true ? " (and more matched than the graph's limit)" : ""}.`,
+    "Narrow it and read again:",
+    `- filter by entityTypeIds from ${brunchTools.hashCountEntities} or ${brunchTools.hashQueryEntities} (fewer types per read)`,
+    "- filter by webIds only when you know which web defines the types",
+  ].join("\n");
+};
 
 /** What the model is shown of a settled entity type read: compact text. */
 export const hashEntityTypeReadForModel = (output: unknown) => {
@@ -747,7 +771,7 @@ export const hashEntityTypeReadForModel = (output: unknown) => {
       properties.map(({ baseUrl }) => baseUrl),
     ),
   );
-  return [
+  const text = [
     `entity types: ${entityTypes.length}`,
     ...truncationNote(truncated),
     ...entityTypes.map((type) =>
@@ -785,6 +809,13 @@ export const hashEntityTypeReadForModel = (output: unknown) => {
       ].join("\n"),
     ),
   ].join("\n");
+  const tokens = estimateTokens(text);
+  if (tokens <= hashEntityReadMaxTokens) return text;
+  return hashEntityTypeReadRefusal({
+    tokens,
+    types: entityTypes.length,
+    truncated,
+  });
 };
 
 /** The entity type read, executed by whatever `execute` reaches HASH through. */

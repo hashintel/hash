@@ -968,6 +968,45 @@ test("properties of entity types sharing a slug are told apart", () => {
   expect(text).toContain(`    ${acmeQuantity}: Quantity`);
 });
 
+test("an entity type read whose text would be too large is refused whole, with its size, count and how to narrow it", () => {
+  const manyTypes = Array.from({ length: 400 }, (_, index) => ({
+    entityTypeId: `https://hash.ai/@acme/types/entity-type/type-${index}/v/1`,
+    title: `Type ${index}`,
+    description: `Description of type ${index} for a catalog record.`,
+    properties: Array.from({ length: 10 }, (_, propIndex) => ({
+      baseUrl: `https://hash.ai/@acme/types/property-type/prop-${index}-${propIndex}/`,
+      title: `Property ${propIndex}`,
+    })),
+    links: [],
+  }));
+  const text = hashEntityTypeReadForModel({
+    entityTypes: manyTypes,
+    truncated: true,
+  });
+  const [refused, ...rest] = text.split("\n");
+  expect(refused).toMatch(
+    /^Refused: this type read's text would be about [\d,]+ tokens, over the 20,000 a read may show, so none of it is shown\.$/u,
+  );
+  expect(rest).toEqual([
+    "It held 400 entity types (and more matched than the graph's limit).",
+    "Narrow it and read again:",
+    "- filter by entityTypeIds from hash_count_entities or hash_query_entities (fewer types per read)",
+    "- filter by webIds only when you know which web defines the types",
+  ]);
+});
+
+test("an entity type read within the budget is shown whole", () => {
+  const types = Array.from({ length: 10 }, (_, index) => ({
+    entityTypeId: `https://hash.ai/@acme/types/entity-type/type-${index}/v/1`,
+    title: `Type ${index}`,
+    properties: [],
+    links: [],
+  }));
+  const text = hashEntityTypeReadForModel({ entityTypes: types });
+  expect(text.split("\n")[0]).toBe("entity types: 10");
+  expect(text).not.toContain("Refused");
+});
+
 test("webs render one line each, with their ids", () => {
   expect(
     hashWebReadForModel({
