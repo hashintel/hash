@@ -1,17 +1,12 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { Filter, Form, LoadingSpinner } from "@hashintel/ds-components";
 import { isIsoDate } from "@local/hash-isomorphic-utils/flows/datetime";
-import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 import { payloadKindTraits } from "@local/hash-isomorphic-utils/flows/types";
 
-import { useLatestEntityTypesOptional } from "../../../../../../../shared/entity-types-context/hooks";
-import { findStep } from "../shared/find-step";
-import { getSourceEntityTypes } from "../shared/item-name";
 import { getKindIcon } from "../shared/value-display";
 import {
   emptyConditionForm,
-  getConditionTargets,
   getSavedConditionKind,
   getOperatorLabel,
   getRowOperators,
@@ -19,22 +14,21 @@ import {
   toFilterCondition,
 } from "./condition-field/condition-form";
 import { InputField } from "./input-field";
-import { getEntityProperties } from "./shared/condition-properties";
 import {
   AddFilterMenu,
   ConditionRows,
   UnreadableCondition,
 } from "./shared/condition-rows";
-import { useConditionOntology } from "./shared/use-condition-ontology";
+import { useConditionTargets } from "./shared/use-condition-targets";
 import { useRowKeys } from "./shared/use-row-keys";
 
 import type {
   ConditionForm,
   ConditionRow,
-  ConditionTarget,
   RowOperator,
 } from "./condition-field/condition-form";
 import type { PropertyValueKind } from "./shared/condition-properties";
+import type { ConditionTarget } from "./shared/condition-targets";
 import type {
   FilterChange,
   FilterOperator,
@@ -224,61 +218,18 @@ export const ConditionField = (props: ComponentProps<typeof InputField>) => {
   const [newTarget, setNewTarget] = useState<ConditionTarget>();
   const { getRowKey, forgetRowKey } = useRowKeys();
 
-  const ontology = useConditionOntology();
-  const { latestEntityTypes } = useLatestEntityTypesOptional();
-
   const subject = conditionSubjects[actionDefinition.actionDefinitionId];
-  const step = findStep(flowDefinition.steps, stepId)?.step;
-  const kindSource =
-    subject && step?.kind === "action"
-      ? step.inputs[subject.kindFrom]
-      : undefined;
-  const kind = subject
-    ? createStepShapeResolver(flowDefinition).getInputKind(
-        stepId,
-        subject.kindFrom,
-      )
-    : null;
-  /* While nothing is connected, a saved condition's rows still read as the kind they were built for. */
-  const rowKind =
-    kind ??
-    (source?.kind === "constant"
-      ? getSavedConditionKind(source.payload.value)
-      : null);
-  const readsEntities =
-    rowKind !== null && "entity" in payloadKindTraits[rowKind];
-
-  /* Every type's, so a saved row on any property reads back. */
-  const allProperties = useMemo(
-    () =>
-      readsEntities && ontology && latestEntityTypes
-        ? getEntityProperties(
-            ontology,
-            latestEntityTypes.map(({ schema }) => schema.$id),
-          )
+  const valueLabel = subject?.valueLabel ?? "Value";
+  const conditionTargets = useConditionTargets({
+    flowDefinition,
+    stepId,
+    kindFrom: subject?.kindFrom,
+    savedKind:
+      source?.kind === "constant"
+        ? getSavedConditionKind(source.payload.value)
         : null,
-    [readsEntities, ontology, latestEntityTypes],
-  );
-
-  /* The types of the Find entities query the value comes from, if it's limited to some. */
-  const sourceTypes = readsEntities
-    ? getSourceEntityTypes(flowDefinition, stepId, kindSource)
-    : [];
-  const sourceTypeKey = sourceTypes.join(" ");
-  const offeredProperties = useMemo(
-    () =>
-      sourceTypeKey !== "" && ontology && latestEntityTypes
-        ? getEntityProperties(
-            ontology,
-            latestEntityTypes
-              .filter(({ metadata }) =>
-                sourceTypeKey.split(" ").includes(metadata.recordId.baseUrl),
-              )
-              .map(({ schema }) => schema.$id),
-          )
-        : null,
-    [sourceTypeKey, ontology, latestEntityTypes],
-  );
+    valueLabel,
+  });
 
   if (source && source.kind !== "constant") {
     return <InputField {...props} />;
@@ -288,7 +239,7 @@ export const ConditionField = (props: ComponentProps<typeof InputField>) => {
     code === "missingInput" ? "Required" : message,
   );
 
-  if (readsEntities && !allProperties) {
+  if (!conditionTargets) {
     return (
       <Form.Field layout="inline" label="Where">
         <LoadingSpinner size="sm" />
@@ -296,25 +247,7 @@ export const ConditionField = (props: ComponentProps<typeof InputField>) => {
     );
   }
 
-  const valueLabel = subject?.valueLabel ?? "Value";
-  /* Last, so the source's version of a property wins over another type's. */
-  const targets = getConditionTargets({
-    kind: rowKind,
-    valueLabel,
-    properties: [...(allProperties ?? []), ...(offeredProperties ?? [])],
-  });
-  const targetsByKey = new Map(targets.map((target) => [target.key, target]));
-  /* Nothing to add until the value is connected. */
-  const offered =
-    kind === null
-      ? []
-      : offeredProperties
-        ? getConditionTargets({
-            kind,
-            valueLabel,
-            properties: offeredProperties,
-          })
-        : targets;
+  const { kind, targetsByKey, offered } = conditionTargets;
 
   const form: ConditionForm | null = source
     ? source.payload.kind === "FilterCondition"
