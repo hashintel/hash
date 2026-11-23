@@ -115,6 +115,9 @@ const EditorViewContent = ({
   const netKey = petriNetId ?? "no-net";
   const showsDefinitions =
     globalMode === "edit" && editViewMode === "definitions";
+  const canvasShows =
+    globalMode === "actual" ||
+    (globalMode === "edit" && editViewMode === "canvas");
   const [netWithDefinitions, setNetWithDefinitions] = useState<string | null>(
     null,
   );
@@ -143,13 +146,7 @@ const EditorViewContent = ({
           ) : (
             <div className={workspaceStyle}>
               {globalMode === "edit" && !composesOnly && <EditViewSelector />}
-              <Activity
-                mode={
-                  globalMode === "actual" || editViewMode === "canvas"
-                    ? "visible"
-                    : "hidden"
-                }
-              >
+              <Activity mode={canvasShows ? "visible" : "hidden"}>
                 <Box className={canvasContainerStyle}>
                   <LeftSideBar />
                   <PropertiesPanel />
@@ -175,25 +172,13 @@ const EditorViewContent = ({
               )}
             </div>
           )}
-          <Activity
-            mode={
-              globalMode === "actual" ||
-              (globalMode === "edit" && editViewMode === "canvas")
-                ? "visible"
-                : "hidden"
-            }
-          >
+          <Activity mode={canvasShows ? "visible" : "hidden"}>
             <BottomBar hasAiAssistant={hasAssistant} />
           </Activity>
           <SimulationCreationDrawer />
         </SimulationWorkspace>
         <EditorAssistantPanel />
-        <EditorResizers
-          canvasShows={
-            globalMode === "actual" ||
-            (globalMode === "edit" && editViewMode === "canvas")
-          }
-        />
+        <EditorResizers canvasShows={canvasShows} />
       </Stack>
     </>
   );
