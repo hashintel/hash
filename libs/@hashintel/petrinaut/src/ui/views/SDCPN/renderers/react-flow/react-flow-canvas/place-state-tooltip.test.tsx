@@ -59,7 +59,7 @@ vi.mock("./place-state-tooltip/visualizer-window", () => ({
     </div>
   ),
 }));
-vi.mock("../../../../shared/place-state-visualization", () => ({
+vi.mock("../../../../../visualizer/place-state-visualization", () => ({
   PlaceStateVisualization: ({ placeType }: { placeType: unknown }) => (
     <div>{placeType ? "Picture" : "Picture of a count"}</div>
   ),

@@ -1,3 +1,19 @@
+/**
+ * @layerRoot ui.visualizer
+ * @role Draws a place's tokens through its visualizer code: the lowered HIR interpreted into the elements Core allows
+ *
+ * `PlaceStateVisualization` is the entry. The canvas loads it with one
+ * dynamic import, so the interpreter stays out of the canvas chunk, and shows
+ * `VisualizerLoading` until it arrives. The folder beside this file lowers
+ * the code through the language client, interprets the result into React
+ * elements and gives the SVG a camera.
+ *
+ * This is where code a user wrote becomes DOM. The tags, attributes and
+ * style properties it may produce are Core's (`VIEW_ELEMENT_TAGS`,
+ * `VIEW_ELEMENT_ATTRIBUTES`, `VIEW_STYLE_PROPERTIES`, `isSafeViewValue`).
+ * `render-visualizer-hir.test.tsx` checks that anything else is refused and
+ * draws every example visualizer against recorded markup.
+ */
 import { Suspense, use, useDeferredValue } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
@@ -10,16 +26,16 @@ import {
   mergeParameterValues,
 } from "@hashintel/petrinaut-core";
 
-import { SDCPNContext } from "../../../react/document/sdcpn-context";
-import { useDefaultParameterValues } from "../../../react/document/use-default-parameter-values";
-import { ExecutionFrameSourceContext } from "../../../react/execution-frame/context";
-import { SimulationContext } from "../../../react/simulation/context";
+import { SDCPNContext } from "../../react/document/sdcpn-context";
+import { useDefaultParameterValues } from "../../react/document/use-default-parameter-values";
+import { ExecutionFrameSourceContext } from "../../react/execution-frame/context";
+import { SimulationContext } from "../../react/simulation/context";
 import {
   renderVisualizerHir,
   type VisualizerSize,
-} from "../../lib/render-visualizer-hir";
-import { useVisualizerHir } from "../../lib/use-visualizer-hir";
-import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
+} from "./place-state-visualization/render-visualizer-hir";
+import { useVisualizerHir } from "./place-state-visualization/use-visualizer-hir";
+import { VisualizerErrorBoundary } from "./place-state-visualization/visualizer-error-boundary";
 import { VisualizerLoading } from "./visualizer-loading";
 
 import type { Color, Place, TokenRecord } from "@hashintel/petrinaut-core";

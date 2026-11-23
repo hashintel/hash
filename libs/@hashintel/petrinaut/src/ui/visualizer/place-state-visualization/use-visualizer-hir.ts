@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { LanguageClientContext } from "../../react/lsp/context";
+import { LanguageClientContext } from "../../../react/lsp/context";
 
 import type {
   HirVisualizerContext,

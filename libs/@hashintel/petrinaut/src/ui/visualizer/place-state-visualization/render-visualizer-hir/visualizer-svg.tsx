@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useUserSettings } from "../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../../react/state/user-settings-context";
 import {
   cameraViewBox,
   panCamera,

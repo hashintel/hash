@@ -19,16 +19,18 @@ import {
 import { useUserSettings } from "../../../../../../react/state/user-settings-context";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation-context";
 import { usePetrinautPresentation } from "../../../../../presentation/presentation-context";
-import { VisualizerLoading } from "../../../../shared/visualizer-loading";
+import { VisualizerLoading } from "../../../../../visualizer/visualizer-loading";
 import { CanvasPointerContext, useIsHovered } from "../../../canvas-pointer";
 import { VisualizerWindow } from "./place-state-tooltip/visualizer-window";
 
 import type { PointerEvent } from "react";
 
 const PlaceStateVisualization = lazy(() =>
-  import("../../../../shared/place-state-visualization").then((module) => ({
-    default: module.PlaceStateVisualization,
-  })),
+  import("../../../../../visualizer/place-state-visualization").then(
+    (module) => ({
+      default: module.PlaceStateVisualization,
+    }),
+  ),
 );
 
 const triggerStyle = css({
