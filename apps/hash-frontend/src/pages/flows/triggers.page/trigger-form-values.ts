@@ -14,11 +14,8 @@ import type { EntityId } from "@blockprotocol/type-system";
 import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
 import type { FlowInputDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
-/**
- * How often the trigger repeats: a rule the form makes, or a schedule's spec it can't make, kept as it is until another
- * repeat is chosen, e.g. an interval or a cron expression of every hour.
- */
-export type RepeatChoice =
+/** A rule the form makes, or a spec it can't, e.g. an interval, kept until another repeat is chosen. */
+type RepeatChoice =
   | { kind: "rule"; rule: RepeatRule }
   | { kind: "kept"; scheduleSpec: ScheduleSpec };
 

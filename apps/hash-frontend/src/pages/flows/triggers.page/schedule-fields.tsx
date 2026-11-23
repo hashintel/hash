@@ -125,11 +125,7 @@ const CustomRepeat = ({
   );
 };
 
-/**
- * When a trigger runs: Repeat, from presets that follow today's date or chosen weekdays, the time it runs At, its Time
- * zone, and a preview of its next runs. A spec the form can't make, e.g. an interval, stays chosen until another is,
- * and hides what doesn't apply to it.
- */
+/** Repeat, At, Time zone and the next runs. A kept spec, e.g. an interval, hides the fields it doesn't use. */
 export const ScheduleFields = ({
   values,
   nextRuns,

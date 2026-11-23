@@ -137,6 +137,7 @@ export const TriggersTable = ({
   editing,
   onEdit,
   onCloseEdit,
+  switchingEntityId,
   onSetOn,
   onDelete,
 }: {
@@ -150,6 +151,8 @@ export const TriggersTable = ({
   editing: { entityId: FlowTriggerRow["entityId"]; form: ReactNode } | null;
   onEdit: (row: FlowTriggerRow) => void;
   onCloseEdit: () => void;
+  /** The trigger being paused or resumed, which can't be again until it is. */
+  switchingEntityId: FlowTriggerRow["entityId"] | null;
   /** Resumes a paused trigger, or pauses one that's on. */
   onSetOn: (row: FlowTriggerRow, on: boolean) => void;
   onDelete: (row: FlowTriggerRow) => void;
@@ -195,6 +198,7 @@ export const TriggersTable = ({
         )}
         {rows.map((row) => {
           const isEditing = editing?.entityId === row.entityId;
+          const switching = switchingEntityId === row.entityId;
 
           return (
             <Fragment key={row.entityId}>
@@ -243,6 +247,7 @@ export const TriggersTable = ({
                       <Toggle
                         size="sm"
                         value={row.on}
+                        disabled={switching}
                         aria-label="On"
                         onChange={(on) => onSetOn(row, on)}
                       />
@@ -273,11 +278,13 @@ export const TriggersTable = ({
                           ? {
                               id: "pause",
                               text: "Pause",
+                              disabled: switching,
                               onClick: () => onSetOn(row, false),
                             }
                           : {
                               id: "resume",
                               text: "Resume",
+                              disabled: switching,
                               onClick: () => onSetOn(row, true),
                             },
                         {

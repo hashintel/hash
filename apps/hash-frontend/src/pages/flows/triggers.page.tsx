@@ -198,8 +198,14 @@ const TriggersPage: NextPageWithLayout = () => {
     ArchiveFlowScheduleMutationVariables
   >(archiveFlowScheduleMutation);
 
+  /* The trigger being paused or resumed, whose switch and menu wait for it. */
+  const [switchingEntityId, setSwitchingEntityId] = useState<EntityId | null>(
+    null,
+  );
+
   const setOn = async (row: FlowTriggerRow, on: boolean) => {
     setActionError(null);
+    setSwitchingEntityId(row.entityId);
 
     try {
       const variables = { scheduleEntityId: row.entityId };
@@ -213,6 +219,8 @@ const TriggersPage: NextPageWithLayout = () => {
         title: `“${row.text}” wasn't ${on ? "resumed" : "paused"}`,
         message: caught instanceof Error ? caught.message : String(caught),
       });
+    } finally {
+      setSwitchingEntityId(null);
     }
   };
 
@@ -530,6 +538,7 @@ const TriggersPage: NextPageWithLayout = () => {
                 }
                 onEdit={(row) => edit(row.entityId)}
                 onCloseEdit={() => setEditingEntityId(null)}
+                switchingEntityId={switchingEntityId}
                 onSetOn={(row, on) => {
                   void setOn(row, on);
                 }}

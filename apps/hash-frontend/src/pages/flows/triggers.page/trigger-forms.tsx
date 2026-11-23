@@ -115,10 +115,7 @@ const ErrorBanner = ({
 const getPreviewedRuns = (values: ScheduleFormValues) =>
   getNextRuns(toScheduleSpec(values), new Date(), previewedRuns);
 
-/**
- * The form for adding a schedule, at the top of the triggers table: its flow, a name, when it runs, the flow's inputs,
- * and whether to run it once now too. It's added in its flow's web, so only the flows in the user's webs are offered.
- */
+/** The form for adding a schedule. It's added in its flow's web, so only flows in the user's webs are offered. */
 export const NewTriggerForm = ({
   initialFlowEntityId,
   onAdded,
@@ -318,10 +315,7 @@ export const NewTriggerForm = ({
   );
 };
 
-/**
- * The form for editing a schedule in place, under its row: when it runs. Its web is shown but can't be changed, as the
- * API can't move a schedule to another web.
- */
+/** The form for editing when a schedule runs. Its web is read-only, as the API can't move a schedule. */
 export const EditTriggerForm = ({
   scheduleEntityId,
   scheduleSpec,

@@ -102,7 +102,6 @@ const InputControl = ({
   }
 };
 
-/** A flow input's field in the run form, which the trigger form gives a schedule's inputs with too. */
 export const InputField = ({
   webId,
   input,
@@ -115,7 +114,7 @@ export const InputField = ({
   /** Absent for an input the form can't take. */
   value: RunFormValue | undefined;
   onChange: (value: RunFormValue) => void;
-  /** Whether the label is beside the input, rather than above it, without the kind of value it takes under it. */
+  /** The label beside the input rather than above it, without the description. */
   inline?: boolean;
 }) => (
   <Form.Field
