@@ -1,4 +1,5 @@
-use core::{alloc::Allocator, marker::PhantomData};
+use alloc::borrow::Cow;
+use core::{alloc::Allocator, marker::PhantomData, mem};
 
 use rowan::{Checkpoint, GreenNodeBuilder};
 use text_size::{TextRange, TextSize};
@@ -86,9 +87,98 @@ pub(crate) trait Grammar {
         A: Allocator + Clone;
 }
 
+#[derive(Debug, Copy, Clone)]
+enum Lookahead {
+    Empty,
+    Token(Token),
+    Eof,
+}
+
+/// Proven non-trivia lookahead token borrowing its [`Parser`].
+///
+/// Holding a `PeekToken` guarantees that the parser emitted leading trivia and is not at end of
+/// input. Dropping it leaves the token buffered for a later [`Parser::peek`]. Consuming it with
+/// [`PeekToken::commit`] emits the token and clears the lookahead slot.
+pub(crate) struct PeekToken<'parser, 'source, G, A: Allocator> {
+    parser: &'parser mut Parser<'source, G, A>,
+}
+
+impl<'source, G, A: Allocator> PeekToken<'_, 'source, G, A>
+where
+    G: Grammar,
+{
+    #[inline]
+    fn token(&self) -> Token {
+        match self.parser.lookahead {
+            Lookahead::Token(token) => token,
+            Lookahead::Empty | Lookahead::Eof => {
+                unreachable!("PeekToken guarantees a buffered non-trivia token")
+            }
+        }
+    }
+
+    #[inline]
+    pub(crate) fn kind(&self) -> SyntaxKind {
+        self.token().kind
+    }
+
+    #[inline]
+    pub(crate) fn range(&self) -> TextRange {
+        self.token().range
+    }
+
+    #[inline]
+    pub(crate) fn decode_string(&self) -> Option<Cow<'source, str>> {
+        self.parser.lexer.decode_string(self.token())
+    }
+
+    #[inline]
+    pub(crate) fn start_node(&mut self, kind: SyntaxKind) {
+        self.parser.builder.start_node(kind.into());
+    }
+
+    #[inline]
+    pub(crate) fn checkpoint(&self) -> Checkpoint {
+        self.parser.builder.checkpoint()
+    }
+}
+
+impl<'parser, 'source, G, A> PeekToken<'parser, 'source, G, A>
+where
+    G: Grammar,
+    A: Allocator + Clone,
+{
+    #[inline]
+    pub(crate) fn commit(self) -> &'parser mut Parser<'source, G, A> {
+        let Lookahead::Token(token) = mem::replace(&mut self.parser.lookahead, Lookahead::Empty)
+        else {
+            unreachable!("PeekToken guarantees a buffered non-trivia token")
+        };
+
+        if let Some(error) = token.error() {
+            self.parser.record_lex_error(token.range, error);
+        }
+
+        self.parser
+            .builder
+            .token(token.kind.into(), self.parser.lexer.slice(token.range));
+        self.parser.last_token_end = token.range.end();
+        self.parser
+    }
+
+    #[inline]
+    pub(crate) fn commit_node(mut self, kind: SyntaxKind) -> &'parser mut Parser<'source, G, A> {
+        self.start_node(kind);
+        let parser = self.commit();
+        parser.finish_node();
+        parser
+    }
+}
+
 /// Recursive descent parser from J-Expr source to a lossless [`Document`] of grammar `G`.
 pub(crate) struct Parser<'source, G, A: Allocator> {
     lexer: Lexer<'source>,
+    lookahead: Lookahead,
     builder: GreenNodeBuilder<'static>,
     errors: Vec<SyntaxError<A>, A>,
     last_token_end: TextSize,
@@ -104,6 +194,7 @@ where
     pub(crate) fn new_in(source: &'source str, options: ParserOptions, alloc: A) -> Self {
         Self {
             lexer: Lexer::new(source),
+            lookahead: Lookahead::Empty,
             builder: GreenNodeBuilder::new(),
             errors: Vec::new_in(alloc),
             last_token_end: TextSize::new(0),
@@ -221,9 +312,9 @@ where
 {
     #[inline]
     pub(crate) fn error_node(&mut self) {
-        self.start_node(SyntaxKind::Error);
-        self.bump_any();
-        self.finish_node();
+        if let Some(token) = self.peek() {
+            token.commit_node(SyntaxKind::Error);
+        }
     }
 
     /// Consumes every [`SyntaxKind::InvalidToken`] at the current position into its own
@@ -233,8 +324,10 @@ where
     /// position as already reported and says nothing more about what it expected there.
     pub(crate) fn skip_invalid_tokens(&mut self) -> bool {
         let mut skipped = false;
-        while self.at(SyntaxKind::InvalidToken) {
-            self.error_node();
+        while let Some(token) = self.peek()
+            && token.kind() == SyntaxKind::InvalidToken
+        {
+            token.commit_node(SyntaxKind::Error);
             skipped = true;
         }
 
@@ -284,9 +377,12 @@ where
         }
     }
 
+    #[cold]
+    #[inline(never)]
     fn record_lex_error(&mut self, token_range: TextRange, error: LexError) {
         match error {
             LexError::String { error, range } => {
+                let error = StringError::from(error);
                 let context = self.string_error_context(token_range, range, error);
                 self.error(
                     range,
@@ -404,10 +500,13 @@ where
         );
     }
 
-    /// Emits leading trivia into the open node and returns the next non-trivia token.
-    #[inline]
-    pub(crate) fn current(&mut self) -> Option<Token<'source>> {
-        while let Some(token) = self.lexer.peek_token() {
+    #[inline(never)]
+    fn refill_lookahead(&mut self) -> Option<PeekToken<'_, 'source, G, A>> {
+        if matches!(self.lookahead, Lookahead::Eof) {
+            return None;
+        }
+
+        while let Some(token) = self.lexer.next_token() {
             if token.kind.is_trivia() {
                 if let Some(error) = token.error() {
                     self.record_lex_error(token.range, error);
@@ -415,70 +514,47 @@ where
 
                 self.builder
                     .token(token.kind.into(), self.lexer.slice(token.range));
-                self.lexer.next_token();
-
                 continue;
             }
 
-            return Some(token);
+            self.lookahead = Lookahead::Token(token);
+            return Some(PeekToken { parser: self });
         }
 
+        self.lookahead = Lookahead::Eof;
         None
+    }
+
+    /// Emits leading trivia into the open node and borrows the next non-trivia token.
+    #[inline]
+    pub(crate) fn peek(&mut self) -> Option<PeekToken<'_, 'source, G, A>> {
+        if matches!(self.lookahead, Lookahead::Token(_)) {
+            return Some(PeekToken { parser: self });
+        }
+
+        self.refill_lookahead()
     }
 
     #[inline]
     fn flush_trivia(&mut self) {
-        let _: Option<Token<'source>> = self.current();
-    }
-
-    #[inline]
-    pub(crate) fn at(&mut self, kind: SyntaxKind) -> bool {
-        self.current().is_some_and(|token| token.kind == kind)
+        let _: Option<PeekToken<'_, 'source, G, A>> = self.peek();
     }
 
     #[inline]
     pub(crate) fn at_set(&mut self, set: SyntaxKindSet) -> bool {
-        self.current().is_some_and(|token| set.contains(token.kind))
+        self.peek().is_some_and(|token| set.contains(token.kind()))
     }
 
-    /// Emits the current non-trivia token into the green builder regardless of kind.
-    ///
-    /// # Panics
-    ///
-    /// Panics at EOF.
     #[inline]
-    pub(crate) fn bump_any(&mut self) -> Token<'source> {
-        let token = self.current().expect("bump called at EOF");
-        let consumed = self.lexer.next_token();
-        debug_assert_eq!(consumed, Some(token));
-
-        if let Some(error) = token.error() {
-            self.record_lex_error(token.range, error);
+    pub(crate) fn try_bump(&mut self, expected: SyntaxKind) -> Option<TextRange> {
+        let token = self.peek()?;
+        if token.kind() != expected {
+            return None;
         }
 
-        self.builder
-            .token(token.kind.into(), self.lexer.slice(token.range));
-        self.last_token_end = token.range.end();
-        token
-    }
-
-    #[inline]
-    pub(crate) fn try_bump(&mut self, expected: SyntaxKind) -> Option<Token<'source>> {
-        self.current()
-            .is_some_and(|token| token.kind == expected)
-            .then(|| self.bump_any())
-    }
-
-    /// Emits the current non-trivia token into the green builder, asserting it matches `expected`.
-    ///
-    /// # Panics
-    ///
-    /// Panics at EOF, or in debug builds if the current token's kind differs from `expected`.
-    #[inline]
-    pub(crate) fn bump(&mut self, expected: SyntaxKind) -> Token<'source> {
-        let token = self.bump_any();
-        debug_assert_eq!(token.kind, expected);
-        token
+        let range = token.range();
+        token.commit();
+        Some(range)
     }
 
     /// Flushes leading trivia into the enclosing node before opening a child node.
@@ -488,13 +564,6 @@ where
         self.builder.start_node(kind.into());
     }
 
-    /// Flushes leading trivia into the enclosing node before capturing a checkpoint.
-    #[inline]
-    pub(crate) fn checkpoint(&mut self) -> Checkpoint {
-        self.flush_trivia();
-        self.builder.checkpoint()
-    }
-
     /// Consumes the container at the current token into one [`SyntaxKind::Error`] node.
     ///
     /// A loop counts the delimiters, and the nesting inside the container costs no stack.
@@ -502,16 +571,17 @@ where
         self.start_node(SyntaxKind::Error);
 
         let mut open = 0_usize;
-        while let Some(token) = self.current() {
-            if SyntaxKindSet::OPENING_DELIMITER.contains(token.kind) {
+        while let Some(token) = self.peek() {
+            let kind = token.kind();
+            if SyntaxKindSet::OPENING_DELIMITER.contains(kind) {
                 open += 1;
-            } else if SyntaxKindSet::CLOSING_DELIMITER.contains(token.kind) {
+            } else if SyntaxKindSet::CLOSING_DELIMITER.contains(kind) {
                 open -= 1;
             } else {
                 // Every other token belongs to the innermost open container.
             }
 
-            self.bump_any();
+            token.commit();
             if open == 0 {
                 break;
             }
@@ -526,11 +596,12 @@ where
     /// reports the container at its opening delimiter and skips to the matching closing delimiter.
     pub(crate) fn nested(&mut self, parse: impl FnOnce(&mut Self)) {
         if self.depth >= self.options.nesting_limit
-            && let Some(token) = self.current()
-            && SyntaxKindSet::OPENING_DELIMITER.contains(token.kind)
+            && let Some(token) = self.peek()
+            && SyntaxKindSet::OPENING_DELIMITER.contains(token.kind())
         {
+            let range = token.range();
             self.error(
-                token.range,
+                range,
                 SyntaxErrorKind::NestingLimit {
                     limit: self.options.nesting_limit,
                 },
@@ -550,25 +621,27 @@ where
         self.builder.start_node(SyntaxKind::Root.into());
 
         let skipped = self.skip_invalid_tokens();
-        if self.current().is_none() {
+        if self.peek().is_none() {
             if !skipped {
                 self.record_eof(G::ITEM_FIRST, EofContext::Document);
             }
         } else {
             self.nested(G::parse_item);
 
-            if let Some(trailing) = self.current() {
-                let trailing_start = trailing.range.start();
-                let is_invalid = trailing.kind == SyntaxKind::InvalidToken;
+            if let Some(trailing) = self.peek() {
+                let trailing_range = trailing.range();
+                let trailing_start = trailing_range.start();
+                let is_invalid = trailing.kind() == SyntaxKind::InvalidToken;
+
                 let already_reported = self
                     .errors
                     .last()
-                    .is_some_and(|error| error.range() == trailing.range);
+                    .is_some_and(|error| error.range() == trailing_range);
                 let error_before = self.error_count();
 
                 self.start_node(SyntaxKind::Error);
-                while self.current().is_some() {
-                    self.bump_any();
+                while let Some(token) = self.peek() {
+                    token.commit();
                 }
                 self.finish_node();
 
@@ -598,5 +671,47 @@ where
         let mut parser = Self::new_in(source, options, alloc);
         parser.parse_root();
         parser.finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::alloc::Global;
+
+    use super::{Parser, expr::ExprGrammar};
+    use crate::{ParserOptions, syntax_kind::SyntaxKind};
+
+    #[test]
+    fn peek_drop_commit_and_eof() {
+        let mut parser = Parser::<ExprGrammar, Global>::new_in(
+            " /* lead */ { 1 } ",
+            ParserOptions::default(),
+            Global,
+        );
+        parser.builder.start_node(SyntaxKind::Root.into());
+
+        // Dropping `PeekToken` leaves the buffered token intact for subsequent peeks.
+        assert_eq!(
+            parser.peek().map(|token| token.kind()),
+            Some(SyntaxKind::LBrace)
+        );
+        let brace = parser.peek().expect("buffered `{` survives drop");
+        assert_eq!(brace.kind(), SyntaxKind::LBrace);
+        brace.commit();
+
+        let number = parser.peek().expect("number follows `{`");
+        assert_eq!(number.kind(), SyntaxKind::Number);
+        number.commit();
+
+        let close = parser.peek().expect("`}` follows number");
+        assert_eq!(close.kind(), SyntaxKind::RBrace);
+        close.commit();
+
+        assert!(parser.peek().is_none());
+        assert!(parser.peek().is_none());
+
+        parser.builder.finish_node();
+        let document = parser.finish();
+        assert_eq!(document.green().to_string(), " /* lead */ { 1 } ");
     }
 }

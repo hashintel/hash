@@ -2,27 +2,34 @@ use core::{alloc::Allocator, ops::ControlFlow};
 
 use text_size::TextRange;
 
-use super::{Grammar, Parser, recovery};
+use super::{
+    Grammar, Parser, PeekToken,
+    recovery::{self, ObjectEntry},
+};
 use crate::{
     error::{ObjectErrorKind, SyntaxErrorKind, ValueKind},
     syntax_kind::{SyntaxKind, T},
     syntax_kind_set::SyntaxKindSet,
 };
 
-pub(crate) fn parse_dict_object_body<G, A>(parser: &mut Parser<'_, G, A>)
+pub(crate) fn parse_dict_object_body<G, A>(mut open: PeekToken<'_, '_, G, A>)
 where
     G: Grammar,
     A: Allocator + Clone,
 {
-    parser.start_node(SyntaxKind::DictObjectBody);
-    let open = parser.bump(T!['{']).range;
+    open.start_node(SyntaxKind::DictObjectBody);
+    let open_range = open.range();
+    let parser = open.commit();
 
     let mut index = 0_usize;
-    while let ControlFlow::Continue(_) = recovery::next_object_entry(parser, open, index) {
+    while let ControlFlow::Continue(ObjectEntry { mut key, .. }) =
+        recovery::next_object_entry(parser, open_range, index)
+    {
         index += 1;
 
-        parser.start_node(SyntaxKind::DictObjectEntry);
-        let key_range = parser.bump(T![string]).range;
+        key.start_node(SyntaxKind::DictObjectEntry);
+        let key_range = key.range();
+        let parser = key.commit();
         if let ControlFlow::Continue(_) = recovery::expect_colon(parser, key_range) {
             parser.nested(G::parse_item);
         }
@@ -39,17 +46,18 @@ where
 {
     let skipped_invalid = parser.skip_invalid_tokens();
 
-    let Some(token) = parser.current() else {
+    let Some(mut token) = parser.peek() else {
         return;
     };
 
-    if skipped_invalid && SyntaxKindSet::ITEM_BOUNDARY.contains(token.kind) {
+    let kind = token.kind();
+    if skipped_invalid && SyntaxKindSet::ITEM_BOUNDARY.contains(kind) {
         return;
     }
 
-    if token.kind != T!['['] {
-        let start = token.range.start();
-        let found = ValueKind::from_syntax_kind(token.kind);
+    if kind != T!['['] {
+        let start = token.range().start();
+        let found = ValueKind::from_syntax_kind(kind);
 
         parser.start_node(SyntaxKind::DictArrayEntry);
         recovery::parse_json_value(parser);
@@ -64,17 +72,16 @@ where
         return;
     }
 
-    parser.start_node(SyntaxKind::DictArrayEntry);
-    let open = parser.bump(T!['[']).range;
+    token.start_node(SyntaxKind::DictArrayEntry);
+    let open = token.range();
+    let parser = token.commit();
     let error_start = parser.error_count();
 
     let mut count = 0_usize;
     let mut excess = Vec::new_in(parser.allocator().clone());
 
-    while let ControlFlow::Continue(_) =
-        recovery::next_array_element(parser, open, count, G::ITEM_FIRST)
-    {
-        let item_start = parser.current().map(|token| token.range.start());
+    while recovery::next_array_element(parser, open, count, G::ITEM_FIRST).is_continue() {
+        let item_start = parser.peek().map(|token| token.range().start());
         parser.nested(G::parse_item);
 
         if count >= 2
@@ -112,17 +119,18 @@ where
 }
 
 // Parses the array variant of `{"#dict": [ ... ]}`, that means the `[...]` part.
-pub(crate) fn parse_dict_array_body<G, A>(parser: &mut Parser<'_, G, A>, dict_key: TextRange)
+pub(crate) fn parse_dict_array_body<G, A>(mut open: PeekToken<'_, '_, G, A>, dict_key: TextRange)
 where
     G: Grammar,
     A: Allocator + Clone,
 {
-    parser.start_node(SyntaxKind::DictArrayBody);
-    let open = parser.bump(T!['[']).range;
+    open.start_node(SyntaxKind::DictArrayBody);
+    let open_range = open.range();
+    let parser = open.commit();
 
     let mut index = 0_usize;
-    while let ControlFlow::Continue(_) =
-        recovery::next_array_element(parser, open, index, SyntaxKindSet::from_kind(T!['[']))
+    while recovery::next_array_element(parser, open_range, index, SyntaxKindSet::from_kind(T!['[']))
+        .is_continue()
     {
         index += 1;
         parse_dict_array_entry(parser, dict_key);

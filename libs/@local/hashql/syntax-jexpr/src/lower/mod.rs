@@ -92,10 +92,10 @@ impl<'heap, 'spans, A: Allocator> Lowerer<'heap, 'spans, A> {
             self.spans,
             self.options,
             key_range,
-            EmbeddedString {
+            &EmbeddedString {
                 parent,
                 raw_quoted: token.text(),
-                decoded: &decoded,
+                decoded,
             },
             &self.alloc,
         ) {
@@ -172,10 +172,10 @@ impl<'heap, 'spans, A: Allocator> Lowerer<'heap, 'spans, A> {
             self.heap,
             self.spans,
             self.options,
-            EmbeddedString {
+            &EmbeddedString {
                 parent,
                 raw_quoted: token.text(),
-                decoded: &decoded,
+                decoded,
             },
             &self.alloc,
         ) {
@@ -202,15 +202,17 @@ impl<'heap, 'spans, A: Allocator> Lowerer<'heap, 'spans, A> {
         };
 
         let token_span = self.insert_range(token.text_range());
+        let string = EmbeddedString {
+            parent: token_span,
+            raw_quoted: token.text(),
+            decoded,
+        };
+
         let key = match parse_ident_labelled_argument_from_string_in(
             self.heap,
             self.spans,
             self.options,
-            EmbeddedString {
-                parent: token_span,
-                raw_quoted: token.text(),
-                decoded: &decoded,
-            },
+            &string,
             &self.alloc,
         ) {
             Ok(ident) => ident,
@@ -220,7 +222,7 @@ impl<'heap, 'spans, A: Allocator> Lowerer<'heap, 'spans, A> {
                     self.spans,
                     token_span,
                     token.text(),
-                    &decoded,
+                    &string.decoded,
                     error,
                     &self.alloc,
                 )
@@ -274,15 +276,17 @@ impl<'heap, 'spans, A: Allocator> Lowerer<'heap, 'spans, A> {
                 return None;
             }
             let key_span = self.insert_range(token.text_range());
+            let string = EmbeddedString {
+                parent: key_span,
+                raw_quoted: token.text(),
+                decoded,
+            };
+
             match parse_ident_labelled_argument_from_string_in(
                 self.heap,
                 self.spans,
                 self.options,
-                EmbeddedString {
-                    parent: key_span,
-                    raw_quoted: token.text(),
-                    decoded: &decoded,
-                },
+                &string,
                 &self.alloc,
             ) {
                 Ok(ident) => Some(ident),
@@ -292,7 +296,7 @@ impl<'heap, 'spans, A: Allocator> Lowerer<'heap, 'spans, A> {
                         self.spans,
                         key_span,
                         token.text(),
-                        &decoded,
+                        &string.decoded,
                         error,
                         &self.alloc,
                     )

@@ -83,15 +83,17 @@ fn lower_struct_body<'heap, A: Allocator>(
                 return None;
             };
             let key_span = lowerer.insert_range(token.text_range());
+            let string = EmbeddedString {
+                parent: key_span,
+                raw_quoted: token.text(),
+                decoded,
+            };
+
             match parse_ident_from_string_in(
                 heap,
                 &mut *lowerer.spans,
                 lowerer.options,
-                EmbeddedString {
-                    parent: key_span,
-                    raw_quoted: token.text(),
-                    decoded: &decoded,
-                },
+                &string,
                 &lowerer.alloc,
             ) {
                 Ok(ident) => Some(ident),
@@ -101,7 +103,7 @@ fn lower_struct_body<'heap, A: Allocator>(
                         &mut *lowerer.spans,
                         key_span,
                         token.text(),
-                        &decoded,
+                        &string.decoded,
                         error,
                         &lowerer.alloc,
                     )

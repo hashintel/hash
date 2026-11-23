@@ -17,7 +17,7 @@ mod tests;
 
 use self::error::{compute_error_span, recover_to_closing_quote};
 pub(crate) use self::{
-    error::{EscapeError, StringError, ValidatedStringError},
+    error::{EscapeError, StringError, StringSyntaxError, ValidatedStringError},
     offsets::RawOffsets,
 };
 
@@ -99,7 +99,12 @@ fn escape(source: &mut &[u8]) -> Result<char, EscapeError> {
     let &byte = source.split_off_first().ok_or(EscapeError::Eof)?;
 
     match SIMPLE_ESCAPES[usize::from(byte)] {
-        0 if byte == b'u' => unicode_escape(source),
+        0 if byte == b'u' => {
+            let mut rest = *source;
+            let result = unicode_escape(&mut rest);
+            *source = rest;
+            result
+        }
         0 => Err(EscapeError::Kind(byte)),
         ascii => Ok(char::from(ascii)),
     }
@@ -176,8 +181,9 @@ const ASCII_CHARS: [ascii::Char; ascii::Char::MAX as usize + 1] = {
 
 trait Sink<'source> {
     type Output;
+    type Error;
 
-    fn push_segment(&mut self, bytes: &'source ByteStr) -> Result<(), StringError>;
+    fn push_segment(&mut self, bytes: &'source ByteStr) -> Result<(), Self::Error>;
     fn push_char(&mut self, character: char);
     fn finish(&mut self) -> Self::Output;
 }
@@ -191,9 +197,10 @@ impl DecodeSink<'_> {
 }
 
 impl<'source> Sink<'source> for DecodeSink<'source> {
+    type Error = StringError;
     type Output = Cow<'source, str>;
 
-    fn push_segment(&mut self, bytes: &'source ByteStr) -> Result<(), StringError> {
+    fn push_segment(&mut self, bytes: &'source ByteStr) -> Result<(), Self::Error> {
         if bytes.is_empty() {
             return Ok(());
         }
@@ -238,31 +245,90 @@ impl<'source> Sink<'source> for DecodeSink<'source> {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub(crate) enum StringEscapes {
+    #[default]
+    Verbatim,
+    Escaped,
+}
+
+impl StringEscapes {
+    /// Decodes a validated string body including its closing `"` after the opening `"`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `body` is not a valid JSON string body ending in `"`.
+    #[expect(
+        clippy::string_slice,
+        reason = "validated string bodies always end with an ASCII closing quote"
+    )]
+    #[inline]
+    pub(crate) fn decode(self, body: &str) -> Cow<'_, str> {
+        match self {
+            Self::Verbatim => Cow::Borrowed(&body[..body.len() - 1]),
+            Self::Escaped => scan(DecodeSink::new(), &mut body.as_bytes())
+                .expect("validated string passed validation on construction"),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Default)]
 struct ValidationSink {
-    has_escapes: bool,
+    escapes: StringEscapes,
 }
 
 impl Sink<'_> for ValidationSink {
-    type Output = bool;
+    type Error = StringSyntaxError;
+    type Output = StringEscapes;
 
-    fn push_segment(&mut self, _bytes: &ByteStr) -> Result<(), StringError> {
+    fn push_segment(&mut self, _bytes: &ByteStr) -> Result<(), Self::Error> {
         Ok(())
     }
 
     fn push_char(&mut self, _character: char) {
-        self.has_escapes = true;
+        self.escapes = StringEscapes::Escaped;
     }
 
     fn finish(&mut self) -> Self::Output {
-        mem::take(&mut self.has_escapes)
+        self.escapes
+    }
+}
+
+#[inline(never)]
+fn scan_escaped<'source, S>(
+    mut sink: S,
+    mut source: &'source [u8],
+) -> (Result<S::Output, S::Error>, &'source [u8])
+where
+    S: Sink<'source>,
+    S::Error: From<StringSyntaxError>,
+{
+    loop {
+        let escaped = match escape(&mut source) {
+            Ok(character) => character,
+            Err(error) => return (Err(StringSyntaxError::Escape(error).into()), source),
+        };
+        sink.push_char(escaped);
+
+        let segment = next_segment(&mut source, SegmentLocation::AfterEscape);
+        if let Err(error) = sink.push_segment(ByteStr::new(segment)) {
+            return (Err(error), source);
+        }
+
+        match source.split_off_first() {
+            Some(b'"') => return (Ok(sink.finish()), source),
+            Some(b'\\') => {}
+            Some(_) => return (Err(StringSyntaxError::Control.into()), source),
+            None => return (Err(StringSyntaxError::Eof.into()), source),
+        }
     }
 }
 
 #[inline]
-fn scan<'source, S>(sink: &mut S, source: &mut &'source [u8]) -> Result<S::Output, StringError>
+fn scan<'source, S>(mut sink: S, source: &mut &'source [u8]) -> Result<S::Output, S::Error>
 where
     S: Sink<'source>,
+    S::Error: From<StringSyntaxError>,
 {
     let prefix = next_segment(source, SegmentLocation::BeforeEscape);
     match source.first() {
@@ -275,40 +341,46 @@ where
         Some(_) => {
             sink.push_segment(ByteStr::new(prefix))?;
             *source = &source[1..];
-            return Err(StringError::Control);
+            return Err(StringSyntaxError::Control.into());
         }
         None => {
             sink.push_segment(ByteStr::new(prefix))?;
-            return Err(StringError::Eof);
+            return Err(StringSyntaxError::Eof.into());
         }
     }
 
     sink.push_segment(ByteStr::new(prefix))?;
-    *source = &source[1..];
+    let (result, tail) = scan_escaped(sink, &source[1..]);
+    *source = tail;
+    result
+}
 
-    loop {
-        let escaped = escape(source).map_err(StringError::Escape)?;
-        sink.push_char(escaped);
+#[expect(
+    clippy::string_slice,
+    reason = "compute_error_span aligns error spans to UTF-8 character boundaries"
+)]
+#[cold]
+#[inline(never)]
+fn validated_error(source: &str, rest_len: usize, kind: StringSyntaxError) -> ValidatedStringError {
+    let end = source.len() - rest_len;
+    let span = compute_error_span(source, end, kind);
+    let tail = recover_to_closing_quote(&source[span.end..]);
+    let consumed = source.len() - tail.len();
 
-        let segment = next_segment(source, SegmentLocation::AfterEscape);
-        sink.push_segment(ByteStr::new(segment))?;
-
-        match source.split_off_first() {
-            Some(b'"') => return Ok(sink.finish()),
-            Some(b'\\') => {}
-            Some(_) => return Err(StringError::Control),
-            None => return Err(StringError::Eof),
-        }
+    ValidatedStringError {
+        kind,
+        span,
+        consumed,
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct LexedStr<'source> {
-    value: &'source str,
-    has_escapes: bool,
+pub(crate) struct LexedStr {
+    consumed: usize,
+    escapes: StringEscapes,
 }
 
-impl<'source> LexedStr<'source> {
+impl LexedStr {
     /// Validates a UTF-8 JSON string body after its opening `"` without allocating.
     ///
     /// # Errors
@@ -317,51 +389,25 @@ impl<'source> LexedStr<'source> {
     /// character-boundary span and `consumed` covering bytes through the recovery closing `"`
     /// (or EOF).
     #[inline]
-    #[expect(
-        clippy::string_slice,
-        reason = "scan stops at ASCII `\"` and `compute_error_span` aligns error spans to UTF-8 \
-                  character boundaries"
-    )]
-    pub(crate) fn new(source: &'source str) -> Result<Self, ValidatedStringError> {
+    pub(crate) fn new(source: &str) -> Result<Self, ValidatedStringError> {
         let mut rest = source.as_bytes();
-        match scan(&mut ValidationSink::default(), &mut rest) {
-            Ok(has_escapes) => Ok(Self {
-                value: &source[..source.len() - rest.len()],
-                has_escapes,
+        match scan(ValidationSink::default(), &mut rest) {
+            Ok(escapes) => Ok(Self {
+                consumed: source.len() - rest.len(),
+                escapes,
             }),
-            Err(kind) => {
-                let end = source.len() - rest.len();
-                let span = compute_error_span(source, end, kind);
-                let tail = recover_to_closing_quote(&source[span.end..]);
-                let consumed = source.len() - tail.len();
-
-                Err(ValidatedStringError {
-                    kind,
-                    span,
-                    consumed,
-                })
-            }
+            Err(kind) => Err(validated_error(source, rest.len(), kind)),
         }
     }
 
     #[inline]
-    pub(crate) const fn consumed(&self) -> usize {
-        self.value.len()
+    pub(crate) const fn consumed(self) -> usize {
+        self.consumed
     }
 
-    #[expect(
-        clippy::string_slice,
-        reason = "LexedStr::new guarantees value ends with an ASCII closing quote"
-    )]
     #[inline]
-    pub(crate) fn decode(&self) -> Cow<'source, str> {
-        if !self.has_escapes {
-            let body = &self.value[..self.value.len() - 1];
-            return Cow::Borrowed(body);
-        }
-
-        scan(&mut DecodeSink::new(), &mut self.value.as_bytes())
-            .expect("lexed string passed validation on construction")
+    pub(crate) const fn escapes(self) -> StringEscapes {
+        self.escapes
     }
 }
 
@@ -370,11 +416,11 @@ impl<'source> LexedStr<'source> {
 /// # Errors
 ///
 /// Returns [`StringError`] if `quoted` is not a valid JSON string literal.
-#[inline]
 #[expect(
     clippy::string_slice,
     reason = "run_length stops at ASCII closing quote, which is always a UTF-8 boundary"
 )]
+#[inline]
 pub(crate) fn decode_quoted(quoted: &str) -> Result<Cow<'_, str>, StringError> {
     let Some(rest) = quoted.strip_prefix('"') else {
         return Err(StringError::Eof);
@@ -386,7 +432,7 @@ pub(crate) fn decode_quoted(quoted: &str) -> Result<Cow<'_, str>, StringError> {
         return Ok(Cow::Borrowed(&rest[..len]));
     }
 
-    let decoded = scan(&mut DecodeSink::new(), &mut bytes)?;
+    let decoded = scan(DecodeSink::new(), &mut bytes)?;
     if bytes.is_empty() {
         Ok(decoded)
     } else {

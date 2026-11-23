@@ -1,7 +1,7 @@
 use core::{alloc::Allocator, fmt, mem};
 use std::bstr::ByteStr;
 
-use super::{Sink, StringError, run_length, scan};
+use super::{Sink, StringSyntaxError, run_length, scan};
 
 /// Start of one piece of a string body: a run of bytes copied as they are, or one escape.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -38,9 +38,10 @@ impl<'source, A> Sink<'source> for OffsetSink<'source, A>
 where
     A: Allocator + Clone,
 {
+    type Error = StringSyntaxError;
     type Output = Box<[Piece], A>;
 
-    fn push_segment(&mut self, bytes: &'source ByteStr) -> Result<(), StringError> {
+    fn push_segment(&mut self, bytes: &'source ByteStr) -> Result<(), Self::Error> {
         // An escape does not report how many bytes it spans. The segment after it does, because
         // the segment starts where the escape ends.
         let start = self
@@ -115,17 +116,29 @@ impl<A: Allocator> RawOffsets<A> {
             return Self::verbatim_in(alloc);
         }
 
-        scan(
-            &mut OffsetSink::new(body.as_bytes(), alloc.clone()),
-            &mut rest,
-        )
-        .map_or_else(|_| Self::verbatim_in(alloc), |pieces| Self { pieces })
+        scan(OffsetSink::new(body.as_bytes(), alloc.clone()), &mut rest)
+            .map_or_else(|_| Self::verbatim_in(alloc), |pieces| Self { pieces })
     }
 
     pub(crate) fn verbatim_in(alloc: A) -> Self {
         Self {
             pieces: Box::new_in([], alloc),
         }
+    }
+
+    /// Derives raw offsets for a decoded JSON string.
+    ///
+    /// Skips rescanning `quoted` when `decoded` has the exact inner length of an unescaped string.
+    pub(crate) fn from_decoded_in(quoted: &str, decoded: &str, alloc: A) -> Self
+    where
+        A: Clone,
+    {
+        // Every JSON escape is strictly longer in source bytes than in decoded UTF-8 bytes.
+        if decoded.len() + 2 == quoted.len() {
+            return Self::verbatim_in(alloc);
+        }
+
+        Self::new_in(quoted, alloc)
     }
 
     /// Maps `offset` in the decoded string to an offset from the opening quote of the source.

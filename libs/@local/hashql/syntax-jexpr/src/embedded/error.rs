@@ -67,7 +67,7 @@ pub(crate) fn raw_error_range_in<A: Allocator>(
         return TextRange::up_to(TextSize::of(raw_quoted));
     }
 
-    let offsets = RawOffsets::new_in(raw_quoted, &alloc);
+    let offsets = RawOffsets::from_decoded_in(raw_quoted, decoded, &alloc);
     let offset = decoded_offset.min(decoded.len());
     let character = decoded[offset..].chars().next().map_or(0, char::len_utf8);
 
@@ -221,11 +221,11 @@ const TYPE_SYNTAX_NOTE: &str = "types support paths (`Int`, `List<T>`), tuples (
 pub(crate) fn invalid_expr_in<A: Allocator>(
     spans: &mut SpanTable<Span>,
     options: ParserOptions,
-    EmbeddedString {
+    &EmbeddedString {
         parent,
         raw_quoted,
-        decoded,
-    }: EmbeddedString<'_>,
+        ref decoded,
+    }: &EmbeddedString<'_>,
     error: (usize, ContextError),
     alloc: A,
 ) -> StringDiagnostic {
@@ -275,11 +275,11 @@ pub(crate) fn invalid_type_in<A: Allocator>(
     spans: &mut SpanTable<Span>,
     options: ParserOptions,
     key_span: Option<SpanId>,
-    EmbeddedString {
+    &EmbeddedString {
         parent,
         raw_quoted,
-        decoded,
-    }: EmbeddedString<'_>,
+        ref decoded,
+    }: &EmbeddedString<'_>,
     error: (usize, ContextError),
     alloc: A,
 ) -> StringDiagnostic {

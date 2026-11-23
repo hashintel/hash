@@ -28,12 +28,36 @@ impl fmt::Display for EscapeError {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum StringSyntaxError {
+    /// Unescaped ASCII control character (`0x00..=0x1F`).
+    Control,
+    Escape(EscapeError),
+    Eof,
+}
+
+impl From<EscapeError> for StringSyntaxError {
+    fn from(error: EscapeError) -> Self {
+        Self::Escape(error)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum StringError {
     /// Unescaped ASCII control character (`0x00..=0x1F`).
     Control,
     Escape(EscapeError),
     Eof,
     Utf8(Utf8Error),
+}
+
+impl From<StringSyntaxError> for StringError {
+    fn from(error: StringSyntaxError) -> Self {
+        match error {
+            StringSyntaxError::Control => Self::Control,
+            StringSyntaxError::Escape(escape) => Self::Escape(escape),
+            StringSyntaxError::Eof => Self::Eof,
+        }
+    }
 }
 
 impl From<Utf8Error> for StringError {
@@ -50,7 +74,7 @@ impl From<EscapeError> for StringError {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ValidatedStringError {
-    pub kind: StringError,
+    pub kind: StringSyntaxError,
     /// UTF-8 character-boundary byte range of the offending slice after the opening `"`.
     pub span: Range<usize>,
     /// Bytes consumed after the opening `"` through the recovery closing `"` or EOF.
@@ -83,22 +107,24 @@ pub(super) fn recover_to_closing_quote(mut rest: &str) -> &str {
 }
 
 #[cold]
-pub(super) fn compute_error_span(source: &str, end: usize, kind: StringError) -> Range<usize> {
+pub(super) fn compute_error_span(
+    source: &str,
+    end: usize,
+    kind: StringSyntaxError,
+) -> Range<usize> {
     let bytes = source.as_bytes();
     match kind {
-        StringError::Control if end > 0 => (end - 1)..end,
-        StringError::Escape(EscapeError::Kind(_)) if end >= 2 => {
+        StringSyntaxError::Control if end > 0 => (end - 1)..end,
+        StringSyntaxError::Escape(EscapeError::Kind(_)) if end >= 2 => {
             (end - 2)..source.ceil_char_boundary(end)
         }
-        StringError::Escape(EscapeError::HexDigit(_)) if end >= 1 => {
+        StringSyntaxError::Escape(EscapeError::HexDigit(_)) if end >= 1 => {
             source.floor_char_boundary(end - 1)..source.ceil_char_boundary(end)
         }
-        StringError::Escape(EscapeError::Surrogate(_) | EscapeError::ExpectedLowSurrogate)
-            if end >= 6 =>
-        {
-            (end - 6)..end
-        }
-        StringError::Escape(EscapeError::Eof) => {
+        StringSyntaxError::Escape(
+            EscapeError::Surrogate(_) | EscapeError::ExpectedLowSurrogate,
+        ) if end >= 6 => (end - 6)..end,
+        StringSyntaxError::Escape(EscapeError::Eof) => {
             let search_start = end.saturating_sub(6);
             let start = bytes[search_start..end]
                 .iter()
@@ -106,8 +132,8 @@ pub(super) fn compute_error_span(source: &str, end: usize, kind: StringError) ->
                 .map_or(end, |offset| search_start + offset);
             start..end
         }
-        StringError::Eof => end..end,
-        StringError::Control | StringError::Escape(_) | StringError::Utf8(_) => {
+        StringSyntaxError::Eof => end..end,
+        StringSyntaxError::Control | StringSyntaxError::Escape(_) => {
             let pos = source.ceil_char_boundary(end);
             pos..pos
         }

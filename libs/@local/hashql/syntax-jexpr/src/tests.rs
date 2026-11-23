@@ -695,6 +695,16 @@ fn escaped_string_spans() {
         span_text(source, &spans, call.labeled_arguments[0].label.span),
         r"\u0061b"
     );
+
+    // A single ASCII escape decodes to a borrowed static str. Offset mapping cannot treat every
+    // `Cow::Borrowed` as unescaped.
+    let source = r#""\u0061""#;
+    let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+    let expr = Parser::new(&heap, &mut spans, ParserOptions::default())
+        .parse_expr_in(source, Global)
+        .expect("single escaped identifier parses")
+        .value;
+    assert_eq!(span_text(source, &spans, expr.span), r"\u0061");
 }
 
 /// `open`, repeated `depth` times around `leaf` and closed by as many `close`.
@@ -1013,8 +1023,10 @@ fn value_grammar_type_annotation() {
         where
             A: Allocator + Clone,
         {
-            if parser.at(T!['{']) {
-                parser::object::parse_object(parser);
+            if let Some(open) = parser.peek()
+                && open.kind() == T!['{']
+            {
+                parser::object::parse_object(open);
             } else {
                 parser::recovery::recover_unexpected_item(parser);
             }

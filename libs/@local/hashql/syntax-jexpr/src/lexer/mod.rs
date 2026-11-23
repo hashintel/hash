@@ -9,13 +9,13 @@ pub(crate) mod string;
 
 pub(crate) use self::{
     number::{Number, ParseNumberError, ParseNumberErrorKind},
-    string::{LexedStr, RawOffsets, StringError, decode_quoted},
+    string::{LexedStr, RawOffsets, StringError, StringEscapes, StringSyntaxError, decode_quoted},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub(crate) enum LexError {
     String {
-        error: StringError,
+        error: StringSyntaxError,
         range: TextRange,
     },
     SingleQuotedString,
@@ -27,28 +27,20 @@ pub(crate) enum LexError {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum LexPayload<'source> {
+enum LexPayload {
     None,
-    String(LexedStr<'source>),
+    String(StringEscapes),
     Error(LexError),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct Token<'source> {
+pub(crate) struct Token {
     pub kind: SyntaxKind,
     pub range: TextRange,
-    payload: LexPayload<'source>,
+    payload: LexPayload,
 }
 
-impl<'source> Token<'source> {
-    #[inline]
-    pub(crate) fn decode_string(self) -> Option<Cow<'source, str>> {
-        match self.payload {
-            LexPayload::String(string) => Some(string.decode()),
-            LexPayload::None | LexPayload::Error(_) => None,
-        }
-    }
-
+impl Token {
     #[inline]
     pub(crate) const fn error(self) -> Option<LexError> {
         match self.payload {
@@ -60,9 +52,9 @@ impl<'source> Token<'source> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, logos::Logos)]
 #[logos(error = LexError)]
-enum LexToken<'source> {
+enum LexToken {
     #[token("\"", lex_string)]
-    String(LexedStr<'source>),
+    String(StringEscapes),
     #[regex(r"[0-9-]|\.[0-9]|\+[0-9]", lex_number)]
     Number,
     #[token("true")]
@@ -94,11 +86,11 @@ enum LexToken<'source> {
     InvalidToken,
 }
 
-impl<'source> LexToken<'source> {
+impl LexToken {
     #[inline]
-    const fn into_parts(self) -> (SyntaxKind, LexPayload<'source>) {
+    const fn into_parts(self) -> (SyntaxKind, LexPayload) {
         match self {
-            Self::String(string) => (SyntaxKind::String, LexPayload::String(string)),
+            Self::String(escapes) => (SyntaxKind::String, LexPayload::String(escapes)),
             Self::Number => (SyntaxKind::Number, LexPayload::None),
             Self::True => (SyntaxKind::True, LexPayload::None),
             Self::False => (SyntaxKind::False, LexPayload::None),
@@ -117,24 +109,26 @@ impl<'source> LexToken<'source> {
     }
 }
 
-fn lex_line_comment<'source>(lexer: &mut logos::Lexer<'source, LexToken<'source>>) {
+// Keep callback bodies out-of-line so logos's generated `_get_action` dispatcher stays small
+// enough to inline into each DFA state and constant-fold its leaf match.
+#[inline(never)]
+fn lex_line_comment(lexer: &mut logos::Lexer<'_, LexToken>) {
     let remainder = lexer.remainder().as_bytes();
     let len = memchr::memchr(b'\n', remainder).unwrap_or(remainder.len());
     lexer.bump(len);
 }
 
-fn lex_block_comment<'source>(
-    lexer: &mut logos::Lexer<'source, LexToken<'source>>,
-) -> Result<(), LexError> {
+#[inline(never)]
+fn lex_block_comment(lexer: &mut logos::Lexer<'_, LexToken>) -> Result<(), LexError> {
     let remainder = lexer.remainder().as_bytes();
-    let mut pos = 0;
-    while let Some(offset) = memchr::memchr(b'*', &remainder[pos..]) {
-        let star = pos + offset;
+    let mut position = 0;
+    while let Some(offset) = memchr::memchr(b'*', &remainder[position..]) {
+        let star = position + offset;
         if remainder.get(star + 1) == Some(&b'/') {
             lexer.bump(star + 2);
             return Ok(());
         }
-        pos = star + 1;
+        position = star + 1;
     }
 
     lexer.bump(remainder.len());
@@ -145,25 +139,37 @@ fn lex_block_comment<'source>(
     clippy::cast_possible_truncation,
     reason = "Lexer::new asserts source length fits in u32"
 )]
-#[inline]
-fn lex_string<'source>(
-    lexer: &mut logos::Lexer<'source, LexToken<'source>>,
-) -> Result<LexedStr<'source>, LexError> {
-    let start = lexer.span().start as u32;
+#[cold]
+#[inline(never)]
+fn lex_string_error(
+    lexer: &mut logos::Lexer<'_, LexToken>,
+    start: u32,
+    error: &string::ValidatedStringError,
+) -> LexError {
+    lexer.bump(error.consumed);
+    LexError::String {
+        error: error.kind,
+        range: TextRange::new(
+            TextSize::new(start + 1 + error.span.start as u32),
+            TextSize::new(start + 1 + error.span.end as u32),
+        ),
+    }
+}
+
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "Lexer::new asserts source length fits in u32"
+)]
+#[inline(never)]
+fn lex_string(lexer: &mut logos::Lexer<'_, LexToken>) -> Result<StringEscapes, LexError> {
     match LexedStr::new(lexer.remainder()) {
         Ok(string) => {
             lexer.bump(string.consumed());
-            Ok(string)
+            Ok(string.escapes())
         }
-        Err(err) => {
-            lexer.bump(err.consumed);
-            Err(LexError::String {
-                error: err.kind,
-                range: TextRange::new(
-                    TextSize::new(start + 1 + err.span.start as u32),
-                    TextSize::new(start + 1 + err.span.end as u32),
-                ),
-            })
+        Err(error) => {
+            let start = lexer.span().start as u32;
+            Err(lex_string_error(lexer, start, &error))
         }
     }
 }
@@ -172,10 +178,56 @@ fn lex_string<'source>(
     clippy::cast_possible_truncation,
     reason = "Lexer::new asserts source length fits in u32"
 )]
-#[inline]
-fn lex_number<'source>(
-    lexer: &mut logos::Lexer<'source, LexToken<'source>>,
-) -> Result<(), LexError> {
+#[cold]
+#[inline(never)]
+fn lex_number_suffix_error(
+    lexer: &mut logos::Lexer<'_, LexToken>,
+    start: usize,
+    len: usize,
+    already_consumed: usize,
+) -> LexError {
+    let slice = &lexer.source().as_bytes()[start..];
+    // A word directly after the number, as in `0x10`, is part of the same malformed token.
+    let suffix = slice[len..]
+        .iter()
+        .take_while(|byte| byte.is_ascii_alphanumeric() || **byte == b'_')
+        .count();
+    lexer.bump(len + suffix - already_consumed);
+
+    LexError::Number(ParseNumberError {
+        kind: ParseNumberErrorKind::UnexpectedSuffix,
+        range: TextRange::at(
+            TextSize::new((start + len) as u32),
+            TextSize::new(suffix as u32),
+        ),
+    })
+}
+
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "Lexer::new asserts source length fits in u32"
+)]
+#[cold]
+#[inline(never)]
+fn lex_number_error(
+    lexer: &mut logos::Lexer<'_, LexToken>,
+    start: usize,
+    already_consumed: usize,
+    mut error: ParseNumberError,
+) -> LexError {
+    let slice = &lexer.source().as_bytes()[start..];
+    error.range += TextSize::new(start as u32);
+    // Consume the malformed number run so recovery does not re-fail on its tail.
+    let extra = slice[already_consumed..]
+        .iter()
+        .take_while(|byte| matches!(byte, b'0'..=b'9' | b'.' | b'e' | b'E' | b'+' | b'-'))
+        .count();
+    lexer.bump(extra);
+    LexError::Number(error)
+}
+
+#[inline(never)]
+fn lex_number(lexer: &mut logos::Lexer<'_, LexToken>) -> Result<(), LexError> {
     let start = lexer.span().start;
     let already_consumed = lexer.span().len();
     let slice = &lexer.source().as_bytes()[start..];
@@ -183,51 +235,30 @@ fn lex_number<'source>(
         Ok(number) => {
             let len = number.as_str().len();
 
-            // A word directly after the number, as in `0x10`, is part of the same malformed
-            // token.
-            let suffix = slice[len..]
-                .iter()
-                .take_while(|byte| byte.is_ascii_alphanumeric() || **byte == b'_')
-                .count();
-            lexer.bump(len + suffix - already_consumed);
-
-            if suffix == 0 {
-                return Ok(());
+            if let Some(&next) = slice.get(len)
+                && (next.is_ascii_alphanumeric() || next == b'_')
+            {
+                return Err(lex_number_suffix_error(lexer, start, len, already_consumed));
             }
 
-            Err(LexError::Number(ParseNumberError {
-                kind: ParseNumberErrorKind::UnexpectedSuffix,
-                range: TextRange::at(
-                    TextSize::new((start + len) as u32),
-                    TextSize::new(suffix as u32),
-                ),
-            }))
+            if len > already_consumed {
+                lexer.bump(len - already_consumed);
+            }
+            Ok(())
         }
-        Err(mut error) => {
-            error.range += TextSize::new(start as u32);
-            // Consume the malformed number run so recovery does not re-fail on its tail.
-            let extra = slice[already_consumed..]
-                .iter()
-                .take_while(|byte| matches!(byte, b'0'..=b'9' | b'.' | b'e' | b'E' | b'+' | b'-'))
-                .count();
-            lexer.bump(extra);
-            Err(LexError::Number(error))
-        }
+        Err(error) => Err(lex_number_error(lexer, start, already_consumed, error)),
     }
 }
 
 // Consumes an entire bare ASCII word as one invalid token instead of failing per character.
-const fn lex_invalid_word<'source>(
-    _: &mut logos::Lexer<'source, LexToken<'source>>,
-) -> Result<(), LexError> {
+const fn lex_invalid_word(_: &mut logos::Lexer<'_, LexToken>) -> Result<(), LexError> {
     Err(LexError::InvalidWord)
 }
 
 // Consumes a single-line `'...'` string as one invalid token when a closing `'` exists on the same
 // line. An unmatched `'` falls back to an unrecognized character so later tokens stay intact.
-fn lex_single_quoted_string<'source>(
-    lexer: &mut logos::Lexer<'source, LexToken<'source>>,
-) -> Result<(), LexError> {
+#[inline(never)]
+fn lex_single_quoted_string(lexer: &mut logos::Lexer<'_, LexToken>) -> Result<(), LexError> {
     let remainder = lexer.remainder().as_bytes();
     let mut index = 0;
     while index < remainder.len() {
@@ -251,25 +282,8 @@ fn lex_single_quoted_string<'source>(
     Err(LexError::UnrecognizedCharacter)
 }
 
-#[derive(Debug, Copy, Clone)]
-enum TokenOrEof<'source> {
-    Token(Token<'source>),
-    Eof,
-}
-
-impl<'source> TokenOrEof<'source> {
-    #[inline]
-    const fn into_token(self) -> Option<Token<'source>> {
-        match self {
-            Self::Token(token) => Some(token),
-            Self::Eof => None,
-        }
-    }
-}
-
 pub(crate) struct Lexer<'source> {
-    inner: logos::Lexer<'source, LexToken<'source>>,
-    peek: Option<TokenOrEof<'source>>,
+    inner: logos::Lexer<'source, LexToken>,
 }
 
 impl<'source> Lexer<'source> {
@@ -287,7 +301,6 @@ impl<'source> Lexer<'source> {
 
         Self {
             inner: logos::Lexer::new(source),
-            peek: None,
         }
     }
 
@@ -310,15 +323,24 @@ impl<'source> Lexer<'source> {
     }
 
     #[expect(
+        clippy::string_slice,
+        reason = "valid string tokens begin and end with ASCII `\"`"
+    )]
+    #[inline]
+    pub(crate) fn decode_string(&self, token: Token) -> Option<Cow<'source, str>> {
+        match token.payload {
+            LexPayload::String(escapes) => Some(escapes.decode(&self.slice(token.range)[1..])),
+            LexPayload::None | LexPayload::Error(_) => None,
+        }
+    }
+
+    #[expect(
         clippy::cast_possible_truncation,
         reason = "constructor asserts source length fits in u32"
     )]
     #[inline]
-    fn consume(&mut self) -> TokenOrEof<'source> {
-        let Some(result) = self.inner.next() else {
-            return TokenOrEof::Eof;
-        };
-
+    pub(crate) fn next_token(&mut self) -> Option<Token> {
+        let result = self.inner.next()?;
         let span = self.inner.span();
         let range = TextRange::new(
             TextSize::new(span.start as u32),
@@ -329,7 +351,7 @@ impl<'source> Lexer<'source> {
             Ok(token) => {
                 let (kind, payload) = token.into_parts();
 
-                TokenOrEof::Token(Token {
+                Some(Token {
                     kind,
                     range,
                     payload,
@@ -345,7 +367,7 @@ impl<'source> Lexer<'source> {
                     | LexError::UnrecognizedCharacter => SyntaxKind::InvalidToken,
                 };
 
-                TokenOrEof::Token(Token {
+                Some(Token {
                     kind,
                     range,
                     payload: LexPayload::Error(error),
@@ -353,37 +375,20 @@ impl<'source> Lexer<'source> {
             }
         }
     }
-
-    #[inline]
-    pub(crate) fn next_token(&mut self) -> Option<Token<'source>> {
-        self.peek
-            .take()
-            .unwrap_or_else(|| self.consume())
-            .into_token()
-    }
-
-    #[inline]
-    pub(crate) fn peek_token(&mut self) -> Option<Token<'source>> {
-        if let Some(token) = self.peek {
-            return token.into_token();
-        }
-
-        let token = self.consume();
-        self.peek = Some(token);
-        token.into_token()
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use core::assert_matches;
+    use core::{assert_matches, mem};
 
     use text_size::{TextRange, TextSize};
 
-    use super::{LexError, Lexer, Token, number::ParseNumberErrorKind, string::StringError};
+    use super::{
+        LexError, LexToken, Lexer, StringSyntaxError, Token, number::ParseNumberErrorKind,
+    };
     use crate::syntax_kind::SyntaxKind;
 
-    fn lex_all(source: &str) -> Vec<Token<'_>> {
+    fn lex_all(source: &str) -> Vec<Token> {
         let mut lexer = Lexer::new(source);
         let mut tokens = Vec::new();
         while let Some(token) = lexer.next_token() {
@@ -392,7 +397,7 @@ mod tests {
         tokens
     }
 
-    fn lex_significant(source: &str) -> Vec<Token<'_>> {
+    fn lex_significant(source: &str) -> Vec<Token> {
         lex_all(source)
             .into_iter()
             .filter(|token| !token.kind.is_trivia())
@@ -450,7 +455,7 @@ mod tests {
         assert_matches!(
             tokens[3].error(),
             Some(LexError::String {
-                error: StringError::Escape(_),
+                error: StringSyntaxError::Escape(_),
                 ..
             })
         );
@@ -512,34 +517,15 @@ mod tests {
     }
 
     #[test]
-    fn peek_token_and_eof() {
-        let mut lexer = Lexer::new("{1}");
-        assert_eq!(
-            lexer.peek_token().map(|token| token.kind),
-            Some(SyntaxKind::LBrace)
+    fn token_layout_sizes() {
+        assert!(mem::size_of::<Option<Result<LexToken, LexError>>>() <= 16);
+        assert!(
+            mem::size_of::<Option<Token>>() <= 28,
+            "Option<Token> = {}, Token = {}, LexError = {}, LexToken = {}",
+            mem::size_of::<Option<Token>>(),
+            mem::size_of::<Token>(),
+            mem::size_of::<LexError>(),
+            mem::size_of::<LexToken>(),
         );
-        assert_eq!(
-            lexer.peek_token().map(|token| token.kind),
-            Some(SyntaxKind::LBrace)
-        );
-        assert_eq!(
-            lexer.next_token().map(|token| token.kind),
-            Some(SyntaxKind::LBrace)
-        );
-        assert_eq!(
-            lexer.next_token().map(|token| token.kind),
-            Some(SyntaxKind::Number)
-        );
-        assert_eq!(
-            lexer.peek_token().map(|token| token.kind),
-            Some(SyntaxKind::RBrace)
-        );
-        assert_eq!(
-            lexer.next_token().map(|token| token.kind),
-            Some(SyntaxKind::RBrace)
-        );
-        assert_eq!(lexer.peek_token(), None);
-        assert_eq!(lexer.peek_token(), None);
-        assert_eq!(lexer.next_token(), None);
     }
 }

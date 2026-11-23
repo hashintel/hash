@@ -3,9 +3,9 @@ use core::{alloc::Allocator, ops::ControlFlow};
 use text_size::TextRange;
 
 use super::{
-    Grammar, Parser,
+    Grammar, Parser, PeekToken,
     object::{self, OpenObject},
-    recovery::{self, Item},
+    recovery::{self, ObjectEntry},
 };
 use crate::{
     cst,
@@ -45,21 +45,23 @@ fn parse_labeled_arg_after_open<A>(
     let mut all_prefixed = true;
     let mut index = 0_usize;
 
-    while let ControlFlow::Continue(Item { separator }) =
+    while let ControlFlow::Continue(ObjectEntry { separator, mut key }) =
         recovery::next_object_entry(parser, open, index)
     {
         if let Some(comma) = separator {
             commas.push(comma);
         }
         index += 1;
-        parser.start_node(SyntaxKind::LabeledArgEntry);
-        let key = parser.bump(T![string]);
+        key.start_node(SyntaxKind::LabeledArgEntry);
+        let key_range = key.range();
+        let decoded = key.decode_string();
+        let parser = key.commit();
 
-        if let Some(decoded) = key.decode_string() {
+        if let Some(decoded) = decoded {
             if !decoded.starts_with(':') {
                 all_prefixed = false;
                 parser.error(
-                    key.range,
+                    key_range,
                     SyntaxErrorKind::Array(ArrayErrorKind::LabeledArgumentMissingPrefix {
                         actual: decoded.into_owned(),
                     }),
@@ -69,11 +71,11 @@ fn parse_labeled_arg_after_open<A>(
             all_prefixed = false;
         }
 
-        if let ControlFlow::Continue(_) = recovery::expect_colon(parser, key.range) {
+        if let ControlFlow::Continue(_) = recovery::expect_colon(parser, key_range) {
             parse_expr(parser);
         }
 
-        let entry_range = TextRange::new(key.range.start(), parser.last_token_end());
+        let entry_range = TextRange::new(key_range.start(), parser.last_token_end());
         entry_ranges.push(entry_range);
         parser.finish_node();
     }
@@ -126,7 +128,7 @@ fn parse_call_arg<A>(parser: &mut Parser<'_, ExprGrammar, A>)
 where
     A: Allocator + Clone,
 {
-    let Some(first) = parser.current() else {
+    let Some(first) = parser.peek() else {
         return;
     };
 
@@ -135,15 +137,13 @@ where
         && decoded.starts_with(':')
         && !decoded.starts_with("::")
     {
-        parser.start_node(SyntaxKind::ShorthandLabeledArg);
-        parser.bump(T![string]);
-        parser.finish_node();
+        first.commit_node(SyntaxKind::ShorthandLabeledArg);
         return;
     }
 
-    if first.kind == T!['{'] {
-        let opened = OpenObject::open(parser);
-        if let Some(second) = parser.current()
+    if first.kind() == T!['{'] {
+        let (opened, parser) = OpenObject::open(first);
+        if let Some(second) = parser.peek()
             && let Some(decoded) = second.decode_string()
             && decoded.starts_with(':')
         {
@@ -162,17 +162,18 @@ where
     parser.finish_node();
 }
 
-fn parse_call<A>(parser: &mut Parser<'_, ExprGrammar, A>)
+fn parse_call<A>(mut open: PeekToken<'_, '_, ExprGrammar, A>)
 where
     A: Allocator + Clone,
 {
-    parser.start_node(SyntaxKind::CallExpr);
-    let open = parser.bump(T!['[']).range;
+    open.start_node(SyntaxKind::CallExpr);
+    let open_range = open.range();
+    let parser = open.commit();
     let error_start = parser.error_count();
 
     let mut count = 0_usize;
-    while let ControlFlow::Continue(_) =
-        recovery::next_array_element(parser, open, count, ExprGrammar::ITEM_FIRST)
+    while recovery::next_array_element(parser, open_range, count, ExprGrammar::ITEM_FIRST)
+        .is_continue()
     {
         if count == 0 {
             parser.nested(parse_expr);
@@ -184,7 +185,7 @@ where
     }
 
     if count == 0 && parser.error_count() == error_start {
-        let range = TextRange::new(open.start(), parser.last_token_end());
+        let range = TextRange::new(open_range.start(), parser.last_token_end());
         parser.error(range, SyntaxErrorKind::Array(ArrayErrorKind::Empty));
     }
 
@@ -195,19 +196,18 @@ pub(crate) fn parse_expr<A>(parser: &mut Parser<'_, ExprGrammar, A>)
 where
     A: Allocator + Clone,
 {
-    let Some(token) = parser.current() else {
+    let Some(token) = parser.peek() else {
         parser.record_eof(ExprGrammar::ITEM_FIRST, EofContext::Document);
         return;
     };
 
-    if token.kind == T![string] {
-        parser.start_node(SyntaxKind::PathExpr);
-        parser.bump(T![string]);
-        parser.finish_node();
-    } else if token.kind == T!['['] {
-        parse_call(parser);
-    } else if token.kind == T!['{'] {
-        object::parse_object(parser);
+    let kind = token.kind();
+    if kind == T![string] {
+        token.commit_node(SyntaxKind::PathExpr);
+    } else if kind == T!['['] {
+        parse_call(token);
+    } else if kind == T!['{'] {
+        object::parse_object(token);
     } else {
         recovery::recover_unexpected_item(parser);
     }
