@@ -212,8 +212,9 @@ mod tests {
 
     #[test]
     fn anonymous_caller_names_no_actor_where_one_is_optional() {
-        assert!(
-            matches!(<Option<ActorId>>::anonymous(), Ok(None)),
+        assert_matches!(
+            <Option<ActorId>>::anonymous(),
+            Ok(None),
             "an optional caller should resolve anonymity to no actor"
         );
     }

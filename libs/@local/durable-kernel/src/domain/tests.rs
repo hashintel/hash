@@ -1,5 +1,6 @@
 use alloc::{collections::BTreeMap, rc::Rc, sync::Arc};
 use core::{
+    assert_matches,
     future::poll_fn,
     marker::PhantomData,
     num::{NonZeroU64, NonZeroUsize},
@@ -313,8 +314,9 @@ fn record_decode_borrowed_event() {
     let changed = serde_json::to_string(&changed).expect("changed record should serialize");
     let error = EventRecord::<BorrowedEvent<'_>>::decode_borrowed(changed.as_bytes())
         .expect_err("changing an event should invalidate its stored ID");
-    assert!(
-        matches!(error.current_context(), CompatError::EventIdMismatch { .. }),
+    assert_matches!(
+        error.current_context(),
+        CompatError::EventIdMismatch { .. },
         "borrowed event decoding should check the stored event ID: {error}"
     );
 }
@@ -449,8 +451,9 @@ fn snapshot_shard_decode() {
         let error = ProjectionSnapshot::<ToyDomain>::decode(&bytes)
             .err()
             .expect("an invalid shard should fail snapshot decoding");
-        assert!(
-            matches!(error.current_context(), CompatError::Decode { .. }),
+        assert_matches!(
+            error.current_context(),
+            CompatError::Decode { .. },
             "shard {invalid:?} should make the snapshot malformed: {error}"
         );
     }
@@ -765,8 +768,9 @@ fn prepare_dedupes_rejects_and_admits() {
     let error = Toy::prepare(&projection, &rejected)
         .err()
         .expect("validation should reject");
-    assert!(
-        matches!(error, FoldError::Rejected { rejection, .. } if matches!(rejection.current_context(), CounterRejection::ZeroIncrement))
+    assert_matches!(
+        error,
+        FoldError::Rejected { rejection, .. } if matches!(rejection.current_context(), CounterRejection::ZeroIncrement)
     );
 }
 
@@ -844,20 +848,20 @@ async fn propose_read_dedupe_and_reject_through_the_real_loop() {
     let location = local_location(shard, root.path());
 
     let (handle, started) = start(location).await;
-    assert!(matches!(
+    assert_matches!(
         handle
             .propose(record.clone())
             .await
             .expect("propose should succeed"),
         ShardCommandOutcome::Applied { .. }
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         handle
             .propose(record.clone())
             .await
             .expect("duplicate propose should succeed"),
         ShardCommandOutcome::AlreadyDurable { .. }
-    ));
+    );
     let totals = handle
         .read(|projection| projection.domain().totals.clone())
         .await
@@ -874,10 +878,7 @@ async fn propose_read_dedupe_and_reject_through_the_real_loop() {
     else {
         panic!("zero increment should return a domain rejection");
     };
-    assert!(matches!(
-        rejection.current_context(),
-        CounterRejection::ZeroIncrement
-    ));
+    assert_matches!(rejection.current_context(), CounterRejection::ZeroIncrement);
 
     started
         .owner
@@ -960,10 +961,10 @@ async fn shutdown_full_queue() {
                         ShardCommandErrorKind::Fenced
                     );
                 } else {
-                    assert!(matches!(
+                    assert_matches!(
                         outcome.expect("accepted proposal should finish"),
                         ShardCommandOutcome::Applied { .. }
-                    ));
+                    );
                 }
             }
             if let Some(shutdown) = shutdown {
@@ -1082,11 +1083,9 @@ async fn terminal_failure_reports() {
                 .kind,
             AppendFailureKind::Fenced
         );
-        assert!(
-            matches!(
-                failure.downcast_ref::<SimulatedFailure>(),
-                Some(SimulatedFailure::NewerWriterEpoch)
-            ),
+        assert_matches!(
+            failure.downcast_ref::<SimulatedFailure>(),
+            Some(SimulatedFailure::NewerWriterEpoch),
             "active proposal should retain the storage failure"
         );
 
@@ -1207,11 +1206,9 @@ async fn prepared_change_append_failure() {
         .propose(incremented("orders", 3))
         .await
         .expect("another event should apply before the retry");
-    assert!(
-        matches!(
-            handle.propose(retry).await.expect("retry should succeed"),
-            ShardCommandOutcome::Applied { .. }
-        ),
+    assert_matches!(
+        handle.propose(retry).await.expect("retry should succeed"),
+        ShardCommandOutcome::Applied { .. },
         "the failed event should apply on retry"
     );
     let live = handle
@@ -1278,13 +1275,13 @@ async fn crash_replay_rebuilds_state_and_still_dedupes() {
         reset.clone(),
         after_reset.clone(),
     ] {
-        assert!(matches!(
+        assert_matches!(
             handle
                 .propose(record)
                 .await
                 .expect("propose should succeed"),
             ShardCommandOutcome::Applied { .. }
-        ));
+        );
     }
     let totals = handle
         .read(|projection| projection.domain().totals.clone())
@@ -1318,23 +1315,21 @@ async fn crash_replay_rebuilds_state_and_still_dedupes() {
         .await
         .expect("read after recovery should succeed");
     assert_eq!(totals["orders"], 3);
-    assert!(
-        matches!(
-            handle
-                .propose(second)
-                .await
-                .expect("replayed duplicate should be acknowledged"),
-            ShardCommandOutcome::AlreadyDurable { .. }
-        ),
+    assert_matches!(
+        handle
+            .propose(second)
+            .await
+            .expect("replayed duplicate should be acknowledged"),
+        ShardCommandOutcome::AlreadyDurable { .. },
         "resubmitting a stored event after restart should leave state unchanged"
     );
-    assert!(matches!(
+    assert_matches!(
         handle
             .propose(incremented("orders", 2))
             .await
             .expect("fresh event after recovery should be accepted"),
         ShardCommandOutcome::Applied { .. }
-    ));
+    );
     let totals = handle
         .read(|projection| projection.domain().totals.clone())
         .await
@@ -1368,12 +1363,12 @@ async fn foreign_partition_is_rejected() {
         .propose(foreign)
         .await
         .expect("proposal should return its validation outcome");
-    assert!(matches!(
+    assert_matches!(
         error,
         ShardCommandOutcome::Rejected {
             rejection: FoldError::ForeignShard { .. }
         }
-    ));
+    );
     started
         .owner
         .shutdown()
@@ -1496,10 +1491,10 @@ fn registration_conflicting_event_type() {
     let error = registry
         .register_record::<EventRecord<OtherCounterEvent>>()
         .expect_err("another event type with the same name should be rejected");
-    assert!(matches!(
+    assert_matches!(
         error.current_context(),
         registry::DeclarationError::ConflictingDeclaration { .. }
-    ));
+    );
 
     let independent_registry = RecordRegistry::default();
     independent_registry
@@ -1548,9 +1543,10 @@ async fn snapshot_failure(
         .commit_snapshot(snapshot)
         .await
         .expect_err("injected snapshot failure should be returned");
-    assert!(
-        matches!(error.current_context(), ShardCommandError::AppendSnapshot { through_sequence, .. }
-            if *through_sequence == snapshot_through),
+    assert_matches!(
+        error.current_context(),
+        ShardCommandError::AppendSnapshot { through_sequence, .. }
+            if *through_sequence == snapshot_through,
         "snapshot append failure should identify the captured journal sequence"
     );
     (journal, started, error)
@@ -1571,14 +1567,14 @@ async fn snapshot_commit_unknown_continues() {
         );
         let next = incremented("orders", 7);
         let shard = next.partition().shard();
-        assert!(matches!(
+        assert_matches!(
             started
                 .handle
                 .propose(next)
                 .await
                 .expect("next event should apply"),
             ShardCommandOutcome::Applied { .. }
-        ));
+        );
         let totals = started
             .handle
             .read(|state| state.domain().totals.clone())
@@ -1703,14 +1699,12 @@ async fn snapshot_failed_attempt_interval() {
         error.current_context().kind(),
         ShardCommandErrorKind::InvalidCandidate
     );
-    assert!(
-        matches!(
-            error.downcast_ref::<CompatError>(),
-            Some(CompatError::TooLarge {
-                max_bytes: MAX_SNAPSHOT_BYTES,
-                ..
-            })
-        ),
+    assert_matches!(
+        error.downcast_ref::<CompatError>(),
+        Some(CompatError::TooLarge {
+            max_bytes: MAX_SNAPSHOT_BYTES,
+            ..
+        }),
         "snapshot failure should retain the size error"
     );
     assert!(

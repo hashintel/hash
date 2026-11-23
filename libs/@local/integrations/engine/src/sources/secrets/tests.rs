@@ -1,5 +1,8 @@
 use alloc::{borrow::Cow, sync::Arc};
-use core::sync::atomic::{AtomicUsize, Ordering};
+use core::{
+    assert_matches,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 use axum::{
     Json, Router,
@@ -312,8 +315,9 @@ async fn read_request_failure(#[case] service: SecretService) {
         )
         .await
         .expect_err("should report an unavailable service");
-    assert!(
-        matches!(error.current_context(), SourceError::SecretRequest { service: actual } if *actual == service),
+    assert_matches!(
+        error.current_context(),
+        SourceError::SecretRequest { service: actual } if *actual == service,
         "should identify the service whose request failed"
     );
     assert!(
@@ -376,14 +380,18 @@ async fn read_entity_count_and_value(#[case] count: usize) {
         .await
         .expect_err("should reject a missing or ambiguous entity or an empty credential");
     match count {
-        1 => assert!(
-            matches!(error.current_context(), SourceError::SecretValue),
+        1 => assert_matches!(
+            error.current_context(),
+            SourceError::SecretValue,
             "should identify an invalid credential value"
         ),
-        _ => assert!(
-            matches!(error.current_context(), SourceError::SecretEntityCount { count: actual } if *actual == count),
-            "should report how many secret entities were returned"
-        ),
+        _ => {
+            assert_matches!(
+                error.current_context(),
+                SourceError::SecretEntityCount { count: actual } if *actual == count,
+                "should report how many secret entities were returned"
+            );
+        }
     }
     assert_eq!(
         vault_reads.load(Ordering::SeqCst),
@@ -426,12 +434,10 @@ async fn response_http_status(#[case] service: SecretService, #[case] status: St
         !diagnostic.contains("sensitive-response-body"),
         "should omit the response body"
     );
-    assert!(
-        matches!(
-            error.current_context(),
-            SourceError::SecretStatus { service: actual, status: code }
-                if *actual == service && *code == status.as_u16()
-        ),
+    assert_matches!(
+        error.current_context(),
+        SourceError::SecretStatus { service: actual, status: code }
+            if *actual == service && *code == status.as_u16(),
         "should expose the service and status as structured context"
     );
 }
@@ -465,8 +471,9 @@ async fn response_schema_error(#[case] service: SecretService) {
         .err()
         .expect("should reject a response with the wrong schema");
     let diagnostic = format!("{error:?}");
-    assert!(
-        matches!(error.current_context(), SourceError::SecretResponse { service: actual } if *actual == service),
+    assert_matches!(
+        error.current_context(),
+        SourceError::SecretResponse { service: actual } if *actual == service,
         "should identify the service with an invalid response"
     );
     assert!(
@@ -502,13 +509,11 @@ fn vault_secret_object(#[case] object: &str, #[case] empty: Option<bool>) {
             );
         }
         (Err(error), None) => {
-            assert!(
-                matches!(
-                    error.current_context(),
-                    SourceError::SecretResponse {
-                        service: SecretService::Vault
-                    }
-                ),
+            assert_matches!(
+                error.current_context(),
+                SourceError::SecretResponse {
+                    service: SecretService::Vault
+                },
                 "should reject a secret that is not an object"
             );
             assert!(
@@ -543,13 +548,11 @@ async fn response_incomplete_json() {
         error.contains::<serde_json::Error>(),
         "should retain the underlying parser error"
     );
-    assert!(
-        matches!(
-            error.current_context(),
-            SourceError::SecretResponse {
-                service: SecretService::Graph
-            }
-        ),
+    assert_matches!(
+        error.current_context(),
+        SourceError::SecretResponse {
+            service: SecretService::Graph
+        },
         "should distinguish response decoding from request failures"
     );
     let diagnostic = format!("{error:?}");
@@ -631,8 +634,9 @@ async fn read_redirects(#[case] redirect_graph: bool) {
     } else {
         SecretService::Vault
     };
-    assert!(
-        matches!(error.current_context(), SourceError::SecretStatus { service, status: 307 } if *service == expected_service),
+    assert_matches!(
+        error.current_context(),
+        SourceError::SecretStatus { service, status: 307 } if *service == expected_service,
         "should classify a redirect as an unexpected service status"
     );
     assert!(
@@ -655,8 +659,9 @@ fn member_alias_of_another_users_secret() {
     let alias = entity(owner, id);
     let error = validate_entity(&alias, owner, member, id)
         .expect_err("should reject a Vault path owned by another user");
-    assert!(
-        matches!(error.current_context(), SourceError::SecretPath),
+    assert_matches!(
+        error.current_context(),
+        SourceError::SecretPath,
         "should identify the foreign Vault path"
     );
 }
@@ -682,8 +687,9 @@ fn entity_identity_expiry_and_path() {
     for invalid in [archived, foreign, wrong_type] {
         let error = validate_entity(&invalid, web, web, id)
             .expect_err("should reject an invalid secret identity");
-        assert!(
-            matches!(error.current_context(), SourceError::SecretEntity),
+        assert_matches!(
+            error.current_context(),
+            SourceError::SecretEntity,
             "should identify invalid secret entity metadata"
         );
     }
@@ -702,8 +708,9 @@ fn entity_identity_expiry_and_path() {
         invalid.properties = PropertyObject::new(properties);
         let error = validate_entity(&invalid, web, web, id)
             .expect_err("should reject an invalid Vault path");
-        assert!(
-            matches!(error.current_context(), SourceError::SecretPath),
+        assert_matches!(
+            error.current_context(),
+            SourceError::SecretPath,
             "should identify an invalid Vault path"
         );
     }
@@ -722,8 +729,9 @@ fn entity_identity_expiry_and_path() {
         invalid.properties = PropertyObject::new(properties);
         let error = validate_entity(&invalid, web, web, id)
             .expect_err("should reject missing or malformed expiry metadata");
-        assert!(
-            matches!(error.current_context(), SourceError::SecretExpiry),
+        assert_matches!(
+            error.current_context(),
+            SourceError::SecretExpiry,
             "should identify invalid expiry metadata"
         );
         assert!(
@@ -740,8 +748,9 @@ fn entity_identity_expiry_and_path() {
     expired.properties = PropertyObject::new(properties);
     let error =
         validate_entity(&expired, web, web, id).expect_err("should reject an expired secret");
-    assert!(
-        matches!(error.current_context(), SourceError::SecretExpired),
+    assert_matches!(
+        error.current_context(),
+        SourceError::SecretExpired,
         "should distinguish expiration from invalid expiry metadata"
     );
 }

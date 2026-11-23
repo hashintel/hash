@@ -206,6 +206,8 @@ impl Keyspace {
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches;
+
     use super::{InvalidNamespace, Keyspace, MAX_NAMESPACE_BYTES, Namespace};
     use crate::routing::Shard;
 
@@ -236,10 +238,10 @@ mod tests {
             Namespace::parse("x".repeat(MAX_NAMESPACE_BYTES)).is_ok(),
             "a namespace of exactly {MAX_NAMESPACE_BYTES} bytes should parse"
         );
-        assert!(matches!(
+        assert_matches!(
             Namespace::parse("x".repeat(MAX_NAMESPACE_BYTES + 1)),
             Err(InvalidNamespace::TooLong { .. })
-        ));
+        );
     }
 
     #[test]

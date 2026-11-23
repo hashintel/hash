@@ -512,8 +512,9 @@ fn simplify_struct() {
     // Simplifying a struct with a Never field should result in Never
     let result = never_struct.simplify(&mut simplify_env);
     let result_type = env.r#type(result);
-    assert!(
-        matches!(result_type.kind, TypeKind::Never),
+    assert_matches!(
+        result_type.kind,
+        TypeKind::Never,
         "Expected Never, got {:?}",
         result_type.kind
     );
