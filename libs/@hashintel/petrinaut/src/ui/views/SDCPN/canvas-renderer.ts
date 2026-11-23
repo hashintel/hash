@@ -6,7 +6,7 @@
  * renderer only turns its own hit testing and gestures into those calls.
  */
 
-import { createContext, use } from "react";
+import { requiredContext } from "../../../react/required-context";
 
 import type { CanvasViewport } from "../../../react/state/canvas-viewport-context";
 import type { CanvasPoint, CanvasScene } from "./canvas-scene";
@@ -41,20 +41,9 @@ export type CanvasController = {
   screenToScene: (point: CanvasPoint) => CanvasPoint;
 };
 
-export const CanvasControllerContext = createContext<CanvasController | null>(
-  null,
-);
-
 /** The controller of the renderer this component is rendered inside. */
-export const useCanvasController = (): CanvasController => {
-  const controller = use(CanvasControllerContext);
-  if (!controller) {
-    throw new Error(
-      "useCanvasController must be used inside a canvas renderer",
-    );
-  }
-  return controller;
-};
+export const [CanvasControllerContext, useCanvasController] =
+  requiredContext<CanvasController>("CanvasRenderer");
 
 type CanvasRendererProps = {
   scene: CanvasScene;

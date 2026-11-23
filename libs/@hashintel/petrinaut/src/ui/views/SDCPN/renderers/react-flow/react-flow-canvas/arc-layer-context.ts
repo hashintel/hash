@@ -1,4 +1,4 @@
-import { createContext, use } from "react";
+import { requiredContext } from "../../../../../../react/required-context";
 
 import type { CanvasScene } from "../../../canvas-scene";
 import type { CanvasInteractions } from "../../../use-canvas-interactions";
@@ -25,12 +25,5 @@ export type ArcLayerInput = { scene: CanvasScene; gestures: ArcLayerGestures };
  * edge and passes an edge nothing but its own props, so the scene reaches it
  * here: a new scene then renders the layer without a new edge object.
  */
-export const ArcLayerContext = createContext<ArcLayerInput | null>(null);
-
-export const useArcLayerInput = (): ArcLayerInput => {
-  const input = use(ArcLayerContext);
-  if (!input) {
-    throw new Error("The arc layer is drawn inside a canvas");
-  }
-  return input;
-};
+export const [ArcLayerContext, useArcLayerInput] =
+  requiredContext<ArcLayerInput>("ReactFlowCanvas");
