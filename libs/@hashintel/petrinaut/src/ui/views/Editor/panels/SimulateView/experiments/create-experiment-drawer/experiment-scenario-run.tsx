@@ -22,6 +22,7 @@ import { OverlayScrollArea } from "../../../../../../components/overlay-scroll-a
 import { Section } from "../../../../../../components/section";
 import { StackedSections } from "../../../../../../components/stacked-sections";
 import { scenarioExpressions } from "../../../../../shared/scenario-expressions";
+import { useScenarioRun } from "../../shared/use-scenario-run";
 import {
   scenarioRunInputs,
   seedRunVariables,
@@ -33,7 +34,6 @@ import type { ScenarioRunInput } from "./experiment-scenario-inputs";
 import type {
   AdHocScenarioState,
   AdHocSynthesisContext,
-  AdHocVariable,
   Scenario,
 } from "@hashintel/petrinaut-core";
 
@@ -86,31 +86,12 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
 }) => {
   const hirState = useScenarioHir(scenario, { adHocContext: context });
   const [computedOpen, setComputedOpen] = useState(false);
-  // `seededFrom` is the persisted scenario definition the variables came
-  // from, by content: saving an edit to it changes the content, so the
-  // drawer reseeds to the new definition. By content, not identity — the
-  // document hands out a fresh scenario object on every edit anywhere in
-  // the net, and reseeding on those remounted the form for unrelated edits.
-  // `seed` keys the form so a reseed (or scenario switch) remounts it,
-  // discarding an undo history from another definition.
-  const scenarioContent = JSON.stringify(scenario);
-  const [run, setRun] = useState<{
-    scenarioId: string;
-    seededFrom: string;
-    seed: number;
-    variables: AdHocVariable[];
-  } | null>(null);
-  if (run?.scenarioId !== scenario.id || run.seededFrom !== scenarioContent) {
-    setRun({
-      scenarioId: scenario.id,
-      seededFrom: scenarioContent,
-      seed: (run?.seed ?? 0) + 1,
-      variables: seedRunVariables(scenario, inputs),
-    });
-  }
+  const run = useScenarioRun(scenario, (seeded) =>
+    seedRunVariables(seeded, inputs),
+  );
 
   const onFormChange = (next: AdHocScenarioState) => {
-    setRun((current) => current && { ...current, variables: next.variables });
+    run?.setState(next.variables);
     const updates = scenarioRunInputs(next, scenario, context);
     if (updates.length > 0) {
       onInputsChange(updates);
@@ -122,7 +103,7 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
     : null;
 
   const renderState: AdHocScenarioState = {
-    variables: run?.variables ?? [],
+    variables: run?.state ?? [],
     netParameters: computed?.ready ? computed.netParameters : [],
     places: computed?.ready ? computed.places : {},
   };
@@ -134,7 +115,7 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
 
   return (
     <AdHocScenarioForm
-      key={`${run?.scenarioId}:${run?.seed}`}
+      key={run?.key}
       state={renderState}
       onChange={onFormChange}
       context={context}
