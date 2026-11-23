@@ -595,54 +595,27 @@ that example, on the net of 470 nodes, or on a net of component instances.
 
 ## The rules that hold the numbers
 
-Each rule is written, with the test that holds it, in the guide of its layer.
+Each rule is written, with the test that holds it, in its guide.
 
-- A component reads the part of the editor state it shows, so it renders when
-  that part changes: [Editor state](doc:react.state/editor-state).
-- A handler given to React Flow keeps its identity, and an unchanged node or
-  arc is the same object: [The canvas](doc:ui.views.canvas/canvas).
-- Hover and the drag preview stay in the canvas and reach no panel:
-  [The canvas](doc:ui.views.canvas/canvas).
-- A node or arc that comes under the pointer while a button is down is
-  hovered at the release, and one that the camera carries under it is hovered
-  when the camera stops: [The canvas](doc:ui.views.canvas/canvas).
-
-- No opacity goes on an element that every arc has: an arc fades by the
-  opacity of its stroke and of its arrowhead:
-  [The arc layer](doc:ui.views.canvas.react-flow/arc-layer).
-- No opacity goes on a node, or on an element inside one that draws more than
-  one thing: each thing a faded node draws is drawn by the alpha of its own
-  colour. No part of a node runs a transition at a change of focus. No rule
-  of the fade changes what an element hands down to the elements inside it,
-  and none ends in a class that every handle has:
-  [The fade of a node](doc:ui.views.canvas.react-flow/node-fade).
-- The opacity of a group of marks of an arc takes no transition:
-  [The arc layer](doc:ui.views.canvas.react-flow/arc-layer).
-- The arcs at rest are drawn together, an arc that draws the same is the same
-  shape, a playback frame renders no arc, and nothing an arc paints takes the
-  pointer: [The arc layer](doc:ui.views.canvas.react-flow/arc-layer).
-- No custom property is registered. With one registered anywhere in the
-  document, Chromium restyles the net of the highlight table in 480 to 850 ms
-  for a change of focus, where it takes 40 to 80 ms:
-  [The canvas](doc:ui.views.canvas/canvas).
-- A region that is mounted and not visible sits in a hidden `Activity` and
-  runs no effect. A closed panel is not mounted, and a panel mounts inside
-  its dock, never as a sibling of the canvas:
-  [The editor shell](doc:ui.views.editor/editor-shell).
-- An overlay mounts in the overlay host, and a box around the canvas clips
-  with `overflow: clip`: [The editor shell](doc:ui.views.editor/editor-shell).
-- A panel's size is a Motion value, so a resize renders no component:
-  [Panel geometry outside React state](doc:react.state/panel-sizes).
-- A split is a `ResizeGroup`, and a separator shows the resize cursor
-  itself, so no style rule is written for every element when the pointer
-  passes a panel's edge: [The editor shell](doc:ui.views.editor/editor-shell).
-- A value that changes on every frame is written on the element that uses it,
-  never as a custom property on an ancestor: the overlay scroll area writes
-  each thumb's size and place on the thumb.
-- A cell of the ad-hoc form reads its own part of what the form knows:
-  [The ad-hoc scenario form](doc:ui.adhoc-form/ad-hoc-form).
-- A pass over the transitions of a net indexes the places of the net once:
-  [Embedding in a host application](doc:core.handle/host-integration).
+| Rule                                                         | Measured in                                                                         | Guide                                                               |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| A component reads the part of the state it shows             | [What a gesture costs](#what-a-gesture-costs)                                       | [Editor state](doc:react.state/editor-state)                        |
+| React Flow gets stable handlers, nodes and arcs              | [What a gesture costs](#what-a-gesture-costs)                                       | [The canvas](doc:ui.views.canvas/canvas)                            |
+| Hover and the drag preview reach no panel                    | [What a gesture costs](#what-a-gesture-costs)                                       | [The canvas](doc:ui.views.canvas/canvas)                            |
+| Nothing is hovered under a pressed button or a moving camera | [A pan beside an arc](#a-pan-beside-an-arc)                                         | [The canvas](doc:ui.views.canvas/canvas)                            |
+| No custom property is registered                             | Its guide                                                                           | [The canvas](doc:ui.views.canvas/canvas)                            |
+| No opacity on an element every arc has                       | [A highlight on a net with many arcs](#a-highlight-on-a-net-with-many-arcs)         | [The arc layer](doc:ui.views.canvas.react-flow/arc-layer)           |
+| The arcs at rest are drawn together                          | [Arcs in one layer](#arcs-in-one-layer)                                             | [The arc layer](doc:ui.views.canvas.react-flow/arc-layer)           |
+| The marks of an arc change at once                           | [The marks of a read or an inhibitor arc](#the-marks-of-a-read-or-an-inhibitor-arc) | [The arc layer](doc:ui.views.canvas.react-flow/arc-layer)           |
+| No opacity on a node, and no transition on its parts         | [A highlight on a net with many nodes](#a-highlight-on-a-net-with-many-nodes)       | [The fade of a node](doc:ui.views.canvas.react-flow/node-fade)      |
+| A closed panel is not mounted, and mounts in its dock        | [Closed panels](#closed-panels)                                                     | [The editor shell](doc:ui.views.editor/editor-shell)                |
+| A hidden region sits in an `Activity`                        | [The Definitions view](#the-definitions-view)                                       | [The editor shell](doc:ui.views.editor/editor-shell)                |
+| An overlay mounts in the overlay host                        | [Panels and forms](#panels-and-forms)                                               | [The editor shell](doc:ui.views.editor/editor-shell)                |
+| A panel's size is a Motion value                             | [Panels and forms](#panels-and-forms)                                               | [Panel geometry outside React state](doc:react.state/panel-sizes)   |
+| A split is a `ResizeGroup`                                   | [Panels and forms](#panels-and-forms)                                               | [Panel geometry outside React state](doc:react.state/panel-sizes)   |
+| A value written per frame goes on the element that uses it   | [Panels and forms](#panels-and-forms)                                               | [Panel geometry outside React state](doc:react.state/panel-sizes)   |
+| A cell of the ad-hoc form reads its own part                 | [Panels and forms](#panels-and-forms)                                               | [The ad-hoc scenario form](doc:ui.adhoc-form/ad-hoc-form)           |
+| A pass over the transitions indexes the places once          | [A change of the document](#a-change-of-the-document)                               | [Embedding in a host application](doc:core.handle/host-integration) |
 
 ## Measure it
 

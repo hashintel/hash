@@ -49,7 +49,7 @@ A component and its private parts share a name: `x.tsx` is the entry, and the fo
 
 **No component is declared during render.** React treats a component created during render as a new type and remounts it with its state. The lint rule `react/static-components` reports it. A factory that runs at module scope, such as `createDeferredSubView`, may declare components.
 
-**A component reads the part of the state it draws.** `useEditorState` and `useUserSettings` take a selector, `useEditorFields` and `useUserSettingsFields` take field names, and `useEditorActions` returns functions that keep their identity. A component that reads a whole context renders for every change to it. [The editor shell](doc:ui.views.editor/editor-shell) names the benchmark that lists who renders.
+**A component reads the part of the state it draws.** `useEditorState` and `useUserSettings` take a selector, `useEditorFields` and `useUserSettingsFields` take field names, and `useEditorActions` returns functions that keep their identity. A component that reads a whole context renders for every change to it. `benchmarks/monaco-performance/panel-toggles.mjs details=1`, run from the package root, lists the components that render for each panel toggle.
 
 **The React Compiler memoizes.** A `useMemo`, `useCallback` or `memo` carries a comment that says what the compiler cannot cover, as on `PluginHost` and `EntityRow`. No lint rule checks the comment. The lint rules `react/refs` and `react/set-state-in-effect` keep render free of what the compiler refuses.
 
