@@ -1,14 +1,14 @@
 import {
   simulateDrawerToNavigationOverlay,
   simulateDrawerToNavigationResource,
-  type PetrinautNavigationState,
-} from "../../navigation/navigation";
+} from "../simulate-drawer-location";
 import {
   type createSelectionNavigator,
   selectionToNavigation,
   type Navigate,
 } from "./selection-navigator";
 
+import type { PetrinautNavigationState } from "../../navigation/navigation";
 import type { EditorActions, EditorState } from "../editor-context";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 

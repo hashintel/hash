@@ -4,10 +4,9 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   usePetrinautNavigate,
   usePetrinautNavigationState,
+  type SimulateViewMode,
 } from "../../../../../../../react/navigation/navigation";
 import { isSimulateFullscreen, panelSimulateView } from "./panel-navigation";
-
-import type { SimulateViewMode } from "../../../../../../../react/state/editor-context";
 
 const sectionLabels: Record<SimulateViewMode, string> = {
   scenarios: "Scenarios",

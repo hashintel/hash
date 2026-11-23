@@ -13,12 +13,12 @@ import {
   resolveNavigationUpdate,
 } from "./navigation";
 
-import type { SimulateViewMode } from "../state/editor-context";
 import type {
   PetrinautNavigationContextValue,
   PetrinautNavigationController,
   PetrinautNavigationState,
   PetrinautNavigationUpdater,
+  SimulateViewMode,
 } from "./navigation";
 
 type SimulationVisits = Partial<

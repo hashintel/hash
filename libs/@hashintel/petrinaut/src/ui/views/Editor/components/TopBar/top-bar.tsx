@@ -12,7 +12,6 @@ import { SidebarIcon } from "@hashintel/ds-icons";
 import { ActualModeContext } from "../../../../../react/actual-mode-context";
 import { NetManagementContext } from "../../../../../react/net-management-context";
 import {
-  type EditorGlobalMode,
   useEditorActions,
   useEditorFields,
 } from "../../../../../react/state/editor-context";
@@ -21,6 +20,8 @@ import { PluginToolbarItems } from "../../../../plugins/plugin-outlets";
 import { EditorMenu } from "./editor-menu";
 import { RunningExperimentsPopover } from "./running-experiments-popover";
 import { VersionHistoryButton } from "./version-history-button";
+
+import type { EditorGlobalMode } from "../../../../../react/navigation/navigation";
 
 const topBarStyle = css({
   display: "flex",

@@ -7,7 +7,7 @@ import {
   readOnlyReasonOf,
 } from "./use-read-only-reason";
 
-import type { EditorGlobalMode } from "./editor-context";
+import type { EditorGlobalMode } from "../navigation/navigation";
 
 /**
  * Works the read-only reason out once, for every reader of

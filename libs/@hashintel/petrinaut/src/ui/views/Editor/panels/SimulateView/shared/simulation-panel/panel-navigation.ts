@@ -1,5 +1,7 @@
-import type { PetrinautNavigationState } from "../../../../../../../react/navigation/navigation";
-import type { SimulateViewMode } from "../../../../../../../react/state/editor-context";
+import type {
+  PetrinautNavigationState,
+  SimulateViewMode,
+} from "../../../../../../../react/navigation/navigation";
 
 export const isSimulateFullscreen = (state: PetrinautNavigationState) =>
   state.mode === "simulate" && state.simulatePresentation === "fullscreen";

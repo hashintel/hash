@@ -67,7 +67,7 @@ export type {
   EditorGlobalMode,
   EditViewMode,
   SimulateViewMode,
-} from "./state/editor-context";
+} from "./navigation/navigation";
 export {
   NetManagementContext,
   type NetManagement,

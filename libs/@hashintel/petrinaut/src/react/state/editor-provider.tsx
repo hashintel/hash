@@ -1,10 +1,7 @@
 import { use, useEffect, useRef, useState } from "react";
 
 import { ActualModeContext } from "../actual-mode-context";
-import {
-  navigationResourceToSimulateDrawer,
-  usePetrinautNavigation,
-} from "../navigation/navigation";
+import { usePetrinautNavigation } from "../navigation/navigation";
 import { usePublished } from "../shared/select-from-context";
 import { useLatest } from "../shared/use-latest";
 import {
@@ -24,6 +21,7 @@ import {
 import { useResolvedLocation } from "./editor-provider/use-resolved-location";
 import { PanelPresenceProvider } from "./panel-presence-provider";
 import { ReadOnlyReasonProvider } from "./read-only-reason-provider";
+import { navigationResourceToSimulateDrawer } from "./simulate-drawer-location";
 import { useComposesOnly } from "./use-composes-only";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
 import { useUserSettingsFields } from "./user-settings-context";

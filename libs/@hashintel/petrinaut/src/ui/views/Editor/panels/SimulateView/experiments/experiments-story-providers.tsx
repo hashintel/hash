@@ -12,16 +12,18 @@ import { computeBackendOf } from "../../../../../../react/experiments/provider/c
 import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session/selection-draws";
 import {
   usePetrinautNavigate,
-  simulateDrawerToNavigationResource,
-  simulateDrawerToNavigationOverlay,
+  type SimulateViewMode,
 } from "../../../../../../react/navigation/navigation";
 import { useLatest } from "../../../../../../react/shared/use-latest";
 import {
   EditorContext,
   type EditorContextValue,
   type SimulateDrawerState,
-  type SimulateViewMode,
 } from "../../../../../../react/state/editor-context";
+import {
+  simulateDrawerToNavigationResource,
+  simulateDrawerToNavigationOverlay,
+} from "../../../../../../react/state/simulate-drawer-location";
 import {
   sirInfectedFrame,
   sirSdcpnContextValue,

@@ -7,13 +7,16 @@ import {
 } from "../shared/select-from-context";
 
 import type {
+  EditorGlobalMode,
+  EditViewMode,
+  SimulateViewMode,
+} from "../navigation/navigation";
+import type {
   ComponentReference,
   SelectionItem,
   SelectionMap,
 } from "@hashintel/petrinaut-core";
 
-export type EditorGlobalMode = "edit" | "simulate" | "actual";
-export type EditViewMode = "canvas" | "definitions";
 type EditorEditionMode =
   | "cursor"
   | "add-place"
@@ -39,8 +42,6 @@ export type TimelineChartType = "run" | "stacked";
 
 /** Beside the editor in a column of its own, or over it as a window. */
 export type AssistantPlacement = "docked" | "floating";
-
-export type SimulateViewMode = "scenarios" | "metrics" | "experiments";
 
 export type SimulateDrawerState =
   | { type: "closed" }

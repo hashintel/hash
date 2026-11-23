@@ -1,9 +1,9 @@
 import {
   useEditorActions,
   type SimulateDrawerState,
-  type SimulateViewMode,
 } from "../state/editor-context";
 
+import type { SimulateViewMode } from "../navigation/navigation";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 
 export type PetrinautRevealTarget =

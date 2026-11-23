@@ -9,11 +9,11 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   useEditorActions,
   useEditorState,
-  type SimulateViewMode,
 } from "../../../../../react/state/editor-context";
 import { ExperimentsView } from "./experiments/experiments-view";
 import { ScenariosView } from "./scenarios/scenarios-view";
 
+import type { SimulateViewMode } from "../../../../../react/navigation/navigation";
 import type { SegmentedControlItem } from "@hashintel/ds-components";
 
 const containerStyle = css({

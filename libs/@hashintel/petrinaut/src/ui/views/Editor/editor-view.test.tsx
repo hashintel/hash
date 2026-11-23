@@ -7,12 +7,15 @@ import {
   EditorContext,
   EditorModeContext,
   EditorPublishedContext,
-  type EditorGlobalMode,
-  type EditViewMode,
 } from "../../../react/state/editor-context";
 import { definePetrinautPlugin } from "../../plugins/define-petrinaut-plugin";
 import { renderPlugins } from "../../plugins/plugins-test-harness";
 import { EditorView } from "./editor-view";
+
+import type {
+  EditorGlobalMode,
+  EditViewMode,
+} from "../../../react/navigation/navigation";
 
 const lifecycle = vi.hoisted(() => ({
   mount: vi.fn(),

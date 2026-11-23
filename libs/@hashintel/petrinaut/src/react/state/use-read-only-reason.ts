@@ -1,10 +1,11 @@
 import { createContext, use } from "react";
 
 import { SimulationContext, type SimulationState } from "../simulation/context";
-import { EditorContext, type EditorGlobalMode } from "./editor-context";
+import { EditorContext } from "./editor-context";
 import { SDCPNContext } from "./sdcpn-context";
 import { simulateModeAllowedMutationNames } from "./simulate-mode-allowed-mutation-names";
 
+import type { EditorGlobalMode } from "../navigation/navigation";
 import type { PetrinautMutations } from "@hashintel/petrinaut-core";
 
 /**
