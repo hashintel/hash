@@ -35,16 +35,16 @@ import {
   normalizeSweepSelection,
   selectionMidpoint,
 } from "./parameter-grid";
-import { createThrottle } from "./shared/throttle";
-import { sweepCellSample } from "./sweep-cell-objective";
 import {
   sweepBatchSeed,
   sweepRangeDraws,
   sweepSelectionKey,
-} from "./sweep-session/selection-draws";
+} from "./shared/selection-draws";
+import { sweepCellSample } from "./sweep-cell-objective";
+import { createThrottle } from "./sweep-session/throttle";
 
 import type { ExperimentParameterAxis, SweepSelection } from "./parameter-grid";
-import type { SweepRunDraws } from "./sweep-session/selection-draws";
+import type { SweepRunDraws } from "./shared/selection-draws";
 import type {
   MonteCarloExperiment,
   MonteCarloUserDefinedMetricFrame,

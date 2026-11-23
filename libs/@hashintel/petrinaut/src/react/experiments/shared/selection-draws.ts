@@ -1,7 +1,7 @@
 import { deriveRunSeed } from "@hashintel/petrinaut-core";
 
-import { createCooperativeYielder } from "../cooperative-yield";
 import { axisValueAt, sweepRunFraction } from "../parameter-grid";
+import { createCooperativeYielder } from "./cooperative-yield";
 
 import type {
   ExperimentParameterAxis,

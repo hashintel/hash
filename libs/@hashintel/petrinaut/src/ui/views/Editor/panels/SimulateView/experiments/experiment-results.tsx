@@ -11,7 +11,7 @@ import {
   type SweepBatchStatus,
 } from "../../../../../../react/experiments/context";
 import { sweepPointFor } from "../../../../../../react/experiments/parameter-grid";
-import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session/selection-draws";
+import { sweepSelectionKey } from "../../../../../../react/experiments/shared/selection-draws";
 import {
   constraintAlpha,
   formatRate,

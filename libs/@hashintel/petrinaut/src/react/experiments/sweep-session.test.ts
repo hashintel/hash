@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { sweepBatchSeed } from "./shared/selection-draws";
 import { createSweepSession } from "./sweep-session";
-import { sweepBatchSeed } from "./sweep-session/selection-draws";
 
 import type { ExperimentParameterAxis, SweepSelection } from "./parameter-grid";
+import type { SweepRunDraws } from "./shared/selection-draws";
 import type {
   CreateSweepSessionOptions,
   SweepSessionUpdate,
 } from "./sweep-session";
-import type { SweepRunDraws } from "./sweep-session/selection-draws";
 import type {
   MonteCarloExperiment,
   MonteCarloExperimentEvent,

@@ -24,7 +24,7 @@ import {
   buildParameterAxis,
   pointSweepSelection,
 } from "../parameter-grid";
-import { sweepSelectionKey } from "../sweep-session/selection-draws";
+import { sweepSelectionKey } from "../shared/selection-draws";
 
 import type { LanguageClientContextValue } from "../../lsp/context";
 import type {
