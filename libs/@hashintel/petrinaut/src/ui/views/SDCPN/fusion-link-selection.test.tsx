@@ -15,6 +15,8 @@ import {
 import { PetrinautNavigationProvider } from "../../../react/navigation/navigation-provider";
 import { EditorContext } from "../../../react/state/editor-context";
 import { EditorProvider } from "../../../react/state/editor-provider";
+import { PanelPresenceProvider } from "../../../react/state/panel-presence-provider";
+import { ReadOnlyReasonProvider } from "../../../react/state/read-only-reason-provider";
 import { fusionLinks } from "./fusion-links";
 import { useCanvasInteractions } from "./use-canvas-interactions";
 
@@ -73,14 +75,21 @@ const Wrapper = ({ children }: { children: ReactNode }) => {
       >
         <NavigationHost>
           <EditorProvider>
-            <ActiveNetContext
-              value={{
-                ...activeNetContext,
-                activeNet: { ...activeNetContext.activeNet, fusions: [belt] },
-              }}
-            >
-              {children}
-            </ActiveNetContext>
+            <ReadOnlyReasonProvider>
+              <PanelPresenceProvider>
+                <ActiveNetContext
+                  value={{
+                    ...activeNetContext,
+                    activeNet: {
+                      ...activeNetContext.activeNet,
+                      fusions: [belt],
+                    },
+                  }}
+                >
+                  {children}
+                </ActiveNetContext>
+              </PanelPresenceProvider>
+            </ReadOnlyReasonProvider>
           </EditorProvider>
         </NavigationHost>
       </SDCPNContext>

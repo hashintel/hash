@@ -20,8 +20,6 @@ import {
   selectionFromNavigation,
 } from "./editor-provider/selection-navigator";
 import { useResolvedLocation } from "./editor-provider/use-resolved-location";
-import { PanelPresenceProvider } from "./panel-presence-provider";
-import { ReadOnlyReasonProvider } from "./read-only-reason-provider";
 import { navigationResourceToSimulateDrawer } from "./simulate-drawer-location";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
 import { useUserSettingsFields } from "./user-settings-context";
@@ -116,8 +114,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   };
   const published = usePublished(contextValue);
 
-  // The panels open, close, dock and float by this state. `PanelPresenceProvider`
-  // reads it and has Motion animate them.
   return (
     <EditorPublishedContext value={published}>
       <EditorContext value={contextValue}>
@@ -128,9 +124,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
               editViewMode: effectiveState.editViewMode,
             }}
           >
-            <ReadOnlyReasonProvider globalMode={effectiveState.globalMode}>
-              <PanelPresenceProvider>{children}</PanelPresenceProvider>
-            </ReadOnlyReasonProvider>
+            {children}
           </EditorModeContext>
         </EditorActionsContext>
       </EditorContext>

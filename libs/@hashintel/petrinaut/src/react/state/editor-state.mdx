@@ -88,7 +88,8 @@ Clicking a row of a list:
   context's, in the same frame, before paint. The read-only reason must
   refuse a layout effect that edits the document in the commit that changes
   the mode. That is why it has a context of its own, and why
-  `EditorProvider` passes the mode to `ReadOnlyReasonProvider` as a prop.
+  `ReadOnlyReasonProvider` reads the mode with `useEditorMode`, from the
+  context that `EditorProvider` changes with the mode.
 - `useIsReadOnly` is `useReadOnlyReason() !== null`, so it answers true for
   every edit in Simulate mode. `mutationBlockedBy`, which
   `usePetrinautMutations` applies, makes the exceptions. For every reason

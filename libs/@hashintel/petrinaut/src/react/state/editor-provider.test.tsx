@@ -34,6 +34,8 @@ import {
   type EditorContextValue,
 } from "./editor-context";
 import { EditorProvider } from "./editor-provider";
+import { PanelPresenceProvider } from "./panel-presence-provider";
+import { ReadOnlyReasonProvider } from "./read-only-reason-provider";
 import { useIsReadOnly } from "./use-is-read-only";
 import { useSelectionCleanup } from "./use-selection-cleanup";
 
@@ -166,15 +168,20 @@ describe("EditorProvider readers of one part", () => {
       <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
         <TestHost recorded={[]}>
           <EditorProvider>
-            <ModeReader />
-            <FieldsReader />
-            <ReadOnlyReader />
-            <WholeReader />
-            <EditorContextGrabber
-              onContextValue={(value) => {
-                editor = value;
-              }}
-            />
+            {/* As `PetrinautCanvasProvider` mounts them below the editor state. */}
+            <ReadOnlyReasonProvider>
+              <PanelPresenceProvider>
+                <ModeReader />
+                <FieldsReader />
+                <ReadOnlyReader />
+                <WholeReader />
+                <EditorContextGrabber
+                  onContextValue={(value) => {
+                    editor = value;
+                  }}
+                />
+              </PanelPresenceProvider>
+            </ReadOnlyReasonProvider>
           </EditorProvider>
         </TestHost>
       </SDCPNContext>,

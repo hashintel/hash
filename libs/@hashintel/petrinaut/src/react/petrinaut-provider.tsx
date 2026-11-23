@@ -1,16 +1,10 @@
-import { ExperimentHostProvider } from "./experiment-host/provider";
-import { ExperimentsProvider } from "./experiments/provider";
-import { LanguageClientProvider } from "./lsp/provider";
 import { type PetrinautNavigationController } from "./navigation/navigation";
 import { PetrinautNavigationProvider } from "./navigation/navigation-provider";
-import { NotificationsProvider } from "./notifications/provider";
-import { OptimizationsProvider } from "./optimizations/provider";
 import {
   PetrinautCanvasProvider,
   PetrinautDocumentProvider,
+  PetrinautRuntimeProvider,
 } from "./petrinaut-provider-layers";
-import { SimulationProvider } from "./simulation/provider";
-import { SimulatorsProvider } from "./simulators/provider";
 
 import type { NetManagement } from "./host/net-management-context";
 import type {
@@ -86,28 +80,14 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
         controller={navigation}
         key={instance.handle.id}
       >
-        <LanguageClientProvider workerFactory={lspWorkerFactory}>
-          <NotificationsProvider>
-            <SimulatorsProvider
-              runWorkerFactory={eventSimulationWorkerFactory}
-              experimentWorkerFactory={monteCarloWorkerFactory}
-              registrations={simulators}
-            >
-              {/* The editor's Quick Simulation runs on a registered simulator. */}
-              <SimulationProvider>
-                <ExperimentsProvider>
-                  <OptimizationsProvider>
-                    <ExperimentHostProvider>
-                      <PetrinautCanvasProvider>
-                        {children}
-                      </PetrinautCanvasProvider>
-                    </ExperimentHostProvider>
-                  </OptimizationsProvider>
-                </ExperimentsProvider>
-              </SimulationProvider>
-            </SimulatorsProvider>
-          </NotificationsProvider>
-        </LanguageClientProvider>
+        <PetrinautRuntimeProvider
+          lspWorkerFactory={lspWorkerFactory}
+          eventSimulationWorkerFactory={eventSimulationWorkerFactory}
+          monteCarloWorkerFactory={monteCarloWorkerFactory}
+          simulators={simulators}
+        >
+          <PetrinautCanvasProvider>{children}</PetrinautCanvasProvider>
+        </PetrinautRuntimeProvider>
       </PetrinautNavigationProvider>
     </PetrinautDocumentProvider>
   );

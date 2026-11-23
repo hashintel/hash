@@ -8,17 +8,32 @@ import { UndoRedoContext } from "./document/undo-redo-context";
 import { useHandleHistoryAsUndoRedo } from "./document/use-handle-history-as-undo-redo";
 import { EventPlaybackProvider } from "./event-playback/provider";
 import { ExecutionFrameProvider } from "./execution-frame/provider";
+import { ExperimentHostProvider } from "./experiment-host/provider";
+import { ExperimentsProvider } from "./experiments/provider";
 import {
   NetManagementContext,
   type NetManagement,
 } from "./host/net-management-context";
 import { ReadOnlyActionContext } from "./host/read-only-action-context";
+import { LanguageClientProvider } from "./lsp/provider";
+import { NotificationsProvider } from "./notifications/provider";
+import { OptimizationsProvider } from "./optimizations/provider";
+import { SimulationProvider } from "./simulation/provider";
+import { SimulatorsProvider } from "./simulators/provider";
 import { CanvasViewportProvider } from "./state/canvas-viewport-provider";
 import { EditorProvider } from "./state/editor-provider";
+import { PanelPresenceProvider } from "./state/panel-presence-provider";
 import { PanelSizesProvider } from "./state/panel-sizes-provider";
+import { ReadOnlyReasonProvider } from "./state/read-only-reason-provider";
 import { UserSettingsProvider } from "./state/user-settings-provider";
 
-import type { Petrinaut, PlaybackSpeed } from "@hashintel/petrinaut-core";
+import type {
+  LspWorkerFactory,
+  Petrinaut,
+  PlaybackSpeed,
+  SimulatorRegistration,
+  WorkerFactory,
+} from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
 
 export type PetrinautDocumentProviderProps = {
@@ -58,6 +73,50 @@ export const PetrinautDocumentProvider: React.FC<
   );
 };
 
+export type PetrinautRuntimeProviderProps = {
+  children: ReactNode;
+  lspWorkerFactory?: LspWorkerFactory;
+  eventSimulationWorkerFactory?: WorkerFactory;
+  monteCarloWorkerFactory?: WorkerFactory;
+  simulators?: readonly SimulatorRegistration[];
+};
+
+/**
+ * The providers that start a worker or keep a run: the language client, the
+ * notices, the simulators, the Quick Simulation, the experiments, the
+ * optimizations and the experiment host. Each reads the document and the
+ * location above it, and the providers before it in this order. The Preview
+ * mounts three of them itself, and only when it plays a run.
+ */
+export const PetrinautRuntimeProvider: React.FC<
+  PetrinautRuntimeProviderProps
+> = ({
+  children,
+  lspWorkerFactory,
+  eventSimulationWorkerFactory,
+  monteCarloWorkerFactory,
+  simulators,
+}) => (
+  <LanguageClientProvider workerFactory={lspWorkerFactory}>
+    <NotificationsProvider>
+      <SimulatorsProvider
+        runWorkerFactory={eventSimulationWorkerFactory}
+        experimentWorkerFactory={monteCarloWorkerFactory}
+        registrations={simulators}
+      >
+        {/* The editor's Quick Simulation runs on a registered simulator. */}
+        <SimulationProvider>
+          <ExperimentsProvider>
+            <OptimizationsProvider>
+              <ExperimentHostProvider>{children}</ExperimentHostProvider>
+            </OptimizationsProvider>
+          </ExperimentsProvider>
+        </SimulationProvider>
+      </SimulatorsProvider>
+    </NotificationsProvider>
+  </LanguageClientProvider>
+);
+
 export type PetrinautCanvasProviderProps = {
   children: ReactNode;
   initialPlaybackSpeed?: PlaybackSpeed;
@@ -80,7 +139,13 @@ export const PetrinautCanvasProvider: React.FC<
       <ActiveNetProvider>
         <PanelSizesProvider>
           <EditorProvider>
-            <ExecutionFrameProvider>{children}</ExecutionFrameProvider>
+            {/* Reads the mode in the commit that changes it, so it sits directly below the editor state. */}
+            <ReadOnlyReasonProvider>
+              {/* The panels open, close, dock and float by the editor state. This reads it and has Motion animate them. */}
+              <PanelPresenceProvider>
+                <ExecutionFrameProvider>{children}</ExecutionFrameProvider>
+              </PanelPresenceProvider>
+            </ReadOnlyReasonProvider>
           </EditorProvider>
         </PanelSizesProvider>
       </ActiveNetProvider>
