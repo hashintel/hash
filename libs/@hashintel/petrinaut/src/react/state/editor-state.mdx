@@ -67,8 +67,7 @@ Clicking a row of a list:
   `use(EditorContext)`.** A panel that opens, a selection and a tool change
   are all changes of that context, and `use` renders its reader for each.
   Held by `editor-provider.test.tsx` for the hooks. No lint rule refuses the
-  `use` call, and `ui/monaco/code-navigation.tsx` makes it to take
-  `selectItem`.
+  `use` call.
 - **Actions come from `useEditorActions`, one object for the editor's
   life.** An action reads what it needs when it is called, so a handler built
   from one keeps its identity and its reader renders for no change of state.
