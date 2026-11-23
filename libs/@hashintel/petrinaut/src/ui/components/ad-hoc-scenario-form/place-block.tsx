@@ -197,37 +197,12 @@ interface ColouredPlaceBlockProps {
   state: AdHocColouredPlace;
 }
 
-/**
- * The expanded body of a coloured place — split out so a collapsed place
- * mounts none of it.
- */
-const PlaceBlockContents: React.FC<ColouredPlaceBlockProps> = ({
+const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   place,
   colour,
   state,
 }) => {
-  const { mode } = useAdHocForm();
-  return (
-    <>
-      {/* Run mode shows no auxiliary Variables — they are the saved
-          definition's internals, not something a run adjusts. */}
-      {mode === "run" ? null : (
-        <VariableRows
-          scopeLabel={`Variables of ${place.name}`}
-          placeId={place.id}
-        />
-      )}
-      <TokenTable place={place} colour={colour} state={state} />
-    </>
-  );
-};
-
-export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
-  place,
-  colour,
-  state,
-}) => {
-  const { dense } = useAdHocForm();
+  const { dense, mode } = useAdHocForm();
   // The dense embedding (quick simulation) starts places collapsed: the
   // panel reads as an overview, one line per place.
   const [collapsed, setCollapsed] = useState(dense);
@@ -295,7 +270,17 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
       >
         <div className={collapseInnerStyle} inert={collapsed}>
           {everExpanded ? (
-            <PlaceBlockContents place={place} colour={colour} state={state} />
+            <>
+              {/* Run mode shows no auxiliary Variables — they are the saved
+                  definition's internals, not something a run adjusts. */}
+              {mode === "run" ? null : (
+                <VariableRows
+                  scopeLabel={`Variables of ${place.name}`}
+                  placeId={place.id}
+                />
+              )}
+              <TokenTable place={place} colour={colour} state={state} />
+            </>
           ) : null}
         </div>
       </div>
@@ -308,7 +293,7 @@ interface UncolouredPlaceBlockProps {
   state: AdHocUncolouredPlace;
 }
 
-export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
+const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
   place,
   state,
 }) => {
