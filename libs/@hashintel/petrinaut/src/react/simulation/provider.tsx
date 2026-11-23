@@ -16,7 +16,6 @@ import {
   deriveDefaultParameterValues,
   type AdHocScenarioState,
   type EventSimulation,
-  type ReadableStore,
   type SimulationRequestBase,
   type SimulationState as CoreSimulationState,
   type CompiledScenarioResult,
@@ -37,14 +36,13 @@ import {
 } from "../simulators/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useExecutableDefinition } from "../state/use-executable-definition";
-import { constantStore, selectStore, useStore } from "../use-store";
+import { constantStore, useStore } from "../use-store";
 import {
   type InitialMarking,
   type PlaybackSource,
   type StochasticRun,
   SimulationContext,
   type SimulationContextValue,
-  type SimulationFrameReader,
   type SimulationState,
 } from "./context";
 import {
@@ -128,8 +126,6 @@ const disposeHandles = (
  */
 const maxTimeIn = (mode: SimulationMode, maxTime: number | null) =>
   maxTime ?? (mode === "stochastic" ? DEFAULT_STOCHASTIC_MAX_TIME : null);
-
-const ZERO_FRAMES_STORE = constantStore(0);
 
 const EMPTY_STATUS_STORE = constantStore<CoreSimulationState>("Initializing");
 
@@ -758,24 +754,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     configure(true, () => ({ parameterValues }));
   };
 
-  const getFramesInRange: SimulationContextValue["getFramesInRange"] = (
-    startIndex: number,
-    endIndex?: number,
-  ) => {
-    const simulation = eventSimulationRef.current;
-    const total = simulation?.trace.get().eventCount ?? 0;
-    const start = Math.max(0, startIndex);
-    const end = endIndex === undefined ? total : Math.min(endIndex, total);
-    const slice: SimulationFrameReader[] = [];
-    for (let i = start; i < end; i++) {
-      const frame = simulation?.getEventState(i);
-      if (frame) {
-        slice.push(frame);
-      }
-    }
-    return Promise.resolve(slice);
-  };
-
   const simulationState =
     eventSimulation || stochastic ? simulationStateOf[coreStatus] : "NotRun";
   // The run's own stores, so the source holds still for as long as the run.
@@ -786,11 +764,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         demand: eventSimulation.demand,
       }
     : (stochastic?.playbackSource ?? null);
-  // The frame count is handed out as a store, so this provider and the
-  // consumers of its context are not rendered on every batch the worker posts.
-  const totalFramesStore: ReadableStore<number> = eventSimulation
-    ? selectStore(eventSimulation.trace, (summary) => summary.eventCount)
-    : ZERO_FRAMES_STORE;
   useEffect(() => {
     if (
       shouldNormalizeScenarioSelection({
@@ -847,7 +820,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     adHocScenario: stateValues.adHocScenario,
     adHocNetParameters,
     maxTime: maxTimeIn(mode, stateValues.maxTime),
-    totalFramesStore,
     mode,
     clock,
     continuity,
@@ -856,7 +828,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     stochasticRun: stochastic?.run ?? null,
     playbackSource,
     eventSimulation,
-    getFramesInRange: useStableCallback(getFramesInRange),
     setSelectedScenarioId: useStableCallback(setSelectedScenarioId),
     setAdHocScenario: useStableCallback(setAdHocScenario),
     setScenarioParameterValue: useStableCallback(setScenarioParameterValue),

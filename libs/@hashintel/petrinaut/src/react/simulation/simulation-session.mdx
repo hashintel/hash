@@ -27,15 +27,15 @@ mounted below `SimulatorsProvider`, and above `EventPlaybackProvider` and
 | Start, pause or rewind            | `play`, `pause` and `stop` of `EventPlaybackContext`, which call `initialize`, `run` and `pause` of `SimulationContext`                                                                            |
 | Discard the run                   | `reset` of `SimulationContext`                                                                                                                                                                     |
 | Change what the next run computes | `setInitialMarking`, `setParameterValue`, `setMode`, `setRuns`, `setMaxTime`, `selectSimulator`, `setSimulatorParameter`, `setSelectedScenarioId`, `setAdHocScenario`, `setScenarioParameterValue` |
-| Show where it stands              | `state`, `error`; `totalFramesStore` for a run                                                                                                                                                     |
+| Show where it stands              | `state`, `error`; `eventCount` of `EventPlaybackContext` for a run                                                                                                                                 |
 | Show the state of a run at a time | `currentFrameReader` of `ExecutionFrameSourceContext`                                                                                                                                              |
 | Show the metrics of an experiment | `stochasticRun.reader`                                                                                                                                                                             |
 | Show the viewed time              | `useEventPlaybackFrame`                                                                                                                                                                            |
 
-A frame is the state one event of a run recorded, and `totalFramesStore`
-counts them. The viewed frame is the state at the viewed time, which a
-`SimulationFrameReader` gives: `getPlaceTokenCount` and `getPlaceTokens` for
-a place, `getTransitionState` for a transition.
+A frame is the state one event of a run recorded, and `totalFrames` of
+`ExecutionFrameSourceContext` counts them. The viewed frame is the state at
+the viewed time, which a `SimulationFrameReader` gives: `getPlaceTokenCount`
+and `getPlaceTokens` for a place, `getTransitionState` for a transition.
 
 `clock` says what a position counts: simulated seconds, or steps for an
 untimed net. The location owns the selected scenario, so
@@ -67,7 +67,7 @@ Pressing Play with nothing started:
 
 Stochastic mode differs from step 5 on. The experiment computes freely, and
 its `demand` does nothing. It has no frames: `currentFrameReader` is null,
-`totalFramesStore` stays at zero, and a view reads the metrics by time from
+`totalFrames` stays at zero, and a view reads the metrics by time from
 `stochasticRun.reader`.
 
 In Actual mode the host supplies a stream of firings through
@@ -103,10 +103,9 @@ created in the Simulate view never passes through this provider:
   playing. Read either in the component that shows the time or the state at
   it.
 - `SimulationContext` does not change when the event count or the viewed
-  time does. Subscribe to `totalFramesStore` or `playbackStore` with
-  `useStore`. `EventPlaybackContext` carries `eventCount` and `coveredTime`
-  as numbers, so its value changes on every batch of events the worker
-  posts.
+  time does. Subscribe to `playbackStore` with `useStore`.
+  `EventPlaybackContext` carries `eventCount` and `coveredTime` as numbers,
+  so its value changes on every batch of events the worker posts.
 - `initialize` resolves `false` when a change of configuration overtook the
   start, and the caller then has nothing to play. It rejects when the
   simulator refuses the request or the net does not compile, and puts the

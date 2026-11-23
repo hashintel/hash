@@ -3,9 +3,9 @@ import { use } from "react";
 import { EventPlaybackContext } from "../event-playback/context";
 import { useEventPlaybackFrame } from "../event-playback/use-event-playback-frame";
 import { SimulationContext } from "../simulation/context";
-import { useStore } from "../use-store";
 
 import type { ExecutionFrameSource } from "./context";
+import type { SimulationFrameReader } from "@hashintel/petrinaut-core";
 
 /**
  * Adapter exposing a run's playback as an {@link ExecutionFrameSource}.
@@ -16,15 +16,29 @@ import type { ExecutionFrameSource } from "./context";
  * event's time.
  */
 export const useEventExecutionFrameSource = (): ExecutionFrameSource => {
-  const { eventSimulation, getFramesInRange, totalFramesStore } =
-    use(SimulationContext);
-  const totalFrames = useStore(totalFramesStore);
-  const { setTime } = use(EventPlaybackContext);
+  const { eventSimulation } = use(SimulationContext);
+  const { setTime, eventCount } = use(EventPlaybackContext);
   const { currentEventIndex, currentFrameReader } = useEventPlaybackFrame();
+
+  // One function per run, so a reader that restarts on a new function does
+  // not restart on each frame of playback.
+  const getFramesInRange = (startIndex: number, endIndex?: number) => {
+    const frames: SimulationFrameReader[] = [];
+    const total = eventSimulation?.trace.get().eventCount ?? 0;
+    const end = endIndex === undefined ? total : Math.min(endIndex, total);
+    for (let i = Math.max(0, startIndex); i < end; i++) {
+      const frame = eventSimulation?.getEventState(i);
+      if (frame) {
+        frames.push(frame);
+      }
+    }
+    return Promise.resolve(frames);
+  };
 
   return {
     sourceId: `event-trace:${eventSimulation === null ? "none" : "run"}`,
-    totalFrames,
+    // In Stochastic mode, playback counts the experiment's samples instead.
+    totalFrames: eventSimulation === null ? 0 : eventCount,
     currentFrameIndex: Math.max(0, currentEventIndex),
     currentFrameReader,
     currentViewedFrame: currentFrameReader?.toFrameState() ?? null,

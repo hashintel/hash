@@ -19,8 +19,6 @@ import {
   type ReadableStore,
 } from "@hashintel/petrinaut-core";
 
-import { constantStore } from "../use-store";
-
 import type { SimulationMode, SimulatorSelection } from "../simulators/context";
 
 // The frame and marking types of the context's own fields, for its consumers.
@@ -101,12 +99,6 @@ export type SimulationContextValue = {
    */
   maxTime: number | null;
   /**
-   * Events the run has recorded so far, the initial state included. A store
-   * rather than a number, so the context value holds still while a run
-   * streams and only what shows the count renders on each batch.
-   */
-  totalFramesStore: ReadableStore<number>;
-  /**
    * What Play computes: one run, or many. Changing it discards the current
    * run.
    */
@@ -143,16 +135,6 @@ export type SimulationContextValue = {
    * reads its trace through it.
    */
   eventSimulation: EventSimulation | null;
-
-  /**
-   * The frames from `startIndex` (inclusive) to `endIndex` (exclusive), or
-   * to the last one when `endIndex` is left out. A frame is the state an
-   * event of the run recorded, read from the trace the host already holds.
-   */
-  getFramesInRange: (
-    startIndex: number,
-    endIndex?: number,
-  ) => Promise<SimulationFrameReader[]>;
 
   selectedScenarioId: string | null;
   /**
@@ -241,7 +223,6 @@ export const DEFAULT_SIMULATION_CONTEXT: SimulationContextValue = {
   adHocScenario: null,
   adHocNetParameters: [],
   maxTime: null,
-  totalFramesStore: constantStore(0),
   mode: "quick",
   clock: "time",
   continuity: "continuous",
@@ -250,7 +231,6 @@ export const DEFAULT_SIMULATION_CONTEXT: SimulationContextValue = {
   stochasticRun: null,
   playbackSource: null,
   eventSimulation: null,
-  getFramesInRange: () => Promise.resolve([]),
   setSelectedScenarioId: () => {},
   setAdHocScenario: () => {},
   setScenarioParameterValue: () => {},
