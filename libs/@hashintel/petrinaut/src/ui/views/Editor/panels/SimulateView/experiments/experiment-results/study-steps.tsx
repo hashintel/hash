@@ -18,7 +18,6 @@ import {
 } from "../../../../../../../react/optimizations/constraint-rates";
 import { Table, type TableColumn } from "../../../../../../components/table";
 import { formatNumber, formatParameters } from "../../shared/format-value";
-import { INFEASIBLE_COLOR } from "../../shared/infeasible-color";
 
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
 
@@ -88,8 +87,9 @@ const stepStateStyle = css({
   "&[data-state='failed']": {
     backgroundColor: "red.s90",
   },
+  // Optuna's grey for a step whose parameters broke a constraint.
   "&[data-state='infeasible']": {
-    backgroundColor: `[${INFEASIBLE_COLOR}]`,
+    backgroundColor: "[#cccccc]",
   },
   "& svg": {
     width: "[9px]",
