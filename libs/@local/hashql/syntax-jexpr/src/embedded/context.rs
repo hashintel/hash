@@ -6,7 +6,7 @@ use hashql_core::{
 };
 use winnow::{LocatingSlice, Stateful};
 
-use crate::{lexer::RawOffsets, span::Span};
+use crate::{ParserOptions, lexer::RawOffsets, span::Span};
 
 pub(crate) struct Context<'heap, 'spans, A: Allocator> {
     pub heap: &'heap Heap,
@@ -14,6 +14,7 @@ pub(crate) struct Context<'heap, 'spans, A: Allocator> {
     pub parent: SpanId,
     pub offsets: RawOffsets<A>,
     pub depth: u16,
+    pub options: ParserOptions,
 }
 
 impl<A: Allocator> Context<'_, '_, A> {
@@ -49,6 +50,7 @@ impl<A: Allocator> fmt::Debug for Context<'_, '_, A> {
             .field("parent", &self.parent)
             .field("offsets", &self.offsets)
             .field("depth", &self.depth)
+            .field("options", &self.options)
             .finish()
     }
 }

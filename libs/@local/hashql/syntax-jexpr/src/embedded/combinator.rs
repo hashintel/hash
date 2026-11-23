@@ -10,7 +10,7 @@ use winnow::{
 };
 
 use super::context::Input;
-use crate::{parser::NESTING_LIMIT, stack::ensure_sufficient_stack};
+use crate::stack::ensure_sufficient_stack;
 
 pub(crate) enum Alt2<L, R> {
     Left(L),
@@ -148,7 +148,10 @@ where
         .parse_next(input)
 }
 
-/// Runs `parser` one nesting level down, failing once [`NESTING_LIMIT`] levels are open.
+/// Runs `parser` one nesting level down, failing once [`ParserOptions::nesting_limit`] levels are
+/// open.
+///
+/// [`ParserOptions::nesting_limit`]: crate::ParserOptions::nesting_limit
 pub(crate) fn nested<'heap, 'span, 'source, Output, Error, A: Allocator>(
     mut parser: impl ModalParser<Input<'heap, 'span, 'source, A>, Output, Error>,
 ) -> impl ModalParser<Input<'heap, 'span, 'source, A>, Output, Error>
@@ -157,7 +160,7 @@ where
         + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     move |input: &mut Input<'heap, 'span, 'source, A>| {
-        if input.state.depth >= NESTING_LIMIT {
+        if input.state.depth >= input.state.options.nesting_limit {
             return nesting_limit(input);
         }
 

@@ -4,7 +4,7 @@ use rowan::{Checkpoint, GreenNodeBuilder};
 use text_size::{TextRange, TextSize};
 
 use crate::{
-    cst,
+    ParserOptions, cst,
     error::{
         DelimiterKind, EofContext, LexerErrorKind, StringErrorContext, SyntaxError,
         SyntaxErrorKind, UnclosedDelimiters,
@@ -86,12 +86,6 @@ pub(crate) trait Grammar {
         A: Allocator + Clone;
 }
 
-/// Number of levels a document may nest values, and an embedded string its types or expressions.
-///
-/// The parsers and every later pass recurse once per level. The limit bounds the stack they
-/// need, and the memory of the stack segments [`ensure_sufficient_stack`] allocates.
-pub(crate) const NESTING_LIMIT: u16 = 256;
-
 /// Recursive descent parser from J-Expr source to a lossless [`Document`] of grammar `G`.
 pub(crate) struct Parser<'source, G, A: Allocator> {
     lexer: Lexer<'source>,
@@ -99,17 +93,19 @@ pub(crate) struct Parser<'source, G, A: Allocator> {
     errors: Vec<SyntaxError<A>, A>,
     last_token_end: TextSize,
     depth: u16,
+    options: ParserOptions,
     _grammar: PhantomData<G>,
 }
 
 impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
-    pub(crate) fn new_in(source: &'source str, alloc: A) -> Self {
+    pub(crate) fn new_in(source: &'source str, options: ParserOptions, alloc: A) -> Self {
         Self {
             lexer: Lexer::new(source),
             builder: GreenNodeBuilder::new(),
             errors: Vec::new_in(alloc),
             last_token_end: TextSize::new(0),
             depth: 0,
+            options,
             _grammar: PhantomData,
         }
     }
@@ -514,17 +510,17 @@ impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
 
     /// Parses a value with `parse`, one nesting level below the current one.
     ///
-    /// A container past [`NESTING_LIMIT`] levels is not parsed. It is reported at its opening
-    /// delimiter and skipped up to the matching closing delimiter.
+    /// The parser does not parse a container past [`ParserOptions::nesting_limit`] levels. It
+    /// reports the container at its opening delimiter and skips to the matching closing delimiter.
     pub(crate) fn nested(&mut self, parse: impl FnOnce(&mut Self)) {
-        if self.depth >= NESTING_LIMIT
+        if self.depth >= self.options.nesting_limit
             && let Some(token) = self.current()
             && SyntaxKindSet::OPENING_DELIMITER.contains(token.kind)
         {
             self.error(
                 token.range,
                 SyntaxErrorKind::NestingLimit {
-                    limit: NESTING_LIMIT,
+                    limit: self.options.nesting_limit,
                 },
             );
             self.skip_container();
@@ -585,11 +581,15 @@ impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
     ///
     /// Panics if `source.len()` exceeds `u32::MAX` bytes.
     #[must_use]
-    pub(crate) fn parse_cst_in(source: &'source str, alloc: A) -> Document<G::Root, A>
+    pub(crate) fn parse_cst_in(
+        source: &'source str,
+        options: ParserOptions,
+        alloc: A,
+    ) -> Document<G::Root, A>
     where
         A: Clone,
     {
-        let mut parser = Self::new_in(source, alloc);
+        let mut parser = Self::new_in(source, options, alloc);
         parser.parse_root();
         parser.finish()
     }

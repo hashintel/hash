@@ -17,9 +17,10 @@ use hashql_diagnostics::{DiagnosticIssues, Severity, Status};
 use text_size::{TextRange, TextSize};
 
 use crate::{
+    ParserOptions,
     cst::{self, Node, Token as _},
     embedded::{
-        parse_expr_from_string_in, parse_ident_labelled_argument_from_string_in,
+        EmbeddedString, parse_expr_from_string_in, parse_ident_labelled_argument_from_string_in,
         parse_type_from_string_in,
     },
     error::{JExprDiagnosticCategory, array},
@@ -45,15 +46,22 @@ where
 pub(crate) struct Lowerer<'heap, 'spans, A: Allocator> {
     heap: &'heap Heap,
     spans: &'spans mut SpanTable<Span>,
+    options: ParserOptions,
     diagnostics: DiagnosticIssues<JExprDiagnosticCategory, SpanId, Severity>,
     alloc: A,
 }
 
 impl<'heap, 'spans, A: Allocator> Lowerer<'heap, 'spans, A> {
-    const fn new_in(heap: &'heap Heap, spans: &'spans mut SpanTable<Span>, alloc: A) -> Self {
+    const fn new_in(
+        heap: &'heap Heap,
+        spans: &'spans mut SpanTable<Span>,
+        options: ParserOptions,
+        alloc: A,
+    ) -> Self {
         Self {
             heap,
             spans,
+            options,
             diagnostics: DiagnosticIssues::new(),
             alloc,
         }
@@ -82,10 +90,13 @@ impl<'heap, 'spans, A: Allocator> Lowerer<'heap, 'spans, A> {
         match parse_type_from_string_in(
             self.heap,
             self.spans,
-            parent,
+            self.options,
             key_range,
-            token.text(),
-            &decoded,
+            EmbeddedString {
+                parent,
+                raw_quoted: token.text(),
+                decoded: &decoded,
+            },
             &self.alloc,
         ) {
             Ok(r#type) => Some(Box::new_in(r#type, self.heap)),
@@ -160,9 +171,12 @@ impl<'heap, 'spans, A: Allocator> Lowerer<'heap, 'spans, A> {
         match parse_expr_from_string_in(
             self.heap,
             self.spans,
-            parent,
-            token.text(),
-            &decoded,
+            self.options,
+            EmbeddedString {
+                parent,
+                raw_quoted: token.text(),
+                decoded: &decoded,
+            },
             &self.alloc,
         ) {
             Ok(expr) => Some(expr),
@@ -191,9 +205,12 @@ impl<'heap, 'spans, A: Allocator> Lowerer<'heap, 'spans, A> {
         let key = match parse_ident_labelled_argument_from_string_in(
             self.heap,
             self.spans,
-            token_span,
-            token.text(),
-            &decoded,
+            self.options,
+            EmbeddedString {
+                parent: token_span,
+                raw_quoted: token.text(),
+                decoded: &decoded,
+            },
             &self.alloc,
         ) {
             Ok(ident) => ident,
@@ -260,9 +277,12 @@ impl<'heap, 'spans, A: Allocator> Lowerer<'heap, 'spans, A> {
             match parse_ident_labelled_argument_from_string_in(
                 self.heap,
                 self.spans,
-                key_span,
-                token.text(),
-                &decoded,
+                self.options,
+                EmbeddedString {
+                    parent: key_span,
+                    raw_quoted: token.text(),
+                    decoded: &decoded,
+                },
                 &self.alloc,
             ) {
                 Ok(ident) => Some(ident),
@@ -381,10 +401,11 @@ impl<'heap, 'spans, A: Allocator> Lowerer<'heap, 'spans, A> {
 pub(crate) fn lower_expr_in<'heap, A: Allocator>(
     heap: &'heap Heap,
     spans: &mut SpanTable<Span>,
+    options: ParserOptions,
     parse: &Document<cst::ExprRoot, A>,
     alloc: A,
 ) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
-    let mut lowerer = Lowerer::new_in(heap, spans, alloc);
+    let mut lowerer = Lowerer::new_in(heap, spans, options, alloc);
 
     for error in parse.errors() {
         let diagnostic = error

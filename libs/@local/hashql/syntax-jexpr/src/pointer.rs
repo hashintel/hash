@@ -119,13 +119,13 @@ mod tests {
     use hashql_diagnostics::source::SourceId;
     use text_size::{TextRange, TextSize};
 
-    use crate::Parser;
+    use crate::{Parser, ParserOptions};
 
     fn pointer_at(source: &str, needle: &str) -> Option<String> {
         let heap = Heap::new();
         let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-        let (_, pointers) =
-            Parser::new(&heap, &mut spans).parse_expr_with_pointers_in(source, Global);
+        let (_, pointers) = Parser::new(&heap, &mut spans, ParserOptions::default())
+            .parse_expr_with_pointers_in(source, Global);
         let start = source.find(needle).expect("needle must exist in source");
         let range = TextRange::new(
             TextSize::try_from(start).expect("start fits in TextSize"),
@@ -206,7 +206,7 @@ mod tests {
     fn out_of_bounds_range() {
         let heap = Heap::new();
         let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-        let (_, pointers) = Parser::new(&heap, &mut spans)
+        let (_, pointers) = Parser::new(&heap, &mut spans, ParserOptions::default())
             .parse_expr_with_pointers_in(r##"{"#literal": 1}"##, Global);
         let range = TextRange::new(TextSize::new(0), TextSize::new(999));
         assert!(pointers.resolve(range).is_none());

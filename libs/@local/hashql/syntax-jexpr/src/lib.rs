@@ -8,15 +8,17 @@
 //! # Example
 //!
 //! ```
+//! use std::alloc::Global;
+//!
 //! use hashql_core::{heap::Heap, span::SpanTable};
 //! use hashql_diagnostics::source::SourceId;
-//! use hashql_syntax_jexpr::Parser;
+//! use hashql_syntax_jexpr::{Parser, ParserOptions};
 //!
 //! let source = r##"{"#literal": 42}"##;
 //! let heap = Heap::new();
 //! let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-//! let success = Parser::new(&heap, &mut spans)
-//!     .parse_expr_in(source, alloc::alloc::Global)
+//! let success = Parser::new(&heap, &mut spans, ParserOptions::default())
+//!     .parse_expr_in(source, Global)
 //!     .expect("valid literal parses to an AST expression");
 //! assert!(success.advisories.is_empty());
 //! ```
@@ -70,21 +72,46 @@ pub use self::{
     span::Span,
 };
 
+/// Limits that a [`Parser`] enforces on the documents it parses.
+#[derive(Debug, Copy, Clone)]
+pub struct ParserOptions {
+    /// Number of levels a document may nest its arrays and objects.
+    ///
+    /// Parsing fails for a document that nests deeper. A string counts the levels of its type or
+    /// expression on its own, starting from zero at any depth of the document.
+    ///
+    /// The passes over the AST recurse once per level, and the limit bounds the stack they need.
+    ///
+    /// 256 by default.
+    pub nesting_limit: u16,
+}
+
+impl Default for ParserOptions {
+    fn default() -> Self {
+        Self { nesting_limit: 256 }
+    }
+}
+
 /// Parser from J-Expr source to the HashQL AST.
-///
-/// The parser reports every syntax error it finds in a document. A document nested more than 256
-/// levels deep is rejected, whether the nesting is in its arrays and objects or inside one of
-/// its type and expression strings.
 pub struct Parser<'heap, 'spans> {
     heap: &'heap Heap,
     spans: &'spans mut SpanTable<Span>,
+    options: ParserOptions,
 }
 
 impl<'heap, 'spans> Parser<'heap, 'spans> {
     /// Creates a parser that allocates the AST in `heap` and inserts its spans into `spans`.
     #[must_use]
-    pub const fn new(heap: &'heap Heap, spans: &'spans mut SpanTable<Span>) -> Self {
-        Self { heap, spans }
+    pub const fn new(
+        heap: &'heap Heap,
+        spans: &'spans mut SpanTable<Span>,
+        options: ParserOptions,
+    ) -> Self {
+        Self {
+            heap,
+            spans,
+            options,
+        }
     }
 
     /// Parses a J-Expr document into an [`Expr`] alongside an RFC 6901 [`JsonPointers`] resolver.
@@ -100,8 +127,12 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
         Status<Expr<'heap>, JExprDiagnosticCategory, SpanId>,
         JsonPointers,
     ) {
-        let parse = parser::Parser::<parser::expr::ExprGrammar, _>::parse_cst_in(source, &alloc);
-        let status = lower::lower_expr_in(self.heap, self.spans, &parse, &alloc);
+        let parse = parser::Parser::<parser::expr::ExprGrammar, _>::parse_cst_in(
+            source,
+            self.options,
+            &alloc,
+        );
+        let status = lower::lower_expr_in(self.heap, self.spans, self.options, &parse, &alloc);
         (status, JsonPointers::from_green(parse.into_green()))
     }
 

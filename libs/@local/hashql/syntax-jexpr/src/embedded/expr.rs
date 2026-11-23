@@ -22,7 +22,6 @@ use super::{
     ident::parse_ident,
     path::parse_path,
 };
-use crate::parser::NESTING_LIMIT;
 
 #[derive(Debug)]
 enum Access<'heap> {
@@ -128,7 +127,9 @@ where
         .parse_next(input)?;
 
     // Each access wraps the expression before it. A chain is as deep as it is long.
-    if usize::from(input.state.depth) + access.len() > usize::from(NESTING_LIMIT) {
+    if usize::from(input.state.depth) + access.len()
+        > usize::from(input.state.options.nesting_limit)
+    {
         return nesting_limit(input);
     }
 

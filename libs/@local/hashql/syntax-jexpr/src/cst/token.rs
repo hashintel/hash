@@ -2,9 +2,7 @@ use alloc::borrow::Cow;
 
 use super::{SyntaxToken, SyntaxTokenData, Token, kind};
 use crate::{
-    error::StringError,
-    lexer::{Number, decode_quoted},
-    syntax_kind::SyntaxKind,
+    error::StringError, lexer::decode_quoted, syntax_kind::SyntaxKind,
     syntax_kind_set::SyntaxKindSet,
 };
 
@@ -25,15 +23,13 @@ impl<'tree> StringToken<'tree> {
 pub(crate) type NumberToken<'tree> = SyntaxToken<'tree, kind::Number>;
 
 impl NumberToken<'_> {
-    /// Reports whether the literal has a fraction or an exponent.
+    /// Reports whether the literal spelling includes a decimal point or exponent.
     ///
-    /// This is a property of the spelling. `1.0` and `1e0` are floats.
+    /// Inspects the token text rather than its numeric value. Spellings such as `1.0` and `1e0`
+    /// return `true`.
     #[must_use]
     pub(crate) fn is_float(self) -> bool {
-        matches!(
-            Number::parse(self.syntax.text().as_bytes()),
-            Ok(Number::Float(_))
-        )
+        memchr::memchr3(b'.', b'e', b'E', self.syntax.text().as_bytes()).is_some()
     }
 }
 

@@ -10,7 +10,7 @@ use codspeed_criterion_compat::{Criterion, Throughput, criterion_group, criterio
 use hashql_core::{heap::Heap, span::SpanTable};
 use hashql_diagnostics::source::SourceId;
 use hashql_syntax_jexpr::{
-    Parser,
+    Parser, ParserOptions,
     bench::{parse_cst, tokenize},
 };
 
@@ -47,7 +47,7 @@ fn parse(criterion: &mut Criterion) {
             let heap = Heap::new();
             let mut spans = SpanTable::new(SourceId::new_unchecked(0));
             black_box(
-                Parser::new(&heap, &mut spans)
+                Parser::new(&heap, &mut spans, ParserOptions::default())
                     .parse_expr_in(black_box(QUERY), Global)
                     .expect("benchmark query should parse"),
             );

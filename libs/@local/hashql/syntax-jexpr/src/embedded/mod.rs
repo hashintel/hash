@@ -23,7 +23,6 @@ use text_size::TextRange;
 use winnow::{
     LocatingSlice, ModalParser, Stateful,
     error::{ContextError, ParseError},
-    stream::{Offset, Stream, StreamIsPartial},
 };
 
 use self::{
@@ -33,21 +32,30 @@ use self::{
     ident::{parse_ident, parse_ident_labelled_argument},
     r#type::parse_type,
 };
-use crate::{lexer::RawOffsets, span::Span};
+use crate::{ParserOptions, lexer::RawOffsets, span::Span};
 
 type InputStream<'heap, 'spans, I, A> = Stateful<LocatingSlice<I>, Context<'heap, 'spans, A>>;
 
-fn parse_from_string_in<'heap, 'spans, I, O, A>(
-    mut parser: impl ModalParser<InputStream<'heap, 'spans, I, A>, O, ContextError>,
+#[derive(Copy, Clone)]
+pub(crate) struct EmbeddedString<'input> {
+    pub parent: SpanId,
+    pub raw_quoted: &'input str,
+    pub decoded: &'input str,
+}
+
+fn parse_from_string_in<'heap, 'spans, 'input, O, A>(
+    mut parser: impl ModalParser<InputStream<'heap, 'spans, &'input str, A>, O, ContextError>,
     heap: &'heap Heap,
     spans: &'spans mut SpanTable<Span>,
-    parent: SpanId,
-    raw_quoted: &str,
-    input: I,
+    options: ParserOptions,
+    EmbeddedString {
+        parent,
+        raw_quoted,
+        decoded,
+    }: EmbeddedString<'input>,
     alloc: A,
-) -> Result<O, ParseError<InputStream<'heap, 'spans, I, A>, ContextError>>
+) -> Result<O, ParseError<InputStream<'heap, 'spans, &'input str, A>, ContextError>>
 where
-    I: Stream + StreamIsPartial + Offset + Clone,
     A: Allocator + Clone,
 {
     let context = Context {
@@ -56,10 +64,11 @@ where
         parent,
         offsets: RawOffsets::new_in(raw_quoted, alloc),
         depth: 0,
+        options,
     };
 
     parser.parse(Stateful {
-        input: LocatingSlice::new(input),
+        input: LocatingSlice::new(decoded),
         state: context,
     })
 }
@@ -70,29 +79,18 @@ where
 pub(crate) fn parse_expr_from_string_in<'heap, A>(
     heap: &'heap Heap,
     spans: &mut SpanTable<Span>,
-    parent: SpanId,
-    raw_quoted: &str,
-    value: &str,
+    options: ParserOptions,
+    string: EmbeddedString<'_>,
     alloc: A,
 ) -> Result<Expr<'heap>, StringDiagnostic>
 where
     A: Allocator + Clone,
 {
-    match parse_from_string_in(
-        parse_expr,
-        heap,
-        spans,
-        parent,
-        raw_quoted,
-        value,
-        alloc.clone(),
-    ) {
+    match parse_from_string_in(parse_expr, heap, spans, options, string, alloc.clone()) {
         Ok(expr) => Ok(expr),
         Err(error) => {
             let error = (error.offset(), error.into_inner());
-            Err(invalid_expr_in(
-                spans, parent, raw_quoted, value, error, alloc,
-            ))
+            Err(invalid_expr_in(spans, options, string, error, alloc))
         }
     }
 }
@@ -101,31 +99,22 @@ where
 pub(crate) fn parse_type_from_string_in<'heap, A>(
     heap: &'heap Heap,
     spans: &mut SpanTable<Span>,
-    parent: SpanId,
+    options: ParserOptions,
     key_range: Option<TextRange>,
-    raw_quoted: &str,
-    value: &str,
+    string: EmbeddedString<'_>,
     alloc: A,
 ) -> Result<Type<'heap>, StringDiagnostic>
 where
     A: Allocator + Clone,
 {
-    match parse_from_string_in(
-        parse_type,
-        heap,
-        spans,
-        parent,
-        raw_quoted,
-        value,
-        alloc.clone(),
-    ) {
+    match parse_from_string_in(parse_type, heap, spans, options, string, alloc.clone()) {
         Ok(r#type) => Ok(r#type),
         Err(error) => {
             let error = (error.offset(), error.into_inner());
             let key_span =
                 key_range.map(|range| spans.insert(Span::new(range), SpanAncestors::EMPTY));
             Err(invalid_type_in(
-                spans, parent, key_span, raw_quoted, value, error, alloc,
+                spans, options, key_span, string, error, alloc,
             ))
         }
     }
@@ -135,24 +124,22 @@ where
 pub(crate) fn parse_ident_from_string_in<'heap, 'spans, 'input, A>(
     heap: &'heap Heap,
     spans: &'spans mut SpanTable<Span>,
-    parent: SpanId,
-    raw_quoted: &str,
-    value: &'input str,
+    options: ParserOptions,
+    string: EmbeddedString<'input>,
     alloc: A,
 ) -> Result<Ident<'heap>, ParseError<InputStream<'heap, 'spans, &'input str, A>, ContextError>>
 where
     A: Allocator + Clone,
 {
-    parse_from_string_in(parse_ident, heap, spans, parent, raw_quoted, value, alloc)
+    parse_from_string_in(parse_ident, heap, spans, options, string, alloc)
 }
 
 /// Parses a decoded `:label` string into a HashQL [`Ident`].
 pub(crate) fn parse_ident_labelled_argument_from_string_in<'heap, 'spans, 'input, A>(
     heap: &'heap Heap,
     spans: &'spans mut SpanTable<Span>,
-    parent: SpanId,
-    raw_quoted: &str,
-    value: &'input str,
+    options: ParserOptions,
+    string: EmbeddedString<'input>,
     alloc: A,
 ) -> Result<Ident<'heap>, ParseError<InputStream<'heap, 'spans, &'input str, A>, ContextError>>
 where
@@ -162,9 +149,8 @@ where
         parse_ident_labelled_argument,
         heap,
         spans,
-        parent,
-        raw_quoted,
-        value,
+        options,
+        string,
         alloc,
     )
 }

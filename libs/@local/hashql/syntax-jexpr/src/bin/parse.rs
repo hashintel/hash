@@ -21,7 +21,7 @@ use hashql_diagnostics::{
     Source, Sources, Success,
     diagnostic::render::{ColorDepth, Format, RenderOptions},
 };
-use hashql_syntax_jexpr::Parser;
+use hashql_syntax_jexpr::{Parser, ParserOptions};
 
 fn main() -> Result<(), Box<dyn core::error::Error>> {
     let mut input = String::new();
@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
 
     let heap = Heap::new();
     let mut spans = SpanTable::new(sources.push(Source::new(input.as_str())));
-    let mut parser = Parser::new(&heap, &mut spans);
+    let mut parser = Parser::new(&heap, &mut spans, ParserOptions::default());
 
     match parser.parse_expr_in(&input, Global) {
         Ok(Success { value: expr, .. }) => {

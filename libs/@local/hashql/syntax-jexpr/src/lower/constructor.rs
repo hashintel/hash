@@ -13,7 +13,7 @@ use super::Lowerer;
 use crate::{
     JExprDiagnosticCategory,
     cst::{self, Node as _, Token as _},
-    embedded::parse_ident_from_string_in,
+    embedded::{EmbeddedString, parse_ident_from_string_in},
     error::constructor,
 };
 
@@ -86,9 +86,12 @@ fn lower_struct_body<'heap, A: Allocator>(
             match parse_ident_from_string_in(
                 heap,
                 &mut *lowerer.spans,
-                key_span,
-                token.text(),
-                &decoded,
+                lowerer.options,
+                EmbeddedString {
+                    parent: key_span,
+                    raw_quoted: token.text(),
+                    decoded: &decoded,
+                },
                 &lowerer.alloc,
             ) {
                 Ok(ident) => Some(ident),

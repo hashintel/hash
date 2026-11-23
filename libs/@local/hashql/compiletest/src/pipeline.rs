@@ -34,7 +34,7 @@ use hashql_mir::{
     pass::{self, LowerConfig, execution::ExecutionAnalysisResidual},
     reify::ReifyContext,
 };
-use hashql_syntax_jexpr::span::Span;
+use hashql_syntax_jexpr::{ParserOptions, span::Span};
 
 /// Unwraps a [`Status`] into its success value, draining advisories and
 /// secondary diagnostics into the shared accumulator.
@@ -121,7 +121,8 @@ impl<'heap> Pipeline<'heap> {
         &mut self,
         content: impl AsRef<str>,
     ) -> Result<hashql_ast::node::expr::Expr<'heap>, BoxedDiagnostic<'static, SpanId>> {
-        let mut parser = hashql_syntax_jexpr::Parser::new(self.heap, &mut self.spans);
+        let mut parser =
+            hashql_syntax_jexpr::Parser::new(self.heap, &mut self.spans, ParserOptions::default());
 
         let status = parser.parse_expr_in(content.as_ref(), &self.scratch);
         self.scratch.reset();

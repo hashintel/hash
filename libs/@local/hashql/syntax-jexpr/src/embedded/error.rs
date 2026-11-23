@@ -11,8 +11,8 @@ use hashql_diagnostics::{
 use text_size::{TextRange, TextSize};
 use winnow::error::{ContextError, StrContext, StrContextValue};
 
-use super::combinator::NESTING_LIMIT_LABEL;
-use crate::{lexer::RawOffsets, parser::NESTING_LIMIT, span::Span};
+use super::{EmbeddedString, combinator::NESTING_LIMIT_LABEL};
+use crate::{ParserOptions, lexer::RawOffsets, span::Span};
 
 const INVALID_EXPR: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "invalid-expression",
@@ -132,18 +132,8 @@ pub(crate) fn convert_parse_error_in<A: Allocator>(
     (offset, error): (usize, ContextError),
     alloc: A,
 ) -> EmbeddedErrorParts {
-    let nesting_limit = error
-        .context()
-        .any(|context| matches!(context, StrContext::Label(NESTING_LIMIT_LABEL)));
-
-    // The level past the limit is hundreds of characters into the string, where a label on it
-    // would say less than one on the string.
-    let span = if nesting_limit {
-        parent
-    } else {
-        let range = raw_error_range_in(raw_quoted, decoded, offset, alloc);
-        spans.insert(Span::new(range), SpanAncestors::union(&[parent]))
-    };
+    let range = raw_error_range_in(raw_quoted, decoded, offset, alloc);
+    let span = spans.insert(Span::new(range), SpanAncestors::union(&[parent]));
 
     let expected: Vec<_> = error
         .context()
@@ -168,9 +158,7 @@ pub(crate) fn convert_parse_error_in<A: Allocator>(
         .then(|| decoded[offset..].chars().next())
         .flatten();
 
-    let label = if nesting_limit {
-        format!("{kind_name} nested more than {NESTING_LIMIT} levels deep")
-    } else if !expected.is_empty() {
+    let label = if !expected.is_empty() {
         let expected_list = format_expected_list(&expected);
         if at_end {
             format!("expected {expected_list} before end of {kind_name}")
@@ -204,6 +192,25 @@ pub(crate) fn convert_parse_error_in<A: Allocator>(
     }
 }
 
+fn convert_nesting_limit(
+    parent: SpanId,
+    kind_name: &str,
+    ParserOptions { nesting_limit }: ParserOptions,
+    error: &ContextError,
+) -> Option<EmbeddedErrorParts> {
+    let is_nesting_limit = error
+        .context()
+        .any(|context| matches!(context, StrContext::Label(NESTING_LIMIT_LABEL)));
+
+    // The level past the limit is deep inside the string, where a label on it would say less
+    // than one on the string.
+    is_nesting_limit.then(|| EmbeddedErrorParts {
+        span: parent,
+        label: format!("{kind_name} nested more than {nesting_limit} levels deep"),
+        closing_delimiter: None,
+    })
+}
+
 const EXPR_SYNTAX_NOTE: &str = "string expressions support paths (`a::b`), field accesses \
                                 (`a.b`), index accesses (`a[0]`), and `_`";
 
@@ -213,9 +220,12 @@ const TYPE_SYNTAX_NOTE: &str = "types support paths (`Int`, `List<T>`), tuples (
 
 pub(crate) fn invalid_expr_in<A: Allocator>(
     spans: &mut SpanTable<Span>,
-    parent: SpanId,
-    raw_quoted: &str,
-    decoded: &str,
+    options: ParserOptions,
+    EmbeddedString {
+        parent,
+        raw_quoted,
+        decoded,
+    }: EmbeddedString<'_>,
     error: (usize, ContextError),
     alloc: A,
 ) -> StringDiagnostic {
@@ -230,18 +240,21 @@ pub(crate) fn invalid_expr_in<A: Allocator>(
         return diagnostic;
     }
 
-    let parts = convert_parse_error_in(
-        spans,
-        parent,
-        ParseErrorSource {
-            raw_quoted,
-            decoded,
-            kind_name: "expression",
-            start_offset: 0,
-        },
-        error,
-        alloc,
-    );
+    let parts =
+        convert_nesting_limit(parent, "expression", options, &error.1).unwrap_or_else(|| {
+            convert_parse_error_in(
+                spans,
+                parent,
+                ParseErrorSource {
+                    raw_quoted,
+                    decoded,
+                    kind_name: "expression",
+                    start_offset: 0,
+                },
+                error,
+                alloc,
+            )
+        });
 
     let mut diagnostic =
         Diagnostic::new(StringDiagnosticCategory::InvalidExpression, Critical::ERROR)
@@ -260,10 +273,13 @@ pub(crate) fn invalid_expr_in<A: Allocator>(
 
 pub(crate) fn invalid_type_in<A: Allocator>(
     spans: &mut SpanTable<Span>,
-    parent: SpanId,
+    options: ParserOptions,
     key_span: Option<SpanId>,
-    raw_quoted: &str,
-    decoded: &str,
+    EmbeddedString {
+        parent,
+        raw_quoted,
+        decoded,
+    }: EmbeddedString<'_>,
     error: (usize, ContextError),
     alloc: A,
 ) -> StringDiagnostic {
@@ -281,18 +297,20 @@ pub(crate) fn invalid_type_in<A: Allocator>(
         return diagnostic;
     }
 
-    let parts = convert_parse_error_in(
-        spans,
-        parent,
-        ParseErrorSource {
-            raw_quoted,
-            decoded,
-            kind_name: "type",
-            start_offset: 0,
-        },
-        error,
-        alloc,
-    );
+    let parts = convert_nesting_limit(parent, "type", options, &error.1).unwrap_or_else(|| {
+        convert_parse_error_in(
+            spans,
+            parent,
+            ParseErrorSource {
+                raw_quoted,
+                decoded,
+                kind_name: "type",
+                start_offset: 0,
+            },
+            error,
+            alloc,
+        )
+    });
 
     let mut diagnostic = Diagnostic::new(StringDiagnosticCategory::InvalidType, Critical::ERROR)
         .primary(Label::new(parts.span, parts.label));

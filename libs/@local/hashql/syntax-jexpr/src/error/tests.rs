@@ -6,12 +6,16 @@ use hashql_diagnostics::{
     source::{Source, SourceId, Sources},
 };
 
-use crate::{Parser, parser::NESTING_LIMIT};
+use crate::{Parser, ParserOptions};
 
 fn render_errors(input: &str) -> String {
+    render_errors_with(input, ParserOptions::default())
+}
+
+fn render_errors_with(input: &str, options: ParserOptions) -> String {
     let heap = Heap::new();
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let mut parser = Parser::new(&heap, &mut spans);
+    let mut parser = Parser::new(&heap, &mut spans, options);
 
     let failure = parser
         .parse_expr_in(input, Global)
@@ -162,36 +166,29 @@ diagnostic_snapshots! {
     embedded_type_unclosed_tuple => r##"{"#literal": 1, "#type": "(Int, String"}"##,
 }
 
+// a limit small enough for a document past it to fit on one line of a snapshot
+const NESTING_OPTIONS: ParserOptions = ParserOptions { nesting_limit: 3 };
+
 #[test]
 fn nesting_limit() {
-    let input = format!(
-        "{}\"x\"{}",
-        "[".repeat(usize::from(NESTING_LIMIT) + 2),
-        "]".repeat(usize::from(NESTING_LIMIT) + 2)
-    );
-    let rendered = render_errors(&input);
+    let input = r#"[[[[["x"]]]]]"#;
+    let rendered = render_errors_with(input, NESTING_OPTIONS);
 
     insta::with_settings!({
         prepend_module_to_snapshot => false,
-        description => "two more `[` than the nesting limit",
     }, {
-        insta::assert_snapshot!("nesting_limit", rendered);
+        insta::assert_snapshot!("nesting_limit", rendered, input);
     });
 }
 
 #[test]
 fn nesting_limit_embedded_type() {
-    let input = format!(
-        r##"{{"#literal": 1, "#type": "{}Int{}"}}"##,
-        "List<".repeat(usize::from(NESTING_LIMIT)),
-        ">".repeat(usize::from(NESTING_LIMIT))
-    );
-    let rendered = render_errors(&input);
+    let input = r##"{"#literal": 1, "#type": "List<List<List<Int>>>"}"##;
+    let rendered = render_errors_with(input, NESTING_OPTIONS);
 
     insta::with_settings!({
         prepend_module_to_snapshot => false,
-        description => "as many `List<` as the nesting limit",
     }, {
-        insta::assert_snapshot!("nesting_limit_embedded_type", rendered);
+        insta::assert_snapshot!("nesting_limit_embedded_type", rendered, input);
     });
 }

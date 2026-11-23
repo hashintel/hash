@@ -20,21 +20,21 @@ use hashql_diagnostics::{
 use proptest::{prop_assert, prop_assert_eq, property_test};
 
 use crate::{
-    JExprDiagnosticCategory, Parser,
+    JExprDiagnosticCategory, Parser, ParserOptions,
     cst::{self, Node, Token as _, TreeRoot},
     error::{
         ArrayDiagnosticCategory, LexerDiagnosticCategory, ObjectDiagnosticCategory,
         ParserDiagnosticCategory, StringDiagnosticCategory,
     },
     lower,
-    parser::{self, Document, Grammar, NESTING_LIMIT, expr::ExprGrammar},
+    parser::{self, Document, Grammar, expr::ExprGrammar},
     span::Span,
     syntax_kind::{SyntaxKind, T},
     syntax_kind_set::SyntaxKindSet,
 };
 
 fn parse_expr_cst(source: &str) -> Document<cst::ExprRoot, Global> {
-    parser::Parser::<ExprGrammar, Global>::parse_cst_in(source, Global)
+    parser::Parser::<ExprGrammar, Global>::parse_cst_in(source, ParserOptions::default(), Global)
 }
 
 fn render_diagnostic<C, K>(
@@ -59,7 +59,7 @@ where
 fn parse_ok_dump(input: &str) -> String {
     let heap = Heap::new();
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let mut parser = Parser::new(&heap, &mut spans);
+    let mut parser = Parser::new(&heap, &mut spans, ParserOptions::default());
 
     match parser.parse_expr_in(input, Global) {
         Ok(Success { value: expr, .. }) => expr.syntax_dump_to_string(),
@@ -73,7 +73,7 @@ fn parse_ok_dump(input: &str) -> String {
 fn parse_err_categories(input: &str) -> Vec<JExprDiagnosticCategory> {
     let heap = Heap::new();
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let mut parser = Parser::new(&heap, &mut spans);
+    let mut parser = Parser::new(&heap, &mut spans, ParserOptions::default());
 
     match parser.parse_expr_in(input, Global) {
         Ok(_) => panic!("expected `{input}` to fail parsing"),
@@ -630,7 +630,7 @@ fn escaped_string_spans() {
 
     let source = r#""\u0061.bb""#;
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let expr = Parser::new(&heap, &mut spans)
+    let expr = Parser::new(&heap, &mut spans, ParserOptions::default())
         .parse_expr_in(source, Global)
         .expect("field access parses")
         .value;
@@ -644,7 +644,7 @@ fn escaped_string_spans() {
     // The escaped `.` has an escape on either side, with no unescaped byte to count from.
     let source = r#""\u0061\u002e\u0062\u0062""#;
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let expr = Parser::new(&heap, &mut spans)
+    let expr = Parser::new(&heap, &mut spans, ParserOptions::default())
         .parse_expr_in(source, Global)
         .expect("field access parses")
         .value;
@@ -657,7 +657,7 @@ fn escaped_string_spans() {
     let source =
         r##"{"#struct": {"\u0061\ud800\udc00b": {"#literal": 1}}, "#type": "\u0049nt<T\u0055>"}"##;
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let expr = Parser::new(&heap, &mut spans)
+    let expr = Parser::new(&heap, &mut spans, ParserOptions::default())
         .parse_expr_in(source, Global)
         .expect("typed struct parses")
         .value;
@@ -684,7 +684,7 @@ fn escaped_string_spans() {
 
     let source = r#"["f", ":\u0061b"]"#;
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let expr = Parser::new(&heap, &mut spans)
+    let expr = Parser::new(&heap, &mut spans, ParserOptions::default())
         .parse_expr_in(source, Global)
         .expect("shorthand labeled argument parses")
         .value;
@@ -720,14 +720,19 @@ const NESTING_SHAPES: &[(&str, &str)] = &[
 const NESTING_LIMIT_CATEGORY: JExprDiagnosticCategory =
     JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::NestingLimit);
 
+fn default_nesting_limit() -> usize {
+    usize::from(ParserOptions::default().nesting_limit)
+}
+
 #[test]
 fn nesting_at_limit() {
     for &(open, close) in NESTING_SHAPES {
-        let source = nest(open, r#""x""#, close, usize::from(NESTING_LIMIT));
+        let source = nest(open, r#""x""#, close, default_nesting_limit());
 
         let heap = Heap::new();
         let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-        let result = Parser::new(&heap, &mut spans).parse_expr_in(&source, Global);
+        let result =
+            Parser::new(&heap, &mut spans, ParserOptions::default()).parse_expr_in(&source, Global);
         assert!(result.is_ok(), "`{open}` nested to the limit is rejected");
     }
 }
@@ -739,12 +744,12 @@ fn nesting_on_small_stack() {
 
     let sources = NESTING_SHAPES
         .iter()
-        .map(|&(open, close)| nest(open, r#""x""#, close, usize::from(NESTING_LIMIT)))
+        .map(|&(open, close)| nest(open, r#""x""#, close, default_nesting_limit()))
         .chain(
             EMBEDDED_NESTING_SHAPES
                 .iter()
                 .map(|&(open, leaf, close, category)| {
-                    let body = nest(open, leaf, close, usize::from(NESTING_LIMIT) - 1);
+                    let body = nest(open, leaf, close, default_nesting_limit() - 1);
                     embedded_source(category, &body)
                 }),
         );
@@ -755,8 +760,8 @@ fn nesting_on_small_stack() {
             .spawn(move || {
                 let heap = Heap::new();
                 let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-                let (status, pointers) =
-                    Parser::new(&heap, &mut spans).parse_expr_with_pointers_in(&source, Global);
+                let (status, pointers) = Parser::new(&heap, &mut spans, ParserOptions::default())
+                    .parse_expr_with_pointers_in(&source, Global);
 
                 // Dropping the syntax tree and the AST recurses once per node in drop glue, which
                 // cannot grow the stack.
@@ -775,7 +780,7 @@ fn nesting_on_small_stack() {
 #[test]
 fn nesting_past_limit() {
     // The larger depth overflows the stack of a parser that recurses once per container.
-    for depth in [usize::from(NESTING_LIMIT) + 1, 10_000] {
+    for depth in [default_nesting_limit() + 1, 10_000] {
         for &(open, close) in NESTING_SHAPES {
             let source = nest(open, r#""x""#, close, depth);
 
@@ -814,7 +819,7 @@ fn recovery_nesting_past_limit() {
 #[test]
 fn unclosed_nesting_past_limit() {
     // The skipped containers are not closed, and the containers above the limit still report it.
-    let source = "[".repeat(usize::from(NESTING_LIMIT) + 50);
+    let source = "[".repeat(default_nesting_limit() + 50);
 
     let parse = parse_expr_cst(&source);
     assert_eq!(parse.green().to_string(), source);
@@ -851,19 +856,21 @@ fn embedded_source(category: StringDiagnosticCategory, body: &str) -> String {
 fn embedded_nesting_at_limit() {
     for &(open, leaf, close, category) in EMBEDDED_NESTING_SHAPES {
         // The innermost type or expression is a level of its own.
-        let body = nest(open, leaf, close, usize::from(NESTING_LIMIT) - 1);
+        let body = nest(open, leaf, close, default_nesting_limit() - 1);
         let source = embedded_source(category, &body);
 
         let heap = Heap::new();
         let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-        let result = Parser::new(&heap, &mut spans).parse_expr_in(&source, Global);
+        let result =
+            Parser::new(&heap, &mut spans, ParserOptions::default()).parse_expr_in(&source, Global);
         assert!(result.is_ok(), "`{open}` nested to the limit is rejected");
     }
 
-    let source = format!(r#""a{}""#, ".b".repeat(usize::from(NESTING_LIMIT) - 1));
+    let source = format!(r#""a{}""#, ".b".repeat(default_nesting_limit() - 1));
     let heap = Heap::new();
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let result = Parser::new(&heap, &mut spans).parse_expr_in(&source, Global);
+    let result =
+        Parser::new(&heap, &mut spans, ParserOptions::default()).parse_expr_in(&source, Global);
     assert!(
         result.is_ok(),
         "field accesses nested to the limit are rejected"
@@ -872,7 +879,7 @@ fn embedded_nesting_at_limit() {
 
 #[test]
 fn embedded_nesting_past_limit() {
-    for depth in [usize::from(NESTING_LIMIT), 10_000] {
+    for depth in [default_nesting_limit(), 10_000] {
         for &(open, leaf, close, category) in EMBEDDED_NESTING_SHAPES {
             let body = nest(open, leaf, close, depth);
             let source = embedded_source(category, &body);
@@ -895,6 +902,63 @@ fn embedded_nesting_past_limit() {
             )]
         );
     }
+}
+
+#[test]
+fn nesting_custom_limit() {
+    const OPTIONS: ParserOptions = ParserOptions { nesting_limit: 3 };
+
+    let limit = usize::from(OPTIONS.nesting_limit);
+    let parse = |source: &str| {
+        let heap = Heap::new();
+        let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+
+        Parser::new(&heap, &mut spans, OPTIONS)
+            .parse_expr_in(source, Global)
+            .map(drop)
+            .map_err(|failure| failure.primary.category)
+    };
+
+    for &(open, close) in NESTING_SHAPES {
+        assert_eq!(
+            parse(&nest(open, r#""x""#, close, limit)),
+            Ok(()),
+            "`{open}` nested to the limit"
+        );
+        assert_eq!(
+            parse(&nest(open, r#""x""#, close, limit + 1)),
+            Err(NESTING_LIMIT_CATEGORY),
+            "`{open}` nested past the limit"
+        );
+    }
+
+    // The innermost type or expression is a level of its own.
+    let embedded = EMBEDDED_NESTING_SHAPES
+        .iter()
+        .map(|&(open, leaf, close, category)| {
+            let source = |depth| embedded_source(category, &nest(open, leaf, close, depth));
+            (source(limit - 1), source(limit), category)
+        })
+        .chain([(
+            format!(r#""a{}""#, ".b".repeat(limit - 1)),
+            format!(r#""a{}""#, ".b".repeat(limit)),
+            StringDiagnosticCategory::InvalidExpression,
+        )]);
+
+    for (at_limit, past_limit, category) in embedded {
+        assert_eq!(parse(&at_limit), Ok(()), "`{at_limit}` is at the limit");
+        assert_eq!(
+            parse(&past_limit),
+            Err(JExprDiagnosticCategory::Parser(
+                ParserDiagnosticCategory::String(category)
+            )),
+            "`{past_limit}` is past the limit"
+        );
+    }
+
+    // A string counts its levels from zero, at the deepest level of the document as well.
+    let innermost = format!(r#""{}""#, nest("a[", "a", "]", limit - 1));
+    assert_eq!(parse(&nest("[", &innermost, "]", limit)), Ok(()));
 }
 
 #[test]
@@ -959,6 +1023,7 @@ fn value_grammar_type_annotation() {
 
     let ok = parser::Parser::<ValueGrammar, Global>::parse_cst_in(
         r##"{"#struct": {"x": {"#literal": 7}}}"##,
+        ParserOptions::default(),
         Global,
     );
     assert!(ok.is_valid(), "errors: {:?}", ok.errors());
@@ -966,6 +1031,7 @@ fn value_grammar_type_annotation() {
 
     let rejected = parser::Parser::<ValueGrammar, Global>::parse_cst_in(
         r##"{"#struct": {}, "#type": "Point"}"##,
+        ParserOptions::default(),
         Global,
     );
     let [error] = rejected.errors() else {
@@ -989,7 +1055,7 @@ fn lossless_arbitrary_input(input: String) {
 
     let heap = Heap::new();
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let status = lower::lower_expr_in(&heap, &mut spans, &parse, Global);
+    let status = lower::lower_expr_in(&heap, &mut spans, ParserOptions::default(), &parse, Global);
     if !parse.is_valid() {
         prop_assert!(status.is_err());
     }
@@ -1005,7 +1071,7 @@ fn lossless_generated_tokens(
 
     let heap = Heap::new();
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let status = lower::lower_expr_in(&heap, &mut spans, &parse, Global);
+    let status = lower::lower_expr_in(&heap, &mut spans, ParserOptions::default(), &parse, Global);
     if !parse.is_valid() {
         prop_assert!(status.is_err());
     }

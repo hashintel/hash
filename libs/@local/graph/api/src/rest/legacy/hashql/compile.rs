@@ -22,7 +22,9 @@ use hashql_mir::{
         execution::{ExecutionAnalysisResidual, VertexType},
     },
 };
-use hashql_syntax_jexpr::{JsonPointers, error::JExprDiagnosticCategory, span::Span};
+use hashql_syntax_jexpr::{
+    JsonPointers, ParserOptions, error::JExprDiagnosticCategory, span::Span,
+};
 
 use super::error::HashQlDiagnosticCategory;
 
@@ -64,11 +66,12 @@ impl<'heap> Compilation<'heap> {
         spans: &mut SpanTable<Span>,
         source: &str,
     ) -> (Status<Self, HashQlDiagnosticCategory, SpanId>, JsonPointers) {
-        // The passes after the parser recurse once per level of nesting, which the parser limits
-        // to 256. A query nested that deep needs more stack than a worker thread of the query
-        // pool has, which is the 2 MiB default of a spawned thread.
+        // The passes after the parser recurse once per level of nesting. A query nested to the
+        // default limit of the parser needs more stack than a worker thread of the query pool
+        // has, which is the 2 MiB default of a spawned thread.
         stacker::maybe_grow(COMPILE_STACK_RED_ZONE, COMPILE_STACK_SIZE, || {
-            let mut parser = hashql_syntax_jexpr::Parser::new(heap, spans);
+            let mut parser =
+                hashql_syntax_jexpr::Parser::new(heap, spans, ParserOptions::default());
             let (parsed, pointers) = parser.parse_expr_with_pointers_in(source, &*scratch);
             scratch.reset();
             let status = Self::compile_parsed(heap, scratch, parsed);

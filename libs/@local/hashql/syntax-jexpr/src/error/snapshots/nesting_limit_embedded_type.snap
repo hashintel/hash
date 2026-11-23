@@ -1,13 +1,12 @@
 ---
 source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
-description: "as many `List<` as the nesting limit"
-expression: rendered
+expression: "{\"#literal\": 1, \"#type\": \"List<List<List<Int>>>\"}"
 ---
 error[jexpr::parser::string::invalid-type]: Invalid type annotation
   ╭▸ 
-1 │ …: 1, "#type": "List<List<List<List<List<List<List<List<List…>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"}
-  │       ┬──────  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━…━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ type nested more than 256 levels deep
-  │       │
-  │       in this `#type` annotation
+1 │ {"#literal": 1, "#type": "List<List<List<Int>>>"}
+  │                 ┬──────  ━━━━━━━━━━━━━━━━━━━━━━━ type nested more than 3 levels deep
+  │                 │
+  │                 in this `#type` annotation
   │
   ╰ note: types support paths (`Int`, `List<T>`), tuples (`(A, B)`), structs (`(a: A)`), unions (`A | B`), intersections (`A & B`), and `_`
