@@ -1,4 +1,4 @@
-import type { ScenarioParameter } from "../../../types/sdcpn";
+import type { ScenarioParameter } from "../types/sdcpn";
 
 /**
  * A scenario parameter's value as `scenario.<identifier>` reads it. Values

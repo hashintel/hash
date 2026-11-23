@@ -1,5 +1,5 @@
 /**
- * @layerRoot core.simulation.authoring.adhoc
+ * @layerRoot core.scenario.ad-hoc
  * @role The ad-hoc scenario model: serializable form state, pure edit actions, and synthesis to a generated scenario
  *
  * Ad-hoc scenarios: an inline initial-state + parameters definition compiled
@@ -43,10 +43,10 @@
  * values don't use `i`/`count` are legal there.
  */
 
-import { toPetrinautId } from "../../../../document/petrinaut-id";
-import { isDangerousRecordKey } from "../../../../validation/record-keys";
-import { runSandboxed, SHADOWED_GLOBALS } from "../../sandbox";
+import { toPetrinautId } from "../../document/petrinaut-id";
+import { isDangerousRecordKey } from "../../validation/record-keys";
 import { range } from "../helpers";
+import { runSandboxed, SHADOWED_GLOBALS } from "./sandbox";
 
 // The helpers in scope for the module's own constant evaluation (bounds,
 // exposed defaults, place totals). The synthesized scenario itself runs
@@ -56,7 +56,7 @@ const SCENARIO_HELPERS: Record<string, unknown> = { range };
 import type {
   PetrinautOptimizationManifest,
   PetrinautOptimizationDomain,
-} from "../../../../optimization";
+} from "../../optimization";
 import type {
   AdHocColouredPlace,
   AdHocOptimizeSettings,
@@ -71,7 +71,7 @@ import type {
   Place,
   Scenario,
   ScenarioParameter,
-} from "../../../../types/sdcpn";
+} from "../../types/sdcpn";
 
 // -- Form state ---------------------------------------------------------------
 //
@@ -89,7 +89,7 @@ export type {
   AdHocUncolouredPlace,
   AdHocValue,
   AdHocVariable,
-} from "../../../../types/sdcpn";
+} from "../../types/sdcpn";
 
 /** Everything from the net that synthesis resolves names and types against. */
 export interface AdHocSynthesisContext {

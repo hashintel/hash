@@ -623,7 +623,7 @@ export {
   type CompileScenarioOutcome,
   type ScenarioCompilationError,
   type ScenarioParameterValues,
-} from "./simulation/authoring/scenario/compile-scenario";
+} from "./scenario/compile-scenario";
 // Type-only: lowering itself needs the TypeScript compiler and stays in the
 // LSP worker (`requestScenarioHir`) / Node (`lowerScenarioToHir` in ./hir).
 export type {
@@ -735,7 +735,7 @@ export {
   type AdHocVariable,
   type SynthesizeAdHocOptimizationOutcome,
   type SynthesizeAdHocScenarioOutcome,
-} from "./simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
+} from "./scenario/ad-hoc/ad-hoc-scenario";
 export {
   adHocActionCoalescingKey,
   adHocActionInputSchemas,
@@ -751,7 +751,7 @@ export {
   type AdHocAction,
   type AdHocActionInput,
   type AdHocActionName,
-} from "./simulation/authoring/scenario/ad-hoc/ad-hoc-actions";
+} from "./scenario/ad-hoc/ad-hoc-actions";
 export {
   CLASSIC_RUN_ROW_CAP,
   classicRunParameterValues,
@@ -759,12 +759,12 @@ export {
   classicScenarioRunState,
   initialMarkingToAdHocPlaces,
   type TruncatedPlace,
-} from "./simulation/authoring/scenario/ad-hoc/materialize-run-state";
+} from "./scenario/ad-hoc/materialize-run-state";
 export {
   adHocStateFromScenario,
   type AdHocStateFromScenario,
-} from "./simulation/authoring/scenario/ad-hoc/scenario-to-ad-hoc-state";
-export { adHocScenarioStateSchema } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-state-schema";
+} from "./scenario/ad-hoc/scenario-to-ad-hoc-state";
+export { adHocScenarioStateSchema } from "./scenario/ad-hoc/ad-hoc-state-schema";
 export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
 export {
   coerceTokenAttributeValue,
@@ -816,7 +816,7 @@ export {
   type DangerousSdcpnKey,
 } from "./validation/record-keys";
 export { validateVariableName } from "./validation/variable-name";
-export { runSandboxed, SHADOWED_GLOBALS } from "./simulation/authoring/sandbox";
+export { runSandboxed, SHADOWED_GLOBALS } from "./scenario/ad-hoc/sandbox";
 
 // --- File, clipboard, and editor protocol helpers ---
 export {

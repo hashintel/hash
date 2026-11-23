@@ -17,7 +17,7 @@ import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirCompileResult, ScenarioHir } from "../hir";
 import type { CompileHirArtifactsOptions } from "../hir/compile";
 import type { HirVisualizerContext } from "../hir/surface-context";
-import type { AdHocSynthesisContext } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
+import type { AdHocSynthesisContext } from "../scenario/ad-hoc/ad-hoc-scenario";
 import type { ReadableStore } from "../store";
 import type { Scenario, SDCPN } from "../types/sdcpn";
 import type { VisualizerHir } from "../view-hir";

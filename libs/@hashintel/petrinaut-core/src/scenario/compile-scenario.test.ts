@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { lowerScenarioToHir } from "../../../hir/scenario";
+import { lowerScenarioToHir } from "../hir/scenario";
 import { compileScenario, prepareScenarioCompiler } from "./compile-scenario";
 
-import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
+import type { Color, Parameter, Place, Scenario } from "../types/sdcpn";
 import type { CompileScenarioOptions } from "./compile-scenario";
 
 // -- Helpers ------------------------------------------------------------------

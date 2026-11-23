@@ -7,8 +7,8 @@ import {
   initialMarkingToAdHocPlaces,
 } from "./materialize-run-state";
 
-import type { Color, Place, Scenario } from "../../../../types/sdcpn";
-import type { InitialMarking } from "../../../api";
+import type { InitialMarking } from "../../simulation/api";
+import type { Color, Place, Scenario } from "../../types/sdcpn";
 
 const place = (id: string, name: string, colorId: string | null): Place => ({
   id,

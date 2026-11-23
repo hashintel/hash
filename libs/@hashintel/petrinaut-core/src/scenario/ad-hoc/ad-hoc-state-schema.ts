@@ -7,12 +7,9 @@
 
 import { z } from "zod";
 
-import { petrinautIdSchema } from "../../../../document/petrinaut-id";
+import { petrinautIdSchema } from "../../document/petrinaut-id";
 
-import type {
-  AdHocPlaceState,
-  AdHocScenarioState,
-} from "../../../../types/sdcpn";
+import type { AdHocPlaceState, AdHocScenarioState } from "../../types/sdcpn";
 
 const optimizeSettingsSchema = z.strictObject({
   min: z.string(),

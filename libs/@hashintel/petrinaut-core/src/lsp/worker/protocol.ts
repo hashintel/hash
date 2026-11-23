@@ -25,7 +25,7 @@ import type { HirVisualizerContext } from "../../hir/surface-context";
 import type {
   AdHocScenarioState,
   AdHocSynthesisContext,
-} from "../../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
+} from "../../scenario/ad-hoc/ad-hoc-scenario";
 import type { Scenario, ScenarioParameter, SDCPN } from "../../types/sdcpn";
 import type {
   Diagnostic,

@@ -23,8 +23,8 @@ import {
   type AdHocScenarioState,
   type AdHocSlot,
   type AdHocValue,
-} from "../../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
-import { SCENARIO_HELPER_TYPE_DECLARATIONS } from "../../simulation/authoring/scenario/helpers";
+} from "../../scenario/ad-hoc/ad-hoc-scenario";
+import { SCENARIO_HELPER_TYPE_DECLARATIONS } from "../../scenario/helpers";
 import { TYPE_POLICIES } from "../../tokens/type-policies";
 import { applyFormWrapper } from "./create-language-service-host";
 import { getItemFilePath, VISUALIZER_JSX_PACKAGE } from "./file-paths";

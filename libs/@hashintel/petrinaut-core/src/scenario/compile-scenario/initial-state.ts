@@ -1,15 +1,18 @@
-import { coerceTokenRecord } from "../../../../tokens/token-values";
-import { TYPE_POLICIES } from "../../../../tokens/type-policies";
-import { createUserKeyedRecord } from "../../../../validation/record-keys";
+import { coerceTokenRecord } from "../../tokens/token-values";
+import { TYPE_POLICIES } from "../../tokens/type-policies";
+import { createUserKeyedRecord } from "../../validation/record-keys";
 import {
   describeValue,
   interpretPreparedItem,
   staleScenarioItem,
 } from "./prepared-items";
 
-import type { HirInterpretBindings } from "../../../../hir/interpret";
-import type { Color, Place } from "../../../../types/sdcpn";
-import type { InitialMarking, InitialTokenAttributeValue } from "../../../api";
+import type { HirInterpretBindings } from "../../hir/interpret";
+import type {
+  InitialMarking,
+  InitialTokenAttributeValue,
+} from "../../simulation/api";
+import type { Color, Place } from "../../types/sdcpn";
 import type { PreparedScenarioItem } from "./prepared-items";
 
 /** A failure attributed to a place id, or `__code__` for the code block. */

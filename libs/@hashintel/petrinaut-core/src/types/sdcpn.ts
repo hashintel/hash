@@ -210,7 +210,7 @@ export type DifferentialEquation = {
 // The editing state of the ad-hoc scenario form. A persisted scenario may
 // carry one of these as its initial state, which makes the shapes document
 // types; the behaviour around them (transitions, actions, synthesis) lives
-// in `simulation/authoring/scenario/ad-hoc/`.
+// in `scenario/ad-hoc/`.
 
 /** Optimization settings for one Optimize toggle, kept while toggled off. */
 export type AdHocOptimizeSettings = {

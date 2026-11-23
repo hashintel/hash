@@ -5,7 +5,7 @@
 
 import { resolveComponent } from "../composition/interfaces";
 import { getArcEndpoint } from "../document/arc-endpoints";
-import { cloneAdHocScenarioState } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-actions";
+import { cloneAdHocScenarioState } from "../scenario/ad-hoc/ad-hoc-actions";
 
 import type { ResolvedLibraries } from "../composition/libraries";
 import type {

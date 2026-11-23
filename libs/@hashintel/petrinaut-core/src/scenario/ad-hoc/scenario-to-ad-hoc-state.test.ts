@@ -13,8 +13,8 @@ import {
   supplyChainWithDisruption,
   vaccinationCampaign,
   wheelTruing,
-} from "../../../../examples/index";
-import { lowerScenarioToHir } from "../../../../hir/scenario";
+} from "../../examples/index";
+import { lowerScenarioToHir } from "../../hir/scenario";
 import { compileScenario } from "../compile-scenario";
 import {
   adHocExposedParameterIdentifier,
@@ -30,7 +30,7 @@ import type {
   Place,
   Scenario,
   SDCPN,
-} from "../../../../types/sdcpn";
+} from "../../types/sdcpn";
 import type { AdHocSynthesisContext } from "./ad-hoc-scenario";
 
 const place = (id: string, name: string, colorId: string | null): Place => ({

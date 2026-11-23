@@ -1,9 +1,17 @@
-import { parseParameterValue } from "../../../document/parameter-values";
+/**
+ * @layerRoot core.scenario
+ * @role Compiles a scenario to an initial marking and parameter values
+ *
+ * A scenario's expressions and code are lowered to HIR and interpreted, once
+ * per run or optimization trial. The result is the input a run starts from;
+ * no runtime under `simulation/` imports this folder.
+ */
+import { parseParameterValue } from "../document/parameter-values";
 import {
   buildScenarioCodeContext,
   buildScenarioExpressionContext,
-} from "../../../hir/surface-context";
-import { createUserKeyedRecord, getOwn } from "../../../validation/record-keys";
+} from "../hir/surface-context";
+import { createUserKeyedRecord, getOwn } from "../validation/record-keys";
 import {
   compileCodeModeInitialState,
   compilePerPlaceInitialState,
@@ -15,10 +23,10 @@ import {
 } from "./compile-scenario/prepared-items";
 import { decodeScenarioParameterValue } from "./scenario-parameter-value";
 
-import type { HirInterpretBindings, HirValue } from "../../../hir/interpret";
-import type { ScenarioHir } from "../../../hir/scenario";
-import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
-import type { InitialMarking, InitialPlaceMarking } from "../../api";
+import type { HirInterpretBindings, HirValue } from "../hir/interpret";
+import type { ScenarioHir } from "../hir/scenario";
+import type { InitialMarking, InitialPlaceMarking } from "../simulation/api";
+import type { Color, Parameter, Place, Scenario } from "../types/sdcpn";
 import type { InitialStateOutcome } from "./compile-scenario/initial-state";
 import type { PreparedScenarioItem } from "./compile-scenario/prepared-items";
 

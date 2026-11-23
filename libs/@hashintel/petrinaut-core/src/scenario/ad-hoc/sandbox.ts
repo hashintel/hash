@@ -1,9 +1,6 @@
 /**
  * Best-effort hardening for raw JavaScript evaluated with `new Function`.
  * Expressions share the host realm; these helpers provide no isolation.
- *
- * @layerRoot core.simulation.authoring
- * @role Compiles the code users write inside a net and hardens the surfaces that evaluate it as raw JavaScript
  */
 
 /**

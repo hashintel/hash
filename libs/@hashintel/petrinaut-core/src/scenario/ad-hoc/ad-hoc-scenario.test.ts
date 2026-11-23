@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { walkHir } from "../../../../hir/hir";
-import { lowerScenarioToHir } from "../../../../hir/scenario";
-import { scenarioSchema } from "../../../../schemas/scenario-schema";
+import { walkHir } from "../../hir/hir";
+import { lowerScenarioToHir } from "../../hir/scenario";
+import { scenarioSchema } from "../../schemas/scenario-schema";
 import { compileScenario } from "../compile-scenario";
 import {
   adHocOptimizationBindings,
@@ -23,7 +23,7 @@ import {
   unshareAdHocColumn,
 } from "./ad-hoc-scenario";
 
-import type { Scenario } from "../../../../types/sdcpn";
+import type { Scenario } from "../../types/sdcpn";
 import type {
   AdHocColouredPlace,
   AdHocRow,

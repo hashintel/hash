@@ -15,7 +15,7 @@ import { sampleDistribution } from "./sample-distribution";
 
 import type { HirKernelSink } from "../../hir-runtime";
 import type { TokenRegionViews } from "../../tokens/token-layout";
-import type { RuntimeDistribution } from "../authoring/user-code/distribution";
+import type { RuntimeDistribution } from "./distribution";
 import type { CompiledTransition } from "./types";
 
 const UUID_LO_MASK = 0xffffffffffffffffn;

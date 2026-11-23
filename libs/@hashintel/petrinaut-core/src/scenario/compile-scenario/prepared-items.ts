@@ -1,9 +1,9 @@
-import { HirInterpretError, interpretHir } from "../../../../hir/interpret";
-import { typecheckHir } from "../../../../hir/typecheck";
+import { HirInterpretError, interpretHir } from "../../hir/interpret";
+import { typecheckHir } from "../../hir/typecheck";
 
-import type { HirInterpretBindings, HirValue } from "../../../../hir/interpret";
-import type { ScenarioHirItem } from "../../../../hir/scenario";
-import type { HirFunctionContext } from "../../../../hir/surface-context";
+import type { HirInterpretBindings, HirValue } from "../../hir/interpret";
+import type { ScenarioHirItem } from "../../hir/scenario";
+import type { HirFunctionContext } from "../../hir/surface-context";
 
 /**
  * One lowered scenario item after the value-independent half of its

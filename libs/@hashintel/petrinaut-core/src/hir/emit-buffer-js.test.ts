@@ -20,7 +20,7 @@ import {
 } from "./instantiate";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 
-import type { RuntimeDistribution } from "../simulation/authoring/user-code/distribution";
+import type { RuntimeDistribution } from "../simulation/engine/distribution";
 import type { HirFunction } from "./hir";
 import type {
   HirKernelContext,

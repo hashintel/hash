@@ -21,7 +21,7 @@ import type {
   Color,
   Place,
   Scenario,
-} from "../../../../types/sdcpn";
+} from "../../types/sdcpn";
 import type { AdHocSynthesisContext } from "./ad-hoc-scenario";
 
 export type AdHocStateFromScenario =
