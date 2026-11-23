@@ -8,6 +8,29 @@ The code is in `petrinaut/src/ui/plugins/`.
 
 ![How the editor runs plugins](./plugin-runtime.d2)
 
+## Interface
+
+Plugin code imports `ui/plugin.ts` alone, and
+[the reference](doc:ui.plugins/reference) lists what it exports. The plugins
+the editor always runs, in [`ui.plugins.built-in`](layer:ui.plugins.built-in),
+import through it too.
+
+The rest of the UI imports the files below. Every other file of the folder is
+the runtime's own.
+
+| File                                       | What the UI takes from it                                                                                                                          |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins-provider.tsx`                     | `PetrinautPluginsProvider`, which `<Petrinaut>` mounts.                                                                                            |
+| `plugin-outlets.tsx`                       | `PluginRoots`, which the editor view renders, and `PluginToolbarItems`, which the top bar and the viewport controls render.                        |
+| `use-plugin-bottom-panel-views.tsx`        | `usePluginBottomPanelViews`, the tabs plugins add to the bottom panel.                                                                             |
+| `plugin-settings-rows.tsx`                 | `PluginSettingsRows`, the rows plugins add to the settings dialog.                                                                                 |
+| `plugin-assistant.ts`                      | `usePluginAssistant` and `useAssistantChoice`, and the contexts the assistant panel fills, `AssistantPanelContext` and `AssistantTitleBarContext`. |
+| `running-plugins.ts`, `plugin-statuses.ts` | `usePluginStatuses` and `PluginStatus` for the Plugins section of the settings, and `usePluginOverlay` for the prompt of an empty net.             |
+| `plugin-contributions.ts`                  | `describePluginContributions`, what a manifest declares, for a row of that section.                                                                |
+| `plugin-editor.ts`                         | `useCanvasRegistration`, where the canvas registers its controller.                                                                                |
+| `plugin-boundary.tsx`                      | `PluginBoundary`, around the content of the assistant panel.                                                                                       |
+| `define-petrinaut-plugin.ts`               | The types `PetrinautPlugin` and `PetrinautPluginManifest`.                                                                                         |
+
 ## Hosts
 
 `<Petrinaut>` mounts `PetrinautPluginsProvider` inside `<PetrinautProvider>`.

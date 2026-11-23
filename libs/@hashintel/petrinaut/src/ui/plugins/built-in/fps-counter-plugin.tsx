@@ -1,4 +1,4 @@
-import { definePetrinautPlugin } from "../plugin";
+import { definePetrinautPlugin } from "../../plugin";
 import { FpsCounter } from "./fps-counter-plugin/counter";
 
 export const fpsCounterPlugin = definePetrinautPlugin(

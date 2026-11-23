@@ -2,10 +2,10 @@ import { useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { focusLands } from "../../worksheet/focus-flow";
-import { useFocusStops } from "../../worksheet/use-focus-stops";
+import { focusLands } from "../../../worksheet/focus-flow";
+import { useFocusStops } from "../../../worksheet/use-focus-stops";
 
-import type { FocusFold } from "../../worksheet/focus-flow";
+import type { FocusFold } from "../../../worksheet/focus-flow";
 
 /** How a row looks as a stop: under the pointer, and while it holds focus. */
 export const rowStopStyle = css({

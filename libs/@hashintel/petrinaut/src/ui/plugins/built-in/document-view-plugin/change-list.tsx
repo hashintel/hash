@@ -3,7 +3,7 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { onOneLine, rowLimit, rowLimitNote } from "./outline/rows";
 import { emptyStyle, rowStopStyle, useRowStops } from "./use-row-stops";
 
-import type { DocChangeEvent, PetrinautPatch } from "../../plugin";
+import type { DocChangeEvent, PetrinautPatch } from "../../../plugin";
 
 const listStyle = css({
   fontFamily: "mono",

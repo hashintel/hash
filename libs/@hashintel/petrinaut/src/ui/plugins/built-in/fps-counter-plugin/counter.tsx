@@ -1,6 +1,5 @@
 /**
- * @layerRoot ui.plugins.fps
- * @role A draggable browser FPS counter with a bounded local frame history
+ * A draggable browser FPS counter with a bounded local frame history.
  */
 import { useLayoutEffect, useRef } from "react";
 

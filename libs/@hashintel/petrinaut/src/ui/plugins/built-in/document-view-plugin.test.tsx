@@ -8,10 +8,10 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it } from "vitest";
 
+import { renderPlugins } from "../plugins-test-harness";
+import { useRunningPlugins } from "../running-plugins";
+import { usePluginBottomPanelViews } from "../use-plugin-bottom-panel-views";
 import { documentViewPlugin } from "./document-view-plugin";
-import { renderPlugins } from "./plugins-test-harness";
-import { useRunningPlugins } from "./running-plugins";
-import { usePluginBottomPanelViews } from "./use-plugin-bottom-panel-views";
 
 beforeEach(() => {
   localStorage.clear();

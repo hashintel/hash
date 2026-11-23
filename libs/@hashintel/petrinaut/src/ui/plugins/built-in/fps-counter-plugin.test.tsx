@@ -4,10 +4,10 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { createCommandRegistry } from "@hashintel/petrinaut-core";
 
-import { CommandRegistryProvider } from "../../react/commands/command-registry-provider";
+import { CommandRegistryProvider } from "../../../react/commands/command-registry-provider";
+import { PluginRoots, PluginToolbarItems } from "../plugin-outlets";
+import { renderPlugins } from "../plugins-test-harness";
 import { fpsCounterPlugin } from "./fps-counter-plugin";
-import { PluginRoots, PluginToolbarItems } from "./plugin-outlets";
-import { renderPlugins } from "./plugins-test-harness";
 
 beforeEach(() => {
   localStorage.clear();

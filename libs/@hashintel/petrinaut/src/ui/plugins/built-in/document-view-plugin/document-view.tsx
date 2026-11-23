@@ -6,11 +6,11 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
+import { FocusRoot, FocusStack } from "../../../worksheet/focus-stack";
 import { ChangeList, type RecordedChange } from "./change-list";
 import { Outline } from "./outline";
 
-import type { PluginDocumentHandle } from "../../plugin";
+import type { PluginDocumentHandle } from "../../../plugin";
 import type { Expansion } from "./outline/rows";
 
 /** How the changes show: each patch on two lines, or each change as the handle sent it. */

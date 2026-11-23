@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { definePetrinautPlugin, type PluginHook } from "../plugin";
+import { definePetrinautPlugin, type PluginHook } from "../../plugin";
 import {
   DocumentView,
   type ChangesAs,
