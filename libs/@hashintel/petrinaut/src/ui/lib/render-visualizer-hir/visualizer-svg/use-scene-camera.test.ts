@@ -22,7 +22,6 @@ beforeEach(() => {
     return frameId;
   });
   vi.stubGlobal("cancelAnimationFrame", (id: number) => frames.delete(id));
-  vi.stubGlobal("matchMedia", () => ({ matches: false }));
 });
 
 afterEach(() => {

@@ -23,15 +23,6 @@ import { BottomPanel } from "./panel";
 
 import type { ReactNode } from "react";
 
-// The timeline's chart library reads the pixel ratio as its module loads.
-vi.hoisted(() => {
-  globalThis.matchMedia = (() => ({
-    matches: false,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  })) as unknown as typeof matchMedia;
-});
-
 // The timelines draw charts, which this file does not look at.
 vi.mock("./subviews/event-timeline/content", () => ({
   EventTimeline: () => "Timeline of the run",

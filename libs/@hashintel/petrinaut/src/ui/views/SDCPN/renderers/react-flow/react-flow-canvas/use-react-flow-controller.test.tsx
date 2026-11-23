@@ -37,7 +37,6 @@ const defaultProps = {
 const stallFrames = () => {
   vi.stubGlobal("requestAnimationFrame", () => 0);
   vi.stubGlobal("cancelAnimationFrame", () => {});
-  vi.stubGlobal("matchMedia", () => ({ matches: false }));
 };
 
 describe("useReactFlowController", () => {

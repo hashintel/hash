@@ -9,7 +9,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { defineSimulator } from "@hashintel/petrinaut-core";
 
@@ -121,18 +121,6 @@ const openPopover = async () => {
   fireEvent.click(screen.getByRole("button", { name: /^Simulator:/ }));
   return screen.findByRole("radiogroup", { name: "Simulator" });
 };
-
-beforeEach(() => {
-  // The popover positions itself against its trigger with observers jsdom
-  // does not have.
-  class ObserverStub {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-  vi.stubGlobal("ResizeObserver", ObserverStub);
-  vi.stubGlobal("IntersectionObserver", ObserverStub);
-});
 
 afterEach(() => {
   cleanup();

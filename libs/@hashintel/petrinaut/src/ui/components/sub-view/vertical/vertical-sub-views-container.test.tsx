@@ -8,7 +8,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { defaultPetrinautNavigationState } from "../../../../react/navigation/navigation";
 import { PetrinautNavigationProvider } from "../../../../react/navigation/navigation-provider";
@@ -55,14 +55,6 @@ const originalAnimate = Object.getOwnPropertyDescriptor(
   HTMLElement.prototype,
   "animate",
 );
-
-beforeEach(() => {
-  vi.stubGlobal("matchMedia", () => ({
-    matches: false,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  }));
-});
 
 afterEach(() => {
   cleanup();

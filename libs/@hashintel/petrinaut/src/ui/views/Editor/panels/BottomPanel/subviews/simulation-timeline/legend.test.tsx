@@ -15,22 +15,6 @@ import { TimelineLegend } from "./legend";
 
 import type { TimelineSeriesMeta } from "./types";
 
-// jsdom provides neither observer, but opening the combobox dropdown makes
-// zag's popper schedule @floating-ui/dom's autoUpdate on an animation frame,
-// which constructs both. Without stubs that callback throws asynchronously
-// after the tests pass, failing the run as an unhandled error.
-class ObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-  takeRecords(): never[] {
-    return [];
-  }
-}
-globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
-globalThis.IntersectionObserver =
-  ObserverStub as unknown as typeof IntersectionObserver;
-
 // jsdom has no `CSS` either. With the dropdown open, zag looks up the
 // highlighted option by an escaped selector from a mutation observer, and
 // without the stub that callback throws after the test has passed. The

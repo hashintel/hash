@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   useEditorActions,
@@ -8,15 +8,6 @@ import {
 } from "../../../../../../../react/state/editor-context";
 import { renderPlugins } from "../../../../../../plugins/plugins-test-harness";
 import { ActualTimeline } from "./actual";
-
-// The chart library reads the pixel ratio as its module loads.
-vi.hoisted(() => {
-  globalThis.matchMedia = (() => ({
-    matches: false,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  })) as unknown as typeof matchMedia;
-});
 
 afterEach(cleanup);
 
