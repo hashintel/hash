@@ -311,7 +311,7 @@ export const createDurableAgentsServer = (
     options.onStopError ??
     ((conversationId: string, error: unknown) => {
       // oxlint-disable-next-line no-console -- No request is left to answer with it.
-      console.error(`Stopping conversation ${conversationId} failed:`, error);
+      console.error("Stopping conversation %s failed:", conversationId, error);
     });
 
   // Hono's own handler, but a request the server could not serve for now is a 503 the client may retry.
