@@ -63,3 +63,4 @@ A component and its private parts share a name: `x.tsx` is the entry, and the fo
 
 - A plugin or a `rules` object created during render is a new value on every render. `Petrinaut` holds `rules` by content, but a plugin must be defined at module scope.
 - Inside a hook, a value built before another hook call and used after it is not memoized. Call the hooks first, then build each value in one expression.
+- Two classes on one element that set one property to different values are settled by the order of their rules in the stylesheet, and that order follows the paths of the source files. `cx(own, className)` does not make the caller's class win, and moving a file can change which one does. No check reports it. Give both the same value, as `StackedSectionHeader` does for its `zIndex`, or end the value that must win with `!`.

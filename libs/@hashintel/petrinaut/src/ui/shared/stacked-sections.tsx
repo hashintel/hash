@@ -35,7 +35,10 @@ const stackStyle = css({
 });
 const headerStyle = css({
   position: "sticky",
-  zIndex: "[3]",
+  // The same value as the class each caller adds. Two classes that set one
+  // property to different values are settled by their order in the
+  // stylesheet, and that order follows the paths of the source files.
+  zIndex: "[2]",
   backgroundColor: "neutral.s00",
   flexShrink: "0",
   "&[data-inactive] > :not([data-scroll-fade])": { opacity: "[0.6]" },
