@@ -1,5 +1,6 @@
 import { useStore } from "@xyflow/react";
 
+import { focusRoleClass } from "../../../styles/focus";
 import { useStableItems } from "../../../use-stable-items";
 import { arcLayerEdgeId } from "./arc-layer-context";
 import { instanceFlowOrigin, instanceFlowPosition } from "./instance-anchor";
@@ -20,12 +21,6 @@ import type {
   NodeType,
   SelectedArcEdgeType,
 } from "./react-flow-types";
-
-/**
- * Marks a node or a fusion link that has a role in the focus. Only those are
- * marked, so the pane can mute the rest without touching them.
- */
-const focusRoleClass = "canvas-focus-role";
 
 const toReactFlowNode = (node: CanvasNode): NodeType => {
   const size = { width: node.width, height: node.height };

@@ -24,6 +24,13 @@ import type { CanvasArcFocus, CanvasNodeFocus } from "../canvas-focus";
  */
 export const focusFadeMs = 200;
 
+/**
+ * Marks what has a role in the focus: a node, an arc, a fusion link, a shape
+ * on the minimap. Only those are marked, so the pane can mute the rest
+ * without touching them. The pane's selectors spell it out, for Panda.
+ */
+export const focusRoleClass = "canvas-focus-role";
+
 const FOCUSED_COLOR = "var(--colors-neutral-s115)";
 const UPSTREAM_COLOR = "var(--colors-blue-s90)";
 const DOWNSTREAM_COLOR = "var(--colors-orange-s90)";

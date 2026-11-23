@@ -1,6 +1,8 @@
 import { memo } from "react";
 
-import { arcHaloColor } from "../../../../../styles/focus";
+import { cx } from "@hashintel/ds-helpers/css";
+
+import { arcHaloColor, focusRoleClass } from "../../../../../styles/focus";
 import { ARC_STROKE_WIDTH, READ_ARC_DASH } from "../../arc-head";
 import { LineUnderlay } from "../../shared/line-underlay";
 import {
@@ -129,13 +131,11 @@ const MarkedStrokes: React.FC<{ shape: ArcShape }> = ({ shape }) => {
  */
 const ArcOwnStrokesComponent: React.FC<{ shape: ArcShape }> = ({ shape }) => (
   <g
-    className={[
+    className={cx(
       "arc-own",
-      shape.kind === "standard" ? null : "arc-strokes",
-      shape.focus === "none" ? null : "canvas-focus-role",
-    ]
-      .filter(Boolean)
-      .join(" ")}
+      shape.kind !== "standard" && "arc-strokes",
+      shape.focus !== "none" && focusRoleClass,
+    )}
     data-arc={shape.id}
   >
     {shape.kind === "standard" ? (

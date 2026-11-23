@@ -1,10 +1,10 @@
 import { MiniMap as ReactFlowMiniMap, useStore } from "@xyflow/react";
 
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useCanvasInsetsReader } from "../../../../../hooks/use-canvas-insets";
 import { bindStyle } from "../../../../../lib/readings";
-import { miniMapFocusColor } from "../../../styles/focus";
+import { focusRoleClass, miniMapFocusColor } from "../../../styles/focus";
 import { miniMapPlaceFillColor } from "../../../styles/type-colors";
 
 import type { NodeType } from "./react-flow-types";
@@ -61,10 +61,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({
   const ringColor = miniMapFocusColor(focus);
   // The pane fades the shapes outside the neighbourhood, keyed off these
   // classes, so a hover leaves every other shape's props untouched.
-  const shapeClass =
-    ringColor === undefined
-      ? "minimap-shape"
-      : "minimap-shape canvas-focus-role";
+  const shapeClass = cx("minimap-shape", ringColor && focusRoleClass);
   const shapeStyle = {
     fill,
     stroke: ringColor ?? "none",

@@ -1,6 +1,8 @@
 import { memo } from "react";
 
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
+
+import { focusRoleClass } from "../../../../styles/focus";
 
 import type { ArcShape } from "./arc-shapes";
 
@@ -82,15 +84,13 @@ const ArcItemComponent: React.FC<ArcItemProps> = ({
 }) => (
   <g
     // The classes of an edge of React Flow, in the order it writes them.
-    className={[
+    className={cx(
       "arc-item react-flow__edge react-flow__edge-default",
-      shape.focus === "none" ? null : "canvas-focus-role",
+      shape.focus !== "none" && focusRoleClass,
       "nopan",
-      shape.selected ? "selected" : null,
-      selectable ? "selectable" : null,
-    ]
-      .filter(Boolean)
-      .join(" ")}
+      shape.selected && "selected",
+      selectable && "selectable",
+    )}
     tabIndex={0}
     role="group"
     aria-roledescription="edge"
