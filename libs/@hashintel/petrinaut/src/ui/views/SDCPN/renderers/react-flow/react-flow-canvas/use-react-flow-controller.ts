@@ -1,7 +1,7 @@
 import { useReactFlow } from "@xyflow/react";
 import { useEffect, useRef, useState } from "react";
 
-import { useLatest } from "../../../../../../react/hooks/use-latest";
+import { useLatest } from "../../../../../../react/shared/use-latest";
 import { fitSceneViewport } from "../../../canvas-viewport";
 import {
   createViewportAnimator,

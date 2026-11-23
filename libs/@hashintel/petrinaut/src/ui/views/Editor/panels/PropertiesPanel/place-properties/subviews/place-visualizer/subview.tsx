@@ -9,7 +9,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../../react";
-import { useStableCallback } from "../../../../../../../../react/hooks/use-stable-callback";
+import { useStableCallback } from "../../../../../../../../react/shared/use-stable-callback";
 import { useEditorActions } from "../../../../../../../../react/state/editor-context";
 import { useSDCPNState } from "../../../../../../../../react/state/sdcpn-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";

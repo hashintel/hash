@@ -6,6 +6,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { ExperimentsActionsContext } from "../../../../../react/experiments/context";
 import { computeBackendOf } from "../../../../../react/experiments/provider/create-experiment";
 import { NotificationsContext } from "../../../../../react/notifications/context";
+import { useStore } from "../../../../../react/shared/use-store";
 import {
   SimulationContext,
   type StochasticRun,
@@ -15,7 +16,6 @@ import {
   SimulatorsContext,
 } from "../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
-import { useStore } from "../../../../../react/use-store";
 import { ToolbarDivider } from "./toolbar-divider";
 
 const progressStyle = css({

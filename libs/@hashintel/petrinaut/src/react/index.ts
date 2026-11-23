@@ -20,7 +20,7 @@ export { formatShortcutKeys } from "./commands/format-shortcut";
 // --- Instance access + low-level adapters ---
 export { PetrinautInstanceContext } from "./instance-context";
 export { usePetrinautInstance } from "./use-petrinaut-instance";
-export { useStore, useStoreSelector } from "./use-store";
+export { useStore, useStoreSelector } from "./shared/use-store";
 export { ActualModeContext } from "./actual-mode-context";
 export type { ActualModeContextValue } from "./actual-mode-context";
 

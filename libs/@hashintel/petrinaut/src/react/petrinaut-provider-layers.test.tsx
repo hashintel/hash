@@ -22,9 +22,9 @@ import {
 
 import { PetrinautDocumentProvider } from "./petrinaut-provider-layers";
 import { ReadOnlyActionContext } from "./read-only-action-context";
+import { constantStore, useStore } from "./shared/use-store";
 import { SDCPNContext } from "./state/sdcpn-context";
 import { UndoRedoContext } from "./state/undo-redo-context";
-import { constantStore, useStore } from "./use-store";
 
 // A history entry is told from the others by its timestamp, so each change
 // of a test is made at a time of its own.

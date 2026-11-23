@@ -7,7 +7,7 @@ import { createContext, use } from "react";
 
 import { canonicalizeSelection } from "@hashintel/petrinaut-core/selection";
 
-import { useSelected, type Published } from "../select-from-context";
+import { useSelected, type Published } from "../shared/select-from-context";
 
 import type {
   EditorGlobalMode,

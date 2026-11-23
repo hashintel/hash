@@ -6,7 +6,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
 import "uplot/dist/uPlot.min.css";
 
-import { useLatest } from "../../../../../../../react/hooks/use-latest";
+import { useLatest } from "../../../../../../../react/shared/use-latest";
 import {
   describeRunPosition,
   formatRunPosition,

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { useLatest } from "../hooks/use-latest";
+import { useLatest } from "../shared/use-latest";
 
 /** The three calls the language client offers for one kind of temporary session. */
 interface LspSession<Content> {

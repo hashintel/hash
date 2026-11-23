@@ -15,9 +15,9 @@ import {
 } from "@hashintel/petrinaut-core";
 import { createLanguageServerWorker } from "@hashintel/petrinaut-core/workers/lsp";
 
+import { useStore } from "../shared/use-store";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useExecutableDefinition } from "../state/use-executable-definition";
-import { useStore } from "../use-store";
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   EMPTY_DIAGNOSTICS_SNAPSHOT,

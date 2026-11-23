@@ -4,8 +4,8 @@ import uPlot from "uplot";
 import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
 import "uplot/dist/uPlot.min.css";
 
-import { useLatest } from "../../../../../../../react/hooks/use-latest";
-import { useStableCallback } from "../../../../../../../react/hooks/use-stable-callback";
+import { useLatest } from "../../../../../../../react/shared/use-latest";
+import { useStableCallback } from "../../../../../../../react/shared/use-stable-callback";
 import { createRunDataBuilder, createStackedDataBuilder } from "./chart-data";
 import { createChartTooltip, type ChartTooltip } from "./chart-tooltip";
 

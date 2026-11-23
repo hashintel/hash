@@ -1,7 +1,7 @@
 import { use } from "react";
 
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
-import { useStoreSelector } from "../../../../../../../react/use-store";
+import { useStoreSelector } from "../../../../../../../react/shared/use-store";
 
 import type { MetricShape } from "@hashintel/petrinaut-core";
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { useStableCallback } from "../../react/hooks/use-stable-callback";
+import { useStableCallback } from "../../react/shared/use-stable-callback";
 
 import type { NetManagement } from "../../react/net-management-context";
 import type { MinimalNetMetadata } from "@hashintel/petrinaut-core";

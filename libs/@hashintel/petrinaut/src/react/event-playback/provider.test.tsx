@@ -12,12 +12,12 @@ import {
   type RunContinuity,
 } from "@hashintel/petrinaut-core";
 
+import { constantStore } from "../shared/use-store";
 import {
   DEFAULT_SIMULATION_CONTEXT,
   SimulationContext,
   type SimulationContextValue,
 } from "../simulation/context";
-import { constantStore } from "../use-store";
 import {
   EventPlaybackContext,
   type EventPlaybackContextValue,

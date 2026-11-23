@@ -1,7 +1,7 @@
 import { useStoreApi } from "@xyflow/react";
 import { use, useEffect } from "react";
 
-import { useLatest } from "../../../../../../react/hooks/use-latest";
+import { useLatest } from "../../../../../../react/shared/use-latest";
 import {
   fadedColor,
   fadedCoverColor,

@@ -16,9 +16,9 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautInstanceContext } from "../../../../../../react/instance-context";
+import { useStore } from "../../../../../../react/shared/use-store";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { useStore } from "../../../../../../react/use-store";
 import { PetrinautPresentationProvider } from "../../../../shared/presentation-provider";
 import { NetNavigationList } from "./nets-list";
 

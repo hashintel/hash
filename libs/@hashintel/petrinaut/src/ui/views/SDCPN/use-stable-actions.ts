@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { useLatest } from "../../../react/hooks/use-latest";
+import { useLatest } from "../../../react/shared/use-latest";
 
 type Actions = Record<string, (...args: never[]) => unknown>;
 

@@ -11,7 +11,7 @@ import {
 import { useLayoutEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { usePublished } from "../../../../../../../react/select-from-context";
+import { usePublished } from "../../../../../../../react/shared/select-from-context";
 import {
   EditorContext,
   EditorPublishedContext,

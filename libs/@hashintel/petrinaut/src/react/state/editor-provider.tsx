@@ -1,12 +1,12 @@
 import { use, useEffect, useRef, useState } from "react";
 
 import { ActualModeContext } from "../actual-mode-context";
-import { useLatest } from "../hooks/use-latest";
 import {
   navigationResourceToSimulateDrawer,
   usePetrinautNavigation,
 } from "../navigation/navigation";
-import { usePublished } from "../select-from-context";
+import { usePublished } from "../shared/select-from-context";
+import { useLatest } from "../shared/use-latest";
 import {
   EditorActionsContext,
   EditorModeContext,

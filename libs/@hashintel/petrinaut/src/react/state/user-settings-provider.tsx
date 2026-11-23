@@ -1,6 +1,6 @@
 import { use, useEffect, useState } from "react";
 
-import { usePublished } from "../select-from-context";
+import { usePublished } from "../shared/select-from-context";
 import {
   createPlainSettingSetters,
   defaultUserSettings,

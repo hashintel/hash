@@ -1,4 +1,4 @@
-import { selectStore } from "../../use-store";
+import { selectStore } from "../../shared/use-store";
 
 import type { PlaybackSource, StochasticRun } from "../context";
 import type {

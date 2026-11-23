@@ -10,12 +10,12 @@ import {
 } from "../../../../../../react/experiments/context";
 import { computeBackendOf } from "../../../../../../react/experiments/provider/create-experiment";
 import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session/selection-draws";
-import { useLatest } from "../../../../../../react/hooks/use-latest";
 import {
   usePetrinautNavigate,
   simulateDrawerToNavigationResource,
   simulateDrawerToNavigationOverlay,
 } from "../../../../../../react/navigation/navigation";
+import { useLatest } from "../../../../../../react/shared/use-latest";
 import {
   EditorContext,
   type EditorContextValue,

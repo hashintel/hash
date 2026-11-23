@@ -5,10 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createReadableStore } from "@hashintel/petrinaut-core";
 
+import { useStore } from "../../../react/shared/use-store";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
-import { useStore } from "../../../react/use-store";
 import { createCanvasPointer } from "./canvas-pointer";
 import { useCanvasScene } from "./use-canvas-scene";
 

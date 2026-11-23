@@ -4,7 +4,7 @@ import {
   useSelected,
   useSelectedFields,
   type Published,
-} from "../select-from-context";
+} from "../shared/select-from-context";
 import { defaultPanelSizes } from "./panel-sizes";
 
 import type {

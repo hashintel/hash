@@ -10,10 +10,10 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { ExperimentsActionsContext } from "../experiments/context";
-import { errorMessage } from "../experiments/shared/error-message";
-import { useBlockWindowClose } from "../hooks/use-block-window-close";
-import { useLatest } from "../hooks/use-latest";
 import { PetrinautOptimizationContext } from "../optimization-context";
+import { errorMessage } from "../shared/error-message";
+import { useBlockWindowClose } from "../shared/use-block-window-close";
+import { useLatest } from "../shared/use-latest";
 import {
   type OptimizationBest,
   isOptimizationActive,

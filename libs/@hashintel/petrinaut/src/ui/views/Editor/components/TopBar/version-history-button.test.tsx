@@ -11,11 +11,11 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { createReadableStore } from "@hashintel/petrinaut-core";
 
+import { constantStore } from "../../../../../react/shared/use-store";
 import {
   UndoRedoContext,
   type UndoHistory,
 } from "../../../../../react/state/undo-redo-context";
-import { constantStore } from "../../../../../react/use-store";
 import { VersionHistoryButton } from "./version-history-button";
 
 afterEach(cleanup);

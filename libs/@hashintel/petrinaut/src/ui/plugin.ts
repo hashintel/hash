@@ -60,7 +60,7 @@ export {
   useCommandRegistry,
   useCommands,
 } from "../react/commands/command-registry";
-export { useStore, useStoreSelector } from "../react/use-store";
+export { useStore, useStoreSelector } from "../react/shared/use-store";
 export type { PetrinautRevealTarget } from "../react/hooks/use-reveal-in-editor";
 export type { AddNotificationInput } from "../react/notifications/context";
 export type { ReadOnlyReason } from "../react/state/use-read-only-reason";

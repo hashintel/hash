@@ -4,10 +4,10 @@ import { Icon } from "@hashintel/ds-components";
 import { PlaybackIcon } from "@hashintel/ds-icons";
 
 import { EventPlaybackContext } from "../../../../../react/event-playback/context";
+import { useStoreSelector } from "../../../../../react/shared/use-store";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { useEditorActions } from "../../../../../react/state/editor-context";
-import { useStoreSelector } from "../../../../../react/use-store";
 import { CollapsibleGroup } from "./collapsible-group";
 import { EventTimeControls } from "./event-time-controls";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";

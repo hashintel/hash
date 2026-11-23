@@ -21,14 +21,15 @@ import {
   type CompiledScenarioResult,
 } from "@hashintel/petrinaut-core";
 
-import { useLatest } from "../hooks/use-latest";
-import { useStableCallback } from "../hooks/use-stable-callback";
 import {
   LanguageClientContext,
   type LanguageClientContextValue,
 } from "../lsp/context";
 import { usePetrinautNavigation } from "../navigation/navigation";
 import { NotificationsContext } from "../notifications/context";
+import { useLatest } from "../shared/use-latest";
+import { useStableCallback } from "../shared/use-stable-callback";
+import { constantStore, useStore } from "../shared/use-store";
 import {
   findSimulator,
   SimulatorsContext,
@@ -36,7 +37,6 @@ import {
 } from "../simulators/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useExecutableDefinition } from "../state/use-executable-definition";
-import { constantStore, useStore } from "../use-store";
 import {
   type InitialMarking,
   type PlaybackSource,

@@ -2,14 +2,14 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { createItemTypeLookup } from "./sdcpn-provider/item-type-lookup";
 import { createVisualizerDefinitionStore } from "./sdcpn-provider/visualizer-definition-store";
-import { usePublished } from "./select-from-context";
+import { usePublished } from "./shared/select-from-context";
+import { useStore } from "./shared/use-store";
 import {
   SDCPNContext,
   SDCPNPublishedContext,
   type SDCPNContextValue,
 } from "./state/sdcpn-context";
 import { usePetrinautInstance } from "./use-petrinaut-instance";
-import { useStore } from "./use-store";
 
 /**
  * Bridge: reads document state from the Core instance and republishes it

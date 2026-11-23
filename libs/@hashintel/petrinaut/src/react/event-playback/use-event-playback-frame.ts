@@ -1,7 +1,7 @@
 import { use } from "react";
 
+import { useStoreSelector } from "../shared/use-store";
 import { SimulationContext } from "../simulation/context";
-import { useStoreSelector } from "../use-store";
 import { EventPlaybackContext } from "./context";
 import { findStepTargetIndex } from "./step-target";
 

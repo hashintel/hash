@@ -11,11 +11,11 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { ExperimentsContext } from "../experiments/context";
-import { useStableCallback } from "../hooks/use-stable-callback";
 import { LanguageClientContext } from "../lsp/context";
 import { NetManagementContext } from "../net-management-context";
 import { NotificationsContext } from "../notifications/context";
 import { OptimizationsContext } from "../optimizations/context";
+import { useStableCallback } from "../shared/use-stable-callback";
 import { usePetrinautInstance } from "../use-petrinaut-instance";
 import { ExperimentHostContext } from "./context";
 import { runExperiment as runHostExperiment } from "./run-experiment";

@@ -10,7 +10,7 @@ import {
   type ReadableStore,
 } from "@hashintel/petrinaut-core";
 
-import { useStoreSelector } from "../../react/use-store";
+import { useStoreSelector } from "../../react/shared/use-store";
 
 import type {
   AnyPluginContributions,

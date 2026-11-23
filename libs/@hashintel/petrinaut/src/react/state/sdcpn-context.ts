@@ -7,7 +7,7 @@ import {
   type SelectionItemType,
 } from "@hashintel/petrinaut-core";
 
-import { useSelected, type Published } from "../select-from-context";
+import { useSelected, type Published } from "../shared/select-from-context";
 
 /**
  * The open document and what the instance says about it.

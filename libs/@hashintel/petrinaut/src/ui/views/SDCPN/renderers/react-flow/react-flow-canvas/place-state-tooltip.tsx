@@ -10,13 +10,13 @@ import { Button } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { getDocumentUri } from "@hashintel/petrinaut-core";
 
+import { useStoreSelector } from "../../../../../../react/shared/use-store";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import {
   useEditorActions,
   useEditorState,
 } from "../../../../../../react/state/editor-context";
 import { useUserSettings } from "../../../../../../react/state/user-settings-context";
-import { useStoreSelector } from "../../../../../../react/use-store";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation-context";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { VisualizerLoading } from "../../../../shared/visualizer-loading";

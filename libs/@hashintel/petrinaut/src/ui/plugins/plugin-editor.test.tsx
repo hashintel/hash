@@ -10,8 +10,8 @@ import {
   defaultPetrinautNavigationState,
   type PetrinautNavigationIntent,
 } from "../../react/navigation/navigation";
+import { useStore } from "../../react/shared/use-store";
 import { EditorContext } from "../../react/state/editor-context";
-import { useStore } from "../../react/use-store";
 import {
   definePetrinautPlugin,
   pluginService,

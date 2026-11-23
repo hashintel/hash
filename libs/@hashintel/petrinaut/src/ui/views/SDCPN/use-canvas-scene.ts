@@ -5,12 +5,12 @@ import {
   compactNodeDimensions,
 } from "@hashintel/petrinaut-core";
 
+import { useStore } from "../../../react/shared/use-store";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { CompositionContext } from "../../../react/state/composition-context";
 import { useEditorFields } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useUserSettingsFields } from "../../../react/state/user-settings-context";
-import { useStore } from "../../../react/use-store";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import {
   buildCanvasScene,

@@ -3,11 +3,11 @@ import { use, useState } from "react";
 import { Button, Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { constantStore, useStore } from "../../../../../react/shared/use-store";
 import {
   UndoRedoContext,
   type UndoHistory,
 } from "../../../../../react/state/undo-redo-context";
-import { constantStore, useStore } from "../../../../../react/use-store";
 
 function formatTime(timestamp: string): string {
   const date = new Date(timestamp);

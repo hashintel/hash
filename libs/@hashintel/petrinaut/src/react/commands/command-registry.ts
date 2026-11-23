@@ -4,7 +4,7 @@
  */
 import { createContext, use, useEffect, useSyncExternalStore } from "react";
 
-import { useLatest } from "../hooks/use-latest";
+import { useLatest } from "../shared/use-latest";
 
 import type { Command, CommandRegistry } from "@hashintel/petrinaut-core";
 

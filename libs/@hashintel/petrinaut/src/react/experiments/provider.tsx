@@ -16,15 +16,16 @@ import {
   type ExperimentBackend,
 } from "@hashintel/petrinaut-core/experiments";
 
-import { useBlockWindowClose } from "../hooks/use-block-window-close";
-import { useLatest } from "../hooks/use-latest";
-import { useStableCallback } from "../hooks/use-stable-callback";
 import { LanguageClientContext } from "../lsp/context";
 import {
   openPetrinautSimulationResource,
   usePetrinautNavigation,
 } from "../navigation/navigation";
 import { NotificationsContext } from "../notifications/context";
+import { errorMessage } from "../shared/error-message";
+import { useBlockWindowClose } from "../shared/use-block-window-close";
+import { useLatest } from "../shared/use-latest";
+import { useStableCallback } from "../shared/use-stable-callback";
 import { findSimulator, SimulatorsContext } from "../simulators/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useExecutableDefinition } from "../state/use-executable-definition";
@@ -54,7 +55,6 @@ import {
   patchExperimentRecords,
 } from "./provider/experiment-records";
 import { createSweepBatchInstantiator } from "./provider/sweep-batch-instantiation";
-import { errorMessage } from "./shared/error-message";
 import { createSweepSession, type SweepSession } from "./sweep-session";
 
 import type { ExperimentParameterAxis } from "./parameter-grid";

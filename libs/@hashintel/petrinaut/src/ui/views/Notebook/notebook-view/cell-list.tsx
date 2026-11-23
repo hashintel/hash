@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useLatest } from "../../../../react/hooks/use-latest";
+import { useLatest } from "../../../../react/shared/use-latest";
 import { focusLands } from "../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../worksheet/use-focus-stops";
 import { CONNECTION_GUTTER_WIDTH } from "../connection-gutter";

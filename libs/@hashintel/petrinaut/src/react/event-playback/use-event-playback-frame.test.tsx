@@ -5,12 +5,12 @@ import { afterEach, expect, it } from "vitest";
 
 import { createReadableStore } from "@hashintel/petrinaut-core";
 
+import { useStore } from "../shared/use-store";
 import {
   DEFAULT_SIMULATION_CONTEXT,
   SimulationContext,
   type SimulationContextValue,
 } from "../simulation/context";
-import { useStore } from "../use-store";
 import { EventPlaybackContext } from "./context";
 import { useEventPlaybackFrame } from "./use-event-playback-frame";
 

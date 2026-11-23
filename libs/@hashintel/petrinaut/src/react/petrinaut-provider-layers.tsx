@@ -9,6 +9,7 @@ import {
 } from "./net-management-context";
 import { ReadOnlyActionContext } from "./read-only-action-context";
 import { SDCPNProvider } from "./sdcpn-provider";
+import { useStore } from "./shared/use-store";
 import { ActiveNetProvider } from "./state/active-net-provider";
 import { CanvasViewportProvider } from "./state/canvas-viewport-provider";
 import { CompositionContext } from "./state/composition-context";
@@ -17,7 +18,6 @@ import { PanelSizesProvider } from "./state/panel-sizes-provider";
 import { UndoRedoContext } from "./state/undo-redo-context";
 import { UserSettingsProvider } from "./state/user-settings-provider";
 import { useHandleHistoryAsUndoRedo } from "./use-handle-history-as-undo-redo";
-import { useStore } from "./use-store";
 
 import type { Petrinaut, PlaybackSpeed } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
