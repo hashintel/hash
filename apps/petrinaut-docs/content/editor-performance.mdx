@@ -402,6 +402,12 @@ from 216 ms to 144 ms, and the drag's from 199 ms to 153 ms. With every node
 on screen the raster work is the same, 771 ms and 726 ms for the pan. With
 GPU raster, the pan of the net of 1,742 arcs shows as many frames as before.
 
+In Safari an arc takes a press from further than it did. WebKit counts the
+width of a stroke into the box of a path only when the stroke has a paint, and
+the unpainted path of an arc now has one, at opacity 0: on Supply Chain, of
+1,296 points across the bands of its 48 arcs, 826 took their arc and 1,228 do
+now.
+
 ## A highlight on a net with many nodes
 
 A node outside the neighbourhood faded by an opacity on its element, and the
