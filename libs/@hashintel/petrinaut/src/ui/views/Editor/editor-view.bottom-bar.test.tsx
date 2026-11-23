@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { useEditorActions } from "../../../react/state/editor-context";
 import { definePetrinautPlugin } from "../../plugins/define-petrinaut-plugin";
@@ -55,21 +55,7 @@ const barButtons = () =>
     .map((button) => button.getAttribute("aria-label"))
     .filter((label) => label !== null);
 
-beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
-});
-
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
+afterEach(cleanup);
 
 describe("EditorView bottom bar", () => {
   // The assistant's button keeps the group of the tools mounted on a

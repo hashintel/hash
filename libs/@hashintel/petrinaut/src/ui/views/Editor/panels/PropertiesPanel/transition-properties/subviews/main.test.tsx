@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use, type ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PetrinautInstanceContext } from "../../../../../../../react/instance-context";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
@@ -18,21 +18,8 @@ import type {
   Transition,
 } from "@hashintel/petrinaut-core";
 
-// The selects' positioners observe their anchors; jsdom has no observer.
-beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
-});
-
 afterEach(() => {
   cleanup();
-  vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
 

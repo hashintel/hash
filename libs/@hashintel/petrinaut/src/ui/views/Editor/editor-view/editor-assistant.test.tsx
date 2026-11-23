@@ -8,15 +8,7 @@ import {
   within,
 } from "@testing-library/react";
 import { type ReactNode, use } from "react";
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  test,
-  vi,
-} from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { createCommandRegistry } from "@hashintel/petrinaut-core";
 
@@ -28,17 +20,6 @@ import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin"
 import { useAssistantPanel } from "../../../plugins/plugin-assistant";
 import { renderPlugins } from "../../../plugins/plugins-test-harness";
 import { AssistantCommands, EditorAssistantPanel } from "./editor-assistant";
-
-beforeAll(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      public disconnect() {}
-      public observe() {}
-      public unobserve() {}
-    },
-  );
-});
 
 beforeEach(() => localStorage.clear());
 afterEach(cleanup);

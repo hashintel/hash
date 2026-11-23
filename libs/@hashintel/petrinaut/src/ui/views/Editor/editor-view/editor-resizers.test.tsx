@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it } from "vitest";
 
 import { createPanelPresence } from "../../../../react/state/panel-presence";
 import { PanelPresenceContext } from "../../../../react/state/panel-presence-context";
@@ -9,21 +9,7 @@ import { EditorResizers } from "./editor-resizers";
 
 import type { DockName } from "../shared/docks";
 
-beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
-});
-
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
+afterEach(cleanup);
 
 /** The editor's resizers with the named panels open and the assistant docked, open or not. */
 const renderResizers = ({

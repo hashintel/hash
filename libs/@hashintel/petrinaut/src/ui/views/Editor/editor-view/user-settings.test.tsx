@@ -32,14 +32,6 @@ import type { ReactNode } from "react";
 beforeEach(() => {
   localStorage.clear();
   vi.stubGlobal("PointerEvent", MouseEvent);
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
   Object.defineProperty(HTMLElement.prototype, "scrollTo", {
     configurable: true,
     value: vi.fn(),

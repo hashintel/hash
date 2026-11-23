@@ -15,13 +15,6 @@ vi.hoisted(() => {
     addEventListener: () => {},
     removeEventListener: () => {},
   })) as unknown as typeof matchMedia;
-  // The sections of the sidebar observe their size, which jsdom does not lay
-  // out.
-  globalThis.ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
 });
 
 afterEach(cleanup);

@@ -29,15 +29,6 @@ vi.mock("./simulation-creation-drawer", () => ({
   SimulationCreationDrawer: () => null,
 }));
 
-vi.stubGlobal(
-  "ResizeObserver",
-  class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  },
-);
-
 afterEach(cleanup);
 
 const assistantPlugin = definePetrinautPlugin(

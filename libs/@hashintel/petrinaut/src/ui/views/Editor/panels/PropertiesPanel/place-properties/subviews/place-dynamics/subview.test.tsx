@@ -21,19 +21,6 @@ import type {
 
 afterEach(cleanup);
 
-// The menu's positioner observes its anchor; jsdom has no observer.
-if (typeof window.ResizeObserver === "undefined") {
-  class ResizeObserverStub {
-    observe(): void {}
-    unobserve(): void {}
-    disconnect(): void {}
-  }
-  Object.defineProperty(window, "ResizeObserver", {
-    value: ResizeObserverStub,
-    configurable: true,
-  });
-}
-
 const satellite: Color = {
   id: "satellite",
   name: "Satellite",

@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use, type ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   createJsonDocHandle,
@@ -19,22 +19,7 @@ import { CompositionContext } from "../../../../../../react/state/composition-co
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { ComponentInstanceProperties } from "./main";
 
-// The panel's sections measure themselves; jsdom has no observer.
-beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
-});
-
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
+afterEach(cleanup);
 
 const place = (id: string, name: string): Place => ({
   id,

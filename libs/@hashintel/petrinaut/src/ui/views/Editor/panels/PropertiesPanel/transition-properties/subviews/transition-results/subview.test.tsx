@@ -7,7 +7,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { use, type ReactNode } from "react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { generateDefaultTransitionKernelCode } from "@hashintel/petrinaut-core";
 
@@ -27,21 +27,8 @@ import type {
   Transition,
 } from "@hashintel/petrinaut-core";
 
-// The menu's positioner observes its anchor; jsdom has no observer.
-beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
-});
-
 afterEach(() => {
   cleanup();
-  vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
 
