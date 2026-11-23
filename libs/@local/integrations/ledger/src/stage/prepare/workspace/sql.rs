@@ -1,4 +1,3 @@
-// From `engine/src/sql.rs`
 use core::fmt::{self, Write as _};
 
 /// A table or column name in a DuckDB statement.

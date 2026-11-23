@@ -1,4 +1,3 @@
-// From `engine/src/workspace/select.rs`
 //! The check that SQL is a single `SELECT` statement whose table functions are allowed.
 //!
 //! DuckDB's `json_serialize_sql` reads the SQL with DuckDB's own parser. It refuses every
@@ -9,7 +8,7 @@
 use error_stack::{Report, ResultExt as _};
 use serde_json::Value;
 
-use crate::workspace::StatementError;
+use super::StatementError;
 
 /// The table functions a query can call.
 const TABLE_FUNCTIONS: [&str; 3] = ["generate_series", "range", "unnest"];

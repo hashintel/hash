@@ -5,6 +5,7 @@
 
 mod capture;
 mod failure;
+mod prepare;
 #[cfg(test)]
 mod tests;
 

@@ -1,31 +1,17 @@
-// From `engine/src/workspace/connection/capture.rs:1-25`
 use alloc::sync::Arc;
 use core::error::Error;
 use std::{fs::File, path::Path, sync::Mutex};
 
-use arrow_array::RecordBatch;
 use duckdb::{
     arrow::datatypes::SchemaRef,
     core::DataChunkHandle,
-    params_from_iter,
     vtab::{BindInfo, InitInfo, TableFunctionInfo, VTab, to_duckdb_logical_type_for_field},
 };
 use error_stack::{Report, ResultExt as _};
-use parquet::{
-    arrow::{
-        ArrowWriter,
-        arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder},
-    },
-    basic::Compression,
-    file::properties::WriterProperties,
-};
+use parquet::arrow::arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder};
 
-use super::Connection;
-use crate::{
-    CaptureError, SourceCapture, StatementError, sql::Identifier, workspace::metrics::Operation,
-};
+use super::{Identifier, StatementError, Workspace};
 
-// From `engine/src/workspace/connection/capture.rs:92-133`
 #[derive(Clone, Default)]
 pub(super) struct CaptureSchema(Arc<Mutex<Option<SchemaRef>>>);
 
@@ -68,39 +54,39 @@ impl VTab for SchemaTable {
     }
 }
 
-impl Connection {
-    // From `engine/src/workspace/mod.rs:147-155`
-    /// Loads an immutable capture into `table`, preserving its schema even when it has no rows.
+impl Workspace {
+    /// Loads the Parquet file at `file` into `table`, preserving its schema even when it has no
+    /// rows, and returns the number of rows.
     ///
-    /// The replacement is transactional. Queries retain their restrictions on external access.
+    /// The rows keep the order of the file. The replacement is transactional, so a failed load
+    /// leaves an existing table as it was. Queries retain their restrictions on external access.
     ///
     /// # Errors
     ///
-    /// Returns [`CaptureError::Read`] for invalid Parquet, [`CaptureError::Query`] for a failed
-    /// import, [`CaptureError::DiskUsage`] for a failed workspace disk-limit check, or
-    /// [`CaptureError::Stopped`] if the workspace thread stops.
-    // From `engine/src/workspace/connection/capture.rs:135-190`
-    pub(super) fn load_capture(
+    /// - [`Failed`] if the file cannot be read as Parquet, or DuckDB cannot load its rows
+    ///
+    /// [`Failed`]: StatementError::Failed
+    pub(crate) fn load_capture(
         &self,
-        capture: &SourceCapture,
+        file: &Path,
         table: &str,
-    ) -> Result<(), Report<CaptureError>> {
-        let file = File::open(capture.path()).change_context(CaptureError::Read)?;
-        let builder =
-            ParquetRecordBatchReaderBuilder::try_new(file).change_context(CaptureError::Read)?;
+    ) -> Result<u64, Report<StatementError>> {
+        let file = File::open(file).change_context(StatementError::Failed)?;
+        let builder = ParquetRecordBatchReaderBuilder::try_new(file)
+            .change_context(StatementError::Failed)?;
         let schema = Arc::clone(builder.schema());
-        let batches = builder.build().change_context(CaptureError::Read)?;
+        let batches = builder.build().change_context(StatementError::Failed)?;
         *self
             .capture_schema
             .0
             .lock()
-            .map_err(|_error| Report::new(CaptureError::Read))? = Some(schema);
+            .map_err(|_error| Report::new(StatementError::Failed))? = Some(schema);
         let result = self.load_batches(table, batches);
         *self
             .capture_schema
             .0
             .lock()
-            .map_err(|_error| Report::new(CaptureError::Read))? = None;
+            .map_err(|_error| Report::new(StatementError::Failed))? = None;
         result
     }
 
@@ -108,32 +94,34 @@ impl Connection {
         &self,
         table: &str,
         batches: ParquetRecordBatchReader,
-    ) -> Result<(), Report<CaptureError>> {
+    ) -> Result<u64, Report<StatementError>> {
         let transaction = self
             .duckdb
             .unchecked_transaction()
-            .change_context(CaptureError::Query)?;
+            .change_context(StatementError::Failed)?;
         transaction
             .execute_batch(&format!(
                 "CREATE OR REPLACE TABLE {} AS SELECT * FROM _capture_schema()",
                 Identifier::new(table)
             ))
-            .change_context(CaptureError::Query)?;
+            .change_context(StatementError::Failed)?;
+        let mut rows = 0_u64;
         {
             let mut appender = transaction
                 .appender(table)
-                .change_context(CaptureError::Query)?;
+                .change_context(StatementError::Failed)?;
             for batch in batches {
-                self.check_capture_cancelled()?;
+                let batch = batch.change_context(StatementError::Failed)?;
+                rows = rows.saturating_add(u64::try_from(batch.num_rows()).unwrap_or(u64::MAX));
                 appender
-                    .append_record_batch(batch.change_context(CaptureError::Read)?)
-                    .change_context(CaptureError::Query)?;
+                    .append_record_batch(batch)
+                    .change_context(StatementError::Failed)?;
             }
-            appender.flush().change_context(CaptureError::Query)?;
+            appender.flush().change_context(StatementError::Failed)?;
         }
-        self.check_capture_cancelled()?;
-        transaction.commit().change_context(CaptureError::Query)?;
-        self.check_disk_limit()
-            .change_context(CaptureError::DiskUsage)
+        transaction
+            .commit()
+            .change_context(StatementError::Failed)?;
+        Ok(rows)
     }
 }

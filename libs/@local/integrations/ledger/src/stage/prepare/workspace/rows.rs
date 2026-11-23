@@ -1,4 +1,3 @@
-// From `engine/src/workspace/rows.rs`
 use duckdb::{
     arrow::datatypes::{DataType, IntervalUnit, TimeUnit},
     types::Value,
@@ -6,7 +5,7 @@ use duckdb::{
 
 /// The rows a query returned.
 #[derive(Debug)]
-pub struct Rows {
+pub(crate) struct Rows {
     columns: Box<[Box<str>]>,
     rows: Vec<Box<[Value]>>,
 }
@@ -78,12 +77,12 @@ impl Rows {
 
     /// Returns the column names, in the order the query returned them.
     #[must_use]
-    pub const fn columns(&self) -> &[Box<str>] {
+    pub(crate) const fn columns(&self) -> &[Box<str>] {
         &self.columns
     }
 
     /// Returns each row's values, in the order of [`columns`](Self::columns).
-    pub fn iter(&self) -> impl ExactSizeIterator<Item = &[Value]> {
+    pub(crate) fn iter(&self) -> impl ExactSizeIterator<Item = &[Value]> {
         self.rows.iter().map(|row| &**row)
     }
 }
