@@ -54,8 +54,8 @@ const getOffset = (instant: number, timeZone: string) => {
 };
 
 /**
- * The instant a wall-clock time in a time zone is at. A time skipped when the clocks go forward is taken at the offset
- * from before the change, so may be an hour off from when Temporal runs it.
+ * The instant a wall-clock time in a time zone is at. A time skipped when the clocks go forward comes out an hour off,
+ * so callers check it with `isWallClock`.
  */
 const toInstant = (
   { year, month, day }: CalendarDate,
@@ -69,6 +69,18 @@ const toInstant = (
   const secondOffset = getOffset(wallClock - firstOffset, timeZone);
 
   return wallClock - secondOffset;
+};
+
+/** Whether an instant is at the wall-clock hour and minute in a time zone, which a time skipped by DST isn't. */
+const isWallClock = (
+  instant: number,
+  hour: number,
+  minute: number,
+  timeZone: string,
+) => {
+  const fields = getZonedFields(instant, timeZone);
+
+  return fields.hour === hour && fields.minute === minute;
 };
 
 /** The day it is at an instant in a time zone. */
@@ -218,8 +230,9 @@ const parseCronExpression = (cronExpression: string): CronFields | null => {
 
 /**
  * The next times a schedule runs after an instant, at most `count` of them, or `null` if its cron expression isn't one
- * this can read, e.g. "@daily". An interval runs at every multiple of it since the Unix epoch, as Temporal runs one
- * without an offset. A cron expression's time zone is UTC unless it has one, and a time must match every field.
+ * this can read, e.g. "@daily", or if none are found within five years. An interval runs at every multiple of it since
+ * the Unix epoch, as Temporal runs one without an offset. A cron expression's time zone is UTC unless it has one, and a
+ * time must match every field.
  */
 export const getNextRuns = (
   scheduleSpec: ScheduleSpec,
@@ -244,19 +257,36 @@ export const getNextRuns = (
   }
 
   const timeZone = scheduleSpec.timezone ?? "UTC";
+  const afterMs = after.getTime();
   const today = getZonedDate(after, timeZone);
-  const runs: Date[] = [];
+  const years = cron.years ? [...cron.years] : null;
+  const laterYears = years?.filter((year) => year >= today.year) ?? null;
 
-  /* From the day before, as a run early on that day in the time zone can still be after the instant. */
-  for (let offset = -1; offset <= maxDaysAhead; offset++) {
-    const day = new Date(
-      Date.UTC(today.year, today.month - 1, today.day + offset),
-    );
+  if (laterYears?.length === 0) {
+    return [];
+  }
+
+  /*
+   * From the day before, as a run early on that day in the time zone can still be after the instant, or from the
+   * first of a later year a cron is limited to, e.g. a one-off years ahead.
+   */
+  const firstYear = laterYears ? Math.min(...laterYears) : today.year;
+  const firstDay =
+    firstYear > today.year
+      ? Date.UTC(firstYear, 0, 1)
+      : Date.UTC(today.year, today.month - 1, today.day - 1);
+  const runs: Date[] = [];
+  let lastYear = firstYear;
+
+  for (let offset = 0; offset <= maxDaysAhead; offset++) {
+    const day = new Date(firstDay + offset * 86_400_000);
     const date = {
       year: day.getUTCFullYear(),
       month: day.getUTCMonth() + 1,
       day: day.getUTCDate(),
     };
+
+    lastYear = date.year;
 
     if (
       !cron.months.has(date.month) ||
@@ -268,11 +298,24 @@ export const getNextRuns = (
     }
 
     for (const hour of cron.hours) {
+      /* Hours and minutes already past are skipped whole, as an every-second cron has thousands of times in them. */
+      if (toInstant(date, hour, 59, 59, timeZone) <= afterMs) {
+        continue;
+      }
+
       for (const minute of cron.minutes) {
+        if (toInstant(date, hour, minute, 59, timeZone) <= afterMs) {
+          continue;
+        }
+
         for (const second of cron.seconds) {
           const instant = toInstant(date, hour, minute, second, timeZone);
 
-          if (instant > after.getTime()) {
+          /* Temporal skips a time the clocks jump over. */
+          if (
+            instant > afterMs &&
+            isWallClock(instant, hour, minute, timeZone)
+          ) {
             runs.push(new Date(instant));
 
             if (runs.length === count) {
@@ -284,7 +327,10 @@ export const getNextRuns = (
     }
   }
 
-  return runs;
+  /* None in the search doesn't rule out later runs, unless the cron's years end before where it stopped. */
+  return runs.length === 0 && !(years && Math.max(...years) < lastYear)
+    ? null
+    : runs;
 };
 
 /** When a run is, in the schedule's time zone, e.g. "Mon 23 Nov, 09:00". */

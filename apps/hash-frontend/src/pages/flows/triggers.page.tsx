@@ -198,6 +198,12 @@ const TriggersPage: NextPageWithLayout = () => {
     ArchiveFlowScheduleMutationVariables
   >(archiveFlowScheduleMutation);
 
+  /*
+   * Fetches the triggers after a change. One that fails leaves the rows as they were until the next poll, rather than
+   * making the change look like it failed, which would invite making it again.
+   */
+  const refresh = () => refetch().catch(() => undefined);
+
   /* The trigger being paused or resumed, whose switch and menu wait for it. */
   const [switchingEntityId, setSwitchingEntityId] = useState<EntityId | null>(
     null,
@@ -213,15 +219,17 @@ const TriggersPage: NextPageWithLayout = () => {
       await (on
         ? resumeFlowSchedule({ variables })
         : pauseFlowSchedule({ variables }));
-      await refetch();
     } catch (caught) {
       setActionError({
         title: `“${row.text}” wasn't ${on ? "resumed" : "paused"}`,
         message: caught instanceof Error ? caught.message : String(caught),
       });
-    } finally {
       setSwitchingEntityId(null);
+      return;
     }
+
+    await refresh();
+    setSwitchingEntityId(null);
   };
 
   /* Archiving a schedule deletes its Temporal schedule; its runs stay readable. */
@@ -229,7 +237,7 @@ const TriggersPage: NextPageWithLayout = () => {
     await archiveFlowSchedule({
       variables: { scheduleEntityId: row.entityId },
     });
-    await refetch();
+    await refresh();
 
     if (editingEntityId === row.entityId) {
       setEditingEntityId(null);
@@ -506,7 +514,7 @@ const TriggersPage: NextPageWithLayout = () => {
                     <NewTriggerForm
                       initialFlowEntityId={flowEntityId}
                       onAdded={async () => {
-                        await refetch();
+                        await refresh();
                         setAdding(false);
                       }}
                       onCancel={() => setAdding(false)}
@@ -527,7 +535,7 @@ const TriggersPage: NextPageWithLayout = () => {
                             }
                             webName={editingRow.webName}
                             onSaved={async () => {
-                              await refetch();
+                              await refresh();
                               setEditingEntityId(null);
                             }}
                             onCancel={() => setEditingEntityId(null)}

@@ -111,6 +111,57 @@ describe("getNextRuns", () => {
     expect(
       isoRuns(getNextRuns(once, new Date("2026-11-11T00:00:00Z"), 3)),
     ).toEqual([]);
+    expect(
+      isoRuns(
+        getNextRuns(
+          { type: "cron", cronExpression: "0 9 1 1 * 2033" },
+          new Date("2026-11-01T00:00:00Z"),
+          3,
+        ),
+      ),
+    ).toEqual(["2033-01-01T09:00:00.000Z"]);
+  });
+
+  it("skips a time the clocks jump over, as Temporal does", () => {
+    expect(
+      isoRuns(
+        getNextRuns(
+          {
+            type: "cron",
+            cronExpression: "30 2 29 3 *",
+            timezone: "Europe/Berlin",
+          },
+          new Date("2026-03-01T00:00:00Z"),
+          1,
+        ),
+      ),
+    ).toEqual(["2027-03-29T00:30:00.000Z"]);
+  });
+
+  it("gives the next seconds of an every-second expression, from within the current minute", () => {
+    expect(
+      isoRuns(
+        getNextRuns(
+          { type: "cron", cronExpression: "* * * * * * *" },
+          new Date("2026-11-20T12:00:58.500Z"),
+          3,
+        ),
+      ),
+    ).toEqual([
+      "2026-11-20T12:00:59.000Z",
+      "2026-11-20T12:01:00.000Z",
+      "2026-11-20T12:01:01.000Z",
+    ]);
+  });
+
+  it("can't tell when there's no run within five years", () => {
+    expect(
+      getNextRuns(
+        { type: "cron", cronExpression: "0 9 30 2 *" },
+        new Date("2026-11-20T00:00:00Z"),
+        3,
+      ),
+    ).toBeNull();
   });
 
   it("reads a seventh field first as the second, and steps and names as Temporal does", () => {
