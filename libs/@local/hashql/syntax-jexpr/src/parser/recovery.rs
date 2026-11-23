@@ -205,13 +205,14 @@ where
     MalformedEntry::KeyValue
 }
 
-fn consume_array_comma<G, A: Allocator>(
+fn consume_array_comma<G, A>(
     parser: &mut Parser<'_, G, A>,
     open: TextRange,
     separators: Separators<A>,
 ) -> ControlFlow<ContainerBreak, Item>
 where
     G: Grammar,
+    A: Allocator + Clone,
 {
     let Some(after) = parser.current() else {
         let trailing = separators.range();

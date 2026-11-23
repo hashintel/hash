@@ -97,7 +97,10 @@ pub(crate) struct Parser<'source, G, A: Allocator> {
     _grammar: PhantomData<G>,
 }
 
-impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
+impl<'source, G, A: Allocator> Parser<'source, G, A>
+where
+    G: Grammar,
+{
     pub(crate) fn new_in(source: &'source str, options: ParserOptions, alloc: A) -> Self {
         Self {
             lexer: Lexer::new(source),
@@ -144,6 +147,79 @@ impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
     }
 
     #[inline]
+    pub(crate) fn start_node_at(&mut self, checkpoint: Checkpoint, kind: SyntaxKind) {
+        self.builder.start_node_at(checkpoint, kind.into());
+    }
+
+    /// Closes the current node before flushing any trailing trivia.
+    #[inline]
+    pub(crate) fn finish_node(&mut self) {
+        self.builder.finish_node();
+    }
+
+    /// Records an unexpected end of input, which a document reports once.
+    ///
+    /// A later call adds the delimiters it found open to the first report. That report is the
+    /// unterminated token the input ended in, where there is one.
+    pub(crate) fn record_eof(&mut self, expected: SyntaxKindSet, context: EofContext<A>) {
+        // The report is not always the last error. A value cut short by the end of input can
+        // record an error of its own after it.
+        let reported = self
+            .errors
+            .iter_mut()
+            .rev()
+            .find_map(|error| match error.kind_mut() {
+                SyntaxErrorKind::Lexer(
+                    LexerErrorKind::UnterminatedBlockComment { unclosed, .. }
+                    | LexerErrorKind::InvalidString {
+                        error: StringError::Eof,
+                        context: StringErrorContext { unclosed, .. },
+                    }
+                    | LexerErrorKind::UnexpectedEof {
+                        context:
+                            EofContext::UnclosedDelimiters(UnclosedDelimiters {
+                                open: unclosed, ..
+                            }),
+                        ..
+                    },
+                ) => Some(Some(unclosed)),
+                SyntaxErrorKind::Lexer(
+                    LexerErrorKind::InvalidString {
+                        error: StringError::Escape(EscapeError::Eof),
+                        ..
+                    }
+                    | LexerErrorKind::UnexpectedEof { .. },
+                ) => Some(None),
+                SyntaxErrorKind::Lexer(_)
+                | SyntaxErrorKind::ExpectedEof
+                | SyntaxErrorKind::NestingLimit { .. }
+                | SyntaxErrorKind::Array(_)
+                | SyntaxErrorKind::Object(_) => None,
+            });
+
+        if let Some(unclosed) = reported {
+            if let Some(unclosed) = unclosed
+                && let EofContext::UnclosedDelimiters(additional) = context
+            {
+                unclosed.extend(additional.open);
+            }
+
+            return;
+        }
+
+        self.error(
+            self.eof_range(),
+            SyntaxErrorKind::Lexer(LexerErrorKind::UnexpectedEof { expected, context }),
+        );
+    }
+}
+
+impl<'source, G, A> Parser<'source, G, A>
+where
+    G: Grammar,
+    A: Allocator + Clone,
+{
+    #[inline]
     pub(crate) fn error_node(&mut self) {
         self.start_node(SyntaxKind::Error);
         self.bump_any();
@@ -165,23 +241,12 @@ impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
         skipped
     }
 
-    #[inline]
-    pub(crate) fn start_node_at(&mut self, checkpoint: Checkpoint, kind: SyntaxKind) {
-        self.builder.start_node_at(checkpoint, kind.into());
-    }
-
-    /// Closes the current node before flushing any trailing trivia.
-    #[inline]
-    pub(crate) fn finish_node(&mut self) {
-        self.builder.finish_node();
-    }
-
     fn string_error_context(
         &self,
         token_range: TextRange,
         error_range: TextRange,
         error: StringError,
-    ) -> StringErrorContext {
+    ) -> StringErrorContext<A> {
         let open_quote =
             TextRange::at(token_range.start(), TextSize::new(1).min(token_range.len()));
         let control_byte = (error == StringError::Control)
@@ -215,7 +280,7 @@ impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
             control_byte,
             high_surrogate,
             invalid_unit,
-            unclosed: Vec::new(),
+            unclosed: Vec::new_in(self.allocator().clone()),
         }
     }
 
@@ -286,7 +351,7 @@ impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
                     opener,
                     SyntaxErrorKind::Lexer(LexerErrorKind::UnterminatedBlockComment {
                         eof,
-                        unclosed: Vec::new(),
+                        unclosed: Vec::new_in(self.allocator().clone()),
                     }),
                 );
             }
@@ -315,62 +380,6 @@ impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
         }
     }
 
-    /// Records an unexpected end of input, which a document reports once.
-    ///
-    /// A later call adds the delimiters it found open to the first report. That report is the
-    /// unterminated token the input ended in, where there is one.
-    pub(crate) fn record_eof(&mut self, expected: SyntaxKindSet, context: EofContext) {
-        // The report is not always the last error. A value cut short by the end of input can
-        // record an error of its own after it.
-        let reported = self
-            .errors
-            .iter_mut()
-            .rev()
-            .find_map(|error| match error.kind_mut() {
-                SyntaxErrorKind::Lexer(
-                    LexerErrorKind::UnterminatedBlockComment { unclosed, .. }
-                    | LexerErrorKind::InvalidString {
-                        error: StringError::Eof,
-                        context: StringErrorContext { unclosed, .. },
-                    }
-                    | LexerErrorKind::UnexpectedEof {
-                        context:
-                            EofContext::UnclosedDelimiters(UnclosedDelimiters {
-                                open: unclosed, ..
-                            }),
-                        ..
-                    },
-                ) => Some(Some(unclosed)),
-                SyntaxErrorKind::Lexer(
-                    LexerErrorKind::InvalidString {
-                        error: StringError::Escape(EscapeError::Eof),
-                        ..
-                    }
-                    | LexerErrorKind::UnexpectedEof { .. },
-                ) => Some(None),
-                SyntaxErrorKind::Lexer(_)
-                | SyntaxErrorKind::ExpectedEof
-                | SyntaxErrorKind::NestingLimit { .. }
-                | SyntaxErrorKind::Array(_)
-                | SyntaxErrorKind::Object(_) => None,
-            });
-
-        if let Some(unclosed) = reported {
-            if let Some(unclosed) = unclosed
-                && let EofContext::UnclosedDelimiters(additional) = context
-            {
-                unclosed.extend(additional.open);
-            }
-
-            return;
-        }
-
-        self.error(
-            self.eof_range(),
-            SyntaxErrorKind::Lexer(LexerErrorKind::UnexpectedEof { expected, context }),
-        );
-    }
-
     /// Records that the end of input left the container opened at `open` unclosed.
     ///
     /// `trailing` is the range of the commas after the last element, which the suggested closing
@@ -383,10 +392,13 @@ impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
     ) {
         let close_at = trailing.unwrap_or_else(|| TextRange::empty(self.last_token_end()));
 
+        let mut unclosed = Vec::with_capacity_in(1, self.allocator().clone());
+        unclosed.push((delimiter, open));
+
         self.record_eof(
             SyntaxKindSet::from_kind(delimiter.close_kind()),
             EofContext::UnclosedDelimiters(UnclosedDelimiters {
-                open: vec![(delimiter, open)],
+                open: unclosed,
                 close_at,
             }),
         );
@@ -533,10 +545,7 @@ impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
         self.depth -= 1;
     }
 
-    pub(crate) fn parse_root(&mut self)
-    where
-        A: Clone,
-    {
+    pub(crate) fn parse_root(&mut self) {
         // Root keeps leading and trailing trivia inside itself so the tree is lossless.
         self.builder.start_node(SyntaxKind::Root.into());
 
@@ -585,10 +594,7 @@ impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
         source: &'source str,
         options: ParserOptions,
         alloc: A,
-    ) -> Document<G::Root, A>
-    where
-        A: Clone,
-    {
+    ) -> Document<G::Root, A> {
         let mut parser = Self::new_in(source, options, alloc);
         parser.parse_root();
         parser.finish()

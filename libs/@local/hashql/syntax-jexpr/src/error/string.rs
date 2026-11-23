@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::alloc::Allocator;
 
 use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{
@@ -78,9 +79,9 @@ fn control_char_error(span: SpanId, byte: Option<u8>) -> LexerDiagnostic {
     diagnostic
 }
 
-fn expected_low_surrogate(
+fn expected_low_surrogate<A: Allocator>(
     span: SpanId,
-    context: &StringErrorContext,
+    context: &StringErrorContext<A>,
     spans: &mut SpanTable<Span>,
 ) -> LexerDiagnostic {
     let mut diagnostic = context.high_surrogate.map_or_else(
@@ -123,10 +124,10 @@ fn expected_low_surrogate(
     diagnostic
 }
 
-fn escape_error(
+fn escape_error<A: Allocator>(
     escape: EscapeError,
     span: SpanId,
-    context: &StringErrorContext,
+    context: &StringErrorContext<A>,
     spans: &mut SpanTable<Span>,
 ) -> LexerDiagnostic {
     match escape {
@@ -228,10 +229,10 @@ fn escape_error(
     }
 }
 
-pub(crate) fn from_string_error(
+pub(crate) fn from_string_error<A: Allocator>(
     error: StringError,
     span: SpanId,
-    context: &StringErrorContext,
+    context: &StringErrorContext<A>,
     spans: &mut SpanTable<Span>,
 ) -> LexerDiagnostic {
     match error {

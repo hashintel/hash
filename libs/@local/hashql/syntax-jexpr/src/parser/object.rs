@@ -367,9 +367,10 @@ pub(crate) struct OpenObject {
 }
 
 impl OpenObject {
-    pub(crate) fn open<G, A: Allocator>(parser: &mut Parser<'_, G, A>) -> Self
+    pub(crate) fn open<G, A>(parser: &mut Parser<'_, G, A>) -> Self
     where
         G: Grammar,
+        A: Allocator + Clone,
     {
         let checkpoint = parser.checkpoint();
         let open = parser.bump(T!['{']).range;

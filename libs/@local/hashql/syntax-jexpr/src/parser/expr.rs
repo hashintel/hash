@@ -40,8 +40,8 @@ fn parse_labeled_arg_after_open<A>(
 ) where
     A: Allocator + Clone,
 {
-    let mut entry_ranges = Vec::new();
-    let mut commas = Vec::new();
+    let mut entry_ranges = Vec::new_in(parser.allocator().clone());
+    let mut commas = Vec::new_in(parser.allocator().clone());
     let mut all_prefixed = true;
     let mut index = 0_usize;
 
@@ -80,14 +80,13 @@ fn parse_labeled_arg_after_open<A>(
 
     if entry_ranges.len() != 1 {
         let count = entry_ranges.len();
-        let (primary_range, first_entry, extra) = if let Some((&first, rest)) =
-            entry_ranges.split_first()
-            && let Some((&second, tail)) = rest.split_first()
-        {
-            (second, Some(first), tail.to_vec())
+        let (primary_range, first_entry) = if count >= 2 {
+            let first = entry_ranges.remove(0);
+            let second = entry_ranges.remove(0);
+            (second, Some(first))
         } else {
             let object_range = TextRange::new(open.start(), parser.last_token_end());
-            (object_range, None, Vec::new())
+            (object_range, None)
         };
 
         let split_comma = (count == 2
@@ -112,7 +111,7 @@ fn parse_labeled_arg_after_open<A>(
             primary_range,
             SyntaxErrorKind::Array(ArrayErrorKind::LabeledArgumentLengthMismatch {
                 first_entry,
-                extra,
+                extra: entry_ranges,
                 split_comma,
                 count,
             }),

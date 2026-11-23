@@ -34,7 +34,10 @@ impl<'source, A: Allocator> OffsetSink<'source, A> {
     clippy::cast_possible_truncation,
     reason = "the lexer rejects a source longer than `u32::MAX` bytes"
 )]
-impl<'source, A: Allocator + Clone> Sink<'source> for OffsetSink<'source, A> {
+impl<'source, A> Sink<'source> for OffsetSink<'source, A>
+where
+    A: Allocator + Clone,
+{
     type Output = Box<[Piece], A>;
 
     fn push_segment(&mut self, bytes: &'source ByteStr) -> Result<(), StringError> {

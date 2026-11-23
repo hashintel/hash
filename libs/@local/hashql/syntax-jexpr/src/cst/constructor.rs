@@ -47,7 +47,10 @@ impl<'tree, T> StructEntry<'tree, T> {
     }
 }
 
-impl<'tree, T: Node<'tree>> StructEntry<'tree, T> {
+impl<'tree, T> StructEntry<'tree, T>
+where
+    T: Node<'tree>,
+{
     #[must_use]
     pub(crate) fn value(self) -> Option<T> {
         self.data.child_node()
@@ -56,7 +59,10 @@ impl<'tree, T: Node<'tree>> StructEntry<'tree, T> {
 
 pub(crate) type StructBody<'tree, T> = SyntaxNode<'tree, kind::StructBody<T>>;
 
-impl<'tree, T: 'tree> StructBody<'tree, T> {
+impl<'tree, T> StructBody<'tree, T>
+where
+    T: 'tree,
+{
     pub(crate) fn entries(self) -> impl Iterator<Item = StructEntry<'tree, T>> + 'tree {
         self.data.child_nodes()
     }
@@ -89,7 +95,10 @@ impl<'tree> Struct<'tree, Expr<'tree>> {
 
 pub(crate) type TupleElement<'tree, T> = SyntaxNode<'tree, kind::TupleElement<T>>;
 
-impl<'tree, T: Node<'tree>> TupleElement<'tree, T> {
+impl<'tree, T> TupleElement<'tree, T>
+where
+    T: Node<'tree>,
+{
     #[must_use]
     pub(crate) fn value(self) -> Option<T> {
         self.data.child_node()
@@ -98,7 +107,10 @@ impl<'tree, T: Node<'tree>> TupleElement<'tree, T> {
 
 pub(crate) type TupleBody<'tree, T> = SyntaxNode<'tree, kind::TupleBody<T>>;
 
-impl<'tree, T: 'tree> TupleBody<'tree, T> {
+impl<'tree, T> TupleBody<'tree, T>
+where
+    T: 'tree,
+{
     pub(crate) fn elements(self) -> impl Iterator<Item = TupleElement<'tree, T>> + 'tree {
         self.data.child_nodes()
     }
@@ -131,7 +143,10 @@ impl<'tree> Tuple<'tree, Expr<'tree>> {
 
 pub(crate) type ListElement<'tree, T> = SyntaxNode<'tree, kind::ListElement<T>>;
 
-impl<'tree, T: Node<'tree>> ListElement<'tree, T> {
+impl<'tree, T> ListElement<'tree, T>
+where
+    T: Node<'tree>,
+{
     #[must_use]
     pub(crate) fn value(self) -> Option<T> {
         self.data.child_node()
@@ -140,7 +155,10 @@ impl<'tree, T: Node<'tree>> ListElement<'tree, T> {
 
 pub(crate) type ListBody<'tree, T> = SyntaxNode<'tree, kind::ListBody<T>>;
 
-impl<'tree, T: 'tree> ListBody<'tree, T> {
+impl<'tree, T> ListBody<'tree, T>
+where
+    T: 'tree,
+{
     pub(crate) fn elements(self) -> impl Iterator<Item = ListElement<'tree, T>> + 'tree {
         self.data.child_nodes()
     }

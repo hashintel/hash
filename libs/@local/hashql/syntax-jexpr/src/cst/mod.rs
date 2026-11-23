@@ -86,7 +86,10 @@ pub(crate) struct SyntaxToken<'tree, K> {
     _kind: PhantomData<fn() -> K>,
 }
 
-impl<'tree, K: TokenKind> Token<'tree> for SyntaxToken<'tree, K> {
+impl<'tree, K> Token<'tree> for SyntaxToken<'tree, K>
+where
+    K: TokenKind,
+{
     const SYNTAX_KINDS: SyntaxKindSet = K::SYNTAX_KINDS;
 
     #[inline]
@@ -103,7 +106,10 @@ impl<'tree, K: TokenKind> Token<'tree> for SyntaxToken<'tree, K> {
     }
 }
 
-impl<K: TokenKind> fmt::Debug for SyntaxToken<'_, K> {
+impl<K> fmt::Debug for SyntaxToken<'_, K>
+where
+    K: TokenKind,
+{
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct(K::NAME)
             .field("syntax", &self.syntax)
@@ -205,16 +211,25 @@ impl<'tree> SyntaxNodeData<'tree> {
     }
 
     #[must_use]
-    pub(crate) fn child_node<N: Node<'tree>>(self) -> Option<N> {
+    pub(crate) fn child_node<N>(self) -> Option<N>
+    where
+        N: Node<'tree>,
+    {
         self.children().find_map(N::cast)
     }
 
-    pub(crate) fn child_nodes<N: Node<'tree>>(self) -> impl Iterator<Item = N> + use<'tree, N> {
+    pub(crate) fn child_nodes<N>(self) -> impl Iterator<Item = N> + use<'tree, N>
+    where
+        N: Node<'tree>,
+    {
         self.children().filter_map(N::cast)
     }
 
     #[must_use]
-    pub(crate) fn first_token<T: Token<'tree>>(self) -> Option<T> {
+    pub(crate) fn first_token<T>(self) -> Option<T>
+    where
+        T: Token<'tree>,
+    {
         self.tokens().find_map(T::cast)
     }
 }
@@ -224,7 +239,10 @@ pub(crate) struct SyntaxNode<'tree, K> {
     _kind: PhantomData<fn() -> K>,
 }
 
-impl<'tree, K: NodeKind> Node<'tree> for SyntaxNode<'tree, K> {
+impl<'tree, K> Node<'tree> for SyntaxNode<'tree, K>
+where
+    K: NodeKind,
+{
     const SYNTAX_KINDS: SyntaxKindSet = SyntaxKindSet::from_slice(&[K::KIND]);
 
     #[inline]
@@ -241,7 +259,10 @@ impl<'tree, K: NodeKind> Node<'tree> for SyntaxNode<'tree, K> {
     }
 }
 
-impl<K: NodeKind> fmt::Debug for SyntaxNode<'_, K> {
+impl<K> fmt::Debug for SyntaxNode<'_, K>
+where
+    K: NodeKind,
+{
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct(K::NAME)
             .field("syntax", &self.data)

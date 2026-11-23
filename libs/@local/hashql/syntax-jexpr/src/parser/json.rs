@@ -13,8 +13,9 @@ use crate::{
 const JSON_VALUE_FIRST: SyntaxKindSet =
     SyntaxKindSet::from_union(&[SyntaxKindSet::VALUE, SyntaxKindSet::OPENING_DELIMITER]);
 
-fn parse_json_array<G: Grammar, A>(parser: &mut Parser<'_, G, A>)
+fn parse_json_array<G, A>(parser: &mut Parser<'_, G, A>)
 where
+    G: Grammar,
     A: Allocator + Clone,
 {
     parser.start_node(SyntaxKind::JsonArray);
@@ -31,8 +32,9 @@ where
     parser.finish_node();
 }
 
-fn parse_json_object<G: Grammar, A>(parser: &mut Parser<'_, G, A>)
+fn parse_json_object<G, A>(parser: &mut Parser<'_, G, A>)
 where
+    G: Grammar,
     A: Allocator + Clone,
 {
     parser.start_node(SyntaxKind::JsonObject);
@@ -63,8 +65,9 @@ where
     parser.finish_node();
 }
 
-pub(crate) fn parse_json_value<G: Grammar, A>(parser: &mut Parser<'_, G, A>)
+pub(crate) fn parse_json_value<G, A>(parser: &mut Parser<'_, G, A>)
 where
+    G: Grammar,
     A: Allocator + Clone,
 {
     let skipped_invalid = parser.skip_invalid_tokens();

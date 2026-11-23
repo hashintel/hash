@@ -12,7 +12,10 @@ impl<'tree, T> DictObjectEntry<'tree, T> {
     }
 }
 
-impl<'tree, T: Node<'tree>> DictObjectEntry<'tree, T> {
+impl<'tree, T> DictObjectEntry<'tree, T>
+where
+    T: Node<'tree>,
+{
     #[must_use]
     pub(crate) fn value(self) -> Option<T> {
         self.data.child_node()
@@ -21,7 +24,10 @@ impl<'tree, T: Node<'tree>> DictObjectEntry<'tree, T> {
 
 pub(crate) type DictObjectBody<'tree, T> = SyntaxNode<'tree, kind::DictObjectBody<T>>;
 
-impl<'tree, T: 'tree> DictObjectBody<'tree, T> {
+impl<'tree, T> DictObjectBody<'tree, T>
+where
+    T: 'tree,
+{
     pub(crate) fn entries(self) -> impl Iterator<Item = DictObjectEntry<'tree, T>> + 'tree {
         self.data.child_nodes()
     }
@@ -29,7 +35,10 @@ impl<'tree, T: 'tree> DictObjectBody<'tree, T> {
 
 pub(crate) type DictArrayEntry<'tree, T> = SyntaxNode<'tree, kind::DictArrayEntry<T>>;
 
-impl<'tree, T: Node<'tree> + 'tree> DictArrayEntry<'tree, T> {
+impl<'tree, T> DictArrayEntry<'tree, T>
+where
+    T: Node<'tree> + 'tree,
+{
     pub(crate) fn items(self) -> impl Iterator<Item = T> + 'tree {
         self.data.child_nodes()
     }
@@ -37,7 +46,10 @@ impl<'tree, T: Node<'tree> + 'tree> DictArrayEntry<'tree, T> {
 
 pub(crate) type DictArrayBody<'tree, T> = SyntaxNode<'tree, kind::DictArrayBody<T>>;
 
-impl<'tree, T: 'tree> DictArrayBody<'tree, T> {
+impl<'tree, T> DictArrayBody<'tree, T>
+where
+    T: 'tree,
+{
     pub(crate) fn entries(self) -> impl Iterator<Item = DictArrayEntry<'tree, T>> + 'tree {
         self.data.child_nodes()
     }

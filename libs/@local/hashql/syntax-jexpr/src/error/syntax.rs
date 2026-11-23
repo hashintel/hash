@@ -18,10 +18,10 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum LexerErrorKind {
+pub(crate) enum LexerErrorKind<A: Allocator> {
     InvalidString {
         error: StringError,
-        context: StringErrorContext,
+        context: StringErrorContext<A>,
     },
     SingleQuotedString {
         replacement: Option<String>,
@@ -39,11 +39,11 @@ pub(crate) enum LexerErrorKind {
     },
     UnterminatedBlockComment {
         eof: TextSize,
-        unclosed: Vec<(DelimiterKind, TextRange)>,
+        unclosed: Vec<(DelimiterKind, TextRange), A>,
     },
     UnexpectedEof {
         expected: SyntaxKindSet,
-        context: EofContext,
+        context: EofContext<A>,
     },
     UnexpectedToken {
         found: SyntaxKind,
@@ -52,7 +52,7 @@ pub(crate) enum LexerErrorKind {
     },
 }
 
-impl LexerErrorKind {
+impl<A: Allocator> LexerErrorKind<A> {
     fn to_diagnostic(
         &self,
         range: TextRange,
@@ -103,7 +103,7 @@ pub(crate) enum ArrayErrorKind<A: Allocator> {
     },
     LabeledArgumentLengthMismatch {
         first_entry: Option<TextRange>,
-        extra: Vec<TextRange>,
+        extra: Vec<TextRange, A>,
         split_comma: Option<TextRange>,
         count: usize,
     },
@@ -205,7 +205,7 @@ pub(crate) enum ObjectErrorKind<A: Allocator> {
     },
     DictEntryTooManyItems {
         dict_key: TextRange,
-        rest: Vec<TextRange>,
+        rest: Vec<TextRange, A>,
     },
 }
 
@@ -316,7 +316,7 @@ impl<A: Allocator> ObjectErrorKind<A> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum SyntaxErrorKind<A: Allocator> {
-    Lexer(LexerErrorKind),
+    Lexer(LexerErrorKind<A>),
     ExpectedEof,
     NestingLimit { limit: u16 },
     Array(ArrayErrorKind<A>),

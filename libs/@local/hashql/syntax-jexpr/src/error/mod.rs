@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::alloc::Allocator;
 
 use hashql_core::{
     algorithms::did_you_mean,
@@ -324,23 +325,23 @@ impl DelimiterKind {
 
 /// Additional source context captured for lexical string failures.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct StringErrorContext {
+pub(crate) struct StringErrorContext<A: Allocator> {
     pub open_quote: TextRange,
     pub control_byte: Option<u8>,
     pub high_surrogate: Option<TextRange>,
     pub invalid_unit: Option<u16>,
-    pub unclosed: Vec<(DelimiterKind, TextRange)>,
+    pub unclosed: Vec<(DelimiterKind, TextRange), A>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct UnclosedDelimiters {
-    pub open: Vec<(DelimiterKind, TextRange)>,
+pub(crate) struct UnclosedDelimiters<A: Allocator> {
+    pub open: Vec<(DelimiterKind, TextRange), A>,
     pub close_at: TextRange,
 }
 
 /// Syntactic context at an unexpected end of input.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum EofContext {
+pub(crate) enum EofContext<A: Allocator> {
     Document,
     FieldColon {
         key: TextRange,
@@ -349,7 +350,7 @@ pub(crate) enum EofContext {
         key: TextRange,
         field: Option<FieldKind>,
     },
-    UnclosedDelimiters(UnclosedDelimiters),
+    UnclosedDelimiters(UnclosedDelimiters<A>),
 }
 
 /// Syntactic context at an unexpected token.

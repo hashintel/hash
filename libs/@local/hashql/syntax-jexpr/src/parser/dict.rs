@@ -69,7 +69,7 @@ where
     let error_start = parser.error_count();
 
     let mut count = 0_usize;
-    let mut excess = Vec::new();
+    let mut excess = Vec::new_in(parser.allocator().clone());
 
     while let ControlFlow::Continue(_) =
         recovery::next_array_element(parser, open, count, G::ITEM_FIRST)
@@ -86,12 +86,13 @@ where
         count += 1;
     }
 
-    if let Some((&first_excess, rest)) = excess.split_first() {
+    if !excess.is_empty() {
+        let first_excess = excess.remove(0);
         parser.error(
             first_excess,
             SyntaxErrorKind::Object(ObjectErrorKind::DictEntryTooManyItems {
                 dict_key,
-                rest: rest.to_vec(),
+                rest: excess,
             }),
         );
     } else if count < 2 && parser.error_count() == error_start {

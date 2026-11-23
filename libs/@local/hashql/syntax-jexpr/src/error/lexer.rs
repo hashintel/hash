@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::alloc::Allocator;
 
 use hashql_core::{
     heap::Heap,
@@ -233,10 +234,10 @@ const EXPRESSION_HELP: &str =
 
 const MAX_UNCLOSED_LABELS: usize = 3;
 
-pub(crate) fn unexpected_eof(
+pub(crate) fn unexpected_eof<A: Allocator>(
     span: SpanId,
     expected: SyntaxKindSet,
-    context: &EofContext,
+    context: &EofContext<A>,
     spans: &mut SpanTable<Span>,
 ) -> LexerDiagnostic {
     match context {
@@ -286,7 +287,7 @@ pub(crate) fn unexpected_eof(
             diagnostic
         }
         EofContext::UnclosedDelimiters(UnclosedDelimiters { open, close_at }) => {
-            let mut ordered = open.clone();
+            let mut ordered = open.to_vec();
             ordered.sort_by_key(|(_, range)| range.start());
 
             let innermost = ordered.last().map(|(delim, _)| *delim);
