@@ -1,0 +1,25 @@
+{
+  "package": "@local/internal-api-client",
+  "dependencies": [
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": []
+    },
+    "codegen": {
+      "dependsOn": []
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "codegen"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
+  }
+}

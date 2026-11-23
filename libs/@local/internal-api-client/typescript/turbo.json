@@ -1,0 +1,11 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "outputs": ["./dist/**"]
+    },
+    "codegen": {
+      "outputs": ["src/api.gen.ts"]
+    }
+  }
+}

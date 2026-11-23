@@ -454,6 +454,7 @@ __metadata:
     "@local/hash-graph-client": "workspace:*"
     "@local/hash-graph-sdk": "workspace:*"
     "@local/hash-isomorphic-utils": "workspace:*"
+    "@local/internal-api-client": "workspace:*"
     "@local/status": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@opentelemetry/api": "npm:1.9.1"
@@ -544,6 +545,7 @@ __metadata:
     "@local/hash-graph-sdk": "workspace:*"
     "@local/hash-graph-store": "workspace:*"
     "@local/hash-isomorphic-utils": "workspace:*"
+    "@local/internal-api-client": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@mailchimp/mailchimp_marketing": "npm:3.0.80"
     "@opentelemetry/api": "npm:1.9.1"
@@ -9337,6 +9339,7 @@ __metadata:
     "@local/hash-graph-client": "workspace:*"
     "@local/hash-graph-sdk": "workspace:*"
     "@local/hash-isomorphic-utils": "workspace:*"
+    "@local/internal-api-client": "workspace:*"
     "@local/status": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@opentelemetry/api": "npm:1.9.1"
@@ -9549,6 +9552,20 @@ __metadata:
     tsdown: "npm:0.23.0"
     typescript: "catalog:"
     vite: "catalog:"
+    vitest: "catalog:"
+  languageName: unknown
+  linkType: soft
+
+"@local/internal-api-client@workspace:*, @local/internal-api-client@workspace:libs/@local/internal-api-client/typescript":
+  version: 0.0.0-use.local
+  resolution: "@local/internal-api-client@workspace:libs/@local/internal-api-client/typescript"
+  dependencies:
+    "@local/tsconfig": "workspace:*"
+    "@tsconfig/bases": "catalog:"
+    "@types/node": "catalog:"
+    orval: "patch:orval@npm%3A8.47.0#~/.yarn/patches/orval-npm-8.47.0-54d40be37b.patch"
+    rimraf: "npm:6.1.4"
+    typescript: "catalog:"
     vitest: "catalog:"
   languageName: unknown
   linkType: soft

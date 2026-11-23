@@ -1,0 +1,25 @@
+{
+  "name": "@local/internal-api-client",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Client for the HASH internal API, generated from its OpenAPI spec.",
+  "license": "See LICENSE.md",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "rimraf dist && tsc --build tsconfig.build.json",
+    "codegen": "orval",
+    "lint:tsc": "tsc --noEmit",
+    "test:unit": "vitest run"
+  },
+  "devDependencies": {
+    "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
+    "@types/node": "catalog:",
+    "orval": "patch:orval@npm%3A8.47.0#~/.yarn/patches/orval-npm-8.47.0-54d40be37b.patch",
+    "rimraf": "6.1.4",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

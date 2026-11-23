@@ -8,14 +8,17 @@ import { logger } from "../shared/activity-logger.js";
 
 import type { Url } from "@blockprotocol/type-system";
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
-import type { WebSearchResult } from "@local/hash-backend-utils/internal-api-client";
+import type { GetWebSearchResults200WebSearchResultsItem } from "@local/internal-api-client";
 
-export type GetWebSearchResultsResponse = Omit<WebSearchResult, "url"> & {
+export type GetWebSearchResultsResponse = Omit<
+  GetWebSearchResults200WebSearchResultsItem,
+  "url"
+> & {
   url: Url;
 };
 
 const mapWebSearchResults = (
-  webSearchResults: WebSearchResult[],
+  webSearchResults: GetWebSearchResults200WebSearchResultsItem[],
 ): GetWebSearchResultsResponse[] =>
   webSearchResults.map(
     (webSearchResult) => webSearchResult as GetWebSearchResultsResponse,
@@ -32,7 +35,7 @@ export const webSearchAction: FlowActionActivity<"webSearch"> = async ({
   const { webSearchResults } = await backOff(
     async () => {
       try {
-        return await internalApiClient.getWebSearchResults(query);
+        return await internalApiClient.getWebSearchResults({ query });
       } catch (error) {
         logger.error("Error fetching web search results", { query, error });
         throw error;

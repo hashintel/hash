@@ -9,6 +9,7 @@
     "@local/hash-graph-client",
     "@local/hash-graph-sdk",
     "@local/hash-isomorphic-utils",
+    "@local/internal-api-client",
     "@local/status",
     "@local/tsconfig"
   ],
@@ -23,6 +24,7 @@
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
         "@local/status#build"
       ],
       "affectedBy": [
@@ -52,6 +54,7 @@
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
         "@local/status#build"
       ],
       "affectedBy": [
@@ -81,6 +84,7 @@
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
         "@local/status#build"
       ],
       "env": [
@@ -113,6 +117,7 @@
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
         "@local/status#build"
       ],
       "affectedBy": [
@@ -142,6 +147,7 @@
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
         "@local/status#build"
       ],
       "env": [

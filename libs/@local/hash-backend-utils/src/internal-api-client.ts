@@ -1,4 +1,7 @@
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
+import { getHASHInternalAPI } from "@local/internal-api-client";
+
+import type { InternalApi } from "@local/internal-api-client";
 
 const basePath = process.env.INTERNAL_API_HOST ?? "http://localhost:5002";
 
@@ -8,21 +11,21 @@ if (!isSelfHostedInstance && !internalApiKey) {
   throw new Error("INTERNAL_API_KEY is required");
 }
 
-export type WebSearchResult = {
-  title: string;
-  url: string;
-  position: number;
-};
+const internalApiFetch: typeof fetch = async (path, init) => {
+  if (typeof path !== "string") {
+    throw new TypeError("Internal API request path should be a string");
+  }
 
-const get = async <T>(
-  path: string,
-  query: Record<string, string>,
-): Promise<T> => {
+  const headers = new Headers(init?.headers);
+  if (internalApiKey) {
+    headers.set("internal-api-key", internalApiKey);
+  }
+
   const url = new URL(`${basePath}${path}`);
-  url.search = new URLSearchParams(query).toString();
 
   const response = await fetch(url, {
-    headers: internalApiKey ? { "internal-api-key": internalApiKey } : {},
+    ...init,
+    headers,
   }).catch((error: unknown) => {
     throw new Error(
       `Error calling the Internal API: ${error instanceof Error ? error.message : String(error)}`,
@@ -32,18 +35,13 @@ const get = async <T>(
 
   if (!response.ok) {
     throw new Error(
-      `Error calling the Internal API: ${path} responded with ${response.status} ${response.statusText}`,
+      // The pathname leaves out the query, which can hold an email address.
+      `Error calling the Internal API: ${url.pathname} responded with ${response.status} ${response.statusText}`,
     );
   }
 
-  return (await response.json()) as T;
+  return response;
 };
 
-export const internalApiClient = {
-  getWaitlistPosition: (email: string) =>
-    get<{ waitlistPosition: number | null }>("/waitlist-position", { email }),
-  getWebSearchResults: (query: string) =>
-    get<{ webSearchResults: WebSearchResult[] }>("/web-search-results", {
-      query,
-    }),
-};
+export const internalApiClient: InternalApi =
+  getHASHInternalAPI(internalApiFetch);
