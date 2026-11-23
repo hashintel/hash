@@ -273,7 +273,12 @@ const statusParts = (
     return state.state === "running"
       ? { word: "Running", count: items(facts.processed[0]), notes: [] }
       : failures > 0
-        ? { word: "Done", count: `${items(failures)} failed`, notes: [] }
+        ? {
+            word: "Done",
+            count: `${items(failures)} failed`,
+            notes: [],
+            failures: facts.failures.map(failureItem),
+          }
         : { word: "Done", notes: [] };
   }
   if (loopSteps.includes(stepId)) {

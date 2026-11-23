@@ -879,7 +879,7 @@ const reasonWithout = (request: R2Request, item: RunItem | undefined) => {
   return rest.charAt(0).toUpperCase() + rest.slice(1);
 };
 
-/** Parity Q2 B2 (13 Nov): what the step found, as one line under the question: "2 files found on Kestrel Alloys' page". */
+/** Parity Q2 B2 (13 Nov): what the step found, as one line under the question: "2 files found on Kestrel Alloys' page", or "20 suppliers · 1 failed" (run-panel-v3 pick C). */
 const contextLink = (request: R2Request): string | null => {
   const { context } = request;
   if (context.kind === "files") {
@@ -889,7 +889,7 @@ const contextLink = (request: R2Request): string | null => {
   }
   if (context.kind === "entities") {
     const failed = context.rows.filter((row) => row.state === "failed").length;
-    return [`For each ${context.type.toLowerCase()}`, String(context.total), failed ? `${failed} failed` : null]
+    return [`${context.total} ${context.type.toLowerCase()}s`, failed ? `${failed} failed` : null]
       .filter(Boolean)
       .join(" · ");
   }

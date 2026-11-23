@@ -634,7 +634,7 @@ const fileTitle = (file: OutputFile) =>
 
 const fileMeta = (file: OutputFile) =>
   file.kind === "certificate"
-    ? `PDF · 1 page · ${file.sizeKb} KB`
+    ? `PDF · ${file.sizeKb} KB`
     : `Email · sent ${file.sentAt} · 1 attachment`;
 
 const fileDetail = (file: OutputFile) =>
@@ -760,6 +760,30 @@ const metaLineStyle = css({
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 });
+
+const fileTypeBadgeStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  paddingX: "1.5",
+  borderRadius: "sm",
+  textStyle: "xs",
+  color: "neutral.fg.muted",
+  backgroundColor: "neutral.bg.surface.hover",
+});
+
+/** What a row says under a file's name: a certificate gets its type badge and size only; an email keeps its two lines. */
+const FileRowFacts = ({ file }: { file: OutputFile }) =>
+  file.kind === "certificate" ? (
+    <span className={cx(metaLineStyle, css({ display: "flex", alignItems: "center", gap: "2" }))}>
+      <span className={fileTypeBadgeStyle}>PDF</span>
+      {file.sizeKb} KB
+    </span>
+  ) : (
+    <>
+      <span className={metaLineStyle}>{fileMeta(file)}</span>
+      <span className={metaLineStyle}>{fileDetail(file)}</span>
+    </>
+  );
 
 const typeTagStyle = css({
   flexShrink: 0,
@@ -937,8 +961,7 @@ const PageRow = ({
       <Page file={file} width={44} />
       <span>
         <span className={titleLineStyle}>{fileTitle(file)}</span>
-        <span className={metaLineStyle}>{fileMeta(file)}</span>
-        <span className={metaLineStyle}>{fileDetail(file)}</span>
+        <FileRowFacts file={file} />
       </span>
       {tag ? <span className={typeTagStyle}>{tag}</span> : null}
     </button>
@@ -1133,8 +1156,7 @@ const FileList = ({
           <Page file={first!} width={210} />
           <span>
             <span className={titleLineStyle}>{fileTitle(first!)}</span>
-            <span className={metaLineStyle}>{fileMeta(first!)}</span>
-            <span className={metaLineStyle}>{fileDetail(first!)}</span>
+            <FileRowFacts file={first!} />
           </span>
         </button>
         <div
@@ -3790,7 +3812,7 @@ export const RunOutputBody = ({
         files={files}
         title="File entity"
         linkOut={null}
-        noun="certificates"
+        noun="files"
         onOpen={openFiles(files, "Fetch certificate")}
         onShowAll={() =>
           openAll({
@@ -3993,7 +4015,7 @@ export const StepOutputs = ({
             linkOut={null}
             flagged={flagged("fileEntity")}
             footer={attrib ? "Saved to @acme" : undefined}
-            noun="certificates"
+            noun="files"
             onOpen={openFiles(files, "Fetch certificate")}
             onShowAll={() =>
               openAll({

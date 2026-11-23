@@ -2530,6 +2530,7 @@ const RunTriggerView = (_props: NodeProps<StepNode>) => {
             runView.run.trigger.kind === "manual" ? "user" : "calendarClock"
           }
           tone="neutral"
+          ghost
         />
         {fired ? (
           <FiredText fired={fired} />
