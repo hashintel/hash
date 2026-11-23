@@ -6,7 +6,7 @@
  * The For each's item list (spec R8; Ciarán and Dora, 26 Oct): every item with its mark, failures first. Picking one
  * shows its branch, step by step; "Next failed" walks the failures.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button, Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -533,6 +533,7 @@ export const ForEachItems = ({ facts }: { facts: RunFacts }) => {
           <Drawer.Header
             title={`For each supplier · ${facts.n}`}
             actions={
+              <>
               <Button
                 size="sm"
                 variant="subtle"
@@ -542,6 +543,16 @@ export const ForEachItems = ({ facts }: { facts: RunFacts }) => {
                 tooltip="Back to the panel · Esc"
                 onClick={() => setSheetOpen(false)}
               />
+              <Button
+                size="sm"
+                variant="ghost"
+                tone="neutral"
+                iconName="close"
+                aria-label="Close"
+                tooltip="Close · Esc"
+                onClick={() => setSheetOpen(false)}
+              />
+            </>
             }
           />
           <Drawer.Body>
@@ -574,6 +585,21 @@ const ItemList = ({
   ];
   const [selected, setSelected] = useState<number | null>(failedItems[0] ?? null);
   const side = useStatusSide();
+  // Esc inside an expanded item closes only that item; the capture listener runs before the panel's own Esc.
+  useEffect(() => {
+    if (selected === null) {
+      return undefined;
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) {
+        return;
+      }
+      event.preventDefault();
+      setSelected(null);
+    };
+    globalThis.addEventListener("keydown", onKey, true);
+    return () => globalThis.removeEventListener("keydown", onKey, true);
+  }, [selected]);
   const nextFailed = () => {
     if (failedItems.length === 0) {
       return;

@@ -247,7 +247,17 @@ export const FallbackPopover = ({
       onClose={onClose}
     >
       <div ref={focusRef} tabIndex={-1} className={surfaceStyle}>
-        <div className={headingStyle}>If {path} is empty</div>
+        <div className={css({ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "2" })}>
+          <div className={headingStyle}>If {path} is empty</div>
+          <Button
+            size="sm"
+            variant="ghost"
+            tone="neutral"
+            iconName="close"
+            aria-label="Close"
+            onClick={onClose}
+          />
+        </div>
         <RadioGroup
           size="sm"
           value={choice}

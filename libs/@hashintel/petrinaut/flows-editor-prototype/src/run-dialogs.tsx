@@ -222,15 +222,25 @@ export const RunForm = ({
         aria-label={`Run ${document.name}`}
         className={formStyle}
       >
-        <span
-          className={css({
-            textStyle: "sm",
-            fontWeight: "semibold",
-            color: "neutral.fg.heading",
-          })}
-        >
-          Run {document.name}
-        </span>
+        <div className={css({ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "2" })}>
+          <span
+            className={css({
+              textStyle: "sm",
+              fontWeight: "semibold",
+              color: "neutral.fg.heading",
+            })}
+          >
+            Run {document.name}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            tone="neutral"
+            iconName="close"
+            aria-label="Close"
+            onClick={close}
+          />
+        </div>
         {document.inputs.length === 0 ? (
           <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
             This flow takes no inputs.

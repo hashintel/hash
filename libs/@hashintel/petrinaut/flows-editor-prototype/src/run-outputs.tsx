@@ -3089,12 +3089,14 @@ const OutputSheet = ({
   onPush,
   onReplace,
   onCollapse,
+  onClose,
 }: {
   view: ViewerState;
   outputs: RunOutputs;
   onPush: (next: ViewerState) => void;
   onReplace: (next: ViewerState) => void;
   onCollapse: () => void;
+  onClose: () => void;
 }) => {
   const { run } = outputs;
   const file = view.kind === "files" ? view.files[view.index]! : null;
@@ -3153,6 +3155,16 @@ const OutputSheet = ({
               tooltip="Back to the column · Esc"
               onClick={onCollapse}
               data-outputs-collapse
+            />
+            <Button
+              size="sm"
+              variant="ghost"
+              tone="neutral"
+              iconName="close"
+              aria-label="Close"
+              tooltip="Close"
+              onClick={onClose}
+              data-outputs-close
             />
           </span>
         }
@@ -3459,6 +3471,7 @@ export const useOutputViewer = (
             onPush={push}
             onReplace={replace}
             onCollapse={collapse}
+            onClose={close}
           />
         ) : null}
       </>

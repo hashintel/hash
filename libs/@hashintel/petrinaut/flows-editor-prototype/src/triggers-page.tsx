@@ -2070,6 +2070,7 @@ const RowMenu = ({ page, row }: { page: Page; row: Row }) => {
         >
           <Dialog.Header
             title="Delete this trigger?"
+            iconName="info"
             description={`${row.trigger.label} stops running. Its past runs stay readable.`}
           />
           <Dialog.Footer
