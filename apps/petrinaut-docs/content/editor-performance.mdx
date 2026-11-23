@@ -313,6 +313,10 @@ shared the machine: its load was between 2.7 and 4.3.
 | Play a run back at zoom 1.1, frames a second                    |             61 (59..62) |          109 (105..110) |
 | The same, pulses started a second                               |             37 (33..39) |              14 (8..18) |
 
+A transition pulses its arcs when the number of its firings changes from one
+frame to the next, so at more frames a second fewer pulses start, and part of
+the frames gained at zoom 1.1 is pulses that do not start.
+
 The element counts are for the net at rest. An arc that draws its own strokes
 has one element more than an arc had as an edge of React Flow: the group that
 holds its pulse. With every node selected, every arc draws its own strokes,
