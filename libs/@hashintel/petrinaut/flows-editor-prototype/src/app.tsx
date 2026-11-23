@@ -192,13 +192,33 @@ export const Editor = ({
     : undefined;
   const [localDocument, setLocalDocument] = useState(initialDocument);
   const draftDocument = stored ?? localDocument;
-  const setDocumentState = (
-    update: (current: EditorDocument) => EditorDocument,
-  ) => (flowId ? updateDocument(flowId, update) : setLocalDocument(update));
   const [uiState, setUiState] = useState(initialUi);
   const location = useLocation();
   // `?version=N` opens that published version read-only: the flow as it was published, when it kept a snapshot.
   const viewedVersion = Number(location.query.get("version"));
+  const viewedFlowVersion = flowId
+    ? appState.flows.find((flow) => flow.id === flowId)?.meta.version
+    : undefined;
+  // A past version is read-only: no edit reaches the draft until Restore.
+  const readingPast =
+    viewedFlowVersion !== undefined &&
+    viewedFlowVersion.published.some((entry) => entry.n === viewedVersion) &&
+    !(
+      viewedFlowVersion.state === "live" &&
+      viewedFlowVersion.current === viewedVersion
+    );
+  const setDocumentState = (
+    update: (current: EditorDocument) => EditorDocument,
+  ) => {
+    if (readingPast) {
+      return;
+    }
+    if (flowId) {
+      updateDocument(flowId, update);
+    } else {
+      setLocalDocument(update);
+    }
+  };
   const viewedSnapshot = flowId
     ? appState.flows
         .find((flow) => flow.id === flowId)

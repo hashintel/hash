@@ -18,7 +18,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { selectedLabelStyle } from "./menu-rows";
 import { RunIdsIn, runLabel } from "./run-id";
-import { publishFlow } from "./app-store";
+import { publishFlow, setVersionNotes } from "./app-store";
 import { setQuery, useLocation } from "./router";
 import { statusColor } from "./status-colors";
 import { triggerNoneTake } from "./trigger-flags";
@@ -119,7 +119,7 @@ export const VersionMenu = ({
                   <VersionLabel {...versionLabel(version, labelCase)} />
                 </span>
                 <span className={menuMetaStyle}>
-                  Edited {version.editedAt ?? "just now"} · not published
+                  Edited {version.editedAt ?? "just now"}, not published
                 </span>
               </span>
             ),
@@ -146,7 +146,7 @@ export const VersionMenu = ({
             />
           </span>
           <span className={menuMetaStyle}>
-            Published {entry.at} · {entry.by}
+            Published {entry.at}, {entry.by}
           </span>
         </span>
       ),
@@ -531,6 +531,56 @@ const PublishDialog = ({
   );
 };
 
+/** Add notes on the publish toast: the notes of the version just published, saved on that version. */
+const NotesDialog = ({
+  n,
+  initial,
+  onClose,
+  onSave,
+}: {
+  n: number;
+  initial: string;
+  onClose: () => void;
+  onSave: (notes: string) => void;
+}) => {
+  const [notes, setNotes] = useState(initial);
+  return (
+    <Dialog size="md" onClose={onClose} aria-label={`Notes for v${n}`}>
+      <Dialog.Header title={`Notes for v${n}`} iconName="info" />
+      <Dialog.Body>
+        {/* oxlint-disable-next-line jsx-a11y/label-has-associated-control -- the DS input is inside */}
+        <label className={fieldStyle}>
+          Notes (optional)
+          <TextInput
+            value={notes}
+            onChange={setNotes}
+            size="sm"
+            placeholder="What changed"
+          />
+        </label>
+      </Dialog.Body>
+      <Dialog.Footer
+        actions={
+          <>
+            <Button size="sm" variant="subtle" tone="neutral" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant="solid"
+              tone="neutral"
+              data-notes-save
+              onClick={() => onSave(notes.trim())}
+            >
+              Save notes
+            </Button>
+          </>
+        }
+      />
+    </Dialog>
+  );
+};
+
 /** The Publish button's box, so the dot can sit on its corner without changing its size or place. */
 const dotAnchorStyle = css({ position: "relative", display: "inline-flex" });
 
@@ -585,7 +635,8 @@ export const PublishButton = ({
   const [open, setOpen] = useState(false);
   const [warning, setWarning] = useState(false);
   const publishRef = useRef<HTMLButtonElement>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ text: string; n: number } | null>(null);
+  const [notesFor, setNotesFor] = useState<number | null>(null);
   const draft = version.state === "draft";
   const opensFixList = draft && toFixCount > 0 && viewing === null && onFix !== undefined;
   const disabled = !draft || (problems > 0 && !opensFixList) || viewing !== null;
@@ -658,12 +709,34 @@ export const PublishButton = ({
               );
             }
             setOpen(false);
-            setToast(`Published v${version.current}`);
+            setToast({
+              text: `Published v${version.current}`,
+              n: version.current,
+            });
           }}
         />
       ) : null}
       {toast ? (
-        <Toast text={toast} action="Add notes" onDone={() => setToast(null)} />
+        <Toast
+          text={toast.text}
+          action="Add notes"
+          onAction={() => setNotesFor(toast.n)}
+          onDone={() => setToast(null)}
+        />
+      ) : null}
+      {notesFor !== null && flowId ? (
+        <NotesDialog
+          n={notesFor}
+          initial={
+            version.published.find((entry) => entry.n === notesFor)?.notes ??
+            ""
+          }
+          onClose={() => setNotesFor(null)}
+          onSave={(notes) => {
+            setVersionNotes(flowId, notesFor, notes);
+            setNotesFor(null);
+          }}
+        />
       ) : null}
     </>
   );

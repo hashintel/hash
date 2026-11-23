@@ -20,6 +20,7 @@ import {
   monthlyReviewId,
   newFlowEntry,
   seedFlows,
+  withSnapshots,
 } from "./seed-flows";
 
 import type { EditorDocument } from "./document";
@@ -46,7 +47,29 @@ const load = (): FlowEntry[] => {
     if (raw) {
       const parsed = JSON.parse(raw) as Persisted;
       if (parsed.version === 3 && Array.isArray(parsed.flows)) {
-        return parsed.flows;
+        // Saves from before seeded versions had snapshots get them from the seed.
+        const seeds = seedFlows();
+        return parsed.flows.map((flow) =>
+          withSnapshots(
+            flow.meta.version.published.some((entry) => !entry.document)
+              ? {
+                  ...flow,
+                  meta: {
+                    ...flow.meta,
+                    version: {
+                      ...flow.meta.version,
+                      published: flow.meta.version.published.map((entry) => ({
+                        ...entry,
+                        document:
+                          entry.document ??
+                          seeds.find((seed) => seed.id === flow.id)?.document,
+                      })),
+                    },
+                  },
+                }
+              : flow,
+          ),
+        );
       }
     }
   } catch {
@@ -96,22 +119,32 @@ const emit = () => {
   }
 };
 
-const save = () => {
-  clearTimeout(store.saveTimer);
-  store.saveTimer = setTimeout(() => {
-    try {
-      const persisted: Persisted = { version: 3, flows: store.state.flows };
-      globalThis.localStorage.setItem(storageKey, JSON.stringify(persisted));
-    } catch {
-      // Full or blocked storage: the session keeps working, unsaved.
-    }
-  }, 300);
+const write = () => {
+  try {
+    const persisted: Persisted = { version: 3, flows: store.state.flows };
+    globalThis.localStorage.setItem(storageKey, JSON.stringify(persisted));
+  } catch {
+    // Full or blocked storage: the session keeps working, unsaved.
+  }
 };
 
-const setState = (update: (state: State) => State, persist: boolean) => {
+const save = (now = false) => {
+  clearTimeout(store.saveTimer);
+  if (now) {
+    write();
+    return;
+  }
+  store.saveTimer = setTimeout(write, 300);
+};
+
+const setState = (
+  update: (state: State) => State,
+  persist: boolean,
+  now = false,
+) => {
   store.state = update(store.state);
   if (persist) {
-    save();
+    save(now);
   }
   emit();
 };
@@ -222,12 +255,40 @@ export const publishFlow = (id: string, name?: string, notes?: string) =>
     true,
   );
 
+/** Add notes after publishing: the notes of one published version. */
+export const setVersionNotes = (id: string, n: number, notes: string) =>
+  setState(
+    (state) => ({
+      ...state,
+      flows: state.flows.map((flow) =>
+        flow.id === id
+          ? {
+              ...flow,
+              meta: {
+                ...flow.meta,
+                version: {
+                  ...flow.meta.version,
+                  published: flow.meta.version.published.map((entry) =>
+                    entry.n === n
+                      ? { ...entry, ...(notes ? { notes } : { notes: undefined }) }
+                      : entry,
+                  ),
+                },
+              },
+            }
+          : flow,
+      ),
+    }),
+    true,
+  );
+
 export const archiveFlow = (id: string) =>
   setState(
     (state) => ({
       ...state,
       flows: state.flows.filter((flow) => flow.id !== id),
     }),
+    true,
     true,
   );
 

@@ -92,7 +92,7 @@ const straight = (
   };
 };
 
-export const seedFlows = (): FlowEntry[] => [
+const seedEntries = (): FlowEntry[] => [
   {
     id: monthlyReviewId,
     document: supplierReviewRunExample(),
@@ -232,6 +232,26 @@ export const seedFlows = (): FlowEntry[] => [
     },
   },
 ];
+
+/**
+ * MOCK: the seeded versions kept no real history, so each one is given the flow as seeded. Viewing one shows that
+ * copy, and Restore puts it back, whatever the draft has become since.
+ */
+export const withSnapshots = (flow: FlowEntry): FlowEntry => ({
+  ...flow,
+  meta: {
+    ...flow.meta,
+    version: {
+      ...flow.meta.version,
+      published: flow.meta.version.published.map((entry) => ({
+        ...entry,
+        document: entry.document ?? flow.document,
+      })),
+    },
+  },
+});
+
+export const seedFlows = (): FlowEntry[] => seedEntries().map(withSnapshots);
 
 /** A flow made with New flow: a draft with Start only. */
 export const newFlowEntry = (id: string): FlowEntry => ({
