@@ -55,6 +55,8 @@ import {
   scaleResponsive,
   scaleSchedules,
   scheduleNameOf,
+  manualRunsFlip,
+  setManualRuns,
 } from "./flow-triggers";
 import { ShowAllRow } from "./show-all-row";
 import { formatCount } from "./trigger-flags";
@@ -491,7 +493,7 @@ const seed = () => {
     on[item.id] = item.on;
   }
   for (const flow of flows) {
-    on[`manual:${flow.id}`] = flow.manual;
+    on[`manual:${flow.id}`] = manualRunsFlip(flow.name) ?? flow.manual;
   }
   return { flows, triggers, on };
 };
@@ -1646,8 +1648,15 @@ const usePage = (routeFlowId: string | null) => {
     clearPendingTriggerAdd();
     clearPendingTriggerOpen();
   }, []);
-  const flip = (id: string, on: boolean) =>
+  const flip = (id: string, on: boolean) => {
+    const manualFlow = id.startsWith("manual:")
+      ? data.flows.find((flow) => `manual:${flow.id}` === id)
+      : undefined;
+    if (manualFlow) {
+      setManualRuns(manualFlow.name, on);
+    }
     setData((current) => ({ ...current, on: { ...current.on, [id]: on } }));
+  };
   const [renaming, setRenaming] = useState<string | null>(null);
   const open = (id: string | null) => {
     setDraft(null);

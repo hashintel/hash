@@ -13,7 +13,7 @@
  * off.
  */
 import { Pencil } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Fragment, useState, useSyncExternalStore } from "react";
 
 import {
   Button,
@@ -145,6 +145,22 @@ const takeTriggers = (triggers: FlowTriggers): FlowTriggers => {
   }
 };
 
+/** Manual runs flipped on the Triggers page, by flow name; the editor reads the same answer. */
+const manualFlips = new Map<string, boolean>();
+const manualListeners = new Set<() => void>();
+let manualVersion = 0;
+
+export const manualRunsFlip = (flowName: string): boolean | undefined =>
+  manualFlips.get(flowName);
+
+export const setManualRuns = (flowName: string, on: boolean) => {
+  manualFlips.set(flowName, on);
+  manualVersion += 1;
+  for (const listener of manualListeners) {
+    listener();
+  }
+};
+
 export const flowTriggersOf = (
   document: EditorDocument,
   switches: Record<string, boolean> = {},
@@ -155,7 +171,7 @@ export const flowTriggersOf = (
       : { manual: false, items: [], hidden: 0 };
   return {
     ...base,
-    manual: switches.manual ?? base.manual,
+    manual: switches.manual ?? manualFlips.get(document.name) ?? base.manual,
     items: base.items.map((item) => ({
       ...item,
       on: switches[item.id] ?? item.on,
@@ -166,6 +182,13 @@ export const flowTriggersOf = (
 /** The flow's triggers, with the switches flipped in this session. */
 export const useFlowTriggers = (): FlowTriggers => {
   const { document, ui } = useEditor();
+  useSyncExternalStore(
+    (listener) => {
+      manualListeners.add(listener);
+      return () => manualListeners.delete(listener);
+    },
+    () => manualVersion,
+  );
   return flowTriggersOf(document, ui.triggerSwitches);
 };
 

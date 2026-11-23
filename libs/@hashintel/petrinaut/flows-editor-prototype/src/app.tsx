@@ -808,7 +808,7 @@ export const Editor = ({
                           tooltip={
                             hasManualStart
                               ? "Start a run now"
-                              : "Manual runs are off for this flow. Turn them on in Triggers."
+                              : "Manual runs are off"
                           }
                           onClick={() => history?.start()}
                         >
