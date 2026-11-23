@@ -2,12 +2,7 @@ import { GRID_SIZE } from "@hashintel/petrinaut-core";
 
 export { CODE_FONT_FAMILY } from "./fonts";
 
-/**
- * UI-related constants for the Petrinaut editor.
- *
- * NOTE: This file is imported by panda.config.ts (build-time, Node context).
- * Do not add browser-only or React imports here.
- */
+/** UI-related constants for the Petrinaut editor. */
 
 // Canvas grid
 export const SNAP_GRID_SIZE = GRID_SIZE;
