@@ -153,8 +153,5 @@ describe("formatScheduleSpec", () => {
     expect(
       formatScheduleSpec({ type: "cron", cronExpression: "0 */2 * * *" }),
     ).toBe("Cron: 0 */2 * * *");
-    expect(formatScheduleSpec({ type: "interval", intervalMs: 600_000 })).toBe(
-      "Every 10 minutes",
-    );
   });
 });

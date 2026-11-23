@@ -53,7 +53,6 @@ const triggerRow = css({
   /* The designed hover fill is the header's, which no semantic token has. */
   _hover: { bg: "neutral.s20" },
 });
-/* The row being edited, above its form. */
 const openRow = css({ bg: "neutral.s20" });
 /* The design's lighter fill for the trigger being added. */
 const newTriggerRow = css({ bg: "neutral.s10" });
@@ -145,15 +144,11 @@ export const TriggersTable = ({
   columns: TriggerColumn[];
   sort: FlowTriggerSort;
   onSort: (sort: FlowTriggerSort) => void;
-  /** The form for adding a trigger, if it's open. */
   newTriggerForm: ReactNode | null;
-  /** The trigger being edited, with its form, if one is. */
   editing: { entityId: FlowTriggerRow["entityId"]; form: ReactNode } | null;
   onEdit: (row: FlowTriggerRow) => void;
   onCloseEdit: () => void;
-  /** The trigger being paused or resumed, which can't be again until it is. */
   switchingEntityId: FlowTriggerRow["entityId"] | null;
-  /** Resumes a paused trigger, or pauses one that's on. */
   onSetOn: (row: FlowTriggerRow, on: boolean) => void;
   onDelete: (row: FlowTriggerRow) => void;
 }) => {

@@ -38,7 +38,7 @@ const nextRunsText = css({
   whiteSpace: "nowrap",
 });
 const customForm = css({ width: "[340px]" });
-const customBody = css({ display: "flex", flexDirection: "column", gap: "2" });
+const customBody = css({ display: "flex", alignItems: "center", gap: "4" });
 const customLabel = css({ textStyle: "sm", color: "fg.subtle" });
 const weekdayButtons = css({ display: "flex", gap: "1" });
 
