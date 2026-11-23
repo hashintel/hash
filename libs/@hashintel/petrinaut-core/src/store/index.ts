@@ -1,6 +1,6 @@
 /**
  * @layerRoot core.store
- * @role Minimal subscribable store primitive the core exposes instead of a framework dependency
+ * @role The two subscribable primitives Core exposes instead of a framework dependency: a store that holds a current value and an event stream that holds none
  */
 
 export type { EventStream } from "./event-stream";
