@@ -13,8 +13,8 @@ import { useState } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { useFocusHeader } from "../../worksheet/use-focus-member";
 import { tableContainerStyle } from "../spreadsheet-kit/form-table";
+import { useFocusHeader } from "../worksheet/use-focus-member";
 import { sameParts, useAdHocForm, useAdHocFormFact } from "./form-context";
 import { TokenTable } from "./token-table";
 import { ValueEditor } from "./value-editor";

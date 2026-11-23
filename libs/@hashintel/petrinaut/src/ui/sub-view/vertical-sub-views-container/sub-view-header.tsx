@@ -1,9 +1,9 @@
 import { Button, HelpTooltip, Icon } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
-import { usePetrinautPresentation } from "../../../../presentation/presentation-context";
+import { usePetrinautPresentation } from "../../presentation/presentation-context";
 
-import type { SubView } from "../../types";
+import type { SubView } from "../types";
 
 /** Size of the icon in the main header */
 const HEADER_ICON_SIZE = 16;

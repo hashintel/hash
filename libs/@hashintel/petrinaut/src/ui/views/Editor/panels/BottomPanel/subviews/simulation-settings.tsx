@@ -21,7 +21,7 @@ import {
   AdHocScenarioForm,
   FormLayoutColumn,
   FormSectionHeader,
-} from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
+} from "../../../../../ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { OverlayScrollArea } from "../../../../../components/overlay-scroll-area";
 import { StackedSections } from "../../../../../components/stacked-sections";
 import { FocusControls } from "../../../../../worksheet/focus-controls";

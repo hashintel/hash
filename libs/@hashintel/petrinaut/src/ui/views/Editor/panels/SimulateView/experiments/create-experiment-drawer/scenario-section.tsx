@@ -2,7 +2,7 @@ import { Icon, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { EMPTY_AD_HOC_STATE } from "@hashintel/petrinaut-core";
 
-import { AdHocScenarioForm } from "../../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
+import { AdHocScenarioForm } from "../../../../../../ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { Section } from "../../../../../../components/section";
 import { FocusControls } from "../../../../../../worksheet/focus-controls";
 import { ExperimentScenarioRun } from "./experiment-scenario-run";

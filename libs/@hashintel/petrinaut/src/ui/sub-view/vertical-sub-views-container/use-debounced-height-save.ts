@@ -1,6 +1,6 @@
 import { useRef } from "react";
 
-import type { UserSettingsActions } from "../../../../../react/state/user-settings-context";
+import type { UserSettingsActions } from "../../../react/state/user-settings-context";
 
 /**
  * Saves a section's height once its resize has been still for 300 ms, so a

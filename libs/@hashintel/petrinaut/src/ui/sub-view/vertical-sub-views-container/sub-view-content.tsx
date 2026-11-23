@@ -3,13 +3,10 @@ import { useState } from "react";
 import { useAvoidScrollWidthChange } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { useScrollOverflow } from "../../../../hooks/use-scroll-overflow";
-import {
-  MountsScrolledContext,
-  useKeptScroll,
-} from "../../../../lib/kept-state";
+import { useScrollOverflow } from "../../hooks/use-scroll-overflow";
+import { MountsScrolledContext, useKeptScroll } from "../../lib/kept-state";
 
-import type { SubView } from "../../types";
+import type { SubView } from "../types";
 
 const sectionContentStyle = css({
   overflow: "hidden",

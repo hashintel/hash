@@ -10,17 +10,17 @@ import {
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { defaultPetrinautNavigationState } from "../../../../react/navigation/navigation";
-import { PetrinautNavigationProvider } from "../../../../react/navigation/navigation-provider";
+import { defaultPetrinautNavigationState } from "../../react/navigation/navigation";
+import { PetrinautNavigationProvider } from "../../react/navigation/navigation-provider";
 import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
-} from "../../../../react/state/user-settings-context";
-import { PetrinautPresentationProvider } from "../../../presentation/presentation-provider";
+} from "../../react/state/user-settings-context";
+import { PetrinautPresentationProvider } from "../presentation/presentation-provider";
 import { VerticalSubViewsContainer } from "./vertical-sub-views-container";
 
-import type { PetrinautNavigationController } from "../../../../react/navigation/navigation";
-import type { SubView } from "../types";
+import type { PetrinautNavigationController } from "../../react/navigation/navigation";
+import type { SubView } from "./types";
 import type { ComponentProps } from "react";
 
 vi.mock("@hashintel/ds-components", async (importOriginal) => {

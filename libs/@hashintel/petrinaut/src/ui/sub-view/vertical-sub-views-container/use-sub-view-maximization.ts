@@ -3,9 +3,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   usePetrinautNavigate,
   usePetrinautNavigationState,
-} from "../../../../../react/navigation/navigation";
+} from "../../../react/navigation/navigation";
 
-import type { SubView } from "../../types";
+import type { SubView } from "../types";
 
 /** Where a section shows inside its container, top to bottom. */
 type Bounds = { top: number; height: number };

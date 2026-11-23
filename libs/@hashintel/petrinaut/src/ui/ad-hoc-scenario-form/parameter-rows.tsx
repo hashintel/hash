@@ -7,7 +7,6 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { emptyAdHocValue } from "@hashintel/petrinaut-core";
 
-import { useFocusGrid, type FocusGrid } from "../../worksheet/use-focus-grid";
 import { FormSpreadsheet } from "../spreadsheet-kit/form-spreadsheet";
 import {
   cellStyle,
@@ -16,6 +15,7 @@ import {
   staticTypeCellStyle,
 } from "../spreadsheet-kit/form-table";
 import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
+import { useFocusGrid, type FocusGrid } from "../worksheet/use-focus-grid";
 import {
   useAdHocForm,
   useAdHocFormFact,

@@ -5,8 +5,8 @@ import { getTransitionLogicAvailability } from "@hashintel/petrinaut-core";
 import { ActiveNetContext } from "../../../../../../react/document/active-net-context";
 import { CompositionContext } from "../../../../../../react/document/composition-context";
 import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
-import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { usePetrinautPresentation } from "../../../../../presentation/presentation-context";
+import { VerticalSubViewsContainer } from "../../../../../sub-view/vertical-sub-views-container";
 import { TransitionPropertiesContext } from "./context";
 import {
   transitionFiringTimeSubView,
@@ -14,7 +14,7 @@ import {
   transitionResultsSubView,
 } from "./sub-views";
 
-import type { SubView } from "../../../../../components/sub-view/types";
+import type { SubView } from "../../../../../sub-view/types";
 import type { Color, Transition } from "@hashintel/petrinaut-core";
 
 interface TransitionPropertiesProps {

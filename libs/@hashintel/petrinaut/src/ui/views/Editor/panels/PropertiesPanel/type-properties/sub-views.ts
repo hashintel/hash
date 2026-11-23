@@ -1,7 +1,7 @@
 import { TokenTypeIcon } from "../../../../../constants/entity-icons";
 import { TypeMainContent } from "./subviews/main";
 
-import type { SubView } from "../../../../../components/sub-view/types";
+import type { SubView } from "../../../../../sub-view/types";
 
 export const typeSubViews: SubView[] = [
   {

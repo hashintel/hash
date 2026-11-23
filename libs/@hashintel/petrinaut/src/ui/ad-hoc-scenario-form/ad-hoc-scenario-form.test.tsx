@@ -17,7 +17,7 @@ import { EMPTY_AD_HOC_STATE } from "@hashintel/petrinaut-core";
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
-} from "../../../react/lsp/context";
+} from "../../react/lsp/context";
 import { AdHocScenarioForm, FormLayoutColumn } from "./ad-hoc-scenario-form";
 import { useAdHocForm } from "./form-context";
 
@@ -28,7 +28,7 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 // Monaco cannot run in jsdom; the expression editor becomes a plain textarea.
-vi.mock("../../monaco/code-editor", () => ({
+vi.mock("../monaco/code-editor", () => ({
   CodeEditor: ({
     onChange,
     value,

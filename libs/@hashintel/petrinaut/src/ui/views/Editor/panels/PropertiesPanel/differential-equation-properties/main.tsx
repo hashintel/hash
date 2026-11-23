@@ -1,8 +1,8 @@
-import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
+import { VerticalSubViewsContainer } from "../../../../../sub-view/vertical-sub-views-container";
 import { DiffEqPropertiesContext } from "./context";
 import { diffEqMainSubView } from "./sub-views";
 
-import type { SubView } from "../../../../../components/sub-view/types";
+import type { SubView } from "../../../../../sub-view/types";
 import type {
   Color,
   DifferentialEquation,

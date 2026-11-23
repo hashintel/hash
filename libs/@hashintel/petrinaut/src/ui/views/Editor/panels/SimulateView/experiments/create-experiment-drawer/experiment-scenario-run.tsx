@@ -17,7 +17,7 @@ import {
   AdHocScenarioForm,
   FormLayoutColumn,
   FormSectionHeader,
-} from "../../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
+} from "../../../../../../ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { OverlayScrollArea } from "../../../../../../components/overlay-scroll-area";
 import { Section } from "../../../../../../components/section";
 import { StackedSections } from "../../../../../../components/stacked-sections";

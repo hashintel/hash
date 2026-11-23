@@ -13,7 +13,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { generatePetrinautId, type Color } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
-import { FormSpreadsheet } from "../../../../../../components/spreadsheet-kit/form-spreadsheet";
+import { FormSpreadsheet } from "../../../../../../spreadsheet-kit/form-spreadsheet";
 import {
   cellErrorUnderlineStyle,
   cellSelectStyle,
@@ -24,15 +24,15 @@ import {
   phantomCellButtonStyle,
   phantomRowCellStyle,
   selectedRowCellStyle,
-} from "../../../../../../components/spreadsheet-kit/form-table";
-import { GutterCell } from "../../../../../../components/spreadsheet-kit/gutter-cell";
-import { PhantomLine } from "../../../../../../components/spreadsheet-kit/phantom-line";
+} from "../../../../../../spreadsheet-kit/form-table";
+import { GutterCell } from "../../../../../../spreadsheet-kit/gutter-cell";
+import { PhantomLine } from "../../../../../../spreadsheet-kit/phantom-line";
 import {
   ReorderableRow,
   ReorderableRows,
-} from "../../../../../../components/spreadsheet-kit/reorderable-rows";
-import { rowMoveKeyDown } from "../../../../../../components/spreadsheet-kit/row-move-key-down";
-import { TextCell } from "../../../../../../components/spreadsheet-kit/text-cell";
+} from "../../../../../../spreadsheet-kit/reorderable-rows";
+import { rowMoveKeyDown } from "../../../../../../spreadsheet-kit/row-move-key-down";
+import { TextCell } from "../../../../../../spreadsheet-kit/text-cell";
 import { useFocusGrid } from "../../../../../../worksheet/use-focus-grid";
 import { useRowSelection } from "../../../../../../worksheet/use-row-selection";
 import { useSelectFirstActivation } from "../../../../../../worksheet/use-select-first";

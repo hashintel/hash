@@ -3,9 +3,9 @@ import { Panel, Separator } from "react-resizable-panels";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { useUserSettings } from "../../../../react/state/user-settings-context";
-import { dragStripStyle } from "../../../resize/edge-separator-style";
-import { ResizeGroup } from "../../../resize/resize-group";
+import { useUserSettings } from "../../react/state/user-settings-context";
+import { dragStripStyle } from "../resize/edge-separator-style";
+import { ResizeGroup } from "../resize/resize-group";
 import { SubViewContent } from "./vertical-sub-views-container/sub-view-content";
 import { SubViewHeader } from "./vertical-sub-views-container/sub-view-header";
 import { useDebouncedHeightSave } from "./vertical-sub-views-container/use-debounced-height-save";
@@ -13,8 +13,8 @@ import { useHeldWhile } from "./vertical-sub-views-container/use-held-while";
 import { useSubViewMaximization } from "./vertical-sub-views-container/use-sub-view-maximization";
 import { useTransientTransition } from "./vertical-sub-views-container/use-transient-transition";
 
-import type { SubViewSectionSettings } from "../../../../react/state/user-settings-context";
-import type { SubView } from "../types";
+import type { SubViewSectionSettings } from "../../react/state/user-settings-context";
+import type { SubView } from "./types";
 
 /** Height of the header row in pixels */
 const HEADER_HEIGHT = 44;

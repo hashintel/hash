@@ -1,6 +1,6 @@
 import { useSDCPNState } from "../../../../../../react/document/sdcpn-context";
-import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { usePetrinautPresentation } from "../../../../../presentation/presentation-context";
+import { VerticalSubViewsContainer } from "../../../../../sub-view/vertical-sub-views-container";
 import { PlacePropertiesContext } from "./context";
 import {
   placeDynamicsSubView,
@@ -9,7 +9,7 @@ import {
   placeVisualizerSubView,
 } from "./sub-views";
 
-import type { SubView } from "../../../../../components/sub-view/types";
+import type { SubView } from "../../../../../sub-view/types";
 import type { Color, Place } from "@hashintel/petrinaut-core";
 
 interface PlacePropertiesProps {

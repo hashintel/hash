@@ -1,5 +1,5 @@
-import { createDeferredSubView } from "../../../../../components/sub-view/deferred-sub-view";
 import { PlaceIcon } from "../../../../../constants/entity-icons";
+import { createDeferredSubView } from "../../../../../sub-view/deferred-sub-view";
 import { DeletePlaceAction, PlaceMainContent } from "./subviews/main";
 import {
   PlaceDynamicsContent,
@@ -10,7 +10,7 @@ import {
   StateHeaderAction,
 } from "./subviews/place-initial-state/subview";
 
-import type { SubView } from "../../../../../components/sub-view/types";
+import type { SubView } from "../../../../../sub-view/types";
 
 export const placeMainSubView: SubView = {
   id: "place-main-content",

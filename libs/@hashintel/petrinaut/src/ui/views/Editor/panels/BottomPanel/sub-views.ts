@@ -6,7 +6,7 @@ import { EventTimelineHeaderActions } from "./subviews/event-timeline/main";
 import { SimulationSettingsContent } from "./subviews/simulation-settings";
 import { ActualTimeline } from "./subviews/simulation-timeline/actual";
 
-import type { SubView } from "../../../../components/sub-view/types";
+import type { SubView } from "../../../../sub-view/types";
 
 // The bottom panel's own tabs. `panel.tsx` decides which of them show.
 

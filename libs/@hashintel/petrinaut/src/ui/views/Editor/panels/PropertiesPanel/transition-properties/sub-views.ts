@@ -1,8 +1,8 @@
-import { createDeferredSubView } from "../../../../../components/sub-view/deferred-sub-view";
 import { TransitionIcon } from "../../../../../constants/entity-icons";
+import { createDeferredSubView } from "../../../../../sub-view/deferred-sub-view";
 import { DeleteTransitionAction, TransitionMainContent } from "./subviews/main";
 
-import type { SubView } from "../../../../../components/sub-view/types";
+import type { SubView } from "../../../../../sub-view/types";
 
 export const transitionMainSubView: SubView = {
   id: "transition-main-content",

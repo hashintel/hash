@@ -32,10 +32,6 @@ import {
   type Place,
 } from "@hashintel/petrinaut-core";
 
-import { useFocusStops, type FocusStop } from "../../worksheet/use-focus-stops";
-import { useRowSelection } from "../../worksheet/use-row-selection";
-import { useSelectFirstActivation } from "../../worksheet/use-select-first";
-import { useStopTargets } from "../../worksheet/use-stop-targets";
 import { FormSpreadsheet } from "../spreadsheet-kit/form-spreadsheet";
 import {
   cellStyle,
@@ -51,6 +47,10 @@ import {
 } from "../spreadsheet-kit/form-table";
 import { GutterCell } from "../spreadsheet-kit/gutter-cell";
 import { PhantomLine } from "../spreadsheet-kit/phantom-line";
+import { useFocusStops, type FocusStop } from "../worksheet/use-focus-stops";
+import { useRowSelection } from "../worksheet/use-row-selection";
+import { useSelectFirstActivation } from "../worksheet/use-select-first";
+import { useStopTargets } from "../worksheet/use-stop-targets";
 import { useAdHocForm, adHocIntervalSelection } from "./form-context";
 import { ValueEditor } from "./value-editor";
 

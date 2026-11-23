@@ -12,7 +12,7 @@ import { useComposesOnly } from "../../../../../react/document/use-composes-only
 import { useEditorFields } from "../../../../../react/state/editor-context";
 import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
 import { KeptState } from "../../../../components/kept-state";
-import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
+import { VerticalSubViewsContainer } from "../../../../sub-view/vertical-sub-views-container";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { DockedPanel } from "../../shared/docked-panel";
 import { leftSidebarSubViews, searchSubView } from "./sub-views";

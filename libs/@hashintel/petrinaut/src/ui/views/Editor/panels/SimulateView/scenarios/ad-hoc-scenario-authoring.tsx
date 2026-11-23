@@ -14,7 +14,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   AdHocScenarioForm,
   FormLayoutColumn,
-} from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
+} from "../../../../../ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { OverlayScrollArea } from "../../../../../components/overlay-scroll-area";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";

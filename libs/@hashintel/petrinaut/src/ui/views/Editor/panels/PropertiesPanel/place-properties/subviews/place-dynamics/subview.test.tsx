@@ -7,7 +7,7 @@ import { ActiveNetContext } from "../../../../../../../../react/document/active-
 import { PetrinautInstanceContext } from "../../../../../../../../react/document/instance-context";
 import { ReadOnlyReasonContext } from "../../../../../../../../react/editing/use-read-only-reason";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
-import { selectedRowCellStyle } from "../../../../../../../components/spreadsheet-kit/form-table";
+import { selectedRowCellStyle } from "../../../../../../../spreadsheet-kit/form-table";
 import { PlacePropertiesContext } from "../../context";
 import { PlaceDynamicsContent, PlaceDynamicsHeaderActions } from "./subview";
 

@@ -16,9 +16,6 @@ import { useRef, useState } from "react";
 import { Icon, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { useFocusGrid } from "../../worksheet/use-focus-grid";
-import { useRowSelection } from "../../worksheet/use-row-selection";
-import { useSelectFirstActivation } from "../../worksheet/use-select-first";
 import { FormSpreadsheet } from "../spreadsheet-kit/form-spreadsheet";
 import {
   cellErrorUnderlineStyle,
@@ -35,6 +32,9 @@ import { GutterCell } from "../spreadsheet-kit/gutter-cell";
 import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
 import { PhantomLine } from "../spreadsheet-kit/phantom-line";
 import { TextCell } from "../spreadsheet-kit/text-cell";
+import { useFocusGrid } from "../worksheet/use-focus-grid";
+import { useRowSelection } from "../worksheet/use-row-selection";
+import { useSelectFirstActivation } from "../worksheet/use-select-first";
 import {
   useAdHocForm,
   useAdHocFormFact,

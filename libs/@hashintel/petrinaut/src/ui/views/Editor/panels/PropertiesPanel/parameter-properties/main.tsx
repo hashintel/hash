@@ -1,4 +1,4 @@
-import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
+import { VerticalSubViewsContainer } from "../../../../../sub-view/vertical-sub-views-container";
 import { ParameterPropertiesContext } from "./context";
 import { parameterSubViews } from "./sub-views";
 

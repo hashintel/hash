@@ -23,7 +23,7 @@ import {
   applyAdHocAction,
 } from "@hashintel/petrinaut-core";
 
-import { useLatest } from "../../../react/shared/use-latest";
+import { useLatest } from "../../react/shared/use-latest";
 
 import type {
   AdHocAction,

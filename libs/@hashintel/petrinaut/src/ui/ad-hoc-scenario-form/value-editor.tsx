@@ -31,14 +31,14 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { adHocNeutralExpression } from "@hashintel/petrinaut-core";
 
-import { CodeEditor } from "../../monaco/code-editor";
-import { useSelectFirstActivation } from "../../worksheet/use-select-first";
+import { CodeEditor } from "../monaco/code-editor";
 import {
   cellButtonStyle,
   cellErrorUnderlineStyle,
   dependencyHighlightStyle,
 } from "../spreadsheet-kit/form-table";
 import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
+import { useSelectFirstActivation } from "../worksheet/use-select-first";
 import { sameAdHocFocusTarget } from "./dependency-highlight";
 import {
   useAdHocForm,

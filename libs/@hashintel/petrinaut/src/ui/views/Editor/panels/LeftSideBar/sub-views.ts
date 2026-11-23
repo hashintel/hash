@@ -8,7 +8,7 @@ import {
   SearchTitle,
 } from "./subviews/search-panel";
 
-import type { SubView } from "../../../../components/sub-view/types";
+import type { SubView } from "../../../../sub-view/types";
 
 const entitiesTreeSubView: SubView = {
   id: "entities-tree",

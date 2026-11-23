@@ -45,13 +45,13 @@ import {
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
 
-import { LanguageClientContext } from "../../../react/lsp/context";
-import { useLspSession } from "../../../react/lsp/use-lsp-session";
-import { usePublished } from "../../../react/shared/select-from-context";
-import { FocusControls } from "../../worksheet/focus-controls";
-import { FocusStack } from "../../worksheet/focus-stack";
-import { useFocusClearance } from "../../worksheet/use-focus-clearance";
-import { Section, SectionList } from "../section";
+import { LanguageClientContext } from "../../react/lsp/context";
+import { useLspSession } from "../../react/lsp/use-lsp-session";
+import { usePublished } from "../../react/shared/select-from-context";
+import { Section, SectionList } from "../components/section";
+import { FocusControls } from "../worksheet/focus-controls";
+import { FocusStack } from "../worksheet/focus-stack";
+import { useFocusClearance } from "../worksheet/use-focus-clearance";
 import { computeAdHocHighlight } from "./dependency-highlight";
 import { AdHocFormContext } from "./form-context";
 import { ParameterRows } from "./parameter-rows";

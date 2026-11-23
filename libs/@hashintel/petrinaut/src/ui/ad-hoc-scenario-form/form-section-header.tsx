@@ -1,8 +1,8 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import { FocusStack } from "../../worksheet/focus-stack";
-import { PointerHelpTooltip } from "../pointer-help-tooltip";
-import { StackedSectionHeader } from "../stacked-sections";
+import { PointerHelpTooltip } from "../components/pointer-help-tooltip";
+import { StackedSectionHeader } from "../components/stacked-sections";
+import { FocusStack } from "../worksheet/focus-stack";
 
 const headerStyle = css({
   position: "sticky",

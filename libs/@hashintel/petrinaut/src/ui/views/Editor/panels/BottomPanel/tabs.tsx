@@ -5,7 +5,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { useKeptScroll } from "../../../../lib/kept-state";
 
-import type { SubView } from "../../../../components/sub-view/types";
+import type { SubView } from "../../../../sub-view/types";
 
 const tabsContainerStyle = css({
   display: "flex",

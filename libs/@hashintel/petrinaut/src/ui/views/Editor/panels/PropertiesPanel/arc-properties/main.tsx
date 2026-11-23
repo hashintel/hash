@@ -1,7 +1,7 @@
 import { use } from "react";
 
 import { CompositionContext } from "../../../../../../react/document/composition-context";
-import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
+import { VerticalSubViewsContainer } from "../../../../../sub-view/vertical-sub-views-container";
 import { arcPropertiesData } from "./arc-properties-data";
 import { ArcPropertiesContext } from "./context";
 import { arcSubViews } from "./sub-views";

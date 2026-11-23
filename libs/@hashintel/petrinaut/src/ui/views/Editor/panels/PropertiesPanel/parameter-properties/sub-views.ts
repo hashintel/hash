@@ -1,7 +1,7 @@
 import { ParameterIcon } from "../../../../../constants/entity-icons";
 import { ParameterMainContent } from "./subviews/main";
 
-import type { SubView } from "../../../../../components/sub-view/types";
+import type { SubView } from "../../../../../sub-view/types";
 
 export const parameterSubViews: SubView[] = [
   {
