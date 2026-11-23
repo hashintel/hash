@@ -8,7 +8,11 @@ use std::{
 use duckdb::types::{TimeUnit, Value};
 use error_stack::Report;
 use hash_integrations_definition::{VariableName, Variables};
-use parquet::{arrow::ArrowWriter, basic::Compression, file::properties::WriterProperties};
+use parquet::{
+    arrow::{ArrowWriter, arrow_reader::ParquetRecordBatchReaderBuilder},
+    basic::Compression,
+    file::properties::WriterProperties,
+};
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
 
@@ -429,7 +433,8 @@ fn load_capture_types_and_empty_schema() {
                     count(*),
                     min(amount)::VARCHAR,
                     max(pair[2]),
-                    min(nested.label)
+                    min(nested.label),
+                    count(*) FILTER (WHERE i <> rowid)
                 FROM loaded
                 ",
         )
@@ -441,11 +446,12 @@ fn load_capture_types_and_empty_schema() {
                 Value::BigInt(5000),
                 Value::Text("12.30".to_owned()),
                 Value::BigInt(5000),
-                Value::Text("a".to_owned())
+                Value::Text("a".to_owned()),
+                Value::BigInt(0)
             ]
             .as_slice()
         ),
-        "should preserve types across multiple Arrow batches"
+        "should preserve types and the order of the rows across multiple Arrow batches"
     );
     let empty = directory.path().join("empty-load.parquet");
     write_parquet(
@@ -483,7 +489,17 @@ fn load_invalid_capture_preserves_table() {
     workspace
         .create_table("existing", "SELECT 1 AS id")
         .expect("should create the original table");
-    fs::write(&path, b"not parquet").expect("should write the corrupt capture");
+    write_parquet(&path, "SELECT i AS id FROM range(5000) AS items(i)");
+    // Overwrites the first page and keeps the footer, so the file opens and the load fails
+    // inside its transaction, after the table was replaced.
+    let mut bytes = fs::read(&path).expect("should read the capture");
+    bytes
+        .get_mut(4..20)
+        .expect("the capture should be longer than 20 bytes")
+        .fill(0xFF);
+    fs::write(&path, bytes).expect("should corrupt the capture");
+    ParquetRecordBatchReaderBuilder::try_new(File::open(&path).expect("should open the capture"))
+        .expect("the footer of the corrupt capture should stay readable");
     let error = workspace
         .load_capture(&path, "existing")
         .expect_err("should reject a corrupt capture");
@@ -548,6 +564,14 @@ fn describe_count_and_pipeline_sql() {
     assert!(
         !sql.contains(';') && !sql.contains("--"),
         "the terminator and the comment should be removed from `{sql}`"
+    );
+    assert_matches!(
+        workspace
+            .pipeline_sql("SELECT 1; SELECT 2")
+            .expect_err("two statements should be refused")
+            .current_context(),
+        StatementError::StatementCount { count: 2 },
+        "only a single `SELECT` should be embedded"
     );
     assert_eq!(
         workspace
