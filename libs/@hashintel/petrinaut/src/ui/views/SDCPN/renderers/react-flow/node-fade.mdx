@@ -5,7 +5,6 @@ sidebar_order: 12
 ---
 
 The fade of a node draws a node outside the focused neighbourhood at 0.25 of its strength, with no opacity on the node or on a group inside it, and from one frame to the next. [The canvas](doc:ui.views.canvas/canvas) says which nodes are in the neighbourhood, and [the arc layer](doc:ui.views.canvas.react-flow/arc-layer) fades the arcs.
-This page is longer than a guide should be: it lists every place where a faded node is not the picture of a node under an opacity.
 
 ![A node says what it draws with a class per part, the pane holds one rule per class for a node without a role while a focus is drawn, and a firing asks whether its node is faded](./node-fade.d2)
 
@@ -69,8 +68,7 @@ A faded node is not the picture of a node under an opacity in these places.
 
 At rest, while it is faded:
 
-- A part that lies on the fill of its node lets 56% of what is behind the node through, where the whole node would let 75% through: its text, the glyph of a classic transition and the disc of a badge. It shows where an arc passes behind a faded node.
-- Such a part is also darker and takes the tint of the fill, by 0.19 of the difference between the canvas and the fill in each channel. On the green of a place of the Supply Chain example a label is 27 of 255 darker in one channel.
+- A part that lies on the fill of its node lets more of what is behind the node through than the whole node would, and takes the tint of the fill: its text, the glyph of a classic transition and the disc of a badge. It shows where an arc passes behind a faded node.
 - A token count and a pin hide what is behind them.
 - A filled icon is smaller by half the width of its stroke, and the corners of the transition's square are sharp.
 - A faded node has no elevation, and none more under the pointer.
@@ -81,7 +79,7 @@ At a change of focus:
 
 - The nodes and the arcs do not change together. A node outside the neighbourhood is dimmed in the first frame, and the arcs take the time of the fade. On the way back the nodes are at full strength in the first frame.
 - When the focus moves straight from one item to another, the white band of a node that joins or leaves the neighbourhood changes at once, with its fill, and its ring takes the time of the fade. It is in the shadows of the surface, which a faded surface changes at once.
-- A neighbourhood that is shown for a moment shows in full. A pointer that rests just long enough for the highlight and moves on dims every node outside the neighbourhood for about 130 ms and brings them back in one frame. A fade of 200 ms that turned back that soon hardly showed.
+- A neighbourhood that is shown for a moment shows in full. A pointer that rests just long enough for the highlight and moves on dims every node outside the neighbourhood for a moment and brings them back in one frame. A fade of 200 ms that turned back that soon hardly showed.
 - The casing of the arcs of the neighbourhood is drawn a commit before the nodes dim: the arcs read the scene, and the pane waits for React Flow. On a large net that is one long frame.
 
 Under the pointer and in a run:

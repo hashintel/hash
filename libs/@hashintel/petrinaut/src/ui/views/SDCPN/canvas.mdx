@@ -59,10 +59,7 @@ The release of a button counts as a move, so a hover that begins at the release 
 
 ## The arc layer
 
-React Flow draws the nodes and the fusion links. `ArcLayer` draws the arcs, all of them in one `svg` that React Flow renders as one edge.
-The arcs at rest are merged into a few paths for each run of consecutive arcs, and an arc with a focus role, a selection or a dragged end draws its own strokes.
-Each arc keeps one element with the name, the role and the tab stop of an edge of React Flow, which takes the pointer for it.
-[The arc layer](doc:ui.views.canvas.react-flow/arc-layer) has its parts, its rules and where an arc differs from an edge of React Flow.
+React Flow draws the nodes and the fusion links, and `ArcLayer` draws every arc in one `svg` that React Flow renders as one edge: [The arc layer](doc:ui.views.canvas.react-flow/arc-layer) has its parts, its rules and where an arc differs from an edge of React Flow.
 
 ## Rules
 
@@ -84,12 +81,10 @@ A release has to count as a move before `releasePointer` hovers the item, or the
 
 **A control drawn over the canvas has the class `nokey`.** While the selection key is held, React Flow starts a selection box from a press anywhere inside the pane, and takes the press from the control. A control that is no part of the net (the visualizer window, the eye that opens it, the fold toggle of a component card) opts out with React Flow's `nokey` class. `useSelectionKeys` covers the case where the page saw Shift go down and not come up, as after a system shortcut: the next press that says Shift is up sends the missing keyup. The tests in `selection-keys.test.tsx` and `visualizer-window.test.tsx` hold both.
 
-**No opacity goes on an element that every arc has.** The browser draws a group with an opacity into a buffer of its own on every frame, and a group per arc is a buffer per arc. [The arc layer](doc:ui.views.canvas.react-flow/arc-layer) has how a faded arc is drawn without one, and the tests that hold it.
-
-**No opacity goes on a node, or on an element inside one that draws more than one thing.** The browser draws such an element into a buffer of its own on every frame of a pan, a zoom or a drag, and a net has one per node. So each thing a node outside the focused neighbourhood draws is drawn at 0.25 by the alpha of its own colour, and a part added to a node carries the class of what it draws. No part takes a transition for it: a node dims in one frame, and the arcs fade. [The fade of a node](doc:ui.views.canvas.react-flow/node-fade) has the classes, the rules of the pane, the tests that hold them, and where a faded node differs from a node under an opacity.
+**No opacity goes on an element that every arc or every node has.** The browser draws an element with an opacity into a buffer of its own on every frame of a pan, a zoom or a drag, and a net has one per arc and per node. [The arc layer](doc:ui.views.canvas.react-flow/arc-layer) and [The fade of a node](doc:ui.views.canvas.react-flow/node-fade) say how each fades without one, and name the tests that hold it.
 
 ## Pitfalls
 
-- No custom property is registered for the canvas, by `@property` or by `CSS.registerProperty`. A registered property with a delayed transition could hold an arc's head through the fade back in CSS alone. With any property registered, used or not, Chromium 145 takes 550 to 850 ms to restyle that net for a change of focus, where it takes 77 ms. A registration holds for the whole document, so one made by the page around the editor costs the same. The test in `panda.config.shared.test.ts` holds that the Panda preset makes none. WebKit 26.5, the engine of Safari, also paints the next marker while such a transition waits. A transition on `marker-end` itself makes Chromium paint no head for as long as it runs.
+- No custom property is registered for the canvas, by `@property` or by `CSS.registerProperty`. A registered property with a delayed transition could hold an arc's head through the fade back in CSS alone. With any property registered, used or not, Chromium restyles a large net many times slower for a change of focus: [Editor performance on a large net](doc:editor-performance) has the numbers. A registration holds for the whole document, so one made by the page around the editor costs the same. The test in `panda.config.shared.test.ts` holds that the Panda preset makes none. WebKit, the engine of Safari, also paints the next marker while such a transition waits. A transition on `marker-end` itself makes Chromium paint no head for as long as it runs.
 - `useStableItems` reads a ref during render and opts out of the React Compiler with `"use no memo"`. It compares against the previous render's objects, which no effect can do in time. Keep scene items plain data: the comparison handles primitives, plain objects and arrays only.
 - An action from `useCanvasInteractions` is for an event. Calling one during render reads state of an earlier render.
