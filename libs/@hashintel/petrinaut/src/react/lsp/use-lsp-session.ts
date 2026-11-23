@@ -12,7 +12,8 @@ interface LspSession<Content> {
 /**
  * Keeps a temporary language session for the calling component's life:
  * started on mount, updated when `contentKey` changes, ended on unmount.
- * Returns the session's id: the given one, or one generated per mount.
+ * Returns the session's id: the given one, or one generated per mount. A new
+ * given id ends the old session and starts the new one.
  *
  * `contentKey` stands for what the session holds. `content` may be a new
  * object on every render: it is sent only when the key changes, which keeps
@@ -28,13 +29,13 @@ export const useLspSession = <Content extends object>(
   const [generatedSessionId] = useState(() => crypto.randomUUID());
   const sessionId = givenSessionId ?? generatedSessionId;
   const latestContent = useLatest(content);
-  const initializedRef = useRef(false);
+  const initializedIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const params = { ...latestContent.current, sessionId };
-    if (!initializedRef.current) {
+    if (initializedIdRef.current !== sessionId) {
       initialize(params);
-      initializedRef.current = true;
+      initializedIdRef.current = sessionId;
     } else {
       update(params);
     }

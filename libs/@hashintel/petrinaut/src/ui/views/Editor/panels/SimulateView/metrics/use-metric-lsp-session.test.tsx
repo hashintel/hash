@@ -26,7 +26,7 @@ const setup = () => {
       { initialProps: { code }, wrapper },
     );
 
-  return { client, mount };
+  return { client, mount, wrapper };
 };
 
 describe("useMetricLspSession", () => {
@@ -64,5 +64,25 @@ describe("useMetricLspSession", () => {
 
     expect(client.killMetricSession).toHaveBeenCalledWith(firstSessionId);
     expect(mount("return 1;").result.current).not.toBe(firstSessionId);
+  });
+
+  it("ends the old session and starts the new one when the given id changes", () => {
+    const { client, wrapper } = setup();
+    const { rerender } = renderHook(
+      (props: { sessionId: string }) =>
+        useMetricLspSession("return 1;", props.sessionId),
+      { initialProps: { sessionId: "session-1" }, wrapper },
+    );
+
+    rerender({ sessionId: "session-2" });
+
+    expect(client.killMetricSession).toHaveBeenCalledExactlyOnceWith(
+      "session-1",
+    );
+    expect(client.initializeMetricSession).toHaveBeenLastCalledWith({
+      sessionId: "session-2",
+      code: "return 1;",
+    });
+    expect(client.updateMetricSession).not.toHaveBeenCalled();
   });
 });
