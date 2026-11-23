@@ -297,10 +297,11 @@ export const ConditionField = (props: ComponentProps<typeof InputField>) => {
   }
 
   const valueLabel = subject?.valueLabel ?? "Value";
+  /* The source's types' properties come last, so where another type has another version of one, theirs wins. */
   const targets = getConditionTargets({
     kind: rowKind,
     valueLabel,
-    properties: allProperties ?? [],
+    properties: [...(allProperties ?? []), ...(offeredProperties ?? [])],
   });
   const targetsByKey = new Map(targets.map((target) => [target.key, target]));
   /* Nothing to add until the value is connected. */

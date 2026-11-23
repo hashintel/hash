@@ -49,11 +49,12 @@ const propertyTypeUrl = (name: string) =>
 const propertyType = (
   name: string,
   dataTypeNames: string[],
+  version = 1,
 ): PropertyTypeWithMetadata =>
   ({
     metadata: { recordId: { baseUrl: propertyTypeUrl(name) } },
     schema: {
-      $id: `${propertyTypeUrl(name)}v/1`,
+      $id: `${propertyTypeUrl(name)}v/${version}`,
       title: name,
       oneOf: dataTypeNames.map((dataTypeName) => ({
         $ref: dataTypeId(dataTypeName),
@@ -64,18 +65,24 @@ const propertyType = (
 const entityTypeId = (name: string) =>
   `https://example.com/@acme/types/entity-type/${name}/v/1` as VersionedUrl;
 
-/** An entity type with each property as a single value, or as a list when its name is in `lists`. */
+/**
+ * An entity type with each property as a single value, or as a list when its name is in `lists`, at version 1 unless
+ * `versions` gives another.
+ */
 const entityType = (
   name: string,
   propertyNames: string[],
   lists: string[] = [],
+  versions: Record<string, number> = {},
 ): EntityTypeWithMetadata =>
   ({
     schema: {
       $id: entityTypeId(name),
       properties: Object.fromEntries(
         propertyNames.map((propertyName) => {
-          const reference = { $ref: `${propertyTypeUrl(propertyName)}v/1` };
+          const reference = {
+            $ref: `${propertyTypeUrl(propertyName)}v/${versions[propertyName] ?? 1}`,
+          };
 
           return [
             propertyTypeUrl(propertyName),
@@ -175,6 +182,20 @@ describe("getConditionProperties", () => {
 
     expect(valueKindsOf(ontology, ["report", "letter"])).toEqual({
       sent: { kind: "date" },
+    });
+  });
+  it("offers a status one type has even when a type before it has a text version of it", () => {
+    const properties = [
+      propertyType("state", ["text"]),
+      propertyType("state", ["status"], 2),
+    ];
+    const ontology = ontologyOf(properties, [
+      entityType("report", ["state"]),
+      entityType("letter", ["state"], [], { state: 2 }),
+    ]);
+
+    expect(valueKindsOf(ontology, ["report", "letter"])).toEqual({
+      state: { kind: "status", options: ["Active", "Suspended"] },
     });
   });
 });

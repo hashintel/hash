@@ -129,19 +129,19 @@ const toEntityProperty = (
 };
 
 /**
- * The properties a condition can check for entities of any of the given types, by title: those the entities table
- * filters as a single number, text, date, true/false or status.
+ * Each property `toProperty` keeps for entities of any of the given types, by title. One type at a time: across several,
+ * the first type whose property it keeps decides its shape, so a list or an unsupported version on one type doesn't
+ * hide the value another has.
  */
-export const getEntityProperties = (
+const collectProperties = <
+  Property extends { baseUrl: BaseUrl; title: string },
+>(
   ontology: ConditionOntology,
   entityTypeIds: VersionedUrl[],
-): EntityProperty[] => {
-  const properties = new Map<BaseUrl, EntityProperty>();
+  toProperty: (property: FilterMetadataForProperty) => Property | undefined,
+): Property[] => {
+  const properties = new Map<BaseUrl, Property>();
 
-  /*
-   * One type at a time: across several, the first type with a property decides its shape, so a list on one type would
-   * hide the single value another has.
-   */
   for (const entityTypeId of entityTypeIds) {
     for (const property of deriveFilterableProperties({
       dataTypes: ontology.dataTypes,
@@ -150,10 +150,10 @@ export const getEntityProperties = (
       entityTypes: ontology.entityTypes,
       propertyTypes: ontology.propertyTypes,
     })) {
-      const entityProperty = toEntityProperty(property, ontology);
+      const kept = toProperty(property);
 
-      if (entityProperty && !properties.has(entityProperty.baseUrl)) {
-        properties.set(entityProperty.baseUrl, entityProperty);
+      if (kept && !properties.has(kept.baseUrl)) {
+        properties.set(kept.baseUrl, kept);
       }
     }
   }
@@ -163,28 +163,41 @@ export const getEntityProperties = (
   );
 };
 
-/**
- * The properties a Find entities condition can be on for entities of any of the given types, by title: a single status,
- * or a single text whose latest data type is a date.
- */
+/** The properties a condition can check: a single number, text, date, true/false or status. */
+export const getEntityProperties = (
+  ontology: ConditionOntology,
+  entityTypeIds: VersionedUrl[],
+): EntityProperty[] =>
+  collectProperties(ontology, entityTypeIds, (property) =>
+    toEntityProperty(property, ontology),
+  );
+
+/** The properties a Find entities condition can be on: a single status, or a single text whose latest data type is a date. */
 export const getConditionProperties = (
   ontology: ConditionOntology,
   entityTypeIds: VersionedUrl[],
 ): ConditionProperty[] =>
-  getEntityProperties(ontology, entityTypeIds).flatMap(
-    ({ baseUrl, title, valueKind }): ConditionProperty[] => {
+  collectProperties(
+    ontology,
+    entityTypeIds,
+    (property): ConditionProperty | undefined => {
+      const entityProperty = toEntityProperty(property, ontology);
+
+      if (!entityProperty) {
+        return undefined;
+      }
+
+      const { valueKind } = entityProperty;
+
       if (valueKind.kind === "Date") {
-        return [{ baseUrl, title, valueKind: { kind: "date" } }];
+        return { ...entityProperty, valueKind: { kind: "date" } };
       }
 
       return valueKind.kind === "Text" && valueKind.options
-        ? [
-            {
-              baseUrl,
-              title,
-              valueKind: { kind: "status", options: valueKind.options },
-            },
-          ]
-        : [];
+        ? {
+            ...entityProperty,
+            valueKind: { kind: "status", options: valueKind.options },
+          }
+        : undefined;
     },
   );
