@@ -4,7 +4,7 @@
  */
 import { z } from "zod";
 
-import { constraintListSchema } from "../constraint/constraint";
+import { constraintListSchema } from "../constraints/constraint";
 import { petrinautIdSchema } from "../document/petrinaut-id";
 import { parseSDCPNFile } from "../file-format/parse-sdcpn-file";
 import { sdcpnSchema } from "../file-format/types";

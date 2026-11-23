@@ -11,7 +11,7 @@ import type {
   ConstraintSource,
   LowerConstraintContext,
   LowerConstraintResult,
-} from "../constraint/lower";
+} from "../constraints/lower";
 import type { PetrinautExtensionSettings } from "../extensions/extensions";
 // Type-only: must not pull the compiler (`typescript`) into client bundles.
 import type { HirCompileResult, ScenarioHir } from "../hir";

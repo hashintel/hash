@@ -29,7 +29,7 @@ import { TYPE_POLICIES } from "../../tokens/type-policies";
 import { applyFormWrapper } from "./create-language-service-host";
 import { getItemFilePath, VISUALIZER_JSX_PACKAGE } from "./file-paths";
 
-import type { ConstraintSpace } from "../../constraint/constraint";
+import type { ConstraintSpace } from "../../constraints/constraint";
 import type {
   Color,
   ColorElementType,

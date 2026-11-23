@@ -641,22 +641,22 @@ export {
   constraintsInSpace,
   parameterConstraintSchema,
   stateConstraintSchema,
-} from "./constraint/constraint";
+} from "./constraints/constraint";
 export type {
   Constraint,
   ConstraintSpace,
   ParameterConstraint,
   StateConstraint,
-} from "./constraint/constraint";
+} from "./constraints/constraint";
 export {
   compileStateConstraintIndicator,
   wrapHirAsIndicator,
-} from "./constraint/indicator-metric";
+} from "./constraints/indicator-metric";
 export {
   constraintMargin,
   evaluateParameterConstraints,
   type ParameterConstraintResult,
-} from "./constraint/margin";
+} from "./constraints/margin";
 export {
   HirInterpretError,
   interpretHir,
@@ -692,7 +692,7 @@ export type {
   ConstraintSource,
   LowerConstraintContext,
   LowerConstraintResult,
-} from "./constraint/lower";
+} from "./constraints/lower";
 export { hirFunctionSchema } from "./hir/hir-schema";
 export {
   AD_HOC_DEFAULT_OPTIMIZE,

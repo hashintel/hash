@@ -1,8 +1,8 @@
-import type { ConstraintSpace } from "../../constraint/constraint";
+import type { ConstraintSpace } from "../../constraints/constraint";
 import type {
   ConstraintSource,
   LowerConstraintContext,
-} from "../../constraint/lower";
+} from "../../constraints/lower";
 /**
  * LSP-inspired protocol types for the language server WebWorker.
  *
