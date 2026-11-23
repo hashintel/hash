@@ -125,6 +125,8 @@ export const AggregationField = (props: ComponentProps<typeof InputField>) => {
           readonly={readOnly}
           onChange={(operation) => {
             if (!operation) {
+              setPending(undefined);
+              editor.setInputSource(stepId, input.name, null);
               return;
             }
 
@@ -157,11 +159,9 @@ export const AggregationField = (props: ComponentProps<typeof InputField>) => {
             searchable
             readonly={readOnly}
             disabled={ofItems.length === 0}
-            onChange={(nextKey) => {
-              if (nextKey) {
-                save({ operation: form.operation, targetKey: nextKey });
-              }
-            }}
+            onChange={(nextKey) =>
+              save({ operation: form.operation, targetKey: nextKey })
+            }
           />
         </Form.Field>
       )}
