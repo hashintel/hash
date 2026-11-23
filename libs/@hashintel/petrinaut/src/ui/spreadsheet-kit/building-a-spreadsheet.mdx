@@ -122,6 +122,43 @@ The contract the composition keeps, in exchange for the kit's behaviour:
   the grid, so a drag and the shortcut can never disagree. Rows keyed by a
   stable id keep the focused element on the row that moved.
 
+## The selection grammar
+
+`use-select-first.ts` and `use-row-selection.ts` hold the selection grammar:
+how a click selects before it acts, and which row reads as selected.
+
+`useSelectFirstActivation` gives a click target that is also a selectable
+cell the worksheet's activation behaviour: the first pointer click only
+selects (focuses) it, a click on an already-selected target activates, and
+Enter or Space always activates.
+
+```tsx
+const { onPointerDown, shouldActivate } = useSelectFirstActivation();
+
+<button
+  type="button"
+  onPointerDown={onPointerDown}
+  onClick={(event) => {
+    if (shouldActivate(event)) {
+      activate();
+    }
+  }}
+/>;
+```
+
+- Double-click needs no handler of its own: a repeated click on the same
+  target activates through its click count (`event.detail`), even in
+  browsers that do not focus buttons on pointer down. This matters where
+  activation is not idempotent, such as materializing a phantom row.
+- One instance serves any number of sibling targets.
+
+`useRowSelection` is the row-selection model gutter tables share. Its
+`selectedRow` is the row to render as selected: the row whose gutter holds
+focus, or the row whose gutter menu is open. Report gutter focus with
+`setFocusedRow(row)` and blur with `setFocusedRow(null)`; `openMenu(row,
+anchor)` and `closeMenu()` keep one menu open per table, and the menu's row
+stays selected while the menu holds focus.
+
 ## What not to add here
 
 A piece belongs in the kit only if a table that knows nothing about the
