@@ -175,7 +175,7 @@ where
     A: Allocator + Clone,
 {
     if parser.at_set(SyntaxKindSet::OPENING_DELIMITER) {
-        json::parse_json_value(parser);
+        parser.nested(json::parse_json_value);
     } else {
         parser.error_node();
     }
@@ -202,7 +202,7 @@ where
     colon.start_node(SyntaxKind::Error);
     let parser = colon.commit();
     if !parser.at_set(SyntaxKindSet::ITEM_BOUNDARY) {
-        json::parse_json_value(parser);
+        parser.nested(json::parse_json_value);
     }
     parser.finish_node();
 
@@ -614,6 +614,9 @@ where
     A: Allocator + Clone,
 {
     let skipped_invalid = parser.skip_invalid_tokens();
+    if parser.skip_over_nested_container().is_break() {
+        return;
+    }
 
     let Some(token) = parser.peek() else {
         if !skipped_invalid {

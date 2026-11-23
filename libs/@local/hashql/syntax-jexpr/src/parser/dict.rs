@@ -60,7 +60,7 @@ where
         let found = ValueKind::from_syntax_kind(kind);
 
         parser.start_node(SyntaxKind::DictArrayEntry);
-        recovery::parse_json_value(parser);
+        parser.nested(recovery::parse_json_value);
         let value_range = TextRange::new(start, parser.last_token_end());
         parser.finish_node();
 

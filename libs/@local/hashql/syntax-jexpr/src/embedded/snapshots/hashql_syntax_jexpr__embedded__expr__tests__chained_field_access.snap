@@ -8,9 +8,9 @@ info:
 Expr#4294967040@7
   ExprKind (Field)
     FieldExpr#4294967040@7 (field: baz)
-      Expr#4294967040@6
+      Expr#4294967040@5
         ExprKind (Field)
-          FieldExpr#4294967040@6 (field: bar)
+          FieldExpr#4294967040@5 (field: bar)
             Expr#4294967040@3
               ExprKind (Path)
                 Path#4294967040@3 (rooted: false)

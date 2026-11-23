@@ -55,6 +55,12 @@ impl<'tree> SyntaxTokenData<'tree> {
     pub(crate) fn text(self) -> &'tree str {
         self.data.text()
     }
+
+    #[inline]
+    #[must_use]
+    pub(crate) const fn green(self) -> &'tree GreenTokenData {
+        self.data
+    }
 }
 
 impl Eq for SyntaxTokenData<'_> {}

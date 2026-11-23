@@ -255,8 +255,7 @@ const fn lex_invalid_word(_: &mut logos::Lexer<'_, LexToken>) -> Result<(), LexE
     Err(LexError::InvalidWord)
 }
 
-// Consumes a single-line `'...'` string as one invalid token when a closing `'` exists on the same
-// line. An unmatched `'` falls back to an unrecognized character so later tokens stay intact.
+// Consumes a single-line single-quoted string through its closing `'`, line break, or end of input.
 #[inline(never)]
 fn lex_single_quoted_string(lexer: &mut logos::Lexer<'_, LexToken>) -> Result<(), LexError> {
     let remainder = lexer.remainder().as_bytes();
@@ -271,15 +270,20 @@ fn lex_single_quoted_string(lexer: &mut logos::Lexer<'_, LexToken>) -> Result<()
                 if index + 1 < remainder.len() && !matches!(remainder[index + 1], b'\n' | b'\r') {
                     index += 2;
                 } else {
-                    return Err(LexError::UnrecognizedCharacter);
+                    lexer.bump(index + 1);
+                    return Err(LexError::SingleQuotedString);
                 }
             }
-            b'\n' | b'\r' => return Err(LexError::UnrecognizedCharacter),
+            b'\n' | b'\r' => {
+                lexer.bump(index);
+                return Err(LexError::SingleQuotedString);
+            }
             _ => index += 1,
         }
     }
 
-    Err(LexError::UnrecognizedCharacter)
+    lexer.bump(remainder.len());
+    Err(LexError::SingleQuotedString)
 }
 
 pub(crate) struct Lexer<'source> {
@@ -491,12 +495,49 @@ mod tests {
     #[test]
     fn single_quoted_and_prefixed_number() {
         let tokens = lex_significant("'hello' +42 .5 'unterminated");
-        assert_eq!(tokens.len(), 5);
+        assert_eq!(tokens.len(), 4);
         assert_eq!(tokens[0].error(), Some(LexError::SingleQuotedString));
         assert_matches!(tokens[1].error(), Some(LexError::Number(_)));
         assert_matches!(tokens[2].error(), Some(LexError::Number(_)));
-        assert_eq!(tokens[3].error(), Some(LexError::UnrecognizedCharacter));
-        assert_eq!(tokens[4].error(), Some(LexError::InvalidWord));
+        assert_eq!(tokens[3].error(), Some(LexError::SingleQuotedString));
+    }
+
+    #[test]
+    fn unmatched_single_quote_escaped_suffix() {
+        let closed = lex_significant(r"'\'hello'");
+        assert_eq!(closed.len(), 1);
+        assert_eq!(closed[0].error(), Some(LexError::SingleQuotedString));
+
+        let multiline = lex_significant("'\\'a\n'world'");
+        assert_eq!(multiline.len(), 2);
+        assert_eq!(multiline[0].error(), Some(LexError::SingleQuotedString));
+        assert_eq!(multiline[1].error(), Some(LexError::SingleQuotedString));
+
+        let trailing_backslash = lex_significant("'\\'a\\\n'ok'");
+        assert_eq!(trailing_backslash.len(), 2);
+        assert_eq!(
+            trailing_backslash[0].error(),
+            Some(LexError::SingleQuotedString)
+        );
+        assert_eq!(
+            trailing_backslash[1].error(),
+            Some(LexError::SingleQuotedString)
+        );
+
+        let pairs = 50_000_usize;
+        let mut source = String::with_capacity(1 + pairs * 2);
+        source.push('\'');
+        for _ in 0..pairs {
+            source.push_str(r"\'");
+        }
+
+        let tokens = lex_all(&source);
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0].error(), Some(LexError::SingleQuotedString));
+        assert_eq!(
+            tokens[0].range,
+            TextRange::up_to(TextSize::try_from(source.len()).expect("len fits in TextSize"))
+        );
     }
 
     #[test]

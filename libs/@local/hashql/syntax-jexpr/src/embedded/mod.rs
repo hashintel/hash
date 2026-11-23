@@ -64,6 +64,7 @@ where
         parent: *parent,
         offsets: RawOffsets::from_decoded_in(raw_quoted, decoded, alloc),
         depth: 0,
+        max_depth: 0,
         options,
     };
 

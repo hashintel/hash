@@ -8,9 +8,9 @@ info:
 Expr#4294967040@9
   ExprKind (Index)
     IndexExpr#4294967040@9
-      Expr#4294967040@8
+      Expr#4294967040@7
         ExprKind (Index)
-          IndexExpr#4294967040@8
+          IndexExpr#4294967040@7
             Expr#4294967040@3
               ExprKind (Path)
                 Path#4294967040@3 (rooted: false)
@@ -19,8 +19,8 @@ Expr#4294967040@9
               ExprKind (Path)
                 Path#4294967040@6 (rooted: false)
                   PathSegment#4294967040@5 (name: bar)
-      Expr#4294967040@7
+      Expr#4294967040@8
         ExprKind (Literal)
-          LiteralExpr#4294967040@7
+          LiteralExpr#4294967040@8
             Primitive (Integer)
               Integer (0)

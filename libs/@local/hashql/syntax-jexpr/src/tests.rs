@@ -972,6 +972,110 @@ fn nesting_custom_limit() {
 }
 
 #[test]
+fn embedded_nesting_index_subtree_depth() {
+    const OPTIONS: ParserOptions = ParserOptions { nesting_limit: 3 };
+    let invalid_expr = Err(JExprDiagnosticCategory::Parser(
+        ParserDiagnosticCategory::String(StringDiagnosticCategory::InvalidExpression),
+    ));
+
+    let parse = |source: &str, options: ParserOptions| {
+        let heap = Heap::new();
+        let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+
+        Parser::new(&heap, &mut spans, options)
+            .parse_expr_in(source, Global)
+            .map(drop)
+            .map_err(|failure| failure.primary.category)
+    };
+
+    assert_eq!(parse(r#""x[x[x]]""#, OPTIONS), Ok(()));
+    assert_eq!(parse(r#""x[x[x]].f""#, OPTIONS), invalid_expr);
+    assert_eq!(parse(r#""x.f[x[x]]""#, OPTIONS), Ok(()));
+    assert_eq!(parse(r#""x.f.g[x]""#, OPTIONS), invalid_expr);
+    assert_eq!(parse(r#""x[x[x]][x]""#, OPTIONS), invalid_expr);
+    assert_eq!(parse(r#""x[Vec<Int>]""#, OPTIONS), Ok(()));
+    assert_eq!(parse(r#""x[Vec<Int>].f""#, OPTIONS), invalid_expr);
+
+    // Repeating index subtrees with growing field tails stays within per-frame depth while
+    // growing AST height quadratically unless subtree depth propagates upward.
+    let mut nested = String::from("x");
+    for suffix in 0..(default_nesting_limit() - 1) {
+        let mut next = String::with_capacity(nested.len() + 3 + suffix * 2);
+        next.push_str("x[");
+        next.push_str(&nested);
+        next.push(']');
+        next.extend(iter::repeat_n(".f", suffix));
+        nested = next;
+    }
+    let quoted = format!(r#""{nested}""#);
+    assert_eq!(parse(&quoted, ParserOptions::default()), invalid_expr);
+}
+
+#[test]
+fn recovery_object_nesting_past_limit() {
+    const OPTIONS: ParserOptions = ParserOptions { nesting_limit: 3 };
+
+    let parse_categories = |source: &str, options: ParserOptions| {
+        let heap = Heap::new();
+        let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+        let Err(failure) = Parser::new(&heap, &mut spans, options).parse_expr_in(source, Global)
+        else {
+            panic!("expected parse errors for {source}");
+        };
+        iter::once(failure.primary.category)
+            .chain(failure.secondary.iter().map(|diag| diag.category))
+            .collect::<Vec<_>>()
+    };
+
+    let sources = [
+        ("repeated `{`", "{".repeat(10_000)),
+        ("repeated `{1:`", "{1:".repeat(10_000)),
+        ("missing comma `{`", r#"{"a":1"#.repeat(10_000)),
+        ("invalid token in `[`", "[@".repeat(10_000)),
+        ("invalid token in `{`", r#"{"a":@"#.repeat(10_000)),
+        (
+            "invalid token in `#struct`",
+            r##"{"#struct":{"a":@"##.repeat(10_000),
+        ),
+        (
+            "invalid token in `#literal` recovery",
+            format!(r##"{{"#literal":{}"##, "[@".repeat(10_000)),
+        ),
+    ];
+
+    for (label, source) in sources {
+        let parse = parse_expr_cst(&source);
+        assert_eq!(parse.green().to_string(), source);
+        let categories = parse_categories(&source, ParserOptions::default());
+        assert!(
+            categories.contains(&NESTING_LIMIT_CATEGORY),
+            "expected nesting limit diagnostic for {label}"
+        );
+        // Skipping an over-nested container must not flood diagnostics from inside it.
+        assert!(
+            categories.len() <= default_nesting_limit() * 2 + 4,
+            "excess diagnostics ({}) for {label}",
+            categories.len()
+        );
+    }
+
+    // An invalid token before a leaf at the limit still parses the leaf without a nesting error.
+    let leaf_at_limit = parse_categories(r#"[[[@ "x"]]]"#, OPTIONS);
+    assert!(!leaf_at_limit.contains(&NESTING_LIMIT_CATEGORY));
+    assert!(leaf_at_limit.contains(&JExprDiagnosticCategory::Parser(
+        ParserDiagnosticCategory::Lexer(LexerDiagnosticCategory::InvalidCharacter),
+    )));
+
+    // An invalid token before a container past the limit triggers the nesting guard.
+    let container_past_limit = parse_categories(r#"[[[@ ["x"]]]]"#, OPTIONS);
+    assert!(container_past_limit.contains(&NESTING_LIMIT_CATEGORY));
+
+    // Unknown object field values count toward the nesting limit.
+    let unknown_field_nesting = parse_categories(r#"{"a": {"b": {"c": {"d": 1}}}}"#, OPTIONS);
+    assert!(unknown_field_nesting.contains(&NESTING_LIMIT_CATEGORY));
+}
+
+#[test]
 fn value_grammar_type_annotation() {
     #[derive(Debug, Copy, Clone, PartialEq, Eq)]
     enum ValueNode<'tree> {

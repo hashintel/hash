@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::{alloc::Allocator, marker::PhantomData, mem};
+use core::{alloc::Allocator, marker::PhantomData, mem, ops::ControlFlow};
 
 use rowan::{Checkpoint, GreenNodeBuilder};
 use text_size::{TextRange, TextSize};
@@ -167,6 +167,19 @@ where
     }
 
     #[inline]
+    fn commit_skipped(self) {
+        let Lookahead::Token(token) = mem::replace(&mut self.parser.lookahead, Lookahead::Empty)
+        else {
+            unreachable!("PeekToken guarantees a buffered non-trivia token")
+        };
+
+        self.parser
+            .builder
+            .token(token.kind.into(), self.parser.lexer.slice(token.range));
+        self.parser.last_token_end = token.range.end();
+    }
+
+    #[inline]
     pub(crate) fn commit_node(mut self, kind: SyntaxKind) -> &'parser mut Parser<'source, G, A> {
         self.start_node(kind);
         let parser = self.commit();
@@ -182,7 +195,7 @@ pub(crate) struct Parser<'source, G, A: Allocator> {
     builder: GreenNodeBuilder<'static>,
     errors: Vec<SyntaxError<A>, A>,
     last_token_end: TextSize,
-    depth: u16,
+    depth: u32,
     options: ParserOptions,
     _grammar: PhantomData<G>,
 }
@@ -581,7 +594,7 @@ where
                 // Every other token belongs to the innermost open container.
             }
 
-            token.commit();
+            token.commit_skipped();
             if open == 0 {
                 break;
             }
@@ -590,12 +603,9 @@ where
         self.finish_node();
     }
 
-    /// Parses a value with `parse`, one nesting level below the current one.
-    ///
-    /// The parser does not parse a container past [`ParserOptions::nesting_limit`] levels. It
-    /// reports the container at its opening delimiter and skips to the matching closing delimiter.
-    pub(crate) fn nested(&mut self, parse: impl FnOnce(&mut Self)) {
-        if self.depth >= self.options.nesting_limit
+    /// Reports and skips an opening delimiter past [`ParserOptions::nesting_limit`].
+    pub(crate) fn skip_over_nested_container(&mut self) -> ControlFlow<()> {
+        if self.depth > u32::from(self.options.nesting_limit)
             && let Some(token) = self.peek()
             && SyntaxKindSet::OPENING_DELIMITER.contains(token.kind())
         {
@@ -608,11 +618,21 @@ where
             );
             self.skip_container();
 
-            return;
+            return ControlFlow::Break(());
         }
 
+        ControlFlow::Continue(())
+    }
+
+    /// Parses a value with `parse` one nesting level down.
+    ///
+    /// Past [`ParserOptions::nesting_limit`] levels, this reports a container at its opening
+    /// delimiter and skips through the matching closing delimiter without invoking `parse`.
+    pub(crate) fn nested(&mut self, parse: impl FnOnce(&mut Self)) {
         self.depth += 1;
-        ensure_sufficient_stack(|| parse(self));
+        if self.skip_over_nested_container().is_continue() {
+            ensure_sufficient_stack(|| parse(self));
+        }
         self.depth -= 1;
     }
 

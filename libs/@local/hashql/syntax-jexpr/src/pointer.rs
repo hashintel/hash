@@ -1,11 +1,13 @@
-use alloc::borrow::Cow;
-use core::fmt::Write as _;
+use alloc::{alloc::Global, borrow::Cow};
+use core::{alloc::Allocator, fmt::Write as _, ops::Range};
+use std::sync::OnceLock;
 
-use rowan::GreenNode;
+use rowan::{GreenNode, GreenToken};
 use text_size::{TextRange, TextSize};
 
 use crate::{
     cst::{self, Token as _},
+    lexer::decode_quoted,
     syntax_kind::SyntaxKind,
 };
 
@@ -25,17 +27,13 @@ fn push_segment(pointer: &mut String, segment: &str) {
     }
 }
 
-fn push_first_field_key(node: cst::SyntaxNodeData<'_>, pointer: &mut String) {
-    let Some(token) = node.first_token::<cst::StringToken<'_>>() else {
-        return;
-    };
-
-    match token.decode() {
+fn push_key_token(token: &GreenToken, pointer: &mut String) {
+    let text = token.text();
+    match decode_quoted(text) {
         Ok(Cow::Borrowed(decoded)) => push_segment(pointer, decoded),
         Ok(Cow::Owned(decoded)) => push_segment(pointer, &decoded),
         Err(_) => {
             // Fall back to the raw slice without surrounding quotes when the key had a lex error.
-            let text = token.text();
             let stripped = text
                 .strip_prefix('"')
                 .map_or(text, |rest| rest.strip_suffix('"').unwrap_or(rest));
@@ -44,69 +42,137 @@ fn push_first_field_key(node: cst::SyntaxNodeData<'_>, pointer: &mut String) {
     }
 }
 
-fn json_pointer_for_range(root: cst::SyntaxNodeData<'_>, range: TextRange) -> Option<String> {
-    if !root.text_range().contains_range(range) {
-        return None;
+enum Segment {
+    None,
+    Index(usize),
+    Key(GreenToken),
+}
+
+struct IndexNode {
+    range: TextRange,
+    segment: Segment,
+    children: Range<usize>,
+}
+
+struct PointerIndex<A: Allocator> {
+    nodes: Vec<IndexNode, A>,
+}
+
+impl<A: Allocator> PointerIndex<A> {
+    fn build_in(root: cst::SyntaxNodeData<'_>, alloc: A) -> Self
+    where
+        A: Clone,
+    {
+        let mut nodes = Vec::new_in(alloc.clone());
+        nodes.push(IndexNode {
+            range: root.text_range(),
+            segment: Segment::None,
+            children: 0..0,
+        });
+
+        let mut queue = Vec::new_in(alloc);
+        queue.push(root);
+
+        let mut cursor = 0;
+        while cursor < queue.len() {
+            let current = queue[cursor];
+            let counts_elements = current.kind().is_array_container();
+            let children_start = nodes.len();
+            let mut element_index = 0_usize;
+
+            for child in current.children() {
+                let child_kind = child.kind();
+                let segment = if counts_elements && child_kind != SyntaxKind::Error {
+                    let index = element_index;
+                    element_index += 1;
+                    Segment::Index(index)
+                } else if child_kind.is_object_field() {
+                    child
+                        .first_token::<cst::StringToken<'_>>()
+                        .map_or(Segment::None, |token| {
+                            Segment::Key(token.syntax().green().to_owned())
+                        })
+                } else {
+                    Segment::None
+                };
+
+                nodes.push(IndexNode {
+                    range: child.text_range(),
+                    segment,
+                    children: 0..0,
+                });
+                queue.push(child);
+            }
+
+            nodes[cursor].children = children_start..nodes.len();
+            cursor += 1;
+        }
+
+        Self { nodes }
     }
 
-    let mut pointer = String::new();
-    let mut current = root;
+    fn resolve(&self, range: TextRange) -> Option<String> {
+        let root = self.nodes.first()?;
+        if !root.range.contains_range(range) {
+            return None;
+        }
 
-    loop {
-        let counts_elements = current.kind().is_array_container();
-        let mut element_index = 0_usize;
-        let mut next_child = None;
+        let mut pointer = String::new();
+        let mut current = root;
 
-        for child in current.children() {
-            let child_kind = child.kind();
-            let is_element = counts_elements && child_kind != SyntaxKind::Error;
-
-            if child.text_range().contains_range(range) {
-                if is_element {
-                    write!(pointer, "/{element_index}").expect("writing to String is infallible");
-                } else if child_kind.is_object_field() {
-                    push_first_field_key(child, &mut pointer);
-                } else {
-                    // Wrapper and error nodes add no pointer segment.
-                }
-                next_child = Some(child);
+        loop {
+            let children = &self.nodes[current.children.clone()];
+            let index = children.partition_point(|child| child.range.end() < range.end());
+            let Some(child) = children.get(index) else {
+                break;
+            };
+            if !child.range.contains_range(range) {
                 break;
             }
 
-            if is_element {
-                element_index += 1;
+            match &child.segment {
+                Segment::None => {}
+                Segment::Index(element_index) => {
+                    write!(pointer, "/{element_index}").expect("writing to String is infallible");
+                }
+                Segment::Key(token) => push_key_token(token, &mut pointer),
             }
+
+            current = child;
         }
 
-        match next_child {
-            Some(child) => current = child,
-            None => break,
-        }
+        Some(pointer)
     }
-
-    Some(pointer)
 }
 
 /// Resolves byte ranges in a J-Expr document to RFC 6901 JSON Pointers.
 pub struct JsonPointers {
     tree: GreenNode,
+    index: OnceLock<PointerIndex<Global>>,
 }
 
 impl JsonPointers {
     pub(crate) const fn from_green(tree: GreenNode) -> Self {
-        Self { tree }
+        Self {
+            tree,
+            index: OnceLock::new(),
+        }
     }
 
     /// Resolves the RFC 6901 JSON Pointer for `range`, or `None` outside the source bounds.
     #[must_use]
     pub fn resolve(&self, range: TextRange) -> Option<String> {
-        json_pointer_for_range(
-            cst::SyntaxNodeData {
-                data: &self.tree,
-                offset: TextSize::new(0),
-            },
-            range,
-        )
+        let index = self.index.get_or_init(|| {
+            PointerIndex::build_in(
+                cst::SyntaxNodeData {
+                    data: &self.tree,
+                    offset: TextSize::new(0),
+                },
+                Global,
+            )
+        });
+
+        index.resolve(range)
     }
 }
 
@@ -210,5 +276,73 @@ mod tests {
             .parse_expr_with_pointers_in(r##"{"#literal": 1}"##, Global);
         let range = TextRange::new(TextSize::new(0), TextSize::new(999));
         assert!(pointers.resolve(range).is_none());
+    }
+
+    #[test]
+    fn boundary_and_empty_ranges() {
+        let source = r#"["f", "a", "b"]"#;
+        let heap = Heap::new();
+        let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+        let (_, pointers) = Parser::new(&heap, &mut spans, ParserOptions::default())
+            .parse_expr_with_pointers_in(source, Global);
+
+        let a_start = source.find(r#""a""#).expect("needle exists");
+        let a_end = a_start + 3;
+        let a_start = TextSize::try_from(a_start).expect("start fits in TextSize");
+        let a_end = TextSize::try_from(a_end).expect("end fits in TextSize");
+        assert_eq!(
+            pointers.resolve(TextRange::empty(a_start)).as_deref(),
+            Some("/1")
+        );
+        assert_eq!(
+            pointers.resolve(TextRange::empty(a_end)).as_deref(),
+            Some("/1")
+        );
+        // Empty range in whitespace between elements resolves to the enclosing call.
+        assert_eq!(
+            pointers
+                .resolve(TextRange::empty(a_end + TextSize::new(1)))
+                .as_deref(),
+            Some("")
+        );
+        // Span straddling two siblings resolves to their enclosing call.
+        assert_eq!(
+            pointers
+                .resolve(TextRange::new(a_start, a_end + TextSize::new(4)))
+                .as_deref(),
+            Some("")
+        );
+    }
+
+    #[test]
+    fn wide_array_pointer_resolution() {
+        let count = 20_000_usize;
+        let mut source = String::with_capacity(6 + count * 4);
+        source.push_str(r#"["f""#);
+        let mut offsets = Vec::with_capacity(count);
+        for _ in 0..count {
+            source.push_str(", ");
+            let start = source.len();
+            source.push_str(r#""""#);
+            offsets.push(TextRange::new(
+                TextSize::try_from(start).expect("start fits in TextSize"),
+                TextSize::try_from(start + 2).expect("end fits in TextSize"),
+            ));
+        }
+        source.push(']');
+
+        let heap = Heap::new();
+        let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+        let (status, pointers) = Parser::new(&heap, &mut spans, ParserOptions::default())
+            .parse_expr_with_pointers_in(&source, Global);
+        let failure = status.expect_err("empty string args produce diagnostics");
+        assert_eq!(failure.secondary.len() + 1, count);
+
+        for (index, range) in offsets.into_iter().enumerate() {
+            assert_eq!(
+                pointers.resolve(range).as_deref(),
+                Some(format!("/{}", index + 1).as_str())
+            );
+        }
     }
 }

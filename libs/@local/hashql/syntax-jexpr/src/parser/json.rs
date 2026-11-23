@@ -74,6 +74,9 @@ where
     A: Allocator + Clone,
 {
     let skipped_invalid = parser.skip_invalid_tokens();
+    if parser.skip_over_nested_container().is_break() {
+        return;
+    }
 
     let Some(token) = parser.peek() else {
         return;

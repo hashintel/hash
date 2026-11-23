@@ -14,6 +14,7 @@ pub(crate) struct Context<'heap, 'spans, A: Allocator> {
     pub parent: SpanId,
     pub offsets: RawOffsets<A>,
     pub depth: u16,
+    pub max_depth: u16,
     pub options: ParserOptions,
 }
 
@@ -50,6 +51,7 @@ impl<A: Allocator> fmt::Debug for Context<'_, '_, A> {
             .field("parent", &self.parent)
             .field("offsets", &self.offsets)
             .field("depth", &self.depth)
+            .field("max_depth", &self.max_depth)
             .field("options", &self.options)
             .finish()
     }

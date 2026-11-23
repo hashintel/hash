@@ -165,6 +165,7 @@ where
         }
 
         input.state.depth += 1;
+        input.state.max_depth = input.state.max_depth.max(input.state.depth);
         let result = ensure_sufficient_stack(|| parser.parse_next(input));
         input.state.depth -= 1;
 

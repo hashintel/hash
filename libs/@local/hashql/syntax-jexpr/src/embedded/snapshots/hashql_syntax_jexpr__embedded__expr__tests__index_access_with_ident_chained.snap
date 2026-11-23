@@ -8,9 +8,9 @@ info:
 Expr#4294967040@11
   ExprKind (Index)
     IndexExpr#4294967040@11
-      Expr#4294967040@10
+      Expr#4294967040@7
         ExprKind (Index)
-          IndexExpr#4294967040@10
+          IndexExpr#4294967040@7
             Expr#4294967040@3
               ExprKind (Path)
                 Path#4294967040@3 (rooted: false)
@@ -19,7 +19,7 @@ Expr#4294967040@11
               ExprKind (Path)
                 Path#4294967040@6 (rooted: false)
                   PathSegment#4294967040@5 (name: bar)
-      Expr#4294967040@9
+      Expr#4294967040@10
         ExprKind (Path)
-          Path#4294967040@9 (rooted: false)
-            PathSegment#4294967040@8 (name: baz)
+          Path#4294967040@10 (rooted: false)
+            PathSegment#4294967040@9 (name: baz)

@@ -51,7 +51,7 @@ macro format_result {
 }
 
 pub(crate) macro bind_parser($format:ident; fn $name:ident($parser:ident)) {
-    // this could also be a function, but then you run into issues with lifetimes, so this is easier
+    // macro avoids generic lifetime plumbing across the parser callback
     fn $name(source: &str) -> (String, Info) {
         let heap = Heap::new();
         let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
@@ -63,6 +63,7 @@ pub(crate) macro bind_parser($format:ident; fn $name:ident($parser:ident)) {
             parent,
             offsets: RawOffsets::verbatim_in(alloc::alloc::Global),
             depth: 0,
+            max_depth: 0,
             options: ParserOptions::default(),
         };
 

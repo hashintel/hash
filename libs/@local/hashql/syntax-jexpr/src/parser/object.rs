@@ -23,7 +23,7 @@ where
     A: Allocator + Clone,
 {
     if let ControlFlow::Continue(FieldValue::Token(_)) = recovery::expect_colon(parser, key_range) {
-        recovery::parse_json_value(parser);
+        parser.nested(recovery::parse_json_value);
     }
     parser.finish_node();
 }
@@ -176,7 +176,7 @@ where
             FieldValue::Token(token) => {
                 let start = token.range().start();
                 let found = ValueKind::from_syntax_kind(token.kind());
-                recovery::parse_json_value(parser);
+                parser.nested(recovery::parse_json_value);
                 let value_range = TextRange::new(start, parser.last_token_end());
                 parser.error(
                     value_range,

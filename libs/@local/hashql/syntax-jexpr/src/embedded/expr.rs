@@ -11,7 +11,7 @@ use hashql_core::{
 use winnow::{
     ModalResult, Parser as _,
     ascii::{digit1, multispace0},
-    combinator::{alt, cut_err, dispatch, eof, fail, peek, preceded, repeat, terminated},
+    combinator::{alt, cut_err, dispatch, eof, fail, opt, peek, preceded, terminated},
     error::{AddContext, FromExternalError, ParserError, StrContext, StrContextValue},
     token::any,
 };
@@ -107,33 +107,12 @@ where
         + FromExternalError<Input<'heap, 'span, 'source, A>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
-    let ((path, path_span), access): (_, Vec<_>) = (
-        parse_path.with_span(),
-        repeat(
-            0..,
-            preceded(
-                multispace0,
-                dispatch! {peek(any);
-                    '[' => parse_index_access.context(StrContext::Label("index")),
-                    '.' => parse_field_access.context(StrContext::Label("field")),
-                    _ => fail
-                        .context(StrContext::Expected(StrContextValue::CharLiteral('[')))
-                        .context(StrContext::Expected(StrContextValue::CharLiteral('.')))
-                }
-                .with_span(),
-            ),
-        ),
-    )
-        .parse_next(input)?;
+    let base_depth = input.state.depth;
+    let parent_max_depth = input.state.max_depth;
+    input.state.max_depth = base_depth;
 
-    // Each access wraps the expression before it. A chain is as deep as it is long.
-    if usize::from(input.state.depth) + access.len()
-        > usize::from(input.state.options.nesting_limit)
-    {
-        return nesting_limit(input);
-    }
-
-    let mut range = path_span;
+    let (path, mut range) = parse_path.with_span().parse_next(input)?;
+    let mut subtree_max_depth = input.state.max_depth;
 
     let mut expr = Expr {
         id: NodeId::PLACEHOLDER,
@@ -141,7 +120,38 @@ where
         kind: ExprKind::Path(path),
     };
 
-    for (access, span) in access {
+    let mut access_parser = opt(preceded(
+        multispace0,
+        dispatch! {peek(any);
+            '[' => parse_index_access.context(StrContext::Label("index")),
+            '.' => parse_field_access.context(StrContext::Label("field")),
+            _ => fail
+                .context(StrContext::Expected(StrContextValue::CharLiteral('[')))
+                .context(StrContext::Expected(StrContextValue::CharLiteral('.')))
+        }
+        .with_span(),
+    ));
+
+    loop {
+        input.state.max_depth = base_depth;
+        let Some((access, span)) = access_parser.parse_next(input)? else {
+            break;
+        };
+
+        // Each access wraps `expr`, adding one level to its subtree. An expression index sits
+        // inside the new `Index` node with its deepest node already at its final depth.
+        let Some(next_depth) = subtree_max_depth
+            .checked_add(1)
+            .map(|wrapped| match &access {
+                Access::IndexByExpr(_) => wrapped.max(input.state.max_depth),
+                Access::IndexByLiteral(_) | Access::Field(_) => wrapped,
+            })
+            .filter(|&depth| depth <= input.state.options.nesting_limit)
+        else {
+            return nesting_limit(input);
+        };
+        subtree_max_depth = next_depth;
+
         range.end = span.end;
 
         let span = input.state.span(range.clone());
@@ -183,6 +193,8 @@ where
             kind,
         };
     }
+
+    input.state.max_depth = parent_max_depth.max(subtree_max_depth);
 
     Ok(expr)
 }
