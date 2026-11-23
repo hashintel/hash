@@ -12,12 +12,14 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { rowButtonActiveStyle, rowButtonStyle } from "./all-runs";
 import { ConfirmDialog, useConfirmTake } from "./confirm-dialog";
 import { Table } from "./ds-parts/table";
+import { Toast } from "./ds-parts/toast";
 import { flowTriggersOf } from "./flow-triggers";
 import { HashShell } from "./hash-shell";
 import { selectedLabel } from "./menu-rows";
 import { RunGlyph } from "./run-glyph";
 import { RunIdsIn } from "./run-id";
 import {
+  appliedChips,
   FilterByMenu,
   newChip,
   type RunFilterChip,
@@ -202,13 +204,23 @@ type ListRow = {
   editor: string;
 };
 
+/** The seeded flows' ids, so a row finds its F9 columns by flow id and a rename leaves them as they were. */
+const drawnNames: Record<string, string> = {
+  "monthly-supplier-review": "Monthly supplier review",
+  "purity-check": "Purity check",
+  "supplier-certificates": "Supplier certificates",
+  "quality-incident-follow-up": "Quality incident follow-up",
+  "weekly-stock-summary": "Weekly stock summary",
+  "new-shipment-intake": "New shipment intake",
+};
+
 /**
  * One list row per flow in the store, so an archived flow leaves and a new one arrives. The columns F9 draws for the
- * seeded flows come from `boardRows`, found by name; any other flow reads what the store knows and shows No runs yet.
+ * seeded flows come from `boardRows`, found by flow id; any other flow reads what the store knows and shows No runs yet.
  */
 const rowFor = (flow: FlowListEntry): ListRow => {
   const name = flow.document.name;
-  const drawn = boardRows.find((row) => row.name === name);
+  const drawn = boardRows.find((row) => row.name === drawnNames[flow.id]);
   return {
     id: flow.id,
     name,
@@ -233,6 +245,27 @@ const statusKinds: Record<string, string> = {
   abandoned: "Cancelled",
   none: "No runs yet",
 };
+
+const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "Today, 10:42", "Yesterday, 16:05" or "26 Oct, 08:00" as minutes, for sorting by time; no run is below every run. */
+const whenMinutes = (when: string) => {
+  const match = /^(Today|Yesterday|(\d{1,2}) (\w{3})), (\d{2}):(\d{2})$/.exec(when);
+  if (!match) {
+    return -1;
+  }
+  const now = new Date();
+  const day =
+    match[1] === "Today"
+      ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      : match[1] === "Yesterday"
+        ? new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+        : new Date(now.getFullYear(), months.indexOf(match[3]!), Number(match[2]));
+  return day.getTime() / 60000 + Number(match[4]) * 60 + Number(match[5]);
+};
+
+/** Filters saved with Save: the ribbon opens on them the next time the list opens in this session (as on Logs). */
+let savedChips: RunFilterChip[] = [];
 
 const statusKindOf = (row: ListRow) => row.status?.state ?? "none";
 
@@ -305,7 +338,8 @@ export const Home = ({
   const confirmTake = useConfirmTake();
   // Menus and the Archive dialog portal in here, inside the shell's styles (as on the Triggers page).
   const portalRef = useRef<HTMLDivElement>(null);
-  const [chips, setChips] = useState<RunFilterChip[]>([]);
+  const [chips, setChips] = useState<RunFilterChip[]>(savedChips);
+  const [savedToast, setSavedToast] = useState(false);
   const [sort, setSort] = useState<{ key: ListSortKey; flipped: boolean }>({
     key: "lastRun",
     flipped: false,
@@ -335,13 +369,14 @@ export const Home = ({
           ? left.row.name.localeCompare(right.row.name)
           : sort.key === "runs"
             ? (Number(right.row.runs) || 0) - (Number(left.row.runs) || 0)
-            : 0;
+            : whenMinutes(right.row.when) - whenMinutes(left.row.when);
       return (
         (sort.flipped ? -order : order) ||
         (sort.flipped ? right.index - left.index : left.index - right.index)
       );
     })
     .map(({ row }) => row);
+  const applied = appliedChips(chips);
   const shownCount = oldList ? visible.length : flows.length;
   const rowChoices = flows.map(rowFor);
   const operatorsFor = (property: RunFilterChip["property"]) => {
@@ -466,7 +501,7 @@ export const Home = ({
                 marginTop: "1",
               })}
             >
-              <div className={css({ width: "[240px]" })}>
+              <div className={css({ width: "[200px]" })}>
                 <TextInput
                   size="sm"
                   value={search}
@@ -635,29 +670,23 @@ export const Home = ({
           </div>
         ) : (
           <>
-            {/* The ribbon (F9-RIBBON): Add filter on the left, the sort on the right. Chips take Add filter's place. */}
+            {/* The controls (F9-RIBBON, Logs pattern): Filter on the left, the sort on the right, the ribbon below. */}
             <div
               className={css({
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "4",
+                flexDirection: "column",
+                gap: "3",
                 marginBottom: "[-8px]",
               })}
             >
-              {chips.length > 0 ? (
-                <div className={css({ flex: "1", minWidth: "[0]" })}>
-                  <RunsFilterRibbon
-                    chips={chips}
-                    onChips={setChips}
-                    runs={[]}
-                    now={0}
-                    only={listFilterProperties}
-                    operatorsFor={operatorsFor}
-                    onSave={() => undefined}
-                  />
-                </div>
-              ) : (
+              <div
+                className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "4",
+                })}
+              >
                 <FilterByMenu
                   only={listFilterProperties}
                   onPick={(property) => setChips(newChip(chips, property))}
@@ -666,31 +695,45 @@ export const Home = ({
                       size="sm"
                       variant="ghost"
                       tone="neutral"
-                      iconName="plus"
+                      iconName="filter"
+                      className={cx(rowButtonStyle, applied > 0 && rowButtonActiveStyle)}
                       data-flows-add-filter
                     >
-                      Add filter
+                      {applied > 0 ? `Filter · ${applied}` : "Filter"}
                     </Button>
                   }
                 />
-              )}
-              <Menu
-                position="bottom-end"
-                items={sortItems}
-                trigger={
-                  <Button
-                    size="sm"
-                    variant="subtle"
-                    tone="neutral"
-                    iconName={sort.flipped ? "sortUp" : "sortDown"}
-                    suffix={<Icon name="chevronDown" size="sm" />}
-                    className={cx(sort.key !== "lastRun" || sort.flipped ? rowButtonActiveStyle : rowButtonStyle)}
-                    data-flows-sort
-                  >
-                    {listSorts[sort.key].label}
-                  </Button>
-                }
-              />
+                <Menu
+                  position="bottom-end"
+                  items={sortItems}
+                  trigger={
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      tone="neutral"
+                      iconName={sort.flipped ? "sortUp" : "sortDown"}
+                      className={cx(rowButtonStyle, (sort.key !== "lastRun" || sort.flipped) && rowButtonActiveStyle)}
+                      data-flows-sort
+                    >
+                      {listSorts[sort.key].label}
+                    </Button>
+                  }
+                />
+              </div>
+              {chips.length > 0 ? (
+                <RunsFilterRibbon
+                  chips={chips}
+                  onChips={setChips}
+                  runs={[]}
+                  now={0}
+                  only={listFilterProperties}
+                  operatorsFor={operatorsFor}
+                  onSave={() => {
+                    savedChips = chips;
+                    setSavedToast(true);
+                  }}
+                />
+              ) : null}
             </div>
             <div className={boxStyle}>
               <Table className={flowsTableStyle} data-flows-table>
@@ -822,6 +865,9 @@ export const Home = ({
         />
       ) : null}
       {notice}
+      {savedToast ? (
+        <Toast text="Filters saved" onDone={() => setSavedToast(false)} />
+      ) : null}
       </div>
       </PortalContainerContext>
     </HashShell>
