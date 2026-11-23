@@ -13,7 +13,7 @@ use hashql_core::{
     heap::{self, Heap},
     span::{SpanAncestors, SpanId, SpanTable},
 };
-use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity, Status};
+use hashql_diagnostics::{DiagnosticIssues, Severity, Status};
 use text_size::{TextRange, TextSize};
 
 use crate::{

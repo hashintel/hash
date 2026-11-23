@@ -18,9 +18,10 @@ const PRIMARY_KEYS: &[&str] = &["#literal", "#struct", "#dict", "#tuple", "#list
 const ALL_EXPR_KEYS: &[&str] = &["#literal", "#struct", "#dict", "#tuple", "#list", "#type"];
 const TYPE_ONLY_KEYS: &[&str] = &["#type"];
 
-fn parse_unknown_field<G, A: Allocator>(parser: &mut Parser<'_, G, A>)
+fn parse_unknown_field<G, A>(parser: &mut Parser<'_, G, A>)
 where
     G: Grammar,
+    A: Allocator + Clone,
 {
     parser.start_node(SyntaxKind::UnknownField);
     let key_range = parser.bump(T![string]).range;
@@ -30,15 +31,16 @@ where
     parser.finish_node();
 }
 
-fn parse_struct_body<G, A: Allocator>(parser: &mut Parser<'_, G, A>)
+fn parse_struct_body<G, A>(parser: &mut Parser<'_, G, A>)
 where
     G: Grammar,
+    A: Allocator + Clone,
 {
     parser.start_node(SyntaxKind::StructBody);
     let open = parser.bump(T!['{']).range;
 
     let mut index = 0_usize;
-    while let ControlFlow::Continue(_) = recovery::next_object_entry_in(parser, open, index) {
+    while let ControlFlow::Continue(_) = recovery::next_object_entry(parser, open, index) {
         index += 1;
 
         parser.start_node(SyntaxKind::StructEntry);
@@ -52,19 +54,20 @@ where
     parser.finish_node();
 }
 
-fn parse_sequence_body<G, A: Allocator>(
+fn parse_sequence_body<G, A>(
     parser: &mut Parser<'_, G, A>,
     body_kind: SyntaxKind,
     element_kind: SyntaxKind,
 ) where
     G: Grammar,
+    A: Allocator + Clone,
 {
     parser.start_node(body_kind);
     let open = parser.bump(T!['[']).range;
 
     let mut index = 0_usize;
     while let ControlFlow::Continue(_) =
-        recovery::next_array_element_in(parser, open, index, G::ITEM_FIRST)
+        recovery::next_array_element(parser, open, index, G::ITEM_FIRST)
     {
         index += 1;
         parser.start_node(element_kind);
@@ -75,13 +78,14 @@ fn parse_sequence_body<G, A: Allocator>(
     parser.finish_node();
 }
 
-fn parse_field_body<G, A: Allocator>(
+fn parse_field_body<G, A>(
     parser: &mut Parser<'_, G, A>,
     field: FieldKind,
     key_range: TextRange,
     token_kind: SyntaxKind,
 ) where
     G: Grammar,
+    A: Allocator + Clone,
 {
     match field {
         FieldKind::Constructor(ConstructorKind::Literal) => {
@@ -111,9 +115,10 @@ fn parse_field_body<G, A: Allocator>(
     }
 }
 
-fn parse_known_field<G, A: Allocator>(parser: &mut Parser<'_, G, A>, field: FieldKind) -> TextRange
+fn parse_known_field<G, A>(parser: &mut Parser<'_, G, A>, field: FieldKind) -> TextRange
 where
     G: Grammar,
+    A: Allocator + Clone,
 {
     parser.start_node(field.syntax_kind());
     let key_range = parser.bump(T![string]).range;
@@ -207,13 +212,14 @@ impl ObjectFields {
         }
     }
 
-    fn parse_constructor<G, A: Allocator>(
+    fn parse_constructor<G, A>(
         &mut self,
         parser: &mut Parser<'_, G, A>,
         kind: ConstructorKind,
         key: TextRange,
     ) where
         G: Grammar,
+        A: Allocator + Clone,
     {
         match self.primary {
             None => {
@@ -246,9 +252,10 @@ impl ObjectFields {
         }
     }
 
-    fn parse_type<G, A: Allocator>(&mut self, parser: &mut Parser<'_, G, A>, key: TextRange)
+    fn parse_type<G, A>(&mut self, parser: &mut Parser<'_, G, A>, key: TextRange)
     where
         G: Grammar,
+        A: Allocator + Clone,
     {
         if let Some(existing) = self.type_field {
             parser.error(
@@ -265,13 +272,14 @@ impl ObjectFields {
         }
     }
 
-    fn parse_unknown<G, A: Allocator>(
+    fn parse_unknown<G, A>(
         &mut self,
         parser: &mut Parser<'_, G, A>,
         decoded: Cow<'_, str>,
         key: TextRange,
     ) where
         G: Grammar,
+        A: Allocator + Clone,
     {
         let type_annotations_disallowed = !G::ALLOW_TYPE_ANNOTATIONS && decoded == "#type";
         let expected = self.expected_keys(G::ALLOW_TYPE_ANNOTATIONS);
@@ -289,9 +297,10 @@ impl ObjectFields {
         parse_unknown_field(parser);
     }
 
-    fn parse_field<G, A: Allocator>(&mut self, parser: &mut Parser<'_, G, A>, key: Token<'_>)
+    fn parse_field<G, A>(&mut self, parser: &mut Parser<'_, G, A>, key: Token<'_>)
     where
         G: Grammar,
+        A: Allocator + Clone,
     {
         let Some(decoded) = key.decode_string() else {
             self.has_unknown_or_error = true;
@@ -373,16 +382,15 @@ impl OpenObject {
         }
     }
 
-    pub(crate) fn parse_object<G, A: Allocator>(self, parser: &mut Parser<'_, G, A>)
+    pub(crate) fn parse_object<G, A>(self, parser: &mut Parser<'_, G, A>)
     where
         G: Grammar,
+        A: Allocator + Clone,
     {
         let mut fields = ObjectFields::default();
         let mut count = 0_usize;
 
-        while let ControlFlow::Continue(_) =
-            recovery::next_object_entry_in(parser, self.open, count)
-        {
+        while let ControlFlow::Continue(_) = recovery::next_object_entry(parser, self.open, count) {
             count += 1;
             let key = parser.current().expect("next_object_entry guarantees key");
             fields.parse_field(parser, key);
@@ -396,9 +404,10 @@ impl OpenObject {
 }
 
 /// Parses a constructor object whose `#type` field may precede or follow the primary key.
-pub(crate) fn parse_object<G, A: Allocator>(parser: &mut Parser<'_, G, A>)
+pub(crate) fn parse_object<G, A>(parser: &mut Parser<'_, G, A>)
 where
     G: Grammar,
+    A: Allocator + Clone,
 {
     OpenObject::open(parser).parse_object(parser);
 }

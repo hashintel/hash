@@ -22,26 +22,31 @@ impl Grammar for ExprGrammar {
     const ALLOW_TYPE_ANNOTATIONS: bool = true;
     const ITEM_FIRST: SyntaxKindSet = SyntaxKindSet::from_slice(&[T![string], T!['['], T!['{']]);
 
-    fn parse_item<A: Allocator>(parser: &mut Parser<'_, Self, A>) {
+    fn parse_item<A>(parser: &mut Parser<'_, Self, A>)
+    where
+        A: Allocator + Clone,
+    {
         parse_expr(parser);
     }
 }
 
-fn parse_labeled_arg_after_open<A: Allocator>(
+fn parse_labeled_arg_after_open<A>(
     parser: &mut Parser<'_, ExprGrammar, A>,
     OpenObject {
         checkpoint,
         open,
         error_start,
     }: OpenObject,
-) {
+) where
+    A: Allocator + Clone,
+{
     let mut entry_ranges = Vec::new();
     let mut commas = Vec::new();
     let mut all_prefixed = true;
     let mut index = 0_usize;
 
     while let ControlFlow::Continue(Item { separator }) =
-        recovery::next_object_entry_in(parser, open, index)
+        recovery::next_object_entry(parser, open, index)
     {
         if let Some(comma) = separator {
             commas.push(comma);
@@ -118,7 +123,10 @@ fn parse_labeled_arg_after_open<A: Allocator>(
     parser.finish_node();
 }
 
-fn parse_call_arg<A: Allocator>(parser: &mut Parser<'_, ExprGrammar, A>) {
+fn parse_call_arg<A>(parser: &mut Parser<'_, ExprGrammar, A>)
+where
+    A: Allocator + Clone,
+{
     let Some(first) = parser.current() else {
         return;
     };
@@ -155,14 +163,17 @@ fn parse_call_arg<A: Allocator>(parser: &mut Parser<'_, ExprGrammar, A>) {
     parser.finish_node();
 }
 
-fn parse_call<A: Allocator>(parser: &mut Parser<'_, ExprGrammar, A>) {
+fn parse_call<A>(parser: &mut Parser<'_, ExprGrammar, A>)
+where
+    A: Allocator + Clone,
+{
     parser.start_node(SyntaxKind::CallExpr);
     let open = parser.bump(T!['[']).range;
     let error_start = parser.error_count();
 
     let mut count = 0_usize;
     while let ControlFlow::Continue(_) =
-        recovery::next_array_element_in(parser, open, count, ExprGrammar::ITEM_FIRST)
+        recovery::next_array_element(parser, open, count, ExprGrammar::ITEM_FIRST)
     {
         if count == 0 {
             parser.nested(parse_expr);
@@ -181,7 +192,10 @@ fn parse_call<A: Allocator>(parser: &mut Parser<'_, ExprGrammar, A>) {
     parser.finish_node();
 }
 
-pub(crate) fn parse_expr<A: Allocator>(parser: &mut Parser<'_, ExprGrammar, A>) {
+pub(crate) fn parse_expr<A>(parser: &mut Parser<'_, ExprGrammar, A>)
+where
+    A: Allocator + Clone,
+{
     let Some(token) = parser.current() else {
         parser.record_eof(ExprGrammar::ITEM_FIRST, EofContext::Document);
         return;

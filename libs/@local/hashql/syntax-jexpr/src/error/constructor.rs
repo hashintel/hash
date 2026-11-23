@@ -10,7 +10,10 @@ use super::{
     ValueKind,
     object::{ObjectDiagnostic, ObjectDiagnosticCategory},
 };
-use crate::{embedded::error::convert_parse_error_in, span::Span};
+use crate::{
+    embedded::error::{ParseErrorSource, convert_parse_error_in},
+    span::Span,
+};
 
 const MAX_EXTRA_LABELS: usize = 2;
 const STRUCT_KEY_IDENTIFIER_NOTE: &str = "struct field keys must be valid HashQL identifiers";
@@ -41,10 +44,12 @@ pub(crate) fn struct_key_expected_identifier_in<A: Allocator>(
     let parts = convert_parse_error_in(
         spans,
         key_span,
-        raw_quoted,
-        decoded,
-        "struct field identifier",
-        0,
+        ParseErrorSource {
+            raw_quoted,
+            decoded,
+            kind_name: "struct field identifier",
+            start_offset: 0,
+        },
         parse_error,
         alloc,
     );

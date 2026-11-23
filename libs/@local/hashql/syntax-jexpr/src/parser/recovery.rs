@@ -74,7 +74,7 @@ impl<A: Allocator> Separators<A> {
         range
     }
 
-    fn try_report_consecutive<G, A: Allocator>(
+    fn try_report_consecutive<G>(
         mut self,
         parser: &mut Parser<'_, G, A>,
         delimiter: DelimiterKind,
@@ -168,9 +168,10 @@ fn report_missing_comma<G, A: Allocator>(
     );
 }
 
-fn skip_unexpected_object_token<G, A: Allocator>(parser: &mut Parser<'_, G, A>)
+fn skip_unexpected_object_token<G, A>(parser: &mut Parser<'_, G, A>)
 where
     G: Grammar,
+    A: Allocator + Clone,
 {
     if parser.at_set(SyntaxKindSet::OPENING_DELIMITER) {
         json::parse_json_value(parser);
@@ -184,9 +185,10 @@ enum MalformedEntry {
     KeyValue,
 }
 
-fn skip_malformed_object_entry<G, A: Allocator>(parser: &mut Parser<'_, G, A>) -> MalformedEntry
+fn skip_malformed_object_entry<G, A>(parser: &mut Parser<'_, G, A>) -> MalformedEntry
 where
     G: Grammar,
+    A: Allocator + Clone,
 {
     skip_unexpected_object_token(parser);
     if !parser.at(T![:]) {
@@ -250,7 +252,7 @@ where
     ControlFlow::Continue(Item { separator })
 }
 
-pub(crate) fn next_array_element<G, A: Allocator>(
+pub(crate) fn next_array_element<G, A>(
     parser: &mut Parser<'_, G, A>,
     open: TextRange,
     index: usize,
@@ -258,6 +260,7 @@ pub(crate) fn next_array_element<G, A: Allocator>(
 ) -> ControlFlow<ContainerBreak, Item>
 where
     G: Grammar,
+    A: Allocator + Clone,
 {
     let mut skipped_invalid = false;
 
@@ -331,7 +334,7 @@ enum SeparatorStep {
     Return(ControlFlow<ContainerBreak, Item>),
 }
 
-fn advance_object_separator<G, A: Allocator>(
+fn advance_object_separator<G, A>(
     parser: &mut Parser<'_, G, A>,
     open: TextRange,
     kind: SyntaxKind,
@@ -339,11 +342,12 @@ fn advance_object_separator<G, A: Allocator>(
 ) -> SeparatorStep
 where
     G: Grammar,
+    A: Allocator + Clone,
 {
     if let Some(separators) = Separators::try_eat(parser, T![,]) {
         let Some(after) = parser.current() else {
             let trailing = separators.range();
-            let _: ControlFlow<(), Separators> =
+            let _: ControlFlow<(), _> =
                 separators.try_report_consecutive(parser, DelimiterKind::Brace);
 
             parser.record_unclosed_eof(open, DelimiterKind::Brace, Some(trailing));
@@ -390,13 +394,14 @@ where
 }
 
 /// Guarantees the current token is [`SyntaxKind::String`] when returning [`ControlFlow::Continue`].
-pub(crate) fn next_object_entry<G, A: Allocator>(
+pub(crate) fn next_object_entry<G, A>(
     parser: &mut Parser<'_, G, A>,
     open: TextRange,
     index: usize,
 ) -> ControlFlow<ContainerBreak, Item>
 where
     G: Grammar,
+    A: Allocator + Clone,
 {
     let mut need_comma = index > 0;
     let mut separator = None;
@@ -486,12 +491,13 @@ where
     }
 }
 
-pub(crate) fn expect_colon<'source, G, A: Allocator>(
+pub(crate) fn expect_colon<'source, G, A>(
     parser: &mut Parser<'source, G, A>,
     key_range: TextRange,
 ) -> ControlFlow<(), FieldValue<'source>>
 where
     G: Grammar,
+    A: Allocator + Clone,
 {
     // An invalid token between the key and the colon, or in place of the colon, is already
     // reported.
@@ -544,9 +550,10 @@ where
     }
 }
 
-pub(crate) fn recover_unexpected_item<G, A: Allocator>(parser: &mut Parser<'_, G, A>)
+pub(crate) fn recover_unexpected_item<G, A>(parser: &mut Parser<'_, G, A>)
 where
     G: Grammar,
+    A: Allocator + Clone,
 {
     let skipped_invalid = parser.skip_invalid_tokens();
 

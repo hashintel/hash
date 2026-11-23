@@ -108,6 +108,13 @@ fn format_char_for_label(character: char) -> String {
     }
 }
 
+pub(crate) struct ParseErrorSource<'src> {
+    pub raw_quoted: &'src str,
+    pub decoded: &'src str,
+    pub kind_name: &'src str,
+    pub start_offset: usize,
+}
+
 /// Converts a winnow [`ContextError`] into a located label and optional closing-delimiter patch.
 #[expect(
     clippy::string_slice,
@@ -116,10 +123,12 @@ fn format_char_for_label(character: char) -> String {
 pub(crate) fn convert_parse_error_in<A: Allocator>(
     spans: &mut SpanTable<Span>,
     parent: SpanId,
-    raw_quoted: &str,
-    decoded: &str,
-    kind_name: &str,
-    start_offset: usize,
+    ParseErrorSource {
+        raw_quoted,
+        decoded,
+        kind_name,
+        start_offset,
+    }: ParseErrorSource<'_>,
     (offset, error): (usize, ContextError),
     alloc: A,
 ) -> EmbeddedErrorParts {
@@ -224,10 +233,12 @@ pub(crate) fn invalid_expr_in<A: Allocator>(
     let parts = convert_parse_error_in(
         spans,
         parent,
-        raw_quoted,
-        decoded,
-        "expression",
-        0,
+        ParseErrorSource {
+            raw_quoted,
+            decoded,
+            kind_name: "expression",
+            start_offset: 0,
+        },
         error,
         alloc,
     );
@@ -270,7 +281,18 @@ pub(crate) fn invalid_type_in<A: Allocator>(
         return diagnostic;
     }
 
-    let parts = convert_parse_error_in(spans, parent, raw_quoted, decoded, "type", 0, error, alloc);
+    let parts = convert_parse_error_in(
+        spans,
+        parent,
+        ParseErrorSource {
+            raw_quoted,
+            decoded,
+            kind_name: "type",
+            start_offset: 0,
+        },
+        error,
+        alloc,
+    );
 
     let mut diagnostic = Diagnostic::new(StringDiagnosticCategory::InvalidType, Critical::ERROR)
         .primary(Label::new(parts.span, parts.label));

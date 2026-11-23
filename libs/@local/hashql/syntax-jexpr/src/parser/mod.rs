@@ -80,9 +80,10 @@ pub(crate) trait Grammar {
     /// current token is `,`, `]` or `}` or the input has ended, because the loop over the
     /// elements does not end otherwise. A token that starts no item goes to
     /// [`recovery::recover_unexpected_item`], which reports and consumes it.
-    fn parse_item<A: Allocator>(parser: &mut Parser<'_, Self, A>)
+    fn parse_item<A>(parser: &mut Parser<'_, Self, A>)
     where
-        Self: Sized;
+        Self: Sized,
+        A: Allocator + Clone;
 }
 
 /// Number of levels a document may nest values, and an embedded string its types or expressions.
@@ -95,7 +96,7 @@ pub(crate) const NESTING_LIMIT: u16 = 256;
 pub(crate) struct Parser<'source, G, A: Allocator> {
     lexer: Lexer<'source>,
     builder: GreenNodeBuilder<'static>,
-    errors: Vec<SyntaxError, A>,
+    errors: Vec<SyntaxError<A>, A>,
     last_token_end: TextSize,
     depth: u16,
     _grammar: PhantomData<G>,
@@ -142,7 +143,7 @@ impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
     }
 
     #[inline]
-    pub(crate) fn error(&mut self, range: TextRange, kind: SyntaxErrorKind) {
+    pub(crate) fn error(&mut self, range: TextRange, kind: SyntaxErrorKind<A>) {
         self.errors.push(SyntaxError::new(range, kind));
     }
 
@@ -536,7 +537,10 @@ impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
         self.depth -= 1;
     }
 
-    pub(crate) fn parse_root(&mut self) {
+    pub(crate) fn parse_root(&mut self)
+    where
+        A: Clone,
+    {
         // Root keeps leading and trailing trivia inside itself so the tree is lossless.
         self.builder.start_node(SyntaxKind::Root.into());
 
@@ -581,7 +585,10 @@ impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
     ///
     /// Panics if `source.len()` exceeds `u32::MAX` bytes.
     #[must_use]
-    pub(crate) fn parse_cst_in(source: &'source str, alloc: A) -> Document<G::Root, A> {
+    pub(crate) fn parse_cst_in(source: &'source str, alloc: A) -> Document<G::Root, A>
+    where
+        A: Clone,
+    {
         let mut parser = Self::new_in(source, alloc);
         parser.parse_root();
         parser.finish()

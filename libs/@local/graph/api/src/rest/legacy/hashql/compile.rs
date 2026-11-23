@@ -69,7 +69,8 @@ impl<'heap> Compilation<'heap> {
         // pool has, which is the 2 MiB default of a spawned thread.
         stacker::maybe_grow(COMPILE_STACK_RED_ZONE, COMPILE_STACK_SIZE, || {
             let mut parser = hashql_syntax_jexpr::Parser::new(heap, spans);
-            let (parsed, pointers) = parser.parse_expr_with_pointers(source);
+            let (parsed, pointers) = parser.parse_expr_with_pointers_in(source, &*scratch);
+            scratch.reset();
             let status = Self::compile_parsed(heap, scratch, parsed);
             (status, pointers)
         })

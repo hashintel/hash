@@ -13,13 +13,16 @@ use crate::{
 const JSON_VALUE_FIRST: SyntaxKindSet =
     SyntaxKindSet::from_union(&[SyntaxKindSet::VALUE, SyntaxKindSet::OPENING_DELIMITER]);
 
-fn parse_json_array<G: Grammar, A: Allocator>(parser: &mut Parser<'_, G, A>) {
+fn parse_json_array<G: Grammar, A>(parser: &mut Parser<'_, G, A>)
+where
+    A: Allocator + Clone,
+{
     parser.start_node(SyntaxKind::JsonArray);
     let open = parser.bump(T!['[']).range;
 
     let mut index = 0;
     while let ControlFlow::Continue(_) =
-        recovery::next_array_element_in(parser, open, index, JSON_VALUE_FIRST)
+        recovery::next_array_element(parser, open, index, JSON_VALUE_FIRST)
     {
         index += 1;
         parser.nested(parse_json_value);
@@ -28,12 +31,15 @@ fn parse_json_array<G: Grammar, A: Allocator>(parser: &mut Parser<'_, G, A>) {
     parser.finish_node();
 }
 
-fn parse_json_object<G: Grammar, A: Allocator>(parser: &mut Parser<'_, G, A>) {
+fn parse_json_object<G: Grammar, A>(parser: &mut Parser<'_, G, A>)
+where
+    A: Allocator + Clone,
+{
     parser.start_node(SyntaxKind::JsonObject);
     let open = parser.bump(T!['{']).range;
 
     let mut index = 0;
-    while let ControlFlow::Continue(_) = recovery::next_object_entry_in(parser, open, index) {
+    while let ControlFlow::Continue(_) = recovery::next_object_entry(parser, open, index) {
         index += 1;
 
         parser.start_node(SyntaxKind::JsonField);
@@ -57,7 +63,10 @@ fn parse_json_object<G: Grammar, A: Allocator>(parser: &mut Parser<'_, G, A>) {
     parser.finish_node();
 }
 
-pub(crate) fn parse_json_value<G: Grammar, A: Allocator>(parser: &mut Parser<'_, G, A>) {
+pub(crate) fn parse_json_value<G: Grammar, A>(parser: &mut Parser<'_, G, A>)
+where
+    A: Allocator + Clone,
+{
     let skipped_invalid = parser.skip_invalid_tokens();
 
     let Some(token) = parser.current() else {

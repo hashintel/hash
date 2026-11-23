@@ -123,7 +123,10 @@ impl<'heap> Pipeline<'heap> {
     ) -> Result<hashql_ast::node::expr::Expr<'heap>, BoxedDiagnostic<'static, SpanId>> {
         let mut parser = hashql_syntax_jexpr::Parser::new(self.heap, &mut self.spans);
 
-        process_status(&mut self.diagnostics, parser.parse_expr(content.as_ref()))
+        let status = parser.parse_expr_in(content.as_ref(), &self.scratch);
+        self.scratch.reset();
+
+        process_status(&mut self.diagnostics, status)
     }
 
     /// Lowers an AST expression through HIR into MIR.

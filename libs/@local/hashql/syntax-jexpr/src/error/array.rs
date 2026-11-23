@@ -10,7 +10,10 @@ use hashql_diagnostics::{
 };
 use winnow::error::ContextError;
 
-use crate::{embedded::error::convert_parse_error_in, span::Span};
+use crate::{
+    embedded::error::{ParseErrorSource, convert_parse_error_in},
+    span::Span,
+};
 
 const LEADING_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "leading-comma",
@@ -309,10 +312,12 @@ pub(crate) fn labeled_argument_invalid_identifier_in<A: Allocator>(
     let parts = convert_parse_error_in(
         spans,
         label_span,
-        raw_quoted,
-        decoded,
-        "labeled argument identifier",
-        1,
+        ParseErrorSource {
+            raw_quoted,
+            decoded,
+            kind_name: "labeled argument identifier",
+            start_offset: 1,
+        },
         parse_error,
         alloc,
     );

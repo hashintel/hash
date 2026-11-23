@@ -7,12 +7,12 @@ use crate::{cst, error::SyntaxError, syntax_kind::SyntaxKind};
 /// Lossless Rowan parse tree whose root marker `R` selects the item from [`Document::tree`].
 pub(crate) struct Document<R, A: Allocator> {
     tree: GreenNode,
-    errors: Vec<SyntaxError, A>,
+    errors: Vec<SyntaxError<A>, A>,
     _root: PhantomData<fn() -> R>,
 }
 
 impl<R, A: Allocator> Document<R, A> {
-    pub(crate) fn new(tree: GreenNode, errors: Vec<SyntaxError, A>) -> Self {
+    pub(crate) fn new(tree: GreenNode, errors: Vec<SyntaxError<A>, A>) -> Self {
         debug_assert_eq!(SyntaxKind::from_raw(tree.kind()), SyntaxKind::Root);
 
         Self {
@@ -34,7 +34,7 @@ impl<R, A: Allocator> Document<R, A> {
     }
 
     #[must_use]
-    pub(crate) const fn errors(&self) -> &[SyntaxError] {
+    pub(crate) const fn errors(&self) -> &[SyntaxError<A>] {
         self.errors.as_slice()
     }
 
@@ -60,7 +60,7 @@ impl<R, A: Allocator> fmt::Debug for Document<R, A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Document")
             .field("tree", &self.tree)
-            .field("errors", &self.errors)
+            .field("error_count", &self.errors.len())
             .finish()
     }
 }

@@ -945,7 +945,10 @@ fn value_grammar_type_annotation() {
         const ALLOW_TYPE_ANNOTATIONS: bool = false;
         const ITEM_FIRST: SyntaxKindSet = SyntaxKindSet::from_kind(T!['{']);
 
-        fn parse_item<A: Allocator>(parser: &mut parser::Parser<'_, Self, A>) {
+        fn parse_item<A>(parser: &mut parser::Parser<'_, Self, A>)
+        where
+            A: Allocator + Clone,
+        {
             if parser.at(T!['{']) {
                 parser::object::parse_object(parser);
             } else {

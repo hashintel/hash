@@ -1,3 +1,5 @@
+use core::alloc::Allocator;
+
 use hashql_core::{heap::Heap, span::SpanTable};
 use text_size::{TextRange, TextSize};
 
@@ -91,11 +93,11 @@ impl LexerErrorKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum ArrayErrorKind {
+pub(crate) enum ArrayErrorKind<A: Allocator> {
     Empty,
-    LeadingCommas(Separators),
-    TrailingCommas(Separators),
-    ConsecutiveCommas(Separators),
+    LeadingCommas(Separators<A>),
+    TrailingCommas(Separators<A>),
+    ConsecutiveCommas(Separators<A>),
     LabeledArgumentMissingPrefix {
         actual: String,
     },
@@ -107,7 +109,7 @@ pub(crate) enum ArrayErrorKind {
     },
 }
 
-impl ArrayErrorKind {
+impl<A: Allocator> ArrayErrorKind<A> {
     fn to_diagnostic(
         &self,
         range: TextRange,
@@ -163,14 +165,14 @@ impl ArrayErrorKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum ObjectErrorKind {
+pub(crate) enum ObjectErrorKind<A: Allocator> {
     Empty {
         allow_type_annotations: bool,
     },
-    LeadingCommas(Separators),
-    TrailingCommas(Separators),
-    ConsecutiveCommas(Separators),
-    ConsecutiveColons(Separators),
+    LeadingCommas(Separators<A>),
+    TrailingCommas(Separators<A>),
+    ConsecutiveCommas(Separators<A>),
+    ConsecutiveColons(Separators<A>),
     UnknownKey {
         key: String,
         expected: &'static [&'static str],
@@ -207,7 +209,7 @@ pub(crate) enum ObjectErrorKind {
     },
 }
 
-impl ObjectErrorKind {
+impl<A: Allocator> ObjectErrorKind<A> {
     fn to_diagnostic(
         &self,
         primary: hashql_core::span::SpanId,
@@ -313,26 +315,26 @@ impl ObjectErrorKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum SyntaxErrorKind {
+pub(crate) enum SyntaxErrorKind<A: Allocator> {
     Lexer(LexerErrorKind),
     ExpectedEof,
     NestingLimit { limit: u16 },
-    Array(ArrayErrorKind),
-    Object(ObjectErrorKind),
+    Array(ArrayErrorKind<A>),
+    Object(ObjectErrorKind<A>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct SyntaxError {
+pub(crate) struct SyntaxError<A: Allocator> {
     range: TextRange,
-    kind: SyntaxErrorKind,
+    kind: SyntaxErrorKind<A>,
 }
 
-impl SyntaxError {
-    pub(crate) const fn new(range: TextRange, kind: SyntaxErrorKind) -> Self {
+impl<A: Allocator> SyntaxError<A> {
+    pub(crate) const fn new(range: TextRange, kind: SyntaxErrorKind<A>) -> Self {
         Self { range, kind }
     }
 
-    pub(crate) const fn kind_mut(&mut self) -> &mut SyntaxErrorKind {
+    pub(crate) const fn kind_mut(&mut self) -> &mut SyntaxErrorKind<A> {
         &mut self.kind
     }
 
