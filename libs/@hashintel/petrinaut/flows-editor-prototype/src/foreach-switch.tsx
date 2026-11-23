@@ -553,7 +553,7 @@ const RunLikeSwitch = ({
   const total = names.length;
   // The status grammar: mark · word · how many, the count naming what went wrong.
   const status = loop
-    ? `${runWord[loop.state] ?? "Done"} · ${
+    ? `${runWord[loop.state] ?? "Done"}, ${
         failed > 0
           ? `${failed} of ${total} suppliers failed`
           : `${total} suppliers`

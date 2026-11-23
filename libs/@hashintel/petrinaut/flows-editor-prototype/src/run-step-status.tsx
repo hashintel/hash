@@ -488,9 +488,9 @@ const Branch = ({ facts, item }: { facts: RunFacts; item: number }) => {
             <span>
               {title}
               {stepState === "failed" && failure ? (
-                <span className={quietLineStyle}> · {reasonText(failure.reason)}</span>
+                <span className={quietLineStyle}>, {reasonText(failure.reason)}</span>
               ) : stepState === "skipped" ? (
-                <span className={quietLineStyle}> · Skipped</span>
+                <span className={quietLineStyle}>, Skipped</span>
               ) : null}
             </span>
           </span>

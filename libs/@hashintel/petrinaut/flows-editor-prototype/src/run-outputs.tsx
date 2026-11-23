@@ -3882,7 +3882,7 @@ export const AllItemsOutputsLink = ({ outputs }: { outputs: RunOutputs }) => {
   return (
     <div ref={anchor} className={css({ gridColumn: "1 / -1", display: "flex" })}>
       <button type="button" className={allItemsLinkStyle} onClick={() => open(view)} data-all-items-outputs>
-        All items’ outputs · {view.title}
+        All items’ outputs, {view.title}
       </button>
       {node}
     </div>

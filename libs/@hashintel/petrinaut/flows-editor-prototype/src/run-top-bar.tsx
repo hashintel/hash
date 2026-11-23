@@ -460,20 +460,6 @@ export const RunTopBar = ({
   ) : null;
   const failedCount =
     outcome === "warnings" ? factsOf(run, now).failures.length : 0;
-  // The one place to re-run only the failed items: just left of Re-run. Elsewhere it is plain "2 failed".
-  const rerunFailedButton =
-    failedCount > 0 ? (
-      <Button
-        size="sm"
-        variant="subtle"
-        tone="neutral"
-        className={quietStyle}
-        data-run-rerun-failed
-        onClick={() => history.start(failedCount)}
-      >
-        {`Re-run ${failedCount} failed`}
-      </Button>
-    ) : null;
   const actionButton = (
     <>
     <Button
@@ -549,10 +535,7 @@ export const RunTopBar = ({
       {variant === 5 && !stop && failedCount > 0 ? (
         rerunMenu
       ) : (
-        <>
-          {rerunFailedButton}
-          {actionButton}
-        </>
+        actionButton
       )}
       {simulateButton}
       {extra}
@@ -632,7 +615,6 @@ export const RunTopBar = ({
             {startedLine(run, now)}
           </span>
         ) : null}
-        {rerunFailedButton}
         {actionButton}
         <RunBarMoreMenu onSimulate={onSimulate} />
       </div>
@@ -714,7 +696,7 @@ export const RunTopBar = ({
       const facts = factsOf(run, now);
       const count =
         facts.failures.length > 0
-          ? ` · ${facts.failures.length} of ${facts.n} suppliers failed`
+          ? `, ${facts.failures.length} of ${facts.n} suppliers failed`
           : "";
       return (
         <>
