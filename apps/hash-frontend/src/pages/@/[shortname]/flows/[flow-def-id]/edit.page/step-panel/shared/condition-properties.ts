@@ -172,7 +172,7 @@ export const getEntityProperties = (
     toEntityProperty(property, ontology),
   );
 
-/** The properties a Find entities condition can be on: a single status, or a single text whose latest data type is a date. */
+/** The properties a Find entities condition can be on: a single status, or a date by its latest data type. */
 export const getConditionProperties = (
   ontology: ConditionOntology,
   entityTypeIds: VersionedUrl[],

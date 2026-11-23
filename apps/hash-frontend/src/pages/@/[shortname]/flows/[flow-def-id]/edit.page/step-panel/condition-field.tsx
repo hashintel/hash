@@ -44,7 +44,7 @@ import type {
 import type { FlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/types";
 import type { ComponentProps } from "react";
 
-/** For each action that takes a condition: the input it checks, what one value of it is called, and what to pick first. */
+/** By action: the input its condition checks, what one value of it is called, and what to pick first. */
 const conditionSubjects: Partial<
   Record<string, { kindFrom: string; valueLabel: string; pickFirst: string }>
 > = {
@@ -297,7 +297,7 @@ export const ConditionField = (props: ComponentProps<typeof InputField>) => {
   }
 
   const valueLabel = subject?.valueLabel ?? "Value";
-  /* The source's types' properties come last, so where another type has another version of one, theirs wins. */
+  /* Last, so the source's version of a property wins over another type's. */
   const targets = getConditionTargets({
     kind: rowKind,
     valueLabel,
