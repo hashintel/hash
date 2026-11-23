@@ -70,7 +70,7 @@ Per member, on the current code:
 
 | Member         | Consumption                                                                                                                                                                |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `doc()`        | Read by the definition store in `petrinaut-core/src/instance.ts`, sanitized per extensions, cached by object identity. `undefined` falls back to an empty net.             |
+| `doc()`        | Read by the definition store in `petrinaut-core/src/instance/instance.ts`, sanitized per extensions, cached by object identity. `undefined` falls back to an empty net.    |
 | `subscribe`    | Two internal subscribers: the definition store (re-render pipeline) and the patch stream (`instance.patches`). Events without `patches` are dropped from the patch stream. |
 | `change(fn)`   | The single write path. Every mutation and command in the editor funnels through it; commands capture return values inside `fn`.                                            |
 | `capabilities` | Resolved once at instance creation and merged with the `readonly` prop. Drives extension sanitization and the readonly check.                                              |
