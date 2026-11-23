@@ -14,7 +14,6 @@ import {
   staticNameCellStyle,
   staticTypeCellStyle,
 } from "../spreadsheet-kit/form-table";
-import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
 import { useFocusGrid, type FocusGrid } from "../worksheet/use-focus-grid";
 import {
   useAdHocForm,
@@ -23,6 +22,7 @@ import {
   adHocSelectionApplies,
   adHocSelectionText,
 } from "./form-context";
+import { OptimizeToggle } from "./optimize-toggle";
 import { ValueEditor } from "./value-editor";
 
 import type { AdHocNetParameter, Parameter } from "@hashintel/petrinaut-core";

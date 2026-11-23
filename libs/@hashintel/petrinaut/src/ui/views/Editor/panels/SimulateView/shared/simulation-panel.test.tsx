@@ -17,7 +17,7 @@ import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "../../../../../../react/state/user-settings-context";
-import { Table } from "../../../../../components/table";
+import { Table } from "../../../../../spreadsheet-kit/table";
 import { SimulationWorkspace } from "../../../shared/simulation-workspace";
 import { SimulationPanel, SimulationPanelPresence } from "./simulation-panel";
 

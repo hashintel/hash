@@ -16,7 +16,10 @@ import {
   constraintNameIn,
   formatRate,
 } from "../../../../../../../react/optimizations/constraint-rates";
-import { Table, type TableColumn } from "../../../../../../components/table";
+import {
+  Table,
+  type TableColumn,
+} from "../../../../../../spreadsheet-kit/table";
 import { formatNumber, formatParameters } from "../../shared/format-value";
 
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";

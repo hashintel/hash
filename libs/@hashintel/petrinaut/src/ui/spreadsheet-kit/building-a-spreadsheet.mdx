@@ -28,7 +28,6 @@ Everything row-specific stays in the composing table.
 | `TextCell`        | A text cell under the selection model: a second click or Enter opens its editor, Enter or leaving commits, Escape cancels. The owner holds the text and hears how the edit ended.                                  |
 | `ReorderableRows` | The table body whose `ReorderableRow`s move by a pointer drag on their gutter or by Alt with an arrow on any cell; the owner applies the move it is told about.                                                    |
 | `useRowSelection` | The selection model: `selectedRow` is the focused gutter's row, or the row whose menu is open. One menu at a time per table.                                                                                       |
-| `OptimizeToggle`  | The labelled pill the selection modes render; generic text-in, boolean-out.                                                                                                                                        |
 
 Keyboard movement is the neighbouring
 [worksheet layer](layer:ui.worksheet)'s business:

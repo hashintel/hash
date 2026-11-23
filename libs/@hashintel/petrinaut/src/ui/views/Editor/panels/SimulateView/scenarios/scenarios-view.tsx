@@ -5,7 +5,7 @@ import {
   useEditorActions,
   useEditorState,
 } from "../../../../../../react/state/editor-context";
-import { Table, type TableColumn } from "../../../../../components/table";
+import { Table, type TableColumn } from "../../../../../spreadsheet-kit/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
 import { ViewScenarioDrawer } from "./view-scenario-drawer";
 

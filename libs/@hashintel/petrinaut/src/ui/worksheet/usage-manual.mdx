@@ -217,6 +217,10 @@ when a move runs off its edge.
 
 ## The selection grammar
 
+The two hooks of this section are files of the
+[spreadsheet kit](layer:ui.spreadsheet-kit), `use-select-first.ts` and
+`use-row-selection.ts`, since every caller is a table.
+
 `useSelectFirstActivation` gives a click target that is also a selectable
 cell the worksheet's activation behaviour: the first pointer click only
 selects (focuses) it, a click on an already-selected target activates, and

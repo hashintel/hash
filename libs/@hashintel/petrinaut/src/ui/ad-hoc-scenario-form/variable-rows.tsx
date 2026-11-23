@@ -29,12 +29,11 @@ import {
   selectedRowCellStyle,
 } from "../spreadsheet-kit/form-table";
 import { GutterCell } from "../spreadsheet-kit/gutter-cell";
-import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
 import { PhantomLine } from "../spreadsheet-kit/phantom-line";
 import { TextCell } from "../spreadsheet-kit/text-cell";
+import { useRowSelection } from "../spreadsheet-kit/use-row-selection";
+import { useSelectFirstActivation } from "../spreadsheet-kit/use-select-first";
 import { useFocusGrid } from "../worksheet/use-focus-grid";
-import { useRowSelection } from "../worksheet/use-row-selection";
-import { useSelectFirstActivation } from "../worksheet/use-select-first";
 import {
   useAdHocForm,
   useAdHocFormFact,
@@ -46,6 +45,7 @@ import {
   variableNameErrors,
   variablesOf,
 } from "./form-context";
+import { OptimizeToggle } from "./optimize-toggle";
 import { ValueEditor } from "./value-editor";
 
 const gutterColumnStyle = css({

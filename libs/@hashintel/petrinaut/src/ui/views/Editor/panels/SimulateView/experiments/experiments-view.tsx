@@ -7,7 +7,7 @@ import {
   type ExperimentRecord,
 } from "../../../../../../react/experiments/context";
 import { useEditorActions } from "../../../../../../react/state/editor-context";
-import { Table, type TableColumn } from "../../../../../components/table";
+import { Table, type TableColumn } from "../../../../../spreadsheet-kit/table";
 import { SimulationPanel } from "../shared/simulation-panel";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
 import { ViewExperimentDrawer } from "./view-experiment-drawer";

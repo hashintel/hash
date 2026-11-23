@@ -37,8 +37,7 @@ import {
   cellErrorUnderlineStyle,
   dependencyHighlightStyle,
 } from "../spreadsheet-kit/form-table";
-import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
-import { useSelectFirstActivation } from "../worksheet/use-select-first";
+import { useSelectFirstActivation } from "../spreadsheet-kit/use-select-first";
 import { sameAdHocFocusTarget } from "./dependency-highlight";
 import {
   useAdHocForm,
@@ -47,6 +46,7 @@ import {
   adHocSelectionText,
   sameParts,
 } from "./form-context";
+import { OptimizeToggle } from "./optimize-toggle";
 import { stepAdHocValue } from "./step-value";
 import { ComputedExpression } from "./value-editor/computed-expression";
 import { valueFacts } from "./value-editor/value-facts";

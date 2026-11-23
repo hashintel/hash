@@ -11,7 +11,7 @@ import type { Color, Place } from "@hashintel/petrinaut-core";
 
 afterEach(cleanup);
 
-vi.mock("../../../../../../../components/spreadsheet", () => ({
+vi.mock("../../../../../../../spreadsheet-kit/spreadsheet", () => ({
   Spreadsheet: ({ data, onChange }: { data: unknown; onChange?: unknown }) => (
     <div role="grid" aria-readonly={onChange === undefined}>
       {JSON.stringify(data)}

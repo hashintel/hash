@@ -17,7 +17,6 @@ import {
   staticNameCellStyle,
   staticTypeCellStyle,
 } from "../spreadsheet-kit/form-table";
-import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
 import { useFocusGrid } from "../worksheet/use-focus-grid";
 import {
   useAdHocForm,
@@ -29,6 +28,7 @@ import {
   variableHighlights,
   variablesOf,
 } from "./form-context";
+import { OptimizeToggle } from "./optimize-toggle";
 import { ValueEditor } from "./value-editor";
 
 const toggleCellStyle = css({

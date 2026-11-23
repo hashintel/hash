@@ -29,9 +29,11 @@ for each piece.
   headers, lone cells) and custom navigators.
 - `FocusControls`: ordinary controls, such as a row's button and its
   switch, as one member whose controls the arrows walk.
-- `useSelectFirstActivation` and `useRowSelection`: the interaction
-  grammar shared by worksheet tables: the first click selects, the second
-  acts; a focused gutter selects its whole row.
+
+The interaction grammar of the tables, `useSelectFirstActivation` (the first
+click selects, the second acts) and `useRowSelection` (a focused gutter
+selects its whole row), is part of the
+[spreadsheet kit](layer:ui.spreadsheet-kit).
 
 ## The contract
 
@@ -84,14 +86,14 @@ keeping the form layer out of its imports ships with the form.
 Consumers:
 
 - The ad-hoc scenario form: grids, headers, and controls in nested stacks.
-- The token spreadsheet (`ui/components/spreadsheet.tsx`): a stop table with
+- The token spreadsheet (`ui/spreadsheet-kit/spreadsheet.tsx`): a stop table with
   a gutter lane. A scenario form mounts one grid per place inside a vertical
   stack, so arrows flow from one place's grid into the next.
 - The left sidebar lists (`filterable-list-sub-view.tsx`, `nets-list.tsx`):
   two-column stop tables, a row and its action button, with the selection
   following the arrows. The search panel joins its input (`useFocusMember`)
   and its result list in one vertical stack.
-- The Simulate view `Table` (`ui/components/table.tsx`): one-column stop
+- The Simulate view `Table` (`ui/spreadsheet-kit/table.tsx`): one-column stop
   rows with select-first activation.
 - The Document view's outlines (`ui/plugins/document-view-plugin`): two
   one-column stop tables side by side in a horizontal stack. Their rows fold,

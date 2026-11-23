@@ -10,9 +10,9 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { useFocusStops } from "../worksheet/use-focus-stops";
-import { useRowSelection } from "../worksheet/use-row-selection";
-import { useSelectFirstActivation } from "../worksheet/use-select-first";
 import { useStopTargets } from "../worksheet/use-stop-targets";
+import { useRowSelection } from "./use-row-selection";
+import { useSelectFirstActivation } from "./use-select-first";
 
 import type { FocusStop, FocusStopTarget } from "../worksheet/use-focus-stops";
 

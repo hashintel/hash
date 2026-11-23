@@ -31,9 +31,9 @@ import {
   ReorderableRows,
 } from "../../../../../../../spreadsheet-kit/reorderable-rows";
 import { rowMoveKeyDown } from "../../../../../../../spreadsheet-kit/row-move-key-down";
+import { useRowSelection } from "../../../../../../../spreadsheet-kit/use-row-selection";
+import { useSelectFirstActivation } from "../../../../../../../spreadsheet-kit/use-select-first";
 import { useFocusGrid } from "../../../../../../../worksheet/use-focus-grid";
-import { useRowSelection } from "../../../../../../../worksheet/use-row-selection";
-import { useSelectFirstActivation } from "../../../../../../../worksheet/use-select-first";
 import { tokenCountLabel } from "../../../token-count-label";
 import { addTerm, moveTerm, removeTerm, termKeys } from "./compose-dynamics";
 

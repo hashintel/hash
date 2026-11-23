@@ -4,12 +4,12 @@ import { defaultTokenAttributeValue, toUuid } from "@hashintel/petrinaut-core";
 
 import { ExecutionFrameSourceContext } from "../../../../../../../../react/execution-frame/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
-import { Spreadsheet } from "../../../../../../../components/spreadsheet";
+import { Spreadsheet } from "../../../../../../../spreadsheet-kit/spreadsheet";
 
 import type {
   SpreadsheetCellValue,
   SpreadsheetColumn,
-} from "../../../../../../../components/spreadsheet";
+} from "../../../../../../../spreadsheet-kit/spreadsheet";
 import type { Color, Place } from "@hashintel/petrinaut-core";
 
 const getDefaultValue = (column: SpreadsheetColumn): SpreadsheetCellValue =>
