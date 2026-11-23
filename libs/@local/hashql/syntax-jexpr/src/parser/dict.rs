@@ -20,7 +20,7 @@ pub(crate) fn parse_dict_object_body<G: Grammar>(parser: &mut Parser<'_, G>) {
         parser.start_node(SyntaxKind::DictObjectEntry);
         let key_range = parser.bump(T![string]).range;
         if let ControlFlow::Continue(_) = recovery::expect_colon(parser, key_range) {
-            G::parse_item(parser);
+            parser.nested(G::parse_item);
         }
         parser.finish_node();
     }
@@ -29,14 +29,13 @@ pub(crate) fn parse_dict_object_body<G: Grammar>(parser: &mut Parser<'_, G>) {
 }
 
 fn parse_dict_array_entry<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: TextRange) {
+    let skipped_invalid = parser.skip_invalid_tokens();
+
     let Some(token) = parser.current() else {
         return;
     };
 
-    if token.kind == SyntaxKind::InvalidToken {
-        parser.start_node(SyntaxKind::DictArrayEntry);
-        parser.error_node();
-        parser.finish_node();
+    if skipped_invalid && SyntaxKindSet::ITEM_BOUNDARY.contains(token.kind) {
         return;
     }
 
@@ -68,7 +67,7 @@ fn parse_dict_array_entry<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: Text
         recovery::next_array_element(parser, open, count, G::ITEM_FIRST)
     {
         let item_start = parser.current().map(|token| token.range.start());
-        G::parse_item(parser);
+        parser.nested(G::parse_item);
 
         if count >= 2
             && let Some(start) = item_start

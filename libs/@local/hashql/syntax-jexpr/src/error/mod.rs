@@ -29,23 +29,24 @@ mod syntax;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use self::syntax::{ArrayErrorKind, LexerErrorKind, ObjectErrorKind, SyntaxErrorKind};
+pub(crate) use self::syntax::{
+    ArrayErrorKind, LexerErrorKind, ObjectErrorKind, SyntaxError, SyntaxErrorKind,
+};
 pub use self::{
     array::ArrayDiagnosticCategory, lexer::LexerDiagnosticCategory,
-    object::ObjectDiagnosticCategory, syntax::SyntaxError,
+    object::ObjectDiagnosticCategory,
 };
-pub use crate::{
-    embedded::error::StringDiagnosticCategory,
-    lexer::{
-        LexError,
-        number::{ParseNumberError, ParseNumberErrorKind},
-        string::{EscapeError, StringError},
-    },
-};
+pub use crate::embedded::error::StringDiagnosticCategory;
+pub(crate) use crate::lexer::string::StringError;
 
 const EXPECTED_EOF: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "expected-eof",
     name: "Unexpected token after expression",
+};
+
+const NESTING_LIMIT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "nesting-limit",
+    name: "Nesting limit exceeded",
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -56,24 +57,30 @@ pub enum ParserDiagnosticCategory {
     Array(ArrayDiagnosticCategory),
     Object(ObjectDiagnosticCategory),
     ExpectedEof,
+    /// Container nested deeper than the parser descends.
+    NestingLimit,
 }
 
 impl DiagnosticCategory for ParserDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
         match self {
             Self::Lexer(category) => category.id(),
-            Self::String(_) | Self::Array(_) | Self::Object(_) | Self::ExpectedEof => {
-                Cow::Borrowed("parser")
-            }
+            Self::String(_)
+            | Self::Array(_)
+            | Self::Object(_)
+            | Self::ExpectedEof
+            | Self::NestingLimit => Cow::Borrowed("parser"),
         }
     }
 
     fn name(&self) -> Cow<'_, str> {
         match self {
             Self::Lexer(category) => category.name(),
-            Self::String(_) | Self::Array(_) | Self::Object(_) | Self::ExpectedEof => {
-                Cow::Borrowed("Parser")
-            }
+            Self::String(_)
+            | Self::Array(_)
+            | Self::Object(_)
+            | Self::ExpectedEof
+            | Self::NestingLimit => Cow::Borrowed("Parser"),
         }
     }
 
@@ -84,6 +91,7 @@ impl DiagnosticCategory for ParserDiagnosticCategory {
             Self::Array(category) => Some(category),
             Self::Object(category) => Some(category),
             Self::ExpectedEof => Some(&EXPECTED_EOF),
+            Self::NestingLimit => Some(&NESTING_LIMIT),
         }
     }
 }
@@ -322,6 +330,20 @@ pub(crate) struct StringErrorContext {
     pub control_byte: Option<u8>,
     pub high_surrogate: Option<TextRange>,
     pub invalid_unit: Option<u16>,
+    /// Delimiters the end of input left open around a string without a closing quote.
+    pub unclosed: Vec<(DelimiterKind, TextRange)>,
+}
+
+/// Delimiters the end of input left open, and where their closing delimiters belong.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct UnclosedDelimiters {
+    pub open: Vec<(DelimiterKind, TextRange)>,
+    /// Range the closing delimiters replace.
+    ///
+    /// The range is empty and at the end of the last token, which is before a trailing comment.
+    /// After a trailing comma it covers the comma instead, because a closing delimiter may not
+    /// follow one.
+    pub close_at: TextRange,
 }
 
 /// Syntactic context at an unexpected end of input.
@@ -335,7 +357,7 @@ pub(crate) enum EofContext {
         key: TextRange,
         field: Option<FieldKind>,
     },
-    UnclosedDelimiters(Vec<(DelimiterKind, TextRange)>),
+    UnclosedDelimiters(UnclosedDelimiters),
 }
 
 /// Syntactic context at an unexpected token.
@@ -379,6 +401,26 @@ pub(crate) fn expected_eof(span: SpanId) -> JExprDiagnostic {
     diagnostic
 }
 
+pub(crate) fn nesting_limit(span: SpanId, limit: u16) -> JExprDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::NestingLimit),
+        Critical::ERROR,
+    )
+    .primary(Label::new(
+        span,
+        format!("nested more than {limit} levels deep"),
+    ));
+
+    diagnostic.add_message(Message::help(
+        "reduce the nesting, for example by binding an inner expression with `let` and referring \
+         to it by name",
+    ));
+    diagnostic.add_message(Message::note(format!(
+        "a J-Expr document nests values at most {limit} levels deep"
+    )));
+    diagnostic
+}
+
 pub(crate) fn insert_range(spans: &mut SpanTable<Span>, range: TextRange) -> SpanId {
     spans.insert(Span::new(range), SpanAncestors::EMPTY)
 }
@@ -390,12 +432,23 @@ pub(crate) fn insert_ranges(
     ranges.iter().map(|&range| insert_range(spans, range))
 }
 
-fn suggest_similar_in(
+/// Shortest text that [`suggest_similar`] compares with its candidates.
+const MIN_SIMILAR_LEN: usize = 3;
+
+/// Returns the candidates similar to `lookup`, most similar first, using [`did_you_mean`].
+///
+/// A `lookup` shorter than [`MIN_SIMILAR_LEN`] has no similar candidate. It is as far from
+/// every candidate as it is long, and a match would be chance.
+pub(crate) fn suggest_similar(
     lookup: &str,
     candidates: &[&'static str],
     heap: &Heap,
     top_n: usize,
 ) -> Vec<&'static str> {
+    if lookup.len() < MIN_SIMILAR_LEN {
+        return Vec::new();
+    }
+
     let lookup_sym = heap.intern_symbol(lookup);
     let interned: Vec<_> = candidates
         .iter()
@@ -411,23 +464,6 @@ fn suggest_similar_in(
                 .find(|&candidate| candidate == matched.as_str())
         })
         .collect()
-}
-
-/// Returns similar candidate strings ordered by similarity using [`did_you_mean`].
-pub(crate) fn suggest_similar(
-    lookup: &str,
-    candidates: &[&'static str],
-    heap: Option<&Heap>,
-    top_n: usize,
-) -> Vec<&'static str> {
-    if candidates.is_empty() {
-        return Vec::new();
-    }
-
-    heap.map_or_else(
-        || suggest_similar_in(lookup, candidates, &Heap::with_capacity(512), top_n),
-        |heap| suggest_similar_in(lookup, candidates, heap, top_n),
-    )
 }
 
 /// Formats a list of code items as backticked prose with `or` before the final item.

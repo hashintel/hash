@@ -18,7 +18,12 @@ use winnow::{
     token::any,
 };
 
-use super::{combinator::ws, context::Input, ident::parse_ident, path::parse_path};
+use super::{
+    combinator::{nested, ws},
+    context::Input,
+    ident::parse_ident,
+    path::parse_path,
+};
 
 fn parse_type_infer<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
@@ -412,7 +417,7 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    ws(parse_type_intersection)
+    nested(ws(parse_type_intersection))
         .context(StrContext::Label("type"))
         .parse_next(input)
 }

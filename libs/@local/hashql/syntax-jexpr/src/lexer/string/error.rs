@@ -1,7 +1,7 @@
 use core::{fmt, ops::Range, str::Utf8Error};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum EscapeError {
+pub(crate) enum EscapeError {
     /// Unrecognized escape character following `\`.
     Kind(u8),
     /// Non-hexadecimal byte inside a `\uXXXX` escape.
@@ -28,7 +28,7 @@ impl fmt::Display for EscapeError {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum StringError {
+pub(crate) enum StringError {
     /// Unescaped ASCII control character (`0x00..=0x1F`).
     Control,
     Escape(EscapeError),

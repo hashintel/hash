@@ -26,6 +26,13 @@ use hashql_syntax_jexpr::{JsonPointers, error::JExprDiagnosticCategory, span::Sp
 
 use super::error::HashQlDiagnosticCategory;
 
+/// Free stack below which a query is compiled on a stack of its own.
+const COMPILE_STACK_RED_ZONE: usize = 4 * 1024 * 1024;
+
+/// Size of the stack a query is compiled on when the thread has less than
+/// [`COMPILE_STACK_RED_ZONE`] free.
+const COMPILE_STACK_SIZE: usize = 8 * 1024 * 1024;
+
 pub(crate) struct CodeCompilationArtifact<'heap> {
     pub assignment: DefIdVec<Option<ExecutionAnalysisResidual<&'heap Heap>>, &'heap Heap>,
 
@@ -57,10 +64,15 @@ impl<'heap> Compilation<'heap> {
         spans: &mut SpanTable<Span>,
         source: &str,
     ) -> (Status<Self, HashQlDiagnosticCategory, SpanId>, JsonPointers) {
-        let mut parser = hashql_syntax_jexpr::Parser::new(heap, spans);
-        let (parsed, pointers) = parser.parse_expr_with_pointers(source);
-        let status = Self::compile_parsed(heap, scratch, parsed);
-        (status, pointers)
+        // The passes after the parser recurse once per level of nesting, which the parser limits
+        // to 256. A query nested that deep needs more stack than a worker thread of the query
+        // pool has, which is the 2 MiB default of a spawned thread.
+        stacker::maybe_grow(COMPILE_STACK_RED_ZONE, COMPILE_STACK_SIZE, || {
+            let mut parser = hashql_syntax_jexpr::Parser::new(heap, spans);
+            let (parsed, pointers) = parser.parse_expr_with_pointers(source);
+            let status = Self::compile_parsed(heap, scratch, parsed);
+            (status, pointers)
+        })
     }
 
     #[expect(clippy::too_many_lines, reason = "orchestration of sequential tasks")]

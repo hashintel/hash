@@ -8,7 +8,7 @@ use hashql_diagnostics::source::SourceId;
 use text_size::TextSize;
 use winnow::{LocatingSlice, Parser as _, Stateful, error::ContextError};
 
-use crate::{embedded::context::Context, span::Span};
+use crate::{embedded::context::Context, lexer::RawOffsets, span::Span};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u32)]
@@ -61,6 +61,8 @@ pub(crate) macro bind_parser($format:ident; fn $name:ident($parser:ident)) {
             heap: &heap,
             spans: &mut spans,
             parent,
+            offsets: RawOffsets::verbatim(),
+            depth: 0,
         };
 
         let input = Stateful {

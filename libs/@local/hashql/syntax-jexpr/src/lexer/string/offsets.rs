@@ -1,0 +1,144 @@
+use core::mem;
+use std::bstr::ByteStr;
+
+use super::{Sink, StringError, run_length, scan};
+
+/// Start of one piece of a string body: a run of bytes copied as they are, or one escape.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+struct Piece {
+    decoded: u32,
+    raw: u32,
+    escape: bool,
+}
+
+/// Records where every piece of a string body starts, in the body and in its decoded form.
+struct OffsetSink<'source> {
+    body: &'source [u8],
+    decoded: u32,
+    raw: u32,
+    pieces: Vec<Piece>,
+}
+
+impl<'source> OffsetSink<'source> {
+    const fn new(body: &'source [u8]) -> Self {
+        Self {
+            body,
+            decoded: 0,
+            raw: 0,
+            pieces: Vec::new(),
+        }
+    }
+}
+
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "the lexer rejects a source longer than `u32::MAX` bytes"
+)]
+impl<'source> Sink<'source> for OffsetSink<'source> {
+    type Output = Box<[Piece]>;
+
+    fn push_segment(&mut self, bytes: &'source ByteStr) -> Result<(), StringError> {
+        // An escape does not report how many bytes it spans. The segment after it does, because
+        // the segment starts where the escape ends.
+        let start = self
+            .body
+            .subslice_range(bytes)
+            .map_or(self.raw, |range| range.start as u32);
+
+        if !bytes.is_empty() {
+            self.pieces.push(Piece {
+                decoded: self.decoded,
+                raw: start,
+                escape: false,
+            });
+        }
+
+        self.decoded += bytes.len() as u32;
+        self.raw = start + bytes.len() as u32;
+
+        Ok(())
+    }
+
+    fn push_char(&mut self, character: char) {
+        self.pieces.push(Piece {
+            decoded: self.decoded,
+            raw: self.raw,
+            escape: true,
+        });
+
+        self.decoded += character.len_utf8() as u32;
+    }
+
+    fn finish(&mut self) -> Self::Output {
+        // The end of the body, so that the offset one past the last decoded byte maps as well.
+        self.pieces.push(Piece {
+            decoded: self.decoded,
+            raw: self.raw,
+            escape: false,
+        });
+
+        mem::take(&mut self.pieces).into_boxed_slice()
+    }
+}
+
+/// Maps byte offsets in a decoded string to byte offsets in its quoted source.
+///
+/// The embedded parsers read the decoded string and report spans in it. An escape such as
+/// `\u0061` is longer in the source than the character it decodes to, and a span after it
+/// would point at the wrong bytes of the source without this mapping.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct RawOffsets {
+    /// Empty for a string without escapes, whose decoded form is its body.
+    pieces: Box<[Piece]>,
+}
+
+impl RawOffsets {
+    /// Offsets of a string that has no escape, or whose source is not available.
+    pub(crate) fn verbatim() -> Self {
+        Self {
+            pieces: Box::default(),
+        }
+    }
+
+    /// Reads the offsets of the string token `quoted`, which includes both quotes.
+    ///
+    /// A token that is not a valid string maps as if it had no escape.
+    pub(crate) fn new(quoted: &str) -> Self {
+        let Some(body) = quoted.strip_prefix('"') else {
+            return Self::verbatim();
+        };
+
+        let mut rest = body.as_bytes();
+        if rest.get(run_length(rest)) == Some(&b'"') {
+            return Self::verbatim();
+        }
+
+        scan(&mut OffsetSink::new(body.as_bytes()), &mut rest)
+            .map_or_else(|_| Self::verbatim(), |pieces| Self { pieces })
+    }
+
+    /// Maps `offset` in the decoded string to an offset from the opening quote of the source.
+    ///
+    /// An offset inside the character an escape decodes to maps to the start of the escape.
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the lexer rejects a source longer than `u32::MAX` bytes"
+    )]
+    pub(crate) fn raw(&self, offset: usize) -> u32 {
+        let offset = offset as u32;
+
+        let index = self.pieces.partition_point(|piece| piece.decoded <= offset);
+        let Some(piece) = index.checked_sub(1).map(|index| self.pieces[index]) else {
+            return offset + 1;
+        };
+
+        let within = if piece.escape {
+            0
+        } else {
+            offset - piece.decoded
+        };
+
+        // `+ 1` for the opening quote.
+        piece.raw + within + 1
+    }
+}

@@ -45,7 +45,7 @@ fn escape_spellings() {
 }
 
 #[test]
-fn single_ascii_escape_borrows() {
+fn single_ascii_escape() {
     for code in 0_u8..=0x7F {
         let body = format!(r#"\u{code:04X}""#);
         let lexed = LexedStr::new(&body).expect("ASCII unicode escape validates");
@@ -84,7 +84,7 @@ fn lexed_str_decode_cases() {
 }
 
 #[test]
-fn decode_quoted_rejects_trailing_bytes() {
+fn decode_quoted_trailing_bytes() {
     assert_eq!(decode_quoted(r#""a"b"#), Err(StringError::Eof));
     assert_eq!(decode_quoted(r#""a\nb"c"#), Err(StringError::Eof));
 }
@@ -179,7 +179,7 @@ fn decode_mixed_escapes(characters: Vec<(char, bool)>) {
 }
 
 #[property_test]
-fn validate_matches_decode_on_mixed_escapes(characters: Vec<(char, bool)>) {
+fn validate_mixed_escapes(characters: Vec<(char, bool)>) {
     let mut body = String::new();
     let mut had_escape = false;
     for (character, unicode_escape) in characters {
@@ -219,7 +219,7 @@ fn validate_matches_decode_on_mixed_escapes(characters: Vec<(char, bool)>) {
 }
 
 #[test]
-fn validate_utf8_escape_error_stays_on_char_boundary() {
+fn validate_error_char_boundary() {
     for input in [
         "\\\u{1f980}\"tail",
         "\\u12\u{1f980}4\"tail",
@@ -236,7 +236,7 @@ fn validate_utf8_escape_error_stays_on_char_boundary() {
 }
 
 #[test]
-fn validate_error_spans_target_offending_slice() {
+fn validate_error_span() {
     let err = LexedStr::new(r#"hello\zworld""#).expect_err("unknown escape");
     assert_eq!(r#"hello\zworld""#.get(err.span), Some(r"\z"));
 

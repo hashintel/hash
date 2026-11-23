@@ -24,6 +24,7 @@ use crate::{
     error::{JExprDiagnosticCategory, array},
     parser::Document,
     span::Span,
+    stack::ensure_sufficient_stack,
     syntax_kind::SyntaxKind,
 };
 
@@ -188,7 +189,11 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
 
         let token_span = self.insert_range(token.text_range());
         let key = match parse_ident_labelled_argument_from_string(
-            self.heap, self.spans, token_span, &decoded,
+            self.heap,
+            self.spans,
+            token_span,
+            token.text(),
+            &decoded,
         ) {
             Ok(ident) => ident,
             Err(error) => {
@@ -251,7 +256,11 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
             }
             let key_span = self.insert_range(token.text_range());
             match parse_ident_labelled_argument_from_string(
-                self.heap, self.spans, key_span, &decoded,
+                self.heap,
+                self.spans,
+                key_span,
+                token.text(),
+                &decoded,
             ) {
                 Ok(ident) => Some(ident),
                 Err(error) => {
@@ -353,7 +362,7 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
     }
 
     pub(crate) fn lower_expr(&mut self, expr: cst::Expr<'_>) -> Option<Expr<'heap>> {
-        match expr {
+        ensure_sufficient_stack(|| match expr {
             cst::Expr::Path(node) => self.lower_path(node),
             cst::Expr::Call(node) => self.lower_call(node),
             cst::Expr::Literal(node) => constructor::lower_literal(self, node),
@@ -361,7 +370,7 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
             cst::Expr::Tuple(node) => constructor::lower_tuple(self, node),
             cst::Expr::List(node) => constructor::lower_list(self, node),
             cst::Expr::Dict(node) => constructor::lower_dict(self, node),
-        }
+        })
     }
 }
 

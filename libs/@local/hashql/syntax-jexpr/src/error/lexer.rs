@@ -13,8 +13,8 @@ use hashql_diagnostics::{
 use text_size::TextRange;
 
 use super::{
-    ConstructorKind, DelimiterKind, EofContext, FieldKind, UnexpectedTokenContext, insert_range,
-    suggest_similar,
+    ConstructorKind, DelimiterKind, EofContext, FieldKind, UnclosedDelimiters,
+    UnexpectedTokenContext, insert_range, suggest_similar,
 };
 use crate::{
     span::Span,
@@ -94,12 +94,24 @@ impl DiagnosticCategory for LexerDiagnosticCategory {
 
 pub(crate) type LexerDiagnostic<K = Critical> = Diagnostic<LexerDiagnosticCategory, SpanId, K>;
 
-pub(crate) fn from_unrecognized_character_error(span: SpanId, character: char) -> LexerDiagnostic {
-    let label = if character.is_control() || character == '`' {
-        format!("unexpected character `{}`", character.escape_debug())
-    } else {
-        format!("unexpected character `{character}`")
+pub(crate) fn from_unrecognized_character_error(span: SpanId, text: &str) -> LexerDiagnostic {
+    let mut characters = text.chars();
+    let noun = match (characters.next(), characters.next()) {
+        (Some(_), Some(_)) => "characters",
+        _ => "character",
     };
+
+    // Labels are not escaped by annotate-snippets, and a character that does not print, such as
+    // a byte order mark, would leave the label empty.
+    let mut label = format!("unexpected {noun} `");
+    for character in text.chars() {
+        match character {
+            '"' | '\'' | '\\' => label.push(character),
+            _ if character.is_whitespace() => label.extend(character.escape_unicode()),
+            _ => label.extend(character.escape_debug()),
+        }
+    }
+    label.push('`');
 
     let mut diagnostic =
         Diagnostic::new(LexerDiagnosticCategory::InvalidCharacter, Critical::ERROR)
@@ -113,8 +125,8 @@ pub(crate) fn from_unrecognized_character_error(span: SpanId, character: char) -
 
 const JSON_KEYWORDS: &[&str] = &["true", "false", "null"];
 
-pub(crate) fn invalid_token(span: SpanId, text: &str, heap: Option<&Heap>) -> LexerDiagnostic {
-    if matches!(text, "NaN" | "Infinity") {
+pub(crate) fn invalid_token(span: SpanId, text: &str, heap: &Heap) -> LexerDiagnostic {
+    if matches!(text, "NaN" | "Infinity" | "-Infinity" | "-NaN") {
         let mut diagnostic =
             Diagnostic::new(LexerDiagnosticCategory::InvalidToken, Critical::ERROR).primary(
                 Label::new(span, format!("`{text}` is not a valid JSON number")),
@@ -141,11 +153,7 @@ pub(crate) fn invalid_token(span: SpanId, text: &str, heap: Option<&Heap>) -> Le
         return diagnostic;
     }
 
-    let similar = if text.len() >= 3 {
-        suggest_similar(text, JSON_KEYWORDS, heap, 2)
-    } else {
-        Vec::new()
-    };
+    let similar = suggest_similar(text, JSON_KEYWORDS, heap, 2);
     if let Some(suggestions) =
         Suggestions::try_from_iter(similar.into_iter().map(|kw| Patch::new(span, kw)))
     {
@@ -165,17 +173,39 @@ pub(crate) fn invalid_token(span: SpanId, text: &str, heap: Option<&Heap>) -> Le
     diagnostic
 }
 
-pub(crate) fn unterminated_block_comment(span: SpanId, eof_span: SpanId) -> LexerDiagnostic {
+/// Closing delimiters for `unclosed`, innermost first.
+pub(crate) fn closing_delimiters(unclosed: &[(DelimiterKind, TextRange)]) -> String {
+    let mut ordered = unclosed.to_vec();
+    ordered.sort_by_key(|(_, range)| core::cmp::Reverse(range.start()));
+
+    ordered
+        .into_iter()
+        .map(|(delimiter, _)| delimiter.close_str())
+        .collect()
+}
+
+pub(crate) fn unterminated_block_comment(
+    span: SpanId,
+    eof_span: SpanId,
+    unclosed: &[(DelimiterKind, TextRange)],
+) -> LexerDiagnostic {
     let mut diagnostic = Diagnostic::new(
         LexerDiagnosticCategory::UnterminatedBlockComment,
         Critical::ERROR,
     )
     .primary(Label::new(span, "unterminated block comment"));
 
-    let suggestion = Suggestions::patch(Patch::new(eof_span, "*/"));
-    diagnostic.add_message(
-        Message::help("add `*/` to close the block comment").with_suggestions(suggestion),
-    );
+    let closers = closing_delimiters(unclosed);
+    let help = if closers.is_empty() {
+        Cow::Borrowed("add `*/` to close the block comment")
+    } else {
+        Cow::Owned(format!(
+            "add `*/` to close the block comment, and the missing `{closers}`"
+        ))
+    };
+
+    let suggestion = Suggestions::patch(Patch::new(eof_span, format!("*/{closers}")));
+    diagnostic.add_message(Message::help(help).with_suggestions(suggestion));
     diagnostic
 }
 
@@ -198,6 +228,9 @@ const fn field_value_eof_help(field: Option<FieldKind>) -> &'static str {
     }
 }
 
+const EXPRESSION_HELP: &str =
+    r##"provide a J-Expr expression such as `"x"`, `["f", "x"]`, or `{"#literal": 42}`"##;
+
 const MAX_UNCLOSED_LABELS: usize = 3;
 
 pub(crate) fn unexpected_eof(
@@ -219,10 +252,7 @@ pub(crate) fn unexpected_eof(
             let mut diagnostic =
                 Diagnostic::new(LexerDiagnosticCategory::UnexpectedEof, Critical::ERROR)
                     .primary(Label::new(span, label));
-            diagnostic.add_message(Message::help(
-                "provide a J-Expr expression such as `\"x\"`, `[\"fn\", arg]`, or `{\"#literal\": \
-                 42}`",
-            ));
+            diagnostic.add_message(Message::help(EXPRESSION_HELP));
             diagnostic
         }
         EofContext::FieldColon { key } => {
@@ -255,8 +285,8 @@ pub(crate) fn unexpected_eof(
             diagnostic.add_message(Message::help(field_value_eof_help(*field)));
             diagnostic
         }
-        EofContext::UnclosedDelimiters(unclosed) => {
-            let mut ordered = unclosed.clone();
+        EofContext::UnclosedDelimiters(UnclosedDelimiters { open, close_at }) => {
+            let mut ordered = open.clone();
             ordered.sort_by_key(|(_, range)| range.start());
 
             let innermost = ordered.last().map(|(delim, _)| *delim);
@@ -285,17 +315,14 @@ pub(crate) fn unexpected_eof(
             }
 
             if !ordered.is_empty() {
-                let closers: String = ordered
-                    .iter()
-                    .rev()
-                    .map(|(delim, _)| delim.close_str())
-                    .collect();
+                let closers = closing_delimiters(open);
                 let help_text = if ordered.len() == 1 {
                     format!("add the missing `{closers}`")
                 } else {
                     format!("add the missing closing delimiters `{closers}`")
                 };
-                let suggestion = Suggestions::patch(Patch::new(span, closers));
+                let close_span = insert_range(spans, *close_at);
+                let suggestion = Suggestions::patch(Patch::new(close_span, closers));
                 diagnostic.add_message(Message::help(help_text).with_suggestions(suggestion));
             }
 
@@ -335,6 +362,9 @@ fn unexpected_token_general(
         diagnostic.add_message(Message::help(
             "close the enclosing container or check for a missing separator",
         ));
+    } else if expected.contains(SyntaxKind::String) && !expected.contains(SyntaxKind::Number) {
+        // A string is the only primitive that is an expression by itself.
+        diagnostic.add_message(Message::help(EXPRESSION_HELP));
     } else if expected.contains_value() {
         diagnostic.add_message(Message::help(
             "provide a valid JSON value such as a string, number, boolean, `null`, object, or \

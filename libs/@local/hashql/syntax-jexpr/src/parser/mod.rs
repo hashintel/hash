@@ -6,9 +6,11 @@ use text_size::{TextRange, TextSize};
 use crate::{
     cst,
     error::{
-        DelimiterKind, EofContext, LexerErrorKind, StringErrorContext, SyntaxError, SyntaxErrorKind,
+        DelimiterKind, EofContext, LexerErrorKind, StringErrorContext, SyntaxError,
+        SyntaxErrorKind, UnclosedDelimiters,
     },
     lexer::{LexError, LexedStr, Lexer, StringError, Token, string::EscapeError},
+    stack::ensure_sufficient_stack,
     syntax_kind::SyntaxKind,
     syntax_kind_set::SyntaxKindSet,
 };
@@ -55,23 +57,47 @@ fn single_quoted_to_double_quoted(raw: &str) -> Option<String> {
     (lexed.consumed() == body.len()).then(|| format!("\"{body}"))
 }
 
+/// A language of J-Expr values that a [`Parser`] reads.
+///
+/// The parser owns what the languages share: constructor objects, arrays, separators and error
+/// recovery. A grammar decides which values may stand where the parser expects an item.
 pub(crate) trait Grammar {
+    /// Marker that selects the item type of [`Document::tree`].
     type Root: cst::TreeRoot;
 
+    /// Whether a constructor object may carry a `#type` field.
     const ALLOW_TYPE_ANNOTATIONS: bool;
 
+    /// Tokens an item starts with.
     const ITEM_FIRST: SyntaxKindSet;
 
+    /// Parses the item at the current token.
+    ///
+    /// # Implementation Note
+    ///
+    /// The parser calls this once for every element of a container and does not check that the
+    /// call consumed anything. An implementation must consume at least one token, unless the
+    /// current token is `,`, `]` or `}` or the input has ended, because the loop over the
+    /// elements does not end otherwise. A token that starts no item goes to
+    /// [`recovery::recover_unexpected_item`], which reports and consumes it.
     fn parse_item(parser: &mut Parser<'_, Self>)
     where
         Self: Sized;
 }
 
+/// Number of levels a document may nest values, and an embedded string its types or expressions.
+///
+/// The parsers and every later pass recurse once per level. The limit bounds the stack they
+/// need, and the memory of the stack segments [`ensure_sufficient_stack`] allocates.
+pub(crate) const NESTING_LIMIT: u16 = 256;
+
+/// Recursive descent parser from J-Expr source to a lossless [`Document`] of grammar `G`.
 pub(crate) struct Parser<'source, G> {
     lexer: Lexer<'source>,
     builder: GreenNodeBuilder<'static>,
     errors: Vec<SyntaxError>,
     last_token_end: TextSize,
+    depth: u16,
     _grammar: PhantomData<G>,
 }
 
@@ -82,6 +108,7 @@ impl<'source, G: Grammar> Parser<'source, G> {
             builder: GreenNodeBuilder::new(),
             errors: Vec::new(),
             last_token_end: TextSize::new(0),
+            depth: 0,
             _grammar: PhantomData,
         }
     }
@@ -120,6 +147,21 @@ impl<'source, G: Grammar> Parser<'source, G> {
         self.start_node(SyntaxKind::Error);
         self.bump_any();
         self.finish_node();
+    }
+
+    /// Consumes every [`SyntaxKind::InvalidToken`] at the current position into its own
+    /// [`SyntaxKind::Error`] node and reports whether there was one.
+    ///
+    /// The lexer error of each token is its diagnostic. A caller that skipped a token treats the
+    /// position as already reported and says nothing more about what it expected there.
+    pub(crate) fn skip_invalid_tokens(&mut self) -> bool {
+        let mut skipped = false;
+        while self.at(SyntaxKind::InvalidToken) {
+            self.error_node();
+            skipped = true;
+        }
+
+        skipped
     }
 
     #[inline]
@@ -172,6 +214,7 @@ impl<'source, G: Grammar> Parser<'source, G> {
             control_byte,
             high_surrogate,
             invalid_unit,
+            unclosed: Vec::new(),
         }
     }
 
@@ -203,10 +246,35 @@ impl<'source, G: Grammar> Parser<'source, G> {
                 );
             }
             LexError::InvalidWord => {
-                let text = self.lexer.slice(token_range).to_owned();
+                let word = self.lexer.slice(token_range);
+
+                // `-Infinity` lexes as a bare `-` and a word, and is one mistake.
+                if matches!(word, "Infinity" | "NaN")
+                    && let Some(last) = self.errors.last_mut()
+                    && last.range().end() == token_range.start()
+                    && let SyntaxErrorKind::Lexer(LexerErrorKind::InvalidNumber {
+                        token_range: sign,
+                        raw,
+                        ..
+                    }) = last.kind_mut()
+                    && raw == "-"
+                {
+                    let range = sign.cover(token_range);
+                    *last = SyntaxError::new(
+                        range,
+                        SyntaxErrorKind::Lexer(LexerErrorKind::InvalidToken {
+                            text: format!("-{word}"),
+                        }),
+                    );
+
+                    return;
+                }
+
                 self.error(
                     token_range,
-                    SyntaxErrorKind::Lexer(LexerErrorKind::InvalidToken { text }),
+                    SyntaxErrorKind::Lexer(LexerErrorKind::InvalidToken {
+                        text: word.to_owned(),
+                    }),
                 );
             }
             LexError::UnterminatedBlockComment => {
@@ -215,68 +283,111 @@ impl<'source, G: Grammar> Parser<'source, G> {
                 let eof = self.lexer.eof_offset();
                 self.error(
                     opener,
-                    SyntaxErrorKind::Lexer(LexerErrorKind::UnterminatedBlockComment { eof }),
+                    SyntaxErrorKind::Lexer(LexerErrorKind::UnterminatedBlockComment {
+                        eof,
+                        unclosed: Vec::new(),
+                    }),
                 );
             }
             LexError::UnrecognizedCharacter => {
-                let character = self
-                    .lexer
-                    .slice(token_range)
-                    .chars()
-                    .next()
-                    .unwrap_or('\u{FFFD}');
+                let text = self.lexer.slice(token_range);
+
+                // A run of unrecognized characters, such as `*/`, is one mistake.
+                if let Some(last) = self.errors.last_mut()
+                    && last.range().end() == token_range.start()
+                    && let SyntaxErrorKind::Lexer(LexerErrorKind::InvalidCharacter { text: run }) =
+                        last.kind_mut()
+                {
+                    run.push_str(text);
+                    last.extend_to(token_range.end());
+
+                    return;
+                }
+
                 self.error(
                     token_range,
-                    SyntaxErrorKind::Lexer(LexerErrorKind::InvalidCharacter { character }),
+                    SyntaxErrorKind::Lexer(LexerErrorKind::InvalidCharacter {
+                        text: text.to_owned(),
+                    }),
                 );
             }
         }
     }
 
-    /// Records an unexpected EOF, merging nested unclosed containers and skipping cascades.
+    /// Records an unexpected end of input, which a document reports once.
+    ///
+    /// A later call adds the delimiters it found open to the first report. That report is the
+    /// unterminated token the input ended in, where there is one.
     pub(crate) fn record_eof(&mut self, expected: SyntaxKindSet, context: EofContext) {
-        let eof = self.eof_range();
-
-        if let Some(last) = self.errors.last_mut() {
-            let at_eof = last.range() == eof;
-
-            match last.kind_mut() {
+        // The report is not always the last error. A value cut short by the end of input can
+        // record an error of its own after it.
+        let reported = self
+            .errors
+            .iter_mut()
+            .rev()
+            .find_map(|error| match error.kind_mut() {
                 SyntaxErrorKind::Lexer(
-                    LexerErrorKind::UnterminatedBlockComment { .. }
+                    LexerErrorKind::UnterminatedBlockComment { unclosed, .. }
                     | LexerErrorKind::InvalidString {
-                        error: StringError::Eof | StringError::Escape(EscapeError::Eof),
+                        error: StringError::Eof,
+                        context: StringErrorContext { unclosed, .. },
+                    }
+                    | LexerErrorKind::UnexpectedEof {
+                        context:
+                            EofContext::UnclosedDelimiters(UnclosedDelimiters {
+                                open: unclosed, ..
+                            }),
                         ..
                     },
-                ) => return,
-                SyntaxErrorKind::Lexer(LexerErrorKind::UnexpectedEof {
-                    context: EofContext::UnclosedDelimiters(existing),
-                    ..
-                }) if at_eof => {
-                    if let EofContext::UnclosedDelimiters(additional) = context {
-                        existing.extend(additional);
+                ) => Some(Some(unclosed)),
+                SyntaxErrorKind::Lexer(
+                    LexerErrorKind::InvalidString {
+                        error: StringError::Escape(EscapeError::Eof),
+                        ..
                     }
-                    return;
-                }
-                SyntaxErrorKind::Lexer(LexerErrorKind::UnexpectedEof { .. }) if at_eof => {
-                    return;
-                }
+                    | LexerErrorKind::UnexpectedEof { .. },
+                ) => Some(None),
                 SyntaxErrorKind::Lexer(_)
                 | SyntaxErrorKind::ExpectedEof
+                | SyntaxErrorKind::NestingLimit { .. }
                 | SyntaxErrorKind::Array(_)
-                | SyntaxErrorKind::Object(_) => {}
+                | SyntaxErrorKind::Object(_) => None,
+            });
+
+        if let Some(unclosed) = reported {
+            if let Some(unclosed) = unclosed
+                && let EofContext::UnclosedDelimiters(additional) = context
+            {
+                unclosed.extend(additional.open);
             }
+
+            return;
         }
 
         self.error(
-            eof,
+            self.eof_range(),
             SyntaxErrorKind::Lexer(LexerErrorKind::UnexpectedEof { expected, context }),
         );
     }
 
-    pub(crate) fn record_unclosed_eof(&mut self, open: TextRange, delimiter: DelimiterKind) {
+    /// Records that the end of input left the container opened at `open` unclosed.
+    ///
+    /// `trailing` is the range of the commas after the last element, which the suggested closing
+    /// delimiter replaces.
+    pub(crate) fn record_unclosed_eof(
+        &mut self,
+        open: TextRange,
+        delimiter: DelimiterKind,
+        trailing: Option<TextRange>,
+    ) {
+        let close_at = trailing.unwrap_or_else(|| TextRange::empty(self.last_token_end()));
+
         self.record_eof(
             SyntaxKindSet::from_kind(delimiter.close_kind()),
-            EofContext::UnclosedDelimiters(vec![(delimiter, open)]),
+            EofContext::UnclosedDelimiters(UnclosedDelimiters {
+                open: vec![(delimiter, open)],
+                close_at,
+            }),
         );
     }
 
@@ -371,14 +482,67 @@ impl<'source, G: Grammar> Parser<'source, G> {
         self.builder.checkpoint()
     }
 
+    /// Consumes the container at the current token into one [`SyntaxKind::Error`] node.
+    ///
+    /// A loop counts the delimiters, and the nesting inside the container costs no stack.
+    fn skip_container(&mut self) {
+        self.start_node(SyntaxKind::Error);
+
+        let mut open = 0_usize;
+        while let Some(token) = self.current() {
+            if SyntaxKindSet::OPENING_DELIMITER.contains(token.kind) {
+                open += 1;
+            } else if SyntaxKindSet::CLOSING_DELIMITER.contains(token.kind) {
+                open -= 1;
+            } else {
+                // Every other token belongs to the innermost open container.
+            }
+
+            self.bump_any();
+            if open == 0 {
+                break;
+            }
+        }
+
+        self.finish_node();
+    }
+
+    /// Parses a value with `parse`, one nesting level below the current one.
+    ///
+    /// A container past [`NESTING_LIMIT`] levels is not parsed. It is reported at its opening
+    /// delimiter and skipped up to the matching closing delimiter.
+    pub(crate) fn nested(&mut self, parse: impl FnOnce(&mut Self)) {
+        if self.depth >= NESTING_LIMIT
+            && let Some(token) = self.current()
+            && SyntaxKindSet::OPENING_DELIMITER.contains(token.kind)
+        {
+            self.error(
+                token.range,
+                SyntaxErrorKind::NestingLimit {
+                    limit: NESTING_LIMIT,
+                },
+            );
+            self.skip_container();
+
+            return;
+        }
+
+        self.depth += 1;
+        ensure_sufficient_stack(|| parse(self));
+        self.depth -= 1;
+    }
+
     pub(crate) fn parse_root(&mut self) {
         // Root keeps leading and trailing trivia inside itself so the tree is lossless.
         self.builder.start_node(SyntaxKind::Root.into());
 
+        let skipped = self.skip_invalid_tokens();
         if self.current().is_none() {
-            self.record_eof(G::ITEM_FIRST, EofContext::Document);
+            if !skipped {
+                self.record_eof(G::ITEM_FIRST, EofContext::Document);
+            }
         } else {
-            G::parse_item(self);
+            self.nested(G::parse_item);
 
             if let Some(trailing) = self.current() {
                 let trailing_start = trailing.range.start();

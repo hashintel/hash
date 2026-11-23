@@ -334,7 +334,7 @@ pub(crate) fn unknown_key(
     expected: &[&'static str],
     primary_context: Option<(ConstructorKind, SpanId)>,
     type_annotations_disallowed: bool,
-    heap: Option<&Heap>,
+    heap: &Heap,
 ) -> ObjectDiagnostic {
     // Labels are not escaped by annotate-snippets, so escape control characters in user keys.
     let escaped_key = key.escape_debug().to_string();

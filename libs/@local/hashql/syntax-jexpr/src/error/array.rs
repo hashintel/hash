@@ -270,7 +270,7 @@ pub(crate) fn labeled_arguments_length_mismatch(
         );
     } else {
         diagnostic.add_message(Message::help(
-            r#"place each labeled argument in its own object: `{":a": x}, {":b": y}`"#,
+            r#"place each labeled argument in its own object: `{":a": "x"}, {":b": "y"}`"#,
         ));
     }
 

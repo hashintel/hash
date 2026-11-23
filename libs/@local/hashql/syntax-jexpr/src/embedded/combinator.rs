@@ -1,11 +1,14 @@
 use hashql_core::heap::{self, Heap};
 use winnow::{
-    Parser,
+    ModalParser, Parser,
     ascii::multispace0,
-    combinator::{delimited, separated_foldl1, trace},
-    error::ParserError,
+    combinator::{cut_err, delimited, fail, separated_foldl1, trace},
+    error::{AddContext, ParserError, StrContext},
     stream::{AsChar, Stream, StreamIsPartial},
 };
+
+use super::context::Input;
+use crate::{parser::NESTING_LIMIT, stack::ensure_sufficient_stack};
 
 pub(crate) enum Alt2<L, R> {
     Left(L),
@@ -125,4 +128,41 @@ where
         "ws", //
         delimited(multispace0, parser, multispace0),
     )
+}
+
+/// Context label of the error [`nested`] and [`nesting_limit`] fail with.
+pub(crate) const NESTING_LIMIT_LABEL: &str = "nesting limit";
+
+/// Fails without backtracking, labeled as [`NESTING_LIMIT_LABEL`].
+pub(crate) fn nesting_limit<'heap, 'span, 'source, Output, Error>(
+    input: &mut Input<'heap, 'span, 'source>,
+) -> winnow::ModalResult<Output, Error>
+where
+    Error: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+{
+    cut_err(fail)
+        .context(StrContext::Label(NESTING_LIMIT_LABEL))
+        .parse_next(input)
+}
+
+/// Runs `parser` one nesting level down, failing once [`NESTING_LIMIT`] levels are open.
+pub(crate) fn nested<'heap, 'span, 'source, Output, Error>(
+    mut parser: impl ModalParser<Input<'heap, 'span, 'source>, Output, Error>,
+) -> impl ModalParser<Input<'heap, 'span, 'source>, Output, Error>
+where
+    Error: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+{
+    move |input: &mut Input<'heap, 'span, 'source>| {
+        if input.state.depth >= NESTING_LIMIT {
+            return nesting_limit(input);
+        }
+
+        input.state.depth += 1;
+        let result = ensure_sufficient_stack(|| parser.parse_next(input));
+        input.state.depth -= 1;
+
+        result
+    }
 }

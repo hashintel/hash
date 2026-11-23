@@ -185,7 +185,21 @@ mod tests {
     }
 
     #[test]
-    fn out_of_bounds_range_returns_none() {
+    fn element_after_invalid_token() {
+        // The invalid token is not an element. The elements after it keep their index.
+        let source = r##"{"#list": [{"#literal": 1} @, {"#literal": 2}, {"#literal": 3}]}"##;
+        assert_eq!(
+            pointer_at(source, "2").as_deref(),
+            Some("/#list/1/#literal")
+        );
+        assert_eq!(
+            pointer_at(source, "3").as_deref(),
+            Some("/#list/2/#literal")
+        );
+    }
+
+    #[test]
+    fn out_of_bounds_range() {
         let heap = Heap::new();
         let mut spans = SpanTable::new(SourceId::new_unchecked(0));
         let (_, pointers) =

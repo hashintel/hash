@@ -22,7 +22,7 @@ fn parse_json_array<G: Grammar>(parser: &mut Parser<'_, G>) {
         recovery::next_array_element(parser, open, index, JSON_VALUE_FIRST)
     {
         index += 1;
-        parse_json_value(parser);
+        parser.nested(parse_json_value);
     }
 
     parser.finish_node();
@@ -39,7 +39,7 @@ fn parse_json_object<G: Grammar>(parser: &mut Parser<'_, G>) {
         parser.start_node(SyntaxKind::JsonField);
         let key_range = parser.bump(T![string]).range;
         match recovery::expect_colon(parser, key_range) {
-            ControlFlow::Continue(FieldValue::Token(_)) => parse_json_value(parser),
+            ControlFlow::Continue(FieldValue::Token(_)) => parser.nested(parse_json_value),
             ControlFlow::Continue(FieldValue::Eof) => {
                 parser.record_eof(
                     JSON_VALUE_FIRST,
@@ -58,6 +58,8 @@ fn parse_json_object<G: Grammar>(parser: &mut Parser<'_, G>) {
 }
 
 pub(crate) fn parse_json_value<G: Grammar>(parser: &mut Parser<'_, G>) {
+    let skipped_invalid = parser.skip_invalid_tokens();
+
     let Some(token) = parser.current() else {
         return;
     };
@@ -70,7 +72,9 @@ pub(crate) fn parse_json_value<G: Grammar>(parser: &mut Parser<'_, G>) {
         parser.start_node(SyntaxKind::JsonLiteral);
         parser.bump(token.kind);
         parser.finish_node();
-    } else {
+    } else if !skipped_invalid {
         parser.error_node();
+    } else {
+        // The invalid tokens took the place of the value, and the next token is the container's.
     }
 }

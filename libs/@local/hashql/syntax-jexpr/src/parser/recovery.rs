@@ -193,10 +193,11 @@ fn consume_array_comma<G: Grammar>(
     separators: Separators,
 ) -> ControlFlow<ContainerBreak, Item> {
     let Some(after) = parser.current() else {
+        let trailing = separators.range();
         let _: ControlFlow<(), Separators> =
             separators.try_report_consecutive(parser, DelimiterKind::Bracket);
 
-        parser.record_unclosed_eof(open, DelimiterKind::Bracket);
+        parser.record_unclosed_eof(open, DelimiterKind::Bracket, Some(trailing));
         return ControlFlow::Break(ContainerBreak::Aborted);
     };
 
@@ -236,13 +237,15 @@ pub(crate) fn next_array_element<G: Grammar>(
     index: usize,
     item_first: SyntaxKindSet,
 ) -> ControlFlow<ContainerBreak, Item> {
+    let mut skipped_invalid = false;
+
     loop {
         if parser.try_bump(T![']']).is_some() {
             return ControlFlow::Break(ContainerBreak::Closed);
         }
 
         let Some(token) = parser.current() else {
-            parser.record_unclosed_eof(open, DelimiterKind::Bracket);
+            parser.record_unclosed_eof(open, DelimiterKind::Bracket, None);
             return ControlFlow::Break(ContainerBreak::Aborted);
         };
 
@@ -275,13 +278,17 @@ pub(crate) fn next_array_element<G: Grammar>(
             return consume_array_comma(parser, open, separators);
         }
 
-        if token.kind == SyntaxKind::InvalidToken {
-            parser.error_node();
+        if parser.skip_invalid_tokens() {
+            skipped_invalid = true;
             continue;
         }
 
         if item_first.contains(token.kind) {
-            report_missing_comma(parser, token.range, token.kind, DelimiterKind::Bracket);
+            // An invalid token where the comma belongs is already reported.
+            if !skipped_invalid {
+                report_missing_comma(parser, token.range, token.kind, DelimiterKind::Bracket);
+            }
+
             return ControlFlow::Continue(Item { separator: None });
         }
 
@@ -310,10 +317,11 @@ fn advance_object_separator<G: Grammar>(
 ) -> SeparatorStep {
     if let Some(separators) = Separators::try_eat(parser, T![,]) {
         let Some(after) = parser.current() else {
+            let trailing = separators.range();
             let _: ControlFlow<(), Separators> =
                 separators.try_report_consecutive(parser, DelimiterKind::Brace);
 
-            parser.record_unclosed_eof(open, DelimiterKind::Brace);
+            parser.record_unclosed_eof(open, DelimiterKind::Brace, Some(trailing));
             return SeparatorStep::Return(ControlFlow::Break(ContainerBreak::Aborted));
         };
 
@@ -333,11 +341,6 @@ fn advance_object_separator<G: Grammar>(
             .map(|separators| separators.primary);
 
         return SeparatorStep::ReadyForKey(clean_comma);
-    }
-
-    if kind == SyntaxKind::InvalidToken {
-        parser.error_node();
-        return SeparatorStep::RetrySeparator;
     }
 
     if kind == T![']'] {
@@ -369,6 +372,7 @@ pub(crate) fn next_object_entry<G: Grammar>(
 ) -> ControlFlow<ContainerBreak, Item> {
     let mut need_comma = index > 0;
     let mut separator = None;
+    let mut skipped_invalid = false;
 
     loop {
         if parser.try_bump(T!['}']).is_some() {
@@ -376,11 +380,21 @@ pub(crate) fn next_object_entry<G: Grammar>(
         }
 
         let Some(token) = parser.current() else {
-            parser.record_unclosed_eof(open, DelimiterKind::Brace);
+            parser.record_unclosed_eof(open, DelimiterKind::Brace, None);
             return ControlFlow::Break(ContainerBreak::Aborted);
         };
 
         if need_comma {
+            if parser.skip_invalid_tokens() {
+                skipped_invalid = true;
+                continue;
+            }
+
+            // An invalid token where the comma belongs is already reported.
+            if skipped_invalid && token.kind == T![string] {
+                return ControlFlow::Continue(Item { separator: None });
+            }
+
             match advance_object_separator(parser, open, token.kind, token.range) {
                 SeparatorStep::ReadyForKey(comma) => {
                     need_comma = false;
@@ -448,6 +462,10 @@ pub(crate) fn expect_colon<'source, G: Grammar>(
     parser: &mut Parser<'source, G>,
     key_range: TextRange,
 ) -> ControlFlow<(), FieldValue<'source>> {
+    // An invalid token between the key and the colon, or in place of the colon, is already
+    // reported.
+    let skipped_invalid = parser.skip_invalid_tokens();
+
     if parser.try_bump(T![:]).is_some() {
         if let Some(separators) = Separators::try_eat(parser, T![:]) {
             parser.error(
@@ -468,15 +486,17 @@ pub(crate) fn expect_colon<'source, G: Grammar>(
     }
 
     let Some(token) = parser.current() else {
-        parser.record_eof(
-            SyntaxKindSet::from_kind(T![:]),
-            EofContext::FieldColon { key: key_range },
-        );
+        if !skipped_invalid {
+            parser.record_eof(
+                SyntaxKindSet::from_kind(T![:]),
+                EofContext::FieldColon { key: key_range },
+            );
+        }
 
         return ControlFlow::Break(());
     };
 
-    if token.kind != SyntaxKind::InvalidToken {
+    if !skipped_invalid {
         report_unexpected(
             parser,
             token.range,
@@ -494,14 +514,27 @@ pub(crate) fn expect_colon<'source, G: Grammar>(
 }
 
 pub(crate) fn recover_unexpected_item<G: Grammar>(parser: &mut Parser<'_, G>) {
+    let skipped_invalid = parser.skip_invalid_tokens();
+
     let Some(token) = parser.current() else {
-        parser.record_eof(G::ITEM_FIRST, EofContext::Document);
+        if !skipped_invalid {
+            parser.record_eof(G::ITEM_FIRST, EofContext::Document);
+        }
+
         return;
     };
 
-    if token.kind == SyntaxKind::InvalidToken {
-        parser.error_node();
-        return;
+    if skipped_invalid {
+        // The item may follow the invalid tokens. Where the container continues or ends
+        // instead, the invalid tokens took the place of the item.
+        if G::ITEM_FIRST.contains(token.kind) {
+            G::parse_item(parser);
+            return;
+        }
+
+        if SyntaxKindSet::ITEM_BOUNDARY.contains(token.kind) {
+            return;
+        }
     }
 
     let context = if SyntaxKindSet::VALUE.contains(token.kind) && G::ITEM_FIRST.contains(T!['{']) {

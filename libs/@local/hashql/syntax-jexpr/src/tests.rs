@@ -1,4 +1,10 @@
-use hashql_ast::format::SyntaxDump as _;
+use core::{iter, mem::ManuallyDrop};
+use std::thread;
+
+use hashql_ast::{
+    format::SyntaxDump as _,
+    node::{expr::ExprKind, r#type::TypeKind},
+};
 use hashql_core::{
     heap::Heap,
     span::{SpanId, SpanTable},
@@ -20,7 +26,7 @@ use crate::{
         ParserDiagnosticCategory, StringDiagnosticCategory,
     },
     lower,
-    parser::{self, Document, Grammar, expr::ExprGrammar},
+    parser::{self, Document, Grammar, NESTING_LIMIT, expr::ExprGrammar},
     span::Span,
     syntax_kind::{SyntaxKind, T},
     syntax_kind_set::SyntaxKindSet,
@@ -82,6 +88,34 @@ fn parse_err_categories(input: &str) -> Vec<JExprDiagnosticCategory> {
             categories
         }
     }
+}
+
+/// Removes the `#<node>@<span>` suffix of every node in a syntax dump.
+///
+/// The span of a node is numbered in the order the spans were created, which follows the order
+/// of the fields in the source.
+fn without_node_ids(dump: &str) -> String {
+    let is_digit = |character: char| character.is_ascii_digit();
+    let mut output = String::with_capacity(dump.len());
+
+    let mut rest = dump;
+    while let Some((head, tail)) = rest.split_once('#') {
+        output.push_str(head);
+
+        let after_node = tail.trim_start_matches(is_digit);
+        match after_node.strip_prefix('@') {
+            Some(after_at) if after_node.len() < tail.len() => {
+                rest = after_at.trim_start_matches(is_digit);
+            }
+            _ => {
+                output.push('#');
+                rest = tail;
+            }
+        }
+    }
+    output.push_str(rest);
+
+    output
 }
 
 #[test]
@@ -154,10 +188,10 @@ fn type_field_order_equivalence() {
             r##"{"#dict": {"a": {"#literal": 1}}, "#type": "Dict<String, Int>"}"##,
         ),
     ] {
-        let dump_before = parse_ok_dump(before);
-        let dump_after = parse_ok_dump(after);
+        let dump_before = without_node_ids(&parse_ok_dump(before));
+        let dump_after = without_node_ids(&parse_ok_dump(after));
         assert!(dump_before.contains("Type"));
-        assert!(dump_after.contains("Type"));
+        assert_eq!(dump_before, dump_after);
     }
 }
 
@@ -397,6 +431,104 @@ const SINGLE_ERROR_CASES: &[(&str, JExprDiagnosticCategory)] = &[
             LexerDiagnosticCategory::UnterminatedBlockComment,
         )),
     ),
+    // An invalid token is one mistake wherever it stands.
+    (
+        "\u{feff}[\"f\", \"x\"]",
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidCharacter,
+        )),
+    ),
+    (
+        r#"x ["f", "y"]"#,
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidToken,
+        )),
+    ),
+    (
+        "@",
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidCharacter,
+        )),
+    ),
+    (
+        r##"{"#literal" @ 1}"##,
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidCharacter,
+        )),
+    ),
+    (
+        r##"{"#literal" @: 1}"##,
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidCharacter,
+        )),
+    ),
+    (
+        r##"{"#literal": @ 1}"##,
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidCharacter,
+        )),
+    ),
+    (
+        r##"{"#literal": 1 @ "#type": "Int"}"##,
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidCharacter,
+        )),
+    ),
+    (
+        r#"["f" @ "x"]"#,
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidCharacter,
+        )),
+    ),
+    (
+        r#"["f", @ "x"]"#,
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidCharacter,
+        )),
+    ),
+    (
+        r#"["f", @]"#,
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidCharacter,
+        )),
+    ),
+    (
+        r##"{"#dict": [@ [{"#literal": 1}, {"#literal": 2}]]}"##,
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidCharacter,
+        )),
+    ),
+    (
+        "*/",
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidCharacter,
+        )),
+    ),
+    (
+        r##"{"#literal": -Infinity}"##,
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidToken,
+        )),
+    ),
+    (
+        r##"{"#literal": 0x10}"##,
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidNumber,
+        )),
+    ),
+    // The end of input is reported once, whatever it cut short.
+    (
+        r##"{"#literal": "unterminated}"##,
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::InvalidString,
+        )),
+    ),
+    (
+        r#"["f", // comment"#,
+        JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+            LexerDiagnosticCategory::UnexpectedEof,
+        )),
+    ),
 ];
 
 #[test]
@@ -416,7 +548,356 @@ fn single_error_without_cascade() {
 }
 
 #[test]
-fn generic_value_grammar_rejects_type_annotations() {
+fn literal_number_kind() {
+    for (number, kind) in [
+        ("0", "Integer"),
+        ("-42", "Integer"),
+        ("1.0", "Float"),
+        ("1e5", "Float"),
+        ("1E5", "Float"),
+        ("-1.5e-3", "Float"),
+    ] {
+        let dump = parse_ok_dump(&format!(r##"{{"#literal": {number}}}"##));
+        assert!(
+            dump.contains(&format!("Primitive ({kind})")),
+            "`{number}` is not lowered to {kind}:\n{dump}"
+        );
+    }
+}
+
+#[test]
+fn eof_after_mismatched_value() {
+    // The array is the wrong value for `#literal` and is cut short by the end of input, which
+    // both the array and the object around it report.
+    assert_eq!(
+        parse_err_categories(r##"{"#literal": [1, 2"##),
+        [
+            JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Object(
+                ObjectDiagnosticCategory::LiteralExpectedPrimitive
+            )),
+            JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+                LexerDiagnosticCategory::UnexpectedEof
+            )),
+        ]
+    );
+}
+
+#[test]
+fn leading_invalid_token() {
+    // The parser still reads the document after the byte order mark and reports the error in it.
+    assert_eq!(
+        parse_err_categories("\u{feff}[\"f\", 1]"),
+        [
+            JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+                LexerDiagnosticCategory::InvalidCharacter
+            )),
+            JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+                LexerDiagnosticCategory::UnexpectedToken
+            )),
+        ]
+    );
+
+    // No expression precedes the `]`, which is reported as a token that starts none.
+    assert_eq!(
+        parse_err_categories("@ ]"),
+        [
+            JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+                LexerDiagnosticCategory::InvalidCharacter
+            )),
+            JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+                LexerDiagnosticCategory::UnexpectedToken
+            )),
+        ]
+    );
+}
+
+/// Source text a span covers.
+fn span_text<'source>(source: &'source str, spans: &SpanTable<Span>, span: SpanId) -> &'source str {
+    let range = spans
+        .absolute(span)
+        .expect("span resolves to a source range")
+        .range();
+
+    source
+        .get(usize::from(range.start())..usize::from(range.end()))
+        .expect("span lies on character boundaries of the source")
+}
+
+#[test]
+fn escaped_string_spans() {
+    let heap = Heap::new();
+
+    let source = r#""\u0061.bb""#;
+    let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+    let expr = Parser::new(&heap, &mut spans)
+        .parse_expr(source)
+        .expect("field access parses")
+        .value;
+    let ExprKind::Field(field) = &expr.kind else {
+        panic!("expected a field access, got {:?}", expr.kind);
+    };
+    assert_eq!(span_text(source, &spans, field.value.span), r"\u0061");
+    assert_eq!(span_text(source, &spans, field.field.span), "bb");
+    assert_eq!(span_text(source, &spans, field.span), r"\u0061.bb");
+
+    // The escaped `.` has an escape on either side, with no unescaped byte to count from.
+    let source = r#""\u0061\u002e\u0062\u0062""#;
+    let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+    let expr = Parser::new(&heap, &mut spans)
+        .parse_expr(source)
+        .expect("field access parses")
+        .value;
+    let ExprKind::Field(field) = &expr.kind else {
+        panic!("expected a field access, got {:?}", expr.kind);
+    };
+    assert_eq!(span_text(source, &spans, field.value.span), r"\u0061");
+    assert_eq!(span_text(source, &spans, field.field.span), r"\u0062\u0062");
+
+    let source =
+        r##"{"#struct": {"\u0061\ud800\udc00b": {"#literal": 1}}, "#type": "\u0049nt<T\u0055>"}"##;
+    let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+    let expr = Parser::new(&heap, &mut spans)
+        .parse_expr(source)
+        .expect("typed struct parses")
+        .value;
+    let ExprKind::Struct(r#struct) = &expr.kind else {
+        panic!("expected a struct, got {:?}", expr.kind);
+    };
+    assert_eq!(
+        span_text(source, &spans, r#struct.entries[0].key.span),
+        r"\u0061\ud800\udc00b"
+    );
+    let r#type = r#struct.r#type.as_ref().expect("struct has a type");
+    let TypeKind::Path(path) = &r#type.kind else {
+        panic!("expected a path type, got {:?}", r#type.kind);
+    };
+    assert_eq!(span_text(source, &spans, path.span), r"\u0049nt<T\u0055>");
+    assert_eq!(
+        span_text(source, &spans, path.segments[0].name.span),
+        r"\u0049nt"
+    );
+    assert_eq!(
+        span_text(source, &spans, path.segments[0].arguments[0].span()),
+        r"T\u0055"
+    );
+
+    let source = r#"["f", ":\u0061b"]"#;
+    let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+    let expr = Parser::new(&heap, &mut spans)
+        .parse_expr(source)
+        .expect("shorthand labeled argument parses")
+        .value;
+    let ExprKind::Call(call) = &expr.kind else {
+        panic!("expected a call, got {:?}", expr.kind);
+    };
+    assert_eq!(
+        span_text(source, &spans, call.labeled_arguments[0].label.span),
+        r"\u0061b"
+    );
+}
+
+/// `open`, repeated `depth` times around `leaf` and closed by as many `close`.
+fn nest(open: &str, leaf: &str, close: &str, depth: usize) -> String {
+    let mut source = String::with_capacity((open.len() + close.len()) * depth + leaf.len());
+    source.extend(iter::repeat_n(open, depth));
+    source.push_str(leaf);
+    source.extend(iter::repeat_n(close, depth));
+    source
+}
+
+/// Containers that nest an expression in themselves, with the delimiters that close them.
+const NESTING_SHAPES: &[(&str, &str)] = &[
+    ("[", "]"),
+    (r#"["f", "#, "]"),
+    (r##"{"#struct": {"a": "##, "}}"),
+    (r##"{"#tuple": ["##, "]}"),
+    (r##"{"#list": ["##, "]}"),
+    (r##"{"#dict": {"k": "##, "}}"),
+    (r##"{"#dict": [["k", "##, "]]}"),
+];
+
+const NESTING_LIMIT_CATEGORY: JExprDiagnosticCategory =
+    JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::NestingLimit);
+
+#[test]
+fn nesting_at_limit() {
+    for &(open, close) in NESTING_SHAPES {
+        let source = nest(open, r#""x""#, close, usize::from(NESTING_LIMIT));
+
+        let heap = Heap::new();
+        let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+        let result = Parser::new(&heap, &mut spans).parse_expr(&source);
+        assert!(result.is_ok(), "`{open}` nested to the limit is rejected");
+    }
+}
+
+#[test]
+fn nesting_on_small_stack() {
+    // Parsing and lowering to the limit need more stack than this thread has.
+    const STACK_SIZE: usize = 128 * 1024;
+
+    let sources = NESTING_SHAPES
+        .iter()
+        .map(|&(open, close)| nest(open, r#""x""#, close, usize::from(NESTING_LIMIT)))
+        .chain(
+            EMBEDDED_NESTING_SHAPES
+                .iter()
+                .map(|&(open, leaf, close, category)| {
+                    let body = nest(open, leaf, close, usize::from(NESTING_LIMIT) - 1);
+                    embedded_source(category, &body)
+                }),
+        );
+
+    for source in sources {
+        let parsed = thread::Builder::new()
+            .stack_size(STACK_SIZE)
+            .spawn(move || {
+                let heap = Heap::new();
+                let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+                let (status, pointers) =
+                    Parser::new(&heap, &mut spans).parse_expr_with_pointers(&source);
+
+                // Dropping the syntax tree and the AST recurses once per node in drop glue, which
+                // cannot grow the stack.
+                let leaked = ManuallyDrop::new((status, pointers));
+
+                leaked.0.is_ok()
+            })
+            .expect("thread spawns")
+            .join()
+            .expect("parser does not panic");
+
+        assert!(parsed);
+    }
+}
+
+#[test]
+fn nesting_past_limit() {
+    // The larger depth overflows the stack of a parser that recurses once per container.
+    for depth in [usize::from(NESTING_LIMIT) + 1, 10_000] {
+        for &(open, close) in NESTING_SHAPES {
+            let source = nest(open, r#""x""#, close, depth);
+
+            let parse = parse_expr_cst(&source);
+            assert_eq!(parse.green().to_string(), source);
+            assert_eq!(
+                parse_err_categories(&source),
+                [NESTING_LIMIT_CATEGORY],
+                "`{open}` nested {depth} deep"
+            );
+        }
+    }
+}
+
+#[test]
+fn recovery_nesting_past_limit() {
+    // A value of the wrong kind is skipped as plain JSON, which nests as well.
+    for (open, close) in [("[", "]"), (r#"{"a": "#, "}")] {
+        let value = nest(open, "1", close, 10_000);
+        let source = format!(r##"{{"#literal": {value}}}"##);
+
+        let parse = parse_expr_cst(&source);
+        assert_eq!(parse.green().to_string(), source);
+        assert_eq!(
+            parse_err_categories(&source),
+            [
+                JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Object(
+                    ObjectDiagnosticCategory::LiteralExpectedPrimitive
+                )),
+                NESTING_LIMIT_CATEGORY,
+            ]
+        );
+    }
+}
+
+#[test]
+fn unclosed_nesting_past_limit() {
+    // The skipped containers are not closed, and the containers above the limit still report it.
+    let source = "[".repeat(usize::from(NESTING_LIMIT) + 50);
+
+    let parse = parse_expr_cst(&source);
+    assert_eq!(parse.green().to_string(), source);
+    assert_eq!(
+        parse_err_categories(&source),
+        [
+            NESTING_LIMIT_CATEGORY,
+            JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Lexer(
+                LexerDiagnosticCategory::UnexpectedEof
+            )),
+        ]
+    );
+}
+
+/// Strings whose embedded type or expression nests in itself, as the open and close of one level
+/// and the innermost text.
+const EMBEDDED_NESTING_SHAPES: &[(&str, &str, &str, StringDiagnosticCategory)] = &[
+    ("(a: ", "Int", ")", StringDiagnosticCategory::InvalidType),
+    ("(", "Int", ",)", StringDiagnosticCategory::InvalidType),
+    ("List<", "Int", ">", StringDiagnosticCategory::InvalidType),
+    ("a[", "a", "]", StringDiagnosticCategory::InvalidExpression),
+];
+
+fn embedded_source(category: StringDiagnosticCategory, body: &str) -> String {
+    match category {
+        StringDiagnosticCategory::InvalidType => {
+            format!(r##"{{"#literal": 1, "#type": "{body}"}}"##)
+        }
+        StringDiagnosticCategory::InvalidExpression => format!(r#""{body}""#),
+    }
+}
+
+#[test]
+fn embedded_nesting_at_limit() {
+    for &(open, leaf, close, category) in EMBEDDED_NESTING_SHAPES {
+        // The innermost type or expression is a level of its own.
+        let body = nest(open, leaf, close, usize::from(NESTING_LIMIT) - 1);
+        let source = embedded_source(category, &body);
+
+        let heap = Heap::new();
+        let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+        let result = Parser::new(&heap, &mut spans).parse_expr(&source);
+        assert!(result.is_ok(), "`{open}` nested to the limit is rejected");
+    }
+
+    let source = format!(r#""a{}""#, ".b".repeat(usize::from(NESTING_LIMIT) - 1));
+    let heap = Heap::new();
+    let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+    let result = Parser::new(&heap, &mut spans).parse_expr(&source);
+    assert!(
+        result.is_ok(),
+        "field accesses nested to the limit are rejected"
+    );
+}
+
+#[test]
+fn embedded_nesting_past_limit() {
+    for depth in [usize::from(NESTING_LIMIT), 10_000] {
+        for &(open, leaf, close, category) in EMBEDDED_NESTING_SHAPES {
+            let body = nest(open, leaf, close, depth);
+            let source = embedded_source(category, &body);
+
+            assert_eq!(
+                parse_err_categories(&source),
+                [JExprDiagnosticCategory::Parser(
+                    ParserDiagnosticCategory::String(category)
+                )],
+                "`{open}` nested {depth} deep"
+            );
+        }
+
+        // A chain of accesses is flat in the source and nests in the AST.
+        let source = format!(r#""a{}""#, ".b".repeat(depth));
+        assert_eq!(
+            parse_err_categories(&source),
+            [JExprDiagnosticCategory::Parser(
+                ParserDiagnosticCategory::String(StringDiagnosticCategory::InvalidExpression)
+            )]
+        );
+    }
+}
+
+#[test]
+fn value_grammar_type_annotation() {
     #[derive(Debug, Copy, Clone, PartialEq, Eq)]
     enum ValueNode<'tree> {
         Literal(cst::Literal<'tree>),
@@ -478,9 +959,14 @@ fn generic_value_grammar_rejects_type_annotations() {
 
     let rejected =
         parser::Parser::<ValueGrammar>::parse_cst(r##"{"#struct": {}, "#type": "Point"}"##);
-    assert_eq!(rejected.errors().len(), 1);
+    let [error] = rejected.errors() else {
+        panic!("expected one error, got {:?}", rejected.errors());
+    };
+
+    let heap = Heap::new();
+    let mut spans = SpanTable::new(SourceId::new_unchecked(0));
     assert_eq!(
-        rejected.errors()[0].category(),
+        error.to_diagnostic_in(&heap, &mut spans).category,
         JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Object(
             ObjectDiagnosticCategory::UnknownKey
         ))
@@ -488,7 +974,7 @@ fn generic_value_grammar_rejects_type_annotations() {
 }
 
 #[property_test]
-fn arbitrary_input_is_lossless_and_never_panics(input: String) {
+fn lossless_arbitrary_input(input: String) {
     let parse = parse_expr_cst(&input);
     prop_assert_eq!(parse.green().to_string(), input.as_str());
 
@@ -501,7 +987,7 @@ fn arbitrary_input_is_lossless_and_never_panics(input: String) {
 }
 
 #[property_test]
-fn structured_random_jexpr_tokens_are_lossless(
+fn lossless_generated_tokens(
     #[strategy = r#"(\{|\}|\[|\]|:|,|"(#literal|#struct|#tuple|#list|#dict|#type|:a|foo|\\z|)"|42|3\.14|42\.|true|false|null|/\*.*\*/|//[^\n]*\n|[ \t\n]){0,40}"#]
     input: String,
 ) {

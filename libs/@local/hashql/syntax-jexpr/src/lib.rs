@@ -56,6 +56,7 @@ pub(crate) mod lower;
 pub(crate) mod parser;
 pub(crate) mod pointer;
 pub mod span;
+pub(crate) mod stack;
 pub(crate) mod syntax_kind;
 pub(crate) mod syntax_kind_set;
 #[cfg(test)]
@@ -67,6 +68,11 @@ pub use self::{
     span::Span,
 };
 
+/// Parser from J-Expr source to the HashQL AST.
+///
+/// The parser reports every syntax error it finds in a document. A document nested more than 256
+/// levels deep is rejected, whether the nesting is in its arrays and objects or inside one of
+/// its type and expression strings.
 pub struct Parser<'heap, 'spans> {
     heap: &'heap Heap,
     spans: &'spans mut SpanTable<Span>,

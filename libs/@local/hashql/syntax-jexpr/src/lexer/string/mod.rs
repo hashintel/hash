@@ -11,12 +11,15 @@ use core::{
 use std::bstr::ByteStr;
 
 mod error;
+mod offsets;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use self::error::ValidatedStringError;
-pub use self::error::{EscapeError, StringError};
 use self::error::{compute_error_span, recover_to_closing_quote};
+pub(crate) use self::{
+    error::{EscapeError, StringError, ValidatedStringError},
+    offsets::RawOffsets,
+};
 
 #[cold]
 fn hex_error(source: &mut &[u8]) -> EscapeError {

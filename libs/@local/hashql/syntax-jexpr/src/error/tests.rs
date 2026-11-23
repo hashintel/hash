@@ -4,7 +4,7 @@ use hashql_diagnostics::{
     source::{Source, SourceId, Sources},
 };
 
-use crate::Parser;
+use crate::{Parser, parser::NESTING_LIMIT};
 
 fn render_errors(input: &str) -> String {
     let heap = Heap::new();
@@ -71,20 +71,32 @@ diagnostic_snapshots! {
     number_duplicate_exponent => r##"{"#literal": 1e2e3}"##,
     number_missing_exponent_digits => r##"{"#literal": 1e+}"##,
     number_bare_minus => r##"{"#literal": -}"##,
+    number_hexadecimal => r##"{"#literal": 0x1F}"##,
+    number_negative_binary => r##"{"#literal": -0b101}"##,
+    number_suffix => r##"{"#literal": 42abc}"##,
 
     // Character, token, and comment lex errors
     invalid_character => "{\"#literal\": \u{1f980}}",
+    invalid_character_run => r#"["f", "x"] */"#,
+    invalid_character_before_document => "\u{feff}[\"f\", \"x\"]",
+    invalid_character_for_colon => r##"{"#literal" @ 1}"##,
+    invalid_character_for_comma => r#"["f" @ "x"]"#,
+    invalid_token_negative_infinity => r##"{"#literal": -Infinity}"##,
     invalid_token_keyword_typo => r##"{"#literal": truex}"##,
     invalid_token_keyword_case => r##"{"#literal": True}"##,
     invalid_token_none => r##"{"#literal": None}"##,
     invalid_token_nan => r##"{"#literal": NaN}"##,
     invalid_token_bare_ident => r#"["add", x]"#,
     unterminated_block_comment => "/* unclosed",
+    unterminated_block_comment_in_array => r#"["f", "x" /* unclosed"#,
 
     // EOF and delimiter errors
     eof_empty_document => "",
     eof_unclosed_array => r##"["add", {"#literal": 1}"##,
     eof_nested_unclosed_delimiters => r##"["add", {"#struct": {"a": {"#literal": 1}"##,
+    eof_unclosed_before_line_comment => r##"["add", {"#literal": 1} // one"##,
+    eof_unclosed_after_comma => r#"["f", "x", // more"#,
+    eof_unclosed_mismatched_value => r##"{"#literal": [1, 2"##,
     eof_missing_field_colon => r##"{"#literal""##,
     eof_missing_field_value => r##"{"#literal":"##,
     mismatched_closing_brace_in_array => r#"["a"}"#,
@@ -116,6 +128,8 @@ diagnostic_snapshots! {
     unknown_key_typo => r##"{"#litral": 42}"##,
     unknown_key_missing_hash => r#"{"literal": 42}"#,
     unknown_key_plain_object => r##"{"name": {"#literal": "Ada"}}"##,
+    unknown_key_short => r#"{"x": 2}"#,
+    labeled_arg_missing_value => r#"["f", {":a": }]"#,
     unknown_key_extra_after_full => r##"{"#literal": 1, "#type": "Int", "extra": 2}"##,
     conflicting_constructors => r##"{"#literal": 1, "#list": []}"##,
     duplicate_key => r##"{"#literal": 1, "#literal": 2}"##,
@@ -144,4 +158,38 @@ diagnostic_snapshots! {
     embedded_type_missing_colon => r##"{"#literal": 1, "#type": "(name: String, age Int)"}"##,
     embedded_type_unclosed_generic => r##"{"#literal": 1, "#type": "List<Int"}"##,
     embedded_type_unclosed_tuple => r##"{"#literal": 1, "#type": "(Int, String"}"##,
+}
+
+#[test]
+fn nesting_limit() {
+    let input = format!(
+        "{}\"x\"{}",
+        "[".repeat(usize::from(NESTING_LIMIT) + 2),
+        "]".repeat(usize::from(NESTING_LIMIT) + 2)
+    );
+    let rendered = render_errors(&input);
+
+    insta::with_settings!({
+        prepend_module_to_snapshot => false,
+        description => "two more `[` than the nesting limit",
+    }, {
+        insta::assert_snapshot!("nesting_limit", rendered);
+    });
+}
+
+#[test]
+fn nesting_limit_embedded_type() {
+    let input = format!(
+        r##"{{"#literal": 1, "#type": "{}Int{}"}}"##,
+        "List<".repeat(usize::from(NESTING_LIMIT)),
+        ">".repeat(usize::from(NESTING_LIMIT))
+    );
+    let rendered = render_errors(&input);
+
+    insta::with_settings!({
+        prepend_module_to_snapshot => false,
+        description => "as many `List<` as the nesting limit",
+    }, {
+        insta::assert_snapshot!("nesting_limit_embedded_type", rendered);
+    });
 }

@@ -634,6 +634,32 @@ where
         }
     }
 
+    /// Sorts the diagnostics by the key that `func` returns for each of them.
+    ///
+    /// The sort is stable. Diagnostics with equal keys stay in the order they were pushed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(20..25, "second")));
+    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "first")));
+    ///
+    /// // Order the diagnostics by where their primary label starts.
+    /// issues.sort_by_key(|diagnostic| diagnostic.labels.primary().span().start);
+    ///
+    /// let messages: Vec<_> = issues
+    ///     .iter()
+    ///     .map(|diagnostic| diagnostic.labels.primary().message())
+    ///     .collect();
+    /// assert_eq!(messages, ["first", "second"]);
+    /// ```
     pub fn sort_by_key<F, T>(&mut self, func: F)
     where
         F: FnMut(&Diagnostic<C, S, K>) -> T,

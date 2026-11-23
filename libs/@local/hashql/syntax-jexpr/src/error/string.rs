@@ -7,7 +7,7 @@ use hashql_diagnostics::{
 
 use super::{
     StringErrorContext, insert_range,
-    lexer::{LexerDiagnostic, LexerDiagnosticCategory},
+    lexer::{LexerDiagnostic, LexerDiagnosticCategory, closing_delimiters},
 };
 use crate::{
     lexer::{StringError, string::EscapeError},
@@ -244,9 +244,16 @@ pub(crate) fn from_string_error(
                 );
             let open_span = insert_range(spans, context.open_quote);
             diagnostic.add_label(Label::new(open_span, "string started here"));
-            let suggestion = Suggestions::patch(Patch::new(span, "\""));
-            diagnostic
-                .add_message(Message::help("add a closing quote").with_suggestions(suggestion));
+
+            let closers = closing_delimiters(&context.unclosed);
+            let help = if closers.is_empty() {
+                Cow::Borrowed("add a closing quote")
+            } else {
+                Cow::Owned(format!("add a closing quote and the missing `{closers}`"))
+            };
+
+            let suggestion = Suggestions::patch(Patch::new(span, format!("\"{closers}")));
+            diagnostic.add_message(Message::help(help).with_suggestions(suggestion));
             diagnostic
         }
         StringError::Utf8(err) => {

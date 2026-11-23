@@ -11,7 +11,8 @@ use hashql_diagnostics::{
 use text_size::{TextRange, TextSize};
 use winnow::error::{ContextError, StrContext, StrContextValue};
 
-use crate::span::Span;
+use super::combinator::NESTING_LIMIT_LABEL;
+use crate::{lexer::RawOffsets, parser::NESTING_LIMIT, span::Span};
 
 const INVALID_EXPR: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "invalid-expression",
@@ -48,89 +49,27 @@ impl DiagnosticCategory for StringDiagnosticCategory {
 
 pub(crate) type StringDiagnostic<K = Critical> = Diagnostic<StringDiagnosticCategory, SpanId, K>;
 
-fn parse_hex4(bytes: &[u8]) -> Option<u16> {
-    let text = core::str::from_utf8(bytes).ok()?;
-    u16::from_str_radix(text, 16).ok()
-}
-
-/// Maps a byte offset inside a decoded JSON string back to its relative range inside `raw_quoted`.
+/// Range in `raw_quoted` of the character at `decoded_offset` in its decoded string.
 ///
-/// The returned range starts from the opening quote of `raw_quoted`. Combining it with the string
-/// token's parent [`SpanId`] resolves to the offending character or escape sequence in source.
+/// The range starts from the opening quote of `raw_quoted`. Combining it with the string token's
+/// parent [`SpanId`] resolves to the offending character or escape sequence in source.
 #[expect(
-    clippy::cast_possible_truncation,
     clippy::string_slice,
-    reason = "lexer enforces source length <= u32::MAX and `raw_quoted` is a validated JSON string"
+    reason = "a parser error offset is a char boundary of `decoded`"
 )]
 pub(crate) fn raw_error_range(raw_quoted: &str, decoded: &str, decoded_offset: usize) -> TextRange {
-    let raw_len = raw_quoted.len();
-    debug_assert!(raw_len >= 2);
-
     if decoded.is_empty() {
-        return TextRange::new(TextSize::new(0), TextSize::new(raw_len as u32));
+        return TextRange::up_to(TextSize::of(raw_quoted));
     }
 
-    if decoded_offset >= decoded.len() {
-        return TextRange::empty(TextSize::new((raw_len - 1) as u32));
-    }
+    let offsets = RawOffsets::new(raw_quoted);
+    let offset = decoded_offset.min(decoded.len());
+    let character = decoded[offset..].chars().next().map_or(0, char::len_utf8);
 
-    // Fast path: unescaped strings map 1:1 with a +1 offset for the opening quote.
-    if raw_len == decoded.len() + 2 {
-        let ch_len = decoded[decoded_offset..]
-            .chars()
-            .next()
-            .map_or(0, char::len_utf8);
-        let start = (1 + decoded_offset) as u32;
-        return TextRange::new(TextSize::new(start), TextSize::new(start + ch_len as u32));
-    }
-
-    // Slow path for escaped strings: walk raw units and track decoded byte positions.
-    let bytes = raw_quoted.as_bytes();
-    let content_end = raw_len - 1;
-    let mut raw_pos = 1_usize;
-    let mut dec_pos = 0_usize;
-
-    while raw_pos < content_end {
-        let (raw_step, dec_step) = if bytes[raw_pos] == b'\\' && raw_pos + 1 < content_end {
-            if bytes[raw_pos + 1] == b'u' && raw_pos + 6 <= content_end {
-                let first = parse_hex4(&bytes[(raw_pos + 2)..(raw_pos + 6)]);
-                if first.is_some_and(|unit| (0xD800..=0xDBFF).contains(&unit))
-                    && raw_pos + 12 <= content_end
-                    && &bytes[(raw_pos + 6)..(raw_pos + 8)] == br"\u"
-                {
-                    // Paired UTF-16 surrogates decode to a supplementary scalar (4 UTF-8 bytes).
-                    (12, 4)
-                } else {
-                    let dec_len = first
-                        .and_then(|unit| char::from_u32(u32::from(unit)))
-                        .map_or(1, char::len_utf8);
-                    (6, dec_len)
-                }
-            } else {
-                // Single-character escapes (`\"`, `\\`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t`) decode
-                // to one ASCII byte.
-                (2, 1)
-            }
-        } else {
-            let ch_len = raw_quoted[raw_pos..]
-                .chars()
-                .next()
-                .map_or(1, char::len_utf8);
-            (ch_len, ch_len)
-        };
-
-        if dec_pos == decoded_offset {
-            return TextRange::new(
-                TextSize::new(raw_pos as u32),
-                TextSize::new((raw_pos + raw_step) as u32),
-            );
-        }
-
-        raw_pos += raw_step;
-        dec_pos += dec_step;
-    }
-
-    TextRange::empty(TextSize::new(content_end as u32))
+    TextRange::new(
+        TextSize::new(offsets.raw(offset)),
+        TextSize::new(offsets.raw(offset + character)),
+    )
 }
 
 pub(crate) struct EmbeddedErrorParts {
@@ -178,8 +117,18 @@ pub(crate) fn convert_parse_error(
     start_offset: usize,
     (offset, error): (usize, ContextError),
 ) -> EmbeddedErrorParts {
-    let range = raw_error_range(raw_quoted, decoded, offset);
-    let span = spans.insert(Span::new(range), SpanAncestors::union(&[parent]));
+    let nesting_limit = error
+        .context()
+        .any(|context| matches!(context, StrContext::Label(NESTING_LIMIT_LABEL)));
+
+    // The level past the limit is hundreds of characters into the string, where a label on it
+    // would say less than one on the string.
+    let span = if nesting_limit {
+        parent
+    } else {
+        let range = raw_error_range(raw_quoted, decoded, offset);
+        spans.insert(Span::new(range), SpanAncestors::union(&[parent]))
+    };
 
     let expected: Vec<_> = error
         .context()
@@ -204,7 +153,9 @@ pub(crate) fn convert_parse_error(
         .then(|| decoded[offset..].chars().next())
         .flatten();
 
-    let label = if !expected.is_empty() {
+    let label = if nesting_limit {
+        format!("{kind_name} nested more than {NESTING_LIMIT} levels deep")
+    } else if !expected.is_empty() {
         let expected_list = format_expected_list(&expected);
         if at_end {
             format!("expected {expected_list} before end of {kind_name}")

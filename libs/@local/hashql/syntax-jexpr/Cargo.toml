@@ -22,6 +22,7 @@ logos                 = { workspace = true, features = ["export_derive"] }
 memchr                = { workspace = true }
 rowan                 = { workspace = true }
 simple-mermaid        = { workspace = true }
+stacker               = { workspace = true }
 unicode-ident         = { workspace = true }
 unicode-normalization = { workspace = true }
 unicode-properties    = { workspace = true, features = ["general-category"] }

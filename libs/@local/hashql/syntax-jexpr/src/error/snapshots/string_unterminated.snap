@@ -9,7 +9,7 @@ error[jexpr::lexer::invalid-string]: Invalid string literal
   │              │
   │              string started here
   ╰╴
-help: add a closing quote
+help: add a closing quote and the missing `}`
   ╭╴
-1 │ {"#literal": "unterminated"
-  ╰╴                          +
+1 │ {"#literal": "unterminated"}
+  ╰╴                          ++

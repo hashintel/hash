@@ -17,11 +17,12 @@ use winnow::{
 };
 
 use super::{
-    combinator::{Alt2, ws},
+    combinator::{Alt2, nested, nesting_limit, ws},
     context::Input,
     ident::parse_ident,
     path::parse_path,
 };
+use crate::parser::NESTING_LIMIT;
 
 #[derive(Debug)]
 enum Access<'heap> {
@@ -87,7 +88,9 @@ where
                 r#type: None,
             })
         }
-        _ => parse_expr_path.map(Access::IndexByExpr).parse_next(input)?,
+        _ => nested(parse_expr_path)
+            .map(Access::IndexByExpr)
+            .parse_next(input)?,
     };
 
     let _: &'source str =
@@ -123,6 +126,11 @@ where
         ),
     )
         .parse_next(input)?;
+
+    // Each access wraps the expression before it. A chain is as deep as it is long.
+    if usize::from(input.state.depth) + access.len() > usize::from(NESTING_LIMIT) {
+        return nesting_limit(input);
+    }
 
     let mut range = path_span;
 
@@ -189,7 +197,7 @@ where
 {
     let alt = alt((
         terminated('_', ws(eof)).span().map(Alt2::Left),
-        parse_expr_path.map(Alt2::Right),
+        nested(parse_expr_path).map(Alt2::Right),
     ))
     .context(StrContext::Label("expression"))
     .parse_next(input)?;

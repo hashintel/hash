@@ -251,6 +251,75 @@ fn expected_digit_number_error(
     diagnostic
 }
 
+/// Splits `raw` into its sign, the name of its radix and its digits, if it is a literal in base
+/// 16, 8 or 2.
+#[expect(
+    clippy::string_slice,
+    reason = "the two-byte prefix is matched as ASCII before the slice"
+)]
+fn radix_literal(raw: &str) -> Option<(&'static str, &'static str, u32, &str)> {
+    let (sign, unsigned) = raw
+        .strip_prefix('-')
+        .map_or(("", raw), |unsigned| ("-", unsigned));
+
+    let (name, radix) = match unsigned.as_bytes() {
+        [b'0', b'x' | b'X', _, ..] => ("hexadecimal", 16),
+        [b'0', b'o' | b'O', _, ..] => ("octal", 8),
+        [b'0', b'b' | b'B', _, ..] => ("binary", 2),
+        _ => return None,
+    };
+
+    let digits = &unsigned[2..];
+    digits
+        .chars()
+        .all(|digit| digit.is_digit(radix))
+        .then_some((sign, name, radix, digits))
+}
+
+fn unexpected_suffix_number_error(
+    error_range: TextRange,
+    token_range: TextRange,
+    raw: &str,
+    spans: &mut SpanTable<Span>,
+) -> LexerDiagnostic {
+    if let Some((sign, name, radix, digits)) = radix_literal(raw) {
+        let token_span = insert_range(spans, token_range);
+        let mut diagnostic =
+            Diagnostic::new(LexerDiagnosticCategory::InvalidNumber, Critical::ERROR).primary(
+                Label::new(
+                    token_span,
+                    format!("{name} literals are not allowed in JSON numbers"),
+                ),
+            );
+
+        // A literal too large for `u128` keeps the help without a computed replacement.
+        if let Ok(value) = u128::from_str_radix(digits, radix) {
+            let suggestion = Suggestions::patch(Patch::new(token_span, format!("{sign}{value}")));
+            diagnostic.add_message(
+                Message::help("write the number in decimal").with_suggestions(suggestion),
+            );
+        } else {
+            diagnostic.add_message(Message::help("write the number in decimal"));
+        }
+        diagnostic.add_message(Message::note(NUMBER_FORMAT_NOTE));
+        return diagnostic;
+    }
+
+    let suffix = usize::from(error_range.start() - token_range.start());
+    let suffix = raw.get(suffix..).unwrap_or(raw);
+
+    let span = insert_range(spans, error_range);
+    let mut diagnostic =
+        Diagnostic::new(LexerDiagnosticCategory::InvalidNumber, Critical::ERROR).primary(
+            Label::new(span, format!("unexpected `{suffix}` after number literal")),
+        );
+    diagnostic.add_message(Message::help(format!(
+        "remove `{suffix}`, or wrap the value in double quotes if it is a string"
+    )));
+    diagnostic.add_message(Message::note(NUMBER_FORMAT_NOTE));
+    diagnostic
+}
+
 pub(crate) fn from_number_error(
     error: ParseNumberErrorKind,
     error_range: TextRange,
@@ -272,6 +341,9 @@ pub(crate) fn from_number_error(
         usize::from(error_range.start().checked_sub(base).unwrap_or_default()).min(raw.len());
 
     match error {
+        ParseNumberErrorKind::UnexpectedSuffix => {
+            unexpected_suffix_number_error(error_range, token_range, raw, spans)
+        }
         ParseNumberErrorKind::UnexpectedDigit(_) => leading_zero_number_error(base, raw, spans),
         ParseNumberErrorKind::UnexpectedDot => {
             unexpected_dot_number_error(base, rel_pos, error_range, raw, spans)

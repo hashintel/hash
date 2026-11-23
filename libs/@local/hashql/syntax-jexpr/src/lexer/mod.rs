@@ -9,11 +9,11 @@ pub(crate) mod string;
 
 pub(crate) use self::{
     number::{Number, ParseNumberError, ParseNumberErrorKind},
-    string::{LexedStr, StringError, decode_quoted},
+    string::{LexedStr, RawOffsets, StringError, decode_quoted},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-pub enum LexError {
+pub(crate) enum LexError {
     String {
         error: StringError,
         range: TextRange,
@@ -181,8 +181,26 @@ fn lex_number<'source>(
     let slice = &lexer.source().as_bytes()[start..];
     match Number::parse(slice) {
         Ok(number) => {
-            lexer.bump(number.as_str().len() - already_consumed);
-            Ok(())
+            let len = number.as_str().len();
+            // A word directly after the number, as in `0x10`, is part of the same malformed
+            // token.
+            let suffix = slice[len..]
+                .iter()
+                .take_while(|byte| byte.is_ascii_alphanumeric() || **byte == b'_')
+                .count();
+            lexer.bump(len + suffix - already_consumed);
+
+            if suffix == 0 {
+                return Ok(());
+            }
+
+            Err(LexError::Number(ParseNumberError {
+                kind: ParseNumberErrorKind::UnexpectedSuffix,
+                range: TextRange::at(
+                    TextSize::new((start + len) as u32),
+                    TextSize::new(suffix as u32),
+                ),
+            }))
         }
         Err(mut error) => {
             error.range += TextSize::new(start as u32);
@@ -416,14 +434,14 @@ mod tests {
     }
 
     #[test]
-    fn numbers_emit_single_syntax_kind() {
+    fn number_syntax_kind() {
         let tokens = lex_significant("0 -42 3.14 1e10 1.5e-3");
         let kinds: Vec<_> = tokens.into_iter().map(|token| token.kind).collect();
         assert_eq!(kinds, [SyntaxKind::Number; 5]);
     }
 
     #[test]
-    fn string_error_recovery_preserves_following_tokens() {
+    fn string_error_recovery() {
         let source = r#"{"a": "bad\zstring", "b": 42}"#;
         let tokens = lex_significant(source);
         assert_eq!(tokens.len(), 9);
@@ -440,7 +458,7 @@ mod tests {
     }
 
     #[test]
-    fn invalid_number_consumes_run() {
+    fn invalid_number_run() {
         let tokens = lex_significant(r#"{"number": 42.}"#);
         assert_eq!(tokens.len(), 5);
         assert_eq!(tokens[3].kind, SyntaxKind::InvalidToken);
@@ -455,7 +473,7 @@ mod tests {
     }
 
     #[test]
-    fn keyword_boundary_rejects_identifier_suffix() {
+    fn keyword_boundary() {
         let tokens = lex_significant("true truex false null");
         assert_eq!(tokens[0].kind, SyntaxKind::True);
         assert_eq!(tokens[1].kind, SyntaxKind::InvalidToken);
@@ -465,7 +483,7 @@ mod tests {
     }
 
     #[test]
-    fn single_quoted_and_prefixed_numbers_lex_as_single_tokens() {
+    fn single_quoted_and_prefixed_number() {
         let tokens = lex_significant("'hello' +42 .5 'unterminated");
         assert_eq!(tokens.len(), 5);
         assert_eq!(tokens[0].error(), Some(LexError::SingleQuotedString));
@@ -476,7 +494,7 @@ mod tests {
     }
 
     #[test]
-    fn unrecognized_multibyte_utf8_preserves_char_boundaries() {
+    fn unrecognized_multibyte() {
         let source = "\u{1f980}\u{3053}\u{3093}\u{306b}\u{3061}\u{306f}";
         let tokens = lex_all(source);
         let lexer = Lexer::new(source);

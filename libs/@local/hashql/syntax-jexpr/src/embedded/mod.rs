@@ -31,7 +31,7 @@ use self::{
     ident::{parse_ident, parse_ident_labelled_argument},
     r#type::parse_type,
 };
-use crate::span::Span;
+use crate::{lexer::RawOffsets, span::Span};
 
 type InputStream<'heap, 'spans, I> = Stateful<LocatingSlice<I>, Context<'heap, 'spans>>;
 
@@ -40,6 +40,7 @@ fn parse_from_string<'heap, 'spans, I, O>(
     heap: &'heap Heap,
     spans: &'spans mut SpanTable<Span>,
     parent: SpanId,
+    raw_quoted: &str,
     input: I,
 ) -> Result<O, ParseError<InputStream<'heap, 'spans, I>, ContextError>>
 where
@@ -49,6 +50,8 @@ where
         heap,
         spans,
         parent,
+        offsets: RawOffsets::new(raw_quoted),
+        depth: 0,
     };
 
     parser.parse(Stateful {
@@ -67,7 +70,7 @@ pub(crate) fn parse_expr_from_string<'heap>(
     raw_quoted: &str,
     value: &str,
 ) -> Result<Expr<'heap>, StringDiagnostic> {
-    match parse_from_string(parse_expr, heap, spans, parent, value) {
+    match parse_from_string(parse_expr, heap, spans, parent, raw_quoted, value) {
         Ok(expr) => Ok(expr),
         Err(error) => {
             let error = (error.offset(), error.into_inner());
@@ -85,7 +88,7 @@ pub(crate) fn parse_type_from_string<'heap>(
     raw_quoted: &str,
     value: &str,
 ) -> Result<Type<'heap>, StringDiagnostic> {
-    match parse_from_string(parse_type, heap, spans, parent, value) {
+    match parse_from_string(parse_type, heap, spans, parent, raw_quoted, value) {
         Ok(r#type) => Ok(r#type),
         Err(error) => {
             let error = (error.offset(), error.into_inner());
@@ -103,9 +106,10 @@ pub(crate) fn parse_ident_from_string<'heap, 'spans, 'input>(
     heap: &'heap Heap,
     spans: &'spans mut SpanTable<Span>,
     parent: SpanId,
+    raw_quoted: &str,
     value: &'input str,
 ) -> Result<Ident<'heap>, ParseError<InputStream<'heap, 'spans, &'input str>, ContextError>> {
-    parse_from_string(parse_ident, heap, spans, parent, value)
+    parse_from_string(parse_ident, heap, spans, parent, raw_quoted, value)
 }
 
 /// Parses a decoded `:label` string into a HashQL [`Ident`].
@@ -113,7 +117,15 @@ pub(crate) fn parse_ident_labelled_argument_from_string<'heap, 'spans, 'input>(
     heap: &'heap Heap,
     spans: &'spans mut SpanTable<Span>,
     parent: SpanId,
+    raw_quoted: &str,
     value: &'input str,
 ) -> Result<Ident<'heap>, ParseError<InputStream<'heap, 'spans, &'input str>, ContextError>> {
-    parse_from_string(parse_ident_labelled_argument, heap, spans, parent, value)
+    parse_from_string(
+        parse_ident_labelled_argument,
+        heap,
+        spans,
+        parent,
+        raw_quoted,
+        value,
+    )
 }

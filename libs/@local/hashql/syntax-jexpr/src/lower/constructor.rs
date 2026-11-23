@@ -81,7 +81,13 @@ fn lower_struct_body<'heap>(
                 return None;
             };
             let key_span = lowerer.insert_range(token.text_range());
-            match parse_ident_from_string(heap, lowerer.spans_mut(), key_span, &decoded) {
+            match parse_ident_from_string(
+                heap,
+                lowerer.spans_mut(),
+                key_span,
+                token.text(),
+                &decoded,
+            ) {
                 Ok(ident) => Some(ident),
                 Err(error) => {
                     let error = (error.offset(), error.into_inner());

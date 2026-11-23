@@ -38,7 +38,7 @@ fn parse_struct_body<G: Grammar>(parser: &mut Parser<'_, G>) {
         parser.start_node(SyntaxKind::StructEntry);
         let key_range = parser.bump(T![string]).range;
         if let ControlFlow::Continue(_) = recovery::expect_colon(parser, key_range) {
-            G::parse_item(parser);
+            parser.nested(G::parse_item);
         }
         parser.finish_node();
     }
@@ -60,7 +60,7 @@ fn parse_sequence_body<G: Grammar>(
     {
         index += 1;
         parser.start_node(element_kind);
-        G::parse_item(parser);
+        parser.nested(G::parse_item);
         parser.finish_node();
     }
 
@@ -121,7 +121,13 @@ fn parse_known_field<G: Grammar>(parser: &mut Parser<'_, G>, field: FieldKind) -
                 parse_field_body(parser, field, key_range, token.kind);
             }
             FieldValue::Token(token) if token.kind == SyntaxKind::InvalidToken => {
-                parser.error_node();
+                parser.skip_invalid_tokens();
+
+                if let Some(token) = parser.current()
+                    && expected.contains(token.kind)
+                {
+                    parse_field_body(parser, field, key_range, token.kind);
+                }
             }
             FieldValue::Missing(boundary) => {
                 parser.error(

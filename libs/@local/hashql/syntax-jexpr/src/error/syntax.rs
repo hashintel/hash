@@ -2,11 +2,10 @@ use hashql_core::{heap::Heap, span::SpanTable};
 use text_size::{TextRange, TextSize};
 
 use super::{
-    ArrayDiagnosticCategory, ConstructorKind, EofContext, FieldKind, JExprDiagnostic,
-    JExprDiagnosticCategory, LexerDiagnosticCategory, ObjectDiagnosticCategory,
-    ParserDiagnosticCategory, StringErrorContext, UnexpectedTokenContext, ValueKind, array,
-    constructor, expected_eof, insert_range, insert_ranges, lexer, number, object, string,
-    wrap_array, wrap_lexer, wrap_object,
+    ConstructorKind, DelimiterKind, EofContext, FieldKind, JExprDiagnostic, StringErrorContext,
+    UnexpectedTokenContext, ValueKind, array, constructor, expected_eof, insert_range,
+    insert_ranges, lexer, nesting_limit, number, object, string, wrap_array, wrap_lexer,
+    wrap_object,
 };
 use crate::{
     lexer::{ParseNumberErrorKind, StringError},
@@ -31,13 +30,14 @@ pub(crate) enum LexerErrorKind {
         raw: String,
     },
     InvalidCharacter {
-        character: char,
+        text: String,
     },
     InvalidToken {
         text: String,
     },
     UnterminatedBlockComment {
         eof: TextSize,
+        unclosed: Vec<(DelimiterKind, TextRange)>,
     },
     UnexpectedEof {
         expected: SyntaxKindSet,
@@ -51,27 +51,11 @@ pub(crate) enum LexerErrorKind {
 }
 
 impl LexerErrorKind {
-    const fn category(&self) -> LexerDiagnosticCategory {
-        match self {
-            Self::InvalidString { .. } | Self::SingleQuotedString { .. } => {
-                LexerDiagnosticCategory::InvalidString
-            }
-            Self::InvalidNumber { .. } => LexerDiagnosticCategory::InvalidNumber,
-            Self::InvalidCharacter { .. } => LexerDiagnosticCategory::InvalidCharacter,
-            Self::InvalidToken { .. } => LexerDiagnosticCategory::InvalidToken,
-            Self::UnterminatedBlockComment { .. } => {
-                LexerDiagnosticCategory::UnterminatedBlockComment
-            }
-            Self::UnexpectedEof { .. } => LexerDiagnosticCategory::UnexpectedEof,
-            Self::UnexpectedToken { .. } => LexerDiagnosticCategory::UnexpectedToken,
-        }
-    }
-
     fn to_diagnostic(
         &self,
         range: TextRange,
         primary: hashql_core::span::SpanId,
-        heap: Option<&Heap>,
+        heap: &Heap,
         spans: &mut SpanTable<Span>,
     ) -> lexer::LexerDiagnostic {
         match self {
@@ -86,13 +70,13 @@ impl LexerErrorKind {
                 token_range,
                 raw,
             } => number::from_number_error(*error, range, *token_range, raw, spans),
-            Self::InvalidCharacter { character } => {
-                lexer::from_unrecognized_character_error(primary, *character)
+            Self::InvalidCharacter { text } => {
+                lexer::from_unrecognized_character_error(primary, text)
             }
             Self::InvalidToken { text } => lexer::invalid_token(primary, text, heap),
-            Self::UnterminatedBlockComment { eof } => {
+            Self::UnterminatedBlockComment { eof, unclosed } => {
                 let eof_span = insert_range(spans, TextRange::empty(*eof));
-                lexer::unterminated_block_comment(primary, eof_span)
+                lexer::unterminated_block_comment(primary, eof_span, unclosed)
             }
             Self::UnexpectedEof { expected, context } => {
                 lexer::unexpected_eof(primary, *expected, context, spans)
@@ -124,21 +108,6 @@ pub(crate) enum ArrayErrorKind {
 }
 
 impl ArrayErrorKind {
-    const fn category(&self) -> ArrayDiagnosticCategory {
-        match self {
-            Self::Empty => ArrayDiagnosticCategory::Empty,
-            Self::LeadingCommas(_) => ArrayDiagnosticCategory::LeadingComma,
-            Self::TrailingCommas(_) => ArrayDiagnosticCategory::TrailingComma,
-            Self::ConsecutiveCommas(_) => ArrayDiagnosticCategory::ConsecutiveComma,
-            Self::LabeledArgumentMissingPrefix { .. } => {
-                ArrayDiagnosticCategory::LabeledArgumentMissingPrefix
-            }
-            Self::LabeledArgumentLengthMismatch { .. } => {
-                ArrayDiagnosticCategory::LabeledArgumentLengthMismatch
-            }
-        }
-    }
-
     fn to_diagnostic(
         &self,
         range: TextRange,
@@ -239,45 +208,10 @@ pub(crate) enum ObjectErrorKind {
 }
 
 impl ObjectErrorKind {
-    const fn category(&self) -> ObjectDiagnosticCategory {
-        match self {
-            Self::Empty { .. } => ObjectDiagnosticCategory::Empty,
-            Self::LeadingCommas(_) => ObjectDiagnosticCategory::LeadingComma,
-            Self::TrailingCommas(_) => ObjectDiagnosticCategory::TrailingComma,
-            Self::ConsecutiveCommas(_) => ObjectDiagnosticCategory::ConsecutiveComma,
-            Self::ConsecutiveColons(_) => ObjectDiagnosticCategory::ConsecutiveColon,
-            Self::UnknownKey { .. } => ObjectDiagnosticCategory::UnknownKey,
-            Self::ConflictingConstructor { .. } => ObjectDiagnosticCategory::ConflictingConstructor,
-            Self::DuplicateKey { .. } => ObjectDiagnosticCategory::DuplicateKey,
-            Self::OrphanedType => ObjectDiagnosticCategory::OrphanedType,
-            Self::ExpectedValue { field, .. } => match field {
-                FieldKind::Constructor(ConstructorKind::Literal) => {
-                    ObjectDiagnosticCategory::LiteralExpectedPrimitive
-                }
-                FieldKind::Constructor(ConstructorKind::Struct) => {
-                    ObjectDiagnosticCategory::StructExpectedObject
-                }
-                FieldKind::Constructor(ConstructorKind::Tuple) => {
-                    ObjectDiagnosticCategory::TupleExpectedArray
-                }
-                FieldKind::Constructor(ConstructorKind::List) => {
-                    ObjectDiagnosticCategory::ListExpectedArray
-                }
-                FieldKind::Constructor(ConstructorKind::Dict) => {
-                    ObjectDiagnosticCategory::DictExpectedFormat
-                }
-                FieldKind::Type => ObjectDiagnosticCategory::TypeExpectedString,
-            },
-            Self::DictEntryExpectedArray { .. } => ObjectDiagnosticCategory::DictEntryExpectedArray,
-            Self::DictEntryTooFewItems { .. } => ObjectDiagnosticCategory::DictEntryTooFewItems,
-            Self::DictEntryTooManyItems { .. } => ObjectDiagnosticCategory::DictEntryTooManyItems,
-        }
-    }
-
     fn to_diagnostic(
         &self,
         primary: hashql_core::span::SpanId,
-        heap: Option<&Heap>,
+        heap: &Heap,
         spans: &mut SpanTable<Span>,
     ) -> object::ObjectDiagnostic {
         match self {
@@ -382,12 +316,13 @@ impl ObjectErrorKind {
 pub(crate) enum SyntaxErrorKind {
     Lexer(LexerErrorKind),
     ExpectedEof,
+    NestingLimit { limit: u16 },
     Array(ArrayErrorKind),
     Object(ObjectErrorKind),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SyntaxError {
+pub(crate) struct SyntaxError {
     range: TextRange,
     kind: SyntaxErrorKind,
 }
@@ -401,26 +336,21 @@ impl SyntaxError {
         &mut self.kind
     }
 
+    /// Moves the end of the reported range to `end`.
+    pub(crate) const fn extend_to(&mut self, end: TextSize) {
+        self.range = TextRange::new(self.range.start(), end);
+    }
+
     #[must_use]
-    pub const fn range(&self) -> TextRange {
+    pub(crate) const fn range(&self) -> TextRange {
         self.range
     }
 
-    #[must_use]
-    pub const fn category(&self) -> JExprDiagnosticCategory {
-        let parser_category = match &self.kind {
-            SyntaxErrorKind::Lexer(kind) => ParserDiagnosticCategory::Lexer(kind.category()),
-            SyntaxErrorKind::ExpectedEof => ParserDiagnosticCategory::ExpectedEof,
-            SyntaxErrorKind::Array(kind) => ParserDiagnosticCategory::Array(kind.category()),
-            SyntaxErrorKind::Object(kind) => ParserDiagnosticCategory::Object(kind.category()),
-        };
-
-        JExprDiagnosticCategory::Parser(parser_category)
-    }
-
-    fn to_diagnostic_with_heap(
+    /// Converts this syntax error into a [`JExprDiagnostic`] whose spans are inserted into
+    /// `spans`.
+    pub(crate) fn to_diagnostic_in(
         &self,
-        heap: Option<&Heap>,
+        heap: &Heap,
         spans: &mut SpanTable<Span>,
     ) -> JExprDiagnostic {
         let primary = insert_range(spans, self.range);
@@ -430,6 +360,7 @@ impl SyntaxError {
                 .to_diagnostic(self.range, primary, heap, spans)
                 .map_category(wrap_lexer),
             SyntaxErrorKind::ExpectedEof => expected_eof(primary),
+            SyntaxErrorKind::NestingLimit { limit } => nesting_limit(primary, *limit),
             SyntaxErrorKind::Array(kind) => kind
                 .to_diagnostic(self.range, primary, spans)
                 .map_category(wrap_array),
@@ -437,18 +368,5 @@ impl SyntaxError {
                 .to_diagnostic(primary, heap, spans)
                 .map_category(wrap_object),
         }
-    }
-
-    /// Converts this syntax error into a [`JExprDiagnostic`] backed by `spans`.
-    pub fn to_diagnostic(&self, spans: &mut SpanTable<Span>) -> JExprDiagnostic {
-        self.to_diagnostic_with_heap(None, spans)
-    }
-
-    pub(crate) fn to_diagnostic_in(
-        &self,
-        heap: &Heap,
-        spans: &mut SpanTable<Span>,
-    ) -> JExprDiagnostic {
-        self.to_diagnostic_with_heap(Some(heap), spans)
     }
 }

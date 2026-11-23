@@ -154,9 +154,9 @@ fn parse_call(parser: &mut Parser<'_, ExprGrammar>) {
         recovery::next_array_element(parser, open, count, ExprGrammar::ITEM_FIRST)
     {
         if count == 0 {
-            parse_expr(parser);
+            parser.nested(parse_expr);
         } else {
-            parse_call_arg(parser);
+            parser.nested(parse_call_arg);
         }
 
         count += 1;

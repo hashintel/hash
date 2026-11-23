@@ -19,7 +19,7 @@ use text_size::{TextRange, TextSize};
 
 /// The kind of error encountered while parsing a JSON number.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum ParseNumberErrorKind {
+pub(crate) enum ParseNumberErrorKind {
     /// Input ended unexpectedly while parsing a number.
     UnexpectedEof,
     /// Expected a digit but found something else (e.g., `42.` with no digits after the dot).
@@ -30,6 +30,8 @@ pub enum ParseNumberErrorKind {
     UnexpectedDot,
     /// Found an unexpected exponent.
     UnexpectedExponent,
+    /// Found a letter or underscore directly after the number (e.g., `0x10` or `42abc`).
+    UnexpectedSuffix,
 }
 
 impl fmt::Display for ParseNumberErrorKind {
@@ -40,6 +42,7 @@ impl fmt::Display for ParseNumberErrorKind {
             Self::UnexpectedDigit(digit) => write!(fmt, "unexpected digit '{}'", *digit as char),
             Self::UnexpectedDot => fmt.write_str("unexpected dot"),
             Self::UnexpectedExponent => fmt.write_str("unexpected exponent"),
+            Self::UnexpectedSuffix => fmt.write_str("unexpected suffix"),
         }
     }
 }
@@ -57,7 +60,7 @@ const fn skip_digits(mut rest: &[u8]) -> &[u8] {
 /// Contains both the [`ParseNumberErrorKind`] describing what went wrong and a [`TextRange`]
 /// indicating where in the input the error occurred.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct ParseNumberError {
+pub(crate) struct ParseNumberError {
     /// The kind of parsing error.
     pub kind: ParseNumberErrorKind,
     /// The location in the input where the error occurred.

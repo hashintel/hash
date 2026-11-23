@@ -6,38 +6,40 @@ use hashql_core::{
 };
 use winnow::{LocatingSlice, Stateful};
 
-use crate::span::Span;
-
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "The lexer ensures that we never have more than 4GiB of text"
-)]
-fn range_to_text(range: Range<usize>) -> TextRange {
-    TextRange::new(
-        TextSize::from((range.start + 1) as u32),
-        TextSize::from((range.end + 1) as u32),
-    )
-}
+use crate::{lexer::RawOffsets, span::Span};
 
 #[derive(Debug)]
 pub(crate) struct Context<'heap, 'spans> {
     pub heap: &'heap Heap,
     pub spans: &'spans mut SpanTable<Span>,
     pub parent: SpanId,
+    /// Maps offsets in the parsed string, which is decoded, to its source.
+    pub offsets: RawOffsets,
+    /// Number of types and index expressions open around the current position.
+    pub depth: u16,
 }
 
 impl Context<'_, '_> {
+    /// Range of `range` in the source, relative to the opening quote of the string.
+    fn text_range(&self, range: Range<usize>) -> TextRange {
+        TextRange::new(
+            TextSize::from(self.offsets.raw(range.start)),
+            TextSize::from(self.offsets.raw(range.end)),
+        )
+    }
+
     pub(crate) fn span(&mut self, range: Range<usize>) -> SpanId {
-        // `+ 1` here to offset the opening quote
         self.spans.insert(
-            Span::new(range_to_text(range)),
+            Span::new(self.text_range(range)),
             SpanAncestors::union(&[self.parent]),
         )
     }
 
     pub(crate) fn cover(&mut self, span: SpanId, range: Range<usize>) {
+        let range = self.text_range(range);
+
         self.spans.update(span, |span, _| {
-            span.range = span.range.cover(range_to_text(range.clone()));
+            span.range = span.range.cover(range);
         });
     }
 }

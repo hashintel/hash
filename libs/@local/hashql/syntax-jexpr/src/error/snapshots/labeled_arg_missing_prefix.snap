@@ -20,5 +20,5 @@ error[jexpr::parser::array::labeled-argument-length-mismatch]: Invalid number of
   │         │
   │         first labeled argument here
   │
-  ├ help: place each labeled argument in its own object: `{":a": x}, {":b": y}`
+  ├ help: place each labeled argument in its own object: `{":a": "x"}, {":b": "y"}`
   ╰ note: labeled arguments use `{":label": value}` (one entry per object) or shorthand `":label"`
