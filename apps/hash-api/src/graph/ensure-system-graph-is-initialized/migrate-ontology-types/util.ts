@@ -211,20 +211,29 @@ export const generateSystemDataTypeSchema = ({
 export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
   {
     dataTypeDefinition: ConstructDataTypeParams;
+    dataTypeBaseUrl?: BaseUrl;
     conversions: Record<BaseUrl, Conversions>;
   } & BaseCreateTypeIfNotExistsParameters,
   Promise<DataTypeWithMetadata>
 > = async (
   context,
   authentication,
-  { dataTypeDefinition, conversions, migrationState, webShortname },
+  {
+    dataTypeDefinition,
+    dataTypeBaseUrl,
+    conversions,
+    migrationState,
+    webShortname,
+  },
 ) => {
   const { title } = dataTypeDefinition;
-  const baseUrl = generateSystemTypeBaseUrl({
-    kind: "data-type",
-    title,
-    shortname: webShortname,
-  });
+  const baseUrl =
+    dataTypeBaseUrl ??
+    generateSystemTypeBaseUrl({
+      kind: "data-type",
+      title,
+      shortname: webShortname,
+    });
 
   const versionNumber = makeOntologyTypeVersion({ major: 1 });
 

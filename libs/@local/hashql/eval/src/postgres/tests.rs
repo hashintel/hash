@@ -1,5 +1,7 @@
 //! Shared test infrastructure for Postgres compiler tests.
 
+use core::assert_matches;
+
 use hashql_core::{
     heap::{Heap, Scratch},
     pretty::Formatter,
@@ -34,8 +36,9 @@ pub(super) struct CompilationFixture<'heap> {
 
 impl<'heap> CompilationFixture<'heap> {
     pub(super) fn new(heap: &'heap Heap, env: Environment<'heap>, body: Body<'heap>) -> Self {
-        assert!(
-            matches!(body.source, Source::GraphReadFilter(_)),
+        assert_matches!(
+            body.source,
+            Source::GraphReadFilter(_),
             "these tests require GraphReadFilter bodies",
         );
 

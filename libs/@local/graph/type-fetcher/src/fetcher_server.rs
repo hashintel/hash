@@ -122,6 +122,8 @@ async fn fetch_ontology_types(
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches;
+
     use super::*;
     use crate::fetcher::FetcherClient;
 
@@ -216,9 +218,9 @@ mod tests {
             })
             .collect();
         assert_eq!(fetched_ids, urls.iter().collect::<Vec<_>>());
-        assert!(matches!(
+        assert_matches!(
             fetched.last().map(|(ontology_type, _)| ontology_type),
             Some(FetchedOntologyType::EntityType(_))
-        ));
+        );
     }
 }

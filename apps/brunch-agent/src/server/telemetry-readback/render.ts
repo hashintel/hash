@@ -2,6 +2,7 @@ import {
   requestedModelOf,
   turnErrorOf,
   type LoggedIdleTimeout,
+  type LoggedOutputLimit,
   type LoggedSubmissionChronology,
   type LoggedTurnChronology,
   type ModelCallSpan,
@@ -30,17 +31,23 @@ const turnIdsOf = (
 ): ReadonlySet<string> =>
   new Set(chronology?.turns.map((turn) => turn.turnId) ?? []);
 
-/** The idle timeouts logged under a submission or during one of its turns. */
-export const idleTimeoutsOf = (
+/** A line that names its submission, its turn, or both. */
+type TurnNote = {
+  readonly submissionId: string | null;
+  readonly turnId: string | null;
+};
+
+/** The lines logged under a submission or during one of its turns. */
+export const notesOf = <Note extends TurnNote>(
   submissionId: string,
   chronology: LoggedSubmissionChronology | null,
-  idleTimeouts: readonly LoggedIdleTimeout[],
-): LoggedIdleTimeout[] => {
+  notes: readonly Note[],
+): Note[] => {
   const turnIds = turnIdsOf(chronology);
-  return idleTimeouts.filter(
-    (timeout) =>
-      timeout.submissionId === submissionId ||
-      (timeout.turnId !== null && turnIds.has(timeout.turnId)),
+  return notes.filter(
+    (note) =>
+      note.submissionId === submissionId ||
+      (note.turnId !== null && turnIds.has(note.turnId)),
   );
 };
 
@@ -67,6 +74,19 @@ const timeoutText = (timeout: LoggedIdleTimeout): string =>
     timeoutOutcome(timeout),
   ].join(" ");
 
+/** An output-limit stop beside the call it ended. */
+const outputLimitCell = (limit: LoggedOutputLimit): string =>
+  `output limit at ${limit.outputTokens ?? "?"} tokens`;
+
+/** An output-limit stop on its own line, naming its call. */
+const outputLimitText = (limit: LoggedOutputLimit): string =>
+  [
+    limit.timestamp ?? "–",
+    limit.turnId ?? "(no turn id)",
+    `${limit.provider ?? "?"}/${limit.model ?? "?"}:`,
+    outputLimitCell(limit),
+  ].join(" ");
+
 export type SubmissionSummary = {
   readonly submissionId: string;
   readonly outcome: string;
@@ -77,11 +97,13 @@ export type SubmissionSummary = {
   readonly retries: number;
   readonly failed: number;
   readonly idleTimeouts: number;
+  readonly outputLimits: number;
 };
 
 export const summarizeSubmission = (
   chronology: LoggedSubmissionChronology,
   idleTimeouts: readonly LoggedIdleTimeout[],
+  outputLimits: readonly LoggedOutputLimit[],
 ): SubmissionSummary => {
   const firstEvents = chronology.turns.flatMap((turn) =>
     turn.timeToFirstEventMs === null ? [] : [turn.timeToFirstEventMs],
@@ -96,11 +118,10 @@ export const summarizeSubmission = (
       firstEvents.length === 0 ? null : Math.max(...firstEvents),
     retries: chronology.turns.filter((turn) => turn.retryOf).length,
     failed: chronology.turns.filter((turn) => turn.isError).length,
-    idleTimeouts: idleTimeoutsOf(
-      chronology.submissionId,
-      chronology,
-      idleTimeouts,
-    ).length,
+    idleTimeouts: notesOf(chronology.submissionId, chronology, idleTimeouts)
+      .length,
+    outputLimits: notesOf(chronology.submissionId, chronology, outputLimits)
+      .length,
   };
 };
 
@@ -120,6 +141,7 @@ export const renderSubmissionList = (
           "Retries",
           "Failed",
           "Idle timeouts",
+          "Output limits",
         ],
         summaries.map((summary) => [
           summary.loggedAt ?? "–",
@@ -131,6 +153,7 @@ export const renderSubmissionList = (
           String(summary.retries),
           String(summary.failed),
           String(summary.idleTimeouts),
+          String(summary.outputLimits),
         ]),
       );
 
@@ -141,16 +164,18 @@ export type SubmissionDetail = {
   /** Absent when the submission has not settled, or its line was not kept. */
   readonly chronology: LoggedSubmissionChronology | null;
   readonly idleTimeouts: readonly LoggedIdleTimeout[];
+  readonly outputLimits: readonly LoggedOutputLimit[];
   /** Null when no trace source was read. */
   readonly spans: readonly ModelCallSpan[] | null;
 };
 
 export const renderSubmissionDetail = (detail: SubmissionDetail): string => {
-  const { chronology, idleTimeouts, spans } = detail;
+  const { chronology, idleTimeouts, outputLimits, spans } = detail;
   const turnIds = turnIdsOf(chronology);
-  const unmatched = idleTimeouts.filter(
-    (timeout) => timeout.turnId === null || !turnIds.has(timeout.turnId),
-  );
+  const outsideCalls = (note: TurnNote) =>
+    note.turnId === null || !turnIds.has(note.turnId);
+  const unmatched = idleTimeouts.filter(outsideCalls);
+  const unmatchedLimits = outputLimits.filter(outsideCalls);
   const lines = [
     `# Submission ${detail.submissionId}`,
     "",
@@ -186,7 +211,12 @@ export const renderSubmissionDetail = (detail: SubmissionDetail): string => {
           seconds(turn.timeToFirstEventMs),
           `${seconds(turn.durationMs)}${turn.terminal === "settlement" ? " (unfinished)" : ""}`,
           turn.retryOf ?? "–",
-          turnErrorOf(turn) ?? "–",
+          // The turn's own error names only an internal failure type.
+          outputLimits
+            .filter((limit) => limit.turnId === turn.turnId)
+            .map(outputLimitCell)
+            .join("; ") ||
+            (turnErrorOf(turn) ?? "–"),
           idleTimeouts
             .filter((timeout) => timeout.turnId === turn.turnId)
             .map(timeoutCell)
@@ -206,6 +236,16 @@ export const renderSubmissionDetail = (detail: SubmissionDetail): string => {
       ...(unmatched.length === 0
         ? ["None."]
         : unmatched.map((timeout) => `- ${timeoutText(timeout)}`)),
+    );
+  }
+  if (unmatchedLimits.length > 0) {
+    lines.push(
+      "",
+      turnIds.size === 0
+        ? "## Output limits"
+        : "## Output limits outside these calls",
+      "",
+      ...unmatchedLimits.map((limit) => `- ${outputLimitText(limit)}`),
     );
   }
   if (spans !== null) {

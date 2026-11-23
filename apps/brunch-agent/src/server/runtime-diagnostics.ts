@@ -27,6 +27,7 @@ export type DiagnosticStage =
   | "http.admission-body"
   | "provider.accounting"
   | "provider.timeout"
+  | "provider.output-limit"
   | "database.configuration"
   | "database.operation"
   | "model.configuration";

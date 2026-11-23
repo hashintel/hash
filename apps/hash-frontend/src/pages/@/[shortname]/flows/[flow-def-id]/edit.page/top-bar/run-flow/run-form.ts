@@ -160,6 +160,31 @@ export const getFormValuesFromRun = (
 };
 
 /**
+ * The form's values with the ones given earlier in their place, each where its input still takes that kind of value:
+ * the flow's inputs may have changed since.
+ */
+export const withGivenValues = (
+  values: RunFormValues,
+  givenValues: RunFormValues,
+): RunFormValues => {
+  const merged: RunFormValues = { ...values };
+
+  for (const [name, value] of Object.entries(values)) {
+    const given = givenValues[name];
+
+    if (
+      given?.kind === value.kind &&
+      (given.kind !== "EntityId" ||
+        (value.kind === "EntityId" && given.array === value.array))
+    ) {
+      merged[name] = given;
+    }
+  }
+
+  return merged;
+};
+
+/**
  * Why the flow can't be run from the editor, or `null` if it can: the first of its errors, no steps, or a required
  * input the form can't take.
  */

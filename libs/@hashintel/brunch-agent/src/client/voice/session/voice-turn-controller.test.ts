@@ -2520,7 +2520,7 @@ describe("VoiceTurnController", () => {
     },
     {
       code: "admission-aborted" as const,
-      failure: { kind: "aborted" } as const,
+      failure: { kind: "aborted", requestSent: true } as const,
       message: "The local chat submission was cancelled.",
     },
   ])("surfaces $failure.kind admission safely", async (admissionFailure) => {

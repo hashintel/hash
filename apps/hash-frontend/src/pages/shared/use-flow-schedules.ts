@@ -17,8 +17,9 @@ import type {
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import type { EntityRootType } from "@blockprotocol/graph";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
 import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/flowschedule";
 
 type UseFlowSchedulesResult = {
@@ -27,10 +28,36 @@ type UseFlowSchedulesResult = {
   schedulesByEntityUuid: Map<EntityUuid, Simplified<HashEntity<FlowSchedule>>>;
 };
 
+const formatIntervalMs = (ms: number): string => {
+  const minutes = ms / (60 * 1000);
+  if (minutes < 60) {
+    return `Every ${minutes} minute${minutes !== 1 ? "s" : ""}`;
+  }
+
+  const hours = minutes / 60;
+  if (hours < 24) {
+    return `Every ${hours} hour${hours !== 1 ? "s" : ""}`;
+  }
+
+  const days = hours / 24;
+  return `Every ${days} day${days !== 1 ? "s" : ""}`;
+};
+
+/** When a schedule runs, in words, e.g. "Every 10 minutes". */
+export const formatScheduleSpec = (scheduleSpec: ScheduleSpec): string =>
+  scheduleSpec.type === "interval"
+    ? formatIntervalMs(scheduleSpec.intervalMs)
+    : `Cron: ${scheduleSpec.cronExpression}`;
+
 /**
- * Hook to fetch all flow schedules visible to the current user.
+ * Hook to fetch the flow schedules visible to the current user: all of them, or only those of one flow.
  */
-export const useFlowSchedules = (): UseFlowSchedulesResult => {
+export const useFlowSchedules = ({
+  flowDefinitionEntityId,
+}: {
+  /** The flow whose schedules to fetch, if only one flow's. */
+  flowDefinitionEntityId?: EntityId;
+} = {}): UseFlowSchedulesResult => {
   const { data, loading, refetch } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
@@ -48,6 +75,21 @@ export const useFlowSchedules = (): UseFlowSchedulesResult => {
             {
               equal: [{ path: ["archived"] }, { parameter: false }],
             },
+            ...(flowDefinitionEntityId
+              ? [
+                  /* A schedule `Uses` the flow it runs. */
+                  {
+                    equal: [
+                      { path: ["outgoingLinks", "rightEntity", "uuid"] },
+                      {
+                        parameter: extractEntityUuidFromEntityId(
+                          flowDefinitionEntityId,
+                        ),
+                      },
+                    ],
+                  },
+                ]
+              : []),
           ],
         },
         graphResolveDepths: {

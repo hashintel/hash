@@ -1,10 +1,18 @@
+import { FilledShape } from "../filled-shape";
+import { CompactUser } from "../shared/compact-user";
+
 export const hospitalUserGeometry = (
   <g fill="none">
-    <g transform="translate(-1 0) scale(.85)">
-      <circle cx="12" cy="7" r="3" />
-      <path d="M5 21v-3a7 7 0 0 1 14 0v3" />
-    </g>
-    <rect x="14" y="13" width="8" height="9" rx="0.5" />
-    <path d="M18 15v5m-2.5-2.5h5" />
+    <CompactUser />
+    <FilledShape
+      cutout={
+        <path
+          d="M18.5 15v4m-2-2h4"
+          strokeWidth="calc(var(--hash-icon-stroke-width) * .75)"
+        />
+      }
+    >
+      <rect x="15" y="12.5" width="7" height="8.5" rx="0.5" />
+    </FilledShape>
   </g>
 );

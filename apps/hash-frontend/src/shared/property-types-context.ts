@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 
 import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 
@@ -12,6 +12,7 @@ import type {
 
 export type PropertyTypesContextValues = {
   propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata> | null;
+  ensureFetched: () => void;
   refetch: () => Promise<void>;
 };
 
@@ -28,6 +29,11 @@ export const usePropertyTypes = (params?: {
   if (!propertyTypesContext) {
     throw new Error("Context missing");
   }
+
+  const { ensureFetched } = propertyTypesContext;
+  useEffect(() => {
+    ensureFetched();
+  }, [ensureFetched]);
 
   return useMemo(() => {
     const filteredPropertyTypeVersionsByBaseUrl: Record<

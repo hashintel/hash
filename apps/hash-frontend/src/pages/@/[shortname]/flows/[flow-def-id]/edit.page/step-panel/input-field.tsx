@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   Button,
@@ -8,11 +8,14 @@ import {
   Menu,
   NumberInput,
   SelectableListSearch,
+  TextArea,
   TextInput,
   Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { getInputSize } from "@local/hash-isomorphic-utils/flows/input-size";
 
+import { getForEachScope, useItemNames } from "../shared/item-name";
 import { getNameLabel } from "../shared/name-label";
 import {
   getKindIcon,
@@ -44,6 +47,7 @@ import type {
   FlowDefinitionDiagnosticCode,
   FlowDefinitionDiagnosticWithStepId,
 } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
+import type { FocusEvent } from "react";
 
 /** Problems with a value whose source no longer exists. */
 const goneSourceCodes = new Set<FlowDefinitionDiagnosticCode>([
@@ -62,6 +66,10 @@ const brokenSourceCodes = new Set<FlowDefinitionDiagnosticCode>([
 
 /** Values shown before Show more. */
 const shownOptionCount = 4;
+
+/** Rows of a medium text beside its label, and of a long or expanded one, which then grows with its text. */
+const besideLabelRows = 2;
+const ownLineRows = 6;
 
 /* The Button only fills the row; what's inside it is laid out by these. */
 const trigger = css({ width: "full" });
@@ -253,8 +261,8 @@ const SourceMenu = ({
 };
 
 /**
- * A step input's field: a menu to pick its value, or a text field once a value is typed. Its problems show beneath
- * it; a value whose source is gone shows as a red chip.
+ * A step input's field: a menu to pick its value, or a text field once a value is typed, sized by the input (see
+ * `getInputSize`). Its problems show beneath it; a value whose source is gone shows as a red chip.
  */
 export const InputField = ({
   editor,
@@ -280,6 +288,11 @@ export const InputField = ({
 }) => {
   /* Set from picking Type a value until the field is left with nothing typed. */
   const [typing, setTyping] = useState(false);
+  /* Whether a medium text has been given a line of its own. */
+  const [expanded, setExpanded] = useState(false);
+  const textArea = useRef<HTMLTextAreaElement>(null);
+  const expandButton = useRef<HTMLButtonElement>(null);
+  const getItemName = useItemNames(flowDefinition);
 
   const label = getNameLabel(input.name);
   const target = getInputTarget({
@@ -320,34 +333,84 @@ export const InputField = ({
       readonly: readOnly,
       invalid: errors.length > 0,
       autoFocus: typing,
-      clearable: !readOnly && {
-        onClear: () => {
+      /* Moving between a text and its Expand button doesn't leave the field. */
+      onBlur: ({ relatedTarget }: FocusEvent) => {
+        const staysInField =
+          relatedTarget !== null &&
+          (relatedTarget === textArea.current ||
+            relatedTarget === expandButton.current);
+
+        if (!staysInField) {
           setTyping(false);
-          setSource(null);
-        },
+        }
       },
-      onBlur: () => setTyping(false),
     };
+    const clearable = !readOnly && {
+      onClear: () => {
+        setTyping(false);
+        setSource(null);
+      },
+    };
+
+    /* Text of a few lines or more is typed in a text area, on a line of its own when it's long or expanded. */
+    const size = getInputSize(input);
+    const ownLine = size === "long" || (size === "medium" && expanded);
 
     return (
       <Form.Field
-        layout="inline"
+        layout={ownLine ? "block" : "inline"}
         label={label}
         errors={errors.length > 0 ? errors : undefined}
+        labelActions={
+          size === "medium" && (
+            <Button
+              ref={expandButton}
+              variant="ghost"
+              size="xs"
+              iconName={expanded ? "collapse" : "expand"}
+              aria-label={`${expanded ? "Collapse" : "Expand"} ${label}`}
+              tooltip={expanded ? "Collapse" : "Expand"}
+              /* A click leaves focus in the text, as Safari doesn't move it to a clicked button. */
+              onMouseDown={(event) => event.preventDefault()}
+              onBlur={fieldProps.onBlur}
+              /* The text is laid out anew, so it takes focus back once it is. */
+              onClick={() => {
+                setExpanded(!expanded);
+                setTyping(true);
+              }}
+            />
+          )
+        }
       >
+        {/*
+         * Widths are Salt's presets. A number takes the narrowest, as steps take counts of a few digits. Text keeps the
+         * full width, as the menu it replaces had: the panel's column is narrower than Salt's other presets anyway.
+         */}
         {typedInKind === "Number" ? (
           <NumberInput
             {...fieldProps}
+            width="xs"
+            clearable={clearable}
             value={typedConstant ? Number(typedConstant.text) : null}
             min={-Number.MAX_VALUE}
             max={Number.MAX_VALUE}
             step="any"
             onChange={setTypedValue}
           />
-        ) : (
+        ) : size === "short" ? (
           <TextInput
             {...fieldProps}
+            clearable={clearable}
             type={typedInKind === "Date" ? "date" : "text"}
+            value={typedConstant?.text ?? ""}
+            onChange={setTypedValue}
+          />
+        ) : (
+          <TextArea
+            {...fieldProps}
+            inputRef={textArea}
+            rows={ownLine ? ownLineRows : besideLabelRows}
+            autoResize={ownLine}
             value={typedConstant?.text ?? ""}
             onChange={setTypedValue}
           />
@@ -359,7 +422,16 @@ export const InputField = ({
   const { flowInputs, earlierSteps } = readOnly
     ? { flowInputs: [], earlierSteps: [] }
     : getSourceOptions({ flowDefinition, stepId, target });
-  const pickedLabel = source && getSourceLabel(flowDefinition, source);
+  const forEachStepId = getForEachScope(flowDefinition.steps, stepId)?.at(-1);
+  const pickedLabel =
+    source &&
+    getSourceLabel(
+      flowDefinition,
+      source,
+      forEachStepId
+        ? { stepId: forEachStepId, itemName: getItemName(forEachStepId) }
+        : undefined,
+    );
   const newFlowInput = getNewFlowInput({
     flowDefinition,
     inputName: input.name,

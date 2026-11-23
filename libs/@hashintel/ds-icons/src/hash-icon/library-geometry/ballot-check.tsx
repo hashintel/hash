@@ -5,8 +5,11 @@ export const ballotCheckGeometry = (
     <FilledShape
       cutout={
         <>
-          <rect x="6" y="7" width="6" height="6" rx="0.3" />
-          <path d="m7.5 9.5 1.5 1.5 3-4M15 9h3M6 17h12" />
+          <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+            <path d="M11.5 12.5h-5v-5H9" />
+            <path d="m8 9.2 1.7 1.7 3.8-4.4" />
+          </g>
+          <path d="M16 9h2M6.5 17h11" />
         </>
       }
     >

@@ -195,6 +195,47 @@ const run = async () => {
         providerCalls: requests.length - requestStart,
       });
     }
+    const outputLimits = [];
+    for (const [limitCase, content] of [
+      ["length-with-text", () => [fauxText("The account is partly")]],
+      ["length-without-text", () => []],
+      // The limit cuts the response off while it writes a server tool call.
+      [
+        "length-mid-tool-call",
+        () => [
+          fauxText("Recording the account"),
+          makeCall(brunchTools.ledgerCommit),
+        ],
+      ],
+    ] as const) {
+      caseId = limitCase;
+      const limited = clientFor();
+      faux.setResponses([
+        fauxAssistantMessage(content(), { stopReason: "length" }),
+      ]);
+      const attempt = await limited.send({
+        kind: "user",
+        body: "Synthetic output-limit probe; no plant facts.",
+      });
+      const failedHistory = await limited.client.history();
+      // The conversation still takes the next message.
+      const followUpRequest = requests.length;
+      faux.setResponses([
+        fauxAssistantMessage([fauxText("Timing remains unknown.")]),
+      ]);
+      const followUp = await limited.send({
+        kind: "user",
+        body: "Synthetic follow-up; no plant facts.",
+      });
+      outputLimits.push({
+        caseId,
+        attempt,
+        history: failedHistory,
+        followUp,
+        followUpContext: requests[followUpRequest],
+        followUpHistory: await limited.client.history(),
+      });
+    }
     caseId = brunchTools.ledgerCommit;
     const conversation = clientFor();
     const seeding = await seedRevision(conversation, `${caseId}-old-revision`);
@@ -327,6 +368,7 @@ const run = async () => {
     }
     return {
       observations,
+      outputLimits,
       refusals,
       buffering,
       question,

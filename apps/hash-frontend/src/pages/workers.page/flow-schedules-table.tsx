@@ -23,7 +23,10 @@ import {
 } from "../../graphql/queries/knowledge/flow.queries";
 import { TrashRegularIcon } from "../../shared/icons/trash-regular-icon";
 import { flowTableCellSx, flowTableRowHeight } from "../shared/flow-tables";
-import { useFlowSchedules } from "../shared/use-flow-schedules";
+import {
+  formatScheduleSpec,
+  useFlowSchedules,
+} from "../shared/use-flow-schedules";
 import { VirtualizedTable } from "../shared/virtualized-table";
 import { virtualizedTableHeaderHeight } from "../shared/virtualized-table/header";
 import {
@@ -63,21 +66,6 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
 type ScheduleRowData = {
   schedule: Simplified<HashEntity<FlowSchedule>>;
   intervalText: string;
-};
-
-const formatIntervalMs = (ms: number): string => {
-  const minutes = ms / (60 * 1000);
-  if (minutes < 60) {
-    return `Every ${minutes} minute${minutes !== 1 ? "s" : ""}`;
-  }
-
-  const hours = minutes / 60;
-  if (hours < 24) {
-    return `Every ${hours} hour${hours !== 1 ? "s" : ""}`;
-  }
-
-  const days = hours / 24;
-  return `Every ${days} day${days !== 1 ? "s" : ""}`;
 };
 
 const ScheduleRow = memo(
@@ -252,24 +240,15 @@ export const FlowSchedulesTable = () => {
 
   const rows = useMemo<VirtualizedTableRow<ScheduleRowData>[]>(() => {
     const rowData = Array.from(schedulesByEntityUuid.values()).map(
-      (schedule) => {
-        let intervalText = "Unknown";
-        const scheduleSpec = schedule.properties.scheduleSpec as ScheduleSpec;
-
-        if (scheduleSpec.type === "interval") {
-          intervalText = formatIntervalMs(scheduleSpec.intervalMs);
-        } else {
-          intervalText = `Cron: ${scheduleSpec.cronExpression}`;
-        }
-
-        return {
-          id: schedule.metadata.recordId.entityId,
-          data: {
-            schedule,
-            intervalText,
-          },
-        };
-      },
+      (schedule) => ({
+        id: schedule.metadata.recordId.entityId,
+        data: {
+          schedule,
+          intervalText: formatScheduleSpec(
+            schedule.properties.scheduleSpec as ScheduleSpec,
+          ),
+        },
+      }),
     );
 
     return rowData.sort((a, b) => {

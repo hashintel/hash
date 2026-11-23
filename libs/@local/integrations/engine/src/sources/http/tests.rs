@@ -1,4 +1,4 @@
-use core::time::Duration;
+use core::{assert_matches, time::Duration};
 
 use axum::{Router, routing::get};
 use reqwest::{
@@ -42,8 +42,9 @@ async fn destinations_reject_private_resolution() {
 fn destinations_invalid_url(#[case] address: &str) {
     let error = validate(&Url::parse(address).expect("should parse the URL"))
         .expect_err("should reject the unsafe destination");
-    assert!(
-        matches!(error.current_context(), SourceError::Destination),
+    assert_matches!(
+        error.current_context(),
+        SourceError::Destination,
         "should identify an invalid destination"
     );
 }

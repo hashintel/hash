@@ -415,6 +415,8 @@ mod tests {
 
 #[cfg(test)]
 mod credential_tests {
+    use core::assert_matches;
+
     use hash_crypto::Secret;
     use rstest::rstest;
     use serde_json::{Value, json};
@@ -450,8 +452,9 @@ mod credential_tests {
         let error = pinned_addresses(&source_at(connection), &http::PublicResolver)
             .await
             .expect_err("should refuse a destination on the capture's own network");
-        assert!(
-            matches!(error.current_context(), SourceError::Destination),
+        assert_matches!(
+            error.current_context(),
+            SourceError::Destination,
             "should report the refused destination"
         );
     }
@@ -503,8 +506,9 @@ mod credential_tests {
         )
         .await
         .expect_err("should reject malformed credentials before connecting");
-        assert!(
-            matches!(error.current_context(), SourceError::Secret),
+        assert_matches!(
+            error.current_context(),
+            SourceError::Secret,
             "should report invalid credentials"
         );
         let diagnostic = format!("{error:?}");

@@ -2,7 +2,10 @@ import {
   ledgerCommentsMessage,
   type LedgerComment,
 } from "@hashintel/brunch-agent";
-import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
+import {
+  admissionOutcome,
+  FlueChatAdmissionError,
+} from "@local/flue-aisdk-transport";
 
 import type { PetrinautAiComposerControlContext } from "../chat/ai-assistant-composer-control";
 
@@ -74,6 +77,7 @@ const createPendingComments = () => {
       void submitText({
         id: sent.id,
         target: "message",
+        ledgerComments: true,
         preserveDraft: true,
         text: ledgerCommentsMessage(sent.comments).body,
       }).then(
@@ -87,7 +91,7 @@ const createPendingComments = () => {
         (error: unknown) => {
           const uncertain =
             error instanceof FlueChatAdmissionError &&
-            error.failure.kind !== "rejected";
+            admissionOutcome(error.failure) === "maybe-admitted";
           if (!uncertain) attempt = undefined;
           publish({ ...state, sending: uncertain ? "uncertain" : "failed" });
         },

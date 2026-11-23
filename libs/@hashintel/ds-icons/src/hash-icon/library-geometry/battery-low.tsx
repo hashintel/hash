@@ -1,15 +1,16 @@
 import { FilledShape } from "../filled-shape";
 
-export const keycapKGeometry = (
+export const batteryLowGeometry = (
   <g fill="none">
+    <path d="M22 10v4" />
     <FilledShape
       cutout={
         <>
-          <path d="M8 7v10m0-5 7-5m-4 3 5 7" />
+          <path d="M6.5 10v4" />
         </>
       }
     >
-      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M3 7h16v10H3Z" />
     </FilledShape>
   </g>
 );

@@ -1,5 +1,5 @@
 use alloc::{collections::BTreeMap, sync::Arc};
-use core::{convert::Infallible, num::NonZeroU64, time::Duration};
+use core::{assert_matches, convert::Infallible, num::NonZeroU64, time::Duration};
 use std::sync::Mutex;
 
 use error_stack::Report;
@@ -74,16 +74,13 @@ async fn invalid_event_source() {
         .await
         .expect_err("JSON should reject a map with tuple keys");
 
-    assert!(matches!(
-        error.current_context(),
-        KernelError::BuildEventRecord
-    ));
-    assert!(matches!(
+    assert_matches!(error.current_context(), KernelError::BuildEventRecord);
+    assert_matches!(
         error.downcast_ref::<CompatError>(),
         Some(CompatError::Encode {
             name: "invalid_json_event",
         })
-    ));
+    );
     let source = error
         .downcast_ref::<serde_json::Error>()
         .expect("serialization error should remain available through the runtime context");
@@ -454,20 +451,20 @@ async fn exercise_end_to_end(blob_url: &str) {
         .await
         .expect("kernel should start");
 
-    assert!(matches!(
+    assert_matches!(
         running
             .submit(increment("orders", 1, 6))
             .await
             .expect("submit should succeed"),
         Submitted::Applied
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         running
             .submit(increment("orders", 2, 5))
             .await
             .expect("submit should succeed"),
         Submitted::Applied
-    ));
+    );
     wait_until(async || {
         running
             .read(&orders, |projection| projection.archived.clone())
@@ -489,13 +486,13 @@ async fn exercise_end_to_end(blob_url: &str) {
         BTreeMap::new(),
         "archiving should reset the counter"
     );
-    assert!(matches!(
+    assert_matches!(
         running
             .submit(increment("orders", 1, 6))
             .await
             .expect("resubmit should succeed"),
         Submitted::AlreadyDurable
-    ));
+    );
     running.shutdown().await.expect("shutdown should succeed");
 
     let external_after = Arc::new(Mutex::new(Vec::new()));
@@ -542,10 +539,7 @@ fn open_empty_shards() {
     let Err(report) = Kernel::open(settings) else {
         panic!("an empty shard selection should be rejected");
     };
-    assert!(matches!(
-        report.current_context(),
-        KernelError::NoOwnedShards
-    ));
+    assert_matches!(report.current_context(), KernelError::NoOwnedShards);
 }
 
 #[test]
@@ -591,8 +585,9 @@ async fn rejection_preserves_context_and_attachments() {
         let Submitted::Rejected(report) = outcome else {
             panic!("zero increment should be rejected");
         };
-        assert!(
-            matches!(report.current_context(), CounterRejection::ZeroIncrement { counter } if counter == "orders")
+        assert_matches!(
+            report.current_context(),
+            CounterRejection::ZeroIncrement { counter } if counter == "orders"
         );
         assert_eq!(
             report
@@ -626,13 +621,13 @@ async fn rejection_preserves_context_and_attachments() {
             .expect("read should succeed"),
         "rejections should leave state unchanged"
     );
-    assert!(matches!(
+    assert_matches!(
         running
             .submit(increment("orders", 2, 1))
             .await
             .expect("valid submission should succeed"),
         Submitted::Applied
-    ));
+    );
     running.shutdown().await.expect("shutdown should succeed");
 }
 
@@ -783,14 +778,14 @@ async fn completion_rejection_stops_affected_shard() {
         .submit(increment("ready", 3, 1))
         .await
         .expect_err("failed shard should reject submissions");
-    assert!(matches!(stopped.current_context(), KernelError::Command));
-    assert!(matches!(
+    assert_matches!(stopped.current_context(), KernelError::Command);
+    assert_matches!(
         running
             .submit(increment("orders", 1, 1))
             .await
             .expect("other shard should accept events"),
         Submitted::Applied
-    ));
+    );
     let report = running
         .shutdown()
         .await
@@ -811,8 +806,9 @@ async fn completion_rejection_stops_affected_shard() {
         )),
         "driver failure should identify the rejected completion event and its effect"
     );
-    assert!(
-        matches!(report.downcast_ref::<CounterRejection>(), Some(CounterRejection::ZeroIncrement { counter }) if counter == "ready")
+    assert_matches!(
+        report.downcast_ref::<CounterRejection>(),
+        Some(CounterRejection::ZeroIncrement { counter }) if counter == "ready"
     );
     assert_eq!(
         report
@@ -840,14 +836,14 @@ async fn startup_storage_source() {
         .err()
         .expect("a file at the storage root should prevent startup");
 
-    assert!(matches!(
+    assert_matches!(
         error.current_context(),
         KernelError::ConfigureStorage { .. }
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         error.downcast_ref::<StorageConfigError>(),
         Some(StorageConfigError::CreateLocalDirectory { path: failed_path }) if failed_path == &path
-    ));
+    );
     assert_eq!(
         error
             .downcast_ref::<std::io::Error>()
@@ -895,10 +891,10 @@ async fn failed_start_does_not_run_an_executor() {
         .await
         .err()
         .expect("blocked shard storage should prevent startup");
-    assert!(matches!(
+    assert_matches!(
         error.downcast_ref::<ShardLogOpenError>(),
         Some(ShardLogOpenError::WriterTimeout { shard, .. }) if *shard == Shard::from_u8(1)
-    ));
+    );
     assert!(
         error.contains::<tokio::time::error::Elapsed>(),
         "startup should retain the writer timeout cause"
@@ -994,9 +990,6 @@ async fn foreign_partitions_are_not_owned() {
         .submit(increment(&foreign, 1, 1))
         .await
         .expect_err("foreign partition should be rejected");
-    assert!(matches!(
-        error.current_context(),
-        KernelError::NotOwned { .. }
-    ));
+    assert_matches!(error.current_context(), KernelError::NotOwned { .. });
     running.shutdown().await.expect("shutdown should succeed");
 }

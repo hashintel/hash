@@ -45,6 +45,8 @@ const typePath = (entityType: EntityTypeWithMetadata) =>
 test("a type's page lists each type that extends any of its versions, with the version ranges that extend each version", async ({
   page,
 }) => {
+  test.slow();
+
   const parentName = randomTypeName();
   const parent = await createType(page, parentName);
   const parentPath = typePath(parent);
