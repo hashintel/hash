@@ -23,8 +23,8 @@ import {
   buildAdHocSweepAxes,
   buildParameterAxis,
   pointSweepSelection,
+  sweepSelectionKey,
 } from "../parameter-grid";
-import { sweepSelectionKey } from "../shared/selection-draws";
 
 import type { LanguageClientContextValue } from "../../lsp/context";
 import type {
@@ -33,7 +33,6 @@ import type {
 } from "../../simulators/context";
 import type {
   CreateExperimentInput,
-  ExperimentComputeBackend,
   ExperimentRecord,
   ExperimentSweepState,
 } from "../context";
@@ -622,12 +621,3 @@ export const experimentSimulatorBackends = (
   }
   return { registrations, samplePeriod };
 };
-
-/**
- * Which of the two compute paths the backend that ran is: the graphics
- * card, or worker threads.
- */
-export const computeBackendOf = (
-  backendId: string,
-): ExperimentComputeBackend =>
-  backendId === WEBGPU_FIXED_STEP_SIMULATOR_ID ? "webgpu" : "cpu";

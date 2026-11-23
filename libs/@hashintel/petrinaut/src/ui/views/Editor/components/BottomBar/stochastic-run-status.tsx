@@ -4,8 +4,10 @@ import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../../../react/document/sdcpn-context";
-import { ExperimentsActionsContext } from "../../../../../react/experiments/context";
-import { computeBackendOf } from "../../../../../react/experiments/provider/create-experiment";
+import {
+  computeBackendOf,
+  ExperimentsActionsContext,
+} from "../../../../../react/experiments/context";
 import { NotificationsContext } from "../../../../../react/notifications/context";
 import { useStore } from "../../../../../react/shared/use-store";
 import {

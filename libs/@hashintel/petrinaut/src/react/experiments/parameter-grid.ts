@@ -74,6 +74,26 @@ export type SweepAxisSelection = { from: number; to: number };
 export type SweepSelection = Readonly<Record<string, SweepAxisSelection>>;
 
 /**
+ * Canonical cache key for a selection: quantized positions in axis order, a
+ * point as `x=2` and a range as `x=0..2`.
+ */
+export const sweepSelectionKey = (
+  axes: readonly ExperimentParameterAxis[],
+  selection: SweepSelection,
+): string =>
+  axes
+    .map((axis) => {
+      const range = selection[axis.identifier] ?? {
+        from: 0,
+        to: axis.stepCount,
+      };
+      return range.from === range.to
+        ? `${axis.identifier}=${range.from}`
+        : `${axis.identifier}=${range.from}..${range.to}`;
+    })
+    .join("|");
+
+/**
  * The midpoint of a selection's range on one axis, in position space. The
  * selection is normalized, so every axis has a range.
  */

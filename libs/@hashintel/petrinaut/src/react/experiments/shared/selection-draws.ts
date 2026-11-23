@@ -8,26 +8,6 @@ import type {
   SweepSelection,
 } from "../parameter-grid";
 
-/**
- * Canonical cache key for a selection: quantized positions in axis order, a
- * point as `x=2` and a range as `x=0..2`.
- */
-export const sweepSelectionKey = (
-  axes: readonly ExperimentParameterAxis[],
-  selection: SweepSelection,
-): string =>
-  axes
-    .map((axis) => {
-      const range = selection[axis.identifier] ?? {
-        from: 0,
-        to: axis.stepCount,
-      };
-      return range.from === range.to
-        ? `${axis.identifier}=${range.from}`
-        : `${axis.identifier}=${range.from}..${range.to}`;
-    })
-    .join("|");
-
 /** The base seed of the batch whose first run has global index `from`. */
 export const sweepBatchSeed = (seed: number, from: number): number =>
   from === 0 ? seed : deriveRunSeed(seed, from);

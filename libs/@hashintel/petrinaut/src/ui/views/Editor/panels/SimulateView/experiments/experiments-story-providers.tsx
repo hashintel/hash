@@ -1,6 +1,7 @@
 import { use, useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
+  computeBackendOf,
   type CreateExperimentInput,
   ExperimentsActionsContext,
   type ExperimentsActionsValue,
@@ -8,8 +9,7 @@ import {
   type ExperimentRecord,
   type ExperimentsContextValue,
 } from "../../../../../../react/experiments/context";
-import { computeBackendOf } from "../../../../../../react/experiments/provider/create-experiment";
-import { sweepSelectionKey } from "../../../../../../react/experiments/shared/selection-draws";
+import { sweepSelectionKey } from "../../../../../../react/experiments/parameter-grid";
 import {
   usePetrinautNavigate,
   type SimulateViewMode,

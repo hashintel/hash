@@ -34,12 +34,9 @@ import {
   mergeMetricFramesAcrossCells,
   normalizeSweepSelection,
   selectionMidpoint,
-} from "./parameter-grid";
-import {
-  sweepBatchSeed,
-  sweepRangeDraws,
   sweepSelectionKey,
-} from "./shared/selection-draws";
+} from "./parameter-grid";
+import { sweepBatchSeed, sweepRangeDraws } from "./shared/selection-draws";
 import { sweepCellSample } from "./sweep-cell-objective";
 import { createThrottle } from "./sweep-session/throttle";
 
