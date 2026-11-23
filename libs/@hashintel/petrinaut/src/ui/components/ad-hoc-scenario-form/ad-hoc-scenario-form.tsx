@@ -46,6 +46,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../react/lsp/context";
+import { useLspSession } from "../../../react/lsp/use-lsp-session";
 import { usePublished } from "../../../react/select-from-context";
 import { FocusControls } from "../../worksheet/focus-controls";
 import { FocusStack } from "../../worksheet/focus-stack";
@@ -57,7 +58,6 @@ import { ParameterRows } from "./parameter-rows";
 import { PlaceBlock } from "./place-block";
 import { ScenarioParameterRows } from "./scenario-parameter-rows";
 import { useSharedContent } from "./share-definition";
-import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
 import { useAdHocFormHistory } from "./use-form-history";
 import { VariableRows } from "./variable-rows";
 
@@ -180,11 +180,27 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   const state = useSharedContent(givenState);
   const { netParameters, places, types } = givenContext;
   const context = { netParameters, places, types };
-  const sessionId = useAdHocLspSession(state, externalSessionId);
-  const [showAllPlaces, setShowAllPlaces] = useState(false);
-  const { diagnosticsByUri, requestFormatExpression } = use(
-    LanguageClientContext,
+  const {
+    diagnosticsByUri,
+    requestFormatExpression,
+    initializeAdHocSession,
+    updateAdHocSession,
+    killAdHocSession,
+  } = use(LanguageClientContext);
+  // Every value expression is a virtual document of this session. The shared
+  // definition changes identity only when its content does, so it is the key:
+  // a host that rebuilds an equal definition sends the worker nothing.
+  const sessionId = useLspSession(
+    {
+      initialize: initializeAdHocSession,
+      update: updateAdHocSession,
+      kill: killAdHocSession,
+    },
+    { state },
+    state,
+    externalSessionId,
   );
+  const [showAllPlaces, setShowAllPlaces] = useState(false);
   // Every edit below is an action dispatched through the history: the pure
   // reducer in petrinaut-core computes the next state, and Cmd/Ctrl+Z
   // anywhere in the form (open text fields excepted — those own their own

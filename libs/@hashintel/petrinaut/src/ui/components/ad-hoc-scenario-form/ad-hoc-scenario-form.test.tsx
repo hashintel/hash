@@ -61,19 +61,6 @@ vi.mock("./token-table", async (importOriginal) => {
   };
 });
 
-// jsdom provides neither observer, but the value editor's popover schedules
-// @floating-ui/dom's autoUpdate on an animation frame, which constructs both.
-class ObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-  takeRecords(): never[] {
-    return [];
-  }
-}
-globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
-globalThis.IntersectionObserver =
-  ObserverStub as unknown as typeof IntersectionObserver;
 // jsdom implements no scrolling at all, and an open Select list (the type
 // column's) scrolls itself to the selected option when it opens.
 Element.prototype.scrollTo = () => {};
@@ -1772,13 +1759,23 @@ describe("what renders in AdHocScenarioForm", () => {
   );
 
   it("renders no table when the host builds an equal definition again", () => {
-    const { rerender } = render(rebuildingHost());
+    const client = {
+      ...DEFAULT_LANGUAGE_CLIENT_CONTEXT,
+      updateAdHocSession: vi.fn(),
+    };
+    const host = () => (
+      <LanguageClientContext value={client}>
+        {rebuildingHost()}
+      </LanguageClientContext>
+    );
+    const { rerender } = render(host());
     expect(tokenTableRenders.count).toBeGreaterThan(0);
     const before = tokenTableRenders.count;
 
-    rerender(rebuildingHost());
+    rerender(host());
 
     expect(tokenTableRenders.count).toBe(before);
+    expect(client.updateAdHocSession).not.toHaveBeenCalled();
   });
 
   it("renders no reader of its context when the host builds an equal context again", () => {

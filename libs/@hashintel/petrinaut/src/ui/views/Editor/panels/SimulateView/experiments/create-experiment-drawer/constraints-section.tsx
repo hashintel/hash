@@ -10,6 +10,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { getConstraintDocumentUri } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
+import { useLspSession } from "../../../../../../../react/lsp/use-lsp-session";
 import { Section } from "../../../../../../components/section";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
 import {
@@ -23,7 +24,6 @@ import {
   describeConstraint,
   getConstraintErrorMessage,
 } from "./constraint-lsp";
-import { useConstraintLspSession } from "./constraints-section/use-constraint-lsp-session";
 
 import type {
   ConstraintSpace,
@@ -167,13 +167,26 @@ const ConstraintRow = ({
   onCodeChange: (rowId: string, code: string) => void;
   onRemove: (row: ConstraintDraft) => void;
 }) => {
-  useConstraintLspSession({
-    sessionId: row.id,
-    space: row.space,
-    code: row.code,
-    scenarioParameters,
-  });
-  const { diagnosticsByUri } = use(LanguageClientContext);
+  const {
+    diagnosticsByUri,
+    initializeConstraintSession,
+    updateConstraintSession,
+    killConstraintSession,
+  } = use(LanguageClientContext);
+  useLspSession(
+    {
+      initialize: initializeConstraintSession,
+      update: updateConstraintSession,
+      kill: killConstraintSession,
+    },
+    {
+      space: row.space,
+      code: row.code,
+      scenarioParameters: [...scenarioParameters],
+    },
+    JSON.stringify([row.space, row.code, scenarioParameters]),
+    row.id,
+  );
   const errorMessage = getConstraintErrorMessage(diagnosticsByUri, row.id);
   const multiline = row.space === "state";
   const rowRef = useRef<HTMLDivElement>(null);

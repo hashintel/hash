@@ -1,7 +1,7 @@
-import { use, useState } from "react";
+import { use } from "react";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { useLspSession } from "../shared/use-lsp-session";
+import { useLspSession } from "../../../../../../react/lsp/use-lsp-session";
 
 /**
  * Keeps a temporary language session for one metric's code: started on mount,
@@ -10,21 +10,19 @@ import { useLspSession } from "../shared/use-lsp-session";
  */
 export const useMetricLspSession = (
   code: string,
-  providedSessionId?: string,
+  givenSessionId?: string,
 ): string => {
   const { initializeMetricSession, updateMetricSession, killMetricSession } =
     use(LanguageClientContext);
-  const [sessionId] = useState(() => providedSessionId ?? crypto.randomUUID());
 
-  useLspSession(
+  return useLspSession(
     {
       initialize: initializeMetricSession,
       update: updateMetricSession,
       kill: killMetricSession,
     },
-    { sessionId, code },
+    { code },
     code,
+    givenSessionId,
   );
-
-  return sessionId;
 };
