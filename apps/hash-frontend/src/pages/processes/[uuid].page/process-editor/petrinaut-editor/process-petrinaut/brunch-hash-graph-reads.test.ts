@@ -2032,7 +2032,7 @@ const joinVertex = (
   },
 });
 
-/** One page of the given entities, with the graph's cursor when more follow. */
+/** One page of the given entities, with the graph's cursor and resolved temporalAxes when more follow. */
 const joinPage = (
   vertices: Record<string, unknown>[],
   cursor?: EntityQueryCursor,
@@ -2048,7 +2048,10 @@ const joinPage = (
         })),
         vertices: Object.assign({}, ...vertices),
         edges: {},
-        temporalAxes: {},
+        temporalAxes: {
+          initial: hashEntityReadRequest({}, readerWebs).temporalAxes,
+          resolved: resolvedTemporalAxes,
+        },
       },
       ...(cursor === undefined ? {} : { cursor }),
     },
@@ -2098,17 +2101,21 @@ const joinData: Record<string, Record<string, unknown>[]> = {
 };
 
 /**
- * The graph over `joinData`: each request's type title picks the records,
- * else it is a read by id; pages hold two, so reads span pages.
+ * The graph over `joinData`: matches direct `["type","title"]` (distinct from
+ * step-0 `["leftEntity","type","title"]` endpoint anchors), else falls back to
+ * `"ids"` for id reads or `"Sales Order"` for untyped reads.
  */
 const joinQuery = (fails?: { title: string; page: number }) => {
   const pages = new Map<string, number>();
   return vi.fn<QueryEntitySubgraph>((request) => {
     const filter = JSON.stringify(request.filter);
-    const title =
-      Object.keys(joinData).find((key) =>
-        filter.includes(`{"parameter":"${key}"}`),
-      ) ?? "ids";
+    const title = filter.includes('"uuid"')
+      ? "ids"
+      : (Object.keys(joinData).find((key) =>
+          filter.includes(
+            `{"equal":[{"path":["type","title"]},{"parameter":"${key}"}]}`,
+          ),
+        ) ?? "Sales Order");
     const page = (pages.get(title) ?? 0) + 1;
     pages.set(title, page);
     if (fails?.title === title && fails.page === page) {
@@ -2137,12 +2144,13 @@ const joinQuery = (fails?: { title: string; page: number }) => {
 
 const joinSizes = vi.fn<SummarizeEntities>((request) => {
   const filter = JSON.stringify(request.filter);
-  const title = Object.keys(joinData).find((key) =>
-    filter.includes(`{"parameter":"${key}"}`),
-  );
-  return Promise.resolve(
-    summary({ count: title === undefined ? 0 : joinData[title]!.length }),
-  );
+  const title =
+    Object.keys(joinData).find((key) =>
+      filter.includes(
+        `{"equal":[{"path":["type","title"]},{"parameter":"${key}"}]}`,
+      ),
+    ) ?? "Sales Order";
+  return Promise.resolve(summary({ count: joinData[title]!.length }));
 });
 
 const openOrder = [{ property: orderNumberUrl, value: "1000000283" }];
@@ -2213,29 +2221,107 @@ test("a count by links reads every page of the counted type and of each link typ
     ),
     expect.any(AbortSignal),
   );
+  // Step-0 outgoing Has Line Item links are anchored to leftEntity Sales Order and pin page 1's temporalAxes on page 2.
   expect(query).toHaveBeenCalledWith(
-    hashEntityReadRequest(
-      { entityTypes: ["Has Line Item"], traversalDepth: 0, limit: 1000 },
-      ["alice-web", "acme-web"],
-      { cursor: ["2"] as unknown as EntityQueryCursor },
-    ),
+    expect.objectContaining({
+      filter: {
+        all: [
+          {
+            any: [
+              {
+                equal: [
+                  { path: ["type", "title"] },
+                  { parameter: "Has Line Item" },
+                ],
+              },
+            ],
+          },
+          {
+            any: [
+              {
+                equal: [
+                  { path: ["leftEntity", "type", "title"] },
+                  { parameter: "Sales Order" },
+                ],
+              },
+            ],
+          },
+          scoped,
+          ...notArchived,
+        ],
+      },
+      temporalAxes: resolvedTemporalAxes,
+      cursor: ["2"] as unknown as EntityQueryCursor,
+      traversalPaths: [],
+      includeDrafts: false,
+      limit: 1000,
+    }),
     expect.any(AbortSignal),
   );
-  // The sizes come first, by the same filters, with the plain count's request.
+  // Join sizing sends count-only summarizeEntities (no type/web histograms), with step-0 anchoring on Has Line Item and none on step-1 Fulfills.
   expect(joinSizes).toHaveBeenCalledWith(
-    hashEntityCountRequest(
-      { entityTypes: ["Sales Order"], propertyEquals: openOrder },
-      ["alice-web", "acme-web"],
-    ),
+    {
+      filter: hashEntityCountRequest(
+        { entityTypes: ["Sales Order"], propertyEquals: openOrder },
+        ["alice-web", "acme-web"],
+      ).filter,
+      temporalAxes: hashEntityReadRequest({}, readerWebs).temporalAxes,
+      includeDrafts: false,
+      includeCount: true,
+    },
     expect.any(AbortSignal),
   );
   expect(joinSizes).toHaveBeenCalledWith(
-    hashEntityCountRequest({ entityTypes: ["Fulfills"] }, [
-      "alice-web",
-      "acme-web",
-    ]),
+    {
+      filter: hashEntityCountRequest({ entityTypes: ["Fulfills"] }, [
+        "alice-web",
+        "acme-web",
+      ]).filter,
+      temporalAxes: hashEntityReadRequest({}, readerWebs).temporalAxes,
+      includeDrafts: false,
+      includeCount: true,
+    },
     expect.any(AbortSignal),
   );
+});
+
+test("a count by links supports untyped joins and forwards includeDrafts and includeArchived", async () => {
+  const sizes = vi.fn<SummarizeEntities>((request) =>
+    joinSizes(request, new AbortController().signal),
+  );
+  const query = joinQuery();
+  const output = await count(
+    sizes,
+    {
+      includeDrafts: true,
+      includeArchived: true,
+      where: {
+        path: [{ linkType: "Has Customer", direction: "outgoing" }],
+        exists: true,
+      },
+    },
+    { query },
+  );
+  expect(output).toMatchObject({
+    outcome: "counted",
+    ofType: 3,
+    count: 2,
+    reads: [
+      { role: "counted", entityTypes: [], entities: 3 },
+      { role: "link", entityTypes: ["Has Customer"], entities: 3 },
+    ],
+  });
+  for (const [request] of sizes.mock.calls) {
+    expect(request.includeDrafts).toBe(true);
+    expect(request.includeCount).toBe(true);
+    expect(request).not.toHaveProperty("includeTypeIds");
+    expect(JSON.stringify(request.filter)).not.toContain('"archived"');
+    expect(JSON.stringify(request.filter)).not.toContain('"leftEntity"');
+  }
+  for (const [request] of query.mock.calls) {
+    expect(request.includeDrafts).toBe(true);
+    expect(JSON.stringify(request.filter)).not.toContain('"archived"');
+  }
 });
 
 test("a count grouped by links reads the grouped entities by id in any web, so one in another web is labelled and marked external", async () => {

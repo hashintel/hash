@@ -54,9 +54,12 @@ import { summarizeEntitiesQuery } from "../../../../../../graphql/queries/knowle
 import { queryEntityTypesQuery } from "../../../../../../graphql/queries/ontology/entity-type.queries";
 import { useAuthInfo } from "../../../../../shared/auth-info-context";
 import {
+  type HashJoinEndpointAnchor,
+  type HashJoinEntity,
   type HashJoinGraph,
+  type HashJoinTypeSelector,
   runHashEntityJoinCount,
-} from "./brunch-hash-graph-count";
+} from "./brunch-hash-graph-reads/join-count";
 
 import type {
   QueryEntitySubgraphQuery,
@@ -929,6 +932,34 @@ const hashWebReadResult = (
 
 type SummarizeEntitiesRequest = SummarizeEntitiesQueryVariables["request"];
 
+const endpointAnchorFilter = (
+  anchor: HashJoinEndpointAnchor | undefined,
+): Filter[] =>
+  anchor === undefined
+    ? []
+    : anyOf(
+        anchor.entityTypes.map((type) => ({
+          equal: [
+            { path: [anchor.endpoint, "type", entityTypeFilterKey(type)] },
+            { parameter: type },
+          ],
+        })),
+      );
+
+const entityCountFilter = (
+  selector: HashJoinTypeSelector,
+  webIds: readonly string[],
+  includeArchived: boolean,
+): Filter => ({
+  all: [
+    ...entityTypesFilter(selector.entityTypes),
+    ...propertyEqualsFilter(selector.propertyEquals),
+    ...endpointAnchorFilter(selector.endpointAnchor),
+    ...webIdsFilter(webIds),
+    ...(includeArchived ? [] : notArchivedFilters),
+  ],
+});
+
 /**
  * The `summarizeEntities` request for one count: the entity read's filters
  * for types, property values and (unless `includeArchived`) not being
@@ -943,14 +974,14 @@ export const hashEntityCountRequest = (
     throw new Error("An entity count's web scope can't be empty.");
   }
   return {
-    filter: {
-      all: [
-        ...entityTypesFilter(input.entityTypes),
-        ...propertyEqualsFilter(input.propertyEquals),
-        ...webIdsFilter(webIds),
-        ...(input.includeArchived === true ? [] : notArchivedFilters),
-      ],
-    },
+    filter: entityCountFilter(
+      {
+        entityTypes: input.entityTypes,
+        propertyEquals: input.propertyEquals,
+      },
+      webIds,
+      input.includeArchived === true,
+    ),
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: input.includeDrafts === true,
     includeCount: true,
@@ -1014,70 +1045,151 @@ export type SummarizeEntities = (
 ) => Promise<SummarizeEntitiesQuery>;
 
 /**
- * The graph as a count by links reaches it (`runHashEntityJoinCount`): exact
- * counts by `summarizeEntities`, and pages by `queryEntitySubgraph` built as
- * the entity read builds them, with no traversal or drafts. Every read by
- * types is in `webScope`, the plain count's; a read by ids is in any web, as
- * the entity read's is. Entities outside the user's webs are marked external.
+ * The graph as a count by links reaches it (`runHashEntityJoinCount`):
+ * count-only `summarizeEntities` for `size`, and direct minimal projection of
+ * `queryEntitySubgraph` for `page` with an opaque pinned-timestamp cursor
+ * (no base64url round-trip, no `propertyTypes`/`entityTypes` maps, and no raw
+ * properties retained in memory). Non-id reads stay in `webScope`; grouped id
+ * reads span any web and mark entities outside the user's webs `external`.
  */
 const hashJoinGraph = (
   summarizeEntities: SummarizeEntities,
   queryEntitySubgraph: QueryEntitySubgraph,
   webScope: HashReadWebScope,
   user: HashWebReadUser | undefined,
-): HashJoinGraph => ({
-  size: async (selector, signal) =>
-    hashEntityCountResult(
-      await summarizeEntities(
-        hashEntityCountRequest(
-          {
-            entityTypes: [...selector.entityTypes],
-            ...(selector.propertyEquals === undefined
-              ? {}
-              : { propertyEquals: selector.propertyEquals }),
-          },
-          webScope.webIds,
-        ),
+  {
+    includeDrafts,
+    includeArchived,
+  }: { readonly includeDrafts: boolean; readonly includeArchived: boolean },
+): HashJoinGraph<HashEntityReadCursor> => {
+  const ownWebIds = ownWebIdsOf(user);
+  return {
+    size: async (selector, signal) => {
+      if (webScope.webIds.length === 0) {
+        throw new Error("An entity count's web scope can't be empty.");
+      }
+      const response = await summarizeEntities(
+        {
+          filter: entityCountFilter(selector, webScope.webIds, includeArchived),
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts,
+          includeCount: true,
+        },
         signal,
-      ),
-      webScope,
-      user,
-    ).count,
-  page: async (selector, limit, cursor, signal) => {
-    const decoded =
-      cursor === undefined ? undefined : decodeHashEntityReadCursor(cursor);
-    if (decoded !== undefined && "error" in decoded) {
-      throw new Error(decoded.error);
-    }
-    const request = hashEntityReadRequest(
-      {
-        ...("entityIds" in selector
-          ? { entityIds: [...selector.entityIds] }
-          : {
-              entityTypes: [...selector.entityTypes],
-              ...(selector.propertyEquals === undefined
+      );
+      const { count } = response.summarizeEntities;
+      if (count === undefined) {
+        throw new Error("HASH's graph returned a summary without a count.");
+      }
+      return count;
+    },
+    page: async (selector, limit, pageCursor, signal) => {
+      const request: QueryEntitySubgraphRequest =
+        "entityIds" in selector
+          ? {
+              filter: {
+                all: [
+                  ...anyOf(
+                    selector.entityIds.map((id) => {
+                      const entityId = id as EntityId;
+                      return includeDrafts
+                        ? generateEntityIdFilter({
+                            entityId,
+                            includeArchived: true,
+                          })
+                        : generateEntityEditionFilter(entityId);
+                    }),
+                  ),
+                  ...(includeArchived ? [] : notArchivedFilters),
+                ],
+              },
+              temporalAxes:
+                pageCursor?.temporalAxes ?? currentTimeInstantTemporalAxes,
+              traversalPaths: [],
+              includeDrafts,
+              includePermissions: false,
+              includeEntityTypes: "resolved",
+              limit,
+              ...(pageCursor === undefined
                 ? {}
-                : { propertyEquals: selector.propertyEquals }),
+                : { cursor: pageCursor.cursor }),
+            }
+          : {
+              filter: entityCountFilter(
+                selector,
+                webScope.webIds,
+                includeArchived,
+              ),
+              temporalAxes:
+                pageCursor?.temporalAxes ?? currentTimeInstantTemporalAxes,
+              traversalPaths: [],
+              includeDrafts,
+              includePermissions: false,
+              includeEntityTypes: "resolved",
+              limit,
+              ...(pageCursor === undefined
+                ? {}
+                : { cursor: pageCursor.cursor }),
+            };
+
+      const { subgraph, closedMultiEntityTypes, cursor } =
+        deserializeQueryEntitySubgraphResponse(
+          (await queryEntitySubgraph(request, signal)).queryEntitySubgraph,
+        );
+      const entities: HashJoinEntity[] = getEntities(subgraph, false)
+        .filter(
+          (entity) =>
+            includeArchived ||
+            (entity.metadata.archived !== true &&
+              entity.properties[archivedBaseUrl] !== true),
+        )
+        .map((entity) => {
+          const { entityId } = entity.metadata.recordId;
+          const webId = extractWebIdFromEntityId(entityId);
+          const closedType = closedTypeIn(
+            closedMultiEntityTypes,
+            entity.metadata.entityTypeIds,
+          );
+          const label =
+            closedType === undefined
+              ? undefined
+              : generateEntityLabel(closedType, entity);
+          const { linkData } = entity;
+          return {
+            entityId,
+            ...(label === undefined ? {} : { label }),
+            ...(ownWebIds.has(webId) ? {} : { external: true as const }),
+            ...(linkData === undefined
+              ? {}
+              : {
+                  linkData: {
+                    leftEntityId: linkData.leftEntityId,
+                    rightEntityId: linkData.rightEntityId,
+                  },
+                }),
+          };
+        });
+      const resolvedTemporalAxes = isValidQueryTemporalAxes(
+        subgraph.temporalAxes.resolved,
+      )
+        ? subgraph.temporalAxes.resolved
+        : undefined;
+      return {
+        entities,
+        ...(cursor === undefined || cursor === null
+          ? {}
+          : {
+              cursor: {
+                cursor,
+                ...(resolvedTemporalAxes === undefined
+                  ? {}
+                  : { temporalAxes: resolvedTemporalAxes }),
+              },
             }),
-        traversalDepth: 0,
-        limit,
-      },
-      // An id names its web, so grouped entities are read wherever they are,
-      // as the entity read reads by id; the counted entities and links stay
-      // in the count's webs.
-      "entityIds" in selector ? undefined : webScope.webIds,
-      decoded,
-    );
-    const read = hashEntityReadResult(
-      await queryEntitySubgraph(request, signal),
-      ownWebIdsOf(user),
-    );
-    return {
-      entities: read.entities.filter(({ matched }) => matched),
-      ...(read.cursor === undefined ? {} : { cursor: read.cursor }),
-    };
-  },
-});
+      };
+    },
+  };
+};
 
 /**
  * Brunch's HASH entity count, run in the page: one `summarizeEntities`
@@ -1101,16 +1213,21 @@ export const createHashEntityCountTool = (
     if ("error" in webScope) {
       return webScope;
     }
-    const { entityTypes } = countInput;
-    if (
-      (countInput.where !== undefined || countInput.groupBy !== undefined) &&
-      entityTypes !== undefined
-    ) {
+    if (countInput.where !== undefined || countInput.groupBy !== undefined) {
       return settlingQueryFailure(signal, () =>
         runHashEntityJoinCount(
-          { ...countInput, entityTypes },
+          countInput,
           webScope.scope,
-          hashJoinGraph(summarizeEntities, queryEntitySubgraph, webScope, user),
+          hashJoinGraph(
+            summarizeEntities,
+            queryEntitySubgraph,
+            webScope,
+            user,
+            {
+              includeDrafts: countInput.includeDrafts === true,
+              includeArchived: countInput.includeArchived === true,
+            },
+          ),
           signal,
         ),
       );

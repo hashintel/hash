@@ -12,7 +12,7 @@ import {
   hashEntityJoinCount,
   hashEntityJoinCountPlan,
   runHashEntityJoinCount,
-} from "./brunch-hash-graph-count";
+} from "./join-count";
 
 const hasLineItem = {
   linkType: "Has Line Item",
@@ -23,6 +23,7 @@ const hasCustomer = {
   linkType: "Has Customer",
   direction: "outgoing",
 } as const;
+const inRegion = { linkType: "In Region", direction: "outgoing" } as const;
 const undelivered = {
   path: [hasLineItem, fulfilledBy],
   exists: false,
@@ -68,10 +69,12 @@ const customers = [
   link("hc2", "o2", "c1"),
   link("hc3", "o2", "c2"),
 ];
+const regions = [link("ir1", "c1", "r-eu"), link("ir2", "c2", "r-us")];
 const links = new Map([
   ["Has Line Item", lineItems],
   ["Fulfills", fulfills],
   ["Has Customer", customers],
+  ["In Region", regions],
 ]);
 
 describe("the join", () => {
@@ -89,7 +92,47 @@ describe("the join", () => {
     expect(some.examples.map(({ entityId }) => entityId)).toEqual(["o2", "o3"]);
   });
 
-  test("groups by the entity one step away, under each of several and under none for none", () => {
+  test("applies multiple where conditions with AND semantics and supports 3-hop paths", () => {
+    // Orders that have a customer AND are fulfilled (only o2; o3 has no customer, o1 is unfulfilled).
+    const fulfilledWithCustomer = hashEntityJoinCount(
+      {
+        where: [
+          { path: [hasCustomer], exists: true },
+          { ...undelivered, exists: true },
+        ],
+      },
+      orders,
+      links,
+    );
+    expect(fulfilledWithCustomer.count).toBe(1);
+    expect(
+      fulfilledWithCustomer.examples.map(({ entityId }) => entityId),
+    ).toEqual(["o2"]);
+
+    // 3-hop path: order -> line item <- delivery -> ... (reusing existing links)
+    const deliveredTo = new Map([
+      ...links,
+      ["Delivered From", [link("df1", "d2", "w1")]],
+    ]);
+    const threeHop = hashEntityJoinCount(
+      {
+        where: {
+          path: [
+            hasLineItem,
+            fulfilledBy,
+            { linkType: "Delivered From", direction: "outgoing" },
+          ],
+          exists: true,
+        },
+      },
+      orders,
+      deliveredTo,
+    );
+    expect(threeHop.count).toBe(1);
+    expect(threeHop.examples.map(({ entityId }) => entityId)).toEqual(["o3"]);
+  });
+
+  test("groups by one step or a multi-hop path, under each reached entity and under none for none", () => {
     expect(
       hashEntityJoinCount({ groupBy: hasCustomer }, orders, links).groups,
     ).toEqual(
@@ -108,21 +151,20 @@ describe("the join", () => {
     ).toEqual(new Map([["c1", 1]]));
     expect(
       hashEntityJoinCount(
-        { where: { ...undelivered, exists: true }, groupBy: hasCustomer },
+        { groupBy: { path: [hasCustomer, inRegion] } },
         orders,
         links,
       ).groups,
     ).toEqual(
       new Map([
-        ["c1", 1],
-        ["c2", 1],
+        ["r-eu", 2],
+        ["r-us", 1],
         [null, 1],
       ]),
     );
   });
 
   test("follows links literally by direction, and a link reaches its other end whether or not it was read", () => {
-    // o1 is the right end of no Has Customer link, so incoming reaches nothing.
     const incoming = hashEntityJoinCount(
       {
         where: {
@@ -134,7 +176,6 @@ describe("the join", () => {
       links,
     );
     expect(incoming.examples.map(({ entityId }) => entityId)).toEqual(["c1"]);
-    // c2 was never read, but the link to it exists.
     const reachesUnread = hashEntityJoinCount(
       { where: { path: [hasCustomer], exists: true } },
       orders,
@@ -143,14 +184,22 @@ describe("the join", () => {
     expect(reachesUnread.count).toBe(2);
   });
 
-  test("without where every entity read counts, and examples are at most three", () => {
+  test("honors default and custom maxExamples, including 0", () => {
     const many = Array.from({ length: 5 }, (_, index) => record(`o${index}`));
-    const joined = hashEntityJoinCount({ groupBy: hasCustomer }, many, links);
-    expect(joined.count).toBe(5);
-    expect(joined.examples).toHaveLength(3);
+    expect(
+      hashEntityJoinCount({ groupBy: hasCustomer }, many, links).examples,
+    ).toHaveLength(3);
+    expect(
+      hashEntityJoinCount({ groupBy: hasCustomer, maxExamples: 0 }, many, links)
+        .examples,
+    ).toHaveLength(0);
+    expect(
+      hashEntityJoinCount({ groupBy: hasCustomer, maxExamples: 5 }, many, links)
+        .examples,
+    ).toHaveLength(5);
   });
 
-  test("reads the counted types with propertyEquals and each link type once", () => {
+  test("plans counted selector, distinct links, and safe single-direction step-0 endpoint anchors", () => {
     const propertyEquals = [
       {
         property: "https://hash.ai/@h/types/property-type/status/",
@@ -161,20 +210,64 @@ describe("the join", () => {
       hashEntityJoinCountPlan({
         entityTypes: ["Sales Order"],
         propertyEquals,
-        where: { path: [hasCustomer, hasLineItem], exists: true },
+        where: { path: [hasLineItem, fulfilledBy], exists: false },
         groupBy: hasCustomer,
       }),
     ).toEqual({
       counted: { entityTypes: ["Sales Order"], propertyEquals },
-      linkTypes: ["Has Customer", "Has Line Item"],
+      links: [
+        {
+          linkType: "Has Line Item",
+          endpointAnchor: {
+            endpoint: "leftEntity",
+            entityTypes: ["Sales Order"],
+          },
+        },
+        { linkType: "Fulfills" },
+        {
+          linkType: "Has Customer",
+          endpointAnchor: {
+            endpoint: "leftEntity",
+            entityTypes: ["Sales Order"],
+          },
+        },
+      ],
+    });
+
+    // A link type used at both step 0 and step 1, or in both directions at step 0, is NOT anchored.
+    const selfRel = { linkType: "Related", direction: "outgoing" } as const;
+    expect(
+      hashEntityJoinCountPlan({
+        entityTypes: ["Sales Order"],
+        where: [
+          { path: [selfRel, selfRel], exists: true },
+          {
+            path: [{ linkType: "Mutual", direction: "outgoing" }],
+            exists: true,
+          },
+          {
+            path: [{ linkType: "Mutual", direction: "incoming" }],
+            exists: true,
+          },
+        ],
+      }).links,
+    ).toEqual([{ linkType: "Related" }, { linkType: "Mutual" }]);
+
+    // Untyped join counts omit entityTypes and never anchor links.
+    expect(
+      hashEntityJoinCountPlan({
+        where: { path: [hasCustomer], exists: true },
+      }),
+    ).toEqual({
+      counted: {},
+      links: [{ linkType: "Has Customer" }],
     });
   });
 });
 
 /**
- * A graph over `data`, keyed by the first type selector or `ids`, whose pages
- * hold at most `pageSize` (below the join's own limit, so reads span pages)
- * and give a cursor while more remain.
+ * A graph over `data`, keyed by the first type selector, `"*"` (untyped), or
+ * `"ids"`, whose pages hold at most `pageSize` and give an opaque string cursor.
  */
 const fakeGraph = (
   data: ReadonlyMap<string, readonly HashJoinEntity[]>,
@@ -187,24 +280,20 @@ const fakeGraph = (
     pageSize?: number;
     sizes?: (key: string) => number;
     failOn?: { key: string; page: number };
-    /**
-     * Give a cursor whenever a page is full, as HASH's graph does, so a read
-     * whose size is a multiple of the page fetches one more, empty page.
-     */
     cursorWhenFull?: boolean;
   } = {},
 ) => {
   const all = [...data.values()].flat();
   const keyOf = (selector: HashJoinSelector) =>
-    "entityIds" in selector ? "ids" : selector.entityTypes[0]!;
+    "entityIds" in selector ? "ids" : (selector.entityTypes?.[0] ?? "*");
   const pagesOf = new Map<string, number>();
   const graph = {
-    size: vi.fn<HashJoinGraph["size"]>((selector) =>
+    size: vi.fn<HashJoinGraph<string>["size"]>((selector) =>
       Promise.resolve(
         sizes?.(keyOf(selector)) ?? data.get(keyOf(selector))?.length ?? 0,
       ),
     ),
-    page: vi.fn<HashJoinGraph["page"]>((selector, limit, cursor) => {
+    page: vi.fn<HashJoinGraph<string>["page"]>((selector, limit, cursor) => {
       const key = keyOf(selector);
       const page = (pagesOf.get(key) ?? 0) + 1;
       pagesOf.set(key, page);
@@ -274,10 +363,8 @@ describe("the paged read", () => {
         { role: "link", entityTypes: ["Has Customer"], entities: 3 },
         { role: "grouped", entityTypes: [], entities: 2 },
       ],
-      // 4 sizes; pages: 2 + 3 + 2 + 2, then 1 of grouped entities.
       requests: 14,
     });
-    // Each page asks for the join's page size, from the cursor the last gave.
     for (const [, limit] of graph.page.mock.calls) {
       expect(limit).toBe(hashEntityReadMaxLimit);
     }
@@ -286,7 +373,7 @@ describe("the paged read", () => {
         .filter(
           ([selector]) =>
             "entityTypes" in selector &&
-            selector.entityTypes[0] === "Has Line Item",
+            selector.entityTypes?.[0] === "Has Line Item",
         )
         .map(([, , cursor]) => cursor),
     ).toEqual([undefined, "2", "4"]);
@@ -298,21 +385,39 @@ describe("the paged read", () => {
     );
   });
 
-  test("names a grouped entity it couldn't read by id, unread, and lists the largest groups before summing the rest", async () => {
-    // c0 has three orders; c3 to c29 one each: 28 groups.
-    const many = Array.from({ length: 30 }, (_, index) => record(`o${index}`));
+  test("slices top maxGroups deterministically by entityId BEFORE fetching labels, issuing at most 1 lookup of <= maxGroups IDs", async () => {
+    // 50 distinct groups: c00 has 3 orders, c01..c49 have 1 order each.
+    const manyOrders = [
+      record("o-a"),
+      record("o-b"),
+      record("o-c"),
+      ...Array.from({ length: 49 }, (_, index) => record(`o-${index + 1}`)),
+    ];
+    const customerLinks = [
+      link("hc-a", "o-a", "c00"),
+      link("hc-b", "o-b", "c00"),
+      link("hc-c", "o-c", "c00"),
+      ...Array.from({ length: 49 }, (_, index) =>
+        link(
+          `hc-${index + 1}`,
+          `o-${index + 1}`,
+          `c${String(index + 1).padStart(2, "0")}`,
+        ),
+      ),
+    ];
+    const allCustomers = Array.from({ length: 50 }, (_, index) => {
+      const id = `c${String(index).padStart(2, "0")}`;
+      return record(id, `Customer ${id}`);
+    });
     const graph = fakeGraph(
       new Map([
-        ["Sales Order", many],
-        [
-          "Has Customer",
-          many.map(({ entityId }, index) =>
-            link(`hc${index}`, entityId, `c${index < 3 ? 0 : index}`),
-          ),
-        ],
+        ["Sales Order", manyOrders],
+        ["Has Customer", customerLinks],
+        ["Customer", allCustomers],
       ]),
       { pageSize: 1000 },
     );
+
     const result = await runHashEntityJoinCount(
       { ...salesOrders, groupBy: hasCustomer },
       "named",
@@ -323,17 +428,61 @@ describe("the paged read", () => {
     if (result.outcome !== "counted") {
       return;
     }
-    expect(result.count).toBe(30);
     expect(result.groups).toHaveLength(25);
     expect(result.groups?.[0]).toEqual({
-      entity: { entityId: "c0" },
-      unread: true,
+      entity: { entityId: "c00", label: "Customer c00" },
       count: 3,
     });
-    expect(result.otherGroups).toEqual({ groups: 3, count: 3 });
+    expect(result.otherGroups).toEqual({ groups: 25, count: 25 });
+
+    // Exactly ONE label lookup, containing only the top 25 IDs (c00..c24), never c25..c49.
+    const idLookups = graph.page.mock.calls.filter(
+      ([selector]) => "entityIds" in selector,
+    );
+    expect(idLookups).toHaveLength(1);
+    const requestedIds = (idLookups[0]?.[0] as { entityIds: string[] })
+      .entityIds;
+    expect(requestedIds).toHaveLength(25);
+    expect(requestedIds[0]).toBe("c00");
+    expect(requestedIds[24]).toBe("c24");
   });
 
-  test("refuses before reading any page when the reads would exceed the budget", async () => {
+  test("honors custom maxGroups, custom maxExamples, custom maxJoinEntities, and untyped joins", async () => {
+    const graph = fakeGraph(
+      new Map([
+        ["*", orders],
+        ["Has Customer", customers],
+        ["Customer", [record("c1", "Acme"), record("c2", "Globex")]],
+      ]),
+      { pageSize: 1000 },
+    );
+    const result = await runHashEntityJoinCount(
+      {
+        groupBy: hasCustomer,
+        maxGroups: 1,
+        maxExamples: 0,
+        maxJoinEntities: 50_000,
+      },
+      "default",
+      graph,
+      signal,
+    );
+    expect(result).toMatchObject({
+      outcome: "counted",
+      ofType: 3,
+      count: 3,
+      groups: [{ entity: { entityId: "c1", label: "Acme" }, count: 2 }],
+      otherGroups: { groups: 2, count: 2 },
+      examples: [],
+      reads: [
+        { role: "counted", entityTypes: [], entities: 3 },
+        { role: "link", entityTypes: ["Has Customer"], entities: 3 },
+        { role: "grouped", entityTypes: [], entities: 1 },
+      ],
+    });
+  });
+
+  test("names an unread grouped entity and refuses before reading when counted + links exceed effective maxJoinEntities", async () => {
     const graph = fakeGraph(data, {
       sizes: (key) =>
         key === "Sales Order" ? hashEntityCountDefaultJoinEntities - 10 : 6,
@@ -359,12 +508,28 @@ describe("the paged read", () => {
       requests: 3,
     });
     expect(graph.page).not.toHaveBeenCalled();
+
+    // Unreadable group id marks unread: true.
+    const unreadGraph = fakeGraph(
+      new Map([
+        ["Sales Order", [record("o1")]],
+        ["Has Customer", [link("hc1", "o1", "hidden-c")]],
+      ]),
+      { pageSize: 1000 },
+    );
+    const unreadResult = await runHashEntityJoinCount(
+      { ...salesOrders, groupBy: hasCustomer },
+      "default",
+      unreadGraph,
+      signal,
+    );
+    expect(unreadResult).toMatchObject({
+      outcome: "counted",
+      groups: [{ entity: { entityId: "hidden-c" }, unread: true, count: 1 }],
+    });
   });
 
   test("completes a count just under the budget, with full pages read in parallel and an empty last page", async () => {
-    // 9,000 + 9,500 + 1,200 = 19,700: under the budget, but within a page of
-    // it for each read. Sales Order is a multiple of the page, so its last,
-    // empty page is fetched while the other reads are still reading.
     const many = (count: number, make: (index: number) => HashJoinEntity) =>
       Array.from({ length: count }, (_, index) => make(index));
     const graph = fakeGraph(
@@ -392,22 +557,17 @@ describe("the paged read", () => {
     expect(result).toMatchObject({
       outcome: "counted",
       ofType: 9000,
-      // Orders o0..o1199 have a fulfilled line item; the rest have none.
       count: 9000 - 1200,
       reads: [
         { role: "counted", entityTypes: ["Sales Order"], entities: 9000 },
         { role: "link", entityTypes: ["Has Line Item"], entities: 9500 },
         { role: "link", entityTypes: ["Fulfills"], entities: 1200 },
       ],
-      // 3 sizes; pages: 10 (the last empty) + 10 + 2.
       requests: 25,
     });
   });
 
-  test("labelling the groups by id doesn't spend the budget the counted entities and links were sized against", async () => {
-    // 9,500 orders and their 9,500 Has Customer links are under the budget;
-    // reading the 9,500 customers by id, for their labels, would pass it if it
-    // counted against the same budget.
+  test("labelling only the top 25 groups keeps a near-20,000-entity count with 9,500 groups to 1 label lookup", async () => {
     const many = (count: number, make: (index: number) => HashJoinEntity) =>
       Array.from({ length: count }, (_, index) => make(index));
     const graph = fakeGraph(
@@ -431,14 +591,21 @@ describe("the paged read", () => {
       outcome: "counted",
       ofType: 9500,
       count: 9500,
+      otherGroups: { groups: 9500 - 25, count: 9500 - 25 },
     });
+    const idLookups = graph.page.mock.calls.filter(
+      ([selector]) => "entityIds" in selector,
+    );
+    expect(idLookups).toHaveLength(1);
+    expect(
+      (idLookups[0]?.[0] as { entityIds: string[] }).entityIds,
+    ).toHaveLength(25);
   });
 
-  test("reads that grow past the budget part-way stop within a page each of it, incomplete, with no count", async () => {
-    // The counted type looked small, but every page is full and gives a cursor.
-    const graph = {
-      size: vi.fn<HashJoinGraph["size"]>(() => Promise.resolve(1)),
-      page: vi.fn<HashJoinGraph["page"]>((_selector, limit, cursor) => {
+  test("reads that grow past effective maxJoinEntities part-way stop within a page each, incomplete, with no count", async () => {
+    const graph: HashJoinGraph<string> = {
+      size: vi.fn<HashJoinGraph<string>["size"]>(() => Promise.resolve(1)),
+      page: vi.fn<HashJoinGraph<string>["page"]>((_selector, limit, cursor) => {
         const start = cursor === undefined ? 0 : Number(cursor);
         return Promise.resolve({
           entities: Array.from({ length: limit }, (_, index) =>
@@ -449,7 +616,11 @@ describe("the paged read", () => {
       }),
     };
     const result = await runHashEntityJoinCount(
-      { ...salesOrders, where: { path: [hasCustomer], exists: true } },
+      {
+        ...salesOrders,
+        where: { path: [hasCustomer], exists: true },
+        maxJoinEntities: 3_000,
+      },
       "default",
       graph,
       signal,
@@ -457,7 +628,7 @@ describe("the paged read", () => {
     expect(result).toEqual({
       outcome: "incomplete",
       reason: expect.stringContaining(
-        "took the reads past the 20,000 entities one count may read: HASH holds more than it did when the count began",
+        "took the reads past the 3,000 entities limit: HASH holds more than it did when the count began.",
       ),
       reads: [
         {
@@ -476,12 +647,9 @@ describe("the paged read", () => {
     if (result.outcome !== "incomplete") {
       return;
     }
-    // Each of the two reads may finish the page it is on: one page past at most.
     const read = result.reads.reduce((sum, { entities }) => sum + entities, 0);
-    expect(read).toBeGreaterThan(hashEntityCountDefaultJoinEntities);
-    expect(read).toBeLessThanOrEqual(
-      hashEntityCountDefaultJoinEntities + 2 * hashEntityReadMaxLimit,
-    );
+    expect(read).toBeGreaterThan(3_000);
+    expect(read).toBeLessThanOrEqual(3_000 + 2 * hashEntityReadMaxLimit);
     expect("count" in result).toBe(false);
   });
 
@@ -502,7 +670,6 @@ describe("the paged read", () => {
       ]),
       requests: expect.any(Number),
     });
-    // Nothing is joined or labelled after a failure.
     expect(graph.page).not.toHaveBeenCalledWith(
       expect.objectContaining({ entityIds: expect.anything() }),
       expect.anything(),
