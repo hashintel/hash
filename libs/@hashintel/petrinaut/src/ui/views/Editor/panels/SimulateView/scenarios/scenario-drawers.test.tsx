@@ -62,19 +62,8 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   return { ...actual, Select };
 });
 
-// jsdom provides neither observer; the scroll fades and the value editor's
-// popover construct both.
-class ObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-  takeRecords(): never[] {
-    return [];
-  }
-}
-globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
-globalThis.IntersectionObserver =
-  ObserverStub as unknown as typeof IntersectionObserver;
+// jsdom implements no scrolling, and an open Select list scrolls itself to
+// the selected option.
 Element.prototype.scrollTo = () => {};
 
 afterEach(cleanup);

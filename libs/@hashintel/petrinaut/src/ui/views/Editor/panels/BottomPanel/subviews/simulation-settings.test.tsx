@@ -78,20 +78,6 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   return { ...actual, Select, SegmentedControl };
 });
 
-// jsdom provides neither observer; the scroll fades and the value editor's
-// popover construct both.
-class ObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-  takeRecords(): never[] {
-    return [];
-  }
-}
-globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
-globalThis.IntersectionObserver =
-  ObserverStub as unknown as typeof IntersectionObserver;
-
 afterEach(cleanup);
 
 const perPlaceScenario: Scenario = {

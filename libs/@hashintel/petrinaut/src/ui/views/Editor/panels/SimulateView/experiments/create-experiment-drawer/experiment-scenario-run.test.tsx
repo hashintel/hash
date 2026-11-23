@@ -30,18 +30,6 @@ vi.mock("../../../../../../monaco/code-editor", () => ({
   ),
 }));
 
-class ObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-  takeRecords(): never[] {
-    return [];
-  }
-}
-globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
-globalThis.IntersectionObserver =
-  ObserverStub as unknown as typeof IntersectionObserver;
-
 afterEach(cleanup);
 
 const place = (index: number) => ({

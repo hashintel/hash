@@ -398,13 +398,6 @@ const unparameterizedContextValue: SDCPNContextValue = {
 };
 
 beforeEach(() => {
-  class ObserverStub {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-  vi.stubGlobal("ResizeObserver", ObserverStub);
-  vi.stubGlobal("IntersectionObserver", ObserverStub);
   // `isWebGpuAvailable()` only reads `navigator.gpu`, so a bare object is enough —
   // and spreading the real Navigator would drop its prototype.
   vi.stubGlobal("navigator", { gpu: {} });

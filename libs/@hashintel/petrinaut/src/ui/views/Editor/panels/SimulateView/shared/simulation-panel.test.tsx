@@ -21,12 +21,6 @@ import { Table } from "../../../../../components/table";
 import { SimulationWorkspace } from "../../../shared/simulation-workspace";
 import { SimulationPanel, SimulationPanelPresence } from "./simulation-panel";
 
-class ObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
 afterEach(cleanup);
 
 it("opens resources with one click and keeps arrow selection in the list as panels change", () => {
