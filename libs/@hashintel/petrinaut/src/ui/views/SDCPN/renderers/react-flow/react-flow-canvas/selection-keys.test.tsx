@@ -8,7 +8,12 @@ import {
   renderHook,
   screen,
 } from "@testing-library/react";
-import { ReactFlow, ReactFlowProvider, useStore } from "@xyflow/react";
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  useStore,
+  useStoreApi,
+} from "@xyflow/react";
 import {
   afterAll,
   afterEach,
@@ -253,10 +258,10 @@ describe("canvas selection keys", () => {
 });
 
 describe("a selection key the page saw go down and not come up", () => {
-  /** A press that carries the state of Shift, as a pointer event does. */
-  const press = (shiftKey: boolean) =>
+  /** A press that carries the state of Shift and Ctrl, as a pointer does. */
+  const press = (shiftKey: boolean, ctrlKey = false) =>
     document.body.dispatchEvent(
-      new MouseEvent("pointerdown", { bubbles: true, shiftKey }),
+      new MouseEvent("pointerdown", { bubbles: true, shiftKey, ctrlKey }),
     );
 
   /** The Shift keyups the window receives while the hook is mounted. */
@@ -264,11 +269,17 @@ describe("a selection key the page saw go down and not come up", () => {
     const keyups: string[] = [];
     const record = (event: KeyboardEvent) => keyups.push(event.key);
     window.addEventListener("keyup", record);
-    const { unmount } = renderHook(() => useSelectionKeys(false), {
-      wrapper: ReactFlowProvider,
-    });
+    const { result, unmount } = renderHook(
+      () => {
+        useSelectionKeys(false);
+        return useStoreApi();
+      },
+      { wrapper: ReactFlowProvider },
+    );
     return {
       keyups,
+      multiSelectionActive: () =>
+        result.current.getState().multiSelectionActive,
       stop: () => {
         unmount();
         window.removeEventListener("keyup", record);
@@ -286,6 +297,17 @@ describe("a selection key the page saw go down and not come up", () => {
     // Released once: the next press has nothing to release.
     press(false);
     expect(keyups).toEqual(["Shift"]);
+    stop();
+  });
+
+  it("is released before a press that holds the modifier sets it", () => {
+    const { keyups, multiSelectionActive, stop } = watchShiftKeyups();
+    fireEvent.keyDown(window, { key: "Shift" });
+
+    press(false, true);
+
+    expect(keyups).toEqual(["Shift"]);
+    expect(multiSelectionActive()).toBe(true);
     stop();
   });
 
