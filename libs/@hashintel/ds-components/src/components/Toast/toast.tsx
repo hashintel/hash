@@ -447,8 +447,7 @@ export const ToastRoot = ({
   return null;
 };
 
-// Stable names for the docs Stage code serializer under minification; the
-// dotted part names intentionally serialize transparently.
+// Stable names for the docs code serializer under minification.
 ToastRoot.displayName = "Toast";
 ToastTitle.displayName = "Toast.Title";
 ToastBody.displayName = "Toast.Body";

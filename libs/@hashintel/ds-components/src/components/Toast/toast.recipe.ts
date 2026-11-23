@@ -245,8 +245,7 @@ export const styles = sva({
           "--toast-icon-color":
             "var(--toast-tone-icon-color, var(--colors-color-palette-fg-link))",
           "--toast-dismiss-hover-bg": "var(--colors-neutral-a30)",
-          // Default (subtle) `Toast.Action`s blend into the tinted surface, so
-          // lift them onto a white background.
+          // Lift subtle actions off the tinted surface.
           "& [data-toast-actions] .toast-action-button": {
             backgroundColor: "white",
             color: "fg.body",

@@ -24,7 +24,6 @@ import { styles } from "./toast.recipe";
 import {
   buildToastElement,
   isToastElement,
-  mergeToastPatch,
   registerToasterHandle,
 } from "./toaster-api";
 import {
@@ -229,7 +228,7 @@ const ToasterRegion = ({
     };
   }, []);
 
-  const side = placement.split("-")[0];
+  const [side = placement] = placement.split("-");
 
   return (
     <div
@@ -319,13 +318,11 @@ export const Toaster = ({ children, label }: ToasterProps) => {
         });
         return id;
       },
-      update: (idInput, patch) => {
+      update: (idInput, input) => {
         const id = String(idInput);
         setFunctionalToasts((previous) =>
           previous.map((toast) =>
-            toast.id === id
-              ? { ...toast, input: mergeToastPatch(toast.input, patch) }
-              : toast,
+            toast.id === id ? { ...toast, input } : toast,
           ),
         );
       },
