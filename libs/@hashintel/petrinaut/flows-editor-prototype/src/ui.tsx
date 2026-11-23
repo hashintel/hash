@@ -184,14 +184,11 @@ export const keyHoverStyle = css({
   _hover: { textDecoration: "underline dotted", textUnderlineOffset: "[3px]" },
 });
 
-/**
- * How a field says whether it must be filled. Default: Salt's Form.Field mark, a small blue asterisk after the label of
- * a required field (Salt marks the required fields; the optional ones stay bare). `?requiredmark=optional` is the other
- * way round: required bare, "Optional" in grey after the label of the ones that may stay empty.
- */
-const markOptional =
-  new URLSearchParams(globalThis.location.search).get("requiredmark") ===
-  "optional";
+const search = new URLSearchParams(
+  (globalThis as { location?: Location }).location?.search,
+);
+const markOptional = search.get("requiredmark") === "optional";
+const markRequired = search.get("reqmark") === "1";
 
 /** Salt's required mark (`label.recipe.ts`, `required` slot), sized in em from the label text. */
 const RequiredMark = () => (
@@ -276,7 +273,7 @@ export const PropertyRow = ({
       : hover;
   const tip = named && detail ? `${named} · ${detail}` : (detail ?? named);
   const tipKey = Boolean(detail);
-  const marked = markOptional ? optional : required;
+  const marked = markOptional ? optional : markRequired && required;
   const key = (
     <span
       data-property-name
@@ -300,7 +297,7 @@ export const PropertyRow = ({
         optional ? (
           <OptionalMark />
         ) : null
-      ) : required ? (
+      ) : marked ? (
         <RequiredMark />
       ) : null}
     </span>

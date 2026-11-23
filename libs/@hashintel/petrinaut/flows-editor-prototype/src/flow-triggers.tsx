@@ -26,7 +26,7 @@ import {
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { navigate, parseRoute } from "./router";
+import { navigate, parseRoute, useLocation } from "./router";
 import { ShowAllRow } from "./show-all-row";
 import { TextLink } from "./text-link";
 import { type EditorDocument } from "./document";
@@ -145,20 +145,22 @@ const takeTriggers = (triggers: FlowTriggers): FlowTriggers => {
   }
 };
 
-/** Manual runs flipped on the Triggers page, by flow name; the editor reads the same answer. */
 const manualFlips = new Map<string, boolean>();
 const manualListeners = new Set<() => void>();
-let manualVersion = 0;
 
-export const manualRunsFlip = (flowName: string): boolean | undefined =>
-  manualFlips.get(flowName);
+export const manualRunsFlip = (flowKey: string): boolean | undefined =>
+  manualFlips.get(flowKey);
 
-export const setManualRuns = (flowName: string, on: boolean) => {
-  manualFlips.set(flowName, on);
-  manualVersion += 1;
+export const setManualRuns = (flowKey: string, on: boolean) => {
+  manualFlips.set(flowKey, on);
   for (const listener of manualListeners) {
     listener();
   }
+};
+
+const subscribeToManualRuns = (listener: () => void) => {
+  manualListeners.add(listener);
+  return () => manualListeners.delete(listener);
 };
 
 export const flowTriggersOf = (
@@ -168,10 +170,10 @@ export const flowTriggersOf = (
   const base: FlowTriggers =
     document.name === "Monthly supplier review"
       ? takeTriggers(supplierReviewTriggers)
-      : { manual: false, items: [], hidden: 0 };
+      : { manual: true, items: [], hidden: 0 };
   return {
     ...base,
-    manual: switches.manual ?? manualFlips.get(document.name) ?? base.manual,
+    manual: switches.manual ?? base.manual,
     items: base.items.map((item) => ({
       ...item,
       on: switches[item.id] ?? item.on,
@@ -179,17 +181,27 @@ export const flowTriggersOf = (
   };
 };
 
-/** The flow's triggers, with the switches flipped in this session. */
+export const useFlowTriggersFor = (
+  document: EditorDocument,
+  switches: Record<string, boolean> | undefined,
+  flowKey: string,
+): FlowTriggers => {
+  const manual = useSyncExternalStore(subscribeToManualRuns, () =>
+    manualRunsFlip(flowKey),
+  );
+  const triggers = flowTriggersOf(document, switches);
+  return { ...triggers, manual: manual ?? triggers.manual };
+};
+
+const useEditorFlowKey = (name: string) => {
+  const { route } = useLocation();
+  return "flowId" in route ? (route.flowId ?? name) : name;
+};
+
 export const useFlowTriggers = (): FlowTriggers => {
   const { document, ui } = useEditor();
-  useSyncExternalStore(
-    (listener) => {
-      manualListeners.add(listener);
-      return () => manualListeners.delete(listener);
-    },
-    () => manualVersion,
-  );
-  return flowTriggersOf(document, ui.triggerSwitches);
+  const flowKey = useEditorFlowKey(document.name);
+  return useFlowTriggersFor(document, ui.triggerSwitches, flowKey);
 };
 
 /** u-ghost-muted-line's count split: "13 on, 1 paused", a zero part dropped; "None" when there are none. */
@@ -559,8 +571,9 @@ const groups: { kind: FlowTrigger["kind"]; label: string }[] = [
 ];
 
 const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
-  const { setUi } = useEditor();
-  const triggers = useFlowTriggers();
+  const { document, ui, setUi } = useEditor();
+  const flowKey = useEditorFlowKey(document.name);
+  const triggers = useFlowTriggersFor(document, ui.triggerSwitches, flowKey);
   const [opened, setOpened] = useState<string | null>(openedFor[kind]);
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
@@ -634,7 +647,7 @@ const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
           size="sm"
           aria-label="Manual runs"
           value={triggers.manual}
-          onChange={(on) => flip("manual", on)}
+          onChange={(on) => setManualRuns(flowKey, on)}
         />
       </div>
       <div
@@ -722,13 +735,7 @@ const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
                         <Icon name={iconFor[item.kind]} size="sm" />
                       </span>
                       <span className={css({ flex: "1" })}>{item.label}</span>
-                      <span className={stateStyle}>
-                        {item.on
-                          ? "On"
-                          : item.kind === "responsive"
-                            ? "Paused"
-                            : "Off"}
-                      </span>
+                      <span className={stateStyle}>{item.on ? "On" : "Off"}</span>
                       {open ? (
                         // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- keeps the switch's click off the row
                         <span onClick={(event) => event.stopPropagation()}>
@@ -915,7 +922,7 @@ const scaleGroups: {
   },
 ];
 
-/** `?triggerfilter=old`: "Triggers · N" and search on one row, All · On · Paused on its own row below (before 13 Nov). */
+/** `?triggerfilter=old` puts the status filter below the heading and search. */
 const filterOld =
   new URLSearchParams(globalThis.location.search).get("triggerfilter") ===
   "old";
@@ -1076,9 +1083,7 @@ const ScaleTriggerRow = ({
         <Pencil size={12} strokeWidth={iconStroke} aria-hidden />
       </button>
     ) : null}
-    <span className={stateStyle}>
-      {row.on ? "On" : row.kind === "manual" ? "Off" : "Paused"}
-    </span>
+    <span className={stateStyle}>{row.on ? "On" : "Off"}</span>
   </div>
   {open ? (
     <div className={openGridStyle}>
@@ -1145,7 +1150,7 @@ const TriggersPanelAtScale = () => {
       items={[
         { value: "all", label: "All" },
         { value: "on", label: "On" },
-        { value: "paused", label: "Paused" },
+        { value: "paused", label: "Off" },
       ]}
       value={filter}
       onChange={setFilter}

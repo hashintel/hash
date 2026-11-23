@@ -2136,7 +2136,12 @@ export const PatchField = ({ step, input }: FieldProps) => {
             ]),
         }))}
         trigger={
-          <Button size="sm" variant="ghost" iconName="plus">
+          <Button
+            size="sm"
+            variant="ghost"
+            iconName="plus"
+            className={css({ alignSelf: "flex-start" })}
+          >
             Add property
           </Button>
         }

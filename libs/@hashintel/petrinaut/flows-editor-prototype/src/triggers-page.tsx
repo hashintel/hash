@@ -109,7 +109,6 @@ import {
 import { monthlyReviewId } from "./seed-flows";
 import { useEscapeCloses } from "./use-escape-closes";
 
-/** The status filter, as the Triggers panel draws it (approved L26): All · On · Paused. */
 type StatusFilter = "all" | "on" | "paused";
 
 type Take = 1 | 2 | 3 | 4;
@@ -140,13 +139,13 @@ const triggerSortLabels: Record<
   flow: { label: "Flow", orders: ["A to Z", "Z to A"] },
   trigger: { label: "Trigger", orders: ["A to Z", "Z to A"] },
   web: { label: "Web", orders: ["A to Z", "Z to A"] },
-  status: { label: "Status", orders: ["On first", "Paused first"] },
+  status: { label: "Status", orders: ["On first", "Off first"] },
 };
 
 const statusTabs: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "on", label: "On" },
-  { value: "paused", label: "Paused" },
+  { value: "paused", label: "Off" },
 ];
 
 /** `?triggerspage=1..4`, from the URL only. */
@@ -433,7 +432,7 @@ const seed = () => {
       id: onboardId,
       name: "Onboard new supplier",
       latest: "v2",
-      manual: false,
+      manual: true,
       hidden: 0,
     },
     {
@@ -493,7 +492,7 @@ const seed = () => {
     on[item.id] = item.on;
   }
   for (const flow of flows) {
-    on[`manual:${flow.id}`] = manualRunsFlip(flow.name) ?? flow.manual;
+    on[`manual:${flow.id}`] = manualRunsFlip(flow.id) ?? flow.manual;
   }
   return { flows, triggers, on };
 };
@@ -515,7 +514,7 @@ const statusText = (trigger: PageTrigger, on: boolean) =>
       : "Failed to activate"
     : on
       ? "On"
-      : "Paused";
+      : "Off";
 
 const metaOf = (trigger: PageTrigger) => `${trigger.web} · ${trigger.version}`;
 
@@ -1653,7 +1652,7 @@ const usePage = (routeFlowId: string | null) => {
       ? data.flows.find((flow) => `manual:${flow.id}` === id)
       : undefined;
     if (manualFlow) {
-      setManualRuns(manualFlow.name, on);
+      setManualRuns(manualFlow.id, on);
     }
     setData((current) => ({ ...current, on: { ...current.on, [id]: on } }));
   };
@@ -2192,8 +2191,6 @@ const VersionCell = ({
 const RowMenu = ({ page, row }: { page: Page; row: Row }) => {
   const [deleting, setDeleting] = useState(false);
   const on = page.on[row.id] ?? false;
-  const offWord = row.kind === "trigger" ? "Pause" : "Turn off";
-  const onWord = row.kind === "trigger" ? "Resume" : "Turn on";
   const name = row.kind === "manual" ? `Manual runs for ${row.flow.name}` : row.trigger.label;
   return (
     // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- keeps the menu's clicks off the row
@@ -2209,7 +2206,7 @@ const RowMenu = ({ page, row }: { page: Page; row: Row }) => {
             : []),
           {
             id: "flip",
-            text: on ? offWord : onWord,
+            text: on ? "Turn off" : "Turn on",
             onClick: () => {
               // A schedule with a next run asks first, on its opened row (the switch's confirm).
               if (on && row.kind === "trigger" && row.trigger.kind === "schedule" && row.trigger.nextRun) {
@@ -2250,7 +2247,7 @@ const RowMenu = ({ page, row }: { page: Page; row: Row }) => {
           <Dialog.Header
             title="Delete this trigger?"
             iconName="info"
-            description={`${row.trigger.label} stops running. Its past runs stay readable.`}
+            description={`“${row.trigger.name || row.trigger.label}” stops running. Its past runs stay readable.`}
           />
           <Dialog.Footer
             actions={
@@ -2266,7 +2263,7 @@ const RowMenu = ({ page, row }: { page: Page; row: Row }) => {
                 <Button
                   size="sm"
                   variant="solid"
-                  tone="neutral"
+                  tone="error"
                   data-confirm-action
                   onClick={() => page.remove(row.id)}
                 >

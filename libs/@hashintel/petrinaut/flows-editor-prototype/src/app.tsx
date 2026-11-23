@@ -18,7 +18,7 @@ import { restoreVersion, updateDocument, useAppState } from "./app-store";
 import { Briefing, markBriefingSeen, TaskCard } from "./briefing";
 import { FlowCanvas } from "./canvas";
 import { EditorContext, type EditorUi } from "./editor-context";
-import { flowTriggersOf } from "./flow-triggers";
+import { useFlowTriggersFor } from "./flow-triggers";
 import {
   ForEachInstanceScope,
   forEachSwitchTake,
@@ -548,7 +548,12 @@ export const Editor = ({
     }
   }
   // J4.4: Run only when the flow can be started by hand: manual runs are on in its Triggers panel.
-  const hasManualStart = flowTriggersOf(document, ui.triggerSwitches).manual;
+  const triggers = useFlowTriggersFor(
+    document,
+    ui.triggerSwitches,
+    flowId ?? document.name,
+  );
+  const hasManualStart = triggers.manual;
   const toEditor = () => {
     if (flowId) {
       navigate(routePath({ page: "editor", flowId }));
@@ -808,7 +813,7 @@ export const Editor = ({
                           tooltip={
                             hasManualStart
                               ? "Start a run now"
-                              : "Manual runs are off"
+                              : "Manual runs are off for this flow. Turn them on in Triggers."
                           }
                           onClick={() => history?.start()}
                         >
@@ -905,7 +910,7 @@ export const Editor = ({
               {archiveAsk ? (
                 <ConfirmDialog
                   title={`Archive ${document.name}?`}
-                  body={`Its ${flowTriggersOf(document, ui.triggerSwitches).items.length} triggers stop. Past runs stay in All runs.`}
+                  body={`Its ${triggers.items.length} triggers stop. Past runs stay in All runs.`}
                   action="Archive"
                   onClose={() => setArchiveAsk(false)}
                   onConfirm={() => {
