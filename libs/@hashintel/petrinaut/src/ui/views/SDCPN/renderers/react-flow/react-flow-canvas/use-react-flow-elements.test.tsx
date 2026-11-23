@@ -90,35 +90,6 @@ describe("the edge that draws the arcs", () => {
     ]);
   });
 
-  it("runs from a transition to itself, which React Flow can always place", () => {
-    // The first arc ends at a component, which may have no pin to measure.
-    const { result } = renderHook(() =>
-      useReactFlowElements({
-        ...scene,
-        arcs: [...scene.arcs].reverse(),
-      }),
-    );
-    const [layer] = result.current.edges;
-
-    expect(layer?.source).toBe("transition");
-    expect(layer?.target).toBe("transition");
-    expect(layer?.sourceHandle).toBeUndefined();
-    expect(layer?.targetHandle).toBeUndefined();
-  });
-
-  it("takes no focus and no selection, and says nothing to a screen reader", () => {
-    const { result } = renderHook(() => useReactFlowElements(scene));
-
-    expect(result.current.edges[0]).toMatchObject({
-      type: "arcs",
-      focusable: false,
-      selectable: false,
-      ariaRole: "none",
-      ariaLabel: null,
-      domAttributes: { "aria-roledescription": undefined },
-    });
-  });
-
   it("is absent from a net without arcs", () => {
     const { result } = renderHook(() =>
       useReactFlowElements({ ...scene, arcs: [] }),

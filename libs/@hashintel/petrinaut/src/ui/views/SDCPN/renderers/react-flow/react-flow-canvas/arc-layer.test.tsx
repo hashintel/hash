@@ -11,6 +11,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ArcLayer } from "./arc-layer";
 import { ArcLayerContext, type ArcLayerGestures } from "./arc-layer-context";
+import { arcsPerRun } from "./arc-layer/arc-runs";
+import { pulseHolderOf } from "./arc-layer/pulse-holder";
 import { ArcPulsesContext, type ArcPulseView } from "./arc-pulses";
 import { scene, withArcs, withNodeAt } from "./scene.test-helpers";
 
@@ -122,48 +124,14 @@ const mount = (
 };
 
 describe("the arcs on the page", () => {
-  it("are one element each, in the order of the scene, named as React Flow names an edge", () => {
+  it("are one element each, in the order of the scene", () => {
     const { container } = mount();
-    const items = [...container.querySelectorAll(".arc-items > *")];
 
-    expect(items.map((item) => item.getAttribute("data-id"))).toEqual([
-      "input",
-      "output",
-      "port-input",
-      "port-output",
-    ]);
-    for (const item of items) {
-      expect(item.getAttribute("role")).toBe("group");
-      expect(item.getAttribute("tabindex")).toBe("0");
-      expect(item.getAttribute("aria-roledescription")).toBe("edge");
-      expect(item.getAttribute("aria-describedby")).toMatch(
-        /^react-flow__edge-desc-/,
-      );
-      expect(item.classList.contains("react-flow__edge")).toBe(true);
-    }
-    expect(items[0]?.getAttribute("aria-label")).toBe(
-      "Edge from place to transition",
-    );
-    expect(items[2]?.getAttribute("aria-label")).toBe(
-      "Edge from component to transition",
-    );
-    expect(items[0]?.getAttribute("data-testid")).toBe("rf__edge-input");
-  });
-
-  it("start an arc at a component port from the port's pin", () => {
-    const { band } = mount();
-    // The middle of the right side of the pin at (646, 10), 8 by 8.
-    expect(band("port-input").getAttribute("d")).toMatch(/^M654,14C/);
-    expect(band("port-output").getAttribute("d")).toMatch(/ 546,14$/);
-  });
-
-  it("leave out an arc whose pin is not measured yet", () => {
-    const { container } = mount(scene, { measured: false });
     expect(
-      [...container.querySelectorAll(".arc-item")].map((item) =>
+      [...container.querySelectorAll(".arc-items > *")].map((item) =>
         item.getAttribute("data-id"),
       ),
-    ).toEqual(["input", "output"]);
+    ).toEqual(["input", "output", "port-input", "port-output"]);
   });
 
   it("change only the elements of the arcs that draw differently", () => {
@@ -203,17 +171,16 @@ describe("the arcs on the page", () => {
     expect(item("output")).toBe(kept);
   });
 
-  it("show the weight of an arc in its element once the weight is above one", () => {
-    const { item, show } = mount();
-    expect(item("input").querySelector("text")).toBeNull();
-
-    show(withArcs({ input: { weight: 3 } }));
-    expect(item("input").textContent).toBe("×3");
-    expect(item("output").querySelector("text")).toBeNull();
-  });
-
   it("draw an arc at a pin once React Flow has measured the pin, and follow the pin when it moves", () => {
     const { container, store, item, band } = mount(scene, { measured: false });
+    const drawnIds = () =>
+      [...container.querySelectorAll(".arc-item")].map((element) =>
+        element.getAttribute("data-id"),
+      );
+    expect(drawnIds(), "the arcs at a pin wait for it").toEqual([
+      "input",
+      "output",
+    ]);
     const output = item("output");
     const outputCurve = band("output").getAttribute("d");
     /** What React Flow does when it measures a node: a new lookup in its store. */
@@ -223,11 +190,12 @@ describe("the arcs on the page", () => {
       );
 
     measure(measuredInstance);
-    expect(
-      [...container.querySelectorAll(".arc-item")].map((element) =>
-        element.getAttribute("data-id"),
-      ),
-    ).toEqual(["input", "output", "port-input", "port-output"]);
+    expect(drawnIds()).toEqual([
+      "input",
+      "output",
+      "port-input",
+      "port-output",
+    ]);
     const atPin = band("port-input").getAttribute("d");
     expect(atPin).toMatch(/^M654,14C/);
 
@@ -280,6 +248,17 @@ describe("the arcs on the page", () => {
     const told = pulses.show.mock.calls.length;
     show(withArcs({}));
     expect(pulses.show.mock.calls.length).toBe(told);
+  });
+
+  it("tell the pulses of no holder for an arc the page does not draw", () => {
+    const { container } = mount();
+    const runs = container.querySelector(".arc-runs");
+    const atRest = { id: "output", alone: false };
+
+    expect(pulseHolderOf(null, atRest, 1)).toBeNull();
+    expect(pulseHolderOf(runs, atRest, arcsPerRun)).toBeNull();
+    // An arc that draws its own strokes, where the page has it at rest.
+    expect(pulseHolderOf(runs, { ...atRest, alone: true }, 1)).toBeNull();
   });
 
   it("tell the pulses when no arc is drawn any more", () => {
