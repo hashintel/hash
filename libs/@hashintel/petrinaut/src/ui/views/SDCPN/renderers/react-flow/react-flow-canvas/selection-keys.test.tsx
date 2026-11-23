@@ -19,11 +19,7 @@ import {
   vi,
 } from "vitest";
 
-import {
-  getSelectionKeyCode,
-  useMultiSelectionModifier,
-  useSelectionKeyRelease,
-} from "./selection-keys";
+import { getSelectionKeyCode, useSelectionKeys } from "./selection-keys";
 import { useApplyNodeChanges } from "./use-apply-node-changes";
 
 import type {
@@ -91,7 +87,7 @@ const Canvas = ({
   mac: boolean;
   interactions: CanvasInteractions;
 }) => {
-  useMultiSelectionModifier(mac);
+  useSelectionKeys(mac);
   const applyChanges = useApplyNodeChanges(interactions);
   return (
     <ReactFlow
@@ -275,7 +271,9 @@ describe("a selection key the page saw go down and not come up", () => {
     const keyups: string[] = [];
     const record = (event: KeyboardEvent) => keyups.push(event.key);
     window.addEventListener("keyup", record);
-    const { unmount } = renderHook(() => useSelectionKeyRelease());
+    const { unmount } = renderHook(() => useSelectionKeys(false), {
+      wrapper: ReactFlowProvider,
+    });
     return {
       keyups,
       stop: () => {
