@@ -17,6 +17,7 @@ import {
 import { StepIconTile } from "./shared/step-icon-tile";
 import { getStepPaths } from "./shared/step-paths";
 import { indexValueUses } from "./shared/value-uses";
+import { ConditionField } from "./step-panel/condition-field";
 import { getFieldProblems } from "./step-panel/field-problems";
 import { FlowInputCard } from "./step-panel/flow-input-card";
 import { InputField } from "./step-panel/input-field";
@@ -36,15 +37,23 @@ import type {
 import type {
   FlowDefinition,
   InputDefinition,
+  PayloadKind,
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
 
 type UsesOf = (value: FlowValue) => ValueUse[];
 
-const takesEntityQuery = (input: InputDefinition) =>
-  "oneOfPayloadKinds" in input &&
-  input.oneOfPayloadKinds.includes("EntityQuery");
+const takesKind = (input: InputDefinition, kind: PayloadKind) =>
+  "oneOfPayloadKinds" in input && input.oneOfPayloadKinds.includes(kind);
+
+/** The field for an input: a builder for a query or a condition, otherwise a menu of values. */
+const getFieldFor = (input: InputDefinition) =>
+  takesKind(input, "EntityQuery")
+    ? QueryField
+    : takesKind(input, "FilterCondition")
+      ? ConditionField
+      : InputField;
 
 /** What the panel shows: the start step, or one step at any depth. */
 export type StepPanelSubject = { start: true } | { stepId: string };
@@ -233,6 +242,36 @@ const SelectedStepPanel = ({
     actionDefinition?.inputs.map(({ name }) => name) ?? [],
   );
 
+  /* A step that branches on its condition, as If does, sets it on the path it's for, not with its inputs. */
+  const pathConditionInput = paths.some(({ showsCondition }) => showsCondition)
+    ? actionDefinition?.inputs.find((input) =>
+        takesKind(input, "FilterCondition"),
+      )
+    : undefined;
+
+  const renderField = (input: InputDefinition) => {
+    if (!actionDefinition) {
+      return null;
+    }
+
+    const Field = getFieldFor(input);
+
+    return (
+      <Field
+        key={input.name}
+        editor={editor}
+        flowDefinition={flowDefinition}
+        stepId={step.stepId}
+        input={input}
+        actionDefinition={actionDefinition}
+        source={step.kind === "action" ? step.inputs[input.name] : undefined}
+        problems={byInputName.get(input.name) ?? []}
+        readOnly={inner}
+        onSelectStart={onSelectStart}
+      />
+    );
+  };
+
   return (
     <SidePanel label={title}>
       <PanelHeader icon={icon} tone={tone} title={title} group={group}>
@@ -263,24 +302,9 @@ const SelectedStepPanel = ({
       {step.kind === "action" && actionDefinition && (
         <PanelSection title="Inputs">
           <Form.Section>
-            {actionDefinition.inputs.map((input) => {
-              const Field = takesEntityQuery(input) ? QueryField : InputField;
-
-              return (
-                <Field
-                  key={input.name}
-                  editor={editor}
-                  flowDefinition={flowDefinition}
-                  stepId={step.stepId}
-                  input={input}
-                  actionDefinition={actionDefinition}
-                  source={step.inputs[input.name]}
-                  problems={byInputName.get(input.name) ?? []}
-                  readOnly={inner}
-                  onSelectStart={onSelectStart}
-                />
-              );
-            })}
+            {actionDefinition.inputs
+              .filter((input) => input !== pathConditionInput)
+              .map(renderField)}
           </Form.Section>
         </PanelSection>
       )}
@@ -291,6 +315,7 @@ const SelectedStepPanel = ({
             flowDefinition={flowDefinition}
             step={step}
             paths={paths}
+            condition={pathConditionInput && renderField(pathConditionInput)}
             readOnly={inner}
           />
         </PanelSection>

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getConditionProperties,
+  getEntityProperties,
   getLatestDataTypeIds,
 } from "./condition-properties";
 
@@ -27,6 +28,8 @@ const dataType = (
 
 const dataTypes = Object.fromEntries([
   dataType("text", { type: "string" }),
+  dataType("number", { type: "number" }),
+  dataType("boolean", { type: "boolean" }),
   dataType("date", { type: "string", format: "date" }),
   dataType("status", {
     type: "string",
@@ -172,6 +175,38 @@ describe("getConditionProperties", () => {
 
     expect(valueKindsOf(ontology, ["report", "letter"])).toEqual({
       sent: { kind: "date" },
+    });
+  });
+});
+
+describe("getEntityProperties", () => {
+  it("reads each single value as the kind a flow condition compares, and leaves out lists", () => {
+    const properties = [
+      propertyType("note", ["text"]),
+      propertyType("score", ["number"]),
+      propertyType("verified", ["boolean"]),
+      propertyType("received", ["date"]),
+      propertyType("state", ["status"]),
+      propertyType("tags", ["text"]),
+    ];
+    const shipment = entityType(
+      "shipment",
+      properties.map(({ schema }) => schema.title),
+      ["tags"],
+    );
+
+    expect(
+      Object.fromEntries(
+        getEntityProperties(ontologyOf(properties, [shipment]), [
+          entityTypeId("shipment"),
+        ]).map(({ title, valueKind }) => [title, valueKind]),
+      ),
+    ).toEqual({
+      note: { kind: "Text" },
+      score: { kind: "Number" },
+      verified: { kind: "Boolean" },
+      received: { kind: "Date" },
+      state: { kind: "Text", options: ["Active", "Suspended"] },
     });
   });
 });

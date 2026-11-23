@@ -10,7 +10,21 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
-/** A property a condition can be on: one whose value is a date or a status. */
+/** What a property's single value is, as a flow condition reads it. A text with options is a status. */
+export type PropertyValueKind =
+  | { kind: "Text"; options?: string[] }
+  | { kind: "Number" }
+  | { kind: "Date" }
+  | { kind: "Boolean" };
+
+/** A property a condition can check: one with a single value of a kind it compares. */
+export type EntityProperty = {
+  baseUrl: BaseUrl;
+  title: string;
+  valueKind: PropertyValueKind;
+};
+
+/** A property Find entities' conditions can be on: one whose value is a date or a status. */
 export type ConditionProperty = {
   baseUrl: BaseUrl;
   title: string;
@@ -72,42 +86,57 @@ const hasDateFormat = (
   );
 };
 
-const toConditionProperty = (
+const toEntityProperty = (
   property: FilterMetadataForProperty,
   { latestDataTypeIds, dataTypes }: ConditionOntology,
-): ConditionProperty | undefined => {
+): EntityProperty | undefined => {
   if (!property.filterable) {
     return undefined;
   }
 
   const { baseUrl, title } = property;
 
-  if (property.kind === "enum" && property.enumOptions) {
-    return {
-      baseUrl,
-      title,
-      valueKind: { kind: "status", options: property.enumOptions },
-    };
+  switch (property.kind) {
+    case "enum":
+      return property.enumOptions
+        ? {
+            baseUrl,
+            title,
+            valueKind: { kind: "Text", options: property.enumOptions },
+          }
+        : undefined;
+    case "number":
+      return { baseUrl, title, valueKind: { kind: "Number" } };
+    case "boolean":
+      return { baseUrl, title, valueKind: { kind: "Boolean" } };
+    case "string": {
+      const dataTypeId = latestDataTypeIds.get(baseUrl);
+
+      return {
+        baseUrl,
+        title,
+        valueKind:
+          dataTypeId && hasDateFormat(dataTypeId, dataTypes)
+            ? { kind: "Date" }
+            : { kind: "Text" },
+      };
+    }
+    /* A list, or a value of several shapes, has no single value to compare. */
+    case "textList":
+    case "opaque":
+      return undefined;
   }
-
-  const dataTypeId = latestDataTypeIds.get(baseUrl);
-
-  return property.kind === "string" &&
-    dataTypeId &&
-    hasDateFormat(dataTypeId, dataTypes)
-    ? { baseUrl, title, valueKind: { kind: "date" } }
-    : undefined;
 };
 
 /**
- * The properties a condition can be on for entities of any of the given types, by title: those the entities table
- * filters as a single status, or as single text whose latest data type is a date.
+ * The properties a condition can check for entities of any of the given types, by title: those the entities table
+ * filters as a single number, text, date, true/false or status.
  */
-export const getConditionProperties = (
+export const getEntityProperties = (
   ontology: ConditionOntology,
   entityTypeIds: VersionedUrl[],
-): ConditionProperty[] => {
-  const properties = new Map<BaseUrl, ConditionProperty>();
+): EntityProperty[] => {
+  const properties = new Map<BaseUrl, EntityProperty>();
 
   /*
    * One type at a time: across several, the first type with a property decides its shape, so a list on one type would
@@ -121,10 +150,10 @@ export const getConditionProperties = (
       entityTypes: ontology.entityTypes,
       propertyTypes: ontology.propertyTypes,
     })) {
-      const conditionProperty = toConditionProperty(property, ontology);
+      const entityProperty = toEntityProperty(property, ontology);
 
-      if (conditionProperty && !properties.has(conditionProperty.baseUrl)) {
-        properties.set(conditionProperty.baseUrl, conditionProperty);
+      if (entityProperty && !properties.has(entityProperty.baseUrl)) {
+        properties.set(entityProperty.baseUrl, entityProperty);
       }
     }
   }
@@ -133,3 +162,29 @@ export const getConditionProperties = (
     left.title.localeCompare(right.title),
   );
 };
+
+/**
+ * The properties a Find entities condition can be on for entities of any of the given types, by title: a single status,
+ * or a single text whose latest data type is a date.
+ */
+export const getConditionProperties = (
+  ontology: ConditionOntology,
+  entityTypeIds: VersionedUrl[],
+): ConditionProperty[] =>
+  getEntityProperties(ontology, entityTypeIds).flatMap(
+    ({ baseUrl, title, valueKind }): ConditionProperty[] => {
+      if (valueKind.kind === "Date") {
+        return [{ baseUrl, title, valueKind: { kind: "date" } }];
+      }
+
+      return valueKind.kind === "Text" && valueKind.options
+        ? [
+            {
+              baseUrl,
+              title,
+              valueKind: { kind: "status", options: valueKind.options },
+            },
+          ]
+        : [];
+    },
+  );
