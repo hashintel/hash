@@ -796,3 +796,21 @@ export const VersionBanner = ({
     />
   );
 };
+
+/** `?viewer=readonly`: the past-version banner for someone who cannot edit, with no Restore and no Back to draft. */
+export const ViewerBanner = ({ version }: { version: FlowVersion }) => {
+  const labelCase = useVersionLabelCase();
+  return (
+    <InlineBanner
+      className={bannerStyle}
+      role="status"
+      data-viewer-banner
+      title={
+        <>
+          Viewing <VersionLabel number={versionName(version.current, labelCase)} state="Read-only" />
+        </>
+      }
+      description="You can look at this flow and its runs. You can't change it."
+    />
+  );
+};

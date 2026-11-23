@@ -95,6 +95,7 @@ import {
 import { plusGhostLook, plusOpenTake } from "./plus-open";
 import { pickerTake } from "./step-picker";
 import { describeSource } from "./shapes";
+import { viewerReadOnly } from "./viewer-mode";
 import {
   failedOutlineColor,
   glassColor,
@@ -1285,7 +1286,7 @@ const oneLineStyle = cva({
 const useReadOnlyCanvas = () => {
   const runView = useRunView();
   const viewingVersion = useLocation().query.has("version");
-  return Boolean(runView) || viewingVersion;
+  return Boolean(runView) || viewingVersion || viewerReadOnly;
 };
 
 const CardText = ({
@@ -3142,7 +3143,7 @@ export const FlowCanvas = ({
   const runView = useRunView();
   // A run, or a past version open from the version menu (V6), is read-only.
   const viewingVersion = useLocation().query.has("version");
-  const readOnly = Boolean(runView) || viewingVersion;
+  const readOnly = Boolean(runView) || viewingVersion || viewerReadOnly;
   const flowTake = useFlowOutputTake();
   const highlight = useHighlightedSteps();
   const [dragPositions, setDragPositions] = useState<

@@ -124,6 +124,8 @@ const carriedTakes = [
     "foreachswitch",
     "highlightlook",
     "runid",
+    "viewer",
+    "loading",
     ...openDecisionFlags,
   ]),
 ];

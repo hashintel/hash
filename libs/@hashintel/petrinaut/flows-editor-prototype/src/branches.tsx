@@ -39,6 +39,7 @@ import { pathRenamable } from "./switch-flags";
 import { ToggleableTextInput } from "./ds-parts/toggleable-text-input";
 import { PropertyRow, Section } from "./ui";
 import { UsedInBlock, useOldUsedIn } from "./used-in";
+import { viewerReadOnly } from "./viewer-mode";
 
 /** The output a step branches on, per action. The engine models the values as ports. */
 export const branchOutput: Record<string, { label: string; kind: string }> = {
@@ -181,7 +182,7 @@ export const useReadOnlyPanel = () => {
   const { ui } = useEditor();
   const runView = useRunView();
   const viewingVersion = useLocation().query.has("version");
-  return Boolean(runView) || viewingVersion || !!ui.run;
+  return Boolean(runView) || viewingVersion || viewerReadOnly || !!ui.run;
 };
 
 const valuesStyle = css({

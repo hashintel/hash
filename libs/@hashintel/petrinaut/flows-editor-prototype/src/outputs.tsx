@@ -34,6 +34,7 @@ import { OutputHead, UsedInBlock, useOldUsedIn } from "./used-in";
 export { kindIcon };
 
 import type { StepInputSource } from "./engine";
+import { viewerReadOnly } from "./viewer-mode";
 
 const shownUsers = 3;
 const hoverUsers = 10;
@@ -606,7 +607,7 @@ export const OutputRows = ({
   // A run, or a past version, is read-only: nothing is added from it.
   const runView = useRunView();
   const viewingVersion = useLocation().query.has("version");
-  const readOnly = Boolean(runView) || viewingVersion || !!ui.run;
+  const readOnly = Boolean(runView) || viewingVersion || viewerReadOnly || !!ui.run;
   const take = useFlowOutputTake();
   const oldUsedIn = useOldUsedIn();
   if (!oldUsedIn) {

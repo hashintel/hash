@@ -15,6 +15,7 @@ import { Table } from "./ds-parts/table";
 import { Toast } from "./ds-parts/toast";
 import { flowTriggersOf } from "./flow-triggers";
 import { HashShell } from "./hash-shell";
+import { GreyBar, loadingOn } from "./loading-state";
 import { selectedLabel } from "./menu-rows";
 import { RunGlyph } from "./run-glyph";
 import { RunIdsIn } from "./run-id";
@@ -515,7 +516,7 @@ export const Home = ({
             </div>
           ) : null}
         </div>
-        {flows.length === 0 || (oldList && shownCount === 0) ? (
+        {!loadingOn && (flows.length === 0 || (oldList && shownCount === 0)) ? (
           // J0.1: the DS EmptyState in a bordered box.
           <div
             className={`${boxStyle} ${css({
@@ -772,14 +773,26 @@ export const Home = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {boardVisible.length === 0 ? (
+                  {loadingOn
+                    ? [0, 1, 2].map((row) => (
+                        <tr key={row} data-loading-row>
+                          {[78, 42, 28, 56, 70, 14, 50, 0].map((width, column) => (
+                            // eslint-disable-next-line react/no-array-index-key -- fixed columns
+                            <td key={column}>
+                              {width > 0 ? <GreyBar width={width} /> : null}
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    : null}
+                  {!loadingOn && boardVisible.length === 0 ? (
                     <tr data-flows-empty>
                       <td colSpan={8} className={css({ color: "neutral.fg.muted" })}>
                         No flows match
                       </td>
                     </tr>
                   ) : null}
-                  {boardVisible.map((row) => (
+                  {(loadingOn ? [] : boardVisible).map((row) => (
                     <tr
                       key={row.id}
                       tabIndex={0}

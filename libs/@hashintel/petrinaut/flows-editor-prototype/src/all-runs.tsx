@@ -35,6 +35,7 @@ import {
 } from "./run-history";
 import { runId, RunIdsIn, RunIdText, runLabel } from "./run-id";
 import { clockText } from "./run-time";
+import { GreyBar, loadingOn } from "./loading-state";
 import { selectedLabel } from "./menu-rows";
 import { ShowAllRow } from "./show-all-row";
 import { RunOutputsCell } from "./run-outputs";
@@ -748,7 +749,19 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
             )}
           </thead>
           <tbody>
-            {shown.map((run) => (
+            {loadingOn
+              ? [0, 1, 2, 3, 4, 5, 6, 7].map((row) => (
+                  <tr key={row} data-loading-row>
+                    {[70, 70, 58, 130, 40, 0].map((width, column) => (
+                      // eslint-disable-next-line react/no-array-index-key -- fixed columns
+                      <td key={column}>
+                        {width > 0 ? <GreyBar width={width} /> : null}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              : null}
+            {(loadingOn ? [] : shown).map((run) => (
               <tr
                 key={run.id}
                 data-run-row={run.id}
@@ -832,19 +845,21 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                 </td>
               </tr>
             ))}
-            {shown.length === 0 && (applied > 0 || search.trim() !== "") ? (
+            {!loadingOn && shown.length === 0 ? (
               <tr data-runs-empty>
                 <td
                   colSpan={colsTake ? 9 : statusTake === "c" ? 7 : 6}
                   className={css({ color: "neutral.fg.muted" })}
                 >
-                  No runs match
+                  {applied > 0 || search.trim() !== "" || tab !== "all"
+                    ? "No runs match"
+                    : "No runs yet"}
                 </td>
               </tr>
             ) : null}
           </tbody>
         </Table>
-        {runsPage === "p1" && !allFit && !older ? (
+        {!loadingOn && runsPage === "p1" && !allFit && !older ? (
           <ShowAllRow
             className={css({ paddingX: "6" })}
             total={total}

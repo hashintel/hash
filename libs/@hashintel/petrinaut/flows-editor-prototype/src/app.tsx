@@ -32,6 +32,8 @@ import {
 } from "./history-view";
 import { HashShellStrip } from "./hash-shell";
 import { LeftPanel } from "./left-panel";
+import { LoadingCanvas, LoadingMask, loadingOn } from "./loading-state";
+import { viewerReadOnly } from "./viewer-mode";
 import { mockRuns } from "./mock-runs";
 import { needsReviewTake, ReviewSide } from "./needs-review";
 import { ReviewR2Side } from "./needs-review-r2";
@@ -51,6 +53,7 @@ import {
   DraftSaveNote,
   PublishButton,
   VersionBanner,
+  ViewerBanner,
   VersionButton,
 } from "./versions";
 
@@ -641,12 +644,15 @@ export const Editor = ({
                             />
                           <FlowTitle
                             name={document.name}
-                            onRename={(name) =>
+                            onRename={(name) => {
+                              if (viewerReadOnly) {
+                                return;
+                              }
                               setDocumentState((current) => ({
                                 ...current,
                                 name,
-                              }))
-                            }
+                              }));
+                            }}
                           />
                           {version ? (
                             <VersionButton
@@ -809,7 +815,7 @@ export const Editor = ({
                           Run
                         </Button>
                         )}
-                        {version ? (
+                        {viewerReadOnly ? null : version ? (
                           <PublishButton
                             flowId={flowId}
                             version={version}
@@ -833,6 +839,7 @@ export const Editor = ({
                           </Button>
                         )}
                         {/* J0.12 (2 Nov): flows are archived, never deleted, so ⋮ holds Archive only. */}
+                        {viewerReadOnly ? null : (
                         <Menu
                           position="bottom-end"
                           className={css({ minWidth: "[208px]" })}
@@ -856,6 +863,7 @@ export const Editor = ({
                             />
                           }
                         />
+                        )}
                       </>
                     </div>
                   </>
@@ -919,13 +927,17 @@ export const Editor = ({
                     <AllRuns history={history} />
                   ) : null}
                   {openRun && history ? (
-                    <LeftPanel
-                      statusFor={(stepId) =>
-                        stepMarkOf(history.steps?.[stepId], history.run, history.now)
-                      }
-                    />
+                    <LoadingMask list>
+                      <LeftPanel
+                        statusFor={(stepId) =>
+                          stepMarkOf(history.steps?.[stepId], history.run, history.now)
+                        }
+                      />
+                    </LoadingMask>
                   ) : inHistory ? null : (
-                    <LeftPanel />
+                    <LoadingMask list>
+                      <LeftPanel />
+                    </LoadingMask>
                   )}
                   {/* The canvas and its floating parts, left of the docked panel (↳ Current: canvas, then a 420 panel). */}
                   <div
@@ -939,6 +951,9 @@ export const Editor = ({
                       inHistory && !openRun ? { display: "none" } : undefined
                     }
                   >
+                    {version && viewerReadOnly && !inHistory ? (
+                      <ViewerBanner version={version} />
+                    ) : null}
                     {version && viewingVersion !== null && !inHistory ? (
                       <VersionBanner
                         version={version}
@@ -954,6 +969,7 @@ export const Editor = ({
                         }}
                       />
                     ) : null}
+                    {loadingOn ? <LoadingCanvas /> : null}
                     <ForEachInstanceScope>
                       <FlowCanvas
                         flowId={flowId}
@@ -991,7 +1007,7 @@ export const Editor = ({
                       />
                     ) : null}
                   </div>
-                  {inHistory ? (
+                  {loadingOn ? null : inHistory ? (
                     openRun && history ? (
                       // A selected step shows its outputs; otherwise the run's log (minimal log, 4 Nov).
                       needsReviewTake?.startsWith("r2-") ? (
@@ -1016,6 +1032,19 @@ export const Editor = ({
                   ) : viewingVersion === null ? (
                     ui.fixOpen && !ui.selectedId && toFix.length > 0 ? (
                       <FixPanel items={toFix} />
+                    ) : viewerReadOnly ? (
+                      <div
+                        // @ts-expect-error -- `inert` is not in this React's typings yet
+                        inert=""
+                        data-viewer-disabled
+                        className={css({
+                          display: "flex",
+                          alignSelf: "stretch",
+                          opacity: "[0.6]",
+                        })}
+                      >
+                        <PropertiesPanel />
+                      </div>
                     ) : (
                       <PropertiesPanel />
                     )
