@@ -44,3 +44,13 @@ export const generatedFilteredWorkersPath = ({
   flowDefinitionEntityIds: EntityId[];
 }) =>
   `/workers?${flowDefinitionEntityIds.map((flowDefinitionEntityId) => `${workerFlowFilterParam}=${encodeURIComponent(flowDefinitionEntityId)}`).join("&")}`;
+
+export const flowTriggersFlowFilterParam = "flow";
+
+/** The Triggers page, filtered to one flow's triggers. */
+export const generateFlowTriggersPath = ({
+  flowDefinitionEntityId,
+}: {
+  flowDefinitionEntityId: EntityId;
+}) =>
+  `/flows/triggers?${flowTriggersFlowFilterParam}=${encodeURIComponent(flowDefinitionEntityId)}`;
