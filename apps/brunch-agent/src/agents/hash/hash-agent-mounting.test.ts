@@ -387,7 +387,7 @@ test("only the HASH agent is guided to its graph: the skill, the system prompt's
     "Read it first, before hash_count_entities, hash_query_entities and hash_query_entity_types.",
   );
   expect(mounted.descriptions.get(brunchTools.hashQueryEntityTypes)).toContain(
-    "Filter by the entityTypeIds of entities you read with hash_query_entities or counted with hash_count_entities; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists every type the user can see, up to the graph's limit of 1,000: a read whose text would exceed about 20,000 tokens is refused whole, showing how large it would have been and how to narrow it.",
+    "Filter by entityTypeIds (from hash_query_entities or hash_count_entities) or by titles; webIds rarely help, since most types live in HASH's shared webs. Pages hold at most limit types (default 50, max 1,000) and return a cursor when more may match.",
   );
   expect(mounted.descriptions.get(brunchTools.hashQueryEntities)).toContain(
     "Read webs with hash_query_webs first; read the types of the entities found with hash_query_entity_types, by their entityTypeIds",

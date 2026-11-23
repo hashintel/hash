@@ -32,7 +32,6 @@ import {
   failBrowserCall,
   settleBrowserCall,
 } from "../../shared/conversation/browser-call-rendezvous.ts";
-import { hashEntityReadEmptyNote } from "./tools/hash-graph-reads.ts";
 
 // Only the Flue build packages skills; the read doesn't depend on their content.
 vi.mock("./skills/eliciting/SKILL.md", () => ({
@@ -331,7 +330,9 @@ test("a read that finds nothing the user may see shows the model the empty resul
   });
   await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
 
-  expect(seen).toBe(hashEntityReadEmptyNote);
+  expect(seen).toBe(
+    "No entities matched that the signed-in user can see. One may still exist but be hidden from them, archived (pass includeArchived: true), a draft (pass includeDrafts: true), or filed under another type title or web; only the webIds named were read.",
+  );
 });
 
 test("a read the page fails reaches the model as a tool error that left the document unchanged", async () => {
@@ -538,12 +539,13 @@ test("the entity count is offered, issued as a read in a fresh conversation with
   expect(declared).toContain(brunchTools.hashCountEntities);
   expect(seen).toBe(
     [
-      "entities: 1234",
+      "entities: 1,234",
       "webs counted: the webIds named",
+      "filters: drafts excluded (pass includeDrafts: true), archived excluded (pass includeArchived: true)",
       "by entity type:",
-      `- 1234 Sales Order: ${salesOrder}`,
+      `- 1,234 Sales Order: ${salesOrder}`,
       "by web:",
-      '- 1200 user "Alice" @alice webId: alice-web',
+      '- 1,200 user "Alice" @alice webId: alice-web',
       '- 34 organization "Acme" @acme webId: org-web',
     ].join("\n"),
   );
@@ -597,21 +599,23 @@ test("an entity read asking for an entity's full values is issued as asked, and 
   expect(part.seen).toMatch(/definition_object: <object, /);
 });
 
-test("the type read settled as truncated tells the model more may match than it shows", async () => {
-  const note = "More may match than shown; narrow the filter.";
+test("a full page of the type read shows the model its cursor, and the last page says nothing of more", async () => {
+  const cursor = supplierType.entityTypeId;
   const output = { entityTypes: [supplierType] };
-  const truncated = await readOnce(
+  const paged = await readOnce(
     brunchTools.hashQueryEntityTypes,
-    {},
+    { limit: 25 },
     {
       ...output,
-      truncated: true,
+      cursor,
     },
   );
-  expect(truncated.seen?.split("\n")[1]).toBe(note);
+  expect(paged.seen?.split("\n")[1]).toBe(
+    `This page is full (limit 25, max 1,000), so more entity types may match. To read the next page, repeat the same read with cursor: ${cursor}`,
+  );
 
   const whole = await readOnce(brunchTools.hashQueryEntityTypes, {}, output);
-  expect(whole.seen).not.toContain(note);
+  expect(whole.seen).not.toContain("more entity types may match");
 });
 
 test("a full page of the entity read shows the model its cursor, as given, and how to read the next page; the last page says nothing of more", async () => {
@@ -626,7 +630,7 @@ test("a full page of the entity read shows the model its cursor, as given, and h
   const [count, next, ...rest] = partial.seen?.split("\n") ?? [];
   expect(count).toBe("entities: 1");
   expect(next).toBe(
-    `This page is full, so more may match. To read the next page, repeat the same read with cursor: ${cursor}`,
+    `This page is full (limit 1, max 1,000), so more may match. To read the next page, repeat the same read with cursor: ${cursor}`,
   );
   expect(rest.join("\n")).toBe(supplierText.split("\n").slice(1).join("\n"));
 
@@ -669,16 +673,19 @@ test("an entity read whose text would be too large reaches the model as a refusa
   });
   const lines = seen?.split("\n") ?? [];
   expect(lines[0]).toMatch(
-    /^Refused: this read's text would be about \d{2,3},\d{3} tokens, over the 20,000 a read may show, so none of it is shown and it gives no cursor\.$/u,
+    /^Refused: this read's text would be about \d{2,3},\d{3} tokens, over the 20,000 token limit \(default 20,000, max 60,000\), so none of it is shown and it gives no cursor\.$/u,
   );
   expect(lines.slice(1)).toEqual([
     "It held 3 entities: 2 matched and 1 reached by links.",
-    "Narrow it, then repeat it from the same cursor if it had one, so no match is skipped:",
+    "Narrow it (or raise maxTokens), then repeat it from the same cursor if it had one, so no match is skipped:",
+    expect.stringMatching(
+      /^- raise maxTokens \(up to 60,000; this result needs about \d{2,3},\d{3}\)$/u,
+    ),
     "- a smaller limit, then read the rest page by page",
     "- traversalDepth: 0, to leave out the entities reached by links",
     "- filters by entityTypes, webIds, entityIds or propertyEquals",
     "- properties, to show only those you need of each entity",
-    "- in fullValuesFor, { entityId, path } for the part of a large value you need, rather than the entity's id",
+    "- in fullValuesFor, { entityId, path, offset?, limit? } for the part or slice of a large value you need, rather than the entity's id",
   ]);
   expect(seen).not.toContain(cursor);
   expect(seen).not.toContain(supplier.entityId);
@@ -728,6 +735,7 @@ test("an entity count by a property value is issued as asked, and the model sees
     [
       "entities: 1",
       "webs counted: the user's own web and their organizations' webs (the default; name webIds to count in others)",
+      "filters: drafts excluded (pass includeDrafts: true), archived excluded (pass includeArchived: true)",
       `counted where: ${nameUrl} = "Acme Parts"`,
       "by entity type:",
       `- 1 Supplier: ${supplierTypeId}`,
@@ -779,10 +787,11 @@ test("an entity count across links is issued to the page as asked, and the model
   expect(seen?.split("\n")).toEqual([
     'entities: 1 (of 3 "Sales Order" read)',
     "webs counted: the user's own web and their organizations' webs (the default; name webIds to count in others)",
+    "filters: drafts excluded (pass includeDrafts: true), archived excluded (pass includeArchived: true)",
     'where: following "Has Line Item" (outgoing), then Fulfills (incoming) reaches no entity',
     'groups, by the entity one "Has Customer" (outgoing) link away (an entity linked to several is counted under each, so these may sum to more than the total):',
     '- 1 "Acme" entityId: acme-web~c1',
-    "examples (1 of 1):",
+    "examples (1 of 1; pass maxExamples up to 100, or 0 for none):",
     '- "SO-1" entityId: acme-web~o1',
     'read: 3 "Sales Order", 4 "Has Line Item" links, 2 Fulfills links, 3 "Has Customer" links, 1 grouped entity, in 12 graph requests',
   ]);
@@ -794,7 +803,6 @@ test("an entity count across links that stopped part-way reaches the model as in
     salesOrdersUndeliveredByCustomer,
     {
       outcome: "incomplete",
-      webScope: "default",
       reason:
         "Reading the Fulfills links failed on page 2: HASH didn't respond in time.",
       reads: salesOrderJoinReads,
@@ -805,7 +813,7 @@ test("an entity count across links that stopped part-way reaches the model as in
     "Incomplete: no count. Reading the Fulfills links failed on page 2: HASH didn't respond in time.",
     "What was read is not all there is, so it is not an answer: report no count, group or example from it.",
     'Read before it stopped: 3 "Sales Order", 4 "Has Line Item" links, 2 Fulfills links, 3 "Has Customer" links, in 9 graph requests.',
-    "Repeat the count; if it stops again, narrow it by webIds or propertyEquals, or tell the user the count couldn't be completed.",
+    "Repeat the count; if it stops again, narrow it by webIds or propertyEquals, raise maxJoinEntities (up to 100,000), or tell the user the count couldn't be completed.",
   ]);
 });
 

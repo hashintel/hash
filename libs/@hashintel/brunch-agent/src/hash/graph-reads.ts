@@ -687,8 +687,6 @@ const hashEntityTypeSchema = v.object({
 export const hashEntityTypeReadResultSchema = v.object({
   entityTypes: v.array(hashEntityTypeSchema),
   cursor: v.optional(v.pipe(v.string(), v.minLength(1))),
-  /** Deprecated: retained temporarily while browser/agent transition to `cursor`. */
-  truncated: v.optional(v.literal(true)),
 });
 
 export type HashEntityTypeReadResult = v.InferOutput<
