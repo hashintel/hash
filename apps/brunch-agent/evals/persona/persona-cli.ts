@@ -14,6 +14,7 @@ import {
   type PersonaRecord,
   type PersonaTranscriptEntry,
 } from "./rpc-protocol.ts";
+import { formatPersonaQuestions } from "./shared/format-persona-questions.ts";
 
 export const personaSocketVariable = "BRUNCH_PERSONA_SOCKET";
 
@@ -23,6 +24,9 @@ export const personaCliUsage = `Usage: persona <command> [arguments] [--json]
                       reply. Runs once, before any say.
   say <text>          Send one message through the browser and print Brunch's reply.
                       Reads the message from stdin when no text is given.
+  answer <a1> <a2>…   Answer the questions Brunch put on its message box: one
+                      argument each, in order, "" to skip one. An answer that
+                      is an option's label picks that option.
   state               Print the conversation state as JSON.
   transcript          Print the conversation so far.
   end [reason]        End the conversation and close the run.
@@ -84,6 +88,9 @@ export const personaCommandFromArguments = async (
     case "say":
       // Heredocs end in a newline the person never typed.
       return { type: "prompt", message: text ?? (await stdin()).trimEnd() };
+    case "answer":
+      // Each argument is one question's answer; they are not joined.
+      return { type: "answer", answers: rest };
     case "state":
       return { type: "get_state" };
     case "transcript":
@@ -123,7 +130,8 @@ export const formatPersonaResult = (
   if (!response.success) throw new Error(response.error);
   switch (command.type) {
     case "open":
-    case "prompt": {
+    case "prompt":
+    case "answer": {
       const settled = records.find((record) => record.type === "turn_settled");
       if (settled?.outcome !== "replied")
         throw new Error(
@@ -131,10 +139,17 @@ export const formatPersonaResult = (
         );
       const reply = records
         .flatMap((record) =>
-          record.type === "assistant_message" ? [record.text] : [],
+          record.type === "assistant_message"
+            ? [
+                record.text,
+                ...(record.questions?.length
+                  ? [formatPersonaQuestions(record.questions)]
+                  : []),
+              ]
+            : [],
         )
         .join("\n\n");
-      if (command.type === "prompt") return reply;
+      if (command.type !== "open") return reply;
       // The opening is the persona's own first message; show it as sent.
       const sent = records.find((record) => record.type === "turn_start");
       return `You: ${sent?.type === "turn_start" ? sent.message : ""}\n\nBrunch: ${reply}`;

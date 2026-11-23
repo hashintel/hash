@@ -55,3 +55,23 @@ test("accepts known commands and answers invalid input the way Pi does", () => {
     response: { id: "3", command: "steer", success: false },
   });
 });
+
+test("answer takes one answer per question and needs at least one that isn't blank", () => {
+  expect(
+    parsePersonaCommand('{"type":"answer","answers":["Stays open","","Yes"]}'),
+  ).toEqual({
+    ok: true,
+    command: { type: "answer", answers: ["Stays open", "", "Yes"] },
+  });
+  expect(
+    parsePersonaCommand('{"id":"4","type":"answer","answers":[""," "]}'),
+  ).toMatchObject({
+    ok: false,
+    response: {
+      id: "4",
+      command: "answer",
+      success: false,
+      error: "Expected at least one answer",
+    },
+  });
+});
