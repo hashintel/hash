@@ -69,10 +69,7 @@ export const ScenariosView = () => {
         }
       />
 
-      <ViewScenarioDrawer
-        onClose={closeDrawer}
-        scenario={selectedScenario}
-      />
+      <ViewScenarioDrawer onClose={closeDrawer} scenario={selectedScenario} />
     </SimulateSubviewFrame>
   );
 };
