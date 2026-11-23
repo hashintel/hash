@@ -806,16 +806,19 @@ export const LeftPanel = ({
             />
             <span className={headerTitleStyle}>Add step</span>
           </div>
-          <Button
-            size="sm"
-            className={addHeaderButtonStyle}
-            variant="ghost"
-            key="panel-close"
-            iconName="close"
-            aria-label="Close"
-            data-panel-close
-            onClick={() => setUi((state) => ({ ...state, leftPanel: "steps" }))}
-          />
+          {/* The same 32 px row as the title, so × sits on Back's centre line. */}
+          <div className={css({ display: "flex", alignItems: "center", height: "[32px]" })}>
+            <Button
+              size="sm"
+              className={addHeaderButtonStyle}
+              variant="ghost"
+              key="panel-close"
+              iconName="close"
+              aria-label="Close"
+              data-panel-close
+              onClick={() => setUi((state) => ({ ...state, leftPanel: "steps" }))}
+            />
+          </div>
         </div>
       ) : (
         <div

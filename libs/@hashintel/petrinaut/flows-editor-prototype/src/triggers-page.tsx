@@ -1209,6 +1209,11 @@ const TriggerForm = ({
   const set = (key: keyof Values) => (value: string | null) =>
     setValues((current) => ({ ...current, [key]: value ?? current[key] }));
   const [runNow, setRunNow] = useState(false);
+  // A trigger opened from the flow's panel or a link brings its form into view.
+  useEffect(() => {
+    const forms = globalThis.document.querySelectorAll("[data-trigger-form]");
+    forms[forms.length - 1]?.scrollIntoView({ block: "nearest" });
+  }, []);
   const flow = flows.find((candidate) => candidate.id === values.flowId);
   const day = repeatDay(trigger);
   const defaultPage = defaultSchedulePage() && kind === "schedule";

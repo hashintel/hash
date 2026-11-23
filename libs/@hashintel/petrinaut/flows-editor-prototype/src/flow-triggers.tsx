@@ -69,6 +69,9 @@ type FlowTriggers = {
   hidden: number;
 };
 
+/** Monthly supplier review's triggers in webs nobody here can view: the panel, its scale view and the Triggers page all say this many. */
+const hiddenTriggerCount: number = 1;
+
 const supplierReviewTriggers: FlowTriggers = {
   manual: true,
   items: [
@@ -114,7 +117,7 @@ const supplierReviewTriggers: FlowTriggers = {
       ],
     },
   ],
-  hidden: 1,
+  hidden: hiddenTriggerCount,
 };
 
 /**
@@ -1033,8 +1036,7 @@ const ScaleTriggerRow = ({
       {row.label}
       {row.web ? (
         <span className={css({ color: "neutral.fg.muted" })}>
-          {" "}
-          · {row.web}
+          , {row.web}
         </span>
       ) : null}
     </span>
@@ -1304,8 +1306,8 @@ const TriggersPanelAtScale = () => {
               color: "neutral.fg.muted",
             })}
           >
-            <Icon name="lockClosed" size="sm" />6 more triggers in webs you
-            can&apos;t view
+            <Icon name="lockClosed" size="sm" />
+            {hiddenTriggerCount} more trigger{hiddenTriggerCount === 1 ? "" : "s"} in a web you can&apos;t view
           </span>
         ) : null}
         <span

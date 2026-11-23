@@ -134,6 +134,8 @@ const hoverWrapStyle = css({
     transition: "[opacity 120ms ease]",
   },
   "&:hover [data-copy-id], & [data-copy-id][data-copied]": { pointerEvents: "auto" },
+  // While the icon shows, what follows the ID steps aside (20 px icon, 4 px either side), so the date stays readable.
+  "&:hover, &:has([data-copy-id]:focus-visible), &:has([data-copied])": { marginRight: "[28px]" },
   "& [data-copy-id]:focus-visible, & [data-copy-id][data-copied]": { opacity: "1" },
   "&[data-take=h1] , &[data-take=h1t]": {
     ":is(tr, [role=menuitem], [data-highlighted], [data-run-id-row]):hover &": { "& [data-copy-id]": { opacity: "1" } },

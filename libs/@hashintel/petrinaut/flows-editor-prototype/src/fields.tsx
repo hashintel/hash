@@ -606,8 +606,16 @@ const showEngineNotes = new URLSearchParams(globalThis.location.search).has(
   "debug",
 );
 
+const singleLineStyle: React.CSSProperties = {
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  overflowWrap: "normal",
+  textOverflow: "ellipsis",
+};
+
 export const MentionField = ({ step, input, entry }: FieldProps) => {
   const { document, setDocument, ui, setUi } = useEditor();
+  const single = input.size === "short";
   const editorRef = useRef<HTMLDivElement>(null);
   const fieldRef = useRef<HTMLDivElement>(null);
   const key = fieldKey(step.stepId, input.name);
@@ -814,7 +822,29 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
         contentEditable
         suppressContentEditableWarning
         className={editorClass}
+        // A short input is one line: it does not wrap, take Enter or keep a pasted line break.
+        style={single ? singleLineStyle : undefined}
+        onBlur={
+          single
+            ? (event) => {
+                const field = event.currentTarget;
+                field.scrollLeft = 0;
+              }
+            : undefined
+        }
         data-placeholder="Type, or @ to use a value"
+        onPaste={
+          single
+            ? (event) => {
+                event.preventDefault();
+                globalThis.document.execCommand(
+                  "insertText",
+                  false,
+                  event.clipboardData.getData("text").replace(/\s*\n\s*/g, " "),
+                );
+              }
+            : undefined
+        }
         onInput={() => {
           const found = findMention();
           setMention(found ? { query: found.query } : null);
@@ -829,7 +859,9 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
           // A new line is a "\n" in the text, so the field keeps text nodes only (no <div> per line).
           if (event.key === "Enter" && !mention) {
             event.preventDefault();
-            globalThis.document.execCommand("insertText", false, "\n");
+            if (!single) {
+              globalThis.document.execCommand("insertText", false, "\n");
+            }
           }
         }}
       />

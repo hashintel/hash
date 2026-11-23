@@ -106,8 +106,9 @@ const caseStyle = css({
   position: "relative",
   gridColumn: "1 / -1",
   display: "grid",
-  gridTemplateColumns: "minmax(88px, 30%) minmax(0, 1fr)",
-  columnGap: "2",
+  // The first column is the panel's label column, where the condition chips start, so Goes to shares their left edge.
+  gridTemplateColumns: "var(--label-col, minmax(88px, 30%)) minmax(0, 1fr)",
+  columnGap: "[0]",
   rowGap: "2",
   alignItems: "center",
   paddingBottom: "3",
@@ -795,8 +796,9 @@ const pathHairlineStyle = css({
 const pathGroupsStyle = css({
   gridColumn: "1 / -1",
   display: "grid",
-  gridTemplateColumns: "minmax(88px, 30%) minmax(0, 1fr)",
-  columnGap: "2",
+  // The first column is the panel's label column, where the condition chips start, so Goes to shares their left edge.
+  gridTemplateColumns: "var(--label-col, minmax(88px, 30%)) minmax(0, 1fr)",
+  columnGap: "[0]",
   rowGap: "2",
   alignItems: "center",
 });
@@ -1196,8 +1198,9 @@ const layoutAddStyle = css({
 /** "Goes to" on the panel's grid: the label column, then the target. 16 px under the Add button. */
 const layoutTargetRowStyle = css({
   display: "grid",
-  gridTemplateColumns: "minmax(88px, 30%) minmax(0, 1fr)",
-  columnGap: "2",
+  // The first column is the panel's label column, where the condition chips start, so Goes to shares their left edge.
+  gridTemplateColumns: "var(--label-col, minmax(88px, 30%)) minmax(0, 1fr)",
+  columnGap: "[0]",
   alignItems: "center",
   marginTop: "2",
 });

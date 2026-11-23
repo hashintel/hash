@@ -743,7 +743,7 @@ export const ForEachBoxSwitch = ({ stepId }: { stepId: string }) => {
     return null;
   }
   return (
-    // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- keeps a click on the control off the box
+    // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- keeps a click on the control off the box
     <div
       className={`${css({ display: "flex", alignItems: "center", minWidth: "[0]" })} nodrag nopan`}
       data-foreach-switch={take}
