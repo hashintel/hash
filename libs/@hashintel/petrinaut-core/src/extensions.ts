@@ -194,11 +194,8 @@ type ArcTest = (arc: InputArc | OutputArc) => boolean;
  * A test for an arc whose place carries typed tokens: a coloured place of
  * `net`, a coloured port of a component, or a port that cannot be read yet.
  *
- * The first arc asked about makes it index the places of `net`, and every
- * answer reads that index. So a question that needs no place reads none, and
- * a test shared by a pass over the transitions of a net reads the places
- * once. The index holds the places as they were when it was made: share a
- * test once the places of the net are settled, and make a new one after a
+ * It indexes the places of `net` when it is made, so a test shared by a pass
+ * over the transitions of a net reads the places once. Make a new one after a
  * place joins or leaves the net.
  */
 const createTypedArcTest = (
@@ -206,17 +203,9 @@ const createTypedArcTest = (
   net: NetWithComponentInstances,
   options: ArcPlaceResolverOptions,
 ): ArcTest => {
-  let isTypedArc: ArcTest | undefined;
-
-  return (arc) => {
-    if (!isTypedArc) {
-      const resolveArcPlace = createArcPlaceResolver(sdcpn, net, options);
-      const isUnreadPort = createUnreadPortTest(net, options);
-      isTypedArc = (candidate) =>
-        resolveArcPlace(candidate)?.colorId != null || isUnreadPort(candidate);
-    }
-    return isTypedArc(arc);
-  };
+  const resolveArcPlace = createArcPlaceResolver(sdcpn, net, options);
+  const isUnreadPort = createUnreadPortTest(net, options);
+  return (arc) => resolveArcPlace(arc)?.colorId != null || isUnreadPort(arc);
 };
 
 const hasTypedNonInhibitorInput = (
@@ -226,11 +215,6 @@ const hasTypedNonInhibitorInput = (
   transition.inputArcs.some(
     (arc) => arc.type !== "inhibitor" && isTypedArc(arc),
   );
-
-const hasTypedOutput = (
-  transition: SDCPN["transitions"][number],
-  isTypedArc: ArcTest,
-): boolean => transition.outputArcs.some((arc) => isTypedArc(arc));
 
 /** Which code `transition` can have, given the test for a typed arc of its net. */
 const availabilityOf = (
@@ -248,7 +232,7 @@ const availabilityOf = (
     predicateLambda,
     stochasticLambda,
     transitionKernel:
-      extensions.colors && hasTypedOutput(transition, isTypedArc),
+      extensions.colors && transition.outputArcs.some(isTypedArc),
   };
 };
 
@@ -277,22 +261,6 @@ export const isTransitionLambdaAvailable = (
       libraries,
     }));
 
-export const isTransitionKernelAvailable = (
-  transition: SDCPN["transitions"][number],
-  sdcpn: SDCPN,
-  extensions: PetrinautExtensionSettings,
-  net: NetWithComponentInstances = sdcpn,
-  libraries?: ResolvedLibraries,
-): boolean =>
-  extensions.colors &&
-  hasTypedOutput(
-    transition,
-    createTypedArcTest(sdcpn, net, {
-      componentPortsEnabled: extensions.components,
-      libraries,
-    }),
-  );
-
 export type TransitionLogicAvailabilityReader = (
   transition: SDCPN["transitions"][number],
 ) => TransitionLogicAvailability;
@@ -303,9 +271,10 @@ export type TransitionLogicAvailabilityReader = (
  * indexed once for the pass, where a call per transition indexes them for
  * each transition.
  *
- * The index holds the places as they were at the first answer that needed
- * one. Make the reader once the places of the net are settled, and a new one
- * after a place joins or leaves the net.
+ * The index holds the places as they were when the reader was made, and
+ * none is made while colours are disabled. Make the reader once the places
+ * of the net are settled, and a new one after a place joins or leaves the
+ * net.
  */
 export const createTransitionLogicAvailabilityReader = (
   sdcpn: SDCPN,
@@ -313,10 +282,13 @@ export const createTransitionLogicAvailabilityReader = (
   net: NetWithComponentInstances = sdcpn,
   libraries?: ResolvedLibraries,
 ): TransitionLogicAvailabilityReader => {
-  const isTypedArc = createTypedArcTest(sdcpn, net, {
-    componentPortsEnabled: extensions.components,
-    libraries,
-  });
+  // An answer asks about arcs only while colours are enabled.
+  const isTypedArc = extensions.colors
+    ? createTypedArcTest(sdcpn, net, {
+        componentPortsEnabled: extensions.components,
+        libraries,
+      })
+    : () => false;
 
   return (transition) => availabilityOf(transition, extensions, isTypedArc);
 };
@@ -326,7 +298,7 @@ export const createTransitionLogicAvailabilityReader = (
  * the document's imports resolved to: without them, a port of a component of
  * an import counts as no place.
  *
- * A call that needs a place indexes every place of `net`. Inside this
+ * A call with colours enabled indexes every place of `net`. Inside this
  * package, a pass over the transitions of a net asks through one
  * `createTransitionLogicAvailabilityReader`.
  */
@@ -343,6 +315,16 @@ export const getTransitionLogicAvailability = (
     net,
     libraries,
   )(transition);
+
+export const isTransitionKernelAvailable = (
+  transition: SDCPN["transitions"][number],
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+  net: NetWithComponentInstances = sdcpn,
+  libraries?: ResolvedLibraries,
+): boolean =>
+  getTransitionLogicAvailability(transition, sdcpn, extensions, net, libraries)
+    .transitionKernel;
 
 export const getEffectiveTransitionLambdaType = (
   transition: SDCPN["transitions"][number],

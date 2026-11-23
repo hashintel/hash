@@ -1043,20 +1043,6 @@ describe("a pass over the transitions of a net", () => {
     },
   );
 
-  it("reads the places when the first answer needs them, and not again", () => {
-    const { sdcpn, placeIdReads } = createCountedNet(250);
-    const readAvailability = createTransitionLogicAvailabilityReader(
-      sdcpn,
-      allEnabled,
-    );
-    expect(placeIdReads()).toBe(0);
-
-    for (const transition of sdcpn.transitions) {
-      readAvailability(transition);
-    }
-    expect(placeIdReads()).toBe(3);
-  });
-
   it("reads no place when colours are disabled", () => {
     const { sdcpn, placeIdReads } = createCountedNet(250);
     const readAvailability = createTransitionLogicAvailabilityReader(sdcpn, {

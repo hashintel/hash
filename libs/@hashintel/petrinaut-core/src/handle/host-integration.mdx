@@ -702,15 +702,14 @@ Which code a transition can have depends on the places its arcs reach, and
 finding a place by its id takes an index of the places of the net. The rule:
 a pass over the transitions of a net builds that index once and asks about
 every transition through it. `createTransitionLogicAvailabilityReader` in
-`extensions.ts` is that one index for one net. It builds the index at the
-first answer that needs a place, so a net with colours disabled reads none.
-`getTransitionLogicAvailability` builds the index on every call. It answers
-for one transition: a loop over the transitions of a net asks through a
-reader.
+`extensions.ts` is that one index for one net. It builds no index when
+colours are disabled. `getTransitionLogicAvailability` builds the index on
+every call. It answers for one transition: a loop over the transitions of a
+net asks through a reader.
 
-A reader keeps the places as they were when it built its index. Each pass
-makes a reader of its own once the change has run, so a place that joined or
-left the net in that change counts, and no reader outlives its pass.
+A reader keeps the places as they were when it was made. Each pass makes a
+reader of its own once the change has run, so a place that joined or left the
+net in that change counts, and no reader outlives its pass.
 
 Two passes run on the main thread for a change and follow the rule:
 
