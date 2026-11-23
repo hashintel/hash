@@ -15,6 +15,7 @@ import {
 import { SectionList } from "../../../../../components/section";
 import { FocusControls } from "../../../../../worksheet/focus-controls";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
+import { scenarioFormContext } from "../scenarios/use-ad-hoc-scenario-authoring";
 import { SimulationPanel } from "../shared/simulation-panel";
 import {
   type ConstraintDraftsState,
@@ -123,11 +124,7 @@ export const CreateExperimentDrawer = ({
 
   // The net the ad-hoc form resolves names and types against, shared by the
   // form and by the sweep summary that reads its selections.
-  const adHocFormContext = {
-    netParameters: extensions.parameters ? petriNetDefinition.parameters : [],
-    places: petriNetDefinition.places,
-    types: extensions.colors ? petriNetDefinition.types : [],
-  };
+  const adHocFormContext = scenarioFormContext(extensions, petriNetDefinition);
   const sweepSummary = describeSweep({
     scenario: selectedScenario,
     paramInputs,
