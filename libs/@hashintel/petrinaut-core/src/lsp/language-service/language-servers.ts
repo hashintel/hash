@@ -7,6 +7,9 @@
  * `checker.ts` collects their diagnostics together with the HIR checks of
  * `check-hir.ts`. The worker in `../worker` serves the service over JSON-RPC;
  * the `diagnostics` package entry calls it directly, without a worker.
+ *
+ * One file also loads on the host: `../document-uris.ts` imports
+ * `file-paths.ts` at run time, and `file-paths.ts` imports nothing.
  */
 
 import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
