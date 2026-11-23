@@ -1,7 +1,7 @@
 import { motionValue, type MotionValue } from "motion";
 import { useRef, useState } from "react";
 
-import { bindStyle, type BoundStyle } from "../../../lib/readings";
+import { bindStyle, type BoundStyle } from "../../../shared/readings";
 import {
   defaultFloatingPanelLimits,
   resizeFloatingPanel,

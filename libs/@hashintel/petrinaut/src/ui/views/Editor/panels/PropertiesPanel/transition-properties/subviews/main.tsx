@@ -15,7 +15,7 @@ import { CompositionContext } from "../../../../../../../react/document/composit
 import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
 import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
-import { Section, SectionList } from "../../../../../../components/section";
+import { Section, SectionList } from "../../../../../../shared/section";
 import { portLabel, resolvePort } from "../../arc-endpoint";
 import { ArcItem, ArcList, type PlaceOption } from "../../arc-item";
 import { DeleteItemButton } from "../../delete-item-button";

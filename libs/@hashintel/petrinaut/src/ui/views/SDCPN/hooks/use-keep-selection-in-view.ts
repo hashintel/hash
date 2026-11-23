@@ -8,16 +8,16 @@ import {
 
 import { useEditorState } from "../../../../react/state/editor-context";
 import { usePanelTarget } from "../../../../react/state/use-selection";
+import { watch } from "../../../shared/readings";
 import {
   BOTTOM_BAR_GAP,
   BOTTOM_BAR_HEIGHT,
   VIEWPORT_CONTROLS_CLEARANCE,
-} from "../../../constants/ui";
+} from "../../../shared/ui-constants";
 import {
   sameInsets,
   type CanvasInsets,
-} from "../../../hooks/use-canvas-insets";
-import { watch } from "../../../lib/readings";
+} from "../../../shared/use-canvas-insets";
 import {
   isScenePointInView,
   revealBounds,

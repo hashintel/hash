@@ -23,9 +23,9 @@ import {
 import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { useUserSettings } from "../../../../../react/state/user-settings-context";
-import { KeptState } from "../../../../components/kept-state";
-import { PANEL_MARGIN } from "../../../../constants/ui";
 import { usePluginBottomPanelViews } from "../../../../plugins/use-plugin-bottom-panel-views";
+import { KeptState } from "../../../../shared/kept-state";
+import { PANEL_MARGIN } from "../../../../shared/ui-constants";
 import { DockedPanel } from "../../shared/docked-panel";
 import { fallbackBottomPanelTab } from "./fallback-tab";
 import {

@@ -38,8 +38,8 @@ import {
 } from "../../react/petrinaut-provider-layers";
 import { SimulationProvider } from "../../react/simulation/provider";
 import { SimulatorsProvider } from "../../react/simulators/provider";
-import { OverlayHost } from "../components/overlay-host";
 import { PetrinautPresentationProvider } from "../presentation/presentation-provider";
+import { OverlayHost } from "../shared/overlay-host";
 import { SDCPNView } from "../views/SDCPN/sdcpn-view";
 import { PetrinautIconProvider } from "../views/shared/icon-provider";
 import {

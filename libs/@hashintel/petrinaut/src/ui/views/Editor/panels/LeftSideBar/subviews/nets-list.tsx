@@ -8,8 +8,8 @@ import { ActiveNetContext } from "../../../../../../react/document/active-net-co
 import { usePetrinautDefinitionSelector } from "../../../../../../react/document/use-document";
 import { useIsReadOnly } from "../../../../../../react/editing/use-is-read-only";
 import { usePetrinautMutations } from "../../../../../../react/editing/use-petrinaut-mutations";
-import { ComponentGlyph } from "../../../../../components/component-glyph";
 import { usePetrinautPresentation } from "../../../../../presentation/presentation-context";
+import { ComponentGlyph } from "../../../../../shared/component-glyph";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
 import { UI_MESSAGES } from "../../../shared/ui-messages";

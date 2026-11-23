@@ -3,9 +3,9 @@ import { validateDisplayName } from "@hashintel/petrinaut-core";
 
 import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
 import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
-import { ColorSelect } from "../../../../../../components/color-select";
-import { SectionList } from "../../../../../../components/section";
 import { usePetrinautPresentation } from "../../../../../../presentation/presentation-context";
+import { ColorSelect } from "../../../../../../shared/color-select";
+import { SectionList } from "../../../../../../shared/section";
 import { UI_MESSAGES } from "../../../../shared/ui-messages";
 import { DescriptionField } from "../../description-field";
 import { DraftFieldInput } from "../../draft-field-input";

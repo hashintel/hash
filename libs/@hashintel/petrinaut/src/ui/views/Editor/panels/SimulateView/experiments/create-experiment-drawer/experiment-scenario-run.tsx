@@ -18,9 +18,9 @@ import {
   FormLayoutColumn,
   FormSectionHeader,
 } from "../../../../../../ad-hoc-scenario-form/ad-hoc-scenario-form";
-import { OverlayScrollArea } from "../../../../../../components/overlay-scroll-area";
-import { Section } from "../../../../../../components/section";
-import { StackedSections } from "../../../../../../components/stacked-sections";
+import { OverlayScrollArea } from "../../../../../../shared/overlay-scroll-area";
+import { Section } from "../../../../../../shared/section";
+import { StackedSections } from "../../../../../../shared/stacked-sections";
 import { scenarioExpressions } from "../../../../../shared/scenario-expressions";
 import { useScenarioRun } from "../../shared/use-scenario-run";
 import {

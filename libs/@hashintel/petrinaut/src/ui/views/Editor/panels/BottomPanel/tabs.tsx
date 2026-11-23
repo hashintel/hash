@@ -3,7 +3,7 @@ import { useRef } from "react";
 import { HelpTooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { useKeptScroll } from "../../../../lib/kept-state";
+import { useKeptScroll } from "../../../../shared/use-kept-state";
 
 import type { SubView } from "../../../../sub-view/types";
 

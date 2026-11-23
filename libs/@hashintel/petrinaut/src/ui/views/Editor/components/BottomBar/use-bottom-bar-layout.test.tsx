@@ -18,7 +18,7 @@ import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "../../../../../react/state/user-settings-context";
-import { nextFrame } from "../../../../lib/readings.test-helpers";
+import { nextFrame } from "../../../../shared/readings.test-helpers";
 import { useBottomBarLayout } from "./use-bottom-bar-layout";
 
 const laneRef = createRef<HTMLDivElement>();

@@ -12,8 +12,8 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useSDCPNState } from "../../react/document/sdcpn-context";
 import { usePetrinautDefinitionSelector } from "../../react/document/use-document";
 import { SimulationContext } from "../../react/simulation/context";
-import { ScrollFade } from "../components/scroll-fade";
-import { useScrollOverflow } from "../hooks/use-scroll-overflow";
+import { ScrollFade } from "../shared/scroll-fade";
+import { useScrollOverflow } from "../shared/use-scroll-overflow";
 import { clampSimulationParameterValue } from "./simulation-parameter-bounds";
 import { Slider } from "./slider";
 

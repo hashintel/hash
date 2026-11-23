@@ -1,4 +1,4 @@
-import { PlaceIcon } from "../../../../../constants/entity-icons";
+import { PlaceIcon } from "../../../../../shared/entity-icons";
 import { createDeferredSubView } from "../../../../../sub-view/deferred-sub-view";
 import { DeletePlaceAction, PlaceMainContent } from "./subviews/main";
 import {

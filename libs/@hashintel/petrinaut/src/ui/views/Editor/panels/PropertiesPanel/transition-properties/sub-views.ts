@@ -1,4 +1,4 @@
-import { TransitionIcon } from "../../../../../constants/entity-icons";
+import { TransitionIcon } from "../../../../../shared/entity-icons";
 import { createDeferredSubView } from "../../../../../sub-view/deferred-sub-view";
 import { DeleteTransitionAction, TransitionMainContent } from "./subviews/main";
 

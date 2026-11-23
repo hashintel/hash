@@ -16,7 +16,7 @@ import {
   EditorContext,
   EditorPublishedContext,
 } from "../../../../../../../react/state/editor-context";
-import { KeptState } from "../../../../../../components/kept-state";
+import { KeptState } from "../../../../../../shared/kept-state";
 import { EntityList } from "./entity-list";
 
 import type { EditorContextValue } from "../../../../../../../react/state/editor-context";

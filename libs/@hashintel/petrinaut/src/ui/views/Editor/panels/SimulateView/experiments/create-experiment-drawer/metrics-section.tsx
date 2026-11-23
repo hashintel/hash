@@ -10,7 +10,7 @@ import { Button, Checkbox, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
-import { Section } from "../../../../../../components/section";
+import { Section } from "../../../../../../shared/section";
 import { FocusControls } from "../../../../../../worksheet/focus-controls";
 import { createMetricKindGroups } from "../../metrics/metric-picker-options";
 import {

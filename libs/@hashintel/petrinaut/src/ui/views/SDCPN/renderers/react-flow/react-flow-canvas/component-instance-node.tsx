@@ -5,7 +5,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { componentInstanceHeaderHeight } from "@hashintel/petrinaut-core";
 
 import { useEditorActions } from "../../../../../../react/state/editor-context";
-import { ComponentGlyph } from "../../../../../components/component-glyph";
+import { ComponentGlyph } from "../../../../../shared/component-glyph";
 import { nodeFocusStyle } from "../../../styles/focus";
 import {
   iconContainerBaseStyle,

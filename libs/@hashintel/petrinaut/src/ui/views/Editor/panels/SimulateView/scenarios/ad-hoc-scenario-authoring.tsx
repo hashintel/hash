@@ -15,9 +15,9 @@ import {
   AdHocScenarioForm,
   FormLayoutColumn,
 } from "../../../../../ad-hoc-scenario-form/ad-hoc-scenario-form";
-import { OverlayScrollArea } from "../../../../../components/overlay-scroll-area";
-import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
+import { OverlayScrollArea } from "../../../../../shared/overlay-scroll-area";
+import { Section, SectionList } from "../../../../../shared/section";
 import { DrawerErrorDisplay } from "../drawer-error-display";
 import {
   overlayScrollDrawerBodyStyle,

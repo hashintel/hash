@@ -23,7 +23,7 @@ import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context"
 import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
 import { useMutationRefusal } from "../../../../../../../react/editing/use-mutation-refusal";
 import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
-import { Section, SectionList } from "../../../../../../components/section";
+import { Section, SectionList } from "../../../../../../shared/section";
 import { hintTextStyle } from "../../../../shared/hint-text";
 import { UI_MESSAGES } from "../../../../shared/ui-messages";
 import { implementationItems } from "../../../implementation-items";

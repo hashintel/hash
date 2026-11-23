@@ -13,8 +13,8 @@ written directly.
 ![A drag or a slide sets a Motion value, and each element that follows it writes its own style once per frame. A drag renders its panel when it starts and when it ends, and no component between.](./panel-geometry.d2)
 
 The values live in this layer. The helpers that read them are UI code:
-`styleRef`, `bindStyle`, `watch` and `useReading` in `ui/lib/readings.ts`,
-`useCanvasInsetsReader` in `ui/hooks/use-canvas-insets.ts`, and
+`styleRef`, `bindStyle`, `watch` and `useReading` in `ui/shared/readings.ts`,
+`useCanvasInsetsReader` in `ui/shared/use-canvas-insets.ts`, and
 `slideFromEdge` and `useFloatingPanel` in `ui/views/Editor/shared`.
 
 ## Motion values, and where they stop
@@ -24,7 +24,7 @@ The values live in this layer. The helpers that read them are UI code:
 `styleEffect` writes values onto an element's style once per frame,
 `transformValue` computes a value from the values it reads, and
 `animateValue` takes a number from one value to another over time. UI code
-reaches `styleEffect` and `transformValue` through `ui/lib/readings.ts`.
+reaches `styleEffect` and `transformValue` through `ui/shared/readings.ts`.
 
 Use a Motion value for a number of the UI's own that changes on every pointer
 move or frame and that elements follow: a size, an offset, a position, how far
@@ -73,9 +73,9 @@ The rules of a reading:
   When one changes, the component renders, the ref is attached again and the
   style is written with the new value.
 - A style is written when the element attaches, and from then on once per
-  frame in which a reading changed. Held by `ui/lib/readings.test.tsx`.
+  frame in which a reading changed. Held by `ui/shared/readings.test.tsx`.
 - `watch` and `useReading` hear of a Motion value at once, and of a function
-  once per frame. Held by `ui/lib/readings.test.tsx`.
+  once per frame. Held by `ui/shared/readings.test.tsx`.
 - Properties go by the names Motion takes: `width`, `marginLeft`,
   `--a-custom-property`. A number is in pixels where CSS takes a length.
 - `styleRef` must not set a property that the element's React `style` prop

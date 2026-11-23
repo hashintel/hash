@@ -5,7 +5,7 @@ import { afterEach, expect, it } from "vitest";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
 
-import { OverlayHost } from "../components/overlay-host";
+import { OverlayHost } from "../shared/overlay-host";
 import { ReorderableRows } from "./reorderable-rows";
 
 afterEach(cleanup);

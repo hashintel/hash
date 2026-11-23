@@ -22,7 +22,7 @@ export type {
 } from "./react/optimizations/connected-optimizer-context";
 export { PetrinautOptimizationContext } from "./react/optimizations/connected-optimizer-context";
 
-export type { PetrinautSlots } from "./ui/types/petrinaut-slots";
+export type { PetrinautSlots } from "./ui/petrinaut-slots";
 export type {
   PetrinautNavigationAction,
   PetrinautNavigationController,

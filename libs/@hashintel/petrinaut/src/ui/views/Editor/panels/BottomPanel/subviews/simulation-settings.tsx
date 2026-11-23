@@ -22,8 +22,8 @@ import {
   FormLayoutColumn,
   FormSectionHeader,
 } from "../../../../../ad-hoc-scenario-form/ad-hoc-scenario-form";
-import { OverlayScrollArea } from "../../../../../components/overlay-scroll-area";
-import { StackedSections } from "../../../../../components/stacked-sections";
+import { OverlayScrollArea } from "../../../../../shared/overlay-scroll-area";
+import { StackedSections } from "../../../../../shared/stacked-sections";
 import { FocusControls } from "../../../../../worksheet/focus-controls";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
 import { scenarioExpressions } from "../../../../shared/scenario-expressions";

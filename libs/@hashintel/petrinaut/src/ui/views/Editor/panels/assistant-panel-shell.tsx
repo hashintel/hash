@@ -11,14 +11,14 @@ import {
 import { usePanelPresence } from "../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
 import { useUserSettings } from "../../../../react/state/user-settings-context";
-import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
-import { styleRef, useReading } from "../../../lib/readings";
 import {
   type AssistantPanel,
   AssistantPanelContext,
   AssistantTitleBarContext,
   useAssistantChoice,
 } from "../../../plugins/plugin-assistant";
+import { AiAssistantIcon } from "../../../shared/ai-assistant-icon";
+import { styleRef, useReading } from "../../../shared/readings";
 import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
 import { slideFromEdge } from "../shared/slide-from-edge";
 import { useFloatingPanel } from "../shared/use-floating-panel";

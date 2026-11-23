@@ -28,7 +28,7 @@ vi.mock("@xyflow/react", () => ({
   useViewport: () => canvas.viewport,
   useStore: (selector: (state: typeof canvas) => unknown) => selector(canvas),
 }));
-vi.mock("../../../../../../hooks/use-canvas-insets", () => ({
+vi.mock("../../../../../../shared/use-canvas-insets", () => ({
   useCanvasInsets: () => canvas.insets,
 }));
 vi.mock("@hashintel/ds-components", () => ({

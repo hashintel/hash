@@ -48,7 +48,7 @@ import {
 import { LanguageClientContext } from "../../react/lsp/context";
 import { useLspSession } from "../../react/lsp/use-lsp-session";
 import { usePublished } from "../../react/shared/select-from-context";
-import { Section, SectionList } from "../components/section";
+import { Section, SectionList } from "../shared/section";
 import { FocusControls } from "../worksheet/focus-controls";
 import { FocusStack } from "../worksheet/focus-stack";
 import { useFocusClearance } from "../worksheet/use-focus-clearance";

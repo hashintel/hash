@@ -3,8 +3,8 @@ import { cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { useEditorActions } from "../../../../../react/state/editor-context";
-import { nextFrame } from "../../../../lib/readings.test-helpers";
 import { renderPlugins } from "../../../../plugins/plugins-test-harness";
+import { nextFrame } from "../../../../shared/readings.test-helpers";
 import { LeftSideBar } from "./panel";
 
 vi.hoisted(() => {

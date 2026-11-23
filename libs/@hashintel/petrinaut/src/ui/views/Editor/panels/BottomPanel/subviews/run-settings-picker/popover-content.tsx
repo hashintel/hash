@@ -13,7 +13,7 @@ import {
   simulatorRefusal,
   SimulatorsContext,
 } from "../../../../../../../react/simulators/context";
-import { PointerHelpTooltip } from "../../../../../../components/pointer-help-tooltip";
+import { PointerHelpTooltip } from "../../../../../../shared/pointer-help-tooltip";
 import {
   SimulatorParameterInput,
   SimulatorParameterLabel,

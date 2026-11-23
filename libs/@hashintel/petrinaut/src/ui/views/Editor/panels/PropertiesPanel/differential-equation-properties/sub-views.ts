@@ -1,4 +1,4 @@
-import { DifferentialEquationIcon } from "../../../../../constants/entity-icons";
+import { DifferentialEquationIcon } from "../../../../../shared/entity-icons";
 import { DiffEqCodeAction, DiffEqMainContent } from "./subviews/main";
 
 import type { SubView } from "../../../../../sub-view/types";

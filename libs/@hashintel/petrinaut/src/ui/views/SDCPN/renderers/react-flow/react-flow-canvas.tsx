@@ -23,9 +23,9 @@ import {
 import { CanvasViewportContext } from "../../../../../react/state/canvas-viewport-context";
 import { useEditorState } from "../../../../../react/state/editor-context";
 import { useUserSettings } from "../../../../../react/state/user-settings-context";
-import { SNAP_GRID_SIZE } from "../../../../constants/ui";
-import { useCanvasInsetsReader } from "../../../../hooks/use-canvas-insets";
 import { usePetrinautPresentation } from "../../../../presentation/presentation-context";
+import { SNAP_GRID_SIZE } from "../../../../shared/ui-constants";
+import { useCanvasInsetsReader } from "../../../../shared/use-canvas-insets";
 import {
   readDraggedComponent,
   readDraggedNodeKind,

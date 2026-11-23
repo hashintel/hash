@@ -5,7 +5,7 @@ import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { PinIcon } from "@hashintel/ds-icons";
 
-import { useCanvasInsets } from "../../../../../../hooks/use-canvas-insets";
+import { useCanvasInsets } from "../../../../../../shared/use-canvas-insets";
 import { FloatingResizeHandles } from "../../../../../shared/floating-resize-handles";
 import { useVisualizerLayout } from "./visualizer-window/use-visualizer-layout";
 import { getVisualizerConnector } from "./visualizer-window/visualizer-layout";

@@ -7,11 +7,11 @@ import {
   usePetrinautNavigationState,
 } from "../../../../react/navigation/navigation";
 import { useEditorActions } from "../../../../react/state/editor-context";
-import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
-import { useCanvasInsetsReader } from "../../../hooks/use-canvas-insets";
-import { styleRef } from "../../../lib/readings";
 import { PluginToolbarItems } from "../../../plugins/plugin-outlets";
 import { usePetrinautPresentation } from "../../../presentation/presentation-context";
+import { styleRef } from "../../../shared/readings";
+import { VIEWPORT_CONTROLS_OFFSET } from "../../../shared/ui-constants";
+import { useCanvasInsetsReader } from "../../../shared/use-canvas-insets";
 import { useCanvasController } from "../canvas-renderer";
 
 const containerStyle = css({

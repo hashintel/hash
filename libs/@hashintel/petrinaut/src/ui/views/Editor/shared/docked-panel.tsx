@@ -2,8 +2,12 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { usePanelPresence } from "../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
-import { GlassPanel } from "../../../components/glass-panel";
-import { type BoundStyle, styleRef, useReading } from "../../../lib/readings";
+import { GlassPanel } from "../../../shared/glass-panel";
+import {
+  type BoundStyle,
+  styleRef,
+  useReading,
+} from "../../../shared/readings";
 import { docks, type DockName } from "./docks";
 import { slideFromEdge } from "./slide-from-edge";
 

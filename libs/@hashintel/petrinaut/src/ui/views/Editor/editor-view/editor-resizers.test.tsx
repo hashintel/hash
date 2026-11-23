@@ -4,7 +4,7 @@ import { afterEach, expect, it } from "vitest";
 
 import { createPanelPresence } from "../../../../react/state/panel-presence";
 import { PanelPresenceContext } from "../../../../react/state/panel-presence-context";
-import { nextFrame } from "../../../lib/readings.test-helpers";
+import { nextFrame } from "../../../shared/readings.test-helpers";
 import { EditorResizers } from "./editor-resizers";
 
 import type { DockName } from "../shared/docks";

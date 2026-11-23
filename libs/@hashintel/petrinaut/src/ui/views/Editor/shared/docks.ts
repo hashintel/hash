@@ -5,7 +5,7 @@ import {
   MIN_BOTTOM_PANEL_HEIGHT,
   MIN_LEFT_SIDEBAR_WIDTH,
   MIN_PROPERTIES_PANEL_WIDTH,
-} from "../../../constants/ui";
+} from "../../../shared/ui-constants";
 
 /**
  * The panels docked to an edge of the canvas: the edge each slides in from,

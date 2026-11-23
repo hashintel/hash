@@ -2,8 +2,8 @@ import { MiniMap as ReactFlowMiniMap, useStore } from "@xyflow/react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { useCanvasInsetsReader } from "../../../../../hooks/use-canvas-insets";
-import { bindStyle } from "../../../../../lib/readings";
+import { bindStyle } from "../../../../../shared/readings";
+import { useCanvasInsetsReader } from "../../../../../shared/use-canvas-insets";
 import { focusRoleClass, miniMapFocusColor } from "../../../styles/focus";
 import { miniMapPlaceFillColor } from "../../../styles/type-colors";
 

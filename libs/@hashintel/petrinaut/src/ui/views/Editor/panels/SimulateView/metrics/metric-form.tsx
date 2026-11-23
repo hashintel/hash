@@ -4,8 +4,8 @@ import { Form, TextArea, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { getMetricDocumentUri } from "@hashintel/petrinaut-core";
 
-import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
+import { Section, SectionList } from "../../../../../shared/section";
 
 import type { MetricFormInstance } from "./use-metric-form";
 

@@ -29,8 +29,6 @@ import {
 import { useCommandRegistry } from "../react/commands/command-registry";
 import { CommandRegistryProvider } from "../react/commands/command-registry-provider";
 import { PetrinautProvider } from "../react/petrinaut-provider";
-import { OverlayHost } from "./components/overlay-host";
-import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
 import { ResolvingOverlay } from "./petrinaut/resolving-overlay";
 import { useHeldNetManagement } from "./petrinaut/use-held-net-management";
@@ -38,13 +36,15 @@ import { documentViewPlugin } from "./plugins/document-view-plugin";
 import { fpsCounterPlugin } from "./plugins/fps-counter-plugin";
 import { PetrinautPluginsProvider } from "./plugins/plugins-provider";
 import { PetrinautPresentationProvider } from "./presentation/presentation-provider";
+import { OverlayHost } from "./shared/overlay-host";
+import { Stack } from "./shared/stack";
 import { noSlots, PetrinautSlotsContext } from "./slots-context";
 import { EditorView } from "./views/Editor/editor-view";
 
 import type { PetrinautNavigationController } from "../react/navigation/navigation";
+import type { PetrinautSlots } from "./petrinaut-slots";
 import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
 import type { PetrinautPresentationProfile } from "./presentation/presentation-context";
-import type { PetrinautSlots } from "./types/petrinaut-slots";
 
 // `clip`, not `hidden`: a hidden-overflow box is still programmatically
 // scrollable, and focusing an element the canvas transform pushed past the

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 
-import { KeptStateContext } from "../lib/kept-state";
+import { KeptStateContext } from "./use-kept-state";
 
 /**
  * Holds what the components below it keep while they are unmounted: the

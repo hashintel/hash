@@ -4,7 +4,7 @@ import { cx } from "@hashintel/ds-helpers/css";
 
 import { ActiveNetContext } from "../../../../../../../react/document/active-net-context";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
-import { problemTextStyle } from "../../../../../../constants/problem-severity";
+import { problemTextStyle } from "../../../../../../shared/problem-severity";
 import { countOf } from "./count-of";
 import { DiagnosticsGroup } from "./diagnostics-group";
 import {

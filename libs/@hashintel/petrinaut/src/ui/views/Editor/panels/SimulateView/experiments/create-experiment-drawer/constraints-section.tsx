@@ -11,8 +11,8 @@ import { getConstraintDocumentUri } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
 import { useLspSession } from "../../../../../../../react/lsp/use-lsp-session";
-import { Section } from "../../../../../../components/section";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
+import { Section } from "../../../../../../shared/section";
 import {
   addConstraintDraft,
   type ConstraintDraftsState,

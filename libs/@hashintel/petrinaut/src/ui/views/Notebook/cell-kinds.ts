@@ -9,7 +9,7 @@ import {
   PlaceIcon,
   TokenTypeIcon,
   TransitionIcon,
-} from "../../constants/entity-icons";
+} from "../../shared/entity-icons";
 
 import type { NotebookCellKind } from "./notebook-model";
 import type { ComponentType } from "react";

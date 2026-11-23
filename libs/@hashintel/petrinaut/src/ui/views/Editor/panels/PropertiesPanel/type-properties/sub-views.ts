@@ -1,4 +1,4 @@
-import { TokenTypeIcon } from "../../../../../constants/entity-icons";
+import { TokenTypeIcon } from "../../../../../shared/entity-icons";
 import { TypeMainContent } from "./subviews/main";
 
 import type { SubView } from "../../../../../sub-view/types";

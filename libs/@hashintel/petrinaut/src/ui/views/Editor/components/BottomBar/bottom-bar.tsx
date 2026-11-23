@@ -12,8 +12,8 @@ import {
   useEditorFields,
   useEditorMode,
 } from "../../../../../react/state/editor-context";
-import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
-import { BOTTOM_BAR_GAP } from "../../../../constants/ui";
+import { AiAssistantIcon } from "../../../../shared/ai-assistant-icon";
+import { BOTTOM_BAR_GAP } from "../../../../shared/ui-constants";
 import { BottomBarCollapseContext } from "./collapse-context";
 import { CollapsibleGroup } from "./collapsible-group";
 import { CursorModeDropdown } from "./cursor-mode-dropdown";

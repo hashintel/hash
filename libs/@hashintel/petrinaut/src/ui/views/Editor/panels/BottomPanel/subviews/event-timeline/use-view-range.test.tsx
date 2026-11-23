@@ -4,7 +4,7 @@ import { use } from "react";
 import { afterEach, expect, it } from "vitest";
 
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
-import { KeptState } from "../../../../../../components/kept-state";
+import { KeptState } from "../../../../../../shared/kept-state";
 import { useTimelineViewRange } from "./use-view-range";
 
 afterEach(cleanup);

@@ -16,9 +16,9 @@ import { createCommandRegistry } from "@hashintel/petrinaut-core";
 import { CommandRegistryProvider } from "../../../../react/commands/command-registry-provider";
 import { PetrinautNavigationProvider } from "../../../../react/navigation/navigation-provider";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
-import { nextFrame } from "../../../lib/readings.test-helpers";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import { renderPlugins } from "../../../plugins/plugins-test-harness";
+import { nextFrame } from "../../../shared/readings.test-helpers";
 import { PetrinautSlotsContext } from "../../../slots-context";
 import { UserSettings } from "./user-settings";
 

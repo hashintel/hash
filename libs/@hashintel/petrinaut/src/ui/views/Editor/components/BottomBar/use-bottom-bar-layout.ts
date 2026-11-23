@@ -1,11 +1,11 @@
 import { useLayoutEffect, useState } from "react";
 
-import { VIEWPORT_CONTROLS_CLEARANCE } from "../../../../constants/ui";
+import { bindStyle, useReading } from "../../../../shared/readings";
+import { VIEWPORT_CONTROLS_CLEARANCE } from "../../../../shared/ui-constants";
 import {
   useCanvasInsetsReader,
   type CanvasInsets,
-} from "../../../../hooks/use-canvas-insets";
-import { bindStyle, useReading } from "../../../../lib/readings";
+} from "../../../../shared/use-canvas-insets";
 import { useElementSize } from "../../../../shared/use-element-size";
 import { fitsWithinBounds, getBottomBarOffset } from "./bottom-bar-placement";
 import {

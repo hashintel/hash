@@ -1,7 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 
 import { usePanelTarget } from "../../react/state/use-selection";
-import { GlassPanel } from "../components/glass-panel";
+import { GlassPanel } from "../shared/glass-panel";
 import { SelectedItemProperties } from "../views/Editor/panels/PropertiesPanel/selected-item-properties";
 
 // Docked beside the canvas like the editor's inspector: a flat bordered

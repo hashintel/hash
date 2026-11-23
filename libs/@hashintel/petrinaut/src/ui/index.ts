@@ -33,4 +33,4 @@ export type {
 export { isSDCPNEqual } from "@hashintel/petrinaut-core";
 
 // Slots — named locations into which the host can inject arbitrary React components.
-export type { PetrinautSlots } from "./types/petrinaut-slots";
+export type { PetrinautSlots } from "./petrinaut-slots";

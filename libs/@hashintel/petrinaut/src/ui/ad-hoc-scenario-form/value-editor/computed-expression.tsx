@@ -4,7 +4,7 @@ import { useLayoutEffect, useState } from "react";
 import { usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { OverlayScrollArea } from "../../components/overlay-scroll-area";
+import { OverlayScrollArea } from "../../shared/overlay-scroll-area";
 
 const expressionStyle = css({
   position: "fixed",

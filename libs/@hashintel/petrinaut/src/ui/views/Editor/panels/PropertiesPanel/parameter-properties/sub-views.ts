@@ -1,4 +1,4 @@
-import { ParameterIcon } from "../../../../../constants/entity-icons";
+import { ParameterIcon } from "../../../../../shared/entity-icons";
 import { ParameterMainContent } from "./subviews/main";
 
 import type { SubView } from "../../../../../sub-view/types";

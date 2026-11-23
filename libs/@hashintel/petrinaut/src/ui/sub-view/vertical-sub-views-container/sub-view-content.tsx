@@ -3,8 +3,11 @@ import { useState } from "react";
 import { useAvoidScrollWidthChange } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { useScrollOverflow } from "../../hooks/use-scroll-overflow";
-import { MountsScrolledContext, useKeptScroll } from "../../lib/kept-state";
+import {
+  MountsScrolledContext,
+  useKeptScroll,
+} from "../../shared/use-kept-state";
+import { useScrollOverflow } from "../../shared/use-scroll-overflow";
 
 import type { SubView } from "../types";
 

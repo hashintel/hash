@@ -3,7 +3,7 @@ import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { CODE_FONT_FAMILY } from "../constants/ui";
+import { CODE_FONT_FAMILY } from "../shared/ui-constants";
 import { MonacoContext } from "./context";
 import { releaseReplacedModels } from "./release-replaced-models";
 

@@ -1,7 +1,7 @@
 import { use } from "react";
 
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
-import { useKeptState } from "../../../../../../lib/kept-state";
+import { useKeptState } from "../../../../../../shared/use-kept-state";
 import { MIN_VIEW_SPAN } from "./interactions";
 
 import type { TimeRange } from "./use-event-timeline-data";

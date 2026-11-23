@@ -13,7 +13,7 @@ import { useEditorActions } from "../../../../../../../react/state/editor-contex
 import {
   MountsScrolledContext,
   useKeptState,
-} from "../../../../../../lib/kept-state";
+} from "../../../../../../shared/use-kept-state";
 import { focusLands } from "../../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../../worksheet/use-focus-stops";
 import { entitiesMountedFirst, selectionItemOf } from "./entity-groups";

@@ -18,8 +18,8 @@ import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context"
 import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
 import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
-import { Section, SectionList } from "../../../../../../components/section";
-import { problemTextStyle } from "../../../../../../constants/problem-severity";
+import { problemTextStyle } from "../../../../../../shared/problem-severity";
+import { Section, SectionList } from "../../../../../../shared/section";
 import { hintTextStyle } from "../../../../shared/hint-text";
 import { UI_MESSAGES } from "../../../../shared/ui-messages";
 import { DeleteItemButton } from "../../delete-item-button";

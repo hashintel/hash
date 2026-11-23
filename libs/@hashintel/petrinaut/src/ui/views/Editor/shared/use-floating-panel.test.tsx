@@ -4,8 +4,8 @@ import { motionValue } from "motion";
 import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import { useReading } from "../../../lib/readings";
-import { nextFrame } from "../../../lib/readings.test-helpers";
+import { useReading } from "../../../shared/readings";
+import { nextFrame } from "../../../shared/readings.test-helpers";
 import { useFloatingPanel } from "./use-floating-panel";
 
 import type { FloatingResizeDirection } from "../../shared/floating-resize-handles";

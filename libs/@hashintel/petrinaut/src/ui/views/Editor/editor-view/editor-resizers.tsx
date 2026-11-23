@@ -3,12 +3,12 @@ import { css } from "@hashintel/ds-helpers/css";
 import { usePanelPresence } from "../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
 import { useUserSettings } from "../../../../react/state/user-settings-context";
+import { PanelResizer } from "../../../resize/panel-resizer";
+import { useReading } from "../../../shared/readings";
 import {
   MAX_AI_ASSISTANT_WIDTH,
   MIN_AI_ASSISTANT_WIDTH,
-} from "../../../constants/ui";
-import { useReading } from "../../../lib/readings";
-import { PanelResizer } from "../../../resize/panel-resizer";
+} from "../../../shared/ui-constants";
 import { docks, type DockName } from "../shared/docks";
 
 import type { ReactNode } from "react";

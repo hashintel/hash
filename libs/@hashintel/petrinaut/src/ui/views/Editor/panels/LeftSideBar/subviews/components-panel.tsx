@@ -16,8 +16,8 @@ import {
   useEditorActions,
   useEditorState,
 } from "../../../../../../react/state/editor-context";
-import { ComponentGlyph } from "../../../../../components/component-glyph";
-import { problemTextStyle } from "../../../../../constants/problem-severity";
+import { ComponentGlyph } from "../../../../../shared/component-glyph";
+import { problemTextStyle } from "../../../../../shared/problem-severity";
 import { writeDraggedComponent } from "../../../../shared/canvas-node-drag";
 
 const panelStyle = css({

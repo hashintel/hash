@@ -7,7 +7,7 @@ import {
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { problemStrokeColor } from "../../../../../constants/problem-severity";
+import { problemStrokeColor } from "../../../../../shared/problem-severity";
 import { arcHaloColor } from "../../../styles/focus";
 import { ARC_STROKE_WIDTH } from "./arc-head";
 import { fusionLoopPath } from "./fusion-loop-path";

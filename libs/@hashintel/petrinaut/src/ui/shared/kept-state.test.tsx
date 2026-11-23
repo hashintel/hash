@@ -3,12 +3,12 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use, useRef } from "react";
 import { afterEach, expect, it } from "vitest";
 
-import { KeptState } from "../components/kept-state";
+import { KeptState } from "./kept-state";
 import {
   MountsScrolledContext,
   useKeptScroll,
   useKeptState,
-} from "./kept-state";
+} from "./use-kept-state";
 
 afterEach(cleanup);
 

@@ -2,8 +2,8 @@ import { Tabs } from "@ark-ui/react/tabs";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { ScrollFade } from "../../../../../components/scroll-fade";
-import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
+import { ScrollFade } from "../../../../../shared/scroll-fade";
+import { useScrollOverflow } from "../../../../../shared/use-scroll-overflow";
 
 import type { PetrinautSettingsSection } from "../../../../../../react/navigation/navigation";
 import type { ReactNode, RefObject } from "react";

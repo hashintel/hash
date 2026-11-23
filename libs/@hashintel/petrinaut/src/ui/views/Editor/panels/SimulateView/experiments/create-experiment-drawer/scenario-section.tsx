@@ -3,7 +3,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { EMPTY_AD_HOC_STATE } from "@hashintel/petrinaut-core";
 
 import { AdHocScenarioForm } from "../../../../../../ad-hoc-scenario-form/ad-hoc-scenario-form";
-import { Section } from "../../../../../../components/section";
+import { Section } from "../../../../../../shared/section";
 import { FocusControls } from "../../../../../../worksheet/focus-controls";
 import { ExperimentScenarioRun } from "./experiment-scenario-run";
 import { fieldStyle } from "./form-field-styles";

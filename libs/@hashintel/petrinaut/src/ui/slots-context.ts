@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import type { PetrinautSlots } from "./types/petrinaut-slots";
+import type { PetrinautSlots } from "./petrinaut-slots";
 
 export const noSlots: PetrinautSlots = {};
 

@@ -1,4 +1,4 @@
-import { FusionIcon } from "../../../../../constants/entity-icons";
+import { FusionIcon } from "../../../../../shared/entity-icons";
 import {
   DeleteFusionAction,
   FusionMainContent,

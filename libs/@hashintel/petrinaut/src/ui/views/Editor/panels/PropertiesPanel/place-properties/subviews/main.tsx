@@ -17,7 +17,7 @@ import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-on
 import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
-import { Section, SectionList } from "../../../../../../components/section";
+import { Section, SectionList } from "../../../../../../shared/section";
 import { UI_MESSAGES } from "../../../../shared/ui-messages";
 import { DeleteItemButton } from "../../delete-item-button";
 import { DescriptionField } from "../../description-field";

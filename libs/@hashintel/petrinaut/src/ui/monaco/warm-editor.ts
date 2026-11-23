@@ -1,4 +1,4 @@
-import { CODE_FONT_FAMILY } from "../constants/ui";
+import { CODE_FONT_FAMILY } from "../shared/ui-constants";
 
 import type { MonacoContextValue } from "./context";
 import type { editor } from "monaco-editor";

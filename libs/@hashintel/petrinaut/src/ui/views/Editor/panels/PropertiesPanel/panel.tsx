@@ -16,7 +16,7 @@ import {
   useLastPanelTarget,
   usePanelTarget,
 } from "../../../../../react/state/use-selection";
-import { PANEL_MARGIN } from "../../../../constants/ui";
+import { PANEL_MARGIN } from "../../../../shared/ui-constants";
 import { DockedPanel } from "../../shared/docked-panel";
 import { SelectedItemProperties } from "./selected-item-properties";
 

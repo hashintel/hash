@@ -8,7 +8,7 @@ import {
 import { usePanelPresence } from "../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
 import { useUserSettings } from "../../../../react/state/user-settings-context";
-import { styleRef } from "../../../lib/readings";
+import { styleRef } from "../../../shared/readings";
 
 const selectorStyle = css({
   display: "flex",

@@ -3,8 +3,8 @@ import { useRef } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useIsReadOnly } from "../../../../react/editing/use-is-read-only";
-import { useDraftField } from "../../../hooks/use-draft-field";
 import { CodeEditor } from "../../../monaco/code-editor";
+import { useDraftField } from "../../../shared/use-draft-field";
 import { focusLands } from "../../../worksheet/focus-flow";
 import { fieldLabelStyle, fieldRowStyle, fieldValueStyle } from "./part-styles";
 

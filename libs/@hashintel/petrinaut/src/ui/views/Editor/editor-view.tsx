@@ -14,11 +14,11 @@ import {
   useEditorMode,
 } from "../../../react/state/editor-context";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
-import { Stack } from "../../components/stack";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
 import { useAssistantChoice } from "../../plugins/plugin-assistant";
 import { useCanvasRegistration } from "../../plugins/plugin-editor";
 import { PluginRoots } from "../../plugins/plugin-outlets";
+import { Stack } from "../../shared/stack";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { PetrinautIconProvider } from "../shared/icon-provider";

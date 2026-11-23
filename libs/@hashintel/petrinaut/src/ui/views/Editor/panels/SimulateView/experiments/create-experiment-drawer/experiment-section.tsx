@@ -1,6 +1,6 @@
 import { NumberInput, TextInput } from "@hashintel/ds-components";
 
-import { Section } from "../../../../../../components/section";
+import { Section } from "../../../../../../shared/section";
 import { FocusControls } from "../../../../../../worksheet/focus-controls";
 import { fieldStyle, gridStyle, labelStyle } from "./form-field-styles";
 

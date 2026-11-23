@@ -1,6 +1,6 @@
 import { dsIconsPandaPreset } from "@hashintel/ds-icons/panda-preset";
 
-import { CODE_FONT_FAMILY } from "./ui/constants/fonts";
+import { CODE_FONT_FAMILY } from "./ui/shared/fonts";
 
 /**
  * Petrinaut's Panda CSS theme extension, shared between:

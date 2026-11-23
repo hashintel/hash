@@ -1,7 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import { PointerHelpTooltip } from "../components/pointer-help-tooltip";
-import { StackedSectionHeader } from "../components/stacked-sections";
+import { PointerHelpTooltip } from "../shared/pointer-help-tooltip";
+import { StackedSectionHeader } from "../shared/stacked-sections";
 import { FocusStack } from "../worksheet/focus-stack";
 
 const headerStyle = css({

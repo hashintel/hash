@@ -4,7 +4,7 @@ import {
   PlaceIcon,
   TokenTypeIcon,
   TransitionIcon,
-} from "../../../../../../constants/entity-icons";
+} from "../../../../../../shared/entity-icons";
 
 import type { ActiveNetDefinition } from "../../../../../../../react/document/active-net-context";
 import type {
