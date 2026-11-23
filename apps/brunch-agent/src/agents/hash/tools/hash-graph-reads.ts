@@ -734,27 +734,18 @@ const unmatchedPropertyEqualsNote = (
         propertyValueTypeNote,
       ];
 
-const unreadEndpointNote = ({
-  includeArchived,
-  includeDrafts,
-}: {
-  includeArchived: boolean;
-  includeDrafts: boolean;
-}) => {
-  const reasons = [
-    "hidden from the user",
-    ...(includeArchived ? [] : ["archived"]),
-    ...(includeDrafts ? [] : ["a draft left out"]),
-  ];
-  return `(not read: ${reasons.length === 1 ? reasons[0] : `${reasons.slice(0, -1).join(", ")}, or ${reasons.at(-1)}`})`;
-};
-
 /**
- * The mark on a link's endpoint the read followed links to but didn't return:
- * an end absent from the read is one the user can't read or was excluded.
+ * The mark on a link's endpoint (or unreadable group entity) that wasn't
+ * returned: still includes "archived" even under `includeArchived: true`
+ * because `@local/hash-graph-sdk` strips traversed flag-archived vertices and
+ * live queries exclude temporal-archived entities.
  */
+const unreadEndpointNote = ({ includeDrafts }: { includeDrafts: boolean }) =>
+  includeDrafts
+    ? "(not read: hidden from the user or archived)"
+    : "(not read: hidden from the user, archived, or a draft left out)";
+
 export const hashEntityReadUnreadEndpointNote = unreadEndpointNote({
-  includeArchived: false,
   includeDrafts: false,
 });
 
@@ -926,10 +917,7 @@ const renderHashEntityRead = (
   };
   const linked = entities.filter(({ matched }) => !matched).length;
   const traversedSources = traversedSourceIds(entities, traversalDepth);
-  const endpointMissingNote = unreadEndpointNote({
-    includeArchived,
-    includeDrafts,
-  });
+  const endpointMissingNote = unreadEndpointNote({ includeDrafts });
   const renderEndpoint = (entityId: string, endpointsTraversed: boolean) =>
     endpointsTraversed && !readIds.has(entityId)
       ? `${entityId} ${endpointMissingNote}`
@@ -1088,11 +1076,13 @@ const hashEntityTypeReadRefusal = ({
   effectiveMaxTokens,
   types,
   hasMore,
+  canUseCursor,
 }: {
   tokens: number;
   effectiveMaxTokens: number;
   types: number;
   hasMore: boolean;
+  canUseCursor: boolean;
 }) =>
   [
     `Refused: this type read's text would be about ${formatInt(tokens)} tokens, over the ${formatInt(effectiveMaxTokens)} token limit (default ${formattedDefaultMaxTokens}, max ${formattedMaxMaxTokens}), so none of it is shown and it gives no cursor.`,
@@ -1101,7 +1091,9 @@ const hashEntityTypeReadRefusal = ({
     ...raiseMaxTokensBullet(tokens, effectiveMaxTokens),
     ...(types > 1
       ? [
-          `- pass a smaller limit (default ${formattedTypeDefaultPageLimit}, max ${formattedQueryLimit}); to paginate with cursor, also pass allVersions: true`,
+          canUseCursor
+            ? `- pass a smaller limit (default ${formattedTypeDefaultPageLimit}, max ${formattedQueryLimit}) and page with cursor`
+            : `- pass a smaller limit (default ${formattedTypeDefaultPageLimit}, max ${formattedQueryLimit}); to paginate with cursor, also pass allVersions: true`,
         ]
       : []),
     `- filter by entityTypeIds (from ${brunchTools.hashCountEntities} or ${brunchTools.hashQueryEntities}) or by titles`,
@@ -1217,6 +1209,7 @@ export const hashEntityTypeReadForModel = (
     effectiveMaxTokens: maxTokens,
     types: entityTypes.length,
     hasMore: cursor !== undefined || hasMore === true,
+    canUseCursor: allVersions || allExactVersions,
   });
 };
 
@@ -1515,10 +1508,7 @@ export const hashEntityCountJoinForModel = (
     groupSteps.length === 1 && singleGroupStep !== undefined
       ? `groups, by the entity one ${renderStep(singleGroupStep)} link away (an entity linked to several is counted under each, so these may sum to more than the total):`
       : `groups, by the entity following ${groupSteps.map(renderStep).join(", then ")} (an entity reaching several is counted under each, so these may sum to more than the total):`;
-  const missingGroupNote = unreadEndpointNote({
-    includeArchived,
-    includeDrafts,
-  });
+  const missingGroupNote = unreadEndpointNote({ includeDrafts });
 
   const groupLines =
     groupBy === undefined ||

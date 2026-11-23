@@ -86,7 +86,7 @@ const traversalDepthMessage = `traversalDepth is how many links to follow from m
 
 const entityReadLimitMessage = `limit is how many matched entities one page holds: a whole number from 1 to ${formattedMaxLimit} (use cursor for later pages, or ${brunchTools.hashCountEntities} to count). Omit it for ${formattedDefaultLimit}.`;
 
-const entityTypeReadLimitMessage = `limit is how many entity types one page holds: a whole number from 1 to ${formattedMaxLimit} (use cursor for later pages). Omit it for ${formattedTypeDefaultLimit}.`;
+const entityTypeReadLimitMessage = `limit is how many entity types one page holds: a whole number from 1 to ${formattedMaxLimit} (with allVersions: true or exact versioned entityTypeIds, use cursor for later pages). Omit it for ${formattedTypeDefaultLimit}.`;
 
 const maxTokensMessage = `maxTokens is the estimated token budget for this tool's output: a whole number from ${formattedMinMaxTokens} to ${formattedMaxMaxTokens}. Omit it for ${formattedDefaultMaxTokens}.`;
 
