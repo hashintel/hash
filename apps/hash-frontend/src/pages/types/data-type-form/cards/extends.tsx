@@ -118,7 +118,7 @@ export const ExtendsCard = ({
     <SectionCard>
       <Box sx={{ padding: "16px 18px 18px" }}>
         {showMemberOfSection ? (
-          <DataTypeCard label="Member of" contentGap={1}>
+          <DataTypeCard label="Member of" contentGap={1.25}>
             {membershipInput}
           </DataTypeCard>
         ) : null}

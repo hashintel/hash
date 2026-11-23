@@ -19,14 +19,14 @@ export const SectionCard = ({ children }: { children: React.ReactNode }) => (
  * A section card's field arrangement, in place of Form.Field: the header's
  * action buttons flex against the label + description block as a whole
  * (top-aligned), so their height can't stretch the label row, and the content
- * clears the header by a fixed 14px whether or not a description is present.
+ * clears the header by a fixed 16px whether or not a description is present.
  */
 export const DataTypeCard = ({
   label,
   description,
   actions,
   errors,
-  contentGap = 1.75,
+  contentGap = 2,
   children,
 }: {
   label: string;
@@ -50,7 +50,9 @@ export const DataTypeCard = ({
       {/* The margin rides the text column so a taller action button can
           overlap it instead of adding height below the header */}
       <Box sx={{ minWidth: 0, marginBottom: children ? contentGap : 0 }}>
-        <Form.Field.Label as="span">{label}</Form.Field.Label>
+        <Form.Field.Label as="span" size="lg">
+          {label}
+        </Form.Field.Label>
         {description ? (
           <Form.Field.Description>{description}</Form.Field.Description>
         ) : null}
