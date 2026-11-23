@@ -2,9 +2,12 @@
  * @layerRoot core.scenario
  * @role Compiles a scenario to an initial marking and parameter values
  *
- * A scenario's expressions and code are lowered to HIR and interpreted, once
- * per run or optimization trial. The result is the input a run starts from;
- * no runtime under `simulation/` imports this folder.
+ * Takes a scenario together with its lowered code (`ScenarioHir`, produced
+ * where the TypeScript compiler is loaded: the LSP worker, or Node),
+ * type-checks that code against the net and interprets it. Nothing here
+ * lowers code: one lowering serves every run and optimization trial. The
+ * result is the input a run starts from; no runtime under `simulation/`
+ * imports this folder.
  */
 import { parseParameterValue } from "../document/parameter-values";
 import {
