@@ -31,7 +31,7 @@ export { SOLVER_ERROR_DIAGNOSTIC } from "./trace";
 export {
   ADAPTIVE_SIMULATOR_ID,
   DEFAULT_SOLVER_TOLERANCE,
-} from "./worker/adaptive-stepper";
-export { FIXED_STEP_SIMULATOR_ID } from "./worker/fixed-step-stepper";
-export type { StepperParameters } from "./worker/run-stepper";
-export type { StepperSelection } from "./worker/steppers";
+} from "../steppers/adaptive-stepper";
+export { FIXED_STEP_SIMULATOR_ID } from "../steppers/fixed-step-stepper";
+export type { StepperParameters } from "../steppers/run-stepper";
+export type { StepperSelection } from "../steppers/steppers";

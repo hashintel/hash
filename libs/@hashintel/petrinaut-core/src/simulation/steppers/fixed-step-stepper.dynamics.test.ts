@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { compileHirArtifacts } from "../../../hir/compile";
-import { createInMemoryEventTraceStore } from "../trace-store";
+import { compileHirArtifacts } from "../../hir/compile";
+import { createInMemoryEventTraceStore } from "../event-trace/trace-store";
+import { createTraceRecorder } from "../event-trace/worker/trace-recorder";
 import { createFixedStepStepper } from "./fixed-step-stepper";
-import { createTraceRecorder } from "./trace-recorder";
 
-import type { SDCPN } from "../../../types/sdcpn";
+import type { SDCPN } from "../../types/sdcpn";
 
 /**
  * One token whose `x` grows at `rate` per second, watched by a transition

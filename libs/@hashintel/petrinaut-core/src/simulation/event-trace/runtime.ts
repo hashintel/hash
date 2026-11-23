@@ -30,6 +30,7 @@ import type {
   SimulationTransport,
   WorkerFactory,
 } from "../api";
+import type { StepperSelection } from "../steppers/steppers";
 import type {
   EventSimulationErrorEvent,
   EventSimulationEvent,
@@ -37,7 +38,6 @@ import type {
   TraceEvent,
 } from "./trace";
 import type { ToEventMainMessage } from "./worker/messages";
-import type { StepperSelection } from "./worker/steppers";
 
 /**
  * Per-run configuration of an event-driven run. The run is configured by

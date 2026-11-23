@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { compileHirArtifacts } from "../../../hir/compile";
+import { compileHirArtifacts } from "../../hir/compile";
+import { createTraceRecorder } from "../event-trace/worker/trace-recorder";
 import {
   createEngineFrameLayout,
   readEngineFrame,
-} from "../../frames/internal-frame";
+} from "../frames/internal-frame";
 import { createStepStepper } from "./step-stepper";
-import { createTraceRecorder } from "./trace-recorder";
 
-import type { SDCPN } from "../../../types/sdcpn";
-import type { InitialMarking } from "../../api";
-import type { TraceEvent } from "../trace";
+import type { SDCPN } from "../../types/sdcpn";
+import type { InitialMarking } from "../api";
+import type { TraceEvent } from "../event-trace/trace";
 
 type Transition = SDCPN["transitions"][number];
 

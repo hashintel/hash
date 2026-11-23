@@ -1,18 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { compileHirArtifacts } from "../../../hir/compile";
+import { compileHirArtifacts } from "../../hir/compile";
+import { createInMemoryEventTraceStore } from "../event-trace/trace-store";
+import { createTraceRecorder } from "../event-trace/worker/trace-recorder";
 import {
   createEngineFrameLayout,
   readEngineFrame,
-} from "../../frames/internal-frame";
-import { createInMemoryEventTraceStore } from "../trace-store";
+} from "../frames/internal-frame";
 import { createAdaptiveStepper } from "./adaptive-stepper";
-import { createTraceRecorder } from "./trace-recorder";
 import { evaluateHazards } from "./transition-hazards";
 
-import type { SDCPN } from "../../../types/sdcpn";
-import type { TraceEvent } from "../trace";
-import type { TraceRecorder, TraceRecording } from "./trace-recorder";
+import type { SDCPN } from "../../types/sdcpn";
+import type { TraceEvent } from "../event-trace/trace";
+import type {
+  TraceRecorder,
+  TraceRecording,
+} from "../event-trace/worker/trace-recorder";
 
 const realType: SDCPN["types"][number] = {
   id: "real",

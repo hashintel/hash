@@ -1,4 +1,15 @@
-import { netTimeOf } from "../../../extensions/net-class";
+/**
+ * @layerRoot core.simulation.steppers
+ * @role How a run gets from one time to the next: a fixed step, an untimed step, or an error-controlled solver
+ *
+ * A stepper advances one run in the packed buffers of the Monte Carlo run
+ * state and says which states are worth keeping; `run-stepper.ts` is the
+ * contract. The event worker records those states as a trace, and the Monte
+ * Carlo worker stops the same steppers at its sample times through
+ * `stepper-run-driver.ts`.
+ */
+
+import { netTimeOf } from "../../extensions/net-class";
 import {
   ADAPTIVE_SIMULATOR_ID,
   createAdaptiveStepper,
@@ -11,7 +22,7 @@ import {
 } from "./fixed-step-stepper";
 import { createStepStepper } from "./step-stepper";
 
-import type { MonteCarloSimulatorSelection } from "../../monte-carlo/run-driver";
+import type { MonteCarloSimulatorSelection } from "../monte-carlo/run-driver";
 import type { RunStepper, RunStepperConfig } from "./run-stepper";
 
 /**

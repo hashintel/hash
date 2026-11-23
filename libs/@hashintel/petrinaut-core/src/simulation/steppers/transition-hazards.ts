@@ -3,22 +3,22 @@ import {
   fillInputCounts,
   fillPlaceBases,
   fillTokenIndices,
-} from "../../engine/buffer-transition";
-import { hasCapacityHeadroom } from "../../engine/capacity";
+} from "../engine/buffer-transition";
+import { hasCapacityHeadroom } from "../engine/capacity";
 import {
   enumerateWeightedMarkingIndicesGenerator,
   firstWeightedMarkingIndices,
-} from "../../engine/enumerate-weighted-markings";
-import { getPlaceIndex } from "../../monte-carlo/layout";
-import { SDCPNItemError } from "../../sdcpn-item-error";
+} from "../engine/enumerate-weighted-markings";
+import { getPlaceIndex } from "../monte-carlo/layout";
+import { SDCPNItemError } from "../sdcpn-item-error";
 
-import type { CompiledTransition } from "../../engine/types";
-import type { MonteCarloFrameBuffer } from "../../monte-carlo/frame-buffer";
+import type { CompiledTransition } from "../engine/types";
+import type { MonteCarloFrameBuffer } from "../monte-carlo/frame-buffer";
 import type {
   MonteCarloRunState,
   PlaceID,
   TransitionEffect,
-} from "../../monte-carlo/internal-types";
+} from "../monte-carlo/internal-types";
 
 /**
  * One way a transition can fire from a frame: a transition and the tokens

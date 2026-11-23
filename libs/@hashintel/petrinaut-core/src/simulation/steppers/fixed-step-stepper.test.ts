@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { compileHirArtifacts } from "../../../hir/compile";
-import {
-  createEngineFrameLayout,
-  readEngineFrame,
-} from "../../frames/internal-frame";
-import { createFixedStepStepper } from "./fixed-step-stepper";
+import { compileHirArtifacts } from "../../hir/compile";
 import {
   createTraceRecorder,
   type TraceRecorder,
   type TraceRecording,
-} from "./trace-recorder";
+} from "../event-trace/worker/trace-recorder";
+import {
+  createEngineFrameLayout,
+  readEngineFrame,
+} from "../frames/internal-frame";
+import { createFixedStepStepper } from "./fixed-step-stepper";
 
-import type { SDCPN } from "../../../types/sdcpn";
-import type { TraceEvent } from "../trace";
+import type { SDCPN } from "../../types/sdcpn";
+import type { TraceEvent } from "../event-trace/trace";
 
 const place = (id: string, name: string): SDCPN["places"][number] => ({
   id,

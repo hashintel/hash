@@ -1,5 +1,5 @@
-import { advanceRun } from "../../monte-carlo/advance-run";
-import { getFrameTime } from "../../monte-carlo/time";
+import { advanceRun } from "../monte-carlo/advance-run";
+import { getFrameTime } from "../monte-carlo/time";
 import {
   createStepperRunState,
   firedTransitionIds,

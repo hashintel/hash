@@ -1,13 +1,13 @@
-import { createRunState } from "../../monte-carlo/run-state";
+import { createRunState } from "../monte-carlo/run-state";
 
-import type { PetrinautExtensionSettings } from "../../../extensions/extensions";
-import type { HirArtifacts } from "../../../hir-runtime";
-import type { SDCPN } from "../../../types/sdcpn";
-import type { InitialMarking } from "../../api";
-import type { SimulationCompletionReason } from "../../engine/compute-next-frame";
-import type { MonteCarloRunState } from "../../monte-carlo/internal-types";
-import type { MonteCarloSimulatorSelection } from "../../monte-carlo/run-driver";
-import type { MonteCarloRunConfig } from "../../monte-carlo/types";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
+import type { HirArtifacts } from "../../hir-runtime";
+import type { SDCPN } from "../../types/sdcpn";
+import type { InitialMarking } from "../api";
+import type { SimulationCompletionReason } from "../engine/compute-next-frame";
+import type { MonteCarloRunState } from "../monte-carlo/internal-types";
+import type { MonteCarloSimulatorSelection } from "../monte-carlo/run-driver";
+import type { MonteCarloRunConfig } from "../monte-carlo/types";
 
 /** What every stepper is built from, whichever simulator it belongs to. */
 export type RunStepperConfig = {

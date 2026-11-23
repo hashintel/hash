@@ -3,8 +3,8 @@
  * fixed-step engine and every simulator that has a stepper.
  */
 import { createWorkerThreadRuntime } from "../../environment/environment";
-import { createStepperRunDriverFactory } from "../../simulation/event-trace/worker/stepper-run-driver";
 import { attachMonteCarloWorker } from "../../simulation/monte-carlo/worker/attach";
+import { createStepperRunDriverFactory } from "../../simulation/steppers/stepper-run-driver";
 
 attachMonteCarloWorker(createWorkerThreadRuntime(), {
   createRunDriver: createStepperRunDriverFactory,

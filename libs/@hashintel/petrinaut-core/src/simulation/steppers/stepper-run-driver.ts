@@ -1,6 +1,6 @@
 import { createRunStepper, type StepperSelection } from "./steppers";
 
-import type { MonteCarloRunDriverFactory } from "../../monte-carlo/run-driver";
+import type { MonteCarloRunDriverFactory } from "../monte-carlo/run-driver";
 
 /**
  * The run drivers of a stepper's simulator, for an experiment: each run is

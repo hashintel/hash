@@ -11,8 +11,8 @@ import type { HirArtifacts } from "../../../hir-runtime";
 import type { SDCPN } from "../../../types/sdcpn";
 import type { InitialMarking } from "../../api";
 import type { SimulationCompletionReason } from "../../engine/compute-next-frame";
+import type { StepperSelection } from "../../steppers/steppers";
 import type { TraceEvent } from "../trace";
-import type { StepperSelection } from "./steppers";
 
 //
 // Host → Worker

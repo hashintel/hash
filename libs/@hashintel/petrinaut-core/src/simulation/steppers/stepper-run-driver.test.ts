@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { sirModel } from "../../../examples";
-import { compileHirArtifacts } from "../../../hir/compile";
-import { createMonteCarloSimulator } from "../../monte-carlo/monte-carlo-simulator";
+import { sirModel } from "../../examples";
+import { compileHirArtifacts } from "../../hir/compile";
+import { createMonteCarloSimulator } from "../monte-carlo/monte-carlo-simulator";
 import { ADAPTIVE_SIMULATOR_ID } from "./adaptive-stepper";
 import { FIXED_STEP_SIMULATOR_ID } from "./fixed-step-stepper";
 import { createStepperRunDriverFactory } from "./stepper-run-driver";
 
-import type { SDCPN } from "../../../types/sdcpn";
-import type { SimulationFrameReader } from "../../api";
-import type { MonteCarloFrameMetric } from "../../monte-carlo/metrics/types";
+import type { SDCPN } from "../../types/sdcpn";
+import type { SimulationFrameReader } from "../api";
+import type { MonteCarloFrameMetric } from "../monte-carlo/metrics/types";
 import type { StepperSelection } from "./steppers";
 
 const sir = sirModel.petriNetDefinition;

@@ -1,39 +1,39 @@
-import { isScopedId, sourceItemId } from "../../../composition/scoped-id";
+import { isScopedId, sourceItemId } from "../../composition/scoped-id";
 /* eslint-disable no-param-reassign -- Monte Carlo run state and frame buffers are mutable by design. */
-import { getPlaceDynamicsEquationIds } from "../../../document/place-dynamics";
-import { getOwn } from "../../../validation/record-keys";
-import { nextRandom } from "../../engine/seeded-rng";
-import { copyMonteCarloFrameBuffer } from "../../monte-carlo/frame-buffer";
+import { getPlaceDynamicsEquationIds } from "../../document/place-dynamics";
+import { getOwn } from "../../validation/record-keys";
+import { nextRandom } from "../engine/seeded-rng";
+import { copyMonteCarloFrameBuffer } from "../monte-carlo/frame-buffer";
 import {
   applyTokenAdditions,
   applyTokenRemovals,
   hasStructurallyEnabledTransition,
   mergeTokenAdditions,
-} from "../../monte-carlo/frame-operations";
-import { ensureFrameCapacity } from "../../monte-carlo/run-state";
-import { classifyDynamics } from "../solver/classify-dynamics";
-import {
-  createPlaceIntegrator,
-  realFieldNames,
-} from "../solver/place-integrators";
+} from "../monte-carlo/frame-operations";
+import { ensureFrameCapacity } from "../monte-carlo/run-state";
 import {
   createStepperRunState,
   positiveNumberParameter,
   SOLVER_ERROR_DIAGNOSTIC,
 } from "./run-stepper";
+import { classifyDynamics } from "./solver/classify-dynamics";
+import {
+  createPlaceIntegrator,
+  realFieldNames,
+} from "./solver/place-integrators";
 import { computeFiringEffect, evaluateHazards } from "./transition-hazards";
 
-import type { SimulationCompletionReason } from "../../engine/compute-next-frame";
-import type { MonteCarloFrameBuffer } from "../../monte-carlo/frame-buffer";
-import type { PlaceID } from "../../monte-carlo/internal-types";
-import type { DynamicsClass } from "../solver/classify-dynamics";
-import type { PlaceIntegrator } from "../solver/place-integrators";
+import type { SimulationCompletionReason } from "../engine/compute-next-frame";
+import type { MonteCarloFrameBuffer } from "../monte-carlo/frame-buffer";
+import type { PlaceID } from "../monte-carlo/internal-types";
 import type {
   RunAdvance,
   RunStepper,
   RunStepperConfig,
   StepperParameters,
 } from "./run-stepper";
+import type { DynamicsClass } from "./solver/classify-dynamics";
+import type { PlaceIntegrator } from "./solver/place-integrators";
 import type { FiringMode } from "./transition-hazards";
 
 export const ADAPTIVE_SIMULATOR_ID = "js-adaptive";

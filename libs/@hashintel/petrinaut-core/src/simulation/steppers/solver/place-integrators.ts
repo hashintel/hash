@@ -1,5 +1,5 @@
 /**
- * @layerRoot core.simulation.event-trace.solver
+ * @layerRoot core.simulation.steppers.solver
  * @role Advances a place's continuous state between events by an error-controlled integrator, exactly when its dynamics are affine, and classifies the dynamics from their HIR
  */
 

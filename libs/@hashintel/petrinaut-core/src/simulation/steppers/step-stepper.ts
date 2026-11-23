@@ -1,4 +1,4 @@
-import { advanceRun } from "../../monte-carlo/advance-run";
+import { advanceRun } from "../monte-carlo/advance-run";
 import { createStepperRunState, firedTransitionIds } from "./run-stepper";
 
 import type { RunAdvance, RunStepper, RunStepperConfig } from "./run-stepper";

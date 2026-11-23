@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { sirModel } from "../../../examples";
-import { compileHirArtifacts } from "../../../hir/compile";
-import { createMonteCarloSimulator } from "../../monte-carlo/monte-carlo-simulator";
+import { sirModel } from "../../examples";
+import { compileHirArtifacts } from "../../hir/compile";
+import { createMonteCarloSimulator } from "../monte-carlo/monte-carlo-simulator";
 import { ADAPTIVE_SIMULATOR_ID } from "./adaptive-stepper";
 import { FIXED_STEP_SIMULATOR_ID } from "./fixed-step-stepper";
 import { createRunStepper, createSimulatorStepper } from "./steppers";

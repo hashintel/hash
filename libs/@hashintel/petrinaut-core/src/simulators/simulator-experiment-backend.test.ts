@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { selectExperimentBackend } from "../experiments/select-experiment-backend";
 import { compileHirArtifacts } from "../hir/compile";
-import { createStepperRunDriverFactory } from "../simulation/event-trace/worker/stepper-run-driver";
 import { createInProcessMonteCarloWorker } from "../simulation/monte-carlo/worker/in-process-worker";
+import { createStepperRunDriverFactory } from "../simulation/steppers/stepper-run-driver";
 import {
   createJsAdaptiveSimulator,
   createJsFixedStepSimulator,

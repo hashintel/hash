@@ -1,4 +1,4 @@
-import { SOLVER_ERROR_DIAGNOSTIC } from "./worker/run-stepper";
+import { SOLVER_ERROR_DIAGNOSTIC } from "../steppers/run-stepper";
 
 import type { SimulationCompletionReason } from "../engine/compute-next-frame";
 import type { SimulationFrameNewStrings } from "../worker/frame-payload";
