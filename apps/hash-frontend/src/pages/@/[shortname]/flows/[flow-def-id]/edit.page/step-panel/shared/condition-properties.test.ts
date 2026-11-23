@@ -31,6 +31,7 @@ const dataTypes = Object.fromEntries([
   dataType("number", { type: "number" }),
   dataType("boolean", { type: "boolean" }),
   dataType("date", { type: "string", format: "date" }),
+  dataType("datetime", { type: "string", format: "date-time" }),
   dataType("status", {
     type: "string",
     enum: ["Active", "Suspended"],
@@ -207,6 +208,7 @@ describe("getEntityProperties", () => {
       propertyType("score", ["number"]),
       propertyType("verified", ["boolean"]),
       propertyType("received", ["date"]),
+      propertyType("sent", ["datetime"]),
       propertyType("state", ["status"]),
       propertyType("tags", ["text"]),
     ];
@@ -227,6 +229,7 @@ describe("getEntityProperties", () => {
       score: { kind: "Number" },
       verified: { kind: "Boolean" },
       received: { kind: "Date" },
+      sent: { kind: "DateTime" },
       state: { kind: "Text", options: ["Active", "Suspended"] },
     });
   });

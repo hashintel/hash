@@ -1,4 +1,7 @@
-import { isIsoDate } from "@local/hash-isomorphic-utils/flows/datetime";
+import {
+  isIsoDate,
+  parseDateTime,
+} from "@local/hash-isomorphic-utils/flows/datetime";
 import {
   binaryFilterOperatorsByPrimitive,
   unaryFilterOperators,
@@ -33,7 +36,7 @@ export type ConditionTarget = {
 
 export type RowOperator = BinaryFilterOperator | UnaryFilterOperator;
 
-/** A row's value: text for text and dates, a number, or true or false. */
+/** A row's value: text for text, dates and times, a number, or true or false. */
 type RowValue = string | number | boolean;
 
 export type ConditionRow =
@@ -45,7 +48,7 @@ export type ConditionForm = { join: "all" | "any"; rows: ConditionRow[] };
 
 export const emptyConditionForm: ConditionForm = { join: "all", rows: [] };
 
-const rowKinds = ["Text", "Number", "Date", "Boolean"] as const;
+const rowKinds = ["Text", "Number", "Date", "DateTime", "Boolean"] as const;
 
 type RowKind = (typeof rowKinds)[number];
 
@@ -56,6 +59,7 @@ const primitives = {
   Text: "text",
   Number: "number",
   Date: "date",
+  DateTime: "datetime",
   Boolean: "boolean",
 } as const satisfies Record<RowKind, string>;
 
@@ -87,7 +91,7 @@ const operatorLabels: Record<RowOperator, string> = {
   isNotEmpty: "is not empty",
 };
 
-/** Dates compare as before and after, not greater and less. */
+/** Dates and times compare as before and after, not greater and less. */
 const dateOperatorLabels: Partial<Record<RowOperator, string>> = {
   greaterThan: "is after",
   greaterThanOrEqual: "is on or after",
@@ -99,8 +103,9 @@ export const getOperatorLabel = (
   operator: RowOperator,
   valueKind: PropertyValueKind,
 ) =>
-  (valueKind.kind === "Date" ? dateOperatorLabels[operator] : undefined) ??
-  operatorLabels[operator];
+  (valueKind.kind === "Date" || valueKind.kind === "DateTime"
+    ? dateOperatorLabels[operator]
+    : undefined) ?? operatorLabels[operator];
 
 const subjectKeyOf = (subject: ConditionTarget["subject"]) =>
   subject.kind === "input"
@@ -108,7 +113,7 @@ const subjectKeyOf = (subject: ConditionTarget["subject"]) =>
     : `property:${subject.propertyTypeBaseUrl}`;
 
 /**
- * What a condition can check on a value of `kind`: the value itself when it's text, a number, a date or true/false,
+ * What a condition can check on a value of `kind`: the value itself when it's text, a number, a date, a date and time or true/false,
  * or the given properties when it's an entity. Nothing for any other kind, or nothing connected.
  */
 export const getConditionTargets = ({
@@ -184,7 +189,7 @@ export const getSavedConditionKind = (
 const hasOnlyKeys = (value: Record<string, unknown>, keys: string[]) =>
   Object.keys(value).every((key) => keys.includes(key));
 
-/** Whether a typed value is one of a kind's: a number, true or false, a date, a status's option, or any text. */
+/** Whether a typed value is one of a kind's: a number, true or false, a date, an instant, a status's option, or any text. */
 const isRowValue = (valueKind: PropertyValueKind, value: unknown) => {
   switch (valueKind.kind) {
     case "Number":
@@ -193,6 +198,8 @@ const isRowValue = (valueKind: PropertyValueKind, value: unknown) => {
       return typeof value === "boolean";
     case "Date":
       return typeof value === "string" && isIsoDate(value);
+    case "DateTime":
+      return typeof parseDateTime(value) === "number";
     case "Text":
       return (
         typeof value === "string" &&
