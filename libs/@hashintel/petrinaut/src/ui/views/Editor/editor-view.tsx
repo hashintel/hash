@@ -14,7 +14,6 @@ import {
   useEditorMode,
 } from "../../../react/state/editor-context";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
-import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
 import { useAssistantChoice } from "../../plugins/plugin-assistant";
@@ -147,7 +146,7 @@ const EditorViewContent = ({
             <div className={workspaceStyle}>
               {globalMode === "edit" && !composesOnly && <EditViewSelector />}
               <Activity mode={canvasShows ? "visible" : "hidden"}>
-                <Box className={canvasContainerStyle}>
+                <div className={canvasContainerStyle}>
                   <LeftSideBar />
                   <PropertiesPanel />
                   <SDCPNView onControllerChange={registerController} />
@@ -157,7 +156,7 @@ const EditorViewContent = ({
                     />
                   )}
                   <BottomPanel />
-                </Box>
+                </div>
               </Activity>
               {/* An editor that only composes has no Definitions view. */}
               {!composesOnly && netWithDefinitions === netKey && (
