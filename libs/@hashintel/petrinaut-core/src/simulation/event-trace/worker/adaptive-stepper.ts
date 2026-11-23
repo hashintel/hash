@@ -16,8 +16,11 @@ import {
   createPlaceIntegrator,
   realFieldNames,
 } from "../solver/place-integrators";
-import { SOLVER_ERROR_DIAGNOSTIC } from "../trace";
-import { createStepperRunState, positiveNumberParameter } from "./run-stepper";
+import {
+  createStepperRunState,
+  positiveNumberParameter,
+  SOLVER_ERROR_DIAGNOSTIC,
+} from "./run-stepper";
 import { computeFiringEffect, evaluateHazards } from "./transition-hazards";
 
 import type { SimulationCompletionReason } from "../../engine/compute-next-frame";
