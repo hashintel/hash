@@ -1,4 +1,5 @@
 import { resolveNetParameterValues } from "../../../document/parameter-values";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../../extensions/extensions";
 /**
  * The Monte Carlo worker protocol, detached from any thread host.
  *
@@ -8,8 +9,7 @@ import { resolveNetParameterValues } from "../../../document/parameter-values";
  * host must supply is only a {@link WorkerThreadRuntime}: post a message,
  * receive messages, and yield between compute batches.
  */
-import { SDCPNItemError } from "../../../errors";
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../../extensions/extensions";
+import { SDCPNItemError } from "../../sdcpn-item-error";
 import {
   createMonteCarloUserDefinedMetric,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,

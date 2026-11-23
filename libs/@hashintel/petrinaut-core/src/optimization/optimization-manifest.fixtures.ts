@@ -1,6 +1,6 @@
-import { petrinautOptimizationManifestSchema } from "../optimization";
+import { petrinautOptimizationManifestSchema } from ".";
 
-import type { PetrinautOptimizationManifest } from "../optimization";
+import type { PetrinautOptimizationManifest } from ".";
 
 const scenario = {
   id: "baseline",

@@ -1,9 +1,9 @@
-import { SDCPNItemError } from "../../errors";
 import { createTokenRegionViews } from "../../tokens/token-layout";
 import {
   materializeEngineFrame,
   readEngineFrame,
 } from "../frames/internal-frame";
+import { SDCPNItemError } from "../sdcpn-item-error";
 import {
   executeBufferKernel,
   fillInputCounts,

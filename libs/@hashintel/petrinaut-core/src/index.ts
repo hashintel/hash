@@ -594,7 +594,7 @@ export {
   parseParameterValue,
   resolveNetParameterValues,
 } from "./document/parameter-values";
-export { SDCPNItemError } from "./errors";
+export { SDCPNItemError } from "./simulation/sdcpn-item-error";
 export { isSDCPNEqual } from "./document/deep-equal";
 export {
   hashPetrinautDocument,

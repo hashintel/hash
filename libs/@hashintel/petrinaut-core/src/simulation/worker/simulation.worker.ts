@@ -9,9 +9,9 @@
  */
 
 import { createWorkerThreadRuntime } from "../../environment/environment";
-import { SDCPNItemError } from "../../errors";
 import { buildSimulation } from "../engine/build-simulation";
 import { computeNextFrame } from "../engine/compute-next-frame";
+import { SDCPNItemError } from "../sdcpn-item-error";
 import {
   framePayloadFromEngineFrame,
   type SimulationFrameNewStrings,

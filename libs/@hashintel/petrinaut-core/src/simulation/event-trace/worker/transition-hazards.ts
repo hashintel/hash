@@ -1,4 +1,3 @@
-import { SDCPNItemError } from "../../../errors";
 import {
   executeBufferKernel,
   fillInputCounts,
@@ -11,6 +10,7 @@ import {
   firstWeightedMarkingIndices,
 } from "../../engine/enumerate-weighted-markings";
 import { getPlaceIndex } from "../../monte-carlo/layout";
+import { SDCPNItemError } from "../../sdcpn-item-error";
 
 import type { CompiledTransition } from "../../engine/types";
 import type { MonteCarloFrameBuffer } from "../../monte-carlo/frame-buffer";

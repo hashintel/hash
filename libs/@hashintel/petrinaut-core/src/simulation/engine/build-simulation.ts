@@ -4,7 +4,6 @@ import {
   mergeParameterValues,
 } from "../../document/parameter-values";
 import { getRunningEquationIds } from "../../document/place-dynamics";
-import { SDCPNItemError } from "../../errors";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   getEffectiveTransitionLambdaType,
@@ -38,6 +37,7 @@ import {
   type EngineFrameSnapshot,
   type EngineFrameLayout,
 } from "../frames/internal-frame";
+import { SDCPNItemError } from "../sdcpn-item-error";
 import {
   PLACE_CAPACITY_UNBOUNDED,
   computeTransitionCapacityConstraints,

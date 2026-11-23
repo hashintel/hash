@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createAbortController } from "../../environment/environment";
-import { createOptimizationManifestInput } from "../../shared/optimization-manifest.fixtures";
 import {
   isUnknownOptimizationRunError,
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
   PETRINAUT_OPTIMIZATION_UNKNOWN_RUN_ERROR_CODE,
 } from "../index";
+import { createOptimizationManifestInput } from "../optimization-manifest.fixtures";
 import { createBrowserOptimization } from "./browser-optimization";
 
 import type { WorkerMessageHandler } from "../../environment/environment";
