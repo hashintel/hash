@@ -118,21 +118,27 @@ vi.mock("../shared/objective-history-chart", () => ({
   ),
 }));
 
-// uPlot cannot mount in jsdom; the menu and the subtitle are real.
-vi.mock("./experiment-metric-timeline", () =>
-  import("../shared/metric-timeline-test-stubs").then((stubs) =>
-    stubs.mockExperimentMetricTimelineModule(),
+// uPlot cannot mount in jsdom, so the timeline prints what it was handed. The
+// card's menu and subtitle come from their own files and stay real.
+vi.mock("./experiment-metric-timeline", () => ({
+  ExperimentMetricTimeline: ({
+    frames,
+    contentEpoch,
+    plotHeight,
+  }: {
+    frames: readonly unknown[];
+    contentEpoch: string;
+    plotHeight: number;
+  }) => (
+    <div
+      data-testid="metric-timeline"
+      data-epoch={contentEpoch}
+      data-plot-height={plotHeight}
+    >
+      {frames.length} frames
+    </div>
   ),
-);
-
-// The navigator's Ark sliders measure themselves with a ResizeObserver jsdom
-// lacks; nothing here depends on a measurement.
-class ObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
+}));
 
 afterEach(() => {
   cleanup();
