@@ -18,6 +18,14 @@ import {
   mergeParameterValues,
 } from "../../parameter-values";
 import { getRunningEquationIds } from "../../place-dynamics";
+import { StringPool } from "../../tokens/string-pool";
+import {
+  computeTokenSlotLayout,
+  createTokenRegionViews,
+  encodeTokenToBytes,
+  type TokenSlotLayout,
+} from "../../tokens/token-layout";
+import { coerceTokenRecord } from "../../tokens/token-values";
 import {
   createUserKeyedRecord,
   describeDangerousSdcpnKeys,
@@ -41,14 +49,6 @@ import {
   getArcPlaceNameOverrideKey,
 } from "./flatten-component-instances";
 import { sourceItemId } from "./scoped-id";
-import { StringPool } from "./string-pool";
-import {
-  computeTokenSlotLayout,
-  createTokenRegionViews,
-  encodeTokenToBytes,
-  type TokenSlotLayout,
-} from "./token-layout";
-import { coerceTokenRecord } from "./token-values";
 
 import type {
   HirArtifacts,

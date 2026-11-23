@@ -1,4 +1,4 @@
-import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
+import { createUserKeyedRecord, getOwn } from "../validation/record-keys";
 import { TYPE_POLICIES } from "./type-policies";
 import { formatUuid } from "./uuid";
 
@@ -7,7 +7,7 @@ import type {
   ColorElementType,
   TokenAttributeValue,
   TokenRecord,
-} from "../../types/sdcpn";
+} from "../types/sdcpn";
 import type { StoredTokenAttributeValue } from "./type-policies";
 
 type ColorElement = Color["elements"][number];

@@ -7,7 +7,7 @@
 import { affinePropagator, applyAffinePropagator } from "./linear";
 import { createRk45Integrator } from "./rk45";
 
-import type { TokenSlotLayout } from "../../engine/token-layout";
+import type { TokenSlotLayout } from "../../../tokens/token-layout";
 import type { DifferentialEquationFn } from "../../engine/types";
 import type {
   AffineForm,

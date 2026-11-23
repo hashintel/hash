@@ -1,6 +1,6 @@
+import { coerceTokenRecord } from "../../../../tokens/token-values";
+import { TYPE_POLICIES } from "../../../../tokens/type-policies";
 import { createUserKeyedRecord } from "../../../../validation/record-keys";
-import { coerceTokenRecord } from "../../../engine/token-values";
-import { TYPE_POLICIES } from "../../../engine/type-policies";
 import {
   describeValue,
   interpretPreparedItem,

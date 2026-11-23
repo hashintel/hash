@@ -13,7 +13,7 @@ region:
 - `u64: BigUint64Array`
 - `u8: Uint8Array`
 
-Color elements are packed by `engine/token-layout.ts`.
+Color elements are packed by `tokens/token-layout.ts`.
 
 | Element type | Storage                               |
 | ------------ | ------------------------------------- |

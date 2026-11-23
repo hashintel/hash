@@ -1,4 +1,4 @@
-import { TYPE_POLICIES } from "./simulation/engine/type-policies";
+import { TYPE_POLICIES } from "./tokens/type-policies";
 
 import type { Color } from "./types/sdcpn";
 

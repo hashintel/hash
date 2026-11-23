@@ -1,3 +1,4 @@
+import { generateUuidFromRng, toUuid } from "../../tokens/uuid";
 /**
  * Shared buffer-ABI transition execution helpers used by both the single-run
  * engine (`compute-possible-transition.ts`) and the Monte Carlo path
@@ -10,11 +11,10 @@
  * across evaluations; the engine is single-threaded per simulation instance.
  */
 import { sampleDistribution } from "./sample-distribution";
-import { generateUuidFromRng, toUuid } from "./uuid";
 
 import type { HirKernelSink } from "../../hir-runtime";
+import type { TokenRegionViews } from "../../tokens/token-layout";
 import type { RuntimeDistribution } from "../authoring/user-code/distribution";
-import type { TokenRegionViews } from "./token-layout";
 import type { CompiledTransition } from "./types";
 
 const UUID_LO_MASK = 0xffffffffffffffffn;

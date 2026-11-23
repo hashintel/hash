@@ -9,7 +9,7 @@ import {
   type EngineFrame,
   type EngineFrameLayout,
   type EngineFrameSnapshot,
-} from "../frames/internal-frame";
+} from "../simulation/frames/internal-frame";
 import {
   computeTokenSlotLayout,
   createTokenRegionViews,
@@ -18,8 +18,8 @@ import {
   type TokenSlotLayout,
 } from "./token-layout";
 
-import type { Color, ID, TokenRecord, Transition } from "../../types/sdcpn";
-import type { SimulationTransitionState } from "../frames/transition-state";
+import type { SimulationTransitionState } from "../simulation/frames/transition-state";
+import type { Color, ID, TokenRecord, Transition } from "../types/sdcpn";
 import type { StringPool } from "./string-pool";
 
 export type ColorElement = Color["elements"][number];

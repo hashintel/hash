@@ -40,7 +40,7 @@ SDCPN snapshot
 binary `ArrayBuffer` (header-stamped `FRAME_VERSION = 2`) with typed sections
 for place token counts, per-place byte offsets, transition timers/counts/flags,
 and a packed-struct token byte region. Each colour's token layout is computed
-by `engine/token-layout.ts`: `real` and `integer` elements map to f64 (8 B,
+by `tokens/token-layout.ts`: `real` and `integer` elements map to f64 (8 B,
 8-aligned; integers rounded by the value codec), `boolean` elements map to u8
 (1 B), fields are ordered by decreasing alignment, and the per-token stride is
 rounded up to 8 bytes so f64 fields stay addressable through a shared

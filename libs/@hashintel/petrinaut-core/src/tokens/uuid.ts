@@ -1,6 +1,6 @@
 import { v5 as uuidv5 } from "uuid";
 
-import { nextRandom } from "./seeded-rng";
+import { nextRandom } from "../simulation/engine/seeded-rng";
 
 /**
  * Runtime representation of `uuid` token elements: one `bigint` holding the

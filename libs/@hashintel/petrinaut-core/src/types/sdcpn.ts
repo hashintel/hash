@@ -30,7 +30,7 @@ export type ColorElementType =
  * JSON) they are stored as canonical lowercase 36-character strings.
  * `string` elements are plain JS strings everywhere; frame buffers store
  * them as 64-bit references into a per-run string pool (see
- * `simulation/engine/string-pool.ts`).
+ * `tokens/string-pool.ts`).
  */
 export type TokenAttributeValue = number | boolean | bigint | string;
 

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { compileHirArtifacts } from "../../hir";
+import { decodePlaceTokens } from "../../tokens/token-layout.test-helpers";
 import { compileSimulationFrameReader } from "../frames/frame-reader";
 import { materializeEngineFrame } from "../frames/internal-frame";
 import { buildSimulation as buildSimulationRaw } from "./build-simulation";
-import { decodePlaceTokens } from "./token-layout.test-helpers";
 
 import type { HirCompiledBufferLambda } from "../../hir-runtime";
 import type { SimulationInput } from "./types";

@@ -10,7 +10,7 @@ import {
 } from "./token-layout";
 import { formatUuid, parseUuid } from "./uuid";
 
-import type { Color } from "../../types/sdcpn";
+import type { Color } from "../types/sdcpn";
 
 type ColorElement = Color["elements"][number];
 

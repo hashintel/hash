@@ -4,17 +4,17 @@ import { describe, expect, it } from "vitest";
 
 import { compileHirArtifacts } from "../../hir";
 import { instantiateHirBufferKernel } from "../../hir-runtime";
-import { createEngineFrameLayout } from "../frames/internal-frame";
-import { makeCompiledTransition } from "./compiled-transition.test-helpers";
-import { computePossibleTransition as computePossibleTransitionImpl } from "./compute-possible-transition";
-import { nextRandom } from "./seeded-rng";
-import { StringPool } from "./string-pool";
+import { StringPool } from "../../tokens/string-pool";
 import {
   decodeTokenBlock,
   makeTestFrame,
   type TestFrame,
-} from "./token-layout.test-helpers";
-import { formatUuid, parseUuid, toUuid } from "./uuid";
+} from "../../tokens/token-layout.test-helpers";
+import { formatUuid, parseUuid, toUuid } from "../../tokens/uuid";
+import { createEngineFrameLayout } from "../frames/internal-frame";
+import { makeCompiledTransition } from "./compiled-transition.test-helpers";
+import { computePossibleTransition as computePossibleTransitionImpl } from "./compute-possible-transition";
+import { nextRandom } from "./seeded-rng";
 
 import type {
   HirCompiledBufferKernel,

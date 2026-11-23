@@ -10,7 +10,7 @@ import { portDirections } from "../composition/ports";
 import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../equation-arity";
 import { getParameterValueError } from "../parameter-values";
 import { canonicalizeArcId, petrinautIdSchema } from "../petrinaut-id";
-import { COLOR_ELEMENT_TYPES } from "../simulation/engine/type-policies";
+import { COLOR_ELEMENT_TYPES } from "../tokens/type-policies";
 import { displayNameSchema } from "../validation/display-name";
 import { entityNameSchema } from "../validation/entity-name";
 import { isDangerousRecordKey } from "../validation/record-keys";

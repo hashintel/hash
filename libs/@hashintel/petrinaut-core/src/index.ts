@@ -769,13 +769,13 @@ export {
   coerceToStoredTokenAttributeValue,
   defaultTokenAttributeValue,
   encodeTokenAttributeValue,
-} from "./simulation/engine/token-values";
+} from "./tokens/token-values";
 export {
   COLOR_ELEMENT_TYPES,
   TYPE_POLICIES,
   type StoredTokenAttributeValue,
   type TypePolicy,
-} from "./simulation/engine/type-policies";
+} from "./tokens/type-policies";
 export {
   computeTokenSlotLayout,
   createTokenRegionViews,
@@ -787,8 +787,8 @@ export {
   type TokenLayoutField,
   type TokenRegionViews,
   type TokenSlotLayout,
-} from "./simulation/engine/token-layout";
-export { StringPool } from "./simulation/engine/string-pool";
+} from "./tokens/token-layout";
+export { StringPool } from "./tokens/string-pool";
 export {
   formatUuid,
   isUuidString,
@@ -796,7 +796,7 @@ export {
   parseUuid,
   PETRINAUT_UUID_NAMESPACE,
   toUuid,
-} from "./simulation/engine/uuid";
+} from "./tokens/uuid";
 export {
   displayNameSchema,
   validateDisplayName,

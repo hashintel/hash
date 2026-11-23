@@ -5,7 +5,7 @@ import { createPetrinaut } from "./instance";
 import { toPetrinautId } from "./petrinaut-id";
 import { migrateScenarioRowsForTypeEdit } from "./schema-migration";
 import { scenarioSchema } from "./schemas/scenario-schema";
-import { formatUuid, toUuid } from "./simulation/engine/uuid";
+import { formatUuid, toUuid } from "./tokens/uuid";
 
 import type { Place, SDCPN } from "./types/sdcpn";
 

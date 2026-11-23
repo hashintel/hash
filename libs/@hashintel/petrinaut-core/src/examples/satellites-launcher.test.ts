@@ -5,7 +5,7 @@ import { lowerScenarioToHir } from "../hir/scenario";
 import { compileScenario } from "../simulation/authoring/scenario/compile-scenario";
 import { buildSimulation } from "../simulation/engine/build-simulation";
 import { computeNextFrame } from "../simulation/engine/compute-next-frame";
-import { decodePlaceTokens } from "../simulation/engine/token-layout.test-helpers";
+import { decodePlaceTokens } from "../tokens/token-layout.test-helpers";
 import { probabilisticSatellitesSDCPN } from "./satellites-launcher";
 
 import type { CompiledScenarioResult } from "../simulation/authoring/scenario/compile-scenario";

@@ -65,7 +65,7 @@ writers.
 
 Token values are stored as a byte region of packed structs inside the frame
 buffer (`FRAME_VERSION = 2`). Each colour has a `TokenSlotLayout` computed by
-`engine/token-layout.ts` — the single source of truth for the physical
+`tokens/token-layout.ts` — the single source of truth for the physical
 mapping:
 
 | Element type | Physical type                       | Size | Alignment |

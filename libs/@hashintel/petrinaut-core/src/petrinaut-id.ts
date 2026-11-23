@@ -10,7 +10,7 @@ import { z } from "zod";
 
 import { getArcEndpointKey, parseArcEndpointKey } from "./arc-endpoints";
 import { generateArcId } from "./arc-id";
-import { isUuidString } from "./simulation/engine/uuid";
+import { isUuidString } from "./tokens/uuid";
 import { parseArcId } from "./types/selection";
 
 import type {

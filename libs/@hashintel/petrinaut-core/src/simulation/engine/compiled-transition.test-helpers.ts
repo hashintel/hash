@@ -6,7 +6,10 @@
  * compiling real HIR artifacts. Not shipped — only imported from `*.test.ts`.
  */
 import { getArcEndpointPlaceId } from "../../arc-endpoints";
-import { computeTokenSlotLayout, createTokenRegionViews } from "./token-layout";
+import {
+  computeTokenSlotLayout,
+  createTokenRegionViews,
+} from "../../tokens/token-layout";
 
 import type {
   HirCompiledBufferKernel,

@@ -1,5 +1,5 @@
-import { coerceToStoredTokenAttributeValue } from "./simulation/engine/token-values";
-import { TYPE_POLICIES } from "./simulation/engine/type-policies";
+import { coerceToStoredTokenAttributeValue } from "./tokens/token-values";
+import { TYPE_POLICIES } from "./tokens/type-policies";
 
 import type { ColorElementType, Color, SDCPN } from "./types/sdcpn";
 

@@ -1,6 +1,11 @@
+/**
+ * @layerRoot core.tokens
+ * @role What a token attribute value is in a document, in memory and packed in a frame buffer: element types, value conversion, packed layout, UUIDs and the string pool
+ */
+
 import { formatUuid, NIL_UUID, toUuid } from "./uuid";
 
-import type { ColorElementType, TokenAttributeValue } from "../../types/sdcpn";
+import type { ColorElementType, TokenAttributeValue } from "../types/sdcpn";
 
 /**
  * Physical (buffer-level) representation of one token attribute in the

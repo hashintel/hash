@@ -24,7 +24,7 @@
 import {
   computeTokenSlotLayout,
   type TokenSlotLayout,
-} from "../simulation/engine/token-layout";
+} from "../tokens/token-layout";
 import { foldHir } from "./analyze";
 import { walkHir } from "./hir";
 

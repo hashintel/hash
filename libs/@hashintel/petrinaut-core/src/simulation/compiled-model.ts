@@ -6,10 +6,10 @@ import {
 } from "../extensions";
 import { compileHirArtifacts } from "../hir";
 import { resolveNetParameterValues } from "../parameter-values";
+import { readTokenRecord } from "../tokens/token-layout";
 import { getOwn } from "../validation/record-keys";
 import { buildSimulation } from "./engine/build-simulation";
 import { computeNextFrame } from "./engine/compute-next-frame";
-import { readTokenRecord } from "./engine/token-layout";
 import { createHirMetricEvaluator } from "./frames/hir-metric";
 import { readEngineFrame } from "./frames/internal-frame";
 

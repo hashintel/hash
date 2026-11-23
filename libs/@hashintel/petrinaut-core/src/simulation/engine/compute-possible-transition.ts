@@ -1,4 +1,5 @@
 import { SDCPNItemError } from "../../errors";
+import { createTokenRegionViews } from "../../tokens/token-layout";
 import {
   materializeEngineFrame,
   readEngineFrame,
@@ -15,7 +16,6 @@ import {
   firstWeightedMarkingIndices,
 } from "./enumerate-weighted-markings";
 import { nextRandom } from "./seeded-rng";
-import { createTokenRegionViews } from "./token-layout";
 
 import type { ID } from "../../types/sdcpn";
 import type {

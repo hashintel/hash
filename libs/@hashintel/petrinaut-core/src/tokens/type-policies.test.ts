@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { colorElementSchema } from "../../schemas/entity-schemas";
+import { colorElementSchema } from "../schemas/entity-schemas";
 import { computeTokenSlotLayout } from "./token-layout";
 import { coerceTokenAttributeValue } from "./token-values";
 import { COLOR_ELEMENT_TYPES, TYPE_POLICIES } from "./type-policies";
 
-import type { Color, ColorElementType } from "../../types/sdcpn";
+import type { Color, ColorElementType } from "../types/sdcpn";
 import type { PhysicalKind } from "./type-policies";
 
 type ColorElement = Color["elements"][number];

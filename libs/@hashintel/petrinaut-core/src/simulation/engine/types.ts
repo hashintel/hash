@@ -11,6 +11,11 @@ import type {
   HirCompiledBufferKernel,
   HirCompiledBufferLambda,
 } from "../../hir-runtime";
+import type { StringPool } from "../../tokens/string-pool";
+import type {
+  TokenRegionViews,
+  TokenSlotLayout,
+} from "../../tokens/token-layout";
 import type {
   Color,
   InputArcType,
@@ -21,8 +26,6 @@ import type {
 import type { InitialMarking } from "../api";
 import type { EngineFrame, EngineFrameLayout } from "../frames/internal-frame";
 import type { TransitionCapacityConstraint } from "./capacity";
-import type { StringPool } from "./string-pool";
-import type { TokenRegionViews, TokenSlotLayout } from "./token-layout";
 
 /**
  * Runtime parameter values used during simulation execution.

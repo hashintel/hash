@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { StringPool } from "../simulation/engine/string-pool";
+import { StringPool } from "../tokens/string-pool";
 import {
   createTokenRegionViews,
   encodeTokenToBytes,
   computeTokenSlotLayout,
-} from "../simulation/engine/token-layout";
+} from "../tokens/token-layout";
 import {
   emitBufferDynamicsJs,
   emitBufferKernelJs,

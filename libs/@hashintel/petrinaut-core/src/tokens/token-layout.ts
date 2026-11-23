@@ -1,4 +1,4 @@
-import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
+import { createUserKeyedRecord, getOwn } from "../validation/record-keys";
 import {
   coerceTokenAttributeValue,
   decodeTokenAttributeValue,
@@ -7,7 +7,7 @@ import {
 import { TYPE_POLICIES } from "./type-policies";
 import { NIL_UUID, toUuid } from "./uuid";
 
-import type { Color, ColorElementType, TokenRecord } from "../../types/sdcpn";
+import type { Color, ColorElementType, TokenRecord } from "../types/sdcpn";
 import type { PhysicalKind } from "./type-policies";
 
 export type { PhysicalKind } from "./type-policies";

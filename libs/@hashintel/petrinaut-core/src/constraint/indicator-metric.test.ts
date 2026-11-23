@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { instantiateHirMetric } from "../hir/instantiate";
 import { lowerTypeScriptToHir } from "../hir/lower-typescript";
-import { StringPool } from "../simulation/engine/string-pool";
+import { StringPool } from "../tokens/string-pool";
 import {
   compileStateConstraintIndicator,
   wrapHirAsIndicator,
