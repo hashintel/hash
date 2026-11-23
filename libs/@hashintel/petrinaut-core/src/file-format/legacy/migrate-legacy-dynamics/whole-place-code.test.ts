@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { lowerTypeScriptToHir } from "../hir/lower-typescript";
+import { lowerTypeScriptToHir } from "../../../hir/lower-typescript";
 import { migrateWholePlaceDynamicsCode } from "./whole-place-code";
 
 const launcherCode = `// Example of ODE for Satellite in orbit (simplified)

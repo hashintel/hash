@@ -4,7 +4,7 @@ import { isSDCPNEqual } from "../document/deep-equal";
 import { toPetrinautId } from "../document/petrinaut-id";
 import { normalizeSDCPN } from "./sdcpn-input";
 
-import type { SDCPN } from "./sdcpn";
+import type { SDCPN } from "../types/sdcpn";
 import type { SDCPNInput } from "./sdcpn-input";
 
 const idOf = toPetrinautId;

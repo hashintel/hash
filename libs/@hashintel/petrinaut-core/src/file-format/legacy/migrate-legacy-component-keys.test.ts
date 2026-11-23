@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { toPetrinautId } from "./document/petrinaut-id";
-import { parseSDCPNDocument } from "./file-format/parse-sdcpn-file";
-import { serializeSDCPN } from "./file-format/serialize-sdcpn";
-import { createJsonDocHandle } from "./handle/json-doc-handle/create-json-doc-handle";
+import { toPetrinautId } from "../../document/petrinaut-id";
+import { createJsonDocHandle } from "../../handle/json-doc-handle/create-json-doc-handle";
+import { parseSDCPNDocument } from "../parse-sdcpn-file";
+import { normalizeSDCPN } from "../sdcpn-input";
+import { serializeSDCPN } from "../serialize-sdcpn";
 import { migrateLegacyComponentKeys } from "./migrate-legacy-component-keys";
-import { normalizeSDCPN } from "./types/sdcpn-input";
 
-import type { SDCPNInput } from "./types/sdcpn-input";
+import type { SDCPNInput } from "../sdcpn-input";
 
 const port = {
   id: "in",

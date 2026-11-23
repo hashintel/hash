@@ -518,15 +518,15 @@ export type {
 
 // --- Domain types ---
 export type * from "./types/sdcpn";
-export { normalizeSDCPN } from "./types/sdcpn-input";
-export { migrateLegacyComponentKeys } from "./migrate-legacy-component-keys";
+export { normalizeSDCPN } from "./file-format/sdcpn-input";
+export { migrateLegacyComponentKeys } from "./file-format/legacy/migrate-legacy-component-keys";
 export type {
   SDCPNInput,
   SDCPNInputArcInput,
   SDCPNOutputArcInput,
   SDCPNPlaceInput,
   SDCPNTransitionInput,
-} from "./types/sdcpn-input";
+} from "./file-format/sdcpn-input";
 export { parseArcId } from "./document/selection";
 export type * from "./document/selection";
 

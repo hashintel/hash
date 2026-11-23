@@ -15,11 +15,11 @@ import {
   stripDisabledExtensionData,
   type PetrinautHandleCapabilities,
 } from "../../extensions/extensions";
+import { normalizeSDCPN } from "../../file-format/sdcpn-input";
 import { createReadableStore } from "../../store";
-import { normalizeSDCPN } from "../../types/sdcpn-input";
 
+import type { SDCPNInput } from "../../file-format/sdcpn-input";
 import type { SDCPN } from "../../types/sdcpn";
-import type { SDCPNInput } from "../../types/sdcpn-input";
 import type {
   DocChangeEvent,
   DocHandleState,

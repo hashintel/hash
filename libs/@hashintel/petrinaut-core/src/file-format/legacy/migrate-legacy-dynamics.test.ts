@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { checkSDCPN } from "./lsp/lib/checker";
-import { createSDCPN } from "./lsp/lib/helper/create-sdcpn";
+import { checkSDCPN } from "../../lsp/lib/checker";
+import { createSDCPN } from "../../lsp/lib/helper/create-sdcpn";
 import {
   createLanguageServers,
   disposeLanguageServers,
   syncLanguageServers,
-} from "./lsp/lib/language-servers";
+} from "../../lsp/lib/language-servers";
 import { migrateLegacyDynamics } from "./migrate-legacy-dynamics";
 
 const wholePlaceCode = `const k = parameters.k;

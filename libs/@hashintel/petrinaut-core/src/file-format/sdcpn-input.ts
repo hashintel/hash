@@ -1,6 +1,6 @@
 import { canonicalizePetrinautIds } from "../document/petrinaut-id";
-import { migrateLegacyComponentKeys } from "../migrate-legacy-component-keys";
-import { migrateLegacyDynamics } from "../migrate-legacy-dynamics";
+import { migrateLegacyComponentKeys } from "./legacy/migrate-legacy-component-keys";
+import { migrateLegacyDynamics } from "./legacy/migrate-legacy-dynamics";
 
 import type {
   ArcEndpoint,
@@ -22,7 +22,7 @@ import type {
   Scenario,
   SDCPN,
   Transition,
-} from "./sdcpn";
+} from "../types/sdcpn";
 
 /**
  * Loose, authoring-friendly variant of {@link SDCPN}.
