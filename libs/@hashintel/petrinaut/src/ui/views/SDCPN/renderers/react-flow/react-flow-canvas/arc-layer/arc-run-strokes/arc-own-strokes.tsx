@@ -5,17 +5,90 @@ import { cx } from "@hashintel/ds-helpers/css";
 import { arcHaloColor, focusRoleClass } from "../../../../../styles/focus";
 import { ARC_STROKE_WIDTH, READ_ARC_DASH } from "../../arc-head";
 import { LineUnderlay } from "../../shared/line-underlay";
-import {
-  computeArcTickMarks,
-  INHIBITOR_CIRCLE_RADIUS,
-} from "./arc-own-strokes/arc-tick-marks";
 
 import type { ArcShape } from "../arc-shapes";
 
+const INHIBITOR_CIRCLE_RADIUS = 10;
 const READ_DOT_RADIUS = 4;
 /** How far before the end of its arc the circle or the dot is centred. */
 const INHIBITOR_CIRCLE_SETBACK = INHIBITOR_CIRCLE_RADIUS - ARC_STROKE_WIDTH;
 const READ_DOT_SETBACK = READ_DOT_RADIUS - ARC_STROKE_WIDTH;
+
+const tickSpacing = 13;
+const tickHalfLength = 5;
+
+type TickMark = { x1: number; y1: number; x2: number; y2: number };
+
+/**
+ * The crossed line of an inhibitor arc: marks across its path at an even
+ * spacing, clear of the source node and of the circle at the target. They
+ * follow the curve as the browser draws it, read from a path element that is
+ * never attached to the document, so this is safe during render.
+ */
+const computeArcTickMarks = (path: string): TickMark[] => {
+  if (typeof document === "undefined") {
+    return [];
+  }
+
+  const pathElement = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "path",
+  );
+  pathElement.setAttribute("d", path);
+
+  let totalLength: number;
+  try {
+    totalLength = pathElement.getTotalLength();
+  } catch {
+    // jsdom has no `getTotalLength` or `getPointAtLength`.
+    return [];
+  }
+
+  if (!Number.isFinite(totalLength) || totalLength <= 0) {
+    return [];
+  }
+
+  const startMargin = tickSpacing;
+  const endMargin = INHIBITOR_CIRCLE_RADIUS + ARC_STROKE_WIDTH + tickSpacing;
+  const usableLength = totalLength - startMargin - endMargin;
+
+  if (usableLength <= 0) {
+    return [];
+  }
+
+  const tickCount = Math.floor(usableLength / tickSpacing);
+  const ticks: TickMark[] = [];
+
+  for (let index = 0; index <= tickCount; index++) {
+    const distance = startMargin + index * tickSpacing;
+
+    let point: DOMPoint;
+    let ahead: DOMPoint;
+    try {
+      point = pathElement.getPointAtLength(distance);
+      ahead = pathElement.getPointAtLength(Math.min(distance + 1, totalLength));
+    } catch {
+      return [];
+    }
+
+    const dx = ahead.x - point.x;
+    const dy = ahead.y - point.y;
+    const length = Math.hypot(dx, dy) || 1;
+
+    // Unit vector perpendicular to the path tangent.
+    const nx = -dy / length;
+    const ny = dx / length;
+
+    ticks.push({
+      x1: point.x - nx * tickHalfLength,
+      y1: point.y - ny * tickHalfLength,
+      x2: point.x + nx * tickHalfLength,
+      y2: point.y + ny * tickHalfLength,
+    });
+  }
+
+  return ticks;
+};
 
 /**
  * What draws a standard arc: its casing, the line up to the head, the whole
