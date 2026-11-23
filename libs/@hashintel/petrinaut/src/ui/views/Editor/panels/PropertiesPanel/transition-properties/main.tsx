@@ -6,7 +6,7 @@ import { ActiveNetContext } from "../../../../../../react/document/active-net-co
 import { CompositionContext } from "../../../../../../react/document/composition-context";
 import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
-import { usePetrinautPresentation } from "../../../../shared/presentation-context";
+import { usePetrinautPresentation } from "../../../../../presentation/presentation-context";
 import { TransitionPropertiesContext } from "./context";
 import {
   transitionFiringTimeSubView,

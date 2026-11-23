@@ -21,7 +21,7 @@ import {
   acceptsRunEnd,
   runEndOf,
 } from "../../../../../react/simulation/run-end";
-import { usePetrinautPresentation } from "../../../shared/presentation-context";
+import { usePetrinautPresentation } from "../../../../presentation/presentation-context";
 import { ToolbarButton } from "./toolbar-button";
 
 const contentWidthStyle = css({

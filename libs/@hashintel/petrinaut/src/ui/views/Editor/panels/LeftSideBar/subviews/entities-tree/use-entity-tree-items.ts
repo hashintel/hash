@@ -2,7 +2,7 @@ import { use } from "react";
 
 import { ActiveNetContext } from "../../../../../../../react/document/active-net-context";
 import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
-import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
+import { usePetrinautPresentation } from "../../../../../../presentation/presentation-context";
 import {
   AddDifferentialEquationAction,
   AddParameterAction,

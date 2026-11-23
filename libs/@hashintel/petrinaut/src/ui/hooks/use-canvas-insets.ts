@@ -3,7 +3,7 @@ import { usePanelPresence } from "../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../react/state/panel-sizes-context";
 import { PANEL_MARGIN } from "../constants/ui";
 import { useReading } from "../lib/readings";
-import { usePetrinautPresentation } from "../views/shared/presentation-context";
+import { usePetrinautPresentation } from "../presentation/presentation-context";
 
 /** How much of the canvas each edge's panels cover, in CSS pixels. */
 export interface CanvasInsets {

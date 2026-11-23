@@ -39,9 +39,9 @@ import {
 import { SimulationProvider } from "../../react/simulation/provider";
 import { SimulatorsProvider } from "../../react/simulators/provider";
 import { OverlayHost } from "../components/overlay-host";
+import { PetrinautPresentationProvider } from "../presentation/presentation-provider";
 import { SDCPNView } from "../views/SDCPN/sdcpn-view";
 import { PetrinautIconProvider } from "../views/shared/icon-provider";
-import { PetrinautPresentationProvider } from "../views/shared/presentation-provider";
 import {
   createPreviewNavigationAdapter,
   type PetrinautPreviewNavigationState,

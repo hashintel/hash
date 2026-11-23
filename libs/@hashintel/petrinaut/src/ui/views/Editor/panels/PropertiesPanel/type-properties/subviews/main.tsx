@@ -8,7 +8,7 @@ import { DescriptionField } from "../../../../../../components/description-field
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { SectionList } from "../../../../../../components/section";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
+import { usePetrinautPresentation } from "../../../../../../presentation/presentation-context";
 import { fieldsSectionStyle } from "../../styles";
 import { useTypePropertiesContext } from "../context";
 import { DimensionsTable } from "./dimensions-table";

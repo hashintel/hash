@@ -1,3 +1,12 @@
+/**
+ * @layerRoot ui.presentation
+ * @role What a profile shows: the capabilities the editor, a review and the preview give the same components
+ *
+ * `<Petrinaut>` and `<PetrinautPreview>` mount `PetrinautPresentationProvider`
+ * with their profile, and a component reads the capability it depends on
+ * through `usePetrinautPresentation`, so the same canvas and inspectors serve
+ * every profile. The fields of the capabilities type are the contract.
+ */
 import { createContext, use } from "react";
 
 export type PetrinautPresentationProfile = "editor" | "review" | "preview";

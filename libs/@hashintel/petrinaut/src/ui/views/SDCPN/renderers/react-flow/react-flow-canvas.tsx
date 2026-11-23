@@ -25,11 +25,11 @@ import { useEditorState } from "../../../../../react/state/editor-context";
 import { useUserSettings } from "../../../../../react/state/user-settings-context";
 import { SNAP_GRID_SIZE } from "../../../../constants/ui";
 import { useCanvasInsetsReader } from "../../../../hooks/use-canvas-insets";
+import { usePetrinautPresentation } from "../../../../presentation/presentation-context";
 import {
   readDraggedComponent,
   readDraggedNodeKind,
 } from "../../../shared/canvas-node-drag";
-import { usePetrinautPresentation } from "../../../shared/presentation-context";
 import {
   CanvasControllerContext,
   type CanvasRenderer,

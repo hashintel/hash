@@ -12,7 +12,7 @@ import { useSDCPNState } from "../../react/document/sdcpn-context";
 import { usePetrinautNavigate } from "../../react/navigation/navigation";
 import { useEditorActions } from "../../react/state/editor-context";
 import { useUserSettingsFields } from "../../react/state/user-settings-context";
-import { usePetrinautPresentation } from "../views/shared/presentation-context";
+import { usePetrinautPresentation } from "../presentation/presentation-context";
 import { CodeNavigationContext } from "./code-navigation-context";
 
 import type { CodeEntry, CodeNavigation } from "./code-navigation-context";

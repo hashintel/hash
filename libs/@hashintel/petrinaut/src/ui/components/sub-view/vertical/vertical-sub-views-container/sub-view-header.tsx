@@ -1,7 +1,7 @@
 import { Button, HelpTooltip, Icon } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
-import { usePetrinautPresentation } from "../../../../views/shared/presentation-context";
+import { usePetrinautPresentation } from "../../../../presentation/presentation-context";
 
 import type { SubView } from "../../types";
 

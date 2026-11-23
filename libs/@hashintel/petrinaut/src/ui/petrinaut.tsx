@@ -37,14 +37,14 @@ import { useHeldNetManagement } from "./petrinaut/use-held-net-management";
 import { documentViewPlugin } from "./plugins/document-view-plugin";
 import { fpsCounterPlugin } from "./plugins/fps-counter-plugin";
 import { PetrinautPluginsProvider } from "./plugins/plugins-provider";
+import { PetrinautPresentationProvider } from "./presentation/presentation-provider";
 import { noSlots, PetrinautSlotsContext } from "./slots-context";
 import { EditorView } from "./views/Editor/editor-view";
-import { PetrinautPresentationProvider } from "./views/shared/presentation-provider";
 
 import type { PetrinautNavigationController } from "../react/navigation/navigation";
 import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
+import type { PetrinautPresentationProfile } from "./presentation/presentation-context";
 import type { PetrinautSlots } from "./types/petrinaut-slots";
-import type { PetrinautPresentationProfile } from "./views/shared/presentation-context";
 
 // `clip`, not `hidden`: a hidden-overflow box is still programmatically
 // scrollable, and focusing an element the canvas transform pushed past the

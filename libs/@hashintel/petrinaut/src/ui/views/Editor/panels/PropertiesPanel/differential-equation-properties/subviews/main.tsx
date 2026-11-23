@@ -20,7 +20,7 @@ import { usePetrinautMutations } from "../../../../../../../react/editing/use-pe
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { PropertyValue } from "../../../../../../components/property-value";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
+import { usePetrinautPresentation } from "../../../../../../presentation/presentation-context";
 import { CodeTemplateMenu } from "../../code-template-menu";
 import { tokenCountLabel } from "../../token-count-label";
 import { useDiffEqPropertiesContext } from "../context";

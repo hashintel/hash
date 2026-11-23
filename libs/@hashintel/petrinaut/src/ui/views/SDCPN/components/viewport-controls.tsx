@@ -11,7 +11,7 @@ import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
 import { useCanvasInsetsReader } from "../../../hooks/use-canvas-insets";
 import { styleRef } from "../../../lib/readings";
 import { PluginToolbarItems } from "../../../plugins/plugin-outlets";
-import { usePetrinautPresentation } from "../../shared/presentation-context";
+import { usePetrinautPresentation } from "../../../presentation/presentation-context";
 import { useCanvasController } from "../canvas-renderer";
 
 const containerStyle = css({

@@ -1,6 +1,6 @@
 import { useSDCPNState } from "../../../../../../react/document/sdcpn-context";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
-import { usePetrinautPresentation } from "../../../../shared/presentation-context";
+import { usePetrinautPresentation } from "../../../../../presentation/presentation-context";
 import { PlacePropertiesContext } from "./context";
 import {
   placeDynamicsSubView,
