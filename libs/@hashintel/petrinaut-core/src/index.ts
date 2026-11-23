@@ -6,7 +6,7 @@
  * optimization runtime (Optuna under Pyodide in a worker).
  *
  * @layerRoot core
- * @role SDCPN document model, compiler, simulation runtimes and LSP, with no UI framework
+ * @role The package entries: what a host or the editor imports from the headless engine
  */
 
 // --- Document ---
