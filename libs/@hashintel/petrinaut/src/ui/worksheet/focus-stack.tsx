@@ -1,6 +1,6 @@
 /**
  * @layerRoot ui.worksheet
- * @role Reusable keyboard flow and interaction grammar for worksheets — panels composed of spreadsheet grids and ordinary controls
+ * @role The arrow-key flow between grids, stop tables, headers and controls, which every panel, the notebook and the dialogs share
  *
  * `FocusStack`: a nestable directional group in the worksheet's keyboard
  * flow. It renders `display: contents`, so it adds no box and no role — the

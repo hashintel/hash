@@ -14,32 +14,38 @@ It renders what the [React layer](layer:react) holds and calls its hooks to chan
 `Petrinaut` in `ui/petrinaut.tsx` creates one Core instance for the document handle and disposes it when the inputs change. It wraps the editor in `PetrinautSlotsContext`, `CommandRegistryProvider` and `PortalContainerContext`, whose container is the `OverlayHost` at the end of the editor's root, then mounts, from the outside in:
 
 1. `PetrinautProvider`, which connects the instance to React. See the [React layer](layer:react).
-2. `PetrinautPresentationProvider`, which says what a profile shows: the editor, a review, or a preview.
+2. `PetrinautPresentationProvider`, which says what a profile shows: the editor, a review, or a preview. See [`ui.presentation`](layer:ui.presentation).
 3. `MonacoProvider`. See [Monaco](doc:ui.monaco/monaco).
 4. The `.petrinaut-root` element, which holds the next provider and, beside it, `ResolvingOverlay`.
-5. `PetrinautPluginsProvider`, which runs the built-in plugins and the host's. See [How the editor runs plugins](doc:ui.plugins/runtime).
+5. `PetrinautPluginsProvider`, which runs the [built-in plugins](layer:ui.plugins.built-in) and the host's. See [How the editor runs plugins](doc:ui.plugins/runtime).
 6. `EditorView`. See [The editor shell](doc:ui.views.editor/editor-shell).
 
-`PetrinautPreview` in [`ui.preview`](layer:ui.preview) mounts the same canvas without the shell. It takes one component from the shell's folder, `SelectedItemProperties`, to show the properties of the selected item.
+`PetrinautPreview` in [`ui.preview`](layer:ui.preview) mounts the same canvas without the shell. It takes five components from inside the shell's folder: `SelectedItemProperties` for the properties of the selected item, `NetNavigationList` for the list of nets, `EventSimulationControls` and `EventTimeline` for a quick simulation, and `ActualTimeline` for Actual mode.
 
 `EditorView` and `PetrinautPreview` each mount `PetrinautIconProvider` from `ui/views/shared`. Below it the design system's `Icon` draws from the `@hashintel/ds-icons` set, and the icons of that set move only while the Animations setting is on.
 
 ## Where a thing goes
 
-| To add                                                     | Put it in                                                            | Read                                                                                 |
-| ---------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| A section or tab of a panel                                | The `sub-views.ts` of the panel, and a component module beside it    | [Sub-views](doc:ui.sub-view/sub-views)                                               |
-| A node, an arc or a canvas gesture                         | `ui/views/SDCPN`                                                     | [The canvas](doc:ui.views.canvas/canvas)                                             |
-| A region, a mode or a command                              | `ui/views/Editor`                                                    | [The editor shell](doc:ui.views.editor/editor-shell)                                 |
-| A code input                                               | `CodeEditor`                                                         | [Monaco](doc:ui.monaco/monaco)                                                       |
-| A table                                                    | `ui/spreadsheet-kit`                                                 | [Building a spreadsheet](doc:ui.spreadsheet-kit/building-a-spreadsheet)              |
-| Arrow-key movement between controls                        | `ui/worksheet`                                                       | [The worksheet keyboard flow](doc:ui.worksheet/worksheet)                            |
-| A component two views share                                | `ui/shared`                                                          |                                                                                      |
-| Code that two views share and no other part of the UI uses | `ui/views/shared`                                                    |                                                                                      |
-| A value that follows a panel on every frame                | `styleRef` or `useReading` from `ui/shared/readings.ts`              | [Panel geometry outside React state](doc:react.state/panel-sizes)                    |
-| State a panel's content keeps while the panel is closed    | `useKeptState` or `useKeptScroll` from `ui/shared/use-kept-state.ts` | [The editor shell](doc:ui.views.editor/editor-shell)                                 |
-| Something only one host needs                              | A plugin                                                             | [Plugins](doc:ui.plugins/overview)                                                   |
-| An icon                                                    | `@hashintel/ds-icons`, imported where it is drawn                    | [Its README](https://github.com/hashintel/hash/tree/main/libs/%40hashintel/ds-icons) |
+| To add                                                      | Put it in                                                            | Read                                                                                 |
+| ----------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| A section or tab of a panel                                 | The `sub-views.ts` of the panel, and a component module beside it    | [Sub-views](doc:ui.sub-view/sub-views)                                               |
+| A node, an arc or a canvas gesture                          | `ui/views/SDCPN`                                                     | [The canvas](doc:ui.views.canvas/canvas)                                             |
+| A region, a mode or a command                               | `ui/views/Editor`                                                    | [The editor shell](doc:ui.views.editor/editor-shell)                                 |
+| A code input                                                | `CodeEditor` from `ui/monaco`                                        | [Monaco](doc:ui.monaco/monaco)                                                       |
+| A table                                                     | `ui/spreadsheet-kit`                                                 | [Building a spreadsheet](doc:ui.spreadsheet-kit/building-a-spreadsheet)              |
+| Arrow-key movement between controls                         | `ui/worksheet`                                                       | [The worksheet keyboard flow](doc:ui.worksheet/worksheet)                            |
+| A part of a form or a drawer that collapses                 | `Section` from `ui/shared/section.tsx`                               | [`ui.shared`](layer:ui.shared)                                                       |
+| A component or a helper several blocks use                  | `ui/shared`, one piece per file                                      | [`ui.shared`](layer:ui.shared)                                                       |
+| A file one block alone uses                                 | Beside that block, in its folder                                     |                                                                                      |
+| Code that two views share and no other part of the UI uses  | `ui/views/shared`                                                    |                                                                                      |
+| Something a profile shows or hides                          | A capability in `ui/presentation/presentation-context.ts`            | [`ui.presentation`](layer:ui.presentation)                                           |
+| How a place's visualizer is drawn                           | `ui/visualizer`                                                      | [`ui.visualizer`](layer:ui.visualizer)                                               |
+| Opening, saving or exporting a file                         | `ui/views/Editor/shared/file-io`                                     |                                                                                      |
+| A value that follows a panel on every frame                 | `styleRef` or `useReading` from `ui/shared/readings.ts`              | [Panel geometry outside React state](doc:react.state/panel-sizes)                    |
+| State a panel's content keeps while the panel is closed     | `useKeptState` or `useKeptScroll` from `ui/shared/use-kept-state.ts` | [The editor shell](doc:ui.views.editor/editor-shell)                                 |
+| Something only one host needs                               | A plugin                                                             | [Plugins](doc:ui.plugins/overview)                                                   |
+| A story of the whole editor, or a fixture its stories share | `ui/stories`                                                         |                                                                                      |
+| An icon                                                     | `@hashintel/ds-icons`, imported where it is drawn                    | [Its README](https://github.com/hashintel/hash/tree/main/libs/%40hashintel/ds-icons) |
 
 A component and its private parts share a name: `x.tsx` is the entry, and the folder `x/` holds what only it uses. The entry file calls hooks, then composes parts. The panels under `ui/views/Editor/panels` differ: the entry is `panel.tsx` or `main.tsx`, and the sections sit in `subviews/`.
 

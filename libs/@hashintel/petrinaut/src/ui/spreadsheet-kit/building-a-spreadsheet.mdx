@@ -19,30 +19,33 @@ composing table, and the styles only the form's rows wear are in its own
 
 ## The pieces
 
-| Piece             | What it owns                                                                                                                                                                                                       |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `FormSpreadsheet` | The bordered shell: the container that registers as a navigation zone, and the `<table>` with the form's fixed layout. Rows are `children`.                                                                        |
-| `form-table.ts`   | The style grammar: 28px `cellStyle`, `gutterCellStyle`, the blue `selectedRowCellStyle` wash, the shorter phantom-row styles.                                                                                      |
-| `GutterCell`      | The inside of a gutter cell: the main button (focus selects the row, a pointer click selects first, Enter or the trailing `⋯` opens the menu, Delete deletes) plus the menu with its dismiss-refocus choreography. |
-| `GutterMenu`      | The keyboard-first pop-up itself — usually reached through `GutterCell`.                                                                                                                                           |
-| `PhantomLine`     | The quiet trailing add-line: a `+` gutter that creates the entry, plus whatever cells the table renders after it.                                                                                                  |
-| `TextCell`        | A text cell under the selection model: a second click or Enter opens its editor, Enter or leaving commits, Escape cancels. The owner holds the text and hears how the edit ended.                                  |
-| `ReorderableRows` | The table body whose `ReorderableRow`s move by a pointer drag on their gutter or by Alt with an arrow on any cell; the owner applies the move it is told about.                                                    |
-| `useRowSelection` | The selection model: `selectedRow` is the focused gutter's row, or the row whose menu is open. One menu at a time per table.                                                                                       |
+| Piece                      | What it owns                                                                                                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `FormSpreadsheet`          | The bordered shell: the container that registers as a member of the enclosing `FocusStack`, and the `<table>` with the form's fixed layout. Rows are `children`.                                                   |
+| `form-table.ts`            | The style grammar: 28px `cellStyle`, `gutterCellStyle`, the blue `selectedRowCellStyle` wash, the shorter phantom-row styles.                                                                                      |
+| `GutterCell`               | The inside of a gutter cell: the main button (focus selects the row, a pointer click selects first, Enter or the trailing `⋯` opens the menu, Delete deletes) plus the menu with its dismiss-refocus choreography. |
+| `GutterMenu`               | The keyboard-first pop-up itself — usually reached through `GutterCell`.                                                                                                                                           |
+| `PhantomLine`              | The quiet trailing add-line: a `+` gutter that creates the entry, plus whatever cells the table renders after it.                                                                                                  |
+| `TextCell`                 | A text cell under the selection model: a second click or Enter opens its editor, Enter or leaving commits, Escape cancels. The owner holds the text and hears how the edit ended.                                  |
+| `ReorderableRows`          | The table body whose `ReorderableRow`s move by a pointer drag on their gutter or by Alt with an arrow on any cell; the owner applies the move it is told about.                                                    |
+| `useRowSelection`          | The selection model: `selectedRow` is the focused gutter's row, or the row whose menu is open. One menu at a time per table.                                                                                       |
+| `useSelectFirstActivation` | The click grammar of a cell that is also a target: the first click selects it, a click on the selected cell or Enter activates it.                                                                                 |
+| `Spreadsheet`              | A ready-made table: the editable grid of typed cells that holds the tokens of a place.                                                                                                                             |
+| `Table`                    | A ready-made table: read-only rows that a click or an arrow selects, as the lists of the Simulate view use.                                                                                                        |
 
 Keyboard movement is the neighbouring
 [worksheet layer](layer:ui.worksheet)'s business:
-`useNavigationGrid` gives a table arrow-key cells and an `attach` ref that
-`FormSpreadsheet` takes, so edge moves continue into the next zone of the
-composing form.
+`useFocusGrid` gives a table arrow-key cells and an `attach` ref that
+`FormSpreadsheet` takes, so a move past an edge continues into the next
+member of the enclosing stack.
 
 ## The recipe
 
-A minimal table — one gutter column, one content column, an add-line —
-composed the way `parameter-rows.tsx` and `variable-rows.tsx` are:
+A minimal table with one gutter column, one content column and an add-line,
+composed the way `variable-rows.tsx` is:
 
 ```tsx
-const { register, onKeyDown, attach } = useNavigationGrid();
+const { register, onKeyDown, attach } = useFocusGrid({ tabStop: "native" });
 const rowSelection = useRowSelection();
 
 return (
