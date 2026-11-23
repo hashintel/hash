@@ -9,6 +9,7 @@ import {
   extractBaseUrl,
   extractDraftIdFromEntityId,
   extractWebIdFromEntityId,
+  isBaseUrl,
 } from "@blockprotocol/type-system";
 import {
   brunchTools,
@@ -75,15 +76,19 @@ const isTypeUrl = (type: string) =>
 const anyOf = (filters: Filter[]): Filter[] =>
   filters.length === 0 ? [] : [{ any: filters }];
 
+const entityTypeFilterKey = (type: string) =>
+  isBaseUrl(type) ? "baseUrl" : isTypeUrl(type) ? "versionedUrl" : "title";
+
 /**
- * Entities of any of these types: a title matches every type with that title,
- * at any version; a type URL matches that version only.
+ * Entities of any of these types: a title matches every type with that title
+ * at any version; a type base URL matches all versions of that type; a
+ * published versioned type URL matches that version only.
  */
 const entityTypesFilter = (entityTypes: readonly string[] = []): Filter[] =>
   anyOf(
     entityTypes.map((type) => ({
       equal: [
-        { path: ["type", isTypeUrl(type) ? "versionedUrl" : "title"] },
+        { path: ["type", entityTypeFilterKey(type)] },
         { parameter: type },
       ],
     })),

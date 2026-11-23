@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 
 import {
-  hashEntityCountMaxJoinEntities,
+  hashEntityCountDefaultJoinEntities,
   hashEntityReadMaxLimit,
 } from "@hashintel/brunch-agent";
 
@@ -336,7 +336,7 @@ describe("the paged read", () => {
   test("refuses before reading any page when the reads would exceed the budget", async () => {
     const graph = fakeGraph(data, {
       sizes: (key) =>
-        key === "Sales Order" ? hashEntityCountMaxJoinEntities - 10 : 6,
+        key === "Sales Order" ? hashEntityCountDefaultJoinEntities - 10 : 6,
     });
     await expect(
       runHashEntityJoinCount(
@@ -347,12 +347,11 @@ describe("the paged read", () => {
       ),
     ).resolves.toEqual({
       outcome: "refused",
-      webScope: "default",
       reads: [
         {
           role: "counted",
           entityTypes: ["Sales Order"],
-          entities: hashEntityCountMaxJoinEntities - 10,
+          entities: hashEntityCountDefaultJoinEntities - 10,
         },
         { role: "link", entityTypes: ["Has Line Item"], entities: 6 },
         { role: "link", entityTypes: ["Fulfills"], entities: 6 },
@@ -457,7 +456,6 @@ describe("the paged read", () => {
     );
     expect(result).toEqual({
       outcome: "incomplete",
-      webScope: "default",
       reason: expect.stringContaining(
         "took the reads past the 20,000 entities one count may read: HASH holds more than it did when the count began",
       ),
@@ -480,9 +478,9 @@ describe("the paged read", () => {
     }
     // Each of the two reads may finish the page it is on: one page past at most.
     const read = result.reads.reduce((sum, { entities }) => sum + entities, 0);
-    expect(read).toBeGreaterThan(hashEntityCountMaxJoinEntities);
+    expect(read).toBeGreaterThan(hashEntityCountDefaultJoinEntities);
     expect(read).toBeLessThanOrEqual(
-      hashEntityCountMaxJoinEntities + 2 * hashEntityReadMaxLimit,
+      hashEntityCountDefaultJoinEntities + 2 * hashEntityReadMaxLimit,
     );
     expect("count" in result).toBe(false);
   });
@@ -497,7 +495,6 @@ describe("the paged read", () => {
     );
     expect(result).toEqual({
       outcome: "incomplete",
-      webScope: "default",
       reason:
         "Reading the Fulfills links failed on page 2: HASH didn't respond in time.",
       reads: expect.arrayContaining([

@@ -16,9 +16,11 @@ import {
   type HashEntityCountInput,
   type HashEntityCountJoinResult,
   type HashEntityCountStep,
-  hashEntityCountMaxExamples,
-  hashEntityCountMaxGroups,
-  hashEntityCountMaxJoinEntities,
+  hashEntityCountDefaultExamples,
+  hashEntityCountDefaultGroups,
+  hashEntityCountDefaultJoinEntities,
+  hashEntityCountGroupByPath,
+  hashEntityCountWhereConditions,
   hashEntityReadMaxLimit,
 } from "@hashintel/brunch-agent";
 
@@ -93,8 +95,10 @@ export const hashEntityJoinCountPlan = (
   linkTypes: [
     ...new Set(
       [
-        ...(input.where?.path ?? []),
-        ...(input.groupBy ? [input.groupBy] : []),
+        ...hashEntityCountWhereConditions(input.where).flatMap(
+          ({ path }) => path,
+        ),
+        ...hashEntityCountGroupByPath(input.groupBy),
       ].map(({ linkType }) => linkType),
     ),
   ],
@@ -145,21 +149,25 @@ export const hashEntityJoinCount = (
     const ends = indexes.get(step.linkType)?.[step.direction];
     return [...new Set(from.flatMap((id) => ends?.get(id) ?? []))];
   };
-  const qualifying = counted.filter((entity) => {
-    if (where === undefined) {
-      return true;
-    }
-    const reached = where.path.reduce<string[]>(
-      (ids, step) => follow(ids, step),
-      [entity.entityId],
-    );
-    return reached.length > 0 === where.exists;
-  });
+  const conditions = hashEntityCountWhereConditions(where);
+  const qualifying = counted.filter((entity) =>
+    conditions.every((condition) => {
+      const reached = condition.path.reduce<string[]>(
+        (ids, step) => follow(ids, step),
+        [entity.entityId],
+      );
+      return reached.length > 0 === condition.exists;
+    }),
+  );
   let groups: Map<string | null, number> | undefined;
-  if (groupBy !== undefined) {
+  const groupSteps = hashEntityCountGroupByPath(groupBy);
+  if (groupSteps.length > 0) {
     groups = new Map();
     for (const entity of qualifying) {
-      const ends = follow([entity.entityId], groupBy);
+      const ends = groupSteps.reduce<string[]>(
+        (ids, step) => follow(ids, step),
+        [entity.entityId],
+      );
       for (const end of ends.length === 0 ? [null] : ends) {
         groups.set(end, (groups.get(end) ?? 0) + 1);
       }
@@ -168,7 +176,7 @@ export const hashEntityJoinCount = (
   return {
     ofType: counted.length,
     count: qualifying.length,
-    examples: qualifying.slice(0, hashEntityCountMaxExamples),
+    examples: qualifying.slice(0, hashEntityCountDefaultExamples),
     groups,
   };
 };
@@ -186,7 +194,7 @@ const joinBudget = () => {
     /** Adds a page's entities; whether the reads are now past the budget. */
     add: (entities: number) => {
       read += entities;
-      return read > hashEntityCountMaxJoinEntities;
+      return read > hashEntityCountDefaultJoinEntities;
     },
   };
 };
@@ -267,7 +275,7 @@ const readAllPages = async ({
     }
     if (budget.add(result.entities.length)) {
       return {
-        reason: `${readName(name)} took the reads past the ${entityCount(hashEntityCountMaxJoinEntities)} one count may read: HASH holds more than it did when the count began`,
+        reason: `${readName(name)} took the reads past the ${entityCount(hashEntityCountDefaultJoinEntities)} one count may read: HASH holds more than it did when the count began`,
         entities: [...read.values()],
       };
     }
@@ -342,9 +350,9 @@ export const runHashEntityJoinCount = async (
   }));
   if (
     toRead.reduce((sum, { entities }) => sum + entities, 0) >
-    hashEntityCountMaxJoinEntities
+    hashEntityCountDefaultJoinEntities
   ) {
-    return { outcome: "refused", webScope, reads: toRead, requests };
+    return { outcome: "refused", reads: toRead, requests };
   }
 
   const budget = joinBudget();
@@ -387,7 +395,6 @@ export const runHashEntityJoinCount = async (
   );
   const incomplete = (reason: string): HashEntityCountJoinResult => ({
     outcome: "incomplete",
-    webScope,
     reason: `${reason.charAt(0).toUpperCase()}${reason.slice(1)}${/[.!?]$/u.test(reason) ? "" : "."}`,
     reads,
     requests,
@@ -459,8 +466,8 @@ export const runHashEntityJoinCount = async (
           : { entity: entityRef(entity), count };
       })
       .sort(groupOrder);
-    groups = all.slice(0, hashEntityCountMaxGroups);
-    const rest = all.slice(hashEntityCountMaxGroups);
+    groups = all.slice(0, hashEntityCountDefaultGroups);
+    const rest = all.slice(hashEntityCountDefaultGroups);
     if (rest.length > 0) {
       otherGroups = {
         groups: rest.length,

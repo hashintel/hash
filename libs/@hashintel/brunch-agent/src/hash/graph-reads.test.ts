@@ -2,29 +2,41 @@ import * as v from "valibot";
 import { expect, test } from "vitest";
 
 import {
+  hashEntityCountDefaultExamples,
+  hashEntityCountDefaultGroups,
+  hashEntityCountDefaultJoinEntities,
+  hashEntityCountGroupByPath,
   hashEntityCountJoinResultSchema,
+  hashEntityCountMaxExamples,
+  hashEntityCountMaxGroups,
+  hashEntityCountMaxJoinEntities,
   hashEntityCountResultSchema,
+  hashEntityCountWhereConditions,
+  hashEntityReadDefaultLimit,
   hashEntityReadMaxLimit,
   hashEntityReadMaxTraversalDepth,
+  hashEntityReadOversizedSchema,
+  hashEntityTypeReadDefaultLimit,
+  hashEntityTypeReadResultSchema,
   hashPropertyBaseUrl,
+  hashReadDefaultMaxTokens,
+  hashReadMaxMaxTokens,
+  hashReadMinMaxTokens,
   parseHashEntityCountInput,
   parseHashEntityReadInput,
   parseHashEntityTypeReadInput,
   parseHashWebReadInput,
 } from "./graph-reads";
 
-test("an entity read follows whole numbers of links, from none up to the maximum", () => {
+test("an entity read follows whole numbers of links, from none up to the maximum, with an actionable error", () => {
   for (const traversalDepth of [0, hashEntityReadMaxTraversalDepth])
     expect(parseHashEntityReadInput({ traversalDepth })).toEqual({
       traversalDepth,
     });
-  for (const traversalDepth of [-1, hashEntityReadMaxTraversalDepth + 1])
+  for (const traversalDepth of [-1, hashEntityReadMaxTraversalDepth + 1, 1.5])
     expect(() => parseHashEntityReadInput({ traversalDepth })).toThrow(
-      /Invalid value/u,
+      /traversalDepth.*0 to 3.*entityIds/u,
     );
-  expect(() => parseHashEntityReadInput({ traversalDepth: 1.5 })).toThrow(
-    /Invalid integer/u,
-  );
 });
 
 test.each([
@@ -36,48 +48,98 @@ test.each([
     { entityTypeIds: ["https://hash.ai/@h/types/entity-type/user/v/7"] },
     "entityTypeIds",
   ],
+  [
+    "entity type read by titles",
+    parseHashEntityTypeReadInput,
+    { titles: ["Sales Order"] },
+    "titles",
+  ],
 ] as const)(
-  "an %s takes lists of ids, and refuses an empty list, an empty id or a key it doesn't define",
+  "an %s takes lists of ids, and refuses an empty list with guidance, an empty entry or a key it doesn't define",
   (_read, parse, valid, listKey) => {
     expect(parse(valid)).toEqual(valid);
-    expect(() => parse({ [listKey]: [] })).toThrow(/Invalid length/u);
-    expect(() => parse({ [listKey]: [""] })).toThrow(/Invalid length/u);
+    expect(() => parse({ [listKey]: [] })).toThrow(/omit it instead/u);
+    expect(() => parse({ [listKey]: [""] })).toThrow(/non-empty|base URL/u);
     expect(() => parse({ ...valid, unknown: true })).toThrow(/Invalid key/u);
   },
 );
 
-test("an entity read names values to show by entity id, or by entity id and a path into one", () => {
+test("an entity read accepts entityTypes by title, base URL or published versioned URL, and rejects draft or malformed type URLs", () => {
+  const valid = {
+    entityTypes: [
+      "Sales Order",
+      "https://hash.ai/@acme/types/entity-type/sales-order/",
+      "https://hash.ai/@acme/types/entity-type/sales-order/v/12",
+    ],
+  };
+  expect(parseHashEntityReadInput(valid)).toEqual(valid);
+  for (const bad of [
+    "https://hash.ai/@acme/types/entity-type/sales-order/v/0",
+    "https://hash.ai/@acme/types/entity-type/sales-order/v/2-draft.lane.5",
+    "http://localhost:3000/@acme/types/entity-type/sales-order",
+  ]) {
+    expect(() => parseHashEntityReadInput({ entityTypes: [bad] })).toThrow(
+      /base URL ending in \/.*published versioned URL/u,
+    );
+  }
+});
+
+test("an entity read names values to show by entity id, or by entity id and path with optional offset and limit", () => {
   const entityId = "web~entity";
   const byPath = { entityId, path: ["definition_object", "places", "0"] };
+  const byPagedPath = {
+    entityId,
+    path: ["notes"],
+    offset: 0,
+    limit: 4000,
+  };
   expect(
-    parseHashEntityReadInput({ fullValuesFor: [entityId, byPath] }),
-  ).toEqual({ fullValuesFor: [entityId, byPath] });
+    parseHashEntityReadInput({
+      fullValuesFor: [entityId, byPath, byPagedPath],
+    }),
+  ).toEqual({ fullValuesFor: [entityId, byPath, byPagedPath] });
   for (const entry of [
     { entityId, path: [] },
     { entityId, path: [""] },
     { entityId },
     { entityId: "", path: ["title"] },
+    { entityId, path: ["title"], offset: -1 },
+    { entityId, path: ["title"], offset: 1.5 },
+    { entityId, path: ["title"], limit: 0 },
+    { entityId, path: ["title"], limit: 1.5 },
     { entityId, path: ["title"], extra: true },
     "",
   ])
     expect(() => parseHashEntityReadInput({ fullValuesFor: [entry] })).toThrow(
-      /Invalid/u,
+      /Invalid|offset|limit|at least one step/u,
     );
   expect(() => parseHashEntityReadInput({ fullValuesFor: [] })).toThrow(
-    /Invalid length/u,
+    /omit it instead/u,
   );
 });
 
-test("an entity read pages by a limit of 1 to the maximum and an opaque cursor", () => {
+test("an entity read pages by a limit of 1 to the maximum, optional includeArchived, maxTokens, and an opaque cursor", () => {
   for (const limit of [1, hashEntityReadMaxLimit])
-    expect(parseHashEntityReadInput({ limit, cursor: "next" })).toEqual({
+    expect(
+      parseHashEntityReadInput({
+        limit,
+        cursor: "next",
+        includeArchived: true,
+        maxTokens: hashReadMaxMaxTokens,
+      }),
+    ).toEqual({
       limit,
       cursor: "next",
+      includeArchived: true,
+      maxTokens: hashReadMaxMaxTokens,
     });
-  const limitMessage =
-    "limit is how many matched entities one page holds: a whole number from 1 to 1,000. Omit it for 100.";
   for (const limit of [0, hashEntityReadMaxLimit + 1, 2.5, "10"])
-    expect(() => parseHashEntityReadInput({ limit })).toThrow(limitMessage);
+    expect(() => parseHashEntityReadInput({ limit })).toThrow(
+      new RegExp(
+        `limit.*1 to 1,000.*Omit it for ${hashEntityReadDefaultLimit}`,
+        "u",
+      ),
+    );
   expect(() => parseHashEntityReadInput({ cursor: "" })).toThrow(
     /Invalid length/u,
   );
@@ -86,6 +148,75 @@ test("an entity read pages by a limit of 1 to the maximum and an opaque cursor",
   );
 });
 
+test("entity type reads accept base URLs, published versioned URLs, titles, pagination and maxTokens", () => {
+  const valid = {
+    entityTypeIds: [
+      "https://hash.ai/@h/types/entity-type/user/",
+      "https://hash.ai/@h/types/entity-type/user/v/7",
+    ],
+    titles: ["User"],
+    limit: hashEntityTypeReadDefaultLimit,
+    cursor: "https://hash.ai/@h/types/entity-type/user/v/7",
+    maxTokens: hashReadDefaultMaxTokens,
+  };
+  expect(parseHashEntityTypeReadInput(valid)).toEqual(valid);
+  for (const bad of [
+    "User",
+    "https://hash.ai/@h/types/entity-type/user/v/0",
+    "https://hash.ai/@h/types/entity-type/user/v/2-draft.lane.1",
+  ]) {
+    expect(() =>
+      parseHashEntityTypeReadInput({ entityTypeIds: [bad] }),
+    ).toThrow(/base URL ending in \/.*published versioned URL.*titles/u);
+  }
+  for (const limit of [0, hashEntityReadMaxLimit + 1, 1.5])
+    expect(() => parseHashEntityTypeReadInput({ limit })).toThrow(
+      new RegExp(
+        `limit.*1 to 1,000.*Omit it for ${hashEntityTypeReadDefaultLimit}`,
+        "u",
+      ),
+    );
+  const result = {
+    entityTypes: [
+      {
+        entityTypeId: "https://hash.ai/@h/types/entity-type/user/v/7",
+        title: "User",
+        properties: [
+          {
+            baseUrl: "https://hash.ai/@h/types/property-type/name/",
+            title: "Name",
+            description: "Full display name.",
+          },
+        ],
+        links: [],
+      },
+    ],
+    cursor: "https://hash.ai/@h/types/entity-type/user/v/7",
+  };
+  expect(v.parse(hashEntityTypeReadResultSchema, result)).toEqual(result);
+});
+
+test.each([
+  ["entity read", parseHashEntityReadInput],
+  ["entity type read", parseHashEntityTypeReadInput],
+  ["entity count", parseHashEntityCountInput],
+] as const)(
+  "a %s accepts maxTokens between min and max and rejects out-of-range values with defaults named",
+  (_read, parse) => {
+    for (const maxTokens of [hashReadMinMaxTokens, hashReadMaxMaxTokens])
+      expect(parse({ maxTokens })).toEqual({ maxTokens });
+    for (const maxTokens of [
+      hashReadMinMaxTokens - 1,
+      hashReadMaxMaxTokens + 1,
+      10_000.5,
+      "20000",
+    ])
+      expect(() => parse({ maxTokens })).toThrow(
+        /maxTokens.*1,000 to 60,000.*Omit it for 20,000/u,
+      );
+  },
+);
+
 test("a web read takes no input", () => {
   expect(parseHashWebReadInput({})).toEqual({});
   expect(() => parseHashWebReadInput({ webIds: ["web"] })).toThrow(
@@ -93,38 +224,66 @@ test("a web read takes no input", () => {
   );
 });
 
-test("an entity count takes entity types by title or by versioned entityTypeId, in given webs or none", () => {
+test("an entity count takes entity types by title, base URL or published versioned URL, plus changeable defaults", () => {
   const typed = {
     entityTypes: [
       "Sales Order",
+      "https://hash.ai/@acme/types/entity-type/sales-order/",
       "https://hash.ai/@acme/types/entity-type/sales-order/v/12",
     ],
+    includeDrafts: true,
+    includeArchived: true,
+    maxGroups: hashEntityCountMaxGroups,
+    maxExamples: hashEntityCountMaxExamples,
+    maxJoinEntities: hashEntityCountMaxJoinEntities,
   };
   expect(parseHashEntityCountInput(typed)).toEqual(typed);
+  expect(parseHashEntityCountInput({ maxExamples: 0 })).toEqual({
+    maxExamples: 0,
+  });
   expect(parseHashEntityCountInput({})).toEqual({});
   expect(() => parseHashEntityCountInput({ entityTypes: [] })).toThrow(
-    /Invalid length/u,
+    /omit it instead/u,
   );
   expect(() => parseHashEntityCountInput({ entityTypes: [""] })).toThrow(
-    /Invalid length/u,
+    /non-empty/u,
   );
   expect(() => parseHashEntityCountInput({ traversalDepth: 0 })).toThrow(
     /Invalid key/u,
   );
+  for (const maxGroups of [0, hashEntityCountMaxGroups + 1, 2.5])
+    expect(() => parseHashEntityCountInput({ maxGroups })).toThrow(
+      new RegExp(
+        `maxGroups.*1 to ${hashEntityCountMaxGroups}.*Omit it for ${hashEntityCountDefaultGroups}`,
+        "u",
+      ),
+    );
+  for (const maxExamples of [-1, hashEntityCountMaxExamples + 1, 1.5])
+    expect(() => parseHashEntityCountInput({ maxExamples })).toThrow(
+      new RegExp(
+        `maxExamples.*0 to ${hashEntityCountMaxExamples}.*Omit it for ${hashEntityCountDefaultExamples}`,
+        "u",
+      ),
+    );
+  for (const maxJoinEntities of [0, hashEntityCountMaxJoinEntities + 1, 1.5])
+    expect(() => parseHashEntityCountInput({ maxJoinEntities })).toThrow(
+      new RegExp(
+        `maxJoinEntities.*1 to ${hashEntityCountMaxJoinEntities.toLocaleString("en-US")}.*Omit it for ${hashEntityCountDefaultJoinEntities.toLocaleString("en-US")}`,
+        "u",
+      ),
+    );
 });
 
 test.each([
-  "https://hash.ai/@acme/types/entity-type/sales-order/",
   "https://hash.ai/@acme/types/entity-type/sales-order/v/0",
+  "https://hash.ai/@acme/types/entity-type/sales-order/v/2-draft.lane.5",
   "http://localhost:3000/@acme/types/entity-type/sales-order",
 ])(
-  "an entity count refuses the unversioned type URL %s, telling the model what to give instead",
+  "an entity count refuses the invalid or draft type URL %s, telling the model what to give instead",
   (entityType) => {
     expect(() =>
       parseHashEntityCountInput({ entityTypes: [entityType] }),
-    ).toThrow(
-      "An entity type URL needs its version, as in …/sales-order/v/1: copy the entityTypeId from a read, or give the type's title instead.",
-    );
+    ).toThrow(/base URL ending in \/.*published versioned URL/u);
   },
 );
 
@@ -137,18 +296,19 @@ test.each([
   ["entity read", parseHashEntityReadInput],
   ["entity count", parseHashEntityCountInput],
 ] as const)(
-  "an %s matches property values by base URL or versioned propertyTypeId, with a string, number or boolean",
+  "an %s matches property values by base URL, published versioned URL or draft versioned URL, with a string, number or boolean",
   (_read, parse) => {
     const propertyEquals = [
       { property: orderNumber, value: "1000000283" },
       { property: `${orderNumber}v/2`, value: 283 },
+      { property: `${orderNumber}v/2-draft.lane123.5`, value: "draft-ok" },
       {
         property: "http://localhost:3000/@a/types/property-type/paid/",
         value: false,
       },
     ];
     expect(parse({ propertyEquals })).toEqual({ propertyEquals });
-    expect(() => parse({ propertyEquals: [] })).toThrow(/Invalid length/u);
+    expect(() => parse({ propertyEquals: [] })).toThrow(/omit it instead/u);
     for (const value of [null, ["1"], { amount: 1 }])
       expect(() =>
         parse({ propertyEquals: [{ property: orderNumber, value }] }),
@@ -168,6 +328,7 @@ test.each([
   "Sales Order Number",
   "https://hash.ai/@h/types/property-type/sales-order-number",
   "https://hash.ai/@h/types/property-type/sales-order-number/v/0",
+  "https://hash.ai/@h/types/property-type/sales-order-number/v/0-draft.lane.1",
   "",
 ])(
   "a property named %j, neither a base URL nor a versioned id, is refused with what to give instead",
@@ -185,104 +346,119 @@ test.each([
 );
 
 test("an entity read chooses properties to show by base URL or versioned propertyTypeId; a count shows none", () => {
-  const properties = [orderNumber, `${orderNumber}v/1`];
+  const properties = [
+    orderNumber,
+    `${orderNumber}v/1`,
+    `${orderNumber}v/2-draft.lane.3`,
+  ];
   expect(parseHashEntityReadInput({ properties })).toEqual({ properties });
   expect(() => parseHashEntityReadInput({ properties: [] })).toThrow(
-    /Invalid length/u,
+    /omit it instead/u,
   );
   expect(() => parseHashEntityCountInput({ properties })).toThrow(
     /Invalid key/u,
   );
 });
 
-test("a versioned propertyTypeId reduces to its base URL; a base URL is its own", () => {
+test("a published or draft versioned propertyTypeId reduces to its base URL; a base URL is its own", () => {
   expect(hashPropertyBaseUrl(`${orderNumber}v/12`)).toBe(orderNumber);
+  expect(hashPropertyBaseUrl(`${orderNumber}v/2-draft.lane.5`)).toBe(
+    orderNumber,
+  );
   expect(hashPropertyBaseUrl(orderNumber)).toBe(orderNumber);
 });
 
-const hasLineItem = { linkType: "Has Line Item", direction: "outgoing" };
-const fulfilledBy = { linkType: "Fulfills", direction: "incoming" };
-const hasCustomer = { linkType: "Has Customer", direction: "outgoing" };
+const hasLineItem = {
+  linkType: "Has Line Item",
+  direction: "outgoing",
+} as const;
+const fulfilledBy = { linkType: "Fulfills", direction: "incoming" } as const;
+const hasCustomer = {
+  linkType: "Has Customer",
+  direction: "outgoing",
+} as const;
 
-test("a count by links takes a where path of one or two steps and a groupBy step, together or apart", () => {
-  const both = {
+test("a count by links supports arbitrary-length where paths, multiple where conditions, multi-hop groupBy, base-URL linkTypes, and optional entityTypes", () => {
+  const multiCondition = {
     entityTypes: ["Sales Order"],
-    where: { path: [hasLineItem, fulfilledBy], exists: false },
-    groupBy: hasCustomer,
-  };
-  expect(parseHashEntityCountInput(both)).toEqual(both);
-  const whereOnly = {
-    entityTypes: ["Sales Order"],
-    where: { path: [hasCustomer], exists: true },
-  };
-  expect(parseHashEntityCountInput(whereOnly)).toEqual(whereOnly);
-  const groupOnly = {
-    entityTypes: ["Sales Order"],
+    where: [
+      { path: [hasLineItem], exists: true },
+      { path: [hasLineItem, fulfilledBy, hasCustomer], exists: false },
+    ],
     groupBy: {
-      linkType: "https://hash.ai/@acme/types/entity-type/has-customer/v/1",
-      direction: "outgoing",
+      path: [
+        {
+          linkType: "https://hash.ai/@acme/types/entity-type/has-line-item/",
+          direction: "outgoing" as const,
+        },
+        hasCustomer,
+      ],
     },
   };
-  expect(parseHashEntityCountInput(groupOnly)).toEqual(groupOnly);
+  expect(parseHashEntityCountInput(multiCondition)).toEqual(multiCondition);
+  expect(hashEntityCountWhereConditions(multiCondition.where)).toEqual(
+    multiCondition.where,
+  );
+  expect(hashEntityCountGroupByPath(multiCondition.groupBy)).toEqual(
+    multiCondition.groupBy.path,
+  );
+
+  const singleWhereAndStep = {
+    where: { path: [hasCustomer], exists: true },
+    groupBy: hasCustomer,
+  };
+  expect(parseHashEntityCountInput(singleWhereAndStep)).toEqual(
+    singleWhereAndStep,
+  );
+  expect(hashEntityCountWhereConditions(singleWhereAndStep.where)).toEqual([
+    singleWhereAndStep.where,
+  ]);
+  expect(hashEntityCountGroupByPath(singleWhereAndStep.groupBy)).toEqual([
+    hasCustomer,
+  ]);
 });
 
-test("a count by links refuses an empty path, saying how many steps it needs", () => {
+test("a count by links refuses empty where/groupBy paths or lists", () => {
   expect(() =>
     parseHashEntityCountInput({
-      entityTypes: ["Sales Order"],
       where: { path: [], exists: true },
     }),
-  ).toThrow(
-    "A where path needs one or two link steps, each { linkType, direction }.",
-  );
-});
-
-test("a count by links refuses a path of more than two steps, saying what to do instead", () => {
+  ).toThrow(/at least one link step/u);
   expect(() =>
     parseHashEntityCountInput({
-      entityTypes: ["Sales Order"],
-      where: { path: [hasLineItem, fulfilledBy, hasCustomer], exists: true },
+      where: [],
     }),
-  ).toThrow(
-    "A count follows at most 2 links, so it can't answer a question along a longer path: ask the user to narrow the question, or read the records to answer it.",
-  );
-});
-
-test("a count by links refuses a step without a direction it knows or with an unversioned link type URL", () => {
+  ).toThrow(/omit it instead/u);
   expect(() =>
     parseHashEntityCountInput({
-      entityTypes: ["Sales Order"],
+      groupBy: { path: [] },
+    }),
+  ).toThrow(/at least one link step/u);
+});
+
+test("a count by links refuses an unknown direction or draft link type URL", () => {
+  expect(() =>
+    parseHashEntityCountInput({
       groupBy: { linkType: "Has Customer", direction: "both" },
     }),
-  ).toThrow(/Invalid type/u);
+  ).toThrow(/Invalid/u);
   expect(() =>
     parseHashEntityCountInput({
-      entityTypes: ["Sales Order"],
       groupBy: {
-        linkType: "https://hash.ai/@acme/types/entity-type/has-customer/",
+        linkType:
+          "https://hash.ai/@acme/types/entity-type/has-customer/v/2-draft.lane.1",
         direction: "outgoing",
       },
     }),
-  ).toThrow(/needs its version/u);
+  ).toThrow(/base URL ending in \/.*published versioned URL/u);
   expect(() =>
     parseHashEntityCountInput({
-      entityTypes: ["Sales Order"],
       groupBy: { ...hasCustomer, depth: 1 },
     }),
-  ).toThrow(/Invalid key/u);
+  ).toThrow(/Invalid/u);
 });
 
-test("a count by links needs the type it counts, and says how to name it", () => {
-  for (const input of [
-    { where: { path: [hasCustomer], exists: false } },
-    { groupBy: hasCustomer },
-  ])
-    expect(() => parseHashEntityCountInput(input)).toThrow(
-      'where and groupBy count the entities of a type by their links: name that type in entityTypes, such as ["Sales Order"].',
-    );
-});
-
-test("a count by links settles as counted, refused or incomplete, and only counted carries a count", () => {
+test("a count by links settles as counted, refused or incomplete, without webScope on refused/incomplete", () => {
   const reads = [
     { role: "counted", entityTypes: ["Sales Order"], entities: 3 },
     { role: "link", entityTypes: ["Has Customer"], entities: 4 },
@@ -307,14 +483,12 @@ test("a count by links settles as counted, refused or incomplete, and only count
   expect(v.parse(hashEntityCountJoinResultSchema, counted)).toEqual(counted);
   const refused = {
     outcome: "refused",
-    webScope: "named",
     reads,
     requests: 2,
   };
   expect(v.parse(hashEntityCountJoinResultSchema, refused)).toEqual(refused);
   const incomplete = {
     outcome: "incomplete",
-    webScope: "default",
     reason: "Reading Has Customer links failed on page 2.",
     reads,
     requests: 3,
@@ -328,4 +502,14 @@ test("a count by links settles as counted, refused or incomplete, and only count
     false,
   );
   expect(v.safeParse(hashEntityCountResultSchema, counted).success).toBe(false);
+});
+
+test("browser oversized entity-read refusal schema validates payload metadata", () => {
+  const oversized = {
+    refused: true as const,
+    payloadBytes: 14_000_000,
+    matched: 100,
+    linked: 420,
+  };
+  expect(v.parse(hashEntityReadOversizedSchema, oversized)).toEqual(oversized);
 });

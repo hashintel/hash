@@ -14,12 +14,14 @@ import * as v from "valibot";
 
 import {
   brunchTools,
+  hashEntityCountDefaultExamples,
+  hashEntityCountDefaultGroups,
+  hashEntityCountDefaultJoinEntities,
+  hashEntityCountGroupByPath,
   hashEntityCountInputSchema,
   hashEntityCountJoinResultSchema,
-  hashEntityCountMaxExamples,
-  hashEntityCountMaxGroups,
-  hashEntityCountMaxJoinEntities,
   hashEntityCountResultSchema,
+  hashEntityCountWhereConditions,
   hashEntityReadInputSchema,
   hashEntityReadDefaultLimit,
   hashEntityReadDefaultTraversalDepth,
@@ -878,14 +880,14 @@ export const createHashWebReadTool = (execute: BrowserToolExecutor) =>
   });
 
 const formattedMaxJoinEntities =
-  hashEntityCountMaxJoinEntities.toLocaleString("en-US");
+  hashEntityCountDefaultJoinEntities.toLocaleString("en-US");
 
 export const hashEntityCountDescription = [
   `Count the HASH entities that match the filters, as the signed-in user: an exact count, with no ${formattedQueryLimit}-match limit, of only the entities they may see; archived entities and drafts are not counted. An entity must match every filter given. A link is an entity too, so a link type can be counted. It lists no entities. Count before reading: when the question is how many, or what a web holds, count rather than read the entities with ${brunchTools.hashQueryEntities}.`,
   `Web scope: without webIds it counts only in the user's own web and their organizations' webs, as ${brunchTools.hashQueryWebs} lists them; name webIds to count in others. propertyEquals counts only the entities whose properties equal the values given.`,
   "Returns compact text: the total and which webs were counted; the property values counted, if any; each direct entity type the counted entities carry, by its count, title and entityTypeId (an entity of several types is counted under each); and each web counted, by its count, kind, name and webId. A count that failed returns { error }.",
   `To count across links, which filters can't (such as "has no such link"), name the counted type in entityTypes and give where, groupBy or both. where counts only the entities for which a path of one or two { linkType, direction } steps reaches some entity (exists true) or none (exists false). groupBy groups them by the entity one link away: one linked to several is counted under each, one linked to none under (none). For example, sales orders with nothing delivered, by customer: entityTypes ["Sales Order"], where { path: [{ linkType: "Has Line Item", direction: "outgoing" }, { linkType: "Fulfills", direction: "incoming" }], exists: false }, groupBy { linkType: "Has Customer", direction: "outgoing" }. A link reaches its other end even when that entity can't be read.`,
-  `Such a count reads every entity of the type in the webs counted (propertyEquals narrows them), every link of each type followed in the same webs, and the grouped entities by id, in any web, for their names, at most ${formattedMaxJoinEntities} entities in all: over that it is refused before reading, so narrow it by webIds or propertyEquals. It returns how many qualified of how many of the type, the ${hashEntityCountMaxGroups} largest groups (the rest summed), up to ${hashEntityCountMaxExamples} qualifying entities by name and entityId to cite or read, and what it read. If a read fails or HASH grows past the limit part-way, it returns Incomplete with no count: that is not an answer, so report no count, group or example from it; repeat the count, narrow it, or tell the user it couldn't be completed.`,
+  `Such a count reads every entity of the type in the webs counted (propertyEquals narrows them), every link of each type followed in the same webs, and the grouped entities by id, in any web, for their names, at most ${formattedMaxJoinEntities} entities in all: over that it is refused before reading, so narrow it by webIds or propertyEquals. It returns how many qualified of how many of the type, the ${hashEntityCountDefaultGroups} largest groups (the rest summed), up to ${hashEntityCountDefaultExamples} qualifying entities by name and entityId to cite or read, and what it read. If a read fails or HASH grows past the limit part-way, it returns Incomplete with no count: that is not an answer, so report no count, group or example from it; repeat the count, narrow it, or tell the user it couldn't be completed.`,
 ].join("\n\n");
 
 const hashEntityCountEmptyNote =
@@ -1039,17 +1041,16 @@ export const hashEntityCountJoinForModel = (
       : [
           `counted where: ${propertyEquals.map(renderPropertyCondition).join(", ")}`,
         ]),
-    ...(where === undefined
-      ? []
-      : [
-          `where: following ${where.path.map(renderStep).join(", then ")} reaches ${where.exists ? "some entity" : "no entity"}`,
-        ]),
+    ...hashEntityCountWhereConditions(where).map(
+      (condition) =>
+        `where: following ${condition.path.map(renderStep).join(", then ")} reaches ${condition.exists ? "some entity" : "no entity"}`,
+    ),
     ...(result.ofType === 0 ? [hashEntityCountEmptyNote] : []),
     ...(anyExternal ? [hashEntityReadExternalNote] : []),
     ...(groupBy === undefined || result.groups === undefined
       ? []
       : [
-          `groups, by the entity one ${renderStep(groupBy)} link away (an entity linked to several is counted under each, so these may sum to more than the total):`,
+          `groups, by the entity ${hashEntityCountGroupByPath(groupBy).length === 1 ? "one" : "following"} ${hashEntityCountGroupByPath(groupBy).map(renderStep).join(", then ")} ${hashEntityCountGroupByPath(groupBy).length === 1 ? "link away " : ""}(an entity linked to several is counted under each, so these may sum to more than the total):`,
           ...result.groups.map(({ entity, unread, count }) =>
             entity === undefined
               ? `- ${count} (none): linked to no such entity`

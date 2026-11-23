@@ -809,7 +809,7 @@ test("an entity count across links that stopped part-way reaches the model as in
   ]);
 });
 
-test("an entity count across links without the type it counts never reaches the browser", async () => {
+test("an entity count with an invalid where path never reaches the browser", async () => {
   const chat = conversation();
   let rejected: Extract<Message, { role: "toolResult" }> | undefined;
   steps.push(
@@ -818,7 +818,7 @@ test("an entity count across links without the type it counts never reaches the 
         [
           fauxToolCall(
             brunchTools.hashCountEntities,
-            { groupBy: salesOrdersUndeliveredByCustomer.groupBy },
+            { where: { path: [], exists: true } },
             { id: "c1" },
           ),
         ],
@@ -826,7 +826,7 @@ test("an entity count across links without the type it counts never reaches the 
       ),
     (context) => {
       rejected = toolResult(context, "c1");
-      return fauxAssistantMessage([fauxText("Name the type.")]);
+      return fauxAssistantMessage([fauxText("Need a path.")]);
     },
   );
   const receipt = await chat.send("Count by customer.");

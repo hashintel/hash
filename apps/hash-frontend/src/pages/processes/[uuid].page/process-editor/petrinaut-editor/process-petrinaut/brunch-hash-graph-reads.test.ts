@@ -84,9 +84,10 @@ test("a read with no filters asks for every visible, unarchived entity in the we
 });
 
 test("each given filter must match, and within one any listed value matches", () => {
+  const typeBaseUrl = "https://hash.ai/@alice/types/entity-type/supplier/";
   const typeUrl = "https://hash.ai/@alice/types/entity-type/supplier/v/1";
   const input = {
-    entityTypes: ["Supplier", typeUrl],
+    entityTypes: ["Supplier", typeBaseUrl, typeUrl],
     entityIds: ["alice-web~supplier"],
     webIds: ["alice-web", "org-web"],
     includeDrafts: true,
@@ -98,6 +99,9 @@ test("each given filter must match, and within one any listed value matches", ()
         any: [
           {
             equal: [{ path: ["type", "title"] }, { parameter: "Supplier" }],
+          },
+          {
+            equal: [{ path: ["type", "baseUrl"] }, { parameter: typeBaseUrl }],
           },
           {
             equal: [{ path: ["type", "versionedUrl"] }, { parameter: typeUrl }],
@@ -1677,9 +1681,11 @@ test("a count the agent's contract doesn't allow is refused before any query", a
   const summarize = vi.fn<SummarizeEntities>();
   await expect(
     count(summarize, {
-      entityTypes: ["https://hash.ai/@acme/types/entity-type/sales-order/"],
+      entityTypes: [
+        "https://hash.ai/@acme/types/entity-type/sales-order/v/2-draft.lane.1",
+      ],
     }),
-  ).rejects.toThrow(/needs its version/u);
+  ).rejects.toThrow(/base URL ending in \/.*published versioned URL/u);
   await expect(count(summarize, { traversalDepth: 0 })).rejects.toThrow();
   expect(summarize).not.toHaveBeenCalled();
 });
