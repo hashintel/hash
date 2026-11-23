@@ -37,6 +37,19 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   };
 });
 
+// The height a panel may take is what the container asks of the library, so
+// a test reads it where it is handed over.
+vi.mock("react-resizable-panels", async (importOriginal) => {
+  const library =
+    await importOriginal<typeof import("react-resizable-panels")>();
+  return {
+    ...library,
+    Panel: (props: ComponentProps<typeof library.Panel>) => (
+      <library.Panel {...props} data-max-size={String(props.maxSize)} />
+    ),
+  };
+});
+
 const updateSubViewSection = vi.fn();
 const originalAnimate = Object.getOwnPropertyDescriptor(
   HTMLElement.prototype,
@@ -49,22 +62,6 @@ beforeEach(() => {
     addEventListener: () => {},
     removeEventListener: () => {},
   }));
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
-  vi.stubGlobal(
-    "IntersectionObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
 });
 
 afterEach(() => {
@@ -565,4 +562,41 @@ it("shows the resize cursor itself, on the strip a pointer grabs the separator b
   const separator = screen.getByRole("separator");
   expect(separator.className).toContain("cursor_ns-resize");
   expect(separator.className).toContain("before:h_[var(--grab-size)]");
+});
+
+it("keeps a section's panel at its collapsed height when it is expanded on its way to filling the container, until it covers the others", async () => {
+  const animations = mockAnimations();
+  const onNavigate = () => {};
+  const view = render(
+    <Harness
+      codeCollapsed
+      navigation={{ state: defaultPetrinautNavigationState, onNavigate }}
+    />,
+  );
+  const collapsedMaxSize = () =>
+    view.container.querySelector("#code")?.getAttribute("data-max-size");
+  const collapsed = collapsedMaxSize();
+  expect(collapsed).not.toBe("undefined");
+
+  // What a link to the section's code does: fill the container with it, then
+  // expand it.
+  const filled = {
+    ...defaultPetrinautNavigationState,
+    expandedSubView: { container: "test", id: "code" },
+  };
+  view.rerender(
+    <Harness codeCollapsed navigation={{ state: filled, onNavigate }} />,
+  );
+  expect(animations.length).toBeGreaterThan(0);
+  view.rerender(
+    <Harness codeCollapsed={false} navigation={{ state: filled, onNavigate }} />,
+  );
+  expect(collapsedMaxSize()).toBe(collapsed);
+
+  await act(async () => {
+    for (const animation of animations) {
+      animation.finish();
+    }
+  });
+  expect(collapsedMaxSize()).toBe("undefined");
 });
