@@ -4,7 +4,6 @@ import { mutationActionInputSchemas } from "./actions/action-schemas";
 import { aiCommandActionInputSchemas } from "./actions/command-schemas";
 import { probabilisticSatellitesSDCPN } from "./examples";
 import { petrinautExperimentRequestSchema } from "./experiments/host";
-import { typedKeys } from "./lib/typed-entries";
 
 export {
   petrinautExperimentRequestSchema,
@@ -76,7 +75,8 @@ function createToolBundle<const InputSchemas extends Record<string, z.ZodType>>(
     };
   };
 
-  for (const name of typedKeys(schemas)) {
+  // `Object.keys` returns `string[]`: the keys of `schemas` are its tool names.
+  for (const name of Object.keys(schemas) as (keyof InputSchemas)[]) {
     setTool(name, schemas[name]);
   }
 
