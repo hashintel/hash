@@ -1,7 +1,12 @@
-import {
-  ARC_HALO_OVERHANG,
-  ARC_WHITE_OVERHANG,
-} from "../../../../styles/focus";
+import { ARC_STROKE_WIDTH } from "../arc-head";
+
+/**
+ * How far each casing stands out either side of the line it wraps: white
+ * first, lifting the line off the canvas, then the role's colour around that.
+ * The two match the bands a highlighted node wears outside its border.
+ */
+const whiteOverhang = 2;
+const haloOverhang = whiteOverhang + 2;
 
 const selectionBand = {
   stroke: "rgba(249, 115, 22, 0.4)",
@@ -19,18 +24,9 @@ export const LineUnderlay: React.FC<{
   selected: boolean | undefined;
   /** The focus role's colour, or `undefined` for a line with no role. */
   haloColor: string | undefined;
-  /** The line's own stroke, which the casing follows. */
-  strokeWidth: number;
-  strokeDasharray: string | undefined;
+  strokeDasharray?: string;
   strokeLinecap: "round" | "butt";
-}> = ({
-  path,
-  selected,
-  haloColor,
-  strokeWidth,
-  strokeDasharray,
-  strokeLinecap,
-}) => {
+}> = ({ path, selected, haloColor, strokeDasharray, strokeLinecap }) => {
   const casing = {
     d: path,
     fill: "none",
@@ -49,12 +45,12 @@ export const LineUnderlay: React.FC<{
           <path
             {...casing}
             stroke={haloColor}
-            strokeWidth={strokeWidth + ARC_HALO_OVERHANG * 2}
+            strokeWidth={ARC_STROKE_WIDTH + haloOverhang * 2}
           />
           <path
             {...casing}
             stroke="white"
-            strokeWidth={strokeWidth + ARC_WHITE_OVERHANG * 2}
+            strokeWidth={ARC_STROKE_WIDTH + whiteOverhang * 2}
           />
         </>
       )}

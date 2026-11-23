@@ -101,14 +101,6 @@ export const arcHaloColor = (focus: CanvasArcFocus): string | undefined => {
 };
 
 /**
- * How far each casing stands out either side of the arc it wraps: white first,
- * lifting the arc off the canvas, then the role's colour around that. The two
- * match the bands a highlighted node wears outside its border.
- */
-export const ARC_WHITE_OVERHANG = 2;
-export const ARC_HALO_OVERHANG = ARC_WHITE_OVERHANG + 2;
-
-/**
  * The ring colour for a shape on the minimap, or undefined for a shape that
  * gets none. The minimap has room for a ring and a fade, not for the canvas's
  * white band, so the roles reach it through colour alone.

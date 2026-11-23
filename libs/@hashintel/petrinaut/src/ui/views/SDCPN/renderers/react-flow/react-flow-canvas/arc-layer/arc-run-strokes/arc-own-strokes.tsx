@@ -35,8 +35,6 @@ const StandardStrokes: React.FC<{ shape: ArcShape }> = ({ shape }) => {
         path={paths.curve}
         selected={selected}
         haloColor={haloColor}
-        strokeWidth={ARC_STROKE_WIDTH}
-        strokeDasharray={undefined}
         strokeLinecap="butt"
       />
       <g className="arc-pulses" />
@@ -82,7 +80,6 @@ const MarkedStrokes: React.FC<{ shape: ArcShape }> = ({ shape }) => {
         path={paths.curve}
         selected={selected}
         haloColor={arcHaloColor(shape.focus)}
-        strokeWidth={ARC_STROKE_WIDTH}
         strokeDasharray={line.strokeDasharray}
         strokeLinecap={isRead ? "round" : "butt"}
       />

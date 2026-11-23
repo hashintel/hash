@@ -9,12 +9,12 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { problemStrokeColor } from "../../../../../constants/problem-severity";
 import { arcHaloColor } from "../../../styles/focus";
+import { ARC_STROKE_WIDTH } from "./arc-head";
 import { fusionLoopPath } from "./fusion-loop-path";
 import { LineUnderlay } from "./shared/line-underlay";
 
 import type { FusionEdgeType } from "./react-flow-types";
 
-const strokeWidth = 2;
 /** Long dashes with wide gaps: a join, not an arc that carries tokens. */
 const dashPattern = "7 5";
 const fusionColor = "#7c3aed";
@@ -82,7 +82,6 @@ export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
         path={path}
         selected={selected}
         haloColor={arcHaloColor(data?.focus ?? "none")}
-        strokeWidth={strokeWidth}
         strokeDasharray={dashPattern}
         strokeLinecap="round"
       />
@@ -96,7 +95,7 @@ export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
         path={path}
         style={{
           stroke: strokeColor,
-          strokeWidth,
+          strokeWidth: ARC_STROKE_WIDTH,
           strokeDasharray: dashPattern,
           strokeLinecap: "round",
         }}
@@ -133,7 +132,7 @@ export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
             r={knotRadius}
             fill="white"
             stroke={strokeColor}
-            strokeWidth={strokeWidth}
+            strokeWidth={ARC_STROKE_WIDTH}
           />
         )}
       </g>
