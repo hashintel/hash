@@ -9,23 +9,11 @@ import {
   useStoreApi,
 } from "@xyflow/react";
 import { useEffect } from "react";
-import { afterAll, afterEach, beforeAll, expect, it, vi } from "vitest";
+import { afterEach, expect, it } from "vitest";
 
 import { paneStyle } from "../pane-style";
 import { NodeHandles } from "./node-handles";
 
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
-beforeAll(() => {
-  vi.stubGlobal("ResizeObserver", ResizeObserverStub);
-});
-afterAll(() => {
-  vi.unstubAllGlobals();
-});
 afterEach(cleanup);
 
 const PlaceStub = () => (

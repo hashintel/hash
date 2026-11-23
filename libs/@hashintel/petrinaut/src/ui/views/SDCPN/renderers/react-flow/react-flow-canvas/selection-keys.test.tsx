@@ -28,12 +28,6 @@ import type {
 } from "../../../use-canvas-interactions";
 import type { Node } from "@xyflow/react";
 
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
 class PointerEventStub extends MouseEvent {
   readonly pointerId: number;
   readonly isPrimary: boolean;
@@ -154,7 +148,6 @@ const drawBoxAroundB = (container: HTMLElement, modifiers: Modifiers) => {
 
 describe("canvas selection keys", () => {
   beforeAll(() => {
-    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
     vi.stubGlobal("PointerEvent", PointerEventStub);
   });
 

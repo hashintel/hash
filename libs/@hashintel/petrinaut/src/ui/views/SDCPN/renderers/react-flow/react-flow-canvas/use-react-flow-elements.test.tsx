@@ -13,15 +13,7 @@ import {
   ReactFlowProvider,
   useStoreApi,
 } from "@xyflow/react";
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { ArcLayer } from "./arc-layer";
 import { ArcLayerContext, arcLayerEdgeId } from "./arc-layer-context";
@@ -246,19 +238,6 @@ describe("the focus", () => {
 });
 
 describe("inside React Flow", () => {
-  class ResizeObserverStub {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-
-  beforeAll(() => {
-    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
-  });
-  afterAll(() => {
-    vi.unstubAllGlobals();
-  });
-
   // What a browser measures on a place or a transition: a handle of each
   // kind. A node without them is one React Flow has not measured yet.
   const handles: Node["handles"] = [
