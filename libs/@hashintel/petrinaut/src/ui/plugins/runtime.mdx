@@ -13,7 +13,7 @@ The code is in `petrinaut/src/ui/plugins/`.
 Plugin code imports `ui/plugin.ts` alone, and
 [the reference](doc:ui.plugins/reference) lists what it exports. The plugins
 the editor always runs, in [`ui.plugins.built-in`](layer:ui.plugins.built-in),
-import through it too.
+take the plugin API from it too.
 
 The rest of the UI imports the files below. Every other file of the folder is
 the runtime's own.

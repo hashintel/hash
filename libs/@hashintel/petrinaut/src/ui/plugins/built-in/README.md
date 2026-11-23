@@ -1,12 +1,17 @@
 ---
 layer: ui.plugins.built-in
-role: The plugins the editor always runs, the FPS counter and the Document view, written against the public plugin API
+role: The plugins the editor always runs, the FPS counter and the Document view
 ---
 
 `<Petrinaut>` passes these plugins to the runtime before the host's own, so
-every editor runs them. Each is written the way a host writes one: it imports
-the plugin API from `ui/plugin.ts` and nothing of the runtime.
+every editor runs them. Each takes the plugin API from `ui/plugin.ts` and
+imports nothing of the runtime, as a host's plugin does.
 [Writing a plugin](doc:ui.plugins/writing-a-plugin) is the manual.
+
+The Document view also imports the
+[worksheet keyboard flow](doc:ui.worksheet/worksheet) for the arrow keys of
+its outlines. No package entry exports that flow, so a host's plugin cannot
+build the same view.
 
 ## Interface
 
@@ -28,6 +33,7 @@ The parts of a plugin are in the folder of its name.
   "samples only while visible and stops when closed" in
   `fps-counter-plugin.test.tsx` and "adds no tab until its setting is switched
   on" in `document-view-plugin.test.tsx`.
-- **A built-in plugin imports the plugin API through `ui/plugin.ts`.** A
-  plugin that needed more than a host gets would hide a gap in the API. No
-  check holds it.
+- **A built-in plugin takes the plugin API from `ui/plugin.ts` and imports no
+  file of the runtime.** It then runs on the API a host's plugin gets, and a
+  gap in that API shows here first. The worksheet is the one import outside
+  the API. No check holds the rule.
