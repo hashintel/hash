@@ -6,7 +6,7 @@
  *   menu while its row is highlighted.
  * - `wrap`: the description wraps to two lines and the row grows; no hover card.
  * - `card`: the name only, on a one-line row; the highlighted row's card beside the menu says what it does, then
- *   "Takes: <inputs> · Gives: <outputs>" (Dora, 2 Nov call).
+ *   "Inputs: <inputs> · Outputs: <outputs>" (Dora, 2 Nov call; DES-253 renamed Takes and Gives).
  *
  * The card has the figma-ds Popover look (42156:2242, Arrow=None): white, 10 px corners, the subtle border, the
  * menu's shadow.
@@ -14,7 +14,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { Icon, type IconName } from "@hashintel/ds-components";
+import type { IconName } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { type CatalogEntry, catalog } from "./catalog";
@@ -125,7 +125,9 @@ export const PickerRowCard = ({ ports }: { ports: boolean }) => {
       </span>
       {ports ? (
         <span className={cardPortsStyle}>
-          Takes: {names(entry.inputs)} · Gives: {names(entry.outputs)}
+          Inputs: {names(entry.inputs)}
+          <br />
+          Outputs: {names(entry.outputs)}
         </span>
       ) : null}
     </div>,
@@ -135,7 +137,7 @@ export const PickerRowCard = ({ ports }: { ports: boolean }) => {
 
 /* ----------------------------------------------------------------------------------------------------------------
  * H2 "Fit in this flow" (inbox picker-row-all-two-line, hover-fit, 13 Nov; its content is to be discussed on the 13 Nov
- * call): the light card beside the menu says what comes before the hovered step here and where its list can go.
+ * call): the tooltip-styled card beside the menu says what comes before the hovered step here and where its list can go.
  * `?pickerhover=old` keeps the dark tooltip with the description and inputs → outputs.
  * ------------------------------------------------------------------------------------------------------------- */
 
@@ -145,6 +147,10 @@ export const pickerHoverOld =
 /** About the menu's own width, so the two-line rows break as the menu's do. */
 const fitCardWidth = 300;
 
+/**
+ * The card beside the menu takes the DS Tooltip's look (`Tooltip/tooltip.recipe.ts`, dark: radius md, 8 px by 4 px
+ * padding, xs text, 300 px wide), so it no longer reads as a submenu (DES-253). Its rows are text, with no tiles.
+ */
 const fitCardStyle = css({
   position: "fixed",
   zIndex: "[2147483000]",
@@ -152,50 +158,19 @@ const fitCardStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "1",
-  padding: "2",
-  backgroundColor: "neutral.bgSolid.min",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "[10px]",
-  boxShadow: "[0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)]",
+  paddingX: "2",
+  paddingY: "1",
+  backgroundColor: "neutral.s120/94",
+  color: "white",
+  borderRadius: "md",
+  textStyle: "xs",
   pointerEvents: "none",
 });
 
-const fitHeadStyle = css({
-  display: "flex",
-  alignItems: "center",
-  height: "[28px]",
-  paddingX: "2",
-  textStyle: "xs",
-  fontWeight: "medium",
-  letterSpacing: "[0.12px]",
-  textTransform: "uppercase",
-  color: "neutral.fg.muted",
-});
+const fitHeadStyle = css({ display: "block", fontWeight: "medium", opacity: "[0.72]" });
 
-const fitRowStyle = css({
-  display: "flex",
-  alignItems: "flex-start",
-  gap: "3",
-  paddingX: "2",
-  paddingY: "1.5",
-});
-
-const fitTileStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
-  // The menu's two-line row tile (G77): 32 px with an 18 px icon.
-  width: "[32px]",
-  height: "[32px]",
-  borderRadius: "md",
-  "& svg": { width: "[18px !important]", height: "[18px !important]" },
-});
-
-const fitNameStyle = css({ display: "block", textStyle: "sm", lineHeight: "[20px]", color: "neutral.fg.heading" });
-const fitLineStyle = css({ display: "block", textStyle: "xs", lineHeight: "[16px]", color: "neutral.fg.subtle" });
+const fitNameStyle = css({ display: "block", fontWeight: "medium" });
+const fitLineStyle = css({ display: "block", opacity: "[0.72]" });
 
 export type FitRow = { icon: IconName; tile: React.CSSProperties; name: string; line: string };
 export type Fit = { before?: FitRow; next: FitRow[]; nextLabel: string };
@@ -224,14 +199,9 @@ const fitPlace = (fitOf: (entry: CatalogEntry) => Fit | null): FitShown | null =
 };
 
 const FitRowView = ({ row }: { row: FitRow }) => (
-  <div className={fitRowStyle}>
-    <span className={fitTileStyle} style={row.tile} aria-hidden>
-      <Icon name={row.icon} size="sm" />
-    </span>
-    <span className={css({ minWidth: "[0]" })}>
-      <span className={fitNameStyle}>{row.name}</span>
-      <span className={fitLineStyle}>{row.line}</span>
-    </span>
+  <div>
+    <span className={fitNameStyle}>{row.name}</span>
+    <span className={fitLineStyle}>{row.line}</span>
   </div>
 );
 

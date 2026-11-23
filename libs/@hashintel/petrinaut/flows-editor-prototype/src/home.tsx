@@ -8,6 +8,7 @@ import {
   TextInput,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { Zap } from "lucide-react";
 
 import { rowButtonActiveStyle, rowButtonStyle } from "./all-runs";
 import { ConfirmDialog, useConfirmTake } from "./confirm-dialog";
@@ -17,6 +18,7 @@ import { flowTriggersOf } from "./flow-triggers";
 import { HashShell } from "./hash-shell";
 import { GreyBar, loadingOn } from "./loading-state";
 import { selectedLabel } from "./menu-rows";
+import { iconStroke } from "./thin-icons";
 import { RunGlyph } from "./run-glyph";
 import { RunIdsIn } from "./run-id";
 import {
@@ -543,7 +545,7 @@ export const Home = ({
                 color: "neutral.fg.muted.hover",
               })}
             >
-              <Icon name="infinity" size="md" />
+              <Zap size={20} strokeWidth={iconStroke} aria-hidden />
             </span>
             <div
               className={css({

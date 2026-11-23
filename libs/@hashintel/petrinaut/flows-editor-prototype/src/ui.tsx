@@ -190,7 +190,7 @@ export const keyHoverStyle = css({
  * way round: required bare, "Optional" in grey after the label of the ones that may stay empty.
  */
 const markOptional =
-  new URLSearchParams(globalThis.location?.search ?? "").get("requiredmark") ===
+  new URLSearchParams(globalThis.location.search).get("requiredmark") ===
   "optional";
 
 /** Salt's required mark (`label.recipe.ts`, `required` slot), sized in em from the label text. */

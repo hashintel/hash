@@ -3,5 +3,5 @@
  * the read-only banner and no Restore, its inputs disabled and no Publish. Nobody has decided who gets this yet.
  */
 export const viewerReadOnly =
-  new URLSearchParams(globalThis.location?.search ?? "").get("viewer") ===
+  new URLSearchParams(globalThis.location.search).get("viewer") ===
   "readonly";

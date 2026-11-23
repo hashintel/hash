@@ -4,7 +4,7 @@
  * times, attempts, the last failure's message and why a step gave up, inputs and outputs, persisted entities
  * (create / update), input requests and who resolved them. Assumed: a plain-language wording per failure, written here.
  *
- * b1 the story: an outcome sentence, who started it, the usual run, then what happened in plain words.
+ * b1 the story: an outcome sentence, who started it, then what happened in plain words.
  * b2 the receipts: what changed, grouped (emails sent and to whom, records updated, files saved, not done).
  * b3 needs you first: what to act on, each with its fix, then everything that went fine, folded.
  * b4 the step log, with errors in plain language in place, their fix, and the technical detail behind a toggle.
@@ -23,7 +23,6 @@ import {
   outcomeLabel,
   outcomeOf,
   outcomeState,
-  pastRuns,
   type RunRecord,
   type StepState,
   runWhen,
@@ -160,38 +159,6 @@ const linkButtonStyle = css({
 /* ----------------------------------------------------------------------------------------------------------------
  * What the engine gives, in plain words
  * ------------------------------------------------------------------------------------------------------------- */
-
-const seconds = (duration: string) => {
-  const hours = /(\d+)h/.exec(duration)?.[1];
-  const minutes = /(\d+)m/.exec(duration)?.[1];
-  const secs = /(\d+)s/.exec(duration)?.[1];
-  return (
-    Number(hours ?? 0) * 3600 + Number(minutes ?? 0) * 60 + Number(secs ?? 0)
-  );
-};
-
-const roughly = (total: number) =>
-  total < 90
-    ? `${Math.round(total)} s`
-    : `${Math.round(total / 60)}m`;
-
-/** The usual run: the median of the scheduled runs that completed. */
-const usualRun = () => {
-  const completed = pastRuns().filter(
-    (past) =>
-      past.trigger.kind === "schedule" &&
-      past.kind === "past" &&
-      past.outcome === "completed" &&
-      past.duration,
-  );
-  const durations = completed
-    .map((past) => seconds(past.duration ?? ""))
-    .sort((left, right) => left - right);
-  const median = durations[Math.floor(durations.length / 2)];
-  return median === undefined
-    ? null
-    : { duration: roughly(median), count: completed.length };
-};
 
 /** The fix and wording for a failure; the engine gives the message, the attempt, and why it gave up. */
 const possessive = (name: string) =>
@@ -368,14 +335,11 @@ const Head = ({
   run,
   now,
   sentence,
-  usual,
 }: {
   run: RunRecord;
   now: number;
   sentence: string;
-  usual: boolean;
 }) => {
-  const typical = usualRun();
   const started =
     run.trigger.kind === "manual"
       ? `Started by ${run.trigger.by}`
@@ -400,12 +364,7 @@ const Head = ({
       <RunStatusLine run={run} now={now} />
       <span className={sentenceStyle}>{sentence}</span>
       <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
-        {[
-          started,
-          usual && typical ? `usually about ${typical.duration}` : undefined,
-        ]
-          .filter(Boolean)
-          .join(", ")}
+        {started}
       </span>
     </div>
   );
@@ -713,7 +672,6 @@ export const BusinessRunLog = ({
             ? `Running: ${outputs.updated.length} of ${factsOf(run, now).n} suppliers reviewed so far.`
             : outcomeSentence(outputs, run, now)
         }
-        usual={!live && take !== "b2"}
       />
       {take === "b1" ? <StoryTake {...props} /> : null}
       {take === "b2" ? <ReceiptsTake {...props} /> : null}

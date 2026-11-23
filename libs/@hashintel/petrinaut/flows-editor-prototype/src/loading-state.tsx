@@ -5,7 +5,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 
 export const loadingOn =
-  new URLSearchParams(globalThis.location?.search ?? "").get("loading") === "1";
+  new URLSearchParams(globalThis.location.search).get("loading") === "1";
 
 const barStyle = css({
   display: "block",

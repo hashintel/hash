@@ -68,8 +68,9 @@ const stepTooltip = (entry: CatalogEntry) => (
   <span className={stepTooltipStyle}>
     <span>{entry.description}</span>
     <span className={stepTooltipFlowStyle}>
-      {entry.inputs.map((input) => input.label).join(", ") || "No inputs"} →{" "}
-      {entry.outputs.map((output) => output.label).join(", ") || "No outputs"}
+      Inputs: {entry.inputs.map((input) => input.label).join(", ") || "none"}
+      <br />
+      Outputs: {entry.outputs.map((output) => output.label).join(", ") || "none"}
     </span>
   </span>
 );
@@ -669,7 +670,7 @@ export const AddNodePicker = ({
                 tile: treeTileColor(icon),
                 name: stepLabel(anchorStep),
                 line: anchorEntry
-                  ? `Gives ${anchorEntry.outputs.map((output) => output.label).join(", ") || "nothing"}`
+                  ? `Outputs: ${anchorEntry.outputs.map((output) => output.label).join(", ") || "none"}`
                   : "Runs its steps once per item",
               };
             })()
