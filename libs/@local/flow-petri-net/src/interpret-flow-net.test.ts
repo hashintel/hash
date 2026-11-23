@@ -841,6 +841,56 @@ describe("startFlowNetRun", () => {
       }
     });
 
+    it("starts a step when any line into it was followed, as the executor does", async () => {
+      const ifStep = (stepId: string) =>
+        ({
+          ...(ifPathsFlowDefinition.steps[0] as ActionStepDefinition),
+          stepId,
+        }) satisfies ActionStepDefinition;
+      const getFile = (
+        stepId: string,
+        runAfter: ActionStepDefinition["runAfter"],
+      ): ActionStepDefinition => ({
+        kind: "action",
+        stepId,
+        actionDefinitionId: "getFileFromUrl",
+        description: "",
+        inputs: { url: { kind: "flow-input", inputName: "url" } },
+        runAfter,
+      });
+
+      const net = await compileFlowDefinition({
+        ...ifPathsFlowDefinition,
+        steps: [
+          ifStep("first"),
+          ifStep("second"),
+          getFile("onEitherYes", [
+            { stepId: "first", outputName: "true" },
+            { stepId: "second", outputName: "true" },
+          ]),
+          getFile("afterFirstOrOnNo", [
+            { stepId: "first" },
+            { stepId: "first", outputName: "false" },
+          ]),
+        ],
+      });
+      const run = startFlowNetRun(net, { flowInputNames: ["url", "urls"] });
+
+      for (const [stepId, path] of [
+        ["first", "true"],
+        ["second", "false"],
+      ] as const) {
+        run.fire({
+          role: "succeedAttempt",
+          stepRun: stepRun(stepId),
+          outputNames: [path],
+        });
+      }
+
+      expect(run.isPending(stepRun("onEitherYes"))).toBe(false);
+      expect(run.isPending(stepRun("afterFirstOrOnNo"))).toBe(false);
+    });
+
     it("follows each item's if inside a forEach step", async () => {
       const net = await compileFlowDefinition(ifPathsFlowDefinition);
       const run = startFlowNetRun(net, {

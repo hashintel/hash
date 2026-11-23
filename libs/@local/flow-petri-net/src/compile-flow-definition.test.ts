@@ -567,7 +567,7 @@ describe("compileFlowDefinition", () => {
     /* No reads its path's output, and lists it as a path. */
     expect(readsOf("no")).toEqual([url, "check.false"]);
     expect(metadataOf("no")).toEqual({
-      runAfter: undefined,
+      runAfter: ["check.false"],
       paths: ["check.false"],
     });
 

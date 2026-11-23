@@ -148,9 +148,12 @@ export const indexFlowSteps = (flowDefinition: FlowDefinition) => {
   };
 };
 
-/** The `runAfter` entries of a step, one per step it runs after. */
+/** The distinct `runAfter` entries of a step: a plain line and a path from the same step are both kept. */
 export const getRunAfterEntries = (step: StepDefinition) => [
   ...new Map(
-    (step.runAfter ?? []).map((entry) => [entry.stepId, entry]),
+    (step.runAfter ?? []).map((entry) => [
+      JSON.stringify([entry.stepId, entry.outputName]),
+      entry,
+    ]),
   ).values(),
 ];

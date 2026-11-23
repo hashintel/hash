@@ -50,14 +50,15 @@ export type InputSource =
   | { kind: "absent" };
 
 /**
- * Where a step reads that the steps it runs after have finished, for entries with no path. A token marked absent there
- * still means finished. Never an endpoint the step also takes a value from.
+ * Where a step reads that the steps it runs after have finished. A token marked absent there still means finished,
+ * unless it's one of the step's `paths`. Never an endpoint the step also takes a value from.
  */
 export type RunAfterEndpoints = ArcEndpoint[];
 
 /**
- * Where a step on a path reads that path's output, which may also be where it takes a value from. A token marked absent
- * there means the path wasn't taken, so the step doesn't start: the executor skips it.
+ * Where a step only on paths reads each path's output, which may also be where it takes a value from. When every one
+ * is marked absent, no path to the step was taken, so it doesn't start: the executor skips it. Empty for a step with a
+ * plain line too, which is always followed.
  */
 export type PathEndpoints = ArcEndpoint[];
 

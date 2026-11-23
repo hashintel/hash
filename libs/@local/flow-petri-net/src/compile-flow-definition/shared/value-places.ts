@@ -447,17 +447,18 @@ export const placeValues = ({
 
     /**
      * The read arcs a step waits on the steps it runs after through, except any it already has from `valueArcs`, with
-     * the endpoints for its metadata: `runAfter` for plain entries, and `paths` for every path's output, deduped or not.
+     * the endpoints for its metadata: `runAfter` for those arcs, and `paths` for every path's output (see
+     * `PathEndpoints`).
      */
     runAfterArcs: (
       step: StepDefinition,
       valueArcs: { endpoint: ArcEndpoint }[],
     ) => {
       const arcs: (InputArc & { endpoint: ArcEndpoint })[] = [];
-      const runAfter: ArcEndpoint[] = [];
       const paths: ArcEndpoint[] = [];
+      const entries = getRunAfterEntries(step);
 
-      for (const entry of getRunAfterEntries(step)) {
+      for (const entry of entries) {
         const { step: before } = steps.getStep(entry.stepId);
         const valueKey = completionValueKey(entry);
 
@@ -475,22 +476,28 @@ export const placeValues = ({
         }
 
         const arc = inputArc(waitedOn, "read");
-        const isNew = ![...valueArcs, ...arcs].some(({ endpoint }) =>
-          isSameEndpoint(endpoint, arc.endpoint),
-        );
 
-        if (isNew) {
+        if (
+          ![...valueArcs, ...arcs].some(({ endpoint }) =>
+            isSameEndpoint(endpoint, arc.endpoint),
+          )
+        ) {
           arcs.push(arc);
         }
 
         if (entry.outputName !== undefined) {
           paths.push(waitedOn);
-        } else if (isNew) {
-          runAfter.push(waitedOn);
         }
       }
 
-      return { arcs, runAfter, paths };
+      return {
+        arcs,
+        runAfter: arcs.map(({ endpoint }) => endpoint),
+        /* A plain line is followed whenever the step can start, so its paths can't keep it from starting. */
+        paths: entries.some(({ outputName }) => outputName === undefined)
+          ? []
+          : paths,
+      };
     },
 
     /** Arcs putting a for-each step's item where each step inside it takes it from. */

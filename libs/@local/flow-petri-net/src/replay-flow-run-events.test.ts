@@ -498,6 +498,25 @@ describe("replayFlowRunEvents", () => {
       expect(replay.held).toEqual([]);
     });
 
+    it("holds no start for a step on the path the if didn't take", async () => {
+      const net = await compileFlowDefinition(ifPathsFlowDefinition);
+
+      const replay = replayFlowRunEvents(
+        net,
+        placed([
+          started,
+          emptyForEach,
+          ...succeeded("check", "if", "true"),
+          ...succeeded("yes", "getFileFromUrl", "fileEntity"),
+          ...succeeded("afterYes", "getFileFromUrl", "fileEntity"),
+          skipped("no"),
+        ]),
+      );
+
+      expect(replay.problems).toEqual([]);
+      expect(replay.held).toEqual([]);
+    });
+
     it("replays a run whose if was skipped", async () => {
       const net = await compileFlowDefinition(ifPathsFlowDefinition);
 
