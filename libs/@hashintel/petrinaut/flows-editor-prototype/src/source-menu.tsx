@@ -301,10 +301,7 @@ export const addLookupStep = (
   return { document: connected, lookupId };
 };
 
-type SourceGroup = {
-  id: string;
-  label?: string;
-  items: {
+type SourceItem = {
     id: string;
     text: React.ReactNode;
     description?: string;
@@ -328,8 +325,18 @@ type SourceGroup = {
     /** Picking it changes the menu instead of closing it ("Show more"). */
     keepOpen?: boolean;
     onPick?: () => void;
-  }[];
+    /** A caret row: the values inside a linked record open in a side list. */
+    subItems?: SourceItem[];
+  };
+
+type SourceGroup = {
+  id: string;
+  label?: string;
+  items: SourceItem[];
 };
+
+/** The most values the item group lists flat before its linked records collapse to caret rows. */
+const MAX_FLAT_VALUES = 8;
 
 /** How many rows a group shows before its "Show more" row (ledger 2 Nov call: "first 3–4 + Show more + search"). */
 const GROUP_ROWS = 4;
@@ -363,35 +370,38 @@ const typeGlyph = (
 };
 
 /** The model as DS Menu groups and items. The fill marks a picked value; a disabled row says why a list is empty. */
+const toMenuItem = (item: SourceItem): TiledItem => ({
+  id: item.id,
+  // A property's type is a pill after its name, as in the "@" popover (AT-PILL-24-NEUTRAL).
+  text: item.types ? (
+    <span className={popoverTitleStyle}>
+      <span>{item.text}</span>
+      <TypeLabel types={item.types} pill />
+    </span>
+  ) : (
+    item.text
+  ),
+  description: item.description,
+  icon: item.icon,
+  glyph: item.glyph,
+  avatar: item.avatar,
+  plain: item.plain,
+  action: item.action,
+  tint: item.tint,
+  selected: item.selected,
+  suffix: item.types ? undefined : item.suffix,
+  selectedStyle: "highlight" as const,
+  disabled: item.disabled,
+  keepOpenOnSelect: item.keepOpen,
+  onClick: () => item.onPick?.(),
+  ...(item.subItems ? { subItems: item.subItems.map(toMenuItem) } : {}),
+});
+
 const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<TiledItem>> =>
   groups.map((group) => ({
     id: group.id,
     label: group.label ?? "",
-    items: group.items.map((item) => ({
-      id: item.id,
-      // A property's type is a pill after its name, as in the "@" popover (AT-PILL-24-NEUTRAL).
-      text: item.types ? (
-        <span className={popoverTitleStyle}>
-          <span>{item.text}</span>
-          <TypeLabel types={item.types} pill />
-        </span>
-      ) : (
-        item.text
-      ),
-      description: item.description,
-      icon: item.icon,
-      glyph: item.glyph,
-      avatar: item.avatar,
-      plain: item.plain,
-      action: item.action,
-      tint: item.tint,
-      selected: item.selected,
-      suffix: item.types ? undefined : item.suffix,
-      selectedStyle: "highlight" as const,
-      disabled: item.disabled,
-      keepOpenOnSelect: item.keepOpen,
-      onClick: () => item.onPick?.(),
-    })),
+    items: group.items.map(toMenuItem),
   }));
 
 /**
@@ -756,8 +766,11 @@ export const SourceMenu = ({
               !wantedDataType ||
               (property.dataTypes ?? []).includes(wantedDataType),
           )
+          // A search looks through every level: the linked record's name counts as well as the value's.
           .filter(
-            (property) => !text || property.title.toLowerCase().includes(text),
+            (property) =>
+              !text ||
+              `${property.via ?? ""} ${property.title}`.toLowerCase().includes(text),
           );
   // Types show only when the rows differ: a field that takes one type lists only that type (Figma 637:23544 C).
   const typesOf = (property: (typeof fittingProperties)[number]) =>
@@ -765,23 +778,49 @@ export const SourceMenu = ({
   const showTypes =
     new Set(fittingProperties.map((property) => typesOf(property).join()))
       .size > 1 || fittingProperties.some((property) => property.via);
-  const propertyItems = fittingProperties.map((property) => ({
+  const propertyRow = (property: (typeof fittingProperties)[number], inRecord = false): SourceItem => ({
     id: `item-property:${property.baseUrl}`,
-    text: property.via ? (
-      <>
-        <span className={pathPrefixStyle}>{property.via} › </span>
-        {property.title}
-      </>
-    ) : (
-      property.title
-    ),
+    text:
+      property.via && !inRecord ? (
+        <>
+          <span className={pathPrefixStyle}>{property.via} › </span>
+          {property.title}
+        </>
+      ) : (
+        property.title
+      ),
     hint: `${itemName(document, loopId!)} › ${property.via ? `${property.via} › ` : ""}${property.title} · ${typesOf(property).join(", ")}`,
     suffix: showTypes ? <TypeLabel types={typesOf(property)} /> : undefined,
     types: showTypes ? typesOf(property) : undefined,
     ...(iconsEverywhere ? typeGlyph(typesOf(property)) : {}),
     selected: currentProperty?.baseUrl === property.baseUrl,
     onPick: () => onPick(itemPropertySource(property.baseUrl)),
-  }));
+  });
+  // More than eight values in the item group (decided 23 Nov, #design Dei): each linked record collapses to a caret
+  // row that opens its values in a side list; with eight or fewer, and in a search, the values are flat path rows.
+  const collapseRecords =
+    query === undefined &&
+    text === "" &&
+    fittingProperties.length > MAX_FLAT_VALUES &&
+    fittingProperties.some((property) => property.via);
+  const propertyItems: SourceItem[] = collapseRecords
+    ? [
+        ...fittingProperties.filter((property) => !property.via).map((property) => propertyRow(property)),
+        ...[...new Set(fittingProperties.flatMap((property) => (property.via ? [property.via] : [])))].map(
+          (record): SourceItem => {
+            const values = fittingProperties.filter((property) => property.via === record);
+            return {
+              id: `item-record:${record}`,
+              text: record,
+              icon: "user",
+              hint: `${itemName(document, loopId!)} › ${record}`,
+              selected: values.some((property) => currentProperty?.baseUrl === property.baseUrl),
+              subItems: values.map((property) => propertyRow(property, true)),
+            };
+          },
+        ),
+      ]
+    : fittingProperties.map((property) => propertyRow(property));
   const searching = text !== "";
   // X (Figma 770:33030, ledger 2 Nov "Menu rows"): flow inputs are earlier-step rows with "Start · Flow inputs" under
   // them, first, as Start comes first; the current item's rows are one line, in the group named after the item.

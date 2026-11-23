@@ -185,12 +185,25 @@ const emailValue = (slug: string, title: string, via?: string): MockPropertyType
   ...(via ? { via } : {}),
 });
 
+/** `?srcvalues=many`: enough values (ten) that the source menu collapses each linked record to a caret row. */
+const manyPathValues =
+  new URLSearchParams(globalThis.location.search).get("srcvalues") === "many";
+
 export const supplierPathValues: MockPropertyType[] = [
   emailValue("accounts-email", "Accounts email"),
+  ...(manyPathValues ? [emailValue("support-email", "Support email")] : []),
   emailValue("primary-contact-work-email", "Work email", "Primary contact"),
   emailValue("primary-contact-personal-email", "Personal email", "Primary contact"),
   emailValue("account-manager-work-email", "Work email", "Account manager"),
   emailValue("account-manager-personal-email", "Personal email", "Account manager"),
+  ...(manyPathValues
+    ? [
+        emailValue("billing-contact-work-email", "Work email", "Billing contact"),
+        emailValue("billing-contact-personal-email", "Personal email", "Billing contact"),
+        emailValue("quality-lead-work-email", "Work email", "Quality lead"),
+        emailValue("quality-lead-personal-email", "Personal email", "Quality lead"),
+      ]
+    : []),
 ];
 
 /** The supplier properties an email field's menu drops, as the path rows stand in for them. */
