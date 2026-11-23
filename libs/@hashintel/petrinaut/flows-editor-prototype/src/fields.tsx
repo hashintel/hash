@@ -17,7 +17,12 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { Select } from "./fill-select";
-import { type CatalogEntry, getCatalogEntry, type InputView } from "./catalog";
+import {
+  type CatalogEntry,
+  getCatalogEntry,
+  type InputSize,
+  type InputView,
+} from "./catalog";
 import {
   collapsePath,
   ConditionBuilder,
@@ -2142,5 +2147,12 @@ export const isFreeText = (input: InputView) =>
     "reportSpecification",
     "description",
   ].includes(input.name);
+
+/**
+ * How the panel sizes an input (PR 10550): the action definition's `size` when it has one, else free text is long and
+ * every other kind short. Medium is only ever set on a definition.
+ */
+export const inputSizeOf = (input: InputView): InputSize =>
+  input.size ?? (isFreeText(input) ? "long" : "short");
 
 export { getSourceShape };

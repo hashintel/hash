@@ -507,7 +507,8 @@ export const TypedValue = ({
   switch (kind) {
     case "Number":
       return (
-        <div className={compact ? css({ width: "[70px]" }) : undefined}>
+        // A typed number is the design system's xs width (6rem); compact rows keep their 70 px.
+        <div className={css({ width: compact ? "[70px]" : "[96px]" })}>
           <NumberInput
             size="sm"
             width="fullWidth"

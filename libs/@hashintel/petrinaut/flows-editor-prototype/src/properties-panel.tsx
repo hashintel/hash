@@ -60,6 +60,7 @@ import {
   type StepInputSource,
 } from "./engine";
 import {
+  inputSizeOf,
   isFreeText,
   inputHover,
   ListField,
@@ -549,9 +550,6 @@ const StepSettings = ({
   </Section>
 );
 
-/** Short notes that get the expand control (textarea-placement 7). */
-const expandableInputs = new Set(["instructions"]);
-
 const expandWrapStyle = css({
   position: "relative",
   // A 28 px right column keeps text out from under the control.
@@ -1027,10 +1025,9 @@ const ActionSections = ({
     }
     const label =
       inputLabels[`${step.actionDefinitionId}.${input.name}`] ?? input.label;
-    if (
-      isFreeText(input) &&
-      expandableInputs.has(input.name)
-    ) {
+    const size = inputSizeOf(input);
+    // Medium (textarea-placement 7): beside the label with the expand control.
+    if (isFreeText(input) && size === "medium") {
       return (
         <ExpandableTextRow
           key={input.name}
@@ -1057,7 +1054,7 @@ const ActionSections = ({
         }
         invalid={validation.mockFields.has(`${step.stepId}.${input.name}`)}
       >
-        {input.name === "body" ? (
+        {isFreeText(input) && size === "long" ? (
           <div className={css({ display: "contents" })} data-multiline>
             {fieldFor(document, step, input)}
           </div>

@@ -34,7 +34,12 @@ export type InputView = {
   options?: { value: string; text: string }[];
   /** The entity type an entity input or list picks from, by title ("Person"). */
   entityTypeTitle?: string;
+  /** How the panel sizes this input; unset means the default for its kind (`inputSizeOf`). Mirrors PR 10550's optional `size` on a Text input's action definition. */
+  size?: InputSize;
 };
+
+/** Short: one line beside the label. Medium: a two-line box with Expand. Long: its own line, grows with its text. */
+export type InputSize = "short" | "medium" | "long";
 
 export type InputFormat = "email" | "url" | "file";
 
@@ -286,11 +291,30 @@ const inputHints: Record<
   "getFileFromUrl.url": { format: "url" },
 };
 
+/**
+ * The action definitions' optional `size` on a Text input (hashintel/hash#10550, FE-2285): free text is long by its
+ * kind, so only the inputs that should be shorter are listed. Keyed `actionId.inputName`.
+ */
+const inputSizes: Record<string, InputSize> = {
+  "draftMessage.instructions": "medium",
+  "draftMessage.subject": "short",
+  "sendEmail.subject": "short",
+  "requestReview.instructions": "medium",
+  "getFileFromUrl.displayName": "short",
+  "getFileFromUrl.description": "medium",
+  "webSearch.query": "short",
+  "answerQuestion.question": "medium",
+  "answerQuestion.prompt": "medium",
+};
+
 const withHints = (entry: CatalogEntry): CatalogEntry => ({
   ...entry,
   inputs: entry.inputs.map((input) => ({
     ...input,
     ...inputHints[`${entry.id}.${input.name}`],
+    ...(inputSizes[`${entry.id}.${input.name}`]
+      ? { size: inputSizes[`${entry.id}.${input.name}`] }
+      : {}),
   })),
 });
 
