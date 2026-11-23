@@ -163,131 +163,224 @@ export const toCronExpression = (rule: RepeatRule, time: ScheduleTime) =>
 export const getRepeatRuleKey = (rule: RepeatRule) =>
   getDayFields(rule).join(" ");
 
-const parseNumber = (field: string, min: number, max: number) => {
-  /* Plain digits only, so `Number` cannot accept forms such as "1e1", " 5" or "0x1". */
+/** Names in cron fields, matched by their first three letters whatever their case. */
+const cronMonthNames = monthNames.map((name) => name.toLowerCase());
+const cronWeekdayNames = weekdayNames.map((name) =>
+  name.slice(0, 3).toLowerCase(),
+);
+
+/**
+ * The values a cron field matches, as Temporal reads it: `*`, `x`, `x-z`, `x/y` (x, x+y, x+2y and so on), `x-z/y` and
+ * lists of them, with names of months and weekdays, or `null` if it isn't one.
+ */
+const parseCronField = (
+  field: string,
+  min: number,
+  max: number,
+  names: string[] = [],
+): Set<number> | null => {
+  const values = new Set<number>();
+
+  const parseValue = (text: string) => {
+    const nameIndex = names.indexOf(text.slice(0, 3).toLowerCase());
+
+    if (nameIndex !== -1 && /^[a-z]+$/i.test(text)) {
+      return nameIndex + min;
+    }
+
+    return /^\d+$/.test(text) ? Number(text) : null;
+  };
+
+  for (const item of field.split(",")) {
+    const [range = "", stepText, ...rest] = item.split("/");
+    const step = stepText === undefined ? 1 : Number(stepText);
+
+    if (rest.length > 0 || !Number.isInteger(step) || step < 1) {
+      return null;
+    }
+
+    let first: number | null;
+    let last: number | null;
+
+    if (range === "*") {
+      first = min;
+      last = max;
+    } else {
+      const [start = "", end, ...more] = range.split("-");
+
+      if (more.length > 0) {
+        return null;
+      }
+
+      first = parseValue(start);
+      last =
+        end !== undefined
+          ? parseValue(end)
+          : stepText === undefined
+            ? first
+            : max;
+    }
+
+    if (first === null || last === null || first < min || last > max) {
+      return null;
+    }
+
+    for (let value = first; value <= last; value += step) {
+      values.add(value);
+    }
+  }
+
+  return values;
+};
+
+export type CronFields = {
+  seconds: number[];
+  minutes: number[];
+  hours: number[];
+  daysOfMonth: Set<number>;
+  months: Set<number>;
+  daysOfWeek: Set<number>;
+  /** `null` for any year. */
+  years: Set<number> | null;
+};
+
+/** A cron expression's fields, in Temporal's order: five, a sixth for the year, or a seventh first for the second. */
+export const parseCronFields = (cronExpression: string): CronFields | null => {
+  const fields = cronExpression.trim().split(/\s+/);
+
+  if (fields.length < 5 || fields.length > 7) {
+    return null;
+  }
+
+  const [secondField = "0", ...rest] =
+    fields.length === 7 ? fields : ["0", ...fields];
+  const [minute, hour, dayOfMonth, month, dayOfWeek, year = "*"] = rest;
+
+  const seconds = parseCronField(secondField, 0, 59);
+  const minutes = parseCronField(minute ?? "", 0, 59);
+  const hours = parseCronField(hour ?? "", 0, 23);
+  const daysOfMonth = parseCronField(dayOfMonth ?? "", 1, 31);
+  const months = parseCronField(month ?? "", 1, 12, cronMonthNames);
+  /* 7 is Sunday too. */
+  const daysOfWeek = parseCronField(dayOfWeek ?? "", 0, 7, cronWeekdayNames);
+  const years = year === "*" ? null : parseCronField(year, 1970, 9999);
+
   if (
-    field.length === 0 ||
-    field.length > 4 ||
-    [...field].some((char) => char < "0" || char > "9")
+    !seconds ||
+    !minutes ||
+    !hours ||
+    !daysOfMonth ||
+    !months ||
+    !daysOfWeek ||
+    (year !== "*" && !years)
   ) {
     return null;
   }
 
-  const number = Number(field);
+  const sorted = (values: Set<number>) =>
+    [...values].sort((left, right) => left - right);
 
-  return number >= min && number <= max ? number : null;
+  return {
+    seconds: sorted(seconds),
+    minutes: sorted(minutes),
+    hours: sorted(hours),
+    daysOfMonth,
+    months,
+    daysOfWeek: new Set([...daysOfWeek].map((weekday) => weekday % 7)),
+    years,
+  };
 };
 
-/** A day-of-week field of single days and ranges, e.g. "1-3,5", with 7 read as Sunday, as Temporal reads it. */
-const parseWeekdays = (field: string): Weekday[] | null => {
-  if (field === "*") {
-    return allWeekdays;
-  }
+/** The only value in a field, if it has just one. */
+const getOnly = <Value extends number>(values: Iterable<Value>) => {
+  const [only, ...rest] = values;
 
-  const weekdays = new Set<Weekday>();
-
-  for (const item of field.split(",")) {
-    const [start, end = start, ...rest] = item.split("-");
-    const first = start === undefined ? null : parseNumber(start, 0, 7);
-    const last = parseNumber(end ?? "", 0, 7);
-
-    if (rest.length > 0 || first === null || last === null || first > last) {
-      return null;
-    }
-
-    for (let day = first; day <= last; day++) {
-      weekdays.add((day % 7) as Weekday);
-    }
-  }
-
-  return [...weekdays].sort((left, right) => left - right);
+  return rest.length === 0 ? only : undefined;
 };
+
+/** Whether a field matches every value from `min` to `max`, as `*` does. */
+const matchesAll = (values: Set<number>, min: number, max: number) =>
+  values.size === max - min + 1;
 
 /**
- * The rule and time a cron expression runs at, if it's one the form makes: its day fields as `toCronExpression` writes
- * them, with a fixed minute and hour. Others, e.g. "0 * * * *" for every hour, are `null`.
+ * The rule and time a cron expression runs at, if it's one the form makes, however it's written: e.g. "0 9 * * 1",
+ * "0 9 * * MON" and "0 0 9 * * 1" are all every Monday at 09:00. Others, e.g. "0 * * * *" for every hour, are `null`.
  */
 export const parseCronExpression = (
   cronExpression: string,
 ): { rule: RepeatRule; time: ScheduleTime } | null => {
-  const [minuteField, hourField, dayOfMonth, month, dayOfWeek, year, ...rest] =
-    cronExpression.trim().split(/\s+/);
+  const fields = parseCronFields(cronExpression);
 
-  const minute = parseNumber(minuteField ?? "", 0, 59);
-  const hour = parseNumber(hourField ?? "", 0, 23);
+  if (!fields) {
+    return null;
+  }
 
-  if (
-    rest.length > 0 ||
-    minute === null ||
-    hour === null ||
-    dayOfMonth === undefined ||
-    month === undefined ||
-    dayOfWeek === undefined
-  ) {
+  const second = getOnly(fields.seconds);
+  const minute = getOnly(fields.minutes);
+  const hour = getOnly(fields.hours);
+
+  if (second !== 0 || minute === undefined || hour === undefined) {
     return null;
   }
 
   const time = { hour, minute };
-  const day = parseNumber(dayOfMonth, 1, 31);
-  const monthNumber = parseNumber(month, 1, 12);
+  const day = getOnly(fields.daysOfMonth);
+  const month = getOnly(fields.months);
+  const everyDayOfMonth = matchesAll(fields.daysOfMonth, 1, 31);
+  const everyMonth = matchesAll(fields.months, 1, 12);
+  const everyWeekday = matchesAll(fields.daysOfWeek, 0, 6);
 
-  if (year !== undefined) {
-    const yearNumber = parseNumber(year, 1970, 9999);
+  if (fields.years) {
+    const year = getOnly(fields.years);
 
-    return yearNumber !== null &&
-      day !== null &&
-      monthNumber !== null &&
-      dayOfWeek === "*"
-      ? {
-          rule: {
-            kind: "once",
-            date: { year: yearNumber, month: monthNumber, day },
-          },
-          time,
-        }
+    return year !== undefined &&
+      day !== undefined &&
+      month !== undefined &&
+      everyWeekday
+      ? { rule: { kind: "once", date: { year, month, day } }, time }
       : null;
   }
 
-  if (dayOfWeek === "*") {
-    if (dayOfMonth === "*" && month === "*") {
+  if (everyWeekday) {
+    if (everyDayOfMonth && everyMonth) {
       return { rule: { kind: "weekly", weekdays: allWeekdays }, time };
     }
 
-    if (day !== null && month === "*") {
+    if (day !== undefined && everyMonth) {
       return { rule: { kind: "monthlyDay", day }, time };
     }
 
-    if (day !== null && monthNumber !== null) {
-      return { rule: { kind: "yearly", month: monthNumber, day }, time };
+    if (day !== undefined && month !== undefined) {
+      return { rule: { kind: "yearly", month, day }, time };
     }
 
     return null;
   }
 
-  if (month !== "*") {
+  if (!everyMonth) {
     return null;
   }
 
-  if (dayOfMonth === "*") {
-    const weekdays = parseWeekdays(dayOfWeek);
+  const weekdays = [...fields.daysOfWeek].sort(
+    (left, right) => left - right,
+  ) as Weekday[];
 
-    return weekdays ? { rule: { kind: "weekly", weekdays }, time } : null;
+  if (everyDayOfMonth) {
+    return { rule: { kind: "weekly", weekdays }, time };
   }
 
-  const weekday = parseNumber(dayOfWeek, 0, 7);
+  /* The nth weekday is the one among the nth seven days of the month, as `getDayFields` writes it. */
+  const weekday = getOnly(weekdays);
+  const firstDay = Math.min(...fields.daysOfMonth);
   const nth = ([1, 2, 3, 4] as const).find(
-    (candidate) => dayOfMonth === `${candidate * 7 - 6}-${candidate * 7}`,
+    (candidate) => firstDay === candidate * 7 - 6,
   );
 
-  return weekday !== null && nth !== undefined
-    ? {
-        rule: {
-          kind: "monthlyWeekday",
-          nth,
-          weekday: (weekday % 7) as Weekday,
-        },
-        time,
-      }
+  return weekday !== undefined &&
+    nth !== undefined &&
+    fields.daysOfMonth.size === 7 &&
+    fields.daysOfMonth.has(firstDay + 6)
+    ? { rule: { kind: "monthlyWeekday", nth, weekday }, time }
     : null;
 };
 

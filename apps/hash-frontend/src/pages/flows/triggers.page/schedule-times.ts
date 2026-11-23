@@ -1,3 +1,5 @@
+import { parseCronFields } from "../../shared/schedule-repeat";
+
 import type { CalendarDate } from "../../shared/schedule-repeat";
 import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
 
@@ -90,144 +92,6 @@ export const getZonedDate = (instant: Date, timeZone: string): CalendarDate => {
   return { year, month, day };
 };
 
-const monthNames = [
-  "jan",
-  "feb",
-  "mar",
-  "apr",
-  "may",
-  "jun",
-  "jul",
-  "aug",
-  "sep",
-  "oct",
-  "nov",
-  "dec",
-];
-const weekdayNames = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-
-/**
- * The values a cron field matches, as Temporal reads it: `*`, `x`, `x-z`, `x/y` (x, x+y, x+2y and so on), `x-z/y` and
- * lists of them, with names of months and weekdays, or `null` if it isn't one.
- */
-const parseCronField = (
-  field: string,
-  min: number,
-  max: number,
-  names: string[] = [],
-): Set<number> | null => {
-  const values = new Set<number>();
-
-  const parseValue = (text: string) => {
-    const nameIndex = names.indexOf(text.slice(0, 3).toLowerCase());
-
-    if (nameIndex !== -1 && /^[a-z]+$/i.test(text)) {
-      return nameIndex + min;
-    }
-
-    return /^\d+$/.test(text) ? Number(text) : null;
-  };
-
-  for (const item of field.split(",")) {
-    const [range = "", stepText, ...rest] = item.split("/");
-    const step = stepText === undefined ? 1 : Number(stepText);
-
-    if (rest.length > 0 || !Number.isInteger(step) || step < 1) {
-      return null;
-    }
-
-    let first: number | null;
-    let last: number | null;
-
-    if (range === "*") {
-      first = min;
-      last = max;
-    } else {
-      const [start = "", end, ...more] = range.split("-");
-
-      if (more.length > 0) {
-        return null;
-      }
-
-      first = parseValue(start);
-      last =
-        end !== undefined
-          ? parseValue(end)
-          : stepText === undefined
-            ? first
-            : max;
-    }
-
-    if (first === null || last === null || first < min || last > max) {
-      return null;
-    }
-
-    for (let value = first; value <= last; value += step) {
-      values.add(value);
-    }
-  }
-
-  return values;
-};
-
-type CronFields = {
-  seconds: number[];
-  minutes: number[];
-  hours: number[];
-  daysOfMonth: Set<number>;
-  months: Set<number>;
-  daysOfWeek: Set<number>;
-  /** `null` for any year. */
-  years: Set<number> | null;
-};
-
-/** A cron expression's fields, in Temporal's order: five, a sixth for the year, or a seventh first for the second. */
-const parseCronExpression = (cronExpression: string): CronFields | null => {
-  const fields = cronExpression.trim().split(/\s+/);
-
-  if (fields.length < 5 || fields.length > 7) {
-    return null;
-  }
-
-  const [secondField = "0", ...rest] =
-    fields.length === 7 ? fields : ["0", ...fields];
-  const [minute, hour, dayOfMonth, month, dayOfWeek, year = "*"] = rest;
-
-  const seconds = parseCronField(secondField, 0, 59);
-  const minutes = parseCronField(minute ?? "", 0, 59);
-  const hours = parseCronField(hour ?? "", 0, 23);
-  const daysOfMonth = parseCronField(dayOfMonth ?? "", 1, 31);
-  const months = parseCronField(month ?? "", 1, 12, monthNames);
-  /* 7 is Sunday too. */
-  const daysOfWeek = parseCronField(dayOfWeek ?? "", 0, 7, weekdayNames);
-  const years = year === "*" ? null : parseCronField(year, 1970, 9999);
-
-  if (
-    !seconds ||
-    !minutes ||
-    !hours ||
-    !daysOfMonth ||
-    !months ||
-    !daysOfWeek ||
-    (year !== "*" && !years)
-  ) {
-    return null;
-  }
-
-  const sorted = (values: Set<number>) =>
-    [...values].sort((left, right) => left - right);
-
-  return {
-    seconds: sorted(seconds),
-    minutes: sorted(minutes),
-    hours: sorted(hours),
-    daysOfMonth,
-    months,
-    daysOfWeek: new Set([...daysOfWeek].map((weekday) => weekday % 7)),
-    years,
-  };
-};
-
 /**
  * The next times a schedule runs after an instant, at most `count` of them, or `null` if its cron expression isn't one
  * this can read, e.g. "@daily", or if none are found within five years. An interval runs at every multiple of it since
@@ -250,7 +114,7 @@ export const getNextRuns = (
     );
   }
 
-  const cron = parseCronExpression(scheduleSpec.cronExpression);
+  const cron = parseCronFields(scheduleSpec.cronExpression);
 
   if (!cron) {
     return null;

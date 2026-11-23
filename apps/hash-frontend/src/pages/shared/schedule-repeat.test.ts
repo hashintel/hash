@@ -123,6 +123,25 @@ describe("parseCronExpression", () => {
     });
   });
 
+  it("reads other spellings of what the form makes", () => {
+    const time = { hour: 9, minute: 0 };
+
+    expect(parseCronExpression("0 9 * * MON")).toEqual({
+      rule: { kind: "weekly", weekdays: [1] },
+      time,
+    });
+    expect(parseCronExpression("0 0 9 * * 1")).toBeNull();
+    expect(parseCronExpression("0 0 9 * * 1 *")).toEqual({
+      rule: { kind: "weekly", weekdays: [1] },
+      time,
+    });
+    expect(parseCronExpression("0 9 15,8-14 * 2")).toBeNull();
+    expect(parseCronExpression("0 9 8,9,10,11,12,13,14 * TUE")).toEqual({
+      rule: { kind: "monthlyWeekday", nth: 2, weekday: 2 },
+      time,
+    });
+  });
+
   it("leaves out what the form doesn't make", () => {
     for (const cronExpression of [
       /* Every hour, or every 15 minutes. */
@@ -134,10 +153,9 @@ describe("parseCronExpression", () => {
       "0 9 2-8 * 1",
       /* A year without a date. */
       "0 9 * * * 2026",
-      /* Seconds first. */
-      "0 0 9 * * * *",
+      /* A run at a second past the minute. */
+      "30 0 9 * * * *",
       "@daily",
-      "0 9 * * MON",
       "60 9 * * *",
       /* Numbers that aren't plain digits. */
       "0 1e1 * * *",
