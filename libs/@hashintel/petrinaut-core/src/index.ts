@@ -6,7 +6,7 @@
  * optimization runtime (Optuna under Pyodide in a worker).
  *
  * @layerRoot core
- * @role The package entries: what a host or the editor imports from the headless engine
+ * @role The headless engine: document model, compiler, simulation runtimes and LSP, with no UI framework. Its own files are the package entries a host or the editor imports
  */
 
 // --- Document ---
