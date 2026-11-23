@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { logistics } from "../composition/libraries.test-helpers";
 import { toPetrinautId } from "../document/petrinaut-id";
-import { createJsonDocHandle } from "../handle/json-doc-handle";
+import { createJsonDocHandle } from "../handle/json-doc-handle/create-json-doc-handle";
 import { composesOnly, sameRules } from "./host-rules";
 import { createPetrinaut } from "./instance";
 

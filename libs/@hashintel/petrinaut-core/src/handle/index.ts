@@ -6,7 +6,7 @@
 export {
   createJsonDocHandle,
   type CreateJsonDocHandleOptions,
-} from "./json-doc-handle";
+} from "./json-doc-handle/create-json-doc-handle";
 export type {
   DocChangeEvent,
   DocHandleState,
