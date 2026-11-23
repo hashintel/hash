@@ -9,7 +9,6 @@ import {
   Button,
   Checkbox,
   Dialog,
-  Drawer,
   Icon,
   Menu,
   TextInput,
@@ -97,128 +96,7 @@ const menuMetaStyle = css({
   whiteSpace: "nowrap",
 });
 
-const sheetRowStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  gap: "[2px]",
-  padding: "[6px 12px]",
-  borderRadius: "lg",
-  border: "none",
-  background: "[transparent]",
-  textAlign: "left",
-  textStyle: "sm",
-  cursor: "pointer",
-  _hover: { backgroundColor: "neutral.bg.subtle.hover" },
-  "&[data-selected]": { backgroundColor: "neutral.bg.subtle.active" },
-});
-
-const sheetNotesStyle = css({
-  textStyle: "sm",
-  color: "neutral.fg.body",
-  marginTop: "[2px]",
-});
-
-
-/** All versions: the long list opens in the 640 px sheet (registry "Open something bigger"), × and Esc close it. */
-const AllVersionsSheet = ({
-  version,
-  viewing,
-  onClose,
-}: {
-  version: FlowVersion;
-  viewing: number | null;
-  onClose: () => void;
-}) => {
-  const labelCase = useVersionLabelCase();
-  const rows = [
-    ...(version.state === "draft"
-      ? [
-          {
-            n: version.current,
-            draft: true,
-            title: versionName(version.current, labelCase),
-            state: "Draft" as const,
-            meta: `Edited ${version.editedAt ?? "just now"} · not published`,
-            notes: undefined as string | undefined,
-          },
-        ]
-      : []),
-    ...version.published.map((entry, index) => ({
-      n: entry.n,
-      draft: false,
-      title:
-        entry.name && entry.name !== `v${entry.n}`
-          ? `${versionName(entry.n, labelCase)} · ${entry.name}`
-          : versionName(entry.n, labelCase),
-      state: index === 0 ? ("Live" as const) : undefined,
-      meta: `Published ${entry.at} · ${entry.by}`,
-      notes: entry.notes,
-    })),
-  ];
-  return (
-    <Drawer
-      size="md"
-      position="right"
-      variant="plain"
-      showBackdrop={false}
-      shouldCloseOn="none"
-      onClose={onClose}
-      aria-label="All versions"
-      onKeyDown={(event) => {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          event.stopPropagation();
-          onClose();
-        }
-      }}
-    >
-      <Drawer.Header
-        title={`All versions · ${rows.length}`}
-        actions={
-          <Button
-            size="sm"
-            variant="ghost"
-            tone="neutral"
-            iconName="close"
-            aria-label="Close"
-            tooltip="Close · Esc"
-            onClick={onClose}
-          />
-        }
-      />
-      <Drawer.Body>
-        <div data-all-versions-sheet className={css({ display: "flex", flexDirection: "column" })}>
-          {rows.map((row) => {
-            const current = row.draft || (version.state === "live" && row.state === "Live");
-            const selected = current ? viewing === null : viewing === row.n;
-            return (
-              <button
-                key={row.n}
-                type="button"
-                className={sheetRowStyle}
-                data-selected={selected ? true : undefined}
-                data-version-row={row.n}
-                onClick={() => {
-                  setQuery("version", current ? null : String(row.n));
-                  onClose();
-                }}
-              >
-                <span className={menuTitleStyle}>
-                  <VersionLabel number={row.title} state={row.state} />
-                </span>
-                <span className={menuMetaStyle}>{row.meta}</span>
-                {row.notes ? <span className={sheetNotesStyle}>{row.notes}</span> : null}
-              </button>
-            );
-          })}
-        </div>
-      </Drawer.Body>
-    </Drawer>
-  );
-};
-
-/** V3: the draft (current), then published versions newest first, then All versions. */
+/** V3: the draft (current), then every published version newest first; the menu scrolls when the list is long. */
 export const VersionMenu = ({
   version,
   viewing,
@@ -230,7 +108,6 @@ export const VersionMenu = ({
   trigger: React.ReactElement;
 }) => {
   const labelCase = useVersionLabelCase();
-  const [sheetOpen, setSheetOpen] = useState(false);
   const draft =
     version.state === "draft"
       ? [
@@ -252,7 +129,7 @@ export const VersionMenu = ({
           },
         ]
       : [];
-  const published = version.published.slice(0, 4).map((entry, index) => {
+  const published = version.published.map((entry, index) => {
     const live = index === 0;
     const current = version.state === "live" && live;
     const selected = current ? viewing === null : viewing === entry.n;
@@ -279,31 +156,12 @@ export const VersionMenu = ({
     };
   });
   return (
-    <>
     <Menu
       position="bottom-start"
-      className={css({ width: "[300px]" })}
-      items={[
-        { id: "versions", label: "", items: [...draft, ...published] },
-        {
-          id: "all",
-          label: "",
-          items: [
-            {
-              id: "all-versions",
-              text: "All versions",
-              icon: "clockRotateLeft",
-              onClick: () => setSheetOpen(true),
-            },
-          ],
-        },
-      ]}
+      className={css({ width: "[300px]", maxHeight: "[420px]" })}
+      items={[{ id: "versions", label: "", items: [...draft, ...published] }]}
       trigger={trigger}
     />
-    {sheetOpen ? (
-      <AllVersionsSheet version={version} viewing={viewing} onClose={() => setSheetOpen(false)} />
-    ) : null}
-    </>
   );
 };
 
