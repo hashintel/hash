@@ -10,13 +10,10 @@ import { resolve as resolvePath } from "node:path";
 
 import { chromium } from "playwright";
 
+import { args, origin } from "./cli.mjs";
 import { instrument } from "./instrument.mjs";
 import { nextFrame, observe } from "./observe.mjs";
 
-const args = Object.fromEntries(
-  process.argv.slice(2).map((argument) => argument.split("=")),
-);
-const origin = args.origin ?? "http://127.0.0.1:6027";
 const model = args.model ?? "supply-chain";
 const samples = Number(args.samples ?? 3);
 const steps = Number(args.steps ?? 60);

@@ -28,13 +28,10 @@ import { resolve as resolvePath } from "node:path";
 
 import { chromium } from "playwright";
 
+import { args, median, origin } from "./cli.mjs";
 import { instrument } from "./instrument.mjs";
 import { metricsOf } from "./observe.mjs";
 
-const args = Object.fromEntries(
-  process.argv.slice(2).map((argument) => argument.split("=")),
-);
-const origin = args.origin ?? "http://127.0.0.1:6027";
 const copies = Number(args.copies ?? 1);
 const samples = Number(args.samples ?? 3);
 const output = resolvePath(
@@ -308,8 +305,6 @@ await writeFile(
 
 const sorted = (values) =>
   values.filter((value) => value !== null).sort((left, right) => left - right);
-const median = (values) =>
-  sorted(values)[Math.floor((sorted(values).length - 1) / 2)] ?? 0;
 const spread = (values) =>
   `${Math.round(sorted(values)[0] ?? 0)}-${Math.round(sorted(values).at(-1) ?? 0)}`;
 const columns = [

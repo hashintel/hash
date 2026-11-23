@@ -9,11 +9,9 @@
 // served with `vite preview --outDir <the same> --port 6031`.
 import { chromium } from "playwright";
 
+import { args } from "./cli.mjs";
 import { instrument } from "./instrument.mjs";
 
-const args = Object.fromEntries(
-  process.argv.slice(2).map((argument) => argument.split("=")),
-);
 const origin = args.origin ?? "http://127.0.0.1:6031";
 const model = args.model ?? "supply-chain";
 

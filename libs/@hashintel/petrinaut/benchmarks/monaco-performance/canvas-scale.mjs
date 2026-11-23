@@ -18,19 +18,11 @@ import { resolve as resolvePath } from "node:path";
 
 import { chromium } from "playwright";
 
+import { args, median, modelQuery, origin } from "./cli.mjs";
 import { instrument } from "./instrument.mjs";
 import { nextFrame, observe } from "./observe.mjs";
 
-const args = Object.fromEntries(
-  process.argv.slice(2).map((argument) => argument.split("=")),
-);
-const origin = args.origin ?? "http://127.0.0.1:6027";
 const copies = Number(args.copies ?? 12);
-// `modelUrl=/models/my-net.yaml` measures a net from a file the server
-// serves (see `loadModel` in app.tsx); pass `copies=1` with it.
-const modelQuery = args.modelUrl
-  ? `modelUrl=${encodeURIComponent(args.modelUrl)}`
-  : "model=supply-chain";
 const samples = Number(args.samples ?? 3);
 const views = (args.views ?? "fit,close").split(",");
 const output = resolvePath(
@@ -364,12 +356,6 @@ await writeFile(
   JSON.stringify({ loads, rows }, null, 1),
 );
 
-const median = (values) => {
-  const sorted = values
-    .filter((value) => typeof value === "number" && !Number.isNaN(value))
-    .sort((left, right) => left - right);
-  return sorted[Math.floor((sorted.length - 1) / 2)] ?? 0;
-};
 const round = (value) => Math.round(value * 10) / 10;
 const medianOf = (entries, key) =>
   round(median(entries.map((entry) => entry[key])));

@@ -4,12 +4,9 @@ import { resolve as resolvePath } from "node:path";
 
 import { chromium } from "playwright";
 
+import { args, origin } from "./cli.mjs";
 import { instrument } from "./instrument.mjs";
 
-const args = Object.fromEntries(
-  process.argv.slice(2).map((argument) => argument.split("=")),
-);
-const origin = args.origin ?? "http://127.0.0.1:6027";
 const surface = args.surface ?? "micro";
 const model = args.model ?? "satellites";
 const variants = (args.variants ?? "baseline").split(",");

@@ -14,13 +14,10 @@ import { resolve as resolvePath } from "node:path";
 
 import { chromium } from "playwright";
 
+import { args, median, origin } from "./cli.mjs";
 import { instrument } from "./instrument.mjs";
 import { observe } from "./observe.mjs";
 
-const args = Object.fromEntries(
-  process.argv.slice(2).map((argument) => argument.split("=")),
-);
-const origin = args.origin ?? "http://127.0.0.1:6027";
 const model = args.model ?? "supply-chain";
 const samples = Number(args.samples ?? 3);
 const states = (args.states ?? "canvas,editor,settings").split(",");
@@ -165,10 +162,6 @@ await writeFile(
   JSON.stringify(rows, null, 1),
 );
 
-const median = (values) => {
-  const sorted = [...values].sort((left, right) => left - right);
-  return sorted[Math.floor((sorted.length - 1) / 2)] ?? 0;
-};
 const round = (value) => Math.round(value * 10) / 10;
 const columns = [
   ["scriptMs", "script"],

@@ -14,18 +14,10 @@
 //   node benchmarks/monaco-performance/panel-edges.mjs origin=http://127.0.0.1:6027 copies=12 samples=5
 import { chromium } from "playwright";
 
+import { args, median, modelQuery, origin } from "./cli.mjs";
 import { nextFrame } from "./observe.mjs";
 
-const args = Object.fromEntries(
-  process.argv.slice(2).map((argument) => argument.split("=")),
-);
-const origin = args.origin ?? "http://127.0.0.1:6027";
 const copies = Number(args.copies ?? 12);
-// `modelUrl=/models/my-net.yaml` measures a net from a file the server
-// serves (see `loadModel` in app.tsx); pass `copies=1` with it.
-const modelQuery = args.modelUrl
-  ? `modelUrl=${encodeURIComponent(args.modelUrl)}`
-  : "model=supply-chain";
 const samples = Number(args.samples ?? 5);
 const crossings = Number(args.crossings ?? 10);
 
@@ -74,11 +66,6 @@ const styleIn = async (session, run) => {
     ),
   };
 };
-
-const median = (values) =>
-  values.toSorted((left, right) => left - right)[
-    Math.floor((values.length - 1) / 2)
-  ];
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });

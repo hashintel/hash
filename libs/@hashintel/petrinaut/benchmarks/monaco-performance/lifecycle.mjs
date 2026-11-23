@@ -4,12 +4,9 @@ import { resolve } from "node:path";
 
 import { chromium } from "playwright";
 
+import { args, origin } from "./cli.mjs";
 import { instrument } from "./instrument.mjs";
 
-const args = Object.fromEntries(
-  process.argv.slice(2).map((argument) => argument.split("=")),
-);
-const origin = args.origin ?? "http://127.0.0.1:6027";
 const output = resolve(
   args.output ?? new URL("./results", import.meta.url).pathname,
 );
