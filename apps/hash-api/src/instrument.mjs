@@ -78,7 +78,7 @@ Sentry.init({
     process.env.ENVIRONMENT ||
     (isProdEnv ? "production" : "development"),
   attachStacktrace: false,
-  dataCollection: { frameContextLines: 7 },
+  dataCollection: { cookies: false, frameContextLines: 7, httpBodies: [] },
   // Set Sentry's tracer up only when our provider did not register. Gating
   // on `otlpEndpoint` instead would skip Sentry's setup whenever the env var
   // is set even if our bootstrap threw, leaving the process with neither

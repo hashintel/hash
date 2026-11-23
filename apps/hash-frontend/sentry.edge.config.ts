@@ -8,6 +8,7 @@ Sentry.init({
   dsn: SENTRY_DSN,
   enabled: !!SENTRY_DSN,
   attachStacktrace: false,
+  dataCollection: { cookies: false, httpBodies: [] },
   environment: SENTRY_ENVIRONMENT,
   release: buildStamp,
   traceLifecycle: "static",

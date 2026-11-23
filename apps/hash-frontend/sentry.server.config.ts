@@ -8,7 +8,7 @@ Sentry.init({
   dsn: SENTRY_DSN,
   enabled: !!SENTRY_DSN,
   attachStacktrace: false,
-  dataCollection: { frameContextLines: 7 },
+  dataCollection: { cookies: false, frameContextLines: 7, httpBodies: [] },
   environment: SENTRY_ENVIRONMENT,
   release: buildStamp,
   traceLifecycle: "static",
