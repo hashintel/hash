@@ -961,8 +961,8 @@ export const SourceMenu = ({
             },
           ]
         : []),
-    // A search that finds nothing says so; with no search there is always the Start action above.
-    ...(nothingFits && (searching || !fromSteps)
+    // A menu with nothing to pick says so in one grey row above the actions (the For each list already has its own line).
+    ...(nothingFits && (searching || !(fromSteps && listsOnly))
       ? [
           {
             id: "nothing",

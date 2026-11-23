@@ -184,17 +184,59 @@ export const keyHoverStyle = css({
   _hover: { textDecoration: "underline dotted", textUnderlineOffset: "[3px]" },
 });
 
-/** "optional", after the label of a field that may stay empty (Attio: only the exception is marked). */
+/**
+ * How a field says whether it must be filled. Default: Salt's Form.Field mark, a small blue asterisk after the label of
+ * a required field (Salt marks the required fields; the optional ones stay bare). `?requiredmark=optional` is the other
+ * way round: required bare, "Optional" in grey after the label of the ones that may stay empty.
+ */
+const markOptional =
+  new URLSearchParams(globalThis.location?.search ?? "").get("requiredmark") ===
+  "optional";
+
+/** Salt's required mark (`label.recipe.ts`, `required` slot), sized in em from the label text. */
+const RequiredMark = () => (
+  <span
+    aria-hidden
+    data-required-mark
+    className={css({
+      display: "inline-flex",
+      justifyContent: "center",
+      flexShrink: 0,
+      marginLeft: "[0.38em]",
+      width: "[0.9em]",
+      aspectRatio: "1",
+      fontSize: "[0.85em]",
+      lineHeight: "[round(1em * 1.4, 1px)]",
+      fontWeight: "semibold",
+      backgroundColor: "blue.bg.subtle",
+      color: "blue.fg.muted",
+      borderRadius: "sm",
+    })}
+  >
+    *
+  </span>
+);
+
+/** "Optional", grey, after the label of a field that may stay empty. */
 export const OptionalMark = () => (
   <span
+    data-optional-mark
     className={css({
-      display: "block",
+      flexShrink: 0,
+      marginLeft: "1.5",
       textStyle: "xxs",
       fontWeight: "medium",
       color: "neutral.fg.muted",
     })}
+    // The panel's label rules restyle every span after a label; the mark keeps its own grey.
+    style={{
+      color: "var(--colors-neutral-fg-muted)",
+      fontSize: "var(--font-sizes-xs)",
+      fontWeight: 400,
+      lineHeight: "16px",
+    }}
   >
-    optional
+    Optional
   </span>
 );
 
@@ -218,7 +260,7 @@ export const PropertyRow = ({
   label: React.ReactNode;
   hover?: string;
   required?: boolean;
-  /** Marks the key "optional". */
+  /** With `?requiredmark=optional`, marks the key "Optional". */
   optional?: boolean;
   /** Lets a label too long for the key column wrap instead of truncate. */
   wrapLabel?: boolean;
@@ -234,8 +276,16 @@ export const PropertyRow = ({
       : hover;
   const tip = named && detail ? `${named} · ${detail}` : (detail ?? named);
   const tipKey = Boolean(detail);
+  const marked = markOptional ? optional : required;
   const key = (
-    <span data-property-name className={css({ display: "block", minWidth: "[0]" })}>
+    <span
+      data-property-name
+      className={css(
+        marked
+          ? { display: "flex", alignItems: "center", minWidth: "[0]" }
+          : { display: "block", minWidth: "[0]" },
+      )}
+    >
       {icon ? <span data-input-icon>{icon}</span> : null}
       <span
         className={cx(
@@ -246,7 +296,13 @@ export const PropertyRow = ({
       >
         {label}
       </span>
-      {optional ? <OptionalMark /> : null}
+      {markOptional ? (
+        optional ? (
+          <OptionalMark />
+        ) : null
+      ) : required ? (
+        <RequiredMark />
+      ) : null}
     </span>
   );
   return (

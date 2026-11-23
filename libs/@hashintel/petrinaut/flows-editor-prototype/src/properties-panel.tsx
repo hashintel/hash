@@ -575,6 +575,7 @@ const ExpandableTextRow = ({
   label,
   hover,
   required,
+  optional,
   invalid,
   icon,
   children,
@@ -582,6 +583,7 @@ const ExpandableTextRow = ({
   label: string;
   hover: string;
   required?: boolean;
+  optional?: boolean;
   invalid?: boolean;
   icon?: React.ReactNode;
   children: React.ReactNode;
@@ -600,7 +602,7 @@ const ExpandableTextRow = ({
     </span>
   );
   return (
-    <PropertyRow label={label} icon={icon} hover={hover} required={required} invalid={invalid}>
+    <PropertyRow label={label} icon={icon} hover={hover} required={required} optional={optional} invalid={invalid}>
       <div className={cx(expandWrapStyle, expanded && expandedBoxStyle)} data-multiline={expanded || undefined}>
         {children}
         {control}
@@ -1035,6 +1037,7 @@ const ActionSections = ({
           icon={inputIcon(input, kinds)}
           hover={inputHover(input, kinds)}
           required={input.required && !input.hasDefault}
+          optional={!input.required}
           invalid={validation.mockFields.has(`${step.stepId}.${input.name}`)}
         >
           {fieldFor(document, step, input)}
@@ -1052,6 +1055,7 @@ const ActionSections = ({
           !input.hasDefault &&
           !input.rule?.startsWith("At least")
         }
+        optional={!input.required}
         invalid={validation.mockFields.has(`${step.stepId}.${input.name}`)}
       >
         {isFreeText(input) && size === "long" ? (
@@ -1510,10 +1514,11 @@ const rowActionStyle = css({
   transition: "[opacity 0.15s ease]",
 });
 
+/** Type and Default value under an input's name row: label left, control right, like every other panel row (L1T). */
 const inputFieldStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
+  display: "grid",
+  gridTemplateColumns: "[104px minmax(0, 1fr)]",
+  alignItems: "center",
   marginTop: "3",
   marginLeft: "[var(--u-dx)]",
   marginRight: "[var(--u-r)]",
@@ -2112,6 +2117,7 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
             label={input.label ?? input.name}
             hover={kindLabel(input.payloadKind, input.array)}
             required={input.required}
+            optional={!input.required}
           >
             {mapped ? (
               <SourceChip
