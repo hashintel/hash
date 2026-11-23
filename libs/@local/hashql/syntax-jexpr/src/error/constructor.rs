@@ -1,3 +1,5 @@
+use core::alloc::Allocator;
+
 use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{
     Diagnostic, Label, Patch, Suggestions, diagnostic::Message, severity::Critical,
@@ -8,19 +10,20 @@ use super::{
     ValueKind,
     object::{ObjectDiagnostic, ObjectDiagnosticCategory},
 };
-use crate::{embedded::error::convert_parse_error, span::Span};
+use crate::{embedded::error::convert_parse_error_in, span::Span};
 
 const MAX_EXTRA_LABELS: usize = 2;
 const STRUCT_KEY_IDENTIFIER_NOTE: &str = "struct field keys must be valid HashQL identifiers";
 const DICT_ENTRY_FORMAT_NOTE: &str =
     "in array-of-pairs format, each `#dict` entry must be a two-element array `[key, value]`";
 
-pub(crate) fn struct_key_expected_identifier(
+pub(crate) fn struct_key_expected_identifier_in<A: Allocator>(
     spans: &mut SpanTable<Span>,
     key_span: SpanId,
     raw_quoted: &str,
     decoded: &str,
     parse_error: (usize, ContextError),
+    alloc: A,
 ) -> ObjectDiagnostic {
     if decoded.is_empty() {
         let mut diagnostic = Diagnostic::new(
@@ -35,7 +38,7 @@ pub(crate) fn struct_key_expected_identifier(
         return diagnostic;
     }
 
-    let parts = convert_parse_error(
+    let parts = convert_parse_error_in(
         spans,
         key_span,
         raw_quoted,
@@ -43,6 +46,7 @@ pub(crate) fn struct_key_expected_identifier(
         "struct field identifier",
         0,
         parse_error,
+        alloc,
     );
 
     let mut diagnostic = Diagnostic::new(

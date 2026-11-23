@@ -10,7 +10,10 @@
 //! [`Expr`]: hashql_ast::node::expr::Expr
 //! [`SyntaxDump`]: hashql_ast::format::SyntaxDump
 
-use std::io::{IsTerminal as _, Read as _, Write as _};
+use std::{
+    alloc::Global,
+    io::{IsTerminal as _, Read as _, Write as _},
+};
 
 use hashql_ast::format::SyntaxDump as _;
 use hashql_core::{heap::Heap, span::SpanTable};
@@ -35,7 +38,7 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
     let mut spans = SpanTable::new(sources.push(Source::new(input.as_str())));
     let mut parser = Parser::new(&heap, &mut spans);
 
-    match parser.parse_expr(&input) {
+    match parser.parse_expr_in(&input, Global) {
         Ok(Success { value: expr, .. }) => {
             if no_output {
                 return Ok(());

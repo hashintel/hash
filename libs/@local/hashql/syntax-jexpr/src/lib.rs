@@ -16,7 +16,7 @@
 //! let heap = Heap::new();
 //! let mut spans = SpanTable::new(SourceId::new_unchecked(0));
 //! let success = Parser::new(&heap, &mut spans)
-//!     .parse_expr(source)
+//!     .parse_expr_in(source, alloc::alloc::Global)
 //!     .expect("valid literal parses to an AST expression");
 //! assert!(success.advisories.is_empty());
 //! ```
@@ -37,6 +37,8 @@
 )]
 
 extern crate alloc;
+
+use core::alloc::Allocator;
 
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
@@ -79,6 +81,7 @@ pub struct Parser<'heap, 'spans> {
 }
 
 impl<'heap, 'spans> Parser<'heap, 'spans> {
+    /// Creates a parser that allocates the AST in `heap` and inserts its spans into `spans`.
     #[must_use]
     pub const fn new(heap: &'heap Heap, spans: &'spans mut SpanTable<Span>) -> Self {
         Self { heap, spans }
@@ -89,15 +92,16 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
     /// # Panics
     ///
     /// Panics if `source.len()` exceeds `u32::MAX` bytes.
-    pub fn parse_expr_with_pointers(
+    pub fn parse_expr_with_pointers_in<A: Allocator>(
         &mut self,
         source: &str,
+        alloc: A,
     ) -> (
         Status<Expr<'heap>, JExprDiagnosticCategory, SpanId>,
         JsonPointers,
     ) {
-        let parse = parser::Parser::<parser::expr::ExprGrammar>::parse_cst(source);
-        let status = lower::lower_expr(self.heap, self.spans, &parse);
+        let parse = parser::Parser::<parser::expr::ExprGrammar, _>::parse_cst_in(source, &alloc);
+        let status = lower::lower_expr_in(self.heap, self.spans, &parse, &alloc);
         (status, JsonPointers::from_green(parse.into_green()))
     }
 
@@ -111,10 +115,11 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
     /// # Panics
     ///
     /// Panics if `source.len()` exceeds `u32::MAX` bytes.
-    pub fn parse_expr(
+    pub fn parse_expr_in<A: Allocator>(
         &mut self,
         source: &str,
+        alloc: A,
     ) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
-        self.parse_expr_with_pointers(source).0
+        self.parse_expr_with_pointers_in(source, alloc).0
     }
 }

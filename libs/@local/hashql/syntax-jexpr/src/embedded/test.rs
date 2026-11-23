@@ -61,7 +61,7 @@ pub(crate) macro bind_parser($format:ident; fn $name:ident($parser:ident)) {
             heap: &heap,
             spans: &mut spans,
             parent,
-            offsets: RawOffsets::verbatim(),
+            offsets: RawOffsets::verbatim_in(alloc::alloc::Global),
             depth: 0,
         };
 
@@ -70,7 +70,7 @@ pub(crate) macro bind_parser($format:ident; fn $name:ident($parser:ident)) {
             state: context,
         };
 
-        let result = $parser::<ContextError>.parse(input);
+        let result = $parser::<ContextError, alloc::alloc::Global>.parse(input);
         match result {
             Ok(ident) => (
                 format_result!($format; ident),

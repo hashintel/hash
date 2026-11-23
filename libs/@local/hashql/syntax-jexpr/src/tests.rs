@@ -1,4 +1,5 @@
-use core::{iter, mem::ManuallyDrop};
+use alloc::alloc::Global;
+use core::{alloc::Allocator, iter, mem::ManuallyDrop};
 use std::thread;
 
 use hashql_ast::{
@@ -32,8 +33,8 @@ use crate::{
     syntax_kind_set::SyntaxKindSet,
 };
 
-fn parse_expr_cst(source: &str) -> Document<cst::ExprRoot> {
-    parser::Parser::<ExprGrammar>::parse_cst(source)
+fn parse_expr_cst(source: &str) -> Document<cst::ExprRoot, Global> {
+    parser::Parser::<ExprGrammar, Global>::parse_cst_in(source, Global)
 }
 
 fn render_diagnostic<C, K>(
@@ -60,7 +61,7 @@ fn parse_ok_dump(input: &str) -> String {
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
     let mut parser = Parser::new(&heap, &mut spans);
 
-    match parser.parse_expr(input) {
+    match parser.parse_expr_in(input, Global) {
         Ok(Success { value: expr, .. }) => expr.syntax_dump_to_string(),
         Err(Failure { primary, .. }) => {
             panic!("expected `{input}` to parse, got {:?}", primary.category);
@@ -74,7 +75,7 @@ fn parse_err_categories(input: &str) -> Vec<JExprDiagnosticCategory> {
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
     let mut parser = Parser::new(&heap, &mut spans);
 
-    match parser.parse_expr(input) {
+    match parser.parse_expr_in(input, Global) {
         Ok(_) => panic!("expected `{input}` to fail parsing"),
         Err(Failure { primary, secondary }) => {
             let mut categories = vec![primary.category];
@@ -630,7 +631,7 @@ fn escaped_string_spans() {
     let source = r#""\u0061.bb""#;
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
     let expr = Parser::new(&heap, &mut spans)
-        .parse_expr(source)
+        .parse_expr_in(source, Global)
         .expect("field access parses")
         .value;
     let ExprKind::Field(field) = &expr.kind else {
@@ -644,7 +645,7 @@ fn escaped_string_spans() {
     let source = r#""\u0061\u002e\u0062\u0062""#;
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
     let expr = Parser::new(&heap, &mut spans)
-        .parse_expr(source)
+        .parse_expr_in(source, Global)
         .expect("field access parses")
         .value;
     let ExprKind::Field(field) = &expr.kind else {
@@ -657,7 +658,7 @@ fn escaped_string_spans() {
         r##"{"#struct": {"\u0061\ud800\udc00b": {"#literal": 1}}, "#type": "\u0049nt<T\u0055>"}"##;
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
     let expr = Parser::new(&heap, &mut spans)
-        .parse_expr(source)
+        .parse_expr_in(source, Global)
         .expect("typed struct parses")
         .value;
     let ExprKind::Struct(r#struct) = &expr.kind else {
@@ -684,7 +685,7 @@ fn escaped_string_spans() {
     let source = r#"["f", ":\u0061b"]"#;
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
     let expr = Parser::new(&heap, &mut spans)
-        .parse_expr(source)
+        .parse_expr_in(source, Global)
         .expect("shorthand labeled argument parses")
         .value;
     let ExprKind::Call(call) = &expr.kind else {
@@ -726,7 +727,7 @@ fn nesting_at_limit() {
 
         let heap = Heap::new();
         let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-        let result = Parser::new(&heap, &mut spans).parse_expr(&source);
+        let result = Parser::new(&heap, &mut spans).parse_expr_in(&source, Global);
         assert!(result.is_ok(), "`{open}` nested to the limit is rejected");
     }
 }
@@ -755,7 +756,7 @@ fn nesting_on_small_stack() {
                 let heap = Heap::new();
                 let mut spans = SpanTable::new(SourceId::new_unchecked(0));
                 let (status, pointers) =
-                    Parser::new(&heap, &mut spans).parse_expr_with_pointers(&source);
+                    Parser::new(&heap, &mut spans).parse_expr_with_pointers_in(&source, Global);
 
                 // Dropping the syntax tree and the AST recurses once per node in drop glue, which
                 // cannot grow the stack.
@@ -855,14 +856,14 @@ fn embedded_nesting_at_limit() {
 
         let heap = Heap::new();
         let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-        let result = Parser::new(&heap, &mut spans).parse_expr(&source);
+        let result = Parser::new(&heap, &mut spans).parse_expr_in(&source, Global);
         assert!(result.is_ok(), "`{open}` nested to the limit is rejected");
     }
 
     let source = format!(r#""a{}""#, ".b".repeat(usize::from(NESTING_LIMIT) - 1));
     let heap = Heap::new();
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let result = Parser::new(&heap, &mut spans).parse_expr(&source);
+    let result = Parser::new(&heap, &mut spans).parse_expr_in(&source, Global);
     assert!(
         result.is_ok(),
         "field accesses nested to the limit are rejected"
@@ -944,7 +945,7 @@ fn value_grammar_type_annotation() {
         const ALLOW_TYPE_ANNOTATIONS: bool = false;
         const ITEM_FIRST: SyntaxKindSet = SyntaxKindSet::from_kind(T!['{']);
 
-        fn parse_item(parser: &mut parser::Parser<'_, Self>) {
+        fn parse_item<A: Allocator>(parser: &mut parser::Parser<'_, Self, A>) {
             if parser.at(T!['{']) {
                 parser::object::parse_object(parser);
             } else {
@@ -953,12 +954,17 @@ fn value_grammar_type_annotation() {
         }
     }
 
-    let ok = parser::Parser::<ValueGrammar>::parse_cst(r##"{"#struct": {"x": {"#literal": 7}}}"##);
+    let ok = parser::Parser::<ValueGrammar, Global>::parse_cst_in(
+        r##"{"#struct": {"x": {"#literal": 7}}}"##,
+        Global,
+    );
     assert!(ok.is_valid(), "errors: {:?}", ok.errors());
     assert!(matches!(ok.tree().item(), Some(ValueNode::Struct(_))));
 
-    let rejected =
-        parser::Parser::<ValueGrammar>::parse_cst(r##"{"#struct": {}, "#type": "Point"}"##);
+    let rejected = parser::Parser::<ValueGrammar, Global>::parse_cst_in(
+        r##"{"#struct": {}, "#type": "Point"}"##,
+        Global,
+    );
     let [error] = rejected.errors() else {
         panic!("expected one error, got {:?}", rejected.errors());
     };
@@ -980,7 +986,7 @@ fn lossless_arbitrary_input(input: String) {
 
     let heap = Heap::new();
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let status = lower::lower_expr(&heap, &mut spans, &parse);
+    let status = lower::lower_expr_in(&heap, &mut spans, &parse, Global);
     if !parse.is_valid() {
         prop_assert!(status.is_err());
     }
@@ -996,7 +1002,7 @@ fn lossless_generated_tokens(
 
     let heap = Heap::new();
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
-    let status = lower::lower_expr(&heap, &mut spans, &parse);
+    let status = lower::lower_expr_in(&heap, &mut spans, &parse, Global);
     if !parse.is_valid() {
         prop_assert!(status.is_err());
     }

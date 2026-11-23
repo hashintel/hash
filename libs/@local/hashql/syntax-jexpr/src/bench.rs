@@ -1,3 +1,4 @@
+use alloc::alloc::Global;
 use core::hint::black_box;
 
 use crate::{
@@ -27,7 +28,7 @@ pub fn tokenize(source: &str) {
 ///
 /// Panics if the input contains a syntax error.
 pub fn parse_cst(source: &str) {
-    let parse = Parser::<ExprGrammar>::parse_cst(source);
+    let parse = Parser::<ExprGrammar, Global>::parse_cst_in(source, Global);
     assert!(
         parse.is_valid(),
         "benchmark input should parse without syntax errors"

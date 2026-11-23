@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::alloc::Allocator;
 
 use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{
@@ -9,7 +10,7 @@ use hashql_diagnostics::{
 };
 use winnow::error::ContextError;
 
-use crate::{embedded::error::convert_parse_error, span::Span};
+use crate::{embedded::error::convert_parse_error_in, span::Span};
 
 const LEADING_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "leading-comma",
@@ -281,12 +282,13 @@ pub(crate) fn labeled_arguments_length_mismatch(
 const LABELED_ARGUMENT_IDENTIFIER_NOTE: &str =
     "labeled argument names must be valid HashQL identifiers";
 
-pub(crate) fn labeled_argument_invalid_identifier(
+pub(crate) fn labeled_argument_invalid_identifier_in<A: Allocator>(
     spans: &mut SpanTable<Span>,
     label_span: SpanId,
     raw_quoted: &str,
     decoded: &str,
     parse_error: (usize, ContextError),
+    alloc: A,
 ) -> ArrayDiagnostic {
     if decoded == ":" {
         let mut diagnostic = Diagnostic::new(
@@ -304,7 +306,7 @@ pub(crate) fn labeled_argument_invalid_identifier(
         return diagnostic;
     }
 
-    let parts = convert_parse_error(
+    let parts = convert_parse_error_in(
         spans,
         label_span,
         raw_quoted,
@@ -312,6 +314,7 @@ pub(crate) fn labeled_argument_invalid_identifier(
         "labeled argument identifier",
         1,
         parse_error,
+        alloc,
     );
 
     let mut diagnostic = Diagnostic::new(

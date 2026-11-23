@@ -1,4 +1,4 @@
-use core::ops::ControlFlow;
+use core::{alloc::Allocator, ops::ControlFlow};
 
 use hashql_ast::node::{
     expr::{
@@ -19,7 +19,8 @@ use text_size::{TextRange, TextSize};
 use crate::{
     cst::{self, Node, Token as _},
     embedded::{
-        parse_expr_from_string, parse_ident_labelled_argument_from_string, parse_type_from_string,
+        parse_expr_from_string_in, parse_ident_labelled_argument_from_string_in,
+        parse_type_from_string_in,
     },
     error::{JExprDiagnosticCategory, array},
     parser::Document,
@@ -41,34 +42,25 @@ where
     }
 }
 
-pub(crate) struct Lowerer<'heap, 'spans> {
+pub(crate) struct Lowerer<'heap, 'spans, A: Allocator> {
     heap: &'heap Heap,
     spans: &'spans mut SpanTable<Span>,
     diagnostics: DiagnosticIssues<JExprDiagnosticCategory, SpanId, Severity>,
+    alloc: A,
 }
 
-impl<'heap, 'spans> Lowerer<'heap, 'spans> {
-    const fn new(heap: &'heap Heap, spans: &'spans mut SpanTable<Span>) -> Self {
+impl<'heap, 'spans, A: Allocator> Lowerer<'heap, 'spans, A> {
+    const fn new_in(heap: &'heap Heap, spans: &'spans mut SpanTable<Span>, alloc: A) -> Self {
         Self {
             heap,
             spans,
             diagnostics: DiagnosticIssues::new(),
+            alloc,
         }
     }
 
     pub(crate) const fn heap(&self) -> &'heap Heap {
         self.heap
-    }
-
-    pub(crate) const fn spans_mut(&mut self) -> &mut SpanTable<Span> {
-        self.spans
-    }
-
-    pub(crate) fn push_diagnostic(
-        &mut self,
-        diagnostic: Diagnostic<JExprDiagnosticCategory, SpanId, Severity>,
-    ) {
-        self.diagnostics.push(diagnostic);
     }
 
     pub(crate) fn insert_range(&mut self, range: TextRange) -> SpanId {
@@ -87,13 +79,14 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
 
         let key_range = field.key().map(cst::Token::text_range);
         let parent = self.insert_range(token.text_range());
-        match parse_type_from_string(
+        match parse_type_from_string_in(
             self.heap,
             self.spans,
             parent,
             key_range,
             token.text(),
             &decoded,
+            &self.alloc,
         ) {
             Ok(r#type) => Some(Box::new_in(r#type, self.heap)),
             Err(diagnostic) => {
@@ -164,7 +157,14 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
         };
 
         let parent = self.insert_range(token.text_range());
-        match parse_expr_from_string(self.heap, self.spans, parent, token.text(), &decoded) {
+        match parse_expr_from_string_in(
+            self.heap,
+            self.spans,
+            parent,
+            token.text(),
+            &decoded,
+            &self.alloc,
+        ) {
             Ok(expr) => Some(expr),
             Err(diagnostic) => {
                 self.diagnostics.push(
@@ -188,22 +188,24 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
         };
 
         let token_span = self.insert_range(token.text_range());
-        let key = match parse_ident_labelled_argument_from_string(
+        let key = match parse_ident_labelled_argument_from_string_in(
             self.heap,
             self.spans,
             token_span,
             token.text(),
             &decoded,
+            &self.alloc,
         ) {
             Ok(ident) => ident,
             Err(error) => {
                 let error = (error.offset(), error.into_inner());
-                let diagnostic = array::labeled_argument_invalid_identifier(
+                let diagnostic = array::labeled_argument_invalid_identifier_in(
                     self.spans,
                     token_span,
                     token.text(),
                     &decoded,
                     error,
+                    &self.alloc,
                 )
                 .map_category(JExprDiagnosticCategory::array)
                 .generalize();
@@ -255,22 +257,24 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
                 return None;
             }
             let key_span = self.insert_range(token.text_range());
-            match parse_ident_labelled_argument_from_string(
+            match parse_ident_labelled_argument_from_string_in(
                 self.heap,
                 self.spans,
                 key_span,
                 token.text(),
                 &decoded,
+                &self.alloc,
             ) {
                 Ok(ident) => Some(ident),
                 Err(error) => {
                     let error = (error.offset(), error.into_inner());
-                    let diagnostic = array::labeled_argument_invalid_identifier(
+                    let diagnostic = array::labeled_argument_invalid_identifier_in(
                         self.spans,
                         key_span,
                         token.text(),
                         &decoded,
                         error,
+                        &self.alloc,
                     )
                     .map_category(JExprDiagnosticCategory::array)
                     .generalize();
@@ -374,18 +378,19 @@ impl<'heap, 'spans> Lowerer<'heap, 'spans> {
     }
 }
 
-pub(crate) fn lower_expr<'heap>(
+pub(crate) fn lower_expr_in<'heap, A: Allocator>(
     heap: &'heap Heap,
     spans: &mut SpanTable<Span>,
-    parse: &Document<cst::ExprRoot>,
+    parse: &Document<cst::ExprRoot, A>,
+    alloc: A,
 ) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
-    let mut lowerer = Lowerer::new(heap, spans);
+    let mut lowerer = Lowerer::new_in(heap, spans, alloc);
 
     for error in parse.errors() {
         let diagnostic = error
             .to_diagnostic_in(lowerer.heap, lowerer.spans)
             .generalize();
-        lowerer.push_diagnostic(diagnostic);
+        lowerer.diagnostics.push(diagnostic);
     }
 
     let root = parse.tree();

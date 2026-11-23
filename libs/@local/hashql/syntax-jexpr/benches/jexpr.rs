@@ -4,6 +4,7 @@
 )]
 
 use core::hint::black_box;
+use std::alloc::Global;
 
 use codspeed_criterion_compat::{Criterion, Throughput, criterion_group, criterion_main};
 use hashql_core::{heap::Heap, span::SpanTable};
@@ -47,7 +48,7 @@ fn parse(criterion: &mut Criterion) {
             let mut spans = SpanTable::new(SourceId::new_unchecked(0));
             black_box(
                 Parser::new(&heap, &mut spans)
-                    .parse_expr(black_box(QUERY))
+                    .parse_expr_in(black_box(QUERY), Global)
                     .expect("benchmark query should parse"),
             );
         });

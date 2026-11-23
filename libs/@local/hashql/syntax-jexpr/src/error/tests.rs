@@ -1,3 +1,5 @@
+use alloc::alloc::Global;
+
 use hashql_core::{heap::Heap, span::SpanTable};
 use hashql_diagnostics::{
     diagnostic::render::{ColorDepth, Format, RenderOptions},
@@ -12,7 +14,7 @@ fn render_errors(input: &str) -> String {
     let mut parser = Parser::new(&heap, &mut spans);
 
     let failure = parser
-        .parse_expr(input)
+        .parse_expr_in(input, Global)
         .expect_err("expected input to produce at least one diagnostic");
 
     let mut sources = Sources::new();

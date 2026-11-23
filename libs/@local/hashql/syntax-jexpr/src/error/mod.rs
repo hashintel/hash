@@ -57,7 +57,6 @@ pub enum ParserDiagnosticCategory {
     Array(ArrayDiagnosticCategory),
     Object(ObjectDiagnosticCategory),
     ExpectedEof,
-    /// Container nested deeper than the parser descends.
     NestingLimit,
 }
 
@@ -330,19 +329,12 @@ pub(crate) struct StringErrorContext {
     pub control_byte: Option<u8>,
     pub high_surrogate: Option<TextRange>,
     pub invalid_unit: Option<u16>,
-    /// Delimiters the end of input left open around a string without a closing quote.
     pub unclosed: Vec<(DelimiterKind, TextRange)>,
 }
 
-/// Delimiters the end of input left open, and where their closing delimiters belong.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct UnclosedDelimiters {
     pub open: Vec<(DelimiterKind, TextRange)>,
-    /// Range the closing delimiters replace.
-    ///
-    /// The range is empty and at the end of the last token, which is before a trailing comment.
-    /// After a trailing comma it covers the comma instead, because a closing delimiter may not
-    /// follow one.
     pub close_at: TextRange,
 }
 
@@ -432,13 +424,8 @@ pub(crate) fn insert_ranges(
     ranges.iter().map(|&range| insert_range(spans, range))
 }
 
-/// Shortest text that [`suggest_similar`] compares with its candidates.
 const MIN_SIMILAR_LEN: usize = 3;
 
-/// Returns the candidates similar to `lookup`, most similar first, using [`did_you_mean`].
-///
-/// A `lookup` shorter than [`MIN_SIMILAR_LEN`] has no similar candidate. It is as far from
-/// every candidate as it is long, and a match would be chance.
 pub(crate) fn suggest_similar(
     lookup: &str,
     candidates: &[&'static str],

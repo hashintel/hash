@@ -1,3 +1,5 @@
+use core::alloc::Allocator;
+
 use hashql_ast::node::{
     generic::{GenericArgument, GenericConstraint, GenericParam, Generics},
     id::NodeId,
@@ -15,12 +17,12 @@ use super::{
     r#type::parse_type,
 };
 
-pub(crate) fn parse_generic_argument<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+pub(crate) fn parse_generic_argument<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<GenericArgument<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let (r#type, span) = parse_type
         .with_span()
@@ -34,12 +36,12 @@ where
     })
 }
 
-pub(crate) fn parse_generic_constraint<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+pub(crate) fn parse_generic_constraint<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<GenericConstraint<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let ((name, bound), span) = (parse_ident, preceded(ws(":"), parse_type))
         .with_span()
@@ -54,12 +56,12 @@ where
     })
 }
 
-fn parse_generic_param<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+fn parse_generic_param<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<GenericParam<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let ((name, bound), span) = (parse_ident, opt(preceded(ws(":"), parse_type)))
         .with_span()
@@ -79,12 +81,12 @@ where
     dead_code,
     reason = "This function will be used in the future for parsing closure signatures"
 )]
-pub(crate) fn parse_generics<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+pub(crate) fn parse_generics<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Generics<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let (params, span) = delimited(
         ws("<"),

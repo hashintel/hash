@@ -336,7 +336,6 @@ impl SyntaxError {
         &mut self.kind
     }
 
-    /// Moves the end of the reported range to `end`.
     pub(crate) const fn extend_to(&mut self, end: TextSize) {
         self.range = TextRange::new(self.range.start(), end);
     }

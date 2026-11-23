@@ -1,3 +1,5 @@
+use core::alloc::Allocator;
+
 use hashql_ast::node::{
     expr::{
         DictExpr, Expr, ExprKind, ListExpr, LiteralExpr, StructExpr, TupleExpr, dict::DictEntry,
@@ -11,12 +13,12 @@ use super::Lowerer;
 use crate::{
     JExprDiagnosticCategory,
     cst::{self, Node as _, Token as _},
-    embedded::parse_ident_from_string,
+    embedded::parse_ident_from_string_in,
     error::constructor,
 };
 
-fn lower_literal_value<'heap>(
-    lowerer: &mut Lowerer<'heap, '_>,
+fn lower_literal_value<'heap, A: Allocator>(
+    lowerer: &mut Lowerer<'heap, '_, A>,
     value: cst::LiteralValue<'_>,
 ) -> Option<LiteralExpr<'heap>> {
     let kind = match value.token()? {
@@ -48,8 +50,8 @@ fn lower_literal_value<'heap>(
     })
 }
 
-pub(crate) fn lower_literal<'heap>(
-    lowerer: &mut Lowerer<'heap, '_>,
+pub(crate) fn lower_literal<'heap, A: Allocator>(
+    lowerer: &mut Lowerer<'heap, '_, A>,
     node: cst::Literal<'_>,
 ) -> Option<Expr<'heap>> {
     let (mut literal, r#type) =
@@ -67,8 +69,8 @@ pub(crate) fn lower_literal<'heap>(
     })
 }
 
-fn lower_struct_body<'heap>(
-    lowerer: &mut Lowerer<'heap, '_>,
+fn lower_struct_body<'heap, A: Allocator>(
+    lowerer: &mut Lowerer<'heap, '_, A>,
     body: cst::StructBody<'_, cst::Expr<'_>>,
 ) -> Option<StructExpr<'heap>> {
     let heap = lowerer.heap();
@@ -81,27 +83,29 @@ fn lower_struct_body<'heap>(
                 return None;
             };
             let key_span = lowerer.insert_range(token.text_range());
-            match parse_ident_from_string(
+            match parse_ident_from_string_in(
                 heap,
-                lowerer.spans_mut(),
+                &mut *lowerer.spans,
                 key_span,
                 token.text(),
                 &decoded,
+                &lowerer.alloc,
             ) {
                 Ok(ident) => Some(ident),
                 Err(error) => {
                     let error = (error.offset(), error.into_inner());
-                    let diagnostic = constructor::struct_key_expected_identifier(
-                        lowerer.spans_mut(),
+                    let diagnostic = constructor::struct_key_expected_identifier_in(
+                        &mut *lowerer.spans,
                         key_span,
                         token.text(),
                         &decoded,
                         error,
+                        &lowerer.alloc,
                     )
                     .map_category(JExprDiagnosticCategory::object)
                     .generalize();
 
-                    lowerer.push_diagnostic(diagnostic);
+                    lowerer.diagnostics.push(diagnostic);
                     None
                 }
             }
@@ -135,8 +139,8 @@ fn lower_struct_body<'heap>(
     })
 }
 
-pub(crate) fn lower_struct<'heap>(
-    lowerer: &mut Lowerer<'heap, '_>,
+pub(crate) fn lower_struct<'heap, A: Allocator>(
+    lowerer: &mut Lowerer<'heap, '_, A>,
     node: cst::Struct<'_, cst::Expr<'_>>,
 ) -> Option<Expr<'heap>> {
     let (mut struct_expr, r#type) =
@@ -154,8 +158,8 @@ pub(crate) fn lower_struct<'heap>(
     })
 }
 
-fn lower_tuple_body<'heap>(
-    lowerer: &mut Lowerer<'heap, '_>,
+fn lower_tuple_body<'heap, A: Allocator>(
+    lowerer: &mut Lowerer<'heap, '_, A>,
     body: cst::TupleBody<'_, cst::Expr<'_>>,
 ) -> Option<TupleExpr<'heap>> {
     let mut elements = Vec::new_in(lowerer.heap());
@@ -186,8 +190,8 @@ fn lower_tuple_body<'heap>(
     })
 }
 
-pub(crate) fn lower_tuple<'heap>(
-    lowerer: &mut Lowerer<'heap, '_>,
+pub(crate) fn lower_tuple<'heap, A: Allocator>(
+    lowerer: &mut Lowerer<'heap, '_, A>,
     node: cst::Tuple<'_, cst::Expr<'_>>,
 ) -> Option<Expr<'heap>> {
     let (mut tuple_expr, r#type) =
@@ -205,8 +209,8 @@ pub(crate) fn lower_tuple<'heap>(
     })
 }
 
-fn lower_list_body<'heap>(
-    lowerer: &mut Lowerer<'heap, '_>,
+fn lower_list_body<'heap, A: Allocator>(
+    lowerer: &mut Lowerer<'heap, '_, A>,
     body: cst::ListBody<'_, cst::Expr<'_>>,
 ) -> Option<ListExpr<'heap>> {
     let heap = lowerer.heap();
@@ -238,8 +242,8 @@ fn lower_list_body<'heap>(
     })
 }
 
-pub(crate) fn lower_list<'heap>(
-    lowerer: &mut Lowerer<'heap, '_>,
+pub(crate) fn lower_list<'heap, A: Allocator>(
+    lowerer: &mut Lowerer<'heap, '_, A>,
     node: cst::List<'_, cst::Expr<'_>>,
 ) -> Option<Expr<'heap>> {
     let (mut list_expr, r#type) =
@@ -257,8 +261,8 @@ pub(crate) fn lower_list<'heap>(
     })
 }
 
-fn lower_dict_object_body<'heap>(
-    lowerer: &mut Lowerer<'heap, '_>,
+fn lower_dict_object_body<'heap, A: Allocator>(
+    lowerer: &mut Lowerer<'heap, '_, A>,
     body: cst::DictObjectBody<'_, cst::Expr<'_>>,
 ) -> Option<DictExpr<'heap>> {
     let heap = lowerer.heap();
@@ -311,8 +315,8 @@ fn lower_dict_object_body<'heap>(
     })
 }
 
-fn lower_dict_array_body<'heap>(
-    lowerer: &mut Lowerer<'heap, '_>,
+fn lower_dict_array_body<'heap, A: Allocator>(
+    lowerer: &mut Lowerer<'heap, '_, A>,
     body: cst::DictArrayBody<'_, cst::Expr<'_>>,
 ) -> Option<DictExpr<'heap>> {
     let heap = lowerer.heap();
@@ -362,8 +366,8 @@ fn lower_dict_array_body<'heap>(
     })
 }
 
-fn lower_dict_body<'heap>(
-    lowerer: &mut Lowerer<'heap, '_>,
+fn lower_dict_body<'heap, A: Allocator>(
+    lowerer: &mut Lowerer<'heap, '_, A>,
     body: cst::DictBody<'_, cst::Expr<'_>>,
 ) -> Option<DictExpr<'heap>> {
     match body {
@@ -372,8 +376,8 @@ fn lower_dict_body<'heap>(
     }
 }
 
-pub(crate) fn lower_dict<'heap>(
-    lowerer: &mut Lowerer<'heap, '_>,
+pub(crate) fn lower_dict<'heap, A: Allocator>(
+    lowerer: &mut Lowerer<'heap, '_, A>,
     node: cst::Dict<'_, cst::Expr<'_>>,
 ) -> Option<Expr<'heap>> {
     let (mut dict_expr, r#type) =

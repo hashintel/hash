@@ -182,6 +182,7 @@ fn lex_number<'source>(
     match Number::parse(slice) {
         Ok(number) => {
             let len = number.as_str().len();
+
             // A word directly after the number, as in `0x10`, is part of the same malformed
             // token.
             let suffix = slice[len..]

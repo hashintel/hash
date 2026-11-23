@@ -1,4 +1,4 @@
-use core::num::ParseIntError;
+use core::{alloc::Allocator, num::ParseIntError};
 
 use hashql_ast::node::{
     expr::{Expr, ExprKind, FieldExpr, IndexExpr, LiteralExpr},
@@ -32,13 +32,13 @@ enum Access<'heap> {
 }
 
 // super limited set of expressions that are supported in strings for convenience
-fn parse_field_access<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+fn parse_field_access<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Access<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + FromExternalError<Input<'heap, 'span, 'source, A>, ParseIntError>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let _: &'source str = ws(".").parse_next(input)?;
 
@@ -47,7 +47,7 @@ where
             let (digit, range) = digit1
                 .with_span()
                 .try_map(|(digits, range): (&str, _)| {
-                    // Ensure the value is within bounds
+                    // Ensure the value is within bounds.
                     digits.parse::<usize>().map(|_| (digits, range))
                 })
                 .parse_next(input)?;
@@ -64,13 +64,13 @@ where
     }
 }
 
-fn parse_index_access<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+fn parse_index_access<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Access<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + FromExternalError<Input<'heap, 'span, 'source, A>, ParseIntError>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let _: &'source str = ws("[").parse_next(input)?;
 
@@ -100,13 +100,13 @@ where
     Ok(access)
 }
 
-pub(crate) fn parse_expr_path<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+pub(crate) fn parse_expr_path<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Expr<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + FromExternalError<Input<'heap, 'span, 'source, A>, ParseIntError>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let ((path, path_span), access): (_, Vec<_>) = (
         parse_path.with_span(),
@@ -187,13 +187,13 @@ where
 }
 
 // super limited set of expressions that are supported in strings for convenience
-pub(crate) fn parse_expr<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+pub(crate) fn parse_expr<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Expr<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + FromExternalError<Input<'heap, 'span, 'source, A>, ParseIntError>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let alt = alt((
         terminated('_', ws(eof)).span().map(Alt2::Left),

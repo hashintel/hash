@@ -1,4 +1,4 @@
-use core::ops::ControlFlow;
+use core::{alloc::Allocator, ops::ControlFlow};
 
 use text_size::TextRange;
 
@@ -16,8 +16,19 @@ use crate::{
 
 pub(crate) struct ExprGrammar;
 
-fn parse_labeled_arg_after_open(
-    parser: &mut Parser<'_, ExprGrammar>,
+impl Grammar for ExprGrammar {
+    type Root = cst::ExprRoot;
+
+    const ALLOW_TYPE_ANNOTATIONS: bool = true;
+    const ITEM_FIRST: SyntaxKindSet = SyntaxKindSet::from_slice(&[T![string], T!['['], T!['{']]);
+
+    fn parse_item<A: Allocator>(parser: &mut Parser<'_, Self, A>) {
+        parse_expr(parser);
+    }
+}
+
+fn parse_labeled_arg_after_open<A: Allocator>(
+    parser: &mut Parser<'_, ExprGrammar, A>,
     OpenObject {
         checkpoint,
         open,
@@ -30,7 +41,7 @@ fn parse_labeled_arg_after_open(
     let mut index = 0_usize;
 
     while let ControlFlow::Continue(Item { separator }) =
-        recovery::next_object_entry(parser, open, index)
+        recovery::next_object_entry_in(parser, open, index)
     {
         if let Some(comma) = separator {
             commas.push(comma);
@@ -107,7 +118,7 @@ fn parse_labeled_arg_after_open(
     parser.finish_node();
 }
 
-fn parse_call_arg(parser: &mut Parser<'_, ExprGrammar>) {
+fn parse_call_arg<A: Allocator>(parser: &mut Parser<'_, ExprGrammar, A>) {
     let Some(first) = parser.current() else {
         return;
     };
@@ -144,14 +155,14 @@ fn parse_call_arg(parser: &mut Parser<'_, ExprGrammar>) {
     parser.finish_node();
 }
 
-fn parse_call(parser: &mut Parser<'_, ExprGrammar>) {
+fn parse_call<A: Allocator>(parser: &mut Parser<'_, ExprGrammar, A>) {
     parser.start_node(SyntaxKind::CallExpr);
     let open = parser.bump(T!['[']).range;
     let error_start = parser.error_count();
 
     let mut count = 0_usize;
     while let ControlFlow::Continue(_) =
-        recovery::next_array_element(parser, open, count, ExprGrammar::ITEM_FIRST)
+        recovery::next_array_element_in(parser, open, count, ExprGrammar::ITEM_FIRST)
     {
         if count == 0 {
             parser.nested(parse_expr);
@@ -170,7 +181,7 @@ fn parse_call(parser: &mut Parser<'_, ExprGrammar>) {
     parser.finish_node();
 }
 
-pub(crate) fn parse_expr(parser: &mut Parser<'_, ExprGrammar>) {
+pub(crate) fn parse_expr<A: Allocator>(parser: &mut Parser<'_, ExprGrammar, A>) {
     let Some(token) = parser.current() else {
         parser.record_eof(ExprGrammar::ITEM_FIRST, EofContext::Document);
         return;
@@ -186,16 +197,5 @@ pub(crate) fn parse_expr(parser: &mut Parser<'_, ExprGrammar>) {
         object::parse_object(parser);
     } else {
         recovery::recover_unexpected_item(parser);
-    }
-}
-
-impl Grammar for ExprGrammar {
-    type Root = cst::ExprRoot;
-
-    const ALLOW_TYPE_ANNOTATIONS: bool = true;
-    const ITEM_FIRST: SyntaxKindSet = SyntaxKindSet::from_slice(&[T![string], T!['['], T!['{']]);
-
-    fn parse_item(parser: &mut Parser<'_, Self>) {
-        parse_expr(parser);
     }
 }

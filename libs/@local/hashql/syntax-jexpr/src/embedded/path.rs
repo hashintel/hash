@@ -1,3 +1,5 @@
+use core::alloc::Allocator;
+
 use hashql_ast::node::{
     id::NodeId,
     path::{Path, PathSegment, PathSegmentArgument},
@@ -15,12 +17,12 @@ use super::{
     ident::parse_ident,
 };
 
-fn parse_path_segment<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+fn parse_path_segment<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<PathSegment<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let arguments = opt(delimited(
         ws("<"),
@@ -45,12 +47,12 @@ where
     })
 }
 
-pub(crate) fn parse_path<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+pub(crate) fn parse_path<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Path<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let root = opt(ws("::")).map(|value| value.is_some());
     let segments = separated_alloc1(input.state.heap, parse_path_segment, ws("::"));

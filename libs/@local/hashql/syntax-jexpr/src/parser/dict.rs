@@ -1,4 +1,4 @@
-use core::ops::ControlFlow;
+use core::{alloc::Allocator, ops::ControlFlow};
 
 use text_size::TextRange;
 
@@ -9,12 +9,15 @@ use crate::{
     syntax_kind_set::SyntaxKindSet,
 };
 
-pub(crate) fn parse_dict_object_body<G: Grammar>(parser: &mut Parser<'_, G>) {
+pub(crate) fn parse_dict_object_body<G, A: Allocator>(parser: &mut Parser<'_, G, A>)
+where
+    G: Grammar,
+{
     parser.start_node(SyntaxKind::DictObjectBody);
     let open = parser.bump(T!['{']).range;
 
     let mut index = 0_usize;
-    while let ControlFlow::Continue(_) = recovery::next_object_entry(parser, open, index) {
+    while let ControlFlow::Continue(_) = recovery::next_object_entry_in(parser, open, index) {
         index += 1;
 
         parser.start_node(SyntaxKind::DictObjectEntry);
@@ -28,7 +31,10 @@ pub(crate) fn parse_dict_object_body<G: Grammar>(parser: &mut Parser<'_, G>) {
     parser.finish_node();
 }
 
-fn parse_dict_array_entry<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: TextRange) {
+fn parse_dict_array_entry<G, A: Allocator>(parser: &mut Parser<'_, G, A>, dict_key: TextRange)
+where
+    G: Grammar,
+{
     let skipped_invalid = parser.skip_invalid_tokens();
 
     let Some(token) = parser.current() else {
@@ -64,7 +70,7 @@ fn parse_dict_array_entry<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: Text
     let mut excess = Vec::new();
 
     while let ControlFlow::Continue(_) =
-        recovery::next_array_element(parser, open, count, G::ITEM_FIRST)
+        recovery::next_array_element_in(parser, open, count, G::ITEM_FIRST)
     {
         let item_start = parser.current().map(|token| token.range.start());
         parser.nested(G::parse_item);
@@ -103,13 +109,18 @@ fn parse_dict_array_entry<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: Text
 }
 
 // Parses the array variant of `{"#dict": [ ... ]}`, that means the `[...]` part.
-pub(crate) fn parse_dict_array_body<G: Grammar>(parser: &mut Parser<'_, G>, dict_key: TextRange) {
+pub(crate) fn parse_dict_array_body<G, A: Allocator>(
+    parser: &mut Parser<'_, G, A>,
+    dict_key: TextRange,
+) where
+    G: Grammar,
+{
     parser.start_node(SyntaxKind::DictArrayBody);
     let open = parser.bump(T!['[']).range;
 
     let mut index = 0_usize;
     while let ControlFlow::Continue(_) =
-        recovery::next_array_element(parser, open, index, SyntaxKindSet::from_kind(T!['[']))
+        recovery::next_array_element_in(parser, open, index, SyntaxKindSet::from_kind(T!['[']))
     {
         index += 1;
         parse_dict_array_entry(parser, dict_key);

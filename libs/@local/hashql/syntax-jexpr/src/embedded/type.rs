@@ -1,4 +1,4 @@
-use core::{iter, ops::Range};
+use core::{alloc::Allocator, iter, ops::Range};
 
 use hashql_ast::node::{
     id::NodeId,
@@ -25,11 +25,11 @@ use super::{
     path::parse_path,
 };
 
-fn parse_type_infer<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+fn parse_type_infer<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>,
 {
     let (_, span) = "_".with_span().parse_next(input)?;
 
@@ -40,12 +40,12 @@ where
     })
 }
 
-fn parse_type_tuple_field<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+fn parse_type_tuple_field<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<TupleField<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let (r#type, span) = parse_type.with_span().parse_next(input)?;
 
@@ -56,12 +56,12 @@ where
     })
 }
 
-fn parse_type_struct_field<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+fn parse_type_struct_field<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<StructField<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let ((name, r#type), span) = separated_pair(
         parse_ident,
@@ -79,14 +79,14 @@ where
     })
 }
 
-fn parse_type_paren_empty_tuple<'heap, 'span, 'source, E>(
+fn parse_type_paren_empty_tuple<'heap, 'span, 'source, E, A: Allocator>(
     start_span: Range<usize>,
-) -> impl ModalParser<Input<'heap, 'span, 'source>, Type<'heap>, E>
+) -> impl ModalParser<Input<'heap, 'span, 'source, A>, Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
-    move |input: &mut Input<'heap, 'span, 'source>| {
+    move |input: &mut Input<'heap, 'span, 'source, A>| {
         let span = cut_err(')')
             .span()
             .context(StrContext::Expected(StrContextValue::CharLiteral(')')))
@@ -109,14 +109,14 @@ where
     }
 }
 
-fn parse_type_paren_empty_struct<'heap, 'span, 'source, E>(
+fn parse_type_paren_empty_struct<'heap, 'span, 'source, E, A: Allocator>(
     start_span: Range<usize>,
-) -> impl ModalParser<Input<'heap, 'span, 'source>, Type<'heap>, E>
+) -> impl ModalParser<Input<'heap, 'span, 'source, A>, Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
-    move |input: &mut Input<'heap, 'span, 'source>| {
+    move |input: &mut Input<'heap, 'span, 'source, A>| {
         let span = cut_err(":)")
             .span()
             .context(StrContext::Expected(StrContextValue::StringLiteral(":)")))
@@ -139,17 +139,17 @@ where
     }
 }
 
-fn parse_type_paren_struct<'heap, 'span, 'source, E>(
+fn parse_type_paren_struct<'heap, 'span, 'source, E, A: Allocator>(
     ident: Ident<'heap>,
     partial_field_span: Range<usize>,
 
     start_span: Range<usize>,
-) -> impl ModalParser<Input<'heap, 'span, 'source>, Type<'heap>, E>
+) -> impl ModalParser<Input<'heap, 'span, 'source, A>, Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
-    move |input: &mut Input<'heap, 'span, 'source>| {
+    move |input: &mut Input<'heap, 'span, 'source, A>| {
         let (field_type, field_range) = parse_type.with_span().parse_next(input)?;
 
         let field_span = input.state.span(Range {
@@ -193,18 +193,18 @@ where
     }
 }
 
-fn parse_type_paren_tuple<'heap, 'span, 'source, E>(
+fn parse_type_paren_tuple<'heap, 'span, 'source, E, A: Allocator>(
     first: Type<'heap>,
 
     start_span: Range<usize>,
-) -> impl ModalParser<Input<'heap, 'span, 'source>, Type<'heap>, E>
+) -> impl ModalParser<Input<'heap, 'span, 'source, A>, Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let mut first = Some(first);
 
-    move |input: &mut Input<'heap, 'span, 'source>| {
+    move |input: &mut Input<'heap, 'span, 'source, A>| {
         // The parser reads each field once. Reading the last field, failing on the comma after it
         // and reading it again would double the work at every level of nesting.
         let ((_, rest), mut span): ((_, Option<Vec<_>>), _) = terminated(
@@ -245,12 +245,12 @@ where
     }
 }
 
-fn parse_type_paren<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+fn parse_type_paren<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     enum ParseDecision<'heap> {
         Struct(Ident<'heap>, Range<usize>),
@@ -317,12 +317,12 @@ where
     }
 }
 
-fn parse_type_atom<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+fn parse_type_atom<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let mut path = parse_path.map(|path| Type {
         id: NodeId::PLACEHOLDER,
@@ -338,12 +338,12 @@ where
     .parse_next(input)
 }
 
-fn parse_type_union<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+fn parse_type_union<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let (mut parsed, span): (Vec<_>, _) = separated(1.., parse_type_atom, ws("|"))
         .with_span()
@@ -369,12 +369,12 @@ where
     })
 }
 
-fn parse_type_intersection<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+fn parse_type_intersection<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let (mut parsed, span): (Vec<_>, _) = separated(1.., parse_type_union, ws("&"))
         .with_span()
@@ -410,12 +410,12 @@ where
 /// intersection = union *("&" union)
 /// type = intersection
 /// ```
-pub(crate) fn parse_type<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+pub(crate) fn parse_type<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     nested(ws(parse_type_intersection))
         .context(StrContext::Label("type"))

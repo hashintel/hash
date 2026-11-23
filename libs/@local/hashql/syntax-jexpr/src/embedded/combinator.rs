@@ -1,3 +1,5 @@
+use core::alloc::Allocator;
+
 use hashql_core::heap::{self, Heap};
 use winnow::{
     ModalParser, Parser,
@@ -134,12 +136,12 @@ where
 pub(crate) const NESTING_LIMIT_LABEL: &str = "nesting limit";
 
 /// Fails without backtracking, labeled as [`NESTING_LIMIT_LABEL`].
-pub(crate) fn nesting_limit<'heap, 'span, 'source, Output, Error>(
-    input: &mut Input<'heap, 'span, 'source>,
+pub(crate) fn nesting_limit<'heap, 'span, 'source, Output, Error, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> winnow::ModalResult<Output, Error>
 where
-    Error: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    Error: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     cut_err(fail)
         .context(StrContext::Label(NESTING_LIMIT_LABEL))
@@ -147,14 +149,14 @@ where
 }
 
 /// Runs `parser` one nesting level down, failing once [`NESTING_LIMIT`] levels are open.
-pub(crate) fn nested<'heap, 'span, 'source, Output, Error>(
-    mut parser: impl ModalParser<Input<'heap, 'span, 'source>, Output, Error>,
-) -> impl ModalParser<Input<'heap, 'span, 'source>, Output, Error>
+pub(crate) fn nested<'heap, 'span, 'source, Output, Error, A: Allocator>(
+    mut parser: impl ModalParser<Input<'heap, 'span, 'source, A>, Output, Error>,
+) -> impl ModalParser<Input<'heap, 'span, 'source, A>, Output, Error>
 where
-    Error: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    Error: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
-    move |input: &mut Input<'heap, 'span, 'source>| {
+    move |input: &mut Input<'heap, 'span, 'source, A>| {
         if input.state.depth >= NESTING_LIMIT {
             return nesting_limit(input);
         }

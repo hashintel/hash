@@ -1,3 +1,5 @@
+use core::alloc::Allocator;
+
 use hashql_core::{
     heap::Heap,
     symbol::{Ident, IdentKind, Symbol},
@@ -23,12 +25,12 @@ fn intern<'heap>(heap: &'heap Heap, value: &str) -> Symbol<'heap> {
     }
 }
 
-fn parse_ident_lexical<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+fn parse_ident_lexical<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Ident<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let used = (
         one_of(unicode_ident::is_xid_start),
@@ -62,12 +64,12 @@ fn is_symbol(char: char) -> bool {
     }
 }
 
-fn parse_ident_symbol<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+fn parse_ident_symbol<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Ident<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let bare = || take_while(1.., is_symbol);
     let escaped = delimited(
@@ -118,17 +120,17 @@ fn is_url_char(char: char) -> bool {
         .is_some_and(|char| ALLOWED_URL_CHARS[char as usize])
 }
 
-fn parse_ident_url<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+fn parse_ident_url<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Ident<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     let url = (one_of(is_url_char), cut_err(take_while(1.., is_url_char)))
         .take()
         .verify(|value: &str| {
-            // check if the value is an actual URL, we have only parsed what *looks* like a URL
+            // check if the value is an actual URL, we have only parsed what *looks* like a URL.
             let Ok(url) = Url::parse(value) else {
                 return false;
             };
@@ -157,12 +159,12 @@ where
     })
 }
 
-pub(crate) fn parse_ident<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+pub(crate) fn parse_ident<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Ident<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     dispatch! {peek(any);
         '`' => cut_err(alt((parse_ident_symbol, parse_ident_url))),
@@ -174,12 +176,12 @@ where
     .parse_next(input)
 }
 
-pub(crate) fn parse_ident_labelled_argument<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
+pub(crate) fn parse_ident_labelled_argument<'heap, 'span, 'source, E, A: Allocator>(
+    input: &mut Input<'heap, 'span, 'source, A>,
 ) -> ModalResult<Ident<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+    E: ParserError<Input<'heap, 'span, 'source, A>>
+        + AddContext<Input<'heap, 'span, 'source, A>, StrContext>,
 {
     preceded(
         cut_err(':').context(StrContext::Expected(StrContextValue::CharLiteral(':'))),

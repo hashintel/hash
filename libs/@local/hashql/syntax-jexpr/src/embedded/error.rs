@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::fmt::Write as _;
+use core::{alloc::Allocator, fmt::Write as _};
 
 use hashql_core::span::{SpanAncestors, SpanId, SpanTable};
 use hashql_diagnostics::{
@@ -57,12 +57,17 @@ pub(crate) type StringDiagnostic<K = Critical> = Diagnostic<StringDiagnosticCate
     clippy::string_slice,
     reason = "a parser error offset is a char boundary of `decoded`"
 )]
-pub(crate) fn raw_error_range(raw_quoted: &str, decoded: &str, decoded_offset: usize) -> TextRange {
+pub(crate) fn raw_error_range_in<A: Allocator>(
+    raw_quoted: &str,
+    decoded: &str,
+    decoded_offset: usize,
+    alloc: A,
+) -> TextRange {
     if decoded.is_empty() {
         return TextRange::up_to(TextSize::of(raw_quoted));
     }
 
-    let offsets = RawOffsets::new(raw_quoted);
+    let offsets = RawOffsets::new_in(raw_quoted, &alloc);
     let offset = decoded_offset.min(decoded.len());
     let character = decoded[offset..].chars().next().map_or(0, char::len_utf8);
 
@@ -108,7 +113,7 @@ fn format_char_for_label(character: char) -> String {
     clippy::string_slice,
     reason = "winnow error offset always falls on a UTF-8 boundary of `decoded`"
 )]
-pub(crate) fn convert_parse_error(
+pub(crate) fn convert_parse_error_in<A: Allocator>(
     spans: &mut SpanTable<Span>,
     parent: SpanId,
     raw_quoted: &str,
@@ -116,6 +121,7 @@ pub(crate) fn convert_parse_error(
     kind_name: &str,
     start_offset: usize,
     (offset, error): (usize, ContextError),
+    alloc: A,
 ) -> EmbeddedErrorParts {
     let nesting_limit = error
         .context()
@@ -126,7 +132,7 @@ pub(crate) fn convert_parse_error(
     let span = if nesting_limit {
         parent
     } else {
-        let range = raw_error_range(raw_quoted, decoded, offset);
+        let range = raw_error_range_in(raw_quoted, decoded, offset, alloc);
         spans.insert(Span::new(range), SpanAncestors::union(&[parent]))
     };
 
@@ -196,12 +202,13 @@ const TYPE_SYNTAX_NOTE: &str = "types support paths (`Int`, `List<T>`), tuples (
                                 structs (`(a: A)`), unions (`A | B`), intersections (`A & B`), \
                                 and `_`";
 
-pub(crate) fn invalid_expr(
+pub(crate) fn invalid_expr_in<A: Allocator>(
     spans: &mut SpanTable<Span>,
     parent: SpanId,
     raw_quoted: &str,
     decoded: &str,
     error: (usize, ContextError),
+    alloc: A,
 ) -> StringDiagnostic {
     if decoded.is_empty() {
         let mut diagnostic =
@@ -214,7 +221,16 @@ pub(crate) fn invalid_expr(
         return diagnostic;
     }
 
-    let parts = convert_parse_error(spans, parent, raw_quoted, decoded, "expression", 0, error);
+    let parts = convert_parse_error_in(
+        spans,
+        parent,
+        raw_quoted,
+        decoded,
+        "expression",
+        0,
+        error,
+        alloc,
+    );
 
     let mut diagnostic =
         Diagnostic::new(StringDiagnosticCategory::InvalidExpression, Critical::ERROR)
@@ -231,13 +247,14 @@ pub(crate) fn invalid_expr(
     diagnostic
 }
 
-pub(crate) fn invalid_type(
+pub(crate) fn invalid_type_in<A: Allocator>(
     spans: &mut SpanTable<Span>,
     parent: SpanId,
     key_span: Option<SpanId>,
     raw_quoted: &str,
     decoded: &str,
     error: (usize, ContextError),
+    alloc: A,
 ) -> StringDiagnostic {
     if decoded.is_empty() {
         let mut diagnostic =
@@ -253,7 +270,7 @@ pub(crate) fn invalid_type(
         return diagnostic;
     }
 
-    let parts = convert_parse_error(spans, parent, raw_quoted, decoded, "type", 0, error);
+    let parts = convert_parse_error_in(spans, parent, raw_quoted, decoded, "type", 0, error, alloc);
 
     let mut diagnostic = Diagnostic::new(StringDiagnosticCategory::InvalidType, Critical::ERROR)
         .primary(Label::new(parts.span, parts.label));

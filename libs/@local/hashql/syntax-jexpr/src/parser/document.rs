@@ -1,18 +1,18 @@
-use core::{fmt, marker::PhantomData};
+use core::{alloc::Allocator, fmt, marker::PhantomData};
 
 use rowan::GreenNode;
 
 use crate::{cst, error::SyntaxError, syntax_kind::SyntaxKind};
 
 /// Lossless Rowan parse tree whose root marker `R` selects the item from [`Document::tree`].
-pub(crate) struct Document<R> {
+pub(crate) struct Document<R, A: Allocator> {
     tree: GreenNode,
-    errors: Vec<SyntaxError>,
+    errors: Vec<SyntaxError, A>,
     _root: PhantomData<fn() -> R>,
 }
 
-impl<R> Document<R> {
-    pub(crate) fn new(tree: GreenNode, errors: Vec<SyntaxError>) -> Self {
+impl<R, A: Allocator> Document<R, A> {
+    pub(crate) fn new(tree: GreenNode, errors: Vec<SyntaxError, A>) -> Self {
         debug_assert_eq!(SyntaxKind::from_raw(tree.kind()), SyntaxKind::Root);
 
         Self {
@@ -45,7 +45,7 @@ impl<R> Document<R> {
     }
 }
 
-impl<R> Document<R>
+impl<R, A: Allocator> Document<R, A>
 where
     R: cst::TreeRoot,
 {
@@ -56,7 +56,7 @@ where
     }
 }
 
-impl<R> fmt::Debug for Document<R> {
+impl<R, A: Allocator> fmt::Debug for Document<R, A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Document")
             .field("tree", &self.tree)

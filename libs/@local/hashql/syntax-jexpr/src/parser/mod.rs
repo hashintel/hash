@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use core::{alloc::Allocator, marker::PhantomData};
 
 use rowan::{Checkpoint, GreenNodeBuilder};
 use text_size::{TextRange, TextSize};
@@ -80,7 +80,7 @@ pub(crate) trait Grammar {
     /// current token is `,`, `]` or `}` or the input has ended, because the loop over the
     /// elements does not end otherwise. A token that starts no item goes to
     /// [`recovery::recover_unexpected_item`], which reports and consumes it.
-    fn parse_item(parser: &mut Parser<'_, Self>)
+    fn parse_item<A: Allocator>(parser: &mut Parser<'_, Self, A>)
     where
         Self: Sized;
 }
@@ -92,28 +92,32 @@ pub(crate) trait Grammar {
 pub(crate) const NESTING_LIMIT: u16 = 256;
 
 /// Recursive descent parser from J-Expr source to a lossless [`Document`] of grammar `G`.
-pub(crate) struct Parser<'source, G> {
+pub(crate) struct Parser<'source, G, A: Allocator> {
     lexer: Lexer<'source>,
     builder: GreenNodeBuilder<'static>,
-    errors: Vec<SyntaxError>,
+    errors: Vec<SyntaxError, A>,
     last_token_end: TextSize,
     depth: u16,
     _grammar: PhantomData<G>,
 }
 
-impl<'source, G: Grammar> Parser<'source, G> {
-    pub(crate) fn new(source: &'source str) -> Self {
+impl<'source, G: Grammar, A: Allocator> Parser<'source, G, A> {
+    pub(crate) fn new_in(source: &'source str, alloc: A) -> Self {
         Self {
             lexer: Lexer::new(source),
             builder: GreenNodeBuilder::new(),
-            errors: Vec::new(),
+            errors: Vec::new_in(alloc),
             last_token_end: TextSize::new(0),
             depth: 0,
             _grammar: PhantomData,
         }
     }
 
-    pub(crate) fn finish(self) -> Document<G::Root> {
+    pub(crate) fn allocator(&self) -> &A {
+        self.errors.allocator()
+    }
+
+    pub(crate) fn finish(self) -> Document<G::Root, A> {
         Document::new(self.builder.finish(), self.errors)
     }
 
@@ -577,8 +581,8 @@ impl<'source, G: Grammar> Parser<'source, G> {
     ///
     /// Panics if `source.len()` exceeds `u32::MAX` bytes.
     #[must_use]
-    pub(crate) fn parse_cst(source: &'source str) -> Document<G::Root> {
-        let mut parser = Self::new(source);
+    pub(crate) fn parse_cst_in(source: &'source str, alloc: A) -> Document<G::Root, A> {
+        let mut parser = Self::new_in(source, alloc);
         parser.parse_root();
         parser.finish()
     }
