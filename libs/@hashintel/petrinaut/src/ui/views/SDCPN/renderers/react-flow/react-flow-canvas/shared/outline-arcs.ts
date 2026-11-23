@@ -113,6 +113,18 @@ export const getOutlineAttachment = (
   };
 };
 
+/** Whether two ends are one object, or two points with the same normal. */
+export const sameEnd = (left: ArcEnd | null, right: ArcEnd | null): boolean =>
+  left === right ||
+  (left !== null &&
+    right !== null &&
+    "point" in left &&
+    "point" in right &&
+    left.point.x === right.point.x &&
+    left.point.y === right.point.y &&
+    left.normal.x === right.normal.x &&
+    left.normal.y === right.normal.y);
+
 const attach = (endpoint: ArcEnd, direction: CanvasPoint): FixedEndpoint =>
   "position" in endpoint ? getOutlineAttachment(endpoint, direction) : endpoint;
 

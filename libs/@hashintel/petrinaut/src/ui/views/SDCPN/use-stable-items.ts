@@ -52,6 +52,14 @@ const isSameContent = (left: unknown, right: unknown): boolean => {
   );
 };
 
+/** Whether two lists hold the same objects in the same order. */
+export const sameItems = <Item>(
+  left: readonly Item[],
+  right: readonly Item[],
+): boolean =>
+  left.length === right.length &&
+  left.every((item, index) => item === right[index]);
+
 /**
  * The same list, with unchanged items carried over from the previous render,
  * and the previous list itself when every item was.
@@ -91,9 +99,7 @@ export const useStableItems = <Item extends { id: string }>(
     byId.set(item.id, kept);
     return kept;
   });
-  const allKept =
-    stable.length === before.stable.length &&
-    stable.every((item, index) => item === before.stable[index]);
+  const allKept = sameItems(stable, before.stable);
 
   previous.current = {
     given: items,

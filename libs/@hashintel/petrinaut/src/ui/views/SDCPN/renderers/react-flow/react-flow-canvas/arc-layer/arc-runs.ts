@@ -12,6 +12,8 @@
  * paths the net has.
  */
 
+import { sameItems } from "../../../../use-stable-items";
+
 import type { ArcShape } from "./arc-shapes";
 
 /** How many consecutive arcs of the document share their paths. */
@@ -60,13 +62,6 @@ const strokesOf = (members: readonly ArcShape[]): MergedStrokes[] => {
   return [...byColor.values()];
 };
 
-const sameShapes = (
-  left: readonly ArcShape[],
-  right: readonly ArcShape[],
-): boolean =>
-  left.length === right.length &&
-  left.every((shape, index) => shape === right[index]);
-
 /**
  * The runs of a scene's arcs. A run whose arcs are the same objects as in
  * the runs before is the same object. A frame that moves a few arcs writes
@@ -83,9 +78,9 @@ export const arcRuns = (
     const members = arcs.filter((shape) => !shape.alone);
     const own = arcs.filter((shape) => shape.alone);
     const was = previous[runs.length];
-    const sameMembers = was !== undefined && sameShapes(was.members, members);
+    const sameMembers = was !== undefined && sameItems(was.members, members);
     runs.push(
-      sameMembers && sameShapes(was.own, own)
+      sameMembers && sameItems(was.own, own)
         ? was
         : {
             members,
@@ -94,8 +89,5 @@ export const arcRuns = (
           },
     );
   }
-  return runs.length === previous.length &&
-    runs.every((run, index) => run === previous[index])
-    ? previous
-    : runs;
+  return sameItems(runs, previous) ? previous : runs;
 };

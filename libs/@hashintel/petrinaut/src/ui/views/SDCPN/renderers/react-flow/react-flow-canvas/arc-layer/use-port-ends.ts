@@ -1,7 +1,11 @@
 import { type InternalNode, Position, useStore } from "@xyflow/react";
 
 import { portInHandleId, portOutHandleId } from "../port-handles";
-import { type FixedEndpoint, fixedEndpoint } from "../shared/outline-arcs";
+import {
+  type FixedEndpoint,
+  fixedEndpoint,
+  sameEnd,
+} from "../shared/outline-arcs";
 
 import type { CanvasArc } from "../../../../canvas-scene";
 import type { PortEnd, PortEnds } from "./arc-shapes";
@@ -33,18 +37,6 @@ const pinOf = (
     handle.position,
   );
 };
-
-const sameEnd = (
-  left: FixedEndpoint | null,
-  right: FixedEndpoint | null,
-): boolean =>
-  left === right ||
-  (left !== null &&
-    right !== null &&
-    left.point.x === right.point.x &&
-    left.point.y === right.point.y &&
-    left.normal.x === right.normal.x &&
-    left.normal.y === right.normal.y);
 
 const samePortEnds = (left: PortEnds, right: PortEnds): boolean => {
   if (left === right) {

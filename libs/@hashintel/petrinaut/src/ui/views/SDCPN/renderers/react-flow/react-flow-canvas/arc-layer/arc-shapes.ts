@@ -9,6 +9,7 @@
  * ends moved, and the layer renders the arcs whose shape is a new object.
  */
 
+import { sameItems } from "../../../../use-stable-items";
 import { arcHeadPath } from "../arc-head";
 import { joinedPairs } from "../shared/joined-pairs";
 import {
@@ -17,6 +18,7 @@ import {
   type FixedEndpoint,
   getOutlineNode,
   type OutlineNode,
+  sameEnd,
 } from "../shared/outline-arcs";
 import { type ArcGeometry, arcGeometry } from "./arc-shapes/arc-geometry";
 
@@ -95,15 +97,6 @@ const outlinesOf = (
   }
   return outlines;
 };
-
-const sameEnd = (left: ArcEnd, right: ArcEnd): boolean =>
-  left === right ||
-  ("point" in left &&
-    "point" in right &&
-    left.point.x === right.point.x &&
-    left.point.y === right.point.y &&
-    left.normal.x === right.normal.x &&
-    left.normal.y === right.normal.y);
 
 /** What a shape has of its curve alone: an arc that only changes colour keeps it. */
 type ArcCurveShape = Pick<
@@ -231,10 +224,7 @@ export const arcShapes = (
     list.push(shape);
   }
 
-  const sameList =
-    previous !== undefined &&
-    previous.list.length === list.length &&
-    list.every((shape, index) => shape === previous.list[index]);
+  const sameList = previous !== undefined && sameItems(previous.list, list);
 
   return { list: sameList ? previous.list : list, byId, outlines };
 };
