@@ -22,7 +22,7 @@ import {
   Popover,
   SegmentedControl,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { Select } from "./fill-select";
 import { DatePopover } from "./date-picker";
@@ -352,11 +352,6 @@ const times = Array.from({ length: 96 }, (_, index) => {
 const mutedLine = css({
   textStyle: "sm",
   color: "neutral.fg.muted",
-  minHeight: "[32px]",
-  display: "flex",
-  alignItems: "center",
-  flexWrap: "wrap",
-  columnGap: "2",
 });
 
 const rowStyle = css({ display: "flex", alignItems: "center", gap: "2" });
@@ -728,15 +723,12 @@ export const ScheduleFields = ({
       {take === "g1" && !rule.once ? (
         <EndsFields rule={rule} startIso={startIso} onChange={(next) => set({ rule: next })} />
       ) : null}
-      <span className="label">Next runs</span>
-      <span className={mutedLine} data-next-runs>
+      <span className={`label ${css({ alignSelf: "start" })}`}>Next runs</span>
+      <span className={cx(mutedLine, css({ display: "flex", flexDirection: "column", alignItems: "flex-start" }))} data-next-runs>
         {runs.length === 0
           ? "None"
-          : runs.map((date, index) => (
-              <span key={isoOf(date)}>
-                {runWords(date, at)}
-                {index < runs.length - 1 ? ", " : ""}
-              </span>
+          : runs.map((date) => (
+              <span key={isoOf(date)}>{runWords(date, at)}</span>
             ))}
       </span>
     </>

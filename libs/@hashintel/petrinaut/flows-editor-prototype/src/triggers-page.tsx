@@ -1169,15 +1169,12 @@ const DefaultScheduleFields = ({
           onChange={(next) => set({ rule: next })}
         />
       ) : null}
-      <span className="label">Next runs</span>
-      <span className={mutedText} data-next-runs>
+      <span className={`label ${css({ alignSelf: "start" })}`}>Next runs</span>
+      <span className={cx(mutedText, css({ display: "flex", flexDirection: "column", alignItems: "flex-start" }))} data-next-runs>
         {runs.length === 0
           ? "None"
-          : runs.map((date, index) => (
-              <span key={date.toISOString()}>
-                {runWords(date, at)}
-                {index < runs.length - 1 ? ", " : ""}
-              </span>
+          : runs.map((date) => (
+              <span key={date.toISOString()}>{runWords(date, at)}</span>
             ))}
       </span>
     </>

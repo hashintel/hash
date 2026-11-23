@@ -492,7 +492,7 @@ export const Home = ({
               Processes that workers can monitor and manage
             </span>
           </div>
-          {flows.length > 0 ? (
+          {flows.length > 0 && oldList ? (
             <div
               className={css({
                 display: "flex",
@@ -670,23 +670,40 @@ export const Home = ({
           </div>
         ) : (
           <>
-            {/* The controls (F9-RIBBON, Logs pattern): Filter on the left, the sort on the right, the ribbon below. */}
+            {/* The controls: the Triggers and Logs row (Sort, Filter, search, primary button at the right), the ribbon below. */}
             <div
               className={css({
                 display: "flex",
                 flexDirection: "column",
-                gap: "3",
-                marginBottom: "[-8px]",
+                gap: "4",
+                marginBottom: "[-16px]",
               })}
             >
               <div
                 className={css({
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "4",
+                  gap: "1",
+                  paddingY: "1",
                 })}
               >
+                <span className={css({ flex: "1" })} />
+                <Menu
+                  position="bottom-end"
+                  items={sortItems}
+                  trigger={
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      tone="neutral"
+                      iconName={sort.flipped ? "sortUp" : "sortDown"}
+                      className={cx(rowButtonStyle, (sort.key !== "lastRun" || sort.flipped) && rowButtonActiveStyle)}
+                      data-flows-sort
+                    >
+                      {sort.key !== "lastRun" || sort.flipped ? listSorts[sort.key].label : "Sort"}
+                    </Button>
+                  }
+                />
                 <FilterByMenu
                   only={listFilterProperties}
                   onPick={(property) => setChips(newChip(chips, property))}
@@ -703,22 +720,27 @@ export const Home = ({
                     </Button>
                   }
                 />
-                <Menu
-                  position="bottom-end"
-                  items={sortItems}
-                  trigger={
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      tone="neutral"
-                      iconName={sort.flipped ? "sortUp" : "sortDown"}
-                      className={cx(rowButtonStyle, (sort.key !== "lastRun" || sort.flipped) && rowButtonActiveStyle)}
-                      data-flows-sort
-                    >
-                      {listSorts[sort.key].label}
-                    </Button>
-                  }
-                />
+                <span className={css({ width: "[200px]", marginLeft: "2" })}>
+                  <TextInput
+                    size="sm"
+                    value={search}
+                    placeholder="Search flows"
+                    aria-label="Search flows"
+                    prefix={{ iconName: "search", variant: "subtle" }}
+                    onChange={(next) => onSearch(next)}
+                  />
+                </span>
+                <span className={css({ marginLeft: "2" })}>
+                  <Button
+                    size="sm"
+                    variant="subtle"
+                    tone="neutral"
+                    iconName="plus"
+                    onClick={onNew}
+                  >
+                    New flow
+                  </Button>
+                </span>
               </div>
               {chips.length > 0 ? (
                 <RunsFilterRibbon
