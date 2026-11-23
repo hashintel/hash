@@ -203,7 +203,7 @@ type PropertyDef = {
 
 const properties: Record<FilterProperty | TriggerFilterProperty, PropertyDef> = {
   flow: { label: "Flow", icon: "lightning", group: "Trigger" },
-  web: { label: "Web", icon: "globe", group: "Trigger" },
+  web: { label: "Web", icon: "at", group: "Trigger" },
   kind: { label: "Kind", icon: "calendarClock", group: "Trigger" },
   status: { label: "Status", icon: "circleCheck", group: "Run" },
   trigger: { label: "Trigger", icon: "calendarClock", group: "Run" },
@@ -361,22 +361,25 @@ export const FilterByMenu = ({
   trigger,
   onPick,
   groups: wanted = ["Run", "Steps and data"],
+  only,
 }: {
   trigger: React.ReactElement;
   onPick: (property: FilterProperty | TriggerFilterProperty) => void;
   /** The property groups this list offers; the Logs page's two by default. */
   groups?: readonly PropertyGroup[];
+  /** Exactly these properties, in one group with no heading (the Flows list's own columns). */
+  only?: readonly (FilterProperty | TriggerFilterProperty)[];
 }) => {
   const [search, setSearch] = useState("");
   const text = search.trim().toLowerCase();
-  const groups = wanted
+  const groups = (only ? (["Run"] as const) : wanted)
     .map((group) => ({
       id: group,
-      label: group,
-      items: (Object.keys(properties) as (FilterProperty | TriggerFilterProperty)[])
+      label: only ? "" : group,
+      items: (only ?? (Object.keys(properties) as (FilterProperty | TriggerFilterProperty)[]))
         .filter(
           (property) =>
-            properties[property].group === group &&
+            (only !== undefined || properties[property].group === group) &&
             properties[property].label.toLowerCase().includes(text),
         )
         .map((property): MenuItem => ({
@@ -550,6 +553,7 @@ export const RunsFilterRibbon = ({
   onSave,
   operatorsFor,
   groups,
+  only,
 }: {
   chips: RunFilterChip[];
   onChips: (chips: RunFilterChip[]) => void;
@@ -558,6 +562,7 @@ export const RunsFilterRibbon = ({
   onSave: () => void;
   operatorsFor?: (property: RunFilterChip["property"]) => Operator[];
   groups?: readonly PropertyGroup[];
+  only?: readonly (FilterProperty | TriggerFilterProperty)[];
 }) => (
   <FilterGroup className={ribbonStyle}>
     {chips.map((chip) => (
@@ -579,6 +584,7 @@ export const RunsFilterRibbon = ({
     ))}
     <FilterByMenu
       groups={groups}
+      only={only}
       onPick={(property) => onChips(newChip(chips, property))}
       trigger={<FilterGroup.AddFilter />}
     />

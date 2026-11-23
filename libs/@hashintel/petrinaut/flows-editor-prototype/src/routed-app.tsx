@@ -169,6 +169,13 @@ export const RoutedApp = () => {
           onSearch={setSearch}
           onOpen={(flowId) => navigate(routePath({ page: "editor", flowId }))}
           onNew={() => navigate(routePath({ page: "newFlow" }))}
+          onArchive={(flowId) => {
+            const flow = state.flows.find((candidate) => candidate.id === flowId);
+            if (flow && confirmTake === "undo") {
+              setArchived({ flow, index: state.flows.indexOf(flow) });
+            }
+            archiveFlow(flowId);
+          }}
         />
       );
     case "newFlow":

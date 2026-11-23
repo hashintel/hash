@@ -1,9 +1,29 @@
-import { Button, Icon, TextInput } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { useRef, useState } from "react";
 
+import {
+  Button,
+  Icon,
+  Menu,
+  PortalContainerContext,
+  TextInput,
+} from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
+
+import { rowButtonActiveStyle, rowButtonStyle } from "./all-runs";
+import { ConfirmDialog, useConfirmTake } from "./confirm-dialog";
+import { Table } from "./ds-parts/table";
+import { flowTriggersOf } from "./flow-triggers";
 import { HashShell } from "./hash-shell";
+import { selectedLabel } from "./menu-rows";
 import { RunGlyph } from "./run-glyph";
 import { RunIdsIn } from "./run-id";
+import {
+  appliedChips,
+  FilterByMenu,
+  newChip,
+  type RunFilterChip,
+  RunsFilterRibbon,
+} from "./runs-filter";
 import { VersionLabel, versionLabel } from "./versions";
 
 import type { EditorDocument } from "./document";
@@ -170,6 +190,79 @@ const boardRows: {
   },
 ];
 
+type ListRow = {
+  id: string;
+  name: string;
+  web: string;
+  version: ReturnType<typeof versionLabel> | undefined;
+  status: (typeof boardRows)[number]["status"];
+  when: string;
+  starter: BoardStarter;
+  runs: string;
+  edited: string;
+  editor: string;
+};
+
+/**
+ * One list row per flow in the store, so an archived flow leaves and a new one arrives. The columns F9 draws for the
+ * seeded flows come from `boardRows`, found by name; any other flow reads what the store knows and shows No runs yet.
+ */
+const rowFor = (flow: FlowListEntry): ListRow => {
+  const name = flow.document.name;
+  const drawn = boardRows.find((row) => row.name === name);
+  return {
+    id: flow.id,
+    name,
+    web: drawn?.web ?? "@aakarsh",
+    version: flow.version ?? drawn?.version,
+    status: drawn?.status,
+    when: drawn?.when ?? "",
+    starter: drawn?.starter,
+    runs: drawn?.runs ?? (flow.runCount ? `${flow.runCount}` : "–"),
+    edited: flow.lastEdited === "Just now" ? "Just now" : (drawn?.edited ?? flow.lastEdited),
+    editor: drawn?.editor ?? "Aakarsh",
+  };
+};
+
+/** The words a Status filter offers, one per kind of newest run. */
+const statusKinds: Record<string, string> = {
+  running: "Running",
+  needsReview: "Needs review",
+  failed: "Failed",
+  doneWithFailures: "Some items failed",
+  done: "Done",
+  abandoned: "Cancelled",
+  none: "No runs yet",
+};
+
+const statusKindOf = (row: ListRow) => row.status?.state ?? "none";
+
+/** What each Flows list filter reads off a row, for "is" and "is not". */
+const facetOf = (row: ListRow, property: RunFilterChip["property"]) =>
+  property === "web" ? row.web : property === "version" ? row.version?.number : statusKindOf(row);
+
+const listFilterProperties = ["status", "web", "version"] as const;
+
+type ListSortKey = "lastRun" | "name" | "runs";
+
+const listSorts: Record<ListSortKey, { label: string; orders: [string, string] }> = {
+  lastRun: { label: "Last run", orders: ["Newest first", "Oldest first"] },
+  name: { label: "Name", orders: ["A to Z", "Z to A"] },
+  runs: { label: "Runs", orders: ["Most first", "Fewest first"] },
+};
+
+/** The shared table with the Triggers page's row behaviour: a pointer, #F9F9F9 on hover. */
+const flowsTableStyle = css({
+  "& tr[data-row]": {
+    cursor: "pointer",
+    _hover: { backgroundColor: "neutral.bg.subtle.hover" },
+  },
+  "& tr:last-child td": { borderBottomWidth: "[0]" },
+});
+
+const archiveBody = (triggers: number) =>
+  `${triggers === 0 ? "" : `Its ${triggers} ${triggers === 1 ? "trigger stops" : "triggers stop"}. `}Past runs stay in All runs.`;
+
 const starterIcon = { person: "user", schedule: "calendar", responsive: "lightning" } as const;
 
 const twoLine = css({
@@ -197,6 +290,7 @@ export const Home = ({
   onSearch,
   onOpen,
   onNew,
+  onArchive,
   notice,
 }: {
   /** A toast over the list, inside the shell so it gets the DS styles (`?confirm=undo`'s Archived · Undo). */
@@ -206,25 +300,106 @@ export const Home = ({
   onSearch: (search: string) => void;
   onOpen: (id: string) => void;
   onNew: () => void;
+  /** A row's menu › Archive: the flow leaves the list. */
+  onArchive?: (id: string) => void;
 }) => {
+  const confirmTake = useConfirmTake();
+  // Menus and the Archive dialog portal in here, inside the shell's styles (as on the Triggers page).
+  const portalRef = useRef<HTMLDivElement>(null);
+  const [chips, setChips] = useState<RunFilterChip[]>([]);
+  const [sort, setSort] = useState<{ key: ListSortKey; flipped: boolean }>({
+    key: "lastRun",
+    flipped: false,
+  });
+  const [archiving, setArchiving] = useState<FlowListEntry | null>(null);
   const visible = flows.filter((flow) =>
     flow.document.name.toLowerCase().includes(search.trim().toLowerCase()),
   );
-  const boardVisible = boardRows.filter((row) =>
-    row.name.toLowerCase().includes(search.trim().toLowerCase()),
-  );
-  const shownCount = oldList
-    ? visible.length
-    : flows.length === 0
-      ? 0
-      : boardVisible.length;
-  const openBoardRow = (name: string, index: number) => {
-    const flow =
-      flows.find((candidate) => candidate.document.name === name) ??
-      flows[index] ??
-      flows[0];
-    if (flow) {
-      onOpen(flow.id);
+  const matching = flows
+    .map(rowFor)
+    .filter((row) => row.name.toLowerCase().includes(search.trim().toLowerCase()))
+    .filter((row) =>
+      chips.every((chip) => {
+        const value = chip.value;
+        if (!value || value.value === null) {
+          return true;
+        }
+        const hit = facetOf(row, chip.property) === value.value;
+        return value.key === "isNot" ? !hit : hit;
+      }),
+    );
+  const boardVisible = matching
+    .map((row, index) => ({ row, index }))
+    .sort((left, right) => {
+      const order =
+        sort.key === "name"
+          ? left.row.name.localeCompare(right.row.name)
+          : sort.key === "runs"
+            ? (Number(right.row.runs) || 0) - (Number(left.row.runs) || 0)
+            : 0;
+      return (
+        (sort.flipped ? -order : order) ||
+        (sort.flipped ? right.index - left.index : left.index - right.index)
+      );
+    })
+    .map(({ row }) => row);
+  const shownCount = oldList ? visible.length : flows.length;
+  const rowChoices = flows.map(rowFor);
+  const operatorsFor = (property: RunFilterChip["property"]) => {
+    const unique = (values: (string | undefined)[]) => [
+      ...new Set(values.filter((value): value is string => value !== undefined)),
+    ];
+    const choices =
+      property === "web"
+        ? unique(rowChoices.map((row) => row.web)).map((value) => ({ value, text: value }))
+        : property === "version"
+          ? unique(rowChoices.map((row) => row.version?.number)).map((value) => ({ value, text: value }))
+          : unique(rowChoices.map(statusKindOf)).map((value) => ({
+              value,
+              text: statusKinds[value] ?? value,
+            }));
+    return [
+      { key: "is" as const, label: "is", input: { type: "select" as const, items: choices } },
+      { key: "isNot" as const, label: "is not", input: { type: "select" as const, items: choices } },
+    ];
+  };
+  const applied = appliedChips(chips);
+  const sortItems = [
+    {
+      id: "sort-by",
+      label: "Sort by",
+      items: (Object.keys(listSorts) as ListSortKey[]).map((key) => ({
+        id: `sort:${key}`,
+        text: selectedLabel(listSorts[key].label, sort.key === key),
+        selected: sort.key === key,
+        selectedStyle: "highlight" as const,
+        keepOpenOnSelect: true,
+        onClick: () => setSort({ key, flipped: false }),
+      })),
+    },
+    {
+      id: "order",
+      label: "Order",
+      items: listSorts[sort.key].orders.map((text, index) => ({
+        id: `order:${index}`,
+        text: selectedLabel(text, sort.flipped === (index === 1)),
+        selected: sort.flipped === (index === 1),
+        selectedStyle: "highlight" as const,
+        keepOpenOnSelect: true,
+        onClick: () => setSort((current) => ({ ...current, flipped: index === 1 })),
+      })),
+    },
+  ];
+  const openRow = (id: string) => onOpen(id);
+  const archiveRow = (id: string) => {
+    const flow = flows.find((candidate) => candidate.id === id);
+    if (!flow) {
+      return;
+    }
+    if (confirmTake === "dialog") {
+      setArchiving(flow);
+    } else {
+      onArchive?.(id);
     }
   };
   const newFlow = (
@@ -240,6 +415,8 @@ export const Home = ({
   );
   return (
     <HashShell>
+      <PortalContainerContext value={portalRef}>
+      <div ref={portalRef} className={css({ position: "relative" })}>
       <main
         className={css({
           display: "flex",
@@ -305,7 +482,7 @@ export const Home = ({
             </div>
           ) : null}
         </div>
-        {shownCount === 0 ? (
+        {flows.length === 0 || (oldList && shownCount === 0) ? (
           // J0.1: the DS EmptyState in a bordered box.
           <div
             className={`${boxStyle} ${css({
@@ -460,30 +637,65 @@ export const Home = ({
           </div>
         ) : (
           <>
-            {/* The ribbon (F9-RIBBON): Add filter and the Last run sort are buttons only for now, not wired. */}
+            {/* The ribbon (F9-RIBBON): Add filter on the left, the sort on the right. Chips take Add filter's place. */}
             <div
               className={css({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
+                gap: "4",
                 marginBottom: "[-8px]",
               })}
             >
-              <Button size="sm" variant="ghost" tone="neutral" iconName="plus">
-                Add filter
-              </Button>
-              <Button
-                size="sm"
-                variant="subtle"
-                tone="neutral"
-                iconName="sortDown"
-                suffix={<Icon name="chevronDown" size="sm" />}
-              >
-                Last run
-              </Button>
+              {chips.length > 0 ? (
+                <div className={css({ flex: "1", minWidth: "[0]" })}>
+                  <RunsFilterRibbon
+                    chips={chips}
+                    onChips={setChips}
+                    runs={[]}
+                    now={0}
+                    only={listFilterProperties}
+                    operatorsFor={operatorsFor}
+                    onSave={() => undefined}
+                  />
+                </div>
+              ) : (
+                <FilterByMenu
+                  only={listFilterProperties}
+                  onPick={(property) => setChips(newChip(chips, property))}
+                  trigger={
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      tone="neutral"
+                      iconName="plus"
+                      data-flows-add-filter
+                    >
+                      Add filter
+                    </Button>
+                  }
+                />
+              )}
+              <Menu
+                position="bottom-end"
+                items={sortItems}
+                trigger={
+                  <Button
+                    size="sm"
+                    variant="subtle"
+                    tone="neutral"
+                    iconName={sort.flipped ? "sortUp" : "sortDown"}
+                    suffix={<Icon name="chevronDown" size="sm" />}
+                    className={cx(sort.key !== "lastRun" || sort.flipped ? rowButtonActiveStyle : rowButtonStyle)}
+                    data-flows-sort
+                  >
+                    {listSorts[sort.key].label}
+                  </Button>
+                }
+              />
             </div>
             <div className={boxStyle}>
-              <table className={tableStyle}>
+              <Table className={flowsTableStyle} data-flows-table>
                 <thead>
                   <tr>
                     <th>Name</th>
@@ -493,34 +705,34 @@ export const Home = ({
                     <th className={css({ width: "[196px]" })}>Last run</th>
                     <th className={css({ width: "[96px]" })}>Runs</th>
                     <th className={css({ width: "[143px]" })}>Last edited</th>
-                    <th
-                      className={css({ width: "[56px]" })}
-                      aria-label="Actions"
-                    />
+                    <th className={css({ width: "[56px]" })} aria-label="Actions" />
                   </tr>
                 </thead>
                 <tbody>
-                  {boardVisible.map((row, index) => (
+                  {boardVisible.length === 0 ? (
+                    <tr data-flows-empty>
+                      <td colSpan={8} className={css({ color: "neutral.fg.muted" })}>
+                        No flows match
+                      </td>
+                    </tr>
+                  ) : null}
+                  {boardVisible.map((row) => (
                     <tr
-                      key={row.name}
+                      key={row.id}
                       tabIndex={0}
-                      onClick={() => openBoardRow(row.name, index)}
+                      data-row
+                      data-flow-row={row.id}
+                      onClick={() => openRow(row.id)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") {
-                          openBoardRow(row.name, index);
+                          openRow(row.id);
                         }
                       }}
                     >
-                      <td className={css({ color: "neutral.fg.heading" })}>
-                        {row.name}
-                      </td>
-                      <td className={css({ color: "neutral.fg.heading" })}>
-                        {row.web}
-                      </td>
-                      <td className={css({ color: "neutral.fg.heading" })}>
-                        <VersionLabel {...row.version} />
-                      </td>
-                      <td className={css({ color: "neutral.fg.heading" })}>
+                      <td>{row.name}</td>
+                      <td>{row.web}</td>
+                      <td>{row.version ? <VersionLabel {...row.version} /> : null}</td>
+                      <td>
                         {row.status ? (
                           <span
                             className={css({
@@ -550,7 +762,7 @@ export const Home = ({
                           </span>
                         )}
                       </td>
-                      <td className={css({ color: "neutral.fg.heading" })}>
+                      <td>
                         {row.starter ? (
                           <div className={twoLine}>
                             <span>{row.when}</span>
@@ -561,34 +773,59 @@ export const Home = ({
                           </div>
                         ) : null}
                       </td>
-                      <td className={css({ color: "neutral.fg.heading" })}>
-                        {row.runs}
-                      </td>
-                      <td className={css({ color: "neutral.fg.heading" })}>
+                      <td>{row.runs}</td>
+                      <td>
                         <div className={twoLine}>
                           <span>{row.edited}</span>
                           <span className={subLine}>{row.editor}</span>
                         </div>
                       </td>
                       <td>
-                        <Button
-                          size="xs"
-                          variant="ghost"
-                          tone="neutral"
-                          iconName="ellipsis"
-                          aria-label={`More for ${row.name}`}
-                          onClick={(event) => event.stopPropagation()}
-                        />
+                        {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- keeps the menu's clicks off the row */}
+                        <span onClick={(event) => event.stopPropagation()}>
+                          <Menu
+                            position="bottom-end"
+                            className={css({ minWidth: "[160px]" })}
+                            items={[
+                              { id: "open", text: "Open", onClick: () => openRow(row.id) },
+                              { id: "archive", text: "Archive", onClick: () => archiveRow(row.id) },
+                            ]}
+                            trigger={
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                tone="neutral"
+                                iconName="ellipsis"
+                                aria-label={`More for ${row.name}`}
+                                data-row-menu
+                              />
+                            }
+                          />
+                        </span>
                       </td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </Table>
             </div>
           </>
         )}
       </main>
+      {archiving ? (
+        <ConfirmDialog
+          title={`Archive ${archiving.document.name}?`}
+          body={archiveBody(flowTriggersOf(archiving.document).items.length)}
+          action="Archive"
+          onClose={() => setArchiving(null)}
+          onConfirm={() => {
+            onArchive?.(archiving.id);
+            setArchiving(null);
+          }}
+        />
+      ) : null}
       {notice}
+      </div>
+      </PortalContainerContext>
     </HashShell>
   );
 };
