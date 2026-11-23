@@ -18,23 +18,27 @@ CPU, so paint and raster times are higher than on a machine with a GPU.
 
 Each gesture runs with every node on screen. Renders are the component renders
 React reports on its profiling build, and script is the main-thread time spent
-in JavaScript on the production build. The rows of frames are measured with
-GPU raster at two device pixels a pixel. Each value is a median of alternating
+in JavaScript on the production build. Each value is a median of alternating
 rounds.
 
-| Gesture                                    |              Before |          After |
-| ------------------------------------------ | ------------------: | -------------: |
-| Select a node: renders and script          |    8,054 and 292 ms |  366 and 95 ms |
-| Select another node: renders and script    |    8,279 and 230 ms |  497 and 68 ms |
-| Hover a node: renders and script           |   13,130 and 312 ms |  126 and 55 ms |
-| Drag a node: renders and script            | 65,796 and 1,580 ms | 811 and 250 ms |
-| Pan: renders and script                    |   13,686 and 464 ms | 344 and 144 ms |
-| Zoom: renders and script                   |    2,260 and 119 ms |  118 and 59 ms |
-| Deselect: renders and script               |     2,173 and 56 ms |   31 and 18 ms |
-| Pan with nothing selected, frames a second |                  61 |             80 |
-| Pan with a node selected, frames a second  |                  20 |             77 |
-| A hover lands and leaves, frames in 320 ms |            6 and 10 |      33 and 31 |
-| The same with compact nodes                |             5 and 4 |      11 and 12 |
+| Gesture             | Renders before | Renders after | Script before | Script after |
+| ------------------- | -------------: | ------------: | ------------: | -----------: |
+| Select a node       |          8,054 |           366 |        292 ms |        95 ms |
+| Select another node |          8,279 |           497 |        230 ms |        68 ms |
+| Hover a node        |         13,130 |           126 |        312 ms |        55 ms |
+| Drag a node         |         65,796 |           811 |      1,580 ms |       250 ms |
+| Pan                 |         13,686 |           344 |        464 ms |       144 ms |
+| Zoom                |          2,260 |           118 |        119 ms |        59 ms |
+| Deselect            |          2,173 |            31 |         56 ms |        18 ms |
+
+The frames are measured with GPU raster at two device pixels a pixel:
+
+| Gesture                                    |   Before |     After |
+| ------------------------------------------ | -------: | --------: |
+| Pan with nothing selected, frames a second |       61 |        80 |
+| Pan with a node selected, frames a second  |       20 |        77 |
+| A hover lands and leaves, frames in 320 ms | 6 and 10 | 33 and 31 |
+| The same with compact nodes                |  5 and 4 | 11 and 12 |
 
 The page of that net is ready after 1,018 ms where it took 1,432 ms, and holds
 21,983 elements where it held 43,405.
