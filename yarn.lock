@@ -9459,7 +9459,7 @@ __metadata:
   resolution: "@local/hash-graph-client@workspace:libs/@local/graph/client/typescript"
   dependencies:
     "@local/tsconfig": "workspace:*"
-    "@openapitools/openapi-generator-cli": "npm:2.40.1"
+    "@openapitools/openapi-generator-cli": "npm:2.42.2"
     "@tsconfig/bases": "catalog:"
     "@types/node": "catalog:"
     axios: "npm:1.20.0"
@@ -9600,7 +9600,7 @@ __metadata:
   resolution: "@local/internal-api-client@workspace:libs/@local/internal-api-client/typescript"
   dependencies:
     "@local/tsconfig": "workspace:*"
-    "@openapitools/openapi-generator-cli": "npm:2.40.1"
+    "@openapitools/openapi-generator-cli": "npm:2.42.2"
     "@tsconfig/bases": "catalog:"
     "@types/node": "catalog:"
     axios: "npm:1.20.0"
@@ -10412,9 +10412,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@nestjs/common@npm:11.1.28":
-  version: 11.1.28
-  resolution: "@nestjs/common@npm:11.1.28"
+"@nestjs/common@npm:11.2.3":
+  version: 11.2.3
+  resolution: "@nestjs/common@npm:11.2.3"
   dependencies:
     file-type: "npm:21.3.4"
     iterare: "npm:1.2.1"
@@ -10431,13 +10431,13 @@ __metadata:
       optional: true
     class-validator:
       optional: true
-  checksum: 10c0/aaf9a773fd8523972c5f971e77b9809ebd6fab682a4b791599927b546501e17909947e68a2f97cf6d7a28ebef409765c8453f9ce45a61410e0fbdba58d3733bb
+  checksum: 10c0/b8712fc715645ba541d437e9adb1f826c52714105c47dc735fafe787785129f2bbe5b852525299b2803e8e38eab0e3740a2fd88ddbefb36a7dadddf87b968936
   languageName: node
   linkType: hard
 
-"@nestjs/core@npm:11.1.28":
-  version: 11.1.28
-  resolution: "@nestjs/core@npm:11.1.28"
+"@nestjs/core@npm:11.2.3":
+  version: 11.2.3
+  resolution: "@nestjs/core@npm:11.2.3"
   dependencies:
     fast-safe-stringify: "npm:2.1.1"
     iterare: "npm:1.2.1"
@@ -10458,7 +10458,7 @@ __metadata:
       optional: true
     "@nestjs/websockets":
       optional: true
-  checksum: 10c0/691e4328fc7b428beb1cfe47fe5342f2abbf6cfb2bfb3fd76b0430cf7732b59f520c7599bbab2186c734f8be7b4abcdd805c0c846a337a65f822f547d5714fda
+  checksum: 10c0/6af518ef8867c292f8dde3ddcd202baefbaf61ea1dfbf3f5d375ce53459396b0f909b53eda0838355fb22c1c3002e62afc2f4b4006d3c6ebeaa0b89bda9556d6
   languageName: node
   linkType: hard
 
@@ -10627,30 +10627,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openapitools/openapi-generator-cli@npm:2.40.1":
-  version: 2.40.1
-  resolution: "@openapitools/openapi-generator-cli@npm:2.40.1"
+"@openapitools/openapi-generator-cli@npm:2.42.2":
+  version: 2.42.2
+  resolution: "@openapitools/openapi-generator-cli@npm:2.42.2"
   dependencies:
     "@inquirer/select": "npm:1.3.3"
     "@nestjs/axios": "npm:4.0.1"
-    "@nestjs/common": "npm:11.1.28"
-    "@nestjs/core": "npm:11.1.28"
+    "@nestjs/common": "npm:11.2.3"
+    "@nestjs/core": "npm:11.2.3"
     "@nuxtjs/opencollective": "npm:0.3.2"
-    axios: "npm:^1.18.1"
+    axios: "npm:^1.20.0"
     chalk: "npm:4.1.2"
     commander: "npm:8.3.0"
     compare-versions: "npm:6.1.1"
-    concurrently: "npm:^10.0.3"
+    concurrently: "npm:^10.0.5"
     console.table: "npm:0.10.0"
     fs-extra: "npm:11.4.0"
-    glob: "npm:13.0.6"
+    glob: "npm:14.0.4"
     proxy-agent: "npm:8.0.2"
     reflect-metadata: "npm:0.2.2"
     rxjs: "npm:7.8.2"
     tslib: "npm:2.8.1"
   bin:
     openapi-generator-cli: main.js
-  checksum: 10c0/a753cdb9043e94cd8a42336aadf23396a71d73c6f7f924f34569cefc1e73c1596be6ff0878d4c7f287b6e6d55e0e6f3f006c47afcadffdfdc82b9986ee08b11d
+  checksum: 10c0/4c12e08a7e60a8fad63628b97dcaa0e03c70ec34ce1ef3b99a699b3d7965fca0c1dd1895b502377f5415e725a1335e134be4b90ca7d25f92983ab79ba5e0d60c
   languageName: node
   linkType: hard
 
@@ -21760,7 +21760,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:1.20.0, axios@npm:^1.12.2, axios@npm:^1.18.1, axios@npm:^1.20.0, axios@npm:^1.6.1":
+"axios@npm:1.20.0, axios@npm:^1.12.2, axios@npm:^1.20.0, axios@npm:^1.6.1":
   version: 1.20.0
   resolution: "axios@npm:1.20.0"
   dependencies:
@@ -23109,7 +23109,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"concurrently@npm:^10.0.3":
+"concurrently@npm:^10.0.5":
   version: 10.0.7
   resolution: "concurrently@npm:10.0.7"
   dependencies:
@@ -27438,7 +27438,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"glob@npm:13.0.6, glob@npm:^13.0.1":
+"glob@npm:14.0.4":
+  version: 14.0.4
+  resolution: "glob@npm:14.0.4"
+  dependencies:
+    minimatch: "npm:^11.0.5"
+    minipass: "npm:^7.1.3"
+    path-scurry: "npm:^3.0.0"
+  checksum: 10c0/18e243038706bb72d3a2e74603b3408cd3771521c506c7f427d71e79dcaf65eecfa540157ba139ae9f270c89a699560a23ce7bb113d6921a457fa4ad9a06b55d
+  languageName: node
+  linkType: hard
+
+"glob@npm:^13.0.1":
   version: 13.0.6
   resolution: "glob@npm:13.0.6"
   dependencies:
