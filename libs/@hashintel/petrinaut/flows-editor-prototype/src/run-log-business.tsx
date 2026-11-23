@@ -394,7 +394,7 @@ const Head = ({
           {runIdMono() ? <RunIdText run={run} prefix /> : runLabel(run)}
         </span>
         <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
-          {[duration, runWhen(run)].filter(Boolean).join(" · ")}
+          {[duration, runWhen(run)].filter(Boolean).join(", ")}
         </span>
       </div>
       <RunStatusLine run={run} now={now} />

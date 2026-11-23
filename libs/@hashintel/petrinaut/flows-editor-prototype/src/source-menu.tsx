@@ -512,6 +512,7 @@ const TYPE_LABEL_CHARS = 24;
 const TypeLabel = ({ types, pill = false }: { types: string[]; pill?: boolean }) => {
   let shown = 1;
   while (
+    !pill &&
     shown < types.length &&
     types.slice(0, shown + 1).join(", ").length +
       (shown + 1 < types.length ? ` +${types.length - shown - 1}`.length : 0) <=

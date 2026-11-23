@@ -1327,7 +1327,7 @@ const Sheet = ({ request, onClose }: { request: R2Request; onClose: () => void }
 
 export const ReviewR2Side = ({ children }: { children: React.ReactNode }) => {
   const { ui, setUi } = useEditor();
-  const { shown } = useShown();
+  const { shown, open } = useShown();
   const run = useWaitingRun();
   // In the run that waits, the first open question's step starts selected, so the canvas marks the step it is
   // about. Other runs open on their summary.
@@ -1341,6 +1341,14 @@ export const ReviewR2Side = ({ children }: { children: React.ReactNode }) => {
       );
     }
   }, [firstStep, setUi]);
+  // After an answer the next open question can belong to another step: the selection (and so the header) follows it.
+  const shownStep = run && take !== "r2-3" ? shown?.stepId : undefined;
+  const selectedHasOpen = open.some((request) => request.stepId === ui.selectedId);
+  useEffect(() => {
+    if (shownStep && ui.selectedId && ui.selectedId !== shownStep && !selectedHasOpen) {
+      setUi((current) => ({ ...current, selectedId: shownStep, selectedIds: [shownStep] }));
+    }
+  }, [shownStep, ui.selectedId, selectedHasOpen, setUi]);
   const [sheetOpen, setSheetOpen] = useState(true);
   // A selected step with nothing for the viewer to answer shows its own panel: Ask a person's, for anyone but its
   // approver, is its Status "Needs review · Asked 10:43" over "Waiting on …", with no form.

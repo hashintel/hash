@@ -119,10 +119,21 @@ const hoverWrapStyle = css({
   display: "inline-flex",
   alignItems: "baseline",
   // DS xs button: 4 px between label and icon (Aakarsh, 10 Nov).
-  gap: "1",
-  verticalAlign: "middle",
+  verticalAlign: "baseline",
   borderRadius: "md",
-  "& [data-copy-id]": { opacity: "0", transition: "[opacity 120ms ease]" },
+  // The icon overlays the right of the ID, 4 px away, so a hidden icon reserves no space and every row's "· time" follows the ID.
+  position: "relative",
+  "&::after": { content: '""', position: "absolute", left: "[100%]", top: "[0]", bottom: "[0]", width: "[4px]" },
+  "& [data-copy-id]": {
+    position: "absolute",
+    left: "[calc(100% + 4px)]",
+    top: "[50%]",
+    marginTop: "[-10px]",
+    opacity: "0",
+    pointerEvents: "none",
+    transition: "[opacity 120ms ease]",
+  },
+  "&:hover [data-copy-id], & [data-copy-id][data-copied]": { pointerEvents: "auto" },
   "& [data-copy-id]:focus-visible, & [data-copy-id][data-copied]": { opacity: "1" },
   "&[data-take=h1] , &[data-take=h1t]": {
     ":is(tr, [role=menuitem], [data-highlighted], [data-run-id-row]):hover &": { "& [data-copy-id]": { opacity: "1" } },
@@ -154,7 +165,7 @@ const hoverButtonStyle = css({
   padding: "[0]",
   border: "none",
   borderRadius: "sm",
-  background: "[transparent]",
+  backgroundColor: "[var(--run-id-copy-bg, var(--colors-neutral-bg-subtle))]",
   color: "neutral.fg.subtle",
   cursor: "pointer",
   "& svg": { width: "[14px !important]", height: "[14px !important]" },
@@ -189,7 +200,7 @@ const HoverCopyId = ({
   };
   return (
     <span className={hoverWrapStyle} data-take={take} data-run-id-mono="a" data-run-id-copy={take}>
-      <span style={style}>{text}</span>
+      <span style={{ ...style, fontSize: "inherit", fontWeight: "inherit" }}>{text}</span>
       <Tooltip content={copied ? "Copied" : "Copy run ID"} position="top" openDelay="fast">
         <button
           type="button"

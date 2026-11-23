@@ -630,14 +630,14 @@ const RunLikeSwitch = ({
                       <span className={menuRowStyle}>
                         <span
                           aria-hidden
-                          className={css({ width: "[14px]", flexShrink: 0 })}
+                          className={css({ width: "[16px]", flexShrink: 0 })}
                         />
                         <span className={current === null ? selectedLabelStyle : undefined}>
                           All suppliers
                         </span>
+                        <span className={menuTimeStyle}>{`${total}`}</span>
                       </span>
                     ),
-                    suffix: <span className={menuTimeStyle}>{`${total}`}</span>,
                     selected: current === null,
                     selectedStyle: "highlight" as const,
                     onClick: () => pick(null),
@@ -661,11 +661,6 @@ const RunLikeSwitch = ({
                       </span>
                     </span>
                   ),
-                  suffix: itemWord[stateOf(index)] ? (
-                    <span className={menuTimeStyle}>
-                      {itemWord[stateOf(index)]}
-                    </span>
-                  ) : undefined,
                   selected: current === index,
                   selectedStyle: "highlight" as const,
                   onClick: () => pick(index),
