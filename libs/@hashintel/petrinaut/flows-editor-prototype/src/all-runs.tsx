@@ -352,10 +352,6 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
     observer.observe(box);
     return () => observer.disconnect();
   }, []);
-  const counts = (value: Tab) =>
-    value === "all"
-      ? runs.length
-      : runs.filter((run) => tabOf[outcomeOf(run, now)] === value).length;
   // Within a group a run matches any picked choice; across groups it matches every group with a pick.
   const filterGroups = ["status", "trigger", "by"].map((group) =>
     filters.filter((key) => key.startsWith(`${group}:`)),
@@ -383,16 +379,25 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
       key,
       flipped: current.key === key ? !current.flipped : false,
     }));
+  // The filter and the search, without the tab: the tab counts follow them, as on the Triggers page.
+  const passesFilterAndSearch = (run: RunRecord) =>
+    (oldLogsFilter ? passesFilters(run) : passesChips(chips, run, now)) &&
+    (colsTake
+      ? `${runId(run, tableIdTake())} ${run.when} ${triggerLabel(run).row} ${webOf(run)}`
+      : `Run ${run.id} ${runLabel(run)} ${run.when} ${triggerLabel(run).row}`)
+      .toLowerCase()
+      .includes(search.trim().toLowerCase());
+  const counts = (value: Tab) =>
+    runs.filter(
+      (run) =>
+        (value === "all" || tabOf[outcomeOf(run, now)] === value) &&
+        passesFilterAndSearch(run),
+    ).length;
   const matching = runs
     .filter(
       (run) =>
         (tab === "all" || tabOf[outcomeOf(run, now)] === tab) &&
-        (oldLogsFilter ? passesFilters(run) : passesChips(chips, run, now)) &&
-        (colsTake
-          ? `${runId(run, tableIdTake())} ${run.when} ${triggerLabel(run).row} ${webOf(run)}`
-          : `Run ${run.id} ${runLabel(run)} ${run.when} ${triggerLabel(run).row}`)
-          .toLowerCase()
-          .includes(search.trim().toLowerCase()),
+        passesFilterAndSearch(run),
     )
     // Newest, longest or failed first; a tie keeps the newest run on top.
     .toSorted(
@@ -827,7 +832,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                 </td>
               </tr>
             ))}
-            {shown.length === 0 && applied > 0 ? (
+            {shown.length === 0 && (applied > 0 || search.trim() !== "") ? (
               <tr data-runs-empty>
                 <td
                   colSpan={colsTake ? 9 : statusTake === "c" ? 7 : 6}

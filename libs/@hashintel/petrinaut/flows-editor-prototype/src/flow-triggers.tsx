@@ -495,10 +495,10 @@ export const clearPendingTriggerOpen = () => {
 };
 
 /** The pencil on an open row: the Triggers page for this flow, the trigger's row open in its edit form. */
-const editOnPage = (rowId: string | undefined) => {
+const editOnPage = (rowId: string | undefined, kind: FlowTrigger["kind"] = "schedule") => {
   const route = parseRoute(globalThis.location.pathname, globalThis.location.search);
   if (route.page === "editor") {
-    pendingFilter = { flowId: route.flowId, kind: "schedule" };
+    pendingFilter = { flowId: route.flowId, kind };
   }
   pendingOpen = rowId ?? null;
   openTriggersPage();
@@ -806,7 +806,7 @@ const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
  * The Triggers panel at 1,000 (`?triggerscale=panel`, Q4, Figma 1229:664 and 1229:820)
  * ------------------------------------------------------------------------------------------------------------- */
 
-type ScaleRow = {
+export type ScaleRow = {
   id: string;
   kind: FlowTrigger["kind"] | "manual";
   label: string;
@@ -821,7 +821,7 @@ const scaleTotals = {
   responsive: { on: 1240, paused: 44 },
 } as const;
 
-const scaleSchedules: ScaleRow[] = [
+export const scaleSchedules: ScaleRow[] = [
   ["Every weekday at 07:00", true],
   ["Every Monday at 08:00", true],
   ["1st of every month at 09:00", true],
@@ -832,10 +832,10 @@ const scaleSchedules: ScaleRow[] = [
   ["Every Wednesday at 12:00", true],
   ["Every Thursday at 16:00", true],
   ["15th of every month at 09:00", true],
-  ["Last day of every month at 17:00", false],
+  ["Last Friday of every month at 17:00", false],
   ["Every Saturday at 10:00", true],
   ["Every Sunday at 20:00", true],
-  ["1st of every quarter at 08:00", true],
+  ["1st of every 3 months at 08:00", true],
 ].map(([label, on], index) => ({
   id: `schedule-${index}`,
   kind: "schedule" as const,
@@ -843,7 +843,7 @@ const scaleSchedules: ScaleRow[] = [
   on: Boolean(on),
 }));
 
-const scaleResponsive: ScaleRow[] = [
+export const scaleResponsive: ScaleRow[] = [
   ["When a Certificate is created", "@hash", true],
   ["When a Contract is created", "@legal", true],
   ["When an Invoice is updated", "@acme", true],
@@ -895,9 +895,31 @@ const filterOld =
   "old";
 
 /** MOCK: the page's trigger a panel row stands for, so the pencil can open it; the other sample rows have none. */
-const pageTriggerOf: Record<string, string> = {
+const pageIdsByLabel: Record<string, string> = {
   "Every Monday at 08:00": "monday",
   "1st of every month at 09:00": "monthly",
+  "When a Supplier is created": "supplierCreated",
+};
+
+/** The Triggers page's row for a panel row: the page lists every sample row under the same id. */
+export const pageIdOfScaleRow = (row: ScaleRow) => pageIdsByLabel[row.label] ?? row.id;
+
+/** MOCK: the name each sample schedule carries on the Triggers page (a schedule's Name is required). */
+export const scheduleNameOf: Record<string, string> = {
+  "Every weekday at 07:00": "Weekday morning check",
+  "Every Monday at 08:00": "Monthly supplier check",
+  "1st of every month at 09:00": "Month start review",
+  "Every Friday at 17:00": "Friday wrap-up",
+  "Every day at 06:00": "Overnight intake",
+  "Every day at 18:00": "Evening reconcile",
+  "Every Tuesday at 09:30": "Tuesday certificate sweep",
+  "Every Wednesday at 12:00": "Midweek supplier sync",
+  "Every Thursday at 16:00": "Thursday contract review",
+  "15th of every month at 09:00": "Mid-month invoice run",
+  "Last Friday of every month at 17:00": "Month-end close",
+  "Every Saturday at 10:00": "Weekend backlog",
+  "Every Sunday at 20:00": "Sunday planning digest",
+  "1st of every 3 months at 08:00": "Quarterly audit",
 };
 
 /** MOCK: the eight read-only lines of an open schedule row. */
@@ -919,7 +941,7 @@ const scheduleLines = (label: string): [string, string, boolean?][] => {
   };
   const hit = known[label];
   return [
-    ["Name", hit?.name ?? label],
+    ["Name", hit?.name ?? scheduleNameOf[label] ?? label],
     ["Repeat", hit?.repeat ?? repeat],
     ["At", at],
     ["Time zone", "London · GMT"],
@@ -1023,7 +1045,7 @@ const ScaleTriggerRow = ({
         aria-label="Edit trigger"
         onClick={(event) => {
           event.stopPropagation();
-          editOnPage(pageTriggerOf[row.label]);
+          editOnPage(pageIdOfScaleRow(row), row.kind === "responsive" ? "responsive" : "schedule");
         }}
       >
         <Pencil size={12} strokeWidth={iconStroke} aria-hidden />
@@ -1252,7 +1274,10 @@ const TriggersPanelAtScale = () => {
                         onToggle: () =>
                           setOpenRow(openRow === row.id ? null : row.id),
                       }
-                    : {})}
+                    : {
+                        // A responsive row has no form in the panel: it opens its row on the Triggers page.
+                        onToggle: () => editOnPage(pageIdOfScaleRow(row), "responsive"),
+                      })}
                 />
               ))}
               {term === "" && group.total > rows.length ? (

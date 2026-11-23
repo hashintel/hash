@@ -48,10 +48,16 @@ import {
   clearPendingTriggerFilter,
   clearPendingTriggerOpen,
   flowTriggersOf,
+  pageIdOfScaleRow,
   pendingTriggerAdd,
   pendingTriggerFilter,
   pendingTriggerOpen,
+  scaleResponsive,
+  scaleSchedules,
+  scheduleNameOf,
 } from "./flow-triggers";
+import { ShowAllRow } from "./show-all-row";
+import { formatCount } from "./trigger-flags";
 import { HashShell } from "./hash-shell";
 import { InputControl, isFilled } from "./run-dialogs";
 import {
@@ -189,6 +195,8 @@ type PageTrigger = Values & {
   latest?: string;
   /** "Failed to activate" outranks on and off. */
   failed?: boolean;
+  /** One short reason, shown after "Failed to activate:". */
+  failedReason?: string;
   /** "Mon 9 Nov at 08:00": named in the confirm before a schedule is turned off. */
   nextRun?: string;
 };
@@ -257,13 +265,151 @@ const blank: Omit<Values, "flowId"> = {
   event: "Is created",
 };
 
-const supplierReview = (): { flow: PageFlow; triggers: PageTrigger[] } => {
+/** MOCK: a schedule's rule from the words the Triggers panel's sample rows use, so every one opens its own form. */
+const sampleScheduleOf = (label: string): ScheduleValues => {
+  const at = label.split(" at ")[1] ?? "09:00";
+  const week = (days: number[]): ScheduleValues["rule"] => ({
+    ...mockSchedule.rule,
+    unit: "week",
+    days,
+  });
+  const make = (startIso: string, rule: ScheduleValues["rule"]): ScheduleValues => ({
+    ...mockSchedule,
+    startIso,
+    at,
+    rule,
+  });
+  const weekdayStart = (day: number) => `2026-11-${String(9 + day).padStart(2, "0")}`;
+  if (label.startsWith("Every weekday")) {
+    return make(weekdayStart(0), week([0, 1, 2, 3, 4]));
+  }
+  if (label.startsWith("Every day")) {
+    return make(weekdayStart(0), { ...mockSchedule.rule, unit: "day", days: [] });
+  }
+  const dayIndex = dayNames.findIndex((name) => label.startsWith(`Every ${name}`));
+  if (dayIndex >= 0) {
+    return make(weekdayStart(dayIndex), week([dayIndex]));
+  }
+  if (label.startsWith("Last Friday")) {
+    return make("2026-11-27", { ...mockSchedule.rule, unit: "month", monthly: "last", days: [4] });
+  }
+  if (label.startsWith("1st of every 3 months")) {
+    return make("2026-12-01", { ...mockSchedule.rule, unit: "month", every: 3, monthly: "date", days: [] });
+  }
+  return make(label.startsWith("15th") ? "2026-11-15" : "2026-11-01", {
+    ...mockSchedule.rule,
+    unit: "month",
+    monthly: "date",
+    days: [],
+  });
+};
+
+const sampleEntityTypes = [
+  "Certificate",
+  "Contract",
+  "Invoice",
+  "Payment",
+  "Order",
+  "Shipment",
+  "Delivery note",
+  "Purchase order",
+  "Audit",
+  "Incident",
+  "Supplier",
+];
+const sampleEvents = ["created", "updated", "archived"];
+const sampleWebs = ["@acme", "@hash", "@legal", "@ops", "@aakarsh"];
+
+/** MOCK: the flow's responsive triggers past the panel's sample: 1,284 in all, 44 of them paused. */
+const responsiveTotal = 1284;
+
+const sampleResponsive = (index: number): { label: string; web: string; on: boolean } => {
+  const listed = scaleResponsive[index];
+  if (listed) {
+    return { label: listed.label, web: listed.web ?? blank.web, on: listed.on };
+  }
+  const at = index - scaleResponsive.length;
+  const type = sampleEntityTypes[at % sampleEntityTypes.length]!;
+  const event = sampleEvents[Math.floor(at / sampleEntityTypes.length) % sampleEvents.length]!;
+  const article = /^[AEIOU]/.test(type) ? "an" : "a";
+  return {
+    label: `When ${article} ${type} is ${event}`,
+    web: sampleWebs[(at * 7 + Math.floor(at / 11)) % sampleWebs.length]!,
+    // 41 paused among the 1,268 past the sample, with the sample's 3: 44 in all.
+    on: at % 31 !== 0,
+  };
+};
+
+const supplierReview = (): {
+  flow: PageFlow;
+  triggers: PageTrigger[];
+  on: Record<string, boolean>;
+} => {
   const source = flowTriggersOf(emptyDocument("Monthly supplier review"));
   const detail = (
     item: (typeof source.items)[number],
     label: string,
   ): { value: string; link?: string } | undefined =>
     item.details.find((candidate) => candidate.label === label);
+  const own = source.items.map((item) => ({
+    ...blank,
+    ...supplierReviewForm[item.id],
+    ...(defaultSchedulePage() && defaultSchedules[item.id]
+      ? { schedule: defaultSchedules[item.id] }
+      : {}),
+    flowId: monthlyReviewId,
+    id: item.id,
+    kind: item.kind,
+    label: item.label,
+    web: detail(item, "Web")?.value ?? blank.web,
+    version: detail(item, "Flow version")?.value ?? "v5",
+    latest: detail(item, "Flow version")?.link?.replace("→ ", ""),
+    nextRun: detail(item, "Next run")?.value.replace(", ", " at "),
+  }));
+  const on: Record<string, boolean> = {};
+  const schedules: PageTrigger[] = scaleSchedules.map((row) => {
+    const pageId = pageIdOfScaleRow(row);
+    const known = own.find((trigger) => trigger.id === pageId);
+    if (known) {
+      return known;
+    }
+    const schedule = sampleScheduleOf(row.label);
+    on[pageId] = row.on;
+    return {
+      ...blank,
+      flowId: monthlyReviewId,
+      id: pageId,
+      kind: "schedule",
+      label: row.label,
+      name: scheduleNameOf[row.label],
+      repeat: ruleWords(schedule.rule, schedule.startIso),
+      at: schedule.at,
+      ...(defaultSchedulePage() ? { schedule } : {}),
+      version: "v5",
+    };
+  });
+  const responsive: PageTrigger[] = Array.from({ length: responsiveTotal }, (_, index) => {
+    const sample = sampleResponsive(index);
+    const listedId = scaleResponsive[index] ? pageIdOfScaleRow(scaleResponsive[index]!) : `responsive-${index}`;
+    const known = own.find((trigger) => trigger.id === listedId);
+    if (known) {
+      return known;
+    }
+    on[listedId] = sample.on;
+    return {
+      ...blank,
+      ...supplierReviewForm.supplierCreated,
+      flowId: monthlyReviewId,
+      id: listedId,
+      kind: "responsive",
+      label: sample.label,
+      entityType: sample.label.replace(/^When an? /, "").replace(/ is .*$/, ""),
+      event: `Is ${sample.label.replace(/^.* is /, "")}`,
+      web: sample.web,
+      version: "v5",
+    };
+  });
+  const triggers = [...schedules, ...responsive];
   return {
     flow: {
       id: monthlyReviewId,
@@ -272,21 +418,8 @@ const supplierReview = (): { flow: PageFlow; triggers: PageTrigger[] } => {
       manual: source.manual,
       hidden: source.hidden,
     },
-    triggers: source.items.map((item) => ({
-      ...blank,
-      ...supplierReviewForm[item.id],
-      ...(defaultSchedulePage() && defaultSchedules[item.id]
-        ? { schedule: defaultSchedules[item.id] }
-        : {}),
-      flowId: monthlyReviewId,
-      id: item.id,
-      kind: item.kind,
-      label: item.label,
-      web: detail(item, "Web")?.value ?? blank.web,
-      version: detail(item, "Flow version")?.value ?? "v5",
-      latest: detail(item, "Flow version")?.link?.replace("→ ", ""),
-      nextRun: detail(item, "Next run")?.value.replace(", ", " at "),
-    })),
+    triggers,
+    on,
   };
 };
 
@@ -342,9 +475,11 @@ const seed = () => {
       web: "@aakarsh",
       version: "v3",
       failed: true,
+      failedReason: "Supplier type deleted",
     },
   ];
   const on: Record<string, boolean> = {
+    ...review.on,
     monthly: true,
     monday: true,
     supplierCreated: false,
@@ -372,7 +507,13 @@ const groups: { kind: Kind; label: string }[] = [
 ];
 
 const statusText = (trigger: PageTrigger, on: boolean) =>
-  trigger.failed ? "Failed to activate" : on ? "On" : "Paused";
+  trigger.failed
+    ? trigger.failedReason
+      ? `Failed to activate: ${trigger.failedReason}`
+      : "Failed to activate"
+    : on
+      ? "On"
+      : "Paused";
 
 const metaOf = (trigger: PageTrigger) => `${trigger.web} · ${trigger.version}`;
 
@@ -463,6 +604,7 @@ const FailedDot = () => (
     className={css({
       width: "[6px]",
       height: "[6px]",
+      flexShrink: 0,
       borderRadius: "full",
       backgroundColor: "red.s50",
     })}
@@ -474,16 +616,22 @@ const Status = ({ trigger, on }: { trigger: PageTrigger; on: boolean }) => (
   <span
     className={css({
       display: "inline-flex",
-      alignItems: "center",
+      alignItems: "flex-start",
       gap: "1.5",
-      flexShrink: 0,
+      minWidth: 0,
+      maxWidth: "100%",
       textStyle: "sm",
       color: "neutral.fg.muted",
-      whiteSpace: "nowrap",
     })}
   >
-    {trigger.failed ? <FailedDot /> : null}
-    {statusText(trigger, on)}
+    {trigger.failed ? (
+      <span className={css({ display: "flex", marginTop: "[7px]" })}>
+        <FailedDot />
+      </span>
+    ) : null}
+    <span className={css({ minWidth: 0, maxWidth: "[340px]", whiteSpace: "normal" })}>
+      {statusText(trigger, on)}
+    </span>
   </span>
 );
 
@@ -1253,6 +1401,26 @@ const TriggerForm = ({
           </>
         ) : (
           <>
+            {defaultSchedulePage() ? (
+              <>
+                <span className="label">Name</span>
+                <TextInput
+                  size="sm"
+                  aria-label="Name"
+                  placeholder="Supplier intake"
+                  value={values.name ?? ""}
+                  onChange={(value) =>
+                    setValues((current) => ({ ...current, name: value }))
+                  }
+                  onBlur={() => {
+                    // Renaming can't empty a saved name: the previous one comes back.
+                    if (trigger?.name && !values.name?.trim()) {
+                      setValues((current) => ({ ...current, name: trigger.name }));
+                    }
+                  }}
+                />
+              </>
+            ) : null}
             <span className="label">Entity type</span>
             <Select
               required
@@ -2134,6 +2302,7 @@ const Take2 = ({
     clearPendingTriggerFilter();
   }, []);
   const [savedToast, setSavedToast] = useState(false);
+  const [showAllRows, setShowAllRows] = useState(false);
   const [tab, setTab] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<{ key: TriggerSortKey | null; flipped: boolean }>({
     key: null,
@@ -2189,7 +2358,9 @@ const Take2 = ({
   };
   const matching = rows.filter(
     (row) =>
-      labelOf(row).toLowerCase().includes(search.trim().toLowerCase()) &&
+      `${labelOf(row)} ${row.kind === "trigger" ? (row.trigger.name ?? "") : ""}`
+        .toLowerCase()
+        .includes(search.trim().toLowerCase()) &&
       passesChips(row),
   );
   const isOn = (row: Row) => page.on[row.id] ?? false;
@@ -2225,6 +2396,14 @@ const Take2 = ({
       return (sort.flipped ? -order : order) || left.index - right.index;
     })
     .map(({ row }) => row);
+  // A long list shows what fills the page, then the table's own "Show all N triggers" row; a search, or a row
+  // opened from the editor's panel, shows its row whatever the cap.
+  const rowLimit = 15;
+  const openedAt = shown.findIndex((row) => row.id === page.opened);
+  const visibleRows =
+    showAllRows || search.trim() !== ""
+      ? shown
+      : shown.slice(0, Math.max(rowLimit, openedAt + 1));
   const flowChip = chips.find(
     (chip) =>
       chip.property === "flow" &&
@@ -2288,7 +2467,7 @@ const Take2 = ({
               ...item,
               count: (
                 <span className={css({ color: "neutral.fg.muted" })}>
-                  {counts(item.value)}
+                  {formatCount(counts(item.value))}
                 </span>
               ),
             }))}
@@ -2427,7 +2606,7 @@ const Take2 = ({
                 </td>
               </tr>
             ) : null}
-            {shown.map((row) => {
+            {visibleRows.map((row) => {
               const open = page.opened === row.id;
               const on = page.on[row.id] ?? false;
               return [
@@ -2537,6 +2716,13 @@ const Take2 = ({
             })}
           </tbody>
         </Table>
+        {shown.length > visibleRows.length ? (
+          <ShowAllRow
+            total={formatCount(shown.length)}
+            noun="triggers"
+            onClick={() => setShowAllRows(true)}
+          />
+        ) : null}
         <LockLine count={hidden} />
       </div>
     </main>
