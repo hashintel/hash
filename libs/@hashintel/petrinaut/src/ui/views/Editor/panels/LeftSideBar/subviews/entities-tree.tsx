@@ -1,7 +1,7 @@
 import { Button } from "@hashintel/ds-components";
 
 import { useEditorActions } from "../../../../../../react/state/editor-context";
-import { ShortcutTooltip } from "../../../../../keyboard-shortcut";
+import { ShortcutTooltip } from "../../../../../shared/keyboard-shortcut";
 import { EntityList } from "./entities-tree/entity-list";
 import { useEntityTreeItems } from "./entities-tree/use-entity-tree-items";
 

@@ -1,6 +1,6 @@
 import { cva } from "@hashintel/ds-helpers/css";
 
-import { ShortcutTooltip } from "../../../../keyboard-shortcut";
+import { ShortcutTooltip } from "../../../../shared/keyboard-shortcut";
 
 import type { CSSProperties, ReactNode, Ref } from "react";
 

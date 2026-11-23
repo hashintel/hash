@@ -5,7 +5,7 @@ import {
   useEditorActions,
   useEditorFields,
 } from "../../../../../react/state/editor-context";
-import { KeyboardShortcut } from "../../../../keyboard-shortcut";
+import { KeyboardShortcut } from "../../../../shared/keyboard-shortcut";
 import { ToolbarMenuTrigger } from "./toolbar-menu-trigger";
 
 /** Picks between the select and pan cursors, and returns to cursor mode. */

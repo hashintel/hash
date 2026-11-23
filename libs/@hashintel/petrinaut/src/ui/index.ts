@@ -9,7 +9,7 @@
  * @role The visual editor: canvas, panels, dialogs and the Monaco integration
  */
 
-export { KeyboardShortcut } from "./keyboard-shortcut";
+export { KeyboardShortcut } from "./shared/keyboard-shortcut";
 export { Petrinaut } from "./petrinaut";
 
 // The user guide's pages, so an assistant's tools can answer with them.
