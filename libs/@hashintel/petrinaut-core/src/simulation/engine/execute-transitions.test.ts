@@ -4,15 +4,15 @@ import { describe, expect, it } from "vitest";
 
 import { StringPool } from "../../tokens/string-pool";
 import {
-  decodePlaceTokens,
-  makeTestFrame,
-  type TestFrame,
-} from "../../tokens/token-layout.test-helpers";
-import {
   createEngineFrameLayout,
   materializeEngineFrame,
   type EngineFrameSnapshot,
 } from "../frames/internal-frame";
+import {
+  decodePlaceTokens,
+  makeTestFrame,
+  type TestFrame,
+} from "../frames/internal-frame.test-helpers";
 import { makeCompiledTransition } from "./compiled-transition.test-helpers";
 import { executeTransitions as executeEngineTransitions } from "./execute-transitions";
 

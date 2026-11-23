@@ -5,13 +5,13 @@ import { describe, expect, it } from "vitest";
 import { compileHirArtifacts } from "../../hir";
 import { instantiateHirBufferKernel } from "../../hir-runtime";
 import { StringPool } from "../../tokens/string-pool";
+import { formatUuid, parseUuid, toUuid } from "../../tokens/uuid";
+import { createEngineFrameLayout } from "../frames/internal-frame";
 import {
   decodeTokenBlock,
   makeTestFrame,
   type TestFrame,
-} from "../../tokens/token-layout.test-helpers";
-import { formatUuid, parseUuid, toUuid } from "../../tokens/uuid";
-import { createEngineFrameLayout } from "../frames/internal-frame";
+} from "../frames/internal-frame.test-helpers";
 import { makeCompiledTransition } from "./compiled-transition.test-helpers";
 import { computePossibleTransition as computePossibleTransitionImpl } from "./compute-possible-transition";
 import { nextRandom } from "./seeded-rng";

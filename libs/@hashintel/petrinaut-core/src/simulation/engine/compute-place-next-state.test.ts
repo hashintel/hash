@@ -6,7 +6,7 @@ import {
   decodeTokenBlock,
   realElements,
   type ColorElement,
-} from "../../tokens/token-layout.test-helpers";
+} from "../frames/internal-frame.test-helpers";
 import { computePlaceNextState } from "./compute-place-next-state";
 
 import type { TokenRecord } from "../../types/sdcpn";

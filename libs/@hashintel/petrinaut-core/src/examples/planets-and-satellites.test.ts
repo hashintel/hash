@@ -5,7 +5,7 @@ import { lowerScenarioToHir } from "../hir/scenario";
 import { compileScenario } from "../simulation/authoring/scenario/compile-scenario";
 import { buildSimulation } from "../simulation/engine/build-simulation";
 import { computeNextFrame } from "../simulation/engine/compute-next-frame";
-import { decodePlaceTokens } from "../tokens/token-layout.test-helpers";
+import { decodePlaceTokens } from "../simulation/frames/internal-frame.test-helpers";
 import { planetsAndSatellites } from "./planets-and-satellites";
 
 import type { SimulationInstance } from "../simulation/engine/types";

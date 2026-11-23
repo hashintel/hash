@@ -2,6 +2,14 @@
  * Test helpers for building engine frames from readable token
  * record fixtures. Not shipped — only imported from `*.test.ts` files.
  */
+
+import {
+  computeTokenSlotLayout,
+  createTokenRegionViews,
+  encodeTokenToBytes,
+  readTokenRecord,
+  type TokenSlotLayout,
+} from "../../tokens/token-layout";
 import {
   createEngineFrame,
   createEngineFrameLayout,
@@ -9,18 +17,11 @@ import {
   type EngineFrame,
   type EngineFrameLayout,
   type EngineFrameSnapshot,
-} from "../simulation/frames/internal-frame";
-import {
-  computeTokenSlotLayout,
-  createTokenRegionViews,
-  encodeTokenToBytes,
-  readTokenRecord,
-  type TokenSlotLayout,
-} from "./token-layout";
+} from "./internal-frame";
 
-import type { SimulationTransitionState } from "../simulation/frames/transition-state";
-import type { Color, ID, TokenRecord, Transition } from "../types/sdcpn";
-import type { StringPool } from "./string-pool";
+import type { StringPool } from "../../tokens/string-pool";
+import type { Color, ID, TokenRecord, Transition } from "../../types/sdcpn";
+import type { SimulationTransitionState } from "./transition-state";
 
 export type ColorElement = Color["elements"][number];
 
