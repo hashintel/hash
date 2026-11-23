@@ -278,6 +278,22 @@ const TriggersPage: NextPageWithLayout = () => {
                       value={{ sortKey: sort.key, direction: sort.direction }}
                       onChange={(key, direction) => setSort({ key, direction })}
                       position="bottom-end"
+                      /* Labelled "Sort" as in the design; the headers show the sorted column. */
+                      renderTrigger={(sorter, direction) => (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          tone="neutral"
+                          iconName="sortDown"
+                          aria-label={
+                            sorter && direction
+                              ? `Sort by ${sorter.name}, ${direction.toLowerCase()}`
+                              : "Sort"
+                          }
+                        >
+                          Sort
+                        </Button>
+                      )}
                     />
                     <AddTriggerFilter
                       properties={filterProperties}

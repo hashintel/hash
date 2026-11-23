@@ -13,7 +13,7 @@ export type TriggerColumn = Sorter<FlowTriggerSortKey> & {
   className?: string;
 };
 
-/* The design's fill and lines have no semantic tokens, so the palette's are used. */
+/* The design's header fill has no semantic token, so the palette's is used. */
 const table = css({
   width: "full",
   /* So that the columns keep their widths as tabs and filters change the rows. */
@@ -30,7 +30,7 @@ const table = css({
     bg: "neutral.s20",
     borderBottomWidth: "1px",
     borderBottomStyle: "solid",
-    borderBottomColor: "neutral.s30",
+    borderBottomColor: "bd.subtle",
   },
   "& td": {
     height: "12",
@@ -39,7 +39,7 @@ const table = css({
     color: "fg.subtle",
     borderBottomWidth: "1px",
     borderBottomStyle: "solid",
-    borderBottomColor: "neutral.s30",
+    borderBottomColor: "bd.subtle",
   },
   "& th:first-child, & td:first-child": { pl: "6" },
 });
