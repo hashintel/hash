@@ -589,7 +589,10 @@ it("keeps a section's panel at its collapsed height when it is expanded on its w
   );
   expect(animations.length).toBeGreaterThan(0);
   view.rerender(
-    <Harness codeCollapsed={false} navigation={{ state: filled, onNavigate }} />,
+    <Harness
+      codeCollapsed={false}
+      navigation={{ state: filled, onNavigate }}
+    />,
   );
   expect(collapsedMaxSize()).toBe(collapsed);
 
