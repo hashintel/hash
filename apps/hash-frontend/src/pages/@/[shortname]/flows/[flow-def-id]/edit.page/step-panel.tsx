@@ -17,6 +17,7 @@ import {
 import { StepIconTile } from "./shared/step-icon-tile";
 import { getStepPaths } from "./shared/step-paths";
 import { indexValueUses } from "./shared/value-uses";
+import { AggregationField } from "./step-panel/aggregation-field";
 import { ConditionField } from "./step-panel/condition-field";
 import { getFieldProblems } from "./step-panel/field-problems";
 import { FlowInputCard } from "./step-panel/flow-input-card";
@@ -25,6 +26,7 @@ import { getNewFlowInput } from "./step-panel/input-sources";
 import { OutputField } from "./step-panel/output-field";
 import { PathsField } from "./step-panel/paths-field";
 import { QueryField } from "./step-panel/query-field";
+import { SortKeyField } from "./step-panel/sort-key-field";
 
 import type { StepTone } from "./shared/step-display";
 import type { FlowValue, ValueUse } from "./shared/value-uses";
@@ -47,13 +49,17 @@ type UsesOf = (value: FlowValue) => ValueUse[];
 const takesKind = (input: InputDefinition, kind: PayloadKind) =>
   "oneOfPayloadKinds" in input && input.oneOfPayloadKinds.includes(kind);
 
-/** The field for an input: a builder for a query or a condition, otherwise a menu of values. */
+/** The field for an input: a builder for a query, a condition, a sort or an aggregation, otherwise a menu of values. */
 const getFieldFor = (input: InputDefinition) =>
   takesKind(input, "EntityQuery")
     ? QueryField
     : takesKind(input, "FilterCondition")
       ? ConditionField
-      : InputField;
+      : takesKind(input, "SortKey")
+        ? SortKeyField
+        : takesKind(input, "Aggregation")
+          ? AggregationField
+          : InputField;
 
 /** What the panel shows: the start step, or one step at any depth. */
 export type StepPanelSubject = { start: true } | { stepId: string };
