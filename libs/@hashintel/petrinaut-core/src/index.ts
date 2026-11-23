@@ -851,7 +851,7 @@ export {
   parseAdHocDocumentUri,
   parseConstraintDocumentUri,
   parseDocumentUri,
-} from "./lsp/lib/document-uris";
+} from "./lsp/document-uris";
 
 export {
   visualizerSvgTag,

@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { buildMetricContext, buildScenarioExpressionContext } from "../../hir";
 import { getHirDiagnosticsForItem } from "./check-hir";
 import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
+import { createSDCPN } from "./create-sdcpn.test-helpers";
 import { getItemFilePath } from "./file-paths";
 import { generateConstraintSessionFiles } from "./generate-virtual-files";
-import { createSDCPN } from "./helper/create-sdcpn";
 
 import type { ScenarioParameter } from "../../types/sdcpn";
 import type { ConstraintSessionData } from "./generate-virtual-files";

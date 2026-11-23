@@ -1,6 +1,6 @@
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 
-import { parseDocumentUri } from "./lib/document-uris";
+import { parseDocumentUri } from "./document-uris";
 import {
   createWorkerLspTransport,
   type LspTransport,

@@ -1,3 +1,14 @@
+/**
+ * @layerRoot core.lsp.service
+ * @role Type-checks the code of a net in in-memory TypeScript language services over virtual files, and adds the HIR checks. Runs in the LSP worker and in Node
+ *
+ * `generate-virtual-files.ts` turns a net into the files the services read,
+ * this file holds the two programs and syncs them to the net, and
+ * `checker.ts` collects their diagnostics together with the HIR checks of
+ * `check-hir.ts`. The worker in `../worker` serves the service over JSON-RPC;
+ * the `diagnostics` package entry calls it directly, without a worker.
+ */
+
 import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
 import { VisualizerLanguageServer } from "./create-visualizer-language-service";
 import { parsePlaceVisualizerCodeFilePath } from "./file-paths";

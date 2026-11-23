@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
+import { createSDCPN } from "./create-sdcpn.test-helpers";
 import { getItemFilePath } from "./file-paths";
-import { createSDCPN } from "./helper/create-sdcpn";
 
 /** Cursor marker used in test code strings to indicate the completion position. */
 const CURSOR = "∫";

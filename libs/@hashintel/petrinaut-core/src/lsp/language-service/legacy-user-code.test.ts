@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver-types";
 
 import { checkSDCPN } from "./checker";
+import { createSDCPN } from "./create-sdcpn.test-helpers";
 import { getItemFilePath } from "./file-paths";
-import { createSDCPN } from "./helper/create-sdcpn";
 import {
   createLanguageServers,
   disposeLanguageServers,

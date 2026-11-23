@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
+import { createSDCPN } from "./create-sdcpn.test-helpers";
 import { getItemFilePath } from "./file-paths";
-import { createSDCPN } from "./helper/create-sdcpn";
 
 import type { ScenarioSessionData } from "./generate-virtual-files";
 

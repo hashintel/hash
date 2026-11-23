@@ -7,9 +7,9 @@ import {
   supplyChainProfit,
   supplyChainWithDisruption,
 } from "../../examples";
+import { createSDCPN } from "./create-sdcpn.test-helpers";
 import { VisualizerLanguageServer } from "./create-visualizer-language-service";
 import { getItemFilePath } from "./file-paths";
-import { createSDCPN } from "./helper/create-sdcpn";
 
 import type { SDCPN } from "../../types/sdcpn";
 

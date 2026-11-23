@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { adHocSlotKey } from "../../scenario/ad-hoc/ad-hoc-scenario";
 import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
+import { createSDCPN } from "./create-sdcpn.test-helpers";
 import { getItemFilePath } from "./file-paths";
-import { createSDCPN } from "./helper/create-sdcpn";
 
 import type {
   AdHocScenarioState,

@@ -3,12 +3,12 @@
 // browser so a host or test can ask whether a definition compiles cleanly.
 // Kept separate from the main entry because it loads the TypeScript compiler.
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "./extensions/extensions";
-import { checkSDCPN } from "./lsp/lib/checker";
+import { checkSDCPN } from "./lsp/language-service/checker";
 import {
   createLanguageServers,
   disposeLanguageServers,
   syncLanguageServers,
-} from "./lsp/lib/language-servers";
+} from "./lsp/language-service/language-servers";
 
 import type { PetrinautExtensionSettings } from "./extensions/extensions";
 import type { SDCPN } from "./types/sdcpn";
@@ -17,7 +17,7 @@ export type {
   ItemType as SDCPNDiagnosticItemType,
   SDCPNCheckResult,
   SDCPNDiagnostic,
-} from "./lsp/lib/checker";
+} from "./lsp/language-service/checker";
 
 /**
  * Type-check every code-bearing item of a definition, place visualizers

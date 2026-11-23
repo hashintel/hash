@@ -1,4 +1,4 @@
-import { getItemFilePath } from "./file-paths";
+import { getItemFilePath } from "./language-service/file-paths";
 
 /**
  * Single source of truth for mapping between:
@@ -6,7 +6,7 @@ import { getItemFilePath } from "./file-paths";
  * - Internal file paths (`/transitions/.../code.ts`) used by the TS LanguageService
  * - Item types + IDs used by the SDCPN domain model
  */
-import type { ItemType } from "./checker";
+import type { ItemType } from "./language-service/checker";
 
 // ---------------------------------------------------------------------------
 // Scenario item types

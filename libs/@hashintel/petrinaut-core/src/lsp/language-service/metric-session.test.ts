@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
+import { createSDCPN } from "./create-sdcpn.test-helpers";
 import { generateMetricSessionFiles } from "./generate-virtual-files";
-import { createSDCPN } from "./helper/create-sdcpn";
 
 import type { SDCPN } from "../../types/sdcpn";
 

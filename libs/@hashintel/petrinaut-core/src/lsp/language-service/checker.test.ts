@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../extensions/extensions";
 import { checkSDCPN } from "./checker";
-import { createSDCPN } from "./helper/create-sdcpn";
+import { createSDCPN } from "./create-sdcpn.test-helpers";
 import { createLanguageServers, syncLanguageServers } from "./language-servers";
 
 import type { PetrinautExtensionSettings } from "../../extensions/extensions";

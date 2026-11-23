@@ -6,7 +6,7 @@ import { toPetrinautId } from "../../document/petrinaut-id";
 import { createJsonDocHandle } from "../../handle";
 import { createPetrinaut } from "../../instance/instance";
 import { SOURCE_PREDICATE_IN_TIMED_NET_CODE } from "./check-net-timing";
-import { createSDCPN } from "./helper/create-sdcpn";
+import { createSDCPN } from "./create-sdcpn.test-helpers";
 
 import type { SDCPN } from "../../types/sdcpn";
 
