@@ -21,7 +21,7 @@ import { ActiveNetContext } from "../../../../../../../react/document/active-net
 import { PetrinautInstanceContext } from "../../../../../../../react/document/instance-context";
 import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
-import { CodeNavigationProvider } from "../../../../../../monaco/code-navigation";
+import { CodeNavigationProvider } from "../../../../editor-view/code-navigation-provider";
 import { PlacePropertiesContext } from "../context";
 import { PlaceMainContent } from "./main";
 

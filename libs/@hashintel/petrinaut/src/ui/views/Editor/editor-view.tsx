@@ -14,7 +14,6 @@ import {
   useEditorMode,
 } from "../../../react/state/editor-context";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
-import { CodeNavigationProvider } from "../../monaco/code-navigation";
 import { useAssistantChoice } from "../../plugins/plugin-assistant";
 import { useCanvasRegistration } from "../../plugins/plugin-editor";
 import { PluginRoots } from "../../plugins/plugin-outlets";
@@ -24,6 +23,7 @@ import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { PetrinautIconProvider } from "../shared/icon-provider";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { TopBar } from "./components/TopBar/top-bar";
+import { CodeNavigationProvider } from "./editor-view/code-navigation-provider";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
 import {
   AssistantCommands,

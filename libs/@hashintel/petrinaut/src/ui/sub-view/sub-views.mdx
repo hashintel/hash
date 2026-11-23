@@ -65,4 +65,4 @@ A plugin's `bottomPanelViews` entry never becomes a `SubView`. `usePluginBottomP
 
 - A panel that builds a descriptor during render, as `PlaceProperties` does to add the place name to the title, must spread a constant from `sub-views.ts`. A descriptor with a component defined during render remounts that component on every render.
 - The `id` is the key of the saved collapse state and height. Renaming it discards what users saved.
-- `CodeNavigationProvider` in `ui/monaco/code-navigation.tsx` names three container names and four section ids as strings. After a rename of one of them, `open` from `useCodeNavigation` no longer expands the section, and no check reports it.
+- `CodeNavigationProvider` in `ui/views/Editor/editor-view/code-navigation-provider.tsx` names three container names and four section ids as strings. After a rename of one of them, `open` from `useCodeNavigation` no longer expands the section, and no check reports it.

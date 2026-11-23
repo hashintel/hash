@@ -6,16 +6,19 @@ import {
   getTransitionLogicAvailability,
 } from "@hashintel/petrinaut-core";
 
-import { ActiveNetContext } from "../../react/document/active-net-context";
-import { CompositionContext } from "../../react/document/composition-context";
-import { useSDCPNState } from "../../react/document/sdcpn-context";
-import { usePetrinautNavigate } from "../../react/navigation/navigation";
-import { useEditorActions } from "../../react/state/editor-context";
-import { useUserSettingsFields } from "../../react/state/user-settings-context";
-import { usePetrinautPresentation } from "../presentation/presentation-context";
-import { CodeNavigationContext } from "./code-navigation-context";
+import { ActiveNetContext } from "../../../../react/document/active-net-context";
+import { CompositionContext } from "../../../../react/document/composition-context";
+import { useSDCPNState } from "../../../../react/document/sdcpn-context";
+import { usePetrinautNavigate } from "../../../../react/navigation/navigation";
+import { useEditorActions } from "../../../../react/state/editor-context";
+import { useUserSettingsFields } from "../../../../react/state/user-settings-context";
+import { CodeNavigationContext } from "../../../monaco/code-navigation-context";
+import { usePetrinautPresentation } from "../../../presentation/presentation-context";
 
-import type { CodeEntry, CodeNavigation } from "./code-navigation-context";
+import type {
+  CodeEntry,
+  CodeNavigation,
+} from "../../../monaco/code-navigation-context";
 import type { PropsWithChildren } from "react";
 
 export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {

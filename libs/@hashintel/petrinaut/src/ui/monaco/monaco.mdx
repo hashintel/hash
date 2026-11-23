@@ -16,13 +16,13 @@ The Monaco layer wires the Monaco editor to the language server for authoring us
 
 ## Interface
 
-| Name                                 | Use it to                                                                                                                                                                         |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CodeEditor`                         | Edit one document. `path` names its URI, `value` and `onChange` carry the text.                                                                                                   |
-| `singleLine`, `onSubmit`, `onEscape` | Use the editor as a one-line expression input.                                                                                                                                    |
-| `mountSelection`                     | Say where the caret lands when the editor mounts.                                                                                                                                 |
-| `getDocumentUri`                     | Build the URI of a piece of user code, the same one the language server uses.                                                                                                     |
-| `useCodeNavigation`                  | Open the section that holds a piece of code and focus its editor. `EditorView` mounts its provider. Outside it, as in the preview, the hook returns a default that opens nothing. |
+| Name                                 | Use it to                                                                                                                                                                                                              |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CodeEditor`                         | Edit one document. `path` names its URI, `value` and `onChange` carry the text.                                                                                                                                        |
+| `singleLine`, `onSubmit`, `onEscape` | Use the editor as a one-line expression input.                                                                                                                                                                         |
+| `mountSelection`                     | Say where the caret lands when the editor mounts.                                                                                                                                                                      |
+| `getDocumentUri`                     | Build the URI of a piece of user code, the same one the language server uses.                                                                                                                                          |
+| `useCodeNavigation`                  | Open the section that holds a piece of code and focus its editor. `EditorView` mounts its provider, which is a file of the editor shell. Outside it, as in the preview, the hook returns a default that opens nothing. |
 
 ## Data flow
 

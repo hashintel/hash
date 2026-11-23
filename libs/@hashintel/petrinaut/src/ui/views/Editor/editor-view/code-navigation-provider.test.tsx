@@ -6,18 +6,18 @@ import { afterEach, expect, it, vi } from "vitest";
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { productionMachines } from "@hashintel/petrinaut-core/examples";
 
-import { ActiveNetContext } from "../../react/document/active-net-context";
-import { SDCPNContext } from "../../react/document/sdcpn-context";
-import { usePetrinautNavigation } from "../../react/navigation/navigation";
-import { PetrinautNavigationProvider } from "../../react/navigation/navigation-provider";
-import { EditorContext } from "../../react/state/editor-context";
+import { ActiveNetContext } from "../../../../react/document/active-net-context";
+import { SDCPNContext } from "../../../../react/document/sdcpn-context";
+import { usePetrinautNavigation } from "../../../../react/navigation/navigation";
+import { PetrinautNavigationProvider } from "../../../../react/navigation/navigation-provider";
+import { EditorContext } from "../../../../react/state/editor-context";
 import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
-} from "../../react/state/user-settings-context";
-import { PetrinautPresentationProvider } from "../presentation/presentation-provider";
-import { CodeNavigationProvider } from "./code-navigation";
-import { useCodeNavigation } from "./code-navigation-context";
+} from "../../../../react/state/user-settings-context";
+import { useCodeNavigation } from "../../../monaco/code-navigation-context";
+import { PetrinautPresentationProvider } from "../../../presentation/presentation-provider";
+import { CodeNavigationProvider } from "./code-navigation-provider";
 
 import type { PropsWithChildren } from "react";
 
