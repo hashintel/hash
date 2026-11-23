@@ -23,12 +23,9 @@ initialization, later document mutations do not affect the active simulation.
 ## File Layout
 
 - `api.ts`: public simulation contract and exposed types.
-- `runtime/`: `createSimulation` implementation and worker transport adapter.
+- `worker-transport.ts`: worker transport adapter.
+- `runtime/`: `createSimulation` implementation.
 - `frames/`: frame reader, metric projection, and internal frame storage.
-- `authoring/metric/`: user-authored metric compilation.
-- `authoring/scenario/`: user-authored scenario compilation.
-- `authoring/user-code/`: engine user-code compilation helpers.
-- `authoring/sandbox.ts`: shared same-realm hardening helpers.
 - `engine/`: internal SDCPN build/step execution engine.
 - `worker/`: worker protocol and runtime entrypoint.
 

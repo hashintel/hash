@@ -10,8 +10,8 @@ Core simulation logic for SDCPN Petri net execution.
 ## Overview
 
 The engine builds an SDCPN definition into a runnable `SimulationInstance` and
-computes frames by evaluating transitions and differential equations. It imports
-user-code compilation helpers from `authoring/user-code/`, but owns the
+computes frames by evaluating transitions and differential equations. It
+instantiates compiled user code through `src/hir-runtime.ts` and owns the
 runtime stepping state and frame layout.
 
 ## Core Functions
