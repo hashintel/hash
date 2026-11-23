@@ -2,103 +2,27 @@
  * @vitest-environment jsdom
  */
 import { act, renderHook } from "@testing-library/react";
-import { use, type ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
 
-import {
-  DEFAULT_PETRINAUT_EXTENSIONS,
-  createJsonDocHandle,
-  createPetrinaut,
-  toPetrinautId,
-  type Petrinaut,
-  type PetrinautRules,
-  type SDCPN,
-} from "@hashintel/petrinaut-core";
+import { toPetrinautId, type SDCPN } from "@hashintel/petrinaut-core";
 
-import { PetrinautInstanceContext } from "../instance-context";
 import {
   NotificationsContext,
   type AddNotificationInput,
 } from "../notifications/context";
 import {
-  SimulationContext,
-  type SimulationState,
-  DEFAULT_SIMULATION_CONTEXT,
-} from "../simulation/context";
-import { EditorContext } from "../state/editor-context";
-import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
+  createWrapper,
+  emptySdcpn,
+  type WrapperOptions,
+} from "./editor-test-harness";
 import { usePetrinautMutations } from "./use-petrinaut-mutations";
 
-const EMPTY_SDCPN: SDCPN = {
-  places: [],
-  transitions: [],
-  types: [],
-  differentialEquations: [],
-  parameters: [],
-};
+import type { ReactNode } from "react";
 
 const makeSDCPN = (partial?: Partial<SDCPN>): SDCPN => ({
-  ...EMPTY_SDCPN,
+  ...emptySdcpn,
   ...partial,
 });
-
-/** The editor's default state, in the given mode. */
-const EditorInMode = ({
-  globalMode,
-  children,
-}: {
-  globalMode: "edit" | "simulate";
-  children: ReactNode;
-}) => (
-  <EditorContext value={{ ...use(EditorContext), globalMode }}>
-    {children}
-  </EditorContext>
-);
-
-type WrapperOptions = {
-  sdcpn?: SDCPN;
-  readonly?: boolean;
-  rules?: PetrinautRules;
-  globalMode?: "edit" | "simulate";
-  simulationState?: SimulationState;
-};
-
-const createWrapper = (options: WrapperOptions = {}) => {
-  const {
-    sdcpn: initialSdcpn = EMPTY_SDCPN,
-    readonly = false,
-    rules,
-    globalMode = "edit",
-    simulationState = "NotRun",
-  } = options;
-
-  const instance: Petrinaut = createPetrinaut({
-    document: createJsonDocHandle({ initial: structuredClone(initialSdcpn) }),
-    rules,
-  });
-
-  const sdcpnContextValue: SDCPNContextValue = {
-    petriNetId: "test-net",
-    petriNetDefinition: instance.definition.get(),
-    readonly,
-    extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-    getItemType: () => null,
-  };
-
-  const Wrapper = ({ children }: { children: ReactNode }) => (
-    <PetrinautInstanceContext value={instance}>
-      <SDCPNContext value={sdcpnContextValue}>
-        <SimulationContext
-          value={{ ...DEFAULT_SIMULATION_CONTEXT, state: simulationState }}
-        >
-          <EditorInMode globalMode={globalMode}>{children}</EditorInMode>
-        </SimulationContext>
-      </SDCPNContext>
-    </PetrinautInstanceContext>
-  );
-
-  return { Wrapper, instance };
-};
 
 describe("usePetrinautMutations", () => {
   test("gives the same mutations while nothing they read changes", () => {

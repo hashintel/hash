@@ -2,99 +2,21 @@
  * @vitest-environment jsdom
  */
 import { act, renderHook } from "@testing-library/react";
-import { use, type ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
 
 import {
   CLIPBOARD_FORMAT_VERSION,
-  DEFAULT_PETRINAUT_EXTENSIONS,
   type ClipboardPayload,
-  createJsonDocHandle,
-  createPetrinaut,
-  type Petrinaut,
-  type PetrinautRules,
-  type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { PetrinautInstanceContext } from "../instance-context";
 import {
   NotificationsContext,
   type AddNotificationInput,
 } from "../notifications/context";
-import {
-  SimulationContext,
-  type SimulationState,
-  DEFAULT_SIMULATION_CONTEXT,
-} from "../simulation/context";
-import { EditorContext } from "../state/editor-context";
-import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
+import { createWrapper, emptySdcpn } from "./editor-test-harness";
 import { usePetrinautCommands } from "./use-petrinaut-commands";
 
-const EMPTY_SDCPN: SDCPN = {
-  places: [],
-  transitions: [],
-  types: [],
-  differentialEquations: [],
-  parameters: [],
-};
-
-/** The editor's default state, in the given mode. */
-const EditorInMode = ({
-  globalMode,
-  children,
-}: {
-  globalMode: "edit" | "simulate";
-  children: ReactNode;
-}) => (
-  <EditorContext value={{ ...use(EditorContext), globalMode }}>
-    {children}
-  </EditorContext>
-);
-
-type WrapperOptions = {
-  sdcpn?: SDCPN;
-  readonly?: boolean;
-  rules?: PetrinautRules;
-  globalMode?: "edit" | "simulate";
-  simulationState?: SimulationState;
-};
-
-const createWrapper = (options: WrapperOptions = {}) => {
-  const {
-    sdcpn: initialSdcpn = EMPTY_SDCPN,
-    readonly = false,
-    rules,
-    globalMode = "edit",
-    simulationState = "NotRun",
-  } = options;
-
-  const instance: Petrinaut = createPetrinaut({
-    document: createJsonDocHandle({ initial: structuredClone(initialSdcpn) }),
-    rules,
-  });
-
-  const sdcpnContextValue: SDCPNContextValue = {
-    petriNetId: "test-net",
-    petriNetDefinition: instance.definition.get(),
-    readonly,
-    extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-    getItemType: () => null,
-  };
-
-  const Wrapper = ({ children }: { children: ReactNode }) => (
-    <PetrinautInstanceContext value={instance}>
-      <SDCPNContext value={sdcpnContextValue}>
-        <SimulationContext
-          value={{ ...DEFAULT_SIMULATION_CONTEXT, state: simulationState }}
-        >
-          <EditorInMode globalMode={globalMode}>{children}</EditorInMode>
-        </SimulationContext>
-      </SDCPNContext>
-    </PetrinautInstanceContext>
-  );
-
-  return { Wrapper, instance };
-};
+import type { ReactNode } from "react";
 
 const samplePastePayload: ClipboardPayload = {
   format: "petrinaut-sdcpn",
@@ -230,7 +152,7 @@ describe("usePetrinautCommands", () => {
       const { Wrapper } = createWrapper({
         readonly: true,
         sdcpn: {
-          ...EMPTY_SDCPN,
+          ...emptySdcpn,
           places: [
             {
               id: "p1",
