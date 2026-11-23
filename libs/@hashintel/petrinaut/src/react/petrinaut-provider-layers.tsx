@@ -1,7 +1,7 @@
-import { composesOnly, resolvedLibraries } from "@hashintel/petrinaut-core";
+import { composesOnly } from "@hashintel/petrinaut-core";
 
 import { ActiveNetProvider } from "./document/active-net-provider";
-import { CompositionContext } from "./document/composition-context";
+import { CompositionProvider } from "./document/composition-provider";
 import { PetrinautInstanceContext } from "./document/instance-context";
 import { SDCPNProvider } from "./document/sdcpn-provider";
 import { UndoRedoContext } from "./document/undo-redo-context";
@@ -13,7 +13,6 @@ import {
   type NetManagement,
 } from "./host/net-management-context";
 import { ReadOnlyActionContext } from "./host/read-only-action-context";
-import { useStore } from "./shared/use-store";
 import { CanvasViewportProvider } from "./state/canvas-viewport-provider";
 import { EditorProvider } from "./state/editor-provider";
 import { PanelSizesProvider } from "./state/panel-sizes-provider";
@@ -26,29 +25,6 @@ export type PetrinautDocumentProviderProps = {
   children: ReactNode;
   instance: Petrinaut;
   netManagement: NetManagement;
-};
-
-/**
- * Publishes the state of the document's imports and the host's rules, as the
- * Core instance holds them.
- */
-const CompositionProvider: React.FC<{
-  children: ReactNode;
-  instance: Petrinaut;
-}> = ({ children, instance }) => {
-  const imports = useStore(instance.imports);
-  return (
-    <CompositionContext
-      value={{
-        imports,
-        libraries: resolvedLibraries(imports),
-        offered: instance.libraries,
-        rules: instance.rules,
-      }}
-    >
-      {children}
-    </CompositionContext>
-  );
 };
 
 /**
