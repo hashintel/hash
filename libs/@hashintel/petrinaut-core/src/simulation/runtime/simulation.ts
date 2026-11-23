@@ -15,8 +15,7 @@ import { flattenComponentInstancesForSimulation } from "../engine/flatten-compon
 import { createInMemorySimulationFrameStore } from "./frame-store";
 import { createWorkerTransport } from "./transport";
 
-import type { EventStream } from "../../instance/instance";
-import type { ReadableStore } from "../../store";
+import type { EventStream, ReadableStore } from "../../store";
 import type {
   CreateSimulationConfig,
   Simulation,

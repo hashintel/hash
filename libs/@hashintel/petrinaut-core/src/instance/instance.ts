@@ -35,7 +35,7 @@ import type {
   ResolvedPetrinautHandleCapabilities,
 } from "../extensions/extensions";
 import type { PetrinautDocHandle, PetrinautPatch } from "../handle";
-import type { ReadableStore } from "../store";
+import type { EventStream, ReadableStore } from "../store";
 import type { SDCPN } from "../types/sdcpn";
 
 const EMPTY_SDCPN: SDCPN = {
@@ -44,10 +44,6 @@ const EMPTY_SDCPN: SDCPN = {
   types: [],
   parameters: [],
   differentialEquations: [],
-};
-
-export type EventStream<T> = {
-  subscribe(listener: (event: T) => void): () => void;
 };
 
 export type PetrinautMutations = MutationHelperFunctions;

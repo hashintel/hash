@@ -4,8 +4,7 @@ import type {
 } from "../environment/environment";
 import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirArtifacts, HirParameterValues } from "../hir-runtime";
-import type { EventStream } from "../instance/instance";
-import type { ReadableStore } from "../store";
+import type { EventStream, ReadableStore } from "../store";
 import type { Color, Place, SDCPN, TokenRecord } from "../types/sdcpn";
 
 export type SimulationState =

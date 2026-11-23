@@ -18,8 +18,7 @@ import { planMonteCarloShards } from "./shard-plan";
 import type { AbortSignalLike } from "../../../environment/environment";
 import type { PetrinautExtensionSettings } from "../../../extensions/extensions";
 import type { HirArtifacts } from "../../../hir-runtime";
-import type { EventStream } from "../../../instance/instance";
-import type { ReadableStore } from "../../../store";
+import type { EventStream, ReadableStore } from "../../../store";
 import type { SDCPN } from "../../../types/sdcpn";
 import type {
   InitialMarking,

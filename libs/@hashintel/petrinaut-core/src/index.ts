@@ -166,11 +166,11 @@ export type {
 export { createPetrinaut } from "./instance/instance";
 export type {
   CreatePetrinautConfig,
-  EventStream,
   Petrinaut,
   PetrinautCommands,
   PetrinautMutations,
 } from "./instance/instance";
+export type { EventStream } from "./store";
 export { composesOnly, sameRules } from "./instance/host-rules";
 export type { PetrinautRules } from "./instance/host-rules";
 export {
