@@ -19,13 +19,6 @@ afterEach(() => {
 });
 
 it("stacks previous headings and returns to the selected section in its own scroll area", async () => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      disconnect() {}
-    },
-  );
   vi.stubGlobal("matchMedia", () => ({ matches: true }));
   const scrollTo = vi.fn();
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(

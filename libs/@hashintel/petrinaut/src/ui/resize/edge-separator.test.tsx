@@ -1,28 +1,14 @@
 /** @vitest-environment jsdom */
 import { cleanup, render, screen } from "@testing-library/react";
 import { Panel } from "react-resizable-panels";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it } from "vitest";
 
 import { EdgeSeparator } from "./edge-separator";
 import { ResizeGroup } from "./resize-group";
 
 import type { ComponentProps } from "react";
 
-beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
-});
-
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
+afterEach(cleanup);
 
 const split = ({
   disabled = false,

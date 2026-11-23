@@ -96,12 +96,6 @@ import {
   type PluginHook,
 } from "./plugins/define-petrinaut-plugin";
 
-class ObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
 class WorkerStub extends EventTarget {
   onerror = null;
   onmessage = null;
@@ -111,7 +105,6 @@ class WorkerStub extends EventTarget {
   terminate() {}
 }
 
-globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
 globalThis.Worker = WorkerStub as unknown as typeof Worker;
 
 const testSdcpn: SDCPN = {

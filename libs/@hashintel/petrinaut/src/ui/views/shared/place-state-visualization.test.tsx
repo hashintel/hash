@@ -89,10 +89,7 @@ const setup = () => {
   return { Harness, complete };
 };
 
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
+afterEach(cleanup);
 
 it("keeps the last drawing visible until the newest compilation completes", async () => {
   const { Harness, complete } = setup();
@@ -239,15 +236,6 @@ it("shows a compilation error only when ready and recovers on the next edit", as
 });
 
 it("preserves the scene camera while new code compiles", async () => {
-  vi.stubGlobal("matchMedia", () => ({ matches: false }));
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
   const { Harness, complete } = setup();
   const first = source("First scene").replace(
     'viewBox="0 0 400 200"',

@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { FpsCounter } from "./counter";
 
@@ -8,20 +8,9 @@ vi.mock("./counter/use-browser-fps", () => ({
   useBrowserFps: () => [60, 40, 20],
 }));
 
-beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      disconnect() {}
-    },
-  );
-});
-
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  vi.unstubAllGlobals();
 });
 
 it("draws a 24 by 6 history coloured by frame rate, newest on the right", () => {

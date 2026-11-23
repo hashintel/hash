@@ -11,13 +11,6 @@ import { renderPlugins } from "./plugins-test-harness";
 
 beforeEach(() => {
   localStorage.clear();
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      disconnect() {}
-    },
-  );
   vi.useFakeTimers({
     toFake: ["requestAnimationFrame", "cancelAnimationFrame", "performance"],
   });
@@ -32,7 +25,6 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.useRealTimers();
-  vi.unstubAllGlobals();
 });
 
 const view = (

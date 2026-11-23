@@ -18,16 +18,6 @@ import {
 import { constantStore } from "../../../../../react/use-store";
 import { VersionHistoryButton } from "./version-history-button";
 
-// The menu's popup positions itself with an observer jsdom does not have.
-vi.stubGlobal(
-  "ResizeObserver",
-  class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  },
-);
-
 afterEach(cleanup);
 
 const entryAt = (second: number) => ({

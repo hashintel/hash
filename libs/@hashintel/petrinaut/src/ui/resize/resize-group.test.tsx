@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { cleanup, render } from "@testing-library/react";
 import { Panel } from "react-resizable-panels";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { ResizeGroup } from "./resize-group";
 
@@ -23,21 +23,7 @@ vi.mock("react-resizable-panels", async (importOriginal) => {
   };
 });
 
-beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
-});
-
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
+afterEach(cleanup);
 
 it("turns off the library's cursor, which is a style rule for every element of the document", () => {
   const { container } = render(
