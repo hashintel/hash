@@ -2,12 +2,12 @@ import { composesOnly, resolvedLibraries } from "@hashintel/petrinaut-core";
 
 import { EventPlaybackProvider } from "./event-playback/provider";
 import { ExecutionFrameProvider } from "./execution-frame/provider";
-import { PetrinautInstanceContext } from "./instance-context";
 import {
   NetManagementContext,
   type NetManagement,
-} from "./net-management-context";
-import { ReadOnlyActionContext } from "./read-only-action-context";
+} from "./host/net-management-context";
+import { ReadOnlyActionContext } from "./host/read-only-action-context";
+import { PetrinautInstanceContext } from "./instance-context";
 import { SDCPNProvider } from "./sdcpn-provider";
 import { useStore } from "./shared/use-store";
 import { ActiveNetProvider } from "./state/active-net-provider";

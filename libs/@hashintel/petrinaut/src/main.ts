@@ -12,15 +12,15 @@
 export type {
   ErrorTracker,
   ErrorTrackerCaptureContext,
-} from "./react/error-tracker-context";
-export { ErrorTrackerContext } from "./react/error-tracker-context";
+} from "./react/host/error-tracker-context";
+export { ErrorTrackerContext } from "./react/host/error-tracker-context";
 export type {
   PetrinautConnectedOptimization,
   PetrinautConnectedOptimizationCapability,
   PetrinautConnectedRunOptions,
   PetrinautOptimizationChannel,
-} from "./react/optimization-context";
-export { PetrinautOptimizationContext } from "./react/optimization-context";
+} from "./react/optimizations/connected-optimizer-context";
+export { PetrinautOptimizationContext } from "./react/optimizations/connected-optimizer-context";
 
 export type { PetrinautSlots } from "./ui/types/petrinaut-slots";
 export type {

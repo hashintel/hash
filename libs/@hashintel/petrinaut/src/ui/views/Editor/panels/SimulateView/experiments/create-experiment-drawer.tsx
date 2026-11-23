@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { runClockOf } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
+import { PetrinautOptimizationContext } from "../../../../../../react/optimizations/connected-optimizer-context";
 import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
 import { OverlayScrollArea } from "../../../../../components/overlay-scroll-area";
 import {

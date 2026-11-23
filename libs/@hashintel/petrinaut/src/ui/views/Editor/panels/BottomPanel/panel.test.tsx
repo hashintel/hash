@@ -8,7 +8,7 @@ import { unavailableActualMode } from "@hashintel/petrinaut-core";
 import {
   ActualModeContext,
   type ActualModeContextValue,
-} from "../../../../../react/actual-mode-context";
+} from "../../../../../react/host/actual-mode-context";
 import {
   SimulationContext,
   type SimulationState,

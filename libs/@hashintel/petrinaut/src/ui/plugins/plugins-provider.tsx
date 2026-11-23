@@ -11,7 +11,7 @@
 
 import { memo, type ReactNode, use, useLayoutEffect, useState } from "react";
 
-import { ReadOnlyActionContext } from "../../react/read-only-action-context";
+import { ReadOnlyActionContext } from "../../react/host/read-only-action-context";
 import { useUserSettings } from "../../react/state/user-settings-context";
 import { pluginRuntime } from "./define-petrinaut-plugin";
 import { accessApi } from "./plugin-access";

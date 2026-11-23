@@ -15,12 +15,12 @@ import {
   type ReadOnlyReason,
 } from "../../react/state/use-read-only-reason";
 
+import type { ExperimentRecord } from "../../react/experiments/context";
+import type { PetrinautRevealTarget } from "../../react/hooks/use-reveal-in-editor";
 import type {
   ErrorTracker,
   ErrorTrackerCaptureContext,
-} from "../../react/error-tracker-context";
-import type { ExperimentRecord } from "../../react/experiments/context";
-import type { PetrinautRevealTarget } from "../../react/hooks/use-reveal-in-editor";
+} from "../../react/host/error-tracker-context";
 import type {
   PetrinautNavigationAction,
   PetrinautNavigationIntent,

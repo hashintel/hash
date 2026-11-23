@@ -11,8 +11,8 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { ExperimentsContext } from "../experiments/context";
+import { NetManagementContext } from "../host/net-management-context";
 import { LanguageClientContext } from "../lsp/context";
-import { NetManagementContext } from "../net-management-context";
 import { NotificationsContext } from "../notifications/context";
 import { OptimizationsContext } from "../optimizations/context";
 import { useStableCallback } from "../shared/use-stable-callback";

@@ -10,8 +10,8 @@ import { use } from "react";
 
 import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/parameter-grid";
 import { buildSweepOptimizationInput } from "../../../../../../react/experiments/sweep-optimization";
-import { NetManagementContext } from "../../../../../../react/net-management-context";
-import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
+import { NetManagementContext } from "../../../../../../react/host/net-management-context";
+import { PetrinautOptimizationContext } from "../../../../../../react/optimizations/connected-optimizer-context";
 import {
   currentTrialNumber,
   isOptimizationActive,

@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { useStableCallback } from "../../react/shared/use-stable-callback";
 
-import type { NetManagement } from "../../react/net-management-context";
+import type { NetManagement } from "../../react/host/net-management-context";
 import type { MinimalNetMetadata } from "@hashintel/petrinaut-core";
 
 const sameNets = (

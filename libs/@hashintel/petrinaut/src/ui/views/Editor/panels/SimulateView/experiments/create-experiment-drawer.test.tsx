@@ -27,7 +27,7 @@ import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
 
 import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
+import { PetrinautOptimizationContext } from "../../../../../../react/optimizations/connected-optimizer-context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { SimulatorsContext } from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";

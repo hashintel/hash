@@ -15,14 +15,14 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { ExperimentsProvider } from "../../../../../react/experiments/provider";
-import { LanguageClientProvider } from "../../../../../react/lsp/provider";
-import { PetrinautNavigationProvider } from "../../../../../react/navigation/navigation-provider";
 import {
   NetManagementContext,
   type NetManagement,
-} from "../../../../../react/net-management-context";
+} from "../../../../../react/host/net-management-context";
+import { LanguageClientProvider } from "../../../../../react/lsp/provider";
+import { PetrinautNavigationProvider } from "../../../../../react/navigation/navigation-provider";
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
-import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
+import { PetrinautOptimizationContext } from "../../../../../react/optimizations/connected-optimizer-context";
 import { OptimizationsProvider } from "../../../../../react/optimizations/provider";
 import { useLatest } from "../../../../../react/shared/use-latest";
 import { SimulatorsProvider } from "../../../../../react/simulators/provider";

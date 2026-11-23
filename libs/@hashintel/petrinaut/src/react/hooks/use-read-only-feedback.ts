@@ -1,7 +1,7 @@
 import { use } from "react";
 
+import { ReadOnlyActionContext } from "../host/read-only-action-context";
 import { NotificationsContext } from "../notifications/context";
-import { ReadOnlyActionContext } from "../read-only-action-context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useReadOnlyReason } from "../state/use-read-only-reason";
 

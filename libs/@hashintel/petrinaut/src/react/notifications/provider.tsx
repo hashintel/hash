@@ -1,3 +1,8 @@
+/**
+ * @layerRoot react.notifications
+ * @role Shows a short notice from any provider or component, once per id
+ */
+
 import { useEffect, type ReactNode } from "react";
 
 import {

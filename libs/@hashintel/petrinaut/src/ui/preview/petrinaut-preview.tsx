@@ -28,7 +28,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { ActualModeContext } from "../../react/actual-mode-context";
+import { ActualModeContext } from "../../react/host/actual-mode-context";
 import { type PetrinautNavigationController } from "../../react/navigation/navigation";
 import { PetrinautNavigationProvider } from "../../react/navigation/navigation-provider";
 import { NotificationsProvider } from "../../react/notifications/provider";
@@ -60,7 +60,7 @@ import {
   validatePreviewQuickSimulation,
 } from "./quick-simulation";
 
-import type { NetManagement } from "../../react/net-management-context";
+import type { NetManagement } from "../../react/host/net-management-context";
 
 const noop = () => {};
 

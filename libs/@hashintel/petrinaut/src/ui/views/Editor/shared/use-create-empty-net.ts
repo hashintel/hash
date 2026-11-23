@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { NetManagementContext } from "../../../../react/net-management-context";
+import { NetManagementContext } from "../../../../react/host/net-management-context";
 import { useEditorActions } from "../../../../react/state/editor-context";
 
 /** Opens an untitled net with nothing in it. */

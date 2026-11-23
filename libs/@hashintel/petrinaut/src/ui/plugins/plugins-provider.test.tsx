@@ -16,11 +16,11 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { CommandRegistryProvider } from "../../react/commands/command-registry-provider";
+import { useReadOnlyFeedback } from "../../react/hooks/use-read-only-feedback";
 import {
   type ErrorTracker,
   ErrorTrackerContext,
-} from "../../react/error-tracker-context";
-import { useReadOnlyFeedback } from "../../react/hooks/use-read-only-feedback";
+} from "../../react/host/error-tracker-context";
 import { UserSettingsContext } from "../../react/state/user-settings-context";
 import {
   definePetrinautPlugin,

@@ -1,6 +1,6 @@
 import { use, useEffect, useRef, useState } from "react";
 
-import { ActualModeContext } from "../actual-mode-context";
+import { ActualModeContext } from "../host/actual-mode-context";
 import { usePetrinautNavigation } from "../navigation/navigation";
 import { usePublished } from "../shared/select-from-context";
 import { useLatest } from "../shared/use-latest";

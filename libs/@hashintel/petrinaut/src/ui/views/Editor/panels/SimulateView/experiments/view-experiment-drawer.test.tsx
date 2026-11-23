@@ -10,7 +10,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
+import { PetrinautOptimizationContext } from "../../../../../../react/optimizations/connected-optimizer-context";
 import {
   type OptimizationRecord,
   OptimizationsContext,

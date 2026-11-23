@@ -2,7 +2,7 @@ import { use, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { canonicalizeSelection } from "@hashintel/petrinaut-core/selection";
 
-import { ActualModeContext } from "../actual-mode-context";
+import { ActualModeContext } from "../host/actual-mode-context";
 import { usePublished } from "../shared/select-from-context";
 import {
   defaultPetrinautNavigationHistoryPolicy,

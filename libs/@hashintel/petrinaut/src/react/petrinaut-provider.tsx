@@ -12,7 +12,7 @@ import {
 import { SimulationProvider } from "./simulation/provider";
 import { SimulatorsProvider } from "./simulators/provider";
 
-import type { NetManagement } from "./net-management-context";
+import type { NetManagement } from "./host/net-management-context";
 import type {
   LspWorkerFactory,
   Petrinaut,

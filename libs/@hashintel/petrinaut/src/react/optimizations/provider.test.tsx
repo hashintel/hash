@@ -23,7 +23,7 @@ import {
 import { sweepPointFor } from "../experiments/parameter-grid";
 import { usePetrinautNavigation } from "../navigation/navigation";
 import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
-import { PetrinautOptimizationContext } from "../optimization-context";
+import { PetrinautOptimizationContext } from "./connected-optimizer-context";
 import {
   type OptimizationBest,
   OptimizationsContext,

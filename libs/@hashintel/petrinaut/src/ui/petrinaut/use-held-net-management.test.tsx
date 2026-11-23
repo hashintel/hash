@@ -4,7 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { useHeldNetManagement } from "./use-held-net-management";
 
-import type { NetManagement } from "../../react/net-management-context";
+import type { NetManagement } from "../../react/host/net-management-context";
 
 afterEach(cleanup);
 

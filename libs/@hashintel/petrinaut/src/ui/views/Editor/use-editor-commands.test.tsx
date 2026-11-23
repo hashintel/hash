@@ -9,7 +9,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { CommandRegistryProvider } from "../../../react/commands/command-registry-provider";
-import { NetManagementContext } from "../../../react/net-management-context";
+import { NetManagementContext } from "../../../react/host/net-management-context";
 import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";

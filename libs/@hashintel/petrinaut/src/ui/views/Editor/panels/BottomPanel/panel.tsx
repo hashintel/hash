@@ -8,7 +8,7 @@ import { use, useEffect } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { ActualModeContext } from "../../../../../react/actual-mode-context";
+import { ActualModeContext } from "../../../../../react/host/actual-mode-context";
 import {
   SimulationContext,
   type SimulationState,

@@ -21,8 +21,8 @@ export { formatShortcutKeys } from "./commands/format-shortcut";
 export { PetrinautInstanceContext } from "./instance-context";
 export { usePetrinautInstance } from "./use-petrinaut-instance";
 export { useStore, useStoreSelector } from "./shared/use-store";
-export { ActualModeContext } from "./actual-mode-context";
-export type { ActualModeContextValue } from "./actual-mode-context";
+export { ActualModeContext } from "./host/actual-mode-context";
+export type { ActualModeContextValue } from "./host/actual-mode-context";
 
 // --- Provider unification ---
 export { PetrinautProvider } from "./petrinaut-provider";
@@ -71,14 +71,14 @@ export type {
 export {
   NetManagementContext,
   type NetManagement,
-} from "./net-management-context";
-export { PetrinautOptimizationContext } from "./optimization-context";
+} from "./host/net-management-context";
+export { PetrinautOptimizationContext } from "./optimizations/connected-optimizer-context";
 export type {
   PetrinautConnectedOptimization,
   PetrinautConnectedOptimizationCapability,
   PetrinautConnectedRunOptions,
   PetrinautOptimizationChannel,
-} from "./optimization-context";
+} from "./optimizations/connected-optimizer-context";
 export {
   isOptimizationActive,
   OptimizationsContext,
@@ -137,11 +137,11 @@ export type {
 export { UserSettingsProvider } from "./state/user-settings-provider";
 
 // --- Error tracker DI ---
-export { ErrorTrackerContext } from "./error-tracker-context";
+export { ErrorTrackerContext } from "./host/error-tracker-context";
 export type {
   ErrorTracker,
   ErrorTrackerCaptureContext,
-} from "./error-tracker-context";
+} from "./host/error-tracker-context";
 
 // --- Editing, and whether it is allowed ---
 export {

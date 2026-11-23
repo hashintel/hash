@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { toPetrinautId, type SDCPN } from "@hashintel/petrinaut-core";
 
-import { ActualModeContext } from "../../../../../../react/actual-mode-context";
+import { ActualModeContext } from "../../../../../../react/host/actual-mode-context";
 import { ActualEventsContent as Events } from "./actual-events";
 
 const queueId = toPetrinautId("place__queue");

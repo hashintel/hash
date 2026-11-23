@@ -2,7 +2,7 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
+import { PetrinautOptimizationContext } from "../../../../../../react/optimizations/connected-optimizer-context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import {

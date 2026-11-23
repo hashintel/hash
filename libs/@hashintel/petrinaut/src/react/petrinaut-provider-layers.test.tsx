@@ -20,8 +20,8 @@ import {
   type PetrinautDocHandle,
 } from "@hashintel/petrinaut-core";
 
+import { ReadOnlyActionContext } from "./host/read-only-action-context";
 import { PetrinautDocumentProvider } from "./petrinaut-provider-layers";
-import { ReadOnlyActionContext } from "./read-only-action-context";
 import { constantStore, useStore } from "./shared/use-store";
 import { SDCPNContext } from "./state/sdcpn-context";
 import { UndoRedoContext } from "./state/undo-redo-context";

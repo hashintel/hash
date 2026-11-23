@@ -22,7 +22,7 @@ vi.mock("./views/Editor/editor-view", async () => {
     { usePetrinautNavigation },
   ] = await Promise.all([
     import("react"),
-    import("../react/net-management-context"),
+    import("../react/host/net-management-context"),
     import("./views/Editor/components/TopBar/top-bar"),
     import("../react/navigation/navigation"),
   ]);

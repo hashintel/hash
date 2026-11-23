@@ -3,7 +3,7 @@ import { use } from "react";
 import { Button, Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { ActualModeContext } from "../../../../../../react/actual-mode-context";
+import { ActualModeContext } from "../../../../../../react/host/actual-mode-context";
 import { exportActualModeRecording } from "../../../../../file-io/export-actual-mode-recording";
 import { exportSDCPN } from "../../../../../file-io/export-sdcpn";
 

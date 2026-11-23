@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { createCommandRegistry } from "@hashintel/petrinaut-core";
 
 import { CommandRegistryProvider } from "../../../../react/commands/command-registry-provider";
-import { ErrorTrackerContext } from "../../../../react/error-tracker-context";
+import { ErrorTrackerContext } from "../../../../react/host/error-tracker-context";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { AssistantPanelTitle } from "../../../plugins/assistant-panel-title";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";

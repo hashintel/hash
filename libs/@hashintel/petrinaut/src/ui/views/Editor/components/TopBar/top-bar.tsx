@@ -9,8 +9,8 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { SidebarIcon } from "@hashintel/ds-icons";
 
-import { ActualModeContext } from "../../../../../react/actual-mode-context";
-import { NetManagementContext } from "../../../../../react/net-management-context";
+import { ActualModeContext } from "../../../../../react/host/actual-mode-context";
+import { NetManagementContext } from "../../../../../react/host/net-management-context";
 import {
   useEditorActions,
   useEditorFields,
