@@ -1,9 +1,11 @@
 import { useApolloClient } from "@apollo/client";
+import { useState } from "react";
 
-import { EllipsisMenu } from "@hashintel/ds-components";
+import { Button, Menu } from "@hashintel/ds-components";
 import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
 import { useSnackbar } from "../../../../../../../../components/hooks/use-snackbar";
+import { isInTab } from "../run-list";
 
 import type {
   GetFlowRunByIdQuery,
@@ -12,7 +14,10 @@ import type {
 import type { RunRow } from "../run-list";
 import type { FlowInputValues } from "@local/hash-isomorphic-utils/flows/types";
 
-/** A run's ⋮: Open run, and Re-run, which reads the run's inputs for the run form, as in the run's top bar. */
+/**
+ * A run's ⋮: Open run, and Re-run, which reads the run's inputs for the run form, as in the run's top bar. As there,
+ * a run that hasn't ended can't be re-run.
+ */
 export const RunMenu = ({
   row,
   rerunBlocker,
@@ -27,9 +32,16 @@ export const RunMenu = ({
 }) => {
   const client = useApolloClient();
   const { triggerSnackbar } = useSnackbar();
+  /* The ⋮ spins while the run's inputs are read. */
+  const [reading, setReading] = useState(false);
+  const blocker = isInTab(row, "running")
+    ? "This run hasn't ended yet"
+    : rerunBlocker;
 
   /* The table's runs don't carry their inputs. */
   const rerun = async () => {
+    setReading(true);
+
     try {
       const { data } = await client.query<
         GetFlowRunByIdQuery,
@@ -44,26 +56,35 @@ export const RunMenu = ({
       triggerSnackbar.error(
         `Couldn't read the run's inputs: ${error instanceof Error ? error.message : String(error)}`,
       );
+    } finally {
+      setReading(false);
     }
   };
 
   return (
-    <EllipsisMenu
-      iconName="ellipsisVertical"
-      variant="ghost"
-      size="xs"
+    <Menu
+      position="bottom-end"
       items={[
         { id: "open", text: "Open run", onClick: onOpen },
         {
           id: "rerun",
           text: "Re-run",
-          disabled: rerunBlocker !== null,
-          description: rerunBlocker ?? undefined,
+          disabled: blocker !== null,
+          description: blocker ?? undefined,
           onClick: () => {
             void rerun();
           },
         },
       ]}
+      trigger={
+        <Button
+          size="xs"
+          variant="ghost"
+          iconName="ellipsisVertical"
+          loading={reading}
+          aria-label={`Run ${row.shortId} actions`}
+        />
+      }
     />
   );
 };
