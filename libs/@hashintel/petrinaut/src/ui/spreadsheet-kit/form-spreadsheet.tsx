@@ -1,14 +1,18 @@
 /**
  * @layerRoot ui.spreadsheet-kit
- * @role The state-agnostic spreadsheet grammar the editor's tables compose: shell, gutter cells and menus, text cells, phantom add-lines, row selection and reordering
+ * @role The state-agnostic spreadsheet grammar the editor's tables compose (shell, gutter cells and menus, text cells, phantom add-lines, row selection and reordering) and two ready-made tables, the token grid and the read-only list
  *
  * The bordered table shell every spreadsheet renders into: the scroll
  * container that registers as a member of the enclosing worksheet stack,
  * and the table with the fixed layout. The rows inside stay the owning
  * table's business.
  *
- * Nothing in this folder knows the ad-hoc form's state or the net — that is
- * what keeps the tables thin and the grammar reusable.
+ * Nothing in this folder knows the ad-hoc form's state, and the grammar
+ * knows nothing of the net: that is what keeps the tables thin and the
+ * grammar reusable. The two ready-made tables are whole tables for a caller
+ * with no rows of its own to compose. `Spreadsheet`, the token grid, types
+ * its cells with Core's token value types. `Table`, the read-only list,
+ * takes its rows and columns from the caller.
  */
 
 import { css, cx } from "@hashintel/ds-helpers/css";
