@@ -24,7 +24,7 @@ import {
   updateStep,
 } from "./document";
 import { showDebug, useEditor } from "./editor-context";
-import { type TiledItem, tileMenu, tiledRowsStyle } from "./menu-rows";
+import { noLoneHeadings, type TiledItem, tileMenu, tiledRowsStyle } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
 import {
   type Fit,
@@ -509,7 +509,7 @@ export const AddNodePicker = ({
             },
           ].filter((group) => group.items.length > 0);
 
-  const items: Array<ItemOrGroup<TiledItem>> = feed
+  const items: Array<ItemOrGroup<TiledItem>> = noLoneHeadings(feed
     ? feedItems
     : query
       ? [
@@ -553,7 +553,7 @@ export const AddNodePicker = ({
               ]
             : []),
           { id: "browse", label: "Browse all", items: browseAll },
-        ];
+        ]);
 
   // `?picker=1..4` only: one picker for the canvas, the Add tab and "Use in a step".
   const take = pickerTake();

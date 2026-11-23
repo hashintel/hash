@@ -1147,7 +1147,7 @@ const ConditionRowView = ({
           propertyMenu={[
             {
               id: "attributes",
-              label: "Attributes",
+              label: properties.length === 1 ? "" : "Attributes",
               items: properties.map((candidate) => ({
                 id: candidate.baseUrl,
                 text: selectedLabel(
@@ -1516,7 +1516,7 @@ const AddCondition = ({
     items={[
       {
         id: "attributes",
-        label: "Attributes",
+        label: properties.length === 1 ? "" : "Attributes",
         items: properties.map((property) => ({
           id: property.baseUrl,
           text: property.title,

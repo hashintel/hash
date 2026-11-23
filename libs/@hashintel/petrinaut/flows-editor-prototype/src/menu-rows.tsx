@@ -23,6 +23,19 @@ export const selectedLabelStyle = css({
   color: "neutral.fg.max",
 });
 
+/**
+ * A group of one row has no heading (ACT-OWN-ICONS, L1138; re-checked across every menu, 23 Nov): the row stands on
+ * its own. Disabled "nothing here" rows keep theirs, as the heading says what is missing.
+ */
+export const noLoneHeadings = <T extends { label?: string; items: readonly { disabled?: boolean }[] }>(
+  groups: readonly T[],
+): T[] =>
+  groups.map((group) =>
+    group.label && group.items.length === 1 && !group.items[0]!.disabled
+      ? { ...group, label: "" }
+      : group,
+  );
+
 /** `text` as a selected row's label when `selected`, else unchanged. */
 export const selectedLabel = (text: React.ReactNode, selected: boolean | undefined) =>
   selected ? <span className={selectedLabelStyle}>{text}</span> : text;

@@ -1658,7 +1658,7 @@ const EntityTypeField = ({
       ? [{ id: "types", label: "", items: typeItems }]
       : []),
     ...(earlierItems.length > 0
-      ? [{ id: "earlier", label: "From earlier steps", items: earlierItems }]
+      ? [{ id: "earlier", label: earlierItems.length === 1 ? "" : "From earlier steps", items: earlierItems }]
       : []),
     ...(typeItems.length + earlierItems.length === 0
       ? [

@@ -766,7 +766,7 @@ const LaterStepsMenu = ({
       items={tileMenu([
         {
           id: "later",
-          label: "Later steps",
+          label: items.length === 1 ? "" : "Later steps",
           items:
             items.length > 0
               ? items

@@ -454,7 +454,7 @@ const GroupedList = ({
         ) : (
           sections.map((section) => (
             <div key={section.id} className={css({ display: "contents" })}>
-              {section.label ? (
+              {section.label && section.entries.length !== 1 ? (
                 <div
                   className={headingStyle}
                   data-group-row-heading={section.id}
@@ -675,7 +675,7 @@ const Palette = ({
         ) : (
           sections.map((section) => (
             <div key={section.id} className={css({ display: "contents" })}>
-              {section.label ? (
+              {section.label && section.entries.length !== 1 ? (
                 <div
                   className={headingStyle}
                   data-group-row-heading={section.id}

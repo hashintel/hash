@@ -42,6 +42,7 @@ import {
 } from "./mock-graph";
 import {
   MenuRow,
+  noLoneHeadings,
   srcIconsTake,
   type TiledItem,
   tileMenu,
@@ -942,7 +943,7 @@ export const SourceMenu = ({
     allGroups.sort((left, right) => Number(right.id === "typed") - Number(left.id === "typed"));
   }
   // Inside a For each with item properties to pick, the "No earlier step gives…" rows would only add noise.
-  const fullGroups =
+  const fullGroups = noLoneHeadings(
     propertyItems.length > 0
       ? allGroups
           .map((group) => ({
@@ -950,7 +951,8 @@ export const SourceMenu = ({
             items: group.items.filter((item) => !item.disabled),
           }))
           .filter((group) => group.items.length > 0)
-      : allGroups;
+      : allGroups,
+  );
   // The first rows of a long group, then "Show more", which opens the rest in place (ledger 2 Nov call). A search
   // lists every match, and a group whose picked value is further down opens whole.
   const groupsModel = fullGroups.map((group): SourceGroup => {
