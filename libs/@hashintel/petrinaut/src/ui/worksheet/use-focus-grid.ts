@@ -33,7 +33,10 @@ export interface FocusGrid {
   /** Focuses the cell at a position; false when none took focus. */
   focus: (row: number, column: number) => boolean;
   onKeyDown: (row: number, column: number) => React.KeyboardEventHandler;
-  /** Remembers a position the focused cell moved to with no focus event. */
+  /**
+   * Remembers a position the focused cell moved to with no focus event, or
+   * a focused cell rendered outside the attached root (a portal).
+   */
   onFocusCell: (row: number, column: number) => void;
   /** 0 for the grid's one tabbable cell, -1 for the rest. */
   tabIndexFor: (row: number, column: number) => 0 | -1;
@@ -171,7 +174,8 @@ export function useFocusGrid({
 
   // Memory needs no consumer wiring: any focus landing inside the grid —
   // arrows, Tab, pointer clicks — is remembered via focusin on the grid's
-  // root.
+  // root. A portalled cell's focusin never reaches it: such a cell calls
+  // `onFocusCell`.
   useEffect(() => {
     if (!element) {
       return undefined;

@@ -101,7 +101,8 @@ const RatesGrid = ({ rows }: { rows: string[][] }) => {
 - Focus memory needs no wiring. Any focus landing inside the attached
   container updates the remembered cell. Call `onFocusCell(row, column)` only
   when the focused cell moves to another position without a focus event, as
-  a row moved with Alt and an arrow does.
+  a row moved with Alt and an arrow does, or when a cell renders outside the
+  container (a portal), from that cell's `onFocus`.
 - Cells register under their `(row, column)` position. Positions may have
   holes; arrows skip positions nothing registered.
 - `focus(row, column)` focuses a registered cell from code, for example the
