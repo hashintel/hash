@@ -8,14 +8,12 @@ import { use, useEffect, useRef, useState } from "react";
 import {
   createLanguageClient,
   createReadableStore,
-  type ReadableStore,
-  type DiagnosticsSnapshot,
   type LanguageClient,
   type LspWorkerFactory,
 } from "@hashintel/petrinaut-core";
 import { createLanguageServerWorker } from "@hashintel/petrinaut-core/workers/lsp";
 
-import { useStore } from "../shared/use-store";
+import { constantStore, useStore } from "../shared/use-store";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useExecutableDefinition } from "../state/use-executable-definition";
 import {
@@ -24,10 +22,7 @@ import {
   LanguageClientContext,
 } from "./context";
 
-const EMPTY_DIAGNOSTICS_STORE: ReadableStore<DiagnosticsSnapshot> = {
-  get: () => EMPTY_DIAGNOSTICS_SNAPSHOT,
-  subscribe: () => () => {},
-};
+const EMPTY_DIAGNOSTICS_STORE = constantStore(EMPTY_DIAGNOSTICS_SNAPSHOT);
 
 export const LanguageClientProvider: React.FC<{
   children: React.ReactNode;

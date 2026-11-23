@@ -1,6 +1,7 @@
 import { use, useEffect, useState } from "react";
 
 import { LanguageClientContext } from "../lsp/context";
+import { errorMessage } from "../shared/error-message";
 
 import type {
   AdHocSynthesisContext,
@@ -160,7 +161,7 @@ export function useScenarioHir(
             scenarioId,
             state: {
               hir: null,
-              error: error instanceof Error ? error.message : String(error),
+              error: errorMessage(error),
             },
           });
         }
