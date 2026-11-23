@@ -15,13 +15,16 @@ hash-integrations-definition = { workspace = true, public = true }
 type-system                  = { workspace = true, public = true }
 
 # Public third-party dependencies
-time = { workspace = true, public = true, features = ["formatting", "parsing", "serde"] }
-uuid = { workspace = true, public = true, features = ["serde", "v4"] }
+time = { workspace = true, public = true, features = ["formatting", "macros", "parsing", "serde"] }
+uuid = { workspace = true, public = true, features = ["serde", "v4", "v5"] }
+
+# Private workspace dependencies
+hash-codec = { workspace = true, features = ["numeric"] }
 
 # Private third-party dependencies
 bytes          = { workspace = true }
 deltalake-core = { workspace = true, features = ["rustls"] }
-derive_more    = { workspace = true, features = ["display", "error"] }
+derive_more    = { workspace = true, features = ["display", "error", "from", "into"] }
 duckdb         = { workspace = true, features = ["bundled", "json", "parquet"] }
 futures-util   = { workspace = true }
 hex            = { workspace = true, features = ["alloc"] }

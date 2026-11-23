@@ -7410,6 +7410,7 @@ dependencies = [
  "duckdb",
  "error-stack",
  "futures-util",
+ "hash-codec",
  "hash-crypto",
  "hash-integrations-definition",
  "hex",

@@ -1,4 +1,3 @@
-// From `engine/src/graph/property/value.rs:1-219`
 use std::collections::HashMap;
 
 use duckdb::types::{TimeUnit, Value};
@@ -14,7 +13,7 @@ const UNIX_EPOCH_JULIAN_DAY: i32 = 2_440_588;
 
 /// Why a row value cannot be written as a property.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
-pub enum UnsupportedValue {
+pub(crate) enum UnsupportedValue {
     #[display("blob values cannot be written as properties")]
     Blob,
     #[display("geometry values cannot be written as properties")]

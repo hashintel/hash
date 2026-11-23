@@ -1,4 +1,3 @@
-// From `engine/src/graph/property/coerce.rs:1-162`
 //! The conversions a definition can apply to a column, following the rules of the TypeScript
 //! engine, except that dates and times are checked to be real ones.
 

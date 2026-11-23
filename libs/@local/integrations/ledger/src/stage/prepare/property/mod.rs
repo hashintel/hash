@@ -1,4 +1,3 @@
-// From `engine/src/graph/property/mod.rs:1-272`
 //! Resolves the properties an entity or link is written with from a row of its sink's table.
 //!
 //! Each property is read by its accessor from the definition: a column as it is, a column
@@ -32,14 +31,14 @@ use type_system::{
 };
 
 use self::value::ColumnValue;
-pub use self::value::UnsupportedValue;
+pub(crate) use self::value::UnsupportedValue;
 
 /// The positions of a sink table's columns by name, built once for all of its rows.
 ///
 /// Names are compared ignoring ASCII case, as DuckDB compares identifiers, so a definition reads
 /// the same columns its pipeline was checked against.
 #[derive(Debug, Clone)]
-pub struct SinkColumns(HashMap<Box<str>, usize>);
+pub(crate) struct SinkColumns(HashMap<Box<str>, usize>);
 
 /// Indexes the columns in the order of each row's values.
 impl<S: AsRef<str>> FromIterator<S> for SinkColumns {
@@ -56,7 +55,7 @@ impl<S: AsRef<str>> FromIterator<S> for SinkColumns {
 
 /// A row of a sink's table, read by column name.
 #[derive(Debug, Clone, Copy)]
-pub struct SinkRow<'a> {
+pub(crate) struct SinkRow<'a> {
     columns: &'a SinkColumns,
     values: &'a [Value],
 }
@@ -64,7 +63,7 @@ pub struct SinkRow<'a> {
 impl<'a> SinkRow<'a> {
     /// A row whose `values` are in the order `columns` were indexed in.
     #[must_use]
-    pub const fn new(columns: &'a SinkColumns, values: &'a [Value]) -> Self {
+    pub(crate) const fn new(columns: &'a SinkColumns, values: &'a [Value]) -> Self {
         Self { columns, values }
     }
 }
@@ -72,7 +71,7 @@ impl<'a> SinkRow<'a> {
 impl SinkRow<'_> {
     /// Resolves each of `properties` from the row, looking measure units up in `unit_maps`.
     #[must_use]
-    pub fn resolve(
+    pub(crate) fn resolve(
         &self,
         properties: &Properties,
         unit_maps: &BTreeMap<UnitMapName, UnitMap>,
@@ -114,7 +113,11 @@ impl SinkRow<'_> {
     /// text form.
     ///
     /// The text is not trimmed, as it identifies a record across runs.
-    pub(in crate::graph) fn text(&self, column: &ColumnName) -> Option<String> {
+    #[cfg_attr(
+        test,
+        expect(dead_code, reason = "Prepare reads the source id with it")
+    )]
+    pub(crate) fn text(&self, column: &ColumnName) -> Option<String> {
         self.value(column).and_then(value::text)
     }
 
@@ -179,7 +182,7 @@ impl SinkRow<'_> {
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::From, derive_more::Error,
 )]
-pub enum FailureReason {
+pub(crate) enum FailureReason {
     /// The column's value is not of the form the coercion reads.
     #[from]
     #[display("the value cannot be read as {_0}")]
@@ -199,7 +202,7 @@ pub enum FailureReason {
 /// A property left out of a row's properties because its value could not be converted.
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 #[display("could not convert the value of `{property}`")]
-pub struct ConversionFailure {
+pub(crate) struct ConversionFailure {
     pub property: VersionedUrl,
     /// The value as the row holds it, for reporting.
     pub value: Option<String>,
@@ -209,7 +212,7 @@ pub struct ConversionFailure {
 
 /// The properties resolved from one row.
 #[derive(Debug, Clone, PartialEq)]
-pub struct ResolvedProperties {
+pub(crate) struct ResolvedProperties {
     /// The properties to write, keyed by base URL.
     pub properties: PropertyObjectWithMetadata,
     /// The properties left out because their values could not be converted.

@@ -1,4 +1,3 @@
-// From `engine/src/graph/property/tests.rs:1-409`
 use alloc::collections::BTreeMap;
 
 use duckdb::types::{TimeUnit, Value};

@@ -2,6 +2,7 @@
   "package": "hash-integrations-ledger",
   "dependencies": [
     "error-stack",
+    "hash-codec",
     "hash-crypto",
     "hash-integrations-definition",
     "type-system"
