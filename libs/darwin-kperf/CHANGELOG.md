@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 ### Added
 
 - Support for a new series of Apple Silicon chips (identifier: `as5-1`), mapping to the M5 Max series of chips. ([#8883])
+- Update codspeed to v6
 
 ## [0.1.0] - 2026-02-23
 
