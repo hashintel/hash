@@ -1,8 +1,9 @@
 /**
  * Browser APIs jsdom does not implement, as no-ops, for every test file that
  * runs in jsdom. A test that needs one to report or answer differently stubs
- * it itself. jsdom lists `matchMedia` on the window with no value, so each is
- * installed where it is missing, not where its name is absent.
+ * it itself. vitest's jsdom environment defines `matchMedia` on the global with
+ * no value, so each is installed where it is missing, not where its name is
+ * absent.
  */
 class NoObserver {
   observe() {}
