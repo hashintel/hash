@@ -3,11 +3,11 @@ import { useState } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useStoreSelector } from "../react/shared/use-store";
-import { AssistantPanelTitle } from "./plugins/assistant-panel-title";
-import { useAssistantPanel } from "./plugins/plugin-assistant";
+import { useStoreSelector } from "../../react/shared/use-store";
+import { AssistantPanelTitle } from "../plugins/assistant-panel-title";
+import { useAssistantPanel } from "../plugins/plugin-assistant";
 
-import type { PluginDocumentReader } from "./plugins/plugin-access";
+import type { PluginDocumentReader } from "../plugins/plugin-access";
 
 const placeCountStyle = css({ whiteSpace: "nowrap" });
 

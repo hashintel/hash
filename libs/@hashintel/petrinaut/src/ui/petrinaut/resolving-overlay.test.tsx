@@ -10,7 +10,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautDocumentProvider } from "../../react/petrinaut-provider-layers";
-import { logisticsLibrary } from "../libraries-story-fixtures";
+import { logisticsLibrary } from "../stories/libraries-story-fixtures";
 import { ResolvingOverlay } from "./resolving-overlay";
 
 afterEach(cleanup);

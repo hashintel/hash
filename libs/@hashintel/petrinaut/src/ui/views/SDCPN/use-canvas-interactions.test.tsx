@@ -11,7 +11,7 @@ import { PetrinautInstanceContext } from "../../../react/document/instance-conte
 import { SDCPNContext } from "../../../react/document/sdcpn-context";
 import { NotificationsContext } from "../../../react/notifications/context";
 import { EditorContext } from "../../../react/state/editor-context";
-import { logisticsLibrary } from "../../libraries-story-fixtures";
+import { logisticsLibrary } from "../../stories/libraries-story-fixtures";
 import { CanvasPointerContext, createCanvasPointer } from "./canvas-pointer";
 import { fusionLinks } from "./fusion-links";
 import { useCanvasInteractions } from "./use-canvas-interactions";

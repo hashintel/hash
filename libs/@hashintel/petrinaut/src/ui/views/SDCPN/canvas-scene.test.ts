@@ -10,7 +10,7 @@ import {
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
 
-import { logisticsLibrary } from "../../libraries-story-fixtures";
+import { logisticsLibrary } from "../../stories/libraries-story-fixtures";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import {
   buildCanvasScene,

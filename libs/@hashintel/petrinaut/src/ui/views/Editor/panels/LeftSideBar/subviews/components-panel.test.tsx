@@ -18,7 +18,7 @@ import {
   logisticsLibrary,
   missingLibraryId,
   toolingLibrary,
-} from "../../../../../libraries-story-fixtures";
+} from "../../../../../stories/libraries-story-fixtures";
 import { readDraggedComponent } from "../../../../shared/canvas-node-drag";
 import { ComponentsPanel } from "./components-panel";
 

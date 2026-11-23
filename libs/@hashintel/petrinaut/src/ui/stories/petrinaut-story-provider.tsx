@@ -11,8 +11,8 @@ import {
 import {
   defaultPetrinautNavigationState,
   type PetrinautNavigationState,
-} from "../react/navigation/navigation";
-import { Petrinaut, type PetrinautProps } from "./petrinaut";
+} from "../../react/navigation/navigation";
+import { Petrinaut, type PetrinautProps } from "../petrinaut";
 
 const emptySDCPN: SDCPN = {
   places: [],

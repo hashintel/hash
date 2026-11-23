@@ -1,7 +1,7 @@
 import * as examples from "@hashintel/petrinaut-core/examples";
 
-import { tileNet } from "./dev/tiled-net";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
+import { tileNet } from "./story-tiled-net";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 

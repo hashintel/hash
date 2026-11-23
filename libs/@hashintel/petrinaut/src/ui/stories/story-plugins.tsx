@@ -5,8 +5,8 @@ import { Button, Icon } from "@hashintel/ds-components";
 import {
   definePetrinautPlugin,
   type PluginHook,
-} from "./plugins/define-petrinaut-plugin";
-import { describeRefusal } from "./plugins/plugin-access";
+} from "../plugins/define-petrinaut-plugin";
+import { describeRefusal } from "../plugins/plugin-access";
 import { EchoChat, PlaceCount } from "./story-plugin-parts";
 
 const CounterPlugin = definePetrinautPlugin({
