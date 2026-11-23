@@ -27,13 +27,13 @@ import type { RunStepper, RunStepperConfig } from "./run-stepper";
 
 /**
  * Which simulator steps a run, and with what parameter values: the id of a
- * simulator whose stepper this worker hosts.
+ * simulator that has a stepper in this folder.
  */
 export type StepperSelection = MonteCarloSimulatorSelection;
 
 /**
- * Builds the stepper of the selected simulator. Throws for a simulator this
- * worker does not host and for a parameter its stepper rejects.
+ * Builds the stepper of the selected simulator. Throws for a simulator with
+ * no stepper here and for a parameter its stepper rejects.
  */
 export function createSimulatorStepper(
   selection: StepperSelection,
