@@ -12,26 +12,25 @@ const submissionIdFrom = (request: Request): string | undefined => {
 };
 
 /**
- * How long the stream may go without a byte before it writes a heartbeat, by
- * default: well inside the 125 s after which Cloudflare closes a response
- * that has sent nothing, as it would while the model thinks before a tool.
+ * How long the stream may go without a byte before it writes a heartbeat: well
+ * inside the 125 s after which Cloudflare closes a response that has sent
+ * nothing, as it would while the model thinks before a tool.
  */
-const defaultLiveToolHeartbeatMs = 30_000;
+const liveToolHeartbeatMs = 30_000;
 
 /** An SSE comment, which the client's reader skips as a frame without data. */
 const heartbeatComment = ": heartbeat\n\n";
 
 /**
  * Serve one submission's live tool events as SSE, with a heartbeat comment
- * after each `heartbeatMs` without an event. The caller owns routing and
- * must authorize the conversation before calling this.
+ * after each 30 s without an event. The caller owns routing and must authorize
+ * the conversation before calling this.
  */
 export const liveToolResponse = (
   broadcaster: LiveToolBroadcaster,
   input: {
     readonly instanceId: string;
     readonly request: Request;
-    readonly heartbeatMs?: number;
   },
 ): Response => {
   const submissionId = submissionIdFrom(input.request);
@@ -54,27 +53,47 @@ export const liveToolResponse = (
 
   const encoder = new TextEncoder();
   const heartbeat = encoder.encode(heartbeatComment);
-  const heartbeatMs = input.heartbeatMs ?? defaultLiveToolHeartbeatMs;
   const iterator = subscription.events[Symbol.asyncIterator]();
+  const signal = input.request.signal;
   let closed = false;
   let quietTimer: ReturnType<typeof setTimeout> | undefined;
+  let releaseAbort: (() => void) | undefined;
   const close = () => {
     closed = true;
     clearTimeout(quietTimer);
+    quietTimer = undefined;
+    releaseAbort?.();
+    releaseAbort = undefined;
   };
   // Each write is a whole event, so a heartbeat always falls between events.
+  // Skip writing when the stream is backpressured, but keep checking on the
+  // next interval so heartbeats resume once the reader drains.
   const restartQuietInterval = (
     controller: ReadableStreamDefaultController<Uint8Array>,
   ) => {
     clearTimeout(quietTimer);
     quietTimer = setTimeout(() => {
-      if (closed) return;
-      controller.enqueue(heartbeat);
+      if ((controller.desiredSize ?? 0) > 0) {
+        controller.enqueue(heartbeat);
+      }
       restartQuietInterval(controller);
-    }, heartbeatMs);
+    }, liveToolHeartbeatMs);
   };
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
+      const finishStream = () => {
+        if (closed) return;
+        close();
+        subscription.close();
+        controller.close();
+      };
+      if (signal.aborted) {
+        finishStream();
+        return;
+      }
+      signal.addEventListener("abort", finishStream, { once: true });
+      releaseAbort = () => signal.removeEventListener("abort", finishStream);
+      void subscription.closed.then(finishStream);
       restartQuietInterval(controller);
     },
     async pull(controller) {

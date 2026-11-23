@@ -2,6 +2,8 @@ import { expect, test, vi } from "vitest";
 
 import { readLiveToolStream } from "./live-tool-stream";
 
+import type { LiveToolEvent } from "../shared/live-tool-event";
+
 test("reads fragmented SSE data with ownership headers and no reconnect", async () => {
   const encoder = new TextEncoder();
   const body = new ReadableStream<Uint8Array>({
@@ -88,8 +90,8 @@ test("skips the server's heartbeat comments", async () => {
     toolName: "lookup",
     turnId: "turn-1",
     v: 1,
-  };
-  const events: unknown[] = [];
+  } satisfies LiveToolEvent;
+  const events: LiveToolEvent[] = [];
 
   await readLiveToolStream({
     conversationUrl: "https://agent.test/agents/chat/instance-1",

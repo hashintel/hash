@@ -84,6 +84,13 @@ export const createLiveToolObserver = (
       if (correlation === undefined) return;
 
       switch (event.type) {
+        case "submission_queued":
+        case "submission_running":
+          broadcaster.activate(
+            correlation.instanceId,
+            correlation.submissionId,
+          );
+          return;
         case "toolcall_delta": {
           if (event.turnId === undefined) return;
           const input = {
