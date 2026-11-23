@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -73,7 +73,7 @@ const BreadCrumbsRoot = ({
   maxItems?: number;
   /** The aria-label of the ellipsis menu trigger, if one is rendered. */
   ellipsisLabel?: string;
-  /** Whether to focus the first interactive crumb on mount; `"never"` prevents the crumbs being focused automatically. */
+  /** Whether to focus the first interactive crumb on mount, or the ellipsis menu trigger when that crumb is collapsed; `"never"` prevents the crumbs being focused automatically. */
   autoFocus?: boolean | "never";
   "aria-label"?: string;
 }) => {
@@ -96,6 +96,14 @@ const BreadCrumbsRoot = ({
   const [collapse, setCollapse] = useState(() =>
     initialCollapse(count, maxItems),
   );
+
+  // Mount-only: the first measure may swap the focus target between a crumb
+  // and the ellipsis, but a later resize remounting one mustn't steal focus
+  const [autoFocusPending, setAutoFocusPending] = useState(autoFocus === true);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setAutoFocusPending(false));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   const measure = useCallback(() => {
     const root = rootRef.current;
@@ -192,6 +200,12 @@ const BreadCrumbsRoot = ({
         item.onClick !== undefined ||
         item.subItems !== undefined),
   );
+  const focusTarget: number | "ellipsis" | null =
+    autoFocus === true && autoFocusPending && firstInteractiveIndex !== -1
+      ? hiddenSet.has(firstInteractiveIndex)
+        ? "ellipsis"
+        : firstInteractiveIndex
+      : null;
 
   // An explicit `current` crumb replaces the last-crumb default entirely, so
   // the trail never carries two `aria-current="page"` marks.
@@ -218,7 +232,7 @@ const BreadCrumbsRoot = ({
             autoFocus={
               autoFocus === "never"
                 ? "never"
-                : autoFocus === true && index === firstInteractiveIndex
+                : index === focusTarget
                   ? true
                   : undefined
             }
@@ -259,7 +273,9 @@ const BreadCrumbsRoot = ({
                     className={classes.ellipsisTrigger}
                     aria-label={ellipsisLabel}
                     {...resolveAutoFocusProps(
-                      autoFocus === "never" ? "never" : undefined,
+                      autoFocus === "never"
+                        ? "never"
+                        : focusTarget === "ellipsis" || undefined,
                     )}
                   >
                     <Icon name="ellipsis" />

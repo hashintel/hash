@@ -6,6 +6,7 @@ import {
   conversionRowsForViewer,
   conversionsFromFactor,
   formatConversionExpression,
+  mergeConversionRecords,
   newConversionRowState,
   parseConversionFactor,
   parseSimpleConversion,
@@ -606,13 +607,98 @@ describe("planConversionUpdates", () => {
     expect(plan.unremovableTargets).toEqual([]);
     expect(plan.updates).toHaveLength(1);
     expect(plan.updates[0]!.baseUrl).toBe(baseUrl("kilometre"));
-    // The remaining pair's canonical is centimetre (the definer), so the
-    // fresh pairing is stored against it: 1 km = 50,000 cm
+    // Stored against the pair's hub, metre: 1 km = 50,000 cm = 500 m
     expect(
-      parseConversionFactor(
-        plan.updates[0]!.conversions[baseUrl("centimetre")]!,
-      ),
-    ).toBeCloseTo(50000);
+      parseConversionFactor(plan.updates[0]!.conversions[baseUrl("metre")]!),
+    ).toBeCloseTo(500);
+  });
+
+  describe("never pairs through a hub elected by other users' entries", () => {
+    /** An unrelated user's type storing an entry aimed at the victim's A */
+    const withForeignEntry = {
+      [baseUrl("a")]: makeDataType("A"),
+      [baseUrl("x")]: makeDataType("X", { [baseUrl("a")]: multiply(2) }),
+      [baseUrl("n")]: makeDataType("N"),
+    };
+    const isForeign = (writeBaseUrl: BaseUrl) => writeBaseUrl === baseUrl("x");
+
+    it("stores a new pairing with A directly, not through X", () => {
+      const plan = planConversionUpdates({
+        viewedBaseUrl: baseUrl("n"),
+        desiredRows: [{ targetBaseUrl: baseUrl("a"), factor: 3 }],
+        initialRows: [],
+        latestDataTypes: withForeignEntry,
+        canWriteTo: (writeBaseUrl) => !isForeign(writeBaseUrl),
+      });
+
+      expect(plan.unplacedTargets).toEqual([]);
+      expect(plan.updates).toEqual([
+        {
+          baseUrl: baseUrl("n"),
+          conversions: { [baseUrl("a")]: multiply(3) },
+        },
+      ]);
+    });
+
+    it("stores a target joining A's group against A, not X", () => {
+      const plan = planConversionUpdates({
+        viewedBaseUrl: baseUrl("a"),
+        desiredRows: [{ targetBaseUrl: baseUrl("n"), factor: 0.5 }],
+        initialRows: [],
+        latestDataTypes: withForeignEntry,
+        canWriteTo: (writeBaseUrl) => !isForeign(writeBaseUrl),
+      });
+
+      expect(plan.unplacedTargets).toEqual([]);
+      expect(plan.updates).toHaveLength(1);
+      expect(plan.updates[0]!.baseUrl).toBe(baseUrl("n"));
+      expect(Object.keys(plan.updates[0]!.conversions)).toEqual([baseUrl("a")]);
+      // 1 a = 0.5 n ⇒ 1 n = 2 a
+      expect(
+        parseConversionFactor(plan.updates[0]!.conversions[baseUrl("a")]!),
+      ).toBeCloseTo(2);
+    });
+
+    it("refuses a pairing when inflating X's connectivity makes it the hub", () => {
+      const inflated = {
+        ...withForeignEntry,
+        [baseUrl("y1")]: makeDataType("Y1", { [baseUrl("x")]: multiply(5) }),
+        [baseUrl("y2")]: makeDataType("Y2", { [baseUrl("x")]: multiply(7) }),
+      };
+
+      const plan = planConversionUpdates({
+        viewedBaseUrl: baseUrl("n"),
+        desiredRows: [{ targetBaseUrl: baseUrl("a"), factor: 3 }],
+        initialRows: [],
+        latestDataTypes: inflated,
+        canWriteTo: (writeBaseUrl) => writeBaseUrl === baseUrl("n"),
+      });
+
+      // A never chose X, so the pairing is refused rather than stored
+      // through it
+      expect(plan.unplacedTargets).toEqual([baseUrl("a")]);
+      expect(plan.updates).toEqual([]);
+    });
+
+    it("refuses a target joining A's group when X is its hub", () => {
+      const inflated = {
+        ...withForeignEntry,
+        [baseUrl("y1")]: makeDataType("Y1", { [baseUrl("x")]: multiply(5) }),
+        [baseUrl("y2")]: makeDataType("Y2", { [baseUrl("x")]: multiply(7) }),
+      };
+
+      const plan = planConversionUpdates({
+        viewedBaseUrl: baseUrl("a"),
+        desiredRows: [{ targetBaseUrl: baseUrl("n"), factor: 0.5 }],
+        initialRows: [],
+        latestDataTypes: inflated,
+        canWriteTo: (writeBaseUrl) =>
+          writeBaseUrl === baseUrl("n") || writeBaseUrl === baseUrl("a"),
+      });
+
+      expect(plan.unplacedTargets).toEqual([baseUrl("n")]);
+      expect(plan.updates).toEqual([]);
+    });
   });
 
   it("reports a merge neither side has permission to rewrite", () => {
@@ -637,6 +723,54 @@ describe("planConversionUpdates", () => {
 
     expect(plan.unplacedTargets).toEqual([baseUrl("second")]);
     expect(plan.updates).toEqual([]);
+  });
+});
+
+describe("mergeConversionRecords", () => {
+  const metre = baseUrl("metre");
+  const foot = baseUrl("foot");
+  const inch = baseUrl("inch");
+
+  it("applies each record's changes against the current conversions", () => {
+    const current = { [metre]: multiply(1000) };
+
+    expect(
+      mergeConversionRecords(current, [
+        { [metre]: multiply(1000), [foot]: multiply(3) },
+        { [metre]: multiply(1000), [inch]: multiply(12) },
+      ]),
+    ).toEqual({
+      [metre]: multiply(1000),
+      [foot]: multiply(3),
+      [inch]: multiply(12),
+    });
+  });
+
+  it("keeps a removal from one record when another leaves the entry as is", () => {
+    expect(
+      mergeConversionRecords({ [metre]: multiply(1000), [foot]: multiply(3) }, [
+        { [foot]: multiply(3) },
+        { [metre]: multiply(1000), [foot]: multiply(3), [inch]: multiply(12) },
+      ]),
+    ).toEqual({ [foot]: multiply(3), [inch]: multiply(12) });
+  });
+
+  it("accepts records that make the same change", () => {
+    expect(
+      mergeConversionRecords({}, [
+        { [foot]: multiply(3) },
+        { [foot]: multiply(3) },
+      ]),
+    ).toEqual({ [foot]: multiply(3) });
+  });
+
+  it("returns null when records change one entry differently", () => {
+    expect(
+      mergeConversionRecords({}, [
+        { [foot]: multiply(3) },
+        { [foot]: multiply(4) },
+      ]),
+    ).toBeNull();
   });
 });
 

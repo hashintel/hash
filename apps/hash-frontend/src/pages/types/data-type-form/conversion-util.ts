@@ -1,3 +1,5 @@
+import { isEqual } from "lodash";
+
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 
@@ -372,14 +374,14 @@ export const buildConversionGroups = (
 
     // The canonical is the most-connected member: the hub every spoke
     // targets, or the holder that defines every conversion. Ties prefer a
-    // definer, so new entries land where existing ones are stored.
+    // member storing no entries — a pair's target, as the planner places it.
     const definers = new Set(componentEdges.map((edge) => edge.sourceBaseUrl));
     let canonicalBaseUrl = members[0]!;
     let bestScore = -1;
     for (const member of members) {
       const score =
         (neighbours.get(member)?.size ?? 0) * 2 +
-        (definers.has(member) ? 1 : 0);
+        (definers.has(member) ? 0 : 1);
       if (score > bestScore) {
         bestScore = score;
         canonicalBaseUrl = member;
@@ -823,6 +825,27 @@ export const planConversionUpdates = ({
     }
   };
 
+  /**
+   * Whether the group's elected canonical is the hub this type's own entries
+   * anchor on: the target of its single entry, or the type itself when it
+   * stores none or several (a holder hub). Anyone can store an entry aimed
+   * at a public type, so incoming entries alone can elect a canonical the
+   * type never chose — pairings through such a hub are refused rather than
+   * made to depend on it.
+   */
+  const anchorsOn = (
+    anchorBaseUrl: BaseUrl,
+    group: ConversionGroup,
+  ): boolean => {
+    const entryTargets = Object.keys(
+      staged.get(anchorBaseUrl) ??
+        latestDataTypes[anchorBaseUrl]?.metadata.conversions ??
+        {},
+    );
+    const ownHub = entryTargets.length === 1 ? entryTargets[0] : anchorBaseUrl;
+    return ownHub === group.canonicalBaseUrl;
+  };
+
   const unplacedTargets: BaseUrl[] = [];
 
   for (const added of desiredByTarget.values()) {
@@ -892,10 +915,14 @@ export const planConversionUpdates = ({
       continue;
     }
 
+    const targetHubTrusted =
+      !!targetGroup && anchorsOn(added.targetBaseUrl, targetGroup);
+    const viewedHubTrusted =
+      !!viewedGroup && anchorsOn(viewedBaseUrl, viewedGroup);
+
     if (!viewedGroup && targetGroup) {
       // The viewed type joins the target's group, aimed at its canonical
-      if (targetToHub === undefined) {
-        // The target hangs off its group by a formula — nothing to compose
+      if (targetToHub === undefined || !targetHubTrusted) {
         unplacedTargets.push(added.targetBaseUrl);
         continue;
       }
@@ -906,7 +933,11 @@ export const planConversionUpdates = ({
 
     if (viewedGroup && !targetGroup) {
       // The target joins the viewed type's group — republishing the target
-      if (viewedToHub === undefined || !canWriteTo(added.targetBaseUrl)) {
+      if (
+        viewedToHub === undefined ||
+        !viewedHubTrusted ||
+        !canWriteTo(added.targetBaseUrl)
+      ) {
         unplacedTargets.push(added.targetBaseUrl);
         continue;
       }
@@ -923,20 +954,29 @@ export const planConversionUpdates = ({
       targetToHub !== undefined
     ) {
       // Two groups: merge by absorbing whichever the caller may fully
-      // rewrite, preferring the smaller rewrite
+      // rewrite, preferring the smaller rewrite — into a canonical only when
+      // that side's own entries anchor on it
       const hubVToHubT = (added.factor * targetToHub) / viewedToHub;
 
       const candidates = [
-        {
-          group: targetGroup,
-          newHub: viewedGroup.canonicalBaseUrl,
-          oldHubToNewHub: 1 / hubVToHubT,
-        },
-        {
-          group: viewedGroup,
-          newHub: targetGroup.canonicalBaseUrl,
-          oldHubToNewHub: hubVToHubT,
-        },
+        ...(viewedHubTrusted
+          ? [
+              {
+                group: targetGroup,
+                newHub: viewedGroup.canonicalBaseUrl,
+                oldHubToNewHub: 1 / hubVToHubT,
+              },
+            ]
+          : []),
+        ...(targetHubTrusted
+          ? [
+              {
+                group: viewedGroup,
+                newHub: targetGroup.canonicalBaseUrl,
+                oldHubToNewHub: hubVToHubT,
+              },
+            ]
+          : []),
       ]
         .filter(({ group }) => absorbable(group))
         .sort((a, b) => membersOf(a.group).size - membersOf(b.group).size);
@@ -961,6 +1001,43 @@ export const planConversionUpdates = ({
     unplacedTargets,
     unremovableTargets,
   };
+};
+
+/**
+ * Folds several plans' full conversion records for one type into one: each
+ * applies as its diff against the type's current conversions. Null when two
+ * plans set one target differently.
+ */
+export const mergeConversionRecords = (
+  current: Record<BaseUrl, Conversions>,
+  records: Record<BaseUrl, Conversions>[],
+): Record<BaseUrl, Conversions> | null => {
+  const merged = new Map(Object.entries(current) as [BaseUrl, Conversions][]);
+  const changes = new Map<BaseUrl, Conversions | undefined>();
+
+  for (const record of records) {
+    const keys = new Set([
+      ...Object.keys(current),
+      ...Object.keys(record),
+    ] as BaseUrl[]);
+    for (const key of keys) {
+      const next = record[key];
+      if (isEqual(next, current[key])) {
+        continue;
+      }
+      if (changes.has(key) && !isEqual(changes.get(key), next)) {
+        return null;
+      }
+      changes.set(key, next);
+      if (next) {
+        merged.set(key, next);
+      } else {
+        merged.delete(key);
+      }
+    }
+  }
+
+  return Object.fromEntries(merged);
 };
 
 /**

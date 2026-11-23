@@ -14,7 +14,6 @@ import {
   updateDataType,
 } from "../../../graph/ontology/primitive/data-type";
 import { graphQLContextToImpureGraphContext } from "../util";
-import { rethrowWithGraphErrorDetail } from "./data-type/rethrow-with-graph-error-detail";
 
 import type {
   DataTypePermissionsRecord,
@@ -96,7 +95,7 @@ export const createDataTypeResolver: ResolverFn<
       schema: dataType,
       conversions: conversions ?? {},
     },
-  ).catch(rethrowWithGraphErrorDetail);
+  );
 
   return createdDataType;
 };
@@ -115,7 +114,7 @@ export const updateDataTypeResolver: ResolverFn<
       schema: params.dataType,
       conversions: params.conversions ?? {},
     },
-  ).catch(rethrowWithGraphErrorDetail);
+  );
 
 export const archiveDataTypeResolver: ResolverFn<
   Promise<OntologyTemporalMetadata>,

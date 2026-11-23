@@ -124,14 +124,21 @@ describe("schemaConstraintsFromValues", () => {
     ).toEqual({ enum: ["a"] });
   });
 
-  it("parses numeric permitted values and drops the rest", () => {
+  it("keeps only permitted values of the primitive's own type", () => {
     expect(
       schemaConstraintsFromValues({
         primitive: "number",
         activeKinds: ["enum"],
-        values: { enum: ["25", 50, "not a number"] },
+        values: { enum: ["25", 50, Number.NaN] },
       }),
-    ).toEqual({ enum: [25, 50] });
+    ).toEqual({ enum: [50] });
+    expect(
+      schemaConstraintsFromValues({
+        primitive: "string",
+        activeKinds: ["enum"],
+        values: { enum: [1, "a"] },
+      }),
+    ).toEqual({ enum: ["a"] });
   });
 
   it("serializes array constraints to an item schema and bounds", () => {

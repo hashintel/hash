@@ -201,6 +201,7 @@ describe("data types in the Types listing", () => {
       ),
       loading: false,
       error: null,
+      ensureFetched: vi.fn(),
       refetch: vi.fn().mockResolvedValue(undefined),
       onDataTypeSaved: vi.fn(),
     });

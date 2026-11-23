@@ -314,12 +314,14 @@ export const DataTypeDrawerById = ({
   const dataTypeBaseUrl = extractBaseUrl(dataTypeId);
 
   /**
-   * A version picked from the breadcrumb dropdown. Picking the latest stores
-   * a sentinel rather than clearing: null means "no pick yet", which defers
-   * to an originally requested older $id — the pick must beat that.
+   * A version picked from the breadcrumb dropdown, held as the picked edition
+   * itself — it may come from the remote fetch rather than the catalogue.
+   * Picking the latest stores a sentinel rather than clearing: null means "no
+   * pick yet", which defers to an originally requested older $id — the pick
+   * must beat that.
    */
   const [versionOverride, setVersionOverride] = useState<
-    VersionedUrl | "latest" | null
+    DataTypeWithMetadata | "latest" | null
   >(null);
 
   // The context loads across all transaction time, so it also holds archived
@@ -436,11 +438,8 @@ export const DataTypeDrawerById = ({
   const dataType =
     versionOverride === "latest"
       ? latestKnown
-      : versionOverride
-        ? (dataTypes?.[versionOverride] ?? null)
-        : requestedDiffers
-          ? requestedEdition
-          : latestKnown;
+      : (versionOverride ??
+        (requestedDiffers ? requestedEdition : latestKnown));
 
   // Only the latest version is editable, whatever the user's permissions
   const viewingNonLatest =
@@ -501,7 +500,7 @@ export const DataTypeDrawerById = ({
               latestVersion,
             ) === 0
             ? "latest"
-            : switched.schema.$id,
+            : switched,
         )
       }
     />

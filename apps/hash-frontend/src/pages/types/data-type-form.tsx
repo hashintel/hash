@@ -161,6 +161,7 @@ export const DataTypeForm = ({
     interceptDrawerClose,
     requestClose,
     navigateToCrumb,
+    requestLeave,
     generateTypeUrlsForUser,
     showExtendTypeAction,
     createNewInitialTitle,
@@ -736,8 +737,11 @@ export const DataTypeForm = ({
   const versionMenuItems = editedTypeVersions.map((versionedType, index) => ({
     text: `v${versionedType.metadata.recordId.version}${index === 0 ? " (latest)" : ""}`,
     onClick: () => {
-      if (versionedType.schema.$id !== editedDataType?.schema.$id) {
-        onSwitchVersion?.(versionedType);
+      if (
+        onSwitchVersion &&
+        versionedType.schema.$id !== editedDataType?.schema.$id
+      ) {
+        requestLeave(() => onSwitchVersion(versionedType));
       }
     },
   }));

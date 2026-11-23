@@ -44,6 +44,7 @@ import {
   conversionRowStatesFromRows,
   conversionRowsForViewer,
   inverseOperator,
+  mergeConversionRecords,
   planConversionUpdates,
   severedConversionPairings,
 } from "./conversion-util";
@@ -71,6 +72,7 @@ import {
 } from "./list-util";
 import { isLiveDataType } from "./live-data-types";
 import {
+  isBaseDataTypeBaseUrl,
   primitiveRootRefFor,
   primitiveRootTypeByBaseUrl,
   primitiveRootTypes,
@@ -202,6 +204,7 @@ export const useDataTypeFormState = ({
     refetch: refetchAllDataTypes,
     loading: dataTypesLoading,
     error: dataTypesError,
+    ensureFetched,
     onDataTypeSaved,
   } = useDataTypesContext();
 
@@ -228,8 +231,19 @@ export const useDataTypeFormState = ({
       readonly: liveReadonly,
     };
   }
-  const { editedDataType, dataTypes, latestDataTypes, readonly } =
-    frozenWorldRef.current;
+  const {
+    editedDataType,
+    dataTypes,
+    latestDataTypes,
+    readonly: frozenReadonly,
+  } = frozenWorldRef.current;
+
+  // The form can't express a base type's definition (Value's primitive
+  // union, a root's bare type), so saving one would rewrite it
+  const readonly =
+    frozenReadonly ||
+    (!!editedDataType &&
+      isBaseDataTypeBaseUrl(editedDataType.metadata.recordId.baseUrl));
 
   /** The pinned world, re-provided so the drawer's fields read it too */
   const scopedDataTypesContext = useMemo(
@@ -238,6 +252,7 @@ export const useDataTypeFormState = ({
       latestDataTypes,
       loading: dataTypesLoading,
       error: dataTypesError,
+      ensureFetched,
       refetch: refetchAllDataTypes,
       onDataTypeSaved,
     }),
@@ -246,6 +261,7 @@ export const useDataTypeFormState = ({
       latestDataTypes,
       dataTypesLoading,
       dataTypesError,
+      ensureFetched,
       refetchAllDataTypes,
       onDataTypeSaved,
     ],
@@ -341,7 +357,11 @@ export const useDataTypeFormState = ({
           relation: "parent",
         }));
 
-      const listEntries = listEntriesFromSchema(editedSchema);
+      // A base type's array arm (Value's, List's own) defines the primitive,
+      // not an authored list
+      const listEntries = isBaseDataTypeBaseUrl(editedBaseUrl)
+        ? []
+        : listEntriesFromSchema(editedSchema);
 
       const children = Object.values(latestDataTypes)
         .filter(
@@ -712,7 +732,17 @@ export const useDataTypeFormState = ({
    */
   const hasEditsRef = useRef(false);
 
+  /** A leave other than closing (a version switch), run in place of it */
+  const pendingLeaveRef = useRef<(() => void) | null>(null);
+
   const finishClose = () => {
+    const leave = pendingLeaveRef.current;
+    if (leave) {
+      pendingLeaveRef.current = null;
+      setAbandonDraftsDialogOpen(false);
+      leave();
+      return;
+    }
     onClose();
     const path = pendingClosePathRef.current;
     pendingClosePathRef.current = null;
@@ -744,16 +774,24 @@ export const useDataTypeFormState = ({
     finishClose();
   };
 
+  /** Leaving the form another way goes through the same dialogs as closing */
+  const requestLeave = (leave: () => void) => {
+    pendingLeaveRef.current = leave;
+    requestClose();
+  };
+
   const dismissAbandonDialog = () => {
     setAbandonDraftsDialogOpen(false);
     setKeepDraftsError(null);
     setPendingAllowedTypes(null);
     pendingClosePathRef.current = null;
+    pendingLeaveRef.current = null;
   };
 
   const dismissUnsavedChangesDialog = () => {
     setUnsavedChangesDialogOpen(false);
     pendingClosePathRef.current = null;
+    pendingLeaveRef.current = null;
   };
 
   const discardUnsavedChanges = () => {
@@ -779,14 +817,18 @@ export const useDataTypeFormState = ({
       return [];
     }
     const editedBase = editedDataType.metadata.recordId.baseUrl;
-    return Object.values(dataTypes)
-      .filter((dataType) => dataType.metadata.recordId.baseUrl === editedBase)
-      .sort((a, b) =>
-        compareOntologyTypeVersions(
-          b.metadata.recordId.version,
-          a.metadata.recordId.version,
-        ),
-      );
+    // The edition in view may come from a remote fetch the catalogue trails
+    const catalogued = Object.values(dataTypes).filter(
+      (dataType) =>
+        dataType.metadata.recordId.baseUrl === editedBase &&
+        dataType.schema.$id !== editedDataType.schema.$id,
+    );
+    return [editedDataType, ...catalogued].sort((a, b) =>
+      compareOntologyTypeVersions(
+        b.metadata.recordId.version,
+        a.metadata.recordId.version,
+      ),
+    );
   }, [editedDataType, dataTypes]);
 
   const editableWebIds = useMemo(
@@ -805,6 +847,8 @@ export const useDataTypeFormState = ({
   /** The backend's policy verdicts, null while loading */
   const editableDataTypeBaseUrls = useDataTypeEditPermissions({
     latestDataTypes,
+    conversionGroups,
+    editableWebIds,
     skip: readonly,
   });
 
@@ -1929,7 +1973,7 @@ export const useDataTypeFormState = ({
   const unplacedConversionsError = (targets: BaseUrl[]) =>
     `Conversions to ${summarizeTypeTitles(
       targets.map(resolveConversionTitle),
-    )} can't be stored — every type that could hold them either can't be updated by you or already stores another conversion`;
+    )} can't be stored — every type that could hold them either can't be updated by you, already stores another conversion, or sits in a group whose hub it didn't choose`;
 
   /** The composed remove button is permission-gated; backstops a stale state */
   const unremovableConversionsError = (targets: BaseUrl[]) =>
@@ -1943,7 +1987,7 @@ export const useDataTypeFormState = ({
       baseUrls.map(resolveConversionTitle),
     )} in more than one way — save them separately`;
 
-  /** The server's own failure detail, keeping distinct causes tellable apart */
+  /** The server's message — usually only the graph's generic store failure */
   const graphQlErrorDetail = (
     responseErrors: readonly { message: string }[] | undefined,
   ) => responseErrors?.[0]?.message ?? null;
@@ -2269,6 +2313,70 @@ export const useDataTypeFormState = ({
       );
     }
 
+    // Group-card conversion edits packed for existing members: each member is
+    // planned as its own viewer against its saved rows
+    const plannedRecords = new Map<BaseUrl, Record<BaseUrl, Conversions>[]>();
+    const addPlannedRecord = (
+      baseUrl: BaseUrl,
+      conversions: Record<BaseUrl, Conversions>,
+    ) => {
+      plannedRecords.set(baseUrl, [
+        ...(plannedRecords.get(baseUrl) ?? []),
+        conversions,
+      ]);
+    };
+    for (const update of relatedConversionUpdates) {
+      addPlannedRecord(update.baseUrl, update.conversions);
+    }
+    for (const { childBaseUrl, rows } of draft.memberConversionRows ?? []) {
+      const memberGroup =
+        buildConversionGroups(latestDataTypes).get(childBaseUrl);
+      const memberInitialRows = memberGroup
+        ? conversionRowsForViewer({
+            viewedBaseUrl: childBaseUrl,
+            group: memberGroup,
+          }).filter((row) => !row.viaCanonical && row.simple != null)
+        : [];
+
+      const plan = planConversionUpdates({
+        viewedBaseUrl: childBaseUrl,
+        desiredRows: rows.map((row) => ({
+          targetBaseUrl: row.targetBaseUrl,
+          simple: { operator: row.operator, operand: row.value },
+        })),
+        initialRows: memberInitialRows,
+        latestDataTypes,
+        canWriteTo: canEditByBaseUrl,
+      });
+      if (plan.unplacedTargets.length > 0) {
+        throw new Error(
+          `Conversions on ${resolveConversionTitle(childBaseUrl)} can't be stored — they would join or merge conversion groups you don't have permission to update`,
+        );
+      }
+      for (const update of plan.updates) {
+        addPlannedRecord(update.baseUrl, update.conversions);
+      }
+    }
+
+    // One update per type: a type several plans touch, or a member that also
+    // holds a planned conversion, would otherwise race over its next version
+    const conversionUpdates = new Map<BaseUrl, Record<BaseUrl, Conversions>>();
+    const conflictBaseUrls: BaseUrl[] = [];
+    for (const [baseUrl, records] of plannedRecords) {
+      const merged = mergeConversionRecords(
+        latestDataTypes[baseUrl]?.metadata.conversions ?? {},
+        records,
+      );
+      if (merged) {
+        conversionUpdates.set(baseUrl, merged);
+      } else {
+        conflictBaseUrls.push(baseUrl);
+      }
+    }
+    if (conflictBaseUrls.length > 0) {
+      throw new Error(conflictingConversionsError(conflictBaseUrls));
+    }
+
     const response = await createDataType({
       variables: {
         webId: activeWorkspaceWebId,
@@ -2296,45 +2404,9 @@ export const useDataTypeFormState = ({
     const created = response.data.createDataType;
     onDataTypeSaved(created);
 
-    // Group-card conversion edits packed for existing members: each member is
-    // planned as its own viewer against its saved rows, and its own entry
-    // rides the membership republish so one type gets one update
-    const memberConversionUpdates = new Map<
-      BaseUrl,
-      Record<BaseUrl, Conversions>
-    >();
-    for (const { childBaseUrl, rows } of draft.memberConversionRows ?? []) {
-      const memberGroup =
-        buildConversionGroups(latestDataTypes).get(childBaseUrl);
-      const memberInitialRows = memberGroup
-        ? conversionRowsForViewer({
-            viewedBaseUrl: childBaseUrl,
-            group: memberGroup,
-          }).filter((row) => !row.viaCanonical && row.simple != null)
-        : [];
-
-      const plan = planConversionUpdates({
-        viewedBaseUrl: childBaseUrl,
-        desiredRows: rows.map((row) => ({
-          targetBaseUrl: row.targetBaseUrl,
-          simple: { operator: row.operator, operand: row.value },
-        })),
-        initialRows: memberInitialRows,
-        latestDataTypes,
-        canWriteTo: canEditByBaseUrl,
-      });
-      if (plan.unplacedTargets.length > 0) {
-        throw new Error(
-          `Conversions on ${resolveConversionTitle(childBaseUrl)} can't be stored — they would join or merge conversion groups you don't have permission to update`,
-        );
-      }
-      for (const update of plan.updates) {
-        memberConversionUpdates.set(update.baseUrl, update.conversions);
-      }
-    }
-    const takeMemberConversions = (baseUrl: BaseUrl) => {
-      const conversions = memberConversionUpdates.get(baseUrl);
-      memberConversionUpdates.delete(baseUrl);
+    const takeConversions = (baseUrl: BaseUrl) => {
+      const conversions = conversionUpdates.get(baseUrl);
+      conversionUpdates.delete(baseUrl);
       return conversions;
     };
 
@@ -2346,26 +2418,18 @@ export const useDataTypeFormState = ({
       await createStagedMember(memberDraft, created.schema.$id);
     }
 
-    if (
-      draft.memberDataTypeIds?.length ||
-      relatedConversionUpdates.length > 0 ||
-      memberConversionUpdates.size > 0
-    ) {
+    if (draft.memberDataTypeIds?.length || conversionUpdates.size > 0) {
       await Promise.all([
         ...(draft.memberDataTypeIds ?? []).map((memberId) =>
           applyChildAllOfChange({
             childId: memberId,
             addRef: created.schema.$id,
             removeBaseUrl: draft.baseUrl,
-            conversions: takeMemberConversions(extractBaseUrl(memberId)),
+            conversions: takeConversions(extractBaseUrl(memberId)),
           }),
         ),
-        ...relatedConversionUpdates.map(({ baseUrl, conversions }) =>
+        ...[...conversionUpdates.entries()].map(([baseUrl, conversions]) =>
           applyConversionsToType({ baseUrl, conversions }),
-        ),
-        ...[...memberConversionUpdates.entries()].map(
-          ([baseUrl, conversions]) =>
-            applyConversionsToType({ baseUrl, conversions }),
         ),
       ]);
     }
@@ -3178,8 +3242,9 @@ export const useDataTypeFormState = ({
         });
 
         if (response.errors?.length || !response.data) {
+          const detail = graphQlErrorDetail(response.errors);
           throw new Error(
-            graphQlErrorDetail(response.errors) ?? "Could not create data type",
+            `Could not create data type${detail ? `: ${detail}` : ""}`,
           );
         }
 
@@ -3398,9 +3463,9 @@ export const useDataTypeFormState = ({
           });
 
           if (response.errors?.length || !response.data) {
+            const detail = graphQlErrorDetail(response.errors);
             throw new Error(
-              graphQlErrorDetail(response.errors) ??
-                "Could not update data type",
+              `Could not update data type${detail ? `: ${detail}` : ""}`,
             );
           }
 
@@ -3497,31 +3562,12 @@ export const useDataTypeFormState = ({
         onSaved(latest);
       }
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Something went wrong — please try again";
-
-      // Matched on the collision's own context: the generic "Could not
-      // insert into store" wrapper also covers unrelated schema failures
-      if (message.includes("base URL but it already existed")) {
-        setErrors({
-          title:
-            "A data type with this URL already exists — it may be archived. Try a different name.",
-        });
-      } else if (
-        message.includes("versioned URL but it already existed") &&
-        // A related type racing is already wrapped with the type's name and
-        // its own recovery instruction — keep that message intact
-        !message.includes("related types failed")
-      ) {
-        setErrors({
-          submit:
-            "This data type was changed by someone else while you were editing — close the drawer and reopen it to edit the latest version.",
-        });
-      } else {
-        setErrors({ submit: message });
-      }
+      setErrors({
+        submit:
+          error instanceof Error
+            ? error.message
+            : "Something went wrong — please try again",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -3577,6 +3623,7 @@ export const useDataTypeFormState = ({
     interceptDrawerClose,
     requestClose,
     navigateToCrumb,
+    requestLeave,
     generateTypeUrlsForUser,
     showExtendTypeAction,
     createNewInitialTitle,

@@ -435,9 +435,11 @@ export const schemaConstraintsFromValues = ({
 
   if (primitive === "number") {
     if (active("enum")) {
-      const numbers = (values.enum ?? [])
-        .map((value) => (typeof value === "number" ? value : Number(value)))
-        .filter((value) => Number.isFinite(value));
+      // Strictly typed: values left over from another primitive don't carry
+      const numbers = (values.enum ?? []).filter(
+        (value): value is number =>
+          typeof value === "number" && Number.isFinite(value),
+      );
 
       if (numbers.length > 0) {
         return { enum: numbers as [number, ...number[]] };
@@ -461,7 +463,9 @@ export const schemaConstraintsFromValues = ({
 
   if (primitive === "string") {
     if (active("enum")) {
-      const strings = (values.enum ?? []).map(String);
+      const strings = (values.enum ?? []).filter(
+        (value): value is string => typeof value === "string",
+      );
 
       if (strings.length > 0) {
         return { enum: strings as [string, ...string[]] };

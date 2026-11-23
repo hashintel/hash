@@ -268,11 +268,14 @@ export const DataType = ({
           // route won't remount the page — reset to the saved baseline here.
           // A new version navigates instead: remounting now would flash the
           // stale pre-save edition until the route lands.
+          // Navigating on a same-$id save would remount an unversioned URL
+          // onto its versioned path, dropping `lastSaved`.
+          void refetchRemoteType();
           if (saved.schema.$id === dataType.schema.$id) {
             setFormGeneration((generation) => generation + 1);
+          } else {
+            onDataTypeUpdated(saved);
           }
-          void refetchRemoteType();
-          onDataTypeUpdated(saved);
         }}
       />
 
