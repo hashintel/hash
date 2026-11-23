@@ -1,22 +1,11 @@
-import { createContext, use } from "react";
+import { requiredContext } from "../../../../../../react/required-context";
 
 import type { Component, ComponentInstance } from "@hashintel/petrinaut-core";
 
-type ComponentInstancePropertiesContextValue = {
+export const [
+  ComponentInstancePropertiesContext,
+  useComponentInstancePropertiesContext,
+] = requiredContext<{
   instance: ComponentInstance;
   component: Component | null;
-};
-
-export const ComponentInstancePropertiesContext =
-  createContext<ComponentInstancePropertiesContextValue | null>(null);
-
-export const useComponentInstancePropertiesContext =
-  (): ComponentInstancePropertiesContextValue => {
-    const context = use(ComponentInstancePropertiesContext);
-    if (!context) {
-      throw new Error(
-        "useComponentInstancePropertiesContext must be used within ComponentInstanceProperties",
-      );
-    }
-    return context;
-  };
+}>("ComponentInstanceProperties");

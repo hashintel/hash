@@ -1,4 +1,4 @@
-import { createContext, use } from "react";
+import { requiredContext } from "../../../../../../react/required-context";
 
 import type { ArcEndpoint, InputArc } from "@hashintel/petrinaut-core";
 
@@ -12,16 +12,5 @@ export interface ArcPropertiesData {
   type: InputArc["type"];
 }
 
-export const ArcPropertiesContext = createContext<ArcPropertiesData | null>(
-  null,
-);
-
-export const useArcPropertiesContext = (): ArcPropertiesData => {
-  const context = use(ArcPropertiesContext);
-  if (!context) {
-    throw new Error(
-      "useArcPropertiesContext must be used within ArcProperties",
-    );
-  }
-  return context;
-};
+export const [ArcPropertiesContext, useArcPropertiesContext] =
+  requiredContext<ArcPropertiesData>("ArcProperties");

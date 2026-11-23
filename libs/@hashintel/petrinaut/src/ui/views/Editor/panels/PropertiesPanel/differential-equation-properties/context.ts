@@ -1,4 +1,4 @@
-import { createContext, use } from "react";
+import { requiredContext } from "../../../../../../react/required-context";
 
 import type {
   Color,
@@ -6,21 +6,9 @@ import type {
   Place,
 } from "@hashintel/petrinaut-core";
 
-interface DiffEqPropertiesContextValue {
-  differentialEquation: DifferentialEquation;
-  types: Color[];
-  places: Place[];
-}
-
-export const DiffEqPropertiesContext =
-  createContext<DiffEqPropertiesContextValue | null>(null);
-
-export const useDiffEqPropertiesContext = (): DiffEqPropertiesContextValue => {
-  const context = use(DiffEqPropertiesContext);
-  if (!context) {
-    throw new Error(
-      "useDiffEqPropertiesContext must be used within DifferentialEquationProperties",
-    );
-  }
-  return context;
-};
+export const [DiffEqPropertiesContext, useDiffEqPropertiesContext] =
+  requiredContext<{
+    differentialEquation: DifferentialEquation;
+    types: Color[];
+    places: Place[];
+  }>("DifferentialEquationProperties");
