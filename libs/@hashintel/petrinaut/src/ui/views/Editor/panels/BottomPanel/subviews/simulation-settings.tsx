@@ -424,9 +424,8 @@ export const SimulationSettingsContent: React.FC = () => {
       <FocusStack axis="vertical">
         <div className={rootStyle}>
           <ViewScenarioDrawer
-            open={isViewScenarioOpen}
             onClose={() => setIsViewScenarioOpen(false)}
-            scenario={selectedScenario}
+            scenario={isViewScenarioOpen ? selectedScenario : undefined}
           />
 
           {/* The scenario picker and the run settings share the top row, so

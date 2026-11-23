@@ -110,19 +110,18 @@ const ViewScenarioContent = ({
 };
 
 interface ViewScenarioDrawerProps {
-  open: boolean;
   onClose: () => void;
+  /** The scenario shown; the drawer is closed while there is none. */
   scenario: Scenario | undefined;
 }
 
 export const ViewScenarioDrawer = ({
-  open,
   onClose,
   scenario,
 }: ViewScenarioDrawerProps) => {
   return (
     <SimulationPanelPresence>
-      {open && scenario ? (
+      {scenario ? (
         <SimulationPanel title={scenario.name} onClose={onClose}>
           <SimulationPanel.Header />
           <ViewScenarioContent

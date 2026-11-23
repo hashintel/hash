@@ -218,7 +218,7 @@ const inEditor = (panel: ReactNode) => (
 );
 
 const viewPanel = (scenario: Scenario, onClose = () => {}) =>
-  inEditor(<ViewScenarioDrawer open onClose={onClose} scenario={scenario} />);
+  inEditor(<ViewScenarioDrawer onClose={onClose} scenario={scenario} />);
 
 const renderDrawer = (scenario: Scenario, onClose?: () => void) =>
   render(viewPanel(scenario, onClose));

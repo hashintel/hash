@@ -70,7 +70,6 @@ export const ScenariosView = () => {
       />
 
       <ViewScenarioDrawer
-        open={!!selectedScenario}
         onClose={closeDrawer}
         scenario={selectedScenario}
       />
