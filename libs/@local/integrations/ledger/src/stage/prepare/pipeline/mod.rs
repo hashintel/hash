@@ -1,26 +1,66 @@
-// From `engine/src/workspace/connection/pipeline.rs:1-242`
+//! The SQL steps of a definition: its entity pipelines and link pipelines, run in the workspace.
+
+#[cfg(test)]
+mod tests;
+
 use alloc::collections::BTreeMap;
 
 use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::{
-    Accessor, Action, CheckpointName, EntitySink, LinkInput, Properties, StepId, StepKind,
+    Accessor, Action, CheckpointName, EntityPipeline, EntitySink, LinkInput, LinkPipeline,
+    Properties, StepId, StepKind,
 };
 use uuid::Uuid;
 
-use super::Connection;
-use crate::{
-    PreparationError, PreparedLink, PreparedPipeline, PreparedSink,
-    pipeline::{LinkRequest, PipelineRequest},
-    sql::Identifier,
-};
+use super::workspace::{Identifier, Workspace};
 
-struct Execution<'connection> {
-    connection: &'connection Connection,
+/// Reports why executing a pipeline failed.
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub(crate) enum PreparationError {
+    #[display("the pipeline statement failed")]
+    Statement,
+    #[display("table has no column `{column}`")]
+    MissingColumn { column: Box<str> },
+    #[display("table `{table}` must retain non-null VARCHAR `_op` and `_key` and BIGINT `_seq`")]
+    Metadata { table: Box<str> },
+    #[display("checkpoint `{checkpoint}` has not been materialized")]
+    MissingCheckpoint { checkpoint: CheckpointName },
+    #[display("pipeline step `{step}` failed")]
+    Step { step: StepId },
+    #[display("a link pipeline with multiple inputs needs an SQL step")]
+    LinkInputs,
+}
+
+/// The table and property mapping to be consumed by an entity sink.
+#[derive(Debug)]
+pub(crate) struct PreparedSink {
+    /// A table containing staging metadata.
+    pub table: Box<str>,
+    pub sink: EntitySink,
+}
+
+/// The tables produced by a pipeline, with sinks in execution order.
+#[derive(Debug)]
+pub(crate) struct PreparedPipeline {
+    pub table: Box<str>,
+    pub checkpoints: BTreeMap<CheckpointName, Box<str>>,
+    pub sinks: Vec<PreparedSink>,
+}
+
+/// A link pipeline's output table and the mapping to be consumed by its sink.
+#[derive(Debug)]
+pub(crate) struct PreparedLink {
+    pub table: Box<str>,
+    pub pipeline: LinkPipeline,
+}
+
+struct Execution<'workspace> {
+    workspace: &'workspace Workspace,
     inputs: Vec<(String, Box<str>)>,
     output: PreparedPipeline,
 }
 
-impl Connection {
+impl Workspace {
     /// Binds input aliases as CTEs, leaving no shared views to clean up.
     fn execute_pipeline_sql(
         &self,
@@ -28,7 +68,9 @@ impl Connection {
         input: Option<&str>,
         inputs: &[(String, Box<str>)],
     ) -> Result<Box<str>, Report<PreparationError>> {
-        let sql = self.pipeline_sql(sql)?;
+        let sql = self
+            .pipeline_sql(sql)
+            .change_context(PreparationError::Statement)?;
         let inputs = input.into_iter().map(|table| ("input", table)).chain(
             inputs
                 .iter()
@@ -53,20 +95,24 @@ impl Connection {
         Ok(table)
     }
 
-    /// Resolves a link's checkpoints and runs its SQL without applying entity metadata constraints.
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub(super) fn prepare_link_pipeline(
+    /// Combines checkpoint inputs and executes a link pipeline's SQL steps.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PreparationError`] if a checkpoint, endpoint column, or SQL step is invalid.
+    pub(crate) fn prepare_link_pipeline(
         &self,
-        request: &LinkRequest,
+        pipeline: &LinkPipeline,
+        checkpoints: &BTreeMap<CheckpointName, Box<str>>,
     ) -> Result<PreparedLink, Report<PreparationError>> {
         let resolve = |checkpoint: &CheckpointName| {
-            request.checkpoints.get(checkpoint).cloned().ok_or_else(|| {
+            checkpoints.get(checkpoint).cloned().ok_or_else(|| {
                 Report::new(PreparationError::MissingCheckpoint {
                     checkpoint: checkpoint.clone(),
                 })
             })
         };
-        let (mut current, inputs) = match &request.pipeline.input {
+        let (mut current, inputs) = match &pipeline.input {
             LinkInput::Checkpoint(checkpoint) => (Some(resolve(checkpoint)?), Vec::new()),
             LinkInput::Inputs(inputs) => {
                 let inputs: Vec<_> = inputs
@@ -81,7 +127,7 @@ impl Connection {
                 (current, inputs)
             }
         };
-        for step in &request.pipeline.steps {
+        for step in &pipeline.steps {
             current = Some(
                 self.execute_pipeline_sql(step.query.as_ref(), current.as_deref(), &inputs)
                     .change_context_lazy(|| PreparationError::Step {
@@ -90,31 +136,38 @@ impl Connection {
             );
         }
         let table = current.ok_or_else(|| Report::new(PreparationError::LinkInputs))?;
-        let schema = self.describe(&format!("SELECT * FROM {}", Identifier::new(&table)))?;
-        for column in [&request.pipeline.from.column, &request.pipeline.to.column] {
+        let schema = self
+            .describe(&format!("SELECT * FROM {}", Identifier::new(&table)))
+            .change_context(PreparationError::Statement)?;
+        for column in [&pipeline.from.column, &pipeline.to.column] {
             check_column(column.as_ref(), &schema)?;
         }
-        check_properties(&request.pipeline.properties, &schema)?;
+        check_properties(&pipeline.properties, &schema)?;
         Ok(PreparedLink {
             table,
-            pipeline: request.pipeline.clone(),
+            pipeline: pipeline.clone(),
         })
     }
 
-    /// Runs SQL, branches, and checkpoints, preparing immutable tables for entity sinks.
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub(super) fn prepare_pipeline(
+    /// Executes a pipeline against a staged `input` and the tables of its input `checkpoints`.
+    ///
+    /// Branches leave the main pipeline's table intact.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PreparationError`] if an input is missing, a step fails, or metadata is lost.
+    pub(crate) fn prepare_pipeline(
         &self,
-        request: &PipelineRequest,
+        pipeline: &EntityPipeline,
+        input: &str,
+        checkpoints: &BTreeMap<CheckpointName, Box<str>>,
     ) -> Result<PreparedPipeline, Report<PreparationError>> {
-        self.check_metadata(&request.input)?;
-        let inputs = request
-            .pipeline
+        self.check_metadata(input)?;
+        let inputs = pipeline
             .inputs
             .iter()
             .map(|(alias, checkpoint)| {
-                request
-                    .checkpoints
+                checkpoints
                     .get(checkpoint)
                     .cloned()
                     .map(|table| (alias.to_string(), table))
@@ -126,15 +179,15 @@ impl Connection {
             })
             .collect::<Result<_, _>>()?;
         let mut execution = Execution {
-            connection: self,
+            workspace: self,
             inputs,
             output: PreparedPipeline {
-                table: request.input.clone(),
+                table: input.into(),
                 checkpoints: BTreeMap::new(),
                 sinks: Vec::new(),
             },
         };
-        for step in &request.pipeline.steps {
+        for step in &pipeline.steps {
             let current = execution.output.table.clone();
             match &step.kind {
                 StepKind::Action(action) => {
@@ -152,6 +205,47 @@ impl Connection {
         }
         Ok(execution.output)
     }
+
+    /// Checks that transformations retain usable staging metadata.
+    ///
+    /// # Errors
+    ///
+    /// - [`Metadata`] if `table` lacks VARCHAR `_op` or `_key` or BIGINT `_seq`, or a row holds
+    ///   null in one of them
+    /// - [`Statement`] if DuckDB cannot read the table
+    ///
+    /// [`Metadata`]: PreparationError::Metadata
+    /// [`Statement`]: PreparationError::Statement
+    pub(crate) fn check_metadata(&self, table: &str) -> Result<(), Report<PreparationError>> {
+        let identifier = Identifier::new(table);
+        let schema = self
+            .describe(&format!("SELECT * FROM {identifier}"))
+            .change_context(PreparationError::Statement)?;
+        for (required, required_kind) in
+            [("_op", "VARCHAR"), ("_key", "VARCHAR"), ("_seq", "BIGINT")]
+        {
+            if !schema.iter().any(|(column, kind)| {
+                column.eq_ignore_ascii_case(required) && kind == required_kind
+            }) {
+                return Err(Report::new(PreparationError::Metadata {
+                    table: table.into(),
+                }));
+            }
+        }
+        if self
+            .count(&format!(
+                "SELECT count(*) FROM {identifier} WHERE _op IS NULL OR _key IS NULL OR _seq IS \
+                 NULL"
+            ))
+            .change_context(PreparationError::Statement)?
+            > 0
+        {
+            return Err(Report::new(PreparationError::Metadata {
+                table: table.into(),
+            }));
+        }
+        Ok(())
+    }
 }
 
 impl Execution<'_> {
@@ -162,78 +256,49 @@ impl Execution<'_> {
         action: &Action,
         input: &str,
     ) -> Result<Box<str>, Report<PreparationError>> {
-        self.execute_action(step, action, input)
+        self.execute_action(action, input)
             .change_context_lazy(|| PreparationError::Step { step: step.clone() })
     }
 
     /// Prepares the output or records a sink or checkpoint for one action.
+    ///
+    /// A sink records its input table, which no later step replaces, since every step writes a
+    /// table of its own.
     fn execute_action(
         &mut self,
-        step: &StepId,
         action: &Action,
         input: &str,
     ) -> Result<Box<str>, Report<PreparationError>> {
-        self.connection.check_preparation_cancelled()?;
         match action {
             Action::Sql(sql) => {
-                let table = self.connection.execute_pipeline_sql(
-                    sql.as_ref(),
-                    Some(input),
-                    &self.inputs,
-                )?;
-                self.connection.check_metadata(&table)?;
+                let table =
+                    self.workspace
+                        .execute_pipeline_sql(sql.as_ref(), Some(input), &self.inputs)?;
+                self.workspace.check_metadata(&table)?;
                 Ok(table)
             }
             Action::Checkpoint(checkpoint) => {
                 let table = table_name();
-                self.connection
+                self.workspace
                     .create_table(&table, &format!("SELECT * FROM {}", Identifier::new(input)))
                     .change_context(PreparationError::Statement)?;
                 self.output.checkpoints.insert(checkpoint.clone(), table);
                 Ok(input.into())
             }
             Action::Sink(sink) => {
-                let table = self.sink(input, sink)?;
+                let schema = self
+                    .workspace
+                    .describe(&format!("SELECT * FROM {}", Identifier::new(input)))
+                    .change_context(PreparationError::Statement)?;
+                check_column(sink.entity_id.as_ref(), &schema)?;
+                check_properties(&sink.properties, &schema)?;
                 self.output.sinks.push(PreparedSink {
-                    step: step.clone(),
-                    table,
+                    table: input.into(),
                     sink: sink.clone(),
                 });
                 Ok(input.into())
             }
         }
-    }
-
-    /// Adds the sink's content hash using the columns its property accessors read.
-    fn sink(&self, input: &str, sink: &EntitySink) -> Result<Box<str>, Report<PreparationError>> {
-        let schema = self
-            .connection
-            .describe(&format!("SELECT * FROM {}", Identifier::new(input)))?;
-        check_column(sink.entity_id.as_ref(), &schema)?;
-        check_properties(&sink.properties, &schema)?;
-        let columns = sink
-            .properties
-            .iter()
-            .flat_map(|(_, accessor)| match accessor {
-                Accessor::Column(column) => [Some((column.as_ref(), true)), None],
-                Accessor::Coerce { column, .. } => [Some((column.as_ref(), false)), None],
-                Accessor::Measure { amount, unit, .. } => {
-                    [Some((amount.as_ref(), false)), Some((unit.as_ref(), false))]
-                }
-            })
-            .flatten();
-        let hash = hash_expression(columns, &schema)?;
-        let table = table_name();
-        self.connection
-            .create_table(
-                &table,
-                &format!(
-                    "SELECT source.*, {hash} AS _content_hash FROM {} AS source",
-                    Identifier::new(input)
-                ),
-            )
-            .change_context(PreparationError::Statement)?;
-        Ok(table)
     }
 }
 
@@ -242,7 +307,6 @@ fn table_name() -> Box<str> {
     format!("_step/{}", Uuid::new_v4()).into_boxed_str()
 }
 
-// From `engine/src/workspace/connection/pipeline.rs:275-305`
 /// Checks each column a sink accessor reads, including converted and measured values.
 fn check_properties(
     properties: &Properties,
@@ -274,106 +338,3 @@ fn check_column(column: &str, schema: &[(String, String)]) -> Result<(), Report<
         }))
     }
 }
-
-// From `engine/src/workspace/mod.rs:290-296`
-    /// Executes a pipeline against a staged `input` and the tables of its input `checkpoints`.
-    ///
-    /// Sink tables are prepared for delivery, and branches leave the main pipeline's table intact.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`PreparationError`] if an input is missing, a step fails, or metadata is lost.
-
-// From `engine/src/workspace/mod.rs:317-321`
-    /// Combines checkpoint inputs and executes a link pipeline's SQL steps.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`PreparationError`] if a checkpoint, endpoint column, or SQL step is invalid.
-
-// From `engine/src/pipeline/mod.rs:1-5`
-use alloc::collections::BTreeMap;
-
-use hash_integrations_definition::{
-    CheckpointName, ColumnName, EntityPipeline, EntitySink, LinkPipeline, PrimaryKey, StepId,
-};
-
-// From `engine/src/pipeline/mod.rs:45-88`
-/// Reports why staging or executing a pipeline failed.
-#[derive(Debug, derive_more::Display, derive_more::Error)]
-pub enum PreparationError {
-    #[display("the pipeline statement failed")]
-    Statement,
-    #[display("pipeline preparation was cancelled")]
-    Cancelled,
-    #[display("source column `{column}` is reserved for staging metadata")]
-    ReservedColumn { column: Box<str> },
-    #[display("table has no column `{column}`")]
-    MissingColumn { column: Box<str> },
-    #[display("table `{table}` must retain non-null VARCHAR `_op` and `_key` columns")]
-    Metadata { table: Box<str> },
-    #[display(
-        "source table failed its assertions: {}",
-        failures.iter().map(ToString::to_string).collect::<Vec<_>>().join("; ")
-    )]
-    Assertions { failures: Vec<AssertionFailure> },
-    #[display("checkpoint `{checkpoint}` has not been materialized")]
-    MissingCheckpoint { checkpoint: CheckpointName },
-    #[display("pipeline step `{step}` failed")]
-    Step { step: StepId },
-    #[display("the workspace thread stopped before pipeline preparation finished")]
-    Stopped,
-    #[display("a link pipeline with multiple inputs needs an SQL step")]
-    LinkInputs,
-}
-
-/// The table and property mapping to be consumed by an entity sink.
-#[derive(Debug)]
-pub struct PreparedSink {
-    pub step: StepId,
-    /// A table containing staging metadata and `_content_hash`.
-    pub table: Box<str>,
-    pub sink: EntitySink,
-}
-
-/// The tables produced by a pipeline, with sinks in execution order.
-#[derive(Debug)]
-pub struct PreparedPipeline {
-    pub table: Box<str>,
-    pub checkpoints: BTreeMap<CheckpointName, Box<str>>,
-    pub sinks: Vec<PreparedSink>,
-}
-
-// From `engine/src/pipeline/mod.rs:103-108`
-/// A link pipeline's output table and the mapping to be consumed by its sink.
-#[derive(Debug)]
-pub struct PreparedLink {
-    pub table: Box<str>,
-    pub pipeline: LinkPipeline,
-}
-
-// From `engine/src/workspace/connection/staging.rs:172-195`
-    /// Checks that transformations retain usable staging metadata.
-    pub(super) fn check_metadata(&self, table: &str) -> Result<(), Report<PreparationError>> {
-        let identifier = Identifier::new(table);
-        let schema = self.describe(&format!("SELECT * FROM {identifier}"))?;
-        for required in ["_op", "_key"] {
-            if !schema
-                .iter()
-                .any(|(column, kind)| column.eq_ignore_ascii_case(required) && kind == "VARCHAR")
-            {
-                return Err(Report::new(PreparationError::Metadata {
-                    table: table.into(),
-                }));
-            }
-        }
-        if self.pipeline_count(&format!(
-            "SELECT count(*) FROM {identifier} WHERE _op IS NULL OR _key IS NULL"
-        ))? > 0
-        {
-            return Err(Report::new(PreparationError::Metadata {
-                table: table.into(),
-            }));
-        }
-        Ok(())
-    }

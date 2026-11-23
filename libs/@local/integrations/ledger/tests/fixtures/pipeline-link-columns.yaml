@@ -1,0 +1,23 @@
+connector: demo
+sources:
+  source:
+    primaryKey: [ID]
+    sql: SELECT 1 AS ID
+pipelines:
+  entities:
+    - source: source
+      steps:
+        - id: save
+          checkpoint: rows
+  links:
+    - id: link
+      checkpoint: rows
+      from:
+        entityType: https://example.com/entity/v/1
+        column: FROM_COLUMN
+      to:
+        entityType: https://example.com/entity/v/1
+        column: TO_COLUMN
+      linkType: https://example.com/link/v/1
+      properties:
+        https://example.com/property/v/1: PROPERTY_COLUMN
