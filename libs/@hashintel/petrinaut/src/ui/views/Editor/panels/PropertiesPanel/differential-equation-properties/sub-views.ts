@@ -12,5 +12,4 @@ export const diffEqMainSubView: SubView = {
   component: DiffEqMainContent,
   headerAction: DiffEqCodeAction,
   headerActionMutates: true,
-  alwaysShowHeaderAction: true,
 };

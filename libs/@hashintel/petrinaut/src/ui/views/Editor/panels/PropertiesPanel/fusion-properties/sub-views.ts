@@ -17,6 +17,5 @@ export const fusionSubViews: SubView[] = [
     component: FusionMainContent,
     headerAction: DeleteFusionAction,
     headerActionMutates: true,
-    alwaysShowHeaderAction: true,
   },
 ];

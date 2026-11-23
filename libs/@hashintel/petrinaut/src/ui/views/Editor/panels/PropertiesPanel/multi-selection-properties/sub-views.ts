@@ -15,6 +15,5 @@ export const multiSelectionSubViews: SubView[] = [
     component: MultiSelectionContent,
     headerAction: DeleteSelectionAction,
     headerActionMutates: true,
-    alwaysShowHeaderAction: true,
   },
 ];

@@ -16,7 +16,6 @@ const entitiesTreeSubView: SubView = {
   component: EntitiesTree,
   headerAction: EntitiesHeaderAction,
   main: true,
-  alwaysShowHeaderAction: true,
 };
 
 const netsListSubView: SubView = {
@@ -63,6 +62,5 @@ export const searchSubView: SubView = {
   component: SearchContent,
   titleComponent: SearchTitle,
   headerAction: SearchHeaderAction,
-  alwaysShowHeaderAction: true,
   main: true,
 };

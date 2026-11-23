@@ -20,7 +20,6 @@ export const placeMainSubView: SubView = {
   component: PlaceMainContent,
   headerAction: DeletePlaceAction,
   headerActionMutates: true,
-  alwaysShowHeaderAction: true,
 };
 
 export const placeDynamicsSubView: SubView = {
@@ -42,9 +41,7 @@ export const placeInitialStateSubView: SubView = {
   component: PlaceInitialStateContent,
   headerAction: StateHeaderAction,
   defaultCollapsed: true,
-  resizable: {
-    minHeight: 250,
-  },
+  minHeight: 250,
 };
 
 export const placeVisualizerSubView = createDeferredSubView({
@@ -57,15 +54,10 @@ export const placeVisualizerSubView = createDeferredSubView({
   defaultCollapsed: true,
   retainOnCollapse: true,
   alwaysShowHeaderAction: true,
-  hasHeaderAction: true,
-  resizable: {
-    minHeight: 200,
-  },
+  minHeight: 200,
   load: async () => {
     const section = await import("./subviews/place-visualizer/subview");
     return {
-      id: "place-visualizer",
-      title: "Visualizer",
       component: section.PlaceVisualizerContent,
       headerAction: section.VisualizerHeaderAction,
     };

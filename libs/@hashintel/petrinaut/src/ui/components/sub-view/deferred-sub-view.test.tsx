@@ -18,12 +18,7 @@ it("shares the pending load and immediately renders preloaded content and action
         resolve = done;
       }),
   );
-  const view = createDeferredSubView({
-    id: "code",
-    title: "Code",
-    load,
-    hasHeaderAction: true,
-  });
+  const view = createDeferredSubView({ id: "code", title: "Code", load });
   view.preload();
   view.preload();
   const { component: Content, headerAction: HeaderAction } = view;

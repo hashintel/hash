@@ -6,14 +6,6 @@
 import type { ComponentType } from "react";
 
 /**
- * Configuration for resizable subviews.
- */
-export interface SubViewResizeConfig {
-  /** Minimum height constraint (in pixels) */
-  minHeight?: number;
-}
-
-/**
  * SubView represents a single view that can be displayed in either:
  * - A vertical collapsible section (LeftSideBar)
  * - A horizontal tab (BottomPanel)
@@ -67,18 +59,15 @@ export interface SubView {
   /** Keep visited content mounted until its panel is removed. */
   retainOnCollapse?: boolean;
   /**
-   * When true, the header action is always visible instead of only on hover/focus.
-   * Defaults to false.
+   * When true, the header action is always visible instead of only on
+   * hover/focus. A main subview's action is always visible.
    */
   alwaysShowHeaderAction?: boolean;
   canMaximize?: boolean;
   /** Use the expanded code-editor layout even when this subview is not maximized. */
   fullWidthCodeEditor?: boolean;
-  /**
-   * Configuration for making the subview resizable when expanded.
-   * Only affects vertical layout. When set, the section can be resized by dragging its bottom edge.
-   */
-  resizable?: SubViewResizeConfig;
+  /** The least height of the expanded section, in pixels. Vertical layout only. */
+  minHeight?: number;
   /**
    * When true, the horizontal tab content wrapper renders with no padding,
    * letting the subview occupy the full width/height of the panel area.

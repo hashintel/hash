@@ -6,13 +6,11 @@ type LoadedParts = Pick<SubView, "component" | "headerAction">;
 
 type DeferredSubViewOptions = Omit<SubView, "component" | "headerAction"> & {
   load: () => Promise<LoadedParts>;
-  hasHeaderAction?: boolean;
 };
 
 /** Loads optional panel content without delaying its reveal through Suspense. */
 export const createDeferredSubView = ({
   load,
-  hasHeaderAction = false,
   ...descriptor
 }: DeferredSubViewOptions): SubView & { preload: () => void } => {
   let result: { loaded?: LoadedParts; error?: unknown } = {};
@@ -56,7 +54,7 @@ export const createDeferredSubView = ({
   return {
     ...descriptor,
     component: Content,
-    headerAction: hasHeaderAction ? HeaderAction : undefined,
+    headerAction: HeaderAction,
     preload,
   };
 };

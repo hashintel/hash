@@ -17,6 +17,5 @@ export const componentInstanceSubViews: SubView[] = [
     component: ComponentInstanceMainContent,
     headerAction: DeleteComponentInstanceAction,
     headerActionMutates: true,
-    alwaysShowHeaderAction: true,
   },
 ];

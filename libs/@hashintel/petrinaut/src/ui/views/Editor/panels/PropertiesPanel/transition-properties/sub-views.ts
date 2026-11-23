@@ -12,7 +12,6 @@ export const transitionMainSubView: SubView = {
   component: TransitionMainContent,
   headerAction: DeleteTransitionAction,
   headerActionMutates: true,
-  alwaysShowHeaderAction: true,
 };
 
 export const transitionFiringTimeSubView = createDeferredSubView({
@@ -24,15 +23,10 @@ export const transitionFiringTimeSubView = createDeferredSubView({
   retainOnCollapse: true,
   tooltip:
     "Define the rate at or conditions under which this transition will fire, optionally based on each set of input tokens' data (where input tokens have types).",
-  hasHeaderAction: true,
-  resizable: {
-    minHeight: 250,
-  },
+  minHeight: 250,
   load: async () => {
     const section = await import("./subviews/transition-firing-time/subview");
     return {
-      id: "transition-firing-time",
-      title: "Firing Time",
       component: section.TransitionFiringTimeContent,
       headerAction: section.FiringTimeHeaderAction,
     };
@@ -48,15 +42,10 @@ export const transitionResultsSubView = createDeferredSubView({
   retainOnCollapse: true,
   tooltip:
     "This function determines the data for output tokens, optionally based on the input token data and any global parameters defined.",
-  hasHeaderAction: true,
-  resizable: {
-    minHeight: 300,
-  },
+  minHeight: 300,
   load: async () => {
     const section = await import("./subviews/transition-results/subview");
     return {
-      id: "transition-results",
-      title: "Transition Results",
       component: section.TransitionResultsContent,
       headerAction: section.ResultsHeaderAction,
     };

@@ -205,27 +205,15 @@ const headerIconStyle = css({
   color: "neutral.s85",
 });
 
-const mainTitleStyle = cva({
-  base: {
-    fontWeight: "medium",
-    fontSize: "sm",
-    lineHeight: "[20px]",
-    color: "neutral.s100",
-    minWidth: "0",
-    overflow: "hidden",
-    whiteSpace: "nowrap",
-  },
-  variants: {
-    fadeOverflow: {
-      true: {
-        paddingRight: "3",
-        maskImage:
-          "[linear-gradient(to right, black calc(100% - 12px), transparent)]",
-      },
-      false: { textOverflow: "ellipsis" },
-    },
-  },
-  defaultVariants: { fadeOverflow: false },
+const mainTitleStyle = css({
+  fontWeight: "medium",
+  fontSize: "sm",
+  lineHeight: "[20px]",
+  color: "neutral.s100",
+  minWidth: "0",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
 });
 
 interface SubViewHeaderProps {
@@ -258,8 +246,8 @@ export const SubViewHeader: React.FC<SubViewHeaderProps> = ({
     icon: HeaderIcon,
     titleComponent: Title,
     headerAction: HeaderAction,
-    alwaysShowHeaderAction,
   } = subView;
+  const alwaysShowHeaderAction = subView.main || subView.alwaysShowHeaderAction;
   const showsHeaderAction =
     (isExpanded || alwaysShowHeaderAction) &&
     HeaderAction !== undefined &&
@@ -320,11 +308,7 @@ export const SubViewHeader: React.FC<SubViewHeaderProps> = ({
               <HeaderIcon size={HEADER_ICON_SIZE} />
             </span>
           )}
-          {Title ? (
-            <Title />
-          ) : (
-            <span className={mainTitleStyle()}>{title}</span>
-          )}
+          {Title ? <Title /> : <span className={mainTitleStyle}>{title}</span>}
         </div>
       ) : (
         <div
@@ -352,7 +336,7 @@ export const SubViewHeader: React.FC<SubViewHeaderProps> = ({
             <Icon name="chevronRight" size="xxs" />
           </div>
           <span className={sectionToggleLabelStyle}>
-            <span className={mainTitleStyle()}>{title}</span>
+            <span className={mainTitleStyle}>{title}</span>
             {tooltip && (
               <span data-info-tooltip className={infoTooltipWrapperStyle}>
                 <HelpTooltip align="center" content={tooltip} />

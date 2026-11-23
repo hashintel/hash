@@ -206,8 +206,7 @@ export const VerticalSubViewsContainer: React.FC<
         const isHidden = maximizedId !== null && !fillsContainer;
         const isMain = subView.main ?? false;
         const isExpanded = isMain || !isCollapsedIn(shownSettings, subView);
-        const minSize =
-          subView.resizable?.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
+        const minSize = subView.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
 
         return (
           <Fragment key={subView.id}>

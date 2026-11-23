@@ -11,6 +11,5 @@ export const arcSubViews: SubView[] = [
     component: ArcMainContent,
     headerAction: DeleteArcAction,
     headerActionMutates: true,
-    alwaysShowHeaderAction: true,
   },
 ];
