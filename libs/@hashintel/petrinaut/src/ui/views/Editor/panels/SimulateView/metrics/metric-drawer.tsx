@@ -182,29 +182,24 @@ export const MetricDrawer = ({
       <Drawer.Body>
         <MetricFormBody form={form} metricSessionId={metricSessionId} />
       </Drawer.Body>
-      {metric ? (
-        <MetricDrawerFooter
-          form={form}
-          metricSessionId={metricSessionId}
-          submitLabel="Save"
-          closeLabel="Close"
-          unchangedTooltip="No changes to save."
-          onDelete={() => {
-            removeMetric({ metricId: metric.id });
-            onClose();
-          }}
-          onClose={onClose}
-        />
-      ) : (
-        <MetricDrawerFooter
-          form={form}
-          metricSessionId={metricSessionId}
-          submitLabel="Create"
-          closeLabel="Cancel"
-          unchangedTooltip="Make changes to enable creation."
-          onClose={onClose}
-        />
-      )}
+      <MetricDrawerFooter
+        form={form}
+        metricSessionId={metricSessionId}
+        submitLabel={metric ? "Save" : "Create"}
+        closeLabel={metric ? "Close" : "Cancel"}
+        unchangedTooltip={
+          metric ? "No changes to save." : "Make changes to enable creation."
+        }
+        onDelete={
+          metric
+            ? () => {
+                removeMetric({ metricId: metric.id });
+                onClose();
+              }
+            : undefined
+        }
+        onClose={onClose}
+      />
     </Drawer>
   );
 };
