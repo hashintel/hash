@@ -53,7 +53,6 @@ median of five alternating rounds on the production build.
 | Open the first differential equation, until its code is usable | 356 ms | 63 ms |
 | Open the menu a second time, longest frame                     | 167 ms | 12 ms |
 | Select a transition while a place is selected, longest frame   | 235 ms | 67 ms |
-| Cross the sidebar's edge with the pointer ten times, style     |  75 ms | 96 ms |
 
 The form rows are for Supply Chain tiled four times, in the Create scenario
 drawer. In Simulation Settings on Supply Chain, typing a value is about as
@@ -65,11 +64,17 @@ their own: before, an overlay that closed restyled the editor, 40,160 elements
 for the menu, and now 1,382. While the Properties panel slides out it shows
 what was selected, where it slid out empty.
 
-The resize library's own cursor is a style rule for every element of the page,
-written each time the pointer comes within reach of a panel's edge, so each
-separator shows its cursor itself and no rule is written:
+A pointer that crosses the sidebar's edge ten times, with no button down and
+the bottom panel open, restyles 10,400 elements in 96 ms of style. The resize
+library shows its cursor with a style rule for every element of the page,
+written each time the pointer comes within reach of a panel's edge. With that
+cursor the crossing wrote 20 rules, restyled 789,000 elements and took 3.5 s,
+so each separator shows its cursor itself and no rule is written.
 `benchmarks/monaco-performance/panel-edges.mjs` measures the crossing and
-counts the rules.
+counts the rules. It looks the separators up by names the editor before this
+change does not have. A script outside the repository measured the crossing
+there at 70 to 76 ms of style, against 95 to 102 ms now, in three alternating
+rounds. Why it costs more now is not known.
 
 ## A change of the document
 
