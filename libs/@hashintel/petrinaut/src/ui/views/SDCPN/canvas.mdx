@@ -81,7 +81,7 @@ A release has to count as a move before `releasePointer` hovers the item, or the
 
 **A control drawn over the canvas has the class `nokey`.** While the selection key is held, React Flow starts a selection box from a press anywhere inside the pane, and takes the press from the control. A control that is no part of the net (the visualizer window, the eye that opens it, the fold toggle of a component card) opts out with React Flow's `nokey` class. `useSelectionKeys` covers the case where the page saw Shift go down and not come up, as after a system shortcut: the next press that says Shift is up sends the missing keyup. The tests in `selection-keys.test.tsx` and `visualizer-window.test.tsx` hold both.
 
-**No opacity goes on an element that every arc or every node has.** The browser draws an element with an opacity into a buffer of its own on every frame of a pan, a zoom or a drag, and a net has one per arc and per node. [The arc layer](doc:ui.views.canvas.react-flow/arc-layer) and [The fade of a node](doc:ui.views.canvas.react-flow/node-fade) say how each fades without one, and name the tests that hold it.
+**No opacity goes on an element that every arc has, on a node, or on an element inside a node that draws more than one thing.** The browser draws an element with an opacity into a buffer of its own on every frame of a pan, a zoom or a drag, and a net has one per arc and per node. [The arc layer](doc:ui.views.canvas.react-flow/arc-layer) and [The fade of a node](doc:ui.views.canvas.react-flow/node-fade) say how each fades without one, and name the tests that hold it.
 
 ## Pitfalls
 
