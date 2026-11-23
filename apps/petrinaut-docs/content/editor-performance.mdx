@@ -11,47 +11,33 @@ to reproduce them and the rules that hold them.
 
 "Before" is the editor while every panel and the canvas read the whole editor
 state from one context. "After" is the editor with the rules below. The times
-describe one host. The browser rasters on the CPU, so paint and raster times
-are higher than on a machine with a GPU.
-
-## What renders
-
-The count is the number of component renders React reports for one gesture, on
-React's profiling build, with every node on screen.
-
-| Gesture             | Before | After |
-| ------------------- | -----: | ----: |
-| Select a node       |  8,055 |   374 |
-| Select another node |  8,279 |   509 |
-| Hover a node        | 13,130 |   144 |
-| Drag a node         | 67,945 |   949 |
-| Pan                 | 13,686 |   359 |
-| Zoom                |  2,260 |   118 |
-| Open a panel        |    160 |    96 |
-| Deselect            |  2,173 |    31 |
+describe one host. Unless a table says otherwise, the browser rasters on the
+CPU, so paint and raster times are higher than on a machine with a GPU.
 
 ## What a gesture costs
 
-Script time is the main-thread time spent in JavaScript during the gesture. A
-late frame is one that took more than 20 ms. Each value is the median of six
-samples on the production build, with every node on screen. The values after
-are from two passes of three samples, run in turn with the editor before the
-[arc layer](doc:ui.views.canvas.react-flow/arc-layer).
+Each gesture runs with every node on screen. Renders are the component renders
+React reports on its profiling build, and script is the main-thread time spent
+in JavaScript on the production build. The rows of frames are measured with
+GPU raster at two device pixels a pixel. Each value is a median of alternating
+rounds.
 
-| Gesture             | Script before | Script after | Late frames before | Late frames after | Longest frame before | Longest frame after |
-| ------------------- | ------------: | -----------: | -----------------: | ----------------: | -------------------: | ------------------: |
-| Select a node       |        220 ms |       102 ms |                  6 |                 6 |               275 ms |              158 ms |
-| Select another node |        173 ms |        58 ms |                  3 |                 1 |               166 ms |               71 ms |
-| Hover a node        |        224 ms |        47 ms |                  6 |                 1 |                50 ms |               33 ms |
-| Drag a node         |      1,078 ms |       211 ms |                 27 |                 3 |               117 ms |               40 ms |
-| Pan                 |        375 ms |       143 ms |                  8 |                 7 |               125 ms |               63 ms |
-| Zoom                |        103 ms |        56 ms |                  0 |                 0 |                17 ms |               17 ms |
-| Deselect            |         47 ms |        23 ms |                  0 |                 1 |                17 ms |               25 ms |
+| Gesture                                    |              Before |          After |
+| ------------------------------------------ | ------------------: | -------------: |
+| Select a node: renders and script          |    8,054 and 292 ms |  366 and 95 ms |
+| Select another node: renders and script    |    8,279 and 230 ms |  497 and 68 ms |
+| Hover a node: renders and script           |   13,130 and 312 ms |  126 and 55 ms |
+| Drag a node: renders and script            | 65,796 and 1,580 ms | 811 and 250 ms |
+| Pan: renders and script                    |   13,686 and 464 ms | 344 and 144 ms |
+| Zoom: renders and script                   |    2,260 and 119 ms |  118 and 59 ms |
+| Deselect: renders and script               |     2,173 and 56 ms |   31 and 18 ms |
+| Pan with nothing selected, frames a second |                  61 |             80 |
+| Pan with a node selected, frames a second  |                  20 |             77 |
+| A hover lands and leaves, frames in 320 ms |            6 and 10 |      33 and 31 |
+| The same with compact nodes                |             5 and 4 |      11 and 12 |
 
-Zoomed in to where the labels read, the script times fall by about the same
-share. Loading the net is no faster: the page is ready after 1.1 s and holds
-about 42,800 elements, and the script time of the load rose from 545 ms to
-577 ms.
+The page of that net is ready after 1,018 ms where it took 1,432 ms, and holds
+21,983 elements where it held 43,405.
 
 ## Panels and forms
 
@@ -67,8 +53,7 @@ median of five alternating rounds on the production build.
 | Open the first differential equation, until its code is usable | 356 ms | 63 ms |
 | Open the menu a second time, longest frame                     | 167 ms | 12 ms |
 | Select a transition while a place is selected, longest frame   | 235 ms | 67 ms |
-| Cross the sidebar's edge with the pointer ten times, style     |  3.5 s | 96 ms |
-| The same, longest frame                                        | 208 ms | 17 ms |
+| Cross the sidebar's edge with the pointer ten times, style     |  75 ms | 96 ms |
 
 The form rows are for Supply Chain tiled four times, in the Create scenario
 drawer. In Simulation Settings on Supply Chain, typing a value is about as
@@ -80,14 +65,11 @@ their own: before, an overlay that closed restyled the editor, 40,160 elements
 for the menu, and now 1,382. While the Properties panel slides out it shows
 what was selected, where it slid out empty.
 
-The crossing is a pointer that goes from the left sidebar onto the canvas and
-back, no button down, with the bottom panel open. Its "before" is the editor
-with the resize library's own cursor: a style rule for every element of the
-page, written each time the pointer came within reach of a panel's edge and
-removed when it left. That was 20 rules in the ten crossings and 789,000
-elements restyled, where no rule is written now and 10,400 elements are.
-`benchmarks/monaco-performance/panel-edges.mjs` measures it and counts the
-rules.
+The resize library's own cursor is a style rule for every element of the page,
+written each time the pointer comes within reach of a panel's edge, so each
+separator shows its cursor itself and no rule is written:
+`benchmarks/monaco-performance/panel-edges.mjs` measures the crossing and
+counts the rules.
 
 ## A change of the document
 
@@ -172,10 +154,6 @@ itself:
   change as well, so it costs what it did. No code editor mounts in that
   frame on these selections: the sections that hold one are collapsed until
   the user opens them.
-
-On Supply Chain itself, 43 nodes, the three columns read 22, 48 and 37 ms for
-the sidebar, 44, 62 and 42 ms for the transition, and 33, 66 and 47 ms for
-the complete Simulation Settings form. Those are medians of three rounds.
 
 With the sidebar and the bottom panel closed, and the Definitions view not
 yet shown, the page of the 468-node net has 17,200 elements where it had
@@ -280,27 +258,6 @@ During the half-second zoom of the table, the GPU process waited 1,244 ms on
 its queue, and now waits 225 ms. After a zoom and a pan over a node it holds
 218 MB where it held 386 MB.
 
-The nodes of this build keep their opacity. Without it, the zoom of the table
-would show 42 frames a second where it shows 37, and the pan 31 where it shows 27. The section "A highlight on a net with many nodes" takes it off. For the
-200 ms of the fade each node is a layer of its own. The page then has 951
-layers where it had 2,787, and the compositor holds 27 MB of tiles for them,
-15 MB of which it holds at rest. The tiles of the build before could not be
-read while its fade ran.
-
-On the GPU of the Mac this was measured on, Chromium draws what it drew, at
-rest and for as long as a highlight holds. In a crop of 760 by 560 pixels with
-a node selected, 0.4% to 2.9% of the pixels differ by more than 6 of 255
-between the two builds, and 0.1% to 0.6% by more than 16. They lie where
-faded arcs cross or run along each other.
-
-Where the browser antialiases by coverage, a faded arc is lighter than it
-was, most where its line is thinner than a pixel. In Chromium rastering on
-the CPU, 7% to 20% of that crop differs by more than 6 of 255. In WebKit 26.5,
-the engine of Safari, 20% does, and 12% by more than 16, the largest by 70.
-No pair of opacities for the two strokes of a line gives the old picture
-there. Firefox was not measured.
-[The arc layer](doc:ui.views.canvas.react-flow/arc-layer) says why.
-
 ## Arcs in one layer
 
 React Flow drew every arc as an edge of its own: an `svg`, a wrapper with
@@ -358,33 +315,6 @@ and the page has 37,180 elements where it had 35,460. While all 470 nodes are
 dragged it has 33,698 where it had 31,978. Those gestures are faster all the
 same: the longest frame of a select-all is 325 ms where it was 475 ms.
 
-The GPU holds as much as it did. A memory dump of the browser gives 51.5 MB
-of images in the GPU process and 35 MB of tiles at rest on both builds, and
-70.6 MB and 54 MB after a zoom to 1.1. Skia's GPU resources are 8.0 MB where
-they were 7.3 MB at rest, and 28.9 MB where they were 27.0 MB at zoom 1.1.
-
-The drag of all nodes gains least: every arc then ends at a dragged node and
-draws its own strokes, as an edge of React Flow does. At its drop the arcs
-without a role join their runs again, and the longest frame of the drop is
-83 ms where it was 68 ms. The drop of a hub of 86 arcs takes the same 42 ms.
-
-With the CPU slowed four times, in three rounds, the same gestures show these
-frames a second:
-
-| Gesture                             | Before | After |
-| ----------------------------------- | -----: | ----: |
-| Zoom                                |     46 |    60 |
-| Pan                                 |     49 |    67 |
-| Rest the pointer on a hub and leave |    5.3 |  12.8 |
-| Drag a node with one arc            |     21 |    33 |
-| Drag a hub of 86 arcs               |   13.7 |  21.1 |
-| Draw a selection box over 280 nodes |    9.9 |  12.2 |
-| Drag all 470 nodes                  |    4.7 |   5.7 |
-| Play a run back at zoom 0.62        |    8.0 |  10.9 |
-| The same, pulses started a second   |    117 |   112 |
-| Play a run back at zoom 1.1         |    8.7 |  12.2 |
-| The same, pulses started a second   |     39 |    45 |
-
 Two changes make up the layer. The first takes the arcs out of React Flow's
 edges and into one `svg`, each arc still drawing its own strokes. The second
 merges the strokes of the arcs at rest. Each was measured against the editor
@@ -399,23 +329,9 @@ before the layer, the first in three rounds:
 | Rest the pointer on a hub and leave it, frames a second |     35 |        37 |     76 |
 | Play a run back at zoom 0.62, frames a second           |     53 |        62 |     85 |
 
-The first change halves the script of a zoom, a pan and a drag. It changes
-pixels only on the antialiased edges of lines: at most 0.74% of the canvas
-with CPU raster, at rest and with a focus. The second
+The first change halves the script of a zoom, a pan and a drag. The second
 change is what speeds up a change of focus and takes the elements off the
 page, and it is where the picture changes.
-
-A transition pulses its arcs when the number of its firings in a frame
-differs from the number in the frame before. The rule is the editor's from
-before the layer, and the box of the transition flashes by it. With more
-frames a second a frame holds fewer firings, their number changes less often,
-and fewer pulses start: 14 a second at zoom 1.1, where 37 did. The boxes flash
-3 times a second there, where they flashed 9, and each flash still comes with
-3.6 to 3.9 pulses. So part of the frames gained at zoom 1.1 is pulses and
-flashes that do not start. Where the two builds start about as many pulses,
-the layer still shows more frames: at zoom 0.62, and at both zooms with the
-CPU slowed, where a run plays at 10.9 and 12.2 frames a second against 8.0
-and 8.7.
 
 The layer changes the picture where arcs cross or lie on each other. The
 stacking follows the document run by run: within a run the lines of one
@@ -481,31 +397,6 @@ from 216 ms to 144 ms, and the drag's from 199 ms to 153 ms. With every node
 on screen the raster work is the same, 771 ms and 726 ms for the pan. With
 GPU raster, the pan of the net of 1,742 arcs shows as many frames as before.
 
-In WebKit 26.5, the engine of Safari, 0.77% of the pixels differ at rest on
-that net with every node on screen, 0.93% with a hub hovered and 0.75% with
-it selected, the largest by 144 of 255. On Supply Chain it is 0.03% at rest
-and under 0.01% with a focus. Firefox was not measured: the build of it that
-the test tooling has does not start in the sandbox these measurements ran in.
-
-A press takes the same arc. The element under each of 33,405 points of a grid
-over that net was read on both builds at the three zooms. Of the 5,513 points
-on an arc, 11 name another arc, all at zoom 1.1: an `svg` per arc cut the
-reach of an arc at the box of its curve, and one `svg` for all does not.
-On Supply Chain, where arcs lie apart, 156 of 48,556 grid points at two zooms
-went from the canvas to an arc, each within the 10 units of that arc.
-
-In Safari an arc has a wider reach than it had. WebKit tests a press against
-the box of a path first, and counts the width of a stroke into that box only
-when the stroke has a paint. The unpainted path of an edge of React Flow has
-none, so the reach of an arc was cut to the box of its curve, and a straight
-arc along an axis took a press on its painted line alone, 2 units wide. In the layer no painted line takes the pointer, so the
-unpainted path has a stroke paint at opacity 0, and an arc takes the pointer
-within 10 units of its curve, as in Chromium. On Supply Chain, of 1,296 points
-across the bands of its 48 arcs, 826 took their arc and 1,228 do now. Over a
-grid on the net of 1,742 arcs, 133 of 37,045 points that named the pane name
-an arc, and 88 of the 2,141 on an arc name a later arc. No point that named an
-arc names the pane.
-
 ## A highlight on a net with many nodes
 
 A node outside the neighbourhood faded by an opacity on its element, and the
@@ -561,17 +452,6 @@ its frames. Another process shared the machine: its load was between 1.5 and
 | CPU slowed four times: the longest frame of the leave           | 252 ms (252..260) |       451 ms (450..452) | 334 ms (334..350) |
 | CPU slowed four times: style over the hover and the leave       | 396 ms (375..403) |       860 ms (851..928) | 594 ms (581..602) |
 | CPU slowed four times: main thread over the hover and the leave |          1,772 ms |                2,725 ms |          1,771 ms |
-
-The 320 ms are counted from the change of the pane's attribute. In the first
-two builds the pane has it a commit before the nodes have their roles, so the
-320 ms hold the frame in which React gives them. Now the pane has it in that
-commit. With the attribute set as early as in the other two builds, a hover
-shows 28 frames (26..29) and a leave 23 (22..24). Counted in every build from
-the frame in which the nodes have their roles, a hover shows 24 frames
-(24..25) under an opacity and 10 (10..12) with fading parts, and with compact
-nodes 23 (23..24) and 2 (2..3). The rows of 700 ms start when the pointer
-comes onto the node, which is one moment in all three builds: the highlight
-is on screen about 250 ms into them.
 
 With the opacity of the nodes switched off by an injected rule, the first
 build pans at 83 frames a second (82..85) with a node selected. The fade of
@@ -670,18 +550,7 @@ while the marks fade, and 17 ms now. Under an opacity it spent 29 ms.
 ### What differs on screen
 
 Chromium draws a net at rest as it drew it: no pixel differs on that net or
-on small ones, with classic or compact nodes. The figures that follow compare
-the two fades at one strength, 0.4; the editor fades a node to 0.25. With a node selected on the net
-of 470 nodes, between 0.4% and 2% of the pixels of the canvas differ by more
-than 6 of 255, depending on the node, the zoom and the kind of node: 1.2%
-with classic nodes and 2.0% with compact ones when every node is on screen.
-The largest difference is between 37 and 98. On small nets, where little lies
-behind a node, 0.01% to 0.4% differ. The differences are in the text and the
-icons of a place of a coloured token type, where an arc passes behind the
-text or the glyph of a faded node, on the rim of a filled icon, and along
-the edge of a card. In the WebKit build 2359 that Playwright ships, 0.8% and
-1.2% differ at zoom 0.5 with a node selected, and none at rest. Firefox and
-Safari itself were not measured.
+on small ones, with classic or compact nodes.
 
 While a highlight arrives or leaves, the nodes are a step ahead of the arcs: a
 node outside the neighbourhood is dimmed in the first frame, and at full
@@ -695,7 +564,7 @@ that example, on the net of 470 nodes, or on a net of component instances.
 
 ## Where the cost is now
 
-- **Selecting a node** still has one frame near 190 ms. Most of what renders
+- **Selecting a node** still has one frame near 170 ms. Most of what renders
   is the properties panel of the node, and the browser recalculates style for
   about 90 ms.
 - **Style and paint** are most of a hover and a drag. A hover that rests dims
