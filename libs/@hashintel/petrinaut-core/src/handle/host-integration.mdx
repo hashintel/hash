@@ -736,7 +736,7 @@ it either.
 | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | In-memory handle, explicit save button, dirty flag via `isSDCPNEqual`                                                     | `apps/hash-frontend/src/pages/processes/[uuid].page/process-editor/petrinaut-editor.tsx`                                  |
 | Persist on every change event to localStorage                                                                             | `apps/petrinaut-website/src/main/app/local-storage-demo/documents/use-active-handle.ts`                                   |
-| One live handle per net, history survives switching                                                                       | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                                                           |
+| One live handle per net, history survives switching                                                                       | `petrinaut/src/ui/stories/petrinaut-story-provider.tsx`                                                                   |
 | Host plugin: top-bar items reading page state from a host context above `<Petrinaut>`, so the plugin is a module constant | `apps/hash-frontend/src/pages/processes/[uuid].page/process-editor/petrinaut-editor/process-petrinaut/top-bar-plugin.tsx` |
 
 The handles among them all wrap `createJsonDocHandle`; no adapter over an
