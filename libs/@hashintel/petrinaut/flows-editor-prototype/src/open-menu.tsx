@@ -119,6 +119,39 @@ export const OpenMenu = ({
     }
   }, [rect]);
 
+  // Esc closes the topmost layer: with a side list open it closes that list (as Left does) and leaves this menu.
+  const open = useRef(false);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !open.current) {
+        return;
+      }
+      const layers = [
+        ...globalThis.document.querySelectorAll<HTMLElement>(
+          "[role=menu][data-state=open]",
+        ),
+      ];
+      // The side list is the open menu that holds focus, else the one with no search row of its own.
+      const side =
+        layers.find((layer) => layer.contains(globalThis.document.activeElement)) ??
+        layers.find((layer) => !layer.querySelector("[data-menu-search]"));
+      if (layers.length < 2 || !side) {
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      (globalThis.document.activeElement ?? side).dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "ArrowLeft",
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    };
+    globalThis.addEventListener("keydown", onKey, true);
+    return () => globalThis.removeEventListener("keydown", onKey, true);
+  }, []);
+
   return (
     <Menu
       // The DS Menu renders only its trigger when it has no items; there is always at least one row here.
@@ -127,8 +160,9 @@ export const OpenMenu = ({
       header={header}
       footer={footer}
       className={className}
-      onOpen={(open) => {
-        if (!open) {
+      onOpen={(isOpen) => {
+        open.current = isOpen;
+        if (!isOpen) {
           onClose();
         }
       }}

@@ -670,6 +670,14 @@ const RunLikeSwitch = ({
             onOpen={(open) => {
               menuOpen.current = open;
             }}
+            // As a child of the canvas menu, Ark leaves this menu open on Esc: close it here, and only it.
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && menuOpen.current) {
+                event.preventDefault();
+                event.stopPropagation();
+                menuTrigger.current?.click();
+              }
+            }}
             trigger={
               // Inside the canvas the menu is a child of the canvas right-click menu, and Ark opens a child menu to
               // its trigger's right. A zero-size trigger under the picker's left edge puts that "right" below the
@@ -740,6 +748,12 @@ export const ForEachBoxSwitch = ({ stepId }: { stepId: string }) => {
       className={`${css({ display: "flex", alignItems: "center", minWidth: "[0]" })} nodrag nopan`}
       data-foreach-switch={take}
       onClick={(event) => event.stopPropagation()}
+      // Esc in the supplier menu closes the menu only: the node under it must not read it as "clear selection".
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+        }
+      }}
     >
       <span aria-hidden className={dividerStyle} />
       {take === "runlike" || take === "runlike-b" ? (

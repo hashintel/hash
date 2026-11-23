@@ -599,6 +599,14 @@ const ItemList = ({
       if (event.key !== "Escape" || event.defaultPrevented) {
         return;
       }
+      // A menu or list above the item closes first.
+      if (
+        globalThis.document.querySelector(
+          "[role=menu], [role=listbox], [role=dialog]",
+        )
+      ) {
+        return;
+      }
       event.preventDefault();
       setSelected(null);
     };

@@ -392,7 +392,11 @@ export const FilterByMenu = ({
           },
         })),
     }))
-    .filter((group) => group.items.length > 0);
+    .filter((group) => group.items.length > 0)
+    // A search that leaves one row in a group drops its heading (the one-row rule).
+    .map((group) =>
+      text !== "" && group.items.length === 1 ? { ...group, label: "" } : group,
+    );
   const items: Array<ItemOrGroup<MenuItem>> =
     groups.length > 0
       ? groups

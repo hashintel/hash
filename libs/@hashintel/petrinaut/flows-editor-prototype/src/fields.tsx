@@ -379,7 +379,6 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
             typedPlain: true,
             typedFirst: true,
             dataType: "Email",
-            hideSearch: true,
           }
         : {})}
     />
@@ -953,6 +952,7 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
           input={input}
           entry={entry}
           query={mention.query}
+          focusRef={editorRef}
           onClose={() => {
             setMention(null);
             setUi((current) => ({ ...current, openField: null }));

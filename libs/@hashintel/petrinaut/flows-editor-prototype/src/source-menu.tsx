@@ -751,7 +751,10 @@ export const SourceMenu = ({
       : [
           ...itemType.properties,
           // Values inside a linked record, as their own rows (an email field of a supplier loop only).
-          ...(wantedDataType === "Email" && itemType.title === "Supplier" ? supplierPathValues : []),
+          // The "@" list shows the same paths, whatever the field's own type.
+          ...((wantedDataType === "Email" || query !== undefined) && itemType.title === "Supplier"
+            ? supplierPathValues
+            : []),
         ]
           .filter((property) => kinds.includes(property.payloadKind))
           .filter(
