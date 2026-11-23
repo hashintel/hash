@@ -6,11 +6,11 @@ import { css } from "@hashintel/ds-helpers/css";
 import { isOptimizationActive } from "../../../../../../react/optimizations/context";
 import { Fold } from "../shared/drawer-frame";
 import { formatNumber } from "../shared/format-value";
+import { BestParameters } from "./sweep-objective-strip/best-parameters";
 import {
   ObjectiveHistoryChart,
   type ObjectiveHistoryStyle,
-} from "../shared/objective-history-chart";
-import { BestParameters } from "./sweep-objective-strip/best-parameters";
+} from "./sweep-objective-strip/objective-history-chart";
 import { buildSweepObjectiveHistory } from "./sweep-objective-strip/sweep-objective-history";
 
 import type { ExperimentParameterAxis } from "../../../../../../react/experiments/parameter-grid";

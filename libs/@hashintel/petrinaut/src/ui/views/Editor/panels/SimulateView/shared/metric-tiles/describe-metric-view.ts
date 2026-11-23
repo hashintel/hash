@@ -7,9 +7,9 @@ import type {
   RunAggregation,
   TimeAggregation,
   TimeTrace,
-} from "./shared/distribution-math";
-import type { MetricFrame } from "./shared/metric-frames";
-import type { MetricViewSettings } from "./view-state";
+} from "../../experiments/experiment-metric-timeline/shared/distribution-math";
+import type { MetricFrame } from "../../experiments/experiment-metric-timeline/shared/metric-frames";
+import type { MetricViewSettings } from "../../experiments/experiment-metric-timeline/view-state";
 
 export const RUN_AGGREGATION_LABELS: Record<RunAggregation, string> = {
   mean: "Average",

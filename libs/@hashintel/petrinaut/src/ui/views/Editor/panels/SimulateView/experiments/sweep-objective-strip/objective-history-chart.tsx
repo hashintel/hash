@@ -11,7 +11,7 @@ import uPlot from "uplot";
 import { css } from "@hashintel/ds-helpers/css";
 import "uplot/dist/uPlot.min.css";
 
-import { useElementSize } from "../../../../../../react/hooks/use-element-size";
+import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
 import {
   type ObjectiveHistoryPoint,
   toObjectiveHistoryData,

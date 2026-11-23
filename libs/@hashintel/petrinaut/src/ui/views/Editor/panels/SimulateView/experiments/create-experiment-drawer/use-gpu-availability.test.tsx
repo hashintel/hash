@@ -7,14 +7,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
-} from "../../../../../../react/lsp/context";
-import { sirSdcpnContextValue } from "../experiments/experiments-story-fixtures";
+} from "../../../../../../../react/lsp/context";
+import { sirSdcpnContextValue } from "../experiments-story-fixtures";
 import {
   GPU_ANALYSIS_DEBOUNCE_MS,
   useGpuAvailability,
 } from "./use-gpu-availability";
 
-import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
+import type { ExperimentMetricSpecInput } from "../../../../../../../react/experiments/context";
 import type { ReactNode } from "react";
 
 // What the analysis concludes is petrinaut-core's to test; this hook is about

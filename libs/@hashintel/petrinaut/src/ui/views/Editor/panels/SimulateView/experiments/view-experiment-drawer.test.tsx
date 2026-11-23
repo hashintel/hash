@@ -99,7 +99,7 @@ vi.mock("./sweep-surface", async () => {
 // uPlot cannot mount in jsdom; the strip's row and fold around the chart are
 // real, and so is the history the row describes. The axis edge the chart
 // would draw to sits on the stub as a data attribute.
-vi.mock("../shared/objective-history-chart", () => ({
+vi.mock("./sweep-objective-strip/objective-history-chart", () => ({
   ObjectiveHistoryChart: ({
     plotHeight,
     xMax,

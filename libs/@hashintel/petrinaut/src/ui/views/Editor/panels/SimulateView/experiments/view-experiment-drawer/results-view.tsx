@@ -15,7 +15,7 @@
  */
 import { Tooltip } from "@hashintel/ds-components";
 
-import { ComputeBackendBadge } from "./compute-backend-badge";
+import { ComputeBackendBadge } from "../../shared/compute-backend-badge";
 import {
   ComputeBatchesChip,
   DrawerFrame,
@@ -24,10 +24,14 @@ import {
   FrameColumns,
   FrameStat,
   FrameStatusPill,
-} from "./drawer-frame";
-import { MetricTiles } from "./metric-tiles";
+} from "../../shared/drawer-frame";
+import { MetricTiles } from "../../shared/metric-tiles";
 
-import type { ResultsHeader, ResultsModel, ResultsStat } from "./results-model";
+import type {
+  ResultsHeader,
+  ResultsModel,
+  ResultsStat,
+} from "../../shared/results-model";
 
 const StatValue = ({ value }: { value: ResultsStat["value"] }) =>
   value.tooltip === undefined ? (

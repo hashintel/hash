@@ -1,6 +1,6 @@
-import { ResultsView } from "../shared/results-view";
 import { SimulationPanelPresence } from "../shared/simulation-panel";
 import { useExperimentResultsModel } from "./experiment-results";
+import { ResultsView } from "./view-experiment-drawer/results-view";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 

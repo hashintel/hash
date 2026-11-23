@@ -21,7 +21,7 @@ import type {
   SimulatorSelection,
   SimulatorsContextValue,
 } from "../../../../../../../react/simulators/context";
-import type { GpuAvailability } from "../../shared/use-gpu-availability";
+import type { GpuAvailability } from "./use-gpu-availability";
 
 export type ExperimentSimulatorDraft = {
   /** The simulator picked, or null while the form stands on the default one. */

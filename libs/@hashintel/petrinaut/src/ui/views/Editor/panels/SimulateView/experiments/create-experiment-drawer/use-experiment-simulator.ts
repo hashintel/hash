@@ -11,12 +11,12 @@ import {
 } from "../../../../../../../react/simulators/context";
 import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { useExecutableDefinition } from "../../../../../../../react/state/use-executable-definition";
-import { useGpuAvailability } from "../../shared/use-gpu-availability";
 import {
   type ExperimentSimulatorDraft,
   resolveExperimentSimulator,
   simulatorRefusalsFor,
 } from "./experiment-simulator-draft";
+import { useGpuAvailability } from "./use-gpu-availability";
 
 import type { ExperimentMetricSpecInput } from "../../../../../../../react/experiments/context";
 

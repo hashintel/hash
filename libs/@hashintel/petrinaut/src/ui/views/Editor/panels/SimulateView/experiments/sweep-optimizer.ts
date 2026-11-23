@@ -18,7 +18,7 @@ import {
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
 import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
-import { directionWord } from "../shared/study-labels";
+import { directionWord } from "./study-labels";
 
 import type {
   ExperimentMetricSpecInput,

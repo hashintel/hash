@@ -6,10 +6,7 @@
  */
 import { selectionMidpoint } from "../../../../../../../react/experiments/parameter-grid";
 import { contourSurfaceKey } from "../../../../../../components/contour-surface/paint-field";
-import {
-  type SurfaceField,
-  surfaceGridCoordinate,
-} from "../../shared/surface-field";
+import { type SurfaceField, surfaceGridCoordinate } from "./surface-field";
 
 import type { SweepVisitedCell } from "../../../../../../../react/experiments/context";
 import type {

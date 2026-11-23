@@ -7,9 +7,9 @@ import {
   mergeSurfaceFields,
   surfaceAxisPosition,
   surfaceGridCoordinate,
-} from "../../shared/surface-field";
-import { SURFACE_PLOT_HEIGHT } from "../../shared/surface-frame-layout";
-import { surfaceColumnCount } from "../../shared/surface-sampling";
+} from "./surface-field";
+import { SURFACE_PLOT_HEIGHT } from "./surface-frame-layout";
+import { surfaceColumnCount } from "./surface-sampling";
 import { computingSurfaceField, visitedSurfaceField } from "./visited-field";
 
 import type { ExperimentRecord } from "../../../../../../../react/experiments/context";

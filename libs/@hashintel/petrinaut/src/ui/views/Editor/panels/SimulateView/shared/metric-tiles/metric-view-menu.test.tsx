@@ -11,19 +11,19 @@ import {
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { describeMetricView } from "./describe-metric-view";
-import { MetricViewMenu } from "./metric-view-menu";
 import {
   DEFAULT_METRIC_VIEW_SETTINGS,
   type MetricViewSettings,
-} from "./view-state";
+} from "../../experiments/experiment-metric-timeline/view-state";
+import { describeMetricView } from "./describe-metric-view";
+import { MetricViewMenu } from "./metric-view-menu";
 
-import type { MetricFrame } from "./shared/metric-frames";
+import type { MetricFrame } from "../../experiments/experiment-metric-timeline/shared/metric-frames";
 
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const [actual, stubs] = await Promise.all([
     importOriginal<typeof import("@hashintel/ds-components")>(),
-    import("../../shared/ds-control-stubs"),
+    import("../ds-control-stubs"),
   ]);
   return { ...actual, ...stubs };
 });

@@ -6,11 +6,11 @@ import {
   isOptimizationActive,
   type OptimizationRecord,
 } from "../../../../../../../react/optimizations/context";
+import { objectiveMetricName } from "../study-labels";
 import {
   buildObjectiveHistory,
   type ObjectiveHistoryPoint,
-} from "../../shared/objective-history-data";
-import { objectiveMetricName } from "../../shared/study-labels";
+} from "./objective-history-data";
 
 type SweepObjectiveHistory = {
   /** The study's steps, numbered from 1. */
