@@ -10,7 +10,7 @@ import {
 } from "./selection-navigator";
 
 import type { EditorActions, EditorState } from "../editor-context";
-import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
+import type { SelectionItem } from "@hashintel/petrinaut-core";
 
 const raiseVisualizer = (state: EditorState, placeId: string): EditorState =>
   state.visualizerStack.at(-1) === placeId
@@ -28,7 +28,7 @@ const raiseVisualizer = (state: EditorState, placeId: string): EditorState =>
 /**
  * The editor's actions, built once for an editor. Each reads what it needs
  * when it is called: the editor's own state through `setState`'s updater,
- * the location through `navigate`'s, and the rest through `read`.
+ * the location through `navigate`'s, and the overlay through `read`.
  */
 export const createEditorActions = ({
   navigate,
@@ -43,11 +43,8 @@ export const createEditorActions = ({
   navigate: Navigate;
   setState: (update: (state: EditorState) => EditorState) => void;
   selectionNavigator: ReturnType<typeof createSelectionNavigator>;
-  /** What the last commit showed. */
-  read: () => {
-    overlay: PetrinautNavigationState["overlay"];
-    selection: SelectionMap;
-  };
+  /** The overlay the last commit showed. */
+  read: () => PetrinautNavigationState["overlay"];
 }): EditorActions => {
   const patch = (changes: Partial<EditorState>) =>
     setState((prev) => ({ ...prev, ...changes }));
@@ -55,8 +52,8 @@ export const createEditorActions = ({
   const navigateTo: EditorActions["navigateTo"] = (target) => {
     const drawerChangesOverlay =
       target.simulateDrawer !== undefined &&
-      simulateDrawerToNavigationOverlay(target.simulateDrawer, read().overlay)
-        ?.type !== read().overlay?.type;
+      simulateDrawerToNavigationOverlay(target.simulateDrawer, read())?.type !==
+        read()?.type;
     navigate(
       (current) => ({
         ...current,
@@ -144,7 +141,6 @@ export const createEditorActions = ({
       }));
     },
     setActiveBottomPanelTab: (tab) => patch({ activeBottomPanelTab: tab }),
-    isSelected: (id) => read().selection.has(id),
     setSelection,
     beginSelectionGesture,
     endSelectionGesture,

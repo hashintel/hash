@@ -72,8 +72,7 @@ Clicking a row of a list:
 - **Actions come from `useEditorActions`, one object for the editor's
   life.** An action reads what it needs when it is called, so a handler built
   from one keeps its identity and its reader renders for no change of state.
-  A handler asks `isSelected` of the actions, and a component that shows the
-  answer reads `useIsSelected`. Held by `editor-provider.test.tsx`.
+  Held by `editor-provider.test.tsx`.
 - **A list row or a canvas node asks `useIsSelected(id)`.** A row that read
   the selection would render on every move of it. Held by
   `select-from-context.test.tsx`, which pins that a reader renders only when

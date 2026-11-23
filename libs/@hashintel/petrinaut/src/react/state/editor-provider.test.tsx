@@ -294,7 +294,7 @@ describe("EditorProvider readers of one part", () => {
 });
 
 describe("EditorProvider actions", () => {
-  it("gives out one object for the editor's life, which reads the selection when called", () => {
+  it("gives out one object for the editor's life", () => {
     const seen: EditorActions[] = [];
     const ActionsGrabber = ({
       onActions,
@@ -304,12 +304,7 @@ describe("EditorProvider actions", () => {
       onActions(useEditorActions());
       return null;
     };
-    const PublishedAnswer = () => (
-      <output aria-label="published answer">
-        {String(useEditorState((editor) => editor.isSelected("place-a")))}
-      </output>
-    );
-    const view = render(
+    render(
       <SDCPNContext.Provider value={makeSdcpnContextValue(() => "place")}>
         <TestHost recorded={[]}>
           <EditorProvider>
@@ -320,7 +315,6 @@ describe("EditorProvider actions", () => {
                 }
               }}
             />
-            <PublishedAnswer />
           </EditorProvider>
         </TestHost>
       </SDCPNContext.Provider>,
@@ -332,8 +326,6 @@ describe("EditorProvider actions", () => {
     act(() => actions.setSimulateDrawer({ type: "create-scenario" }));
 
     expect(seen).toHaveLength(1);
-    expect(actions.isSelected("place-a")).toBe(true);
-    expect(view.getByLabelText("published answer").textContent).toBe("true");
   });
 });
 

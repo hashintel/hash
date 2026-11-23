@@ -142,8 +142,6 @@ export type EditorActions = {
   toggleBottomPanel: () => void;
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
   setAddComponentMode: (component: ComponentReference) => void;
-  /** Check whether a given ID is in the current selection. */
-  isSelected: (id: string) => boolean;
   setSelection: (
     selection: SelectionMap | ((prev: SelectionMap) => SelectionMap),
     options?: { cause: "normalization" } | { batch: "react-flow" },
@@ -215,7 +213,6 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   toggleBottomPanel: () => {},
   setActiveBottomPanelTab: () => {},
   setAddComponentMode: () => {},
-  isSelected: () => false,
   setSelection: () => {},
   beginSelectionGesture: () => {},
   endSelectionGesture: () => {},
@@ -287,9 +284,7 @@ export const EditorActionsContext = createContext<EditorActions | null>(null);
 /**
  * The editor's actions: one object for the editor's life. A component that
  * only acts on the editor reads them here and renders for no change of the
- * editor's state. Each action reads what it needs when it is called, so
- * `isSelected` here answers a handler; a component that shows the answer
- * reads `useIsSelected`.
+ * editor's state. Each action reads what it needs when it is called.
  *
  * ```tsx
  * const { selectItem } = useEditorActions();

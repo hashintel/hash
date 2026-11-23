@@ -109,7 +109,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 
   // One object for the editor's life: `navigate` and `setState` never change,
   // and an action reads the rest when it is called.
-  const latest = useLatest({ overlay: location.overlay, selection });
+  const latest = useLatest(location.overlay);
   const [actions] = useState(() =>
     createEditorActions({
       navigate,
@@ -118,16 +118,11 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       read: () => latest.current,
     }),
   );
-  // New with each selection, so a reader of the published `isSelected`
-  // renders when the selection changes. The action of the same name does not.
-  const isSelected = (id: string) => selection.has(id);
-
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const contextValue: EditorContextValue = {
     ...effectiveState,
     ...actions,
-    isSelected,
     searchInputRef,
   };
   const published = usePublished(contextValue);
