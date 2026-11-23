@@ -1,5 +1,5 @@
 import { isEqual } from "lodash";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { Banner, Button, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -17,9 +17,12 @@ import {
 import { StepRunPanel } from "./run-view/step-run-panel";
 import { useRun } from "./run-view/use-run";
 import { findStep } from "./shared/find-step";
+import { getRunTrigger } from "./shared/flow-triggers";
 import { sidePanelWidth } from "./shared/side-panel";
-import { notReachedMark } from "./shared/step-states";
+import { notReachedMark, startMark } from "./shared/step-states";
 
+import type { TriggerCard } from "./canvas/flow-graph";
+import type { FlowSchedules } from "./shared/flow-triggers";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -79,12 +82,15 @@ export const RunView = ({
   flowRunEntityId,
   flowDefinitionEntityId,
   currentDefinition,
+  schedules,
   onBackToLogs,
 }: {
   flowRunEntityId: EntityId;
   flowDefinitionEntityId: EntityId;
   /** The flow as it is now. */
   currentDefinition: FlowDefinition<string>;
+  /** The flow's schedules, to name the one that started the run. */
+  schedules: FlowSchedules;
   onBackToLogs: () => void;
 }) => {
   const run = useRun({
@@ -92,6 +98,17 @@ export const RunView = ({
     flowDefinitionEntityId,
     currentDefinition,
   });
+
+  const flowScheduleId = run.status === "loaded" ? run.flowScheduleId : null;
+  /* It fired as the run started, so it's done, as Start is. */
+  const trigger = useMemo(
+    (): TriggerCard => ({
+      ...getRunTrigger(flowScheduleId, schedules),
+      on: true,
+      run: { mark: startMark, featured: false },
+    }),
+    [flowScheduleId, schedules],
+  );
 
   const [selectedStepIds, setSelectedStepIds] = useState<string[]>([]);
   const [focusRequest, setFocusRequest] = useState<{ stepId: string } | null>(
@@ -252,6 +269,7 @@ export const RunView = ({
           onToggleCollapsed={toggleCollapsed}
           highlightedStepId={highlightedStepId}
           coveredRight={coveredRight}
+          trigger={trigger}
         />
         {selected && (
           <>

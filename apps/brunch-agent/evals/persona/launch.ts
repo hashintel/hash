@@ -31,6 +31,7 @@ import { writeRunPacket } from "../petrinaut/run-packet.ts";
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
 import {
   PersonaBrowserTurnError,
+  offeredQuestionsOf,
   personaConversationClient,
   submitPersonaBrowserTurn,
 } from "./browser-turn.ts";
@@ -600,7 +601,7 @@ const launchPersona = async ({
     let repliedMessages = 0;
     bridge = await openPersonaBrowserBridge({
       opening: resume ? undefined : opening,
-      prompt: async (message, turn) => {
+      prompt: async (utterance, turn) => {
         if (lifecycle.held)
           throw new Error(
             "The operator has taken over this conversation. Send nothing more; run `persona end` and report.",
@@ -608,36 +609,40 @@ const launchPersona = async ({
         await verifyGuidanceResume(manifest, host.guidance);
         let logged = false;
         try {
-          const result = await submitPersonaBrowserTurn(personaPage, message, {
-            session,
-            signal: AbortSignal.any([turn.signal, stop.signal]),
-            onAllowedEdit: (edit) => appendAllowedDestructiveEdit(run, edit),
-            onAdmission: async (admitted, receipt) => {
-              activeAdmission = { client: sessionClient(admitted), receipt };
-              // Each submission carries the browser's current cookies.
-              if (session !== undefined) session = admitted;
-              // Later admissions in the same turn are browser-tool continuations.
-              if (logged) return;
-              logged = true;
-              // Brunch has the utterance; a failed log write must not read as unadmitted.
-              turn.admitted();
-              if (turn.opening) {
-                session = admitted;
-                // Retained even if the reply fails; resume needs the identity.
-                await writeFile(
-                  join(run, "session.json"),
-                  personaSessionFileText(admitted),
-                  { mode: 0o600 },
-                );
-              }
-              await appendAdmittedUtterance(run, {
-                source: turn.opening ? "opening" : "persona",
-                message,
-                submissionId: receipt.submissionId,
-                personaAgent: agentSettings,
-              });
+          const result = await submitPersonaBrowserTurn(
+            personaPage,
+            utterance,
+            {
+              session,
+              signal: AbortSignal.any([turn.signal, stop.signal]),
+              onAllowedEdit: (edit) => appendAllowedDestructiveEdit(run, edit),
+              onAdmission: async (admitted, receipt, sent) => {
+                activeAdmission = { client: sessionClient(admitted), receipt };
+                // Each submission carries the browser's current cookies.
+                if (session !== undefined) session = admitted;
+                // Later admissions in the same turn are browser-tool continuations.
+                if (logged) return;
+                logged = true;
+                // Brunch has the utterance; a failed log write must not read as unadmitted.
+                turn.admitted(sent);
+                if (turn.opening) {
+                  session = admitted;
+                  // Retained even if the reply fails; resume needs the identity.
+                  await writeFile(
+                    join(run, "session.json"),
+                    personaSessionFileText(admitted),
+                    { mode: 0o600 },
+                  );
+                }
+                await appendAdmittedUtterance(run, {
+                  source: turn.opening ? "opening" : "persona",
+                  message: sent,
+                  submissionId: receipt.submissionId,
+                  personaAgent: agentSettings,
+                });
+              },
             },
-          });
+          );
           // Brunch has replied: the persona gets the reply even when the
           // evidence could not be refreshed, which is reported here instead.
           await writeProofArtifacts(join(run, "evidence"), result.snapshot)
@@ -659,6 +664,10 @@ const launchPersona = async ({
           return {
             text: result.reply.text,
             submissionIds: result.submissionIds,
+            questions: offeredQuestionsOf(
+              result.snapshot,
+              result.submissionIds,
+            ),
           };
         } catch (error) {
           if (error instanceof PersonaBrowserTurnError)
@@ -690,6 +699,7 @@ const launchPersona = async ({
           helper,
           settlement: resumed.settlement,
           reply: resumed.reply,
+          questions: resumed.questions,
         })
       : await writePersonaBrief({ run, helper, objective, opening, pack });
     await save(join(run, "run.json"), {
