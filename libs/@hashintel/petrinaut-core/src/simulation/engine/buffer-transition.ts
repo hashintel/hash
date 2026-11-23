@@ -1,4 +1,4 @@
-import { generateUuidFromRng, toUuid } from "../../tokens/uuid";
+import { toUuid } from "../../tokens/uuid";
 /**
  * Shared buffer-ABI transition execution helpers used by both the single-run
  * engine (`compute-possible-transition.ts`) and the Monte Carlo path
@@ -10,6 +10,7 @@ import { generateUuidFromRng, toUuid } from "../../tokens/uuid";
  * `kernelStaging` scratch lives on the `CompiledTransition` and is reused
  * across evaluations; the engine is single-threaded per simulation instance.
  */
+import { generateUuidFromRng } from "./generate-uuid-from-rng";
 import { sampleDistribution } from "./sample-distribution";
 
 import type { HirKernelSink } from "../../hir-runtime";
