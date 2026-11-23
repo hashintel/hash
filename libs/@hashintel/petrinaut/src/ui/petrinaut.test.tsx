@@ -90,22 +90,12 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { defaultPetrinautNavigationState } from "../react/navigation/navigation";
+import "../testing/worker-stub";
 import { Petrinaut } from "./petrinaut";
 import {
   definePetrinautPlugin,
   type PluginHook,
 } from "./plugins/define-petrinaut-plugin";
-
-class WorkerStub extends EventTarget {
-  onerror = null;
-  onmessage = null;
-  onmessageerror = null;
-
-  postMessage() {}
-  terminate() {}
-}
-
-globalThis.Worker = WorkerStub as unknown as typeof Worker;
 
 const testSdcpn: SDCPN = {
   places: [],

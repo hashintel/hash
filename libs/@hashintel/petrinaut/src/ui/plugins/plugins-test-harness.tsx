@@ -9,25 +9,13 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautProvider } from "../../react/petrinaut-provider";
+import "../../testing/worker-stub";
 import { PetrinautPluginsProvider } from "./plugins-provider";
 
 import type { PetrinautNavigationController } from "../../react/navigation/navigation";
 import type { NetManagement } from "../../react/net-management-context";
 import type { PetrinautPlugin } from "./define-petrinaut-plugin";
 import type { ComponentType, ReactNode } from "react";
-
-class WorkerStub extends EventTarget {
-  onerror = null;
-  onmessage = null;
-  onmessageerror = null;
-
-  postMessage() {}
-  terminate() {}
-}
-
-// Not `vi.stubGlobal`, which a test's `unstubAllGlobals` would undo: the
-// language server starts its worker after an async import, past the test.
-globalThis.Worker = WorkerStub as unknown as typeof Worker;
 
 const emptyNet: SDCPN = {
   places: [],
