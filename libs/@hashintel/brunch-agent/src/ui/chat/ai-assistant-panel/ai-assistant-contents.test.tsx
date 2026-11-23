@@ -5830,6 +5830,13 @@ describe("questions docked on the composer", () => {
     );
   });
 
+  const followUp: PetrinautAiMessage = {
+    id: "follow-up",
+    role: "user",
+    parts: [{ type: "text", text: "The experiment finished." }],
+  };
+  const askingAgain = { ...asking([quarantine]), id: "asking-again" };
+
   test("a reply with other questions discards the draft left for the earlier ones", () => {
     const { onSendAnswer, rerender } = renderDock({
       messages: [opening, asking(three)],
@@ -5839,11 +5846,6 @@ describe("questions docked on the composer", () => {
     fireEvent.change(composer(), { target: { value: "Nine days." } });
 
     // A follow-up sent on its own keeps the composer's text while Brunch replies.
-    const followUp: PetrinautAiMessage = {
-      id: "follow-up",
-      role: "user",
-      parts: [{ type: "text", text: "The experiment finished." }],
-    };
     const props = { onSendAnswer, onSubmit: noop };
     rerender(
       <Docked
@@ -5871,6 +5873,63 @@ describe("questions docked on the composer", () => {
     expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
       "It drops out until quality releases it",
     );
+  });
+
+  test("a failed turn between them doesn't let the earlier draft answer the next questions", () => {
+    const { onSendAnswer, rerender } = renderDock({
+      messages: [opening, asking(three)],
+    });
+    fireEvent.click(option("Stays open"));
+    send("Continue to next question");
+    fireEvent.change(composer(), { target: { value: "Nine days." } });
+
+    const props = { onSendAnswer, onSubmit: noop };
+    // The follow-up failed: settled, with no questions showing.
+    rerender(
+      <Docked
+        {...props}
+        messages={[opening, asking(three), followUp]}
+        status="error"
+      />,
+    );
+    expect(dock()).toBeNull();
+    rerender(
+      <Docked
+        {...props}
+        messages={[opening, asking(three), followUp, askingAgain]}
+      />,
+    );
+
+    expect(composer().value).toBe("");
+  });
+
+  test("what the person types after a reply without questions stays for the next ones", () => {
+    const { onSendAnswer, rerender } = renderDock({
+      messages: [opening, asking(three)],
+    });
+    fireEvent.change(composer(), { target: { value: "Nine days." } });
+
+    const props = { onSendAnswer, onSubmit: noop };
+    const plainReply: PetrinautAiMessage = {
+      id: "plain",
+      role: "assistant",
+      parts: [{ type: "text", text: "Noted." }],
+    };
+    rerender(
+      <Docked
+        {...props}
+        messages={[opening, asking(three), followUp, plainReply]}
+      />,
+    );
+    fireEvent.change(composer(), { target: { value: "Also, we scrap it." } });
+    rerender(
+      <Docked
+        {...props}
+        messages={[opening, asking(three), followUp, plainReply, askingAgain]}
+      />,
+    );
+
+    expect(composer().value).toBe("Also, we scrap it.");
   });
 
   test("an equivalent message refresh keeps a focused option's description", () => {

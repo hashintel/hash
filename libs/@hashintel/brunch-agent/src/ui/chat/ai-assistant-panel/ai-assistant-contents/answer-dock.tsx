@@ -258,22 +258,36 @@ export const useAnswerDock = ({
     textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
   }, [focusRequest, inputRef]);
   // The composer's text answers the offer last shown, even while the dock is
-  // hidden; a reply that brings other questions discards that whole draft
-  // rather than give its text to a question it wasn't written for. A settled
-  // reply without questions leaves the text as an ordinary message.
-  const draftOffer = useRef<{ messageId: string; sent: boolean }>(undefined);
+  // hidden or a turn failed; a reply that brings other questions discards that
+  // draft rather than give its text to a question it wasn't written for. Text
+  // changed since that offer last showed is the person's own message and stays.
+  const draftOffer = useRef<{
+    messageId: string;
+    sent: boolean;
+    /** The composer's text when the offer last showed. */
+    text: string;
+  }>(undefined);
   useLayoutEffect(() => {
-    if (found === undefined) {
-      if (enabled) draftOffer.current = undefined;
+    if (found === undefined) return;
+    const previous = draftOffer.current;
+    if (previous?.messageId === found.messageId) {
+      previous.text = input;
       return;
     }
-    const previous = draftOffer.current;
-    if (previous?.messageId === found.messageId) return;
-    draftOffer.current = { messageId: found.messageId, sent: false };
-    if (previous !== undefined && !previous.sent && input !== "") {
+    draftOffer.current = {
+      messageId: found.messageId,
+      sent: false,
+      text: input,
+    };
+    if (
+      previous !== undefined &&
+      !previous.sent &&
+      input !== "" &&
+      input === previous.text
+    ) {
       onInputChange("");
     }
-  }, [enabled, found, input, onInputChange]);
+  }, [found, input, onInputChange]);
 
   const state =
     stored.messageId === found?.messageId
