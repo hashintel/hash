@@ -526,6 +526,31 @@ export const Select = <TValue extends string>({
     return [...orphans, ...items];
   }, [items, orphans, loading]);
 
+  // One option per value, as ark's hidden select rendered, plus any selected
+  // value the items don't (yet) carry. Selected options are never disabled:
+  // a form wouldn't submit them.
+  const formMirrorOptions = useMemo(() => {
+    const selected = new Set<string>(selectedValues);
+    const byValue = new Map<string, { text: string; disabled: boolean }>();
+    for (const option of flattenSelectOptions(effectiveItems)) {
+      if (!byValue.has(option.value)) {
+        byValue.set(option.value, {
+          text: option.text,
+          disabled: !!option.disabled && !selected.has(option.value),
+        });
+      }
+    }
+    for (const selectedValue of selected) {
+      if (!byValue.has(selectedValue)) {
+        byValue.set(selectedValue, { text: selectedValue, disabled: false });
+      }
+    }
+    return [...byValue].map(([optionValue, option]) => ({
+      value: optionValue,
+      ...option,
+    }));
+  }, [effectiveItems, selectedValues]);
+
   // The collapsible options' values (those with subItems), wherever they
   // nest — folder membership for the ArrowRight/ArrowLeft toggle, and whether
   // the rows reserve a chevron column. The per-occurrence row ids live in
@@ -1249,7 +1274,43 @@ export const Select = <TValue extends string>({
         required={required}
         disabled={disabled}
         value={multiple ? selectedValues : (selectedValues[0] ?? "")}
-        onChange={() => {}}
+        // Autofill and extensions write the mirror directly, as they did ark's
+        onChange={(event) => {
+          const mirror = event.currentTarget;
+          const next = [...mirror.selectedOptions]
+            .map((option) => option.value as TValue)
+            .filter((optionValue) => optionValue !== "");
+          // A refused write leaves the DOM out of step with `value`, which
+          // React won't re-apply until the next render.
+          const restore = () => {
+            for (const option of mirror.options) {
+              option.selected = option.value
+                ? selectedValues.includes(option.value as TValue)
+                : !hasSelection;
+            }
+          };
+          if (multiple) {
+            if (maxItems !== undefined && next.length > maxItems) {
+              restore();
+              return;
+            }
+            (onChange as (value: TValue[]) => void)(next);
+            return;
+          }
+          const first = next[0];
+          if (first === undefined) {
+            if (hasSelection && canClear) {
+              (onChange as (value: TValue | null) => void)(null);
+            } else {
+              restore();
+            }
+            return;
+          }
+          if (first !== selectedValues[0]) {
+            (onChange as (value: TValue) => void)(first);
+          }
+        }}
+
         className={classes.formMirror}
         onFocus={() => {
           // Validation (reportValidity) focuses the invalid control; hand
@@ -1258,11 +1319,14 @@ export const Select = <TValue extends string>({
         }}
       >
         {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- the deliberately empty "no selection" option of an aria-hidden form mirror */}
-        {!multiple && <option value="" />}
-        {selectedValues.map((selectedValue) => (
-          <option key={selectedValue} value={selectedValue}>
-            {findSelectItem(effectiveItems, selectedValue)?.text ??
-              selectedValue}
+        {!multiple && (!hasSelection || canClear) && <option value="" />}
+        {formMirrorOptions.map((option) => (
+          <option
+            key={option.value}
+            value={option.value}
+            disabled={option.disabled}
+          >
+            {option.text}
           </option>
         ))}
       </select>
