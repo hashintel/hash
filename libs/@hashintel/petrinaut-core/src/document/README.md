@@ -12,26 +12,23 @@ reading one from a file the job of [the file format](layer:core.file-format).
 
 ## Interface
 
-Each file is one small library, and another block imports the file it needs.
+The folder has no entry file. Each file is one small library, and another
+block imports the file that holds the function it needs. A caller starts from
+one of these.
 
-| File                         | What it answers                                                    |
-| ---------------------------- | ------------------------------------------------------------------ |
-| `petrinaut-id.ts`            | Whether a string is a Petrinaut id, and which id a legacy one gets |
-| `arc-id.ts`                  | The id of an arc, built from the ids of its two ends               |
-| `arc-endpoints.ts`           | Which place or component port an arc touches                       |
-| `get-connections.ts`         | Which places, transitions and arcs share an arc with a selection   |
-| `place-dynamics.ts`          | Which differential equations a place runs                          |
-| `parameter-values.ts`        | The value of each parameter, from its default and the overrides    |
-| `equation-arity.ts`          | How many tokens one differential equation may couple               |
-| `grid-size.ts`               | The grid step node positions snap to                               |
-| `selection.ts`               | What a user can select, and the one order of a selection           |
-| `deep-equal.ts`              | Whether two documents are equal                                    |
-| `hash-petrinaut-document.ts` | A hash of a document, or of the part of it that a simulation reads |
+| Function                                    | File                         | What it answers                                                                   |
+| ------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------- |
+| `toPetrinautId`, `canonicalizePetrinautIds` | `petrinaut-id.ts`            | The Petrinaut id of any id, and a net with every id and reference converted       |
+| `getArcEndpoint`                            | `arc-endpoints.ts`           | Which place or component port an arc touches                                      |
+| `resolveNetParameterValues`                 | `parameter-values.ts`        | The value of each parameter for a run, from its default and the inputs of the run |
+| `canonicalizeSelection`                     | `selection.ts`               | The one order of a selection, without duplicates                                  |
+| `isSDCPNEqual`                              | `deep-equal.ts`              | Whether two documents are equal                                                   |
+| `hashPetrinautDocument`                     | `hash-petrinaut-document.ts` | A hash of a document, or of the part of it that a simulation reads                |
 
 ## Protocol: the id rule
 
-A Petrinaut id is a lowercase UUID. `toPetrinautId` keeps a UUID and maps any
-other id to its UUIDv5 under one fixed namespace, so a legacy id names the
+A Petrinaut id is a lowercase UUID. `toPetrinautId` lowercases a UUID and maps
+any other id to its UUIDv5 under one fixed namespace, so a legacy id names the
 same item on every load. `canonicalizePetrinautIds` applies the rule to every
 definition of a net and to every reference to it. The namespace never
 changes: ids derived from it are stored in documents, URLs and host storage.
