@@ -26,6 +26,7 @@ import {
   hashEntityReadDefaultLimit,
   hashEntityReadDefaultTraversalDepth,
   hashEntityReadMaxLimit,
+  hashEntityReadOversizedSchema,
   hashEntityReadResultSchema,
   hashEntityTypeReadInputSchema,
   hashEntityTypeReadResultSchema,
@@ -443,6 +444,41 @@ const hashEntityReadRefusal = ({
   ].join("\n");
 };
 
+const hashEntityReadOversizedRefusal = ({
+  payloadBytes,
+  matched,
+  linked,
+  namedWholeEntities,
+  choseProperties,
+}: {
+  payloadBytes: number;
+  matched: number;
+  linked: number;
+  namedWholeEntities: boolean;
+  choseProperties: boolean;
+}) => {
+  const count = (value: number) => value.toLocaleString("en-US");
+  const held = matched + linked;
+  return [
+    `Refused: this read's raw payload was ${formatBytes(payloadBytes)}, over the browser-to-agent transport limit, so none of it is shown and it gives no cursor.`,
+    `It held ${count(held)} ${held === 1 ? "entity" : "entities"}: ${count(matched)} matched and ${count(linked)} reached by links.`,
+    "Narrow it, then repeat it from the same cursor if it had one, so no match is skipped:",
+    ...(matched > 1
+      ? ["- a smaller limit, then read the rest page by page"]
+      : []),
+    ...(linked > 0
+      ? ["- traversalDepth: 0, to leave out the entities reached by links"]
+      : []),
+    "- filters by entityTypes, webIds, entityIds or propertyEquals",
+    choseProperties
+      ? "- fewer properties, showing only those you need"
+      : "- properties, to show only those you need of each entity",
+    namedWholeEntities
+      ? "- in fullValuesFor, { entityId, path } for the part of a large value you need, rather than the entity's id"
+      : "- for a large value, { entityId, path } in fullValuesFor, to read only the part you need",
+  ].join("\n");
+};
+
 /**
  * What the model is shown of a settled entity read: compact text, with all
  * values of the entities named by id in `fullValuesFor` in full, and each
@@ -462,6 +498,16 @@ export const hashEntityReadForModel = (
     "properties" | "propertyEquals" | "traversalDepth"
   > = {},
 ) => {
+  const oversized = v.safeParse(hashEntityReadOversizedSchema, output);
+  if (oversized.success) {
+    return hashEntityReadOversizedRefusal({
+      ...oversized.output,
+      namedWholeEntities: fullValuesFor.some(
+        (entry) => typeof entry === "string",
+      ),
+      choseProperties: properties !== undefined,
+    });
+  }
   const parsed = v.safeParse(hashEntityReadResultSchema, output);
   if (!parsed.success)
     throw new Error("HASH's page returned an entity read in an unknown shape.");

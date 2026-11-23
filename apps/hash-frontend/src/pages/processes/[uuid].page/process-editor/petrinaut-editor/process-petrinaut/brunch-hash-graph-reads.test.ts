@@ -1,9 +1,11 @@
 import { expect, test, vi } from "vitest";
 
 import {
+  type HashEntityCountInput,
   type HashEntityReadResult,
   hashEntityReadDefaultLimit,
   hashEntityReadMaxTraversalDepth,
+  hashEntityTypeReadDefaultLimit,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -29,6 +31,8 @@ import type {
   QueryEntityTypesQuery,
   SummarizeEntitiesQuery,
 } from "../../../../../../graphql/api-types.gen";
+import type { QueryTemporalAxes } from "@blockprotocol/graph";
+import type { Timestamp, VersionedUrl } from "@blockprotocol/type-system";
 import type {
   PetrinautAiAutomaticTool,
   PetrinautAiAutomaticToolExecuteParams,
@@ -769,25 +773,54 @@ const graphCursor = [
   "alice-web",
 ] as unknown as EntityQueryCursor;
 
-test("a read asks for a page of the default size, or of the limit given, from the cursor given", () => {
+const resolvedTimestamp = "2026-10-26T12:00:00Z" as Timestamp;
+const resolvedTemporalAxes: QueryTemporalAxes = {
+  variable: {
+    axis: "decisionTime",
+    interval: {
+      start: { kind: "inclusive", limit: resolvedTimestamp },
+      end: { kind: "inclusive", limit: resolvedTimestamp },
+    },
+  },
+  pinned: {
+    axis: "transactionTime",
+    timestamp: resolvedTimestamp,
+  },
+};
+
+test("a read asks for a page of the default size, or of the limit given, from the cursor and pinned temporalAxes given", () => {
   expect(hashEntityReadRequest({}, readerWebs)).toMatchObject({
     limit: hashEntityReadDefaultLimit,
   });
   expect(hashEntityReadRequest({}, readerWebs)).not.toHaveProperty("cursor");
   expect(
-    hashEntityReadRequest({ limit: 25 }, readerWebs, graphCursor),
-  ).toMatchObject({ limit: 25, cursor: graphCursor });
+    hashEntityReadRequest({ limit: 25 }, readerWebs, {
+      cursor: graphCursor,
+      temporalAxes: resolvedTemporalAxes,
+    }),
+  ).toMatchObject({
+    limit: 25,
+    cursor: graphCursor,
+    temporalAxes: resolvedTemporalAxes,
+  });
 });
 
-test("a cursor round-trips through its text exactly, and text that isn't one fails", () => {
+test("a cursor round-trips with optional resolved temporalAxes, and malformed values fail", () => {
   const cursor = [
     "2026-10-26T00:00:00.123456Z",
     { nested: ["ünïcode ✓", 1, null] },
     "alice-web",
   ] as unknown as EntityQueryCursor;
-  const text = encodeHashEntityReadCursor(cursor);
-  expect(text).toMatch(/^[A-Za-z0-9_-]+$/u);
-  expect(decodeHashEntityReadCursor(text)).toEqual(cursor);
+  const textWithoutAxes = encodeHashEntityReadCursor(cursor);
+  expect(textWithoutAxes).toMatch(/^[A-Za-z0-9_-]+$/u);
+  expect(decodeHashEntityReadCursor(textWithoutAxes)).toEqual({ cursor });
+
+  const textWithAxes = encodeHashEntityReadCursor(cursor, resolvedTemporalAxes);
+  expect(textWithAxes).toMatch(/^[A-Za-z0-9_-]+$/u);
+  expect(decodeHashEntityReadCursor(textWithAxes)).toEqual({
+    cursor,
+    temporalAxes: resolvedTemporalAxes,
+  });
 
   const malformed = {
     error:
@@ -798,24 +831,44 @@ test("a cursor round-trips through its text exactly, and text that isn't one fai
     "!!!",
     encodeHashEntityReadCursor({} as never),
     encodeHashEntityReadCursor([]),
+    encodeHashEntityReadCursor(cursor, {
+      variable: { axis: "decisionTime" },
+    } as never),
+    encodeHashEntityReadCursor(cursor, {
+      ...resolvedTemporalAxes,
+      pinned: { axis: "decisionTime", timestamp: resolvedTimestamp },
+    } as never),
     btoa("not json"),
-    text.slice(0, -3),
+    textWithAxes.slice(0, -3),
   ]) {
     expect(decodeHashEntityReadCursor(notACursor)).toEqual(malformed);
   }
 });
 
-test("a response with a cursor, which the graph sets when the page holds its limit, gives the read that cursor, encoded", async () => {
-  const withCursor = (cursor: unknown) =>
+test("a response with a cursor encodes both the cursor and page 1's resolved temporalAxes", async () => {
+  const withCursor = (cursor: unknown, includeResolved = true) =>
     ({
-      queryEntitySubgraph: { ...response.queryEntitySubgraph, cursor },
+      queryEntitySubgraph: {
+        ...response.queryEntitySubgraph,
+        subgraph: {
+          ...response.queryEntitySubgraph.subgraph,
+          ...(includeResolved
+            ? {
+                temporalAxes: {
+                  initial: hashEntityReadRequest({}, readerWebs).temporalAxes,
+                  resolved: resolvedTemporalAxes,
+                },
+              }
+            : {}),
+        },
+        cursor,
+      },
     }) as unknown as QueryEntitySubgraphQuery;
 
   const output = await run(() => Promise.resolve(withCursor(graphCursor)), {});
   expect(output).toMatchObject({
-    cursor: encodeHashEntityReadCursor(graphCursor),
+    cursor: encodeHashEntityReadCursor(graphCursor, resolvedTemporalAxes),
   });
-  expect(output).not.toHaveProperty("truncated");
   await expect(
     run(() => Promise.resolve(withCursor(null)), {}),
   ).resolves.not.toHaveProperty("cursor");
@@ -824,22 +877,207 @@ test("a response with a cursor, which the graph sets when the page holds its lim
   ).resolves.not.toHaveProperty("cursor");
 });
 
-test("a read given a cursor asks the graph for the page it names", async () => {
+test("a read given a cursor passes both the cursor and pinned temporalAxes to the graph", async () => {
   const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
   const input = {
     entityTypes: ["Supplier"],
     limit: 50,
-    cursor: encodeHashEntityReadCursor(graphCursor),
+    cursor: encodeHashEntityReadCursor(graphCursor, resolvedTemporalAxes),
   };
   await run(query, input);
   expect(query).toHaveBeenCalledWith(
-    hashEntityReadRequest(input, readerWebs, graphCursor),
+    hashEntityReadRequest(input, readerWebs, {
+      cursor: graphCursor,
+      temporalAxes: resolvedTemporalAxes,
+    }),
     expect.any(AbortSignal),
   );
   expect(query.mock.calls[0]?.[0]).toMatchObject({
     limit: 50,
     cursor: graphCursor,
+    temporalAxes: resolvedTemporalAxes,
   });
+});
+
+test("includeArchived controls both the request filter and traversed metadata/property archived entities", async () => {
+  expect(hashEntityReadRequest({ includeArchived: true }, readerWebs)).toEqual(
+    expect.objectContaining({
+      filter: { all: [inWebs(readerWebs)] },
+    }),
+  );
+  const archivedTraversed = {
+    queryEntitySubgraph: {
+      ...response.queryEntitySubgraph,
+      subgraph: {
+        ...response.queryEntitySubgraph.subgraph,
+        vertices: {
+          ...response.queryEntitySubgraph.subgraph.vertices,
+          "alice-web~archived-meta": {
+            "2026-10-26T00:00:00Z": {
+              kind: "entity",
+              inner: {
+                metadata: {
+                  recordId: {
+                    entityId: "alice-web~archived-meta",
+                    editionId: "edition-arch-meta",
+                  },
+                  entityTypeIds: [supplierTypeId],
+                  archived: true,
+                },
+                properties: { [nameUrl]: "Retired Meta" },
+              },
+            },
+          },
+          "alice-web~archived-prop": {
+            "2026-10-26T00:00:00Z": entity({
+              entityId: "alice-web~archived-prop",
+              editionId: "edition-arch-prop",
+              properties: { [nameUrl]: "Retired Prop", [archivedUrl]: true },
+            }),
+          },
+        },
+      },
+    },
+  } as unknown as QueryEntitySubgraphQuery;
+
+  const defaultRead = (await run(
+    () => Promise.resolve(archivedTraversed),
+    {},
+  )) as HashEntityReadResult;
+  expect(defaultRead.entities.map(({ entityId }) => entityId)).toEqual([
+    "alice-web~supplier",
+    "alice-web~link",
+  ]);
+
+  const withArchived = (await run(() => Promise.resolve(archivedTraversed), {
+    includeArchived: true,
+  })) as HashEntityReadResult;
+  expect(withArchived.entities.map(({ entityId }) => entityId)).toEqual(
+    expect.arrayContaining([
+      "alice-web~supplier",
+      "alice-web~link",
+      "alice-web~archived-meta",
+      "alice-web~archived-prop",
+    ]),
+  );
+});
+
+test("browser-side properties projection drops unselected properties and their propertyTypes while preserving label and fullValuesFor targets", async () => {
+  const notesUrl = "https://hash.ai/@alice/types/property-type/notes/";
+  const codeUrl = "https://hash.ai/@alice/types/property-type/code/";
+  const multiPropResponse = {
+    queryEntitySubgraph: {
+      closedMultiEntityTypes: closedTypes,
+      definitions: {
+        dataTypes: {},
+        entityTypes: {},
+        propertyTypes: {
+          [`${nameUrl}v/2`]: propertyType(`${nameUrl}v/2`, "Name"),
+          [`${notesUrl}v/1`]: propertyType(`${notesUrl}v/1`, "Notes"),
+          [`${codeUrl}v/1`]: propertyType(`${codeUrl}v/1`, "Code"),
+        },
+      },
+      subgraph: {
+        roots: [
+          { baseId: "alice-web~supplier", revisionId: "2026-10-26T00:00:00Z" },
+        ],
+        vertices: {
+          "alice-web~supplier": {
+            "2026-10-26T00:00:00Z": entity({
+              entityId: "alice-web~supplier",
+              editionId: "e1",
+              properties: {
+                [nameUrl]: "Acme Parts",
+                [notesUrl]: "Big description",
+                [codeUrl]: "ACME-01",
+              },
+            }),
+          },
+          "alice-web~other": {
+            "2026-10-26T00:00:00Z": entity({
+              entityId: "alice-web~other",
+              editionId: "e2",
+              properties: {
+                [nameUrl]: "Beta Parts",
+                [notesUrl]: "Other notes",
+                [codeUrl]: "BETA-02",
+              },
+            }),
+          },
+        },
+        edges: {},
+        temporalAxes: {},
+      },
+    },
+  } as unknown as QueryEntitySubgraphQuery;
+
+  const projected = (await run(() => Promise.resolve(multiPropResponse), {
+    properties: [codeUrl],
+    fullValuesFor: [{ entityId: "alice-web~supplier", path: ["notes"] }],
+  })) as HashEntityReadResult;
+
+  const supplier = projected.entities.find(
+    ({ entityId }) => entityId === "alice-web~supplier",
+  );
+  const other = projected.entities.find(
+    ({ entityId }) => entityId === "alice-web~other",
+  );
+  // Label still derives from `name` even though `name` was not selected.
+  expect(supplier?.label).toBe("Acme Parts");
+  expect(Object.keys(supplier?.properties ?? {}).toSorted()).toEqual(
+    [codeUrl, notesUrl].toSorted(),
+  );
+  expect(other?.label).toBe("Beta Parts");
+  expect(Object.keys(other?.properties ?? {})).toEqual([codeUrl]);
+  // Unused `name` definition is dropped from wire payload.
+  expect(
+    projected.propertyTypes.map(({ baseUrl }) => baseUrl).toSorted(),
+  ).toEqual([codeUrl, notesUrl].toSorted());
+
+  const wholeEntity = (await run(() => Promise.resolve(multiPropResponse), {
+    properties: [codeUrl],
+    fullValuesFor: ["alice-web~supplier"],
+  })) as HashEntityReadResult;
+  expect(
+    Object.keys(
+      wholeEntity.entities.find(
+        ({ entityId }) => entityId === "alice-web~supplier",
+      )?.properties ?? {},
+    ).toSorted(),
+  ).toEqual([codeUrl, nameUrl, notesUrl].toSorted());
+});
+
+test("an entity read whose wire payload exceeds 12 MiB returns an oversized refusal instead of posting past Brunch's body limit", async () => {
+  const notesUrl = "https://hash.ai/@alice/types/property-type/notes/";
+  const hugeResponse = {
+    queryEntitySubgraph: {
+      ...response.queryEntitySubgraph,
+      subgraph: {
+        ...response.queryEntitySubgraph.subgraph,
+        vertices: {
+          ...response.queryEntitySubgraph.subgraph.vertices,
+          "alice-web~supplier": {
+            "2026-10-26T00:00:00Z": entity({
+              entityId: "alice-web~supplier",
+              editionId: "e-huge",
+              properties: { [notesUrl]: "x".repeat(12 * 1024 * 1024 + 1024) },
+            }),
+          },
+        },
+      },
+    },
+  } as unknown as QueryEntitySubgraphQuery;
+
+  const output = await run(() => Promise.resolve(hugeResponse), {});
+  expect(output).toEqual({
+    refused: true,
+    payloadBytes: expect.any(Number),
+    matched: 1,
+    linked: 1,
+  });
+  expect((output as { payloadBytes: number }).payloadBytes).toBeGreaterThan(
+    12 * 1024 * 1024,
+  );
 });
 
 test("a read given a cursor it didn't give settles with an error saying to start again, without querying", async () => {
@@ -1034,18 +1272,20 @@ test("a read by property values adds one equal condition per value on its base U
   ).toEqual({ all: [orderNumberIs(283), inWebs(readerWebs), ...notArchived] });
 });
 
-test("the properties to show are the agent's to apply: they don't change what is read", async () => {
+test("properties does not change the graph request, but projects the returned entity properties and propertyTypes", async () => {
   const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
   const input = { entityIds: ["alice-web~supplier"] };
-  const output = await run(query, {
+  const output = (await run(query, {
     ...input,
     properties: [orderNumberUrl],
-  });
+  })) as HashEntityReadResult;
   expect(query).toHaveBeenCalledWith(
     hashEntityReadRequest(input, undefined),
     expect.any(AbortSignal),
   );
-  expect(output).toEqual(await run(query, input));
+  expect(output.propertyTypes).toEqual([]);
+  expect(output.entities[0]?.properties).toEqual({});
+  expect(output.entities[0]?.label).toBe("Acme Parts");
 });
 
 test("an input the agent's contract doesn't allow is refused before any query", async () => {
@@ -1181,9 +1421,9 @@ const acrossWebs = {
 
 const externality = async (input: unknown, signedIn = true) =>
   (
-    (await run(() => Promise.resolve(acrossWebs), input, { signedIn })) as {
-      entities: { entityId: string; matched: boolean; external?: true }[];
-    }
+    (await run(() => Promise.resolve(acrossWebs), input, {
+      signedIn,
+    })) as HashEntityReadResult
   ).entities.map(({ entityId, matched, external }) => ({
     entityId,
     matched,
@@ -1220,10 +1460,68 @@ test("with no user signed in, every entity read by id is external, since none is
 
 const latestOnly = { equal: [{ path: ["version"] }, { parameter: "latest" }] };
 
-test("a type read with no webs asks for the latest version of every visible type, resolved", () => {
+test("a type read with no webs asks for the latest version of every visible type, resolved, with default limit", () => {
   expect(hashEntityTypeReadRequest({})).toMatchObject({
     filter: { all: [latestOnly] },
     includeEntityTypes: "resolved",
+    limit: hashEntityTypeReadDefaultLimit,
+  });
+});
+
+test("a type read supports titles, base URLs, mixed base/versioned URLs, limit and after cursor", () => {
+  const supplierBase = "https://hash.ai/@h/types/entity-type/supplier/";
+  const productV3 = "https://hash.ai/@h/types/entity-type/product/v/3";
+  expect(
+    hashEntityTypeReadRequest(
+      {
+        titles: ["Supplier"],
+        limit: 20,
+      },
+      productV3 as VersionedUrl,
+    ),
+  ).toMatchObject({
+    filter: {
+      all: [
+        latestOnly,
+        {
+          any: [{ equal: [{ path: ["title"] }, { parameter: "Supplier" }] }],
+        },
+      ],
+    },
+    limit: 20,
+    after: productV3,
+  });
+
+  expect(
+    hashEntityTypeReadRequest({ entityTypeIds: [supplierBase] }).filter,
+  ).toEqual({
+    all: [
+      latestOnly,
+      {
+        any: [{ equal: [{ path: ["baseUrl"] }, { parameter: supplierBase }] }],
+      },
+    ],
+  });
+
+  // Mixing a base URL with an exact version keeps latestOnly scoped to the base URL branch.
+  expect(
+    hashEntityTypeReadRequest({
+      entityTypeIds: [supplierBase, productV3],
+    }).filter,
+  ).toEqual({
+    all: [
+      {
+        any: [
+          {
+            all: [
+              latestOnly,
+              { equal: [{ path: ["baseUrl"] }, { parameter: supplierBase }] },
+            ],
+          },
+          { equal: [{ path: ["versionedUrl"] }, { parameter: productV3 }] },
+        ],
+      },
+    ],
   });
 });
 
@@ -1318,7 +1616,10 @@ const typesResponse = {
     definitions: {
       dataTypes: {},
       propertyTypes: {
-        [`${propertyUrl("name")}v/1`]: { title: "Name" },
+        [`${propertyUrl("name")}v/1`]: {
+          title: "Name",
+          description: "Supplier display name.",
+        },
         [`${propertyUrl("rating")}v/1`]: { title: "Rating" },
       },
       entityTypes: { [typeUrl("supplies")]: { title: "Supplies" } },
@@ -1326,7 +1627,7 @@ const typesResponse = {
   },
 } as unknown as QueryEntityTypesQuery;
 
-test("the type read runs the request it built and returns each type closed, with titled properties and links", async () => {
+test("the type read runs the request it built and returns each type closed, with titled/described properties and links", async () => {
   const query = vi.fn<QueryEntityTypes>(() => Promise.resolve(typesResponse));
   const input = { webIds: ["alice-web"] };
 
@@ -1343,7 +1644,11 @@ test("the type read runs the request it built and returns each type closed, with
         title: "Supplier",
         description: "Someone who supplies parts.",
         properties: [
-          { baseUrl: propertyUrl("name"), title: "Name" },
+          {
+            baseUrl: propertyUrl("name"),
+            title: "Name",
+            description: "Supplier display name.",
+          },
           { baseUrl: propertyUrl("rating"), title: "Rating" },
         ],
         links: [
@@ -1359,7 +1664,7 @@ test("the type read runs the request it built and returns each type closed, with
   });
 });
 
-test("a type response with a cursor marks the type read truncated", async () => {
+test("a type response with a cursor returns that cursor, and an invalid input cursor settles with an error without querying", async () => {
   const withCursor = {
     queryEntityTypes: {
       ...typesResponse.queryEntityTypes,
@@ -1371,13 +1676,22 @@ test("a type response with a cursor marks the type read truncated", async () => 
       createHashEntityTypeReadTool(() => Promise.resolve(withCursor)),
       {},
     ),
-  ).resolves.toMatchObject({ truncated: true });
+  ).resolves.toMatchObject({ cursor: typeUrl("supplier") });
   await expect(
     runTool(
       createHashEntityTypeReadTool(() => Promise.resolve(typesResponse)),
       {},
     ),
-  ).resolves.not.toHaveProperty("truncated");
+  ).resolves.not.toHaveProperty("cursor");
+
+  const query = vi.fn<QueryEntityTypes>(() => Promise.resolve(typesResponse));
+  await expect(
+    runTool(createHashEntityTypeReadTool(query), { cursor: "not-a-url" }),
+  ).resolves.toEqual({
+    error:
+      "The cursor isn't one this type read gave. Repeat the read without a cursor to start from the first page.",
+  });
+  expect(query).not.toHaveBeenCalled();
 });
 
 test("a failed type query settles the read with its message", async () => {
@@ -1553,6 +1867,18 @@ test("a count by property values adds one equal condition per value on its base 
       { any: [webIs("alice-web")] },
       ...notArchived,
     ],
+  });
+});
+
+test("a count never runs with an empty web scope and forwards includeDrafts and includeArchived", () => {
+  expect(() => hashEntityCountRequest({}, [])).toThrow(/can't be empty/u);
+  expect(
+    hashEntityCountRequest({ includeDrafts: true, includeArchived: true }, [
+      "alice-web",
+    ]),
+  ).toMatchObject({
+    filter: { all: [{ any: [webIs("alice-web")] }] },
+    includeDrafts: true,
   });
 });
 
@@ -1831,7 +2157,7 @@ const undeliveredByCustomer = {
     exists: false,
   },
   groupBy: { linkType: "Has Customer", direction: "outgoing" },
-};
+} satisfies HashEntityCountInput;
 
 test("a count by links reads every page of the counted type and of each link type in the count's webs, with no traversal or drafts, and joins them", async () => {
   const query = joinQuery();
@@ -1891,7 +2217,7 @@ test("a count by links reads every page of the counted type and of each link typ
     hashEntityReadRequest(
       { entityTypes: ["Has Line Item"], traversalDepth: 0, limit: 1000 },
       ["alice-web", "acme-web"],
-      ["2"] as unknown as EntityQueryCursor,
+      { cursor: ["2"] as unknown as EntityQueryCursor },
     ),
     expect.any(AbortSignal),
   );

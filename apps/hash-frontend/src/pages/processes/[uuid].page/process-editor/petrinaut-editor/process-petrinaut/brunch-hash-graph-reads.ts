@@ -1,28 +1,34 @@
 import { useApolloClient } from "@apollo/client";
 import { useEffect, useMemo, useRef } from "react";
 
+import { type QueryTemporalAxes } from "@blockprotocol/graph";
 import { getEntities, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   type ClosedMultiEntityType,
   type EntityId,
   type VersionedUrl,
+  type WebId,
   extractBaseUrl,
   extractDraftIdFromEntityId,
   extractWebIdFromEntityId,
   isBaseUrl,
+  validateVersionedUrl,
 } from "@blockprotocol/type-system";
 import {
   brunchTools,
   type HashEntityCountInput,
   type HashEntityCountResult,
   type HashEntityReadInput,
+  type HashEntityReadOversized,
   type HashEntityReadResult,
   type HashEntityTypeReadInput,
   type HashEntityTypeReadResult,
   type HashReadFailure,
   type HashWebReadResult,
-  hashEntityReadDefaultTraversalDepth,
+  type HashWebScope,
   hashEntityReadDefaultLimit,
+  hashEntityReadDefaultTraversalDepth,
+  hashEntityTypeReadDefaultLimit,
   hashPropertyBaseUrl,
   parseHashEntityCountInput,
   parseHashEntityReadInput,
@@ -69,6 +75,12 @@ import type {
   Filter,
 } from "@local/hash-graph-client";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
+
+/**
+ * Maximum UTF-8 byte length of a serialized entity read result the browser
+ * will POST back to Brunch (kept safely below Brunch's 16 MiB body limit).
+ */
+const hashEntityReadMaxPayloadBytes = 12 * 1024 * 1024;
 
 const isTypeUrl = (type: string) =>
   type.startsWith("http://") || type.startsWith("https://");
@@ -163,8 +175,8 @@ const websOf = (user: HashWebReadUser): HashWebReadResult["webs"] => [
  * read that names no web never reaches into HASH's shared webs or other
  * users'. With no web named and no user signed in, there is nothing to cover.
  */
-export type HashReadWebScope = {
-  readonly scope: "default" | "named";
+type HashReadWebScope = {
+  readonly scope: HashWebScope;
   readonly webIds: readonly string[];
 };
 
@@ -201,8 +213,10 @@ export const hashEntityReadWebIds = (
  * The webs whose entities a read returns unmarked: the user's own and their
  * orgs'. Every other entity is external, and with no user signed in, all are.
  */
-const ownWebIdsOf = (user: HashWebReadUser | undefined): ReadonlySet<string> =>
-  new Set(user === undefined ? [] : websOf(user).map(({ webId }) => webId));
+const ownWebIdsOf = (user: HashWebReadUser | undefined): ReadonlySet<WebId> =>
+  new Set(
+    user === undefined ? [] : websOf(user).map(({ webId }) => webId as WebId),
+  );
 
 /** One link from an entity, followed to the entity on its other end. */
 const linkHops: readonly (readonly EntityTraversalEdge[])[] = [
@@ -240,7 +254,9 @@ const traversalPathsTo = (depth: number): EntityTraversalPath[] => {
   ];
 };
 
-const namedDraftIds = (input: HashEntityReadInput): Set<EntityId> =>
+const namedDraftIds = (
+  input: Pick<HashEntityReadInput, "entityIds">,
+): Set<EntityId> =>
   new Set(
     (input.entityIds ?? [])
       .map((entityId) => entityId as EntityId)
@@ -258,13 +274,63 @@ const hashEntityReadOnlyDrafts = (
   return input.includeDrafts === true || named.size === 0 ? undefined : named;
 };
 
+/** Decoded pagination state carried across entity-read pages. */
+export type HashEntityReadCursor = {
+  readonly cursor: EntityQueryCursor;
+  readonly temporalAxes?: QueryTemporalAxes;
+};
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === "string" && value.length > 0;
+
+const isValidLimitedBound = (value: unknown): boolean =>
+  isPlainObject(value) &&
+  (value.kind === "inclusive" || value.kind === "exclusive") &&
+  isNonEmptyString(value.limit);
+
+const isValidTemporalBound = (value: unknown): boolean =>
+  isPlainObject(value) &&
+  (value.kind === "unbounded" || isValidLimitedBound(value));
+
+/** Runtime guard for a server-resolved `QueryTemporalAxes` pinned across pages. */
+const isValidQueryTemporalAxes = (
+  value: unknown,
+): value is QueryTemporalAxes => {
+  if (!isPlainObject(value)) {
+    return false;
+  }
+  const { variable, pinned } = value;
+  if (!isPlainObject(variable) || !isPlainObject(pinned)) {
+    return false;
+  }
+  const validAxisPair =
+    (variable.axis === "decisionTime" && pinned.axis === "transactionTime") ||
+    (variable.axis === "transactionTime" && pinned.axis === "decisionTime");
+  if (!validAxisPair || !isNonEmptyString(pinned.timestamp)) {
+    return false;
+  }
+  const { interval } = variable;
+  return (
+    isPlainObject(interval) &&
+    isValidTemporalBound(interval.start) &&
+    isValidLimitedBound(interval.end)
+  );
+};
+
 /**
- * The graph's cursor as the opaque text the model passes back: its JSON,
- * base64url-encoded, so it is one plain word the model copies whole, with no
- * quotes or brackets to escape or to mistake for structure.
+ * The graph's cursor and optional resolved snapshot time as opaque base64url
+ * text the model copies whole, with no quotes or brackets to escape.
  */
-export const encodeHashEntityReadCursor = (cursor: EntityQueryCursor) => {
-  const bytes = new TextEncoder().encode(JSON.stringify(cursor));
+export const encodeHashEntityReadCursor = (
+  cursor: EntityQueryCursor,
+  temporalAxes?: QueryTemporalAxes,
+) => {
+  const payload =
+    temporalAxes === undefined ? { cursor } : { cursor, temporalAxes };
+  const bytes = new TextEncoder().encode(JSON.stringify(payload));
   let binary = "";
   for (const byte of bytes) {
     binary += String.fromCharCode(byte);
@@ -280,26 +346,47 @@ const malformedCursor: HashReadFailure = {
     "The cursor isn't one this read gave. Repeat the read without a cursor to start from the first page.",
 };
 
+const malformedTypeCursor: HashReadFailure = {
+  error:
+    "The cursor isn't one this type read gave. Repeat the read without a cursor to start from the first page.",
+};
+
 /**
- * The graph's cursor back from the text `encodeHashEntityReadCursor` made,
- * exactly; text that isn't one fails. The graph checks the values inside.
+ * Decodes the text `encodeHashEntityReadCursor` made, validating both the
+ * graph cursor array and any pinned `temporalAxes`.
  */
 export const decodeHashEntityReadCursor = (
   text: string,
-): EntityQueryCursor | HashReadFailure => {
+): HashEntityReadCursor | HashReadFailure => {
   try {
     if (!/^[A-Za-z0-9_-]+$/u.test(text)) {
       return malformedCursor;
     }
     const binary = atob(text.replaceAll("-", "+").replaceAll("_", "/"));
-    const cursor: unknown = JSON.parse(
+    const decoded: unknown = JSON.parse(
       new TextDecoder("utf-8", { fatal: true }).decode(
         Uint8Array.from(binary, (char) => char.charCodeAt(0)),
       ),
     );
-    return Array.isArray(cursor) && cursor.length > 0
-      ? (cursor as EntityQueryCursor)
-      : malformedCursor;
+    if (!isPlainObject(decoded)) {
+      return malformedCursor;
+    }
+    for (const key of Object.keys(decoded)) {
+      if (key !== "cursor" && key !== "temporalAxes") {
+        return malformedCursor;
+      }
+    }
+    const { cursor, temporalAxes } = decoded;
+    if (!Array.isArray(cursor) || cursor.length === 0) {
+      return malformedCursor;
+    }
+    if (temporalAxes !== undefined && !isValidQueryTemporalAxes(temporalAxes)) {
+      return malformedCursor;
+    }
+    return {
+      cursor: cursor as EntityQueryCursor,
+      ...(temporalAxes === undefined ? {} : { temporalAxes }),
+    };
   } catch {
     return malformedCursor;
   }
@@ -312,14 +399,14 @@ export const decodeHashEntityReadCursor = (
  * whether or not drafts were asked for; unless they were, an id without a
  * draft part reads only the live entity, and of the drafts the graph returns
  * the read keeps only those named (`hashEntityReadOnlyDrafts`). The page
- * holds up to the input's `limit` of matches, by default the most the graph
- * returns, starting at `cursor`, the input's decoded
- * (`decodeHashEntityReadCursor`), or else at the first match.
+ * holds up to the input's `limit` of matches (default `hashEntityReadDefaultLimit`,
+ * 100), starting at `pageCursor` (from `decodeHashEntityReadCursor`) at its
+ * pinned `temporalAxes` when continuing a read, or else at the first match.
  */
 export const hashEntityReadRequest = (
-  input: HashEntityReadInput,
+  input: Omit<HashEntityReadInput, "webIds" | "cursor">,
   webIds: readonly string[] | undefined,
-  cursor?: EntityQueryCursor,
+  pageCursor?: HashEntityReadCursor,
 ): QueryEntitySubgraphRequest => {
   if (webIds?.length === 0) {
     // No web filter at all would read every web the user can see.
@@ -340,10 +427,10 @@ export const hashEntityReadRequest = (
         ...propertyEqualsFilter(input.propertyEquals),
         ...anyOf(entityIds.map(entityIdFilter)),
         ...webIdsFilter(webIds),
-        ...notArchivedFilters,
+        ...(input.includeArchived === true ? [] : notArchivedFilters),
       ],
     },
-    temporalAxes: currentTimeInstantTemporalAxes,
+    temporalAxes: pageCursor?.temporalAxes ?? currentTimeInstantTemporalAxes,
     traversalPaths: traversalPathsTo(
       input.traversalDepth ?? hashEntityReadDefaultTraversalDepth,
     ),
@@ -353,18 +440,11 @@ export const hashEntityReadRequest = (
     // descriptions of their types and properties.
     includeEntityTypes: "resolved",
     limit: input.limit ?? hashEntityReadDefaultLimit,
-    ...(cursor === undefined ? {} : { cursor }),
+    ...(pageCursor === undefined ? {} : { cursor: pageCursor.cursor }),
   };
 };
 
 const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
-
-/**
- * A type response carries a cursor when the graph stopped at its limit of
- * matches, so more may match than it returned. The type read doesn't follow it.
- */
-const truncatedWhen = (cursor: unknown) =>
-  cursor === undefined || cursor === null ? {} : { truncated: true as const };
 
 /** The closed type of an entity with these types, if the response has it. */
 const closedTypeIn = (
@@ -395,33 +475,94 @@ const collectPropertyKeys = (value: unknown, found: Set<string>) => {
   }
 };
 
+/** Property slug matching the agent renderer's short name (`…/property-type/foo-bar/` -> `foo_bar`). */
+const propertySlugName = (url: string) =>
+  /\/property-type\/([^/]+)\//u.exec(url)?.[1]?.replaceAll("-", "_");
+
+/**
+ * When `properties` is set, keeps only chosen property base URLs plus any
+ * property targeted by `fullValuesFor` (a whole-entity id keeps every property
+ * on that entity; `{ entityId, path }` keeps the top-level property matching
+ * `path[0]` by exact key, base URL, or slug).
+ */
+const projectEntityProperties = (
+  entityId: string,
+  properties: Record<string, unknown>,
+  selectedBaseUrls: ReadonlySet<string> | undefined,
+  fullValuesFor: HashEntityReadInput["fullValuesFor"] = [],
+): Record<string, unknown> => {
+  if (selectedBaseUrls === undefined) {
+    return properties;
+  }
+  if (fullValuesFor.some((entry) => entry === entityId)) {
+    return properties;
+  }
+  const pathFirstSteps = fullValuesFor.flatMap((entry) =>
+    typeof entry === "object" &&
+    entry.entityId === entityId &&
+    entry.path[0] !== undefined
+      ? [entry.path[0]]
+      : [],
+  );
+  const projected: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(properties)) {
+    const keptBySelection = selectedBaseUrls.has(key);
+    const keptByPath = pathFirstSteps.some(
+      (step) =>
+        key === step ||
+        key === hashPropertyBaseUrl(step) ||
+        propertySlugName(key) === step,
+    );
+    if (keptBySelection || keptByPath) {
+      projected[key] = value;
+    }
+  }
+  return projected;
+};
+
 /**
  * Every entity edition in the response, each described only from itself, so
  * its edition id is the edition whose properties it carries, and labelled
  * where its closed type was resolved; and the title and description of each
- * candidate property definition matched by a returned key, and the title of each type. An entity archived through
- * its `archived` property, as pages are, is left out: the request's filter
- * applies only to the matches, not to the entities reached by following links.
- * Given `onlyDrafts`, retain named drafts and draft links whose endpoint is
- * a named draft, without expanding that set. Other drafts are left out;
- * links to excluded entities keep their endpoint ids. An entity in none of
- * `ownWebIds`, the user's own and org webs, is marked `external`, however it
- * was reached. The graph returns a cursor when the page holds as many
- * matches as its limit, so more may match; the result carries it encoded
- * (`encodeHashEntityReadCursor`) for the next page's read.
+ * candidate property definition matched by a returned key, and the title of
+ * each type. Unless `includeArchived` is true, entities archived by either
+ * `metadata.archived` or their `archived` property are left out (the request's
+ * filter applies only to matched roots, not traversed entities). Given
+ * `onlyDrafts`, retain named drafts and draft links touching them without
+ * expanding that set. Entities outside `ownWebIds` are marked `external`.
  */
-export const hashEntityReadResult = (
+const hashEntityReadResult = (
   response: QueryEntitySubgraphQuery,
-  ownWebIds: ReadonlySet<string>,
-  onlyDrafts?: ReadonlySet<EntityId>,
+  ownWebIds: ReadonlySet<WebId>,
+  {
+    onlyDrafts,
+    includeArchived = false,
+    properties: chosenProperties,
+    fullValuesFor,
+  }: {
+    onlyDrafts?: ReadonlySet<EntityId>;
+    includeArchived?: boolean;
+    properties?: HashEntityReadInput["properties"];
+    fullValuesFor?: HashEntityReadInput["fullValuesFor"];
+  } = {},
 ): HashEntityReadResult => {
   const { subgraph, closedMultiEntityTypes, definitions, cursor } =
     deserializeQueryEntitySubgraphResponse(response.queryEntitySubgraph);
   const matched = new Set(
     getRoots(subgraph).map(({ metadata }) => metadata.recordId.editionId),
   );
+  const selectedBaseUrls =
+    chosenProperties === undefined
+      ? undefined
+      : new Set(chosenProperties.map(hashPropertyBaseUrl));
+
   const entities = getEntities(subgraph, false)
-    .filter((entity) => entity.properties[archivedBaseUrl] !== true)
+    .filter(
+      (entity) =>
+        includeArchived ||
+        (entity.metadata.archived !== true &&
+          entity.properties[archivedBaseUrl] !== true),
+    )
     .filter(({ metadata: { recordId }, linkData }) => {
       const { entityId } = recordId;
       return (
@@ -433,19 +574,30 @@ export const hashEntityReadResult = (
             onlyDrafts.has(linkData.rightEntityId)))
       );
     })
-    .map((entity) => ({
-      entity,
-      closedType: closedTypeIn(
+    .map((entity) => {
+      const closedType = closedTypeIn(
         closedMultiEntityTypes,
         entity.metadata.entityTypeIds,
-      ),
-    }));
+      );
+      // Label derives from the full entity before browser-side property projection.
+      const label =
+        closedType === undefined
+          ? undefined
+          : generateEntityLabel(closedType, entity);
+      const projectedProperties = projectEntityProperties(
+        entity.metadata.recordId.entityId,
+        entity.properties,
+        selectedBaseUrls,
+        fullValuesFor,
+      );
+      return { entity, closedType, label, properties: projectedProperties };
+    });
 
   // Key matches select candidate definitions, not ownership or applicability.
   // Preserve every returned version rather than choosing one global definition.
   const usedBaseUrls = new Set<string>();
-  for (const { entity } of entities) {
-    collectPropertyKeys(entity.properties, usedBaseUrls);
+  for (const { properties } of entities) {
+    collectPropertyKeys(properties, usedBaseUrls);
   }
   const propertyTypes = Object.values(definitions?.propertyTypes ?? {}).flatMap(
     ({ $id, title, description }) => {
@@ -470,6 +622,11 @@ export const hashEntityReadResult = (
   const usedTypeIds = new Set(
     entities.flatMap(({ entity }) => entity.metadata.entityTypeIds),
   );
+  const resolvedTemporalAxes = isValidQueryTemporalAxes(
+    subgraph.temporalAxes.resolved,
+  )
+    ? subgraph.temporalAxes.resolved
+    : undefined;
 
   return {
     propertyTypes,
@@ -477,7 +634,7 @@ export const hashEntityReadResult = (
       const title = typeTitles.get(entityTypeId);
       return title === undefined ? [] : [{ entityTypeId, title }];
     }),
-    entities: entities.map(({ entity, closedType }) => {
+    entities: entities.map(({ entity, label, properties }) => {
       const { entityId, editionId } = entity.metadata.recordId;
       const { linkData } = entity;
       const webId = extractWebIdFromEntityId(entityId);
@@ -487,10 +644,8 @@ export const hashEntityReadResult = (
         webId,
         ...(ownWebIds.has(webId) ? {} : { external: true as const }),
         entityTypeIds: entity.metadata.entityTypeIds,
-        ...(closedType === undefined
-          ? {}
-          : { label: generateEntityLabel(closedType, entity) }),
-        properties: entity.properties,
+        ...(label === undefined ? {} : { label }),
+        properties,
         draft: extractDraftIdFromEntityId(entityId) !== undefined,
         matched: matched.has(editionId),
         ...(linkData === undefined
@@ -505,7 +660,7 @@ export const hashEntityReadResult = (
     }),
     ...(cursor === undefined || cursor === null
       ? {}
-      : { cursor: encodeHashEntityReadCursor(cursor) }),
+      : { cursor: encodeHashEntityReadCursor(cursor, resolvedTemporalAxes) }),
   };
 };
 
@@ -541,7 +696,8 @@ const settlingQueryFailure = async <Result>(
  * One call reads one page, from the input's cursor if it has one. An input
  * the agent's contract doesn't allow rejects; a failed query, a cursor this
  * read didn't give, or a read that names neither webs nor entities with no
- * user to scope to, settles `{ error }`.
+ * user to scope to, settles `{ error }`. A serialized result exceeding the
+ * 12 MiB browser transport guard settles `{ refused: true, ... }`.
  */
 export const createHashEntityReadTool = (
   queryEntitySubgraph: QueryEntitySubgraph,
@@ -552,66 +708,135 @@ export const createHashEntityReadTool = (
   outputParser: { parse: (value) => value },
   execute: async ({ input, signal }) => {
     const readInput = parseHashEntityReadInput(input);
-    const cursor =
+    const pageCursor =
       readInput.cursor === undefined
         ? undefined
         : decodeHashEntityReadCursor(readInput.cursor);
-    if (cursor !== undefined && "error" in cursor) {
-      return cursor;
+    if (pageCursor !== undefined && "error" in pageCursor) {
+      return pageCursor;
     }
     const user = currentUser();
     const webScope = hashEntityReadWebIds(readInput, user);
     if ("error" in webScope) {
       return webScope;
     }
-    const request = hashEntityReadRequest(readInput, webScope.webIds, cursor);
-    return settlingQueryFailure(signal, async () =>
-      hashEntityReadResult(
-        await queryEntitySubgraph(request, signal),
-        ownWebIdsOf(user),
-        hashEntityReadOnlyDrafts(readInput),
-      ),
+    const request = hashEntityReadRequest(
+      readInput,
+      webScope.webIds,
+      pageCursor,
+    );
+    return settlingQueryFailure(
+      signal,
+      async (): Promise<HashEntityReadResult | HashEntityReadOversized> => {
+        const result = hashEntityReadResult(
+          await queryEntitySubgraph(request, signal),
+          ownWebIdsOf(user),
+          {
+            onlyDrafts: hashEntityReadOnlyDrafts(readInput),
+            includeArchived: readInput.includeArchived === true,
+            properties: readInput.properties,
+            fullValuesFor: readInput.fullValuesFor,
+          },
+        );
+        const payloadBytes = new TextEncoder().encode(
+          JSON.stringify(result),
+        ).length;
+        if (payloadBytes > hashEntityReadMaxPayloadBytes) {
+          const matched = result.entities.filter(
+            (entity) => entity.matched,
+          ).length;
+          return {
+            refused: true as const,
+            payloadBytes,
+            matched,
+            linked: result.entities.length - matched,
+          };
+        }
+        return result;
+      },
     );
   },
 });
 
-export type QueryEntityTypesRequest = QueryEntityTypesQueryVariables["request"];
+type QueryEntityTypesRequest = QueryEntityTypesQueryVariables["request"];
+
+const latestTypeVersionFilter: Filter = {
+  equal: [{ path: ["version"] }, { parameter: "latest" }],
+};
+
+const decodeHashEntityTypeReadCursor = (
+  text: string,
+): VersionedUrl | HashReadFailure => {
+  const validated = validateVersionedUrl(text);
+  return validated.type === "Ok" ? validated.inner : malformedTypeCursor;
+};
 
 /**
- * The `queryEntityTypes` request for one read: every given filter must match.
- * Given type ids are read at exactly those versions, the ones the entities
- * carrying them were saved against; otherwise each type's latest version.
- * Types are closed over what they inherit and resolved, so the response
- * carries the titles of their properties and links.
+ * The `queryEntityTypes` request for one page: every given filter must match.
+ * Exact versioned `entityTypeIds` are read at those versions; base URLs,
+ * `titles`, or unfiltered reads default to each type's latest version.
  */
 export const hashEntityTypeReadRequest = (
-  input: HashEntityTypeReadInput,
-): QueryEntityTypesRequest => ({
-  filter: {
-    all: [
-      ...(input.entityTypeIds === undefined
-        ? [{ equal: [{ path: ["version"] }, { parameter: "latest" }] }]
-        : anyOf(
-            input.entityTypeIds.map((entityTypeId) => ({
-              equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
-            })),
-          )),
-      ...anyOf(
-        (input.webIds ?? []).map((webId) => ({
-          equal: [{ path: ["webId"] }, { parameter: webId }],
-        })),
-      ),
-    ],
-  },
-  temporalAxes: currentTimeInstantTemporalAxes,
-  includeEntityTypes: "resolved",
-});
+  input: Omit<HashEntityTypeReadInput, "cursor">,
+  after?: VersionedUrl,
+): QueryEntityTypesRequest => {
+  const entityTypeIds = input.entityTypeIds;
+  const hasExactVersion =
+    entityTypeIds !== undefined && entityTypeIds.some((id) => !isBaseUrl(id));
+  const idFilters: Filter[] =
+    entityTypeIds === undefined
+      ? [latestTypeVersionFilter]
+      : hasExactVersion
+        ? anyOf(
+            entityTypeIds.map((id) =>
+              isBaseUrl(id)
+                ? {
+                    all: [
+                      latestTypeVersionFilter,
+                      { equal: [{ path: ["baseUrl"] }, { parameter: id }] },
+                    ],
+                  }
+                : { equal: [{ path: ["versionedUrl"] }, { parameter: id }] },
+            ),
+          )
+        : [
+            latestTypeVersionFilter,
+            ...anyOf(
+              entityTypeIds.map((id) => ({
+                equal: [{ path: ["baseUrl"] }, { parameter: id }],
+              })),
+            ),
+          ];
+
+  return {
+    filter: {
+      all: [
+        ...idFilters,
+        ...anyOf(
+          (input.titles ?? []).map((title) => ({
+            equal: [{ path: ["title"] }, { parameter: title }],
+          })),
+        ),
+        ...anyOf(
+          (input.webIds ?? []).map((webId) => ({
+            equal: [{ path: ["webId"] }, { parameter: webId }],
+          })),
+        ),
+      ],
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeEntityTypes: "resolved",
+    limit: input.limit ?? hashEntityTypeReadDefaultLimit,
+    ...(after === undefined ? {} : { after }),
+  };
+};
 
 /**
- * Each returned type with its properties, keyed by the base URL an entity's
- * properties use, and its links, each titled where the response resolved it.
+ * Each returned type with its properties (keyed by base URL, carrying title
+ * and description/units where resolved), its links, and `cursor` when more
+ * types may match.
  */
-export const hashEntityTypeReadResult = (
+const hashEntityTypeReadResult = (
   response: QueryEntityTypesQuery,
 ): HashEntityTypeReadResult => {
   const { entityTypes, closedEntityTypes, definitions, cursor } =
@@ -629,11 +854,19 @@ export const hashEntityTypeReadResult = (
         title: schema.title,
         description: schema.description,
         properties: Object.entries(properties).map(([baseUrl, value]) => {
-          const title =
+          const propertyDef =
             definitions?.propertyTypes[
               "items" in value ? value.items.$ref : value.$ref
-            ]?.title;
-          return { baseUrl, ...(title === undefined ? {} : { title }) };
+            ];
+          return {
+            baseUrl,
+            ...(propertyDef?.title === undefined
+              ? {}
+              : { title: propertyDef.title }),
+            ...(propertyDef?.description === undefined
+              ? {}
+              : { description: propertyDef.description }),
+          };
         }),
         links: Object.entries(links).map(([linkEntityTypeId, value]) => {
           const title =
@@ -652,7 +885,7 @@ export const hashEntityTypeReadResult = (
         }),
       };
     }),
-    ...truncatedWhen(cursor),
+    ...(cursor === undefined ? {} : { cursor }),
   };
 };
 
@@ -664,7 +897,7 @@ export type QueryEntityTypes = (
 
 /**
  * Brunch's HASH entity type read, run in the page. An input the agent's
- * contract doesn't allow rejects; a failed query settles `{ error }`.
+ * contract doesn't allow rejects; a failed query or invalid cursor settles `{ error }`.
  */
 export const createHashEntityTypeReadTool = (
   queryEntityTypes: QueryEntityTypes,
@@ -673,9 +906,15 @@ export const createHashEntityTypeReadTool = (
   inputParser: { parse: parseHashEntityTypeReadInput },
   outputParser: { parse: (value) => value },
   execute: async ({ input, signal }) => {
-    const request = hashEntityTypeReadRequest(
-      parseHashEntityTypeReadInput(input),
-    );
+    const typeInput = parseHashEntityTypeReadInput(input);
+    const after =
+      typeInput.cursor === undefined
+        ? undefined
+        : decodeHashEntityTypeReadCursor(typeInput.cursor);
+    if (after !== undefined && typeof after === "object" && "error" in after) {
+      return after;
+    }
+    const request = hashEntityTypeReadRequest(typeInput, after);
     return settlingQueryFailure(signal, async () =>
       hashEntityTypeReadResult(await queryEntityTypes(request, signal)),
     );
@@ -683,46 +922,50 @@ export const createHashEntityTypeReadTool = (
 });
 
 /** The signed-in user's own web, then each org web they belong to. */
-export const hashWebReadResult = (
+const hashWebReadResult = (
   user: HashWebReadUser | undefined,
 ): HashWebReadResult | HashReadFailure =>
   user === undefined ? noUserSignedIn : { webs: websOf(user) };
 
-export type SummarizeEntitiesRequest =
-  SummarizeEntitiesQueryVariables["request"];
+type SummarizeEntitiesRequest = SummarizeEntitiesQueryVariables["request"];
 
 /**
  * The `summarizeEntities` request for one count: the entity read's filters
- * for types, property values and for not being archived, limited to the webs in scope, with
- * the total, the count per direct type and its title, and the count per web.
- * Drafts are not counted.
+ * for types, property values and (unless `includeArchived`) not being
+ * archived, limited to the webs in scope, with the total, the count per direct
+ * type and its title, and the count per web.
  */
 export const hashEntityCountRequest = (
-  input: HashEntityCountInput,
+  input: Omit<HashEntityCountInput, "webIds">,
   webIds: readonly string[],
-): SummarizeEntitiesRequest => ({
-  filter: {
-    all: [
-      ...entityTypesFilter(input.entityTypes),
-      ...propertyEqualsFilter(input.propertyEquals),
-      ...webIdsFilter(webIds),
-      ...notArchivedFilters,
-    ],
-  },
-  temporalAxes: currentTimeInstantTemporalAxes,
-  includeDrafts: false,
-  includeCount: true,
-  includeTypeIds: true,
-  includeTypeTitles: true,
-  includeWebIds: true,
-});
+): SummarizeEntitiesRequest => {
+  if (webIds.length === 0) {
+    throw new Error("An entity count's web scope can't be empty.");
+  }
+  return {
+    filter: {
+      all: [
+        ...entityTypesFilter(input.entityTypes),
+        ...propertyEqualsFilter(input.propertyEquals),
+        ...webIdsFilter(webIds),
+        ...(input.includeArchived === true ? [] : notArchivedFilters),
+      ],
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: input.includeDrafts === true,
+    includeCount: true,
+    includeTypeIds: true,
+    includeTypeTitles: true,
+    includeWebIds: true,
+  };
+};
 
 /**
  * The count, each direct type counted, most first, with its title, and every
  * web in scope with its count, named where it is the user's own or one of
  * their orgs'. A response without a count fails the count.
  */
-export const hashEntityCountResult = (
+const hashEntityCountResult = (
   response: SummarizeEntitiesQuery,
   { scope, webIds }: HashReadWebScope,
   user: HashWebReadUser | undefined,
@@ -777,7 +1020,7 @@ export type SummarizeEntities = (
  * types is in `webScope`, the plain count's; a read by ids is in any web, as
  * the entity read's is. Entities outside the user's webs are marked external.
  */
-export const hashJoinGraph = (
+const hashJoinGraph = (
   summarizeEntities: SummarizeEntities,
   queryEntitySubgraph: QueryEntitySubgraph,
   webScope: HashReadWebScope,

@@ -1432,6 +1432,25 @@ test("the count's description says when to count across links, the limit on what
   );
 });
 
+test("a browser transport-ceiling refusal renders narrowing advice and no cursor", () => {
+  const text = hashEntityReadForModel(
+    {
+      refused: true,
+      payloadBytes: 13_400_000,
+      matched: 80,
+      linked: 240,
+    },
+    ["web~e1"],
+    { properties: ["https://hash.ai/@h/types/property-type/name/"] },
+  );
+  expect(text).toContain("Refused: this read's raw payload was 13.4 MB");
+  expect(text).toContain("320 entities: 80 matched and 240 reached by links");
+  expect(text).toContain("traversalDepth: 0");
+  expect(text).toContain("fewer properties");
+  expect(text).toContain("{ entityId, path }");
+  expect(text).not.toContain("cursor:");
+});
+
 test("the HASH agent defines its four graph reads", () => {
   const tools = createHashGraphReadTools(() =>
     Promise.reject(new Error("No read reaches the browser here.")),
