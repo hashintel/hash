@@ -9,7 +9,7 @@ export const requiredContext = <Value>(owner: string) => {
   const useValue = (): Value => {
     const value = use(Context);
     if (value === null) {
-      throw new Error(`Must be rendered within ${owner}`);
+      throw new Error(`A component read the ${owner} context outside ${owner}`);
     }
     return value;
   };
