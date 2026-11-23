@@ -16,7 +16,7 @@ import type {
 import type { ReactNode } from "react";
 
 export type PetrinautProviderProps = {
-  /** The Core instance whose stores the bridges subscribe to. */
+  /** The Core instance whose stores the providers subscribe to. */
   instance: Petrinaut;
   /** Host-owned net-management actions and metadata (title, switching, …). */
   netManagement: NetManagement;
@@ -55,10 +55,10 @@ export type PetrinautProviderProps = {
 };
 
 /**
- * Single React entry that mounts every bridge provider over a Core instance.
- * Each child provider reads from `instance` (or, for net-management info, from
- * {@link NetManagementContext}) and republishes through its existing legacy
- * context — so `/ui` consumers don't change.
+ * The one provider a host mounts over a Core instance. It nests the document,
+ * the location, the runtime providers and the canvas providers, in that
+ * order, and each reads the ones above it. `petrinaut-provider-layers.tsx`
+ * lists the providers of each group.
  */
 export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
   instance,

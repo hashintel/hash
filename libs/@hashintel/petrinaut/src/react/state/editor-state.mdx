@@ -38,6 +38,12 @@ editor that only composes, which `useComposesOnly` answers, the mode is
 | The action offered with the notice of a blocked edit, where the host made the document read-only                      | The first running plugin that declares `readOnlyAction`           | That plugin                                      | `ReadOnlyActionContext`                              |
 | Imports, libraries and the host's rules                                                                               | The Core instance                                                 | Core                                             | `CompositionContext`, `useComposesOnly`              |
 
+The table names every piece of state a component of the editor reads,
+whichever block publishes it. The read-only reason belongs to
+[the edit guard](layer:react.editing). The undo history, the active net and
+the imports belong to [the document](layer:react.document). The host's
+values belong to [the host contexts](layer:react.host).
+
 The left sidebar, the bottom panel and its tab, the cursor and the timeline
 chart type start from the user settings, and `useSyncEditorToSettings` saves
 them back. Search and the assistant start closed and are not saved. In
@@ -85,14 +91,8 @@ Clicking a row of a list:
 ## Pitfalls
 
 - A value read through a selector arrives one render pass after the
-  context's, in the same frame, before paint. The read-only reason must
-  refuse a layout effect that edits the document in the commit that changes
-  the mode. That is why it has a context of its own, and why
-  `ReadOnlyReasonProvider` reads the mode with `useEditorMode`, from the
-  context that `EditorProvider` changes with the mode.
-- `useIsReadOnly` is `useReadOnlyReason() !== null`, so it answers true for
-  every edit in Simulate mode. `mutationBlockedBy`, which
-  `usePetrinautMutations` applies, makes the exceptions. For every reason
-  but `host-readonly` it lets through the mutations in
-  `simulateModeAllowedMutationNames`, and an `updatePlace` that sets only
-  `visualizerCode`.
+  context's, in the same frame, before paint. What must hold in the commit
+  that changes the mode reads the mode with `useEditorMode`, from the
+  context that `EditorProvider` changes with the mode. The read-only reason
+  does, as [the edit guard](layer:react.editing) describes, so that it
+  refuses a layout effect of that commit that edits the document.

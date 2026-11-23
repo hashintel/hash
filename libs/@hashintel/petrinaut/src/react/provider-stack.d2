@@ -13,8 +13,9 @@ core: "Core instance\nstores, mutations, commands" {class: core}
 provider: "PetrinautProvider" {
   class: react
   doc: "PetrinautDocumentProvider\ninstance, host values, undo history,\nuser settings, imports, document" {class: react}
-  runtime: "Runtime providers\nnavigation, language client, notifications,\nsimulators, simulation, experiments,\noptimizations, experiment host" {class: react}
-  canvas: "PetrinautCanvasProvider\nviewport, playback, active net,\npanel sizes, editor state, frame source" {class: react}
+  navigation: "PetrinautNavigationProvider\nthe location, keyed by the handle's id" {class: react}
+  runtime: "PetrinautRuntimeProvider\nlanguage client, notifications,\nsimulators, simulation, experiments,\noptimizations, experiment host" {class: react}
+  canvas: "PetrinautCanvasProvider\nviewport, playback, active net,\npanel sizes, editor state, read-only reason,\npanel presence, frame source" {class: react}
 }
 hooks: "Hooks\nuseStore, useEditorState,\nusePetrinautMutations" {class: react}
 ui: "Editor view and plugin hosts"
@@ -23,7 +24,8 @@ host -> petrinaut: "passes props to"
 petrinaut -> core: "creates"
 petrinaut -> provider: "mounts"
 core -> provider.doc: "is published by"
-provider.doc -> provider.runtime: "wraps"
+provider.doc -> provider.navigation: "wraps"
+provider.navigation -> provider.runtime: "wraps"
 provider.runtime -> provider.canvas: "wraps"
 provider.canvas -> ui: "wraps, with the\nUI providers between"
 core -> hooks: "notifies"

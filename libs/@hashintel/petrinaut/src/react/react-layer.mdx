@@ -6,37 +6,53 @@ sidebar_order: 5
 
 The React layer is the contexts, hooks and providers that mirror the state of
 a Core instance into React. It renders no editor UI: the
-[UI layer](layer:ui) builds the editor on these hooks.
+[UI layer](layer:ui) builds the editor on these hooks. The one thing it
+renders is the toaster of `NotificationsProvider`, because a host may mount
+that provider on its own and must see its notices.
 
-![One provider nests three groups of providers in a fixed order around the editor, and the hooks read what they publish.](./provider-stack.d2)
+![One provider nests the document, the location, the runtime providers and the canvas providers in a fixed order around the editor, and the hooks read what they publish.](./provider-stack.d2)
 
 ## Entry point
 
 `PetrinautProvider` in `petrinaut-provider.tsx` takes a Core instance and
-composes three groups of providers, outermost first:
+nests four parts, outermost first. `petrinaut-provider-layers.tsx` defines
+the three groups among them, and so lists every provider of the layer in the
+order it nests.
 
 1. `PetrinautDocumentProvider` publishes the instance, the host's values
    (the title, the list of nets and the callbacks), the undo history, the
    user settings, the imports and the document. It starts no worker.
-2. The runtime providers follow: navigation, the language client,
-   notifications, the simulators, the simulation, experiments, optimizations
-   and the experiment host. The navigation provider is keyed by the handle's
-   id, so a switch of net resets the location and every worker below it.
-3. `PetrinautCanvasProvider` publishes what the canvas and the panels need:
+2. `PetrinautNavigationProvider` publishes the location. It is keyed by the
+   handle's id, so a switch of net resets the location and every worker
+   below it.
+3. `PetrinautRuntimeProvider` nests the providers that start a worker or keep
+   a run: the language client, notifications, the simulators, the
+   simulation, experiments, optimizations and the experiment host.
+4. `PetrinautCanvasProvider` publishes what the canvas and the panels need:
    the saved viewport, playback, the active net, the panel sizes, the editor
-   state and the frame source.
+   state, the read-only reason, how far each panel is in view and the frame
+   source.
 
-Each group reads the groups above it. The simulation reads the document and
-the location, and the editor state reads the location and the settings.
+Each part reads the parts above it. The simulation reads the document and
+the location, the editor state reads the location and the settings, and the
+read-only reason reads the document, the mode and the run.
 
 Two providers of the layer are mounted elsewhere. `Petrinaut` in the UI
 layer mounts `CommandRegistryProvider`, and the Preview provides
 `ActualModeContext`.
 
 The Preview is `PetrinautPreview` in the UI layer, which shows a net without
-the editor. It mounts the first and third groups itself, with navigation
-between them. When it plays a run it adds `NotificationsProvider`,
+the editor. It mounts the document and the canvas providers itself, with
+navigation between them. When it plays a run it adds `NotificationsProvider`,
 `SimulatorsProvider` and `SimulationProvider`.
+
+The layer also holds the orchestration of experiments. The sweep session, the
+creation of an experiment, the trial evaluator and the experiment host are
+code without React in [experiments](layer:react.experiments),
+[optimizations](layer:react.optimizations) and
+[the experiment host](layer:react.experiment-host). They sit beside the
+providers that are their only callers, and Core publishes the runtimes they
+drive and not the way the editor drives them.
 
 ## How state reaches a component
 
@@ -55,22 +71,34 @@ of a run is a store that changes on every animation frame of playback, and
 [Editor state](doc:react.state/editor-state) says which state has which
 owner.
 
+## How a provider publishes
+
+| What the provider holds                    | It publishes                                                                                 | As in                                                                    |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| A value that changes rarely                | A context with an inert default                                                              | `CompositionContext`, `SimulatorsContext`                                |
+| A value that changes on most interactions  | Its context, and the store of `usePublished` in a second context for the readers by selector | `SDCPNProvider`, `EditorProvider`, the navigation and settings providers |
+| A value that changes per edit or per frame | A store inside the context value, so reading the context renders nothing                     | `UndoRedoContext`, the viewed time of `EventPlaybackContext`             |
+| Actions                                    | A context of their own that holds one object for the provider's life                         | `EditorActionsContext`, `ExperimentsActionsContext`                      |
+
+[The shared helpers](layer:react.shared) hold `usePublished`, `useSelected`
+and the store hooks these rows are built from.
+
 ## Which hook to call
 
-| To                                 | Call                                                    |
-| ---------------------------------- | ------------------------------------------------------- |
-| Read part of the document          | `usePetrinautDefinitionSelector`                        |
-| Edit the document                  | `usePetrinautMutations`, `usePetrinautCommands`         |
-| Ask whether editing is allowed     | `useIsReadOnly`, `useReadOnlyReason`                    |
-| Read or change the editor's state  | `useEditorState`, `useEditorFields`, `useEditorActions` |
-| Ask whether one item is selected   | `useIsSelected`                                         |
-| Read or save a setting             | `useUserSettings`, `useUserSettingsFields`              |
-| Read or change the location        | `usePetrinautNavigationState`, `usePetrinautNavigate`   |
-| Select an item and open its panel  | `useRevealInEditor`                                     |
-| Register a command                 | `useCommand`                                            |
-| Read a Core store                  | `usePetrinautInstance`, then `useStore`                 |
-| Read the latest value in a handler | `useLatest`, `useStableCallback`                        |
-| Measure an element                 | `useElementSize`, `useElementOnScreen`                  |
+| To                                 | Call                                                    | From                                       |
+| ---------------------------------- | ------------------------------------------------------- | ------------------------------------------ |
+| Read part of the document          | `usePetrinautDefinitionSelector`                        | [The document](layer:react.document)       |
+| Read a Core store                  | `usePetrinautInstance`, then `useStore`                 | [The document](layer:react.document)       |
+| Edit the document                  | `usePetrinautMutations`, `usePetrinautCommands`         | [The edit guard](layer:react.editing)      |
+| Ask whether editing is allowed     | `useIsReadOnly`, `useReadOnlyReason`                    | [The edit guard](layer:react.editing)      |
+| Read or change the editor's state  | `useEditorState`, `useEditorFields`, `useEditorActions` | [The editor state](layer:react.state)      |
+| Ask whether one item is selected   | `useIsSelected`                                         | [The editor state](layer:react.state)      |
+| Select an item and open its panel  | `useRevealInEditor`                                     | [The editor state](layer:react.state)      |
+| Read or save a setting             | `useUserSettings`, `useUserSettingsFields`              | [The editor state](layer:react.state)      |
+| Read or change the location        | `usePetrinautNavigationState`, `usePetrinautNavigate`   | [Navigation](layer:react.navigation)       |
+| Register a command                 | `useCommand`                                            | [Commands](layer:react.commands)           |
+| Show a notice                      | `addNotification` of `NotificationsContext`             | [Notifications](layer:react.notifications) |
+| Read the latest value in a handler | `useLatest`, `useStableCallback`                        | [The shared helpers](layer:react.shared)   |
 
 ## Rules
 
@@ -78,6 +106,11 @@ owner.
   are then tested without mounting the editor. Held by the rule from `react`
   to `ui` in `apps/petrinaut-docs/archinaut.config.ts`, which that package's
   script `lint:arch-docs` checks.
+- **A file of the package imports the file that defines a name, and never
+  `react/index.ts`.** That file is the published entry. An import of it
+  from inside the package would pull every provider into the importer, and
+  a mock of it in a test would replace the whole layer. Held by the pattern
+  on `no-restricted-imports` in the package's `.oxlintrc.json`.
 - **An edit goes through `usePetrinautMutations` or `usePetrinautCommands`.**
   Both ask the read-only reason and the host's rules first, and show a notice
   where the edit is refused. `usePetrinautInstance` returns the instance

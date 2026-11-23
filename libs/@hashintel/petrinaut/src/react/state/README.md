@@ -4,12 +4,13 @@ role: Publishes the state of an editing session that the document does not hold,
 ---
 
 The state of an editing session is the mode and the selection, the open
-panels, the user settings, the panel geometry, the read-only reason, the undo
-history and the active net.
+panels, the user settings and the panel geometry.
 
 The layer owns the open panels, the user settings and the panel geometry.
-The location owns the mode and the selection, and the Core handle owns the
-undo history.
+The location owns the mode and the selection, and the layer reads them from
+[navigation](layer:react.navigation). The document, its undo history and its
+active net are in [the document block](layer:react.document), and the
+read-only reason is in [the edit guard](layer:react.editing).
 
 [Editor state](doc:react.state/editor-state) has the table of owners and the
 rules for reading.

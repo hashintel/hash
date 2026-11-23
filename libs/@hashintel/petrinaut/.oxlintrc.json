@@ -100,6 +100,10 @@
           {
             "group": ["@local/*"],
             "message": "You cannot use unpublished local packages in a published package."
+          },
+          {
+            "regex": "^(\\.\\./)+react(/index)?$",
+            "message": "Import the file that defines the name: react/index.ts is the published entry, and no file of the package imports it."
           }
         ]
       }
