@@ -363,7 +363,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
    * Tears down whichever run is live and clears its handle in the ref and in
    * React state, so a same-tick caller sees it gone.
    */
-  const disposeRuns = (): boolean => {
+  const disposeRuns = (): void => {
     const currentEvent = eventSimulationRef.current;
     const currentStochastic = stochasticRef.current;
     disposeHandles(currentEvent, currentStochastic);
@@ -375,16 +375,15 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     if (currentStochastic) {
       setStochastic(null);
     }
-    return currentEvent !== null || currentStochastic !== null;
   };
 
-  const invalidateSimulationForConfigurationChange = (): void => {
+  const invalidateSimulationForConfigurationChange = useStableCallback(() => {
     initializationGenerationRef.current += 1;
     disposeRuns();
     // Also without a run: a refused start leaves its reason behind, and the
     // change may be what answers it.
     setFailure(null);
-  };
+  });
 
   const previousEffectiveScenarioIdRef = useRef(effectiveSelectedScenarioId);
   useEffect(() => {
@@ -395,13 +394,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }
     previousEffectiveScenarioIdRef.current = effectiveSelectedScenarioId;
 
-    initializationGenerationRef.current += 1;
-    disposeHandles(eventSimulationRef.current, stochasticRef.current);
-    eventSimulationRef.current = null;
-    stochasticRef.current = null;
-    setEventSimulation(null);
-    setStochastic(null);
-    setFailure(null);
+    invalidateSimulationForConfigurationChange();
     setStateValues((prev) => ({
       ...prev,
       selectedScenarioId: effectiveSelectedScenarioId,
@@ -413,9 +406,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }));
   }, [
     effectiveSelectedScenarioId,
-    eventSimulationRef,
+    invalidateSimulationForConfigurationChange,
     petriNetDefinition.scenarios,
-    stochasticRef,
   ]);
 
   // Only navigates. The effective-scenario effect above owns the simulation
