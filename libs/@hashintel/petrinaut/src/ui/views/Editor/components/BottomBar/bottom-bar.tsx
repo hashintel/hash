@@ -1,3 +1,10 @@
+/**
+ * @layerRoot ui.views.editor.bottom-bar
+ * @role The floating toolbar over the canvas: the cursor mode, the edit tools, the playback controls and the canvas shortcuts
+ *
+ * The editor shell imports this file only.
+ * Also imported by the preview: `event-simulation-controls.tsx`.
+ */
 import { use, useEffect, useRef, type ReactNode } from "react";
 
 import { Icon } from "@hashintel/ds-components";

@@ -1,3 +1,9 @@
+/**
+ * @layerRoot ui.views.editor.top-bar
+ * @role The bar above the editor: the editor menu, the title of the net, the mode switch and the buttons plugins add
+ *
+ * The editor shell imports this file only.
+ */
 import { use } from "react";
 
 import {
