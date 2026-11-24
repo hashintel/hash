@@ -1,8 +1,9 @@
+import { createUserKeyedRecord } from "@hashintel/petrinaut-core";
+
 import {
-  classicScenarioRunState,
-  compileScenario,
-  createUserKeyedRecord,
-} from "@hashintel/petrinaut-core";
+  scenarioStartState,
+  truncationNotice,
+} from "../../../../../../shared/scenario-run/scenario-start-state";
 
 import type { ExperimentParameterInput } from "../../../../../../../../../react/experiments/parameter-grid";
 import type { ScenarioHirState } from "../../../../../../../../../react/simulation/use-scenario-hir";
@@ -61,62 +62,28 @@ export const computedStatePreview = ({
       sweptAtStart.push(`${identifier} = ${input.min}`);
     }
   }
-  const numericValues = createUserKeyedRecord<number>();
-  for (const [identifier, value] of Object.entries(previewValues)) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      numericValues[identifier] = parsed;
-    }
-  }
-  const outcome = compileScenario(
+  const start = scenarioStartState(
     scenario,
     hirState.hir,
-    context.netParameters,
-    context.places,
-    context.types,
-    { scenarioParameterValues: numericValues },
-  );
-  if (!outcome.ok) {
-    return {
-      ready: false,
-      notice: `The state preview could not be computed: ${outcome.errors
-        .map((error) => error.message)
-        .join(" · ")}`,
-    };
-  }
-  const materialized = classicScenarioRunState(
-    scenario,
-    outcome.result.initialState,
-    { places: context.places, types: context.types },
+    context,
     previewValues,
   );
+  if (!start.ok) {
+    return {
+      ready: false,
+      notice: `The state preview could not be computed: ${start.errors}`,
+    };
+  }
   const notices = [
     sweptAtStart.length > 0
       ? `Swept parameters shown at the start of their ranges: ${sweptAtStart.join(", ")}`
       : null,
-    materialized.truncated.length > 0
-      ? `Preview truncated: ${materialized.truncated
-          .map(
-            (cut) => `${cut.placeName} shows ${cut.shown} of ${cut.total} rows`,
-          )
-          .join(" · ")}`
-      : null,
+    truncationNotice(start.truncated),
   ].filter((notice) => notice !== null);
   return {
     ready: true,
     notice: notices.length > 0 ? notices.join(" · ") : null,
-    places: materialized.state.places,
-    netParameters: context.netParameters.flatMap((parameter) => {
-      const resolved = outcome.result.parameterValues[parameter.variableName];
-      return resolved === undefined
-        ? []
-        : [
-            {
-              parameterId: parameter.id,
-              expression: resolved,
-              optimize: null,
-            },
-          ];
-    }),
+    places: start.places,
+    netParameters: start.netParameters,
   };
 };

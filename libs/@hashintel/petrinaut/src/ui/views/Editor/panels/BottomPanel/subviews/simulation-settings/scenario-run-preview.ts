@@ -1,8 +1,7 @@
 import {
-  classicScenarioRunState,
-  compileScenario,
-  createUserKeyedRecord,
-} from "@hashintel/petrinaut-core";
+  scenarioStartState,
+  truncationNotice,
+} from "../../../../shared/scenario-run/scenario-start-state";
 
 import type { ScenarioHirState } from "../../../../../../../react/simulation/use-scenario-hir";
 import type {
@@ -55,60 +54,24 @@ export const scenarioRunPreview = (
   if (scenarioHir.hir === null) {
     return withoutPreview("Compiling the initial state preview…");
   }
-  const numericValues = createUserKeyedRecord<number>();
-  for (const [identifier, value] of Object.entries(scenarioParameterValues)) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      numericValues[identifier] = parsed;
-    }
-  }
-  const outcome = compileScenario(
+  const start = scenarioStartState(
     scenario,
     scenarioHir.hir,
-    net.netParameters,
-    net.places,
-    net.types,
-    { scenarioParameterValues: numericValues },
-  );
-  if (!outcome.ok) {
-    return withoutPreview(
-      `The initial state preview could not be computed: ${outcome.errors
-        .map((error) => error.message)
-        .join(" · ")}`,
-    );
-  }
-  const materialized = classicScenarioRunState(
-    scenario,
-    outcome.result.initialState,
-    { places: net.places, types: net.types },
+    net,
     scenarioParameterValues,
   );
+  if (!start.ok) {
+    return withoutPreview(
+      `The initial state preview could not be computed: ${start.errors}`,
+    );
+  }
   return {
     state: {
-      ...materialized.state,
       variables,
-      netParameters: net.netParameters.flatMap((parameter) => {
-        const resolved = outcome.result.parameterValues[parameter.variableName];
-        return resolved === undefined
-          ? []
-          : [
-              {
-                parameterId: parameter.id,
-                expression: resolved,
-                optimize: null,
-              },
-            ];
-      }),
+      netParameters: start.netParameters,
+      places: start.places,
     },
-    notice:
-      materialized.truncated.length > 0
-        ? `Preview truncated: ${materialized.truncated
-            .map(
-              (cut) =>
-                `${cut.placeName} shows ${cut.shown} of ${cut.total} rows`,
-            )
-            .join(" · ")}`
-        : null,
+    notice: truncationNotice(start.truncated),
     previewReady: true,
   };
 };
