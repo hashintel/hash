@@ -6,11 +6,12 @@
 /.clippy.toml @hashintel/rust
 /.rustfmt.toml @hashintel/rust
 
-# Rust crates without an area team
+# Rust crates with their own team
 /libs/error-stack/ @hashintel/error-stack
 /libs/darwin-kperf/ @hashintel/darwin-kperf
+
+# Rust crates owned by the Rust team
 /libs/problematic/rust/ @hashintel/rust
-/libs/@blockprotocol/type-system/ @hashintel/graph
 /libs/@local/codec/rust/ @hashintel/rust
 /libs/@local/codegen/ @hashintel/rust
 /libs/@local/config/ @hashintel/rust
@@ -77,8 +78,9 @@
 /libs/@local/internal-api-client/typescript/ @hashintel/backend-ts
 /libs/@local/status/typescript/ @hashintel/backend-ts
 
-# Block Protocol graph package
+# Block Protocol packages owned by the graph team
 /libs/@blockprotocol/graph/ @hashintel/graph
+/libs/@blockprotocol/type-system/ @hashintel/graph
 
 # Petrinaut tooling outside the petrinaut packages
 /libs/@local/archinaut/ @hashintel/petrinaut
