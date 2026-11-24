@@ -17,6 +17,11 @@ extern crate alloc;
 mod run;
 mod stage;
 mod storage;
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "Prepare writes the sync table and Send reads it")
+)]
+mod sync_table;
 #[cfg(test)]
 mod testing;
 

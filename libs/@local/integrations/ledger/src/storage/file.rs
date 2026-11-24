@@ -6,7 +6,7 @@ use std::{
 
 use error_stack::{Report, ResultExt as _};
 use futures_util::StreamExt as _;
-use object_store::buffered::BufWriter;
+use object_store::{ObjectStoreExt as _, buffered::BufWriter};
 use tempfile::NamedTempFile;
 use tokio::io::AsyncWriteExt as _;
 

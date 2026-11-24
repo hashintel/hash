@@ -10,8 +10,8 @@ use alloc::sync::Arc;
 use error_stack::{Report, ResultExt as _};
 use object_store::{ObjectStore, path::Path as Location};
 
-pub(crate) use self::versioned::CasVersion;
 pub use self::{namespace::IntegrationNamespace, s3::S3Bucket};
+pub(crate) use self::{s3::open_bucket, versioned::CasVersion};
 
 /// Reports why a file in the bucket could not be read or written.
 #[derive(Debug, Clone, Copy, derive_more::Display, derive_more::Error)]
@@ -61,10 +61,6 @@ impl Storage {
 
     /// The bucket's settings, with the namespace in its URI. The sync table opens its own
     /// connection with them.
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "the sync table is the first caller")
-    )]
     pub(crate) const fn bucket(&self) -> Option<&S3Bucket> {
         self.bucket.as_ref()
     }

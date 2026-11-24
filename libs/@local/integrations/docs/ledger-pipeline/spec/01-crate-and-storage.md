@@ -10,7 +10,7 @@ run (2), stage (3), sync_table (4), Capture (3), Prepare (8)
                          ▼
               [ storage: Storage ] ──► S3 bucket of one integration
                 upload, download          runs/{run}/capture/{table}.parquet, issues file
-                read_versioned, replace_if   run.json, current.json, the sync table's pointer
+                read_versioned, replace_if   run.json, current.json
 ```
 
 It has no local-folder backend (D6). Tests of other milestones use `object_store`'s in-memory store through a test-only constructor. The storage tests run against a MinIO container.
