@@ -11,7 +11,7 @@ overlay. Navigation owns that value and the one function that changes it. It
 imports no router, and what a URL means is the host's to decide.
 [Editor state](doc:react.state/editor-state) says which state the location
 owns and which hooks read it. This page is longer than a guide should be: the
-contract with the host has six rules, each held by a test.
+contract needs a rule for each way a host may answer an update.
 
 ![A handler calls navigate, which resolves the update into a preview and sends the updater to the host or to the provider's own state. The provider renders with the new location, and its first layout effect hands that location back to navigate.](./navigation.d2)
 
@@ -111,18 +111,14 @@ Clicking a row of a list, with a host in control:
   remembers the record and the presentation of each section, and a user's
   change of section restores them. Held by "a Simulate section reopens the
   record it was left with", with and without a host in control.
-- **The provider is keyed by the id of the handle.** A switch of net then
-  starts from a new location, and remounts the workers below it. The key is
-  in `PetrinautProvider` in `../petrinaut-provider.tsx`. No test holds it.
 - **An id of the location is looked up as written, then converted.** A
   custom handle may keep ids it never converted, and a link may carry an id
   that the document holds in its converted form. `useResolvedLocation` of the
   editor state writes the resolved ids back with a `normalization` intent.
   Held by `resolve-navigated-ids.test.ts`.
-
-`navigate` is one function for the life of the provider, so a component that
-only navigates renders for no navigation. Held by "navigate is one function
-across navigations".
+- **`navigate` is one function for the life of the provider.** A component
+  that only navigates then renders for no navigation. Held by "navigate is
+  one function across navigations".
 
 ## Pitfalls
 
@@ -136,3 +132,9 @@ across navigations".
 - A host that passes a controller owns the initial location too. The Actual
   mode default of the provider does not apply, so the host sets the mode in
   its own state.
+- A provider that outlives a switch of net keeps the location of the net
+  before, with a selection the new net does not hold. `PetrinautProvider` in
+  `../petrinaut-provider.tsx` keys the provider by the id of the document's
+  handle, which also remounts the workers below it. No test holds the key,
+  so a change to that file needs a check by hand: switch the net and look at
+  the selection.
