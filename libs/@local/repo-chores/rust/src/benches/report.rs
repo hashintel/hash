@@ -141,15 +141,28 @@ impl Benchmark {
         }))
     }
 
+    /// Gathers every benchmark below `path` that has a measurement named `measurement`.
+    ///
+    /// Benchmarks that only hold other measurements are skipped: in CI, an ID that exists on the
+    /// base branch but not on the head branch keeps only its `base` measurement once the base
+    /// run's `new` measurements have been cleared, and must not be reported as a head result.
     pub(crate) fn gather(
         path: impl AsRef<Path>,
-    ) -> impl Iterator<Item = Result<Self, Report<AnalyzeError>>> {
-        WalkDir::new(path).into_iter().filter_map(|entry| {
-            match entry.change_context(AnalyzeError::ReadInput) {
-                Ok(entry) => Self::from_path(entry.into_path()).transpose(),
-                Err(err) => Some(Err(err)),
-            }
-        })
+        measurement: &str,
+    ) -> impl Iterator<Item = Result<Self, Report<AnalyzeError>>> + '_ {
+        WalkDir::new(path)
+            .into_iter()
+            .filter_map(
+                |entry| match entry.change_context(AnalyzeError::ReadInput) {
+                    Ok(entry) => Self::from_path(entry.into_path()).transpose(),
+                    Err(err) => Some(Err(err)),
+                },
+            )
+            .filter(move |benchmark| {
+                benchmark.as_ref().map_or(true, |benchmark| {
+                    benchmark.measurements.contains_key(measurement)
+                })
+            })
     }
 }
 
