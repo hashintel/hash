@@ -1,4 +1,4 @@
-import { DEFAULT_COLORS } from "../default-colors";
+import { DEFAULT_COLORS } from "./default-colors";
 
 import type { TimelineSeriesConfig, TimelineSeriesMeta } from "../types";
 import type { Color, Place } from "@hashintel/petrinaut-core";

@@ -1,6 +1,6 @@
 import { getPlaceDynamicsEquationIds } from "@hashintel/petrinaut-core";
 
-import { DEFAULT_COLORS } from "../default-colors";
+import { DEFAULT_COLORS } from "./default-colors";
 
 import type { TimelineSeriesConfig } from "../types";
 import type { Color, Place } from "@hashintel/petrinaut-core";

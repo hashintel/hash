@@ -1,4 +1,4 @@
-import { DEFAULT_COLORS } from "../default-colors";
+import { DEFAULT_COLORS } from "./default-colors";
 
 import type { SimulationFrameReader } from "../../../../../../../../../react/simulation/context";
 import type { TimelineSeriesConfig } from "../types";
