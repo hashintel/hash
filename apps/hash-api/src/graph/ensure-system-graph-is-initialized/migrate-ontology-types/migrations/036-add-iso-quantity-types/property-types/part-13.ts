@@ -49,7 +49,7 @@ export const part13PropertyTypes: IsoPropertyType[] = [
         "The time-averaged number of customers or requests waiting; fractional values are valid.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeNumber.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeNumber"].dataTypeId,
         },
       ],
     },
@@ -267,7 +267,7 @@ export const part13PropertyTypes: IsoPropertyType[] = [
         "The number of symbol positions in which two equal-length strings differ.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeInteger"].dataTypeId,
         },
       ],
     },

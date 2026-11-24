@@ -428,7 +428,7 @@ export const part7PropertyTypes: IsoPropertyType[] = [
         "The photon number of the specified system or process in light and radiation.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeInteger"].dataTypeId,
         },
       ],
     },

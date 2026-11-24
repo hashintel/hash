@@ -13,7 +13,7 @@ export const part10PropertyTypes: IsoPropertyType[] = [
         "The atomic number of the specified system or process in atomic and nuclear physics.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeInteger"].dataTypeId,
         },
       ],
     },
@@ -26,7 +26,7 @@ export const part10PropertyTypes: IsoPropertyType[] = [
         "The neutron number of the specified system or process in atomic and nuclear physics.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeInteger"].dataTypeId,
         },
       ],
     },
@@ -39,7 +39,7 @@ export const part10PropertyTypes: IsoPropertyType[] = [
         "The nucleon number of the specified system or process in atomic and nuclear physics.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeInteger"].dataTypeId,
         },
       ],
     },
@@ -323,7 +323,7 @@ export const part10PropertyTypes: IsoPropertyType[] = [
         "The quantum number of the specified system or process in atomic and nuclear physics.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.halfInteger.dataTypeId,
+          dataTypeId: systemDataTypes["half-integer"].dataTypeId,
         },
       ],
     },
@@ -349,7 +349,7 @@ export const part10PropertyTypes: IsoPropertyType[] = [
         "The orbital angular momentum quantum number of the specified system or process in atomic and nuclear physics.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeInteger"].dataTypeId,
         },
       ],
     },
@@ -362,7 +362,7 @@ export const part10PropertyTypes: IsoPropertyType[] = [
         "The magnetic quantum number of the specified system or process in atomic and nuclear physics.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.halfInteger.dataTypeId,
+          dataTypeId: systemDataTypes["half-integer"].dataTypeId,
         },
       ],
     },
@@ -375,7 +375,7 @@ export const part10PropertyTypes: IsoPropertyType[] = [
         "The spin quantum number of the specified system or process in atomic and nuclear physics.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeHalfInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeHalf-integer"].dataTypeId,
         },
       ],
     },
@@ -388,7 +388,7 @@ export const part10PropertyTypes: IsoPropertyType[] = [
         "The total angular momentum quantum number of the specified system or process in atomic and nuclear physics.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeHalfInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeHalf-integer"].dataTypeId,
         },
       ],
     },
@@ -401,7 +401,7 @@ export const part10PropertyTypes: IsoPropertyType[] = [
         "The nuclear spin quantum number of the specified system or process in atomic and nuclear physics.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeHalfInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeHalf-integer"].dataTypeId,
         },
       ],
     },
@@ -414,7 +414,7 @@ export const part10PropertyTypes: IsoPropertyType[] = [
         "The hyperfine structure quantum number of the specified system or process in atomic and nuclear physics.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeHalfInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeHalf-integer"].dataTypeId,
         },
       ],
     },
@@ -1132,7 +1132,7 @@ export const part10PropertyTypes: IsoPropertyType[] = [
         "The total ionization of the specified system or process in atomic and nuclear physics.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeInteger"].dataTypeId,
         },
       ],
     },

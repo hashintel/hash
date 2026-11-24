@@ -1516,7 +1516,7 @@ export const part6PropertyTypes: IsoPropertyType[] = [
         "The number of turns in a winding of the specified system or process in electromagnetism.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeInteger"].dataTypeId,
         },
       ],
     },

@@ -7771,7 +7771,7 @@ export const systemDataTypes = {
     titlePlural: "Acoustic Impedances",
     description: "Numeric values in convertible units of acoustic impedance.",
   },
-  acousticImpedanceMetric: {
+  "acousticImpedance(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/acoustic-impedance-metric/v/1",
     dataTypeBaseUrl:
@@ -7796,7 +7796,7 @@ export const systemDataTypes = {
     titlePlural: "Actions",
     description: "Numeric values in convertible units of action.",
   },
-  actionMetric: {
+  "action(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/action-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/action-metric/" as BaseUrl,
@@ -7812,7 +7812,7 @@ export const systemDataTypes = {
     titlePlural: "Activities per Area",
     description: "Numeric values in convertible units of activity per area.",
   },
-  activityPerAreaMetric: {
+  "activityPerArea(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/activity-per-area-metric/v/1",
     dataTypeBaseUrl:
@@ -7830,7 +7830,7 @@ export const systemDataTypes = {
     titlePlural: "Activities per Mass",
     description: "Numeric values in convertible units of activity per mass.",
   },
-  activityPerMassMetric: {
+  "activityPerMass(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/activity-per-mass-metric/v/1",
     dataTypeBaseUrl:
@@ -7848,7 +7848,7 @@ export const systemDataTypes = {
     titlePlural: "Activities per Volume",
     description: "Numeric values in convertible units of activity per volume.",
   },
-  activityPerVolumeMetric: {
+  "activityPerVolume(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/activity-per-volume-metric/v/1",
     dataTypeBaseUrl:
@@ -7998,28 +7998,28 @@ export const systemDataTypes = {
     description:
       "The coherent SI unit used to express electric current density.",
   },
-  amperesPerSquareMeterSquareKelvin: {
+  amperePerSquareMeterSquareKelvin: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/amperes-per-square-meter-square-kelvin/v/1",
+      "https://hash.ai/@h/types/data-type/ampere-per-square-meter-square-kelvin/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/amperes-per-square-meter-square-kelvin/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/ampere-per-square-meter-square-kelvin/" as BaseUrl,
     title: "Ampere per Square Meter Square Kelvin",
     titlePlural: "Amperes per Square Meter Square Kelvin",
     description: "A value expressed in amperes per square meter square kelvin.",
   },
-  ampereSquareMeters: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/ampere-square-meters/v/1",
+  ampereSquareMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ampere-square-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/ampere-square-meters/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/ampere-square-meter/" as BaseUrl,
     title: "Ampere Square Meter",
     titlePlural: "Ampere Square Meters",
     description: "A value expressed in ampere square meters.",
   },
-  ampereSquareMetersPerJouleSecond: {
+  ampereSquareMeterPerJouleSecond: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/ampere-square-meters-per-joule-second/v/1",
+      "https://hash.ai/@h/types/data-type/ampere-square-meter-per-joule-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/ampere-square-meters-per-joule-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/ampere-square-meter-per-joule-second/" as BaseUrl,
     title: "Ampere Square Meter per Joule Second",
     titlePlural: "Ampere Square Meters per Joule Second",
     description: "A value expressed in ampere square meters per joule second.",
@@ -8048,9 +8048,9 @@ export const systemDataTypes = {
     description:
       "Angle expressed in metric units, including SI units and their accepted companions.",
   },
-  angstroms: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/angstroms/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/angstroms/" as BaseUrl,
+  angstrom: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/angstrom/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/angstrom/" as BaseUrl,
     title: "Angstrom",
     titlePlural: "Angstroms",
     description:
@@ -8082,7 +8082,7 @@ export const systemDataTypes = {
     titlePlural: "Angular Impulses",
     description: "Numeric values in convertible units of angular impulse.",
   },
-  angularImpulseMetric: {
+  "angularImpulse(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/angular-impulse-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/angular-impulse-metric/" as BaseUrl,
@@ -8098,7 +8098,7 @@ export const systemDataTypes = {
     titlePlural: "Angular Momenta",
     description: "Numeric values in convertible units of angular momentum.",
   },
-  angularMomentumMetric: {
+  "angularMomentum(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/angular-momentum-metric/v/1",
     dataTypeBaseUrl:
@@ -8134,7 +8134,7 @@ export const systemDataTypes = {
     titlePlural: "Angular Wavenumbers",
     description: "Numeric values in convertible units of angular wavenumber.",
   },
-  angularWavenumberMetric: {
+  "angularWavenumber(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/angular-wavenumber-metric/v/1",
     dataTypeBaseUrl:
@@ -8158,7 +8158,7 @@ export const systemDataTypes = {
     titlePlural: "Apparent Powers",
     description: "Numeric values in convertible units of apparent power.",
   },
-  apparentPowerMetric: {
+  "apparentPower(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/apparent-power-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/apparent-power-metric/" as BaseUrl,
@@ -8213,7 +8213,7 @@ export const systemDataTypes = {
     titlePlural: "Areas per Amount",
     description: "Numeric values in convertible units of area per amount.",
   },
-  areaPerAmountMetric: {
+  "areaPerAmount(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/area-per-amount-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/area-per-amount-metric/" as BaseUrl,
@@ -8229,7 +8229,7 @@ export const systemDataTypes = {
     titlePlural: "Areas per Mass",
     description: "Numeric values in convertible units of area per mass.",
   },
-  areaPerMassMetric: {
+  "areaPerMass(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/area-per-mass-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/area-per-mass-metric/" as BaseUrl,
@@ -8243,10 +8243,10 @@ export const systemDataTypes = {
     title: "ARS",
     description: "An amount denominated in Argentine Peso (ISO 4217 ARS).",
   },
-  astronomicalUnits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/astronomical-units/v/1",
+  astronomicalUnit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/astronomical-unit/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/astronomical-units/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/astronomical-unit/" as BaseUrl,
     title: "Astronomical Unit",
     titlePlural: "Astronomical Units",
     description:
@@ -8507,9 +8507,9 @@ export const systemDataTypes = {
     title: "BAM",
     description: "An amount denominated in Convertible Mark (ISO 4217 BAM).",
   },
-  barns: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/barns/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/barns/" as BaseUrl,
+  barn: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/barn/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/barn/" as BaseUrl,
     title: "Barn",
     titlePlural: "Barns",
     description:
@@ -8522,9 +8522,9 @@ export const systemDataTypes = {
     titlePlural: "Bars",
     description: "A unit of pressure equal to 100000 pascals.",
   },
-  bauds: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/bauds/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/bauds/" as BaseUrl,
+  baud: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/baud/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/baud/" as BaseUrl,
     title: "Baud",
     titlePlural: "Bauds",
     description:
@@ -8550,29 +8550,28 @@ export const systemDataTypes = {
     description:
       "The SI unit of radionuclide activity, equal to one nuclear transformation per second.",
   },
-  becquerelsPerCubicMeter: {
+  becquerelPerCubicMeter: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/becquerels-per-cubic-meter/v/1",
+      "https://hash.ai/@h/types/data-type/becquerel-per-cubic-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/becquerels-per-cubic-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/becquerel-per-cubic-meter/" as BaseUrl,
     title: "Becquerel per Cubic Meter",
     titlePlural: "Becquerels per Cubic Meter",
     description: "A value expressed in becquerels per cubic meter.",
   },
-  becquerelsPerKilogram: {
-    dataTypeId:
-      "https://hash.ai/@h/types/data-type/becquerels-per-kilogram/v/1",
+  becquerelPerKilogram: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/becquerel-per-kilogram/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/becquerels-per-kilogram/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/becquerel-per-kilogram/" as BaseUrl,
     title: "Becquerel per Kilogram",
     titlePlural: "Becquerels per Kilogram",
     description: "A value expressed in becquerels per kilogram.",
   },
-  becquerelsPerSquareMeter: {
+  becquerelPerSquareMeter: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/becquerels-per-square-meter/v/1",
+      "https://hash.ai/@h/types/data-type/becquerel-per-square-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/becquerels-per-square-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/becquerel-per-square-meter/" as BaseUrl,
     title: "Becquerel per Square Meter",
     titlePlural: "Becquerels per Square Meter",
     description: "A value expressed in becquerels per square meter.",
@@ -8609,10 +8608,10 @@ export const systemDataTypes = {
     title: "Bits",
     description: "A unit of information equal to one binary digit.",
   },
-  bitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/bits-per-second/v/1",
+  bitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/bit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/bits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/bit-per-second/" as BaseUrl,
     title: "Bit per Second",
     titlePlural: "Bits per Second",
     description: "A value expressed in bits per second.",
@@ -8800,10 +8799,10 @@ export const systemDataTypes = {
     title: "Bytes",
     description: "A unit of information equal to eight bits.",
   },
-  bytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/bytes-per-second/v/1",
+  bytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/byte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/bytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/byte-per-second/" as BaseUrl,
     title: "Byte per Second",
     titlePlural: "Bytes per Second",
     description: "A value expressed in bytes per second.",
@@ -9217,11 +9216,11 @@ export const systemDataTypes = {
     titlePlural: "Centiwebers",
     description: "A unit equal to 10^-2 webers.",
   },
-  centsFrequencyInterval: {
+  "cent(frequencyInterval)": {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/cents-frequency-interval/v/1",
+      "https://hash.ai/@h/types/data-type/cent-frequency-interval/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/cents-frequency-interval/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/cent-frequency-interval/" as BaseUrl,
     title: "Cent (Frequency Interval)",
     titlePlural: "Cents (Frequency Interval)",
     description: "One twelve-hundredth of an octave.",
@@ -9258,10 +9257,10 @@ export const systemDataTypes = {
     title: "COP",
     description: "An amount denominated in Colombian Peso (ISO 4217 COP).",
   },
-  coulombMeters: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/coulomb-meters/v/1",
+  coulombMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/coulomb-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/coulomb-meters/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/coulomb-meter/" as BaseUrl,
     title: "Coulomb Meter",
     titlePlural: "Coulomb Meters",
     description: "A value expressed in coulomb meters.",
@@ -9300,19 +9299,19 @@ export const systemDataTypes = {
     titlePlural: "Coulombs per Kilogram",
     description: "The coherent SI unit used to express radiation exposure.",
   },
-  coulombsPerKilogramSecond: {
+  coulombPerKilogramSecond: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/coulombs-per-kilogram-second/v/1",
+      "https://hash.ai/@h/types/data-type/coulomb-per-kilogram-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/coulombs-per-kilogram-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/coulomb-per-kilogram-second/" as BaseUrl,
     title: "Coulomb per Kilogram Second",
     titlePlural: "Coulombs per Kilogram Second",
     description: "A value expressed in coulombs per kilogram second.",
   },
-  coulombsPerMeter: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/coulombs-per-meter/v/1",
+  coulombPerMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/coulomb-per-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/coulombs-per-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/coulomb-per-meter/" as BaseUrl,
     title: "Coulomb per Meter",
     titlePlural: "Coulombs per Meter",
     description: "A value expressed in coulombs per meter.",
@@ -9371,7 +9370,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of cross section per energy and solid angle.",
   },
-  crossSectionPerEnergyAndSolidAngleMetric: {
+  "crossSectionPerEnergyAndSolidAngle(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/cross-section-per-energy-and-solid-angle-metric/v/1",
     dataTypeBaseUrl:
@@ -9381,7 +9380,7 @@ export const systemDataTypes = {
     description:
       "Cross Section per Energy and Solid Angle expressed in SI units and metric multiples.",
   },
-  crossSectionPerEnergyMetric: {
+  "crossSectionPerEnergy(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/cross-section-per-energy-metric/v/1",
     dataTypeBaseUrl:
@@ -9401,7 +9400,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of cross section per solid angle.",
   },
-  crossSectionPerSolidAngleMetric: {
+  "crossSectionPerSolidAngle(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/cross-section-per-solid-angle-metric/v/1",
     dataTypeBaseUrl:
@@ -9419,11 +9418,11 @@ export const systemDataTypes = {
     titlePlural: "Cubic Attometers",
     description: "A unit equal to 10^-54 cubic meters.",
   },
-  cubicCentimetersPerMole: {
+  cubicCentimeterPerMole: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/cubic-centimeters-per-mole/v/1",
+      "https://hash.ai/@h/types/data-type/cubic-centimeter-per-mole/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/cubic-centimeters-per-mole/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/cubic-centimeter-per-mole/" as BaseUrl,
     title: "Cubic Centimeter per Mole",
     titlePlural: "Cubic Centimeters per Mole",
     description: "A value expressed in cubic centimeters per mole.",
@@ -9533,11 +9532,11 @@ export const systemDataTypes = {
     titlePlural: "Cubic Megameters",
     description: "A unit equal to 10^18 cubic meters.",
   },
-  cubicMetersPerCoulomb: {
+  cubicMeterPerCoulomb: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/cubic-meters-per-coulomb/v/1",
+      "https://hash.ai/@h/types/data-type/cubic-meter-per-coulomb/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/cubic-meters-per-coulomb/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/cubic-meter-per-coulomb/" as BaseUrl,
     title: "Cubic Meter per Coulomb",
     titlePlural: "Cubic Meters per Coulomb",
     description: "A value expressed in cubic meters per coulomb.",
@@ -9560,10 +9559,10 @@ export const systemDataTypes = {
     titlePlural: "Cubic Meters per Kilogram",
     description: "The coherent SI unit used to express specific volume.",
   },
-  cubicMetersPerMole: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-meters-per-mole/v/1",
+  cubicMeterPerMole: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-meter-per-mole/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/cubic-meters-per-mole/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/cubic-meter-per-mole/" as BaseUrl,
     title: "Cubic Meter per Mole",
     titlePlural: "Cubic Meters per Mole",
     description: "A value expressed in cubic meters per mole.",
@@ -9738,9 +9737,9 @@ export const systemDataTypes = {
     title: "CZK",
     description: "An amount denominated in Czech Koruna (ISO 4217 CZK).",
   },
-  daltons: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/daltons/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/daltons/" as BaseUrl,
+  dalton: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/dalton/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/dalton/" as BaseUrl,
     title: "Dalton",
     titlePlural: "Daltons",
     description:
@@ -9830,11 +9829,11 @@ export const systemDataTypes = {
     titlePlural: "Decacoulombs",
     description: "A unit equal to 10^1 coulombs.",
   },
-  decadesFrequencyInterval: {
+  "decade(frequencyInterval)": {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/decades-frequency-interval/v/1",
+      "https://hash.ai/@h/types/data-type/decade-frequency-interval/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/decades-frequency-interval/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/decade-frequency-interval/" as BaseUrl,
     title: "Decade (Frequency Interval)",
     titlePlural: "Decades (Frequency Interval)",
     description:
@@ -10083,20 +10082,19 @@ export const systemDataTypes = {
     description:
       "A C-weighted sound pressure level referenced to 20 micropascals. Conversion to another weighting requires the sound spectrum.",
   },
-  decibelsSoundExposure: {
-    dataTypeId:
-      "https://hash.ai/@h/types/data-type/decibels-sound-exposure/v/1",
+  "decibel(soundExposure)": {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decibel-sound-exposure/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/decibels-sound-exposure/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/decibel-sound-exposure/" as BaseUrl,
     title: "Decibel (Sound Exposure)",
     titlePlural: "Decibels (Sound Exposure)",
     description:
       "Ten times the base-ten logarithm of sound exposure relative to 4 × 10^-10 pascal squared seconds.",
   },
-  decibelsSoundPower: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/decibels-sound-power/v/1",
+  "decibel(soundPower)": {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decibel-sound-power/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/decibels-sound-power/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/decibel-sound-power/" as BaseUrl,
     title: "Decibel (Sound Power)",
     titlePlural: "Decibels (Sound Power)",
     description:
@@ -10441,7 +10439,7 @@ export const systemDataTypes = {
     titlePlural: "Dose Equivalent Rates",
     description: "Numeric values in convertible units of dose equivalent rate.",
   },
-  doseEquivalentRateMetric: {
+  "doseEquivalentRate(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/dose-equivalent-rate-metric/v/1",
     dataTypeBaseUrl:
@@ -10582,7 +10580,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of electric conductivity.",
   },
-  electricConductivityMetric: {
+  "electricConductivity(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/electric-conductivity-metric/v/1",
     dataTypeBaseUrl:
@@ -10619,7 +10617,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of electric dipole moment.",
   },
-  electricDipoleMomentMetric: {
+  "electricDipoleMoment(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/electric-dipole-moment-metric/v/1",
     dataTypeBaseUrl:
@@ -10734,7 +10732,7 @@ export const systemDataTypes = {
     titlePlural: "Electric Resistivities",
     description: "Numeric values in convertible units of electric resistivity.",
   },
-  electricResistivityMetric: {
+  "electricResistivity(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/electric-resistivity-metric/v/1",
     dataTypeBaseUrl:
@@ -10753,31 +10751,30 @@ export const systemDataTypes = {
     description:
       "A unit of energy equal to exactly 1.602176634 × 10⁻¹⁹ joules.",
   },
-  electronvoltsPerMeter: {
-    dataTypeId:
-      "https://hash.ai/@h/types/data-type/electronvolts-per-meter/v/1",
+  electronvoltPerMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/electronvolt-per-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/electronvolts-per-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/electronvolt-per-meter/" as BaseUrl,
     title: "Electronvolt per Meter",
     titlePlural: "Electronvolts per Meter",
     description:
       "A value expressed in eV/m, using the exact SI electronvolt of 1.602176634 × 10^-19 joules.",
   },
-  electronvoltsPerSquareMeter: {
+  electronvoltPerSquareMeter: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/electronvolts-per-square-meter/v/1",
+      "https://hash.ai/@h/types/data-type/electronvolt-per-square-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/electronvolts-per-square-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/electronvolt-per-square-meter/" as BaseUrl,
     title: "Electronvolt per Square Meter",
     titlePlural: "Electronvolts per Square Meter",
     description:
       "A value expressed in eV/m², using the exact SI electronvolt of 1.602176634 × 10^-19 joules.",
   },
-  electronvoltSquareMetersPerKilogram: {
+  electronvoltSquareMeterPerKilogram: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/electronvolt-square-meters-per-kilogram/v/1",
+      "https://hash.ai/@h/types/data-type/electronvolt-square-meter-per-kilogram/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/electronvolt-square-meters-per-kilogram/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/electronvolt-square-meter-per-kilogram/" as BaseUrl,
     title: "Electronvolt Square Meter per Kilogram",
     titlePlural: "Electronvolt Square Meters per Kilogram",
     description:
@@ -10805,7 +10802,7 @@ export const systemDataTypes = {
     titlePlural: "Energy Areas per Mass",
     description: "Numeric values in convertible units of energy area per mass.",
   },
-  energyAreaPerMassMetric: {
+  "energyAreaPerMass(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/energy-area-per-mass-metric/v/1",
     dataTypeBaseUrl:
@@ -10841,7 +10838,7 @@ export const systemDataTypes = {
     titlePlural: "Energies per Area",
     description: "Numeric values in convertible units of energy per area.",
   },
-  energyPerAreaMetric: {
+  "energyPerArea(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/energy-per-area-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/energy-per-area-metric/" as BaseUrl,
@@ -10857,9 +10854,9 @@ export const systemDataTypes = {
     titlePlural: "Energies (US Customary)",
     description: "Energy expressed in US customary units.",
   },
-  erlangs: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/erlangs/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/erlangs/" as BaseUrl,
+  erlang: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/erlang/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/erlang/" as BaseUrl,
     title: "Erlang",
     titlePlural: "Erlangs",
     description:
@@ -10902,7 +10899,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of energy density of states.",
   },
-  energyDensityOfStatesMetric: {
+  "energyDensityOfStates(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/energy-density-of-states-metric/v/1",
     dataTypeBaseUrl:
@@ -10953,32 +10950,32 @@ export const systemDataTypes = {
     titlePlural: "Exabecquerels",
     description: "A unit equal to 10^18 becquerels.",
   },
-  exabits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/exabits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exabits/" as BaseUrl,
+  exabit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exabit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exabit/" as BaseUrl,
     title: "Exabit",
     titlePlural: "Exabits",
     description: "A decimal multiple equal to 10^18 bits.",
   },
-  exabitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/exabits-per-second/v/1",
+  exabitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exabit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/exabits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/exabit-per-second/" as BaseUrl,
     title: "Exabit per Second",
     titlePlural: "Exabits per Second",
     description: "A transfer rate of 10^18 bits per second.",
   },
-  exabytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/exabytes/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exabytes/" as BaseUrl,
+  exabyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exabyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exabyte/" as BaseUrl,
     title: "Exabyte",
     titlePlural: "Exabytes",
     description: "A decimal multiple equal to 10^18 bytes.",
   },
-  exabytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/exabytes-per-second/v/1",
+  exabytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exabyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/exabytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/exabyte-per-second/" as BaseUrl,
     title: "Exabyte per Second",
     titlePlural: "Exabytes per Second",
     description: "A transfer rate of 10^18 bytes per second.",
@@ -11185,32 +11182,32 @@ export const systemDataTypes = {
     titlePlural: "Exawebers",
     description: "A unit equal to 10^18 webers.",
   },
-  exbibits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/exbibits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exbibits/" as BaseUrl,
+  exbibit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exbibit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exbibit/" as BaseUrl,
     title: "Exbibit",
     titlePlural: "Exbibits",
     description: "A binary multiple equal to 2^60 bits.",
   },
-  exbibitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/exbibits-per-second/v/1",
+  exbibitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exbibit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/exbibits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/exbibit-per-second/" as BaseUrl,
     title: "Exbibit per Second",
     titlePlural: "Exbibits per Second",
     description: "A transfer rate of 2^60 bits per second.",
   },
-  exbibytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/exbibytes/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exbibytes/" as BaseUrl,
+  exbibyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exbibyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exbibyte/" as BaseUrl,
     title: "Exbibyte",
     titlePlural: "Exbibytes",
     description: "A binary multiple equal to 2^60 bytes.",
   },
-  exbibytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/exbibytes-per-second/v/1",
+  exbibytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exbibyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/exbibytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/exbibyte-per-second/" as BaseUrl,
     title: "Exbibyte per Second",
     titlePlural: "Exbibytes per Second",
     description: "A transfer rate of 2^60 bytes per second.",
@@ -11223,7 +11220,7 @@ export const systemDataTypes = {
     titlePlural: "Exposure Rates",
     description: "Numeric values in convertible units of exposure rate.",
   },
-  exposureRateMetric: {
+  "exposureRate(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/exposure-rate-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/exposure-rate-metric/" as BaseUrl,
@@ -11668,7 +11665,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of fourth power of length.",
   },
-  fourthPowerOfLengthMetric: {
+  "fourthPowerOfLength(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/fourth-power-of-length-metric/v/1",
     dataTypeBaseUrl:
@@ -11678,21 +11675,21 @@ export const systemDataTypes = {
     description:
       "Fourth Power of Length expressed in SI units and metric multiples.",
   },
-  fractionalPartsPerBillion: {
+  fractionalPartPerBillion: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/fractional-parts-per-billion/v/1",
+      "https://hash.ai/@h/types/data-type/fractional-part-per-billion/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/fractional-parts-per-billion/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/fractional-part-per-billion/" as BaseUrl,
     title: "Fractional Part per Billion",
     titlePlural: "Fractional Parts per Billion",
     description:
       "A fraction from zero to 1e+09, inclusive; 1e+09 represents the whole.",
   },
-  fractionalPartsPerMillion: {
+  fractionalPartPerMillion: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/fractional-parts-per-million/v/1",
+      "https://hash.ai/@h/types/data-type/fractional-part-per-million/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/fractional-parts-per-million/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/fractional-part-per-million/" as BaseUrl,
     title: "Fractional Part per Million",
     titlePlural: "Fractional Parts per Million",
     description:
@@ -11803,32 +11800,32 @@ export const systemDataTypes = {
     title: "GHS",
     description: "An amount denominated in Ghana Cedi (ISO 4217 GHS).",
   },
-  gibibits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/gibibits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gibibits/" as BaseUrl,
+  gibibit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gibibit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gibibit/" as BaseUrl,
     title: "Gibibit",
     titlePlural: "Gibibits",
     description: "A binary multiple equal to 2^30 bits.",
   },
-  gibibitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/gibibits-per-second/v/1",
+  gibibitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gibibit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/gibibits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/gibibit-per-second/" as BaseUrl,
     title: "Gibibit per Second",
     titlePlural: "Gibibits per Second",
     description: "A transfer rate of 2^30 bits per second.",
   },
-  gibibytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/gibibytes/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gibibytes/" as BaseUrl,
+  gibibyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gibibyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gibibyte/" as BaseUrl,
     title: "Gibibyte",
     titlePlural: "Gibibytes",
     description: "A binary multiple equal to 2^30 bytes.",
   },
-  gibibytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/gibibytes-per-second/v/1",
+  gibibytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gibibyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/gibibytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/gibibyte-per-second/" as BaseUrl,
     title: "Gibibyte per Second",
     titlePlural: "Gibibytes per Second",
     description: "A transfer rate of 2^30 bytes per second.",
@@ -11841,9 +11838,9 @@ export const systemDataTypes = {
     titlePlural: "Gigaamperes",
     description: "A unit equal to 10^9 amperes.",
   },
-  gigabauds: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/gigabauds/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gigabauds/" as BaseUrl,
+  gigabaud: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigabaud/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gigabaud/" as BaseUrl,
     title: "Gigabaud",
     titlePlural: "Gigabauds",
     description: "A value expressed in gigabauds.",
@@ -11864,17 +11861,17 @@ export const systemDataTypes = {
     titlePlural: "Gigabecquerels",
     description: "A unit equal to 10^9 becquerels.",
   },
-  gigabits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/gigabits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gigabits/" as BaseUrl,
+  gigabit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigabit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gigabit/" as BaseUrl,
     title: "Gigabit",
     titlePlural: "Gigabits",
     description: "A decimal multiple equal to 10^9 bits.",
   },
-  gigabitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/gigabits-per-second/v/1",
+  gigabitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigabit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/gigabits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/gigabit-per-second/" as BaseUrl,
     title: "Gigabit per Second",
     titlePlural: "Gigabits per Second",
     description: "A transfer rate of 10^9 bits per second.",
@@ -11885,10 +11882,10 @@ export const systemDataTypes = {
     title: "Gigabytes",
     description: "A unit of information equal to one billion bytes.",
   },
-  gigabytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/gigabytes-per-second/v/1",
+  gigabytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigabyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/gigabytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/gigabyte-per-second/" as BaseUrl,
     title: "Gigabyte per Second",
     titlePlural: "Gigabytes per Second",
     description: "A transfer rate of 10^9 bytes per second.",
@@ -12146,10 +12143,10 @@ export const systemDataTypes = {
     description:
       "A unit of mass per volume equal to one kilogram per cubic meter; used for mass concentration.",
   },
-  gramsPerMole: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/grams-per-mole/v/1",
+  gramPerMole: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gram-per-mole/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/grams-per-mole/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/gram-per-mole/" as BaseUrl,
     title: "Gram per Mole",
     titlePlural: "Grams per Mole",
     description: "A value expressed in grams per mole.",
@@ -12197,7 +12194,7 @@ export const systemDataTypes = {
     titlePlural: "Gyromagnetic Ratios",
     description: "Numeric values in convertible units of gyromagnetic ratio.",
   },
-  gyromagneticRatioMetric: {
+  "gyromagneticRatio(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/gyromagnetic-ratio-metric/v/1",
     dataTypeBaseUrl:
@@ -12207,7 +12204,7 @@ export const systemDataTypes = {
     description:
       "Gyromagnetic Ratio expressed in SI units and metric multiples.",
   },
-  halfInteger: {
+  "half-integer": {
     dataTypeId: "https://hash.ai/@h/types/data-type/half-integer/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/half-integer/" as BaseUrl,
@@ -12223,7 +12220,7 @@ export const systemDataTypes = {
     titlePlural: "Hall Coefficients",
     description: "Numeric values in convertible units of hall coefficient.",
   },
-  hallCoefficientMetric: {
+  "hallCoefficient(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/hall-coefficient-metric/v/1",
     dataTypeBaseUrl:
@@ -12240,18 +12237,18 @@ export const systemDataTypes = {
     description:
       "A unit of length expressed in hands. Based on the international yard of exactly 0.9144 meters.",
   },
-  hartleys: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/hartleys/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/hartleys/" as BaseUrl,
+  hartley: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hartley/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/hartley/" as BaseUrl,
     title: "Hartley",
     titlePlural: "Hartleys",
     description:
       "A logarithmic information unit using base 10. Logarithm-base conversion factors are approximate.",
   },
-  hartleysPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/hartleys-per-second/v/1",
+  hartleyPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hartley-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/hartleys-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/hartley-per-second/" as BaseUrl,
     title: "Hartley per Second",
     titlePlural: "Hartleys per Second",
     description: "A value expressed in hartleys per second.",
@@ -12322,7 +12319,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of heat transfer coefficient.",
   },
-  heatTransferCoefficientMetric: {
+  "heatTransferCoefficient(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/heat-transfer-coefficient-metric/v/1",
     dataTypeBaseUrl:
@@ -12762,7 +12759,7 @@ export const systemDataTypes = {
     titlePlural: "Impulses",
     description: "Numeric values in convertible units of impulse.",
   },
-  impulseMetric: {
+  "impulse(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/impulse-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/impulse-metric/" as BaseUrl,
@@ -12838,7 +12835,7 @@ export const systemDataTypes = {
     title: "Information",
     description: "A measure of information content.",
   },
-  informationBinary: {
+  "information(binary)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/information-binary/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/information-binary/" as BaseUrl,
@@ -12854,7 +12851,7 @@ export const systemDataTypes = {
     titlePlural: "Information Contents",
     description: "Numeric values in units of information content.",
   },
-  informationDecimal: {
+  "information(decimal)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/information-decimal/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/information-decimal/" as BaseUrl,
@@ -12936,10 +12933,10 @@ export const systemDataTypes = {
     description:
       "The SI unit of energy, work, and heat, equal to one newton meter.",
   },
-  jouleSeconds: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/joule-seconds/v/1",
+  jouleSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/joule-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/joule-seconds/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/joule-second/" as BaseUrl,
     title: "Joule Second",
     titlePlural: "Joule Seconds",
     description: "A value expressed in joule seconds.",
@@ -12952,31 +12949,31 @@ export const systemDataTypes = {
     titlePlural: "Joules per Cubic Meter",
     description: "The coherent SI unit used to express energy density.",
   },
-  joulesPerCubicMeterNanometer: {
+  joulePerCubicMeterNanometer: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/joules-per-cubic-meter-nanometer/v/1",
+      "https://hash.ai/@h/types/data-type/joule-per-cubic-meter-nanometer/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/joules-per-cubic-meter-nanometer/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/joule-per-cubic-meter-nanometer/" as BaseUrl,
     title: "Joule per Cubic Meter Nanometer",
     titlePlural: "Joules per Cubic Meter Nanometer",
     description:
       "A wavelength spectral density expressed in J/(m³·nm); equal to 10^9 J/m⁴.",
   },
-  joulesPerCubicMeterOfWavelength: {
+  joulePerCubicMeterOfWavelength: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/joules-per-cubic-meter-of-wavelength/v/1",
+      "https://hash.ai/@h/types/data-type/joule-per-cubic-meter-of-wavelength/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/joules-per-cubic-meter-of-wavelength/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/joule-per-cubic-meter-of-wavelength/" as BaseUrl,
     title: "Joule per Cubic Meter of Wavelength",
     titlePlural: "Joules per Cubic Meter of Wavelength",
     description:
       "A wavelength spectral density expressed in J/(m²·m); its spectral variable is wavelength in meters.",
   },
-  joulesPerFourthPowerMeter: {
+  joulePerFourthPowerMeter: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/joules-per-fourth-power-meter/v/1",
+      "https://hash.ai/@h/types/data-type/joule-per-fourth-power-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/joules-per-fourth-power-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/joule-per-fourth-power-meter/" as BaseUrl,
     title: "Joule per Fourth Power Meter",
     titlePlural: "Joules per Fourth Power Meter",
     description:
@@ -13007,10 +13004,10 @@ export const systemDataTypes = {
     titlePlural: "Joules per Kilogram Kelvin",
     description: "The coherent SI unit used to express specific heat capacity.",
   },
-  joulesPerMeter: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/joules-per-meter/v/1",
+  joulePerMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/joule-per-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/joules-per-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/joule-per-meter/" as BaseUrl,
     title: "Joule per Meter",
     titlePlural: "Joules per Meter",
     description:
@@ -13032,39 +13029,38 @@ export const systemDataTypes = {
     titlePlural: "Joules per Mole Kelvin",
     description: "The coherent SI unit used to express molar heat capacity.",
   },
-  joulesPerNanometer: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/joules-per-nanometer/v/1",
+  joulePerNanometer: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/joule-per-nanometer/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/joules-per-nanometer/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/joule-per-nanometer/" as BaseUrl,
     title: "Joule per Nanometer",
     titlePlural: "Joules per Nanometer",
     description:
       "A wavelength spectral density expressed in J/nm; equal to 10^9 J/m.",
   },
-  joulesPerSquareMeter: {
-    dataTypeId:
-      "https://hash.ai/@h/types/data-type/joules-per-square-meter/v/1",
+  joulePerSquareMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/joule-per-square-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/joules-per-square-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/joule-per-square-meter/" as BaseUrl,
     title: "Joule per Square Meter",
     titlePlural: "Joules per Square Meter",
     description: "A value expressed in joules per square meter.",
   },
-  joulesPerSquareMeterNanometer: {
+  joulePerSquareMeterNanometer: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/joules-per-square-meter-nanometer/v/1",
+      "https://hash.ai/@h/types/data-type/joule-per-square-meter-nanometer/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/joules-per-square-meter-nanometer/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/joule-per-square-meter-nanometer/" as BaseUrl,
     title: "Joule per Square Meter Nanometer",
     titlePlural: "Joules per Square Meter Nanometer",
     description:
       "A wavelength spectral density expressed in J/(m²·nm); equal to 10^9 J/(m²·m).",
   },
-  jouleSquareMetersPerKilogram: {
+  jouleSquareMeterPerKilogram: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/joule-square-meters-per-kilogram/v/1",
+      "https://hash.ai/@h/types/data-type/joule-square-meter-per-kilogram/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/joule-square-meters-per-kilogram/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/joule-square-meter-per-kilogram/" as BaseUrl,
     title: "Joule Square Meter per Kilogram",
     titlePlural: "Joule Square Meters per Kilogram",
     description: "A value expressed in joule square meters per kilogram.",
@@ -13109,18 +13105,18 @@ export const systemDataTypes = {
     description:
       "The SI base unit of thermodynamic temperature, measured from absolute zero.",
   },
-  kelvinsPerPascal: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kelvins-per-pascal/v/1",
+  kelvinPerPascal: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kelvin-per-pascal/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kelvins-per-pascal/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/kelvin-per-pascal/" as BaseUrl,
     title: "Kelvin per Pascal",
     titlePlural: "Kelvins per Pascal",
     description: "A value expressed in kelvins per pascal.",
   },
-  kelvinsPerWatt: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kelvins-per-watt/v/1",
+  kelvinPerWatt: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kelvin-per-watt/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kelvins-per-watt/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/kelvin-per-watt/" as BaseUrl,
     title: "Kelvin per Watt",
     titlePlural: "Kelvins per Watt",
     description: "A value expressed in kelvins per watt.",
@@ -13152,32 +13148,32 @@ export const systemDataTypes = {
     title: "KHR",
     description: "An amount denominated in Riel (ISO 4217 KHR).",
   },
-  kibibits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kibibits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kibibits/" as BaseUrl,
+  kibibit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kibibit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kibibit/" as BaseUrl,
     title: "Kibibit",
     titlePlural: "Kibibits",
     description: "A binary multiple equal to 2^10 bits.",
   },
-  kibibitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kibibits-per-second/v/1",
+  kibibitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kibibit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kibibits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/kibibit-per-second/" as BaseUrl,
     title: "Kibibit per Second",
     titlePlural: "Kibibits per Second",
     description: "A transfer rate of 2^10 bits per second.",
   },
-  kibibytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kibibytes/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kibibytes/" as BaseUrl,
+  kibibyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kibibyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kibibyte/" as BaseUrl,
     title: "Kibibyte",
     titlePlural: "Kibibytes",
     description: "A binary multiple equal to 2^10 bytes.",
   },
-  kibibytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kibibytes-per-second/v/1",
+  kibibytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kibibyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kibibytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/kibibyte-per-second/" as BaseUrl,
     title: "Kibibyte per Second",
     titlePlural: "Kibibytes per Second",
     description: "A transfer rate of 2^10 bytes per second.",
@@ -13190,9 +13186,9 @@ export const systemDataTypes = {
     titlePlural: "Kiloamperes",
     description: "A unit equal to 10^3 amperes.",
   },
-  kilobauds: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kilobauds/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilobauds/" as BaseUrl,
+  kilobaud: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilobaud/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilobaud/" as BaseUrl,
     title: "Kilobaud",
     titlePlural: "Kilobauds",
     description: "A value expressed in kilobauds.",
@@ -13213,17 +13209,17 @@ export const systemDataTypes = {
     titlePlural: "Kilobecquerels",
     description: "A unit of radionuclide activity equal to 1000 becquerels.",
   },
-  kilobits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kilobits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilobits/" as BaseUrl,
+  kilobit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilobit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilobit/" as BaseUrl,
     title: "Kilobit",
     titlePlural: "Kilobits",
     description: "A decimal multiple equal to 10^3 bits.",
   },
-  kilobitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kilobits-per-second/v/1",
+  kilobitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilobit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kilobits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/kilobit-per-second/" as BaseUrl,
     title: "Kilobit per Second",
     titlePlural: "Kilobits per Second",
     description: "A transfer rate of 10^3 bits per second.",
@@ -13234,10 +13230,10 @@ export const systemDataTypes = {
     title: "Kilobytes",
     description: "A unit of information equal to one thousand bytes.",
   },
-  kilobytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kilobytes-per-second/v/1",
+  kilobytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilobyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kilobytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/kilobyte-per-second/" as BaseUrl,
     title: "Kilobyte per Second",
     titlePlural: "Kilobytes per Second",
     description: "A transfer rate of 10^3 bytes per second.",
@@ -13284,11 +13280,11 @@ export const systemDataTypes = {
     titlePlural: "Kilofarads",
     description: "A unit equal to 10^3 farads.",
   },
-  kilogramMetersPerSecond: {
+  kilogramMeterPerSecond: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/kilogram-meters-per-second/v/1",
+      "https://hash.ai/@h/types/data-type/kilogram-meter-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kilogram-meters-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/kilogram-meter-per-second/" as BaseUrl,
     title: "Kilogram Meter per Second",
     titlePlural: "Kilogram Meters per Second",
     description: "A value expressed in kilogram meters per second.",
@@ -13302,26 +13298,26 @@ export const systemDataTypes = {
     titlePlural: "Kilograms per Cubic Meter",
     description: "The coherent SI unit used to express mass density.",
   },
-  kilogramsPerMeter: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kilograms-per-meter/v/1",
+  kilogramPerMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilogram-per-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kilograms-per-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/kilogram-per-meter/" as BaseUrl,
     title: "Kilogram per Meter",
     titlePlural: "Kilograms per Meter",
     description: "A value expressed in kilograms per meter.",
   },
-  kilogramsPerMole: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kilograms-per-mole/v/1",
+  kilogramPerMole: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilogram-per-mole/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kilograms-per-mole/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/kilogram-per-mole/" as BaseUrl,
     title: "Kilogram per Mole",
     titlePlural: "Kilograms per Mole",
     description: "A value expressed in kilograms per mole.",
   },
-  kilogramsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kilograms-per-second/v/1",
+  kilogramPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilogram-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kilograms-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/kilogram-per-second/" as BaseUrl,
     title: "Kilogram per Second",
     titlePlural: "Kilograms per Second",
     description: "A value expressed in kilograms per second.",
@@ -13335,28 +13331,28 @@ export const systemDataTypes = {
     titlePlural: "Kilograms per Square Meter",
     description: "The coherent SI unit used to express surface density.",
   },
-  kilogramsPerSquareMeterSecond: {
+  kilogramPerSquareMeterSecond: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/kilograms-per-square-meter-second/v/1",
+      "https://hash.ai/@h/types/data-type/kilogram-per-square-meter-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kilograms-per-square-meter-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/kilogram-per-square-meter-second/" as BaseUrl,
     title: "Kilogram per Square Meter Second",
     titlePlural: "Kilograms per Square Meter Second",
     description: "A value expressed in kilograms per square meter second.",
   },
-  kilogramSquareMeters: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kilogram-square-meters/v/1",
+  kilogramSquareMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilogram-square-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kilogram-square-meters/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/kilogram-square-meter/" as BaseUrl,
     title: "Kilogram Square Meter",
     titlePlural: "Kilogram Square Meters",
     description: "A value expressed in kilogram square meters.",
   },
-  kilogramSquareMetersPerSecond: {
+  kilogramSquareMeterPerSecond: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/kilogram-square-meters-per-second/v/1",
+      "https://hash.ai/@h/types/data-type/kilogram-square-meter-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kilogram-square-meters-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/kilogram-square-meter-per-second/" as BaseUrl,
     title: "Kilogram Square Meter per Second",
     titlePlural: "Kilogram Square Meters per Second",
     description: "A value expressed in kilogram square meters per second.",
@@ -13545,17 +13541,17 @@ export const systemDataTypes = {
     titlePlural: "Kiloteslas",
     description: "A unit equal to 10^3 teslas.",
   },
-  kilovars: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kilovars/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilovars/" as BaseUrl,
+  kilovar: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilovar/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilovar/" as BaseUrl,
     title: "Kilovar",
     titlePlural: "Kilovars",
     description: "A value expressed in kilovars.",
   },
-  kilovoltAmperes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kilovolt-amperes/v/1",
+  kilovoltAmpere: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilovolt-ampere/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kilovolt-amperes/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/kilovolt-ampere/" as BaseUrl,
     title: "Kilovolt Ampere",
     titlePlural: "Kilovolt Amperes",
     description: "A value expressed in kilovolt amperes.",
@@ -13720,7 +13716,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of linear charge density.",
   },
-  linearChargeDensityMetric: {
+  "linearChargeDensity(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/linear-charge-density-metric/v/1",
     dataTypeBaseUrl:
@@ -13738,7 +13734,7 @@ export const systemDataTypes = {
     titlePlural: "Linear Mass Densities",
     description: "Numeric values in convertible units of linear mass density.",
   },
-  linearMassDensityMetric: {
+  "linearMassDensity(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/linear-mass-density-metric/v/1",
     dataTypeBaseUrl:
@@ -13847,7 +13843,7 @@ export const systemDataTypes = {
     titlePlural: "Lorenz Coefficients",
     description: "Numeric values in convertible units of lorenz coefficient.",
   },
-  lorenzCoefficientMetric: {
+  "lorenzCoefficient(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/lorenz-coefficient-metric/v/1",
     dataTypeBaseUrl:
@@ -13884,18 +13880,18 @@ export const systemDataTypes = {
     description:
       "The SI unit of luminous flux, equal to one candela steradian.",
   },
-  lumenSeconds: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/lumen-seconds/v/1",
+  lumenSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/lumen-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/lumen-seconds/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/lumen-second/" as BaseUrl,
     title: "Lumen Second",
     titlePlural: "Lumen Seconds",
     description: "A value expressed in lumen seconds.",
   },
-  lumensPerWatt: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/lumens-per-watt/v/1",
+  lumenPerWatt: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/lumen-per-watt/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/lumens-per-watt/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/lumen-per-watt/" as BaseUrl,
     title: "Lumen per Watt",
     titlePlural: "Lumens per Watt",
     description: "A value expressed in lumens per watt.",
@@ -13934,7 +13930,7 @@ export const systemDataTypes = {
     titlePlural: "Luminous Efficacies",
     description: "Numeric values in convertible units of luminous efficacy.",
   },
-  luminousEfficacyMetric: {
+  "luminousEfficacy(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/luminous-efficacy-metric/v/1",
     dataTypeBaseUrl:
@@ -13952,7 +13948,7 @@ export const systemDataTypes = {
     titlePlural: "Luminous Energies",
     description: "Numeric values in convertible units of luminous energy.",
   },
-  luminousEnergyMetric: {
+  "luminousEnergy(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/luminous-energy-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/luminous-energy-metric/" as BaseUrl,
@@ -13968,7 +13964,7 @@ export const systemDataTypes = {
     titlePlural: "Luminous Exposures",
     description: "Numeric values in convertible units of luminous exposure.",
   },
-  luminousExposureMetric: {
+  "luminousExposure(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/luminous-exposure-metric/v/1",
     dataTypeBaseUrl:
@@ -14023,10 +14019,10 @@ export const systemDataTypes = {
     description:
       "The SI unit of illuminance, equal to one lumen per square meter.",
   },
-  luxSeconds: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/lux-seconds/v/1",
+  luxSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/lux-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/lux-seconds/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/lux-second/" as BaseUrl,
     title: "Lux Second",
     titlePlural: "Lux Seconds",
     description: "A value expressed in lux seconds.",
@@ -14052,7 +14048,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of magnetic dipole moment.",
   },
-  magneticDipoleMomentMetric: {
+  "magneticDipoleMoment(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/magnetic-dipole-moment-metric/v/1",
     dataTypeBaseUrl:
@@ -14117,7 +14113,7 @@ export const systemDataTypes = {
     titlePlural: "Magnetic Moments",
     description: "Numeric values in convertible units of magnetic moment.",
   },
-  magneticMomentMetric: {
+  "magneticMoment(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/magnetic-moment-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/magnetic-moment-metric/" as BaseUrl,
@@ -14180,7 +14176,7 @@ export const systemDataTypes = {
     titlePlural: "Magnetic Reluctances",
     description: "Numeric values in convertible units of magnetic reluctance.",
   },
-  magneticReluctanceMetric: {
+  "magneticReluctance(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/magnetic-reluctance-metric/v/1",
     dataTypeBaseUrl:
@@ -14200,7 +14196,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of magnetic vector potential.",
   },
-  magneticVectorPotentialMetric: {
+  "magneticVectorPotential(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/magnetic-vector-potential-metric/v/1",
     dataTypeBaseUrl:
@@ -14287,7 +14283,7 @@ export const systemDataTypes = {
     titlePlural: "Mass Flow Rates",
     description: "Numeric values in convertible units of mass flow rate.",
   },
-  massFlowRateMetric: {
+  "massFlowRate(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/mass-flow-rate-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/mass-flow-rate-metric/" as BaseUrl,
@@ -14303,7 +14299,7 @@ export const systemDataTypes = {
     titlePlural: "Mass Flux Densities",
     description: "Numeric values in convertible units of mass flux density.",
   },
-  massFluxDensityMetric: {
+  "massFluxDensity(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/mass-flux-density-metric/v/1",
     dataTypeBaseUrl:
@@ -14319,32 +14315,32 @@ export const systemDataTypes = {
     title: "MDL",
     description: "An amount denominated in Moldovan Leu (ISO 4217 MDL).",
   },
-  mebibits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/mebibits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/mebibits/" as BaseUrl,
+  mebibit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/mebibit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/mebibit/" as BaseUrl,
     title: "Mebibit",
     titlePlural: "Mebibits",
     description: "A binary multiple equal to 2^20 bits.",
   },
-  mebibitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/mebibits-per-second/v/1",
+  mebibitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/mebibit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/mebibits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/mebibit-per-second/" as BaseUrl,
     title: "Mebibit per Second",
     titlePlural: "Mebibits per Second",
     description: "A transfer rate of 2^20 bits per second.",
   },
-  mebibytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/mebibytes/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/mebibytes/" as BaseUrl,
+  mebibyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/mebibyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/mebibyte/" as BaseUrl,
     title: "Mebibyte",
     titlePlural: "Mebibytes",
     description: "A binary multiple equal to 2^20 bytes.",
   },
-  mebibytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/mebibytes-per-second/v/1",
+  mebibytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/mebibyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/mebibytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/mebibyte-per-second/" as BaseUrl,
     title: "Mebibyte per Second",
     titlePlural: "Mebibytes per Second",
     description: "A transfer rate of 2^20 bytes per second.",
@@ -14365,9 +14361,9 @@ export const systemDataTypes = {
     titlePlural: "Megaamperes",
     description: "A unit equal to 10^6 amperes.",
   },
-  megabauds: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/megabauds/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/megabauds/" as BaseUrl,
+  megabaud: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megabaud/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/megabaud/" as BaseUrl,
     title: "Megabaud",
     titlePlural: "Megabauds",
     description: "A value expressed in megabauds.",
@@ -14388,17 +14384,17 @@ export const systemDataTypes = {
     titlePlural: "Megabecquerels",
     description: "A unit equal to 10^6 becquerels.",
   },
-  megabits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/megabits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/megabits/" as BaseUrl,
+  megabit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megabit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/megabit/" as BaseUrl,
     title: "Megabit",
     titlePlural: "Megabits",
     description: "A decimal multiple equal to 10^6 bits.",
   },
-  megabitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/megabits-per-second/v/1",
+  megabitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megabit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/megabits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/megabit-per-second/" as BaseUrl,
     title: "Megabit per Second",
     titlePlural: "Megabits per Second",
     description: "A transfer rate of 10^6 bits per second.",
@@ -14409,10 +14405,10 @@ export const systemDataTypes = {
     title: "Megabytes",
     description: "A unit of information equal to one million bytes.",
   },
-  megabytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/megabytes-per-second/v/1",
+  megabytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megabyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/megabytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/megabyte-per-second/" as BaseUrl,
     title: "Megabyte per Second",
     titlePlural: "Megabytes per Second",
     description: "A transfer rate of 10^6 bytes per second.",
@@ -14635,11 +14631,11 @@ export const systemDataTypes = {
     titlePlural: "Meters per Second Squared",
     description: "The coherent SI unit used to express acceleration.",
   },
-  metersToTheFourthPower: {
+  meterToTheFourthPower: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/meters-to-the-fourth-power/v/1",
+      "https://hash.ai/@h/types/data-type/meter-to-the-fourth-power/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/meters-to-the-fourth-power/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/meter-to-the-fourth-power/" as BaseUrl,
     title: "Meter to the Fourth Power",
     titlePlural: "Meters to the Fourth Power",
     description: "A value expressed in meters to the fourth power.",
@@ -15173,11 +15169,10 @@ export const systemDataTypes = {
     titlePlural: "Millimoles",
     description: "A unit of amount of substance equal to 0.001 moles.",
   },
-  millimolesPerKilogram: {
-    dataTypeId:
-      "https://hash.ai/@h/types/data-type/millimoles-per-kilogram/v/1",
+  millimolePerKilogram: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millimole-per-kilogram/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/millimoles-per-kilogram/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/millimole-per-kilogram/" as BaseUrl,
     title: "Millimole per Kilogram",
     titlePlural: "Millimoles per Kilogram",
     description: "A value expressed in millimoles per kilogram.",
@@ -15335,7 +15330,7 @@ export const systemDataTypes = {
     titlePlural: "Mobilities",
     description: "Numeric values in convertible units of mobility.",
   },
-  mobilityMetric: {
+  "mobility(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/mobility-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/mobility-metric/" as BaseUrl,
@@ -15358,7 +15353,7 @@ export const systemDataTypes = {
     titlePlural: "Molalities",
     description: "Numeric values in convertible units of molality.",
   },
-  molalityMetric: {
+  "molality(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/molality-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/molality-metric/" as BaseUrl,
@@ -15374,7 +15369,7 @@ export const systemDataTypes = {
     titlePlural: "Molar Conductivities",
     description: "Numeric values in convertible units of molar conductivity.",
   },
-  molarConductivityMetric: {
+  "molarConductivity(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/molar-conductivity-metric/v/1",
     dataTypeBaseUrl:
@@ -15447,7 +15442,7 @@ export const systemDataTypes = {
     titlePlural: "Molar Masses",
     description: "Numeric values in convertible units of molar mass.",
   },
-  molarMassMetric: {
+  "molarMass(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/molar-mass-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/molar-mass-metric/" as BaseUrl,
@@ -15465,7 +15460,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of molar optical rotatory power.",
   },
-  molarOpticalRotatoryPowerMetric: {
+  "molarOpticalRotatoryPower(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/molar-optical-rotatory-power-metric/v/1",
     dataTypeBaseUrl:
@@ -15483,7 +15478,7 @@ export const systemDataTypes = {
     titlePlural: "Molar Volumes",
     description: "Numeric values in convertible units of molar volume.",
   },
-  molarVolumeMetric: {
+  "molarVolume(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/molar-volume-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/molar-volume-metric/" as BaseUrl,
@@ -15507,10 +15502,10 @@ export const systemDataTypes = {
     titlePlural: "Moles per Cubic Meter",
     description: "The coherent SI unit used to express amount concentration.",
   },
-  molesPerKilogram: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/moles-per-kilogram/v/1",
+  molePerKilogram: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/mole-per-kilogram/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/moles-per-kilogram/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/mole-per-kilogram/" as BaseUrl,
     title: "Mole per Kilogram",
     titlePlural: "Moles per Kilogram",
     description: "A value expressed in moles per kilogram.",
@@ -15532,7 +15527,7 @@ export const systemDataTypes = {
     titlePlural: "Moments of Inertia",
     description: "Numeric values in convertible units of moment of inertia.",
   },
-  momentOfInertiaMetric: {
+  "momentOfInertia(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/moment-of-inertia-metric/v/1",
     dataTypeBaseUrl:
@@ -15549,7 +15544,7 @@ export const systemDataTypes = {
     titlePlural: "Momenta",
     description: "Numeric values in convertible units of momentum.",
   },
-  momentumMetric: {
+  "momentum(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/momentum-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/momentum-metric/" as BaseUrl,
@@ -15865,18 +15860,18 @@ export const systemDataTypes = {
     titlePlural: "Nanowebers",
     description: "A unit equal to 10^-9 webers.",
   },
-  nats: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/nats/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/nats/" as BaseUrl,
+  nat: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nat/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/nat/" as BaseUrl,
     title: "Nat",
     titlePlural: "Nats",
     description:
       "A logarithmic information unit using base e. Logarithm-base conversion factors are approximate.",
   },
-  natsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/nats-per-second/v/1",
+  natPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nat-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/nats-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/nat-per-second/" as BaseUrl,
     title: "Nat per Second",
     titlePlural: "Nats per Second",
     description: "A value expressed in nats per second.",
@@ -15913,10 +15908,10 @@ export const systemDataTypes = {
     description:
       "The SI unit of force, equal to one kilogram meter per second squared.",
   },
-  newtonSeconds: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/newton-seconds/v/1",
+  newtonSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/newton-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/newton-seconds/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/newton-second/" as BaseUrl,
     title: "Newton Second",
     titlePlural: "Newton Seconds",
     description: "A value expressed in newton seconds.",
@@ -15929,10 +15924,10 @@ export const systemDataTypes = {
     titlePlural: "Newton Meters",
     description: "The coherent SI unit used to express torque.",
   },
-  newtonMeterSeconds: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/newton-meter-seconds/v/1",
+  newtonMeterSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/newton-meter-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/newton-meter-seconds/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/newton-meter-second/" as BaseUrl,
     title: "Newton Meter Second",
     titlePlural: "Newton Meter Seconds",
     description: "A value expressed in newton meter seconds.",
@@ -15963,7 +15958,7 @@ export const systemDataTypes = {
     title: "NOK",
     description: "An amount denominated in Norwegian Krone (ISO 4217 NOK).",
   },
-  nonNegativeHalfInteger: {
+  "non-negativeHalf-integer": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/non-negative-half-integer/v/1",
     dataTypeBaseUrl:
@@ -15972,7 +15967,7 @@ export const systemDataTypes = {
     titlePlural: "Non-negative Half-integers",
     description: "A non-negative integer multiple of one half.",
   },
-  nonNegativeInteger: {
+  "non-negativeInteger": {
     dataTypeId: "https://hash.ai/@h/types/data-type/non-negative-integer/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/non-negative-integer/" as BaseUrl,
@@ -15980,7 +15975,7 @@ export const systemDataTypes = {
     titlePlural: "Non-negative Integers",
     description: "An integer greater than or equal to zero.",
   },
-  nonNegativeNumber: {
+  "non-negativeNumber": {
     dataTypeId: "https://hash.ai/@h/types/data-type/non-negative-number/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/non-negative-number/" as BaseUrl,
@@ -16002,7 +15997,7 @@ export const systemDataTypes = {
     titlePlural: "Numbers per Area",
     description: "Numeric values in convertible units of number per area.",
   },
-  numberPerAreaMetric: {
+  "numberPerArea(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/number-per-area-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/number-per-area-metric/" as BaseUrl,
@@ -16018,7 +16013,7 @@ export const systemDataTypes = {
     titlePlural: "Numbers per Volume",
     description: "Numeric values in convertible units of number per volume.",
   },
-  numberPerVolumeMetric: {
+  "numberPerVolume(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/number-per-volume-metric/v/1",
     dataTypeBaseUrl:
@@ -16034,34 +16029,33 @@ export const systemDataTypes = {
     title: "NZD",
     description: "An amount denominated in New Zealand Dollar (ISO 4217 NZD).",
   },
-  octaves: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/octaves/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/octaves/" as BaseUrl,
+  octave: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/octave/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/octave/" as BaseUrl,
     title: "Octave",
     titlePlural: "Octaves",
     description:
       "A logarithmic frequency interval corresponding to a frequency ratio of two.",
   },
-  octets: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/octets/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/octets/" as BaseUrl,
+  octet: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/octet/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/octet/" as BaseUrl,
     title: "Octet",
     titlePlural: "Octets",
     description:
       "A group of exactly eight binary digits; equal to one eight-bit byte.",
   },
-  ohmCentimeters: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/ohm-centimeters/v/1",
+  ohmCentimeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ohm-centimeter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/ohm-centimeters/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/ohm-centimeter/" as BaseUrl,
     title: "Ohm Centimeter",
     titlePlural: "Ohm Centimeters",
     description: "A value expressed in ohm centimeters.",
   },
-  ohmMeters: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/ohm-meters/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/ohm-meters/" as BaseUrl,
+  ohmMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ohm-meter/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/ohm-meter/" as BaseUrl,
     title: "Ohm Meter",
     titlePlural: "Ohm Meters",
     description: "A value expressed in ohm meters.",
@@ -16143,7 +16137,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of particle flux density.",
   },
-  particleFluxDensityMetric: {
+  "particleFluxDensity(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/particle-flux-density-metric/v/1",
     dataTypeBaseUrl:
@@ -16161,7 +16155,7 @@ export const systemDataTypes = {
     titlePlural: "Particle Intensities",
     description: "Numeric values in convertible units of particle intensity.",
   },
-  particleIntensityMetric: {
+  "particleIntensity(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/particle-intensity-metric/v/1",
     dataTypeBaseUrl:
@@ -16181,7 +16175,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of particle production density.",
   },
-  particleProductionDensityMetric: {
+  "particleProductionDensity(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/particle-production-density-metric/v/1",
     dataTypeBaseUrl:
@@ -16199,7 +16193,7 @@ export const systemDataTypes = {
     titlePlural: "Particle Radiances",
     description: "Numeric values in convertible units of particle radiance.",
   },
-  particleRadianceMetric: {
+  "particleRadiance(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/particle-radiance-metric/v/1",
     dataTypeBaseUrl:
@@ -16243,66 +16237,66 @@ export const systemDataTypes = {
     titlePlural: "Pascal Seconds",
     description: "The coherent SI unit used to express dynamic viscosity.",
   },
-  pascalSecondsPerCubicMeter: {
+  pascalSecondPerCubicMeter: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/pascal-seconds-per-cubic-meter/v/1",
+      "https://hash.ai/@h/types/data-type/pascal-second-per-cubic-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/pascal-seconds-per-cubic-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/pascal-second-per-cubic-meter/" as BaseUrl,
     title: "Pascal Second per Cubic Meter",
     titlePlural: "Pascal Seconds per Cubic Meter",
     description: "A value expressed in pascal seconds per cubic meter.",
   },
-  pascalSecondsPerMeter: {
+  pascalSecondPerMeter: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/pascal-seconds-per-meter/v/1",
+      "https://hash.ai/@h/types/data-type/pascal-second-per-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/pascal-seconds-per-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/pascal-second-per-meter/" as BaseUrl,
     title: "Pascal Second per Meter",
     titlePlural: "Pascal Seconds per Meter",
     description: "A value expressed in pascal seconds per meter.",
   },
-  pascalsPerKelvin: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/pascals-per-kelvin/v/1",
+  pascalPerKelvin: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pascal-per-kelvin/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/pascals-per-kelvin/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/pascal-per-kelvin/" as BaseUrl,
     title: "Pascal per Kelvin",
     titlePlural: "Pascals per Kelvin",
     description: "A value expressed in pascals per kelvin.",
   },
-  pascalSquaredSeconds: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/pascal-squared-seconds/v/1",
+  pascalSquaredSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pascal-squared-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/pascal-squared-seconds/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/pascal-squared-second/" as BaseUrl,
     title: "Pascal Squared Second",
     titlePlural: "Pascal Squared Seconds",
     description: "A value expressed in pascal squared seconds.",
   },
-  pebibits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/pebibits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/pebibits/" as BaseUrl,
+  pebibit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pebibit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/pebibit/" as BaseUrl,
     title: "Pebibit",
     titlePlural: "Pebibits",
     description: "A binary multiple equal to 2^50 bits.",
   },
-  pebibitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/pebibits-per-second/v/1",
+  pebibitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pebibit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/pebibits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/pebibit-per-second/" as BaseUrl,
     title: "Pebibit per Second",
     titlePlural: "Pebibits per Second",
     description: "A transfer rate of 2^50 bits per second.",
   },
-  pebibytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/pebibytes/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/pebibytes/" as BaseUrl,
+  pebibyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pebibyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/pebibyte/" as BaseUrl,
     title: "Pebibyte",
     titlePlural: "Pebibytes",
     description: "A binary multiple equal to 2^50 bytes.",
   },
-  pebibytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/pebibytes-per-second/v/1",
+  pebibytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pebibyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/pebibytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/pebibyte-per-second/" as BaseUrl,
     title: "Pebibyte per Second",
     titlePlural: "Pebibytes per Second",
     description: "A transfer rate of 2^50 bytes per second.",
@@ -16379,32 +16373,32 @@ export const systemDataTypes = {
     titlePlural: "Petabecquerels",
     description: "A unit equal to 10^15 becquerels.",
   },
-  petabits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/petabits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/petabits/" as BaseUrl,
+  petabit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petabit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/petabit/" as BaseUrl,
     title: "Petabit",
     titlePlural: "Petabits",
     description: "A decimal multiple equal to 10^15 bits.",
   },
-  petabitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/petabits-per-second/v/1",
+  petabitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petabit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/petabits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/petabit-per-second/" as BaseUrl,
     title: "Petabit per Second",
     titlePlural: "Petabits per Second",
     description: "A transfer rate of 10^15 bits per second.",
   },
-  petabytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/petabytes/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/petabytes/" as BaseUrl,
+  petabyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petabyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/petabyte/" as BaseUrl,
     title: "Petabyte",
     titlePlural: "Petabytes",
     description: "A decimal multiple equal to 10^15 bytes.",
   },
-  petabytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/petabytes-per-second/v/1",
+  petabytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petabyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/petabytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/petabyte-per-second/" as BaseUrl,
     title: "Petabyte per Second",
     titlePlural: "Petabytes per Second",
     description: "A transfer rate of 10^15 bytes per second.",
@@ -17147,7 +17141,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of pressure per temperature interval.",
   },
-  pressurePerTemperatureIntervalMetric: {
+  "pressurePerTemperatureInterval(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/pressure-per-temperature-interval-metric/v/1",
     dataTypeBaseUrl:
@@ -17169,33 +17163,32 @@ export const systemDataTypes = {
     title: "QAR",
     description: "An amount denominated in Qatari Rial (ISO 4217 QAR).",
   },
-  quebibits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/quebibits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/quebibits/" as BaseUrl,
+  quebibit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quebibit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/quebibit/" as BaseUrl,
     title: "Quebibit",
     titlePlural: "Quebibits",
     description: "A binary multiple equal to 2^100 bits.",
   },
-  quebibitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/quebibits-per-second/v/1",
+  quebibitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quebibit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/quebibits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/quebibit-per-second/" as BaseUrl,
     title: "Quebibit per Second",
     titlePlural: "Quebibits per Second",
     description: "A transfer rate of 2^100 bits per second.",
   },
-  quebibytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/quebibytes/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/quebibytes/" as BaseUrl,
+  quebibyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quebibyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/quebibyte/" as BaseUrl,
     title: "Quebibyte",
     titlePlural: "Quebibytes",
     description: "A binary multiple equal to 2^100 bytes.",
   },
-  quebibytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/quebibytes-per-second/v/1",
+  quebibytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quebibyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/quebibytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/quebibyte-per-second/" as BaseUrl,
     title: "Quebibyte per Second",
     titlePlural: "Quebibytes per Second",
     description: "A transfer rate of 2^100 bytes per second.",
@@ -17470,34 +17463,33 @@ export const systemDataTypes = {
     titlePlural: "Quettabecquerels",
     description: "A unit equal to 10^30 becquerels.",
   },
-  quettabits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/quettabits/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/quettabits/" as BaseUrl,
+  quettabit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettabit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/quettabit/" as BaseUrl,
     title: "Quettabit",
     titlePlural: "Quettabits",
     description: "A decimal multiple equal to 10^30 bits.",
   },
-  quettabitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/quettabits-per-second/v/1",
+  quettabitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettabit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/quettabits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/quettabit-per-second/" as BaseUrl,
     title: "Quettabit per Second",
     titlePlural: "Quettabits per Second",
     description: "A transfer rate of 10^30 bits per second.",
   },
-  quettabytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/quettabytes/v/1",
+  quettabyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettabyte/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/quettabytes/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/quettabyte/" as BaseUrl,
     title: "Quettabyte",
     titlePlural: "Quettabytes",
     description: "A decimal multiple equal to 10^30 bytes.",
   },
-  quettabytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/quettabytes-per-second/v/1",
+  quettabytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettabyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/quettabytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/quettabyte-per-second/" as BaseUrl,
     title: "Quettabyte per Second",
     titlePlural: "Quettabytes per Second",
     description: "A transfer rate of 10^30 bytes per second.",
@@ -17738,10 +17730,10 @@ export const systemDataTypes = {
     titlePlural: "Radians",
     description: "The SI unit of plane angle. A full turn is 2π radians.",
   },
-  radiansPerMeter: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/radians-per-meter/v/1",
+  radianPerMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/radian-per-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/radians-per-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/radian-per-meter/" as BaseUrl,
     title: "Radian per Meter",
     titlePlural: "Radians per Meter",
     description: "A value expressed in radians per meter.",
@@ -17763,20 +17755,20 @@ export const systemDataTypes = {
     titlePlural: "Radians per Second Squared",
     description: "The coherent SI unit used to express angular acceleration.",
   },
-  radianSquareMetersPerKilogram: {
+  radianSquareMeterPerKilogram: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/radian-square-meters-per-kilogram/v/1",
+      "https://hash.ai/@h/types/data-type/radian-square-meter-per-kilogram/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/radian-square-meters-per-kilogram/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/radian-square-meter-per-kilogram/" as BaseUrl,
     title: "Radian Square Meter per Kilogram",
     titlePlural: "Radian Square Meters per Kilogram",
     description: "A value expressed in radian square meters per kilogram.",
   },
-  radianSquareMetersPerMole: {
+  radianSquareMeterPerMole: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/radian-square-meters-per-mole/v/1",
+      "https://hash.ai/@h/types/data-type/radian-square-meter-per-mole/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/radian-square-meters-per-mole/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/radian-square-meter-per-mole/" as BaseUrl,
     title: "Radian Square Meter per Mole",
     titlePlural: "Radian Square Meters per Mole",
     description: "A value expressed in radian square meters per mole.",
@@ -17889,7 +17881,7 @@ export const systemDataTypes = {
     titlePlural: "Reactive Powers",
     description: "Numeric values in convertible units of reactive power.",
   },
-  reactivePowerMetric: {
+  "reactivePower(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/reactive-power-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/reactive-power-metric/" as BaseUrl,
@@ -17897,20 +17889,19 @@ export const systemDataTypes = {
     titlePlural: "Reactive Powers (Metric)",
     description: "Reactive Power expressed in SI units and metric multiples.",
   },
-  reciprocalCubicMeters: {
-    dataTypeId:
-      "https://hash.ai/@h/types/data-type/reciprocal-cubic-meters/v/1",
+  reciprocalCubicMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/reciprocal-cubic-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/reciprocal-cubic-meters/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/reciprocal-cubic-meter/" as BaseUrl,
     title: "Reciprocal Cubic Meter",
     titlePlural: "Reciprocal Cubic Meters",
     description: "A value expressed in reciprocal cubic meters.",
   },
-  reciprocalCubicMeterSeconds: {
+  reciprocalCubicMeterSecond: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/reciprocal-cubic-meter-seconds/v/1",
+      "https://hash.ai/@h/types/data-type/reciprocal-cubic-meter-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/reciprocal-cubic-meter-seconds/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/reciprocal-cubic-meter-second/" as BaseUrl,
     title: "Reciprocal Cubic Meter Second",
     titlePlural: "Reciprocal Cubic Meter Seconds",
     description: "A value expressed in reciprocal cubic meter seconds.",
@@ -17923,7 +17914,7 @@ export const systemDataTypes = {
     titlePlural: "Reciprocal Durations",
     description: "Numeric values in convertible units of reciprocal duration.",
   },
-  reciprocalDurationMetric: {
+  "reciprocalDuration(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/reciprocal-duration-metric/v/1",
     dataTypeBaseUrl:
@@ -17941,10 +17932,10 @@ export const systemDataTypes = {
     titlePlural: "Reciprocal Feet",
     description: "A unit of wavenumber expressed in reciprocal feet.",
   },
-  reciprocalHenries: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/reciprocal-henries/v/1",
+  reciprocalHenry: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/reciprocal-henry/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/reciprocal-henries/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/reciprocal-henry/" as BaseUrl,
     title: "Reciprocal Henry",
     titlePlural: "Reciprocal Henries",
     description: "A value expressed in reciprocal henries.",
@@ -17957,19 +17948,19 @@ export const systemDataTypes = {
     titlePlural: "Reciprocal Inches",
     description: "A unit of wavenumber expressed in reciprocal inches.",
   },
-  reciprocalJouleCubicMeters: {
+  reciprocalJouleCubicMeter: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/reciprocal-joule-cubic-meters/v/1",
+      "https://hash.ai/@h/types/data-type/reciprocal-joule-cubic-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/reciprocal-joule-cubic-meters/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/reciprocal-joule-cubic-meter/" as BaseUrl,
     title: "Reciprocal Joule Cubic Meter",
     titlePlural: "Reciprocal Joule Cubic Meters",
     description: "A value expressed in reciprocal joule cubic meters.",
   },
-  reciprocalKelvins: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/reciprocal-kelvins/v/1",
+  reciprocalKelvin: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/reciprocal-kelvin/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/reciprocal-kelvins/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/reciprocal-kelvin/" as BaseUrl,
     title: "Reciprocal Kelvin",
     titlePlural: "Reciprocal Kelvins",
     description: "A value expressed in reciprocal kelvins.",
@@ -17982,10 +17973,10 @@ export const systemDataTypes = {
     titlePlural: "Reciprocal Meters",
     description: "The coherent SI unit used to express wavenumber.",
   },
-  reciprocalPascals: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/reciprocal-pascals/v/1",
+  reciprocalPascal: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/reciprocal-pascal/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/reciprocal-pascals/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/reciprocal-pascal/" as BaseUrl,
     title: "Reciprocal Pascal",
     titlePlural: "Reciprocal Pascals",
     description: "A value expressed in reciprocal pascals.",
@@ -17998,7 +17989,7 @@ export const systemDataTypes = {
     titlePlural: "Reciprocal Pressures",
     description: "Numeric values in convertible units of reciprocal pressure.",
   },
-  reciprocalPressureMetric: {
+  "reciprocalPressure(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/reciprocal-pressure-metric/v/1",
     dataTypeBaseUrl:
@@ -18008,46 +17999,46 @@ export const systemDataTypes = {
     description:
       "Reciprocal Pressure expressed in SI units and metric multiples.",
   },
-  reciprocalSeconds: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/reciprocal-seconds/v/1",
+  reciprocalSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/reciprocal-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/reciprocal-seconds/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/reciprocal-second/" as BaseUrl,
     title: "Reciprocal Second",
     titlePlural: "Reciprocal Seconds",
     description: "A value expressed in reciprocal seconds.",
   },
-  reciprocalSecondSteradians: {
+  reciprocalSecondSteradian: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/reciprocal-second-steradians/v/1",
+      "https://hash.ai/@h/types/data-type/reciprocal-second-steradian/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/reciprocal-second-steradians/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/reciprocal-second-steradian/" as BaseUrl,
     title: "Reciprocal Second Steradian",
     titlePlural: "Reciprocal Second Steradians",
     description: "A value expressed in reciprocal second steradians.",
   },
-  reciprocalSquareMeters: {
+  reciprocalSquareMeter: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/reciprocal-square-meters/v/1",
+      "https://hash.ai/@h/types/data-type/reciprocal-square-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/reciprocal-square-meters/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/reciprocal-square-meter/" as BaseUrl,
     title: "Reciprocal Square Meter",
     titlePlural: "Reciprocal Square Meters",
     description: "A value expressed in reciprocal square meters.",
   },
-  reciprocalSquareMeterSeconds: {
+  reciprocalSquareMeterSecond: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/reciprocal-square-meter-seconds/v/1",
+      "https://hash.ai/@h/types/data-type/reciprocal-square-meter-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/reciprocal-square-meter-seconds/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/reciprocal-square-meter-second/" as BaseUrl,
     title: "Reciprocal Square Meter Second",
     titlePlural: "Reciprocal Square Meter Seconds",
     description: "A value expressed in reciprocal square meter seconds.",
   },
-  reciprocalSquareMeterSecondSteradians: {
+  reciprocalSquareMeterSecondSteradian: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/reciprocal-square-meter-second-steradians/v/1",
+      "https://hash.ai/@h/types/data-type/reciprocal-square-meter-second-steradian/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/reciprocal-square-meter-second-steradians/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/reciprocal-square-meter-second-steradian/" as BaseUrl,
     title: "Reciprocal Square Meter Second Steradian",
     titlePlural: "Reciprocal Square Meter Second Steradians",
     description:
@@ -18063,7 +18054,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of reciprocal temperature interval.",
   },
-  reciprocalTemperatureIntervalMetric: {
+  "reciprocalTemperatureInterval(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/reciprocal-temperature-interval-metric/v/1",
     dataTypeBaseUrl:
@@ -18114,7 +18105,7 @@ export const systemDataTypes = {
     titlePlural: "Richardson Constants",
     description: "Numeric values in convertible units of richardson constant.",
   },
-  richardsonConstantMetric: {
+  "richardsonConstant(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/richardson-constant-metric/v/1",
     dataTypeBaseUrl:
@@ -18124,32 +18115,32 @@ export const systemDataTypes = {
     description:
       "Richardson Constant expressed in SI units and metric multiples.",
   },
-  robibits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/robibits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/robibits/" as BaseUrl,
+  robibit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/robibit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/robibit/" as BaseUrl,
     title: "Robibit",
     titlePlural: "Robibits",
     description: "A binary multiple equal to 2^90 bits.",
   },
-  robibitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/robibits-per-second/v/1",
+  robibitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/robibit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/robibits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/robibit-per-second/" as BaseUrl,
     title: "Robibit per Second",
     titlePlural: "Robibits per Second",
     description: "A transfer rate of 2^90 bits per second.",
   },
-  robibytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/robibytes/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/robibytes/" as BaseUrl,
+  robibyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/robibyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/robibyte/" as BaseUrl,
     title: "Robibyte",
     titlePlural: "Robibytes",
     description: "A binary multiple equal to 2^90 bytes.",
   },
-  robibytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/robibytes-per-second/v/1",
+  robibytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/robibyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/robibytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/robibyte-per-second/" as BaseUrl,
     title: "Robibyte per Second",
     titlePlural: "Robibytes per Second",
     description: "A transfer rate of 2^90 bytes per second.",
@@ -18192,33 +18183,32 @@ export const systemDataTypes = {
     titlePlural: "Ronnabecquerels",
     description: "A unit equal to 10^27 becquerels.",
   },
-  ronnabits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/ronnabits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/ronnabits/" as BaseUrl,
+  ronnabit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnabit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/ronnabit/" as BaseUrl,
     title: "Ronnabit",
     titlePlural: "Ronnabits",
     description: "A decimal multiple equal to 10^27 bits.",
   },
-  ronnabitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/ronnabits-per-second/v/1",
+  ronnabitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnabit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/ronnabits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/ronnabit-per-second/" as BaseUrl,
     title: "Ronnabit per Second",
     titlePlural: "Ronnabits per Second",
     description: "A transfer rate of 10^27 bits per second.",
   },
-  ronnabytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/ronnabytes/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/ronnabytes/" as BaseUrl,
+  ronnabyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnabyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/ronnabyte/" as BaseUrl,
     title: "Ronnabyte",
     titlePlural: "Ronnabytes",
     description: "A decimal multiple equal to 10^27 bytes.",
   },
-  ronnabytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/ronnabytes-per-second/v/1",
+  ronnabytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnabyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/ronnabytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/ronnabyte-per-second/" as BaseUrl,
     title: "Ronnabyte per Second",
     titlePlural: "Ronnabytes per Second",
     description: "A transfer rate of 10^27 bytes per second.",
@@ -18757,11 +18747,10 @@ export const systemDataTypes = {
     description:
       "The base unit of duration in the International System of Units (SI), defined as about 9 billion oscillations of the caesium atom.",
   },
-  secondsPerCubicMeter: {
-    dataTypeId:
-      "https://hash.ai/@h/types/data-type/seconds-per-cubic-meter/v/1",
+  secondPerCubicMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/second-per-cubic-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/seconds-per-cubic-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/second-per-cubic-meter/" as BaseUrl,
     title: "Second per Cubic Meter",
     titlePlural: "Seconds per Cubic Meter",
     description: "A value expressed in seconds per cubic meter.",
@@ -18772,9 +18761,9 @@ export const systemDataTypes = {
     title: "SEK",
     description: "An amount denominated in Swedish Krona (ISO 4217 SEK).",
   },
-  semitones: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/semitones/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/semitones/" as BaseUrl,
+  semitone: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/semitone/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/semitone/" as BaseUrl,
     title: "Semitone",
     titlePlural: "Semitones",
     description: "One twelfth of an octave in equal temperament.",
@@ -18785,18 +18774,18 @@ export const systemDataTypes = {
     title: "SGD",
     description: "An amount denominated in Singapore Dollar (ISO 4217 SGD).",
   },
-  shannons: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/shannons/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/shannons/" as BaseUrl,
+  shannon: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/shannon/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/shannon/" as BaseUrl,
     title: "Shannon",
     titlePlural: "Shannons",
     description:
       "A logarithmic information unit using base 2. Logarithm-base conversion factors are approximate.",
   },
-  shannonsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/shannons-per-second/v/1",
+  shannonPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/shannon-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/shannons-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/shannon-per-second/" as BaseUrl,
     title: "Shannon per Second",
     titlePlural: "Shannons per Second",
     description: "A value expressed in shannons per second.",
@@ -18838,11 +18827,11 @@ export const systemDataTypes = {
     titlePlural: "Siemens per Meter",
     description: "A value expressed in siemens per meter.",
   },
-  siemensSquareMetersPerMole: {
+  siemensSquareMeterPerMole: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/siemens-square-meters-per-mole/v/1",
+      "https://hash.ai/@h/types/data-type/siemens-square-meter-per-mole/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/siemens-square-meters-per-mole/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/siemens-square-meter-per-mole/" as BaseUrl,
     title: "Siemens Square Meter per Mole",
     titlePlural: "Siemens Square Meters per Mole",
     description: "A value expressed in siemens square meters per mole.",
@@ -18855,18 +18844,18 @@ export const systemDataTypes = {
     description:
       "The SI unit of dose equivalent, expressed as one joule per kilogram after radiation weighting.",
   },
-  sievertsPerHour: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/sieverts-per-hour/v/1",
+  sievertPerHour: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/sievert-per-hour/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/sieverts-per-hour/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/sievert-per-hour/" as BaseUrl,
     title: "Sievert per Hour",
     titlePlural: "Sieverts per Hour",
     description: "A value expressed in sieverts per hour.",
   },
-  sievertsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/sieverts-per-second/v/1",
+  sievertPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/sievert-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/sieverts-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/sievert-per-second/" as BaseUrl,
     title: "Sievert per Second",
     titlePlural: "Sieverts per Second",
     description: "A value expressed in sieverts per second.",
@@ -18925,7 +18914,7 @@ export const systemDataTypes = {
     description:
       "Logarithmic sound exposure values with an explicit reference.",
   },
-  soundExposureMetric: {
+  "soundExposure(metric)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/sound-exposure-metric/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/sound-exposure-metric/" as BaseUrl,
@@ -18962,7 +18951,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of specific acoustic impedance.",
   },
-  specificAcousticImpedanceMetric: {
+  "specificAcousticImpedance(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/specific-acoustic-impedance-metric/v/1",
     dataTypeBaseUrl:
@@ -19038,7 +19027,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of specific optical rotatory power.",
   },
-  specificOpticalRotatoryPowerMetric: {
+  "specificOpticalRotatoryPower(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/specific-optical-rotatory-power-metric/v/1",
     dataTypeBaseUrl:
@@ -19085,7 +19074,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of spectral energy density per wavelength.",
   },
-  spectralEnergyDensityPerWavelengthMetric: {
+  "spectralEnergyDensityPerWavelength(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/spectral-energy-density-per-wavelength-metric/v/1",
     dataTypeBaseUrl:
@@ -19105,7 +19094,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of spectral energy per wavelength.",
   },
-  spectralEnergyPerWavelengthMetric: {
+  "spectralEnergyPerWavelength(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/spectral-energy-per-wavelength-metric/v/1",
     dataTypeBaseUrl:
@@ -19125,7 +19114,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of spectral exposure per wavelength.",
   },
-  spectralExposurePerWavelengthMetric: {
+  "spectralExposurePerWavelength(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/spectral-exposure-per-wavelength-metric/v/1",
     dataTypeBaseUrl:
@@ -19145,7 +19134,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of spectral intensity per wavelength.",
   },
-  spectralIntensityPerWavelengthMetric: {
+  "spectralIntensityPerWavelength(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/spectral-intensity-per-wavelength-metric/v/1",
     dataTypeBaseUrl:
@@ -19165,7 +19154,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of spectral irradiance per wavelength.",
   },
-  spectralIrradiancePerWavelengthMetric: {
+  "spectralIrradiancePerWavelength(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/spectral-irradiance-per-wavelength-metric/v/1",
     dataTypeBaseUrl:
@@ -19185,7 +19174,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of spectral power per wavelength.",
   },
-  spectralPowerPerWavelengthMetric: {
+  "spectralPowerPerWavelength(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/spectral-power-per-wavelength-metric/v/1",
     dataTypeBaseUrl:
@@ -19205,7 +19194,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of spectral radiance per wavelength.",
   },
-  spectralRadiancePerWavelengthMetric: {
+  "spectralRadiancePerWavelength(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/spectral-radiance-per-wavelength-metric/v/1",
     dataTypeBaseUrl:
@@ -19340,46 +19329,45 @@ export const systemDataTypes = {
     titlePlural: "Square Megameters",
     description: "A unit equal to 10^12 square meters.",
   },
-  squareMeterKelvinsPerWatt: {
+  squareMeterKelvinPerWatt: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/square-meter-kelvins-per-watt/v/1",
+      "https://hash.ai/@h/types/data-type/square-meter-kelvin-per-watt/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/square-meter-kelvins-per-watt/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/square-meter-kelvin-per-watt/" as BaseUrl,
     title: "Square Meter Kelvin per Watt",
     titlePlural: "Square Meter Kelvins per Watt",
     description: "A value expressed in square meter kelvins per watt.",
   },
-  squareMetersPerJoule: {
-    dataTypeId:
-      "https://hash.ai/@h/types/data-type/square-meters-per-joule/v/1",
+  squareMeterPerJoule: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-meter-per-joule/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/square-meters-per-joule/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/square-meter-per-joule/" as BaseUrl,
     title: "Square Meter per Joule",
     titlePlural: "Square Meters per Joule",
     description: "A value expressed in square meters per joule.",
   },
-  squareMetersPerJouleSteradian: {
+  squareMeterPerJouleSteradian: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/square-meters-per-joule-steradian/v/1",
+      "https://hash.ai/@h/types/data-type/square-meter-per-joule-steradian/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/square-meters-per-joule-steradian/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/square-meter-per-joule-steradian/" as BaseUrl,
     title: "Square Meter per Joule Steradian",
     titlePlural: "Square Meters per Joule Steradian",
     description: "A value expressed in square meters per joule steradian.",
   },
-  squareMetersPerKilogram: {
+  squareMeterPerKilogram: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/square-meters-per-kilogram/v/1",
+      "https://hash.ai/@h/types/data-type/square-meter-per-kilogram/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/square-meters-per-kilogram/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/square-meter-per-kilogram/" as BaseUrl,
     title: "Square Meter per Kilogram",
     titlePlural: "Square Meters per Kilogram",
     description: "A value expressed in square meters per kilogram.",
   },
-  squareMetersPerMole: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/square-meters-per-mole/v/1",
+  squareMeterPerMole: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-meter-per-mole/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/square-meters-per-mole/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/square-meter-per-mole/" as BaseUrl,
     title: "Square Meter per Mole",
     titlePlural: "Square Meters per Mole",
     description: "A value expressed in square meters per mole.",
@@ -19393,20 +19381,20 @@ export const systemDataTypes = {
     titlePlural: "Square Meters per Second",
     description: "The coherent SI unit of kinematic viscosity.",
   },
-  squareMetersPerSteradian: {
+  squareMeterPerSteradian: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/square-meters-per-steradian/v/1",
+      "https://hash.ai/@h/types/data-type/square-meter-per-steradian/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/square-meters-per-steradian/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/square-meter-per-steradian/" as BaseUrl,
     title: "Square Meter per Steradian",
     titlePlural: "Square Meters per Steradian",
     description: "A value expressed in square meters per steradian.",
   },
-  squareMetersPerVoltSecond: {
+  squareMeterPerVoltSecond: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/square-meters-per-volt-second/v/1",
+      "https://hash.ai/@h/types/data-type/square-meter-per-volt-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/square-meters-per-volt-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/square-meter-per-volt-second/" as BaseUrl,
     title: "Square Meter per Volt Second",
     titlePlural: "Square Meters per Volt Second",
     description: "A value expressed in square meters per volt second.",
@@ -19519,11 +19507,11 @@ export const systemDataTypes = {
     titlePlural: "Square Terameters",
     description: "A unit equal to 10^24 square meters.",
   },
-  squareVoltsPerSquareKelvin: {
+  squareVoltPerSquareKelvin: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/square-volts-per-square-kelvin/v/1",
+      "https://hash.ai/@h/types/data-type/square-volt-per-square-kelvin/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/square-volts-per-square-kelvin/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/square-volt-per-square-kelvin/" as BaseUrl,
     title: "Square Volt per Square Kelvin",
     titlePlural: "Square Volts per Square Kelvin",
     description: "A value expressed in square volts per square kelvin.",
@@ -19736,32 +19724,32 @@ export const systemDataTypes = {
     title: "SZL",
     description: "An amount denominated in Lilangeni (ISO 4217 SZL).",
   },
-  tebibits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/tebibits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/tebibits/" as BaseUrl,
+  tebibit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/tebibit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/tebibit/" as BaseUrl,
     title: "Tebibit",
     titlePlural: "Tebibits",
     description: "A binary multiple equal to 2^40 bits.",
   },
-  tebibitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/tebibits-per-second/v/1",
+  tebibitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/tebibit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/tebibits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/tebibit-per-second/" as BaseUrl,
     title: "Tebibit per Second",
     titlePlural: "Tebibits per Second",
     description: "A transfer rate of 2^40 bits per second.",
   },
-  tebibytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/tebibytes/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/tebibytes/" as BaseUrl,
+  tebibyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/tebibyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/tebibyte/" as BaseUrl,
     title: "Tebibyte",
     titlePlural: "Tebibytes",
     description: "A binary multiple equal to 2^40 bytes.",
   },
-  tebibytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/tebibytes-per-second/v/1",
+  tebibytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/tebibyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/tebibytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/tebibyte-per-second/" as BaseUrl,
     title: "Tebibyte per Second",
     titlePlural: "Tebibytes per Second",
     description: "A transfer rate of 2^40 bytes per second.",
@@ -19794,7 +19782,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of temperature interval per pressure.",
   },
-  temperatureIntervalPerPressureMetric: {
+  "temperatureIntervalPerPressure(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/temperature-interval-per-pressure-metric/v/1",
     dataTypeBaseUrl:
@@ -19866,17 +19854,17 @@ export const systemDataTypes = {
     titlePlural: "Terabecquerels",
     description: "A unit equal to 10^12 becquerels.",
   },
-  terabits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/terabits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/terabits/" as BaseUrl,
+  terabit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terabit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/terabit/" as BaseUrl,
     title: "Terabit",
     titlePlural: "Terabits",
     description: "A decimal multiple equal to 10^12 bits.",
   },
-  terabitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/terabits-per-second/v/1",
+  terabitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terabit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/terabits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/terabit-per-second/" as BaseUrl,
     title: "Terabit per Second",
     titlePlural: "Terabits per Second",
     description: "A transfer rate of 10^12 bits per second.",
@@ -19887,10 +19875,10 @@ export const systemDataTypes = {
     title: "Terabytes",
     description: "A unit of information equal to one trillion bytes.",
   },
-  terabytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/terabytes-per-second/v/1",
+  terabytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terabyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/terabytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/terabyte-per-second/" as BaseUrl,
     title: "Terabyte per Second",
     titlePlural: "Terabytes per Second",
     description: "A transfer rate of 10^12 bytes per second.",
@@ -20124,7 +20112,7 @@ export const systemDataTypes = {
     titlePlural: "Thermal Conductances",
     description: "Numeric values in convertible units of thermal conductance.",
   },
-  thermalConductanceMetric: {
+  "thermalConductance(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/thermal-conductance-metric/v/1",
     dataTypeBaseUrl:
@@ -20184,7 +20172,7 @@ export const systemDataTypes = {
     titlePlural: "Thermal Insulances",
     description: "Numeric values in convertible units of thermal insulance.",
   },
-  thermalInsulanceMetric: {
+  "thermalInsulance(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/thermal-insulance-metric/v/1",
     dataTypeBaseUrl:
@@ -20202,7 +20190,7 @@ export const systemDataTypes = {
     titlePlural: "Thermal Resistances",
     description: "Numeric values in convertible units of thermal resistance.",
   },
-  thermalResistanceMetric: {
+  "thermalResistance(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/thermal-resistance-metric/v/1",
     dataTypeBaseUrl:
@@ -20222,7 +20210,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of thermoelectric coefficient.",
   },
-  thermoelectricCoefficientMetric: {
+  "thermoelectricCoefficient(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/thermoelectric-coefficient-metric/v/1",
     dataTypeBaseUrl:
@@ -20518,9 +20506,9 @@ export const systemDataTypes = {
     title: "UZS",
     description: "An amount denominated in Uzbekistan Sum (ISO 4217 UZS).",
   },
-  vars: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/vars/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/vars/" as BaseUrl,
+  var: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/var/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/var/" as BaseUrl,
     title: "Var",
     titlePlural: "Vars",
     description: "A value expressed in vars.",
@@ -20541,7 +20529,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of vibrational density of states.",
   },
-  vibrationalDensityOfStatesMetric: {
+  "vibrationalDensityOfStates(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/vibrational-density-of-states-metric/v/1",
     dataTypeBaseUrl:
@@ -20557,10 +20545,10 @@ export const systemDataTypes = {
     title: "VND",
     description: "An amount denominated in Dong (ISO 4217 VND).",
   },
-  voltAmperes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/volt-amperes/v/1",
+  voltAmpere: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/volt-ampere/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/volt-amperes/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/volt-ampere/" as BaseUrl,
     title: "Volt Ampere",
     titlePlural: "Volt Amperes",
     description: "A value expressed in volt amperes.",
@@ -20582,10 +20570,10 @@ export const systemDataTypes = {
     description:
       "A unit of electric field strength expressed in volts per foot.",
   },
-  voltsPerKelvin: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/volts-per-kelvin/v/1",
+  voltPerKelvin: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/volt-per-kelvin/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/volts-per-kelvin/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/volt-per-kelvin/" as BaseUrl,
     title: "Volt per Kelvin",
     titlePlural: "Volts per Kelvin",
     description: "A value expressed in volts per kelvin.",
@@ -20692,10 +20680,10 @@ export const systemDataTypes = {
     titlePlural: "Watts per Meter Kelvin",
     description: "The coherent SI unit used to express thermal conductivity.",
   },
-  wattsPerNanometer: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/watts-per-nanometer/v/1",
+  wattPerNanometer: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/watt-per-nanometer/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/watts-per-nanometer/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/watt-per-nanometer/" as BaseUrl,
     title: "Watt per Nanometer",
     titlePlural: "Watts per Nanometer",
     description:
@@ -20719,20 +20707,20 @@ export const systemDataTypes = {
     titlePlural: "Watts per Square Meter",
     description: "The coherent SI unit used to express heat flux density.",
   },
-  wattsPerSquareMeterKelvin: {
+  wattPerSquareMeterKelvin: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/watts-per-square-meter-kelvin/v/1",
+      "https://hash.ai/@h/types/data-type/watt-per-square-meter-kelvin/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/watts-per-square-meter-kelvin/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/watt-per-square-meter-kelvin/" as BaseUrl,
     title: "Watt per Square Meter Kelvin",
     titlePlural: "Watts per Square Meter Kelvin",
     description: "A value expressed in watts per square meter kelvin.",
   },
-  wattsPerSquareMeterNanometer: {
+  wattPerSquareMeterNanometer: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/watts-per-square-meter-nanometer/v/1",
+      "https://hash.ai/@h/types/data-type/watt-per-square-meter-nanometer/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/watts-per-square-meter-nanometer/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/watt-per-square-meter-nanometer/" as BaseUrl,
     title: "Watt per Square Meter Nanometer",
     titlePlural: "Watts per Square Meter Nanometer",
     description:
@@ -20755,41 +20743,41 @@ export const systemDataTypes = {
     titlePlural: "Watts per Steradian",
     description: "The coherent SI unit used to express radiant intensity.",
   },
-  wattsPerSteradianCubicMeter: {
+  wattPerSteradianCubicMeter: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/watts-per-steradian-cubic-meter/v/1",
+      "https://hash.ai/@h/types/data-type/watt-per-steradian-cubic-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/watts-per-steradian-cubic-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/watt-per-steradian-cubic-meter/" as BaseUrl,
     title: "Watt per Steradian Cubic Meter",
     titlePlural: "Watts per Steradian Cubic Meter",
     description:
       "A wavelength spectral density expressed in W/(sr·m³); its spectral variable is wavelength in meters.",
   },
-  wattsPerSteradianMeter: {
+  wattPerSteradianMeter: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/watts-per-steradian-meter/v/1",
+      "https://hash.ai/@h/types/data-type/watt-per-steradian-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/watts-per-steradian-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/watt-per-steradian-meter/" as BaseUrl,
     title: "Watt per Steradian Meter",
     titlePlural: "Watts per Steradian Meter",
     description:
       "A wavelength spectral density expressed in W/(sr·m); its spectral variable is wavelength in meters.",
   },
-  wattsPerSteradianNanometer: {
+  wattPerSteradianNanometer: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/watts-per-steradian-nanometer/v/1",
+      "https://hash.ai/@h/types/data-type/watt-per-steradian-nanometer/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/watts-per-steradian-nanometer/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/watt-per-steradian-nanometer/" as BaseUrl,
     title: "Watt per Steradian Nanometer",
     titlePlural: "Watts per Steradian Nanometer",
     description:
       "A wavelength spectral density expressed in W/(sr·nm); equal to 10^9 W/(sr·m).",
   },
-  wattsPerSteradianSquareMeterNanometer: {
+  wattPerSteradianSquareMeterNanometer: {
     dataTypeId:
-      "https://hash.ai/@h/types/data-type/watts-per-steradian-square-meter-nanometer/v/1",
+      "https://hash.ai/@h/types/data-type/watt-per-steradian-square-meter-nanometer/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/watts-per-steradian-square-meter-nanometer/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/watt-per-steradian-square-meter-nanometer/" as BaseUrl,
     title: "Watt per Steradian Square Meter Nanometer",
     titlePlural: "Watts per Steradian Square Meter Nanometer",
     description:
@@ -20803,27 +20791,27 @@ export const systemDataTypes = {
     description:
       "The unit of power or radiant flux in the International System of Units (SI) – the rate at which work is done or energy is transferred. Equal to one joule per second.",
   },
-  wattsPerCubicMeter: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/watts-per-cubic-meter/v/1",
+  wattPerCubicMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/watt-per-cubic-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/watts-per-cubic-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/watt-per-cubic-meter/" as BaseUrl,
     title: "Watt per Cubic Meter",
     titlePlural: "Watts per Cubic Meter",
     description:
       "A wavelength spectral density expressed in W/m³; its spectral variable is wavelength in meters.",
   },
-  wattsPerKelvin: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/watts-per-kelvin/v/1",
+  wattPerKelvin: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/watt-per-kelvin/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/watts-per-kelvin/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/watt-per-kelvin/" as BaseUrl,
     title: "Watt per Kelvin",
     titlePlural: "Watts per Kelvin",
     description: "A value expressed in watts per kelvin.",
   },
-  wattsPerMeter: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/watts-per-meter/v/1",
+  wattPerMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/watt-per-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/watts-per-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/watt-per-meter/" as BaseUrl,
     title: "Watt per Meter",
     titlePlural: "Watts per Meter",
     description:
@@ -20855,10 +20843,10 @@ export const systemDataTypes = {
     description:
       "Wavenumber expressed in metric units, including SI units and their accepted companions.",
   },
-  weberMeters: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/weber-meters/v/1",
+  weberMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/weber-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/weber-meters/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/weber-meter/" as BaseUrl,
     title: "Weber Meter",
     titlePlural: "Weber Meters",
     description: "A value expressed in weber meters.",
@@ -20870,10 +20858,10 @@ export const systemDataTypes = {
     titlePlural: "Webers",
     description: "The SI unit of magnetic flux, equal to one volt second.",
   },
-  webersPerMeter: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/webers-per-meter/v/1",
+  weberPerMeter: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/weber-per-meter/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/webers-per-meter/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/weber-per-meter/" as BaseUrl,
     title: "Weber per Meter",
     titlePlural: "Webers per Meter",
     description: "A value expressed in webers per meter.",
@@ -20944,32 +20932,32 @@ export const systemDataTypes = {
     title: "YER",
     description: "An amount denominated in Yemeni Rial (ISO 4217 YER).",
   },
-  yobibits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/yobibits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/yobibits/" as BaseUrl,
+  yobibit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yobibit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/yobibit/" as BaseUrl,
     title: "Yobibit",
     titlePlural: "Yobibits",
     description: "A binary multiple equal to 2^80 bits.",
   },
-  yobibitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/yobibits-per-second/v/1",
+  yobibitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yobibit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/yobibits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/yobibit-per-second/" as BaseUrl,
     title: "Yobibit per Second",
     titlePlural: "Yobibits per Second",
     description: "A transfer rate of 2^80 bits per second.",
   },
-  yobibytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/yobibytes/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/yobibytes/" as BaseUrl,
+  yobibyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yobibyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/yobibyte/" as BaseUrl,
     title: "Yobibyte",
     titlePlural: "Yobibytes",
     description: "A binary multiple equal to 2^80 bytes.",
   },
-  yobibytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/yobibytes-per-second/v/1",
+  yobibytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yobibyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/yobibytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/yobibyte-per-second/" as BaseUrl,
     title: "Yobibyte per Second",
     titlePlural: "Yobibytes per Second",
     description: "A transfer rate of 2^80 bytes per second.",
@@ -21239,33 +21227,32 @@ export const systemDataTypes = {
     titlePlural: "Yottabecquerels",
     description: "A unit equal to 10^24 becquerels.",
   },
-  yottabits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/yottabits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/yottabits/" as BaseUrl,
+  yottabit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottabit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/yottabit/" as BaseUrl,
     title: "Yottabit",
     titlePlural: "Yottabits",
     description: "A decimal multiple equal to 10^24 bits.",
   },
-  yottabitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/yottabits-per-second/v/1",
+  yottabitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottabit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/yottabits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/yottabit-per-second/" as BaseUrl,
     title: "Yottabit per Second",
     titlePlural: "Yottabits per Second",
     description: "A transfer rate of 10^24 bits per second.",
   },
-  yottabytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/yottabytes/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/yottabytes/" as BaseUrl,
+  yottabyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottabyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/yottabyte/" as BaseUrl,
     title: "Yottabyte",
     titlePlural: "Yottabytes",
     description: "A decimal multiple equal to 10^24 bytes.",
   },
-  yottabytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/yottabytes-per-second/v/1",
+  yottabytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottabyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/yottabytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/yottabyte-per-second/" as BaseUrl,
     title: "Yottabyte per Second",
     titlePlural: "Yottabytes per Second",
     description: "A transfer rate of 10^24 bytes per second.",
@@ -21493,32 +21480,32 @@ export const systemDataTypes = {
     title: "ZAR",
     description: "An amount denominated in Rand (ISO 4217 ZAR).",
   },
-  zebibits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/zebibits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/zebibits/" as BaseUrl,
+  zebibit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zebibit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/zebibit/" as BaseUrl,
     title: "Zebibit",
     titlePlural: "Zebibits",
     description: "A binary multiple equal to 2^70 bits.",
   },
-  zebibitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/zebibits-per-second/v/1",
+  zebibitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zebibit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/zebibits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/zebibit-per-second/" as BaseUrl,
     title: "Zebibit per Second",
     titlePlural: "Zebibits per Second",
     description: "A transfer rate of 2^70 bits per second.",
   },
-  zebibytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/zebibytes/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/zebibytes/" as BaseUrl,
+  zebibyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zebibyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/zebibyte/" as BaseUrl,
     title: "Zebibyte",
     titlePlural: "Zebibytes",
     description: "A binary multiple equal to 2^70 bytes.",
   },
-  zebibytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/zebibytes-per-second/v/1",
+  zebibytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zebibyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/zebibytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/zebibyte-per-second/" as BaseUrl,
     title: "Zebibyte per Second",
     titlePlural: "Zebibytes per Second",
     description: "A transfer rate of 2^70 bytes per second.",
@@ -21788,33 +21775,32 @@ export const systemDataTypes = {
     titlePlural: "Zettabecquerels",
     description: "A unit equal to 10^21 becquerels.",
   },
-  zettabits: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/zettabits/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/zettabits/" as BaseUrl,
+  zettabit: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettabit/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/zettabit/" as BaseUrl,
     title: "Zettabit",
     titlePlural: "Zettabits",
     description: "A decimal multiple equal to 10^21 bits.",
   },
-  zettabitsPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/zettabits-per-second/v/1",
+  zettabitPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettabit-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/zettabits-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/zettabit-per-second/" as BaseUrl,
     title: "Zettabit per Second",
     titlePlural: "Zettabits per Second",
     description: "A transfer rate of 10^21 bits per second.",
   },
-  zettabytes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/zettabytes/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/zettabytes/" as BaseUrl,
+  zettabyte: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettabyte/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/zettabyte/" as BaseUrl,
     title: "Zettabyte",
     titlePlural: "Zettabytes",
     description: "A decimal multiple equal to 10^21 bytes.",
   },
-  zettabytesPerSecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/zettabytes-per-second/v/1",
+  zettabytePerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettabyte-per-second/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/zettabytes-per-second/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/zettabyte-per-second/" as BaseUrl,
     title: "Zettabyte per Second",
     titlePlural: "Zettabytes per Second",
     description: "A transfer rate of 10^21 bytes per second.",

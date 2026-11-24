@@ -292,7 +292,7 @@ export const part8PropertyTypes: IsoPropertyType[] = [
         "The unweighted sound pressure level referenced to 20 micropascals.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.decibelsSoundPressure.dataTypeId,
+          dataTypeId: systemDataTypes["decibel(soundPressure)"].dataTypeId,
         },
       ],
     },
@@ -304,7 +304,7 @@ export const part8PropertyTypes: IsoPropertyType[] = [
       description: "The sound power level referenced to one picowatt.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.decibelsSoundPower.dataTypeId,
+          dataTypeId: systemDataTypes["decibel(soundPower)"].dataTypeId,
         },
       ],
     },
@@ -317,7 +317,7 @@ export const part8PropertyTypes: IsoPropertyType[] = [
         "The sound exposure level referenced to (20 micropascals)² times one second.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.decibelsSoundExposure.dataTypeId,
+          dataTypeId: systemDataTypes["decibel(soundExposure)"].dataTypeId,
         },
       ],
     },
