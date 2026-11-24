@@ -4,7 +4,7 @@ The panel on the right of the editor shows and edits the properties of what is s
 
 ## Interface
 
-Other blocks import two files:
+Other blocks import these files:
 
 - `panel.tsx` exports `PropertiesPanel`, the docked panel that the editor shell mounts.
 - `selected-item-properties.tsx` exports `SelectedItemProperties`, which picks the component for a `PanelTarget`. The preview renders it too, so the editor and the preview show the same properties.
@@ -19,6 +19,8 @@ Each kind of item has a folder named `<kind>-properties`, and a selection of sev
 | `context.ts`   | A required context with the item and what `main.tsx` resolved for it. A section reads the context and takes no props.                                                  |
 | `sub-views.ts` | One `SubView` descriptor per section. A `.tsx` file exports components only, so the descriptors have a file of their own.                                              |
 | `subviews/`    | The component of each section. `subviews/main.tsx` is the first section, the one that names the item.                                                                  |
+
+The context of `multi-selection-properties` differs: it is a plain context that holds the selected items and defaults to an empty list.
 
 The other files at the top level are what several kinds share. The guide of `ui/sub-view` describes a descriptor and the container.
 
