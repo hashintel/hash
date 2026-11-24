@@ -51,7 +51,13 @@ one "further layers" node, and the tables on the page list all of them.
 - [Working on these docs](doc:maintaining): how to declare a layer, how to
   write a guide, and how to build and read this site.
 
-## Simulation internals
+## Guides
+
+A guide describes one layer as the code is. The tables of
+[Building blocks](doc:building-blocks) link every guide beside its block. The
+lists below group the guides to read first.
+
+### Simulation
 
 Detail the generated pages do not carry: binary formats, message protocols,
 and the costs behind each design choice.
@@ -67,7 +73,7 @@ and the costs behind each design choice.
 - [Monte Carlo experiments](doc:core.simulation.monte-carlo/experiments):
   bounded memory, and why only aggregates reach the UI.
 
-## Editor internals
+### Editor
 
 How `@hashintel/petrinaut` is put together: what the React layer provides and
 what the UI layer mounts.
@@ -98,8 +104,6 @@ what the UI layer mounts.
   editor, what mounts in each mode and what places each region.
 - [Monaco](doc:ui.monaco/monaco): one load of Monaco, one model per document
   URI, and how typing reaches the document.
-- [Editor performance on a large net](doc:editor-performance): what each
-  gesture costs on about 500 nodes, how to measure it, and where the cost is.
 
 Layer rules in `archinaut.config.ts` hold the directions between these parts.
 `yarn workspace @apps/petrinaut-docs lint:arch-docs` fails on a dependency that
@@ -107,7 +111,7 @@ breaks one. The [Architecture](architecture) page lists every rule with its
 reason under "Enforced rules"; one is that [react](layer:react) never depends
 on [ui](layer:ui).
 
-## Embedding Petrinaut
+### Embedding Petrinaut
 
 How a host application connects its own document store to the editor and
 extends the editor with plugins.
@@ -115,10 +119,39 @@ extends the editor with plugins.
 - [Embedding in a host application](doc:core.handle/host-integration): the
   `PetrinautDocHandle` contract, the invariants the editor relies on, and a
   worked adapter.
-- [Handle contract gaps](doc:core.handle/contract-gaps): where the contract
-  under-specifies or misbehaves, and the enhancement each gap calls for.
 - [Plugins](doc:ui.plugins/overview): what a plugin is, how to write one, the
   API reference, and how the editor runs plugins.
+
+## Design notes
+
+A design note is a proposal, a plan or a list of gaps. It says what is to be
+built or changed, so parts of it describe code that does not exist, or code as
+it was. [Writing a layer guide](doc:maintaining/writing-a-guide) exempts these
+pages from the guide template.
+
+- [Event-driven simulation](doc:core.simulation/event-driven-design): the
+  proposal for the [event trace](layer:core.simulation.event-trace), which is
+  built, with the reasons behind its steppers. Its opening describes Quick
+  Simulation as it was before the trace: one frame per fixed step.
+- [Next steps](doc:core.composition/next-steps): what composition does not do
+  yet, in the order it is expected to come, and what each step needs first.
+- [Handle contract gaps](doc:core.handle/contract-gaps): where the
+  `PetrinautDocHandle` contract leaves behaviour open, what happens today, and
+  the change each gap calls for.
+
+## Measurements
+
+A measurement page reports costs with the way to reproduce them. Its numbers
+describe one machine and the revision it names.
+
+- [Editor performance on a large net](doc:editor-performance): what each
+  gesture costs on about 500 nodes, how to measure it, and where the cost is.
+- [Monaco performance investigation](doc:monaco-performance): what opening a
+  code editor and typing in it cost, and the prototypes measured against
+  them.
+- [Simulation performance](doc:core.simulation/performance): where the time of
+  a Monte Carlo experiment goes, with a table of what is built and what is
+  proposed.
 
 ## The packages at a glance
 
@@ -140,6 +173,8 @@ how a study runs. It declares one layer, `optimizer-core`.
 Its layers cover the routes, the example catalog, the plugins, and the Vercel
 functions in `api/`. These pages describe how it drives Petrinaut:
 [Router integration](doc:website.routes/router-integration) for the navigation
-contract, [oEmbed](doc:website.api/embedding) for the embed endpoint, and
+contract, [oEmbed](doc:website.api/embedding) for the embed endpoint,
 [The demo site's plugins](doc:website.plugins/plugins) for the plugins it gives
-the editor.
+the editor, and
+[Experiments in AI chat](doc:website.plugins.petrinaut-ai-chat/experiment-chat)
+for the experiment card of its assistant.
