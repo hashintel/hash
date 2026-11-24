@@ -5,7 +5,7 @@ sidebar_order: 10
 ---
 
 The canvas renders the active net as an interactive graph and owns its scene, its pointer state, the per-frame simulation values and the gestures.
-The editor and the [preview](layer:ui.preview) both mount it, so it imports nothing from the [editor shell](layer:ui.views.editor). No rule of `archinaut check` enforces that.
+The editor and the [preview](layer:ui.preview) both mount it, so it imports nothing from the [editor shell](layer:ui.views.editor). A rule of `archinaut check` holds that.
 
 ![A gesture changes one store, the scene is derived again, React Flow renders the nodes whose object changed, and the arc layer the arcs whose shape changed](./canvas-flow.d2)
 

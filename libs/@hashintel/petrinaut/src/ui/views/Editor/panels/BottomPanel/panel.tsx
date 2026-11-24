@@ -1,6 +1,9 @@
 /**
  * @layerRoot ui.views.editor.bottom-panel
  * @role Shows diagnostics, compilation, simulation settings and the timeline of a run or a recording as tabs under the canvas
+ *
+ * The Timeline tabs are a layer of their own in `subviews/timeline/`, which
+ * the preview imports too.
  */
 
 import { use, useEffect } from "react";

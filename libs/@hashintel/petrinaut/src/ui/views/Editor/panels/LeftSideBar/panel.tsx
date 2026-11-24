@@ -1,6 +1,8 @@
 /**
  * @layerRoot ui.views.editor.left-sidebar
  * @role Lists the entities, the nets, the library components and the search results of a document as sections in the left panel
+ *
+ * Also imported by the preview: `subviews/nets-list.tsx`.
  */
 
 import { use } from "react";

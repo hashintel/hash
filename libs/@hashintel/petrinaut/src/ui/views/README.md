@@ -5,8 +5,10 @@ role: The top-level screens of the editor, which are the editor shell, the net c
 
 Three subfolders are screens: the [editor shell](layer:ui.views.editor), the
 [canvas](layer:ui.views.canvas) and the [notebook](layer:ui.views.notebook).
-The fourth, `shared/`, holds code that two screens use.
+A fourth screen, [Simulate](layer:ui.views.editor.simulate), is the workspace
+of the Simulate mode and lives in the shell's folder. `shared/` holds code
+that two screens use.
 
-The canvas and the notebook import nothing from the editor shell. No rule of
-`archinaut check` enforces it. [The canvas](doc:ui.views.canvas/canvas) gives
+The canvas and the notebook import nothing from the editor shell. Two rules of
+`archinaut check` hold that. [The canvas](doc:ui.views.canvas/canvas) gives
 the reason.
