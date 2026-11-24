@@ -11,12 +11,12 @@ import {
   previewSearchToNavigationState,
 } from "./navigation-search";
 
-const knownKeys = ["scenario", "subnet", "itemType", "itemId"] as const;
+const knownKeys = ["scenario", "component", "itemType", "itemId"] as const;
 
 const plausibleValues = fc.constantFrom<unknown>(
   "none",
   "scenario-1",
-  "subnet-1",
+  "component-1",
   "place",
   "transition",
   "not-a-type",

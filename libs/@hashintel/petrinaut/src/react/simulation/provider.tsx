@@ -10,7 +10,9 @@ import {
   createExperimentReader,
   DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
   placeCountMetricSpecs,
-  simulatorSamplePeriod,
+  runClockOf,
+  runContinuityOf,
+  experimentSamplePeriod,
   compileScenario,
   synthesizeAdHocScenario,
   type AdHocScenarioState,
@@ -49,6 +51,7 @@ import {
   type SimulatorSelection,
 } from "../simulators/context";
 import { SDCPNContext } from "../state/sdcpn-context";
+import { useExecutableDefinition } from "../state/use-executable-definition";
 import { constantStore, selectStore, useStore } from "../use-store";
 import {
   type InitialMarking,
@@ -69,6 +72,7 @@ import {
   simulatorSelectionIn,
   type SimulatorChoices,
 } from "./provider/simulator-selection";
+import { runEndOf } from "./run-end";
 import { useScenarioHir } from "./use-scenario-hir";
 
 /**
@@ -459,7 +463,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const activeCompiler: SimulationCompiler = compiler ?? languageClient;
   const { requestHirArtifacts, requestScenarioHir } = activeCompiler;
   const navigation = usePetrinautNavigation();
-  const { extensions, petriNetDefinition } = sdcpnContext;
+  const { extensions } = sdcpnContext;
+  // A run takes one net: the document with the components of its imports
+  // inlined. Its root places, parameters and scenarios are the document's.
+  const petriNetDefinition = useExecutableDefinition();
   const { addNotification } = use(NotificationsContext);
 
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
@@ -923,11 +930,19 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       };
       if (currentState.mode === "stochastic") {
         const metricSpecs = placeCountMetricSpecs(simulationSdcpn.places);
+        const experimentClock = runClockOf(
+          simulationSdcpn,
+          simulationExtensions,
+        );
         // Named to the simulator rather than left to it, so the samples are
         // spaced as playback and a kept experiment say they are.
         const samplePeriod =
           (registration
-            ? simulatorSamplePeriod(registration, selection.parameters)
+            ? experimentSamplePeriod(
+                experimentClock,
+                registration,
+                selection.parameters,
+              )
             : null) ?? DEFAULT_EXPERIMENT_SAMPLE_PERIOD;
         const experiment = await startSimulatorExperiment(
           registration,
@@ -940,8 +955,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
           reader: createExperimentReader(experiment.metrics),
           runCount: currentState.runs,
           seed,
+          clock: experimentClock,
           // An experiment without an end is refused before it starts.
-          maxTime: maxTime ?? 0,
+          maxTime: runEndOf(experimentClock, maxTime ?? 0),
           samplePeriod,
           metricSpecs,
           simulator: selection,
@@ -1268,6 +1284,16 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         : null,
   );
 
+  // The run or the experiment says what its positions count. Before one
+  // exists the net does: an untimed net is simulated in steps in either mode.
+  const clock =
+    eventSimulation?.clock ??
+    stochastic?.run.clock ??
+    runClockOf(petriNetDefinition, extensions);
+  const continuity =
+    eventSimulation?.continuity ??
+    runContinuityOf(petriNetDefinition, extensions);
+
   const contextValue: SimulationContextValue = {
     state: simulationState,
     error,
@@ -1283,6 +1309,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     maxTime: maxTimeIn(mode, stateValues.maxTime),
     totalFramesStore,
     mode,
+    clock,
+    continuity,
     simulatorSelection,
     runs: stateValues.runs,
     stochasticRun: stochastic?.run ?? null,

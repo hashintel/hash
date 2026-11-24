@@ -21,6 +21,7 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   EMPTY_AD_HOC_STATE,
+  runClockOf,
   synthesizeAdHocOptimization,
   WEBGPU_FIXED_STEP_SIMULATOR_ID,
 } from "@hashintel/petrinaut-core";
@@ -41,6 +42,7 @@ import {
   SimulatorsContext,
 } from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import {
@@ -873,6 +875,11 @@ export const CreateExperimentDrawer = ({
   onClose,
 }: CreateExperimentDrawerProps) => {
   const { petriNetDefinition, extensions } = use(SDCPNContext);
+  const executableDefinition = useExecutableDefinition();
+  // An untimed net's runs count steps: the form asks for a step to end at,
+  // and shows no parameter of how a simulator advances time.
+  const clock = runClockOf(petriNetDefinition, extensions);
+  const inSteps = clock === "steps";
   const createOptimizedExperiment = useCreateOptimizedExperiment();
   const { diagnosticsByUri, requestConstraint } = use(LanguageClientContext);
   const optimizationSource = use(PetrinautOptimizationContext);
@@ -1039,7 +1046,7 @@ export const CreateExperimentDrawer = ({
   );
   const gpu = useGpuAvailability({
     enabled: open && webGpuSimulator?.isAvailable() === true,
-    sdcpn: petriNetDefinition,
+    sdcpn: executableDefinition,
     extensions,
     metricSpecs: draftMetricSpecs,
   });
@@ -1071,6 +1078,7 @@ export const CreateExperimentDrawer = ({
     simulatorDraft,
     simulators,
     simulatorRefusals,
+    clock,
   );
 
   const objectiveExecution = {
@@ -1349,15 +1357,24 @@ export const CreateExperimentDrawer = ({
                         <label
                           className={labelStyle}
                           htmlFor="experiment-max-time"
+                          title={
+                            inSteps
+                              ? "This net is untimed: its runs are fired step by step, and every step is sampled."
+                              : undefined
+                          }
                         >
-                          Max time (s)
+                          {inSteps ? "End at step" : "Max time (s)"}
                         </label>
                         <NumberInput
                           htmlForId="experiment-max-time"
-                          aria-label="Max time (seconds)"
+                          aria-label={
+                            inSteps
+                              ? "Step the runs end at"
+                              : "Max time (seconds)"
+                          }
                           size="sm"
-                          min={0}
-                          step="any"
+                          min={inSteps ? 1 : 0}
+                          step={inSteps ? 1 : "any"}
                           value={maxTime === "" ? null : Number(maxTime)}
                           onChange={(nextMaxTime) =>
                             setMaxTime(

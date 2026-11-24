@@ -1,13 +1,17 @@
 import * as v from "valibot";
 
-import { vObligation } from "./construction/obligations";
-import { vReflection } from "./construction/reflections";
-import { vClaimWith } from "./elicitation/claims";
-import { vEntityWith, vEntityUpdateWith } from "./elicitation/entities";
-import { vOrigin } from "./shared/epistemics";
+import { readRecordedNetElementKind } from "../petrinaut/petrinaut-tool-effects";
+import { obligationSchema } from "./construction/obligations";
+import { reflectionSchema } from "./construction/reflections";
+import { claimSchemaWith } from "./elicitation/claims";
+import {
+  entitySchemaWith,
+  entityUpdateSchemaWith,
+} from "./elicitation/entities";
+import { originSchema } from "./shared/epistemics";
 import { entityIdGrammar } from "./shared/references";
 
-const vEntityUpdateRoute = v.pipe(
+const entityUpdateRouteSchema = v.pipe(
   v.string(),
   v.regex(new RegExp(`^entity/update/${entityIdGrammar}$`)),
   // The regex guarantees the template-literal shape; the cast restores it for discrimination.
@@ -17,23 +21,28 @@ const vEntityUpdateRoute = v.pipe(
   ),
 );
 
-const vLedgerEntryWith = (origin: typeof vOrigin) =>
+const ledgerEntrySchemaWith = ({ origin }: { origin: typeof originSchema }) =>
   v.pipe(
     v.union([
-      v.strictTuple([v.literal("entity/create"), vEntityWith(origin)]),
-      v.strictTuple([vEntityUpdateRoute, vEntityUpdateWith(origin)]),
-      v.strictTuple([v.literal("claim/create"), vClaimWith(origin)]),
-      v.strictTuple([v.literal("reflection/create"), vReflection]),
-      v.strictTuple([v.literal("obligation/create"), vObligation]),
+      v.strictTuple([v.literal("entity/create"), entitySchemaWith({ origin })]),
+      v.strictTuple([
+        entityUpdateRouteSchema,
+        entityUpdateSchemaWith({ origin }),
+      ]),
+      v.strictTuple([v.literal("claim/create"), claimSchemaWith({ origin })]),
+      v.strictTuple([v.literal("reflection/create"), reflectionSchema]),
+      v.strictTuple([v.literal("obligation/create"), obligationSchema]),
     ]),
     v.description(
       "Exactly two members: [route, payload]. The route names the record type, the operation and, for updates, the target address. Do not add an ID, index or turn member.",
     ),
   );
 
-export const vLedgerEntry = vLedgerEntryWith(vOrigin);
+export const ledgerEntrySchema = ledgerEntrySchemaWith({
+  origin: originSchema,
+});
 
-export type LedgerEntry = v.InferOutput<typeof vLedgerEntry>;
+export type LedgerEntry = v.InferOutput<typeof ledgerEntrySchema>;
 
 type RecordType = "entity" | "claim" | "obligation";
 
@@ -102,14 +111,18 @@ const localReferenceProblem = (entries: LedgerEntry[]): string | undefined => {
 
 /**
  * A Ledger batch schema whose entries describe origin with `origin`. It
- * accepts exactly the batches {@link vLedgerAppend} does; only the
+ * accepts exactly the batches {@link ledgerAppendSchema} does; only the
  * descriptions a model reads differ.
  */
-export const vLedgerAppendWith = (origin: typeof vOrigin) =>
+export const ledgerAppendSchemaWith = ({
+  origin,
+}: {
+  origin: typeof originSchema;
+}) =>
   v.pipe(
     v.strictObject({
       entries: v.pipe(
-        v.array(vLedgerEntryWith(origin)),
+        v.array(ledgerEntrySchemaWith({ origin })),
         v.rawCheck(({ dataset, addIssue }) => {
           if (!dataset.typed) return;
           const message = localReferenceProblem(dataset.value);
@@ -133,6 +146,47 @@ export const vLedgerAppendWith = (origin: typeof vOrigin) =>
     ),
   );
 
-export const vLedgerAppend = vLedgerAppendWith(vOrigin);
+export const ledgerAppendSchema = ledgerAppendSchemaWith({
+  origin: originSchema,
+});
 
-export type LedgerAppend = v.InferOutput<typeof vLedgerAppend>;
+export type LedgerAppend = v.InferOutput<typeof ledgerAppendSchema>;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isList = (value: unknown): value is unknown[] => Array.isArray(value);
+
+const readRecordedAddress = (address: unknown): unknown =>
+  isRecord(address)
+    ? { ...address, kind: readRecordedNetElementKind(address.kind) }
+    : address;
+
+const readRecordedEntry = (entry: unknown): unknown => {
+  if (!isList(entry)) {
+    return entry;
+  }
+  const [route, payload, ...rest] = entry;
+  return route === "reflection/create" &&
+    isRecord(payload) &&
+    isList(payload.netElements)
+    ? [
+        route,
+        {
+          ...payload,
+          netElements: payload.netElements.map(readRecordedAddress),
+        },
+        ...rest,
+      ]
+    : entry;
+};
+
+/**
+ * A batch as a conversation recorded it, with the net elements its
+ * reflections name under the kinds of today. Takes whatever was recorded, so
+ * it reads no more of the shape than those addresses.
+ */
+export const readRecordedLedgerAppend = (input: unknown): unknown =>
+  isRecord(input) && isList(input.entries)
+    ? { ...input, entries: input.entries.map(readRecordedEntry) }
+    : input;

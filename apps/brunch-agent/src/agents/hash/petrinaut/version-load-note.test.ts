@@ -13,10 +13,11 @@ import {
 } from "@earendil-works/pi-ai";
 import { start } from "@flue/runtime/node";
 import { createAgentRouter } from "@flue/runtime/routing";
-import { createFlueClient } from "@flue/sdk";
+import { createFlueClient, type DeliveredMessage } from "@flue/sdk";
 import { afterAll, beforeAll, expect, test, vi } from "vitest";
 
 import {
+  ledgerCommentsMessage,
   petrinautContextualUserMessageBody,
   petrinautSubmissionContext,
   type VersionLoad,
@@ -89,30 +90,31 @@ const conversation = () => {
     fetch: async (input, init) =>
       router.fetch(input instanceof Request ? input : new Request(input, init)),
   });
-  return async (userText: string, versionLoad?: VersionLoad) => {
-    const submissionContext = petrinautSubmissionContext({
-      words: [],
-      ...(versionLoad === undefined ? {} : { versionLoad }),
-    });
-    const receipt = await client.send({
-      initialData: { binding },
-      message: {
-        kind: "user",
-        body:
-          submissionContext === undefined
-            ? userText
-            : petrinautContextualUserMessageBody({
-                userText,
-                diagnosticsContext: "",
-                submissionContext,
-              }),
-      },
-    });
+  const deliver = async (message: DeliveredMessage) => {
+    const receipt = await client.send({ initialData: { binding }, message });
     await client.wait(receipt, { signal: AbortSignal.timeout(10_000) });
     const request = requests.at(-1);
     if (!request) throw new Error("The model was never asked.");
     return request;
   };
+  const send = async (userText: string, versionLoad?: VersionLoad) => {
+    const submissionContext = petrinautSubmissionContext({
+      words: [],
+      ...(versionLoad === undefined ? {} : { versionLoad }),
+    });
+    return deliver({
+      kind: "user",
+      body:
+        submissionContext === undefined
+          ? userText
+          : petrinautContextualUserMessageBody({
+              userText,
+              diagnosticsContext: "",
+              submissionContext,
+            }),
+    });
+  };
+  return Object.assign(send, { deliver });
 };
 
 const earlierVersion = {
@@ -148,6 +150,22 @@ test("a later load of a version already announced is announced again", async () 
   });
   expect(again.filter((text) => text.startsWith(note))).toHaveLength(2);
   expect(again.at(-1)).toBe(`${note}\n\nBack to that one.`);
+});
+
+test("a turn of Ledger comments after a version load carries the note, and the load itself stays out of the model's view", async () => {
+  const send = conversation();
+  await send("Add the reservoir.");
+  const comments = [{ id: "n1", records: ["e1"], text: "Two reservoirs." }];
+  const afterLoad = await send.deliver(
+    ledgerCommentsMessage(comments, { versionLoad: earlierVersion }),
+  );
+  const commentTurn = afterLoad.at(-1) ?? "";
+  expect(commentTurn).toContain(`${note}\n\n${JSON.stringify({ comments })}`);
+  expect(commentTurn).not.toContain(earlierVersion.id);
+
+  const following = await send("And the overflow?", earlierVersion);
+  expect(following.filter((text) => text.includes(note))).toHaveLength(1);
+  expect(following.at(-1)).toBe("And the overflow?");
 });
 
 test("turns without a version load read exactly as before", async () => {

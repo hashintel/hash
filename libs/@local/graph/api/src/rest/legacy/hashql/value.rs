@@ -6,7 +6,17 @@ use hashql_mir::interpret::value::{Int, Num, Ptr, Value};
 use serde::Serialize as _;
 
 fn serialize_int<S: serde::Serializer>(int: &Int, serializer: S) -> Result<S::Ok, S::Error> {
-    int.as_int().serialize(serializer)
+    #[derive(serde::Serialize)]
+    struct IntSer {
+        value: i128,
+        width: u8,
+    }
+
+    IntSer {
+        value: int.as_int(),
+        width: int.size(),
+    }
+    .serialize(serializer)
 }
 
 #[expect(clippy::trivially_copy_pass_by_ref)]
@@ -130,7 +140,10 @@ impl serde::Serialize for JsonValueSerialize<'_> {
     {
         match self.0 {
             OwnedValue::Unit => serializer.serialize_unit(),
-            OwnedValue::Integer(int) => serialize_int(int, serializer),
+            OwnedValue::Integer(int) if let Some(bool) = int.as_bool() => {
+                bool.serialize(serializer)
+            }
+            OwnedValue::Integer(int) => int.as_int().serialize(serializer),
             OwnedValue::Number(num) => serialize_num(num, serializer),
             OwnedValue::String(str) => serde::Serialize::serialize(str.as_ref(), serializer),
             OwnedValue::Pointer(ptr) => serialize_ptr(ptr, serializer),

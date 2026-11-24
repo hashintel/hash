@@ -30,10 +30,12 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import {
   brunchTools,
-  zDraftPetrinautExperimentInput,
+  draftPetrinautExperimentInputSchema,
+  zOfferAnswersInput,
 } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
+import { createOfferAnswersTool } from "../src/agents/shared/offer-answers.ts";
 import { createBrunchContextProjection } from "../src/shared/context-projection.ts";
 import { browserResultEnvelope } from "../src/shared/conversation/browser-tool-executor.ts";
 import { createDraftExperimentTool } from "../src/shared/petrinaut-tools/draft-experiment.ts";
@@ -95,13 +97,13 @@ let validations = 0;
 /** The draft schema, counting each authoritative validation. */
 const countedDraftSchema = {
   "~standard": {
-    ...zDraftPetrinautExperimentInput["~standard"],
+    ...draftPetrinautExperimentInputSchema["~standard"],
     validate: (value: unknown) => {
       validations += 1;
-      return zDraftPetrinautExperimentInput["~standard"].validate(value);
+      return draftPetrinautExperimentInputSchema["~standard"].validate(value);
     },
   },
-} as unknown as typeof zDraftPetrinautExperimentInput;
+} as unknown as typeof draftPetrinautExperimentInputSchema;
 
 let pendingRuns = 0;
 const neverSettles: ToolInputSchema = {
@@ -235,6 +237,7 @@ function NativeContractAgent() {
       }),
     }),
   );
+  useTool(createOfferAnswersTool(async () => ({ messages: [] })));
   useTool(pendingValidationTool);
   useTool(boundedRunTool);
   useTool(
@@ -562,7 +565,12 @@ describe("native tool schemas through the Flue/Pi tool loop", () => {
       declarations.find((tool) => tool.name === name)?.parameters;
     expect(declared("referenced_input")).toEqual(referencedDeclaration);
     expect(declared(brunchTools.draftPetrinautExperiment)).toEqual(
-      zDraftPetrinautExperimentInput["~standard"].jsonSchema.input({
+      draftPetrinautExperimentInputSchema["~standard"].jsonSchema.input({
+        target: "draft-2020-12",
+      }),
+    );
+    expect(declared(brunchTools.offerAnswers)).toEqual(
+      zOfferAnswersInput["~standard"].jsonSchema.input({
         target: "draft-2020-12",
       }),
     );

@@ -8,12 +8,14 @@ import {
   getFormValuesFromRun,
   getInitialFormValues,
   getRunBlocker,
+  withGivenValues,
 } from "./run-form";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
   FlowDefinition,
   FlowInputDefinition,
+  FlowInputValues,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 const instructionsInput: FlowInputDefinition = {
@@ -112,7 +114,7 @@ describe("getRunBlocker", () => {
           { name: "topics", payloadKind: "Text", array: true, required: true },
         ]),
       ),
-    ).toBe("“Topics” takes a text list, which can't be given here yet");
+    ).toBe("“Topics” takes a list of Text, which can't be given here yet");
   });
 });
 
@@ -151,6 +153,7 @@ describe("getFlowInputValues", () => {
         ...getInitialFormValues(inputs),
         count: { kind: "Number", value: 0 },
         subject: { kind: "Text", value: "Hello" },
+        note: { kind: "Text", value: "  " },
         due: { kind: "Date", value: "2026-11-05" },
       }),
     ).toEqual({
@@ -178,8 +181,13 @@ describe("getFlowInputValues", () => {
     });
   });
 
-  it("names the required inputs left blank", () => {
-    expect(getFlowInputValues(inputs, getInitialFormValues(inputs))).toEqual({
+  it("names the required inputs left blank, text of only spaces included", () => {
+    expect(
+      getFlowInputValues(inputs, {
+        ...getInitialFormValues(inputs),
+        subject: { kind: "Text", value: "  " },
+      }),
+    ).toEqual({
       flowInputs: { notify: { kind: "Boolean", value: false } },
       missingInputNames: ["count", "subject"],
     });
@@ -246,6 +254,33 @@ describe("getFormValuesFromRun", () => {
     });
   });
 
+  it("leaves no required input missing when the run gave them all, so it can run again at once", () => {
+    const acme =
+      "f3c9a1d2-0b7e-4c55-9f0e-6a1b2c3d4e5f~1d4c8e2a-7b3f-4a61-8c9d-0e5f6a7b8c9d" as EntityId;
+    const ranInputs: FlowInputValues = {
+      subject: { kind: "Text", value: "Hello" },
+      count: { kind: "Number", value: 0 },
+      due: { kind: "Date", value: "2026-11-05" },
+      entity: { kind: "EntityId", value: acme },
+      entities: { kind: "EntityId", value: [acme] },
+    };
+    const inputs = Object.entries(ranInputs).map(
+      ([name, { kind, value }]): FlowInputDefinition => ({
+        name,
+        payloadKind: kind,
+        array: Array.isArray(value),
+        required: true,
+      }),
+    );
+
+    expect(
+      getFlowInputValues(
+        inputs,
+        getFormValuesFromRun(inputs, ranInputs).values,
+      ),
+    ).toEqual({ flowInputs: ranInputs, missingInputNames: [] });
+  });
+
   it("fills in the run's entity and list of entities, and names an entity input that changed between one and a list", () => {
     const acme =
       "f3c9a1d2-0b7e-4c55-9f0e-6a1b2c3d4e5f~1d4c8e2a-7b3f-4a61-8c9d-0e5f6a7b8c9d" as EntityId;
@@ -288,6 +323,52 @@ describe("getFormValuesFromRun", () => {
         owners: { kind: "EntityId", array: true, value: [] },
       },
       changedInputLabels: ["Owners"],
+    });
+  });
+});
+
+describe("withGivenValues", () => {
+  it("keeps what was given for the inputs that still take it, and starts the rest afresh", () => {
+    const acme =
+      "f3c9a1d2-0b7e-4c55-9f0e-6a1b2c3d4e5f~1d4c8e2a-7b3f-4a61-8c9d-0e5f6a7b8c9d" as EntityId;
+
+    expect(
+      withGivenValues(
+        getInitialFormValues([
+          instructionsInput,
+          {
+            name: "limit",
+            payloadKind: "Number",
+            array: false,
+            required: true,
+          },
+          {
+            name: "owners",
+            payloadKind: "EntityId",
+            array: true,
+            required: false,
+          },
+          {
+            name: "dryRun",
+            payloadKind: "Boolean",
+            array: false,
+            required: false,
+          },
+        ]),
+        {
+          instructions: { kind: "Text", value: "Draft a reply" },
+          /* Took text when it was given, and one entity. */
+          limit: { kind: "Text", value: "10" },
+          owners: { kind: "EntityId", array: false, value: acme },
+          /* The flow no longer has it. */
+          tone: { kind: "Text", value: "formal" },
+        },
+      ),
+    ).toEqual({
+      instructions: { kind: "Text", value: "Draft a reply" },
+      limit: { kind: "Number", value: null },
+      owners: { kind: "EntityId", array: true, value: [] },
+      dryRun: { kind: "Boolean", value: false },
     });
   });
 });

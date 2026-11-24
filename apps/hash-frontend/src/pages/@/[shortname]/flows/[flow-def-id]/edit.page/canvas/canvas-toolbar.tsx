@@ -35,6 +35,7 @@ export const CanvasToolbar = ({
   /** `null` on a canvas that can't be edited, such as a run's, which has no Add or Organize. */
   editing: {
     onAddStep: (actionDefinitionId: string) => void;
+    onAddMenuOpen: (open: boolean) => void;
     /** Whether the flow has no steps yet, when the add menu recommends some and there's nothing to organize. */
     emptyFlow: boolean;
     onOrganize: () => void;
@@ -110,8 +111,7 @@ export const CanvasToolbar = ({
           ]}
         />
         <Button
-          variant={tool === "hand" ? "solid" : "ghost"}
-          tone={tool === "hand" ? "brand" : "neutral"}
+          variant={tool === "hand" ? "subtle" : "ghost"}
           size="md"
           iconName="hand"
           tooltip="Hand"
@@ -119,8 +119,7 @@ export const CanvasToolbar = ({
           onClick={() => onToolChange("hand")}
         />
         <Button
-          variant={tool === "select" ? "solid" : "ghost"}
-          tone={tool === "select" ? "brand" : "neutral"}
+          variant={tool === "select" ? "subtle" : "ghost"}
           size="md"
           iconName="cursor"
           tooltip="Select"
@@ -142,6 +141,7 @@ export const CanvasToolbar = ({
               }
               emptyFlow={editing.emptyFlow}
               onPick={editing.onAddStep}
+              onOpen={editing.onAddMenuOpen}
             />
             <Button
               variant="ghost"

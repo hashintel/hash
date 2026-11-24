@@ -10,17 +10,21 @@ import { useDependentTypes } from "./dependent-types/use-dependent-types";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
+  OntologyTypeVersion,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
 export const DependentTypes = ({
   entityType,
   entityTypeBaseUrl,
+  latestVersion,
   onOpenType,
 }: {
   entityType: EntityTypeWithMetadata;
   /** `null` for a draft type, which nothing can refer to yet */
   entityTypeBaseUrl: BaseUrl | null;
+  /** The type's latest version, if known */
+  latestVersion: OntologyTypeVersion | null;
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => {
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
@@ -49,6 +53,9 @@ export const DependentTypes = ({
   return (
     <DependentTypesSection
       entityType={entityType}
+      knownParentLatestVersion={
+        latestVersion ? Number.parseInt(latestVersion.toString(), 10) : null
+      }
       rows={dependentTypeRows}
       incomplete={dependentTypes?.incomplete ?? false}
       error={error}

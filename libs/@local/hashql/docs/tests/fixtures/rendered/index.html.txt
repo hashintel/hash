@@ -1,0 +1,12 @@
+# Reference
+
+Package entrypoints and the traits of their types.
+
+## <a id="entrypoints"></a>Entrypoints
+
+* [`@scope/pkg`](./pkg/index.html) Module with code and Value.
+* [`@scope/pkg/Other`](./pkg/Other.html)
+
+## <a id="traits"></a>Traits
+
+* [`Trait`](./traits.html#Trait) Trait lead.

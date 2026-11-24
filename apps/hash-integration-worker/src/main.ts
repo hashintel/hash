@@ -4,6 +4,8 @@ import { otelSetup } from "./instrument.js"; // oxfmt-ignore
 
 import * as Sentry from "@sentry/node";
 
+import { sentryDataCollectionWithoutDefaultPii } from "@local/hash-isomorphic-utils/sentry-data-collection";
+
 Sentry.init({
   dsn: process.env.HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN,
   enabled: !!process.env.HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN,
@@ -13,15 +15,19 @@ Sentry.init({
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     process.env.ENVIRONMENT ||
     (process.env.NODE_ENV === "production" ? "production" : "development"),
-  tracesSampleRate: process.env.NODE_ENV === "production" ? 1.0 : 0,
-  // Sentry registers its own global `NodeTracerProvider` by default.
-  // Letting it run after `registerOpenTelemetry` would replace the
-  // provider that the OTEL workflow client interceptor (set up in
-  // `createTemporalClient`) holds via `trace.getTracer(...)`, breaking
-  // caller → workflow → activity context propagation. With this flag
-  // Sentry shares our provider so its spans flow through the same
-  // OTLP pipeline.
-  skipOpenTelemetrySetup: !!otelSetup,
+  attachStacktrace: false,
+  dataCollection: sentryDataCollectionWithoutDefaultPii,
+  traceLifecycle: "static",
+  // With our OpenTelemetry provider registered, spans belong to it: Sentry
+  // tracing stays off so Sentry sends no spans of its own, and errors attach
+  // to the active OpenTelemetry span. Without it, Sentry sets up a provider so
+  // spans created through `@opentelemetry/api` reach Sentry.
+  ...(otelSetup
+    ? { integrations: [Sentry.openTelemetryIntegration()] }
+    : {
+        enableOpenTelemetrySetup: true,
+        tracesSampleRate: process.env.NODE_ENV === "production" ? 1.0 : 0,
+      }),
 });
 
 import { createRequire } from "node:module";
@@ -37,7 +43,6 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { runWorker } from "@local/hash-backend-utils/temporal/worker-bootstrap";
 
 import { createFlowActivities } from "./activities/flow-activities.js";
-import * as linearActivities from "./activities/linear-activities.js";
 import * as workflows from "./workflows.js";
 
 import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
@@ -82,7 +87,6 @@ async function run() {
     taskQueue: "integration",
     healthCheckPort: 4300,
     activities: {
-      ...linearActivities.createLinearIntegrationActivities({ graphApiClient }),
       ...createFlowActivities({ graphApiClient }),
       ...createCommonFlowActivities({ graphApiClient }),
     },

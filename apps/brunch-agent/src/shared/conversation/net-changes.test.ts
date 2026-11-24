@@ -286,7 +286,7 @@ test("query_basis matches a root arc to canonical addArc by transition, directio
       placeId: "queue",
       weight: 1,
       type: "standard",
-      targetSubnetId: null,
+      targetComponentId: null,
     },
     output: {
       brunchBrowserResult: true,

@@ -3,6 +3,7 @@ mod validation;
 use alloc::collections::BTreeSet;
 use core::ptr;
 
+pub(crate) use self::validation::VALUE_DATA_TYPE_ID;
 pub use self::{
     closed::{ClosedDataType, DataTypeResolveData, ResolveClosedDataTypeError},
     validation::{DataTypeValidator, ValidateDataTypeError},
@@ -514,6 +515,8 @@ impl DataType {
     /// # Examples
     ///
     /// ```
+    /// use core::assert_matches;
+    ///
     /// use serde_json::json;
     /// use type_system::ontology::data_type::schema::{DataType, DataTypeEdge};
     ///
@@ -533,7 +536,7 @@ impl DataType {
     /// for (reference, edge_type) in data_type.data_type_references() {
     ///     assert_eq!(reference.url.to_string(),
     ///                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1");
-    ///     assert!(matches!(edge_type, DataTypeEdge::Inheritance));
+    ///     assert_matches!(edge_type, DataTypeEdge::Inheritance);
     /// }
     /// ```
     pub fn data_type_references(&self) -> impl Iterator<Item = (&DataTypeReference, DataTypeEdge)> {

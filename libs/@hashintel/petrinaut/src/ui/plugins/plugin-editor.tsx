@@ -126,7 +126,7 @@ const createPluginEditor = (
 
 const usePluginEditorSnapshot = (): PluginEditorSnapshot => {
   const { title, setTitle } = use(NetManagementContext);
-  const { activeSubnetId } = use(ActiveNetContext);
+  const { activeComponentId } = use(ActiveNetContext);
   const { experiments } = use(ExperimentsContext);
   const { optimizationUnavailableReason = null } = use(OptimizationsContext);
   const { runExperiment } = use(ExperimentHostContext);
@@ -140,7 +140,7 @@ const usePluginEditorSnapshot = (): PluginEditorSnapshot => {
   return {
     state: {
       readOnlyReason,
-      activeSubnetId,
+      activeComponentId,
       setTitle,
       navigate: navigation.navigate,
       reveal,

@@ -122,7 +122,7 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.transitions[0]?.inputArcs[0]?.type).toBe("read");
     });
 
-    it("parses subnets and component instances", () => {
+    it("parses components and component instances", () => {
       const result = parseSDCPNFile({
         version: 1,
         meta: { generator: "Petrinaut" },
@@ -131,19 +131,19 @@ describe("parseSDCPNFile", () => {
           {
             id: "instance-1",
             name: "Reusable instance",
-            subnetId: "subnet-1",
+            component: { id: "component-1" },
             parameterValues: {},
             x: 500,
             y: 600,
           },
         ],
-        subnets: [
+        components: [
           {
-            id: "subnet-1",
-            name: "Reusable subnet",
+            id: "component-1",
+            name: "Reusable component",
             places: [
               {
-                id: "subnet-place-1",
+                id: "component-place-1",
                 name: "Port",
                 colorId: null,
                 dynamicsEnabled: false,
@@ -164,10 +164,12 @@ describe("parseSDCPNFile", () => {
       if (!result.ok) return;
       expect(result.sdcpn.componentInstances?.[0]).toMatchObject({
         id: idOf("instance-1"),
-        subnetId: toPetrinautId("subnet-1"),
+        component: { id: toPetrinautId("component-1") },
       });
-      expect(result.sdcpn.subnets?.[0]?.id).toBe(toPetrinautId("subnet-1"));
-      expect(result.sdcpn.subnets?.[0]?.places[0]?.isPort).toBe(true);
+      expect(result.sdcpn.components?.[0]?.id).toBe(
+        toPetrinautId("component-1"),
+      );
+      expect(result.sdcpn.components?.[0]?.places[0]?.isPort).toBe(true);
     });
 
     it("preserves component-port arc endpoints during import", () => {
@@ -183,7 +185,7 @@ describe("parseSDCPNFile", () => {
                 endpoint: {
                   kind: "componentPort",
                   componentInstanceId: "instance-1",
-                  portPlaceId: "subnet-place-1",
+                  portPlaceId: "component-place-1",
                 },
                 weight: 1,
               },
@@ -194,19 +196,19 @@ describe("parseSDCPNFile", () => {
           {
             id: "instance-1",
             name: "Reusable instance",
-            subnetId: "subnet-1",
+            component: { id: "component-1" },
             parameterValues: {},
             x: 500,
             y: 600,
           },
         ],
-        subnets: [
+        components: [
           {
-            id: "subnet-1",
-            name: "Reusable subnet",
+            id: "component-1",
+            name: "Reusable component",
             places: [
               {
-                id: "subnet-place-1",
+                id: "component-place-1",
                 name: "Port",
                 colorId: null,
                 dynamicsEnabled: false,
@@ -229,7 +231,7 @@ describe("parseSDCPNFile", () => {
         endpoint: {
           kind: "componentPort",
           componentInstanceId: idOf("instance-1"),
-          portPlaceId: idOf("subnet-place-1"),
+          portPlaceId: idOf("component-place-1"),
         },
         weight: 1,
       });
@@ -440,17 +442,17 @@ describe("parseSDCPNFile", () => {
             name: "Instance1",
             description: "An instance",
             metadata: { origin: "imported" },
-            subnetId: "subnet-1",
+            component: { id: "component-1" },
             parameterValues: {},
             x: 0,
             y: 0,
           },
         ],
-        subnets: [
+        components: [
           {
-            id: "subnet-1",
-            name: "Subnet 1",
-            description: "A subnet",
+            id: "component-1",
+            name: "Component 1",
+            description: "A component",
             metadata: { origin: "imported" },
             places: [],
             transitions: [],
@@ -479,8 +481,8 @@ describe("parseSDCPNFile", () => {
         description: "An instance",
         metadata: { origin: "imported" },
       });
-      expect(result.sdcpn.subnets?.[0]).toMatchObject({
-        description: "A subnet",
+      expect(result.sdcpn.components?.[0]).toMatchObject({
+        description: "A component",
         metadata: { origin: "imported" },
       });
     });
@@ -565,16 +567,16 @@ describe("parseSDCPNFile", () => {
           {
             id: "instance-1",
             name: "Reusable instance",
-            subnetId: "subnet-1",
+            component: { id: "component-1" },
             parameterValues: {},
             x: undefined,
             y: undefined,
           },
         ],
-        subnets: [
+        components: [
           {
-            id: "subnet-1",
-            name: "Reusable subnet",
+            id: "component-1",
+            name: "Reusable component",
             places: [],
             transitions: [],
             types: [],

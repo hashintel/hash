@@ -187,6 +187,264 @@ transition at the same instant is evaluated, and output tokens are visible to
 later events. The end-of-step batching of additions goes: with one firing per
 event there is nothing to batch, and the capacity check sees true counts.
 
+## Timed and untimed nets
+
+The target semantics give every run a clock. A net with no delay transition
+and no flow has nothing that takes time: every transition is a guard, and a
+guard fires at the instant it is enabled. Under the semantics above the whole
+run happens at `t = 0`, as one chain of superdense events `(0, k)`. The
+adaptive stepper computes exactly that, and stops at the iteration limit when
+the chain does not end. Playback is by time, so a run that never leaves
+`t = 0` has nothing to play.
+
+Such a net is **untimed**, the word the Petri-net literature uses for a net
+without delays; its counterpart is **timed**. The property is inferred from
+the net and never stored:
+
+- A net is **timed** when a transition has a `stochastic` lambda while the
+  stochasticity extension is on, or when a place runs dynamics: colours and
+  dynamics are on, the place has a colour with a `real` attribute, its
+  switch is on and it lists an equation.
+- Every other net is **untimed**. A component counts whether or not an instance
+  uses it.
+
+`netTimeOf` in `net-class.ts` reads the structure alone and compiles no
+code, so the editor, the checker and the worker get the same answer from the
+same net.
+
+### A run in steps
+
+A run of an untimed net is a sequence of **steps**, alone or as one of an
+experiment's. A step gives every
+transition one turn in definition order, and a transition that is enabled on
+its turn fires once. The tokens it consumes leave at once, and the tokens the
+step produces arrive together at its end. This is the step of
+[Semantics of one step](#semantics-of-one-step) without the span of time the
+fixed-step engine gives it, and it is a step in the sense of a Petri net's
+step semantics: a set of transitions fired together.
+
+The step stepper (`event-trace/worker/step-stepper.ts`) is a third
+`RunStepper`. It records one event per step, and the event's `time` is the
+number of the step. The trace, its store and playback are unchanged, because
+a position is a number either way. `EventSimulation.clock` says what the
+number counts, `"time"` or `"steps"`, and the editor words its readout, its
+scrubber, its timeline axis and its stopping condition from it.
+
+Two rules follow from the absence of time:
+
+- A step that fires nothing ends the run as a deadlock. The marking alone
+  decides a step, so the next step would fire nothing either. That step is
+  not counted.
+- `maxTime` is the step the run stops at.
+
+The worker builds a single run's stepper with `createRunStepper`: the step
+stepper for an untimed net, whichever simulator was selected, and the
+selected simulator's stepper for a timed one.
+
+### An experiment in steps
+
+An experiment compares its runs at the same positions. For an untimed net
+the positions are steps, so every step is a sample:
+
+- `simulatorFromExperimentBackend` sets the sample period to
+  `STEP_SAMPLE_PERIOD`, one step, whatever the simulator steps by, and
+  refuses a request that names another period.
+- A simulator hosted in the experiment workers builds each run's stepper
+  with `createRunStepper` too, so the adaptive simulator's runs are stepped
+  by the step stepper.
+- A simulator that runs the fixed-step engine itself, on the CPU or in the
+  shader, takes one engine step per sample. That is a step of the step
+  stepper, because the engine ends a run of an untimed net at the first
+  step that fires nothing: `advanceRun` on the CPU, and the shader's
+  deadlock test on the graphics card. In a timed net both still wait until
+  no transition has its tokens, since a rate may fire later.
+
+The simulator selected for an experiment of an untimed net therefore decides
+where the runs are computed and nothing else. The editor reads the clock of
+an experiment from its net, with `runClockOf`, and keeps it on the
+experiment's record.
+
+### Continuous and discrete runs
+
+A second property says what the tokens carry, and with it what lies between
+two firings. A net is **dynamically coloured** when a place runs dynamics,
+by the rule above: the values of its tokens move all the time, and a run of
+it is **continuous**. Every other net is statically coloured or uncoloured,
+and a run of it is **discrete**: its state changes only when a transition
+fires. `netColoringOf` infers it beside `netTimeOf`, from the structure
+alone.
+
+Dynamics take time, so a dynamically coloured net is timed. That leaves
+three kinds of run, and `EventSimulation` carries both answers:
+
+| Net                             | `clock` | `continuity` | A position is           |
+| ------------------------------- | ------- | ------------ | ----------------------- |
+| Untimed                         | `steps` | `discrete`   | a step                  |
+| Timed, not dynamically coloured | `time`  | `discrete`   | the time of a firing    |
+| Timed, dynamically coloured     | `time`  | `continuous` | any time the run covers |
+
+The view of a discrete run rests on an event. The editor's playback
+(`react/event-playback`) puts a view at the last firing at or before the
+time asked for, whether a scrub, a click on the timeline or a pause asked.
+A reference frame is not such an event, since it records no change. While a
+timed discrete run plays, the viewed time still moves between two firings:
+that time is what paces the run. An untimed run is the same rule with whole
+steps for times.
+
+### Guards in a timed net
+
+In a timed net a guard fires as often as its inputs enable it. Its rate is
+the rate at which tokens arrive in its input places, so it needs no rate of
+its own. A guard with no input place has no such bound. It is enabled at
+every instant and fires for ever at one of them. The fixed-step engine hid
+this by firing it once per step, which gave it the rate `1/dt`, a simulator
+setting.
+
+`checkSDCPN` reports a guard with no input arc in a timed net as an error on
+the transition's lambda, and an error blocks a run. In an untimed net the
+same transition fires once per step and is allowed.
+
+The rule is structural and covers one shape. A chain can also fail to end
+when two guards feed each other, when a guard's only inputs are read arcs, or
+when a `stochastic` lambda returns `Infinity`. None of these has a structural
+test, and the iteration limit per instant covers them at run time.
+
+### Why a lambda's kind stays declared
+
+The kind of a lambda could be inferred from its code. The engines already
+read it from the returned value: a boolean is a guard, a number is a rate.
+The declared `lambdaType` is kept for four reasons:
+
+- Whether a net is timed would depend on type-checking every lambda. That
+  needs the TypeScript compiler, which the editor's main bundle does not
+  load, and the answer would be unknown while any lambda fails to compile.
+- An empty lambda has no value to infer from, and its default, `true` or
+  `Infinity`, depends on the kind.
+- The language service types the lambda's result by the declared kind, which
+  is how a predicate that returns a number is reported.
+- Removing the field changes the file format of every stored net.
+
+## What a net is, and who says so
+
+How a run reads depends on the class of its net: three facts about the
+model, each inferred from the net and none stored. `NetClass` in
+`net-class.ts` holds them.
+
+| Dimension | Values                                                | Question                                          | Inferred from                                                               |
+| --------- | ----------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------- |
+| Time      | timed, untimed                                        | Does anything take time?                          | Structure: a rate, or a place that runs dynamics                            |
+| Colour    | uncoloured, statically coloured, dynamically coloured | What does a token carry, and when does it change? | Structure: a place with a type, a place that runs dynamics                  |
+| Chance    | stochastic, deterministic                             | Can two runs from one state differ?               | A rate, or lowered code: a kernel that draws or mints a UUID, `Math.random` |
+
+Time and colour are read from the structure, by `netTimeOf` and
+`netColoringOf`. Chance needs the net's code, so `classifyNet`
+(`hir/classify-net.ts`) infers the whole class where code is lowered. A rate
+settles chance without reading any code. With no rate, every lambda, kernel
+and differential equation is lowered and `analyzeHir` says whether it is
+deterministic. Chance is `null`, not known, while one of them does not
+compile and none that does draws.
+
+A dynamically coloured net is timed, and a timed net that is not has a rate,
+which makes it stochastic. Eight of the twelve combinations are left, and
+the bundled examples cover four:
+
+| Time    | Colour               | Chance        | Bundled example  | Known as                               |
+| ------- | -------------------- | ------------- | ---------------- | -------------------------------------- |
+| untimed | uncoloured           | deterministic | Bicycle Assembly | Petri net                              |
+| untimed | statically coloured  | deterministic | none             | coloured Petri net                     |
+| untimed | statically coloured  | stochastic    | Wheel Truing     | discrete-time Markov chain             |
+| timed   | uncoloured           | stochastic    | Café Queue, SIR  | stochastic Petri net                   |
+| timed   | statically coloured  | stochastic    | none             | stochastic coloured Petri net          |
+| timed   | dynamically coloured | deterministic | none             | hybrid automaton                       |
+| timed   | dynamically coloured | stochastic    | Drone Patrol     | piecewise-deterministic Markov process |
+
+The eighth is an untimed uncoloured net with a predicate that calls
+`Math.random()`.
+
+Other properties of a net decide who can compute a run, and how fast, and
+change nothing in how it reads: whether its places are bounded, whether it
+has components, the class of each place's dynamics (`classifyDynamics`), and
+whether the shader takes it (`assessGpuEligibility`). They stay with the
+simulator that asks.
+
+### Names
+
+- **Timed** and **untimed** are the literature's words.
+- **Uncoloured**, **statically coloured** and **dynamically coloured** are
+  the words of the net class. A coloured Petri net, in Jensen's sense, has
+  tokens that carry values, and a firing is the only thing that changes
+  them. Everdij and Blom's dynamically coloured Petri net lets the values
+  follow a differential equation between firings.
+- **Continuous** and **discrete** stay the words for a run, and for a metric
+  (`MetricShape`), with one meaning: it moves between events or it does
+  not. A net is not called continuous, because a "continuous Petri net" in
+  the literature has real-valued markings, which no net here has. And
+  "discrete" does not mean time in steps: Café Queue is a continuous-time
+  Markov chain, and a run of it is discrete.
+- **Stochastic** and **deterministic** are the literature's pair.
+  "Stochastic" also names a lambda's kind, the extension and the mode that
+  computes many runs, and the four agree: a rate makes a net stochastic, the
+  extension is what allows rates and distributions, and the mode is the one
+  that has more than one run to show.
+
+### Who decides
+
+The net decides what is true. Four parts then each have one job:
+
+- **Core infers.** `net-class.ts` reads the structure and compiles
+  nothing. What needs lowered code is inferred where code is lowered:
+  `classifyNet` adds chance, and the language server publishes the class
+  with every check, as `NetAnalysis.netClass` beside `metricShapes`. The
+  two are kept apart so that "timed" never waits for a compile, for the
+  reasons under
+  [Why a lambda's kind stays declared](#why-a-lambdas-kind-stays-declared).
+- **A simulator obeys.** It computes a run that is faithful to the net, and
+  it does not choose what the net is. A net does not become continuous
+  because another simulator was selected. `createRunStepper` already
+  overrides the selection for an untimed net.
+- **The run carries the answer.** `EventSimulation.clock` and
+  `EventSimulation.continuity` are stamped by the runtime that wraps the
+  simulator.
+- **The host shows it.** The editor reads the run, and words its readout,
+  axis, scrubber and ticks from it. Before a run exists it reads the same
+  answer for the net, published once as `SimulationContext.clock` and
+  `SimulationContext.continuity`. The Diagnostics tab reads the class of
+  the net at its top.
+
+A simulator has a say in one case: when it changes the kind of run on
+purpose. A fluid approximation computes a continuous run of a net with no
+dynamics, and tau-leaping computes a timed net on a grid. Such a simulator
+would declare it in its manifest, as `samplePeriodParameter` declares the
+grid of an experiment, and the runtime would stamp the run from the
+manifest. No bundled simulator does, and that case is the reason the answer
+is on the run and not read off the net by the host.
+
+### What does not hold yet
+
+:::caution
+
+- **"Runs dynamics" has five rules.** `hasRunningDynamics` and the engine
+  (`build-simulation.ts`) agree. `inferMetricShape` reads the switch alone.
+  The shader's `assessGpuEligibility` and `analyzeCompilation` read the
+  switch without the extensions, and `hirFromArtifacts` reads the switch,
+  the extension and the colour. The editor's solver-error series reads the
+  switch and the equation list. A place with its switch on and no equation
+  is continuous to a metric's shape and to nothing else.
+- **Simulators keep states a discrete run does not need.** The fixed-step
+  and the adaptive stepper record a reference frame every 0.1 s without a
+  firing, whatever the net. A 60 s run of Café Queue at a step of 0.01 s
+  records 112 firings and 543 reference frames, each with no derivative to
+  anchor. The editor leaves them off the timeline of a discrete run.
+- **The worker infers again.** The runtime stamps the clock on the run, and
+  the worker's `createRunStepper` works it out a second time. They agree
+  because both call `runClockOf` on the same net, and nothing else holds
+  them together.
+- **Nothing acts on chance.** The class says Bicycle Assembly is
+  deterministic, and a Stochastic simulation of it still computes 100
+  identical runs and says nothing.
+
+:::
+
 ## The simulator
 
 The run has two regimes and one loop. Nets without dynamics, which is most of
@@ -530,7 +788,9 @@ a constant of 0.1 simulated seconds in both JS steppers today.
 Both JS simulators implement one worker-side interface, `RunStepper`: the
 run's state in the buffers the engine already uses, and `advance(stopAt?)`,
 which moves to the next firing, the next reference frame or the stop time.
-Two hosts drive it:
+A run of an untimed net is stepped by a third stepper that belongs to no
+simulator, described in [A run in steps](#a-run-in-steps).
+Two hosts drive a stepper:
 
 - **The event simulation worker** never passes a stop time, because a demand
   must not change the adaptive stepper's random draws. A recorder encodes
@@ -546,7 +806,9 @@ Two hosts drive it:
 
 An experiment's `dt` is its **sample period**. A simulator that names a
 `samplePeriodParameter` steps and samples on that parameter and refuses another
-period. The adaptive simulator takes any period, 0.1 s by default.
+period. The adaptive simulator takes any period, 0.1 s by default. An
+experiment of an untimed net is sampled at every step on every simulator, as
+[An experiment in steps](#an-experiment-in-steps) describes.
 
 Two adapters join this contract to the experiment backends of
 [Backend selection](doc:core.experiments/backend-selection):
@@ -1034,3 +1296,17 @@ over several tokens, which the fixed-step engines already sum per place.
    same contract.
 5. The time unit and its display precision (FE-1822), which playback by time
    needs in increment 3.
+6. One rule for a place that runs dynamics. The document recommends that
+   the metric's shape, the shader's eligibility and report, and the
+   editor's solver-error series call `hasRunningDynamics`, so that they
+   cannot disagree with the engine.
+7. Whether the runtime hands the kind of run to the worker. The document
+   recommends sending `clock` and `continuity` with `init`, building the
+   stepper from them, and recording a reference frame only in a continuous
+   run. The inference then happens once per run, and a discrete trace holds
+   its firings and its last state.
+8. Whether a Stochastic simulation or an experiment of a deterministic net
+   says that one run is every run. Chance is inferred and published to the
+   editor, and only the Diagnostics tab reads it.
+9. Whether a simulator may declare the kind of run it computes. Not needed
+   until a simulator approximates a net with no dynamics by a flow.

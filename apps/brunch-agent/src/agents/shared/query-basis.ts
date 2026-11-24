@@ -10,6 +10,7 @@ import {
   netElementKinds,
   traceLedger,
 } from "@hashintel/brunch-agent";
+import { migrateLegacyComponentKeys } from "@hashintel/petrinaut-core";
 
 import {
   callsForElement,
@@ -32,7 +33,7 @@ import type {
 export const queryBasisToolDescription =
   "Use when the USER asks why a visible net element exists or is modelled as it is, instead of answering from memory. Finds the element in the latest net read, or in the net read back after a later change, and returns its recorded basis: the reflections that name the element and, behind them, the claims, entities and discharged obligations they rest on, each with its ID, and the conversation turns those records came from, each with its ID and the opening of the USER's words. Answer from that basis and cite its record IDs. Cite every returned turn too, by quoting the opening of the USER's words, never by its ID, so the USER can see what they said that the answer rests on. A claim under `superseded` was later replaced: say so, and give its replacement. It also lists the canonical calls that changed the element, with their document and Ledger revisions. A basis-absent disposition means no reflection names the element: say plainly that its basis was not recorded rather than reconstructing one. You may point to related records, but do not offer a rationale of your own for it. A stale-read disposition means the net changed after the latest net view, a read or a change's read-back, without a later read-back: read it again, then query.";
 
-const vElement = v.object({
+const elementSchema = v.object({
   selector: v.pipe(
     v.object({
       kind: v.picklist(netElementKinds),
@@ -63,15 +64,15 @@ const vElement = v.object({
     ),
   ),
 });
-type Selector = v.InferOutput<typeof vElement>["selector"];
+type Selector = v.InferOutput<typeof elementSchema>["selector"];
 
 /** A net element the selector can match: by ID, by name, or by its arc's endpoints. */
 type ElementCandidate = Omit<NetElement, "kind"> & { readonly name: string };
 
-/** The root net and each subnet: places, transitions and their other items can sit in either. */
+/** The root net and each component: places, transitions and their other items can sit in either. */
 const netsOf = (definition: NetStructure) => [
   definition,
-  ...(definition.subnets ?? []),
+  ...(definition.components ?? []),
 ];
 
 const elements = (
@@ -80,13 +81,13 @@ const elements = (
 ): ElementCandidate[] => {
   if (kind === "scenario") return definition.scenarios ?? [];
   if (kind === "metric") return definition.metrics ?? [];
-  if (kind === "subnet") return definition.subnets ?? [];
+  if (kind === "component") return definition.components ?? [];
   return netsOf(definition).flatMap((net) => netElements(net, kind));
 };
 
 const netElements = (
   net: ReturnType<typeof netsOf>[number],
-  kind: Exclude<Selector["kind"], "scenario" | "metric" | "subnet">,
+  kind: Exclude<Selector["kind"], "scenario" | "metric" | "component">,
 ): ElementCandidate[] => {
   if (kind === "place") return net.places;
   if (kind === "transition") return net.transitions;
@@ -94,6 +95,7 @@ const netElements = (
   if (kind === "parameter") return net.parameters;
   if (kind === "differentialEquation") return net.differentialEquations;
   if (kind === "componentInstance") return net.componentInstances ?? [];
+  if (kind === "fusion") return net.fusions ?? [];
   if (kind === "typeElement")
     return net.types.flatMap((color) =>
       color.elements.map((element) => ({
@@ -101,6 +103,7 @@ const netElements = (
         name: element.name,
       })),
     );
+  kind satisfies "arc";
   // An arc is selected by its transition and endpoint, and identified by the ID Petrinaut generates from them.
   return net.transitions.flatMap((transition) => {
     const arcElements = (
@@ -195,8 +198,13 @@ export const queryBasis = (input: {
       basis: undefined,
       changes: [],
     };
+  // A stored view can list its components under `subnets`, as a document
+  // written with that key does: it is read the way a file is.
   const candidates = latest
-    ? elements(latest.definition, input.query.kind).filter(
+    ? elements(
+        migrateLegacyComponentKeys(latest.definition),
+        input.query.kind,
+      ).filter(
         (element) =>
           namesId(input.query.id, element.id) ||
           (input.query.name !== undefined &&
@@ -262,7 +270,7 @@ export const createQueryBasisTool = (options: {
   defineTool({
     name: options.name ?? brunchTools.queryBasis,
     description: queryBasisToolDescription,
-    input: vElement,
+    input: elementSchema,
     output: v.custom<ReturnType<typeof queryBasis>>(() => true),
     async run({ data }) {
       return {

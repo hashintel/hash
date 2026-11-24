@@ -82,7 +82,7 @@ outside the supported HIR subset is a blocking diagnostic.
 | `lint.ts`             | Converts semantic checks into editor diagnostics.                         |
 | `emit-buffer-js.ts`   | Emits packed-buffer JavaScript programs.                                  |
 | `instantiate.ts`      | Instantiates artifacts without importing `typescript`.                    |
-| `compile.ts`          | Batch-compiles a root net and subnets to `HirArtifacts`.                  |
+| `compile.ts`          | Batch-compiles a root net and components to `HirArtifacts`.               |
 
 ## Runtime artifacts
 

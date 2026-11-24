@@ -18,7 +18,7 @@ import {
 import { LiveSpeechCaptions } from "../../../client/voice/live/live-speech-captions";
 import { createUtteranceJudgmentRequester } from "../../../client/voice/live/request-utterance-judgment";
 import { VoiceAudioSettings } from "../../../client/voice/session/voice-audio-settings";
-import { zVoiceWrapUpResponse } from "../../../shared/voice-mediation";
+import { voiceWrapUpResponseSchema } from "../../../shared/voice-mediation";
 import {
   VoiceInterviewDisclosure,
   VoiceInterviewRetry,
@@ -89,7 +89,7 @@ const createLiveMediation = (
       .object({ fields: z.record(z.string(), z.string()) })
       .parse(await prepareVoice("brief", text, signal)).fields,
   summarize: async (text, signal) =>
-    zVoiceWrapUpResponse.parse(await prepareVoice("wrap-up", text, signal))
+    voiceWrapUpResponseSchema.parse(await prepareVoice("wrap-up", text, signal))
       .text,
   offered,
 });
@@ -102,6 +102,7 @@ export const LiveConversationControl = ({
   inputMode,
   isAiAssistantOpen,
   isDisclosureAcknowledged,
+  readSelection,
   registerVoiceModeSessionControls,
   reportVoiceSessionState,
   setVoiceActive,
@@ -161,6 +162,7 @@ export const LiveConversationControl = ({
   const bridge = useRef<LiveBrunchBridge | null>(null);
   const latest = useRef({
     submit,
+    readSelection,
     messages,
     toolApprovalState,
     chat: {
@@ -198,6 +200,7 @@ export const LiveConversationControl = ({
     );
     latest.current = {
       submit,
+      readSelection,
       messages,
       toolApprovalState,
       chat: {
@@ -213,6 +216,7 @@ export const LiveConversationControl = ({
     bridge.current?.update(latest.current.chat);
   }, [
     submit,
+    readSelection,
     messages,
     status,
     stopped,
@@ -381,6 +385,7 @@ export const LiveConversationControl = ({
       },
       interviewBudgetLevel,
       readWords,
+      () => latest.current.readSelection(),
     );
     next.setMicrophoneMuted(false);
     next.setSpeakerMuted(false);

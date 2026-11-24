@@ -23,7 +23,7 @@ import {
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
   type SdcpnInitialData,
-  vSdcpnInitialData,
+  sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -95,7 +95,11 @@ export function PetrinautAgent({ id }: AgentProps) {
     CHAT_MODEL_SPECIFIER,
     chatModelOptions,
     history,
-    { interviewBudget: submitted?.interviewBudget, words },
+    {
+      interviewBudget: submitted?.interviewBudget,
+      words,
+      selection: submitted?.selection,
+    },
   );
   usePetrinautTools(
     initialData
@@ -150,4 +154,4 @@ export function PetrinautAgent({ id }: AgentProps) {
  * of this agent takes its own.
  */
 PetrinautAgent.agentName = "brunch-chat-agent";
-PetrinautAgent.initialData = vSdcpnInitialData;
+PetrinautAgent.initialData = sdcpnInitialDataSchema;

@@ -4,6 +4,7 @@ import type {
   Color,
   ComponentInstance,
   DifferentialEquation,
+  Fusion,
   Parameter,
   Place,
   Transition,
@@ -16,12 +17,13 @@ export type ActiveNetDefinition = {
   differentialEquations: DifferentialEquation[];
   parameters: Parameter[];
   componentInstances: ComponentInstance[];
+  fusions: Fusion[];
 };
 
 export type ActiveNetContextValue = {
   activeNet: ActiveNetDefinition;
-  activeSubnetId: string | null;
-  setActiveSubnetId: (subnetId: string | null) => void;
+  activeComponentId: string | null;
+  setActiveComponentId: (componentId: string | null) => void;
 };
 
 const DEFAULT_ACTIVE_NET: ActiveNetDefinition = {
@@ -31,10 +33,11 @@ const DEFAULT_ACTIVE_NET: ActiveNetDefinition = {
   differentialEquations: [],
   parameters: [],
   componentInstances: [],
+  fusions: [],
 };
 
 export const ActiveNetContext = createContext<ActiveNetContextValue>({
   activeNet: DEFAULT_ACTIVE_NET,
-  activeSubnetId: null,
-  setActiveSubnetId: () => {},
+  activeComponentId: null,
+  setActiveComponentId: () => {},
 });

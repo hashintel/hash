@@ -137,6 +137,25 @@ const fakeGrafana = (
       ]);
     if (url.pathname.endsWith("/loki/api/v1/query_range")) {
       const query = url.searchParams.get("query") ?? "";
+      if (query.includes("provider.output-limit"))
+        return respond({
+          data: {
+            result: [
+              {
+                stream: {
+                  submissionId: "sub-1",
+                  turnId: "turn-1",
+                  provider: "openai",
+                  model: "gpt-5.4-mini",
+                  outputTokens: "8192",
+                },
+                values: [
+                  ["1793701812000000000", "[brunch] provider.output-limit"],
+                ],
+              },
+            ],
+          },
+        });
       return respond({
         data: {
           result: query.includes("flue.submission chronology")
@@ -236,6 +255,28 @@ test("idle timeouts read their string-typed metadata back as numbers and boolean
     retryClaimed: false,
     lastEventType: null,
   });
+});
+
+test("output-limit stops read their string-typed token count back as a number, by their own marker", async () => {
+  const { requests, fetchImpl } = fakeGrafana();
+
+  const { records } = await createGrafanaReader(config, fetchImpl).outputLimits(
+    window,
+  );
+
+  expect(records).toEqual([
+    {
+      timestamp: "2026-11-03T10:30:12.000Z",
+      submissionId: "sub-1",
+      turnId: "turn-1",
+      provider: "openai",
+      model: "gpt-5.4-mini",
+      outputTokens: 8_192,
+    },
+  ]);
+  expect(new URL(requests.at(-1)?.url ?? "").searchParams.get("query")).toBe(
+    '{service_name="Brunch Agent"} |= "[brunch] provider.output-limit"',
+  );
 });
 
 test("model-call spans are the submission's chat spans, with the HTTP requests beneath them", async () => {

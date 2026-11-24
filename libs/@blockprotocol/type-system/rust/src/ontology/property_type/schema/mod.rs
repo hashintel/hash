@@ -485,7 +485,7 @@ impl PropertyValueSchema for OneOfSchema<PropertyValues> {
 
 #[cfg(test)]
 mod tests {
-    use core::str::FromStr as _;
+    use core::{assert_matches, str::FromStr as _};
 
     use serde_json::json;
 
@@ -731,7 +731,7 @@ mod tests {
 
     #[tokio::test]
     async fn empty_one_of() {
-        assert!(matches!(
+        assert_matches!(
             ensure_failed_validation::<PropertyType, _>(
                 json!({
                   "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
@@ -746,7 +746,36 @@ mod tests {
             )
             .await,
             PropertyTypeValidationError::OneOfValidationFailed(_)
-        ));
+        );
+    }
+
+    #[tokio::test]
+    async fn value_data_type() {
+        assert_matches!(
+            ensure_failed_validation::<PropertyType, _>(
+                json!({
+                  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                  "kind": "propertyType",
+                  "$id": "https://blockprotocol.org/@alice/types/property-type/values/v/1",
+                  "title": "Values",
+                  "description": "A list of values.",
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          { "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1" }
+                        ]
+                      }
+                    }
+                  ]
+                }),
+                PropertyTypeValidator,
+                JsonEqualityCheck::Yes
+            )
+            .await,
+            PropertyTypeValidationError::ValueDataTypeReference
+        );
     }
 
     #[tokio::test]
@@ -760,7 +789,7 @@ mod tests {
         )
         .expect("invalid URL");
 
-        assert!(matches!(
+        assert_matches!(
             ensure_failed_validation::<PropertyType, _>(
                 json!({
                   "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
@@ -784,6 +813,6 @@ mod tests {
             )
             .await,
             PropertyTypeValidationError::InvalidPropertyReference { base_url, reference } if key == base_url && reference.url == versioned_url
-        ));
+        );
     }
 }

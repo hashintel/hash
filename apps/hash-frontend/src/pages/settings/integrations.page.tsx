@@ -6,7 +6,6 @@ import {
   allIntegrations,
   type Integration,
 } from "@hashintel/integrations-catalog";
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
 import { extractWebId } from "../../lib/user-and-org";
@@ -19,6 +18,7 @@ import { SettingsPageContainer } from "./shared/settings-page-container";
 
 import type { EnabledIntegrations } from "../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../shared/layout";
+import type { WebId } from "@blockprotocol/type-system";
 import type { FunctionComponent, ReactNode } from "react";
 
 type IntegrationCardProps = {
@@ -68,11 +68,20 @@ const IntegrationCard = ({
   );
 };
 
-const enabledIntegrationKeyByName: Partial<
-  Record<Integration["name"], keyof Omit<EnabledIntegrations, "__typename">>
-> = {
-  Linear: "linear",
-};
+/**
+ * Catalog integrations that a user can connect from this page, keyed by their
+ * catalog name. An integration is connectable when its `enabledKey` is enabled
+ * on the HASH instance.
+ */
+const connectableIntegrationsByName: Partial<
+  Record<
+    Integration["name"],
+    {
+      enabledKey: keyof Omit<EnabledIntegrations, "__typename">;
+      getConnectHref: (params: { webId: WebId }) => string;
+    }
+  >
+> = {};
 
 const availabilityRank: Record<Integration["availability"], number> = {
   Available: 0,
@@ -90,8 +99,8 @@ const AddNewIntegrations: FunctionComponent = () => {
     }
 
     const isConnectable = (integration: Integration) => {
-      const enabledKey = enabledIntegrationKeyByName[integration.name];
-      return enabledKey ? enabledIntegrations[enabledKey] : false;
+      const connectable = connectableIntegrationsByName[integration.name];
+      return connectable ? enabledIntegrations[connectable.enabledKey] : false;
     };
 
     const sortedIntegrations = [...allIntegrations].sort((a, b) => {
@@ -116,15 +125,14 @@ const AddNewIntegrations: FunctionComponent = () => {
     return sortedIntegrations.map((integration) => {
       const isEnabledForUser = isConnectable(integration);
 
-      let href: string | undefined;
+      const connectable = connectableIntegrationsByName[integration.name];
 
-      if (isEnabledForUser && integration.name === "Linear") {
-        href = `${apiOrigin}/oauth/linear?webId=${extractWebId(
-          activeWorkspace,
-        )}`;
-      } else {
-        href = "https://hash.ai/contact?topic=support&category=integrations";
-      }
+      const href =
+        isEnabledForUser && connectable
+          ? connectable.getConnectHref({
+              webId: extractWebId(activeWorkspace),
+            })
+          : "https://hash.ai/contact?topic=support&category=integrations";
 
       return (
         <IntegrationCard
@@ -180,7 +188,7 @@ const IntegrationsPage: NextPageWithLayout = () => {
     >
       <Stack gap={6}>
         <AddNewIntegrations />
-        <UserConnectedIntegrations />
+        <UserConnectedIntegrations integrations={[]} />
       </Stack>
     </SettingsPageContainer>
   );

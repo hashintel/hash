@@ -7,7 +7,7 @@ import {
 /** The app-location subset supported by the compact Preview. */
 export type PetrinautPreviewNavigationState = Pick<
   PetrinautNavigationState,
-  "scenarioId" | "subnetId" | "selection"
+  "scenarioId" | "componentId" | "selection"
 >;
 
 type PreviewMode = PetrinautNavigationState["mode"];
@@ -20,7 +20,7 @@ const toFullNavigationState = (
   mode,
   simulateView: "scenarios",
   scenarioId: state.scenarioId,
-  subnetId: state.subnetId,
+  componentId: state.componentId,
   selection: state.selection,
 });
 
@@ -28,7 +28,7 @@ export const toPreviewNavigationState = (
   state: Readonly<PetrinautNavigationState>,
 ): PetrinautPreviewNavigationState => ({
   scenarioId: state.scenarioId,
-  subnetId: state.subnetId,
+  componentId: state.componentId,
   selection: state.selection,
 });
 

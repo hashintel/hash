@@ -6,9 +6,9 @@ import { componentInstanceMainContentSubView } from "./subviews/main";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
+  Component,
   ComponentInstance,
   PetrinautMutations,
-  Subnet,
 } from "@hashintel/petrinaut-core";
 
 const containerStyle = css({
@@ -22,13 +22,13 @@ const subViews: SubView[] = [componentInstanceMainContentSubView];
 
 export const ComponentInstanceProperties: React.FC<{
   instance: ComponentInstance;
-  subnet: Subnet | null;
+  component: Component | null;
   updateComponentInstance: PetrinautMutations["updateComponentInstance"];
-}> = ({ instance, subnet, updateComponentInstance }) => {
+}> = ({ instance, component, updateComponentInstance }) => {
   const value = {
     instance,
-    subnet,
-    subnetParameters: subnet?.parameters ?? [],
+    component,
+    componentParameters: component?.parameters ?? [],
     updateComponentInstance,
   };
 

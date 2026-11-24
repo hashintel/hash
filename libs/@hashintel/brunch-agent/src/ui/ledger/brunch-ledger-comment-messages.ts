@@ -3,6 +3,8 @@ import {
   type LedgerComment,
 } from "@hashintel/brunch-agent";
 
+import { isLedgerCommentsMessage } from "../../shared/ledger-comments-turn";
+
 import type { PetrinautAiMessage } from "../chat/ai-assistant-panel";
 
 const quoteLimit = 120;
@@ -25,7 +27,7 @@ export const showLedgerComments = (
   messages: PetrinautAiMessage[],
 ): PetrinautAiMessage[] =>
   messages.map((message) => {
-    if (message.role !== "user") return message;
+    if (!isLedgerCommentsMessage(message)) return message;
     const comments = parseLedgerComments(
       message.parts
         .flatMap((part) => (part.type === "text" ? [part.text] : []))

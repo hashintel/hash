@@ -71,6 +71,9 @@ export const ConnectionEdge = ({
                 ? "var(--colors-blue-bd-strong)"
                 : "var(--colors-neutral-bd-strong)",
             strokeWidth: 1,
+            /* As dashed as the trigger card it leaves. */
+            strokeDasharray:
+              data?.kind === "trigger" && data.ghost ? "3 2" : undefined,
           }}
         />
       </g>

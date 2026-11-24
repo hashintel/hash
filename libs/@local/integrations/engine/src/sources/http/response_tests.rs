@@ -1,5 +1,6 @@
 use alloc::sync::Arc;
 use core::{
+    assert_matches,
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
@@ -41,10 +42,7 @@ async fn fetch_stops_at_retry_budget() {
     )
     .await
     .expect_err("should stop after ten retries");
-    assert!(matches!(
-        error.current_context(),
-        SourceError::Status { status: 429 }
-    ));
+    assert_matches!(error.current_context(), SourceError::Status { status: 429 });
     assert_eq!(requests.load(Ordering::Relaxed), 11);
 }
 
@@ -73,10 +71,11 @@ async fn fetch_does_not_retry_other_failures(#[case] status: StatusCode) {
     .await
     .expect_err("should return the failure without retrying");
     if status == StatusCode::OK {
-        assert!(matches!(error.current_context(), SourceError::Response));
+        assert_matches!(error.current_context(), SourceError::Response);
     } else {
-        assert!(
-            matches!(error.current_context(), SourceError::Status { status: actual } if *actual == status.as_u16())
+        assert_matches!(
+            error.current_context(),
+            SourceError::Status { status: actual } if *actual == status.as_u16()
         );
     }
     assert_eq!(requests.load(Ordering::Relaxed), 1);

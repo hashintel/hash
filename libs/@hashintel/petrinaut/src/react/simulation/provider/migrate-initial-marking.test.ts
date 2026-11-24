@@ -43,9 +43,9 @@ const makeSDCPN = (): SDCPN => ({
   ],
   differentialEquations: [],
   parameters: [],
-  subnets: [
+  components: [
     {
-      id: "subnet-1",
+      id: "component-1",
       name: "Inner",
       places: [
         {
@@ -230,12 +230,12 @@ describe("migrateInitialMarkingForTypeChanges", () => {
     expect(migrated!["place-sub"]).toBe(untouchedRecords);
   });
 
-  it("migrates subnet types and subnet places", () => {
+  it("migrates component types and component places", () => {
     const before = makeSDCPN();
     const previousTypeElements = snapshotTypeElements(before);
 
     const after = makeSDCPN();
-    after.subnets![0]!.types[0]!.elements[0]!.name = "water_level";
+    after.components![0]!.types[0]!.elements[0]!.name = "water_level";
 
     const migrated = migrateInitialMarkingForTypeChanges({
       initialMarking: { "place-sub": [{ level: 0.3 }] },

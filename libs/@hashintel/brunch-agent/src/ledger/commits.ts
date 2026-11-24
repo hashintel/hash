@@ -2,7 +2,11 @@ import * as v from "valibot";
 
 import { brunchSignals, brunchTools } from "../constants";
 import { petrinautUserMessageText } from "../petrinaut/contextual-user-message";
-import { vLedgerAppend, type LedgerAppend } from "./append";
+import {
+  ledgerAppendSchema,
+  readRecordedLedgerAppend,
+  type LedgerAppend,
+} from "./append";
 import { parseLedgerComments, type LedgerComment } from "./comments";
 import {
   openComments,
@@ -34,7 +38,7 @@ export interface LedgerHistory {
   readonly messages: readonly LedgerHistoryMessage[];
 }
 
-const vToolPart = v.object({
+const toolPartSchema = v.object({
   type: v.literal("dynamic-tool"),
   toolName: v.string(),
   toolCallId: v.string(),
@@ -43,7 +47,7 @@ const vToolPart = v.object({
   output: v.optional(v.unknown()),
 });
 
-type ToolPart = v.InferOutput<typeof vToolPart>;
+type ToolPart = v.InferOutput<typeof toolPartSchema>;
 
 interface LedgerCall {
   readonly part: ToolPart;
@@ -59,12 +63,12 @@ interface LedgerCall {
 
 const isSettled = (part: ToolPart) => part.state.startsWith("output-");
 
-const vTextPart = v.object({ type: v.literal("text"), text: v.string() });
+const textPartSchema = v.object({ type: v.literal("text"), text: v.string() });
 
 const messageText = (message: LedgerHistoryMessage): string =>
   message.parts
     .flatMap((part) => {
-      const parsed = v.safeParse(vTextPart, part);
+      const parsed = v.safeParse(textPartSchema, part);
       return parsed.success ? [parsed.output.text] : [];
     })
     .join(" ");
@@ -150,7 +154,7 @@ const ledgerEvents = (history: LedgerHistory): LedgerEvent[] => {
     }
     if (message.role !== "assistant") return [];
     const parts = message.parts.flatMap((candidate) => {
-      const parsed = v.safeParse(vToolPart, candidate);
+      const parsed = v.safeParse(toolPartSchema, candidate);
       return parsed.success &&
         parsed.output.toolName === brunchTools.ledgerCommit
         ? [parsed.output]
@@ -179,14 +183,14 @@ export const ledgerAppendRefusalCodes = [
   "ambiguous-comment",
 ] as const;
 
-export const vLedgerAppendOutput = v.variant("status", [
+export const ledgerAppendOutputSchema = v.variant("status", [
   v.object({
     status: v.literal("recorded"),
     commitId: v.string(),
     revision: v.number(),
     /** System-assigned record IDs, aligned with the submitted entries queue. */
     ids: v.array(v.string()),
-    /** USER turns so far, comment turns included, through the one this commit follows. */
+    /** USER turns of their own words so far, through the turn this commit follows; comment turns are not counted. */
     exchanges: v.optional(v.number()),
     /** Current open and conflicted claims after this commit. */
     openQuestions: v.optional(v.number()),
@@ -209,13 +213,13 @@ export const vLedgerAppendOutput = v.variant("status", [
   }),
 ]);
 
-export type LedgerAppendOutput = v.InferOutput<typeof vLedgerAppendOutput>;
+export type LedgerAppendOutput = v.InferOutput<typeof ledgerAppendOutputSchema>;
 
 /** A `ledger_commit` result that recorded nothing and says why. */
 export const isRefusedLedgerCommit = (
   output: unknown,
 ): output is Extract<LedgerAppendOutput, { status: "refused" }> => {
-  const parsed = v.safeParse(vLedgerAppendOutput, output);
+  const parsed = v.safeParse(ledgerAppendOutputSchema, output);
   return parsed.success && parsed.output.status === "refused";
 };
 
@@ -552,7 +556,7 @@ const foldWithReservations = (
     const call = event;
     if (call.part.toolCallId === before) break;
     if (call.part.state !== "output-available") continue;
-    const output = v.safeParse(vLedgerAppendOutput, call.part.output);
+    const output = v.safeParse(ledgerAppendOutputSchema, call.part.output);
     if (!output.success) continue;
     const recorded = output.output;
     if (
@@ -560,7 +564,10 @@ const foldWithReservations = (
       recorded.commitId !== call.part.toolCallId
     )
       continue;
-    const input = v.safeParse(vLedgerAppend, call.part.input);
+    const input = v.safeParse(
+      ledgerAppendSchema,
+      readRecordedLedgerAppend(call.part.input),
+    );
     const derived = input.success
       ? deriveBatch(state, input.output.entries, call.turn, reserved)
       : undefined;
@@ -696,9 +703,11 @@ const exchangesThrough = (
 ): number => {
   if (messageId === undefined) return 0;
   const end = history.messages.findIndex(({ id }) => id === messageId);
+  // Comment turns sit outside the interview, as the website's allowance
+  // count treats them, so only the user's own words are exchanges.
   return history.messages
     .slice(0, end + 1)
-    .filter((message) => turnOpening(message) !== undefined).length;
+    .filter((message) => turnOpening(message)?.comments.length === 0).length;
 };
 
 const accountOrigins: ReadonlySet<Origin> = new Set(["stated", "evidenced"]);

@@ -1,7 +1,7 @@
 /**
  * Projects the example URL contract onto Petrinaut's navigation state.
  *
- * The URL carries the selected scenario, subnet, focused item, expanded
+ * The URL carries the selected scenario, component, focused item, expanded
  * properties section, editor mode, Simulate section, open record, overlay
  * and panel presentation.
  *
@@ -47,7 +47,7 @@ export const previewSearchToNavigationState = (
   search: SharedExampleSearch,
 ): PetrinautPreviewNavigationState => ({
   scenarioId: scenarioFromSearch(search),
-  subnetId: search.subnet ?? null,
+  componentId: search.component ?? null,
   selection: selectionFromInput(search as Record<string, unknown>),
 });
 
@@ -84,7 +84,7 @@ export const sharedSearchToNavigationState = (
 ): PetrinautNavigationState => ({
   ...baseline,
   scenarioId: scenarioFromSearch(search),
-  subnetId: search.subnet ?? null,
+  componentId: search.component ?? null,
   selection: selectionFromInput(search as Record<string, unknown>),
   editView: search.editView ?? baseline.editView,
   expandedSubView:
@@ -134,7 +134,7 @@ export const navigationStateToSharedSearch = (
         ? "fullscreen"
         : undefined,
     scenario: scenarioToSearch(state.scenarioId),
-    subnet: state.subnetId ?? undefined,
+    component: state.componentId ?? undefined,
     expandedPanel: state.expandedSubView?.container,
     expandedSection: state.expandedSubView?.id,
     // Resource links imply Simulate unless they explicitly name a mode.
@@ -165,7 +165,7 @@ export const navigationStateToPreviewSearch = (
   state: Readonly<PetrinautPreviewNavigationState>,
 ): SharedExampleSearch => ({
   scenario: scenarioToSearch(state.scenarioId),
-  subnet: state.subnetId ?? undefined,
+  component: state.componentId ?? undefined,
   ...selectionToSearch(state.selection),
 });
 

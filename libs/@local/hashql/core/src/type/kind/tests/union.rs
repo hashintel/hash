@@ -891,10 +891,10 @@ fn simplify_with_bottom() {
     let result_type = env.r#type(result);
 
     // Result should be just Number, not a union
-    assert!(matches!(
+    assert_matches!(
         *result_type.kind,
         TypeKind::Primitive(PrimitiveType::Number)
-    ));
+    );
 }
 
 #[test]
@@ -919,7 +919,7 @@ fn simplify_with_top() {
     let result_type = env.r#type(result);
 
     // Result should be Unknown
-    assert!(matches!(*result_type.kind, TypeKind::Unknown));
+    assert_matches!(*result_type.kind, TypeKind::Unknown);
 }
 
 #[test]
@@ -936,7 +936,7 @@ fn simplify_empty_union() {
     let result = union_type.simplify(&mut simplify_env);
     let result_type = env.r#type(result);
 
-    assert!(matches!(*result_type.kind, TypeKind::Never));
+    assert_matches!(*result_type.kind, TypeKind::Never);
 }
 
 #[test]
@@ -956,10 +956,10 @@ fn simplify_with_subtypes() {
     let result_type = env.r#type(result);
 
     // Result should be just Number
-    assert!(matches!(
+    assert_matches!(
         *result_type.kind,
         TypeKind::Primitive(PrimitiveType::Number)
-    ));
+    );
 }
 
 #[test]
@@ -1048,10 +1048,10 @@ fn complex_union_relationships() {
     let mut simplify_env = SimplifyEnvironment::new(&env);
     let simplified = number_integer.simplify(&mut simplify_env);
     let simplified_type = env.r#type(simplified);
-    assert!(matches!(
+    assert_matches!(
         *simplified_type.kind,
         TypeKind::Primitive(PrimitiveType::Number)
-    ));
+    );
 }
 
 #[test]

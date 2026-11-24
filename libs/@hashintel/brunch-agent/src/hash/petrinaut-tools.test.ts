@@ -48,6 +48,39 @@ test("a merged update makes the canonical calls its input names, its failable st
   ).toEqual([]);
 });
 
+test("an update carries the value that clears an instance's choice, or an interface flag, to its canonical call", () => {
+  expect(
+    hashPetrinautTools.petrinaut_update_component_instance.parseCall({
+      editor_id: hashProcessEditorId,
+      instanceId: "worker",
+      update: { implementation: null },
+    }).calls,
+  ).toEqual([
+    {
+      toolName: "updateComponentInstance",
+      input: {
+        instanceId: toPetrinautId("worker"),
+        update: { implementation: null },
+      },
+    },
+  ]);
+  expect(
+    hashPetrinautTools.petrinaut_update_component.parseCall({
+      editor_id: hashProcessEditorId,
+      componentId: "stage",
+      update: { interface: false },
+    }).calls,
+  ).toEqual([
+    {
+      toolName: "updateComponent",
+      input: {
+        componentId: toPetrinautId("stage"),
+        update: { interface: false },
+      },
+    },
+  ]);
+});
+
 test.each([
   { weight: 2 },
   { type: "inhibitor" },
@@ -71,7 +104,7 @@ test.each([
   "petrinaut_update_arc rejects ambiguous or missing endpoints before execution: %j",
   (change) => {
     expect(
-      hashPetrinautTools.petrinaut_update_arc.zInput.safeParse({
+      hashPetrinautTools.petrinaut_update_arc.inputSchema.safeParse({
         editor_id: hashProcessEditorId,
         transitionId: "serve",
         arcDirection: "input",
@@ -91,7 +124,7 @@ test.each([
       portPlaceId: "inbox",
     },
     weight: 2,
-    targetSubnetId: "pipeline",
+    targetComponentId: "pipeline",
   },
   {
     placeId: "queue",
@@ -113,7 +146,8 @@ test.each([
       ...change,
     };
     expect(
-      hashPetrinautTools.petrinaut_update_arc.zInput.safeParse(input).success,
+      hashPetrinautTools.petrinaut_update_arc.inputSchema.safeParse(input)
+        .success,
     ).toBe(true);
     expect(
       hashPetrinautTools.petrinaut_update_arc.parseCall(input).calls.length,
@@ -128,7 +162,8 @@ test("petrinaut_update_arc preserves calls requesting no change", () => {
     arcDirection: "input",
   };
   expect(
-    hashPetrinautTools.petrinaut_update_arc.zInput.safeParse(input).success,
+    hashPetrinautTools.petrinaut_update_arc.inputSchema.safeParse(input)
+      .success,
   ).toBe(true);
   expect(
     hashPetrinautTools.petrinaut_update_arc.parseCall(input).calls,
@@ -137,7 +172,7 @@ test("petrinaut_update_arc preserves calls requesting no change", () => {
 
 test("petrinaut_update_arc rejects an input-arc type on an output arc", () => {
   expect(
-    hashPetrinautTools.petrinaut_update_arc.zInput.safeParse({
+    hashPetrinautTools.petrinaut_update_arc.inputSchema.safeParse({
       editor_id: hashProcessEditorId,
       transitionId: "serve",
       arcDirection: "output",

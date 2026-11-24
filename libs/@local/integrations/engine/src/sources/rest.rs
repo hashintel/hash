@@ -389,6 +389,7 @@ impl Spool {
 #[cfg(test)]
 mod tests {
     use alloc::collections::BTreeMap;
+    use core::assert_matches;
     use std::fs;
 
     use axum::{Json, Router, extract::Query, http::HeaderMap, routing::get};
@@ -551,8 +552,9 @@ mod tests {
         let error = capture_with_client(&endpoint, &key(), None, target.clone(), &client)
             .await
             .expect_err("should reject a cross-origin next page");
-        assert!(
-            matches!(error.current_context(), SourceError::Destination),
+        assert_matches!(
+            error.current_context(),
+            SourceError::Destination,
             "should report the blocked destination"
         );
         assert!(!target.exists(), "should publish only a complete capture");
@@ -573,8 +575,9 @@ mod tests {
         let secret = Secret::from_vec(br#"{"value":""}"#.to_vec());
         let error =
             super::headers(Some(&auth), Some(&secret)).expect_err("should reject an empty token");
-        assert!(
-            matches!(error.current_context(), SourceError::Secret),
+        assert_matches!(
+            error.current_context(),
+            SourceError::Secret,
             "should identify the invalid secret"
         );
     }
@@ -609,8 +612,9 @@ mod tests {
         let error = capture_with_client(&endpoint, &key(), None, target.clone(), &client)
             .await
             .expect_err("should reject an endpoint that ignores the offset");
-        assert!(
-            matches!(error.current_context(), SourceError::Pagination),
+        assert_matches!(
+            error.current_context(),
+            SourceError::Pagination,
             "should report the repeated page"
         );
         assert!(!target.exists(), "should publish only a complete capture");
@@ -631,8 +635,9 @@ mod tests {
         let error = capture_pages(&endpoint, &key(), None, target.clone(), &client, 3)
             .await
             .expect_err("should reject pagination that does not end");
-        assert!(
-            matches!(error.current_context(), SourceError::Pagination),
+        assert_matches!(
+            error.current_context(),
+            SourceError::Pagination,
             "should report the unbounded pagination"
         );
         assert!(!target.exists(), "should publish only a complete capture");
@@ -713,6 +718,7 @@ mod tests {
 #[cfg(test)]
 mod schema_tests {
     use alloc::collections::BTreeSet;
+    use core::assert_matches;
 
     use serde_json::json;
     use tempfile::TempDir;
@@ -735,8 +741,9 @@ mod schema_tests {
         let error = spool.append(&[json!({"VALUE": "second"})]).expect_err(
             "should reject a case-insensitive column collision before DuckDB can rename it",
         );
-        assert!(
-            matches!(error.current_context(), SourceError::Response),
+        assert_matches!(
+            error.current_context(),
+            SourceError::Response,
             "should identify an invalid response schema"
         );
     }
@@ -780,8 +787,9 @@ mod schema_tests {
         let error = spool
             .append(&[serde_json::Value::Object(row)])
             .expect_err("should reject a response with too many distinct fields");
-        assert!(
-            matches!(error.current_context(), SourceError::Response),
+        assert_matches!(
+            error.current_context(),
+            SourceError::Response,
             "should identify an invalid response schema"
         );
     }

@@ -131,13 +131,11 @@ export const EntityInput = ({
   webId,
   value,
   required,
-  invalid,
   onChange,
 }: {
   webId: WebId;
   value: Extract<RunFormValue, { kind: "EntityId" }>;
   required: boolean;
-  invalid: boolean;
   onChange: (value: RunFormValue) => void;
 }) => {
   const { options, items, loading, failed, more } = useWebEntities(webId);
@@ -169,7 +167,6 @@ export const EntityInput = ({
     renderSelectedItem: (entityId: EntityId) =>
       options.get(entityId)?.label ?? entityId,
     loading,
-    invalid,
     prefix: {
       iconName: getKindIcon({ payloadKind: "EntityId", array: value.array }),
       variant: "subtle",

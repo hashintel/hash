@@ -20,7 +20,12 @@ const traceRecords = (calls: readonly (readonly unknown[])[]) =>
       >,
   );
 
-const input = { id: "one", text: "PRIVATE okay", startedDuringOutput: true };
+const input = {
+  id: "one",
+  text: "PRIVATE okay",
+  startedDuringOutput: true,
+  selection: [],
+};
 
 test("prompt regurgitation is shadow-only and never logs the taught vocabulary", () => {
   vi.stubEnv("DEV", true);
@@ -34,6 +39,7 @@ test("prompt regurgitation is shadow-only and never logs the taught vocabulary",
         text: transcriptionPrompt,
         transcriptionPrompt,
         startedDuringOutput: false,
+        selection: [],
       },
       liveUtteranceStages,
     ),
@@ -47,6 +53,7 @@ test("prompt regurgitation is shadow-only and never logs the taught vocabulary",
         text: "RelayDesk",
         transcriptionPrompt,
         startedDuringOutput: false,
+        selection: [],
       },
       liveUtteranceStages,
     ),
@@ -121,6 +128,7 @@ test("stages see Live's words when the speech overlapped its output", () => {
       id: "one",
       text: "Okay",
       startedDuringOutput: true,
+      selection: [],
       liveOutputText: "Okay?",
     },
     [{ reason: "empty", mode: "on", skips }],
@@ -142,7 +150,7 @@ test.each([
   "stages see %j with its word count, counting contractions as one word",
   (text, startedDuringOutput, words) => {
     const skips = vi.fn(() => false);
-    routeUtterance({ id: "one", text, startedDuringOutput }, [
+    routeUtterance({ id: "one", text, startedDuringOutput, selection: [] }, [
       { reason: "empty", mode: "on", skips },
     ]);
     expect(skips).toHaveBeenCalledWith({
@@ -157,7 +165,13 @@ test.each([
 test("stages see the transcript's lowest token log probability", () => {
   const skips = vi.fn(() => false);
   routeUtterance(
-    { id: "one", text: "Okay", startedDuringOutput: false, minLogprob: -2.5 },
+    {
+      id: "one",
+      text: "Okay",
+      startedDuringOutput: false,
+      selection: [],
+      minLogprob: -2.5,
+    },
     [{ reason: "empty", mode: "on", skips }],
   );
   expect(skips).toHaveBeenCalledWith({
@@ -200,7 +214,13 @@ test.each([
   const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
   expect(
     routeUtterance(
-      { id: "one", text: "Okay.", startedDuringOutput: true, ...extra },
+      {
+        id: "one",
+        text: "Okay.",
+        startedDuringOutput: true,
+        selection: [],
+        ...extra,
+      },
       liveUtteranceStages,
     ),
   ).toBe("short-during-output");
@@ -219,7 +239,7 @@ test.each([
     const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
     expect(
       routeUtterance(
-        { id: "one", text, startedDuringOutput },
+        { id: "one", text, startedDuringOutput, selection: [] },
         liveUtteranceStages,
       ),
     ).toBe(decided);
@@ -240,6 +260,7 @@ test("speech with interview content is never traced as filler or control", () =>
         id: "one",
         text: "Wait, it's seven reviewers, not four.",
         startedDuringOutput: false,
+        selection: [],
       },
       liveUtteranceStages,
     ),
@@ -250,11 +271,15 @@ test("speech with interview content is never traced as filler or control", () =>
 test.each([
   [
     "four words during output",
-    { text: "Seven reviewers, not four.", startedDuringOutput: true },
+    {
+      text: "Seven reviewers, not four.",
+      startedDuringOutput: true,
+      selection: [],
+    },
   ],
   [
     "short speech while Live was quiet",
-    { text: "Okay.", startedDuringOutput: false },
+    { text: "Okay.", startedDuringOutput: false, selection: [] },
   ],
 ])("%s is never doubtful short speech", (_case, utterance) => {
   vi.stubEnv("DEV", true);

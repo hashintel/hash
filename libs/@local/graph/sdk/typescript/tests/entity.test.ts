@@ -3,6 +3,8 @@ import { expect, test } from "vitest";
 import {
   deserializeSearchEntitiesResponse,
   HashEntity,
+  mergePropertyObjectAndMetadata,
+  patchesFromPropertyObjects,
   serializeSearchEntitiesResponse,
 } from "../src/entity.js";
 
@@ -10,6 +12,7 @@ import type { SearchEntitiesResponse } from "../src/entity.js";
 import type {
   BaseUrl,
   Confidence,
+  PropertyObject,
   PropertyObjectMetadata,
 } from "@blockprotocol/type-system";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
@@ -305,6 +308,115 @@ test("flattened properties", () => {
         dataTypeId:
           "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
       },
+    },
+  ]);
+});
+
+const textDataTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
+
+const patchTestProperties: PropertyObject = {
+  [base_url_a]: "unchanged",
+  [base_url_b]: ["x", "y"],
+};
+
+const patchTestMetadata: PropertyObjectMetadata = {
+  value: {
+    [base_url_a]: { metadata: { dataTypeId: textDataTypeId } },
+    [base_url_b]: {
+      value: [
+        { metadata: { dataTypeId: textDataTypeId } },
+        { metadata: { dataTypeId: textDataTypeId } },
+      ],
+    },
+  },
+};
+
+test("patchesFromPropertyObjects omits properties that are deep-equal", () => {
+  const patches = patchesFromPropertyObjects({
+    oldProperties: mergePropertyObjectAndMetadata(
+      patchTestProperties,
+      patchTestMetadata,
+    ),
+    newProperties: mergePropertyObjectAndMetadata(
+      structuredClone(patchTestProperties),
+      structuredClone(patchTestMetadata),
+    ),
+  });
+
+  expect(patches).toStrictEqual([]);
+});
+
+test("patchesFromPropertyObjects patches changed, added and removed properties", () => {
+  const newProperties = mergePropertyObjectAndMetadata(
+    {
+      [base_url_b]: ["x", "y", "z"],
+      [base_url_c]: "added",
+    },
+    {
+      value: {
+        [base_url_b]: {
+          value: [
+            { metadata: { dataTypeId: textDataTypeId } },
+            { metadata: { dataTypeId: textDataTypeId } },
+            { metadata: { dataTypeId: textDataTypeId } },
+          ],
+        },
+        [base_url_c]: { metadata: { dataTypeId: textDataTypeId } },
+      },
+    },
+  );
+
+  const patches = patchesFromPropertyObjects({
+    oldProperties: mergePropertyObjectAndMetadata(
+      patchTestProperties,
+      patchTestMetadata,
+    ),
+    newProperties,
+  });
+
+  expect(patches).toStrictEqual([
+    {
+      op: "replace",
+      path: [base_url_b],
+      property: newProperties.value[base_url_b],
+    },
+    {
+      op: "add",
+      path: [base_url_c],
+      property: newProperties.value[base_url_c],
+    },
+    { op: "remove", path: [base_url_a] },
+  ]);
+});
+
+test("patchesFromPropertyObjects patches a property whose metadata alone changed", () => {
+  const newMetadata: PropertyObjectMetadata = {
+    value: {
+      ...patchTestMetadata.value,
+      [base_url_a]: {
+        metadata: { dataTypeId: textDataTypeId, confidence: 0.5 as Confidence },
+      },
+    },
+  };
+  const newProperties = mergePropertyObjectAndMetadata(
+    patchTestProperties,
+    newMetadata,
+  );
+
+  const patches = patchesFromPropertyObjects({
+    oldProperties: mergePropertyObjectAndMetadata(
+      patchTestProperties,
+      patchTestMetadata,
+    ),
+    newProperties,
+  });
+
+  expect(patches).toStrictEqual([
+    {
+      op: "replace",
+      path: [base_url_a],
+      property: newProperties.value[base_url_a],
     },
   ]);
 });

@@ -108,7 +108,7 @@ test("opens the net the URL names, not the most recently edited one", async () =
 test("opening another net pushes its URL without the old search, and Back and Forward reopen the net each URL names", async () => {
   const first = save("First");
   const second = save("Second");
-  const router = await open(`/local/${first.id}?subnet=subnet-1`);
+  const router = await open(`/local/${first.id}?component=component-1`);
   opening.netId = second.id;
 
   fireEvent.click(await screen.findByRole("button", { name: "Open" }));
@@ -118,7 +118,7 @@ test("opening another net pushes its URL without the old search, and Back and Fo
 
   act(() => router.history.back());
   await waitFor(() => expect(openDocument()).toBe(first.id));
-  expect(router.state.location.search).toEqual({ subnet: "subnet-1" });
+  expect(router.state.location.search).toEqual({ component: "component-1" });
 
   act(() => router.history.forward());
   await waitFor(() => expect(openDocument()).toBe(second.id));
@@ -132,10 +132,10 @@ test("the home page opens the most recently edited net at its URL", async () => 
   const second = save("Second");
   vi.useRealTimers();
 
-  const router = await open("/?subnet=subnet-1");
+  const router = await open("/?component=component-1");
 
   expect(router.state.location.pathname).toBe(`/local/${second.id}`);
-  expect(router.state.location.search).toEqual({ subnet: "subnet-1" });
+  expect(router.state.location.search).toEqual({ component: "component-1" });
 });
 
 test("the home page saves a net when the browser holds none", async () => {

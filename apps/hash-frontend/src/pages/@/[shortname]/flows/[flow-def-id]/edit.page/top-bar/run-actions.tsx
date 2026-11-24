@@ -6,9 +6,9 @@ import { css } from "@hashintel/ds-helpers/css";
 import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
 import { useSnackbar } from "../../../../../../../components/hooks/use-snackbar";
-import { FlowRunStatus } from "../../../../../../../graphql/api-types.gen";
 import { cancelFlowMutation } from "../../../../../../../graphql/queries/knowledge/flow.queries";
 import { getShortRunId } from "../shared/run-id";
+import { isRunGoing } from "../shared/run-state";
 import { RunFlow } from "./run-flow";
 
 import type {
@@ -83,7 +83,7 @@ export const RunActions = ({
     return null;
   }
 
-  if (run.status === FlowRunStatus.Running) {
+  if (isRunGoing(run.status)) {
     return (
       <>
         <Button

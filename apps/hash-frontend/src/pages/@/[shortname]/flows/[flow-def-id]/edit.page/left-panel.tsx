@@ -8,6 +8,7 @@ import { RunStatus } from "./left-panel/run-status";
 import { TreeRow } from "./left-panel/shared/tree-row";
 import { getGroupIds, getStepsTree } from "./left-panel/steps-tree";
 import { CollapseButton } from "./shared/collapse-button";
+import { useItemNames } from "./shared/item-name";
 import {
   countSteps,
   getStepDisplay,
@@ -17,7 +18,7 @@ import { notReachedMark, startMark } from "./shared/step-states";
 
 import type { StepsTreeItem } from "./left-panel/steps-tree";
 import type { StepRunMark } from "./shared/step-states";
-import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 type LeftPanelTab = "steps" | "add";
 
@@ -54,6 +55,7 @@ const StepsTree = ({
   onToggleGroup,
   onStepClick,
   runMarks,
+  getItemName,
 }: {
   tree: StepsTreeItem[];
   depth: number;
@@ -62,6 +64,7 @@ const StepsTree = ({
   onToggleGroup: (stepId: string) => void;
   onStepClick: (stepId: string) => void;
   runMarks: Map<string, StepRunMark> | null;
+  getItemName: (forEachStepId: string) => string;
 }) =>
   tree.map(({ step, children }) => {
     const { title, description, icon, tone } = getStepDisplay(step);
@@ -73,7 +76,12 @@ const StepsTree = ({
           depth={depth}
           icon={icon}
           tone={tone}
-          label={description || title}
+          label={
+            description ||
+            (step.kind === "for-each"
+              ? `For each ${getItemName(step.stepId)}`
+              : title)
+          }
           selected={selectedStepIds.has(step.stepId)}
           emphasized={children !== null}
           onClick={() => onStepClick(step.stepId)}
@@ -101,6 +109,7 @@ const StepsTree = ({
             onToggleGroup={onToggleGroup}
             onStepClick={onStepClick}
             runMarks={runMarks}
+            getItemName={getItemName}
           />
         )}
       </div>
@@ -108,7 +117,7 @@ const StepsTree = ({
   });
 
 type StepsSectionProps = {
-  steps: StepDefinition<string>[];
+  flowDefinition: FlowDefinition<string>;
   selectedStepIds: string[];
   onStepClick: (stepId: string) => void;
   /** Shared with the canvas, which collapses the same for-each boxes. */
@@ -119,7 +128,7 @@ type StepsSectionProps = {
 
 /** The flow's steps, after Start. In a run, each shows its state, and a group counts its items rather than its steps. */
 const StepsSection = ({
-  steps,
+  flowDefinition,
   selectedStepIds,
   onStepClick,
   collapsedGroupIds,
@@ -127,6 +136,8 @@ const StepsSection = ({
   onCollapseAll,
   runMarks,
 }: StepsSectionProps & { runMarks: Map<string, StepRunMark> | null }) => {
+  const { steps } = flowDefinition;
+  const getItemName = useItemNames(flowDefinition);
   const tree = getStepsTree(steps);
   const groupIds = getGroupIds(tree);
 
@@ -161,6 +172,7 @@ const StepsSection = ({
         onToggleGroup={onToggleGroup}
         onStepClick={onStepClick}
         runMarks={runMarks}
+        getItemName={getItemName}
       />
     </div>
   );

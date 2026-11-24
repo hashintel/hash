@@ -173,7 +173,7 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
 function makeLanguageClient(): LanguageClientContextValue {
   return {
     netAnalysis: {
-      get: () => ({ metricShapes: {} }),
+      get: () => ({ metricShapes: {}, netClass: null }),
       subscribe: () => () => {},
     },
     requestDiagnostics: vi.fn(() =>

@@ -530,6 +530,7 @@ jobs:
       - name: Dispatch the staging promotion
         uses: hashintel/actions/.github/actions/dispatch-promotion@main
         with:
+          project: hash
           target-environment: staging
           vault-address: ${{ vars.VAULT_PROD_ADDR }}
           vault-role: ci-hash-deploy

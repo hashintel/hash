@@ -160,6 +160,31 @@ export const getFormValuesFromRun = (
 };
 
 /**
+ * The form's values with the ones given earlier in their place, each where its input still takes that kind of value:
+ * the flow's inputs may have changed since.
+ */
+export const withGivenValues = (
+  values: RunFormValues,
+  givenValues: RunFormValues,
+): RunFormValues => {
+  const merged: RunFormValues = { ...values };
+
+  for (const [name, value] of Object.entries(values)) {
+    const given = givenValues[name];
+
+    if (
+      given?.kind === value.kind &&
+      (given.kind !== "EntityId" ||
+        (value.kind === "EntityId" && given.array === value.array))
+    ) {
+      merged[name] = given;
+    }
+  }
+
+  return merged;
+};
+
+/**
  * Why the flow can't be run from the editor, or `null` if it can: the first of its errors, no steps, or a required
  * input the form can't take.
  */
@@ -193,7 +218,7 @@ export const getRunBlocker = ({
   return null;
 };
 
-/** The payload for a value, or `null` if it was left blank. */
+/** The payload for a value, or `null` if it was left blank. Text of only spaces is blank; a toggle never is. */
 const toPayload = (formValue: RunFormValue): Payload | null => {
   switch (formValue.kind) {
     case "Number":
@@ -203,6 +228,7 @@ const toPayload = (formValue: RunFormValue): Payload | null => {
     case "Boolean":
       return formValue;
     case "Text":
+      return formValue.value.trim() === "" ? null : formValue;
     case "Date":
       return formValue.value === "" ? null : formValue;
     case "EntityId":

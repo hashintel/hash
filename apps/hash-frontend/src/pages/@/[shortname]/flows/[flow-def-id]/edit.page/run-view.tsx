@@ -1,5 +1,5 @@
 import { isEqual } from "lodash";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { Banner, Button, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -9,12 +9,20 @@ import { useGetOwnerForEntity } from "../../../../../../components/hooks/use-get
 import { RunCanvas } from "./canvas";
 import { RunLeftPanel } from "./left-panel";
 import { flowChangedBetween } from "./run-view/flow-changed";
+import { OutputViewer } from "./run-view/output-viewer";
+import {
+  outputSheetWidth,
+  useOutputViewer,
+} from "./run-view/shared/use-output-viewer";
 import { StepRunPanel } from "./run-view/step-run-panel";
 import { useRun } from "./run-view/use-run";
 import { findStep } from "./shared/find-step";
+import { getRunTrigger } from "./shared/flow-triggers";
 import { sidePanelWidth } from "./shared/side-panel";
-import { notReachedMark } from "./shared/step-states";
+import { notReachedMark, startMark } from "./shared/step-states";
 
+import type { TriggerCard } from "./canvas/flow-graph";
+import type { FlowSchedules } from "./shared/flow-triggers";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -74,12 +82,15 @@ export const RunView = ({
   flowRunEntityId,
   flowDefinitionEntityId,
   currentDefinition,
+  schedules,
   onBackToLogs,
 }: {
   flowRunEntityId: EntityId;
   flowDefinitionEntityId: EntityId;
   /** The flow as it is now. */
   currentDefinition: FlowDefinition<string>;
+  /** The flow's schedules, to name the one that started the run. */
+  schedules: FlowSchedules;
   onBackToLogs: () => void;
 }) => {
   const run = useRun({
@@ -87,6 +98,17 @@ export const RunView = ({
     flowDefinitionEntityId,
     currentDefinition,
   });
+
+  const flowScheduleId = run.status === "loaded" ? run.flowScheduleId : null;
+  /* It fired as the run started, so it's done, as Start is. */
+  const trigger = useMemo(
+    (): TriggerCard => ({
+      ...getRunTrigger(flowScheduleId, schedules),
+      on: true,
+      run: { mark: startMark, featured: false },
+    }),
+    [flowScheduleId, schedules],
+  );
 
   const [selectedStepIds, setSelectedStepIds] = useState<string[]>([]);
   const [focusRequest, setFocusRequest] = useState<{ stepId: string } | null>(
@@ -96,6 +118,7 @@ export const RunView = ({
   const [highlightedStepId, setHighlightedStepId] = useState<string | null>(
     null,
   );
+  const outputViewer = useOutputViewer();
   const getOwnerForEntity = useGetOwnerForEntity();
   const [collapsedStepIds, setCollapsedStepIds] = useState(
     () => new Set<string>(),
@@ -174,13 +197,20 @@ export const RunView = ({
     selectedStepIds.length === 1 && selectedStepId !== undefined
       ? findStep(flowDefinition.steps, selectedStepId)
       : undefined;
-  /* A new selection opens a new panel, without the "Used in" list that set the highlight. */
+  /* A new selection opens a new panel, without the "Used in" list that set the highlight, or a value it opened. */
   const selectSteps = (stepIds: string[]) => {
     if (!isEqual(stepIds, selectedStepIds)) {
       setHighlightedStepId(null);
+      outputViewer.close();
     }
     setSelectedStepIds(stepIds);
   };
+  /* The side sheet covers the panel, and more. */
+  const coveredRight = selected
+    ? outputViewer.wide
+      ? outputSheetWidth
+      : sidePanelWidth
+    : 0;
   const ownerShortname = getOwnerForEntity({
     entityId: flowRunEntityId,
   }).shortname;
@@ -188,7 +218,7 @@ export const RunView = ({
   return (
     <div className={body}>
       <RunLeftPanel
-        steps={flowDefinition.steps}
+        flowDefinition={flowDefinition}
         runMarks={marks}
         selectedStepIds={selectedStepIds}
         onStepClick={(stepId) => {
@@ -202,7 +232,7 @@ export const RunView = ({
       <div className={canvasArea}>
         <div
           className={notices}
-          style={selected ? { right: sidePanelWidth + 16 } : undefined}
+          style={coveredRight ? { right: coveredRight + 16 } : undefined}
         >
           {ranDefinition === null ? (
             <Banner tone="warning">
@@ -238,31 +268,37 @@ export const RunView = ({
           collapsedStepIds={collapsedStepIds}
           onToggleCollapsed={toggleCollapsed}
           highlightedStepId={highlightedStepId}
-          coveredRight={selected ? sidePanelWidth : 0}
+          coveredRight={coveredRight}
+          trigger={trigger}
         />
         {selected && (
-          <StepRunPanel
-            /* Each step's panel starts afresh, e.g. with its outputs open. */
-            key={selected.step.stepId}
-            step={selected.step}
-            inner={selected.inner}
-            flowDefinition={flowDefinition}
-            mark={marks.get(selected.step.stepId) ?? notReachedMark}
-            stepRuns={stepRuns}
-            waitingOnPerson={waitingOnPerson}
-            live={live}
-            /* Its owner's shortname is empty until users and orgs have loaded. */
-            runPageHref={
-              ownerShortname
-                ? generateWorkerRunPath({
-                    shortname: ownerShortname,
-                    flowRunEntityId,
-                  })
-                : null
-            }
-            highlightedStepId={highlightedStepId}
-            onHighlightStep={setHighlightedStepId}
-          />
+          <>
+            <StepRunPanel
+              /* Each step's panel starts afresh, e.g. with its outputs open. */
+              key={selected.step.stepId}
+              step={selected.step}
+              inner={selected.inner}
+              flowDefinition={flowDefinition}
+              mark={marks.get(selected.step.stepId) ?? notReachedMark}
+              stepRuns={stepRuns}
+              waitingOnPerson={waitingOnPerson}
+              live={live}
+              /* Its owner's shortname is empty until users and orgs have loaded. */
+              runPageHref={
+                ownerShortname
+                  ? generateWorkerRunPath({
+                      shortname: ownerShortname,
+                      flowRunEntityId,
+                    })
+                  : null
+              }
+              highlightedStepId={highlightedStepId}
+              onHighlightStep={setHighlightedStepId}
+              inert={outputViewer.view !== null}
+              onOpenValue={outputViewer.open}
+            />
+            <OutputViewer viewer={outputViewer} />
+          </>
         )}
       </div>
     </div>

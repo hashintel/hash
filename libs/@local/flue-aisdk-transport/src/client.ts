@@ -1,4 +1,5 @@
 export {
+  admissionOutcome,
   finalUserMessage,
   FlueChatAdmissionError,
   FlueChatDisconnectError,

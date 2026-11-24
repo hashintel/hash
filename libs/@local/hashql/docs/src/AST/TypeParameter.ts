@@ -1,0 +1,92 @@
+import { Array, Equal, Hash, Predicate } from "effect";
+
+import * as Source from "../internal/ast/source.js";
+import * as Traits from "../internal/ast/traits.js";
+
+import type * as $Interned from "./Interned.js";
+import type * as TypeNode from "./TypeNode.js";
+import type { Inspectable, Option } from "effect";
+import type * as TypeScript from "typescript/ast";
+
+const TypeId = "~hashql-docs/AST/TypeParameter";
+
+const fields = [
+  "node",
+  "name",
+  "constraint",
+  "default",
+  "documentation",
+] as const;
+
+export class TypeParameter implements Traits.Traits {
+  readonly [TypeId] = TypeId;
+  readonly _tag = "TypeParameter" as const;
+
+  readonly node: TypeScript.TypeParameterDeclaration;
+  readonly name: string;
+  readonly constraint: Option.Option<TypeNode.Interned>;
+  readonly default: Option.Option<TypeNode.Interned>;
+  readonly documentation: Traits.Traits["documentation"];
+
+  declare readonly pipe: Traits.Traits["pipe"];
+  declare readonly toString: Traits.Traits["toString"];
+  declare readonly [Inspectable.NodeInspectSymbol]: Traits.Traits[Inspectable.NodeInspectSymbol];
+
+  static {
+    Object.assign(TypeParameter.prototype, Traits.Prototype);
+  }
+
+  constructor({
+    node,
+    name,
+    constraint,
+    default: defaultType,
+    documentation,
+  }: TypeParameter.Fields) {
+    this.node = Equal.byReferenceUnsafe(node);
+    this.name = name;
+    this.constraint = constraint;
+    this.default = defaultType;
+    this.documentation = documentation;
+    Object.freeze(this);
+  }
+
+  [Hash.symbol](): number {
+    return Hash.structureKeys(this, ["_tag", ...fields]);
+  }
+
+  [Equal.symbol](other: Equal.Equal): boolean {
+    return (
+      // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
+      isTypeParameter(other) &&
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
+    );
+  }
+
+  toJSON(): Traits.Traits.Inspection {
+    return {
+      _tag: this._tag,
+      node: Source.inspectNode(this.node),
+      name: this.name,
+      constraint: this.constraint,
+      default: this.default,
+      documentation: this.documentation,
+    };
+  }
+}
+
+export declare namespace TypeParameter {
+  type Fields = Pick<TypeParameter, (typeof fields)[number]>;
+}
+
+export type Interned = $Interned.Interned<TypeParameter>;
+
+/** Recognises this node kind by its own marker. */
+export const isTypeParameter = (
+  // oxlint-disable-next-line typescript/no-restricted-types -- A node guard accepts unchecked values.
+  value: unknown,
+): value is TypeParameter => Predicate.hasProperty(value, TypeId);
+
+/** Creates a frozen node from the supplied fields. */
+export const make = (fields: TypeParameter.Fields): TypeParameter =>
+  new TypeParameter(fields);

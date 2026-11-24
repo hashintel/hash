@@ -1,7 +1,6 @@
 import { useState } from "react";
 
 import {
-  BreadCrumbs,
   Button,
   Chip,
   Dialog,
@@ -10,12 +9,14 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useSnackbar } from "../../../../../../components/hooks/use-snackbar";
+import { ArchiveFlowDialog } from "./shared/archive-flow-dialog";
 import { RenameInput } from "./shared/rename-input";
-import { getShortRunId, shortRunIdFont } from "./shared/run-id";
 import { RunActions } from "./top-bar/run-actions";
 import { RunFlow } from "./top-bar/run-flow";
+import { RunSwitcher } from "./top-bar/run-switcher";
+import { RunTime } from "./top-bar/run-time";
 
+import type { FlowRuns } from "./shared/use-flow-runs";
 import type { FlowSaveStatus } from "./use-autosaved-flow-editor";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
@@ -86,68 +87,6 @@ const SaveStatus = ({
   }
 };
 
-const ArchiveFlowDialog = ({
-  name,
-  onArchive,
-  onClose,
-  editsRefused,
-}: {
-  name: string;
-  onArchive: () => Promise<void>;
-  onClose: () => void;
-  editsRefused: boolean;
-}) => {
-  const { triggerSnackbar } = useSnackbar();
-  const [archiving, setArchiving] = useState(false);
-
-  const archive = async () => {
-    setArchiving(true);
-
-    try {
-      await onArchive();
-    } catch (error) {
-      triggerSnackbar.error(`Couldn't archive the flow: ${String(error)}`);
-      setArchiving(false);
-    }
-  };
-
-  return (
-    <Dialog
-      size="xs"
-      onClose={onClose}
-      shouldCloseOn={archiving ? "none" : "closeButtonAndOverlay"}
-    >
-      <Dialog.Header title="Archive flow" />
-      <Dialog.Body>
-        <p className={dialogText}>
-          “{name}” will no longer be listed, and its schedules will be paused.
-          Its past runs stay readable.
-          {editsRefused &&
-            " Its latest edits can't be saved, so they'll be dropped."}
-        </p>
-      </Dialog.Body>
-      <Dialog.Footer
-        actions={
-          <>
-            <Button variant="subtle" disabled={archiving} onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              tone="error"
-              loading={archiving}
-              onClick={() => {
-                void archive();
-              }}
-            >
-              Archive flow
-            </Button>
-          </>
-        }
-      />
-    </Dialog>
-  );
-};
-
 const LeaveFlowDialog = ({
   onLeave,
   onClose,
@@ -182,8 +121,8 @@ export type FlowEditorView = "editor" | "logs";
 
 /**
  * The flow editor's top bar: back to the flows page, the flow's name, the switch between editing the flow and its
- * runs, whether its edits are saved, Run, and its menu. Showing a run, it names the run after the flow, with the way
- * back to the flow's runs between them, and has Stop or Re-run for it in place of Run.
+ * runs, whether its edits are saved, Run, and its menu. Showing a run, it has the run switcher after the flow's name,
+ * and the run's time and Stop or Re-run for it in place of Run.
  */
 export const TopBar = ({
   editorKey,
@@ -192,7 +131,9 @@ export const TopBar = ({
   flowDefinitionEntityId,
   view,
   flowRunEntityId,
+  flowRuns,
   onViewChange,
+  onOpenRun,
   onRename,
   saveStatus,
   saveRefusedReason,
@@ -214,7 +155,11 @@ export const TopBar = ({
   view: FlowEditorView;
   /** The run shown, in the Logs view. */
   flowRunEntityId: EntityId | null;
+  /** The flow's runs, for the run switcher. */
+  flowRuns: FlowRuns;
   onViewChange: (view: FlowEditorView) => void;
+  /** Shows another of the flow's runs. */
+  onOpenRun: (flowRunEntityId: EntityId) => void;
   onRename: (name: string) => void;
   saveStatus: FlowSaveStatus;
   /** Why the API refused the latest edits, if it did. */
@@ -254,15 +199,6 @@ export const TopBar = ({
     }
   };
 
-  const renameInput = (
-    <RenameInput
-      value={name}
-      placeholder="Untitled flow"
-      ariaLabel="Flow name"
-      onRename={onRename}
-    />
-  );
-
   return (
     <div className={topBar}>
       <div className={titleGroup}>
@@ -276,21 +212,20 @@ export const TopBar = ({
             void leave();
           }}
         />
-        {flowRunEntityId ? (
-          <BreadCrumbs size="sm">
-            {renameInput}
-            {/* Never collapsed: it's the way back to the runs. */}
-            <BreadCrumbs.Item noCollapse onClick={() => onViewChange("logs")}>
-              Runs
-            </BreadCrumbs.Item>
-            <BreadCrumbs.Item noCollapse>
-              <span className={shortRunIdFont}>
-                {getShortRunId(flowRunEntityId)}
-              </span>
-            </BreadCrumbs.Item>
-          </BreadCrumbs>
-        ) : (
-          renameInput
+        <RenameInput
+          value={name}
+          placeholder="Untitled flow"
+          ariaLabel="Flow name"
+          onRename={onRename}
+        />
+        {flowRunEntityId && (
+          <RunSwitcher
+            flowRunEntityId={flowRunEntityId}
+            flowDefinitionEntityId={flowDefinitionEntityId}
+            flowRuns={flowRuns}
+            onOpenRun={onOpenRun}
+            onAllRuns={() => onViewChange("logs")}
+          />
         )}
       </div>
       <div className={viewSwitch}>
@@ -307,6 +242,13 @@ export const TopBar = ({
       </div>
       <div className={barGroup}>
         <SaveStatus status={saveStatus} onRetry={onRetrySave} />
+        {flowRunEntityId && (
+          <RunTime
+            key={flowRunEntityId}
+            flowRunEntityId={flowRunEntityId}
+            flowDefinitionEntityId={flowDefinitionEntityId}
+          />
+        )}
         {flowRunEntityId ? (
           <RunActions
             key={`${editorKey}:${flowRunEntityId}`}

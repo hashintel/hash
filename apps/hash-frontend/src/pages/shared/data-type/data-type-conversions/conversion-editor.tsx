@@ -22,6 +22,7 @@ import { applyConversionDefinition } from "./apply-conversion-definition";
 import type { DataTypeFormData } from "../data-type-form";
 import type {
   ConversionDefinition,
+  ConversionValue,
   Conversions,
   DataType,
   DataTypeWithMetadata,
@@ -46,6 +47,20 @@ const operatorToOpCharacterMap: Record<Operator, OperatorCharacter> = {
   "/": "÷",
 };
 
+const formatConversionValue = (
+  value: ConversionValue,
+  sourceTitle: string,
+): string => {
+  if (value === "self") {
+    return sourceTitle;
+  }
+  if (Array.isArray(value)) {
+    const [operator, left, right] = value;
+    return `(${formatConversionValue(left, sourceTitle)} ${operatorToOpCharacterMap[operator]} ${formatConversionValue(right, sourceTitle)})`;
+  }
+  return formatNumber(value.const);
+};
+
 const ReadOnlyCalculation = ({
   definition,
   inheritedFrom,
@@ -57,8 +72,6 @@ const ReadOnlyCalculation = ({
   sourceTitle: string;
   targetTitle: string;
 }) => {
-  const [operator, left, right] = definition.expression;
-
   return (
     <Box>
       <ItemLabel
@@ -79,35 +92,10 @@ const ReadOnlyCalculation = ({
       >
         {sourceTitle} to {targetTitle}
       </ItemLabel>
-      <Stack direction="row" gap={0.5}>
-        {[left, operator, right].map((token, index) => {
-          let value: string;
-
-          if (token === "self") {
-            value = sourceTitle;
-          } else if (typeof token === "string") {
-            value = operatorToOpCharacterMap[token];
-          } else if (Array.isArray(token)) {
-            throw new Error("Nested conversion expressions are not supported");
-          } else {
-            value = formatNumber(token.const);
-          }
-
-          return (
-            <Typography
-              // eslint-disable-next-line react/no-array-index-key
-              key={index}
-              variant="smallTextParagraphs"
-              sx={{ fontWeight: token === "self" ? 300 : 500 }}
-            >
-              {value}
-            </Typography>
-          );
-        })}
-        <Typography variant="smallTextParagraphs" sx={{ fontWeight: 300 }}>
-          = {targetTitle}
-        </Typography>
-      </Stack>
+      <Typography variant="smallTextParagraphs" sx={{ fontWeight: 300 }}>
+        {formatConversionValue(definition.expression, sourceTitle)} ={" "}
+        {targetTitle}
+      </Typography>
     </Box>
   );
 };
@@ -178,21 +166,18 @@ const ConversionFormulaEditor = ({
 }) => {
   const [operator, left, right] = definition.expression;
 
-  if (Array.isArray(left) || Array.isArray(right)) {
-    throw new Error("Nested conversion expressions are not supported");
-  }
-
-  if (right === "self") {
-    throw new Error("Expected a constant value for the right operand");
-  }
-
-  if (isReadOnly) {
+  if (
+    isReadOnly ||
+    left !== "self" ||
+    Array.isArray(right) ||
+    right === "self"
+  ) {
     return (
       <ReadOnlyCalculation
         definition={definition}
         inheritedFrom={inheritedFrom}
-        sourceTitle={direction === "from" ? self.title : target.schema.title}
-        targetTitle={direction === "from" ? target.schema.title : self.title}
+        sourceTitle={direction === "to" ? self.title : target.schema.title}
+        targetTitle={direction === "to" ? target.schema.title : self.title}
       />
     );
   }
@@ -203,8 +188,8 @@ const ConversionFormulaEditor = ({
         tooltip={
           <Box>
             The calculation to convert{" "}
-            {direction === "from" ? self.title : target.schema.title} to{" "}
-            {direction === "from" ? target.schema.title : self.title}.
+            {direction === "to" ? self.title : target.schema.title} to{" "}
+            {direction === "to" ? target.schema.title : self.title}.
             {inheritedFrom ? (
               <>
                 {" "}
@@ -217,12 +202,12 @@ const ConversionFormulaEditor = ({
           </Box>
         }
       >
-        {direction === "from" ? self.title : target.schema.title} to{" "}
-        {direction === "from" ? target.schema.title : self.title}
+        {direction === "to" ? self.title : target.schema.title} to{" "}
+        {direction === "to" ? target.schema.title : self.title}
       </ItemLabel>
       <Stack direction="row" alignItems="center" gap={0.5} mt={0.5}>
         <Typography variant="smallTextParagraphs" sx={{ fontWeight: 300 }}>
-          {direction === "from" ? self.title : target.schema.title}
+          {direction === "to" ? self.title : target.schema.title}
         </Typography>
         <OperatorDropdown
           operator={operator}
@@ -251,7 +236,7 @@ const ConversionFormulaEditor = ({
           }}
         />
         <Typography variant="smallTextParagraphs" sx={{ fontWeight: 300 }}>
-          = {direction === "from" ? target.schema.title : self.title}
+          = {direction === "to" ? target.schema.title : self.title}
         </Typography>
         {error !== undefined && (
           <Tooltip title={error} placement="top">

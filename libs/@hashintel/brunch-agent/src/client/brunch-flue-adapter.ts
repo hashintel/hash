@@ -27,8 +27,9 @@ export type BrunchFlueAdapter = FlueAiSdkAdapter<PetrinautAiMessage>;
  * Petrinaut declares but does not check at runtime. Keys Petrinaut does not
  * render are dropped rather than rejected, so agents may add metadata freely.
  */
-const zPetrinautMessageMetadata = z.object({
+const petrinautMessageMetadataSchema = z.object({
   source: z.literal("voice").optional(),
+  ledgerComments: z.literal(true).optional(),
   stopped: z.literal(true).optional(),
   failed: z.literal(true).optional(),
   voiceToolCallIds: z.array(z.string()).optional(),
@@ -66,13 +67,28 @@ export const createBrunchFlueAdapter = (
     ...tools,
     ...reporting,
     mapToolOutput: browserToolOutput,
-    metadataSchema: zPetrinautMessageMetadata,
+    metadataSchema: petrinautMessageMetadataSchema,
     projectMetadata: projectBrunchMessageMetadata,
     userSignalTags: new Set([brunchSignals.ledgerComments]),
   });
   return {
     ...adapter,
-    reopen: (history) => adapter.reopen(history).map(withHumanUserText),
+    // A reopened comment turn is marked from its stored signal, as the live
+    // submission was marked by the composer.
+    reopen: (history) => {
+      const commentTurnIds = new Set(
+        history.messages.flatMap(({ id, signal }) =>
+          signal?.tagName === brunchSignals.ledgerComments ? [id] : [],
+        ),
+      );
+      return adapter
+        .reopen(history)
+        .map((message) =>
+          commentTurnIds.has(message.id)
+            ? { ...message, metadata: { ledgerComments: true } }
+            : withHumanUserText(message),
+        );
+    },
   };
 };
 

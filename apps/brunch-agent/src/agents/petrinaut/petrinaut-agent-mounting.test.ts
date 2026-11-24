@@ -6,7 +6,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
   brunchTools,
   petrinautContextualUserMessageBody,
-  vSdcpnInitialData,
+  sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
@@ -14,6 +14,7 @@ import {
   commitToolDescription,
   compileToolDescription,
 } from "../shared/ledger-tools.ts";
+import { offerAnswersToolDescription } from "../shared/offer-answers.ts";
 import { queryBasisToolDescription } from "../shared/query-basis.ts";
 
 const mounted = vi.hoisted(() => ({
@@ -93,6 +94,7 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
     expect.arrayContaining([
       brunchTools.ledgerCommit,
       brunchTools.ledgerCompile,
+      brunchTools.offerAnswers,
       brunchTools.queryBasis,
       brunchTools.ping,
       "readNetOutline",
@@ -121,6 +123,9 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
   expect(mounted.descriptions.get(brunchTools.queryBasis)).toBe(
     queryBasisToolDescription,
   );
+  expect(mounted.descriptions.get(brunchTools.offerAnswers)).toBe(
+    offerAnswersToolDescription,
+  );
 });
 
 test("a conversation without initial data mounts the guidance and Ledger without browser tools", async () => {
@@ -131,6 +136,7 @@ test("a conversation without initial data mounts the guidance and Ledger without
     [
       brunchTools.ledgerCommit,
       brunchTools.ledgerCompile,
+      brunchTools.offerAnswers,
       brunchTools.ping,
     ].sort(),
   );
@@ -138,8 +144,8 @@ test("a conversation without initial data mounts the guidance and Ledger without
 });
 
 test("the agent admits a document binding or no initial data", () => {
-  expect(v.parse(vSdcpnInitialData, bound)).toEqual(bound);
-  expect(v.parse(vSdcpnInitialData, undefined)).toBeUndefined();
+  expect(v.parse(sdcpnInitialDataSchema, bound)).toEqual(bound);
+  expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
 });
 
 test("only the current submission's budget reaches the prompt and Off or a malformed budget restores exactly the baseline", async () => {

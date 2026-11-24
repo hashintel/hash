@@ -2,26 +2,27 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 
 import { Icon, SortMenu, Tabs } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
   formatDuration,
   formatEndTime,
   formatRunTime,
+  getRunDuration,
 } from "../shared/run-times";
+import { tableStyle } from "../shared/table";
 import {
   countRunsByTab,
   defaultRunSort,
   filterRuns,
-  getRunDuration,
   isInTab,
   sortRuns,
 } from "./run-list";
 import { IdCell, StatusCell } from "./runs-table/run-cells";
 import { AddRunFilter, RunFilterBar } from "./runs-table/run-filters";
 
+import type { RunTab } from "../shared/run-state";
 import type { RunFilters, RunRow, RunSort, RunSortKey } from "./run-list";
-import type { RunTab } from "./run-state";
 import type { RunFilterProperty } from "./runs-table/run-filters";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { SortDirection, Sorter } from "@hashintel/ds-components";
@@ -37,6 +38,8 @@ type Column = Sorter<RunSortKey> & {
   /** The direction the column sorts in when picked, in its header or in Sort. */
   defaultDirection: SortDirection;
   align?: "right";
+  /** Its width, which holds the longest value it shows. The column without one takes the rest. */
+  className?: string;
 };
 
 /**
@@ -44,24 +47,32 @@ type Column = Sorter<RunSortKey> & {
  * statuses with those that need a look, and text A to Z.
  */
 const columns: Column[] = [
-  { name: "ID", sortKey: "id", defaultDirection: "ASCENDING" },
+  {
+    name: "ID",
+    sortKey: "id",
+    defaultDirection: "ASCENDING",
+    className: css({ width: "[128px]" }),
+  },
   {
     name: "Status",
     sortKey: "status",
     sortIcon: "generic",
     defaultDirection: "ASCENDING",
+    className: css({ width: "[160px]" }),
   },
   {
     name: "Started",
     sortKey: "started",
     sortIcon: "numeric",
     defaultDirection: "DESCENDING",
+    className: css({ width: "[176px]" }),
   },
   {
     name: "Ended",
     sortKey: "ended",
     sortIcon: "numeric",
     defaultDirection: "DESCENDING",
+    className: css({ width: "[176px]" }),
   },
   { name: "Web", sortKey: "web", defaultDirection: "ASCENDING" },
   {
@@ -70,6 +81,7 @@ const columns: Column[] = [
     sortIcon: "numeric",
     defaultDirection: "DESCENDING",
     align: "right",
+    className: css({ width: "[120px]" }),
   },
 ];
 
@@ -78,33 +90,9 @@ const noFilters: RunFilters = { states: [], trigger: null };
 const tabCount = css({ color: "fg.subtle", ml: "1.5" });
 const filterBar = css({ mt: "3" });
 const table = css({
-  width: "full",
   mt: "3",
-  borderCollapse: "collapse",
-  textStyle: "sm",
-  "& th": {
-    height: "8",
-    px: "4",
-    textAlign: "left",
-    textStyle: "xs",
-    fontWeight: "medium",
-    color: "fg.muted",
-    whiteSpace: "nowrap",
-    borderBottomWidth: "1px",
-    borderBottomStyle: "solid",
-    borderBottomColor: "bd.subtle",
-  },
-  "& td": {
-    height: "12",
-    px: "4",
-    color: "fg.body",
-    whiteSpace: "nowrap",
-    fontVariantNumeric: "tabular-nums",
-    borderBottomWidth: "1px",
-    borderBottomStyle: "solid",
-    borderBottomColor: "bd.subtle",
-  },
-  "& [data-align=right]": { textAlign: "right" },
+  /* So that the columns keep their widths as tabs and filters change the rows. */
+  tableLayout: "fixed",
 });
 const openableRow = css({
   cursor: "pointer",
@@ -121,6 +109,8 @@ const sortButton = css({
   "&[data-active] [data-sort-arrow]": { opacity: "1" },
 });
 const muted = css({ color: "fg.subtle" });
+/* A long shortname is cut short, rather than widening the column. */
+const webCell = css({ overflow: "hidden", textOverflow: "ellipsis" });
 const noMatches = css({ color: "fg.muted" });
 
 /** A column's header, which sorts the table by it, or flips the order when it already does. */
@@ -138,6 +128,7 @@ const SortHeader = ({
 
   return (
     <th
+      className={column.className}
       data-align={column.align}
       aria-sort={active ? (ascending ? "ascending" : "descending") : undefined}
     >
@@ -251,7 +242,7 @@ export const RunsTable = ({
           />
         </div>
       )}
-      <table className={table}>
+      <table className={cx(tableStyle, table)}>
         <thead>
           <tr>
             {columns.map((column) => (
@@ -274,14 +265,17 @@ export const RunsTable = ({
                 key={row.flowRunEntityId}
                 className={openableRow}
                 onClick={(event) => {
-                  /* A click that ends selecting text isn't a click on the row. */
-                  if (window.getSelection()?.toString()) {
+                  /*
+                   * A click with a modifier opens the run in a new tab, as one on the ID's link does. It's checked
+                   * first, as Shift-click extends the selection and the others leave it in place.
+                   */
+                  if (event.metaKey || event.ctrlKey || event.shiftKey) {
+                    window.open(runPath, "_blank", "noopener");
                     return;
                   }
 
-                  /* A click with a modifier opens the run in a new tab, as one on the ID's link does. */
-                  if (event.metaKey || event.ctrlKey || event.shiftKey) {
-                    window.open(runPath, "_blank", "noopener");
+                  /* A click that ends selecting text isn't a click on the row. */
+                  if (window.getSelection()?.toString()) {
                     return;
                   }
 
@@ -302,7 +296,7 @@ export const RunsTable = ({
                     <span className={muted}>–</span>
                   )}
                 </td>
-                <td className={muted}>
+                <td className={cx(muted, webCell)}>
                   {row.webShortname ? `@${row.webShortname}` : "–"}
                 </td>
                 <td data-align="right">

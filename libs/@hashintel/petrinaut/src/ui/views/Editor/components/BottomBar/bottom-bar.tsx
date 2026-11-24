@@ -11,6 +11,7 @@ import {
   EditorContext,
   type EditorState,
 } from "../../../../../react/state/editor-context";
+import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { BOTTOM_BAR_GAP } from "../../../../constants/ui";
@@ -118,9 +119,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   // (e.g. HIR semantic lints) are informational.
   const { errorDiagnosticsCount } = use(LanguageClientContext);
   const hasDiagnostics = errorDiagnosticsCount > 0;
-  const { activeSubnetId } = use(ActiveNetContext);
-  const isInSubnet = activeSubnetId !== null;
+  const { activeComponentId } = use(ActiveNetContext);
+  const isInComponent = activeComponentId !== null;
   const isReadOnly = useIsReadOnly();
+  const composesOnly = useComposesOnly();
 
   const showDiagnostics = () => {
     setBottomPanelOpen(true);
@@ -250,11 +252,16 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                     onClick={showDiagnostics}
                     isExpanded={isBottomPanelOpen}
                   />
-                  <ToolbarDivider />
-                  <EventSimulationControls
-                    disabled={hasDiagnostics}
-                    inSubnet={isInSubnet}
-                  />
+                  {/* An editor that only composes runs nothing. */}
+                  {composesOnly ? null : (
+                    <>
+                      <ToolbarDivider />
+                      <EventSimulationControls
+                        disabled={hasDiagnostics}
+                        inComponent={isInComponent}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </div>

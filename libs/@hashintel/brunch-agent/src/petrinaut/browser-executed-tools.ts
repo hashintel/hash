@@ -2,6 +2,7 @@ import {
   createExperimentToolName,
   getLatestNetDefinitionToolName,
   petrinautAiTools,
+  pruningUpdateActions,
   type PetrinautAiToolName,
 } from "@hashintel/petrinaut-core/ai";
 
@@ -13,7 +14,7 @@ import {
 } from "../hash/graph-reads";
 import { hashPetrinautTools } from "../hash/petrinaut-tools";
 import { parseHashSaveInput } from "../hash/save";
-import { zDraftPetrinautExperimentInput } from "./draft-experiment";
+import { draftPetrinautExperimentInputSchema } from "./draft-experiment";
 import { netReaderToolNames, parseNetReaderInput } from "./net-readers";
 import {
   type NetElementKind,
@@ -44,6 +45,11 @@ interface BrowserToolFacts {
   readonly targets: readonly NetElementKind[];
   /** It removes what the user built, so the user approves each call first. */
   readonly destructive: boolean;
+  /**
+   * On some inputs it drops the arcs and fusion memberships on what it
+   * changes, so the user approves those calls first.
+   */
+  readonly prunes: boolean;
   /**
    * Once started it has read what it needs of the net, so later calls in the
    * same step needn't wait for it to finish; a started run still reports a
@@ -80,6 +86,7 @@ const reads: BrowserToolFacts = {
   textResult: false,
   targets: [],
   destructive: false,
+  prunes: false,
   releasesDocumentLane: false,
 };
 
@@ -101,6 +108,9 @@ const unknownTool: BrowserToolFacts = {
   runsOnNet: false,
 };
 
+const isPruningUpdate = (name: PetrinautAiToolName): boolean =>
+  (pruningUpdateActions as readonly string[]).includes(name);
+
 const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
   const { capability, targets, destructive } = petrinautToolEffects[name];
   return {
@@ -113,6 +123,7 @@ const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
     releasesDocumentLane: name === createExperimentToolName,
     targets,
     destructive,
+    prunes: isPruningUpdate(name),
     inputParser: petrinautAiTools[name].inputSchema,
     canonicalCalls: (input) => [{ toolName: name, input }],
   };
@@ -129,7 +140,7 @@ const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
  */
 const hashPetrinaut = ({
   operations,
-  zInput,
+  inputSchema,
   parseCall,
 }: (typeof hashPetrinautTools)[keyof typeof hashPetrinautTools]): BrowserToolDescriptor => {
   const [first] = operations;
@@ -140,7 +151,8 @@ const hashPetrinaut = ({
     ...canonical(first),
     targets: [...new Set(effects.flatMap(({ targets }) => targets))],
     destructive: effects.some(({ destructive }) => destructive),
-    inputParser: zInput,
+    prunes: operations.some(isPruningUpdate),
+    inputParser: inputSchema,
     canonicalCalls: (input) => parseCall(input).calls,
   };
 };
@@ -192,7 +204,7 @@ export const browserExecutedTools: ReadonlyMap<string, BrowserToolDescriptor> =
         // Prepared in editor memory through its own review card.
         automatic: false,
         runsOnNet: false,
-        inputParser: zDraftPetrinautExperimentInput,
+        inputParser: draftPetrinautExperimentInputSchema,
         canonicalCalls: noCanonicalCalls,
       },
     ],

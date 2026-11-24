@@ -159,7 +159,7 @@ export const PreviewSimulationConfiguration = ({
 export const PreviewSimulationPlaybackControls = ({
   allowedPlaybackSpeeds,
 }: Pick<PetrinautPreviewQuickSimulation, "allowedPlaybackSpeeds">) => {
-  const { activeSubnetId } = use(ActiveNetContext);
+  const { activeComponentId } = use(ActiveNetContext);
   const { scenarioCompilationErrors } = use(SimulationContext);
   const { totalFrames } = use(ExecutionFrameSourceContext);
   const { showAnimations } = use(UserSettingsContext);
@@ -180,7 +180,7 @@ export const PreviewSimulationPlaybackControls = ({
               allowedPlaybackSpeeds?.length ? allowedPlaybackSpeeds : undefined
             }
             disabled={scenarioCompilationErrors !== null}
-            inSubnet={activeSubnetId !== null}
+            inComponent={activeComponentId !== null}
           />
         </div>
       </div>

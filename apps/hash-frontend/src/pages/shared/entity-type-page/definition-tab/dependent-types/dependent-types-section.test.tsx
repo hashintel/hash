@@ -5,9 +5,10 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { theme } from "@hashintel/design-system/theme";
@@ -49,6 +50,7 @@ const renderSection = (
     <ThemeProvider theme={theme}>
       <DependentTypesSection
         entityType={actor}
+        knownParentLatestVersion={2}
         rows={undefined}
         incomplete={false}
         error={undefined}
@@ -65,15 +67,37 @@ const renderSection = (
   };
 };
 
-const userToggleName = "User v7, versions v2–v7, extends Actor v1, v2";
+/** Each row below the header, as its cells' text under the header of their column. */
+const describeRows = (section: HTMLElement) => {
+  const headers = within(section)
+    .getAllByRole("columnheader")
+    .map((header) => header.textContent);
+
+  return within(section)
+    .getAllByRole("row")
+    .slice(1)
+    .map((row) => {
+      const cells = within(row).getAllByRole("cell");
+      return Object.fromEntries(
+        headers.map((header, index) => [
+          header,
+          cells[index]?.textContent.trim(),
+        ]),
+      );
+    });
+};
 
 describe("DependentTypesSection", () => {
   afterEach(cleanup);
+  beforeAll(() => {
+    // The layout `SegmentedControl` measures its segments, which jsdom can't.
+    globalThis.ResizeObserver = class ResizeObserver {
+      disconnect() {}
 
-  it("says that it covers every version of the type", () => {
-    const { section } = renderSection({ rows: [] });
+      observe() {}
 
-    expect(section.textContent).toContain("Across all versions of Actor");
+      unobserve() {}
+    };
   });
 
   it("marks the section busy while loading", () => {
@@ -86,7 +110,7 @@ describe("DependentTypesSection", () => {
     const { section } = renderSection({ rows: [] });
 
     expect(section.getAttribute("aria-busy")).toBe("false");
-    expect(section.textContent).toContain("No types extend Actor yet.");
+    within(section).getByText("No types extend Actor");
     expect(within(section).queryByRole("switch")).toBeNull();
   });
 
@@ -99,47 +123,72 @@ describe("DependentTypesSection", () => {
     );
   });
 
+  it("shows the types in a table named by the heading, with the toggle in each row's first cell and the open button in its last", () => {
+    const { section } = renderSection({ rows: [machine, user] });
+
+    const table = within(section).getByRole("table", {
+      name: "Types that extend Actor",
+    });
+    expect(
+      within(table)
+        .getAllByRole("columnheader")
+        .map((header) => header.textContent),
+    ).toEqual(["Type", "Versions", "Extends Actor"]);
+    expect(
+      within(table)
+        .getAllByRole("row")
+        .slice(1)
+        .map((row) =>
+          within(row)
+            .getAllByRole("cell")
+            .map(
+              (cell) =>
+                within(cell)
+                  .queryByRole("button")
+                  ?.getAttribute("aria-label") ?? null,
+            ),
+        ),
+    ).toEqual([
+      ["Machine v2", null, null, "Open Machine v2"],
+      ["User v7", null, null, "Open User v7"],
+    ]);
+  });
+
   it("shows one collapsed row per current type, with its version span and the versions of the type it extends", () => {
     const { section } = renderSection({
       rows: [machine, shellCompany, user],
     });
 
+    expect(describeRows(section)).toEqual([
+      { Type: "Machinev2", Versions: "v1–v2", "Extends Actor": "v1, v2" },
+      { Type: "Userv7", Versions: "v2–v7", "Extends Actor": "v1, v2" },
+    ]);
     expect(
       within(section)
         .getAllByRole("button", { expanded: false })
         .map((button) => button.getAttribute("aria-label")),
-    ).toEqual([
-      "Machine v2, versions v1–v2, extends Actor v1, v2",
-      userToggleName,
-    ]);
+    ).toEqual(["Machine v2", "User v7"]);
   });
 
   it("expands a row into its version ranges, and collapses it again", () => {
     const { section } = renderSection({ rows: [user] });
 
-    fireEvent.click(
-      within(section).getByRole("button", { name: userToggleName }),
-    );
+    fireEvent.click(within(section).getByRole("button", { name: "User v7" }));
 
-    const ranges = within(section).getByRole("group", {
-      name: "Version ranges of User",
-    });
-    expect(ranges.textContent).toContain("v2–v3extends Actor v1");
-    expect(ranges.textContent).toContain("v4–v7extends Actor v2");
-    within(ranges).getByRole("button", {
+    within(section).getByRole("button", { name: "User v7", expanded: true });
+    expect(describeRows(section)).toEqual([
+      { Type: "Userv7", Versions: "v2–v7", "Extends Actor": "v1, v2" },
+      { Type: "", Versions: "v2–v3", "Extends Actor": "v1" },
+      { Type: "", Versions: "v4–v7", "Extends Actor": "v2" },
+    ]);
+    within(section).getByRole("button", {
       name: "Open User v3, the highest version in v2–v3, which extends Actor v1",
     });
 
-    fireEvent.click(
-      within(section).getByRole("button", {
-        name: userToggleName,
-        expanded: true,
-      }),
-    );
+    fireEvent.click(within(section).getByRole("button", { name: "User v7" }));
 
-    expect(
-      within(section).queryByRole("group", { name: "Version ranges of User" }),
-    ).toBeNull();
+    within(section).getByRole("button", { name: "User v7", expanded: false });
+    expect(describeRows(section)).toHaveLength(1);
   });
 
   it("opens a type's latest version from its row without expanding the row", () => {
@@ -150,18 +199,13 @@ describe("DependentTypesSection", () => {
     );
 
     expect(onOpenType).toHaveBeenCalledWith(typeId("User", 7));
-    within(section).getByRole("button", {
-      name: userToggleName,
-      expanded: false,
-    });
+    within(section).getByRole("button", { name: "User v7", expanded: false });
   });
 
   it("opens a range at its highest version", () => {
     const { onOpenType, section } = renderSection({ rows: [user] });
 
-    fireEvent.click(
-      within(section).getByRole("button", { name: userToggleName }),
-    );
+    fireEvent.click(within(section).getByRole("button", { name: "User v7" }));
     fireEvent.click(
       within(section).getByRole("button", {
         name: "Open User v3, the highest version in v2–v3, which extends Actor v1",
@@ -183,8 +227,11 @@ describe("DependentTypesSection", () => {
 
     fireEvent.click(includeFormer);
 
-    within(section).getByRole("button", {
-      name: "Shell Company, former, versions v1–v2, extends Actor v1",
+    within(section).getByRole("button", { name: "Shell Company, former" });
+    expect(describeRows(section)[0]).toEqual({
+      Type: "Shell CompanyFormer",
+      Versions: "v1–v2",
+      "Extends Actor": "v1",
     });
     fireEvent.click(
       within(section).getByRole("button", {
@@ -197,8 +244,31 @@ describe("DependentTypesSection", () => {
   it("says no type extends the type when only former types do, and keeps the switch", () => {
     const { section } = renderSection({ rows: [shellCompany] });
 
-    expect(section.textContent).toContain("No types extend Actor yet.");
+    within(section).getByText("No types extend Actor");
     within(section).getByRole("switch", { name: "Include former types" });
+  });
+
+  it("switches between the layouts", async () => {
+    const { section } = renderSection({ rows: [user] });
+
+    const byChild = within(section).getByRole<HTMLInputElement>("radio", {
+      name: "By type",
+    });
+    const byParent = within(section).getByRole<HTMLInputElement>("radio", {
+      name: "By version",
+    });
+    expect(byChild.checked).toBe(true);
+
+    fireEvent.click(byParent);
+
+    // The segmented control reports the change after the click.
+    await waitFor(() =>
+      expect(
+        within(section).queryByRole("button", { name: "User v7" }),
+      ).toBeNull(),
+    );
+    within(section).getByRole("button", { name: "Actor v2" });
+    expect(byParent.checked).toBe(true);
   });
 
   it("warns that types or versions may be missing when a query reached its row limit", () => {
