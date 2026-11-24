@@ -41,11 +41,11 @@ import { generateRunViewPath, parseRunParam } from "./edit.page/run-path";
 import { RunView } from "./edit.page/run-view";
 import { findStep } from "./edit.page/shared/find-step";
 import { toScheduleTriggerRow } from "./edit.page/shared/flow-triggers";
+import { editorRunDataSources } from "./edit.page/shared/run-form";
 import { sidePanelWidth } from "./edit.page/shared/side-panel";
 import { useFlowRuns } from "./edit.page/shared/use-flow-runs";
 import { StepPanel } from "./edit.page/step-panel";
 import { TopBar } from "./edit.page/top-bar";
-import { editorRunDataSources } from "./edit.page/top-bar/run-flow/run-form";
 import {
   FlowChangedElsewhereError,
   FlowSaveRefusedError,
@@ -431,6 +431,12 @@ const FlowEditor = ({
             flowRuns={flowRuns}
             onRetry={retryFlowRuns}
             getRunPath={getRunPath}
+            runner={{
+              webId,
+              editorState,
+              saveRefusedReason,
+              onRun: runFlow,
+            }}
           />
         )
       ) : (

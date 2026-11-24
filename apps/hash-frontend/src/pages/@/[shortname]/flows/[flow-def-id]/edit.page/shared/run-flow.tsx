@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import {
   Banner,
   Button,
+  Dialog,
   Form,
   NumberInput,
   Popover,
@@ -12,7 +13,6 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { getFlowInputLabel, getKindLabel } from "../shared/value-display";
 import { EntityInput } from "./run-flow/entity-input";
 import {
   getFlowInputValues,
@@ -20,9 +20,10 @@ import {
   getInitialFormValues,
   getRunBlocker,
   withGivenValues,
-} from "./run-flow/run-form";
+} from "./run-form";
+import { getFlowInputLabel, getKindLabel } from "./value-display";
 
-import type { RunFormValue, RunFormValues } from "./run-flow/run-form";
+import type { RunFormValue, RunFormValues } from "./run-form";
 import type { WebId } from "@blockprotocol/type-system";
 import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
@@ -146,6 +147,18 @@ export const InputField = ({
   </Form.Field>
 );
 
+/** What the run form takes, wherever it opens. */
+type RunFormProps = {
+  webId: WebId;
+  name: string;
+  inputs: FlowInputDefinition[];
+  ranInputs: FlowInputValues | null;
+  saveRefusedReason: string | null;
+  onRun: (flowInputs: FlowInputValues) => Promise<void>;
+  onClose: () => void;
+};
+
+/** The form for a run's inputs: a popover under the button that opens it, or a dialog where there's no such button. */
 const RunFlowForm = ({
   triggerRef,
   webId,
@@ -158,20 +171,14 @@ const RunFlowForm = ({
   onValueChange,
   onRun,
   onClose,
-}: {
-  triggerRef: RefObject<HTMLButtonElement | null>;
-  webId: WebId;
-  name: string;
-  inputs: FlowInputDefinition[];
-  ranInputs: FlowInputValues | null;
-  saveRefusedReason: string | null;
+}: RunFormProps & {
+  /** The button the form opens under, or `null` for a dialog. */
+  triggerRef: RefObject<HTMLButtonElement | null> | null;
   /** The values given in the form so far, kept while it's closed. */
   givenValues: RunFormValues;
   /** Whether a run is starting. */
   running: boolean;
   onValueChange: (inputName: string, value: RunFormValue) => void;
-  onRun: (flowInputs: FlowInputValues) => Promise<void>;
-  onClose: () => void;
 }) => {
   const [{ values: initialValues, changedInputLabels }] = useState(() =>
     ranInputs
@@ -203,6 +210,93 @@ const RunFlowForm = ({
     }
   };
 
+  const title = ranInputs ? "Re-run flow" : "Run flow";
+  const description = `Saves your edits, then runs “${name}” in this web.`;
+  /* A popover's buttons are small, and a dialog's the default size. */
+  const buttonSize = triggerRef ? "sm" : undefined;
+
+  const fields = (
+    <>
+      {runError !== null && (
+        <Banner tone="error">
+          <Banner.Title>The flow wasn't run</Banner.Title>
+          <Banner.Description as="div">
+            <div>{runError}</div>
+            {saveRefusedReason?.split("\n").map((line) => (
+              <div key={line}>{line}</div>
+            ))}
+          </Banner.Description>
+        </Banner>
+      )}
+      {changedInputLabels.length > 0 && (
+        <Banner tone="neutral">
+          <Banner.Title>
+            The flow's inputs have changed since this run
+          </Banner.Title>
+          <Banner.Description>
+            Not filled in: {changedInputLabels.join(", ")}
+          </Banner.Description>
+        </Banner>
+      )}
+      {inputs.length === 0 ? (
+        <p className={formText}>This flow has no inputs.</p>
+      ) : (
+        <Form.Section>
+          {inputs.map((input) => (
+            <InputField
+              key={input.name}
+              webId={webId}
+              input={input}
+              value={values[input.name]}
+              onChange={(value) => onValueChange(input.name, value)}
+            />
+          ))}
+        </Form.Section>
+      )}
+    </>
+  );
+
+  const actions = (
+    <>
+      <Button
+        variant="subtle"
+        size={buttonSize}
+        disabled={running}
+        onClick={onClose}
+      >
+        Cancel
+      </Button>
+      <Button
+        size={buttonSize}
+        iconName={ranInputs ? "rotate" : "play"}
+        loading={running}
+        disabled={blocker !== null}
+        tooltip={blocker ?? undefined}
+        onClick={() => {
+          void run();
+        }}
+      >
+        {ranInputs ? "Re-run" : "Run"}
+      </Button>
+    </>
+  );
+
+  if (!triggerRef) {
+    return (
+      <Dialog
+        size="sm"
+        onClose={onClose}
+        shouldCloseOn={running ? "none" : "closeButtonAndOverlay"}
+      >
+        <Dialog.Header title={title} description={description} />
+        <Dialog.Body>
+          <div className={formBody}>{fields}</div>
+        </Dialog.Body>
+        <Dialog.Footer actions={actions} />
+      </Dialog>
+    );
+  }
+
   return (
     <Popover
       triggerRef={triggerRef}
@@ -210,81 +304,72 @@ const RunFlowForm = ({
       onClose={running ? undefined : onClose}
     >
       <Popover.Container className={runForm}>
-        <Popover.Header
-          title={ranInputs ? "Re-run flow" : "Run flow"}
-          hideCloseButton
-        />
+        <Popover.Header title={title} hideCloseButton />
         <Popover.Body>
           <div className={formBody}>
-            <p className={formText}>
-              Saves your edits, then runs “{name}” in this web.
-            </p>
-            {runError !== null && (
-              <Banner tone="error">
-                <Banner.Title>The flow wasn't run</Banner.Title>
-                <Banner.Description as="div">
-                  <div>{runError}</div>
-                  {saveRefusedReason?.split("\n").map((line) => (
-                    <div key={line}>{line}</div>
-                  ))}
-                </Banner.Description>
-              </Banner>
-            )}
-            {changedInputLabels.length > 0 && (
-              <Banner tone="neutral">
-                <Banner.Title>
-                  The flow's inputs have changed since this run
-                </Banner.Title>
-                <Banner.Description>
-                  Not filled in: {changedInputLabels.join(", ")}
-                </Banner.Description>
-              </Banner>
-            )}
-            {inputs.length === 0 ? (
-              <p className={formText}>This flow has no inputs.</p>
-            ) : (
-              <Form.Section>
-                {inputs.map((input) => (
-                  <InputField
-                    key={input.name}
-                    webId={webId}
-                    input={input}
-                    value={values[input.name]}
-                    onChange={(value) => onValueChange(input.name, value)}
-                  />
-                ))}
-              </Form.Section>
-            )}
+            <p className={formText}>{description}</p>
+            {fields}
           </div>
         </Popover.Body>
-        <Popover.Footer
-          actions={
-            <>
-              <Button
-                variant="subtle"
-                size="sm"
-                disabled={running}
-                onClick={onClose}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                iconName={ranInputs ? "rotate" : "play"}
-                loading={running}
-                disabled={blocker !== null}
-                tooltip={blocker ?? undefined}
-                onClick={() => {
-                  void run();
-                }}
-              >
-                {ranInputs ? "Re-run" : "Run"}
-              </Button>
-            </>
-          }
-        />
+        <Popover.Footer actions={actions} />
       </Popover.Container>
     </Popover>
+  );
+};
+
+/** What running the flow takes, from Run, Re-run, or a run's menu in Logs. */
+export type FlowRunner = {
+  /** The web the flow is in, which the run is in too, and whose entities the form offers. */
+  webId: WebId;
+  editorState: FlowEditorState;
+  /**
+   * Why the API refused the latest edits, if it did. A prop rather than part of the error `onRun` throws, as the save
+   * that sets it happens inside `onRun`, which only knows that it failed.
+   */
+  saveRefusedReason: string | null;
+  /**
+   * Saves any edits not saved yet, then starts a run with these inputs and opens it. Throws, saying why, if the edits
+   * couldn't be saved or the run didn't start.
+   */
+  onRun: (flowInputs: FlowInputValues) => Promise<void>;
+};
+
+/** The run form's state that whatever opens it holds, as it outlasts the form. */
+const useRunFormState = (onRun: FlowRunner["onRun"]) => {
+  /* Here rather than in the form, so Run can't close the form, or start another run, while one is starting. */
+  const [running, setRunning] = useState(false);
+  /* Here rather than in the form, so a click on the canvas, which closes the form, doesn't lose what's been given. */
+  const [givenValues, setGivenValues] = useState<RunFormValues>({});
+
+  const run = async (flowInputs: FlowInputValues) => {
+    setRunning(true);
+
+    try {
+      await onRun(flowInputs);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const setValue = (inputName: string, value: RunFormValue) =>
+    setGivenValues((current) => ({ ...current, [inputName]: value }));
+
+  return { running, givenValues, run, setValue };
+};
+
+/** The run form as a dialog, for a run's menu in Logs, where no button stays for the form to open under. */
+export const RunFlowDialog = ({ onRun, ...formProps }: RunFormProps) => {
+  const { running, givenValues, run, setValue } = useRunFormState(onRun);
+
+  return (
+    <RunFlowForm
+      {...formProps}
+      triggerRef={null}
+      givenValues={givenValues}
+      running={running}
+      onValueChange={setValue}
+      onRun={run}
+    />
   );
 };
 
@@ -298,40 +383,14 @@ export const RunFlow = ({
   ranInputs = null,
   saveRefusedReason,
   onRun,
-}: {
-  /** The web the flow is in, which the run is in too, and whose entities the form offers. */
-  webId: WebId;
-  editorState: FlowEditorState;
+}: FlowRunner & {
   /** The inputs of the run to run again, if this re-runs one. */
   ranInputs?: FlowInputValues | null;
-  /**
-   * Why the API refused the latest edits, if it did. A prop rather than part of the error `onRun` throws, as the save
-   * that sets it happens inside `onRun`, which only knows that it failed.
-   */
-  saveRefusedReason: string | null;
-  /**
-   * Saves any edits not saved yet, then starts a run with these inputs and opens it. Throws, saying why, if the edits
-   * couldn't be saved or the run didn't start.
-   */
-  onRun: (flowInputs: FlowInputValues) => Promise<void>;
 }) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [formOpen, setFormOpen] = useState(false);
-  /* Here rather than in the form, so Run can't close the form, or start another run, while one is starting. */
-  const [running, setRunning] = useState(false);
-  /* Here rather than in the form, so a click on the canvas, which closes the form, doesn't lose what's been given. */
-  const [givenValues, setGivenValues] = useState<RunFormValues>({});
+  const { running, givenValues, run, setValue } = useRunFormState(onRun);
   const blocker = getRunBlocker(editorState);
-
-  const run = async (flowInputs: FlowInputValues) => {
-    setRunning(true);
-
-    try {
-      await onRun(flowInputs);
-    } finally {
-      setRunning(false);
-    }
-  };
 
   return (
     <>
@@ -357,9 +416,7 @@ export const RunFlow = ({
           saveRefusedReason={saveRefusedReason}
           givenValues={givenValues}
           running={running}
-          onValueChange={(inputName, value) =>
-            setGivenValues((current) => ({ ...current, [inputName]: value }))
-          }
+          onValueChange={setValue}
           onRun={run}
           onClose={() => setFormOpen(false)}
         />

@@ -1,14 +1,14 @@
-import { getFlowInputLabel } from "../../@/[shortname]/flows/[flow-def-id]/edit.page/shared/value-display";
 import {
   getFlowInputValues,
   getUnfillableInputProblem,
-} from "../../@/[shortname]/flows/[flow-def-id]/edit.page/top-bar/run-flow/run-form";
+} from "../../@/[shortname]/flows/[flow-def-id]/edit.page/shared/run-form";
+import { getFlowInputLabel } from "../../@/[shortname]/flows/[flow-def-id]/edit.page/shared/value-display";
 import {
   parseCronExpression,
   toCronExpression,
 } from "../../shared/schedule-repeat";
 
-import type { RunFormValues } from "../../@/[shortname]/flows/[flow-def-id]/edit.page/top-bar/run-flow/run-form";
+import type { RunFormValues } from "../../@/[shortname]/flows/[flow-def-id]/edit.page/shared/run-form";
 import type { RepeatRule, ScheduleTime } from "../../shared/schedule-repeat";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";

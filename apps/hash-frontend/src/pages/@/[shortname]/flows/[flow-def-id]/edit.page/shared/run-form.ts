@@ -1,8 +1,4 @@
-import {
-  getFlowInputLabel,
-  getKindLabel,
-  withArticle,
-} from "../../shared/value-display";
+import { getFlowInputLabel, getKindLabel, withArticle } from "./value-display";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";

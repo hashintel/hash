@@ -9,9 +9,9 @@ import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flo
 import { useSnackbar } from "../../../../../../../components/hooks/use-snackbar";
 import { cancelFlowMutation } from "../../../../../../../graphql/queries/knowledge/flow.queries";
 import { generateRunViewPath } from "../run-path";
+import { RunFlow } from "../shared/run-flow";
 import { getShortRunId } from "../shared/run-id";
 import { isRunGoing } from "../shared/run-state";
-import { RunFlow } from "./run-flow";
 
 import type {
   CancelFlowMutation,

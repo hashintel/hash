@@ -9,6 +9,7 @@ import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/va
 import { findStep } from "./shared/find-step";
 import { useItemNames } from "./shared/item-name";
 import { getOutputLabel } from "./shared/name-label";
+import { getRunBlocker } from "./shared/run-form";
 import { PanelSection, PanelTitle, SidePanel } from "./shared/side-panel";
 import {
   getActionDefinition,
@@ -27,7 +28,6 @@ import { OutputField } from "./step-panel/output-field";
 import { PathsField } from "./step-panel/paths-field";
 import { QueryField } from "./step-panel/query-field";
 import { TriggersPanelBody } from "./step-panel/triggers-panel";
-import { getRunBlocker } from "./top-bar/run-flow/run-form";
 
 import type { FlowSchedules } from "./shared/flow-triggers";
 import type { StepTone } from "./shared/step-display";
