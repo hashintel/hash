@@ -135,7 +135,9 @@ describe("common measurement units", () => {
       for (const unit of previous.units) {
         expect(
           current?.units.find(
-            ({ dataTypeBaseUrl }) => dataTypeBaseUrl === unit.dataTypeBaseUrl,
+            ({ dataTypeBaseUrl, title }) =>
+              (dataTypeBaseUrl ?? title) ===
+              (unit.dataTypeBaseUrl ?? unit.title),
           ),
         ).toEqual(unit);
       }
@@ -169,21 +171,21 @@ describe("common measurement units", () => {
   });
 
   it.each([
-    ["Curies", "Curie", "Curies"],
+    ["Curie", "Curie", "Curies"],
     ["Celsius Difference", "Celsius Difference", "Celsius Differences"],
-    ["Standard Gravities", "Standard Gravity", "Standard Gravities"],
+    ["Standard Gravity", "Standard Gravity", "Standard Gravities"],
     [
-      "Inches of Water (Conventional)",
+      "Inch of Water (Conventional)",
       "Inch of Water (Conventional)",
       "Inches of Water (Conventional)",
     ],
     ["Stokes", "Stokes", "Stokes"],
     ["Centistokes", "Centistokes", "Centistokes"],
-    ["Parts per Million", "Part per Million", "Parts per Million"],
+    ["Part per Million", "Part per Million", "Parts per Million"],
     [
-      "Litres per 100 Kilometers",
-      "Litre per 100 Kilometers",
-      "Litres per 100 Kilometers",
+      "Liter per 100 Kilometers",
+      "Liter per 100 Kilometers",
+      "Liters per 100 Kilometers",
     ],
     [
       "Energy (US Customary)",
@@ -191,7 +193,7 @@ describe("common measurement units", () => {
       "Energies (US Customary)",
     ],
   ])(
-    "preserves the %s identifier with singular and plural names",
+    "derives the %s identifier from its singular title",
     (identifierTitle, title, titlePlural) => {
       expect(getSeeded(identifierTitle).schema).toMatchObject({
         $id: `${baseUrl(identifierTitle)}v/1`,
@@ -202,51 +204,51 @@ describe("common measurement units", () => {
   );
 
   it.each([
-    ["Curies", "Becquerels", 37e9],
-    ["Rads", "Grays", 0.01],
-    ["Rems", "Sieverts", 0.01],
-    ["Nautical Miles", "Meters", 1852],
-    ["Hectares", "Square Metres", 10000],
-    ["Metric Carats", "Kilograms", 0.0002],
+    ["Curie", "Becquerel", 37e9],
+    ["Rad", "Gray", 0.01],
+    ["Rem", "Sievert", 0.01],
+    ["Nautical Mile", "Meters", 1852],
+    ["Hectare", "Square Metres", 10000],
+    ["Metric Carat", "Kilograms", 0.0002],
     ["Knots", "Meters per Second", 1852 / 3600],
-    ["Millibars", "Pascals", 100],
-    ["Torr", "Pascals", 101325 / 760],
-    ["Millimeters of Mercury (Conventional)", "Pascals", 133.322387415],
-    ["Inches of Water (Conventional)", "Pascals", 249.08891],
-    ["Electronvolts", "Joules", 1.602176634e-19],
-    ["Calories (Thermochemical)", "Joules", 4.184],
-    ["Kilocalories (Thermochemical)", "Joules", 4184],
-    ["Calories (IT)", "Joules", 4.1868],
-    ["Kilocalories (IT)", "Joules", 4186.8],
-    ["Therms (US)", "Joules", 105480400],
-    ["Therms (EC)", "Joules", 105506000],
+    ["Millibar", "Pascal", 100],
+    ["Torr", "Pascal", 101325 / 760],
+    ["Millimeter of Mercury (Conventional)", "Pascal", 133.322387415],
+    ["Inch of Water (Conventional)", "Pascal", 249.08891],
+    ["Electronvolt", "Joule", 1.602176634e-19],
+    ["Calorie (Thermochemical)", "Joule", 4.184],
+    ["Kilocalorie (Thermochemical)", "Joule", 4184],
+    ["Calorie (IT)", "Joule", 4.1868],
+    ["Kilocalorie (IT)", "Joule", 4186.8],
+    ["Therm (US)", "Joule", 105480400],
+    ["Therm (EC)", "Joule", 105506000],
     ["Metric Horsepower", "Watts", 735.49875],
-    ["Arcminutes", "Degree", 1 / 60],
-    ["Arcseconds", "Degree", 1 / 3600],
-    ["Revolutions", "Degree", 360],
-    ["Revolutions per Second", "Radians per Second", 2 * Math.PI],
-    ["Revolutions per Minute", "Radians per Second", Math.PI / 30],
-    ["Standard Gravities", "Meters per Second Squared", 9.80665],
-    ["Kilograms-Force", "Newtons", 9.80665],
-    ["Poises", "Pascal Seconds", 0.1],
-    ["Centipoises", "Pascal Seconds", 0.001],
-    ["Milligrams per Decilitre", "Kilograms per Cubic Meter", 0.01],
-    ["Milligrams per Litre", "Kilograms per Cubic Meter", 0.001],
-    ["Grams per Litre", "Kilograms per Cubic Meter", 1],
-    ["Foot-Lamberts", "Candelas per Square Meter", 1 / (Math.PI * 0.09290304)],
-    ["Square Millimeters per Second", "Square Meters per Second", 1e-6],
-    ["Stokes", "Square Meters per Second", 1e-4],
-    ["Centistokes", "Square Meters per Second", 1e-6],
+    ["Arcminute", "Degree", 1 / 60],
+    ["Arcsecond", "Degree", 1 / 3600],
+    ["Revolution", "Degree", 360],
+    ["Revolution per Second", "Radian per Second", 2 * Math.PI],
+    ["Revolution per Minute", "Radian per Second", Math.PI / 30],
+    ["Standard Gravity", "Meter per Second Squared", 9.80665],
+    ["Kilogram-Force", "Newton", 9.80665],
+    ["Poise", "Pascal Second", 0.1],
+    ["Centipoise", "Pascal Second", 0.001],
+    ["Milligram per Deciliter", "Kilogram per Cubic Meter", 0.01],
+    ["Milligram per Liter", "Kilogram per Cubic Meter", 0.001],
+    ["Gram per Liter", "Kilogram per Cubic Meter", 1],
+    ["Foot-Lambert", "Candela per Square Meter", 1 / (Math.PI * 0.09290304)],
+    ["Square Millimeter per Second", "Square Meter per Second", 1e-6],
+    ["Stokes", "Square Meter per Second", 1e-4],
+    ["Centistokes", "Square Meter per Second", 1e-6],
     ["Percentage", "One", 0.01],
-    ["Parts per Million", "One", 1e-6],
-    ["Parts per Billion", "One", 1e-9],
-    ["Cubic Meters per Hour", "Cubic Meters per Second", 1 / 3600],
-    ["Litres per Second", "Cubic Meters per Second", 0.001],
-    ["Litres per Minute", "Cubic Meters per Second", 1 / 60000],
-    ["US Gallons per Minute", "Cubic Meters per Second", 0.003785411784 / 60],
-    ["Imperial Gallons per Minute", "Cubic Meters per Second", 0.00454609 / 60],
-    ["Cubic Feet per Minute", "Cubic Meters per Second", 0.028316846592 / 60],
-    ["Decibels", "Bels", 0.1],
+    ["Part per Million", "One", 1e-6],
+    ["Part per Billion", "One", 1e-9],
+    ["Cubic Meter per Hour", "Cubic Meter per Second", 1 / 3600],
+    ["Liter per Second", "Cubic Meter per Second", 0.001],
+    ["Liter per Minute", "Cubic Meter per Second", 1 / 60000],
+    ["US Gallon per Minute", "Cubic Meter per Second", 0.003785411784 / 60],
+    ["Imperial Gallon per Minute", "Cubic Meter per Second", 0.00454609 / 60],
+    ["Cubic Foot per Minute", "Cubic Meter per Second", 0.028316846592 / 60],
+    ["Decibel", "Bel", 0.1],
   ] as const)(
     "converts %s to %s in both directions",
     (source, target, factor) => {
@@ -264,61 +266,57 @@ describe("common measurement units", () => {
   );
 
   it.each([
-    ["Miles per US Gallon", 1.609344 / 3.785411784],
-    ["Miles per Imperial Gallon", 1.609344 / 4.54609],
+    ["Mile per US Gallon", 1.609344 / 3.785411784],
+    ["Mile per Imperial Gallon", 1.609344 / 4.54609],
   ] as const)("converts fuel economy in %s", (title, factor) => {
     for (const value of [0, 0.1, 1, 25, 1000]) {
-      expect(convert(title, "Kilometers per Litre", value)).toBeCloseTo(
+      expect(convert(title, "Kilometer per Liter", value)).toBeCloseTo(
         value * factor,
         10,
       );
-      expect(
-        convert("Kilometers per Litre", title, value * factor),
-      ).toBeCloseTo(value, 10);
-      expect(
-        conversionPath(title, "Litres per 100 Kilometers"),
-      ).toBeUndefined();
+      expect(convert("Kilometer per Liter", title, value * factor)).toBeCloseTo(
+        value,
+        10,
+      );
+      expect(conversionPath(title, "Liter per 100 Kilometers")).toBeUndefined();
     }
   });
 
   it("converts across systems using shared references", () => {
-    expect(convert("Nautical Miles", "Feet", 1)).toBeCloseTo(
-      6076.1154855643,
-      8,
-    );
-    expect(convert("Knots", "Miles per Hour", 1)).toBeCloseTo(1.150779448, 8);
+    expect(convert("Nautical Mile", "Feet", 1)).toBeCloseTo(6076.1154855643, 8);
+    expect(convert("Knots", "Mile per Hour", 1)).toBeCloseTo(1.150779448, 8);
     expect(
-      convert("Millibars", "Pounds-Force per Square Inch", 1000),
+      convert("Millibar", "Pound-Force per Square Inch", 1000),
     ).toBeCloseTo(14.503773773, 8);
-    expect(convert("US Gallons per Minute", "Litres per Minute", 1)).toBe(
+    expect(convert("US Gallon per Minute", "Liter per Minute", 1)).toBe(
       3.785411784,
     );
     expect(
-      convert("Miles per US Gallon", "Miles per Imperial Gallon", 30),
+      convert("Mile per US Gallon", "Mile per Imperial Gallon", 30),
     ).toBeCloseTo(36.028497765, 8);
-    expect(convert("Parts per Million", "Percentage", 1)).toBe(0.0001);
-    expect(convert("Parts per Billion", "Parts per Million", 1)).toBe(0.001);
-    expect(convert("Milligrams per Decilitre", "Grams per Litre", 100)).toBe(1);
+    expect(convert("Part per Million", "Percentage", 1)).toBe(0.0001);
+    expect(convert("Part per Billion", "Part per Million", 1)).toBe(0.001);
+    expect(convert("Milligram per Deciliter", "Gram per Liter", 100)).toBe(1);
   });
 
   it("keeps reference-dependent and dimensionally different quantities separate", () => {
     for (const [source, target] of [
-      ["Rads", "Rems"],
-      ["Curies", "Hertz"],
-      ["Rads", "Curies"],
-      ["Revolutions per Minute", "Hertz"],
-      ["Poises", "Stokes"],
-      ["Kilometers per Litre", "Litres per 100 Kilometers"],
-      ["Milligrams per Decilitre", "Moles per Litre"],
-      ["Parts per Million", "Milligrams per Litre"],
-      ["Decibel Milliwatts", "Watts"],
-      ["Decibels", "Decibel Milliwatts"],
+      ["Rad", "Rem"],
+      ["Curie", "Hertz"],
+      ["Rad", "Curie"],
+      ["Revolution per Minute", "Hertz"],
+      ["Poise", "Stokes"],
+      ["Kilometer per Liter", "Liter per 100 Kilometers"],
+      ["Milligram per Deciliter", "Mole per Liter"],
+      ["Part per Million", "Milligram per Liter"],
+      ["Decibel Milliwatt", "Watts"],
+      ["Decibel", "Decibel Milliwatt"],
       [
-        "Decibels (A-Weighted Sound Pressure)",
-        "Decibels (C-Weighted Sound Pressure)",
+        "Decibel (A-Weighted Sound Pressure)",
+        "Decibel (C-Weighted Sound Pressure)",
       ],
-      ["Decibels (Sound Pressure)", "Decibels (A-Weighted Sound Pressure)"],
-      ["Decibels (Sound Pressure)", "Pascals"],
+      ["Decibel (Sound Pressure)", "Decibel (A-Weighted Sound Pressure)"],
+      ["Decibel (Sound Pressure)", "Pascal"],
     ] as const) {
       expect(
         conversionPath(source, target),
@@ -328,9 +326,9 @@ describe("common measurement units", () => {
   });
 
   it("converts referenced power levels while retaining negative readings", () => {
-    expect(convert("Decibel Milliwatts", "Decibel Watts", 0)).toBe(-30);
-    expect(convert("Decibel Watts", "Decibel Milliwatts", 0)).toBe(30);
-    expect(convert("Decibel Milliwatts", "Decibel Watts", -90)).toBe(-120);
+    expect(convert("Decibel Milliwatt", "Decibel Watt", 0)).toBe(-30);
+    expect(convert("Decibel Watt", "Decibel Milliwatt", 0)).toBe(30);
+    expect(convert("Decibel Milliwatt", "Decibel Watt", -90)).toBe(-120);
   });
 
   describe("temperature differences", () => {
@@ -411,8 +409,8 @@ describe("common measurement units", () => {
           expect(conversionPath(reading, difference)).toBeUndefined();
         }
       }
-      expect(convert("Degrees Celsius", "Kelvins", 0)).toBe(273.15);
-      expect(convert("Degrees Fahrenheit", "Kelvins", 32)).toBe(273.15);
+      expect(convert("Degree Celsius", "Kelvin", 0)).toBe(273.15);
+      expect(convert("Degree Fahrenheit", "Kelvin", 32)).toBe(273.15);
       expect(convert("Celsius Difference", "Fahrenheit Difference", 10)).toBe(
         18,
       );
@@ -421,10 +419,10 @@ describe("common measurement units", () => {
 
   it("bounds fuel quantities without rejecting zero", () => {
     for (const title of [
-      "Litres per 100 Kilometers",
-      "Kilometers per Litre",
-      "Miles per US Gallon",
-      "Miles per Imperial Gallon",
+      "Liter per 100 Kilometers",
+      "Kilometer per Liter",
+      "Mile per US Gallon",
+      "Mile per Imperial Gallon",
     ]) {
       expect(getSeeded(title).schema).toMatchObject({ minimum: 0 });
     }

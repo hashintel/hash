@@ -171,7 +171,9 @@ describe("unit definition upgrades", () => {
       dataTypeBaseUrl: percentageBaseUrl,
       dataTypeDefinition: {
         ...original.schema,
-        allOf: [{ $ref: systemDataTypes.dimensionlessRatioMetric.dataTypeId }],
+        allOf: [
+          { $ref: systemDataTypes["dimensionlessRatio(metric)"].dataTypeId },
+        ],
       },
       conversions: percentage.conversions,
     });
@@ -186,15 +188,12 @@ describe("unit definition upgrades", () => {
       throw new Error("Registry Percentage has no conversion to One");
     }
     for (const [target, expected] of [
-      [systemDataTypes.partsPerMillion, 10000],
-      [systemDataTypes.partsPerBillion, 10000000],
+      [systemDataTypes.partPerMillion, 10000],
+      [systemDataTypes.partPerBillion, 10000000],
     ] as const) {
       const unit = commonUnitGroups
         .flatMap(({ units }) => units)
-        .find(
-          ({ dataTypeBaseUrl }) =>
-            `${dataTypeBaseUrl}v/1` === target.dataTypeId,
-        );
+        .find(({ title }) => title === target.title);
       const targetConversion =
         unit?.conversions?.[systemDataTypes.one.dataTypeBaseUrl];
       if (!targetConversion) {
