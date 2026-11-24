@@ -1,17 +1,27 @@
 import { useStoreApi } from "@xyflow/react";
-import { useEffect } from "react";
+import { use, useEffect } from "react";
 
-import { useLatest } from "../../../../../../react/hooks/use-latest";
-import { nodeFiringIsVisible } from "./firing-animation-visibility";
+import { useLatest } from "../../../../../../react/shared/use-latest";
+import {
+  fadedColor,
+  fadedCoverColor,
+  fadedNodeStrength,
+  fadedSurfaceShadows,
+  insideFadedNode,
+} from "../../../styles/node-fade";
+import { ArcPulsesContext } from "./arc-pulses";
+import { firingIsVisible } from "./firing-animation-visibility";
 
 const FIRING_ANIMATION_DURATION_MS = 300;
 
 /**
- * Flashes a transition's box and its lightning bolt when it fires, through
- * the Web Animations API. Skipped for a transition that is off screen or
- * drawn too small to see.
+ * Shows that a transition fired: its arcs pulse, and its box and its
+ * lightning bolt flash through the Web Animations API. The flash is skipped
+ * for a transition that is off screen or drawn too small to see, and each
+ * arc decides the same for itself.
  */
 export const useTransitionFiringAnimation = (
+  transitionId: string,
   boxRef: React.RefObject<HTMLDivElement | null>,
   boltRef: React.RefObject<HTMLDivElement | null>,
   firingDelta: number | null,
@@ -20,6 +30,7 @@ export const useTransitionFiringAnimation = (
   // The viewport is read when a firing lands rather than subscribed to, so a
   // pan or a zoom does not re-render every transition on the canvas.
   const store = useStoreApi();
+  const arcPulses = use(ArcPulsesContext);
   // Held in a ref so a node drag during a firing does not restart it.
   const positionRef = useLatest(position);
 
@@ -29,6 +40,8 @@ export const useTransitionFiringAnimation = (
       return;
     }
 
+    arcPulses.fire(transitionId, firingDelta);
+
     const box = boxRef.current;
     const bolt = boltRef.current;
 
@@ -36,21 +49,26 @@ export const useTransitionFiringAnimation = (
       return;
     }
 
-    const { x, y } = positionRef.current;
-    if (!nodeFiringIsVisible(store.getState(), x, y)) {
+    if (!firingIsVisible(store.getState(), positionRef.current)) {
       return;
     }
 
     // Flash the box yellow with a glow. Only the flash is a keyframe: the
     // animation runs back to whatever the stylesheet says, so the focus ring's
     // white band in `box-shadow` returns once it is over instead of staying
-    // replaced by the glow's transparent end.
+    // replaced by the glow's transparent end. A transition outside the focused
+    // neighbourhood flashes as faded as it is drawn, with its shadows listed
+    // as the pane lists them, so that the glow fades into them.
+    const faded = box.matches(insideFadedNode);
+    const flash = "rgba(255, 224, 132, 0.7)";
+    const glow = "rgba(255, 132, 0, 0.59)";
     box.animate(
       [
         {
-          background: "rgba(255, 224, 132, 0.7)",
-          boxShadow:
-            "var(--node-outline-ring, 0 0 #0000), 0 0 6px 1px rgba(255, 132, 0, 0.59)",
+          background: faded ? fadedColor(flash) : flash,
+          boxShadow: faded
+            ? fadedSurfaceShadows(`0 0 6px 1px ${fadedColor(glow)}`)
+            : `var(--node-outline-ring, 0 0 #0000), 0 0 6px 1px ${glow}`,
           offset: 0,
         },
       ],
@@ -60,10 +78,23 @@ export const useTransitionFiringAnimation = (
       },
     );
 
+    // The icon box of a faded card is not drawn, because the card under it
+    // draws its colour. For the length of the flash the card is another
+    // colour, so the box is drawn for as long: opaque, as a cover is, so that
+    // the flash does not show through it.
+    if (faded) {
+      box
+        .querySelector(":scope > .node-inlay")
+        ?.animate(
+          [{ backgroundColor: fadedCoverColor("var(--node-fill)"), offset: 0 }],
+          { duration: FIRING_ANIMATION_DURATION_MS, easing: "ease-out" },
+        );
+    }
+
     // Animate the lightning bolt: appear then fade out
     bolt.animate(
       [
-        { opacity: 1, transform: "scale(1)" },
+        { opacity: faded ? fadedNodeStrength : 1, transform: "scale(1)" },
         { opacity: 0, transform: "scale(0.5)" },
       ],
       {
@@ -72,5 +103,13 @@ export const useTransitionFiringAnimation = (
         fill: "forwards",
       },
     );
-  }, [firingDelta, boxRef, boltRef, positionRef, store]);
+  }, [
+    firingDelta,
+    transitionId,
+    arcPulses,
+    boxRef,
+    boltRef,
+    positionRef,
+    store,
+  ]);
 };

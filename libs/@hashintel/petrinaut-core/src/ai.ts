@@ -1,10 +1,9 @@
 import { z } from "zod";
 
-import { mutationActionInputSchemas } from "./action-schemas";
-import { aiCommandActionInputSchemas } from "./command-schemas";
+import { mutationActionInputSchemas } from "./actions/action-schemas";
+import { aiCommandActionInputSchemas } from "./actions/command-schemas";
 import { probabilisticSatellitesSDCPN } from "./examples";
 import { petrinautExperimentRequestSchema } from "./experiments/host";
-import { typedKeys } from "./lib/typed-entries";
 
 export {
   petrinautExperimentRequestSchema,
@@ -28,16 +27,16 @@ export {
   scenarioSchema,
   componentSchema,
   transitionSchema,
-} from "./action-schemas";
+} from "./actions/action-schemas";
 export type {
   MutationActionInput as PetrinautAiMutationToolInput,
   MutationActionName as PetrinautAiMutationToolName,
-} from "./action-schemas";
-export { aiCommandActionInputSchemas } from "./command-schemas";
+} from "./actions/action-schemas";
+export { aiCommandActionInputSchemas } from "./actions/command-schemas";
 export type {
   AiCommandActionInput as PetrinautAiCommandToolInput,
   AiCommandActionName as PetrinautAiCommandToolName,
-} from "./command-schemas";
+} from "./actions/command-schemas";
 
 export type PetrinautAiTool<InputSchema extends z.ZodType> = {
   description: string;
@@ -76,7 +75,8 @@ function createToolBundle<const InputSchemas extends Record<string, z.ZodType>>(
     };
   };
 
-  for (const name of typedKeys(schemas)) {
+  // `Object.keys` returns `string[]`: the keys of `schemas` are its tool names.
+  for (const name of Object.keys(schemas) as (keyof InputSchemas)[]) {
     setTool(name, schemas[name]);
   }
 
@@ -145,7 +145,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "code-editor":
     "Code editing in the Properties Panel: expand a section to fill the panel, return to the item’s other properties, direct function navigation, automatic edits and read-only behavior.",
   "visual-settings":
-    "General, Viewport, Plugins and Labs preferences: animations, keep-panels-mounted, minimap, snap-to-grid, compact nodes, partial selection, switching plugins on or off, plugin settings, net components, and compilation output.",
+    "General, Viewport, Plugins and Labs preferences: animations, minimap, snap-to-grid, compact nodes, partial selection, switching plugins on or off, plugin settings, net components, and compilation output.",
   "compilation-output":
     "The Compilation bottom-panel tab: enabling it, the GPU verdict line, structural blockers, shader emission failures, per-item GPU/CPU/untested/no-HIR/unused status, and HIR node counts.",
   examples:

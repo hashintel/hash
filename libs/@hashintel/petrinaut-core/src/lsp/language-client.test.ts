@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createLanguageClient } from "./language-client";
-import { createSDCPN } from "./lib/helper/create-sdcpn";
+import { createSDCPN } from "./language-service/create-sdcpn.test-helpers";
 
 import type { LspTransport } from "./transport";
 import type {

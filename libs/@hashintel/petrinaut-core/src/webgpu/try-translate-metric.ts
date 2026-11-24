@@ -1,3 +1,4 @@
+import { resolveNetParameterValues } from "../document/parameter-values";
 /**
  * Asks whether a metric body could be translated to WGSL, and whether its
  * value is a whole number.
@@ -15,7 +16,6 @@
  */
 import { buildMetricContext } from "../hir/surface-context";
 import { typecheckHir } from "../hir/typecheck";
-import { resolveNetParameterValues } from "../parameter-values";
 import {
   emitMetricSample,
   metricStateValue,
@@ -23,7 +23,7 @@ import {
 } from "./compile-net-shader";
 import { WgslBailError } from "./emit-wgsl";
 
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirFunction } from "../hir/hir";
 import type { SDCPN } from "../types/sdcpn";
 

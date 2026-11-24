@@ -1,23 +1,35 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePlaceTokenLabel } from "../../../canvas-frame-store";
+import { usePlaceTokenLabel } from "../../../canvas-frame-store-context";
 import { nodeFocusStyle } from "../../../styles/focus";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
+import { NodeCard } from "./node-card";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
-  NodeCard,
   nodeCardStyle,
-} from "./node-card";
+} from "./node-card-styles";
 import { PlaceStateTooltip } from "./place-state-tooltip";
-import { portPlaceLabels, PortPins } from "./port-pin";
+import { PortPins } from "./port-pin";
+import { portPlaceLabels } from "./port-place-labels";
+import { NodeHandles } from "./shared/node-handles";
 
 import type { PlaceNodeType } from "./react-flow-types";
 import type { NodeProps } from "@xyflow/react";
 
+/**
+ * A place's fill is its token type's colour, and its icon box lies on that
+ * fill in a colour of its own. With each at 0.25 the box would be tinted by
+ * the fill, and would hide more of what is behind the place than the rest of
+ * the card does. So the fill of a faded place is a gradient that leaves a
+ * hole under the box, with no colour under it.
+ */
 const placeCardStyle = css({
   borderRadius: "full",
+  "--node-faded-fill": "transparent",
+  "--node-faded-fill-image":
+    "radial-gradient(circle at 24px 50%, transparent 19.5px, color-mix(in srgb, var(--node-fill) 25%, transparent) 20.5px)",
 });
 
 const placeIconContainerStyle = css({
@@ -36,8 +48,10 @@ const tokenCountBadgeStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  color: "neutral.s00",
-  backgroundColor: "[black]",
+  "--node-text": "var(--colors-neutral-s00)",
+  "--node-fill": "black",
+  color: "[var(--node-text)]",
+  backgroundColor: "[var(--node-fill)]",
   minWidth: "[20px]",
   height: "[20px]",
   borderRadius: "[10px]",
@@ -78,13 +92,15 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
       {showStateTooltip && <PlaceStateTooltip nodeId={id} />}
       <NodeCard
         cardClassName={`${nodeCardStyle} ${placeCardStyle} ${nodeFocusStyle({ focus })}`}
-        cardStyle={{
-          borderColor: typeColorBorder,
-          backgroundColor: placeBackgroundColor,
-        }}
+        cardStyle={
+          {
+            "--node-border": typeColorBorder,
+            "--node-fill": placeBackgroundColor,
+          } as React.CSSProperties
+        }
         iconContainer={
           <div
-            className={`${iconContainerBaseStyle} ${placeIconContainerStyle}`}
+            className={`node-fill ${iconContainerBaseStyle} ${placeIconContainerStyle}`}
             style={{ color: typeColorBorder }}
           >
             <Icon name="circleFilled" />
@@ -100,7 +116,9 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         badge={
           <>
             {tokenLabel !== null ? (
-              <div className={tokenCountBadgeStyle}>{tokenLabel}</div>
+              <div className={`node-cover node-text ${tokenCountBadgeStyle}`}>
+                {tokenLabel}
+              </div>
             ) : null}
             {data.portDirection === null ? null : (
               <PortPins
@@ -110,8 +128,14 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             )}
           </>
         }
-        isConnectable={isConnectable}
-      />
+      >
+        <NodeHandles
+          kind="place"
+          width={data.width}
+          height={data.height}
+          isConnectable={isConnectable}
+        />
+      </NodeCard>
     </>
   );
 };

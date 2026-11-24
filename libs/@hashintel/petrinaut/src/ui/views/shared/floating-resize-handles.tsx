@@ -1,13 +1,41 @@
 import { cva } from "@hashintel/ds-helpers/css";
 
-import { RESIZE_HANDLE_OFFSET, RESIZE_HANDLE_SIZE } from "../../constants/ui";
-
-import type { ResizableEdge } from "../../resize/resize-handle";
 import type { ComponentProps } from "react";
+
+export type ResizableEdge = "top" | "bottom" | "left" | "right";
 
 export type FloatingResizeDirection =
   | ResizableEdge
   | `${"top" | "bottom"}-${"left" | "right"}`;
+
+/**
+ * How thick the strip along an edge is, in pixels. A constant of this file:
+ * Panda does not extract a style value built from a constant of another
+ * module, and the strip would have no thickness.
+ */
+const handleSize = 5;
+/** Where a handle starts from its edge of the window: the strip straddles the edge. */
+const handleOffset = -Math.floor(handleSize / 2) - 1;
+
+/** The strip along the top or the bottom edge, which fades out towards the corners. */
+const horizontalEdge = {
+  left: "[12px]",
+  right: "[12px]",
+  height: `[${handleSize}px]`,
+  cursor: "ns-resize",
+  maskImage:
+    "[linear-gradient(to right, transparent, #000 49px, #000 calc(100% - 49px), transparent)]",
+} as const;
+
+/** The strip along the left or the right edge. */
+const verticalEdge = {
+  top: "[12px]",
+  bottom: "[12px]",
+  width: `[${handleSize}px]`,
+  cursor: "ew-resize",
+  maskImage:
+    "[linear-gradient(to bottom, transparent, #000 49px, #000 calc(100% - 49px), transparent)]",
+} as const;
 
 const handleStyle = cva({
   base: {
@@ -45,38 +73,10 @@ const handleStyle = cva({
       },
     },
     direction: {
-      top: {
-        left: "[12px]",
-        right: "[12px]",
-        height: `[${RESIZE_HANDLE_SIZE}px]`,
-        cursor: "ns-resize",
-        maskImage:
-          "[linear-gradient(to right, transparent, #000 49px, #000 calc(100% - 49px), transparent)]",
-      },
-      bottom: {
-        left: "[12px]",
-        right: "[12px]",
-        height: `[${RESIZE_HANDLE_SIZE}px]`,
-        cursor: "ns-resize",
-        maskImage:
-          "[linear-gradient(to right, transparent, #000 49px, #000 calc(100% - 49px), transparent)]",
-      },
-      left: {
-        top: "[12px]",
-        bottom: "[12px]",
-        width: `[${RESIZE_HANDLE_SIZE}px]`,
-        cursor: "ew-resize",
-        maskImage:
-          "[linear-gradient(to bottom, transparent, #000 49px, #000 calc(100% - 49px), transparent)]",
-      },
-      right: {
-        top: "[12px]",
-        bottom: "[12px]",
-        width: `[${RESIZE_HANDLE_SIZE}px]`,
-        cursor: "ew-resize",
-        maskImage:
-          "[linear-gradient(to bottom, transparent, #000 49px, #000 calc(100% - 49px), transparent)]",
-      },
+      top: { ...horizontalEdge },
+      bottom: { ...horizontalEdge },
+      left: { ...verticalEdge },
+      right: { ...verticalEdge },
       "top-left": {
         width: "[15px]",
         height: "[15px]",
@@ -138,10 +138,10 @@ const FloatingResizeHandle = ({
     data-resize-edge={direction}
     className={handleStyle({ direction, corner: direction.includes("-") })}
     style={{
-      top: direction.includes("top") ? RESIZE_HANDLE_OFFSET : undefined,
-      right: direction.includes("right") ? RESIZE_HANDLE_OFFSET : undefined,
-      bottom: direction.includes("bottom") ? RESIZE_HANDLE_OFFSET : undefined,
-      left: direction.includes("left") ? RESIZE_HANDLE_OFFSET : undefined,
+      top: direction.includes("top") ? handleOffset : undefined,
+      right: direction.includes("right") ? handleOffset : undefined,
+      bottom: direction.includes("bottom") ? handleOffset : undefined,
+      left: direction.includes("left") ? handleOffset : undefined,
     }}
   />
 );

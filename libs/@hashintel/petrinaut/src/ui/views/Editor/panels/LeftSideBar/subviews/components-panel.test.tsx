@@ -10,17 +10,17 @@ import {
   type ImportStates,
 } from "@hashintel/petrinaut-core";
 
-import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
-import { CompositionContext } from "../../../../../../react/state/composition-context";
+import { ActiveNetContext } from "../../../../../../react/document/active-net-context";
+import { CompositionContext } from "../../../../../../react/document/composition-context";
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import {
   logisticsLibrary,
   missingLibraryId,
   toolingLibrary,
-} from "../../../../../libraries-story-fixtures";
+} from "../../../../../stories/libraries-story-fixtures";
 import { readDraggedComponent } from "../../../../shared/canvas-node-drag";
-import { componentsSubView } from "./components-panel";
+import { ComponentsPanel } from "./components-panel";
 
 afterEach(cleanup);
 
@@ -87,8 +87,7 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
   </SDCPNContext>
 );
 
-const renderPanel = () =>
-  render(<componentsSubView.component />, { wrapper: Wrapper });
+const renderPanel = () => render(<ComponentsPanel />, { wrapper: Wrapper });
 
 describe("the Components panel", () => {
   it("lists the components of a library under its name, with what each does", () => {

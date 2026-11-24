@@ -10,6 +10,10 @@ both surfaces. You can pan and zoom the canvas, fit the net into view, and use
 the minimap. You cannot move, connect, add, delete, or otherwise edit net
 elements.
 
+The preview's buttons and menus carry the same icons as the editor. An icon
+that moves, such as the one on **Play**, stays still when Petrinaut animations
+are turned off.
+
 Text in the preview is not selectable, so dragging across the canvas always
 pans or selects rather than highlighting a label.
 

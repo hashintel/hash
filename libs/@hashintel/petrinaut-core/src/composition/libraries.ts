@@ -9,10 +9,10 @@
 
 import { z } from "zod";
 
-import { toPetrinautId } from "../petrinaut-id";
-import { remapPlaceDynamics } from "../place-dynamics";
+import { toPetrinautId } from "../document/petrinaut-id";
+import { remapPlaceDynamics } from "../document/place-dynamics";
 import { componentSchema } from "../schemas/entity-schemas";
-import { COLOR_ELEMENT_TYPES } from "../simulation/engine/type-policies";
+import { COLOR_ELEMENT_TYPES } from "../tokens/type-policies";
 import { colorsStructurallyEqual } from "./fusions";
 import { componentKey } from "./interfaces";
 import { portDirections } from "./ports";

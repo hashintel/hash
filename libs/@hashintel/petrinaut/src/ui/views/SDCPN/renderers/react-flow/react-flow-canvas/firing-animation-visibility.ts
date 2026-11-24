@@ -32,53 +32,27 @@ const MIN_ANIMATION_ZOOM = 0.25;
 const VISIBILITY_MARGIN = 200;
 
 /**
- * Whether the box spanning two points in flow coordinates overlaps the pane.
- *
- * Points may arrive in either order, so the span is normalised here rather
- * than at each call site.
+ * Whether a firing drawn within this box, in flow units, should be animated.
+ * A node gives its position alone.
  */
-const spanIsVisible = (
+export const firingIsVisible = (
   viewport: ViewportState,
-  firstX: number,
-  firstY: number,
-  secondX: number,
-  secondY: number,
+  {
+    x,
+    y,
+    width = 0,
+    height = 0,
+  }: { x: number; y: number; width?: number; height?: number },
 ): boolean => {
   const [panX, panY, zoom] = viewport.transform;
   if (zoom < MIN_ANIMATION_ZOOM) {
     return false;
   }
   const margin = VISIBILITY_MARGIN * zoom;
-  const left = Math.min(firstX, secondX) * zoom + panX;
-  const right = Math.max(firstX, secondX) * zoom + panX;
-  const top = Math.min(firstY, secondY) * zoom + panY;
-  const bottom = Math.max(firstY, secondY) * zoom + panY;
   return (
-    right >= -margin &&
-    bottom >= -margin &&
-    left <= viewport.width + margin &&
-    top <= viewport.height + margin
+    (x + width) * zoom + panX >= -margin &&
+    (y + height) * zoom + panY >= -margin &&
+    x * zoom + panX <= viewport.width + margin &&
+    y * zoom + panY <= viewport.height + margin
   );
 };
-
-/**
- * Whether a node at this flow position should play its firing animation.
- */
-export const nodeFiringIsVisible = (
-  viewport: ViewportState,
-  x: number,
-  y: number,
-): boolean => spanIsVisible(viewport, x, y, x, y);
-
-/**
- * Whether an arc drawn within this box, in flow units, should play its firing
- * animation. The box is the drawn path's own, so a curve that sweeps past its
- * endpoints counts where it is drawn.
- */
-export const arcFiringIsVisible = (
-  viewport: ViewportState,
-  left: number,
-  top: number,
-  right: number,
-  bottom: number,
-): boolean => spanIsVisible(viewport, left, top, right, bottom);

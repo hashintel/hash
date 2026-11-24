@@ -1,0 +1,30 @@
+# Hand-written; rendered by the arch-docs build. The UI uses the green
+# palette, the React layer the purple one, the host and what is left out grey.
+direction: down
+
+classes: {
+  ui: {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
+  react: {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+  other: {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+}
+
+host: "Host page\ndefinition, navigation,\nquickSimulation or actualMode" {class: other}
+preview: "PetrinautPreview\none read-only Core instance per definition" {class: ui}
+document: "PetrinautDocumentProvider\ninstance, settings, imports, document" {class: react}
+navigation: "PetrinautNavigationProvider\nthrough the navigation adapter" {class: react}
+presentation: "PetrinautPresentationProvider\nprofile preview" {class: ui}
+run: "NotificationsProvider, SimulatorsProvider,\nSimulationProvider\nonly with quickSimulation" {class: react}
+canvas-providers: "PetrinautCanvasProvider\nplayback, active net, editor state, frame source" {class: react}
+canvas: "SDCPNView\nthe canvas of the editor" {class: ui}
+parts: "Parts of the editor shell\nproperties, list of nets,\nplayback controls, the timelines" {class: ui}
+absent: "Not mounted\nlanguage client, experiments, optimizations,\nMonaco, plugins, commands, editor view" {class: other}
+
+host -> preview: "passes props to"
+preview -> document: mounts
+document -> navigation: wraps
+navigation -> presentation: wraps
+presentation -> run: wraps
+run -> canvas-providers: wraps
+canvas-providers -> canvas: "publishes to"
+canvas-providers -> parts: "publishes to"
+preview -> absent: "leaves out"

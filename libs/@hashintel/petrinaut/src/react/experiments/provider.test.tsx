@@ -13,10 +13,6 @@ import { describe, expect, it, vi } from "vitest";
 import {
   type AdHocScenarioState,
   type CompileHirArtifactsOptions,
-  createJsAdaptiveSimulator,
-  createJsFixedStepSimulator,
-  createWebGpuFixedStepSimulator,
-  FIXED_STEP_SIMULATOR_ID,
   type MonteCarloExperiment,
   type MonteCarloUserDefinedMetricFrame,
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -30,32 +26,34 @@ import {
   lowerScenarioToHir,
 } from "@hashintel/petrinaut-core/hir";
 
-import { LanguageClientContext } from "../lsp/context";
 import {
-  PetrinautNavigationProvider,
-  usePetrinautNavigation,
-} from "../navigation";
+  SDCPNContext,
+  type SDCPNContextValue,
+} from "../document/sdcpn-context";
+import { LanguageClientContext } from "../lsp/context";
+import { usePetrinautNavigation } from "../navigation/navigation";
+import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
 import {
   NotificationsContext,
   type AddNotificationInput,
 } from "../notifications/context";
+import { createBuiltInSimulators } from "../simulators/built-in-simulators";
 import {
+  defaultSimulatorSelections,
   SimulatorsContext,
   type SimulatorsContextValue,
 } from "../simulators/context";
 import { SimulatorsProvider } from "../simulators/provider";
-import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import {
   type CreateExperimentInput,
   type ExperimentRecord,
   ExperimentsContext,
   type ExperimentsContextValue,
 } from "./context";
-import { buildSweepAxes, ExperimentsProvider } from "./provider";
-import { compileExperimentScenario } from "./provider/create-experiment";
+import { ExperimentsProvider } from "./provider";
 
 import type { LanguageClientContextValue } from "../lsp/context";
-import type { PetrinautNavigationState } from "../navigation";
+import type { PetrinautNavigationState } from "../navigation/navigation";
 import type {
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,
@@ -245,15 +243,10 @@ const withWebGpuAvailable = async (body: () => Promise<void>) => {
 };
 
 const sdcpnContextValue: SDCPNContextValue = {
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
   petriNetId: "test-net",
   petriNetDefinition: EMPTY_SDCPN,
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "Test",
   getItemType: () => null,
 };
 
@@ -340,24 +333,8 @@ const simulatorsOver = (
     shardCount: 1,
   };
   const simulators: SimulatorsContextValue = {
-    registrations: [
-      createJsFixedStepSimulator(workers),
-      createJsAdaptiveSimulator(workers),
-      createWebGpuFixedStepSimulator({
-        loadBackend: async (options) => {
-          const { createWebGpuExperimentBackend } =
-            await import("@hashintel/petrinaut-core/webgpu");
-          return createWebGpuExperimentBackend(options);
-        },
-      }),
-    ],
-    defaultSelections: {
-      quick: { simulatorId: FIXED_STEP_SIMULATOR_ID },
-      stochastic: {
-        simulatorId: FIXED_STEP_SIMULATOR_ID,
-        parameters: { dt: 0.1 },
-      },
-    },
+    registrations: createBuiltInSimulators(workers),
+    defaultSelections: defaultSimulatorSelections,
   };
   simulatorsByWorker.set(worker, simulators);
   return simulators;
@@ -383,7 +360,6 @@ const TestWrapper = ({
   <NotificationsContext
     value={{
       addNotification: addNotification ?? (() => ""),
-      dismissNotification: () => {},
     }}
   >
     <SDCPNContext.Provider
@@ -448,55 +424,6 @@ function renderExperimentsProvider(
     renderResult,
   };
 }
-
-describe("buildSweepAxes", () => {
-  const scenario = {
-    id: "scenario",
-    name: "Scenario",
-    scenarioParameters: [
-      { type: "real" as const, identifier: "beta", default: 0.5 },
-      { type: "integer" as const, identifier: "count", default: 10 },
-    ],
-    parameterOverrides: {},
-    initialState: { type: "per_place" as const, content: {} },
-  };
-
-  it("splits fixed values from sweep axes", () => {
-    const { fixedValues, axes } = buildSweepAxes(scenario, {
-      beta: { mode: "range", min: 0, max: 1 },
-      count: { mode: "fixed", value: "12" },
-    });
-
-    expect(fixedValues).toEqual({ count: "12" });
-    expect(axes).toEqual([
-      { identifier: "beta", min: 0, max: 1, stepCount: 50, integer: false },
-    ]);
-  });
-
-  it("gives integer parameters one step per integer on narrow intervals", () => {
-    const { axes } = buildSweepAxes(scenario, {
-      count: { mode: "range", min: 0, max: 20 },
-    });
-    expect(axes).toEqual([
-      { identifier: "count", min: 0, max: 20, stepCount: 20, integer: true },
-    ]);
-  });
-
-  it("rejects an invalid range with the parameter named", () => {
-    expect(() =>
-      buildSweepAxes(scenario, {
-        beta: { mode: "range", min: 1, max: 0 },
-      }),
-    ).toThrow("beta");
-  });
-
-  it("ignores inputs for parameters the scenario does not declare", () => {
-    const { axes } = buildSweepAxes(scenario, {
-      ghost: { mode: "range", min: 0, max: 1 },
-    });
-    expect(axes).toEqual([]);
-  });
-});
 
 describe("ExperimentsProvider", () => {
   it("keeps user navigation from changing a host-controlled sweep", async () => {
@@ -997,17 +924,12 @@ describe("ExperimentsProvider", () => {
 
     const valueHolder = { current: null as ExperimentsContextValue | null };
     const renderResult = render(
-      <NotificationsContext
-        value={{ addNotification: () => "", dismissNotification: () => {} }}
-      >
+      <NotificationsContext value={{ addNotification: () => "" }}>
         <SDCPNContext.Provider value={sdcpnContextValue}>
           <LanguageClientOverride requestHirArtifacts={undefined}>
             {/* The pool is the simulators provider's: the experiments
                 provider leases from it through the simulator. */}
-            <SimulatorsProvider
-              experimentWorkerFactory={createAutoAckWorker}
-              experimentShardCount={1}
-            >
+            <SimulatorsProvider experimentWorkerFactory={createAutoAckWorker}>
               <ExperimentsProvider>
                 <ExperimentsContextConsumer
                   onContextValue={(value) => {
@@ -2163,81 +2085,6 @@ describe("ExperimentsProvider", () => {
       sweep: { computing: true, selectionKey: "beta=20" },
     });
     renderResult.unmount();
-  });
-});
-
-describe("compileExperimentScenario with an ad-hoc definition", () => {
-  const sdcpn: SDCPN = {
-    ...EMPTY_SDCPN,
-    places: [
-      {
-        id: "place-queue",
-        name: "Queue",
-        colorId: null,
-        dynamicsEnabled: false,
-        x: 0,
-        y: 0,
-      },
-    ],
-  };
-  const adHocScenario: AdHocScenarioState = {
-    variables: [],
-    netParameters: [],
-    places: {
-      "place-queue": {
-        kind: "uncoloured",
-        count: {
-          expression: "4",
-          optimize: { min: "2", max: "8", scale: "linear" },
-        },
-      },
-    },
-  };
-  const compile = (adHocSweeps: boolean) =>
-    compileExperimentScenario({
-      input: {
-        name: "Ad-hoc sweep",
-        scenarioId: null,
-        scenarioParameterValues: {},
-        adHocScenario,
-        adHocSweeps,
-        runCount: 2,
-        seed: 42,
-        dt: 1,
-        maxTime: 1,
-        metricSpecs: CONSTANT_METRIC_SPEC,
-      },
-      scenario: null,
-      fixedValues: {},
-      axes: [],
-      sdcpn,
-      requestScenarioHir: (scenario, adHocContext) =>
-        Promise.resolve(lowerScenarioToHir(scenario, { adHocContext })),
-    });
-
-  it("sweeps each selection as a generated parameter with the value's label", async () => {
-    const compiled = await compile(true);
-    expect(compiled.axes).toEqual([
-      {
-        identifier: "adhoc_count_Queue",
-        label: "Queue › count",
-        min: 2,
-        max: 8,
-        stepCount: 6,
-        integer: true,
-      },
-    ]);
-    expect(
-      compiled.sweptCompiler?.compileForValues({ adhoc_count_Queue: 5 }).result
-        .initialState["place-queue"],
-    ).toBe(5);
-  });
-
-  it("runs the definition at its fixed values when sweeps are off", async () => {
-    const compiled = await compile(false);
-    expect(compiled.axes).toEqual([]);
-    expect(compiled.sweptCompiler).toBeNull();
-    expect(compiled.initialMarking["place-queue"]).toBe(4);
   });
 });
 

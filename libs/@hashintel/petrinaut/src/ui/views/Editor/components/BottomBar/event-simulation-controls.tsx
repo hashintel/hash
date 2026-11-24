@@ -1,15 +1,13 @@
 import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
+import { PlaybackIcon } from "@hashintel/ds-icons";
 
+import { ActiveNetContext } from "../../../../../react/document/active-net-context";
 import { EventPlaybackContext } from "../../../../../react/event-playback/context";
+import { useStoreSelector } from "../../../../../react/shared/use-store";
 import { SimulationContext } from "../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../react/state/editor-context";
-import { useStoreSelector } from "../../../../../react/use-store";
-import {
-  PlaybackIcon,
-  useExperimentalIconPackEnabled,
-} from "../../../../experimental-icons";
+import { useEditorActions } from "../../../../../react/state/editor-context";
 import { CollapsibleGroup } from "./collapsible-group";
 import { EventTimeControls } from "./event-time-controls";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
@@ -19,9 +17,8 @@ import { ToolbarDivider } from "./toolbar-divider";
 
 import type { PlaybackSpeed } from "@hashintel/petrinaut-core";
 
-export interface EventSimulationControlsProps {
+interface EventSimulationControlsProps {
   disabled?: boolean;
-  inComponent?: boolean;
   allowedPlaybackSpeeds?: readonly PlaybackSpeed[];
 }
 
@@ -32,8 +29,8 @@ export interface EventSimulationControlsProps {
  */
 export const EventSimulationControls: React.FC<
   EventSimulationControlsProps
-> = ({ disabled = false, inComponent = false, allowedPlaybackSpeeds }) => {
-  const experimentalIcons = useExperimentalIconPackEnabled();
+> = ({ disabled = false, allowedPlaybackSpeeds }) => {
+  const inComponent = use(ActiveNetContext).activeComponentId !== null;
   const {
     state: simulationState,
     reset,
@@ -42,7 +39,7 @@ export const EventSimulationControls: React.FC<
   } = use(SimulationContext);
   const { coveredTime, playbackState, playbackStore, play, pause } =
     use(EventPlaybackContext);
-  const { setBottomPanelOpen, setActiveBottomPanelTab } = use(EditorContext);
+  const { setBottomPanelOpen, setActiveBottomPanelTab } = useEditorActions();
 
   const hasSimulation = simulationState !== "NotRun";
   const isSimulationOver =
@@ -103,13 +100,7 @@ export const EventSimulationControls: React.FC<
         disabled={isPlayDisabled}
         ariaLabel={playTooltip}
       >
-        {experimentalIcons ? (
-          <PlaybackIcon playing={isPlaying} duration={200} />
-        ) : isPlaying ? (
-          <Icon name="pauseFilled" />
-        ) : (
-          <Icon name="playFilled" />
-        )}
+        <PlaybackIcon playing={isPlaying} duration={200} />
       </ToolbarButton>
 
       <CollapsibleGroup>

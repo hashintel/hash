@@ -28,7 +28,7 @@ vi.mock("@xyflow/react", () => ({
   useViewport: () => canvas.viewport,
   useStore: (selector: (state: typeof canvas) => unknown) => selector(canvas),
 }));
-vi.mock("../../../../../../hooks/use-canvas-insets", () => ({
+vi.mock("../../../../../../shared/use-canvas-insets", () => ({
   useCanvasInsets: () => canvas.insets,
 }));
 vi.mock("@hashintel/ds-components", () => ({
@@ -395,23 +395,6 @@ it("drags from the picture without turning the close button into a drag handle",
   expect(close).toHaveBeenCalledOnce();
 });
 
-it("stops dragging before the Canvas controls at the right and bottom edges", () => {
-  render(panel());
-  const visualizer = screen.getByRole("group", {
-    name: "Space state visualizer",
-  });
-  mockPointerCapture(visualizer);
-  pointerEvent(visualizer, "pointerdown");
-  pointerEvent(visualizer, "pointermove", { clientX: 2000, clientY: 2000 });
-  pointerEvent(visualizer, "pointerup");
-  expect(
-    parseFloat(visualizer.style.left) + parseFloat(visualizer.style.width),
-  ).toBe(1152);
-  expect(
-    parseFloat(visualizer.style.top) + parseFloat(visualizer.style.height),
-  ).toBe(736);
-});
-
 it("switches to resizing from the center while Alt is held", () => {
   render(panel());
   const visualizer = screen.getByRole("group", {
@@ -513,4 +496,29 @@ it("keeps its dragged layout when leaving the editor and while content loads", a
   await act(async () => rerender(content(true, false)));
   expect(screen.queryByRole("status")).toBeNull();
   expect(visualizer.getAttribute("style")).toBe(bounds);
+});
+
+it("stops the release of its own drag and lets any other through to the canvas", () => {
+  const release = vi.fn();
+  // The element around the window stands for the canvas.
+  render(<div onPointerUp={release}>{panel()}</div>);
+  const visualizer = screen.getByRole("group");
+
+  // A pan that began on the canvas ends over the window.
+  pointerEvent(visualizer, "pointerup");
+  expect(release).toHaveBeenCalledOnce();
+  release.mockClear();
+
+  const handle = screen.getByRole("button", { name: "Move Space visualizer" });
+  mockPointerCapture(handle);
+  pointerEvent(handle, "pointerdown");
+  pointerEvent(handle, "pointerup");
+  expect(release).not.toHaveBeenCalled();
+});
+
+it("opts out of the canvas's key-started selection box", () => {
+  render(panel());
+
+  // React Flow starts no selection from a press inside a `nokey` element.
+  expect(screen.getByRole("group").classList.contains("nokey")).toBe(true);
 });

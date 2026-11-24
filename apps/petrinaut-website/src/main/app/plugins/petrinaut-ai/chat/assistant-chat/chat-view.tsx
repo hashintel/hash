@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { ExperimentalIcon } from "@hashintel/petrinaut/ui";
+import { HashIcon } from "@hashintel/ds-icons";
 import { AssistantPanelTitle } from "@hashintel/petrinaut/ui/plugin";
 
 import { AiAssistantComposer } from "./chat-view/composer";
@@ -158,7 +158,7 @@ export const ChatView = ({
               className={titleButtonStyle}
               aria-label="Clear AI chat"
               onClick={onClearMessages}
-              prefix={<ExperimentalIcon name="trash" size={14} />}
+              prefix={<HashIcon name="trash" size={14} />}
               tooltip="Clear AI chat"
             />
           )

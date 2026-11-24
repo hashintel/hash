@@ -10,8 +10,8 @@
  * falls back to the CPU with a reason the UI can show, rather than failing at
  * shader-compile time where the cause would be opaque.
  */
-import { getArcEndpointPlaceId } from "../arc-endpoints";
-import { getPlaceDynamicsEquationIds } from "../place-dynamics";
+import { getArcEndpointPlaceId } from "../document/arc-endpoints";
+import { getPlaceDynamicsEquationIds } from "../document/place-dynamics";
 import {
   normalizePlaceCapacity,
   PLACE_CAPACITY_UNBOUNDED,

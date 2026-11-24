@@ -6,9 +6,9 @@ import { portInHandleId } from "./port-handles";
 import { useLinkRewiring } from "./use-link-rewiring";
 
 import type { CanvasInteractions } from "../../../use-canvas-interactions";
+import type { FusionEdgeType } from "./react-flow-types";
 import type {
   Connection,
-  Edge,
   FinalConnectionState,
   OnReconnect,
 } from "@xyflow/react";
@@ -31,7 +31,16 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-const link = { id: "fusion:belt:m1", source: "buffer", target: "m1" } as Edge;
+const link = {
+  id: "fusion:belt:m1",
+  type: "fusion",
+  source: "buffer",
+  target: "m1",
+  targetHandle: portInHandleId("in"),
+  data: { fusionId: "belt" },
+} as FusionEdgeType;
+/** The end of the link that is picked up: the one at M1's port. */
+const moved = { fusionId: "belt", from: { nodeId: "m1", portId: "in" } };
 const pointer = new MouseEvent("mouseup");
 const dropped = (toHandle: FinalConnectionState["toHandle"]) =>
   ({ toHandle }) as FinalConnectionState;
@@ -55,7 +64,9 @@ const renderRewiring = (readonly = false) => {
     // The end React Flow names is the one that stays.
     start: () =>
       reconnectProps.onReconnectStart?.(pointer as never, link, "source"),
-    reconnect: reconnectProps.onReconnect as OnReconnect | undefined,
+    reconnect: reconnectProps.onReconnect as
+      | OnReconnect<FusionEdgeType>
+      | undefined,
     end: (state: FinalConnectionState) =>
       reconnectProps.onReconnectEnd?.(pointer, link, "source", state),
   };
@@ -92,8 +103,7 @@ describe("useLinkRewiring", () => {
     start();
     isValidConnection(ontoM2);
     expect(interactions.canRewireLink).toHaveBeenCalledWith({
-      linkId: link.id,
-      end: "target",
+      ...moved,
       onto: { nodeId: "m2", portId: "in" },
     });
 
@@ -110,8 +120,7 @@ describe("useLinkRewiring", () => {
     end(dropped({ nodeId: "m2" } as FinalConnectionState["toHandle"]));
 
     expect(interactions.rewireLink).toHaveBeenCalledExactlyOnceWith({
-      linkId: link.id,
-      end: "target",
+      ...moved,
       onto: { nodeId: "m2", portId: "in" },
     });
   });
@@ -122,8 +131,7 @@ describe("useLinkRewiring", () => {
     start();
     end(dropped(null));
     expect(interactions.rewireLink).toHaveBeenCalledExactlyOnceWith({
-      linkId: link.id,
-      end: "target",
+      ...moved,
       onto: null,
     });
 

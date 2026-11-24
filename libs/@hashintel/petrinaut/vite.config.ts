@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import react from "@vitejs/plugin-react";
 import { dts } from "rolldown-plugin-dts";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
@@ -96,6 +97,10 @@ export default defineConfig(({ command }) => ({
 
     command === "build" && dts({ generator: "tsgo" }),
   ],
+
+  test: {
+    setupFiles: ["./src/testing/jsdom-stubs.ts"],
+  },
 
   experimental: {
     // A relative worker URL is emitted as `new URL(<path>, import.meta.url)`,

@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 
+import { countReads } from "./count-reads.test-helpers";
 import {
   fusionLinks,
-  fusionStatuses,
+  fusionSeverities,
   planFusion,
   planRewire,
 } from "./fusion-links";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type { Fusion, FusionMember, SDCPN } from "@hashintel/petrinaut-core";
 
 const place = (placeId: string): FusionMember => ({ kind: "place", placeId });
@@ -50,7 +51,7 @@ describe("fusionLinks", () => {
   });
 });
 
-describe("fusionStatuses", () => {
+describe("fusionSeverities", () => {
   const sdcpn: SDCPN = {
     places: [
       {
@@ -133,17 +134,18 @@ describe("fusionStatuses", () => {
   };
 
   it("gives each fusion the worst of its problems", () => {
-    const statuses = fusionStatuses(sdcpn, net, null);
+    const severities = fusionSeverities(sdcpn, net, null);
 
-    expect(statuses.get("mismatch")).toEqual({ severity: "error" });
+    expect(severities.get("mismatch")).toBe("error");
     // Two ports no transition touches: nothing to report.
-    expect(statuses.get("ports")).toEqual({ severity: null });
+    expect(severities.get("ports")).toBeNull();
   });
 
   it("reads a component's arcs once for its fused ports that declare no direction, however many", () => {
-    // A thousand ports that declare no direction, under 20,000 arcs that
-    // consume from them.
-    const portIds = Array.from({ length: 1000 }, (_, index) => `port-${index}`);
+    const arcs = countReads();
+    // Forty ports that declare no direction, each consumed from by four
+    // transitions.
+    const portIds = Array.from({ length: 40 }, (_, index) => `port-${index}`);
     const [stage] = sdcpn.components ?? [];
     const [stagePort] = stage?.places ?? [];
     const wide: SDCPN = {
@@ -152,14 +154,16 @@ describe("fusionStatuses", () => {
         {
           ...stage!,
           places: portIds.map((id) => ({ ...stagePort!, id, name: id })),
-          transitions: Array.from({ length: 20 }, (_, index) => ({
+          transitions: Array.from({ length: 4 }, (_, index) => ({
             id: `take-${index}`,
             name: `take-${index}`,
-            inputArcs: portIds.map((placeId) => ({
-              placeId,
-              weight: 1,
-              type: "standard" as const,
-            })),
+            inputArcs: arcs.of(
+              portIds.map((placeId) => ({
+                placeId,
+                weight: 1,
+                type: "standard" as const,
+              })),
+            ),
             outputArcs: [],
             lambdaType: "predicate" as const,
             lambdaCode: "",
@@ -172,19 +176,16 @@ describe("fusionStatuses", () => {
       fusions: portIds.map((id) => fusion(id, port("m1", id), port("m2", id))),
     };
 
-    const started = Date.now();
-    const statuses = fusionStatuses(
+    const severities = fusionSeverities(
       wide,
       { ...net, ...wide, fusions: wide.fusions ?? [] },
       null,
     );
-    const elapsed = Date.now() - started;
 
     // Each fused place is consumed from on both sides, and never filled.
-    expect([...statuses.values()]).toEqual(
-      portIds.map(() => ({ severity: "warning" })),
-    );
-    expect(elapsed).toBeLessThan(1000);
+    expect([...severities.values()]).toEqual(portIds.map(() => "warning"));
+    // A read per fused port makes forty passes.
+    expect(arcs.reads()).toBeLessThanOrEqual(3 * 160);
   });
 });
 

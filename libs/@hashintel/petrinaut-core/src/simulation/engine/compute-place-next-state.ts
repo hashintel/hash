@@ -1,4 +1,4 @@
-import type { TokenSlotLayout } from "./token-layout";
+import type { TokenSlotLayout } from "../../tokens/token-layout";
 
 export type ODEType = "euler" | "midpoint" | "rk4";
 

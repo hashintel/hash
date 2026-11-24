@@ -5,9 +5,15 @@ import {
   cleanup,
   fireEvent,
   render,
+  renderHook,
   screen,
 } from "@testing-library/react";
-import { ReactFlow, ReactFlowProvider, useStore } from "@xyflow/react";
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  useStore,
+  useStoreApi,
+} from "@xyflow/react";
 import {
   afterAll,
   afterEach,
@@ -18,10 +24,7 @@ import {
   vi,
 } from "vitest";
 
-import {
-  getSelectionKeyCode,
-  useMultiSelectionModifier,
-} from "./selection-keys";
+import { getSelectionKeyCode, useSelectionKeys } from "./selection-keys";
 import { useApplyNodeChanges } from "./use-apply-node-changes";
 
 import type {
@@ -29,12 +32,6 @@ import type {
   CanvasSelectionChange,
 } from "../../../use-canvas-interactions";
 import type { Node } from "@xyflow/react";
-
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
 
 class PointerEventStub extends MouseEvent {
   readonly pointerId: number;
@@ -89,7 +86,7 @@ const Canvas = ({
   mac: boolean;
   interactions: CanvasInteractions;
 }) => {
-  useMultiSelectionModifier(mac);
+  useSelectionKeys(mac);
   const applyChanges = useApplyNodeChanges(interactions);
   return (
     <ReactFlow
@@ -156,7 +153,6 @@ const drawBoxAroundB = (container: HTMLElement, modifiers: Modifiers) => {
 
 describe("canvas selection keys", () => {
   beforeAll(() => {
-    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
     vi.stubGlobal("PointerEvent", PointerEventStub);
   });
 
@@ -258,5 +254,79 @@ describe("canvas selection keys", () => {
         ]),
       );
     });
+  });
+});
+
+describe("a selection key the page saw go down and not come up", () => {
+  /** A press that carries the state of Shift and Ctrl, as a pointer does. */
+  const press = (shiftKey: boolean, ctrlKey = false) =>
+    document.body.dispatchEvent(
+      new MouseEvent("pointerdown", { bubbles: true, shiftKey, ctrlKey }),
+    );
+
+  /** The Shift keyups the window receives while the hook is mounted. */
+  const watchShiftKeyups = () => {
+    const keyups: string[] = [];
+    const record = (event: KeyboardEvent) => keyups.push(event.key);
+    window.addEventListener("keyup", record);
+    const { result, unmount } = renderHook(
+      () => {
+        useSelectionKeys(false);
+        return useStoreApi();
+      },
+      { wrapper: ReactFlowProvider },
+    );
+    return {
+      keyups,
+      multiSelectionActive: () =>
+        result.current.getState().multiSelectionActive,
+      stop: () => {
+        unmount();
+        window.removeEventListener("keyup", record);
+      },
+    };
+  };
+
+  it("is released by the next press that says Shift is up", () => {
+    const { keyups, stop } = watchShiftKeyups();
+    fireEvent.keyDown(window, { key: "Shift" });
+
+    press(false);
+
+    expect(keyups).toEqual(["Shift"]);
+    // Released once: the next press has nothing to release.
+    press(false);
+    expect(keyups).toEqual(["Shift"]);
+    stop();
+  });
+
+  it("is released before a press that holds the modifier sets it", () => {
+    const { keyups, multiSelectionActive, stop } = watchShiftKeyups();
+    fireEvent.keyDown(window, { key: "Shift" });
+
+    press(false, true);
+
+    expect(keyups).toEqual(["Shift"]);
+    expect(multiSelectionActive()).toBe(true);
+    stop();
+  });
+
+  it("is left alone while a press says Shift is still down", () => {
+    const { keyups, stop } = watchShiftKeyups();
+    fireEvent.keyDown(window, { key: "Shift" });
+
+    press(true);
+
+    expect(keyups).toEqual([]);
+    stop();
+  });
+
+  it("sends nothing for a press with no Shift before it", () => {
+    const { keyups, stop } = watchShiftKeyups();
+
+    press(false);
+
+    expect(keyups).toEqual([]);
+    stop();
   });
 });

@@ -10,8 +10,8 @@
  * fusion shows: `place-fusion.mdx` lists those cases.
  */
 
-import { arcMatchesEndpoint } from "../arc-endpoints";
-import { getRunningEquationIds } from "../place-dynamics";
+import { arcMatchesEndpoint } from "../document/arc-endpoints";
+import { getRunningEquationIds } from "../document/place-dynamics";
 import {
   colorsStructurallyEqual,
   describeResolvedMember,

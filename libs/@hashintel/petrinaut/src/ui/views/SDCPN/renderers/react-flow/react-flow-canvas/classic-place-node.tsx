@@ -3,8 +3,7 @@ import { type NodeProps } from "@xyflow/react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
-import { usePlaceTokenLabel } from "../../../canvas-frame-store";
+import { usePlaceTokenLabel } from "../../../canvas-frame-store-context";
 import {
   classicNodeBoxStyle,
   classicNodeLabelStyle,
@@ -13,8 +12,10 @@ import {
 import { nodeFocusStyle } from "../../../styles/focus";
 import { nodeSurfaceStyle } from "../../../styles/node-surface";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
+import { withLabelWrapPoints } from "./label-wrap-points";
 import { PlaceStateTooltip } from "./place-state-tooltip";
-import { portPlaceLabels, PortPins } from "./port-pin";
+import { PortPins } from "./port-pin";
+import { portPlaceLabels } from "./port-place-labels";
 import { NodeHandles } from "./shared/node-handles";
 
 import type { PlaceNodeType } from "./react-flow-types";
@@ -46,7 +47,8 @@ const portCaptionStyle = css({
   fontSize: "[11px]",
   fontWeight: "medium",
   lineHeight: "[1]",
-  color: "neutral.s90",
+  "--node-text": "var(--colors-neutral-s90)",
+  color: "[var(--node-text)]",
   whiteSpace: "nowrap",
 });
 
@@ -68,8 +70,10 @@ const tokenCountBadgeStyle = css({
   borderRadius: "[9px]",
   padding: "[0 6px]",
   fontSize: "sm",
-  color: "neutral.s00",
-  backgroundColor: "[black]",
+  "--node-text": "var(--colors-neutral-s00)",
+  "--node-fill": "black",
+  color: "[var(--node-text)]",
+  backgroundColor: "[var(--node-fill)]",
   fontWeight: "semibold",
   fontVariantNumeric: "tabular-nums",
 });
@@ -101,7 +105,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         style={
           {
             "--node-outline-color": placeBorderColor(data.typeColor),
-            backgroundColor: placeFillColor(data.typeColor),
+            "--node-fill": placeFillColor(data.typeColor),
           } as React.CSSProperties
         }
       >
@@ -112,7 +116,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             </div>
           ) : null}
           {data.portDirection === null ? null : (
-            <span className={portCaptionStyle}>
+            <span className={`node-text ${portCaptionStyle}`}>
               {portPlaceLabels[data.portDirection]}
             </span>
           )}
@@ -122,14 +126,21 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         </div>
         <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
           {tokenLabel === null ? null : (
-            <div className={tokenCountBadgeStyle}>{tokenLabel}</div>
+            <div className={`node-cover node-text ${tokenCountBadgeStyle}`}>
+              {tokenLabel}
+            </div>
           )}
         </div>
         {data.portDirection === null ? null : (
           <PortPins direction={data.portDirection} typeColor={data.typeColor} />
         )}
       </div>
-      <NodeHandles isConnectable={isConnectable} />
+      <NodeHandles
+        kind="place"
+        width={data.width}
+        height={data.height}
+        isConnectable={isConnectable}
+      />
     </div>
   );
 };

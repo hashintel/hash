@@ -16,7 +16,7 @@
  * is answered, so a lease counts cancels out and acks in, and the release
  * waits for the difference plus the reset's own ack.
  */
-import type { WorkerLike } from "../../../environment";
+import type { WorkerLike } from "../../../environment/environment";
 import type { WorkerFactory } from "../../api";
 import type {
   MonteCarloCancelMessage,

@@ -1,4 +1,4 @@
-import { placeUsesDifferentialEquation } from "../place-dynamics";
+import { placeUsesDifferentialEquation } from "../document/place-dynamics";
 import { probabilisticSatellitesSDCPN } from "./satellites-launcher";
 
 import type { SDCPN } from "../types/sdcpn";

@@ -1,6 +1,6 @@
-import { use, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
-import { UserSettingsContext } from "./user-settings-context";
+import { useUserSettingsFields } from "./user-settings-context";
 
 import type {
   BottomPanelTab,
@@ -17,23 +17,23 @@ import type {
 export const useSyncEditorToSettings = (values: {
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
-  leftSidebarWidth: number;
-  propertiesPanelWidth: number;
   isBottomPanelOpen: boolean;
-  bottomPanelHeight: number;
   activeBottomPanelTab: BottomPanelTab;
   timelineChartType: TimelineChartType;
 }) => {
   const {
     setCursorMode,
     setIsLeftSidebarOpen,
-    setLeftSidebarWidth,
-    setPropertiesPanelWidth,
     setIsBottomPanelOpen,
-    setBottomPanelHeight,
     setActiveBottomPanelTab,
     setTimelineChartType,
-  } = use(UserSettingsContext);
+  } = useUserSettingsFields(
+    "setCursorMode",
+    "setIsLeftSidebarOpen",
+    "setIsBottomPanelOpen",
+    "setActiveBottomPanelTab",
+    "setTimelineChartType",
+  );
 
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const mountedRef = useRef(false);
@@ -48,10 +48,7 @@ export const useSyncEditorToSettings = (values: {
     timerRef.current = setTimeout(() => {
       setCursorMode(values.cursorMode);
       setIsLeftSidebarOpen(values.isLeftSidebarOpen);
-      setLeftSidebarWidth(values.leftSidebarWidth);
-      setPropertiesPanelWidth(values.propertiesPanelWidth);
       setIsBottomPanelOpen(values.isBottomPanelOpen);
-      setBottomPanelHeight(values.bottomPanelHeight);
       setActiveBottomPanelTab(values.activeBottomPanelTab);
       setTimelineChartType(values.timelineChartType);
     }, 100);
@@ -60,18 +57,12 @@ export const useSyncEditorToSettings = (values: {
   }, [
     values.cursorMode,
     values.isLeftSidebarOpen,
-    values.leftSidebarWidth,
-    values.propertiesPanelWidth,
     values.isBottomPanelOpen,
-    values.bottomPanelHeight,
     values.activeBottomPanelTab,
     values.timelineChartType,
     setCursorMode,
     setIsLeftSidebarOpen,
-    setLeftSidebarWidth,
-    setPropertiesPanelWidth,
     setIsBottomPanelOpen,
-    setBottomPanelHeight,
     setActiveBottomPanelTab,
     setTimelineChartType,
   ]);

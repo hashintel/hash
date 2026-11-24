@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultVisualizerCode,
-} from "../default-codes";
+} from "../actions/default-codes";
 import {
   bicycleAssembly,
   deploymentPipelineSDCPN,

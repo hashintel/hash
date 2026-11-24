@@ -4,7 +4,7 @@ import { compileHirArtifacts } from "../../../hir/compile";
 import { createInProcessMonteCarloWorker } from "../worker/in-process-worker";
 import { createMonteCarloExperiment } from "./experiment";
 
-import type { WorkerLike } from "../../../environment";
+import type { WorkerLike } from "../../../environment/environment";
 import type { HirMetricArtifact } from "../../../hir/instantiate";
 import type { SDCPN } from "../../../types/sdcpn";
 import type { SimulationTransport } from "../../api";

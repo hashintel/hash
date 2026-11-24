@@ -20,7 +20,7 @@ import {
   getTransitionLogicAvailability,
   sanitizeSDCPNForExtensions,
   type PetrinautExtensionSettings,
-} from "../extensions";
+} from "../extensions/extensions";
 import { createUserKeyedRecord } from "../validation/record-keys";
 import { analyzeHir } from "./analyze";
 import { fingerprintHirCompilationInput } from "./artifact-fingerprint";

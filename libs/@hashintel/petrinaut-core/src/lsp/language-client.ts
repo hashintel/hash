@@ -1,6 +1,6 @@
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 
-import { parseDocumentUri } from "./lib/document-uris";
+import { parseDocumentUri } from "./document-uris";
 import {
   createWorkerLspTransport,
   type LspTransport,
@@ -11,13 +11,13 @@ import type {
   ConstraintSource,
   LowerConstraintContext,
   LowerConstraintResult,
-} from "../constraint/lower";
-import type { PetrinautExtensionSettings } from "../extensions";
+} from "../constraints/lower";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 // Type-only: must not pull the compiler (`typescript`) into client bundles.
 import type { HirCompileResult, ScenarioHir } from "../hir";
 import type { CompileHirArtifactsOptions } from "../hir/compile";
 import type { HirVisualizerContext } from "../hir/surface-context";
-import type { AdHocSynthesisContext } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
+import type { AdHocSynthesisContext } from "../scenario/ad-hoc/ad-hoc-scenario";
 import type { ReadableStore } from "../store";
 import type { Scenario, SDCPN } from "../types/sdcpn";
 import type { VisualizerHir } from "../view-hir";
@@ -55,7 +55,7 @@ export type DiagnosticsSnapshot = {
 /**
  * `this: void` on every method makes the methods safe to pass as references
  * (e.g. `<X onChange={client.notifyDocumentChanged} />`) without `this`-loss
- * concerns. See [06-react-bindings.md §6.3]. Same applies to {@link import("../instance").Petrinaut}
+ * concerns. See [06-react-bindings.md §6.3]. Same applies to {@link import("../instance/instance").Petrinaut}
  * and the simulation handle (planned cleanup).
  */
 export interface LanguageClient {

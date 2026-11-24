@@ -1,5 +1,4 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { use } from "react";
 
 import {
   Button,
@@ -13,26 +12,21 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 import { validateEntityName } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../../react";
-import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import { UserSettingsContext } from "../../../../../../../react/state/user-settings-context";
-import { DescriptionField } from "../../../../../../components/description-field";
-import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { PropertyValue } from "../../../../../../components/property-value";
-import { Section, SectionList } from "../../../../../../components/section";
-import { PlaceIcon } from "../../../../../../constants/entity-icons";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
+import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
+import { useEditorActions } from "../../../../../../../react/state/editor-context";
+import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
+import { Section, SectionList } from "../../../../../../shared/section";
+import { UI_MESSAGES } from "../../../../shared/ui-messages";
+import { DeleteItemButton } from "../../delete-item-button";
+import { DescriptionField } from "../../description-field";
+import { DraftFieldInput } from "../../draft-field-input";
+import { PropertyValue } from "../../property-value";
+import { fieldsSectionStyle } from "../../styles";
 import { usePlacePropertiesContext } from "../context";
 import { placeTypeChange } from "./place-dynamics/compose-dynamics";
 import { PortDirectionField } from "./port-direction-field";
-
-import type { SubView } from "../../../../../../components/sub-view/types";
-
-const fieldsSectionStyle = css({
-  paddingY: "3",
-});
 
 const relatedActionsStyle = css({
   display: "flex",
@@ -73,26 +67,22 @@ const typeColorDotStyle = css({
   flexShrink: 0,
 });
 
-const arcStyle = css({
+const typeOptionStyle = css({
   display: "flex",
   gap: "2",
   alignItems: "center",
 });
 
-/**
- * Main content section for the Place properties panel.
- * Rendered as a headerless SubView at the top of the proportional layout.
- */
-const PlaceMainContent: React.FC = () => {
-  const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
-  const { selectItem } = use(EditorContext);
-  const { showAnimations } = use(UserSettingsContext);
+export const PlaceMainContent: React.FC = () => {
+  const { place, types } = usePlacePropertiesContext();
+  const { updatePlace } = usePetrinautMutations();
+  const isReadOnly = useIsReadOnly();
+  const { selectItem } = useEditorActions();
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const capacityEnabled =
     place.capacity !== undefined && place.capacity !== null;
 
-  const { extensions } = use(SDCPNContext);
-  const { activeNet } = use(ActiveNetContext);
-  const { types: availableTypes } = activeNet;
+  const extensions = useSDCPNState((document) => document.extensions);
 
   const placeTypeName =
     types.find((candidate) => candidate.id === place.colorId)?.name ?? "None";
@@ -108,8 +98,6 @@ const PlaceMainContent: React.FC = () => {
           onCommit={(name) =>
             updatePlace({ placeId: place.id, update: { name } })
           }
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
         <DescriptionField
           sourceId={place.id}
@@ -117,8 +105,6 @@ const PlaceMainContent: React.FC = () => {
           onCommit={(description) =>
             updatePlace({ placeId: place.id, update: { description } })
           }
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
       </Form.Section>
 
@@ -126,7 +112,7 @@ const PlaceMainContent: React.FC = () => {
         <Section
           title="Accepted token type"
           tooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${
-            availableTypes.length === 0
+            types.length === 0
               ? " You must create a data type in the left-hand sidebar first."
               : ""
           } Tokens in places don't have to carry data, but they need one for dynamics (token data changing over time when in a place); changing the type clears the place's equations.`}
@@ -160,7 +146,7 @@ const PlaceMainContent: React.FC = () => {
                 renderItem={(value) => {
                   const type = types.find((tp) => tp.id === value);
                   return (
-                    <div className={arcStyle}>
+                    <div className={typeOptionStyle}>
                       {type?.displayColor && (
                         <div
                           className={typeColorDotStyle}
@@ -171,7 +157,6 @@ const PlaceMainContent: React.FC = () => {
                     </div>
                   );
                 }}
-                disabled={isReadOnly}
               />
             </Tooltip>
           </PropertyValue>
@@ -292,31 +277,14 @@ const PlaceMainContent: React.FC = () => {
   );
 };
 
-const DeletePlaceAction: React.FC = () => {
-  const { place, isReadOnly } = usePlacePropertiesContext();
+export const DeletePlaceAction: React.FC = () => {
+  const { place } = usePlacePropertiesContext();
   const { removePlace } = usePetrinautMutations();
 
   return (
-    <Button
-      aria-label="Delete place"
-      size="sm"
-      variant="ghost"
-      tone="error"
-      iconName="trash"
-      onClick={() => removePlace({ placeId: place.id })}
-      disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete place"}
+    <DeleteItemButton
+      label="Delete place"
+      onDelete={() => removePlace({ placeId: place.id })}
     />
   );
-};
-
-export const placeMainContentSubView: SubView = {
-  id: "place-main-content",
-  title: "Place",
-  icon: PlaceIcon,
-  main: true,
-  component: PlaceMainContent,
-  renderHeaderAction: () => <DeletePlaceAction />,
-  headerActionMutates: true,
-  alwaysShowHeaderAction: true,
 };

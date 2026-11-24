@@ -3,25 +3,26 @@ import { useRef } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useTransitionFrame } from "../../../canvas-frame-store";
+import { useTransitionFrame } from "../../../canvas-frame-store-context";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import { nodeFocusStyle } from "../../../styles/focus";
+import { NodeCard } from "./node-card";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
-  NodeCard,
   nodeCardStyle,
-} from "./node-card";
+} from "./node-card-styles";
+import { NodeHandles } from "./shared/node-handles";
 import { useTransitionFiringAnimation } from "./use-transition-firing-animation";
 
 import type { TransitionNodeType } from "./react-flow-types";
 import type { NodeProps } from "@xyflow/react";
 
 const transitionCardStyle = css({
-  borderColor: "neutral.s70",
-  background: "neutral.s00",
+  "--node-border": "var(--colors-neutral-s70)",
+  "--node-fill": "var(--colors-neutral-s00)",
   _hover: {
-    borderColor: "neutral.s100",
+    "--node-border": "var(--colors-neutral-s100)",
   },
 });
 
@@ -62,7 +63,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   const firingDelta = useFiringDelta(frame?.firingCount ?? null);
 
   // Animate when firing occurs
-  useTransitionFiringAnimation(boxRef, boltRef, firingDelta, {
+  useTransitionFiringAnimation(id, boxRef, boltRef, firingDelta, {
     x: positionAbsoluteX,
     y: positionAbsoluteY,
   });
@@ -84,7 +85,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
       cardRef={boxRef}
       iconContainer={
         <div
-          className={`${iconContainerBaseStyle} ${transitionIconContainerStyle}`}
+          className={`node-inlay ${iconContainerBaseStyle} ${transitionIconContainerStyle}`}
         >
           <Icon name="squareFilled" />
           {data.lambdaType === "stochastic" && (
@@ -97,11 +98,17 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
       title={label}
       subtitle={subtitle}
       badge={
-        <div ref={boltRef} className={firingIndicatorStyle}>
+        <div ref={boltRef} className={`node-bolt ${firingIndicatorStyle}`}>
           <Icon name="lightning" />
         </div>
       }
-      isConnectable={isConnectable}
-    />
+    >
+      <NodeHandles
+        kind="transition"
+        width={data.width}
+        height={data.height}
+        isConnectable={isConnectable}
+      />
+    </NodeCard>
   );
 };

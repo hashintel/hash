@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { useState } from "react";
 
 import {
   Button,
@@ -16,14 +16,15 @@ import {
   isInterface,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../react";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
-import { OptionalColorSelect } from "../../../../../components/color-select";
-import { ComponentGlyph } from "../../../../../components/component-glyph";
-import { hintTextStyle } from "../../../../../constants/hint-text";
-import { pickSvgIcon } from "../../../../../file-io/pick-svg-icon";
-import { implementationItems } from "../../implementation-items";
+import { useSDCPNState } from "../../../../../../react/document/sdcpn-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../react/document/use-document";
+import { useIsReadOnly } from "../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../react/editing/use-petrinaut-mutations";
+import { OptionalColorSelect } from "../../../../../shared/color-select";
+import { ComponentGlyph } from "../../../../../shared/component-glyph";
+import { pickSvgIcon } from "../../../shared/file-io/pick-svg-icon";
+import { hintTextStyle } from "../../../shared/hint-text";
+import { implementationItems } from "../../shared/implementation-items";
 
 import type { Component } from "@hashintel/petrinaut-core";
 
@@ -64,7 +65,9 @@ const checkboxListStyle = css({
 const DefaultImplementationField: React.FC<{ iface: Component }> = ({
   iface,
 }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const petriNetDefinition = useSDCPNState(
+    (document) => document.petriNetDefinition,
+  );
   const { setImplementation } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
@@ -111,11 +114,13 @@ const DefaultImplementationField: React.FC<{ iface: Component }> = ({
 
 /** The interfaces of the document, each ticked when `component` implements it. */
 const ImplementsField: React.FC<{ component: Component }> = ({ component }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const components = usePetrinautDefinitionSelector(
+    (definition) => definition.components,
+  );
   const { updateComponent } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
-  const interfaces = (petriNetDefinition.components ?? []).filter((candidate) =>
+  const interfaces = (components ?? []).filter((candidate) =>
     isInterface(candidate),
   );
 

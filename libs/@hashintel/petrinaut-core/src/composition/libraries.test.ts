@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { toPetrinautId } from "../petrinaut-id";
+import { toPetrinautId } from "../document/petrinaut-id";
 import { isInterface, resolveComponent } from "./interfaces";
 import { resolveLibrary, type Library } from "./libraries";
 import { gateLibrary, logistics, tankLibrary } from "./libraries.test-helpers";

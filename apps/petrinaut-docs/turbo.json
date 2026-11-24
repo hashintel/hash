@@ -10,9 +10,14 @@
     // `manifest` carries their sources into the hash. Not cached: with
     // ARCHINAUT_DIFF_BASE the build annotates the difference to a git ref whose
     // content the hash cannot see. The site's deck chrome imports
-    // `@hashintel/ds-icons`, which ships built.
+    // `@hashintel/ds-icons` and the token encoding playground imports
+    // `@hashintel/petrinaut-core`; both ship built.
     "build": {
-      "dependsOn": ["manifest", "@hashintel/ds-icons#build"],
+      "dependsOn": [
+        "manifest",
+        "@hashintel/ds-icons#build",
+        "@hashintel/petrinaut-core#build"
+      ],
       "cache": false,
       "outputs": ["dist/**"],
       "env": [
@@ -50,8 +55,15 @@
       "dependsOn": ["manifest"],
       "cache": false
     },
+    // The tests of the playground run the codec of the built core.
+    "test:unit": {
+      "dependsOn": ["@hashintel/petrinaut-core#build"]
+    },
     "dev": {
-      "dependsOn": ["@hashintel/ds-icons#build"],
+      "dependsOn": [
+        "@hashintel/ds-icons#build",
+        "@hashintel/petrinaut-core#build"
+      ],
       "cache": false,
       "persistent": true,
       "env": ["PORT"]

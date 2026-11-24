@@ -89,10 +89,21 @@
     "no-restricted-imports": [
       "error",
       {
+        "paths": [
+          {
+            "name": "react-resizable-panels",
+            "importNames": ["Group"],
+            "message": "Use ResizeGroup from ui/resize: the library's own cursor restyles the whole document."
+          }
+        ],
         "patterns": [
           {
             "group": ["@local/*"],
             "message": "You cannot use unpublished local packages in a published package."
+          },
+          {
+            "regex": "^(\\.\\./)+react(/index)?$",
+            "message": "Import the file that defines the name: react/index.ts is the published entry, and no file of the package imports it."
           }
         ]
       }
@@ -127,6 +138,7 @@
         "reset": false
       }
     ],
+    "react/only-export-components": ["error", { "allowConstantExport": true }],
     "react/static-components": "error",
     "react/use-memo": "error",
     "react/void-use-memo": "error",
@@ -216,6 +228,20 @@
       "files": ["src/**/*.stories.tsx", ".storybook/**/*.{ts,tsx}"],
       "rules": {
         "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["src/**/*-test-harness.tsx", "benchmarks/**/*.tsx"],
+      "rules": {
+        "react/only-export-components": "off"
+      }
+    },
+    {
+      "files": ["benchmarks/monaco-performance/*.mjs"],
+      "rules": {
+        "@typescript-eslint/no-unsafe-assignment": "off",
+        "@typescript-eslint/no-unsafe-call": "off",
+        "no-console": "off"
       }
     }
   ]

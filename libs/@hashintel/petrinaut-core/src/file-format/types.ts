@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { getParameterValueError } from "../parameter-values";
+import { getParameterValueError } from "../document/parameter-values";
 import {
   colorElementSchema as currentColorElementSchema,
   colorSchema as currentColorSchema,

@@ -5,7 +5,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { useReadOnlyNodeDrag } from "./use-read-only-node-drag";
 
 const notify = vi.hoisted(() => vi.fn());
-vi.mock("../../../../../../react/hooks/use-read-only-feedback", () => ({
+vi.mock("../../../../../../react/editing/use-read-only-feedback", () => ({
   useReadOnlyFeedback: () => notify,
 }));
 afterEach(() => {

@@ -1,5 +1,6 @@
 /**
- * Membership in the enclosing `FocusStack`, for units that are not grids: a
+ * Membership in the enclosing `FocusStack`. Grids, stop tables and nested
+ * stacks register through it, and so does a unit with no hook of its own: a
  * single focusable element (a collapsible header, a lone cell) or a custom
  * navigator that owns its internal movement and only delegates edge moves.
  */
@@ -14,9 +15,11 @@ import {
   type FocusFold,
 } from "./focus-flow";
 
-export interface FocusMember {
+interface FocusMember {
   /** Attach to the member's root element; registered while mounted. */
   attach: (element: HTMLElement | null) => void;
+  /** The attached element, for a member that listens on its own root. */
+  element: HTMLElement | null;
   /** Carry focus out of this member. Returns whether focus moved. */
   moveFrom: (
     direction: FocusDirection,
@@ -44,11 +47,12 @@ export function useFocusMember(
 
   return {
     attach: setElement,
+    element,
     moveFrom: (direction, from) => group.moveFrom(id, direction, from),
   };
 }
 
-export interface FocusHeader {
+interface FocusHeader {
   /** Attach to the header's focusable trigger. */
   attach: (element: HTMLButtonElement | null) => void;
   /**

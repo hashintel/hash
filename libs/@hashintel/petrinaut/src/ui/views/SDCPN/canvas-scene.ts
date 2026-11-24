@@ -21,11 +21,10 @@ import {
   indexDocument,
 } from "@hashintel/petrinaut-core";
 
-import { fusionLinks, type FusionStatus } from "./fusion-links";
+import { fusionLinks } from "./fusion-links";
 import { arcStrokeColor } from "./styles/type-colors";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
-import type { DraggingStateByNodeId } from "../../../react/state/editor-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type {
   CanvasArcFocus,
   CanvasFocus,
@@ -59,7 +58,6 @@ type CanvasNodeBase = {
   label: string;
   dragging: boolean;
   selected: boolean;
-  hovered: boolean;
   /** Where this node stands relative to the focused item. */
   focus: CanvasNodeFocus;
 };
@@ -69,7 +67,6 @@ export type CanvasPlaceNode = CanvasNodeBase & {
   /** The direction of the port this place is, `null` for a plain place. */
   portDirection: PortDirection | null;
   dynamicsEnabled: boolean;
-  hasColorType: boolean;
   /** Whether the place defines custom visualizer code. */
   hasVisualizer: boolean;
   /** Whether its visualizer stays open without a hover. */
@@ -200,13 +197,15 @@ export type CanvasScene = {
   nodes: CanvasNode[];
   arcs: CanvasArc[];
   fusions: CanvasFusionLink[];
-  dimensions: RenderNodeDimensions;
   /**
    * Whether anything is focused. Drives the muting of everything outside the
    * neighbourhood from the pane, so a hover leaves the other items untouched.
    */
   focusActive: boolean;
 };
+
+/** Where each dragged node is shown until its drag ends and commits. */
+export type CanvasDragPreview = ReadonlyMap<string, CanvasPoint>;
 
 export type CanvasSceneInput = {
   net: ActiveNetDefinition;
@@ -215,13 +214,13 @@ export type CanvasSceneInput = {
   /** The libraries the document's imports resolved to. */
   libraries: ResolvedLibraries;
   /** The worst problem of each of the net's fusions. */
-  fusionStatuses: ReadonlyMap<string, FusionStatus>;
+  fusionSeverities: ReadonlyMap<string, ProblemSeverity | null>;
+  /** How each transition of the net gives its rate. */
+  lambdaTypes: ReadonlyMap<string, CanvasTransitionNode["lambdaType"]>;
   extensions: PetrinautExtensionSettings;
   dimensions: RenderNodeDimensions;
-  draggingStateByNodeId: DraggingStateByNodeId;
-  isSelected: (id: string) => boolean;
-  /** The node under the pointer, once the hover has settled. */
-  hoveredId: string | null;
+  dragPreview: CanvasDragPreview;
+  selectedIds: ReadonlySet<string>;
   focus: CanvasFocus;
   /** Places whose state visualizer stays open without a hover. */
   keptOpenVisualizerIds: ReadonlySet<string>;
@@ -232,11 +231,11 @@ export type CanvasSceneInput = {
 
 const positionOf = (
   item: { id: string; x: number; y: number },
-  draggingStateByNodeId: DraggingStateByNodeId,
+  dragPreview: CanvasDragPreview,
 ): { position: CanvasPoint; dragging: boolean } => {
-  const draggingState = draggingStateByNodeId[item.id];
-  return draggingState?.dragging
-    ? { position: draggingState.position, dragging: true }
+  const previewed = dragPreview.get(item.id);
+  return previewed
+    ? { position: previewed, dragging: true }
     : { position: { x: item.x, y: item.y }, dragging: false };
 };
 
@@ -245,13 +244,13 @@ const portIdOf = (endpoint: ArcEndpoint): string | null =>
 
 const buildFusionLinks = ({
   fusion,
-  status,
+  severity,
   nodes,
   selected,
   focus,
 }: {
   fusion: ActiveNetDefinition["fusions"][number];
-  status: FusionStatus | undefined;
+  severity: ProblemSeverity | null;
   nodes: readonly CanvasNode[];
   selected: boolean;
   focus: CanvasFocus;
@@ -276,31 +275,60 @@ const buildFusionLinks = ({
       sourcePortId: portIdOf(source),
       targetPortId: portIdOf(target),
       selected,
-      severity: status?.severity ?? null,
+      severity,
       focus: focus.arcFocus(id),
       movableEnds: fusion.members.length > 2 ? memberEnd : "both",
     };
   });
 };
 
+/**
+ * How each transition of `net` gives its rate, or "none" where the net's
+ * extensions leave it none. It depends on the net alone, and Core reads
+ * every place of the net for each transition: work it out once per net, not
+ * once per scene.
+ */
+export const transitionLambdaTypes = (
+  net: ActiveNetDefinition,
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+  libraries: ResolvedLibraries,
+): CanvasSceneInput["lambdaTypes"] =>
+  new Map(
+    net.transitions.map((transition) => {
+      const availability = getTransitionLogicAvailability(
+        transition,
+        sdcpn,
+        extensions,
+        net,
+        libraries,
+      );
+      return [
+        transition.id,
+        availability.lambda
+          ? getEffectiveTransitionLambdaType(transition, availability)
+          : "none",
+      ];
+    }),
+  );
+
 export const buildCanvasScene = ({
   net,
   sdcpn,
   libraries,
-  fusionStatuses,
+  fusionSeverities,
+  lambdaTypes,
   extensions,
   dimensions,
-  draggingStateByNodeId,
-  isSelected,
-  hoveredId,
+  dragPreview,
+  selectedIds,
   focus,
   keptOpenVisualizerIds,
   activeVisualizerIds,
   unfoldedInstanceIds,
 }: CanvasSceneInput): CanvasScene => {
   const interaction = (id: string) => ({
-    selected: isSelected(id),
-    hovered: hoveredId === id,
+    selected: selectedIds.has(id),
     focus: focus.nodeFocus(id),
   });
 
@@ -325,14 +353,13 @@ export const buildCanvasScene = ({
       id: place.id,
       label: place.name,
       ...dimensions.place,
-      ...positionOf(place, draggingStateByNodeId),
+      ...positionOf(place, dragPreview),
       ...interaction(place.id),
       portDirection: place.isPort
         ? (ownPortDirections.get(place.id) ?? "inout")
         : null,
       dynamicsEnabled:
         extensions.colors && extensions.dynamics && place.dynamicsEnabled,
-      hasColorType: (placeType?.elements.length ?? 0) > 0,
       hasVisualizer: place.visualizerCode !== undefined,
       visualizerKeptOpen: keptOpenVisualizerIds.has(place.id),
       visualizerActive: activeVisualizerIds?.has(place.id) ?? false,
@@ -341,23 +368,14 @@ export const buildCanvasScene = ({
   }
 
   for (const transition of net.transitions) {
-    const logicAvailability = getTransitionLogicAvailability(
-      transition,
-      sdcpn,
-      extensions,
-      net,
-      libraries,
-    );
     nodes.push({
       kind: "transition",
       id: transition.id,
       label: transition.name,
       ...dimensions.transition,
-      ...positionOf(transition, draggingStateByNodeId),
+      ...positionOf(transition, dragPreview),
       ...interaction(transition.id),
-      lambdaType: logicAvailability.lambda
-        ? getEffectiveTransitionLambdaType(transition, logicAvailability)
-        : "none",
+      lambdaType: lambdaTypes.get(transition.id) ?? "none",
     });
   }
 
@@ -423,7 +441,7 @@ export const buildCanvasScene = ({
       ? getComponentInstanceHeight(dimensions, ports.length)
       : foldedHeight;
     const anchorOffset = foldable ? (height - foldedHeight) / 2 : 0;
-    const { position, dragging } = positionOf(instance, draggingStateByNodeId);
+    const { position, dragging } = positionOf(instance, dragPreview);
     nodes.push({
       kind: "componentInstance",
       id: instance.id,
@@ -483,7 +501,7 @@ export const buildCanvasScene = ({
         targetPortId: null,
         transitionId: transition.id,
         color: arcStrokeColor(endpointColor(endpoint)),
-        selected: isSelected(id),
+        selected: selectedIds.has(id),
         focus: focus.arcFocus(id),
       });
     }
@@ -504,7 +522,7 @@ export const buildCanvasScene = ({
         targetPortId: portIdOf(endpoint),
         transitionId: transition.id,
         color: arcStrokeColor(endpointColor(endpoint)),
-        selected: isSelected(id),
+        selected: selectedIds.has(id),
         focus: focus.arcFocus(id),
       });
     }
@@ -513,12 +531,12 @@ export const buildCanvasScene = ({
   const fusions: CanvasFusionLink[] = net.fusions.flatMap((fusion) =>
     buildFusionLinks({
       fusion,
-      status: fusionStatuses.get(fusion.id),
+      severity: fusionSeverities.get(fusion.id) ?? null,
       nodes,
-      selected: isSelected(fusion.id),
+      selected: selectedIds.has(fusion.id),
       focus,
     }),
   );
 
-  return { nodes, arcs, fusions, dimensions, focusActive: focus.active };
+  return { nodes, arcs, fusions, focusActive: focus.active };
 };

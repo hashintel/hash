@@ -12,6 +12,7 @@ import type { RenderResult } from "@testing-library/react";
 import type { ReactElement } from "react";
 
 const models = new Map<string, TextModel>();
+const instances: EditorInstance[] = [];
 
 class TextModel {
   listeners = new Set<() => void>();
@@ -19,6 +20,9 @@ class TextModel {
     public text: string,
     readonly uri: { path: string },
   ) {}
+  isDisposed = () => this.dispose.mock.calls.length > 0;
+  isAttachedToEditor = () =>
+    instances.some((instance) => !instance.disposed && instance.model === this);
   getValue = () => this.text;
   getLineCount = () => 1;
   getLineMaxColumn = () => this.text.length + 1;
@@ -50,6 +54,8 @@ class EditorInstance {
   executeEdits = vi.fn((_source: string, edits: { text: string }[]) => {
     for (const edit of edits) this.model.setValue(edit.text);
   });
+  onDidChangeModel = () => ({ dispose: vi.fn() });
+  onDidDispose = vi.fn();
   onDidChangeModelContent = (listener: () => void) => {
     this.model.listeners.add(listener);
     return { dispose: () => this.model.listeners.delete(listener) };
@@ -72,7 +78,6 @@ class EditorInstance {
   });
 }
 
-const instances: EditorInstance[] = [];
 const monaco = {
   Uri: { parse: (path: string) => ({ path }) },
   editor: {

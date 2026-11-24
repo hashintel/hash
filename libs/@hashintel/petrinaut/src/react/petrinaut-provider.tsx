@@ -1,20 +1,12 @@
-import { ExperimentHostProvider } from "./experiment-host/provider";
-import { ExperimentsProvider } from "./experiments/provider";
-import { LanguageClientProvider } from "./lsp/provider";
-import {
-  PetrinautNavigationProvider,
-  type PetrinautNavigationController,
-} from "./navigation";
-import { NotificationsProvider } from "./notifications/provider";
-import { OptimizationsProvider } from "./optimizations/provider";
+import { type PetrinautNavigationController } from "./navigation/navigation";
+import { PetrinautNavigationProvider } from "./navigation/navigation-provider";
 import {
   PetrinautCanvasProvider,
   PetrinautDocumentProvider,
+  PetrinautRuntimeProvider,
 } from "./petrinaut-provider-layers";
-import { SimulationProvider } from "./simulation/provider";
-import { SimulatorsProvider } from "./simulators/provider";
 
-import type { NetManagement } from "./net-management-context";
+import type { NetManagement } from "./host/net-management-context";
 import type {
   LspWorkerFactory,
   Petrinaut,
@@ -24,7 +16,7 @@ import type {
 import type { ReactNode } from "react";
 
 export type PetrinautProviderProps = {
-  /** The Core instance whose stores the bridges subscribe to. */
+  /** The Core instance whose stores the providers subscribe to. */
   instance: Petrinaut;
   /** Host-owned net-management actions and metadata (title, switching, …). */
   netManagement: NetManagement;
@@ -63,10 +55,10 @@ export type PetrinautProviderProps = {
 };
 
 /**
- * Single React entry that mounts every bridge provider over a Core instance.
- * Each child provider reads from `instance` (or, for net-management info, from
- * {@link NetManagementContext}) and republishes through its existing legacy
- * context — so `/ui` consumers don't change.
+ * The one provider a host mounts over a Core instance. It nests the document,
+ * the location, the runtime providers and the canvas providers, in that
+ * order, and each reads the ones above it. `petrinaut-provider-layers.tsx`
+ * lists the providers of each group.
  */
 export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
   instance,
@@ -83,36 +75,19 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
       instance={instance}
       netManagement={netManagement}
     >
+      {/* Keyed by handle id so a net switch resets the location and the net-scoped workers below. */}
       <PetrinautNavigationProvider
         controller={navigation}
         key={instance.handle.id}
       >
-        {/* Keyed by handle id so a net switch resets net-scoped workers. */}
-        <LanguageClientProvider
-          key={instance.handle.id}
-          workerFactory={lspWorkerFactory}
+        <PetrinautRuntimeProvider
+          lspWorkerFactory={lspWorkerFactory}
+          eventSimulationWorkerFactory={eventSimulationWorkerFactory}
+          monteCarloWorkerFactory={monteCarloWorkerFactory}
+          simulators={simulators}
         >
-          <NotificationsProvider>
-            <SimulatorsProvider
-              runWorkerFactory={eventSimulationWorkerFactory}
-              experimentWorkerFactory={monteCarloWorkerFactory}
-              registrations={simulators}
-            >
-              {/* The editor's Quick Simulation runs on a registered simulator. */}
-              <SimulationProvider key={instance.handle.id}>
-                <ExperimentsProvider>
-                  <OptimizationsProvider>
-                    <ExperimentHostProvider>
-                      <PetrinautCanvasProvider>
-                        {children}
-                      </PetrinautCanvasProvider>
-                    </ExperimentHostProvider>
-                  </OptimizationsProvider>
-                </ExperimentsProvider>
-              </SimulationProvider>
-            </SimulatorsProvider>
-          </NotificationsProvider>
-        </LanguageClientProvider>
+          <PetrinautCanvasProvider>{children}</PetrinautCanvasProvider>
+        </PetrinautRuntimeProvider>
       </PetrinautNavigationProvider>
     </PetrinautDocumentProvider>
   );

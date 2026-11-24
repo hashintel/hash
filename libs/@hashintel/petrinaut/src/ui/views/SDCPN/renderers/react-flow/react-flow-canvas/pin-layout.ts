@@ -6,7 +6,7 @@ import {
 
 import type { CanvasPort } from "../../../canvas-scene";
 
-export type PinSide = "left" | "right";
+type PinSide = "left" | "right";
 
 export const pinSides: readonly PinSide[] = ["left", "right"];
 

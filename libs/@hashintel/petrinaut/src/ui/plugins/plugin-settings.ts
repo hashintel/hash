@@ -8,7 +8,7 @@ import { useState } from "react";
 
 import { createReadableStore } from "@hashintel/petrinaut-core";
 
-import { useStore } from "../../react/use-store";
+import { useStore } from "../../react/shared/use-store";
 
 import type {
   PetrinautPluginManifest,

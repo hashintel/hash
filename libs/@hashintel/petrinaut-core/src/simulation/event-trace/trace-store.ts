@@ -54,10 +54,9 @@ export const findLastEventIndexAt = (
 /**
  * Keeps every event of a run in memory and answers state queries from them.
  *
- * The store also owns the main-thread copy of the worker's string pool, as
- * the frame store does: each event's `newStrings` delta is applied before
- * the event is kept, so any frame in the store only references pool ids the
- * copy already holds.
+ * The store also owns the main-thread copy of the worker's string pool: each
+ * event's `newStrings` delta is applied before the event is kept, so any
+ * frame in the store only references pool ids the copy already holds.
  */
 export function createInMemoryEventTraceStore(
   sdcpn: Pick<SDCPN, "places" | "transitions" | "types">,

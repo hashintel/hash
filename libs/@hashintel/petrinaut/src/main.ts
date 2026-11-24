@@ -12,17 +12,17 @@
 export type {
   ErrorTracker,
   ErrorTrackerCaptureContext,
-} from "./react/error-tracker-context";
-export { ErrorTrackerContext } from "./react/error-tracker-context";
+} from "./react/host/error-tracker-context";
+export { ErrorTrackerContext } from "./react/host/error-tracker-context";
 export type {
   PetrinautConnectedOptimization,
   PetrinautConnectedOptimizationCapability,
   PetrinautConnectedRunOptions,
   PetrinautOptimizationChannel,
-} from "./react/optimization-context";
-export { PetrinautOptimizationContext } from "./react/optimization-context";
+} from "./react/optimizations/connected-optimizer-context";
+export { PetrinautOptimizationContext } from "./react/optimizations/connected-optimizer-context";
 
-export type { PetrinautSlots } from "./ui/types/petrinaut-slots";
+export type { PetrinautSlots } from "./ui/petrinaut-slots";
 export type {
   PetrinautNavigationAction,
   PetrinautNavigationController,
@@ -34,7 +34,7 @@ export type {
   PetrinautNavigationUpdate,
   PetrinautNavigationUpdater,
   PetrinautSimulateResource,
-} from "./react/navigation";
+} from "./react/navigation/navigation";
 
 export {
   canonicalizePetrinautIds,
@@ -43,20 +43,17 @@ export {
   createJsonDocHandle,
   createPetrinaut,
   createPetrinautActions,
-  createSimulation,
   createWorkerTransport,
   inlineImports,
   isSDCPNEqual,
   normalizeSDCPN,
   resolvedLibraries,
-  type BackpressureConfig,
   type Color,
   type Command,
   type CommandRegistry,
   type CommandRegistryView,
   type CreateJsonDocHandleOptions,
   type CreatePetrinautConfig,
-  type CreateSimulationConfig,
   type DifferentialEquation,
   type DocChangeEvent,
   type DocHandleState,
@@ -88,14 +85,8 @@ export {
   type ResolveImport,
   type InitialMarking,
   type SDCPN,
-  type Simulation,
-  type SimulationCompleteEvent,
-  type SimulationConfig,
-  type SimulationErrorEvent,
-  type SimulationEvent,
   type SimulationFrameReader,
   type SimulationFrameState,
-  type SimulationFrameSummary,
   type SimulationState,
   type SimulationTransport,
   type Transition,
