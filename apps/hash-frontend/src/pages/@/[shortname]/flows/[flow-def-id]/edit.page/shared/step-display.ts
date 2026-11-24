@@ -38,7 +38,7 @@ const actionGroups = {
   messages: { label: "Messages", icon: "at", tone: "blue" },
   documents: { label: "Documents", icon: "download", tone: "orange" },
   entities: { label: "Entities", icon: "cube", tone: "green" },
-  /* The palette has no hue left for these, so they keep the one they had under Flow control. */
+  /* The palette has no hue left for these, so they share Flow control's. */
   lists: { label: "Lists", icon: "list", tone: "purple" },
   flowControl: { label: "Flow control", icon: "rotate", tone: "purple" },
 } as const satisfies Record<

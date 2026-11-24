@@ -73,7 +73,7 @@ export const TreeRow = ({
   label: string;
   selected?: boolean;
   emphasized?: boolean;
-  /** Dims a row with no `onClick`, and shows at its end while the row is hovered. */
+  /** Makes the row unavailable: dimmed and not clickable, with this note at its end while hovered. */
   unavailableNote?: string;
   expander?: ReactNode;
   /** Shown at the end of a group's row. */
@@ -85,7 +85,8 @@ export const TreeRow = ({
   const iconTile = icon && (
     <StepIconTile icon={icon} tone={tone} size="small" />
   );
-  const labelElement = onClick ? (
+  const clickable = onClick !== undefined && unavailableNote === undefined;
+  const labelElement = clickable ? (
     <Button
       variant="ghost"
       size="sm"
