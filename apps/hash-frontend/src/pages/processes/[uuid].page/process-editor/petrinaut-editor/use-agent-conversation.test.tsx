@@ -877,14 +877,38 @@ test("a read that fails after its retries is reported once, the subject has no o
   });
 
   // Fallback `start` after a failed read must not create an entity that would
-  // supersede an unreachable newer conversation; explicit `replace` still does.
+  // supersede an unreachable newer conversation; explicit `replace` still does,
+  // and if that `replace` write fails, the next `start` retries it.
   act(() => result.current.start("fallback-first"));
   await settle();
   expect(graph.writes).toEqual([]);
 
+  graph.writeFailures.push({ kind: "conversation" });
   act(() => result.current.replace("fresh"));
   await settle();
-  expect(graph.writes).toEqual(created("fresh", processId, processWebId));
+  expect(graph.stored.some((stored) => stored.conversationId === "fresh")).toBe(
+    false,
+  );
+
+  act(() => result.current.start("fresh"));
+  await settle();
+  expect(graph.stored.some((stored) => stored.conversationId === "fresh")).toBe(
+    true,
+  );
+});
+
+test("after a failed read on an unsaved draft, start still queues the conversation for when the draft is saved", async () => {
+  graph.failingReads = 1;
+  const { result } = renderConversation(draftId, false);
+  expect(result.current.conversationId).toBeNull();
+
+  act(() => result.current.start("draft-first"));
+  await settle();
+  expect(graph.writes).toEqual([]);
+
+  save(draftId);
+  await settle();
+  expect(graph.writes).toEqual(created("draft-first", draftId, processWebId));
 });
 
 test("where the conversation isn't offered, or with no subject, nothing is read", () => {

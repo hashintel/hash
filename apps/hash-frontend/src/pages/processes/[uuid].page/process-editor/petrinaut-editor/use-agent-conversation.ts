@@ -414,16 +414,23 @@ export const useAgentConversation = ({
   );
 
   // Called for every message: only the first has anything to write. Skip
-  // persisting after a failed read so the fallback conversation cannot
-  // become the newest entity and shadow a newer conversation in the graph.
+  // persisting a fallback conversation started after a failed read on an
+  // already-saved subject so it cannot become the newest entity and shadow an
+  // unreachable conversation in the graph. Retries for unfinished writes (e.g.
+  // after an explicit `replace`) and unsaved drafts still proceed.
   const start = useCallback(
     (conversationId: string) => {
-      if (readFailed) {
+      if (
+        readFailed &&
+        subjectEntityId !== null &&
+        isSaved(subjectEntityId) &&
+        !unfinished.current.has(conversationId)
+      ) {
         return;
       }
       record("start", conversationId);
     },
-    [readFailed, record],
+    [readFailed, subjectEntityId, isSaved, record],
   );
 
   // Clearing starts the next conversation. The one before it is left as it
