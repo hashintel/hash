@@ -210,7 +210,10 @@ never advance one recorder.
   after flattening.
 - **Queues until the worker boots.** `createWorkerTransport` in
   `../../worker-transport.ts` holds the messages sent before the worker
-  exists. A test passes a `transport` in place of `createWorker`.
+  exists. The config takes a `transport` in place of `createWorker`, so that
+  a test can read and answer the messages. No test calls
+  `createEventSimulation` yet: `event-simulation.worker.test.ts` drives the
+  worker's end alone, so no test holds what the host does with a message.
 - **Keeps every event.** `createInMemoryEventTraceStore` in
   `../trace-store.ts` refuses an event whose index is not the next one, and a
   string delta whose base is not the size of its pool.
