@@ -1,0 +1,34 @@
+# Hand-written; rendered by the arch-docs build. The colours are those of the
+# generated diagrams: green for the UI layer, purple for the React layer, blue
+# for Core, grey for the host.
+direction: down
+
+classes: {
+  ui: {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
+  react: {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+  core: {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+  other: {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+}
+
+host: "Host application" {class: other}
+
+petrinaut: "@hashintel/petrinaut" {
+  class: other
+  ui: "UI\nsrc/ui\ncanvas, panels, kits, plugins, preview" {class: ui}
+  react: "React layer\nsrc/react\nproviders, contexts, hooks" {class: react}
+}
+
+core: "Core\n@hashintel/petrinaut-core\ndocument, compiler, runtimes, language service" {class: core}
+workers: "Workers\nlanguage server, event simulation,\nframe simulation, Monte Carlo, optimizer" {class: core}
+
+host -> petrinaut.ui: "imports the editor\nand the preview from"
+host -> core: "imports handles\nand worker factories from"
+petrinaut.ui -> petrinaut.react: "imports hooks\nand providers from"
+petrinaut.ui -> core: "imports types\nand pure functions from"
+petrinaut.react -> core: "imports the instance,\nstores and runtimes from"
+core -> workers: "posts messages to" {style.stroke-dash: 4}
+
+legend: "Solid: an import, from the importer to what it imports.\nDashed: a worker channel." {
+  shape: text
+  near: bottom-center
+}
