@@ -69,13 +69,13 @@
 /libs/@local/pi-faux-providers/ @hashintel/frontend
 
 # Backend libraries and the browser plugin
-/apps/plugin-browser/ @hashintel/backend
-/libs/@local/advanced-types/ @hashintel/backend
-/libs/@local/codec/typescript/ @hashintel/backend
-/libs/@local/hash-backend-utils/ @hashintel/backend
-/libs/@local/hash-isomorphic-utils/ @hashintel/backend
-/libs/@local/internal-api-client/typescript/ @hashintel/backend
-/libs/@local/status/typescript/ @hashintel/backend
+/apps/plugin-browser/ @hashintel/backend-ts
+/libs/@local/advanced-types/ @hashintel/backend-ts
+/libs/@local/codec/typescript/ @hashintel/backend-ts
+/libs/@local/hash-backend-utils/ @hashintel/backend-ts
+/libs/@local/hash-isomorphic-utils/ @hashintel/backend-ts
+/libs/@local/internal-api-client/typescript/ @hashintel/backend-ts
+/libs/@local/status/typescript/ @hashintel/backend-ts
 
 # Block Protocol graph package
 /libs/@blockprotocol/graph/ @hashintel/graph
@@ -91,7 +91,7 @@
 
 # Test suites
 /tests/hash-playwright/ @hashintel/frontend
-/tests/hash-backend-integration/ @hashintel/backend
+/tests/hash-backend-integration/ @hashintel/backend-ts
 /tests/integrations/graph/ @hashintel/graph
 /tests/petrinaut-brunch-integration/ @hashintel/petrinaut
 
