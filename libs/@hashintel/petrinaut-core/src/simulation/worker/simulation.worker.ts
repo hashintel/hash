@@ -5,7 +5,7 @@
  * Receives SDCPN definitions, compiles user code, and streams frames back.
  *
  * @see ./README.md for detailed documentation
- * @see ../ARCHITECTURE.md for system overview
+ * @see ../README.md for the map of the simulation
  */
 
 import { createWorkerThreadRuntime } from "../../environment/environment";
