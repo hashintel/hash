@@ -11,7 +11,7 @@ The editor's Quick Simulation runs in it. `messages.ts` in this folder defines
 every message, `event-simulation.worker.ts` is the worker's end, and
 `createEventSimulation` in `../runtime.ts` is the host's end. The host bounds
 the worker by time: it demands the time the trace is to cover, and the worker
-computes no further.
+computes until its trace covers that time, then waits.
 
 A time is in the unit of the run's clock: simulated seconds for a timed net,
 steps for an untimed one. `clock` of the `EventSimulation` handle says which.
