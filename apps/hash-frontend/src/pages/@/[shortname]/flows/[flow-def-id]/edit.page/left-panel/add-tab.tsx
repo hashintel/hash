@@ -64,7 +64,7 @@ export const AddTab = ({
         icon={action.icon}
         tone={getActionTone(action)}
         label={action.label}
-        unavailableNote={addable ? undefined : upcomingNote}
+        disabledTooltip={addable ? undefined : upcomingNote}
         onClick={
           addable
             ? () => {

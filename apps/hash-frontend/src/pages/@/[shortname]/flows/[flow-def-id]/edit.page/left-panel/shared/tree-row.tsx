@@ -29,6 +29,8 @@ const rowLabel = css({
     whiteSpace: "nowrap",
   },
 });
+/* The tooltip's trigger takes the label's place in the row, so the whole row opens it. */
+const rowLabelTooltip = css({ display: "flex", flex: "1", minWidth: "0" });
 const emphasizedRowLabel = css({
   "& > span:last-child": { fontWeight: "semibold" },
 });
@@ -43,15 +45,12 @@ const staticRowLabel = css({
   fontWeight: "medium",
   color: "neutral.s120",
 });
-/* As the design system dims a disabled menu item. */
-const unavailableRowLabel = css({ opacity: "[0.5]" });
 const staticRowText = css({ truncate: true });
-const rowEndLabel = css({
+const stepCountLabel = css({
   flexShrink: "0",
   textStyle: "xs",
   color: "fg.subtle",
 });
-const shownOnRowHover = css({ opacity: "0", _groupHover: { opacity: "1" } });
 
 /** A row of the left panel's lists: a step in the Steps tab, or a group or action in the Add tab. */
 export const TreeRow = ({
@@ -61,7 +60,7 @@ export const TreeRow = ({
   label,
   selected = false,
   emphasized = false,
-  unavailableNote,
+  disabledTooltip,
   expander,
   stepCount,
   status,
@@ -73,8 +72,8 @@ export const TreeRow = ({
   label: string;
   selected?: boolean;
   emphasized?: boolean;
-  /** Makes the row unavailable: dimmed and not clickable, with this note at its end while hovered. */
-  unavailableNote?: string;
+  /** Disables the row, and says why on hover or focus. */
+  disabledTooltip?: string;
   expander?: ReactNode;
   /** Shown at the end of a group's row. */
   stepCount?: number;
@@ -85,44 +84,35 @@ export const TreeRow = ({
   const iconTile = icon && (
     <StepIconTile icon={icon} tone={tone} size="small" />
   );
-  const clickable = onClick !== undefined && unavailableNote === undefined;
-  const labelElement = clickable ? (
+  const disabled = disabledTooltip !== undefined;
+  const asButton = onClick !== undefined || disabled;
+  const labelElement = asButton ? (
     <Button
       variant="ghost"
       size="sm"
       prefix={iconTile}
       pressed={selected}
       className={cx(rowLabel, emphasized ? emphasizedRowLabel : undefined)}
+      disabled={disabled}
+      tooltip={disabledTooltip}
+      tooltipOptions={{ position: "right", className: rowLabelTooltip }}
       onClick={onClick}
     >
       {label}
     </Button>
   ) : (
-    <span
-      className={cx(
-        staticRowLabel,
-        unavailableNote === undefined ? undefined : unavailableRowLabel,
-      )}
-    >
+    <span className={staticRowLabel}>
       {iconTile}
       <span className={staticRowText}>{label}</span>
     </span>
   );
 
   return (
-    <div
-      className={cx("group", row)}
-      style={{ paddingLeft: depth * indentPerDepth }}
-    >
+    <div className={row} style={{ paddingLeft: depth * indentPerDepth }}>
       <span className={expanderSlot}>{expander}</span>
       {labelElement}
       {stepCount !== undefined && (
-        <span className={rowEndLabel}>{countSteps(stepCount)}</span>
-      )}
-      {unavailableNote !== undefined && (
-        <span className={cx(rowEndLabel, shownOnRowHover)}>
-          {unavailableNote}
-        </span>
+        <span className={stepCountLabel}>{countSteps(stepCount)}</span>
       )}
       {status}
     </div>
