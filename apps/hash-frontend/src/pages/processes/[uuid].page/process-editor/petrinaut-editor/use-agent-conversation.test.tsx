@@ -950,15 +950,27 @@ test("messaging on a saved subject does not bypass the failed-read guard on a la
   expect(graph.writes).toEqual([]);
 });
 
-test("a draft found to already exist elsewhere flushes unsaved intents but keeps the failed-read guard", async () => {
+test("a draft found to already exist elsewhere drops queued fallback intents while keeping explicit replacements", async () => {
   graph.failingReads = 1;
   const { result } = renderConversation(draftId, false);
   expect(result.current.conversationId).toBeNull();
 
+  // Fallback conversation started while the draft's initial read failed.
+  act(() => result.current.start("fallback-while-draft"));
+  // An explicit replacement on the same draft still persists.
+  act(() => result.current.replace("explicit-while-draft"));
+  await settle();
+  expect(graph.writes).toEqual([]);
+
   // Save discovers the entity already existed elsewhere (NetExistsError).
   save(draftId, { createdHere: false });
+  await settle();
+  expect(graph.writes).toEqual(
+    created("explicit-while-draft", draftId, processWebId),
+  );
 
   // A fallback conversation started after the failed read must not be persisted.
+  graph.writes.length = 0;
   act(() => result.current.start("fallback-after-net-exists"));
   await settle();
   expect(graph.writes).toEqual([]);

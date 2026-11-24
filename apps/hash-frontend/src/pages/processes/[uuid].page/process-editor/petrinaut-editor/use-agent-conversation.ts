@@ -381,10 +381,16 @@ export const useAgentConversation = ({
 
   /**
    * The conversations started on each unsaved draft, by its id, in the order
-   * they were, to write when it is saved.
+   * they were, to write when it is saved. `fallback` marks a conversation
+   * started via `start` while the initial read failed, which must be discarded
+   * rather than written if the draft turns out to have already existed
+   * elsewhere (`createdHere: false`).
    */
   const unsaved = useRef(
-    new Map<EntityId, { source: string; conversationId: string }[]>(),
+    new Map<
+      EntityId,
+      { source: string; conversationId: string; fallback: boolean }[]
+    >(),
   );
 
   /**
@@ -395,10 +401,13 @@ export const useAgentConversation = ({
   const savedHere = useRef(new Set<EntityId>());
 
   const flushUnsaved = useCallback(
-    (subject: EntityId) => {
+    (subject: EntityId, { includeFallback = true } = {}) => {
       const intents = unsaved.current.get(subject) ?? [];
       unsaved.current.delete(subject);
-      for (const { source, conversationId } of intents) {
+      for (const { source, conversationId, fallback } of intents) {
+        if (fallback && !includeFallback) {
+          continue;
+        }
         enqueue(source, conversationId, subject);
       }
     },
@@ -410,25 +419,33 @@ export const useAgentConversation = ({
       if (createdHere) {
         savedHere.current.add(subject);
       }
-      flushUnsaved(subject);
+      flushUnsaved(subject, { includeFallback: createdHere });
     },
     [flushUnsaved],
   );
 
   const record = useCallback(
-    (source: string, conversationId: string) => {
+    (source: string, conversationId: string, { fallback = false } = {}) => {
       if (subjectEntityId === null) {
         return;
       }
       if (isSaved(subjectEntityId)) {
         // Any it had while a draft, as when it was saved elsewhere, go first.
-        flushUnsaved(subjectEntityId);
+        // Drop fallback intents when this session did not create the subject.
+        flushUnsaved(subjectEntityId, {
+          includeFallback: savedHere.current.has(subjectEntityId),
+        });
         enqueue(source, conversationId, subjectEntityId);
         return;
       }
       const intents = unsaved.current.get(subjectEntityId) ?? [];
-      if (!intents.some((intent) => intent.conversationId === conversationId)) {
-        intents.push({ source, conversationId });
+      const existing = intents.find(
+        (intent) => intent.conversationId === conversationId,
+      );
+      if (!existing) {
+        intents.push({ source, conversationId, fallback });
+      } else if (!fallback) {
+        existing.fallback = false;
       }
       unsaved.current.set(subjectEntityId, intents);
     },
@@ -443,16 +460,15 @@ export const useAgentConversation = ({
   // this session still proceed.
   const start = useCallback(
     (conversationId: string) => {
-      if (
+      const isFallback =
         readFailed &&
         subjectEntityId !== null &&
-        isSaved(subjectEntityId) &&
         !savedHere.current.has(subjectEntityId) &&
-        !unfinished.current.has(conversationId)
-      ) {
+        !unfinished.current.has(conversationId);
+      if (isFallback && isSaved(subjectEntityId)) {
         return;
       }
-      record("start", conversationId);
+      record("start", conversationId, { fallback: isFallback });
     },
     [readFailed, subjectEntityId, isSaved, record],
   );
