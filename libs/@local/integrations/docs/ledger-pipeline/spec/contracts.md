@@ -222,7 +222,7 @@ pub struct SyncRow {
     pub properties: PropertyObjectWithMetadata,       // JSON text in the table
 }
 
-/// Appends the rows of `run`. Does nothing if the run's rows are already in the table.
+/// Replaces the rows of `run` with `rows`, in one commit.
 pub async fn write(storage: &Storage, run: RunId, rows: Vec<SyncRow>) -> Result<(), Report<SyncTableError>>;
 /// The rows of `run`, ordered by `seq`, then by entity id (`order_key`).
 /// `EntityId` has no order of its own. `order_key` gives its web id and its entity UUID, as `engine` sorts.

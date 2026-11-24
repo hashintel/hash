@@ -6,7 +6,7 @@ The table that Prepare writes and Send reads, with its two functions. It is a De
 
 ```text
 Prepare ──► write(run, rows) ──► sync/run={run}/…parquet    the files of one run
-                                 sync/_delta_log/…json      one commit per run, written last
+                                 sync/_delta_log/…json      one commit per write, written last
 Send    ◄── read(run)        ◄── only that run's files are opened
 ```
 
@@ -18,8 +18,8 @@ Send    ◄── read(run)        ◄── only that run's files are opened
 | --------- | ------- | -------------------------------------------------------------------- |
 | Moved     | 0       |                                                                      |
 | Adapted   | 30      | `storage/s3.rs`: the bucket is opened at its root for the sync table |
-| New       | 415     | the row and its conversion, opening the table, writing, reading      |
-| **Total** | **445** | **reused 7%**                                                        |
+| New       | 425     | the row and its conversion, opening the table, writing, reading      |
+| **Total** | **455** | **reused 7%**                                                        |
 
 The plan estimated 600 for Iceberg. Delta needs no pointer file and no catalog.
 
@@ -73,32 +73,35 @@ async fn open(storage) -> Result<DeltaTable, Report<SyncTableError>> {
     }
 }
 
-async fn run_files(table, run) -> Result<Vec<Path>, _>;      // the files whose partition value is `run`
+async fn run_files(table, run) -> Result<Vec<LogicalFileView>, _>;   // the files whose partition value is `run`
 ```
 
 The first call registers Delta's default log store for `s3://` locations. It commits with "create if absent", which S3 and MinIO support, so no lock and no second service are needed.
 
-**`sync_table/write.rs`: writing a run** (new, 70 lines)
+**`sync_table/write.rs`: writing a run** (new, 80 lines)
 
 ```rust
 pub(crate) async fn write(storage, run, rows: Vec<SyncRow>) -> Result<(), Report<SyncTableError>> {
-    // every row must be of `run`; an empty list writes nothing
+    // every row must be of `run`
     let mut table = open(storage).await?;
     if table.version().is_none() {
-        table = table.create().with_columns(row::columns()?).with_partition_columns(["run"]).await?;
+        table = table.create().with_columns(row::columns()).with_partition_columns(["run"]).await?;
     }
-    if !run_files(&table, run).await?.is_empty() { return Ok(()); }    // written before
-
-    let mut writer = RecordBatchWriter::for_table(&table)?
-        .with_commit_properties(CommitProperties::default()
-            .with_application_transaction(Transaction::new(format!("ledger/run/{run}"), 0)));
-    writer.write(row::to_batch(&rows, &writer.arrow_schema())?).await?;
-    writer.flush_and_commit(&mut table).await?;                        // the commit is the last write
+    let mut actions: Vec<Action> = run_files(&table, run).await?           // the run's files are removed
+        .iter().map(|file| Action::Remove(file.remove_action(true))).collect();
+    let mut writer = RecordBatchWriter::for_table(&table)?;
+    writer.write(row::to_batch(&rows, &writer.arrow_schema())?).await?;  // skipped for no rows
+    actions.extend(writer.flush().await?.into_iter().map(Action::Add));  // and the new ones added
+    CommitBuilder::default().with_actions(actions)                       // in one commit, written last
+        .build(Some(table.snapshot()?), table.log_store(), DeltaOperation::Write {
+            mode: SaveMode::Overwrite, partition_by: Some(vec!["run".into()]), predicate: Some(format!("run = '{run}'")),
+        })
+        .await?;
     Ok(())
 }
 ```
 
-If the process stops before the commit, the table does not have the run, and the next call writes it. The files of the first attempt stay in the bucket and no commit names them.
+A write replaces the rows of the run, so a repeated write leaves the rows of its last attempt, and a write without rows leaves the run without rows. If the process stops before the commit, the table keeps the rows it had. The files of that attempt stay in the bucket and no commit names them.
 
 **`sync_table/read.rs`: reading a run** (new, 50 lines)
 
@@ -125,7 +128,7 @@ pub(crate) async fn read(storage, run) -> Result<Vec<SyncRow>, Report<SyncTableE
 | --------------------- | -------------------------------------------------------------- | ----------------------------------------------------- | ------- | ----- |
 | `sync_table/row.rs`   | `Op`, `SyncRow`, `order_key`, the columns, the two conversions | none                                                  | new     | 160   |
 | `sync_table/mod.rs`   | `open`, `run_files`, the log store for S3, `SyncTableError`    | none                                                  | new     | 135   |
-| `sync_table/write.rs` | `write`                                                        | none                                                  | new     | 70    |
+| `sync_table/write.rs` | `write`                                                        | none                                                  | new     | 80    |
 | `sync_table/read.rs`  | `read`                                                         | none                                                  | new     | 50    |
 | `storage/s3.rs`       | `open_bucket`                                                  | `open`, split so the bucket can be opened at its root | adapted | 30    |
 
@@ -140,10 +143,12 @@ All new, against a MinIO container, because Delta opens its own connection to th
 
 1. A run's rows come back in `seq` order with every column unchanged, for entities and for links.
 2. A read of one run returns no rows of another. A read of a run that was never written returns none, before and after the table exists.
-3. A second write of a run adds nothing.
-4. A write that stopped before its commit: the run's files are written without a commit, the run is written again, and its rows are in the table once.
-5. Rows of another run are `Invalid`.
-6. A storage without a bucket is `Invalid`.
+3. A second write of a run replaces its rows.
+4. A write without rows removes the run's rows.
+5. A write that stopped before its commit: the run's files are written without a commit, the run is written again, and its rows are in the table once.
+6. Rows of another run are `Invalid`.
+7. A storage without a bucket is `Invalid`.
+8. The columns are the fields of `SyncRow`: a row serialized with `serde_json` has the names of `columns()`, so a field added to `SyncRow` without a column fails the test.
 
 ## What was stripped
 
@@ -153,11 +158,11 @@ Nothing existing. Left out on purpose: checkpoints and log cleanup tuned for the
 
 - **Fact:** `deltalake-core` 1.1.4 uses `arrow` and `parquet` 59. The workspace uses 60, because `duckdb` 1.20000.1 (DuckDB 2.0) does, and no `duckdb` release uses 59. The build therefore has two copies of `arrow` and `parquet`. No arrow data passes between them: the sync table takes and returns `SyncRow`, and it uses the `arrow` and `parquet` that `deltalake-core` re-exports. delta-io/delta-rs#5017 moves Delta to `arrow` 60 and `object_store` 0.14; after its release the workspace has one copy again.
 - **Fact:** `deltalake-core` without its `datafusion` feature can create a table, append with `RecordBatchWriter`, and list a snapshot's files with their partition values. It cannot scan. `read` therefore lists the run's files and reads them with `parquet`.
-- **Fact:** a commit's application transaction is among the ids the conflict checker reads (`kernel/transaction/conflict_checker.rs` in `deltalake-core` 1.1.4). Two writes of one run at the same time both carry `ledger/run/{run}`, so the second commit fails, and a rerun finds the run written.
 - **Fact:** `EntityId` has no order of its own (`libs/@blockprotocol/type-system/rust/src/knowledge/entity/id.rs:81`). `order_key` gives its web id and its entity UUID, which is how `engine` sorts (`graph/plan/mod.rs:162-167`). Send uses the same function.
 - **Fact:** the rows of one file come back in the order they were written. Several files are listed in no fixed order, so `read` sorts.
 - `SyncTableError` has two cases, as in `contracts.md`: `Storage` when the bucket cannot be reached, and `Invalid` when a row cannot be turned into a row of the table or back, or the storage has no bucket.
-- **Chosen:** whether a run was written is read from the files of its partition, which the loaded snapshot already holds. Looking up the application transaction would replay the log from the last checkpoint on every call.
+- **Decided by Paul (review, 2026-11-24):** `write` always replaces the run's rows, and does not check whether the run was written. Running a stage again is the stages' job, so the sync table keeps no retry logic of its own.
+- **Fact:** two writes of a run at the same time conflict only when the run had files: both commits remove them, and the second fails. Two first writes of a run both commit, and the run has both sets of rows. Callers run one attempt of a run at a time, as for Capture.
 - **Chosen:** the table is created by the first write. There is no separate setup step.
 - **Chosen:** `read` returns no rows for an integration without a table, and does not fail.
 - **Chosen:** `order_key` returns a struct, not a pair of UUIDs.

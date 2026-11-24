@@ -22,9 +22,9 @@ pub(crate) async fn read(
     }
     let store = table.object_store();
     let mut rows = Vec::new();
-    for location in run_files(&table, run).await? {
+    for file in run_files(&table, run).await? {
         let bytes = store
-            .get(&location)
+            .get(&file.object_store_path())
             .await
             .change_context(SyncTableError::Storage)?
             .bytes()

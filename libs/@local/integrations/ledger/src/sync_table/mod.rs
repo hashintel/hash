@@ -15,7 +15,8 @@ use alloc::sync::Arc;
 use std::sync::Once;
 
 use deltalake_core::{
-    DeltaTable, DeltaTableBuilder, DeltaTableError, Path as Location,
+    DeltaTable, DeltaTableBuilder, DeltaTableError,
+    kernel::LogicalFileView,
     logstore::{
         LogStore, LogStoreFactory, ObjectStoreRef, StorageConfig, default_logstore,
         logstore_factories,
@@ -108,7 +109,7 @@ async fn open(storage: &Storage) -> Result<DeltaTable, Report<SyncTableError>> {
     }
 }
 
-/// The locations of the data files of `run` in `table`.
+/// The data files of `run` in `table`.
 ///
 /// # Errors
 ///
@@ -116,18 +117,18 @@ async fn open(storage: &Storage) -> Result<DeltaTable, Report<SyncTableError>> {
 async fn run_files(
     table: &DeltaTable,
     run: RunId,
-) -> Result<Vec<Location>, Report<SyncTableError>> {
+) -> Result<Vec<LogicalFileView>, Report<SyncTableError>> {
     let run = run.to_string();
     let snapshot = table.snapshot().change_context(SyncTableError::Storage)?;
     snapshot
         .snapshot()
         .file_views(table.log_store().as_ref(), None)
-        .try_filter_map(|file| {
-            let in_run = file
-                .partition_values_map()
-                .get(RUN)
-                .is_some_and(|value| value.as_deref() == Some(run.as_str()));
-            core::future::ready(Ok(in_run.then(|| file.object_store_path())))
+        .try_filter(|file| {
+            core::future::ready(
+                file.partition_values_map()
+                    .get(RUN)
+                    .is_some_and(|value| value.as_deref() == Some(run.as_str())),
+            )
         })
         .try_collect()
         .await

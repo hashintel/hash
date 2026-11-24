@@ -1,3 +1,4 @@
+use alloc::collections::BTreeSet;
 use core::str::FromStr as _;
 
 use deltalake_core::writer::{DeltaWriter as _, RecordBatchWriter};
@@ -163,22 +164,42 @@ async fn read_returns_only_its_run() {
 }
 
 #[tokio::test]
-async fn second_write_adds_nothing() {
+async fn second_write_replaces_rows() {
     let (_minio, storage) = storage().await;
     let run = RunId::new();
-    let expected = rows(run);
+    let first = rows(run);
+    let second = first.get(..2).expect("should have two rows").to_vec();
 
-    write(&storage, run, expected.clone())
+    write(&storage, run, first)
         .await
         .expect("should write the run");
-    write(&storage, run, expected.clone())
+    write(&storage, run, second.clone())
         .await
         .expect("should write the run again");
 
     assert_eq!(
         read(&storage, run).await.expect("should read the run"),
-        expected,
-        "the second write should add nothing"
+        second,
+        "the second write should replace the rows of the first"
+    );
+}
+
+#[tokio::test]
+async fn empty_write_removes_rows() {
+    let (_minio, storage) = storage().await;
+    let run = RunId::new();
+
+    write(&storage, run, rows(run))
+        .await
+        .expect("should write the run");
+    write(&storage, run, Vec::new())
+        .await
+        .expect("should write the run without rows");
+
+    assert_eq!(
+        read(&storage, run).await.expect("should read the run"),
+        [],
+        "a write without rows should leave the run without rows"
     );
 }
 
@@ -226,4 +247,27 @@ async fn storage_without_bucket_is_invalid() {
         .await
         .expect_err("should refuse a storage without a bucket");
     assert_eq!(*error.current_context(), SyncTableError::Invalid);
+}
+
+#[test]
+fn columns_are_the_fields_of_a_row() {
+    let row = rows(RunId::new())
+        .into_iter()
+        .next()
+        .expect("should have a row");
+    let serde_json::Value::Object(fields) =
+        serde_json::to_value(&row).expect("should serialize the row")
+    else {
+        panic!("a row should serialize as an object");
+    };
+    let columns = row::columns()
+        .iter()
+        .map(|column| column.name().clone())
+        .collect::<BTreeSet<_>>();
+
+    assert_eq!(
+        fields.keys().cloned().collect::<BTreeSet<_>>(),
+        columns,
+        "the columns should be the fields of `SyncRow`"
+    );
 }

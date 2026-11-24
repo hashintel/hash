@@ -1,5 +1,6 @@
 use deltalake_core::{
-    kernel::{Transaction, transaction::CommitProperties},
+    kernel::{Action, transaction::CommitBuilder},
+    protocol::{DeltaOperation, SaveMode},
     writer::{DeltaWriter as _, RecordBatchWriter},
 };
 use error_stack::{Report, ResultExt as _};
@@ -7,12 +8,10 @@ use error_stack::{Report, ResultExt as _};
 use super::{RUN, SyncRow, SyncTableError, open, row, run_files};
 use crate::{RunId, storage::Storage};
 
-/// Appends the rows of `run` to the sync table, in one commit. Does nothing if the table holds
-/// rows of `run` already.
+/// Replaces the rows of `run` in the sync table with `rows`, in one commit.
 ///
-/// A write that stopped before its commit left files that no commit names, and is written again.
-/// The commit names `run` as its application transaction, so two writes of `run` at the same
-/// time cannot both commit.
+/// The commit removes the run's files and adds the new ones, so a repeated write leaves the rows
+/// of its last attempt. A write that stopped before its commit left files that no commit names.
 ///
 /// # Errors
 ///
@@ -29,9 +28,6 @@ pub(crate) async fn write(
             row.run
         )));
     }
-    if rows.is_empty() {
-        return Ok(());
-    }
     let mut table = open(storage).await?;
     if table.version().is_none() {
         table = table
@@ -41,29 +37,46 @@ pub(crate) async fn write(
             .await
             .change_context(SyncTableError::Storage)?;
     }
-    if !run_files(&table, run).await?.is_empty() {
+
+    let mut actions = run_files(&table, run)
+        .await?
+        .iter()
+        .map(|file| Action::Remove(file.remove_action(true)))
+        .collect::<Vec<_>>();
+    let mut writer =
+        RecordBatchWriter::for_table(&table).change_context(SyncTableError::Storage)?;
+    if !rows.is_empty() {
+        let batch = row::to_batch(&rows, &writer.arrow_schema())?;
+        writer
+            .write(batch)
+            .await
+            .change_context(SyncTableError::Invalid)?;
+    }
+    actions.extend(
+        writer
+            .flush()
+            .await
+            .change_context(SyncTableError::Storage)?
+            .into_iter()
+            .map(Action::Add),
+    );
+    if actions.is_empty() {
         return Ok(());
     }
 
-    let mut writer = RecordBatchWriter::for_table(&table)
-        .change_context(SyncTableError::Storage)?
-        .with_commit_properties(
-            CommitProperties::default()
-                .with_application_transaction(Transaction::new(application_id(run), 0)),
-        );
-    let batch = row::to_batch(&rows, &writer.arrow_schema())?;
-    writer
-        .write(batch)
-        .await
-        .change_context(SyncTableError::Invalid)?;
-    writer
-        .flush_and_commit(&mut table)
+    let operation = DeltaOperation::Write {
+        mode: SaveMode::Overwrite,
+        partition_by: Some(vec![RUN.to_owned()]),
+        predicate: Some(format!("{RUN} = '{run}'")),
+    };
+    CommitBuilder::default()
+        .with_actions(actions)
+        .build(
+            Some(table.snapshot().change_context(SyncTableError::Storage)?),
+            table.log_store(),
+            operation,
+        )
         .await
         .change_context(SyncTableError::Storage)?;
     Ok(())
-}
-
-/// The application id a commit of `run` carries.
-fn application_id(run: RunId) -> String {
-    format!("ledger/run/{run}")
 }
