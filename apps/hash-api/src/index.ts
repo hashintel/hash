@@ -49,10 +49,6 @@ import {
 } from "@local/hash-isomorphic-utils/http-requests";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 
-import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs";
-import { gptQueryEntities } from "./ai/gpt/gpt-query-entities";
-import { gptQueryTypes } from "./ai/gpt/gpt-query-types";
-import { upsertGptOauthClient } from "./ai/gpt/upsert-gpt-oauth-client";
 import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket";
 import { setupAnalysisHandler } from "./analysis/setup-analysis-handler";
 import { setupAtlasProxy } from "./atlas-proxy";
@@ -93,6 +89,7 @@ import {
   isTestEnv,
   port,
 } from "./lib/env-config";
+import { isRequestAbortedError } from "./lib/is-request-aborted-error";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
@@ -231,23 +228,6 @@ const userIdentifierRateLimiter = rateLimit({
   skip: (req) => typeof req.body?.identifier !== "string",
 });
 
-/**
- * A rate limiter for the GPT endpoints. These are OAuth-protected but
- * should still be limited to prevent abuse by a compromised or misbehaving client.
- */
-const gptRateLimiter = rateLimit({
-  windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 60, // 1 minute
-  limit: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => {
-    if (req.user) {
-      return getActorIdFromRequest(req);
-    }
-    return ipKeyGenerator(req.ip!);
-  },
-});
-
 const hydraProxy = hydraPublicUrl
   ? createProxyMiddleware<Request, Response>({
       target: hydraPublicUrl,
@@ -357,16 +337,6 @@ const kratosProxy = guardKratosProxy({
     },
   }),
 });
-
-/**
- * Whether `error` is the one `raw-body` raises when the client closes the
- * connection before the request body has arrived.
- */
-const isRequestAbortedError = (error: unknown): boolean =>
-  typeof error === "object" &&
-  error !== null &&
-  "type" in error &&
-  error.type === "request.aborted";
 
 const main = async () => {
   logger.info("Type System initialized");
@@ -626,7 +596,7 @@ const main = async () => {
    */
 
   /**
-   * Proxy to Ory Hydra's OAuth2 authorization and token endpoints, for OAuth2 clients (e.g. HashGPT)
+   * Proxy to Ory Hydra's OAuth2 authorization and token endpoints, for OAuth2 clients
    */
   if (hydraProxy) {
     app.use("/oauth2/auth", authRouteRateLimiter, hydraProxy);
@@ -695,11 +665,9 @@ const main = async () => {
    * if the middleware comes earlier.
    */
   app.use((req, _res, next) => {
-    const scope = Sentry.getCurrentScope();
-
-    // Clear the scope and breadcrumbs – requests seem to bleed into each other otherwise
-    scope.clear();
-    scope.clearBreadcrumbs();
+    // Sentry forks the isolation scope for each request. Data set on the
+    // current scope here does not reach errors raised in later middleware.
+    const scope = Sentry.getIsolationScope();
 
     if (req.ip) {
       /**
@@ -911,28 +879,6 @@ const main = async () => {
     authRouteRateLimiter,
     checkGoogleAccessToken,
   );
-
-  // Endpoints used by HashGPT or in support of it
-  app.post("/gpt/entities/query", gptRateLimiter, gptQueryEntities);
-  app.post("/gpt/entities/query-types", gptRateLimiter, gptQueryTypes);
-  app.get("/gpt/user-webs", gptRateLimiter, gptGetUserWebs);
-  app.post(
-    "/gpt/upsert-gpt-oauth-client",
-    gptRateLimiter,
-    upsertGptOauthClient,
-  );
-
-  /**
-   * This middleware MUST:
-   * 1. Come AFTER all non-error controllers
-   * 2. Come BEFORE all error controllers/middleware
-   */
-  Sentry.setupExpressErrorHandler(app, {
-    /** Sentry's default skips every error with a status below 500. */
-    shouldHandleError(error) {
-      return !isRequestAbortedError(error);
-    },
-  });
 
   // Fallback error handler for errors that haven't been caught and sent as a response already
   const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {

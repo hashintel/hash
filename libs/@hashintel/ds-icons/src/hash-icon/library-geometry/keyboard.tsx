@@ -5,7 +5,7 @@ export const keyboardGeometry = (
     <FilledShape
       cutout={
         <>
-          <path d="M6 9h1m2 0h1m2 0h1m2 0h1m2 0h1M6 12h1m2 0h1m2 0h1m2 0h1m2 0h1M7 15h10" />
+          <path d="M5.5 9h1m2 0h1m2 0h1m2 0h1m2 0h1M5.5 12h1m2 0h1m2 0h1m2 0h1m2 0h1M7 15h10" />
         </>
       }
     >

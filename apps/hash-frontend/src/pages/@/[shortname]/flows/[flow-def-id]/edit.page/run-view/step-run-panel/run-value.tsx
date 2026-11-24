@@ -84,6 +84,7 @@ export const RunValue = ({
       {peek.showAll !== null && (
         <ShowAllButton
           count={peek.showAll}
+          /* Not "files": only the entities shown are loaded, so what the rest are isn't known. */
           onClick={() =>
             onOpen({ kind: "list", list: display }, { wide: true })
           }

@@ -90,6 +90,15 @@ export const createFlowScheduleMutation = gql`
   }
 `;
 
+export const updateFlowScheduleMutation = gql`
+  mutation updateFlowSchedule(
+    $scheduleEntityId: EntityId!
+    $input: UpdateFlowScheduleInput!
+  ) {
+    updateFlowSchedule(scheduleEntityId: $scheduleEntityId, input: $input)
+  }
+`;
+
 export const pauseFlowScheduleMutation = gql`
   mutation pauseFlowSchedule($scheduleEntityId: EntityId!, $note: String) {
     pauseFlowSchedule(scheduleEntityId: $scheduleEntityId, note: $note)

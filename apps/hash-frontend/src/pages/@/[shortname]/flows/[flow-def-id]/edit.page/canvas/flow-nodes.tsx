@@ -5,8 +5,14 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { CollapseButton } from "../shared/collapse-button";
 import { StatusBar, StepStateText } from "../shared/run-marks";
-import { getStepDisplay, startDisplay, stepNoun } from "../shared/step-display";
+import {
+  getStepDisplay,
+  startDisplay,
+  stepNoun,
+  triggerDisplays,
+} from "../shared/step-display";
 import { StepIconTile } from "../shared/step-icon-tile";
+import { getShownState } from "../shared/step-states";
 import { useCanvasActions } from "./canvas-actions";
 import {
   forEachBoxPadding,
@@ -22,6 +28,7 @@ import type {
   CardRun,
   ForEachStepNode,
   StartNode as StartNodeType,
+  TriggerNode as TriggerNodeType,
 } from "./flow-graph";
 import type { IconName } from "@hashintel/ds-components";
 import type { FlowDefinitionDiagnosticWithStepId } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
@@ -46,15 +53,26 @@ const ports = css({
   "& .react-flow__handle:hover .port-add": { opacity: "1" },
 });
 
-const outline = css({ borderWidth: "1px", borderStyle: "solid" });
+const outline = css({ borderWidth: "1px" });
+const solidOutline = css({ borderStyle: "solid" });
+const dashedOutline = css({ borderStyle: "dashed" });
 const unselectedOutline = css({ borderColor: "bd.subtle" });
 const selectedOutline = css({
   borderColor: "neutral.s110",
   boxShadow: "[inset 0 0 0 0.5px {colors.neutral.s110}]",
 });
 
-const getOutline = (selected: boolean) =>
-  cx(outline, selected ? selectedOutline : unselectedOutline);
+const getOutline = (selected: boolean, dashed = false) =>
+  cx(
+    outline,
+    dashed ? dashedOutline : solidOutline,
+    selected ? selectedOutline : unselectedOutline,
+  );
+
+/** Something that can start the flow rather than a step of it: dashed, and fainter while off. */
+const ghost = css({ cursor: "pointer", _hover: { opacity: "[0.8]" } });
+const onGhost = css({ opacity: "[0.5]" });
+const offGhost = css({ opacity: "[0.25]" });
 
 const portAdd = css({
   position: "absolute",
@@ -226,7 +244,7 @@ const TitleMarks = ({
           <Icon name="starFilled" size="xs" alt="Shown in run results" />
         </span>
       )}
-      <StepStateText state={run.mark.state} />
+      <StepStateText state={getShownState(run.mark.state, run.live)} />
     </>
   ) : (
     <ProblemsMarker problems={problems} />
@@ -242,6 +260,7 @@ const Card = ({
   run,
   paths,
   size = stepCardSize,
+  ghostOn,
   children,
 }: {
   title: string;
@@ -253,9 +272,21 @@ const Card = ({
   run: CardRun | undefined;
   paths?: ReactNode;
   size?: { width: number; height: number };
+  /** For a card in the ghost look, whether what it shows is on. */
+  ghostOn?: boolean;
   children: ReactNode;
 }) => (
-  <div className={cx(ports, card, getOutline(selected))} style={size}>
+  <div
+    className={cx(
+      ports,
+      card,
+      getOutline(selected, ghostOn !== undefined),
+      ghostOn !== undefined && ghost,
+      ghostOn === true && onGhost,
+      ghostOn === false && offGhost,
+    )}
+    style={size}
+  >
     {/* The card's height less its borders, so the header is the same on every card. */}
     <div className={cardHeader} style={{ height: stepCardSize.height - 2 }}>
       <StepIconTile icon={icon} tone={tone} size="large" />
@@ -275,6 +306,27 @@ const Card = ({
   </div>
 );
 
+export const TriggerNode = ({
+  data: { kind, line, on, run },
+  selected,
+}: NodeProps<TriggerNodeType>) => (
+  <Card
+    {...triggerDisplays[kind]}
+    icon={
+      run && kind === "schedule" ? "calendarClock" : triggerDisplays[kind].icon
+    }
+    description={line}
+    tone="neutral"
+    selected={selected}
+    problems={[]}
+    run={run}
+    /* Selected, or in a run, it's drawn in full, as a step is. */
+    ghostOn={selected || run ? undefined : on}
+  >
+    <Handle type="source" position={Position.Right} isConnectable={false} />
+  </Card>
+);
+
 export const StartNode = ({
   data: { run },
   selected,
@@ -283,6 +335,7 @@ export const StartNode = ({
 
   return (
     <Card {...startDisplay} selected={selected} problems={[]} run={run}>
+      <Handle type="target" position={Position.Left} isConnectable={false} />
       <Handle
         type="source"
         position={Position.Right}
@@ -403,11 +456,10 @@ const forEachTitle = css({
 
 /** Collapsed, the box is a one-line card; its chevron and the Steps tab's group collapse together. */
 export const ForEachNode = ({
-  data: { step, problems, inner, collapsed, run },
+  data: { step, problems, inner, collapsed, itemName, run },
   selected,
 }: NodeProps<ForEachStepNode>) => {
   const { editing, toggleCollapsed } = useCanvasActions();
-  const { title, description } = getStepDisplay(step);
   const connectable = !inner && editing !== null;
 
   return (
@@ -424,7 +476,9 @@ export const ForEachNode = ({
             />
           </div>
         )}
-        <span className={forEachTitle}>{description || title}</span>
+        <span className={forEachTitle}>
+          {step.description || `For each ${itemName}`}
+        </span>
         <TitleMarks problems={problems} run={run} />
       </div>
       <Handle

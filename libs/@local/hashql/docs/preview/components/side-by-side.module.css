@@ -1,0 +1,29 @@
+/* The article's width decides the layout, not the viewport's: the sidebar and the outline take their share first. */
+.side-by-side {
+  container-type: inline-size;
+  margin-block: 1.25rem;
+}
+
+.side-by-side-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+/* The grid spaces the blocks, so their own margins would only add uneven gaps. */
+.side-by-side-columns > * {
+  min-width: 0;
+  margin-block: 0;
+}
+
+/* Fumadocs unblurs the lines around a focus annotation only on hover. Keyboard focus on the copy button or the code reveals them as well. */
+.side-by-side :global(.shiki.has-focused:focus-within .line:not(.focused)) {
+  filter: blur(0);
+}
+
+@container (min-width: 40rem) {
+  .side-by-side-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}

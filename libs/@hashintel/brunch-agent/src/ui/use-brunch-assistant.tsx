@@ -629,6 +629,17 @@ export const useBrunchAssistant = ({
                 submissionId: event.submissionId,
                 attempt: event.attempt,
               }),
+            onSubmissionConflict: (conflict) =>
+              reportBrunchFailure(
+                "submission-conflict",
+                new Error(
+                  "A retried message met an earlier admission of another payload; only the earlier payload reached the agent.",
+                ),
+                {
+                  messageId: conflict.messageId,
+                  submissionId: conflict.submissionId,
+                },
+              ),
             onDisconnect: refreshHistory,
           }),
     [

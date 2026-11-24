@@ -1,15 +1,36 @@
 {
   "extends": ["//"],
   "tasks": {
+    "codegen": {
+      "dependsOn": ["@local/hashql#build"],
+      "outputs": [".generated/**"]
+    },
+    "codegen:dev": {
+      "outputs": [
+        "preview/.source/**",
+        "preview/.next/types/**",
+        "preview/next-env.d.ts"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "env": ["PORT"],
+      "dependsOn": ["codegen", "codegen:dev"]
+    },
     "manifest": {
       "dependsOn": ["^manifest", "railroad-plugin#manifest"]
     },
-    "build": {
+    "build:reference": {
       "dependsOn": ["railroad-plugin#build:wasm", "^manifest"],
-      "outputs": ["dist/**"]
+      "outputs": ["reference/dist/**"],
+      "inputs": ["reference/**", "!reference/dist/**"]
     },
-    "dev": {
-      "dependsOn": ["railroad-plugin#build:wasm"]
+    "dev:reference": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["railroad-plugin#build:wasm"],
+      "inputs": ["reference/**"]
     }
   }
 }

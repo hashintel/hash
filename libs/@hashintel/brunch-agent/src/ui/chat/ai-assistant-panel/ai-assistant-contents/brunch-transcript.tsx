@@ -135,7 +135,7 @@ const spokenLinePartTypes = new Set([
  * message. It is never Brunch's response, so it must not take over the
  * Activity fold or the waiting row.
  */
-const isSpokenLine = (message: PetrinautAiMessage) =>
+export const isSpokenLine = (message: PetrinautAiMessage) =>
   message.role === "assistant" &&
   message.parts.length > 0 &&
   message.parts.every((part) => spokenLinePartTypes.has(part.type));

@@ -11,6 +11,9 @@ import { Data, HashSet } from "effect";
  * A tagged failure value that callers can distinguish without reading prose.
  *
  * Keep reasons immutable after insertion into a set. Built-in constructors provide readonly fields, not runtime freezing.
+ *
+ * @category Reasons
+ * @since 0.1.0
  */
 export interface Reason {
   readonly _tag: string;
@@ -35,7 +38,12 @@ export type SyntaxReason =
 
 const constructors = Data.taggedEnum<SyntaxReason>();
 
-/** A repeated parser succeeded without consuming input. */
+/**
+ * A repeated parser succeeded without consuming input.
+ *
+ * @category Reasons
+ * @since 0.1.0
+ */
 export type ExpectedProgress = Data.TaggedEnum.Value<
   SyntaxReason,
   "ExpectedProgress"
@@ -44,7 +52,12 @@ export type ExpectedProgress = Data.TaggedEnum.Value<
 export const ExpectedProgress: Data.TaggedEnum.Constructor<SyntaxReason>["ExpectedProgress"] =
   constructors.ExpectedProgress;
 
-/** Input remains where the grammar requires its end. */
+/**
+ * Input remains where the grammar requires its end.
+ *
+ * @category Reasons
+ * @since 0.1.0
+ */
 export type ExpectedEndOfInput = Data.TaggedEnum.Value<
   SyntaxReason,
   "ExpectedEndOfInput"
@@ -73,7 +86,12 @@ export type InsufficientLength = Data.TaggedEnum.Value<
 export const InsufficientLength: Data.TaggedEnum.Constructor<SyntaxReason>["InsufficientLength"] =
   constructors.InsufficientLength;
 
-/** The input does not match an exact source spelling. */
+/**
+ * The input does not match an exact source spelling.
+ *
+ * @category Reasons
+ * @since 0.1.0
+ */
 export type ExpectedLiteral = Data.TaggedEnum.Value<
   SyntaxReason,
   "ExpectedLiteral"
@@ -83,7 +101,12 @@ export type ExpectedLiteral = Data.TaggedEnum.Value<
 export const ExpectedLiteral: Data.TaggedEnum.Constructor<SyntaxReason>["ExpectedLiteral"] =
   constructors.ExpectedLiteral;
 
-/** The next scalar is absent or outside a named character class. */
+/**
+ * The next scalar is absent or outside a named character class.
+ *
+ * @category Reasons
+ * @since 0.1.0
+ */
 export type ExpectedCharacterClass = Data.TaggedEnum.Value<
   SyntaxReason,
   "ExpectedCharacterClass"
@@ -96,7 +119,7 @@ export const ExpectedCharacterClass: Data.TaggedEnum.Constructor<SyntaxReason>["
 /**
  * Failure reasons at a UTF-16 offset from the beginning of the supplied input.
  *
- * The expected set follows {@link HashSet.HashSet | HashSet} equality. Equal data reasons deduplicate, while different payloads remain distinct. {@link ParserError.merge | merge} selects the furthest offset before combining sets.
+ * The expected set follows {@link HashSet.HashSet | `HashSet`} equality. Equal data reasons deduplicate, while different payloads remain distinct. {@link ParserError.merge | `merge`} selects the furthest offset before combining sets.
  *
  * @example <caption>Inspect a typed syntax failure.</caption>
  * ```ts
@@ -117,6 +140,9 @@ export const ExpectedCharacterClass: Data.TaggedEnum.Constructor<SyntaxReason>["
  * });
  * assert.equal(outcome, "rejected");
  * ```
+ *
+ * @category Errors
+ * @since 0.1.0
  */
 export class ParserError<R extends Reason> extends Data.Class<{
   readonly offset: number;

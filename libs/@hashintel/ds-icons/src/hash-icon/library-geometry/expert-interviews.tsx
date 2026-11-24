@@ -1,8 +1,9 @@
+import { CompactUser } from "../shared/compact-user";
+
 export const expertInterviewsGeometry = (
   <g fill="none">
-    <circle cx="7" cy="7" r="3" />
-    <path d="M2 21v-4a5 5 0 0 1 10 0v4" />
-    <path d="M13 3h9v10h-4l-3 3v-3h-2Z" />
-    <path d="M16 7h3m-3 3h3" />
+    <CompactUser />
+    <path d="M14.5 3h7.5v10h-3.5l-3 3v-3h-1Z" />
+    <path d="M17 7h2.5M17 10h2.5" />
   </g>
 );

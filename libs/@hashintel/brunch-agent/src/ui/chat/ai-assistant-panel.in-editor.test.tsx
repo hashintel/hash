@@ -137,8 +137,6 @@ const chatPlugin = (assistant: PetrinautAiAssistant): PetrinautPlugin => {
             api={api}
             initialMessage={promptText}
             onInitialMessageConsumed={() => setPromptText(null)}
-            initialInteractionMode={promptText === null ? null : "text"}
-            onInitialInteractionModeConsumed={() => setPromptText(null)}
           />
         ),
         onPrompt: setPromptText,
@@ -285,7 +283,10 @@ test("shows the editor's selection on the composer and sends it with the message
   // The editor selects the ID the document stores, which Brunch's net reads
   // also return.
   expect(bodies).toEqual([
-    { selection: [{ type: "place", id: toPetrinautId("queue") }] },
+    {
+      inputMode: "text",
+      selection: [{ type: "place", id: toPetrinautId("queue") }],
+    },
   ]);
 
   // Clearing the chip clears the editor's selection, and the next send
@@ -481,7 +482,11 @@ test("sends a Voice turn with the selection it finished with, and shows it in th
     await queued;
   });
   await screen.findByText("Second answer.", {}, { timeout: 4_000 });
-  expect(bodies).toEqual([{ selection: server }, { selection: queue }]);
+  // The panel never chose Voice here, so the requests carry text mode.
+  expect(bodies).toEqual([
+    { inputMode: "text", selection: server },
+    { inputMode: "text", selection: queue },
+  ]);
 });
 
 test("runs automatic tools against the editor through refusal-aware plugin edits", async () => {

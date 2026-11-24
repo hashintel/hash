@@ -122,11 +122,12 @@ export type FlowEditorView = "editor" | "logs";
 /**
  * The flow editor's top bar: back to the flows page, the flow's name, the switch between editing the flow and its
  * runs, whether its edits are saved, Run, and its menu. Showing a run, it has the run switcher after the flow's name,
- * and the run's time and Stop or Re-run for it in place of Run.
+ * and the run's time, Stop or Re-run for it, and its menu in place of Run.
  */
 export const TopBar = ({
   editorKey,
   webId,
+  shortname,
   editorState,
   flowDefinitionEntityId,
   view,
@@ -150,6 +151,8 @@ export const TopBar = ({
   editorKey: number;
   /** The web the flow is in. */
   webId: WebId;
+  /** The shortname of the web the flow is in, for the paths of its runs. */
+  shortname: string;
   editorState: FlowEditorState;
   flowDefinitionEntityId: EntityId;
   view: FlowEditorView;
@@ -253,6 +256,7 @@ export const TopBar = ({
           <RunActions
             key={`${editorKey}:${flowRunEntityId}`}
             webId={webId}
+            shortname={shortname}
             flowRunEntityId={flowRunEntityId}
             flowDefinitionEntityId={flowDefinitionEntityId}
             editorState={editorState}

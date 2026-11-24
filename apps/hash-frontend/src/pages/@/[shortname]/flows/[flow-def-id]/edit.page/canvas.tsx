@@ -31,7 +31,12 @@ import { CanvasToolbar } from "./canvas/canvas-toolbar";
 import { ConnectionEdge } from "./canvas/connection-edge";
 import { getContextMenuItems } from "./canvas/context-menu";
 import { getFlowGraph, getStepNodeId, startNodeId } from "./canvas/flow-graph";
-import { ForEachNode, StartNode, StepNode } from "./canvas/flow-nodes";
+import {
+  ForEachNode,
+  StartNode,
+  StepNode,
+  TriggerNode,
+} from "./canvas/flow-nodes";
 import { getFreePosition, layOutFlow } from "./canvas/layout";
 import { getStepCardSize, stepCardSize, stepGap } from "./canvas/sizes";
 import {
@@ -39,6 +44,8 @@ import {
   useSelectedStepInView,
   useStepFocus,
 } from "./canvas/use-step-focus";
+import { getScheduleSummary } from "./shared/flow-triggers";
+import { useItemNames } from "./shared/item-name";
 import { connectFromNewStep, getActionPaths } from "./shared/step-paths";
 
 import type { CanvasActions } from "./canvas/canvas-actions";
@@ -48,7 +55,9 @@ import type {
   ConnectionEdge as ConnectionEdgeType,
   FlowNode,
   ForEachLayout,
+  TriggerCard,
 } from "./canvas/flow-graph";
+import type { FlowSchedules, TriggerKind } from "./shared/flow-triggers";
 import type { FlowEditor } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
   Connection,
@@ -67,6 +76,7 @@ import type {
 } from "react";
 
 const nodeTypes = {
+  trigger: TriggerNode,
   start: StartNode,
   step: StepNode,
   forEach: ForEachNode,
@@ -88,7 +98,9 @@ const ghostCard = css({
 });
 
 const getNodeStepId = (node: FlowNode) =>
-  node.type === "start" ? null : node.data.step.stepId;
+  node.type === "trigger" || node.type === "start"
+    ? null
+    : node.data.step.stepId;
 
 type AddMenuState = {
   /** Where the picked step will land, shown as a ghost card the menu opens beside. */
@@ -111,19 +123,27 @@ export type CanvasHandle = {
   addStepInView: (actionDefinitionId: string) => void;
 };
 
+export type CanvasSelection = {
+  stepIds: string[];
+  start: boolean;
+  trigger: TriggerKind | null;
+};
+
 type CanvasProps = {
   ref?: Ref<CanvasHandle>;
   editor: FlowEditor;
   selectedStepIds: string[];
   /** Whether the start step is selected, which opens its panel. */
   startSelected: boolean;
-  onSelectionChange: (selection: { stepIds: string[]; start: boolean }) => void;
+  selectedTrigger: TriggerKind | null;
+  onSelectionChange: (selection: CanvasSelection) => void;
   /** A new object each time, so the same step can be focused twice. */
   focusRequest: { stepId: string } | null;
   collapsedStepIds: Set<string>;
   onToggleCollapsed: (stepId: string) => void;
   /** How much of the canvas's right edge a panel covers, in pixels. Steps are centred and fitted in the rest. */
   coveredRight: number;
+  schedules: FlowSchedules;
 };
 
 const FlowCanvas = ({
@@ -131,11 +151,13 @@ const FlowCanvas = ({
   editor,
   selectedStepIds,
   startSelected,
+  selectedTrigger,
   onSelectionChange,
   focusRequest,
   collapsedStepIds,
   onToggleCollapsed,
   coveredRight,
+  schedules,
 }: CanvasProps) => {
   const { flowDefinition, problemsByStepId } = useSyncExternalStore(
     editor.subscribe,
@@ -245,6 +267,22 @@ const FlowCanvas = ({
 
   useSelectedStepInView(selectedStepIds, coveredRight);
 
+  const getItemName = useItemNames(flowDefinition);
+  const triggers = useMemo(
+    (): TriggerCard[] => [
+      { kind: "manual", line: "On", on: true },
+      {
+        kind: "schedule",
+        line: Array.isArray(schedules)
+          ? getScheduleSummary(schedules)
+          : schedules === "loading"
+            ? "Loading…"
+            : "Couldn't load",
+        on: Array.isArray(schedules) && schedules.some(({ on }) => on),
+      },
+    ],
+    [schedules],
+  );
   const graph = useMemo(
     () =>
       forEachLayouts
@@ -253,9 +291,18 @@ const FlowCanvas = ({
             problemsByStepId,
             forEachLayouts,
             collapsedStepIds,
+            getItemName,
+            triggers,
           })
         : { nodes: [], edges: [] },
-    [flowDefinition, problemsByStepId, forEachLayouts, collapsedStepIds],
+    [
+      flowDefinition,
+      problemsByStepId,
+      forEachLayouts,
+      collapsedStepIds,
+      getItemName,
+      triggers,
+    ],
   );
   /* Connections removed other than by Delete (hover, right-click or a side panel) are no longer selected. */
   useEffect(() => {
@@ -291,11 +338,15 @@ const FlowCanvas = ({
       const stepId = getNodeStepId(node);
 
       const selected =
-        stepId === null ? startSelected : selectedStepIdSet.has(stepId);
+        node.type === "trigger"
+          ? node.data.kind === selectedTrigger
+          : node.type === "start"
+            ? startSelected
+            : stepId !== null && selectedStepIdSet.has(stepId);
 
       return selected ? { ...node, selected: true } : node;
     });
-  }, [measuredNodes, selectedStepIds, startSelected]);
+  }, [measuredNodes, selectedStepIds, startSelected, selectedTrigger]);
   const nodes = useMemo(
     () =>
       selectionNodes.map((node) => {
@@ -336,7 +387,7 @@ const FlowCanvas = ({
 
   const selectStep = useCallback(
     (stepId: string) => {
-      onSelectionChange({ stepIds: [stepId], start: false });
+      onSelectionChange({ stepIds: [stepId], start: false, trigger: null });
       setSelectedEdgeIds(new Set());
     },
     [onSelectionChange],
@@ -517,6 +568,7 @@ const FlowCanvas = ({
     const nextDragPositions = new Map(dragPositions);
     const nextSelected = new Set(selectedStepIds);
     let nextStartSelected = startSelected;
+    let nextTrigger = selectedTrigger;
     let measurementsChanged = false;
     let dragPositionsChanged = false;
     let selectionChanged = false;
@@ -543,7 +595,15 @@ const FlowCanvas = ({
         const node = graphNodesById.get(change.id);
         const stepId = node ? getNodeStepId(node) : null;
 
-        if (change.id === startNodeId) {
+        if (node?.type === "trigger") {
+          selectionChanged = true;
+
+          if (change.selected) {
+            nextTrigger = node.data.kind;
+          } else if (nextTrigger === node.data.kind) {
+            nextTrigger = null;
+          }
+        } else if (change.id === startNodeId) {
           selectionChanged = true;
           nextStartSelected = change.selected;
         } else if (stepId !== null) {
@@ -571,6 +631,7 @@ const FlowCanvas = ({
       onSelectionChange({
         stepIds: [...nextSelected],
         start: nextStartSelected,
+        trigger: nextTrigger,
       });
     }
   };
@@ -704,6 +765,7 @@ const FlowCanvas = ({
     onSelectionChange({
       stepIds: selectedStepIds.filter((stepId) => !removedStepIds.has(stepId)),
       start: startSelected,
+      trigger: selectedTrigger,
     });
     setSelectedEdgeIds(new Set());
 

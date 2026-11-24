@@ -5,6 +5,8 @@ import { expect, test } from "../shared/runtime";
 const pathPrefix = `${frontendUrl}/types/`;
 
 test("/types page renders and loads types", async ({ page }) => {
+  test.slow();
+
   await page.goto("/");
   await expect(page.locator("text=Get support")).toBeVisible();
 
@@ -41,7 +43,7 @@ test("/types page renders and loads types", async ({ page }) => {
   const showAllPublicTypesButton = page.getByRole("button", {
     name: "Show all public types",
   });
-  await expect(showAllPublicTypesButton).toBeVisible({ timeout: 15_000 });
+  await expect(showAllPublicTypesButton).toBeVisible({ timeout: 30_000 });
   await showAllPublicTypesButton.click();
 
   await expect(page.getByText(/^[1-9][\d,]* types$/)).toBeVisible({

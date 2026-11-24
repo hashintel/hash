@@ -130,4 +130,40 @@ describe("hashPetrinautDocument", () => {
       hashPetrinautDocument(net, { exclude: ["appearance"] }),
     );
   });
+
+  it("counts a place's showAsInitialState hint as appearance", () => {
+    const shown: SDCPN = {
+      ...net,
+      places: net.places.map((item) => ({ ...item, showAsInitialState: true })),
+    };
+    const hidden: SDCPN = {
+      ...net,
+      places: net.places.map((item) => ({
+        ...item,
+        showAsInitialState: false,
+      })),
+    };
+    const innerShown: SDCPN = {
+      ...net,
+      components: net.components?.map((component) => ({
+        ...component,
+        places: component.places.map((item) => ({
+          ...item,
+          showAsInitialState: true,
+        })),
+      })),
+    };
+
+    for (const toggled of [shown, hidden, innerShown]) {
+      expect(hashPetrinautDocument(toggled)).not.toBe(
+        hashPetrinautDocument(net),
+      );
+      expect(hashPetrinautDocument(toggled, { exclude: ["appearance"] })).toBe(
+        hashPetrinautDocument(net, { exclude: ["appearance"] }),
+      );
+    }
+    expect(hashPetrinautDocument(shown)).not.toBe(
+      hashPetrinautDocument(hidden),
+    );
+  });
 });

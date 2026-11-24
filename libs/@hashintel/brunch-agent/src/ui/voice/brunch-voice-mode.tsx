@@ -55,7 +55,6 @@ export const getBrunchVoiceMode = (
           );
   const subscribeToAdmissionFailure =
     tracker?.subscribeToAdmissionFailure.bind(tracker);
-  const recordInputMode = tracker?.recordInputMode.bind(tracker);
 
   return (context: PetrinautAiVoiceModeContext) => (
     <VoiceInterviewControl
@@ -64,7 +63,6 @@ export const getBrunchVoiceMode = (
       interviewBudgetLevel={interviewBudgetLevel}
       readWords={readWords}
       mediationHistory={mediationHistory}
-      onInputModeChange={recordInputMode}
       toolApprovalState={toolApprovalState}
       settlements={settlements}
       // Voice only observes this snapshot. Message replacement remains gated

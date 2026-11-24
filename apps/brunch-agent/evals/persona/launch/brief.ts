@@ -3,6 +3,10 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { formatPersonaQuestions } from "../shared/format-persona-questions.ts";
+
+import type { PersonaQuestion } from "../rpc-protocol.ts";
+
 const systemPath = fileURLToPath(new URL("brief/system.md", import.meta.url));
 
 export const personaCommandGuide = (helper: string) =>
@@ -17,6 +21,12 @@ It types your message into Brunch's chat, waits until Brunch has completely fini
     ${helper} say <<'EOF'
     <your message>
     EOF
+
+When Brunch puts questions on its message box, the reply ends with them as a numbered list. Answer those with \`answer\`, one quoted argument for each question in the same order:
+
+    ${helper} answer "<answer to 1>" "<answer to 2>"
+
+An answer that is exactly an option's label picks that option; anything else is typed as your own words. Give \`""\` for a question you would leave unanswered. With one question listed, \`say\` works as well.
 
 Other commands:
 
@@ -62,6 +72,7 @@ export const writePersonaResumeBrief = async (input: {
   readonly helper: string;
   readonly settlement: string;
   readonly reply: string;
+  readonly questions: readonly PersonaQuestion[];
 }) => {
   const path = join(input.run, "resume-brief.md");
   await writeFile(
@@ -75,6 +86,9 @@ export const writePersonaResumeBrief = async (input: {
       personaCommandGuide(input.helper),
       "### Brunch's latest reply (may be partial if it did not complete)",
       input.reply.trim() ? input.reply : "No reply prose was retained.",
+      ...(input.questions.length
+        ? [formatPersonaQuestions(input.questions)]
+        : []),
     ].join("\n\n") + "\n",
     { mode: 0o600 },
   );

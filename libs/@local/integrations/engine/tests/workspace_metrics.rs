@@ -1,6 +1,6 @@
 //! Workspace outcomes exported through the application's OpenTelemetry meter provider.
 
-use core::{future::poll_fn, pin::pin, task::Poll};
+use core::{assert_matches, future::poll_fn, pin::pin, task::Poll};
 use std::fs;
 
 use hash_integrations_engine::{
@@ -55,8 +55,9 @@ async fn exercise_workspace() -> u64 {
     let report = Workspace::open(path, WorkspaceConfig::default())
         .await
         .expect_err("the workspace lock should prevent a second open");
-    assert!(
-        matches!(report.current_context(), OpenError::Locked { .. }),
+    assert_matches!(
+        report.current_context(),
+        OpenError::Locked { .. },
         "the second open should fail on the lock"
     );
     workspace
@@ -71,11 +72,9 @@ async fn exercise_workspace() -> u64 {
         .query("SELECT * FROM missing_table".into())
         .await
         .expect_err("the missing table should fail the query");
-    assert!(
-        matches!(
-            report.current_context(),
-            StatementError::InvalidQuery { .. }
-        ),
+    assert_matches!(
+        report.current_context(),
+        StatementError::InvalidQuery { .. },
         "the missing table should produce a query error"
     );
 
@@ -88,8 +87,9 @@ async fn exercise_workspace() -> u64 {
         .snapshot(directory.path().join("missing/snapshot.duckdb"))
         .await
         .expect_err("the absent directory should fail the snapshot");
-    assert!(
-        matches!(report.current_context(), SnapshotError::Write { .. }),
+    assert_matches!(
+        report.current_context(),
+        SnapshotError::Write { .. },
         "the absent directory should produce a write error"
     );
 

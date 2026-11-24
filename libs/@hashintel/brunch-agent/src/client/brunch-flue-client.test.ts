@@ -6,6 +6,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { canonicalContent } from "@hashintel/brunch-agent";
 import { liveToolRouteSegment } from "@local/flue-aisdk-transport";
 
+import { flueConversationIdWeb } from "../conversation-identity";
 import {
   brunchLiveToolStream,
   createBrunchFlueClient,
@@ -190,3 +191,44 @@ test.each([
     expect(new Set(actorHeaders)).toEqual(new Set([actorHeader]));
   },
 );
+
+test("a reply is followed at the conversation's own HTTPS address, though Flue names it over HTTP behind a proxy that ends TLS", async () => {
+  const followed: string[] = [];
+  const stop = new AbortController();
+  const connection: BrunchConnection = {
+    actorKey: "actor",
+    chatEndpoint: "https://brunch.test/agents/petrinaut",
+    fetch: vi.fn<typeof fetch>(async (resource, init) => {
+      followed.push(
+        resource instanceof Request ? resource.url : String(resource),
+      );
+      stop.abort();
+      throw init?.signal?.reason ?? new Error("Aborted.");
+    }),
+  };
+  const client = await createBrunchFlueClient(
+    connection,
+    binding.conversationId,
+  );
+  const instanceId = await flueConversationIdWeb({
+    actorKey: connection.actorKey,
+    conversationId: binding.conversationId,
+  });
+
+  await client
+    .wait(
+      {
+        // As Flue builds it from the request a TLS-ending proxy forwarded.
+        streamUrl: `http://brunch.test/agents/petrinaut/${instanceId}`,
+        offset: "-1",
+        submissionId: "submission",
+        uid: "uid",
+      },
+      { signal: stop.signal },
+    )
+    .catch(() => {});
+
+  expect(followed[0]).toMatch(
+    new RegExp(`^https://brunch\\.test/agents/petrinaut/${instanceId}\\?`),
+  );
+});

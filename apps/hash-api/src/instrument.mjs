@@ -14,6 +14,7 @@ import {
 } from "@local/hash-backend-utils/opentelemetry";
 
 import { isProdEnv, isStagingEnv } from "./lib/env-config";
+import { isRequestAbortedError } from "./lib/is-request-aborted-error";
 
 /**
  * OpenTelemetry setup handle, exported so `index.ts` can wire
@@ -76,10 +77,17 @@ Sentry.init({
     process.env.SENTRY_ENVIRONMENT ||
     process.env.ENVIRONMENT ||
     (isProdEnv ? "production" : "development"),
-  sendDefaultPii: true,
-  // Skip Sentry's tracer setup only when our v2 provider actually
-  // registered. Gating on `otlpEndpoint` instead would skip Sentry's
-  // setup whenever the env var is set even if our bootstrap threw,
-  // leaving the process with neither tracer.
-  skipOpenTelemetrySetup: !!otelSetup,
+  attachStacktrace: false,
+  dataCollection: { cookies: false, frameContextLines: 7, httpBodies: [] },
+  // Set Sentry's tracer up only when our provider did not register. Gating
+  // on `otlpEndpoint` instead would skip Sentry's setup whenever the env var
+  // is set even if our bootstrap threw, leaving the process with neither
+  // tracer.
+  enableOpenTelemetrySetup: !otelSetup,
+  integrations: [
+    Sentry.expressIntegration({
+      shouldHandleError: (error) => !isRequestAbortedError(error),
+    }),
+    ...(otelSetup ? [Sentry.openTelemetryIntegration()] : []),
+  ],
 });

@@ -3,7 +3,7 @@ import { FilledShape } from "../filled-shape";
 export const planeTailGeometry = (
   <g fill="none">
     <FilledShape>
-      <path d="M3 18h6L13 3h5l-2 15h5v3H3Z" />
+      <path d="M3 20v-3h4L14 4h5l-2 13h4v3Z" />
     </FilledShape>
   </g>
 );

@@ -366,12 +366,13 @@ impl<'a> FromSql<'a> for OntologyTypeMajorVersion {
 /// # Examples
 ///
 /// ```
-/// use std::str::FromStr;
+/// use core::{assert_matches, str::FromStr};
+///
 /// use type_system::ontology::id::PreRelease;
 ///
 /// // Parse draft pre-release information
 /// let draft = PreRelease::from_str("lane123.5")?;
-/// assert!(matches!(draft, PreRelease::Draft { lane, revision } if lane.as_str() == "lane123" && revision == 5));
+/// assert_matches!(draft, PreRelease::Draft { lane, revision } if lane.as_str() == "lane123" && revision == 5);
 ///
 /// // Draft ordering follows SemVer rules
 /// let draft_2 = PreRelease::from_str("2.1")?;
@@ -454,7 +455,7 @@ impl FromStr for PreRelease {
 /// # Examples
 ///
 /// ```
-/// use std::str::FromStr;
+/// use core::{assert_matches, str::FromStr};
 ///
 /// use type_system::ontology::id::{OntologyTypeVersion, PreRelease};
 ///
@@ -466,7 +467,7 @@ impl FromStr for PreRelease {
 /// // Draft version
 /// let draft = OntologyTypeVersion::from_str("2-draft.lane123.5").unwrap();
 /// assert_eq!(draft.major.get(), 2);
-/// assert!(matches!(draft.pre_release, Some(PreRelease::Draft { .. })));
+/// assert_matches!(draft.pre_release, Some(PreRelease::Draft { .. }));
 ///
 /// // Ordering: published > draft (same major)
 /// assert!(v1 < draft); // v/1 < v/2-draft.lane123.5
@@ -923,7 +924,7 @@ impl OntologyTypeUuid {
 mod tests {
     #![expect(clippy::panic_in_result_fn)]
 
-    use core::error::Error;
+    use core::{assert_matches, error::Error};
 
     use super::*;
 
@@ -950,19 +951,16 @@ mod tests {
     fn base_url_invalid() {
         // Test URLs without trailing slash
         let result = BaseUrl::new("https://example.com/types".to_owned());
-        assert!(matches!(
-            result,
-            Err(ParseBaseUrlError::MissingTrailingSlash)
-        ));
+        assert_matches!(result, Err(ParseBaseUrlError::MissingTrailingSlash));
 
         // Test non-URL strings
         let result = BaseUrl::new("not-a-url/".to_owned());
-        assert!(matches!(result, Err(ParseBaseUrlError::UrlParseError(_))));
+        assert_matches!(result, Err(ParseBaseUrlError::UrlParseError(_)));
 
         // Test URLs that are too long (> 2048 chars)
         let long_url = format!("https://example.com/{}long/", "a".repeat(2030));
         let result = BaseUrl::new(long_url);
-        assert!(matches!(result, Err(ParseBaseUrlError::TooLong)));
+        assert_matches!(result, Err(ParseBaseUrlError::TooLong));
     }
 
     #[test]
@@ -1104,8 +1102,9 @@ mod tests {
         for version in ["0", "0-draft.lane.1"] {
             let error = OntologyTypeVersion::from_str(version)
                 .expect_err("zero should be rejected as an ontology version");
-            assert!(
-                matches!(error, ParseOntologyTypeVersionError::ParseVersion(_)),
+            assert_matches!(
+                error,
+                ParseOntologyTypeVersionError::ParseVersion(_),
                 "zero should fail major version parsing"
             );
         }
@@ -1392,13 +1391,11 @@ mod tests {
         // Empty lane - rejected
         let err = OntologyTypeVersion::from_str("3-draft..1")
             .expect_err("Should reject empty lane identifier");
-        assert!(
-            matches!(
-                err,
-                ParseOntologyTypeVersionError::InvalidPreRelease(
-                    _,
-                    ParseDraftInfoError::IncorrectFormatting
-                )
+        assert_matches!(
+            err,
+            ParseOntologyTypeVersionError::InvalidPreRelease(
+                _,
+                ParseDraftInfoError::IncorrectFormatting
             ),
             "Expected `IncorrectFormatting` error, got: {err:?}"
         );
@@ -1425,13 +1422,11 @@ mod tests {
         // Edge case: only revision without lane (no dot separator)
         let err = OntologyTypeVersion::from_str("1-draft.123")
             .expect_err("Should reject draft with only revision, no lane");
-        assert!(
-            matches!(
-                err,
-                ParseOntologyTypeVersionError::InvalidPreRelease(
-                    _,
-                    ParseDraftInfoError::IncorrectFormatting
-                )
+        assert_matches!(
+            err,
+            ParseOntologyTypeVersionError::InvalidPreRelease(
+                _,
+                ParseDraftInfoError::IncorrectFormatting
             ),
             "Expected IncorrectFormatting error, got: {err:?}"
         );

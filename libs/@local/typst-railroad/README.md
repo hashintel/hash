@@ -32,7 +32,7 @@ Compose a diagram from nodes, then pass it to a rendering function. This example
 
 Both functions accept a node or an array of nodes. Multiple top-level nodes appear vertically, without connecting paths.
 
-Use `svg` when the diagrams should share the page's CSS, as in the [HashQL grammar renderer](../hashql/docs/template/grammar.typ). Use `canvas` when the image should carry its own styling.
+Use `svg` when the diagrams should share the page's CSS, as in the [HashQL grammar renderer](../hashql/docs/reference/template/grammar.typ). Use `canvas` when the image should carry its own styling.
 
 ### Styling images
 

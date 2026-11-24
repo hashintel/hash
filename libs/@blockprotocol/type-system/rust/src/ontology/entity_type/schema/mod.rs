@@ -355,6 +355,8 @@ impl EntityType {
     /// # Examples
     ///
     /// ```
+    /// use core::assert_matches;
+    ///
     /// use type_system::ontology::entity_type::schema::{EntityType, EntityTypeToPropertyTypeEdge};
     /// use serde_json::json;
     ///
@@ -376,7 +378,7 @@ impl EntityType {
     ///     .expect("Failed to parse entity type");
     ///
     /// for (reference, edge_type) in entity_type.property_type_references() {
-    ///     assert!(matches!(edge_type, EntityTypeToPropertyTypeEdge::Property));
+    ///     assert_matches!(edge_type, EntityTypeToPropertyTypeEdge::Property);
     ///     // Process each property type reference
     /// }
     /// ```
@@ -601,7 +603,7 @@ fn extend_links(
 
 #[cfg(test)]
 mod tests {
-    use core::str::FromStr as _;
+    use core::{assert_matches, str::FromStr as _};
 
     use serde_json::json;
 
@@ -869,7 +871,7 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_url() {
-        assert!(matches!(
+        assert_matches!(
             ensure_failed_validation::<EntityType, _>(
                 json!({
                     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
@@ -886,6 +888,6 @@ mod tests {
                 JsonEqualityCheck::Yes,
             ).await,
             EntityTypeValidationError::InvalidPropertyReference {..}
-        ));
+        );
     }
 }

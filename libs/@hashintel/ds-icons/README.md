@@ -127,6 +127,12 @@ Leaving both states cancels the effect; re-entering plays it again. With no
 `hoverEffect`, `animationMode` also controls repetition of the icon's authored
 hover keyframes. Static hover poses and application-state transitions do not loop.
 
+The `action` effect follows the symbol: Dash styles flex, shimmer, wave their
+dots, or wiggle; file symbols move inside a steady document; Scan Line sweeps;
+and Signal modulates its bars. When adding an action, animate the detail that
+conveys the operation, keep the icon recognizable, and return to its resting
+shape so one-time playback ends cleanly and continuous playback joins smoothly.
+
 Use `effect` with a changing `trigger` for a one-time response to an application
 event. Use `active={false}` to stop an explicit effect. For compatibility,
 `active={true}` without an explicit or inherited mode still repeats; prefer naming

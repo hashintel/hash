@@ -7,7 +7,7 @@
  *
  * Builders such as {@link literal}, {@link struct} and {@link call} assemble syntax without validating it, and nothing in this module executes a query. {@link make} checks a finished tree against {@link Schema} and throws on failure. {@link makeEffect} keeps the issue in an Effect, and {@link makeOption} returns `None`. The schema checks structure, identifier-named fields and labels, and numeric spelling. It does not parse string expressions or `#type` annotations, resolve names or check types. The HashQL compiler does that when it receives the program.
  *
- * Builders that take a type, such as {@link input} and {@link typed}, accept the tagged syntax built by {@link Type}. {@link Ident} and {@link Path} decode and print single identifiers and paths. Each constructor also has a namespace, such as `Literal` or `Call`, holding its schema, value type and checked `make` functions.
+ * Builders that take a type, such as {@link input} and {@link typed}, accept the tagged syntax built by {@link Type}. {@link Ident} and {@link Path} decode and print single identifiers and paths. Each constructor also has a namespace, such as {@link Literal} or {@link Call}, holding its schema, value type and checked `make` functions.
  *
  * @example <caption>Bind a value, check the tree and serialize it.</caption>
  * ```ts
@@ -18,17 +18,16 @@
  * assert.equal(JExpr.compile(query), '["::kernel::special_form::let","name",{"#literal":"Alice"},"name"]');
  * ```
  *
+ * @since 0.1.0
  * @module
  */
 
 import { dual } from "effect/Function";
 
-import { isReadonlyArray } from "../internal/array.js";
 import * as Overflow from "../internal/overflow.js";
 import * as Defs from "./schema.js";
 import * as Type from "./Type/index.js";
 
-import type * as Reference from "./Type/Reference.js";
 import type {
   Schema as $Schema,
   Effect,
@@ -57,6 +56,9 @@ export { compile } from "./compile.js";
  * Effect schema for the SDK's {@link Expression} tree.
  *
  * Decoding and {@link make} check the tree's structure, identifier-named struct fields and labels, and numeric literal spelling. They accept any string expression and any `#type` text. The encoded form, {@link Expression.Encoded}, keeps the tagged numeric literals, so use {@link compile} to produce J-Expr JSON text.
+ *
+ * @category Schemas
+ * @since 0.1.0
  */
 export const Schema: typeof Defs.Expression = Defs.Expression;
 
@@ -64,6 +66,9 @@ export const Schema: typeof Defs.Expression = Defs.Expression;
  * An SDK expression tree: a call array, a data constructor object or a string expression.
  *
  * A string is source text that HashQL parses, such as `"user"`, `"entity.properties"` or the placeholder `"_"`, rather than a string value. Numeric literals hold tagged source text, so serialize a tree with {@link compile} rather than `JSON.stringify`.
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export type Expression = Defs.ExpressionType;
 
@@ -80,7 +85,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  *
  * The result is a new tree without keys outside the matched constructor. Numeric literal objects may omit `_tag`, which the result supplies. `options.disableChecks` skips the identifier, label and numeric-spelling checks but still requires the tree's structure. `options.parseOptions` passes Effect parse options, such as `onExcessProperty: "error"` to reject unknown keys. Use {@link makeOption} when only validity matters, or {@link makeEffect} to inspect a {@link SchemaIssue.Issue} with the failing node's location.
  *
- * @throws {Error} If validation fails. The error carries a {@link SchemaIssue.Issue} in its `cause`.
+ * @throws `Error` If validation fails. The error carries a {@link SchemaIssue.Issue} in its `cause`.
  *
  * @example <caption>Check a struct and detect an invalid field name.</caption>
  * ```ts
@@ -95,6 +100,9 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * assert.ok(Option.isNone(JExpr.makeOption(invalid)));
  * assert.throws(() => JExpr.make(invalid), { message: "Schema validation failed" });
  * ```
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (
@@ -102,14 +110,24 @@ export const make: (
   options?: $Schema.MakeOptions,
 ) => Expression = Overflow.make(Schema);
 
-/** Checks a tree like {@link make}, failing the synchronous effect with the {@link SchemaIssue.Issue} instead of throwing. */
+/**
+ * Checks a tree like {@link make}, failing the synchronous effect with the {@link SchemaIssue.Issue} instead of throwing.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Expression, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
-/** Checks a tree like {@link make}, returning `None` instead of throwing for a schema failure. */
+/**
+ * Checks a tree like {@link make}, returning `None` instead of throwing for a schema failure.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,
@@ -118,8 +136,14 @@ export const makeOption: (
 
 export { fn, infer } from "./Function.js";
 export type { FnOptions, TypeArgument } from "./Function.js";
+export { let, type Imports, use, type, newtype } from "./Binding.js";
 
-/** Data constructors that accept a `#type` annotation through {@link typed}. */
+/**
+ * Data constructors that accept a `#type` annotation through {@link typed}.
+ *
+ * @category Data
+ * @since 0.1.0
+ */
 export type Annotatable =
   | Defs.StructType
   | Defs.TupleType
@@ -130,7 +154,10 @@ export type Annotatable =
 /**
  * Creates an integer literal from a value's exact decimal digits.
  *
- * A `bigint` keeps every digit. A `number` contributes the digits of its double value. An integer beyond `Number.MAX_SAFE_INTEGER` may therefore have lost precision before this call. `-0` becomes `0`. A non-integral or non-finite number keeps its JavaScript text without an error. {@link make} rejects that literal, while {@link compile} emits the text, such as `1.5` or `NaN`. See `JExpr.Integer.Integer` for a precision example.
+ * A `bigint` keeps every digit. A `number` contributes the digits of its double value. An integer beyond `Number.MAX_SAFE_INTEGER` may therefore have lost precision before this call. `-0` becomes `0`. A non-integral or non-finite number keeps its JavaScript text without an error. {@link make} rejects that literal, while {@link compile} emits the text, such as `1.5` or `NaN`. See {@link JExpr.Integer.Integer} for a precision example.
+ *
+ * @category Literals
+ * @since 0.1.0
  */
 export const integer = (value: number | bigint): Defs.LiteralType => {
   if (typeof value === "number" && Number.isInteger(value)) {
@@ -144,6 +171,9 @@ export const integer = (value: number | bigint): Defs.LiteralType => {
  * Creates a numeric literal that HashQL parses as a float.
  *
  * The text is JavaScript's shortest decimal for the double, so `float(0.1 + 0.2)` compiles to `0.30000000000000004`. HashQL reads a number as a float only when its text has a fraction or exponent. Integral values therefore gain a fraction: `float(1)` compiles to `1.0` and `-0` to `-0.0`. Magnitudes that JavaScript writes in exponent form keep it, such as `1e+21`. The builder accepts `NaN` and infinities without an error. {@link make} rejects them, and {@link compile} emits text that is not JSON. See {@link compile} for float examples.
+ *
+ * @category Literals
+ * @since 0.1.0
  */
 export const float = (value: number): Defs.LiteralType => {
   if (Object.is(value, -0)) {
@@ -163,6 +193,9 @@ export const float = (value: number): Defs.LiteralType => {
  * Creates a literal from a primitive value.
  *
  * A string becomes a string value, unlike a bare string expression. Every `bigint` and every integral number, including `1.0`, `-0` and `1e21`, becomes an {@link integer} literal. Other numbers become {@link float} literals. Use {@link float} explicitly to keep `1` as `1.0` or preserve negative zero. See {@link make} for a string literal example.
+ *
+ * @category Literals
+ * @since 0.1.0
  */
 export const literal = (
   value: string | number | bigint | boolean | null,
@@ -186,12 +219,20 @@ export const literal = (
  * Creates a list whose elements share a type.
  *
  * HashQL infers the element type. Use {@link tuple} when each position needs its own type.
+ *
+ * @category Data
+ * @since 0.1.0
  */
 export const list = (...items: readonly Expression[]): Defs.ListType => ({
   "#list": items,
 });
 
-/** Creates a fixed-length sequence with a type for each position. */
+/**
+ * Creates a fixed-length sequence with a type for each position.
+ *
+ * @category Data
+ * @since 0.1.0
+ */
 export const tuple = (...items: readonly Expression[]): Defs.TupleType => ({
   "#tuple": items,
 });
@@ -199,7 +240,10 @@ export const tuple = (...items: readonly Expression[]): Defs.TupleType => ({
 /**
  * Creates a struct with named fields.
  *
- * Field names must be identifiers, such as `name`, `+` or `` `+` ``. {@link make} checks the names, and this builder does not. Each field has its own type. Use {@link dict} for arbitrary string keys. Fields follow the record's own enumerable string-key order. The tree holds the given record object rather than a copy. See {@link make} for a struct example.
+ * Field names must be identifiers, such as `name`, `+` or <code>\`+\`</code>. {@link make} checks the names, and this builder does not. Each field has its own type. Use {@link dict} for arbitrary string keys. Fields follow the record's own enumerable string-key order. The tree holds the given record object rather than a copy. See {@link make} for a struct example.
+ *
+ * @category Data
+ * @since 0.1.0
  */
 export const struct = (
   fields: Record.ReadonlyRecord<string, Expression>,
@@ -208,7 +252,10 @@ export const struct = (
 /**
  * Creates a dictionary from string keys or key expressions.
  *
- * Record keys are literal strings, even when they look like paths. JavaScript puts integer-like record keys first in ascending order, and {@link compile} keeps that order. Use `[key, value]` pairs to compute keys from expressions or to control their order. The tree holds the given record or array rather than a copy. See `JExpr.Dict.Dict` for examples of both key forms.
+ * Record keys are literal strings, even when they look like paths. JavaScript puts integer-like record keys first in ascending order, and {@link compile} keeps that order. Use `[key, value]` pairs to compute keys from expressions or to control their order. The tree holds the given record or array rather than a copy. See {@link JExpr.Dict.Dict} for examples of both key forms.
+ *
+ * @category Data
+ * @since 0.1.0
  */
 export const dict = (
   entries:
@@ -219,7 +266,7 @@ export const dict = (
 /**
  * Sets a data constructor's type annotation.
  *
- * Returns a shallow copy with `#type` set. The new annotation replaces any existing one. The annotation is the type's annotation text, such as `(name: String)`, which HashQL parses and checks. Calls and paths cannot carry this field. Use {@link asType | as} to assert their types. Call it data-first as `typed(self, type)` or data-last in a pipeline.
+ * Returns a shallow copy with `#type` set. The new annotation replaces any existing one. The annotation is the type's annotation text, such as `(name: String)`, which HashQL parses and checks. Calls and paths cannot carry this field. Use {@link asType | `as`} to assert their types. Call it data-first as `typed(self, type)` or data-last in a pipeline.
  *
  * @example <caption>Annotate a literal with type syntax.</caption>
  * ```ts
@@ -231,6 +278,9 @@ export const dict = (
  * const annotated = pipe(JExpr.literal(3.14), JExpr.typed(number));
  * assert.equal(JExpr.compile(annotated), '{"#literal":3.14,"#type":"::kernel::type::Number"}');
  * ```
+ *
+ * @category Data
+ * @since 0.1.0
  */
 export const typed: {
   (type: Type.Type): <E extends Annotatable>(self: E) => E;
@@ -244,6 +294,9 @@ export const typed: {
  * Creates a labeled argument for {@link call}, such as `{":name": value}`.
  *
  * Give `name` without the leading `:`. It must be an identifier. {@link make} checks it, and this builder does not. The object keeps its place in the call array. HashQL's parser gathers labeled arguments into their own list, so this one takes no positional slot. See {@link call} for a labeled call example.
+ *
+ * @category Calls
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 export const label = (
@@ -264,6 +317,9 @@ export const label = (
  * const greeting = JExpr.call("greet", "user", JExpr.label("style", JExpr.literal("formal")));
  * assert.equal(JExpr.compile(greeting), '["greet","user",{":style":{"#literal":"formal"}}]');
  * ```
+ *
+ * @category Calls
+ * @since 0.1.0
  */
 export const call = (
   fn: Expression,
@@ -274,6 +330,9 @@ export const call = (
  * Selects a branch according to a Boolean expression.
  *
  * Both branches are already built syntax, so this call runs no host code for either of them. HashQL evaluates only the selected branch when the query runs. Without `otherwise`, or with `otherwise` set to `undefined`, the expression produces HashQL's `Some(then)` when the condition is true and `None` when it is false.
+ *
+ * @category Expressions
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 const conditional = (
@@ -291,35 +350,12 @@ const conditional = (
 export { conditional as if };
 
 /**
- * Binds `value` to `name` within `body`.
- *
- * The builder emits `name` as given, and the HashQL compiler checks that it is an identifier. To annotate the binding, pass `{ name, type }` with the type in constructor syntax, as {@link asType | as} takes it. That emits `let name: type = value in body`, and the HashQL compiler checks that the value is compatible with the annotation.
- */
-// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
-const binding = (
-  name: string | { readonly name: string; readonly type: Type.Type },
-  value: Expression,
-  body: Expression,
-): Defs.CallType => {
-  if (typeof name === "string") {
-    return ["::kernel::special_form::let", name, value, body];
-  }
-
-  return [
-    "::kernel::special_form::let",
-    name.name,
-    Type.toExpression(name.type),
-    value,
-    body,
-  ];
-};
-
-export { binding as let };
-
-/**
  * Asserts an expression's type for the HashQL type checker.
  *
  * The assertion constrains the expression's type without converting its value. A compound type takes constructor syntax, such as a `::kernel::type::Union` call or a `#struct` of types, rather than annotation text. Use {@link typed} to put an annotation directly on a data constructor.
+ *
+ * @category Expressions
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 const asType = (value: Expression, type: Type.Type): Defs.CallType => [
@@ -329,45 +365,6 @@ const asType = (value: Expression, type: Type.Type): Defs.CallType => [
 ];
 
 export { asType as as };
-
-/**
- * Items to import into the body of {@link use}.
- *
- * Use `"*"` for all items or an array for named imports. For aliases, supply a record from original name to local name: `{ entities: "allEntities" }` imports `entities` as `allEntities`. The alias `"_"` keeps the original name. An array becomes a `#tuple` of names and a record becomes a `#struct`, whose keys {@link make} checks as identifiers.
- */
-export type Imports =
-  | "*"
-  | readonly string[]
-  | Record.ReadonlyRecord<string, string>;
-
-const compileImports = (imports: Imports): Expression => {
-  if (imports === "*") {
-    return imports;
-  }
-
-  if (isReadonlyArray(imports)) {
-    return { "#tuple": imports };
-  }
-
-  return { "#struct": imports };
-};
-
-/**
- * Imports items from the module at `path` into `body`.
- *
- * `path` is path text, such as `::core::math`, which the HashQL compiler resolves. {@link Imports} describes wildcard imports, named imports and aliases.
- */
-// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
-export const use = (
-  path: string,
-  imports: Imports,
-  body: Expression,
-): Defs.CallType => [
-  "::kernel::special_form::use",
-  path,
-  compileImports(imports),
-  body,
-];
 
 /**
  * Reads a named query input supplied by the host.
@@ -384,6 +381,9 @@ export const use = (
  * const pageSize = JExpr.input("page_size", integer, JExpr.integer(10));
  * assert.equal(JExpr.compile(pageSize), '["::kernel::special_form::input","page_size","::kernel::type::Integer",{"#literal":10}]');
  * ```
+ *
+ * @category Expressions
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 export const input = (
@@ -407,6 +407,9 @@ export const input = (
  * Selects a named field or a tuple position.
  *
  * Give a field identifier as a string or a zero-based tuple position as a number. A number becomes an {@link integer} literal, so a non-integral position fails {@link make}. Use {@link index} when the selector is an expression. A string expression such as `"entity.properties"` is HashQL shorthand for the same named field access.
+ *
+ * @category Expressions
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 export const access = (
@@ -424,53 +427,12 @@ export const access = (
  * Looks up a collection element using an index expression.
  *
  * Use {@link literal} for a fixed index. A string such as `"offset"` refers to a value in scope.
+ *
+ * @category Expressions
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 export const index = (
   value: Expression,
   position: Expression,
 ): Defs.CallType => ["::kernel::special_form::index", value, position];
-
-const compileName = (name: string | Reference.Reference): string => {
-  if (typeof name === "string") {
-    return name;
-  }
-
-  return Type.compile(name);
-};
-
-/**
- * Introduces a type alias in `body`.
- *
- * The alias denotes the same type as `type`. Use {@link newtype} for a distinct nominal type with a constructor. `name` is text emitted as given, such as `"Pair<T>"`, or reference type syntax, which compiles to the same form. Its generic list declares the alias's parameters, such as `T` or `T: Integer`.
- */
-// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
-const typeAlias = (
-  name: string | Reference.Reference,
-  type: Type.Type,
-  body: Expression,
-): Defs.CallType => [
-  "::kernel::special_form::type",
-  compileName(name),
-  Type.toExpression(type),
-  body,
-];
-
-export { typeAlias as type };
-
-/**
- * Introduces a distinct type and its constructor in `body`.
- *
- * The constructor has the same name as the type. `name` accepts generic parameters as described by {@link typeAlias | type}.
- */
-// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
-export const newtype = (
-  name: string | Reference.Reference,
-  type: Type.Type,
-  body: Expression,
-): Defs.CallType => [
-  "::kernel::special_form::newtype",
-  compileName(name),
-  Type.toExpression(type),
-  body,
-];
