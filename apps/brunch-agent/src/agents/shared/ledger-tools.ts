@@ -7,6 +7,7 @@ import {
   compileToolDescription,
   foldCommits,
   ledgerAppendOutputSchema,
+  ledgerMapOutputSchema,
   type LedgerHistory,
   prepareAppend,
   projectLedger,
@@ -106,11 +107,7 @@ export const createLedgerCompileTool = (
     name,
     description: compileToolDescription,
     input: v.strictObject({}),
-    output: v.strictObject({
-      revision: v.number(),
-      map: v.string(),
-      rejected: v.array(v.string()),
-    }),
+    output: ledgerMapOutputSchema,
     async run() {
       const { state, revision, rejected } = foldCommits(await readHistory());
       return {

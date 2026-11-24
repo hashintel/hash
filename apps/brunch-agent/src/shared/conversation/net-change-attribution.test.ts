@@ -1,8 +1,9 @@
 import { expect, test } from "vitest";
 
+import { callsForElement } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
-import { callsForElement } from "./net-changes.ts";
+import { netCalls } from "./net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
@@ -74,7 +75,9 @@ const attributed = (
   kind: Parameters<typeof callsForElement>[1]["kind"],
   id: string,
 ) =>
-  callsForElement(snapshot, { kind, id }).map(({ toolCallId }) => toolCallId);
+  callsForElement(netCalls(snapshot), { kind, id }).map(
+    ({ toolCallId }) => toolCallId,
+  );
 
 test("a change is attributed by the element kinds its canonical tool targets, not by its name", () => {
   // An arc's type is its arc kind, never a token type that shares the ID.
@@ -88,7 +91,7 @@ test("a HASH Petrinaut tool's change is attributed by the element kinds its cano
 });
 
 const arcAttributed = (placeId: string) =>
-  callsForElement(snapshot, {
+  callsForElement(netCalls(snapshot), {
     kind: "arc",
     id: "arc",
     arc: {

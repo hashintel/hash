@@ -7,16 +7,14 @@ import assert from "node:assert/strict";
 
 import { fauxAssistantMessage, fauxText } from "@earendil-works/pi-ai";
 
+import { isAppliedChange } from "@hashintel/brunch-agent";
 import { toPetrinautId, type SDCPN } from "@hashintel/petrinaut-core";
 
 import {
   submitPersonaBrowserTurn,
   type PersonaAllowedEdit,
 } from "../../evals/persona/browser-turn.ts";
-import {
-  isAppliedChange,
-  netCalls,
-} from "../../src/shared/conversation/net-changes.ts";
+import { netCalls } from "../../src/shared/conversation/net-changes.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 import {
   installFauxOpenai,

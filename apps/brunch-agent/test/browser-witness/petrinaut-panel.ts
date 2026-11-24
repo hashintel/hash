@@ -11,17 +11,17 @@ import {
   type Context,
 } from "@earendil-works/pi-ai";
 
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent";
+import {
+  clientToolHistoryFrom,
+  isAppliedChange,
+} from "@hashintel/brunch-agent";
 import {
   canonicalizePetrinautIds,
   toPetrinautId,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import {
-  isAppliedChange,
-  netCalls,
-} from "../../src/shared/conversation/net-changes.ts";
+import { netCalls } from "../../src/shared/conversation/net-changes.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 import {
   installFauxOpenai,

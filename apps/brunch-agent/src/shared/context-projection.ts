@@ -3,12 +3,11 @@ import {
   browserToolEnvelopeOf,
   browserToolFacts,
   brunchSignals,
+  netResultView,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
   withoutLedgerCommentsVersionLoad,
 } from "@hashintel/brunch-agent";
-
-import { netResultView } from "./conversation/net-view.ts";
 
 import type {
   ContextProjection,

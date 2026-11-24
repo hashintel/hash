@@ -439,11 +439,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@apps/durable-agents@workspace:apps/durable-agents"
   dependencies:
-    "@earendil-works/chord": "npm:1.5.0"
-    "@earendil-works/pi-ai": "npm:1.5.0"
-    "@earendil-works/pi-durable": "npm:1.5.0"
-    "@earendil-works/pi-schema": "npm:1.5.0"
+    "@earendil-works/chord": "npm:1.5.2"
+    "@earendil-works/pi-ai": "npm:1.5.2"
+    "@earendil-works/pi-durable": "npm:1.5.2"
+    "@earendil-works/pi-schema": "npm:1.5.2"
     "@hashintel/brunch-agent": "workspace:*"
+    "@hashintel/petrinaut-core": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@tsconfig/bases": "catalog:"
     "@types/node": "catalog:"
@@ -4719,21 +4720,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@earendil-works/chord@npm:1.5.0":
-  version: 1.5.0
-  resolution: "@earendil-works/chord@npm:1.5.0"
+"@earendil-works/chord@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@earendil-works/chord@npm:1.5.2"
   dependencies:
-    "@earendil-works/pi-schema": "npm:1.5.0"
-    "@earendil-works/pi-telemetry": "npm:1.5.0"
+    "@earendil-works/pi-schema": "npm:1.5.2"
+    "@earendil-works/pi-telemetry": "npm:1.5.2"
   peerDependencies:
     esbuild: 0.28.2
+    react: 19.3.0
     ws: 8.21.0
   peerDependenciesMeta:
     esbuild:
       optional: true
+    react:
+      optional: true
     ws:
       optional: true
-  checksum: 10c0/603f817d6a51acbb5c6f6652ad85c53797efdd3fe6cd9758ae63c09ed5122570d52c6342beeb98ea225b2d67f1a2ea4acc508f9c04765b2f34ee209995e852c1
+  checksum: 10c0/35cd15fffe6f5c76ea8e657d061ab62eb5ce0ca917245c33dc039430195b808432f30deeddedbe8b4b817d7cd0b896b7b091937521be6367bf6a286595510c45
   languageName: node
   linkType: hard
 
@@ -4777,14 +4781,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@earendil-works/pi-ai@npm:1.5.0":
-  version: 1.5.0
-  resolution: "@earendil-works/pi-ai@npm:1.5.0"
+"@earendil-works/pi-ai@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@earendil-works/pi-ai@npm:1.5.2"
   dependencies:
     "@anthropic-ai/sdk": "npm:0.129.0"
     "@aws-sdk/client-bedrock-runtime": "npm:3.1127.0"
-    "@earendil-works/pi-schema": "npm:1.5.0"
-    "@earendil-works/pi-telemetry": "npm:1.5.0"
+    "@earendil-works/pi-schema": "npm:1.5.2"
+    "@earendil-works/pi-telemetry": "npm:1.5.2"
     "@google/genai": "npm:2.21.0"
     "@smithy/node-http-handler": "npm:4.12.1"
     http-proxy-agent: "npm:9.1.0"
@@ -4793,7 +4797,7 @@ __metadata:
     partial-json: "npm:0.1.7"
   bin:
     pi-ai: dist/cli.js
-  checksum: 10c0/908c0925c235f2322a5524ecc918d8a9e54cbe9070dd02f6409fa65fb7046757af1ebf24910eb79a21beda3d72bf67309c090d132ff325a77e98146cfaa946b8
+  checksum: 10c0/0338b312282194516a8fbcccedb38f3ac9e046b586721cc05ba7af636675d96028628567c0f4aed7889b6f110e82d9bd3bbba4a5e90bf3fa0352757b08a98ee5
   languageName: node
   linkType: hard
 
@@ -4817,41 +4821,41 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@earendil-works/pi-codemode@npm:1.5.0":
-  version: 1.5.0
-  resolution: "@earendil-works/pi-codemode@npm:1.5.0"
+"@earendil-works/pi-codemode@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@earendil-works/pi-codemode@npm:1.5.2"
   dependencies:
     quickjs-wasi: "npm:3.6.2"
-  checksum: 10c0/a19b5218ea90b68a584760095ddfb8399c69785a7f515bb29b964a8ff7716fccdf036250f2874a31a804855e45b84c6824ca0dcf9c926c538c8c5dc45c4eccdd
+  checksum: 10c0/777e43e13c4dce6325a8a21456572fe598503d323168c6afccb0a2bd87eb2d92e5889eae69fe3ef8bc87a97c0be00f7aa7efeeb5bee327017080adcc3f24a2e8
   languageName: node
   linkType: hard
 
-"@earendil-works/pi-durable@npm:1.5.0":
-  version: 1.5.0
-  resolution: "@earendil-works/pi-durable@npm:1.5.0"
+"@earendil-works/pi-durable@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@earendil-works/pi-durable@npm:1.5.2"
   dependencies:
-    "@earendil-works/chord": "npm:1.5.0"
-    "@earendil-works/pi-ai": "npm:1.5.0"
-    "@earendil-works/pi-codemode": "npm:1.5.0"
-    "@earendil-works/pi-schema": "npm:1.5.0"
-    "@earendil-works/pi-telemetry": "npm:1.5.0"
+    "@earendil-works/chord": "npm:1.5.2"
+    "@earendil-works/pi-ai": "npm:1.5.2"
+    "@earendil-works/pi-codemode": "npm:1.5.2"
+    "@earendil-works/pi-schema": "npm:1.5.2"
+    "@earendil-works/pi-telemetry": "npm:1.5.2"
     "@silvia-odwyer/photon": "npm:0.3.3"
     diff: "npm:8.0.4"
-  checksum: 10c0/2b99baabdecfff9bec29a84bba08f811d995bd5644184bc1cf3fee4d6cd6e38884bdd585f26aeb3a95df50fd93840b649fe86d9ea2966cce666e5a8519381eb9
+  checksum: 10c0/e90ab0efa3ccdf9d178b910152298353233d5a6b76f756e5d99b7ad093ee40ceab484960b5f6275a24024991138f1032b14f9c9c97668f26a253805a3d6be63e
   languageName: node
   linkType: hard
 
-"@earendil-works/pi-schema@npm:1.5.0":
-  version: 1.5.0
-  resolution: "@earendil-works/pi-schema@npm:1.5.0"
-  checksum: 10c0/93da82f0e0216051cbdf9b70792f26e9d362ccdf176bd20b9e1f7ed0766cc76f7fcf5879c85c105ea3259ec1c93cd047e5316bbb9613a34172d23e13f6af7269
+"@earendil-works/pi-schema@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@earendil-works/pi-schema@npm:1.5.2"
+  checksum: 10c0/76740bb1caa109a3c251b5b6a304e691a4e4f45ef9c023df7b7468dfb7363aee04bd8ef555e31ffeb903d60d5c7cf5fec10747d188973ad6dc1741a8680f8b0d
   languageName: node
   linkType: hard
 
-"@earendil-works/pi-telemetry@npm:1.5.0, @earendil-works/pi-telemetry@npm:^1.2.0":
-  version: 1.5.0
-  resolution: "@earendil-works/pi-telemetry@npm:1.5.0"
-  checksum: 10c0/bdef9227b347c8329e507a3417eb9386177af6d9b6075f6b0f204b0d2be73c1d52ecef6115a79d654b7c61e432dc12ab1bd4b69aeb264b290cf591ab1198ddb0
+"@earendil-works/pi-telemetry@npm:1.5.2, @earendil-works/pi-telemetry@npm:^1.2.0":
+  version: 1.5.2
+  resolution: "@earendil-works/pi-telemetry@npm:1.5.2"
+  checksum: 10c0/edec01f33c33801254b4ebd14945352471d56edcbba1d4556bce1746f2d7079e0b4b845de8de119b1b1e6eff262be3c016486138a2001f769e1a50862b584721
   languageName: node
   linkType: hard
 

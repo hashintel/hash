@@ -256,6 +256,7 @@ const finish = async (
       conversationId,
       pending.toolCallId,
       context,
+      Date.now,
     ))!;
     const output = { applied: true, title: claim.input.title ?? null };
     const finished = await finishAsyncBrowserCall(

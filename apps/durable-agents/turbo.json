@@ -1,14 +1,36 @@
 {
   "extends": ["//"],
   "tasks": {
+    "start": {
+      "passThroughEnv": [
+        "PORT",
+        "DURABLE_AGENTS_MODEL",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "DURABLE_AGENTS_MAX_TURNS",
+        "DURABLE_AGENTS_MAX_CONCURRENT_REQUESTS",
+        "DURABLE_AGENTS_ABANDONED_TURN_MS",
+        "DURABLE_AGENTS_CRASH_LOOP_RESTARTS",
+        "DURABLE_AGENTS_PG_POOL_MAX",
+        "DURABLE_AGENTS_PG_POOL_WAIT_MS",
+        "DURABLE_AGENTS_POSTGRES_HOST",
+        "DURABLE_AGENTS_POSTGRES_PORT",
+        "DURABLE_AGENTS_POSTGRES_USER",
+        "DURABLE_AGENTS_POSTGRES_PASSWORD",
+        "DURABLE_AGENTS_POSTGRES_DATABASE",
+        "POSTGRES_PORT",
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD"
+      ]
+    },
     "test:integration": {
       "dependsOn": ["^build"],
       "passThroughEnv": [
-        "BRUNCH_POSTGRES_HOST",
-        "BRUNCH_POSTGRES_PORT",
-        "BRUNCH_POSTGRES_USER",
-        "BRUNCH_POSTGRES_PASSWORD",
-        "BRUNCH_POSTGRES_DATABASE",
+        "DURABLE_AGENTS_POSTGRES_HOST",
+        "DURABLE_AGENTS_POSTGRES_PORT",
+        "DURABLE_AGENTS_POSTGRES_USER",
+        "DURABLE_AGENTS_POSTGRES_PASSWORD",
+        "DURABLE_AGENTS_POSTGRES_DATABASE",
         "POSTGRES_PORT",
         "POSTGRES_USER",
         "POSTGRES_PASSWORD"
@@ -18,6 +40,20 @@
       "dependsOn": ["^build"],
       "env": ["TEST_COVERAGE"]
     },
+    "proof:restart-turn": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "passThroughEnv": [
+        "DURABLE_AGENTS_POSTGRES_HOST",
+        "DURABLE_AGENTS_POSTGRES_PORT",
+        "DURABLE_AGENTS_POSTGRES_USER",
+        "DURABLE_AGENTS_POSTGRES_PASSWORD",
+        "DURABLE_AGENTS_POSTGRES_DATABASE",
+        "POSTGRES_PORT",
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD"
+      ]
+    },
     "proof:browser-call": {
       "dependsOn": ["^build"],
       "cache": false
@@ -26,15 +62,32 @@
       "dependsOn": ["^build"],
       "cache": false
     },
+    "probe:hash-session": {
+      "cache": false
+    },
     "probe:postgres-viewer": {
       "dependsOn": ["^build"],
       "cache": false,
       "passThroughEnv": [
-        "BRUNCH_POSTGRES_HOST",
-        "BRUNCH_POSTGRES_PORT",
-        "BRUNCH_POSTGRES_USER",
-        "BRUNCH_POSTGRES_PASSWORD",
-        "BRUNCH_POSTGRES_DATABASE",
+        "DURABLE_AGENTS_POSTGRES_HOST",
+        "DURABLE_AGENTS_POSTGRES_PORT",
+        "DURABLE_AGENTS_POSTGRES_USER",
+        "DURABLE_AGENTS_POSTGRES_PASSWORD",
+        "DURABLE_AGENTS_POSTGRES_DATABASE",
+        "POSTGRES_PORT",
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD"
+      ]
+    },
+    "probe:load": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "passThroughEnv": [
+        "DURABLE_AGENTS_POSTGRES_HOST",
+        "DURABLE_AGENTS_POSTGRES_PORT",
+        "DURABLE_AGENTS_POSTGRES_USER",
+        "DURABLE_AGENTS_POSTGRES_PASSWORD",
+        "DURABLE_AGENTS_POSTGRES_DATABASE",
         "POSTGRES_PORT",
         "POSTGRES_USER",
         "POSTGRES_PASSWORD"
@@ -44,11 +97,11 @@
       "dependsOn": ["^build"],
       "cache": false,
       "passThroughEnv": [
-        "BRUNCH_POSTGRES_HOST",
-        "BRUNCH_POSTGRES_PORT",
-        "BRUNCH_POSTGRES_USER",
-        "BRUNCH_POSTGRES_PASSWORD",
-        "BRUNCH_POSTGRES_DATABASE",
+        "DURABLE_AGENTS_POSTGRES_HOST",
+        "DURABLE_AGENTS_POSTGRES_PORT",
+        "DURABLE_AGENTS_POSTGRES_USER",
+        "DURABLE_AGENTS_POSTGRES_PASSWORD",
+        "DURABLE_AGENTS_POSTGRES_DATABASE",
         "POSTGRES_PORT",
         "POSTGRES_USER",
         "POSTGRES_PASSWORD"
@@ -58,11 +111,11 @@
       "dependsOn": ["^build"],
       "cache": false,
       "passThroughEnv": [
-        "BRUNCH_POSTGRES_HOST",
-        "BRUNCH_POSTGRES_PORT",
-        "BRUNCH_POSTGRES_USER",
-        "BRUNCH_POSTGRES_PASSWORD",
-        "BRUNCH_POSTGRES_DATABASE",
+        "DURABLE_AGENTS_POSTGRES_HOST",
+        "DURABLE_AGENTS_POSTGRES_PORT",
+        "DURABLE_AGENTS_POSTGRES_USER",
+        "DURABLE_AGENTS_POSTGRES_PASSWORD",
+        "DURABLE_AGENTS_POSTGRES_DATABASE",
         "POSTGRES_PORT",
         "POSTGRES_USER",
         "POSTGRES_PASSWORD"

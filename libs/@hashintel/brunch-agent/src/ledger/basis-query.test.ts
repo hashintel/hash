@@ -4,7 +4,7 @@ import { expect, test } from "vitest";
 import {
   basisQueryReasons,
   queryBasisToolDescription,
-  vBasisQueryInput,
+  basisQueryInputSchema,
 } from "./basis-query";
 
 test("the basis query's description and reasons are pinned", () => {
@@ -15,7 +15,9 @@ test("the basis query's description and reasons are pinned", () => {
     {
       "basis-absent": "No reflection names this element, so its basis was not recorded.",
       "basis-declared": "Reflections name this element; the basis is what they rest on.",
+      "no-current-view": "The latest net view is no longer in your context, or shows another revision; read it again, then query.",
       "not-found": "The named element is absent or ambiguous in the latest net view.",
+      "stale-hand-edit": "The USER changed the net in the editor after the latest net view; read it again, then query.",
       "stale-read": "The net changed after the latest net view without a subsequent read-back; read it again, then query.",
     }
   `);
@@ -23,9 +25,11 @@ test("the basis query's description and reasons are pinned", () => {
 
 test("the basis query takes one element by its selector", () => {
   expect(
-    v.parse(vBasisQueryInput, { selector: { kind: "place", name: "Queue" } }),
+    v.parse(basisQueryInputSchema, {
+      selector: { kind: "place", name: "Queue" },
+    }),
   ).toEqual({ selector: { kind: "place", name: "Queue" } });
   expect(() =>
-    v.parse(vBasisQueryInput, { selector: { kind: "nothing" } }),
+    v.parse(basisQueryInputSchema, { selector: { kind: "nothing" } }),
   ).toThrow(/Invalid/u);
 });

@@ -1,22 +1,4 @@
-/**
- * Probe: the browser call as an asynchronous tool (the "start, then deliver
- * the result as a new message" loop), against `browser-call.ts`, where the
- * tool call waits for the browser.
- *
- * - The tool's issue commit records the call `pending` and creates its
- *   `BrowserCallExpiry` task, once per tool call ID, then returns at once:
- *   the model is told the call started, and the run can end.
- * - The host's `finishAsyncBrowserCall` commits the browser's result to the
- *   record and admits it as input to the conversation in the same commit
- *   (`Conversation.submit(tx, ...)`, Pi Durable 1.5.0), as a
- *   `brunch.browser-result` entry the model sees as a user message.
- * - `BrowserCallExpiry` is a background task that sleeps until the call
- *   expires; if no result came by then, it admits the expiry the same way.
- *
- * No tool invocation waits for the browser, so nothing holds the Harness
- * awake while the call is pending.
- */
-import { type Context, copyJson, type JsonValue } from "@earendil-works/chord";
+import { copyJson, type JsonValue } from "@earendil-works/chord/json";
 import {
   type Conversation,
   type ConversationId,
@@ -35,9 +17,30 @@ import {
   BrowserCallsDoc,
   callTtlMs,
   carriesClaim,
+  isAwaitingBrowser,
   setNetTitleDefinition,
   unfinishedError,
 } from "./browser-call";
+
+/**
+ * Probe: the browser call as an asynchronous tool (the "start, then deliver
+ * the result as a new message" loop), against `browser-call.ts`, where the
+ * tool call waits for the browser.
+ *
+ * - The tool's issue commit records the call `pending` and creates its
+ *   `BrowserCallExpiry` task, once per tool call ID, then returns at once:
+ *   the model is told the call started, and the run can end.
+ * - The host's `finishAsyncBrowserCall` commits the browser's result to the
+ *   record and admits it as input to the conversation in the same commit
+ *   (`Conversation.submit(tx, ...)`, Pi Durable 1.5.0), as a
+ *   `brunch.browser-result` entry the model sees as a user message.
+ * - `BrowserCallExpiry` is a background task that sleeps until the call
+ *   expires; if no result came by then, it admits the expiry the same way.
+ *
+ * No tool invocation waits for the browser, so nothing holds the Harness
+ * awake while the call is pending.
+ */
+import type { Context } from "@earendil-works/chord/context";
 
 /** The entry kind a browser call's late result or expiry is placed as. */
 export const browserResultEntryKind = "brunch.browser-result";
@@ -91,10 +94,7 @@ const BrowserCallExpiry = defineTask<
         const record = (
           await tx.doc(BrowserCallsDoc, task.input.conversationId)
         ).calls[task.input.toolCallId];
-        if (
-          record === undefined ||
-          (record.status !== "pending" && record.status !== "claimed")
-        )
+        if (record === undefined || !isAwaitingBrowser(record))
           return {
             status: "terminal",
             outcome: { status: "completed", result: "answered" },

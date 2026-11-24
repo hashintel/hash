@@ -2,8 +2,8 @@
  * The Save that HASH's process page runs for Brunch's HASH agent, through its
  * editor's own Save, once the person approves it: its input, the outcome the
  * page settles it with, how Save is described to the model and what the model
- * is shown of its result, and the note the model reads when the person loads
- * another saved version.
+ * is shown of its result, and what the model reads when the person loads
+ * another saved version: a note on that turn, or a prompt section's state.
  */
 
 import * as v from "valibot";
@@ -102,3 +102,10 @@ export const hashSaveForModel = (output: unknown): HashSaveForModel => {
 /** What the model reads on the turn after the user loaded another saved version. */
 export const versionLoadNote = ({ decisionTime }: VersionLoad): string =>
   `Host note: The user loaded the version saved at ${decisionTime}; later saves build on it.`;
+
+/**
+ * The same fact as a prompt section's state: true from the load until the
+ * user loads another version, so it reads the same on every request between.
+ */
+export const versionLoadSectionText = ({ decisionTime }: VersionLoad): string =>
+  `The user loaded the version saved at ${decisionTime}; saves build on it.`;

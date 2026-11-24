@@ -1,0 +1,140 @@
+/**
+ * Serve a fetch handler (a Hono app's `fetch`) on Node's `http`. The app
+ * declares no Node adapter package, and its requests are small JSON bodies,
+ * so a request body is read whole; a response body streams, chunk by chunk,
+ * no faster than the client reads it, and a client that disconnects cancels
+ * it.
+ */
+import { once } from "node:events";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
+
+import type { AddressInfo } from "node:net";
+
+export type FetchHandler = (request: Request) => Response | Promise<Response>;
+
+const readBody = async (
+  request: IncomingMessage,
+): Promise<Uint8Array<ArrayBuffer>> => {
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) chunks.push(chunk as Buffer);
+  return new Uint8Array(Buffer.concat(chunks));
+};
+
+const toRequest = async (
+  request: IncomingMessage,
+  origin: string,
+  signal: AbortSignal,
+): Promise<Request> => {
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(request.headers)) {
+    if (value === undefined) continue;
+    for (const item of Array.isArray(value) ? value : [value])
+      headers.append(name, item);
+  }
+  const method = request.method ?? "GET";
+  const body =
+    method === "GET" || method === "HEAD" ? undefined : await readBody(request);
+  return new Request(new URL(request.url ?? "/", origin), {
+    method,
+    headers,
+    body,
+    signal,
+  });
+};
+
+const writeResponse = async (
+  response: Response,
+  outgoing: ServerResponse,
+  signal: AbortSignal,
+): Promise<void> => {
+  // Named: without DOM types, Node's `Response.body` reads `any` chunks.
+  const reader: ReadableStreamDefaultReader<Uint8Array> | undefined =
+    response.body?.getReader();
+  const disconnected = () => signal.aborted || outgoing.destroyed;
+  const cancel = () => {
+    void reader?.cancel().catch(() => {});
+  };
+  const onClose = () => {
+    if (!outgoing.writableFinished) cancel();
+  };
+  outgoing.once("close", onClose);
+  try {
+    if (disconnected()) return;
+    outgoing.writeHead(
+      response.status,
+      response.statusText,
+      Object.fromEntries(response.headers),
+    );
+    if (reader !== undefined) {
+      while (!disconnected()) {
+        // Each read depends on the one before.
+        // eslint-disable-next-line no-await-in-loop
+        const { done, value } = await reader.read();
+        if (done || disconnected()) break;
+        if (!outgoing.write(value) && !disconnected()) {
+          // Avoid leaving a drain listener on a socket that closes while full.
+          // eslint-disable-next-line no-await-in-loop
+          await once(outgoing, "drain", { signal });
+        }
+      }
+    }
+    if (!disconnected()) outgoing.end();
+  } finally {
+    outgoing.off("close", onClose);
+    cancel();
+    reader?.releaseLock();
+  }
+};
+
+/** Listen on `port` (0 for any free one) and serve `handler`, on loopback unless `hostname` says otherwise; resolves once listening. */
+export const serveNode = async (
+  handler: FetchHandler,
+  {
+    port,
+    hostname = "127.0.0.1",
+  }: { readonly port: number; readonly hostname?: string },
+) => {
+  const server = createServer((incoming, outgoing) => {
+    const aborted = new AbortController();
+    outgoing.on("close", () => {
+      if (!outgoing.writableFinished) aborted.abort();
+    });
+    const origin = `http://${incoming.headers.host ?? "localhost"}`;
+    void (async () => {
+      const response = await handler(
+        await toRequest(incoming, origin, aborted.signal),
+      );
+      await writeResponse(response, outgoing, aborted.signal);
+    })().catch((error: unknown) => {
+      if (outgoing.destroyed) return;
+      if (!outgoing.headersSent) {
+        outgoing.writeHead(500, { "content-type": "text/plain" });
+        outgoing.end(String(error));
+      } else {
+        outgoing.destroy(error instanceof Error ? error : undefined);
+      }
+    });
+  });
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(port, hostname, () => {
+      server.off("error", reject);
+      resolve();
+    });
+  });
+  const { address, port: boundPort } = server.address() as AddressInfo;
+  return {
+    address,
+    port: boundPort,
+    /** Stop listening and end open connections, streams included. */
+    close: () =>
+      new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+        server.closeAllConnections();
+      }),
+  };
+};

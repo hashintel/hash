@@ -28,3 +28,20 @@ registerStorageConformance(
     }
   },
 );
+
+describe("PostgresStorage.isOwner", () => {
+  it("throws when the metadata row is missing, as commit and open do", async () => {
+    const schema = `pi_durable_test_${randomUUID().replaceAll("-", "")}`;
+    const storage = await openPostgresStorage({ pool: poolConfig, schema });
+    try {
+      expect(await storage.isOwner()).toBe(true);
+      await admin.query(`DELETE FROM "${schema}".durable_metadata`);
+      await expect(storage.isOwner()).rejects.toThrow(
+        "Durable Postgres metadata is missing",
+      );
+    } finally {
+      await storage.close(BACKGROUND_CONTEXT);
+      await admin.query(`DROP SCHEMA "${schema}" CASCADE`);
+    }
+  });
+});

@@ -215,6 +215,19 @@ export const ledgerAppendOutputSchema = v.variant("status", [
 
 export type LedgerAppendOutput = v.InferOutput<typeof ledgerAppendOutputSchema>;
 
+/**
+ * The Ledger map's result, under whatever name an agent mounts the map: the
+ * latest revision, the committed Ledger rendered as its map, and the commits
+ * the fold rejected.
+ */
+export const ledgerMapOutputSchema = v.strictObject({
+  revision: v.number(),
+  map: v.string(),
+  rejected: v.array(v.string()),
+});
+
+export type LedgerMapOutput = v.InferOutput<typeof ledgerMapOutputSchema>;
+
 /** A `ledger_commit` result that recorded nothing and says why. */
 export const isRefusedLedgerCommit = (
   output: unknown,
