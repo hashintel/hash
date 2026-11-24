@@ -21,7 +21,7 @@
         "--test-strategy=extremes"
       ]
     },
-    "test:ui:bless": {
+    "test:unit:ui:bless": {
       "cache": false,
       "command": [
         "cargo",
@@ -36,7 +36,7 @@
     },
     "test:unit:bless": {
       "cache": false,
-      "dependsOn": ["test:ui:bless"],
+      "dependsOn": ["test:unit:ui:bless"],
       "command": [
         "env",
         "INSTA_FORCE_PASS=1",
