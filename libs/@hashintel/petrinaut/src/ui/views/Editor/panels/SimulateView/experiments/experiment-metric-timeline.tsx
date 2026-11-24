@@ -9,7 +9,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import "uplot/dist/uPlot.min.css";
 
 import { useElementSize } from "../../../../../shared/use-element-size";
-import { formatFixed } from "../shared/format-value";
 import { FramePopover } from "./experiment-metric-timeline/frame-popover";
 import { MetricPlot } from "./experiment-metric-timeline/metric-plot";
 import { distributionBandLegend } from "./experiment-metric-timeline/shared/distribution-bands";
@@ -17,6 +16,7 @@ import {
   deriveMetricViewState,
   selectedFrameFrom,
 } from "./experiment-metric-timeline/view-state";
+import { formatFixed } from "./results/format-value";
 
 import type { MetricFrame } from "./experiment-metric-timeline/shared/metric-frames";
 import type {

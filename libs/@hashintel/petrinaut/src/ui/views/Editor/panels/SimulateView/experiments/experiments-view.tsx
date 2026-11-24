@@ -17,7 +17,7 @@ import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { Table, type TableColumn } from "../../../../../spreadsheet-kit/table";
 import { SimulationPanel } from "../shared/simulation-panel";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
-import { ViewExperimentDrawer } from "./view-experiment-drawer";
+import { ViewExperimentDrawer } from "./results/view-experiment-drawer";
 
 const activePrefix = { variant: "naked", loading: true } as const;
 

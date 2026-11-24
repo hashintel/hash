@@ -10,7 +10,7 @@ import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useElementSize } from "../../../../../../shared/use-element-size";
-import { formatFixed } from "../../shared/format-value";
+import { formatFixed } from "../results/format-value";
 import { BinHistogramCanvas } from "./frame-popover/bin-histogram-canvas";
 import { sampleCountFromBins } from "./shared/distribution-math";
 
