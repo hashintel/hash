@@ -127,7 +127,11 @@ flowchart LR
   - a connected value;
   - a constant, recorded in the instance's `metadata.constants`;
   - or, for an optional input with nothing connected and no default, a token marked absent (`present: false`).
-- **`runAfter`.** Each step a step runs after adds a read arc to its `t.startStep` or `t.startForEach`, from that step's first output (its collected output for a for-each step, its `Done` port for an action with no outputs), unless the step already reads it. `metadata.runAfter` lists these endpoints. `position` doesn't change the net.
+- **`runAfter`.** Each step a step runs after adds a read arc to its `t.startStep` or `t.startForEach`, unless the step already reads it. `position` doesn't change the net.
+  - A plain entry reads that step's first output (its collected output for a for-each step, its `Done` port for an action with no outputs). A token marked absent there still means it finished.
+  - An entry with `outputName` (a path) reads that output. `metadata.paths` lists them for a step only on paths: when every one is marked absent, no path to it was taken, so it doesn't start and the executor skips it.
+  - `metadata.runAfter` lists the endpoints of these arcs.
+  - The net can't skip a step, so a step where paths rejoin never starts in the net, though the executor runs it (FE-2143).
 - **Ports.** Actions have a port per input and per output. Keys inside a subnet are prefixed with the action id (`p.<action>.in.<input>`, `t.<action>.startAttempt`), because Petrinaut keys compiled kernels by unscoped id.
 - **Outputs.** A transition is only added where one token has to become several. A step's output stays in its instance's output port:
   - steps that only read it read the port, with read arcs;

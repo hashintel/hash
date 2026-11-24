@@ -762,7 +762,25 @@ export const startFlowNetRun = (
     );
   };
 
-  /** A `forEach` step can't start while its array is missing. What it reads for `runAfter` isn't its array. */
+  /** A step none of whose paths was taken waits (see `paths`), and the executor skips it. */
+  const isOnPathsNotTaken = (
+    metadata: Extract<
+      TransitionMetadata,
+      { role: "startStep" | "startForEach" }
+    >,
+    bindings: Binding[],
+  ) =>
+    (metadata.paths ?? []).length > 0 &&
+    (metadata.paths ?? []).every((endpoint) =>
+      bindings.some(
+        ({ path, token }) =>
+          isSameFlowNetPath(path, rootPath(endpoint)) &&
+          token.kind === "value" &&
+          !token.present,
+      ),
+    );
+
+  /** A `forEach` step can't start while its array is missing; what it reads for `runAfter` isn't its array. */
   const hasMissingArray = (
     metadata: Extract<TransitionMetadata, { role: "startForEach" }>,
     bindings: Binding[],
@@ -775,6 +793,19 @@ export const startFlowNetRun = (
           isSameFlowNetPath(path, rootPath(endpoint)),
         ),
     );
+
+  /** Whether a held start can fire with `bindings`, which the executor decides the same way. */
+  const canStart = (
+    metadata: Extract<
+      TransitionMetadata,
+      { role: "startStep" | "startForEach" }
+    >,
+    bindings: Binding[],
+  ) =>
+    !isOnPathsNotTaken(metadata, bindings) &&
+    (metadata.role === "startForEach"
+      ? !hasMissingArray(metadata, bindings)
+      : !hasMissingSkipInput(metadata, bindings));
 
   const constantItemCount = (constant: JsonValue | undefined) => {
     if (constant === undefined) {
@@ -816,7 +847,7 @@ export const startFlowNetRun = (
           anchorAccepts: (anchor) =>
             fired?.role !== "startStep" ||
             isSameItemPath(anchor.itemPath, fired.stepRun.itemPath),
-          guard: (candidate) => !hasMissingSkipInput(metadata, candidate),
+          guard: (candidate) => canStart(metadata, candidate),
         });
 
         if (!bindings) {
@@ -852,7 +883,7 @@ export const startFlowNetRun = (
           anchorAccepts: (anchor) =>
             fired?.role !== "startForEach" ||
             isSameItemPath(anchor.itemPath, fired.stepRun.itemPath),
-          guard: (candidate) => !hasMissingArray(metadata, candidate),
+          guard: (candidate) => canStart(metadata, candidate),
         });
 
         if (!bindings) {
@@ -1326,10 +1357,7 @@ export const startFlowNetRun = (
             scope: null,
             anchorPath: pendingPath(stepId),
             anchorAccepts: (anchor) => anchor === pending,
-            guard: (candidate) =>
-              transitionMetadata.role === "startForEach"
-                ? !hasMissingArray(transitionMetadata, candidate)
-                : !hasMissingSkipInput(transitionMetadata, candidate),
+            guard: (candidate) => canStart(transitionMetadata, candidate),
           }) !== null,
       )
       .map(({ itemPath }) => ({ role, stepRun: { stepId, itemPath } }));
