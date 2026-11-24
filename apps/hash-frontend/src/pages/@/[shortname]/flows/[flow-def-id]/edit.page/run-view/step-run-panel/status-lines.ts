@@ -25,8 +25,8 @@ export const getItemTotal = (items: ItemCounts) =>
 
 /**
  * A step's items' count beside its word: those finished while it runs ("12 of 20"), then those that failed, or else
- * were skipped ("2 of 20 failed"). A step stopped part way keeps how far it got ("12 of 20"). It has no noun, so the
- * line fits the panel.
+ * were skipped ("2 of 20 failed"). A step that didn't reach every item keeps how far it got ("12 of 20"): one stopped
+ * part way, or one after a step that failed for some items. It has no noun, so the line fits the panel.
  */
 export const getItemCount = (
   state: StepState,
@@ -48,7 +48,7 @@ export const getItemCount = (
     return `${items.failed} of ${total} failed`;
   }
 
-  if (state === "skipped" && finished > 0 && items.notReached > 0) {
+  if (finished > 0 && items.notReached > 0) {
     return `${finished} of ${total}`;
   }
 

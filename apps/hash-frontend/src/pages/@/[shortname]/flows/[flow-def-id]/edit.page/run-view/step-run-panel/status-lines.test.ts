@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { generateStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
+import { actionStep } from "../../shared/step-fixtures";
+import { getStepRunMarks } from "../../shared/step-states";
 import { getItemCount, getStatusLine } from "./status-lines";
 
 import type {
@@ -113,6 +116,46 @@ describe("getStatusLine", () => {
     });
   });
 
+  it("counts the items that reached a step after one that failed for the rest, though it's done", () => {
+    const fetchFailed = run(0, {
+      stepId: generateStepRunId("fetch", 0),
+      status: FlowStepStatus.Failed,
+    });
+    const fetched = run(1, { stepId: generateStepRunId("fetch", 1) });
+    const sent = run(1, { stepId: generateStepRunId("send", 1) });
+
+    const marks = getStepRunMarks({
+      steps: [
+        {
+          kind: "for-each",
+          stepId: "eachSupplier",
+          description: "",
+          over: { kind: "step-output", stepId: "find", outputName: "entities" },
+          steps: [actionStep("fetch"), actionStep("send")],
+          collect: { stepId: "send", outputName: "message", as: "messages" },
+        },
+      ],
+      stepRuns: [fetchFailed, fetched, sent].map(({ stepRun }) => stepRun),
+      events: [
+        {
+          kind: "forEachStarted",
+          position: "10.0",
+          occurredAt: at(14, 2),
+          stepRun: { stepId: "eachSupplier", itemPath: [] },
+          itemCount: 2,
+        },
+      ],
+      live: false,
+    });
+
+    expect(
+      statusLine([sent], { mark: marks.get("send"), perItem: true }),
+    ).toMatchObject({
+      word: "Done",
+      facts: ["1 of 2", "1m 05s", "Today, 14:02"],
+    });
+  });
+
   it("says when a step that hasn't started was scheduled, or skipped", () => {
     expect(
       statusLine([run(null, { startedAt: undefined, closedAt: "" })]).facts,
@@ -182,8 +225,9 @@ describe("getItemCount", () => {
     );
   });
 
-  it("keeps how far a step stopped part way got, unless none of its items finished", () => {
+  it("keeps how far a step that didn't reach every item got, unless none of its items finished", () => {
     expect(count("skipped", { done: 1, notReached: 2 })).toBe("1 of 3");
+    expect(count("done", { done: 18, notReached: 2 })).toBe("18 of 20");
     expect(count("skipped", { notReached: 2 })).toBeNull();
   });
 
