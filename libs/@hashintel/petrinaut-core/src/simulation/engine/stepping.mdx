@@ -11,14 +11,16 @@ import { Pipeline } from "@diagrams/pipeline";
 immutable, and neither function emits events: the caller turns their return
 values into messages or results.
 
-Neither is pure. Stepping mutates the instance it is given, and the transition
-path reuses kernel staging buffers between calls, so a `SimulationInstance` must
-not be stepped concurrently or reused across runs.
+Stepping is not pure. `computeNextFrame` returns a new instance and leaves the
+fields of the one it was given as they were, but the two share the scratch and
+kernel staging buffers of the transitions and the string pool, and a step writes
+to them. A `SimulationInstance` must therefore not be stepped concurrently or
+reused across runs.
 
-Building an instance flattens component instances, compiles user code, and packs
-the initial marking into frame 0. Compilation is selective: lambdas only where
-available, kernels only for coloured outputs, dynamics only for colours with at
-least one real element.
+Building an instance flattens component instances, instantiates the compiled
+user code, and packs the initial marking into frame 0. Instantiation is
+selective: lambdas only where available, kernels only for coloured outputs,
+dynamics only for colours with at least one real element.
 
 ## One step, in order
 

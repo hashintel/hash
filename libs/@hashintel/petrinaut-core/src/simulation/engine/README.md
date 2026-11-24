@@ -114,8 +114,8 @@ const place = frameView.getPlaceState("p1"); // { byteOffset, count, strideBytes
 const layout = simulation.frameLayout.placeTokenLayouts[placeIndex];
 const token = readTokenRecord(
   layout,
-  frameView.tokenF64,
-  frameView.tokenBytes,
+  frameView.tokenViews,
   place.byteOffset + tokenIndex * place.strideBytes,
+  simulation.stringPool,
 );
 ```
