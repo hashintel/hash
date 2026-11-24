@@ -18,22 +18,24 @@ Sentry.init({
   // Monaco's `CancellationError`, which it raises when it cancels its own
   // pending work, such as when an editor unmounts.
   ignoreErrors: [/^Canceled: Canceled$/],
+  attachStacktrace: false,
   integrations: [
     Sentry.browserApiErrorsIntegration(),
     Sentry.browserProfilingIntegration(),
-    Sentry.browserSessionIntegration(),
+    Sentry.browserSessionIntegration({ lifecycle: "route" }),
     Sentry.browserTracingIntegration(),
     Sentry.graphqlClientIntegration({
       endpoints: [/\/graphql$/],
     }),
     Sentry.replayIntegration(),
+    Sentry.userTimingIntegration(),
   ],
   release: buildStamp,
   replaysOnErrorSampleRate: 1,
   replaysSessionSampleRate: parseFloat(
     SENTRY_REPLAYS_SESSION_SAMPLE_RATE ?? "0",
   ),
-  sendDefaultPii: true,
+  traceLifecycle: "static",
   tracePropagationTargets: ["localhost", /^https:\/\/(?:.*\.)?hash\.ai/],
   tracesSampleRate: isProduction ? 1.0 : 0,
 });
