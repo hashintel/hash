@@ -859,7 +859,7 @@ test("the read opts into the retry link's retries, after each of its delays", ()
   });
 });
 
-test("a read that fails after its retries is reported once, the subject has no open conversation, and its first message creates one", async () => {
+test("a read that fails after its retries is reported once, the subject has no open conversation, and start does not overwrite newer conversations", async () => {
   store("unreachable");
   graph.failingReads = 1;
   graph.reading = true;
@@ -876,7 +876,13 @@ test("a read that fails after its retries is reported once, the subject has no o
     source: "agent-conversation.read",
   });
 
-  act(() => result.current.start("fresh"));
+  // Fallback `start` after a failed read must not create an entity that would
+  // supersede an unreachable newer conversation; explicit `replace` still does.
+  act(() => result.current.start("fallback-first"));
+  await settle();
+  expect(graph.writes).toEqual([]);
+
+  act(() => result.current.replace("fresh"));
   await settle();
   expect(graph.writes).toEqual(created("fresh", processId, processWebId));
 });

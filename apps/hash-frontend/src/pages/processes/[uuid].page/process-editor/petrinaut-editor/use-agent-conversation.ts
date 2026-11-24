@@ -93,7 +93,8 @@ type ConversationWrite = {
  * - A read that fails is tried again by Apollo's retry link, after each of
  *   {@link readRetryDelaysMs}. If none succeeds, the failure is reported and
  *   the subject has no open conversation, so its next message starts one
- *   rather than leaving the agent unusable.
+ *   rather than leaving the agent unusable; `start` does not persist that
+ *   fallback conversation, so it cannot supersede a newer one in the graph.
  *
  * Each write records the agent, web and subject as they were when it was
  * asked for, and writes run one at a time.
@@ -241,6 +242,7 @@ export const useAgentConversation = ({
 
   // Newest first, so two entities on one subject (two tabs) read as the newest.
   // A read that failed after its retries has none open.
+  const readFailed = readConversationIds === undefined && Boolean(error);
   const openConversationId =
     readConversationIds === undefined
       ? error
@@ -411,10 +413,17 @@ export const useAgentConversation = ({
     [subjectEntityId, isSaved, subjectSaved, enqueue],
   );
 
-  // Called for every message: only the first has anything to write.
+  // Called for every message: only the first has anything to write. Skip
+  // persisting after a failed read so the fallback conversation cannot
+  // become the newest entity and shadow a newer conversation in the graph.
   const start = useCallback(
-    (conversationId: string) => record("start", conversationId),
-    [record],
+    (conversationId: string) => {
+      if (readFailed) {
+        return;
+      }
+      record("start", conversationId);
+    },
+    [readFailed, record],
   );
 
   // Clearing starts the next conversation. The one before it is left as it
