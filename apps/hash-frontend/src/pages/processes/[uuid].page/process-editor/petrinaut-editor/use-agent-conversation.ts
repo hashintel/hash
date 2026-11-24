@@ -382,8 +382,16 @@ export const useAgentConversation = ({
     new Map<EntityId, { source: string; conversationId: string }[]>(),
   );
 
+  /**
+   * Subjects whose first save happened in this session, so they are known to
+   * have no pre-existing conversation in the graph even if the initial read
+   * while still a draft failed.
+   */
+  const savedHere = useRef(new Set<EntityId>());
+
   const subjectSaved = useCallback(
     (subject: EntityId) => {
+      savedHere.current.add(subject);
       const intents = unsaved.current.get(subject) ?? [];
       unsaved.current.delete(subject);
       for (const { source, conversationId } of intents) {
@@ -417,13 +425,15 @@ export const useAgentConversation = ({
   // persisting a fallback conversation started after a failed read on an
   // already-saved subject so it cannot become the newest entity and shadow an
   // unreachable conversation in the graph. Retries for unfinished writes (e.g.
-  // after an explicit `replace`) and unsaved drafts still proceed.
+  // after an explicit `replace`), unsaved drafts, and drafts first saved in
+  // this session still proceed.
   const start = useCallback(
     (conversationId: string) => {
       if (
         readFailed &&
         subjectEntityId !== null &&
         isSaved(subjectEntityId) &&
+        !savedHere.current.has(subjectEntityId) &&
         !unfinished.current.has(conversationId)
       ) {
         return;

@@ -897,7 +897,7 @@ test("a read that fails after its retries is reported once, the subject has no o
   );
 });
 
-test("after a failed read on an unsaved draft, start still queues the conversation for when the draft is saved", async () => {
+test("after a failed read on an unsaved draft, start persists both before and after the draft is saved", async () => {
   graph.failingReads = 1;
   const { result } = renderConversation(draftId, false);
   expect(result.current.conversationId).toBeNull();
@@ -909,6 +909,20 @@ test("after a failed read on an unsaved draft, start still queues the conversati
   save(draftId);
   await settle();
   expect(graph.writes).toEqual(created("draft-first", draftId, processWebId));
+
+  // Also when the user saves the draft before sending the first message.
+  graph.writes.length = 0;
+  graph.failingReads = 1;
+  const secondDraftId = `${processWebId}~second-draft` as EntityId;
+  const second = renderConversation(secondDraftId, false);
+  expect(second.result.current.conversationId).toBeNull();
+
+  save(secondDraftId);
+  act(() => second.result.current.start("after-save-first"));
+  await settle();
+  expect(graph.writes).toEqual(
+    created("after-save-first", secondDraftId, processWebId),
+  );
 });
 
 test("where the conversation isn't offered, or with no subject, nothing is read", () => {
