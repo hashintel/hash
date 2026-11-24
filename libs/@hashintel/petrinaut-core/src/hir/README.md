@@ -44,6 +44,15 @@ it takes a type from them with `import type`, and everything else from
 `scripts/check-browser-safe-entries.mjs` holds this after a build: it fails
 when the built `index`, `webgpu` or `hir-runtime` entry reaches the compiler.
 
+No file gathers the imports that other blocks of Core make by path:
+
+| Importer                                             | Files it imports                                                                                                                                                                                     |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The constraints, the view HIR and the scenarios      | `hir.ts`, `hir-schema.ts`, `surface-context.ts`, `lower-typescript.ts`, `typecheck.ts`, `interpret.ts`, `instantiate.ts`, `emit-buffer-js.ts`, `metric-shape.ts`, `user-code-form.ts`, `scenario.ts` |
+| The language service, with its client and its worker | `compile.ts`, `classify-net.ts`, `metric-shape.ts`, `surface-context.ts`                                                                                                                             |
+| The WebGPU backend and the solver of the steppers    | `hir.ts`, `surface-context.ts`, `typecheck.ts`                                                                                                                                                       |
+| The frames                                           | `instantiate.ts`                                                                                                                                                                                     |
+
 ## Why HIR exists
 
 TypeScript is a good authoring surface, but the simulator needs a smaller
@@ -60,7 +69,7 @@ The HIR gives Petrinaut:
 
 ## Source subset
 
-Accepted code is deliberately small: `const` bindings, destructuring,
+The accepted subset is small: `const` bindings, destructuring,
 guard-style returns, ternaries, arithmetic/comparison/logic, `Math.*`,
 parameter reads, token reads, `.length`, `.map`, metric `.reduce`/`.concat`,
 record/array literals, string/UUID helpers, distributions and constants.
