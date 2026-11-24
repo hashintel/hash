@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 
 import type { Tone } from "../../util/form-shared";
-import type { ToastVariant } from "./toast.recipe";
+import type { ToastLayout, ToastVariant } from "./toast.recipe";
 import type { CreateToasterReturn, ToastPlacement } from "@ark-ui/react/toast";
 
 /**
@@ -15,6 +15,7 @@ export type ToastEntry = {
   className?: string;
   tone: Tone;
   variant: ToastVariant;
+  layout: ToastLayout;
   withPadding: boolean;
   renderCloseButton: boolean;
   closeOnEscape: boolean;
@@ -56,6 +57,15 @@ export type ToastInstance = {
 };
 
 export const ToastInstanceContext = createContext<ToastInstance | null>(null);
+
+/**
+ * The toast's icon column, which `Toast.Title` portals its icon into so the
+ * body and actions align with the title. `undefined` outside a toaster, where
+ * the icon stays inline; `null` until the column mounts.
+ */
+export const ToastIconSlotContext = createContext<
+  HTMLElement | null | undefined
+>(undefined);
 
 export const useToasterContext = (): ToasterContextValue => {
   const context = useContext(ToasterContext);

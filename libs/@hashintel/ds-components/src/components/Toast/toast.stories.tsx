@@ -27,6 +27,9 @@ const demoActions = (
   </>
 );
 
+const maxWidthDemoBody =
+  "Version 3 of the Person type is now live. Entities created from earlier versions keep their properties until you upgrade them.";
+
 const manyActions = (
   <>
     <Toast.Action>Retry</Toast.Action>
@@ -295,19 +298,59 @@ export const Default: Story = {
       </section>
 
       <section>
-        <div className={sectionHeading}>Custom width</div>
+        <div className={sectionHeading}>Custom max width</div>
         <div className={cellRow}>
-          <Example name="Wide (480px)">
+          <Example name="Wide (up to 480px)">
             <KitchenSinkToast
-              className={css({ "--toast-width": "[480px]" })}
+              body={maxWidthDemoBody}
+              className={css({ "--toast-max-width": "[480px]" })}
               duration={Infinity}
             />
           </Example>
-          <Example name="Narrow (240px)">
+          <Example name="Narrow (up to 240px)">
             <KitchenSinkToast
-              className={css({ "--toast-width": "[240px]" })}
+              body={maxWidthDemoBody}
+              className={css({ "--toast-max-width": "[240px]" })}
               duration={Infinity}
             />
+          </Example>
+        </div>
+      </section>
+
+      <section>
+        <div className={sectionHeading}>Layout</div>
+        <div className={cellRow}>
+          <Example name="Auto">
+            <Toast duration={Infinity}>
+              <Toast.Title title="This document is read-only." />
+              <Toast.Actions
+                actions={<Toast.Action>Make a local copy</Toast.Action>}
+              />
+            </Toast>
+          </Example>
+          <Example name="Single line">
+            <Toast layout="singleLine" duration={Infinity}>
+              <Toast.Title title="This document is read-only." />
+              <Toast.Actions
+                actions={<Toast.Action>Make a local copy</Toast.Action>}
+              />
+            </Toast>
+          </Example>
+          <Example name="Single line, title + body + actions">
+            <KitchenSinkToast layout="singleLine" duration={Infinity} />
+          </Example>
+          <Example name="Single line, long title">
+            <Toast layout="singleLine" duration={Infinity}>
+              <Toast.Title title="Deployment preview_build_artifact_bundle_7f3c9d2e unavailable" />
+              <Toast.Actions
+                actions={
+                  <>
+                    <Toast.Action>Retry</Toast.Action>
+                    <Toast.Action>View log</Toast.Action>
+                  </>
+                }
+              />
+            </Toast>
           </Example>
         </div>
       </section>
@@ -377,8 +420,32 @@ type QueuedToast = {
   title: string;
   body: string;
   actions?: React.ReactNode;
+  /** Renders a placeholder of this size in place of the title and body. */
+  size?: { width: number; height: number };
   options: Partial<Pick<ToastProps, "position" | "shouldCloseOn" | "duration">>;
 };
+
+// Raises the width cap so the wider random sizes fit.
+const widerToastCap = css({
+  "--toast-max-width": "[600px]",
+});
+
+const sizePlaceholder = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  maxWidth: "full",
+  borderWidth: "1px",
+  borderStyle: "dashed",
+  borderColor: "colorPalette.bd.solid",
+  borderRadius: "md",
+  textStyle: "sm",
+  color: "var(--toast-text-color)",
+  fontVariantNumeric: "tabular-nums",
+});
+
+const randomBetween = (min: number, max: number) =>
+  min + Math.round((Math.random() * (max - min)) / 4) * 4;
 
 const InteractiveDemo = () => {
   const [queued, setQueued] = useState<QueuedToast[]>([]);
@@ -501,6 +568,25 @@ const InteractiveDemo = () => {
         </Button>
       </div>
       <div className={buttonRow}>
+        <span className={rowLabel}>Size</span>
+        <Button
+          size="xs"
+          onClick={() =>
+            fire({
+              title: "",
+              body: "",
+              size: {
+                width: randomBetween(40, 520),
+                height: randomBetween(24, 200),
+              },
+              options: { duration: 10000 },
+            })
+          }
+        >
+          Random size
+        </Button>
+      </div>
+      <div className={buttonRow}>
         <span className={rowLabel}>Duration</span>
         <Button
           size="xs"
@@ -528,21 +614,43 @@ const InteractiveDemo = () => {
         </Button>
       </div>
       {queued.map(
-        ({ key, title: toastTitle, body: toastBody, actions, options }) => (
-          <KitchenSinkToast
-            key={key}
-            tone="brand"
-            title={toastTitle}
-            body={toastBody}
-            actions={actions}
-            {...options}
-            onStatusChange={({ status }) => {
-              if (status === "exit") {
-                removeToast(key);
-              }
-            }}
-          />
-        ),
+        ({
+          key,
+          title: toastTitle,
+          body: toastBody,
+          actions,
+          size,
+          options,
+        }) => {
+          const onStatusChange: ToastProps["onStatusChange"] = ({ status }) => {
+            if (status === "exit") {
+              removeToast(key);
+            }
+          };
+          return size ? (
+            <Toast
+              key={key}
+              tone="brand"
+              className={widerToastCap}
+              {...options}
+              onStatusChange={onStatusChange}
+            >
+              <div className={sizePlaceholder} style={size}>
+                {size.width} × {size.height}
+              </div>
+            </Toast>
+          ) : (
+            <KitchenSinkToast
+              key={key}
+              tone="brand"
+              title={toastTitle}
+              body={toastBody}
+              actions={actions}
+              {...options}
+              onStatusChange={onStatusChange}
+            />
+          );
+        },
       )}
     </div>
   );
@@ -550,7 +658,8 @@ const InteractiveDemo = () => {
 
 /**
  * The lifecycle options, each fired from a button into the real
- * viewport-anchored regions: placement, dismissal affordances, and duration.
+ * viewport-anchored regions: placement, dismissal affordances, duration, and
+ * stacking toasts of random sizes.
  */
 export const Interactive: Story = {
   render: () => (

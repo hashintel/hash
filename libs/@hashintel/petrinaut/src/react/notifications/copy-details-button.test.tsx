@@ -62,8 +62,8 @@ const stubCopyMethods = ({
 const detail = "The assistant failure details.";
 
 const renderCopyButton = () => {
-  render(<CopyDetailsButton className="" detail={detail} />);
-  return screen.getByRole("button", { name: "Copy details" });
+  render(<CopyDetailsButton detail={detail} />);
+  return screen.getByRole("button", { name: /^\W*Copy details$/ });
 };
 
 test("falls back to a document copy when the Clipboard API rejects", async () => {
@@ -95,11 +95,13 @@ test("shows Copied after copying notification details", async () => {
     await Promise.resolve();
   });
 
-  expect(screen.getByRole("button", { name: "Copied" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /^\W*Copied$/ })).toBeTruthy();
   await act(async () => {
     vi.advanceTimersByTime(2000);
   });
-  expect(screen.getByRole("button", { name: "Copy details" })).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: /^\W*Copy details$/ }),
+  ).toBeTruthy();
 });
 
 test("restarts Copied feedback after another copy", async () => {
@@ -119,7 +121,7 @@ test("restarts Copied feedback after another copy", async () => {
     vi.advanceTimersByTime(1500);
   });
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "Copied" }));
+    fireEvent.click(screen.getByRole("button", { name: /^\W*Copied$/ }));
     await Promise.resolve();
     await Promise.resolve();
   });
@@ -127,11 +129,13 @@ test("restarts Copied feedback after another copy", async () => {
     vi.advanceTimersByTime(500);
   });
 
-  expect(screen.getByRole("button", { name: "Copied" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /^\W*Copied$/ })).toBeTruthy();
   await act(async () => {
     vi.advanceTimersByTime(1500);
   });
-  expect(screen.getByRole("button", { name: "Copy details" })).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: /^\W*Copy details$/ }),
+  ).toBeTruthy();
 });
 
 test("shows Copy failed when both copy methods fail", async () => {
@@ -144,7 +148,7 @@ test("shows Copy failed when both copy methods fail", async () => {
   fireEvent.click(copyButton);
 
   expect(
-    await screen.findByRole("button", { name: "Copy failed" }),
+    await screen.findByRole("button", { name: /^\W*Copy failed$/ }),
   ).toBeTruthy();
 });
 
@@ -161,6 +165,6 @@ test("shows Copy failed when preparing the document fallback throws", async () =
   fireEvent.click(copyButton);
 
   expect(
-    await screen.findByRole("button", { name: "Copy failed" }),
+    await screen.findByRole("button", { name: /^\W*Copy failed$/ }),
   ).toBeTruthy();
 });

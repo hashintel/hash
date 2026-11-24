@@ -114,10 +114,10 @@ const requireHandle = (): ToasterHandle => {
   return handle;
 };
 
-/** The settle phase inherits the loading toast's placement and variant. */
+/** The settle phase inherits the loading toast's placement, variant, and layout. */
 const settlePhaseInput = (
   input: ToasterToastInput,
-  defaults: Pick<ToastProps, "tone" | "position" | "variant">,
+  defaults: Pick<ToastProps, "tone" | "position" | "variant" | "layout">,
   id: string,
 ): ToasterToastInput =>
   isToastElement(input)
@@ -126,6 +126,7 @@ const settlePhaseInput = (
         tone: input.props.tone ?? defaults.tone,
         position: input.props.position ?? defaults.position,
         variant: input.props.variant ?? defaults.variant,
+        layout: input.props.layout ?? defaults.layout,
       })
     : { ...defaults, ...input, id };
 
@@ -174,7 +175,7 @@ export const toaster = {
           ...options.loading,
         } satisfies ToastOptions);
     const id = handle.create(loadingInput);
-    const { position, variant } = isToastElement(loadingInput)
+    const { position, variant, layout } = isToastElement(loadingInput)
       ? loadingInput.props
       : loadingInput;
     const settle = (input: ToasterToastInput, tone: ToastProps["tone"]) => {
@@ -182,7 +183,9 @@ export const toaster = {
       const target = registeredHandles.includes(handle)
         ? handle
         : activeHandle();
-      target?.create(settlePhaseInput(input, { tone, position, variant }, id));
+      target?.create(
+        settlePhaseInput(input, { tone, position, variant, layout }, id),
+      );
     };
     let pending: Promise<Value>;
     try {

@@ -105,9 +105,11 @@ or boolean tags. `source` defaults to `plugin.<id>`, and `tags.pluginId` is
 always set.
 
 `notifications.add` takes an `AddNotificationInput`: a `message`, and
-optionally `detail`, `tone`, `durationMs`, `id` and `action`. A toast still on
-screen under the same `id` is not shown again. `action`, `{ label, onClick }`,
-adds a button that runs `onClick` and closes the toast.
+optionally `detail`, `tone`, `durationMs`, `id`, `action` and `layout`. A
+toast still on screen under the same `id` is not shown again. `action`,
+`{ label, onClick }`, adds a button that runs `onClick` and closes the toast.
+`layout: "singleLine"` keeps that button beside the message instead of
+wrapping it below.
 
 `run` is the experiment host's `runExperiment(request, { signal, onProgress })`,
 described in [AI-created experiments](doc:react.experiment-host/ai-created-experiments).

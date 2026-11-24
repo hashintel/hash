@@ -1,8 +1,20 @@
 import { useRef, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 const COPY_FEEDBACK_DURATION_MS = 2000;
+
+// Mirrors the toast's own close button, so both read on any fill.
+const copyButtonStyle = css({
+  marginTop: "[-4px]",
+  color: "[var(--toast-text-color)]",
+  _hover: {
+    color: "[var(--toast-dismiss-hover-color, var(--toast-text-color))]",
+    backgroundColor: "[var(--toast-dismiss-hover-bg, transparent)]",
+  },
+});
+
 const copyStatusPresentation = {
   idle: { iconName: "copy", label: "Copy details" },
   copied: { iconName: "check", label: "Copied" },
@@ -51,13 +63,7 @@ const copyText = async (text: string) => {
   }
 };
 
-export const CopyDetailsButton = ({
-  className,
-  detail,
-}: {
-  className: string;
-  detail: string;
-}) => {
+export const CopyDetailsButton = ({ detail }: { detail: string }) => {
   const [status, setStatus] = useState<CopyStatus>("idle");
   const feedbackTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -75,7 +81,7 @@ export const CopyDetailsButton = ({
   return (
     <Button
       aria-label={label}
-      className={className}
+      className={copyButtonStyle}
       iconName={iconName}
       onClick={() => {
         void copyText(detail).then(
