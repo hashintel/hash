@@ -1259,9 +1259,6 @@ const TriggerForm = ({
       })}
       data-trigger-form
     >
-      {defaultPage && trigger ? (
-        <span className={headingText}>Edit schedule</span>
-      ) : null}
       <div className={formGridStyle}>
         {defaultPage ? (
           <>
@@ -2184,10 +2181,7 @@ const RowMenu = ({ page, row }: { page: Page; row: Row }) => {
         position="bottom-end"
         items={[
           ...(row.kind === "trigger"
-            ? [
-                { id: "edit", text: "Edit", onClick: () => page.open(row.id) },
-                { id: "rename", text: "Rename", onClick: () => page.rename(row.id) },
-              ]
+            ? [{ id: "edit", text: "Edit", onClick: () => page.open(row.id) }]
             : []),
           {
             id: "flip",

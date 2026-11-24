@@ -318,7 +318,89 @@ const ownKind = (input: InputView) => {
   return kinds.length === 1 && isTypedKind(kinds[0]) ? kinds[0] : undefined;
 };
 
-/** A field that takes one value: its data type's control, or a reference picked from the source menu (the "@"). */
+const typedSelect = (
+  options: InputView["options"],
+  kind: string | undefined,
+  value: unknown,
+  entityTypeBaseUrl?: string,
+): { choices: TypedChoice[]; placeholder: string } | undefined => {
+  if (options) {
+    return {
+      choices: options.map((option) => ({
+        label: option.text,
+        source: {
+          kind: "constant",
+          payload: { kind: "Text", value: option.value },
+        },
+        selected: value === option.value,
+      })),
+      placeholder: "Choose…",
+    };
+  }
+  if (kind === "VersionedUrl") {
+    return {
+      choices: mockEntityTypes.map((entityType) => ({
+        label: entityType.title,
+        source: {
+          kind: "constant",
+          payload: { kind: "VersionedUrl", value: entityType.entityTypeId },
+        },
+        selected: value === entityType.entityTypeId,
+      })),
+      placeholder: "Choose a type",
+    };
+  }
+  if (kind === "EntityId") {
+    const entityType = findEntityType(entityTypeBaseUrl);
+    const matchingIds = entityTypeBaseUrl
+      ? new Set<unknown>(
+          mockEntities
+            .filter((entity) => entity.entityTypeBaseUrl === entityTypeBaseUrl)
+            .map((entity) => entity.entityId),
+        )
+      : undefined;
+    const choices = entityChoices().flatMap((choice) =>
+      choice.source.kind === "constant" &&
+      (!matchingIds || matchingIds.has(choice.source.payload.value))
+        ? [{ ...choice, selected: value === choice.source.payload.value }]
+        : [],
+    );
+    return {
+      choices,
+      placeholder: entityType
+        ? `Choose a ${entityType.title.toLowerCase()}`
+        : "Choose an entity",
+    };
+  }
+  return undefined;
+};
+
+const TypedSelectTrigger = ({
+  label,
+  select,
+  placeholder,
+  onClick,
+}: {
+  label: string;
+  select: NonNullable<ReturnType<typeof typedSelect>>;
+  placeholder?: string;
+  onClick: () => void;
+}) => (
+  <button
+    type="button"
+    className={selectTriggerStyle}
+    aria-label={label}
+    onClick={onClick}
+  >
+    <span>
+      {select.choices.find((choice) => choice.selected)?.label ??
+        placeholder ??
+        select.placeholder}
+    </span>
+    <Icon name="chevronDown" size="sm" />
+  </button>
+);
+
 export const ValueField = ({ step, input, entry }: FieldProps) => {
   const { document, setDocument } = useEditor();
   const anchorRef = useRef<HTMLDivElement>(null);
@@ -332,26 +414,28 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
       setInputSource(current, step.stepId, input.name, next),
     );
 
-  // Send email's Sender address: its own options and the source groups share one dropdown, with no "@" button.
   const isSender =
     step.actionDefinitionId === "sendEmail" && input.name === "senderAddress";
-  const senderChoices: TypedChoice[] = isSender
-    ? mockSenders.map((sender) => ({
-        label: sender.text,
-        source: {
-          kind: "constant",
-          payload: { kind: "Text", value: sender.value },
-        },
-        selected:
-          source?.kind === "constant" && source.payload.value === sender.value,
-      }))
-    : [];
+  const value = source?.kind === "constant" ? source.payload.value : undefined;
+  const select = typedSelect(
+    isSender ? mockSenders : input.options,
+    typedKind,
+    value,
+    entityTypeFor(input),
+  );
+  const menuInput =
+    select &&
+    !isSender &&
+    input.sources &&
+    !input.sources.includes("Previous step")
+      ? { ...input, sources: [...input.sources, "Previous step" as const] }
+      : input;
 
   const menu = open ? (
     <SourceMenu
       anchor={anchorRef}
       stepId={step.stepId}
-      input={input}
+      input={menuInput}
       entry={entry}
       onClose={() => setOpen(false)}
       onPick={(picked) => {
@@ -359,25 +443,29 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
         setOpen(false);
       }}
       onTypeValue={
-        typedKind
+        typedKind && (!select || isSender || source)
           ? () => {
               set(null);
               setOpen(false);
             }
           : undefined
       }
-      typedChoices={
-        isSender
-          ? senderChoices
-          : kinds.includes("EntityId") && !typedKind
-            ? entityChoices()
-            : []
+      typeValueLabel={select && !isSender ? "Clear" : undefined}
+      typeValueIcon={select && !isSender ? "close" : undefined}
+      typeValueSource={
+        select && !isSender && input.sources?.includes("HASH graph @lookup")
+          ? "HASH graph @lookup"
+          : undefined
       }
+      typedChoices={
+        select?.choices ??
+        (kinds.includes("EntityId") && !typedKind ? entityChoices() : [])
+      }
+      typedPlain={Boolean(select)}
+      typedFirst={Boolean(select)}
       {...(isSender
         ? {
             typedGroupLabel: "Connected addresses",
-            typedPlain: true,
-            typedFirst: true,
             dataType: "Email",
           }
         : {})}
@@ -404,21 +492,15 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
     );
   }
 
-  if (isSender) {
-    const current = mockSenders.find(
-      (sender) => source?.kind === "constant" && sender.value === source.payload.value,
-    );
+  if (select) {
     return (
       <div ref={anchorRef}>
-        <button
-          type="button"
-          className={selectTriggerStyle}
-          aria-label={input.label}
+        <TypedSelectTrigger
+          label={input.label}
+          select={select}
+          placeholder={isSender ? "Choose an address" : undefined}
           onClick={() => setOpen(true)}
-        >
-          <span>{current?.text ?? "Choose an address"}</span>
-          <Icon name="chevronDown" size="sm" />
-        </button>
+        />
         {menu}
       </div>
     );
@@ -426,42 +508,22 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
 
   if (typedKind) {
     return (
-      <div
-        ref={anchorRef}
-        className={css({ display: "flex", gap: "1", alignItems: "flex-start" })}
-      >
-        <div className={css({ flex: "1", minWidth: "[0]" })}>
-          <TypedValue
-            kind={typedKind}
-            label={input.label}
-            format={input.format}
-            options={input.options}
-            entityTypeBaseUrl={entityTypeFor(input)}
-            value={
-              source?.kind === "constant" ? source.payload.value : undefined
-            }
-            onChange={(value) =>
-              set(
-                value === "" || value === null || value === undefined
-                  ? null
-                  : {
-                      kind: "constant",
-                      payload: { kind: typedKind as never, value },
-                    },
-              )
-            }
-          />
-        </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          iconName="at"
-          aria-label={`Use a value from an earlier step for ${input.label}`}
-          tooltip="Use a value from an earlier step"
-          onClick={() => setOpen(true)}
-        />
-        {menu}
-      </div>
+      <TypedValue
+        kind={typedKind}
+        label={input.label}
+        format={input.format}
+        value={value}
+        onChange={(nextValue) =>
+          set(
+            nextValue === "" || nextValue === null || nextValue === undefined
+              ? null
+              : {
+                  kind: "constant",
+                  payload: { kind: typedKind as never, value: nextValue },
+                },
+          )
+        }
+      />
     );
   }
 
@@ -1958,6 +2020,8 @@ const PatchValue = ({
   const [open, setOpen] = useState(false);
   const kind = input.kinds?.[0] ?? "Text";
   const entry = getCatalogEntry(step.actionDefinitionId)!;
+  const value = source?.kind === "constant" ? source.payload.value : undefined;
+  const select = typedSelect(input.options, kind, value, entityTypeBaseUrl);
   return (
     <div
       ref={anchorRef}
@@ -1973,44 +2037,28 @@ const PatchValue = ({
           />
           <SourceLine source={source} />
         </>
+      ) : select ? (
+        <TypedSelectTrigger
+          label={input.label}
+          select={select}
+          onClick={() => setOpen(true)}
+        />
       ) : (
-        <div
-          className={css({
-            display: "flex",
-            gap: "1",
-            alignItems: "flex-start",
-          })}
-        >
-          <div className={css({ flex: "1", minWidth: "[0]" })}>
-            <TypedValue
-              kind={kind}
-              label={input.label}
-              options={input.options}
-              entityTypeBaseUrl={entityTypeBaseUrl}
-              value={
-                source?.kind === "constant" ? source.payload.value : undefined
-              }
-              onChange={(value) =>
-                onChange(
-                  value === "" || value === null || value === undefined
-                    ? null
-                    : {
-                        kind: "constant",
-                        payload: { kind: kind as never, value },
-                      },
-                )
-              }
-            />
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            iconName="at"
-            aria-label="Use a value from an earlier step"
-            tooltip="Use a value from an earlier step"
-            onClick={() => setOpen(true)}
-          />
-        </div>
+        <TypedValue
+          kind={kind}
+          label={input.label}
+          value={value}
+          onChange={(nextValue) =>
+            onChange(
+              nextValue === "" || nextValue === null || nextValue === undefined
+                ? null
+                : {
+                    kind: "constant",
+                    payload: { kind: kind as never, value: nextValue },
+                  },
+            )
+          }
+        />
       )}
       {open ? (
         <SourceMenu
@@ -2023,6 +2071,19 @@ const PatchValue = ({
             onChange(picked);
             setOpen(false);
           }}
+          onTypeValue={
+            select && source?.kind === "constant"
+              ? () => {
+                  onChange(null);
+                  setOpen(false);
+                }
+              : undefined
+          }
+          typeValueLabel="Clear"
+          typeValueIcon="close"
+          typedChoices={select?.choices}
+          typedPlain={Boolean(select)}
+          typedFirst={Boolean(select)}
         />
       ) : null}
     </div>
