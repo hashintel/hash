@@ -134,8 +134,8 @@ pub(crate) async fn read(storage, run) -> Result<Vec<SyncRow>, Report<SyncTableE
 
 Also in this milestone:
 
-- `deltalake-core` 1.1.4 in the workspace manifest, with its `rustls` feature in the crate, and `serde_arrow` 0.15.1 with its `arrow-59` feature, the `arrow` of `deltalake-core`.
-- The workspace's `object_store` moves from 0.12.5 to 0.13.2, the version `deltalake-core` uses. The storage module only imports `ObjectStoreExt` in three places, because `get`, `put` and `put_multipart` moved to that trait.
+- `deltalake-core` 2.0.0 in the workspace manifest, with its `rustls` feature in the crate, and `serde_arrow` 0.15.1 with its `arrow-60` feature. No release of `deltalake-core` uses `arrow` 60 yet, so `[patch.crates-io]` takes it from the commit of delta-io/delta-rs#5017. The release before it, 1.1.4, uses `parquet` 59, which brings `brotli-decompressor` 5.0.3, and `object_store` 0.13, which brings `quick-xml` 0.39.4. Both have open advisories, and code scanning blocks them.
+- The workspace's `object_store` moves from 0.12.5 to 0.14.2, the version `deltalake-core` uses. The storage module only imports `ObjectStoreExt` in three places, because `get`, `put` and `put_multipart` moved to that trait.
 
 ## Tests
 
@@ -156,7 +156,7 @@ Nothing existing. Left out on purpose: checkpoints and log cleanup tuned for the
 
 ## Open points
 
-- **Fact:** `deltalake-core` 1.1.4 uses `arrow` and `parquet` 59. The workspace uses 60, because `duckdb` 1.20000.1 (DuckDB 2.0) does, and no `duckdb` release uses 59. The build therefore has two copies of `arrow` and `parquet`. No arrow data passes between them: the sync table takes and returns `SyncRow`, and it uses the `arrow` and `parquet` that `deltalake-core` re-exports. delta-io/delta-rs#5017 moves Delta to `arrow` 60 and `object_store` 0.14; after its release the workspace has one copy again.
+- **Fact:** the patched `deltalake-core` uses `arrow` and `parquet` 60, as `duckdb` 1.20000.1 and the rest of the workspace do, so the build has one copy of each. The sync table uses the `arrow` and `parquet` that `deltalake-core` re-exports. The patch goes once a release of `deltalake-core` includes delta-io/delta-rs#5017.
 - **Fact:** `deltalake-core` without its `datafusion` feature can create a table, append with `RecordBatchWriter`, and list a snapshot's files with their partition values. It cannot scan. `read` therefore lists the run's files and reads them with `parquet`.
 - **Fact:** `EntityId` has no order of its own (`libs/@blockprotocol/type-system/rust/src/knowledge/entity/id.rs:81`). `order_key` gives its web id and its entity UUID, which is how `engine` sorts (`graph/plan/mod.rs:162-167`). Send uses the same function.
 - **Fact:** the rows of one file come back in the order they were written. Several files are listed in no fixed order, so `read` sorts.

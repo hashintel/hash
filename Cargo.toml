@@ -183,7 +183,7 @@ criterion-macro                    = { version = "0.4.0", default-features = fal
 dashu-base                         = { version = "0.4.1", default-features = false }
 dashu-float                        = { version = "0.4.3", default-features = false }
 deadpool                           = { version = "0.12.3", default-features = false }
-deltalake-core                     = { version = "1.1.4", default-features = false }
+deltalake-core                     = { version = "2.0.0", default-features = false }
 derive-where                       = { version = "1.6.0", default-features = false, features = ["nightly"] }
 derive_more                        = { version = "2.0.1", default-features = false }
 dotenv-flow                        = { version = "0.16.2", default-features = false }
@@ -254,7 +254,7 @@ multiaddr                          = { version = "0.18.2", default-features = fa
 multistream-select                 = { version = "0.14.0", default-features = false }
 nextest-filtering                  = { version = "0.21.0", default-features = false }
 nextest-metadata                   = { version = "0.14.0", default-features = false }
-object_store                       = { version = "0.13.2", default-features = false }
+object_store                       = { version = "0.14.2", default-features = false }
 opendata-common                    = { package = "opendata-common", version = ">=0.1.17, <0.1.18", default-features = false }                                                                      # 0.1.18 requires `slatedb` 0.14, but `opendata-log` 1.0.0 requires 0.13. `package` names the crate `opendata_common` in code; its library target is `common`
 opendata-log                       = { package = "opendata-log", version = "1.0.0", default-features = false }                                                                                     # `package` names the crate `opendata_log` in code; its library target is `log`
 opentelemetry                      = { version = "0.32.0", default-features = false }
@@ -489,6 +489,13 @@ unneeded_field_pattern           = "allow" # Actually, the opposite would be a g
 [patch.crates-io]
 oxc    = { git = "https://github.com/hashdeps/oxc", rev = "73c781b" }
 specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
+
+# `deltalake-core` 1.1.4, its latest release, uses `parquet` 59, whose `brotli` 8 pins
+# `brotli-decompressor` ~5.0, which has an open advisory (fixed in 6.2.0), and `object_store` 0.13,
+# whose `quick-xml` 0.39 has two (fixed in 0.41). The commit of delta-io/delta-rs#5017 moves it to
+# `arrow`/`parquet` 60 and `object_store` 0.14, the versions the workspace uses. Move back to a
+# release of `deltalake-core` once one includes it.
+deltalake-core = { git = "https://github.com/delta-io/delta-rs", rev = "364a3e2183ca1294b925eb111299501d5d1229e1" }
 
 libp2p                   = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
 libp2p-allow-block-list  = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
