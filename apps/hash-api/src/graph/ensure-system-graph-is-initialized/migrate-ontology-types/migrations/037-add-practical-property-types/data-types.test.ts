@@ -35,31 +35,31 @@ describe("environmental measurement units", () => {
   it.each([
     [
       "Microgram per Cubic Meter",
-      systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl,
+      systemDataTypes.kilogramPerCubicMeter.dataTypeBaseUrl,
       35,
       3.5e-8,
     ],
     [
       "Milligram per Cubic Meter",
-      systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl,
+      systemDataTypes.kilogramPerCubicMeter.dataTypeBaseUrl,
       12.5,
       1.25e-5,
     ],
     [
       "Reciprocal Cubic Centimeter",
-      systemDataTypes.reciprocalCubicMeters.dataTypeBaseUrl,
+      systemDataTypes.reciprocalCubicMeter.dataTypeBaseUrl,
       12.5,
       12500000,
     ],
     [
-      "Litre per Hour",
-      systemDataTypes.cubicMetersPerSecond.dataTypeBaseUrl,
+      "Liter per Hour",
+      systemDataTypes.cubicMeterPerSecond.dataTypeBaseUrl,
       3600,
       0.001,
     ],
     [
       "Milligram per Square Meter Second",
-      systemDataTypes.kilogramsPerSquareMeterSecond.dataTypeBaseUrl,
+      systemDataTypes.kilogramPerSquareMeterSecond.dataTypeBaseUrl,
       0.001,
       1e-9,
     ],
@@ -89,14 +89,16 @@ describe("environmental measurement units", () => {
 
   it("keeps particle number, mass concentration and surface flux in separate families", () => {
     expect(dataType("Microgram per Cubic Meter").definition.allOf).toEqual([
-      { $ref: systemDataTypes.massDensityMetric.dataTypeId },
+      { $ref: systemDataTypes["massDensity(metric)"].dataTypeId },
     ]);
     expect(dataType("Reciprocal Cubic Centimeter").definition.allOf).toEqual([
-      { $ref: systemDataTypes.numberPerVolumeMetric.dataTypeId },
+      { $ref: systemDataTypes["numberPerVolume(metric)"].dataTypeId },
     ]);
     expect(
       dataType("Milligram per Square Meter Second").definition.allOf,
-    ).toEqual([{ $ref: systemDataTypes.massFluxDensityMetric.dataTypeId }]);
+    ).toEqual([
+      { $ref: systemDataTypes["massFluxDensity(metric)"].dataTypeId },
+    ]);
   });
 
   it("accepts LEL levels above the reference limit without making them gas fractions", () => {

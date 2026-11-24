@@ -120,7 +120,7 @@ export const computingAndCommunicationsPropertyTypes: MeasurementPropertyType[] 
         "The number of requests recorded under the stated counting rules during the observation interval.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeInteger"].dataTypeId,
         },
       ],
     },
@@ -130,7 +130,7 @@ export const computingAndCommunicationsPropertyTypes: MeasurementPropertyType[] 
         "The number of network packets recorded at the stated observation point during the observation interval.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeInteger"].dataTypeId,
         },
       ],
     },

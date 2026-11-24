@@ -151,7 +151,7 @@ The conversion column gives the target-unit value for one source unit. LEL value
 | Microgram per Cubic Meter           | μg/m³          | Kilogram per Cubic Meter × 1e-9             |
 | Milligram per Cubic Meter           | mg/m³          | Kilogram per Cubic Meter × 0.000001         |
 | Reciprocal Cubic Centimeter         | cm⁻³           | Reciprocal Cubic Meter × 1000000            |
-| Litre per Hour                      | L/h            | Cubic Meter per Second × 0.001 ÷ 3600       |
+| Liter per Hour                      | L/h            | Cubic Meter per Second × 0.001 ÷ 3600       |
 | Milligram per Square Meter Second   | mg/(m²·s)      | Kilogram per Square Meter Second × 0.000001 |
 | Percentage of Lower Explosive Limit | % LEL          | —                                           |
 | Pressure Change Rate                | Abstract group | —                                           |

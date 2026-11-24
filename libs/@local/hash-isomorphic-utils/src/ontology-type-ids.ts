@@ -14555,14 +14555,14 @@ export const systemDataTypes = {
     description:
       "A unit of length expressed in links. Based on the international yard of exactly 0.9144 meters.",
   },
-  litrePerHour: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/litre-per-hour/v/1",
+  literPerHour: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/liter-per-hour/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/litre-per-hour/" as BaseUrl,
-    title: "Litre per Hour",
-    titlePlural: "Litres per Hour",
+      "https://hash.ai/@h/types/data-type/liter-per-hour/" as BaseUrl,
+    title: "Liter per Hour",
+    titlePlural: "Liters per Hour",
     description:
-      "A unit of volume flow rate equal to one litre per 3600 seconds at the stated measurement conditions.",
+      "A unit of volume flow rate equal to one liter per 3600 seconds at the stated measurement conditions.",
   },
   literPer100Kilometers: {
     dataTypeId:
@@ -17983,7 +17983,7 @@ export const systemDataTypes = {
     description:
       "Numeric values in convertible units of pressure change divided by elapsed time.",
   },
-  pressureChangeRateMetric: {
+  "pressureChangeRate(metric)": {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/pressure-change-rate-metric/v/1",
     dataTypeBaseUrl:

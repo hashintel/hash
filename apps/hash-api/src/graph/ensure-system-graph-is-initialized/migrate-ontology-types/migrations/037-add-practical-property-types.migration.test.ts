@@ -181,7 +181,7 @@ describe("practical measurement properties", () => {
   it("rejects missing conversion targets and missing property families", async () => {
     const missingTarget = state();
     delete missingTarget.dataTypeVersions[
-      systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl
+      systemDataTypes.kilogramPerCubicMeter.dataTypeBaseUrl
     ];
     await expect(migrate(parameters(missingTarget))).rejects.toThrow(
       "Conversion target",
@@ -323,7 +323,7 @@ describe("practical measurement properties", () => {
       "Packet Count",
     ]) {
       expect(acceptedDataType(title)).toBe(
-        systemDataTypes.nonNegativeInteger.dataTypeId,
+        systemDataTypes["non-negativeInteger"].dataTypeId,
       );
     }
     expect(acceptedDataType("ADC Resolution")).toBe(
@@ -334,9 +334,9 @@ describe("practical measurement properties", () => {
   it("requires the declared sound weighting instead of a generic sound level", () => {
     expect(
       acceptedDataType("A-weighted Equivalent Continuous Sound Pressure Level"),
-    ).toBe(systemDataTypes.decibelsAWeightedSoundPressure.dataTypeId);
+    ).toBe(systemDataTypes["decibel(a-weightedSoundPressure)"].dataTypeId);
     expect(acceptedDataType("C-weighted Peak Sound Pressure Level")).toBe(
-      systemDataTypes.decibelsCWeightedSoundPressure.dataTypeId,
+      systemDataTypes["decibel(c-weightedSoundPressure)"].dataTypeId,
     );
   });
 });
