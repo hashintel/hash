@@ -34,6 +34,16 @@ describe("toSortKey", () => {
       targetKey: score.key,
       direction: "descending",
     });
+
+    const [dateTime] = getConditionTargets({
+      kind: "DateTime",
+      valueLabel: "Item",
+      properties: [],
+    });
+
+    expect(
+      validateSortKey(toSortKey(dateTime!, "ascending"), "DateTime"),
+    ).toBeUndefined();
   });
 });
 
