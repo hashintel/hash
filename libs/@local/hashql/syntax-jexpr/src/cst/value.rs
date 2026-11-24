@@ -12,14 +12,20 @@ pub(crate) enum Value<'tree> {
 
 impl<'tree> Node<'tree> for Value<'tree> {
     const SYNTAX_KINDS: SyntaxKindSet = SyntaxKindSet::from_union(&[
+        Literal::SYNTAX_KINDS,
         Struct::<Self>::SYNTAX_KINDS,
         Tuple::<Self>::SYNTAX_KINDS,
         List::<Self>::SYNTAX_KINDS,
         Dict::<Self>::SYNTAX_KINDS,
     ]);
 
+    #[expect(
+        clippy::wildcard_enum_match_arm,
+        reason = "only value node kinds cast to Value"
+    )]
     fn cast(syntax: SyntaxNodeData<'tree>) -> Option<Self> {
         match syntax.kind() {
+            SyntaxKind::Literal => Literal::cast(syntax).map(Self::Literal),
             SyntaxKind::Struct => Struct::cast(syntax).map(Self::Struct),
             SyntaxKind::Tuple => Tuple::cast(syntax).map(Self::Tuple),
             SyntaxKind::List => List::cast(syntax).map(Self::List),
@@ -30,11 +36,11 @@ impl<'tree> Node<'tree> for Value<'tree> {
 
     fn syntax(self) -> SyntaxNodeData<'tree> {
         match self {
-            Value::Literal(node) => node.syntax(),
-            Value::Struct(node) => node.syntax(),
-            Value::Tuple(node) => node.syntax(),
-            Value::List(node) => node.syntax(),
-            Value::Dict(node) => node.syntax(),
+            Self::Literal(node) => node.syntax(),
+            Self::Struct(node) => node.syntax(),
+            Self::Tuple(node) => node.syntax(),
+            Self::List(node) => node.syntax(),
+            Self::Dict(node) => node.syntax(),
         }
     }
 }

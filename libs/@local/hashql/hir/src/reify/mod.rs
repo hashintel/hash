@@ -1,6 +1,6 @@
 pub mod error;
 
-use core::mem;
+use core::{alloc::Allocator, marker::PhantomData, mem};
 
 use hashql_ast::{
     lower::ExtractedTypes,
@@ -15,8 +15,8 @@ use hashql_ast::{
     },
 };
 use hashql_core::{
-    collections::{FastHashMap, HashMapExt as _, SmallVec},
-    heap,
+    collections::{FastHashMap, HashMapExt as _, SmallVec, fast_hash_map_in},
+    heap::{self, CollectIn},
     intern::Interned,
     span::{SpanId, Spanned},
     symbol::{Ident, IdentKind, Symbol, sym},
@@ -31,7 +31,7 @@ use self::error::{
 use crate::{
     context::HirContext,
     node::{
-        HirId, Node, NodeData,
+        HirId, Node, NodeData, Value,
         access::{Access, FieldAccess, IndexAccess},
         branch::{Branch, If},
         call::{Call, CallArgument, PointerKind},
@@ -50,19 +50,51 @@ enum Fold<'heap> {
     Promote(Node<'heap>),
 }
 
+trait Descent {
+    fn descend<'heap, A: Allocator>(
+        context: &mut ReificationContext<'_, '_, '_, 'heap, Self, A>,
+        expr: Expr<'heap>,
+    ) -> Option<Node<'heap>>;
+}
+
+struct ExprDescent;
+
+impl Descent for ExprDescent {
+    fn descend<'heap, A: Allocator>(
+        context: &mut ReificationContext<'_, '_, '_, 'heap, Self, A>,
+        expr: Expr<'heap>,
+    ) -> Option<Node<'heap>> {
+        context.expr(expr)
+    }
+}
+
+struct ValueDescent;
+
+impl Descent for ValueDescent {
+    fn descend<'heap, A: Allocator>(
+        context: &mut ReificationContext<'_, '_, '_, 'heap, Self, A>,
+        expr: Expr<'heap>,
+    ) -> Option<Node<'heap>> {
+        context.value(expr)
+    }
+}
+
 // TODO: we might want to contemplate moving this into a separate crate, to completely separate
 // HashQL's AST and HIR. (like done in rustc)
 #[derive(Debug)]
-struct ReificationContext<'ctx, 'types, 'env, 'heap> {
+struct ReificationContext<'ctx, 'types, 'env, 'heap, D: ?Sized, A: Allocator> {
     context: &'ctx mut HirContext<'env, 'heap>,
     types: &'types ExtractedTypes<'heap>,
     diagnostics: ReificationDiagnosticIssues,
-    binder_scope: FastHashMap<Symbol<'heap>, VarId>,
-
-    scratch_ident: Vec<Ident<'heap>>,
+    binder_scope: FastHashMap<Symbol<'heap>, VarId, A>,
+    scratch: A,
+    _marker: PhantomData<fn() -> D>,
 }
 
-impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
+impl<'heap, D, A: Allocator> ReificationContext<'_, '_, '_, 'heap, D, A>
+where
+    D: Descent + ?Sized,
+{
     fn call_arguments(
         &mut self,
         args: heap::Vec<'heap, Argument<'heap>>,
@@ -71,7 +103,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         let mut arguments = SmallVec::with_capacity(args.len());
 
         for argument in args {
-            let Some(value) = self.expr(argument.value) else {
+            let Some(value) = D::descend(self, argument.value) else {
                 incomplete = true;
                 continue;
             };
@@ -107,7 +139,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             return None;
         }
 
-        let function = self.expr(*function);
+        let function = D::descend(self, *function);
         let arguments = self.call_arguments(arguments);
 
         let (function, arguments) = Option::zip(function, arguments)?;
@@ -170,7 +202,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         let mut fields = SmallVec::with_capacity(len);
 
         for (index, element) in elements.into_iter().enumerate() {
-            let Some(field) = self.expr(element.value) else {
+            let Some(field) = D::descend(self, element.value) else {
                 continue;
             };
 
@@ -207,7 +239,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         let mut elements = SmallVec::with_capacity(len);
 
         for (index, element) in list_elements.into_iter().enumerate() {
-            let Some(element) = self.expr(*element.value) else {
+            let Some(element) = D::descend(self, *element.value) else {
                 continue;
             };
 
@@ -244,7 +276,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         let mut fields = SmallVec::with_capacity(len);
 
         for (index, entry) in entries.into_iter().enumerate() {
-            let Some(value) = self.expr(entry.value) else {
+            let Some(value) = D::descend(self, entry.value) else {
                 continue;
             };
 
@@ -293,8 +325,8 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             },
         ) in entries.into_iter().enumerate()
         {
-            let key = self.expr(*key);
-            let value = self.expr(*value);
+            let key = D::descend(self, *key);
+            let value = D::descend(self, *value);
 
             let Some((key, value)) = Option::zip(key, value) else {
                 continue;
@@ -445,7 +477,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         self.binder_scope.insert_unique(name.value, binder.id);
         self.context.symbols.binder.insert(binder.id, name.value);
 
-        let mut value = self.expr(*value);
+        let mut value = D::descend(self, *value);
 
         if let Some(value) = value.as_mut()
             && let Some(r#type) = r#type.as_ref()
@@ -463,6 +495,8 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             });
 
             // Simply return the body instead of us directly
+            // using `expr_fold` directly here is fine, because `let` can only be used in the
+            // `ExprDescend` context
             let body = self.expr_fold(*body, Some(bindings));
             self.binder_scope.remove(&name.value);
 
@@ -524,7 +558,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
     ) -> Option<NodeKind<'heap>> {
         // `input(name, type: type, default: expr)` is the same as
         // `if INPUT_EXISTS(name) then INPUT_LOAD(name) else (default as type)`
-        let default = self.expr(default)?;
+        let default = D::descend(self, default)?;
 
         let then = self.input_node(span, name, InputOp::Load { required: false });
         let type_id = self.types.anonymous[r#type.id];
@@ -603,7 +637,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             });
         }
 
-        let body = self.expr(*body)?;
+        let body = D::descend(self, *body)?;
 
         for param in &signature.inputs {
             self.binder_scope.remove(&param.name.value);
@@ -627,7 +661,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             field,
         }: FieldExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
-        let value = self.expr(*value)?;
+        let value = D::descend(self, *value)?;
 
         Some(NodeKind::Access(Access::Field(FieldAccess {
             expr: value,
@@ -644,8 +678,8 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             index,
         }: IndexExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
-        let value = self.expr(*value);
-        let index = self.expr(*index);
+        let value = D::descend(self, *value);
+        let index = D::descend(self, *index);
 
         let (value, index) = Option::zip(value, index)?;
 
@@ -664,7 +698,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             r#type,
         }: AsExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
-        let value = self.expr(*value)?;
+        let value = D::descend(self, *value)?;
 
         Some(NodeKind::Operation(Operation::Type(
             TypeOperation::Assertion(TypeAssertion {
@@ -676,20 +710,22 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
     }
 
     fn make_qualified_path(&mut self, span: SpanId, path: &[Symbol<'heap>]) -> Node<'heap> {
-        self.scratch_ident.clear();
-        self.scratch_ident.extend(path.iter().map(|&value| Ident {
-            span,
-            value,
-            kind: IdentKind::Lexical,
-        }));
+        // this is fine because the bump allocator will just reclaim this memory immediately.
+        let path: Vec<_, _> = path
+            .iter()
+            .map(|&value| Ident {
+                span,
+                value,
+                kind: IdentKind::Lexical,
+            })
+            .collect_in(&self.scratch);
+        let path = QualifiedPath::new_unchecked(self.context.interner.intern_idents(&path));
 
         let node = NodeData {
             id: self.context.counter.hir.next(),
             span,
             kind: NodeKind::Variable(Variable::Qualified(QualifiedVariable {
-                path: QualifiedPath::new_unchecked(
-                    self.context.interner.intern_idents(&self.scratch_ident),
-                ),
+                path,
                 arguments: self.context.interner.intern_type_ids(&[]),
             })),
         };
@@ -703,9 +739,9 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         then: Expr<'heap>,
         r#else: Expr<'heap>,
     ) -> Option<NodeKind<'heap>> {
-        let test = self.expr(test);
-        let then = self.expr(then);
-        let r#else = self.expr(r#else);
+        let test = D::descend(self, test);
+        let then = D::descend(self, then);
+        let r#else = D::descend(self, r#else);
 
         Some(NodeKind::Branch(Branch::If(If {
             test: test?,
@@ -764,7 +800,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         }
 
         // `r#else` is `None`, so we desugar to `Option<T>`
-        let (test, then) = Option::zip(self.expr(*test), self.expr(*then))?;
+        let (test, then) = Option::zip(D::descend(self, *test), D::descend(self, *then))?;
 
         // Then must be wrapped in an `Option` call
         Some(NodeKind::Branch(Branch::If(If {
@@ -842,6 +878,105 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             kind,
         }))
     }
+
+    fn value(&mut self, expr: Expr<'heap>) -> Option<Node<'heap>> {
+        let hir_id = self.context.counter.hir.next();
+
+        let (span, kind) = match expr.kind {
+            ExprKind::Struct(r#struct) => (r#struct.span, self.struct_expr(r#struct)?),
+            ExprKind::Dict(dict) => (dict.span, self.dict_expr(dict)?),
+            ExprKind::Tuple(tuple) => (tuple.span, self.tuple_expr(tuple)?),
+            ExprKind::List(list) => (list.span, self.list_expr(list)?),
+            ExprKind::Literal(literal) => (literal.span, self.literal_expr(literal)),
+            ExprKind::Dummy => {
+                self.diagnostics.push(dummy_expression(expr.span));
+                return None;
+            }
+            ExprKind::Call(_)
+            | ExprKind::Path(_)
+            | ExprKind::Let(_)
+            | ExprKind::Type(_)
+            | ExprKind::NewType(_)
+            | ExprKind::Input(_)
+            | ExprKind::Closure(_)
+            | ExprKind::If(_)
+            | ExprKind::Field(_)
+            | ExprKind::Index(_)
+            | ExprKind::As(_)
+            | ExprKind::Underscore => {
+                todo!("error out");
+                return None;
+            }
+        };
+
+        Some(self.context.interner.intern_node(NodeData {
+            id: hir_id,
+            span,
+            kind,
+        }))
+    }
+}
+
+fn reify<'heap, D, A>(
+    expr: Expr<'heap>,
+    context: &mut HirContext<'_, 'heap>,
+    types: &ExtractedTypes<'heap>,
+    alloc: A,
+) -> ReificationStatus<Node<'heap>>
+where
+    D: Descent + ?Sized,
+    A: Allocator + Clone,
+{
+    // pre-populate the binder_scope and symbol table with types, as ctor might reference them
+    // once `ConvertTypeConstructor` is run, these variables are no longer referenced inside the
+    // tree
+    let fast_hash_map_in = fast_hash_map_in(alloc.clone());
+    let mut binder_scope = fast_hash_map_in;
+    for local in types.locals.iter() {
+        let id = context.counter.var.next();
+        binder_scope.insert_unique(local.name, id);
+        context.symbols.binder.insert(id, local.name);
+    }
+
+    let expr_span = expr.span;
+    let mut context = ReificationContext::<D, _> {
+        context,
+        types,
+        diagnostics: DiagnosticIssues::new(),
+        binder_scope,
+        scratch: alloc,
+        _marker: PhantomData,
+    };
+
+    let node = D::descend(&mut context, expr);
+
+    // After we're done pre-fill the `HirMap`
+    context
+        .context
+        .map
+        .populate(context.context.counter.hir.bound());
+
+    let status = context.diagnostics.into_status(());
+    match (node, status) {
+        (Some(node), Ok(success)) => Ok(success.map(|()| node)),
+        (None, Ok(success)) => {
+            let Err(error) = internal_error(
+                expr_span,
+                "Reification hasn't produced a node, but no critical diagnostics have been \
+                 reported.",
+            )
+            .specialize() else {
+                unreachable!("internal error should be an ICE");
+            };
+
+            let mut status = Status::failure(error);
+
+            status.append_diagnostics(&mut success.advisories.generalize());
+            status
+        }
+        // We don't care if we have a value or not critical diagnostics take priority.
+        (Some(_) | None, Err(failure)) => Err(failure),
+    }
 }
 
 impl<'heap> NodeData<'heap> {
@@ -862,60 +997,30 @@ impl<'heap> NodeData<'heap> {
     ///
     /// Critical errors prevent HIR node creation, while non-critical diagnostics are included
     /// as advisories in successful results.
-    pub fn from_ast<'env>(
+    pub fn from_ast_in<'env, A>(
         expr: Expr<'heap>,
         context: &mut HirContext<'env, 'heap>,
         types: &ExtractedTypes<'heap>,
-    ) -> ReificationStatus<Node<'heap>> {
-        // pre-populate the binder_scope and symbol table with types, as ctor might reference them
-        // once `ConvertTypeConstructor` is run, these variables are no longer referenced inside the
-        // tree
-        let mut binder_scope = FastHashMap::default();
-        for local in types.locals.iter() {
-            let id = context.counter.var.next();
-            binder_scope.insert_unique(local.name, id);
-            context.symbols.binder.insert(id, local.name);
-        }
+        alloc: A,
+    ) -> ReificationStatus<Node<'heap>>
+    where
+        A: Allocator + Clone,
+    {
+        reify::<ExprDescent, A>(expr, context, types, alloc)
+    }
+}
 
-        let expr_span = expr.span;
-        let mut context = ReificationContext {
-            context,
-            types,
-            diagnostics: DiagnosticIssues::new(),
-            binder_scope,
-
-            // we're likely to only ever create qualified paths of length 3 or less
-            scratch_ident: Vec::with_capacity(3),
-        };
-
-        let node = context.expr(expr);
-
-        // After we're done pre-fill the `HirMap`
-        context
-            .context
-            .map
-            .populate(context.context.counter.hir.bound());
-
-        let status = context.diagnostics.into_status(());
-        match (node, status) {
-            (Some(node), Ok(success)) => Ok(success.map(|()| node)),
-            (None, Ok(success)) => {
-                let Err(error) = internal_error(
-                    expr_span,
-                    "Reification hasn't produced a node, but no critical diagnostics have been \
-                     reported.",
-                )
-                .specialize() else {
-                    unreachable!("internal error should be an ICE");
-                };
-
-                let mut status = Status::failure(error);
-
-                status.append_diagnostics(&mut success.advisories.generalize());
-                status
-            }
-            // We don't care if we have a value or not critical diagnostics take priority.
-            (Some(_) | None, Err(failure)) => Err(failure),
-        }
+impl<'heap> Value<'heap> {
+    pub fn from_ast_in<'env, A>(
+        value: hashql_ast::node::value::Value<'heap>,
+        context: &mut HirContext<'env, 'heap>,
+        types: &ExtractedTypes<'heap>,
+        alloc: A,
+    ) -> ReificationStatus<Self>
+    where
+        A: Allocator + Clone,
+    {
+        reify::<ValueDescent, A>(value.into_expr(), context, types, alloc)
+            .map_value(Value::new_unchecked)
     }
 }

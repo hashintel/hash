@@ -4,10 +4,10 @@ use hashql_core::{heap::Heap, span::SpanTable};
 use text_size::{TextRange, TextSize};
 
 use super::{
-    ConstructorKind, DelimiterKind, EofContext, FieldKind, JExprDiagnostic, StringErrorContext,
-    UnexpectedTokenContext, ValueKind, array, constructor, expected_eof, insert_range,
-    insert_ranges, lexer, nesting_limit, number, object, string, wrap_array, wrap_lexer,
-    wrap_object,
+    ConstructorKind, DelimiterKind, EofContext, FieldKind, GrammarKind, JExprDiagnostic,
+    StringErrorContext, UnexpectedTokenContext, ValueKind, array, constructor, expected_eof,
+    insert_range, insert_ranges, lexer, nesting_limit, number, object, string, wrap_array,
+    wrap_lexer, wrap_object,
 };
 use crate::{
     lexer::{ParseNumberErrorKind, StringError},
@@ -59,6 +59,7 @@ impl<A: Allocator> LexerErrorKind<A> {
         primary: hashql_core::span::SpanId,
         heap: &Heap,
         spans: &mut SpanTable<Span>,
+        grammar: GrammarKind,
     ) -> lexer::LexerDiagnostic {
         match self {
             Self::InvalidString { error, context } => {
@@ -75,19 +76,19 @@ impl<A: Allocator> LexerErrorKind<A> {
             Self::InvalidCharacter { text } => {
                 lexer::from_unrecognized_character_error(primary, text)
             }
-            Self::InvalidToken { text } => lexer::invalid_token(primary, text, heap),
+            Self::InvalidToken { text } => lexer::invalid_token(primary, text, heap, grammar),
             Self::UnterminatedBlockComment { eof, unclosed } => {
                 let eof_span = insert_range(spans, TextRange::empty(*eof));
                 lexer::unterminated_block_comment(primary, eof_span, unclosed)
             }
             Self::UnexpectedEof { expected, context } => {
-                lexer::unexpected_eof(primary, *expected, context, spans)
+                lexer::unexpected_eof(primary, *expected, context, spans, grammar)
             }
             Self::UnexpectedToken {
                 found,
                 expected,
                 context,
-            } => lexer::unexpected_token(primary, *found, *expected, context, spans),
+            } => lexer::unexpected_token(primary, *found, *expected, context, spans, grammar),
         }
     }
 }
@@ -215,11 +216,12 @@ impl<A: Allocator> ObjectErrorKind<A> {
         primary: hashql_core::span::SpanId,
         heap: &Heap,
         spans: &mut SpanTable<Span>,
+        grammar: GrammarKind,
     ) -> object::ObjectDiagnostic {
         match self {
             Self::Empty {
                 allow_type_annotations,
-            } => object::empty(primary, *allow_type_annotations),
+            } => object::empty(primary, *allow_type_annotations, grammar),
             Self::LeadingCommas(separators) => {
                 let patch = insert_range(spans, separators.range());
                 let rest = insert_ranges(spans, &separators.secondary);
@@ -253,6 +255,7 @@ impl<A: Allocator> ObjectErrorKind<A> {
                     expected,
                     primary_ctx,
                     *type_annotations_disallowed,
+                    grammar,
                     heap,
                 )
             }
@@ -303,7 +306,7 @@ impl<A: Allocator> ObjectErrorKind<A> {
             }
             Self::DictEntryTooFewItems { dict_key, found } => {
                 let dict_span = insert_range(spans, *dict_key);
-                constructor::dict_entry_too_few_items(primary, dict_span, *found)
+                constructor::dict_entry_too_few_items(primary, dict_span, *found, grammar)
             }
             Self::DictEntryTooManyItems { dict_key, rest } => {
                 let dict_span = insert_range(spans, *dict_key);
@@ -353,20 +356,21 @@ impl<A: Allocator> SyntaxError<A> {
         &self,
         heap: &Heap,
         spans: &mut SpanTable<Span>,
+        grammar: GrammarKind,
     ) -> JExprDiagnostic {
         let primary = insert_range(spans, self.range);
 
         match &self.kind {
             SyntaxErrorKind::Lexer(kind) => kind
-                .to_diagnostic(self.range, primary, heap, spans)
+                .to_diagnostic(self.range, primary, heap, spans, grammar)
                 .map_category(wrap_lexer),
-            SyntaxErrorKind::ExpectedEof => expected_eof(primary),
-            SyntaxErrorKind::NestingLimit { limit } => nesting_limit(primary, *limit),
+            SyntaxErrorKind::ExpectedEof => expected_eof(primary, grammar),
+            SyntaxErrorKind::NestingLimit { limit } => nesting_limit(primary, *limit, grammar),
             SyntaxErrorKind::Array(kind) => kind
                 .to_diagnostic(self.range, primary, spans)
                 .map_category(wrap_array),
             SyntaxErrorKind::Object(kind) => kind
-                .to_diagnostic(primary, heap, spans)
+                .to_diagnostic(primary, heap, spans, grammar)
                 .map_category(wrap_object),
         }
     }

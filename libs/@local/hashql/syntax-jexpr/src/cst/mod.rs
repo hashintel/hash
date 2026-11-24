@@ -18,13 +18,13 @@ pub(crate) mod kind;
 mod token;
 mod value;
 
-use self::value::Value;
 pub(crate) use self::{
     constructor::{List, ListBody, Literal, LiteralValue, Struct, StructBody, Tuple, TupleBody},
     dict::{Dict, DictArrayBody, DictBody, DictObjectBody},
     expr::{CallArg, CallExpr, Expr, LabeledArgEntry, PathExpr, ShorthandLabeledArg},
     kind::{NodeKind, TokenKind},
     token::{LiteralToken, StringToken},
+    value::Value,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq)]

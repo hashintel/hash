@@ -34,7 +34,7 @@ pub(crate) fn hir_reify<'heap>(
     );
     let types = process_status(diagnostics, result)?;
 
-    let node = process_status(diagnostics, NodeData::from_ast(expr, context, &types))?;
+    let node = process_status(diagnostics, NodeData::from_ast_in(expr, context, &types))?;
     Ok((node, types))
 }
 

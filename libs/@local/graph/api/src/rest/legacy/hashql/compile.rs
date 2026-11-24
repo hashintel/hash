@@ -112,7 +112,7 @@ impl<'heap> Compilation<'heap> {
         let Success {
             value: hir,
             advisories,
-        } = hashql_hir::node::NodeData::from_ast(ast, &mut hir_context, &types)
+        } = hashql_hir::node::NodeData::from_ast_in(ast, &mut hir_context, &types)
             .map_category(|category| {
                 HashQlDiagnosticCategory::Hir(HirDiagnosticCategory::Reification(category))
             })

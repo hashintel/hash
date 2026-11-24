@@ -50,7 +50,7 @@ pub(crate) fn mir_reify<'heap>(
 
     let node = process_status(
         diagnostics,
-        NodeData::from_ast(expr, &mut hir_context, &types),
+        NodeData::from_ast_in(expr, &mut hir_context, &types),
     )?;
 
     let node = process_status(
