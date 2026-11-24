@@ -511,7 +511,7 @@ export const EntitiesVisualizer: FunctionComponent<{
             columnBaseUrl,
             {
               dataTypeId,
-              title: dataType.schema.title,
+              title: dataType.schema.titlePlural ?? dataType.schema.title,
             },
           ];
         },
