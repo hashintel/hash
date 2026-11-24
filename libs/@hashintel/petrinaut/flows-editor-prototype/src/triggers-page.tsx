@@ -1262,14 +1262,21 @@ const TriggerForm = ({
       <div className={formGridStyle}>
         {defaultPage ? (
           <>
-            <span className="label">Web</span>
-            <Select
-              required
+            <span className="label">Name</span>
+            <TextInput
               size="sm"
-              aria-label="Web"
-              items={items(["@aakarsh", "@hash"])}
-              value={values.web}
-              onChange={set("web")}
+              aria-label="Name"
+              placeholder="Monthly supplier check"
+              value={values.name ?? ""}
+              onChange={(value) =>
+                setValues((current) => ({ ...current, name: value }))
+              }
+              onBlur={() => {
+                // Renaming can't empty a saved name: the previous one comes back.
+                if (trigger?.name && !values.name?.trim()) {
+                  setValues((current) => ({ ...current, name: trigger.name }));
+                }
+              }}
             />
             {pickFlow && !trigger ? (
               <>
@@ -1287,21 +1294,14 @@ const TriggerForm = ({
                 />
               </>
             ) : null}
-            <span className="label">Name</span>
-            <TextInput
+            <span className="label">Web</span>
+            <Select
+              required
               size="sm"
-              aria-label="Name"
-              placeholder="Monthly supplier check"
-              value={values.name ?? ""}
-              onChange={(value) =>
-                setValues((current) => ({ ...current, name: value }))
-              }
-              onBlur={() => {
-                // Renaming can't empty a saved name: the previous one comes back.
-                if (trigger?.name && !values.name?.trim()) {
-                  setValues((current) => ({ ...current, name: trigger.name }));
-                }
-              }}
+              aria-label="Web"
+              items={items(["@aakarsh", "@hash"])}
+              value={values.web}
+              onChange={set("web")}
             />
           </>
         ) : null}
