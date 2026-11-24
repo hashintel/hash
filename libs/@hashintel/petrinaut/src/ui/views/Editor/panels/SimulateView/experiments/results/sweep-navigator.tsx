@@ -6,9 +6,9 @@ import {
   axisValueAt,
   pointSweepSelection,
 } from "../../../../../../../react/experiments/parameter-grid";
-import { parameterLabel } from "../shared/parameter-label";
 import { formatAxisValue } from "./format-axis-value";
 import { formatCount } from "./format-value";
+import { parameterLabel } from "./parameter-label";
 
 import type {
   ExperimentParameterAxis,

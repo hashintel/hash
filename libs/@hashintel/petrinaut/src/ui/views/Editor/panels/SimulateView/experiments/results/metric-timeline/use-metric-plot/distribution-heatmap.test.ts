@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  MAGMA_STOPS,
-  rampLut,
-  rasterizeNormalized,
-} from "../../../shared/color-ramp";
+import { MAGMA_STOPS, rampLut, rasterizeNormalized } from "../../color-ramp";
 import { heatmapAlpha } from "./distribution-heatmap";
 import { buildHeatmapDensityGrid } from "./distribution-heatmap/density-grid";
 

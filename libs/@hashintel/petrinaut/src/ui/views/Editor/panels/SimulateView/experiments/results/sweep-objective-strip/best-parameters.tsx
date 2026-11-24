@@ -9,9 +9,9 @@ import {
   axisValueAt,
 } from "../../../../../../../../react/experiments/parameter-grid";
 import { isOptimizationActive } from "../../../../../../../../react/optimizations/context";
-import { parameterLabel } from "../../shared/parameter-label";
 import { formatAxisValue } from "../format-axis-value";
 import { formatNumber } from "../format-value";
+import { parameterLabel } from "../parameter-label";
 
 import type { ExperimentParameterAxis } from "../../../../../../../../react/experiments/parameter-grid";
 import type { OptimizationRecord } from "../../../../../../../../react/optimizations/context";

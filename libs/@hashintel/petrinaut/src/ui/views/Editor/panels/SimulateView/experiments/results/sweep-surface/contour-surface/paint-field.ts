@@ -9,11 +9,7 @@
  * markers — or, after a restart (the caller clearing `values` for a new
  * slice), the previous field dimmed until the new samples can replace it.
  */
-import {
-  BLUES_STOPS,
-  rampLut,
-  rasterizeNormalized,
-} from "../../../shared/color-ramp";
+import { BLUES_STOPS, rampLut, rasterizeNormalized } from "../../color-ramp";
 import {
   type ContourSample,
   type ContourSegment,
