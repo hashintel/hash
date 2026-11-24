@@ -1080,6 +1080,42 @@ test("an entity read whose wire payload exceeds 12 MiB returns an oversized refu
   );
 });
 
+test("browser property projection preserves own __proto__ keys without mutating the object prototype", async () => {
+  const codeUrl = "https://hash.ai/@alice/types/property-type/code/";
+  const protoProps = JSON.parse(
+    `{"__proto__":{"polluted":true},${JSON.stringify(codeUrl)}:"A1"}`,
+  ) as Record<string, unknown>;
+  const protoResponse = {
+    queryEntitySubgraph: {
+      ...response.queryEntitySubgraph,
+      subgraph: {
+        ...response.queryEntitySubgraph.subgraph,
+        vertices: {
+          "alice-web~supplier": {
+            "2026-10-26T00:00:00Z": entity({
+              entityId: "alice-web~supplier",
+              editionId: "e-proto",
+              properties: protoProps,
+            }),
+          },
+        },
+      },
+    },
+  } as unknown as QueryEntitySubgraphQuery;
+
+  const output = (await run(() => Promise.resolve(protoResponse), {
+    properties: [codeUrl],
+    fullValuesFor: [{ entityId: "alice-web~supplier", path: ["__proto__"] }],
+  })) as HashEntityReadResult;
+  const projected = output.entities[0]?.properties;
+  expect(projected).toBeDefined();
+  expect(Object.getPrototypeOf(projected)).toBe(Object.prototype);
+  expect(Object.hasOwn(projected ?? {}, "__proto__")).toBe(true);
+  expect(
+    (projected as Record<string, unknown> & { polluted?: boolean }).polluted,
+  ).toBeUndefined();
+});
+
 test("a read given a cursor it didn't give settles with an error saying to start again, without querying", async () => {
   const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
   await expect(run(query, { cursor: "not-a-cursor" })).resolves.toEqual({
@@ -2151,6 +2187,9 @@ const joinData: Record<string, Record<string, unknown>[]> = {
 const joinQuery = (fails?: { title: string; page: number }) => {
   const pages = new Map<string, number>();
   return vi.fn<QueryEntitySubgraph>((request) => {
+    if (request.limit === 0) {
+      return Promise.resolve(joinPage([]));
+    }
     const filter = JSON.stringify(request.filter);
     const title = filter.includes('"uuid"')
       ? "ids"
@@ -2237,10 +2276,20 @@ test("a count by links reads every page of the counted type and of each link typ
   });
 
   const scoped = { any: [webIs("alice-web"), webIs("acme-web")] };
-  for (const [request] of query.mock.calls) {
+  const [snapshotProbe, ...pageCalls] = query.mock.calls;
+  expect(snapshotProbe?.[0]).toMatchObject({
+    filter: { all: [] },
+    temporalAxes: hashEntityReadRequest({}, readerWebs).temporalAxes,
+    traversalPaths: [],
+    includeDrafts: false,
+    includePermissions: false,
+    limit: 0,
+  });
+  for (const [request] of pageCalls) {
     expect(request).toMatchObject({
       traversalPaths: [],
       includeDrafts: false,
+      temporalAxes: resolvedTemporalAxes,
       limit: 1000,
     });
     // The grouped entities are read by id, in whichever web each id names.
@@ -2251,20 +2300,23 @@ test("a count by links reads every page of the counted type and of each link typ
         : expect.arrayContaining([scoped, ...notArchived]),
     });
   }
-  // propertyEquals narrows the counted entities, not the links.
+  // propertyEquals narrows the counted entities, not the links, at the pinned snapshot.
   expect(query).toHaveBeenCalledWith(
-    hashEntityReadRequest(
-      {
-        entityTypes: ["Sales Order"],
-        propertyEquals: openOrder,
-        traversalDepth: 0,
-        limit: 1000,
-      },
-      ["alice-web", "acme-web"],
-    ),
+    {
+      ...hashEntityReadRequest(
+        {
+          entityTypes: ["Sales Order"],
+          propertyEquals: openOrder,
+          traversalDepth: 0,
+          limit: 1000,
+        },
+        ["alice-web", "acme-web"],
+      ),
+      temporalAxes: resolvedTemporalAxes,
+    },
     expect.any(AbortSignal),
   );
-  // Step-0 outgoing Has Line Item links are anchored to leftEntity Sales Order and pin page 1's temporalAxes on page 2.
+  // Step-0 outgoing Has Line Item links are anchored to leftEntity Sales Order and reuse the pinned snapshot on every page.
   expect(query).toHaveBeenCalledWith(
     expect.objectContaining({
       filter: {
@@ -2301,14 +2353,14 @@ test("a count by links reads every page of the counted type and of each link typ
     }),
     expect.any(AbortSignal),
   );
-  // Join sizing sends count-only summarizeEntities (no type/web histograms), with step-0 anchoring on Has Line Item and none on step-1 Fulfills.
+  // Join sizing sends count-only summarizeEntities at the pinned snapshot (no type/web histograms), with step-0 anchoring on Has Line Item and none on step-1 Fulfills.
   expect(joinSizes).toHaveBeenCalledWith(
     {
       filter: hashEntityCountRequest(
         { entityTypes: ["Sales Order"], propertyEquals: openOrder },
         ["alice-web", "acme-web"],
       ).filter,
-      temporalAxes: hashEntityReadRequest({}, readerWebs).temporalAxes,
+      temporalAxes: resolvedTemporalAxes,
       includeDrafts: false,
       includeCount: true,
     },
@@ -2320,7 +2372,7 @@ test("a count by links reads every page of the counted type and of each link typ
         "alice-web",
         "acme-web",
       ]).filter,
-      temporalAxes: hashEntityReadRequest({}, readerWebs).temporalAxes,
+      temporalAxes: resolvedTemporalAxes,
       includeDrafts: false,
       includeCount: true,
     },
@@ -2357,12 +2409,15 @@ test("a count by links supports untyped joins and forwards includeDrafts and inc
   for (const [request] of sizes.mock.calls) {
     expect(request.includeDrafts).toBe(true);
     expect(request.includeCount).toBe(true);
+    expect(request.temporalAxes).toEqual(resolvedTemporalAxes);
     expect(request).not.toHaveProperty("includeTypeIds");
     expect(JSON.stringify(request.filter)).not.toContain('"archived"');
     expect(JSON.stringify(request.filter)).not.toContain('"leftEntity"');
   }
-  for (const [request] of query.mock.calls) {
+  const [, ...pageCalls] = query.mock.calls;
+  for (const [request] of pageCalls) {
     expect(request.includeDrafts).toBe(true);
+    expect(request.temporalAxes).toEqual(resolvedTemporalAxes);
     expect(JSON.stringify(request.filter)).not.toContain('"archived"');
   }
 });
@@ -2390,14 +2445,17 @@ test("a count grouped by links reads the grouped entities by id in any web, so o
     ],
   });
   expect(query).toHaveBeenCalledWith(
-    hashEntityReadRequest(
-      {
-        entityIds: ["acme-web~c1", "partner-web~c2"],
-        traversalDepth: 0,
-        limit: 1000,
-      },
-      undefined,
-    ),
+    {
+      ...hashEntityReadRequest(
+        {
+          entityIds: ["acme-web~c1", "partner-web~c2"],
+          traversalDepth: 0,
+          limit: 1000,
+        },
+        undefined,
+      ),
+      temporalAxes: resolvedTemporalAxes,
+    },
     expect.any(AbortSignal),
   );
 });
@@ -2425,4 +2483,189 @@ test("a count by links settles { error } when sizing it fails, and a plain count
   const query = joinQuery();
   await count(joinSizes, { entityTypes: ["Sales Order"] }, { query });
   expect(query).not.toHaveBeenCalled();
+});
+
+test("a count by links pins one server-resolved temporal snapshot across every summary and page request so edits after the snapshot cannot create phantom paths", async () => {
+  const snapshotAxes = resolvedTemporalAxes;
+  const laterAxes: QueryTemporalAxes = {
+    pinned: {
+      axis: "transactionTime",
+      timestamp: "2026-10-26T12:05:00Z" as Timestamp,
+    },
+    variable: {
+      axis: "decisionTime",
+      interval: {
+        start: {
+          kind: "inclusive",
+          limit: "2026-10-26T12:05:00Z" as Timestamp,
+        },
+        end: { kind: "inclusive", limit: "2026-10-26T12:05:00Z" as Timestamp },
+      },
+    },
+  };
+  let mutated = false;
+  const sizes = vi.fn<SummarizeEntities>((request) => {
+    // Every summary call must carry the pinned snapshot axes, never unset now.
+    expect(request.temporalAxes).toEqual(snapshotAxes);
+    const filter = JSON.stringify(request.filter);
+    const title = Object.keys(joinData).find((key) =>
+      filter.includes(
+        `{"equal":[{"path":["type","title"]},{"parameter":"${key}"}]}`,
+      ),
+    );
+    return Promise.resolve(
+      summary({ count: title === "Fulfills" ? 1 : title ? 1 : 0 }),
+    );
+  });
+  const query = vi.fn<QueryEntitySubgraph>((request) => {
+    if (request.limit === 0) {
+      return Promise.resolve(joinPage([]));
+    }
+    // Every page read must also carry the exact same pinned snapshot axes.
+    expect(request.temporalAxes).toEqual(snapshotAxes);
+    const filter = JSON.stringify(request.filter);
+    if (filter.includes('"Sales Order"') && !filter.includes('"leftEntity"')) {
+      return Promise.resolve(joinPage([joinVertex("acme-web~o1", "SO-1")]));
+    }
+    if (filter.includes('"Has Line Item"')) {
+      // Simulate a concurrent edit occurring right after Has Line Item is read:
+      // the order->item link is archived and a fulfillment->item link is added at `laterAxes`.
+      mutated = true;
+      return Promise.resolve(
+        joinPage([
+          joinVertex("acme-web~l-i1", undefined, {
+            leftEntityId: "acme-web~o1",
+            rightEntityId: "acme-web~i1",
+          }),
+        ]),
+      );
+    }
+    if (filter.includes('"Fulfills"')) {
+      // A live (unpinned) query after `mutated` would see the newly added fulfillment;
+      // a query pinned to `snapshotAxes` must see the pre-mutation empty fulfillment set.
+      const atSnapshot =
+        JSON.stringify(request.temporalAxes) === JSON.stringify(snapshotAxes);
+      const vertices =
+        mutated && !atSnapshot
+          ? [
+              joinVertex("acme-web~f-i1", undefined, {
+                leftEntityId: "acme-web~d-i1",
+                rightEntityId: "acme-web~i1",
+              }),
+            ]
+          : [];
+      return Promise.resolve({
+        ...joinPage(vertices),
+        queryEntitySubgraph: {
+          ...joinPage(vertices).queryEntitySubgraph,
+          subgraph: {
+            ...joinPage(vertices).queryEntitySubgraph.subgraph,
+            temporalAxes: {
+              initial: request.temporalAxes,
+              resolved: atSnapshot ? snapshotAxes : laterAxes,
+            },
+          },
+        },
+      } as unknown as QueryEntitySubgraphQuery);
+    }
+    return Promise.resolve(joinPage([]));
+  });
+
+  const output = await count(
+    sizes,
+    {
+      entityTypes: ["Sales Order"],
+      where: {
+        path: [
+          { linkType: "Has Line Item", direction: "outgoing" },
+          { linkType: "Fulfills", direction: "incoming" },
+        ],
+        exists: true,
+      },
+    },
+    { query },
+  );
+  // At snapshotAxes, o1 has no fulfillment; the post-snapshot edit cannot produce a phantom delivered order.
+  expect(output).toMatchObject({
+    outcome: "counted",
+    ofType: 1,
+    count: 0,
+  });
+});
+
+test("entity type reads exceeding 12 MiB settle a structured oversized refusal, and count tools bound join labels and guard raw payload size", async () => {
+  const hugeTypeResponse = {
+    queryEntityTypes: {
+      entityTypes: [
+        {
+          schema: {
+            $id: supplierTypeId,
+            title: "Supplier",
+            description: "d".repeat(12 * 1024 * 1024 + 1024),
+            properties: {},
+          },
+        },
+      ],
+      closedEntityTypes: [],
+      definitions: { dataTypes: {}, entityTypes: {}, propertyTypes: {} },
+    },
+  } as unknown as QueryEntityTypesQuery;
+  const typeOutput = await runTool(
+    createHashEntityTypeReadTool(() => Promise.resolve(hugeTypeResponse)),
+    {},
+  );
+  expect(typeOutput).toEqual({
+    refused: true,
+    payloadBytes: expect.any(Number),
+    types: 1,
+  });
+
+  // Plain count with prototype key in webIds returns 0 (never inherited Object.prototype method).
+  const protoCount = await count(
+    () => Promise.resolve(summary({ count: 0, webIds: {} })),
+    { webIds: ["toString"] },
+  );
+  expect(protoCount).toMatchObject({
+    count: 0,
+    webs: [{ webId: "toString", count: 0 }],
+  });
+
+  // Join count bounds huge entity labels in the browser to labelPreviewLength + 1 (201 chars),
+  // preserving server-side clipping detection while preventing multi-MB label payloads.
+  const hugeLabel = "L".repeat(50_000);
+  const hugeLabelQuery = vi.fn<QueryEntitySubgraph>((request) => {
+    if (request.limit === 0) {
+      return Promise.resolve(joinPage([]));
+    }
+    const filter = JSON.stringify(request.filter);
+    if (filter.includes('"Has Customer"')) {
+      return Promise.resolve(
+        joinPage([
+          joinVertex("acme-web~h1", undefined, {
+            leftEntityId: "acme-web~o1",
+            rightEntityId: "acme-web~c1",
+          }),
+        ]),
+      );
+    }
+    if (filter.includes('"Sales Order"')) {
+      return Promise.resolve(joinPage([joinVertex("acme-web~o1", hugeLabel)]));
+    }
+    return Promise.resolve(joinPage([joinVertex("acme-web~c1", hugeLabel)]));
+  });
+  const joinLabelOutput = (await count(
+    () => Promise.resolve(summary({ count: 1 })),
+    {
+      entityTypes: ["Sales Order"],
+      groupBy: { linkType: "Has Customer", direction: "outgoing" },
+    },
+    { query: hugeLabelQuery },
+  )) as {
+    outcome: "counted";
+    examples: { label?: string }[];
+    groups?: { entity?: { label?: string } }[];
+  };
+  expect(joinLabelOutput.outcome).toBe("counted");
+  expect(joinLabelOutput.examples[0]?.label).toHaveLength(201);
+  expect(joinLabelOutput.groups?.[0]?.entity?.label).toHaveLength(201);
 });

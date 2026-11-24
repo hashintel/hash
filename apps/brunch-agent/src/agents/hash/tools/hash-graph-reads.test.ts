@@ -2063,3 +2063,70 @@ test("the HASH agent defines its four graph reads", () => {
     ].toSorted(),
   );
 });
+
+test("whitespace floods and dense non-ASCII text cannot bypass maxTokens or renderPathRead container outlining", () => {
+  // 1M U+00A0 (~2 MB UTF-8) must be refused by the default 20k token budget.
+  const nbspEntity: ReadEntity = {
+    ...person,
+    properties: { [displayName]: "\u00A0".repeat(1_000_000) },
+  };
+  const nbspRefused = hashEntityReadForModel(read([nbspEntity]), [
+    { entityId: nbspEntity.entityId, path: ["display_name"] },
+  ]);
+  expect(nbspRefused.startsWith("Refused:")).toBe(true);
+
+  // 1M ASCII spaces (~1 MB UTF-8) must also be refused via the byte floor.
+  const spaceEntity: ReadEntity = {
+    ...person,
+    properties: { [displayName]: " ".repeat(1_000_000) },
+  };
+  const spaceRefused = hashEntityReadForModel(read([spaceEntity]), [
+    { entityId: spaceEntity.entityId, path: ["display_name"] },
+  ]);
+  expect(spaceRefused.startsWith("Refused:")).toBe(true);
+
+  // 50k CJK chars (~150 KB UTF-8) and 50k emoji (~200 KB UTF-8) must exceed 20k tokens.
+  const cjkEntity: ReadEntity = {
+    ...person,
+    properties: { [displayName]: "漢".repeat(50_000) },
+  };
+  expect(
+    hashEntityReadForModel(read([cjkEntity]), [cjkEntity.entityId]).startsWith(
+      "Refused:",
+    ),
+  ).toBe(true);
+
+  const emojiEntity: ReadEntity = {
+    ...person,
+    properties: { [displayName]: "🚀".repeat(50_000) },
+  };
+  expect(
+    hashEntityReadForModel(read([emojiEntity]), [
+      emojiEntity.entityId,
+    ]).startsWith("Refused:"),
+  ).toBe(true);
+
+  // A container holding > 32 KB of U+00A0 must be outlined by renderPathRead rather than dumped raw.
+  const nbspContainer: ReadEntity = {
+    ...person,
+    properties: {
+      [displayName]: { padded: "\u00A0".repeat(20_000), ok: 1 },
+    },
+  };
+  const outlined = hashEntityReadForModel(read([nbspContainer]), [
+    { entityId: nbspContainer.entityId, path: ["display_name"] },
+  ]);
+  expect(outlined.includes("outlined one level down")).toBe(true);
+
+  // Oversized browser type-read transport refusal renders actionable narrowing advice.
+  const oversizedTypeRefusal = hashEntityTypeReadForModel(
+    { refused: true, payloadBytes: 13_400_000, types: 800 },
+    { allVersions: false },
+  );
+  expect(oversizedTypeRefusal).toContain(
+    "Refused: this type read's raw payload",
+  );
+  expect(oversizedTypeRefusal).toContain("13.4 MB");
+  expect(oversizedTypeRefusal).toContain("allVersions: true");
+  expect(oversizedTypeRefusal).toContain("filter by entityTypeIds");
+});

@@ -36,10 +36,13 @@ export const hashEntityReadMaxLimit = 1000;
 export const hashEntityReadDefaultLimit = 100;
 
 /**
- * Maximum UTF-8 byte length of a serialized entity read result the browser
- * will POST back to Brunch (kept safely below Brunch's 16 MiB body limit).
+ * Maximum UTF-8 byte length of a serialized graph read or count result the
+ * browser will POST back to Brunch (kept safely below Brunch's 16 MiB body limit).
  */
 export const hashEntityReadMaxPayloadBytes = 12 * 1024 * 1024;
+
+/** Maximum characters of an entity label rendered in headings before clipping. */
+export const hashReadLabelPreviewLength = 200;
 
 /** How many entity types one type-read page holds when the model names no limit. */
 export const hashEntityTypeReadDefaultLimit = 50;
@@ -664,6 +667,21 @@ export const hashEntityReadOversizedSchema = v.object({
 
 export type HashEntityReadOversized = v.InferOutput<
   typeof hashEntityReadOversizedSchema
+>;
+
+/**
+ * Settled by HASH's page when an entity type read's serialized payload would
+ * exceed the browser-to-agent transport ceiling, so the model receives a
+ * refusal instead of an HTTP 413 transport failure.
+ */
+export const hashEntityTypeReadOversizedSchema = v.object({
+  refused: v.literal(true),
+  payloadBytes: countSchema,
+  types: countSchema,
+});
+
+export type HashEntityTypeReadOversized = v.InferOutput<
+  typeof hashEntityTypeReadOversizedSchema
 >;
 
 /** One entity as HASH's page returns it: every field comes from the same returned edition. */

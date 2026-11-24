@@ -17,12 +17,14 @@ import {
   hashEntityReadMaxTraversalDepth,
   hashEntityReadOversizedSchema,
   hashEntityTypeReadDefaultLimit,
+  hashEntityTypeReadOversizedSchema,
   hashEntityTypeReadResultSchema,
   hashEntityTypeSelectorKind,
   hashIsPublishedVersionedUrl,
   hashPropertyBaseUrl,
   hashPropertySlug,
   hashReadDefaultMaxTokens,
+  hashReadLabelPreviewLength,
   hashReadMaxMaxTokens,
   hashReadMinMaxTokens,
   parseHashEntityCountInput,
@@ -562,7 +564,7 @@ test("a count by links settles as counted, refused or incomplete, without webSco
   expect(v.safeParse(hashEntityCountResultSchema, counted).success).toBe(false);
 });
 
-test("browser oversized entity-read refusal schema validates payload metadata", () => {
+test("browser oversized entity-read and type-read refusal schemas validate payload metadata", () => {
   const oversized = {
     refused: true as const,
     payloadBytes: 14_000_000,
@@ -570,4 +572,14 @@ test("browser oversized entity-read refusal schema validates payload metadata", 
     linked: 420,
   };
   expect(v.parse(hashEntityReadOversizedSchema, oversized)).toEqual(oversized);
+
+  const oversizedTypes = {
+    refused: true as const,
+    payloadBytes: 13_500_000,
+    types: 950,
+  };
+  expect(v.parse(hashEntityTypeReadOversizedSchema, oversizedTypes)).toEqual(
+    oversizedTypes,
+  );
+  expect(hashReadLabelPreviewLength).toBe(200);
 });

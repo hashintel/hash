@@ -661,7 +661,7 @@ test("a full page of the entity read shows the model its cursor, as given, and h
 });
 
 test("an entity read whose text would be too large reaches the model as a refusal, with none of the read and no cursor", async () => {
-  const large = "words ".repeat(20_000);
+  const large = "words ".repeat(15_000);
   const other = { ...supplier, entityId: "alice-web~other", label: "Other" };
   const { label: _label, ...unlabelled } = supplier;
   const link = {

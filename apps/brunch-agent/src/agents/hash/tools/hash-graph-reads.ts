@@ -36,12 +36,14 @@ import {
   hashEntityReadResultSchema,
   hashEntityTypeReadDefaultLimit,
   hashEntityTypeReadInputSchema,
+  hashEntityTypeReadOversizedSchema,
   hashEntityTypeReadResultSchema,
   hashEntityTypeSelectorKind,
   hashPropertyBaseUrl,
   hashPropertySlug,
   hashReadDefaultMaxTokens,
   hashReadFailureSchema,
+  hashReadLabelPreviewLength,
   hashReadMaxMaxTokens,
   hashReadMinMaxTokens,
   hashWebReadInputSchema,
@@ -54,6 +56,7 @@ import {
   type HashEntityReadOversized,
   type HashEntityReadResult,
   type HashEntityTypeReadInput,
+  type HashEntityTypeReadOversized,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -61,12 +64,14 @@ import {
   browserResultEnvelope,
 } from "../../../shared/conversation/browser-tool-executor.ts";
 
+const maxFailureErrorLength = 16_000;
+
 /** What the model is shown of a read that failed in HASH's page. */
 const hashReadFailureForModel = (output: unknown) => {
   const parsed = v.safeParse(hashReadFailureSchema, output);
   return parsed.success
     ? {
-        error: parsed.output.error,
+        error: cutShort(parsed.output.error, maxFailureErrorLength),
         note: "The read failed; the document is unchanged.",
       }
     : undefined;
@@ -190,7 +195,7 @@ const cutShort = (text: string, maxLength: number) =>
   text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
 
 /** A label longer than this is cut short in an entity's heading. */
-const labelPreviewLength = 200;
+const labelPreviewLength = hashReadLabelPreviewLength;
 
 const labelClippedNote = `Long labels were shortened at ${labelPreviewLength} characters; read the entity's properties for the full value.`;
 
@@ -258,14 +263,21 @@ const renderValue = (
 const pathContainerOutlineMaxTokens = 8_000;
 
 /**
- * How many tokens `text` costs the model, estimated without a tokenizer: it
- * counts the runs a BPE tokenizer splits text into (a word of up to eight
- * letters with its leading space, up to three digits, up to two other
- * symbols, or a newline). Against OpenAI's o200k it overestimates slightly
- * and never underestimates, the safe side for a bound; a proxy, not a count.
+ * How many tokens `text` costs the model, estimated without a tokenizer:
+ * takes the greater of (a) BPE-shaped runs (ASCII words of up to eight
+ * letters with a leading space, up to three digits, up to two printable ASCII
+ * symbols, individual non-ASCII code points such as CJK/emoji, or newlines)
+ * and (b) a monotonic UTF-8 byte floor (`ceil(byteLength / 4)`), so whitespace
+ * floods (e.g. U+00A0 or ASCII spaces) and dense multi-byte scripts cannot
+ * bypass `maxTokens` or container outlining.
  */
-const estimateTokens = (text: string) =>
-  text.match(/ ?[A-Za-z]{1,8}|\d{1,3}|[^\sA-Za-z\d]{1,2}|\n/gu)?.length ?? 0;
+const estimateTokens = (text: string) => {
+  const bpeRuns =
+    text.match(/ ?[A-Za-z]{1,8}|\d{1,3}|[!-/:-@[-`{-~]{1,2}|\P{ASCII}|\n/gu)
+      ?.length ?? 0;
+  const byteFloor = Math.ceil(byteLength(text) / 4);
+  return Math.max(bpeRuns, byteFloor);
+};
 
 /** At most this many keys are listed where a path stopped. */
 const pathStopKeysShown = 20;
@@ -298,40 +310,43 @@ const valueAtPath = (
           found: false,
           note: `${missing}: it is an array ${here.length === 0 ? "with no items" : `with positions 0 to ${here.length - 1}`}`,
         };
-      here = here[position];
+      here = here.at(position);
     } else if (typeof here === "object" && here !== null) {
-      const keys = Object.keys(here);
+      const entries = Object.entries(here as Record<string, unknown>);
       const stepBaseUrl = index === 0 ? hashPropertyBaseUrl(step) : undefined;
       // The name the read shows (bare or quoted), else the key as in full JSON
       // (or, at step 0, a versioned propertyTypeId reduced to its base URL).
-      const key =
-        keys.find(
-          (candidate) =>
+      const matched =
+        entries.find(
+          ([candidate]) =>
             nameOf(candidate) === step ||
             nameOf(candidate) === plainOrQuoted(step),
         ) ??
-        keys.find(
-          (candidate) =>
+        entries.find(
+          ([candidate]) =>
             candidate === step ||
             (stepBaseUrl !== undefined && candidate === stepBaseUrl),
         );
-      if (key === undefined) {
-        const shown = keys.slice(0, pathStopKeysShown).map(nameOf);
+      if (matched === undefined) {
+        const shown = entries
+          .slice(0, pathStopKeysShown)
+          .map(([candidate]) => nameOf(candidate));
         const moreHint =
           index === 0
             ? "omit fullValuesFor or read the entity to see its top-level properties"
             : "read the parent path to inspect all keys";
         const more =
-          keys.length > shown.length
-            ? `, ${keys.length - shown.length} more (${moreHint})`
+          entries.length > shown.length
+            ? `, ${entries.length - shown.length} more (${moreHint})`
             : "";
         return {
           found: false,
-          note: `${missing}: ${keys.length === 0 ? "it has no keys" : `its keys are ${shown.join(", ")}${more}`}`,
+          note: `${missing}: ${entries.length === 0 ? "it has no keys" : `its keys are ${shown.join(", ")}${more}`}`,
         };
       }
+      const [key, nextValue] = matched;
       matchedKeys.push(key);
-      here = (here as Record<string, unknown>)[key];
+      here = nextValue;
     } else
       return {
         found: false,
@@ -1100,6 +1115,28 @@ const hashEntityTypeReadRefusal = ({
     "- filter by webIds only when you know which web defines the types",
   ].join("\n");
 
+const hashEntityTypeReadOversizedRefusal = ({
+  payloadBytes,
+  types,
+  canUseCursor,
+}: Omit<HashEntityTypeReadOversized, "refused"> & {
+  canUseCursor: boolean;
+}) =>
+  [
+    `Refused: this type read's raw payload was ${formatBytes(payloadBytes)}, over the browser-to-agent transport limit (${formattedMaxPayloadBytes}), so none of it is shown and it gives no cursor.`,
+    `It held ${formatInt(types)} entity ${types === 1 ? "type" : "types"}.`,
+    "Narrow what the browser sends and read again:",
+    ...(types > 1
+      ? [
+          canUseCursor
+            ? `- pass a smaller limit (default ${formattedTypeDefaultPageLimit}, max ${formattedQueryLimit}) and page with cursor`
+            : `- pass a smaller limit (default ${formattedTypeDefaultPageLimit}, max ${formattedQueryLimit}); to paginate with cursor, also pass allVersions: true`,
+        ]
+      : []),
+    `- filter by entityTypeIds (from ${brunchTools.hashCountEntities} or ${brunchTools.hashQueryEntities}) or by titles`,
+    "- filter by webIds only when you know which web defines the types",
+  ].join("\n");
+
 export type HashEntityTypeReadFormatOptions = Pick<
   HashEntityTypeReadInput,
   "entityTypeIds" | "allVersions" | "limit" | "maxTokens"
@@ -1119,6 +1156,18 @@ export const hashEntityTypeReadForModel = (
     hadCursor = false,
   }: HashEntityTypeReadFormatOptions = {},
 ) => {
+  const allExactVersions =
+    entityTypeIds !== undefined &&
+    entityTypeIds.every(
+      (id) => hashEntityTypeSelectorKind(id) === "versionedUrl",
+    );
+  const oversized = v.safeParse(hashEntityTypeReadOversizedSchema, output);
+  if (oversized.success) {
+    return hashEntityTypeReadOversizedRefusal({
+      ...oversized.output,
+      canUseCursor: allVersions || allExactVersions,
+    });
+  }
   const parsed = v.safeParse(hashEntityTypeReadResultSchema, output);
   if (!parsed.success)
     throw new Error(
@@ -1136,11 +1185,6 @@ export const hashEntityTypeReadForModel = (
       ? hashEntityTypeReadEndOfPagesNote
       : hashEntityTypeReadEmptyNote;
   }
-  const allExactVersions =
-    entityTypeIds !== undefined &&
-    entityTypeIds.every(
-      (id) => hashEntityTypeSelectorKind(id) === "versionedUrl",
-    );
   const hasMixedBaseAndVersioned =
     !allVersions &&
     entityTypeIds !== undefined &&

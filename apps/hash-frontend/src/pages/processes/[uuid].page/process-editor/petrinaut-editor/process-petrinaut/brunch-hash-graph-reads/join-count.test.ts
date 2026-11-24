@@ -78,12 +78,20 @@ const links = new Map([
 ]);
 
 describe("the join", () => {
+  const joinComplete = (...args: Parameters<typeof hashEntityJoinCount>) => {
+    const result = hashEntityJoinCount(...args);
+    if ("reason" in result) {
+      throw new Error(`Unexpected work budget stop: ${result.reason}`);
+    }
+    return result;
+  };
+
   test("counts only the order none of whose line items is fulfilled under exists false, and the others under exists true", () => {
-    const none = hashEntityJoinCount({ where: undelivered }, orders, links);
+    const none = joinComplete({ where: undelivered }, orders, links);
     expect(none.ofType).toBe(3);
     expect(none.count).toBe(1);
     expect(none.examples.map(({ entityId }) => entityId)).toEqual(["o1"]);
-    const some = hashEntityJoinCount(
+    const some = joinComplete(
       { where: { ...undelivered, exists: true } },
       orders,
       links,
@@ -94,7 +102,7 @@ describe("the join", () => {
 
   test("applies multiple where conditions with AND semantics and supports 3-hop paths", () => {
     // Orders that have a customer AND are fulfilled (only o2; o3 has no customer, o1 is unfulfilled).
-    const fulfilledWithCustomer = hashEntityJoinCount(
+    const fulfilledWithCustomer = joinComplete(
       {
         where: [
           { path: [hasCustomer], exists: true },
@@ -114,7 +122,7 @@ describe("the join", () => {
       ...links,
       ["Delivered From", [link("df1", "d2", "w1")]],
     ]);
-    const threeHop = hashEntityJoinCount(
+    const threeHop = joinComplete(
       {
         where: {
           path: [
@@ -134,7 +142,7 @@ describe("the join", () => {
 
   test("groups by one step or a multi-hop path, under each reached entity and under none for none", () => {
     expect(
-      hashEntityJoinCount({ groupBy: hasCustomer }, orders, links).groups,
+      joinComplete({ groupBy: hasCustomer }, orders, links).groups,
     ).toEqual(
       new Map([
         ["c1", 2],
@@ -143,14 +151,11 @@ describe("the join", () => {
       ]),
     );
     expect(
-      hashEntityJoinCount(
-        { where: undelivered, groupBy: hasCustomer },
-        orders,
-        links,
-      ).groups,
+      joinComplete({ where: undelivered, groupBy: hasCustomer }, orders, links)
+        .groups,
     ).toEqual(new Map([["c1", 1]]));
     expect(
-      hashEntityJoinCount(
+      joinComplete(
         { groupBy: { path: [hasCustomer, inRegion] } },
         orders,
         links,
@@ -165,7 +170,7 @@ describe("the join", () => {
   });
 
   test("follows links literally by direction, and a link reaches its other end whether or not it was read", () => {
-    const incoming = hashEntityJoinCount(
+    const incoming = joinComplete(
       {
         where: {
           path: [{ ...hasCustomer, direction: "incoming" }],
@@ -176,7 +181,7 @@ describe("the join", () => {
       links,
     );
     expect(incoming.examples.map(({ entityId }) => entityId)).toEqual(["c1"]);
-    const reachesUnread = hashEntityJoinCount(
+    const reachesUnread = joinComplete(
       { where: { path: [hasCustomer], exists: true } },
       orders,
       links,
@@ -187,16 +192,119 @@ describe("the join", () => {
   test("honors default and custom maxExamples, including 0", () => {
     const many = Array.from({ length: 5 }, (_, index) => record(`o${index}`));
     expect(
-      hashEntityJoinCount({ groupBy: hasCustomer }, many, links).examples,
+      joinComplete({ groupBy: hasCustomer }, many, links).examples,
     ).toHaveLength(3);
     expect(
-      hashEntityJoinCount({ groupBy: hasCustomer, maxExamples: 0 }, many, links)
+      joinComplete({ groupBy: hasCustomer, maxExamples: 0 }, many, links)
         .examples,
     ).toHaveLength(0);
     expect(
-      hashEntityJoinCount({ groupBy: hasCustomer, maxExamples: 5 }, many, links)
+      joinComplete({ groupBy: hasCustomer, maxExamples: 5 }, many, links)
         .examples,
     ).toHaveLength(5);
+  });
+
+  test("evaluates hub-shaped incoming->outgoing where and groupBy in linear time without O(N*M) expansion", () => {
+    const leafCount = 9_000;
+    const leaves = Array.from({ length: leafCount }, (_, index) =>
+      record(`leaf-${index}`),
+    );
+    const hubLinks = Array.from({ length: leafCount }, (_, index) =>
+      link(`hl-${index}`, "hub", `leaf-${index}`),
+    );
+    const hubLinkMap = new Map([["Hub Link", hubLinks]]);
+    const incomingThenOutgoing = [
+      { linkType: "Hub Link", direction: "incoming" as const },
+      { linkType: "Hub Link", direction: "outgoing" as const },
+    ];
+
+    const start = performance.now();
+    const joined = hashEntityJoinCount(
+      {
+        where: { path: incomingThenOutgoing, exists: true },
+        groupBy: { path: incomingThenOutgoing },
+      },
+      leaves,
+      hubLinkMap,
+    );
+    const elapsedMs = performance.now() - start;
+
+    expect("reason" in joined).toBe(false);
+    if ("reason" in joined) {
+      return;
+    }
+    expect(joined.count).toBe(leafCount);
+    expect(joined.groups?.size).toBe(leafCount);
+    expect(joined.groups?.get("leaf-0")).toBe(leafCount);
+    expect(joined.groups?.get(`leaf-${leafCount - 1}`)).toBe(leafCount);
+    expect(elapsedMs).toBeLessThan(500);
+  });
+
+  test("deduplicates overlapping multi-branch diamond groupBy paths and stops cleanly when expansion work exceeds budget or is aborted", () => {
+    // Each order o0..o4 reaches BOTH h1 and h2; both h1 and h2 reach t1 and t2.
+    const diamondOrders = Array.from({ length: 5 }, (_, index) =>
+      record(`o${index}`),
+    );
+    const diamondLinks = new Map([
+      [
+        "To Hub",
+        diamondOrders.flatMap(({ entityId }) => [
+          link(`th-${entityId}-1`, entityId, "h1"),
+          link(`th-${entityId}-2`, entityId, "h2"),
+        ]),
+      ],
+      [
+        "To Target",
+        [
+          link("tt-1-1", "h1", "t1"),
+          link("tt-1-2", "h1", "t2"),
+          link("tt-2-1", "h2", "t1"),
+          link("tt-2-2", "h2", "t2"),
+        ],
+      ],
+    ]);
+    const diamondGroupBy = {
+      path: [
+        { linkType: "To Hub", direction: "outgoing" as const },
+        { linkType: "To Target", direction: "outgoing" as const },
+      ],
+    };
+
+    const exact = hashEntityJoinCount(
+      { groupBy: diamondGroupBy },
+      diamondOrders,
+      diamondLinks,
+    );
+    expect("reason" in exact).toBe(false);
+    if (!("reason" in exact)) {
+      expect(exact.groups).toEqual(
+        new Map([
+          ["t1", 5],
+          ["t2", 5],
+        ]),
+      );
+    }
+
+    const stopped = hashEntityJoinCount(
+      { groupBy: diamondGroupBy },
+      diamondOrders,
+      diamondLinks,
+      { maxExpansionSteps: 5 },
+    );
+    expect(stopped).toEqual({
+      reason: expect.stringContaining("expansion limit"),
+    });
+
+    const controller = new AbortController();
+    controller.abort(new Error("cancelled join"));
+    expect(() =>
+      hashEntityJoinCount(
+        { groupBy: diamondGroupBy },
+        diamondOrders,
+        diamondLinks,
+        { signal: controller.signal },
+      ),
+    ).toThrow("cancelled join");
   });
 
   test("plans counted selector, distinct links, and safe single-direction step-0 endpoint anchors", () => {
@@ -708,5 +816,167 @@ describe("the paged read", () => {
         controller.signal,
       ),
     ).rejects.toThrow("aborted");
+  });
+
+  test("short-circuits to 0 without sizing or reading links when no counted entities match", async () => {
+    const graph: HashJoinGraph<string> = {
+      size: vi.fn<HashJoinGraph<string>["size"]>((selector) => {
+        if (selector.entityTypes?.[0] === "Sales Order") {
+          return Promise.resolve(0);
+        }
+        return Promise.reject(new Error("link size should not be queried"));
+      }),
+      page: vi.fn<HashJoinGraph<string>["page"]>(() =>
+        Promise.reject(new Error("no pages should be read")),
+      ),
+    };
+    const result = await runHashEntityJoinCount(
+      { ...salesOrders, where: undelivered, groupBy: hasCustomer },
+      "default",
+      graph,
+      signal,
+    );
+    expect(result).toEqual({
+      outcome: "counted",
+      webScope: "default",
+      ofType: 0,
+      count: 0,
+      groups: [],
+      examples: [],
+      reads: [{ role: "counted", entityTypes: ["Sales Order"], entities: 0 }],
+      requests: 1,
+    });
+    expect(graph.size).toHaveBeenCalledTimes(1);
+    expect(graph.page).not.toHaveBeenCalled();
+  });
+
+  test("short-circuits to 0 without paging or refusing when an exists:true where step has size 0", async () => {
+    const graph: HashJoinGraph<string> = {
+      size: vi.fn<HashJoinGraph<string>["size"]>((selector) => {
+        const type = selector.entityTypes?.[0];
+        if (type === "Sales Order") {
+          return Promise.resolve(500);
+        }
+        if (type === "Has Line Item") {
+          return Promise.resolve(50_000);
+        }
+        if (type === "Fulfills") {
+          return Promise.resolve(0);
+        }
+        return Promise.resolve(0);
+      }),
+      page: vi.fn<HashJoinGraph<string>["page"]>(() =>
+        Promise.reject(new Error("no pages should be read")),
+      ),
+    };
+    const result = await runHashEntityJoinCount(
+      {
+        ...salesOrders,
+        where: { path: [hasLineItem, fulfilledBy], exists: true },
+        groupBy: hasCustomer,
+      },
+      "default",
+      graph,
+      signal,
+    );
+    expect(result).toEqual({
+      outcome: "counted",
+      webScope: "default",
+      ofType: 500,
+      count: 0,
+      groups: [],
+      examples: [],
+      reads: [
+        { role: "counted", entityTypes: ["Sales Order"], entities: 0 },
+        { role: "link", entityTypes: ["Has Line Item"], entities: 0 },
+        { role: "link", entityTypes: ["Fulfills"], entities: 0 },
+        { role: "link", entityTypes: ["Has Customer"], entities: 0 },
+      ],
+      requests: 4,
+    });
+    expect(graph.page).not.toHaveBeenCalled();
+  });
+
+  test("skips paging link types whose size is already 0 under exists:false", async () => {
+    const graph = fakeGraph(
+      new Map([
+        ["Sales Order", [record("o1"), record("o2")]],
+        ["Has Line Item", [link("l1", "o1", "i1")]],
+        ["Fulfills", []],
+      ]),
+      { pageSize: 1000 },
+    );
+    const result = await runHashEntityJoinCount(
+      { ...salesOrders, where: undelivered },
+      "default",
+      graph,
+      signal,
+    );
+    expect(result).toMatchObject({
+      outcome: "counted",
+      ofType: 2,
+      count: 2,
+      reads: [
+        { role: "counted", entityTypes: ["Sales Order"], entities: 2 },
+        { role: "link", entityTypes: ["Has Line Item"], entities: 1 },
+        { role: "link", entityTypes: ["Fulfills"], entities: 0 },
+      ],
+      // 3 sizes + 2 page reads (Fulfills size 0 is not paged).
+      requests: 5,
+    });
+    expect(
+      graph.page.mock.calls.some(
+        ([selector]) =>
+          "entityTypes" in selector && selector.entityTypes?.[0] === "Fulfills",
+      ),
+    ).toBe(false);
+  });
+
+  test("settles incomplete with no count when multi-hop groupBy exceeds the expansion budget", async () => {
+    const diamondOrders = Array.from({ length: 5 }, (_, index) =>
+      record(`o${index}`),
+    );
+    const graph = fakeGraph(
+      new Map([
+        ["Sales Order", diamondOrders],
+        [
+          "To Hub",
+          diamondOrders.flatMap(({ entityId }) => [
+            link(`th-${entityId}-1`, entityId, "h1"),
+            link(`th-${entityId}-2`, entityId, "h2"),
+          ]),
+        ],
+        [
+          "To Target",
+          [
+            link("tt-1-1", "h1", "t1"),
+            link("tt-1-2", "h1", "t2"),
+            link("tt-2-1", "h2", "t1"),
+            link("tt-2-2", "h2", "t2"),
+          ],
+        ],
+      ]),
+      { pageSize: 1000 },
+    );
+    const result = await runHashEntityJoinCount(
+      {
+        ...salesOrders,
+        groupBy: {
+          path: [
+            { linkType: "To Hub", direction: "outgoing" },
+            { linkType: "To Target", direction: "outgoing" },
+          ],
+        },
+      },
+      "default",
+      graph,
+      signal,
+      { maxExpansionSteps: 5 },
+    );
+    expect(result).toMatchObject({
+      outcome: "incomplete",
+      reason: expect.stringContaining("expansion limit"),
+    });
+    expect("count" in result).toBe(false);
   });
 });

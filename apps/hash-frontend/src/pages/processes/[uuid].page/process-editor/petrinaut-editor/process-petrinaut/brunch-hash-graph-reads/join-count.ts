@@ -190,6 +190,206 @@ const stepIndex = (links: readonly HashJoinEntity[]) => {
   return { outgoing, incoming };
 };
 
+type StepIndex = ReturnType<typeof stepIndex>;
+
+/**
+ * Maximum expansion steps allowed while grouping across multi-hop links before
+ * settling `incomplete` instead of stalling the editor's main thread. All
+ * `where` conditions, 1-step `groupBy`, and hub graphs with single-node
+ * intermediate frontiers run in linear time and stay far below this cap.
+ */
+export const hashEntityCountMaxGroupExpansionSteps = 2_000_000;
+
+/**
+ * Exact set of entity IDs from which `path` reaches at least one entity,
+ * computed by backward reachability from the final step to step 0 in
+ * O(sum(|V| + |E|)) time — avoiding O(N*M) hub blow-ups.
+ */
+const reachableSourcesForPath = (
+  path: readonly HashEntityCountStep[],
+  indexes: ReadonlyMap<string, StepIndex>,
+): ReadonlySet<string> => {
+  const lastStep = path.at(-1);
+  if (lastStep === undefined) {
+    return new Set();
+  }
+  const lastEdges = indexes.get(lastStep.linkType)?.[lastStep.direction];
+  let reachable = new Set<string>(
+    lastEdges === undefined ? [] : lastEdges.keys(),
+  );
+  for (
+    let hopIndex = path.length - 2;
+    hopIndex >= 0 && reachable.size > 0;
+    hopIndex--
+  ) {
+    const step = path[hopIndex];
+    if (step === undefined) {
+      continue;
+    }
+    const reverseDirection =
+      step.direction === "outgoing" ? "incoming" : "outgoing";
+    const reverseEdges = indexes.get(step.linkType)?.[reverseDirection];
+    if (reverseEdges === undefined) {
+      return new Set();
+    }
+    const previous = new Set<string>();
+    for (const target of reachable) {
+      const sources = reverseEdges.get(target);
+      if (sources !== undefined) {
+        for (const source of sources) {
+          previous.add(source);
+        }
+      }
+    }
+    reachable = previous;
+  }
+  return reachable;
+};
+
+/** Options controlling CPU work bounds and cancellation for `hashEntityJoinCount`. */
+export type HashEntityJoinCountOptions = {
+  readonly maxExpansionSteps?: number;
+  readonly signal?: AbortSignal;
+};
+
+export type HashEntityJoinCountOutcome =
+  | {
+      readonly ofType: number;
+      readonly count: number;
+      readonly examples: HashJoinEntity[];
+      readonly groups?: Map<string | null, number>;
+    }
+  | ReadStop;
+
+const abortErrorFrom = (signal: AbortSignal): Error =>
+  signal.reason instanceof Error
+    ? signal.reason
+    : new Error("The HASH count was cancelled.");
+
+/**
+ * Groups `qualifying` entities along `groupSteps` using iterative per-step
+ * frontier collapse: any entities sharing a single intermediate node at a hop
+ * merge their weights so hub graphs expand in O(|Q| + |E|) time, while genuine
+ * overlapping multi-branch frontiers stay bounded by `maxExpansionSteps`.
+ */
+const groupQualifyingByPath = (
+  qualifying: readonly HashJoinEntity[],
+  groupSteps: readonly HashEntityCountStep[],
+  indexes: ReadonlyMap<string, StepIndex>,
+  options?: HashEntityJoinCountOptions,
+): Map<string | null, number> | ReadStop => {
+  const groups = new Map<string | null, number>();
+  const stepLimit =
+    options?.maxExpansionSteps ?? hashEntityCountMaxGroupExpansionSteps;
+  const signal = options?.signal;
+  let workSteps = 0;
+
+  const consumeWork = (delta: number): ReadStop | undefined => {
+    workSteps += delta;
+    if (signal?.aborted) {
+      throw abortErrorFrom(signal);
+    }
+    if (workSteps > stepLimit) {
+      return {
+        reason: `Grouping across links exceeded the ${stepLimit.toLocaleString("en-US")}-step expansion limit on the page: narrow the counted set, shorten the groupBy path, or group on one hop.`,
+      };
+    }
+    return undefined;
+  };
+
+  let singleWeights = new Map<string, number>();
+  for (const entity of qualifying) {
+    singleWeights.set(
+      entity.entityId,
+      (singleWeights.get(entity.entityId) ?? 0) + 1,
+    );
+  }
+  let multiBranches: {
+    readonly frontier: readonly string[];
+    readonly weight: number;
+  }[] = [];
+  let ungroupedCount = 0;
+
+  for (let hopIndex = 0; hopIndex < groupSteps.length; hopIndex++) {
+    const step = groupSteps[hopIndex];
+    if (step === undefined) {
+      continue;
+    }
+    const endsMap = indexes.get(step.linkType)?.[step.direction];
+    const isLast = hopIndex === groupSteps.length - 1;
+    const nextSingle = new Map<string, number>();
+    const nextMulti: {
+      readonly frontier: readonly string[];
+      readonly weight: number;
+    }[] = [];
+
+    for (const [nodeId, weight] of singleWeights) {
+      const raw = endsMap?.get(nodeId);
+      if (raw === undefined || raw.length === 0) {
+        ungroupedCount += weight;
+        continue;
+      }
+      const stop = consumeWork(raw.length);
+      if (stop !== undefined) {
+        return stop;
+      }
+      const unique = raw.length === 1 ? raw : [...new Set(raw)];
+      if (isLast) {
+        for (const target of unique) {
+          groups.set(target, (groups.get(target) ?? 0) + weight);
+        }
+      } else if (unique.length === 1) {
+        const [only] = unique;
+        if (only !== undefined) {
+          nextSingle.set(only, (nextSingle.get(only) ?? 0) + weight);
+        }
+      } else {
+        nextMulti.push({ frontier: unique, weight });
+      }
+    }
+
+    for (const { frontier, weight } of multiBranches) {
+      const nextSet = new Set<string>();
+      for (const nodeId of frontier) {
+        const raw = endsMap?.get(nodeId);
+        const stop = consumeWork(
+          raw === undefined || raw.length === 0 ? 1 : raw.length,
+        );
+        if (stop !== undefined) {
+          return stop;
+        }
+        if (raw !== undefined) {
+          for (const target of raw) {
+            nextSet.add(target);
+          }
+        }
+      }
+      if (nextSet.size === 0) {
+        ungroupedCount += weight;
+      } else if (isLast) {
+        for (const target of nextSet) {
+          groups.set(target, (groups.get(target) ?? 0) + weight);
+        }
+      } else if (nextSet.size === 1) {
+        const [only] = nextSet;
+        if (only !== undefined) {
+          nextSingle.set(only, (nextSingle.get(only) ?? 0) + weight);
+        }
+      } else {
+        nextMulti.push({ frontier: [...nextSet], weight });
+      }
+    }
+
+    singleWeights = nextSingle;
+    multiBranches = nextMulti;
+  }
+
+  if (ungroupedCount > 0) {
+    groups.set(null, ungroupedCount);
+  }
+  return groups;
+};
+
 /**
  * The join, pure: the counted entities that qualify under every `where`
  * condition, up to `maxExamples` of them as examples, and with `groupBy` their
@@ -197,42 +397,47 @@ const stepIndex = (links: readonly HashJoinEntity[]) => {
  * reaching none). A step follows `linkData` literally: outgoing from left to
  * right, incoming from right to left. A link reaches its other end whether or
  * not that entity was read: the link's existence is what `exists` tests.
+ * Returns a `ReadStop` if multi-hop grouping exceeds `maxExpansionSteps`.
  */
 export const hashEntityJoinCount = (
   { where, groupBy, maxExamples }: JoinInput,
   counted: readonly HashJoinEntity[],
   linksByType: ReadonlyMap<string, readonly HashJoinEntity[]>,
-) => {
+  options?: HashEntityJoinCountOptions,
+): HashEntityJoinCountOutcome => {
+  if (options?.signal?.aborted) {
+    throw abortErrorFrom(options.signal);
+  }
   const indexes = new Map(
     [...linksByType].map(([linkType, links]) => [linkType, stepIndex(links)]),
   );
-  const follow = (from: readonly string[], step: HashEntityCountStep) => {
-    const ends = indexes.get(step.linkType)?.[step.direction];
-    return [...new Set(from.flatMap((id) => ends?.get(id) ?? []))];
-  };
-  const conditions = hashEntityCountWhereConditions(where);
-  const qualifying = counted.filter((entity) =>
-    conditions.every((condition) => {
-      const reached = condition.path.reduce<string[]>(
-        (ids, step) => follow(ids, step),
-        [entity.entityId],
-      );
-      return reached.length > 0 === condition.exists;
-    }),
-  );
+  const conditions = hashEntityCountWhereConditions(where).map((condition) => ({
+    exists: condition.exists,
+    reachable: reachableSourcesForPath(condition.path, indexes),
+  }));
+  const qualifying =
+    conditions.length === 0
+      ? [...counted]
+      : counted.filter((entity) =>
+          conditions.every(
+            ({ exists, reachable }) =>
+              reachable.has(entity.entityId) === exists,
+          ),
+        );
+
   let groups: Map<string | null, number> | undefined;
   const groupSteps = hashEntityCountGroupByPath(groupBy);
   if (groupSteps.length > 0) {
-    groups = new Map();
-    for (const entity of qualifying) {
-      const ends = groupSteps.reduce<string[]>(
-        (ids, step) => follow(ids, step),
-        [entity.entityId],
-      );
-      for (const end of ends.length === 0 ? [null] : ends) {
-        groups.set(end, (groups.get(end) ?? 0) + 1);
-      }
+    const grouped = groupQualifyingByPath(
+      qualifying,
+      groupSteps,
+      indexes,
+      options,
+    );
+    if ("reason" in grouped) {
+      return grouped;
     }
+    groups = grouped;
   }
   const exampleLimit = maxExamples ?? hashEntityCountDefaultExamples;
   return {
@@ -408,6 +613,7 @@ export const runHashEntityJoinCount = async <Cursor>(
   webScope: HashWebScope,
   graph: HashJoinGraph<Cursor>,
   signal: AbortSignal,
+  options?: Pick<HashEntityJoinCountOptions, "maxExpansionSteps">,
 ): Promise<HashEntityCountJoinResult> => {
   const maxJoinEntities =
     input.maxJoinEntities ?? hashEntityCountDefaultJoinEntities;
@@ -430,17 +636,64 @@ export const runHashEntityJoinCount = async <Cursor>(
   }));
   let requests = 0;
 
-  const sizes = await Promise.all([
-    graph.size(plan.counted, signal),
-    ...linkPlans.map(({ selector }) => graph.size(selector, signal)),
-  ]);
-  requests += sizes.length;
-  const toRead = [countedName, ...linkPlans.map(({ name }) => name)].map(
-    (name, index) => ({
-      ...name,
-      entities: sizes[index] ?? 0,
-    }),
+  const countedSize = await graph.size(plan.counted, signal);
+  requests += 1;
+  if (countedSize === 0) {
+    return {
+      outcome: "counted",
+      webScope,
+      ofType: 0,
+      count: 0,
+      ...(input.groupBy === undefined ? {} : { groups: [] }),
+      examples: [],
+      reads: [{ ...countedName, entities: 0 }],
+      requests,
+    };
+  }
+
+  const linkSizes = await Promise.all(
+    linkPlans.map(({ selector }) => graph.size(selector, signal)),
   );
+  requests += linkSizes.length;
+  const linkSizeByType = new Map(
+    linkPlans.map(({ name }, index) => [
+      name.entityTypes[0] ?? "",
+      linkSizes[index] ?? 0,
+    ]),
+  );
+
+  // Every `where` condition is ANDed: if any `exists: true` step has 0 links
+  // at the pinned snapshot, no counted entity can qualify.
+  const impossibleExists = hashEntityCountWhereConditions(input.where).some(
+    (condition) =>
+      condition.exists &&
+      condition.path.some(
+        (step) => (linkSizeByType.get(step.linkType) ?? 0) === 0,
+      ),
+  );
+  if (impossibleExists) {
+    return {
+      outcome: "counted",
+      webScope,
+      ofType: countedSize,
+      count: 0,
+      ...(input.groupBy === undefined ? {} : { groups: [] }),
+      examples: [],
+      reads: [
+        { ...countedName, entities: 0 },
+        ...linkPlans.map(({ name }) => ({ ...name, entities: 0 })),
+      ],
+      requests,
+    };
+  }
+
+  const toRead: JoinRead[] = [
+    { ...countedName, entities: countedSize },
+    ...linkPlans.map(({ name }, index) => ({
+      ...name,
+      entities: linkSizes[index] ?? 0,
+    })),
+  ];
   if (
     toRead.reduce((sum, { entities }) => sum + entities, 0) > maxJoinEntities
   ) {
@@ -474,7 +727,11 @@ export const runHashEntityJoinCount = async <Cursor>(
   };
   const [counted, ...links] = await Promise.all([
     readAll(plan.counted, countedName, budget),
-    ...linkPlans.map(({ selector, name }) => readAll(selector, name, budget)),
+    ...linkPlans.map(({ selector, name }, index) =>
+      (linkSizes[index] ?? 0) === 0
+        ? Promise.resolve({ ...name, read: [] as HashJoinEntity[] })
+        : readAll(selector, name, budget),
+    ),
   ]);
   const reads: JoinRead[] = [counted, ...links].map(
     ({ role, entityTypes, read }) => ({
@@ -502,7 +759,16 @@ export const runHashEntityJoinCount = async <Cursor>(
         entityTypes.map((linkType) => [linkType, read] as const),
       ),
     ),
+    {
+      ...(options?.maxExpansionSteps === undefined
+        ? {}
+        : { maxExpansionSteps: options.maxExpansionSteps }),
+      signal,
+    },
   );
+  if ("reason" in joined) {
+    return incomplete(joined.reason);
+  }
 
   let groups: CountedResult["groups"];
   let otherGroups: CountedResult["otherGroups"];

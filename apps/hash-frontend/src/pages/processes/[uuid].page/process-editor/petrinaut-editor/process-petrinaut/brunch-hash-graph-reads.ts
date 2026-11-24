@@ -22,6 +22,7 @@ import {
   type HashEntityReadOversized,
   type HashEntityReadResult,
   type HashEntityTypeReadInput,
+  type HashEntityTypeReadOversized,
   type HashEntityTypeReadResult,
   type HashReadFailure,
   type HashWebReadResult,
@@ -34,6 +35,7 @@ import {
   hashIsPublishedVersionedUrl,
   hashPropertyBaseUrl,
   hashPropertySlug,
+  hashReadLabelPreviewLength,
   parseHashEntityCountInput,
   parseHashEntityReadInput,
   parseHashEntityTypeReadInput,
@@ -491,20 +493,20 @@ const projectEntityProperties = (
       ? [entry.path[0]]
       : [],
   );
-  const projected: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(properties)) {
-    const keptBySelection = selectedBaseUrls.has(key);
-    const keptByPath = pathFirstSteps.some(
-      (step) =>
-        key === step ||
-        key === hashPropertyBaseUrl(step) ||
-        hashPropertySlug(key) === step,
-    );
-    if (keptBySelection || keptByPath) {
-      projected[key] = value;
-    }
-  }
-  return projected;
+  // Build via `Object.fromEntries` (`CreateDataPropertyOrThrow`) so an own
+  // `"__proto__"` property key never mutates the projected object's prototype.
+  return Object.fromEntries(
+    Object.entries(properties).filter(
+      ([key]) =>
+        selectedBaseUrls.has(key) ||
+        pathFirstSteps.some(
+          (step) =>
+            key === step ||
+            key === hashPropertyBaseUrl(step) ||
+            hashPropertySlug(key) === step,
+        ),
+    ),
+  );
 };
 
 /**
@@ -653,6 +655,9 @@ export type QueryEntitySubgraph = (
   signal: AbortSignal,
 ) => Promise<QueryEntitySubgraphQuery>;
 
+const serializedPayloadBytes = (value: unknown) =>
+  new TextEncoder().encode(JSON.stringify(value)).length;
+
 /**
  * A read whose query failed settles with the failure's message, so the agent
  * can tell the model why. A cancelled call still rejects: nobody awaits it.
@@ -721,9 +726,7 @@ export const createHashEntityReadTool = (
             fullValuesFor: readInput.fullValuesFor,
           },
         );
-        const payloadBytes = new TextEncoder().encode(
-          JSON.stringify(result),
-        ).length;
+        const payloadBytes = serializedPayloadBytes(result);
         if (payloadBytes > hashEntityReadMaxPayloadBytes) {
           const matched = result.entities.filter(
             (entity) => entity.matched,
@@ -850,6 +853,9 @@ export const hashEntityTypeReadRequest = (
         ),
       ],
     },
+    // `QueryEntityTypesResponse` exposes no server-resolved `temporalAxes`, so
+    // paginated type reads (`allVersions: true` or exact versioned URLs) resolve
+    // live `now` per page rather than pinning a potentially skewed browser clock.
     temporalAxes: currentTimeInstantTemporalAxes,
     includeEntityTypes: "resolved",
     limit: input.limit ?? hashEntityTypeReadDefaultLimit,
@@ -948,10 +954,27 @@ export const createHashEntityTypeReadTool = (
     }
     const usesLatestFilter = typeReadUsesLatestFilter(typeInput);
     const request = hashEntityTypeReadRequest(typeInput, after);
-    return settlingQueryFailure(signal, async () =>
-      hashEntityTypeReadResult(await queryEntityTypes(request, signal), {
-        usesLatestFilter,
-      }),
+    return settlingQueryFailure(
+      signal,
+      async (): Promise<
+        HashEntityTypeReadResult | HashEntityTypeReadOversized
+      > => {
+        const result = hashEntityTypeReadResult(
+          await queryEntityTypes(request, signal),
+          {
+            usesLatestFilter,
+          },
+        );
+        const payloadBytes = serializedPayloadBytes(result);
+        if (payloadBytes > hashEntityReadMaxPayloadBytes) {
+          return {
+            refused: true as const,
+            payloadBytes,
+            types: result.entityTypes.length,
+          };
+        }
+        return result;
+      },
     );
   },
 });
@@ -1067,7 +1090,9 @@ const hashEntityCountResult = (
     webs: webIds.map((webId) => ({
       ...known.get(webId),
       webId,
-      count: webCounts[webId as keyof typeof webCounts] ?? 0,
+      count: Object.hasOwn(webCounts, webId)
+        ? (webCounts[webId as keyof typeof webCounts] ?? 0)
+        : 0,
     })),
   };
 };
@@ -1080,10 +1105,11 @@ export type SummarizeEntities = (
 
 /**
  * The graph as a count by links reaches it (`runHashEntityJoinCount`):
- * count-only `summarizeEntities` for `size`, and direct minimal projection of
- * `queryEntitySubgraph` for `page` with an opaque pinned-timestamp cursor
- * (no base64url round-trip, no `propertyTypes`/`entityTypes` maps, and no raw
- * properties retained in memory). Non-id reads stay in `webScope`; grouped id
+ * resolves one server-clock `QueryTemporalAxes` snapshot via a `limit: 0`
+ * subgraph probe and reuses that exact pinned snapshot across every
+ * `summarizeEntities` (`size`) and `queryEntitySubgraph` (`page`) call of the
+ * join, so concurrent edits between requests cannot fabricate phantom paths
+ * or drift `size` against `page`. Non-id reads stay in `webScope`; grouped id
  * reads span any web and mark entities outside the user's webs `external`.
  */
 const hashJoinGraph = (
@@ -1095,17 +1121,37 @@ const hashJoinGraph = (
     includeDrafts,
     includeArchived,
   }: { readonly includeDrafts: boolean; readonly includeArchived: boolean },
-): HashJoinGraph<HashEntityReadCursor> => {
+): HashJoinGraph<EntityQueryCursor> => {
   const ownWebIds = ownWebIdsOf(user);
+  let snapshotPromise: Promise<QueryTemporalAxes> | undefined;
+  const resolveSnapshot = (signal: AbortSignal): Promise<QueryTemporalAxes> => {
+    snapshotPromise ??= queryEntitySubgraph(
+      {
+        filter: { all: [] },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        traversalPaths: [],
+        includeDrafts: false,
+        includePermissions: false,
+        limit: 0,
+      },
+      signal,
+    ).then(
+      (response) =>
+        deserializeQueryEntitySubgraphResponse(response.queryEntitySubgraph)
+          .subgraph.temporalAxes.resolved,
+    );
+    return snapshotPromise;
+  };
   return {
     size: async (selector, signal) => {
       if (webScope.webIds.length === 0) {
         throw new Error("An entity count's web scope can't be empty.");
       }
+      const temporalAxes = await resolveSnapshot(signal);
       const response = await summarizeEntities(
         {
           filter: entityCountFilter(selector, webScope.webIds, includeArchived),
-          temporalAxes: currentTimeInstantTemporalAxes,
+          temporalAxes,
           includeDrafts,
           includeCount: true,
         },
@@ -1117,7 +1163,8 @@ const hashJoinGraph = (
       }
       return count;
     },
-    page: async (selector, limit, pageCursor, signal) => {
+    page: async (selector, limit, cursor, signal) => {
+      const temporalAxes = await resolveSnapshot(signal);
       // For grouped entity ID lookups, `linkData` already carries the exact
       // target `entityId` (live or draft), so always match that exact edition
       // rather than fetching unrelated draft editions of live entities.
@@ -1136,20 +1183,22 @@ const hashJoinGraph = (
           : entityCountFilter(selector, webScope.webIds, includeArchived);
       const request: QueryEntitySubgraphRequest = {
         filter,
-        temporalAxes:
-          pageCursor?.temporalAxes ?? currentTimeInstantTemporalAxes,
+        temporalAxes,
         traversalPaths: [],
         includeDrafts,
         includePermissions: false,
         includeEntityTypes: "resolved",
         limit,
-        ...(pageCursor === undefined ? {} : { cursor: pageCursor.cursor }),
+        ...(cursor === undefined ? {} : { cursor }),
       };
 
-      const { subgraph, closedMultiEntityTypes, cursor } =
-        deserializeQueryEntitySubgraphResponse(
-          (await queryEntitySubgraph(request, signal)).queryEntitySubgraph,
-        );
+      const {
+        subgraph,
+        closedMultiEntityTypes,
+        cursor: nextCursor,
+      } = deserializeQueryEntitySubgraphResponse(
+        (await queryEntitySubgraph(request, signal)).queryEntitySubgraph,
+      );
       const entities: HashJoinEntity[] = getEntities(subgraph, false)
         .filter(
           (entity) =>
@@ -1164,10 +1213,19 @@ const hashJoinGraph = (
             closedMultiEntityTypes,
             entity.metadata.entityTypeIds,
           );
-          const label =
+          const rawLabel =
             closedType === undefined
               ? undefined
               : generateEntityLabel(closedType, entity);
+          // Join counts always clip display labels at `hashReadLabelPreviewLength`
+          // server-side; keeping one extra character preserves `isLongLabel`
+          // detection while keeping up to 500 grouped labels well under 12 MiB.
+          const label =
+            rawLabel === undefined
+              ? undefined
+              : rawLabel.length > hashReadLabelPreviewLength + 1
+                ? rawLabel.slice(0, hashReadLabelPreviewLength + 1)
+                : rawLabel;
           const { linkData } = entity;
           return {
             entityId,
@@ -1183,20 +1241,25 @@ const hashJoinGraph = (
                 }),
           };
         });
-      const resolvedTemporalAxes = subgraph.temporalAxes.resolved;
       return {
         entities,
-        ...(cursor === undefined || cursor === null
+        ...(nextCursor === undefined || nextCursor === null
           ? {}
-          : {
-              cursor: {
-                cursor,
-                temporalAxes: resolvedTemporalAxes,
-              },
-            }),
+          : { cursor: nextCursor }),
       };
     },
   };
+};
+
+const guardCountPayload = <Result>(
+  result: Result,
+): Result | HashReadFailure => {
+  const payloadBytes = serializedPayloadBytes(result);
+  return payloadBytes > hashEntityReadMaxPayloadBytes
+    ? {
+        error: `This count's raw payload (${(payloadBytes / 1_000_000).toFixed(1)} MB) exceeded the ${(hashEntityReadMaxPayloadBytes / 1_000_000).toFixed(1)} MB browser-to-agent transport limit; narrow by entityTypes, webIds, or propertyEquals.`,
+      }
+    : result;
 };
 
 /**
@@ -1204,7 +1267,7 @@ const hashJoinGraph = (
  * request over the webs in scope, or with `where` or `groupBy` a count by
  * links (`runHashEntityJoinCount`), read page by page in the same webs and
  * joined here. An input the agent's contract doesn't allow rejects; a failed
- * query, or no user to scope to, settles `{ error }`.
+ * query, an oversized wire payload, or no user to scope to, settles `{ error }`.
  */
 export const createHashEntityCountTool = (
   summarizeEntities: SummarizeEntities,
@@ -1222,30 +1285,34 @@ export const createHashEntityCountTool = (
       return webScope;
     }
     if (countInput.where !== undefined || countInput.groupBy !== undefined) {
-      return settlingQueryFailure(signal, () =>
-        runHashEntityJoinCount(
-          countInput,
-          webScope.scope,
-          hashJoinGraph(
-            summarizeEntities,
-            queryEntitySubgraph,
-            webScope,
-            user,
-            {
-              includeDrafts: countInput.includeDrafts === true,
-              includeArchived: countInput.includeArchived === true,
-            },
+      return settlingQueryFailure(signal, async () =>
+        guardCountPayload(
+          await runHashEntityJoinCount(
+            countInput,
+            webScope.scope,
+            hashJoinGraph(
+              summarizeEntities,
+              queryEntitySubgraph,
+              webScope,
+              user,
+              {
+                includeDrafts: countInput.includeDrafts === true,
+                includeArchived: countInput.includeArchived === true,
+              },
+            ),
+            signal,
           ),
-          signal,
         ),
       );
     }
     const request = hashEntityCountRequest(countInput, webScope.webIds);
     return settlingQueryFailure(signal, async () =>
-      hashEntityCountResult(
-        await summarizeEntities(request, signal),
-        webScope,
-        user,
+      guardCountPayload(
+        hashEntityCountResult(
+          await summarizeEntities(request, signal),
+          webScope,
+          user,
+        ),
       ),
     );
   },
