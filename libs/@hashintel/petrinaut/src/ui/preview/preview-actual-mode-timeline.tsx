@@ -3,7 +3,7 @@ import { use } from "react";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ExecutionFrameSourceContext } from "../../react/execution-frame/context";
-import { ActualTimeline } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/actual";
+import { ActualTimeline } from "../views/Editor/panels/BottomPanel/subviews/timeline/actual-timeline";
 import { floatingBarStyle } from "./floating-bar-style";
 
 // The width Quick Simulation's playback bar takes once its timeline is expanded.

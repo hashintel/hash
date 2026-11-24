@@ -45,13 +45,13 @@ vi.mock("../views/SDCPN/sdcpn-view", async () => {
 
 /* The timelines' chart needs a browser's canvas. */
 vi.mock(
-  "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/chart",
+  "../views/Editor/panels/BottomPanel/subviews/timeline/actual-timeline/chart",
   () => ({ UPlotChart: () => <div>Chart</div> }),
 );
 
 // uPlot reads the device pixel ratio as it loads, which jsdom cannot answer.
 vi.mock(
-  "../views/Editor/panels/BottomPanel/subviews/event-timeline/chart",
+  "../views/Editor/panels/BottomPanel/subviews/timeline/run-timeline/chart",
   () => ({ EventTimelineChart: () => <div>Event chart</div> }),
 );
 

@@ -24,13 +24,13 @@ import { BottomPanel } from "./panel";
 import type { ReactNode } from "react";
 
 // The timelines draw charts, which this file does not look at.
-vi.mock("./subviews/event-timeline/content", () => ({
+vi.mock("./subviews/timeline/run-timeline", () => ({
   EventTimeline: () => "Timeline of the run",
 }));
-vi.mock("./subviews/event-timeline/main", () => ({
+vi.mock("./subviews/timeline/timeline-header-actions", () => ({
   EventTimelineHeaderActions: () => null,
 }));
-vi.mock("./subviews/simulation-timeline/actual", () => ({
+vi.mock("./subviews/timeline/actual-timeline", () => ({
   ActualTimeline: () => "Timeline of the execution",
 }));
 

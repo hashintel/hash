@@ -7,7 +7,7 @@ import { ExecutionFrameSourceContext } from "../../react/execution-frame/context
 import { SimulationContext } from "../../react/simulation/context";
 import { useUserSettings } from "../../react/state/user-settings-context";
 import { EventSimulationControls } from "../views/Editor/components/BottomBar/event-simulation-controls";
-import { EventTimeline } from "../views/Editor/panels/BottomPanel/subviews/event-timeline/content";
+import { EventTimeline } from "../views/Editor/panels/BottomPanel/subviews/timeline/run-timeline";
 import { floatingBarStyle } from "./floating-bar-style";
 import { SimulationScenarioControls } from "./simulation-scenario-controls";
 

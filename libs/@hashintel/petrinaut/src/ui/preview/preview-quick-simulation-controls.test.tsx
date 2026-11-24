@@ -18,7 +18,7 @@ vi.mock(
 );
 
 vi.mock(
-  "../views/Editor/panels/BottomPanel/subviews/event-timeline/content",
+  "../views/Editor/panels/BottomPanel/subviews/timeline/run-timeline",
   () => ({
     EventTimeline: ({ showLegend }: { showLegend?: boolean }) => (
       <div data-show-legend={showLegend}>Compact event timeline</div>

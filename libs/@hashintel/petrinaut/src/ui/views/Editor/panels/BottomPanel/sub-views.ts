@@ -1,10 +1,10 @@
 import { ActualEventsContent } from "./subviews/actual-events";
 import { CompilationContent } from "./subviews/compilation";
 import { DiagnosticsPanel } from "./subviews/diagnostics";
-import { EventTimeline } from "./subviews/event-timeline/content";
-import { EventTimelineHeaderActions } from "./subviews/event-timeline/main";
 import { SimulationSettingsContent } from "./subviews/simulation-settings";
-import { ActualTimeline } from "./subviews/simulation-timeline/actual";
+import { ActualTimeline } from "./subviews/timeline/actual-timeline";
+import { EventTimeline } from "./subviews/timeline/run-timeline";
+import { EventTimelineHeaderActions } from "./subviews/timeline/timeline-header-actions";
 
 import type { SubView } from "../../../../sub-view/types";
 
