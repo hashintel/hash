@@ -17,13 +17,13 @@ import {
   createFlowScheduleMutation,
   updateFlowScheduleMutation,
 } from "../../../graphql/queries/knowledge/flow.queries";
-import { InputField } from "../../@/[shortname]/flows/[flow-def-id]/edit.page/top-bar/run-flow";
+import { InputField } from "../../@/[shortname]/flows/[flow-def-id]/edit.page/shared/run-flow";
 import {
   editorRunDataSources,
   getFlowInputValues,
   getInitialFormValues,
   withGivenValues,
-} from "../../@/[shortname]/flows/[flow-def-id]/edit.page/top-bar/run-flow/run-form";
+} from "../../@/[shortname]/flows/[flow-def-id]/edit.page/shared/run-form";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getBrowserTimeZone } from "../../shared/schedule-repeat";
 import { useFlowDefinitions } from "../../shared/use-flow-definitions";
