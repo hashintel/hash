@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Index access whose index is the result of two nested index accesses, on which type inference reaches its iteration limit
+["let", "foo", { "#list": [{ "#literal": 42 }] }, "foo[foo[foo[0]]]"]
+//~^ ERROR type inference did not settle on a type here
