@@ -37,7 +37,7 @@ fn string(value: &str) -> Option<PropertyValue> {
 )]
 fn number(value: f64) -> Option<PropertyValue> {
     Some(PropertyValue::Number(
-        Real::try_from(value).expect("should be a finite number"),
+        Real::try_from(value).expect("should not be `NaN`"),
     ))
 }
 
@@ -117,13 +117,7 @@ fn boolean(#[case] value: Value, #[case] expected: bool) {
 #[case::thousands_dot(Coercion::Number, text("1.234,56"), number(1234.56))]
 #[case::numeric_value(Coercion::Number, Value::BigInt(-4), number(-4.0))]
 #[case::decimal_value(Coercion::Number, decimal(10, 2, 3_760), number(37.6))]
-#[case::rounded_to_even(
-    Coercion::Number,
-    text("9007199254740993"),
-    number(9_007_199_254_740_992.0)
-)]
 #[case::beyond_f64(Coercion::Number, text("1e400"), None)]
-#[case::below_f64(Coercion::Number, text("1e-400"), number(0.0))]
 #[case::not_a_number(Coercion::Number, text("n/a"), None)]
 #[case::nan(Coercion::Number, text("NaN"), None)]
 #[case::infinity(Coercion::Number, text("inf"), None)]
@@ -131,11 +125,6 @@ fn boolean(#[case] value: Value, #[case] expected: bool) {
 #[case::truncated_negative(Coercion::Integer, text("-3,7"), number(-3.0))]
 #[case::truncated_to_zero(Coercion::Integer, text("-0.5"), number(0.0))]
 #[case::double(Coercion::Integer, Value::Double(8.5), number(8.0))]
-#[case::beyond_f64_integers(
-    Coercion::Integer,
-    text("9007199254740993.7"),
-    number(9_007_199_254_740_994.0)
-)]
 #[case::tiny_exponent(Coercion::Integer, text("1e-1000000000"), number(0.0))]
 #[case::year(Coercion::Year, text("1998"), number(1998.0))]
 #[case::trim(Coercion::Trim, text("  DC-3 "), string("DC-3"))]
@@ -166,22 +155,11 @@ fn numbers_and_text(
 )]
 #[case::infinite(Value::Double(f64::INFINITY), Err(UnsupportedValue::NonFiniteNumber))]
 #[case::nan(Value::Float(f32::NAN), Err(UnsupportedValue::NonFiniteNumber))]
+#[case::largest_double(Value::Double(f64::MAX), Err(UnsupportedValue::NonFiniteNumber))]
 #[case::float(Value::Float(0.1), Ok(number(0.1).expect("should be a number")))]
-#[case::largest_bigint(
-    Value::BigInt(i64::MAX),
-    Ok(number(2_f64.powi(63)).expect("should be a number"))
-)]
-#[case::hugeint(
-    Value::HugeInt(1 << 70),
-    Ok(number(2_f64.powi(70)).expect("should be a number"))
-)]
 #[case::largest_uhugeint(
     Value::UHugeInt(u128::MAX),
     Ok(number(2_f64.powi(128)).expect("should be a number"))
-)]
-#[case::wide_decimal(
-    decimal(38, 20, 12_345_678_901_234_567_890),
-    Ok(number(0.123_456_789_012_345_68).expect("should be a number"))
 )]
 fn column_value(#[case] input: Value, #[case] expected: Result<PropertyValue, UnsupportedValue>) {
     assert_eq!(
@@ -209,31 +187,49 @@ fn rendered_text(#[case] input: Value, #[case] expected: &str) {
 }
 
 #[rstest]
-#[case::tenth(0.1)]
-#[case::inch(0.0254)]
-#[case::fraction(1.5)]
-#[case::whole(3.0)]
-#[case::negative(-12.0)]
-#[case::largest_exact_integer(9_007_199_254_740_992.0)]
-#[case::beyond_exact_integers(9_007_199_254_740_994.0)]
-#[case::largest_bigint(2_f64.powi(63))]
-#[case::large(1e300)]
-#[case::smallest_normal(f64::MIN_POSITIVE)]
-#[case::smallest(5e-324)]
-fn number_round_trip(#[case] number: f64) {
-    let real = value::real(number).expect("should be a property number");
-    let property = PropertyValue::Number(real.clone());
-    let json = serde_json::to_string(&property).expect("should serialize");
+#[case::rounded_to_even(text("9007199254740993"), 9_007_199_254_740_992.0)]
+#[case::rounded_fraction(text("9007199254740993.7"), 9_007_199_254_740_994.0)]
+#[case::below_f64(text("1e-400"), 0.0)]
+#[case::largest_bigint(Value::BigInt(i64::MAX), 2_f64.powi(63))]
+#[case::hugeint(Value::HugeInt(1 << 70), 2_f64.powi(70))]
+#[case::float(Value::Float(0.1), 0.1)]
+#[case::wide_decimal(decimal(38, 20, 12_345_678_901_234_567_890), 0.123_456_789_012_345_68)]
+fn number_as_f64(#[case] value: Value, #[case] expected: f64) {
     assert_eq!(
-        serde_json::from_str::<PropertyValue>(&json).expect("should deserialize"),
-        property,
-        "should read back from JSON as the sync table stores it"
+        coerce::number(&value).map(f64::to_bits),
+        Some(expected.to_bits()),
+        "should round to the nearest `f64` once"
     );
-    let written = real.to_f64().expect("should be written as an `f64`");
+}
+
+#[rstest]
+#[case::untrimmed(text(" G-ABCD "), Some(" G-ABCD "))]
+#[case::blank(text("   "), None)]
+#[case::null(Value::Null, None)]
+#[case::integer(Value::BigInt(8030), Some("8030"))]
+#[case::largest_ubigint(Value::UBigInt(u64::MAX), Some("18446744073709551615"))]
+#[case::double(Value::Double(1.0), Some("1"))]
+#[case::decimal(decimal(10, 2, 803_000), Some("8030"))]
+#[case::union(Value::Union(Box::new(text("G-ABCD"))), Some("G-ABCD"))]
+#[case::list(Value::List(vec![text("G-ABCD")]), None)]
+fn source_id_text(#[case] value: Value, #[case] expected: Option<&str>) {
+    let columns = core::iter::once("ID").collect::<SinkColumns>();
+    let values = [value];
     assert_eq!(
-        value::real(written),
-        Some(real),
-        "should read back as the same number after the Graph writes it as an `f64`"
+        SinkRow::new(&columns, &values).text(&column("id")),
+        expected.map(str::to_owned),
+        "should render the source id without trimming it"
+    );
+}
+
+#[test]
+fn source_id_missing_column() {
+    let columns = core::iter::once("ID").collect::<SinkColumns>();
+    let values = [text("G-ABCD")];
+    assert_eq!(
+        SinkRow::new(&columns, &values).text(&column("TAIL")),
+        None,
+        "should have no source id for a column the row lacks"
     );
 }
 

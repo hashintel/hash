@@ -1,9 +1,9 @@
 //! Resolves the properties an entity or link is written with from a row of its sink's table.
 //!
-//! Each property is read by its accessor from the definition: a column as it is, a column
-//! converted by a [`Coercion`], or a measure whose data type comes from its unit. Blank values are
-//! left out. A value that cannot be converted is left out as well and reported as a
-//! [`ConversionFailure`], so one bad cell does not stop the row.
+//! Each property is read by its accessor from the definition: a column as it is, with text
+//! trimmed, a column converted by a [`Coercion`], or a measure whose data type comes from its unit.
+//! Blank values are left out. A value that cannot be converted is left out as well and reported as
+//! a [`ConversionFailure`], so one bad cell does not stop the row.
 //!
 //! Only measures set a data type. Other values leave it unset, so the Graph takes it from the
 //! property type. Properties carry no provenance of their own; the edition's provenance names
@@ -109,14 +109,10 @@ impl SinkRow<'_> {
             .unwrap_or(&Value::Null)
     }
 
-    /// The text of `column` as the source wrote it, or `None` if it is missing, blank or has no
-    /// text form.
+    /// The text of `column`, rendered as [`value::text`] renders it, or `None` if it is missing,
+    /// blank or has no text form.
     ///
-    /// The text is not trimmed, as it identifies a record across runs.
-    #[cfg_attr(
-        test,
-        expect(dead_code, reason = "Prepare reads the source id with it")
-    )]
+    /// The text is not trimmed, because it identifies a record.
     pub(crate) fn text(&self, column: &ColumnName) -> Option<String> {
         self.value(column).and_then(value::text)
     }
@@ -188,8 +184,8 @@ pub(crate) enum FailureReason {
     #[from]
     #[display("the value cannot be read as {_0}")]
     Coercion(#[error(not(source))] Coercion),
-    /// The measure's amount is not a number.
-    #[display("the measure's amount is not a number")]
+    /// The measure's amount is not a number a property can hold.
+    #[display("the measure's amount is not a number a property can hold")]
     MeasureAmount,
     /// The measure's unit is not in its unit map, and the map has no fallback.
     #[display("the measure's unit is not in its unit map")]
@@ -205,7 +201,8 @@ pub(crate) enum FailureReason {
 #[display("could not convert the value of `{property}`")]
 pub(crate) struct ConversionFailure {
     pub property: VersionedUrl,
-    /// The value as the row holds it, for reporting.
+    /// The text of the value that failed, or `None` if it has no text form. For an unknown measure
+    /// unit, this is the unit.
     pub value: Option<String>,
     #[error(source)]
     pub reason: FailureReason,

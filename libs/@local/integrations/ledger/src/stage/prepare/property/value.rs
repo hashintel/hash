@@ -20,7 +20,7 @@ pub(crate) enum UnsupportedValue {
     Geometry,
     #[display("interval values cannot be written as properties")]
     Interval,
-    #[display("infinite and `NaN` numbers cannot be written as properties")]
+    #[display("the number is infinite, `NaN` or too large to be written as a property")]
     NonFiniteNumber,
     #[display("the date or time is out of range")]
     DateTimeOutOfRange,
@@ -32,8 +32,9 @@ pub(crate) enum UnsupportedValue {
 
 /// A property value read from a cell of a sink's table.
 ///
-/// The conversion keeps the value as it is: text is not trimmed, and null converts to
-/// [`PropertyValue::Null`], also inside lists, structs and maps, so their positions are kept.
+/// Text is not trimmed, numbers are made by [`real`], and dates and times become ISO 8601 text.
+/// Null converts to [`PropertyValue::Null`], also inside lists, structs and maps, so their
+/// positions are kept.
 #[derive(Debug, derive_more::Into)]
 pub(super) struct ColumnValue(PropertyValue);
 
@@ -106,8 +107,10 @@ impl TryFrom<&Value> for ColumnValue {
     }
 }
 
-/// The number a numeric row value holds, rounded to the nearest `f64`, or `None` if it is not
-/// numeric.
+/// The number a numeric row value holds as an `f64`, or `None` if it is not numeric.
+///
+/// Integers and decimals are rounded to the nearest `f64`, and a `FLOAT` is read through its
+/// shortest text. The number may be infinite or `NaN`; [`real`] refuses those.
 #[expect(
     clippy::cast_precision_loss,
     reason = "the Graph stores numbers as `f64`, so they are rounded to the nearest one here"
@@ -124,7 +127,6 @@ pub(super) fn as_number(value: &Value) -> Option<f64> {
         Value::UInt(number) => Some(f64::from(*number)),
         Value::UBigInt(number) => Some(*number as f64),
         Value::UHugeInt(number) => Some(*number as f64),
-        // Through its shortest text, so `0.1` stays `0.1` and does not widen to `0.10000000149…`.
         Value::Float(number) => number.to_string().parse().ok(),
         Value::Double(number) => Some(*number),
         Value::Decimal(number) => number.to_string().parse().ok(),
@@ -147,20 +149,21 @@ pub(super) fn as_number(value: &Value) -> Option<f64> {
     }
 }
 
-/// `number` as a property's number, or `None` if it is infinite, `NaN`, or too close to the
-/// largest `f64` to be written as one.
+/// `number` as a property's number, or `None` if it is infinite, `NaN`, or rounds past the largest
+/// `f64` when it is made.
 ///
-/// Every property number is made here, as the Graph makes one from a JSON number.
+/// Every property number is made here, with [`Real::try_from`], as the Graph makes one from a JSON
+/// number with a fraction or an exponent.
 pub(super) fn real(number: f64) -> Option<Real> {
     let real = Real::try_from(number).ok()?;
     real.to_f64_lossy().is_finite().then_some(real)
 }
 
-/// Renders a row value as text for a conversion to read, or `None` if it is null or has no text
-/// form.
+/// Renders a row value as text, or `None` if it is null or has no text form.
 ///
-/// Numbers render in their shortest form, so `1.0` reads as `1`. Dates, times and timestamps render
-/// in ISO 8601.
+/// Integers, decimals and `DOUBLE`s render in their shortest form, so `1.0` reads as `1`. A `FLOAT`
+/// renders as the `f64` it widens to, so `0.1` reads as `0.10000000149011612`. Dates, times and
+/// timestamps render in ISO 8601.
 pub(super) fn text(value: &Value) -> Option<String> {
     Some(match value {
         Value::Text(text) | Value::Enum(text) => text.clone(),

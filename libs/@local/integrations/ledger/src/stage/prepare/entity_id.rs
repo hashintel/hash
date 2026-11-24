@@ -141,6 +141,32 @@ mod tests {
     }
 
     #[test]
+    fn link_id_recorded_vector() {
+        let url = |name: &str| {
+            VersionedUrl::from_str(&format!("https://x/@t/types/entity-type/{name}/v/1"))
+                .expect("should be a valid versioned URL")
+        };
+        let link_id = derive_link_id(
+            web_id(),
+            "conn-a",
+            &url("stored-at"),
+            LinkEndpoint {
+                entity_type: &url("material"),
+                source_id: "M-0001",
+            },
+            LinkEndpoint {
+                entity_type: &url("plant"),
+                source_id: "P-0100",
+            },
+        );
+        assert_eq!(
+            link_id.entity_uuid,
+            EntityUuid::new(Uuid::from_u128(0x25BB_B6E3_3E0A_53C2_A2F3_B8B8_3F7F_F314)),
+            "should match the recorded link UUID of the fixture"
+        );
+    }
+
+    #[test]
     fn link_id_from_type_and_endpoints() {
         let stationed_at = link(("aircraft", "G-ABCD"), ("airfield", "EGLL"));
         assert_eq!(

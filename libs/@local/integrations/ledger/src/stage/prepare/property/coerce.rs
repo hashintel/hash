@@ -33,7 +33,8 @@ pub(super) fn apply(coercion: Coercion, value: &Value) -> Option<PropertyValue> 
     }
 }
 
-/// An ISO 8601 date, which may be followed by a time, as in a timestamp.
+/// An ISO 8601 date, read from the start of the text. Whatever follows, such as a timestamp's
+/// time, is ignored.
 const ISO_DATE: &[BorrowedFormatItem<'static>] = format_description!("[year]-[month]-[day]");
 
 /// The other date forms a column may hold.
@@ -75,8 +76,8 @@ fn prefix<'text, T: TryFrom<Parsed>>(
 
 /// Reads a date in ISO 8601, `DD.MM.YYYY`, `DD/MM/YYYY` or `YYYYMMDD` form as `YYYY-MM-DD`.
 ///
-/// A timestamp keeps only its date. Dates that do not exist, such as `00.04.1946`, and the year 0
-/// are rejected.
+/// A timestamp keeps only its date. Dates that do not exist, such as `00.04.1946`, and years before
+/// 1 are rejected.
 fn date(value: &Value) -> Option<String> {
     let text = value::text(value)?;
     let text = text.trim();
@@ -132,11 +133,14 @@ fn boolean(value: &Value) -> bool {
 }
 
 /// Reads a number, accepting a decimal comma when it follows the last dot, as in `1.234,56`.
+///
+/// The number may be infinite or `NaN`; [`value::real`] refuses those.
 pub(super) fn number(value: &Value) -> Option<f64> {
     value::as_number(value).or_else(|| parse_number(&decimal_text(value)?))
 }
 
-/// The text of `value` with a decimal comma replaced by a dot.
+/// The trimmed text of `value`. If a comma follows the last dot, the dots are dropped as thousands
+/// separators and the comma becomes the decimal point.
 fn decimal_text(value: &Value) -> Option<String> {
     let text = value::text(value)?;
     let text = text.trim();
@@ -148,7 +152,8 @@ fn decimal_text(value: &Value) -> Option<String> {
     })
 }
 
-/// Parses a decimal or scientific number, rounded to the nearest `f64`.
+/// Parses a decimal or scientific number, rounded to the nearest `f64`. `inf`, `NaN` and numbers
+/// beyond the range of an `f64` parse too.
 fn parse_number(text: &str) -> Option<f64> {
     text.parse().ok()
 }
