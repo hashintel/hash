@@ -13,7 +13,7 @@ export const part9PropertyTypes: IsoPropertyType[] = [
         "The number of entities of the specified system or process in physical chemistry and molecular physics.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.nonNegativeInteger.dataTypeId,
+          dataTypeId: systemDataTypes["non-negativeInteger"].dataTypeId,
         },
       ],
     },

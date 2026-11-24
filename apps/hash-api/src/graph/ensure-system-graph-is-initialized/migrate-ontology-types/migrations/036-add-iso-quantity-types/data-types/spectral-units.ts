@@ -23,7 +23,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.spectralEnergyPerWavelengthMetric.dataTypeBaseUrl,
+      systemDataTypes["spectralEnergyPerWavelength(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Spectral Energy per Wavelength (Metric)",
       titlePlural: "Spectral Energies per Wavelength (Metric)",
@@ -40,7 +40,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.joulesPerMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.joulePerMeter.dataTypeBaseUrl,
     definition: {
       title: "Joule per Meter",
       titlePlural: "Joules per Meter",
@@ -49,7 +49,8 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralEnergyPerWavelengthMetric.dataTypeId,
+          $ref: systemDataTypes["spectralEnergyPerWavelength(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -59,7 +60,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.joulesPerNanometer.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.joulePerNanometer.dataTypeBaseUrl,
     definition: {
       title: "Joule per Nanometer",
       titlePlural: "Joules per Nanometer",
@@ -68,7 +69,8 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralEnergyPerWavelengthMetric.dataTypeId,
+          $ref: systemDataTypes["spectralEnergyPerWavelength(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -76,7 +78,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.joulesPerMeter.dataTypeBaseUrl]: {
+      [systemDataTypes.joulePerMeter.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -120,7 +122,8 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.spectralEnergyDensityPerWavelengthMetric.dataTypeBaseUrl,
+      systemDataTypes["spectralEnergyDensityPerWavelength(metric)"]
+        .dataTypeBaseUrl,
     definition: {
       title: "Spectral Energy Density per Wavelength (Metric)",
       titlePlural: "Spectral Energy Densities per Wavelength (Metric)",
@@ -137,7 +140,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.joulesPerFourthPowerMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.joulePerFourthPowerMeter.dataTypeBaseUrl,
     definition: {
       title: "Joule per Fourth Power Meter",
       titlePlural: "Joules per Fourth Power Meter",
@@ -146,7 +149,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralEnergyDensityPerWavelengthMetric
+          $ref: systemDataTypes["spectralEnergyDensityPerWavelength(metric)"]
             .dataTypeId,
         },
       ],
@@ -158,7 +161,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.joulesPerCubicMeterNanometer.dataTypeBaseUrl,
+      systemDataTypes.joulePerCubicMeterNanometer.dataTypeBaseUrl,
     definition: {
       title: "Joule per Cubic Meter Nanometer",
       titlePlural: "Joules per Cubic Meter Nanometer",
@@ -167,7 +170,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralEnergyDensityPerWavelengthMetric
+          $ref: systemDataTypes["spectralEnergyDensityPerWavelength(metric)"]
             .dataTypeId,
         },
       ],
@@ -176,7 +179,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.joulesPerFourthPowerMeter.dataTypeBaseUrl]: {
+      [systemDataTypes.joulePerFourthPowerMeter.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -219,7 +222,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.spectralPowerPerWavelengthMetric.dataTypeBaseUrl,
+      systemDataTypes["spectralPowerPerWavelength(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Spectral Power per Wavelength (Metric)",
       titlePlural: "Spectral Powers per Wavelength (Metric)",
@@ -236,7 +239,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.wattsPerMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.wattPerMeter.dataTypeBaseUrl,
     definition: {
       title: "Watt per Meter",
       titlePlural: "Watts per Meter",
@@ -245,7 +248,8 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralPowerPerWavelengthMetric.dataTypeId,
+          $ref: systemDataTypes["spectralPowerPerWavelength(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -255,7 +259,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.wattsPerNanometer.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.wattPerNanometer.dataTypeBaseUrl,
     definition: {
       title: "Watt per Nanometer",
       titlePlural: "Watts per Nanometer",
@@ -264,7 +268,8 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralPowerPerWavelengthMetric.dataTypeId,
+          $ref: systemDataTypes["spectralPowerPerWavelength(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -272,7 +277,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.wattsPerMeter.dataTypeBaseUrl]: {
+      [systemDataTypes.wattPerMeter.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -316,7 +321,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.spectralIntensityPerWavelengthMetric.dataTypeBaseUrl,
+      systemDataTypes["spectralIntensityPerWavelength(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Spectral Intensity per Wavelength (Metric)",
       titlePlural: "Spectral Intensities per Wavelength (Metric)",
@@ -333,7 +338,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.wattsPerSteradianMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.wattPerSteradianMeter.dataTypeBaseUrl,
     definition: {
       title: "Watt per Steradian Meter",
       titlePlural: "Watts per Steradian Meter",
@@ -342,7 +347,8 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralIntensityPerWavelengthMetric.dataTypeId,
+          $ref: systemDataTypes["spectralIntensityPerWavelength(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -352,7 +358,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.wattsPerSteradianNanometer.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.wattPerSteradianNanometer.dataTypeBaseUrl,
     definition: {
       title: "Watt per Steradian Nanometer",
       titlePlural: "Watts per Steradian Nanometer",
@@ -361,7 +367,8 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralIntensityPerWavelengthMetric.dataTypeId,
+          $ref: systemDataTypes["spectralIntensityPerWavelength(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -369,7 +376,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.wattsPerSteradianMeter.dataTypeBaseUrl]: {
+      [systemDataTypes.wattPerSteradianMeter.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -413,7 +420,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.spectralRadiancePerWavelengthMetric.dataTypeBaseUrl,
+      systemDataTypes["spectralRadiancePerWavelength(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Spectral Radiance per Wavelength (Metric)",
       titlePlural: "Spectral Radiances per Wavelength (Metric)",
@@ -430,8 +437,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl:
-      systemDataTypes.wattsPerSteradianCubicMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.wattPerSteradianCubicMeter.dataTypeBaseUrl,
     definition: {
       title: "Watt per Steradian Cubic Meter",
       titlePlural: "Watts per Steradian Cubic Meter",
@@ -440,7 +446,8 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralRadiancePerWavelengthMetric.dataTypeId,
+          $ref: systemDataTypes["spectralRadiancePerWavelength(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -451,7 +458,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.wattsPerSteradianSquareMeterNanometer.dataTypeBaseUrl,
+      systemDataTypes.wattPerSteradianSquareMeterNanometer.dataTypeBaseUrl,
     definition: {
       title: "Watt per Steradian Square Meter Nanometer",
       titlePlural: "Watts per Steradian Square Meter Nanometer",
@@ -460,7 +467,8 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralRadiancePerWavelengthMetric.dataTypeId,
+          $ref: systemDataTypes["spectralRadiancePerWavelength(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -468,7 +476,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.wattsPerSteradianCubicMeter.dataTypeBaseUrl]: {
+      [systemDataTypes.wattPerSteradianCubicMeter.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -512,7 +520,8 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.spectralIrradiancePerWavelengthMetric.dataTypeBaseUrl,
+      systemDataTypes["spectralIrradiancePerWavelength(metric)"]
+        .dataTypeBaseUrl,
     definition: {
       title: "Spectral Irradiance per Wavelength (Metric)",
       titlePlural: "Spectral Irradiances per Wavelength (Metric)",
@@ -529,7 +538,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.wattsPerCubicMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.wattPerCubicMeter.dataTypeBaseUrl,
     definition: {
       title: "Watt per Cubic Meter",
       titlePlural: "Watts per Cubic Meter",
@@ -538,7 +547,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralIrradiancePerWavelengthMetric
+          $ref: systemDataTypes["spectralIrradiancePerWavelength(metric)"]
             .dataTypeId,
         },
       ],
@@ -550,7 +559,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.wattsPerSquareMeterNanometer.dataTypeBaseUrl,
+      systemDataTypes.wattPerSquareMeterNanometer.dataTypeBaseUrl,
     definition: {
       title: "Watt per Square Meter Nanometer",
       titlePlural: "Watts per Square Meter Nanometer",
@@ -559,7 +568,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralIrradiancePerWavelengthMetric
+          $ref: systemDataTypes["spectralIrradiancePerWavelength(metric)"]
             .dataTypeId,
         },
       ],
@@ -568,7 +577,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.wattsPerCubicMeter.dataTypeBaseUrl]: {
+      [systemDataTypes.wattPerCubicMeter.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -612,7 +621,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.spectralExposurePerWavelengthMetric.dataTypeBaseUrl,
+      systemDataTypes["spectralExposurePerWavelength(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Spectral Exposure per Wavelength (Metric)",
       titlePlural: "Spectral Exposures per Wavelength (Metric)",
@@ -630,7 +639,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.joulesPerCubicMeterOfWavelength.dataTypeBaseUrl,
+      systemDataTypes.joulePerCubicMeterOfWavelength.dataTypeBaseUrl,
     definition: {
       title: "Joule per Cubic Meter of Wavelength",
       titlePlural: "Joules per Cubic Meter of Wavelength",
@@ -639,7 +648,8 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralExposurePerWavelengthMetric.dataTypeId,
+          $ref: systemDataTypes["spectralExposurePerWavelength(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -650,7 +660,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.joulesPerSquareMeterNanometer.dataTypeBaseUrl,
+      systemDataTypes.joulePerSquareMeterNanometer.dataTypeBaseUrl,
     definition: {
       title: "Joule per Square Meter Nanometer",
       titlePlural: "Joules per Square Meter Nanometer",
@@ -659,7 +669,8 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralExposurePerWavelengthMetric.dataTypeId,
+          $ref: systemDataTypes["spectralExposurePerWavelength(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -667,7 +678,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.joulesPerCubicMeterOfWavelength.dataTypeBaseUrl]: {
+      [systemDataTypes.joulePerCubicMeterOfWavelength.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -692,7 +703,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.electronvoltsPerMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.electronvoltPerMeter.dataTypeBaseUrl,
     definition: {
       title: "Electronvolt per Meter",
       titlePlural: "Electronvolts per Meter",
@@ -701,7 +712,8 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralEnergyPerWavelengthMetric.dataTypeId,
+          $ref: systemDataTypes["spectralEnergyPerWavelength(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -709,7 +721,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.joulesPerMeter.dataTypeBaseUrl]: {
+      [systemDataTypes.joulePerMeter.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -734,8 +746,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl:
-      systemDataTypes.electronvoltsPerSquareMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.electronvoltPerSquareMeter.dataTypeBaseUrl,
     definition: {
       title: "Electronvolt per Square Meter",
       titlePlural: "Electronvolts per Square Meter",
@@ -744,7 +755,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.energyPerAreaMetric.dataTypeId,
+          $ref: systemDataTypes["energyPerArea(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -752,7 +763,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.joulesPerSquareMeter.dataTypeBaseUrl]: {
+      [systemDataTypes.joulePerSquareMeter.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",

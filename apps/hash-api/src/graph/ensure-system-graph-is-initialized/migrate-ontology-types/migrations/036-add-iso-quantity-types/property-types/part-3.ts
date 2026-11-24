@@ -419,7 +419,7 @@ export const part3PropertyTypes: IsoPropertyType[] = [
         "The rotation of the specified system or process in space and time.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.revolutions.dataTypeId,
+          dataTypeId: systemDataTypes.revolution.dataTypeId,
         },
       ],
     },
@@ -494,7 +494,7 @@ export const part3PropertyTypes: IsoPropertyType[] = [
       description: "The number of complete rotations per unit time.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.revolutionsPerSecond.dataTypeId,
+          dataTypeId: systemDataTypes.revolutionPerSecond.dataTypeId,
         },
       ],
     },

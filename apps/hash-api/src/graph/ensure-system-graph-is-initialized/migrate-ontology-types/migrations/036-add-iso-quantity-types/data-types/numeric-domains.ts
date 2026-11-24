@@ -20,7 +20,7 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.nonNegativeNumber.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["non-negativeNumber"].dataTypeBaseUrl,
     definition: {
       title: "Non-negative Number",
       titlePlural: "Non-negative Numbers",
@@ -36,7 +36,7 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.nonNegativeInteger.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["non-negativeInteger"].dataTypeBaseUrl,
     definition: {
       title: "Non-negative Integer",
       titlePlural: "Non-negative Integers",
@@ -68,7 +68,7 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.halfInteger.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["half-integer"].dataTypeBaseUrl,
     definition: {
       title: "Half-integer",
       titlePlural: "Half-integers",
@@ -84,7 +84,8 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.nonNegativeHalfInteger.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["non-negativeHalf-integer"].dataTypeBaseUrl,
     definition: {
       title: "Non-negative Half-integer",
       titlePlural: "Non-negative Half-integers",
@@ -92,7 +93,7 @@ export const numericDomainsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.halfInteger.dataTypeId,
+          $ref: systemDataTypes["half-integer"].dataTypeId,
         },
       ],
       minimum: 0,
@@ -182,7 +183,7 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.fractionalPartsPerMillion.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.fractionalPartPerMillion.dataTypeBaseUrl,
     definition: {
       title: "Fractional Part per Million",
       titlePlural: "Fractional Parts per Million",
@@ -226,7 +227,7 @@ export const numericDomainsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.fractionalPartsPerBillion.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.fractionalPartPerBillion.dataTypeBaseUrl,
     definition: {
       title: "Fractional Part per Billion",
       titlePlural: "Fractional Parts per Billion",

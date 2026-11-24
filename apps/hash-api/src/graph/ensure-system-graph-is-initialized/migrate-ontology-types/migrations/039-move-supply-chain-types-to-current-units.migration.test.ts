@@ -28,7 +28,6 @@ import statusMentionsMigration from "./030-add-status-mentions.migration";
 import flowDefinitionMigration from "./032-update-flow-definition-type.migration";
 import openInputRequestsMigration from "./033-add-open-input-requests-to-flow-run.migration";
 import siUnitMigration from "./034-add-si-unit-data-types.migration";
-import { ensureUnitDataType } from "./034-add-si-unit-data-types/ensure-unit-data-type";
 import { moveScrapPercentage } from "./035-add-common-unit-data-types/move-scrap-percentage";
 import migrate, {
   archivedLengthGroupBaseUrls,
@@ -36,6 +35,7 @@ import migrate, {
   upgradedPropertyTypeKeys,
   upgradedUnitKeys,
 } from "./039-move-supply-chain-types-to-current-units.migration";
+import { ensureUnitDataType } from "./shared/ensure-unit-data-type";
 
 import type { MigrationFunction, MigrationState } from "../types";
 import type {
@@ -84,7 +84,7 @@ vi.mock("../seed-flow-definitions", () => ({
   seedFlowDefinitions: vi.fn(),
 }));
 
-vi.mock("./034-add-si-unit-data-types/ensure-unit-data-type", () => ({
+vi.mock("./shared/ensure-unit-data-type", () => ({
   ensureUnitDataType: vi.fn(),
 }));
 

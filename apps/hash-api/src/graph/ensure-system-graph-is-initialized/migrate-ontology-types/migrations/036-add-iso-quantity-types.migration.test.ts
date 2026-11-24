@@ -175,7 +175,7 @@ describe("ISO quantity catalogue", () => {
     ["Negative Number", "Negative Number", "Negative Numbers"],
     ["Non-negative Number", "Non-negative Number", "Non-negative Numbers"],
     [
-      "Fractional Parts per Million",
+      "Fractional Part per Million",
       "Fractional Part per Million",
       "Fractional Parts per Million",
     ],
@@ -185,17 +185,17 @@ describe("ISO quantity catalogue", () => {
       "Angular Momentum (Metric)",
       "Angular Momenta (Metric)",
     ],
-    ["Kibibytes", "Kibibyte", "Kibibytes"],
-    ["Megabytes per Second", "Megabyte per Second", "Megabytes per Second"],
-    ["Reciprocal Henries", "Reciprocal Henry", "Reciprocal Henries"],
+    ["Kibibyte", "Kibibyte", "Kibibytes"],
+    ["Megabyte per Second", "Megabyte per Second", "Megabytes per Second"],
+    ["Reciprocal Henry", "Reciprocal Henry", "Reciprocal Henries"],
     ["Siemens per Meter", "Siemens per Meter", "Siemens per Meter"],
     [
-      "Decibels (Sound Power)",
+      "Decibel (Sound Power)",
       "Decibel (Sound Power)",
       "Decibels (Sound Power)",
     ],
   ])(
-    "keeps the %s identifier with singular and plural titles",
+    "derives the %s identifier from its singular title",
     (identifierTitle, title, titlePlural) => {
       expect(dataType(identifierTitle)).toMatchObject({
         dataTypeBaseUrl: `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(identifierTitle)}/`,
@@ -226,30 +226,30 @@ describe("ISO quantity catalogue", () => {
   });
 
   it.each([
-    ["Barns", "squareMetres", 1e28, 1],
-    ["Angstroms", "meters", 1e10, 1],
-    ["Astronomical Units", "meters", 1, 149597870700],
-    ["Daltons", "kilograms", 1, 1.66053906892e-27],
-    ["Kibibytes", "bytes", 1, 1024],
-    ["Kibibits", "bytes", 8, 1024],
-    ["Quebibytes", "bytes", 1, 2 ** 100],
-    ["Robibits", "bytes", 8, 2 ** 90],
-    ["Quettabits", "bytes", 8, 1e30],
-    ["Kibibytes per Second", "bitsPerSecond", 1, 8192],
-    ["Megabits per Second", "bitsPerSecond", 1, 1e6],
-    ["Megabytes per Second", "bitsPerSecond", 1, 8e6],
-    ["Grams per Mole", "kilogramsPerMole", 18, 0.018],
+    ["Barn", "squareMetres", 1e28, 1],
+    ["Angstrom", "meters", 1e10, 1],
+    ["Astronomical Unit", "meters", 1, 149597870700],
+    ["Dalton", "kilograms", 1, 1.66053906892e-27],
+    ["Kibibyte", "bytes", 1, 1024],
+    ["Kibibit", "bytes", 8, 1024],
+    ["Quebibyte", "bytes", 1, 2 ** 100],
+    ["Robibit", "bytes", 8, 2 ** 90],
+    ["Quettabit", "bytes", 8, 1e30],
+    ["Kibibyte per Second", "bitPerSecond", 1, 8192],
+    ["Megabit per Second", "bitPerSecond", 1, 1e6],
+    ["Megabyte per Second", "bitPerSecond", 1, 8e6],
+    ["Gram per Mole", "kilogramPerMole", 18, 0.018],
     ["Millisiemens per Centimeter", "siemensPerMeter", 10, 1],
-    ["Joules per Nanometer", "joulesPerMeter", 2, 2e9],
-    ["Sieverts per Hour", "sievertsPerSecond", 3600, 1],
+    ["Joule per Nanometer", "joulePerMeter", 2, 2e9],
+    ["Sievert per Hour", "sievertPerSecond", 3600, 1],
     ["Fractional Percentage", "unitInterval", 25, 0.25],
-    ["Fractional Parts per Million", "unitInterval", 250000, 0.25],
-    ["Semitones", "octaves", 12, 1],
-    ["Cents (Frequency Interval)", "octaves", 1200, 1],
-    ["Decades (Frequency Interval)", "octaves", 1, Math.log2(10)],
-    ["Hartleys", "shannons", 1, Math.log2(10)],
-    ["Nats", "shannons", 1, Math.LOG2E],
-    ["Decibels (Sound Power)", "decibelWatts", 120, 0],
+    ["Fractional Part per Million", "unitInterval", 250000, 0.25],
+    ["Semitone", "octave", 12, 1],
+    ["Cent (Frequency Interval)", "octave", 1200, 1],
+    ["Decade (Frequency Interval)", "octave", 1, Math.log2(10)],
+    ["Hartley", "shannon", 1, Math.log2(10)],
+    ["Nat", "shannon", 1, Math.LOG2E],
+    ["Decibel (Sound Power)", "decibelWatt", 120, 0],
   ] as const)(
     "converts %s to %s in both directions",
     (source, target, input, output) => {
@@ -268,7 +268,7 @@ describe("ISO quantity catalogue", () => {
 
   it("keeps conversion constants exact for the largest binary prefixes", () => {
     const conversion =
-      dataType("Quebibytes").conversions[systemDataTypes.bytes.dataTypeBaseUrl];
+      dataType("Quebibyte").conversions[systemDataTypes.bytes.dataTypeBaseUrl];
     const constants: number[] = [];
     const visit = (value: unknown) => {
       if (Array.isArray(value)) {
@@ -307,10 +307,10 @@ describe("ISO quantity catalogue", () => {
       { dataTypeId: systemDataTypes.boundedFraction.dataTypeId },
     ]);
     expect(propertyType("Hamming Distance").possibleValues).toEqual([
-      { dataTypeId: systemDataTypes.nonNegativeInteger.dataTypeId },
+      { dataTypeId: systemDataTypes["non-negativeInteger"].dataTypeId },
     ]);
     expect(propertyType("Mean Queue Length").possibleValues).toEqual([
-      { dataTypeId: systemDataTypes.nonNegativeNumber.dataTypeId },
+      { dataTypeId: systemDataTypes["non-negativeNumber"].dataTypeId },
     ]);
     expect(propertyType("Relative Humidity").possibleValues).toEqual([
       { dataTypeId: systemDataTypes.dimensionlessRatio.dataTypeId },
@@ -340,16 +340,16 @@ describe("ISO quantity catalogue", () => {
   });
 
   it("does not invent relationships between different kinds of quantity", () => {
-    for (const title of ["Bauds", "Erlangs", "Shannons", "Bits per Second"]) {
+    for (const title of ["Baud", "Erlang", "Shannon", "Bit per Second"]) {
       expect(dataType(title).conversions).toEqual({});
     }
     expect(propertyType("Thermodynamic Entropy").possibleValues).not.toEqual(
       propertyType("Information Entropy").possibleValues,
     );
-    expect(dataType("Volt Amperes").conversions).toEqual({});
-    expect(dataType("Vars").conversions).toEqual({});
+    expect(dataType("Volt Ampere").conversions).toEqual({});
+    expect(dataType("Var").conversions).toEqual({});
     expect(propertyType("Sound Pressure Level").possibleValues).toEqual([
-      { dataTypeId: systemDataTypes.decibelsSoundPressure.dataTypeId },
+      { dataTypeId: systemDataTypes["decibel(soundPressure)"].dataTypeId },
     ]);
   });
 });

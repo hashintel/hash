@@ -21,7 +21,8 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.energyAreaPerMassMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["energyAreaPerMass(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Energy Area per Mass (Metric)",
       titlePlural: "Energy Areas per Mass (Metric)",
@@ -39,7 +40,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.jouleSquareMetersPerKilogram.dataTypeBaseUrl,
+      systemDataTypes.jouleSquareMeterPerKilogram.dataTypeBaseUrl,
     definition: {
       title: "Joule Square Meter per Kilogram",
       titlePlural: "Joule Square Meters per Kilogram",
@@ -47,7 +48,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.energyAreaPerMassMetric.dataTypeId,
+          $ref: systemDataTypes["energyAreaPerMass(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -58,7 +59,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.electronvoltSquareMetersPerKilogram.dataTypeBaseUrl,
+      systemDataTypes.electronvoltSquareMeterPerKilogram.dataTypeBaseUrl,
     definition: {
       title: "Electronvolt Square Meter per Kilogram",
       titlePlural: "Electronvolt Square Meters per Kilogram",
@@ -67,7 +68,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.energyAreaPerMassMetric.dataTypeId,
+          $ref: systemDataTypes["energyAreaPerMass(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -75,7 +76,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.jouleSquareMetersPerKilogram.dataTypeBaseUrl]: {
+      [systemDataTypes.jouleSquareMeterPerKilogram.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -100,7 +101,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.gramsPerMole.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.gramPerMole.dataTypeBaseUrl,
     definition: {
       title: "Gram per Mole",
       titlePlural: "Grams per Mole",
@@ -108,7 +109,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.molarMassMetric.dataTypeId,
+          $ref: systemDataTypes["molarMass(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -116,7 +117,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.kilogramsPerMole.dataTypeBaseUrl]: {
+      [systemDataTypes.kilogramPerMole.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -141,7 +142,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.cubicCentimetersPerMole.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.cubicCentimeterPerMole.dataTypeBaseUrl,
     definition: {
       title: "Cubic Centimeter per Mole",
       titlePlural: "Cubic Centimeters per Mole",
@@ -149,7 +150,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.molarVolumeMetric.dataTypeId,
+          $ref: systemDataTypes["molarVolume(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -157,7 +158,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.cubicMetersPerMole.dataTypeBaseUrl]: {
+      [systemDataTypes.cubicMeterPerMole.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -182,7 +183,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.millimolesPerKilogram.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.millimolePerKilogram.dataTypeBaseUrl,
     definition: {
       title: "Millimole per Kilogram",
       titlePlural: "Millimoles per Kilogram",
@@ -190,7 +191,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.molalityMetric.dataTypeId,
+          $ref: systemDataTypes["molality(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -198,7 +199,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.molesPerKilogram.dataTypeBaseUrl]: {
+      [systemDataTypes.molePerKilogram.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -231,7 +232,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.electricConductivityMetric.dataTypeId,
+          $ref: systemDataTypes["electricConductivity(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -272,7 +273,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.electricConductivityMetric.dataTypeId,
+          $ref: systemDataTypes["electricConductivity(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -305,7 +306,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.ohmCentimeters.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.ohmCentimeter.dataTypeBaseUrl,
     definition: {
       title: "Ohm Centimeter",
       titlePlural: "Ohm Centimeters",
@@ -313,7 +314,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.electricResistivityMetric.dataTypeId,
+          $ref: systemDataTypes["electricResistivity(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -321,7 +322,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.ohmMeters.dataTypeBaseUrl]: {
+      [systemDataTypes.ohmMeter.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -346,7 +347,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kilovoltAmperes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kilovoltAmpere.dataTypeBaseUrl,
     definition: {
       title: "Kilovolt Ampere",
       titlePlural: "Kilovolt Amperes",
@@ -354,7 +355,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.apparentPowerMetric.dataTypeId,
+          $ref: systemDataTypes["apparentPower(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -362,7 +363,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.voltAmperes.dataTypeBaseUrl]: {
+      [systemDataTypes.voltAmpere.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -387,7 +388,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kilovars.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kilovar.dataTypeBaseUrl,
     definition: {
       title: "Kilovar",
       titlePlural: "Kilovars",
@@ -395,7 +396,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.reactivePowerMetric.dataTypeId,
+          $ref: systemDataTypes["reactivePower(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -403,7 +404,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.vars.dataTypeBaseUrl]: {
+      [systemDataTypes.var.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -428,7 +429,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.sievertsPerHour.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.sievertPerHour.dataTypeBaseUrl,
     definition: {
       title: "Sievert per Hour",
       titlePlural: "Sieverts per Hour",
@@ -436,7 +437,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.doseEquivalentRateMetric.dataTypeId,
+          $ref: systemDataTypes["doseEquivalentRate(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -444,7 +445,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.sievertsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.sievertPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "/",
@@ -469,7 +470,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.barns.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.barn.dataTypeBaseUrl,
     definition: {
       title: "Barn",
       titlePlural: "Barns",
@@ -478,7 +479,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.areaMetric.dataTypeId,
+          $ref: systemDataTypes["area(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -511,7 +512,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.angstroms.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.angstrom.dataTypeBaseUrl,
     definition: {
       title: "Angstrom",
       titlePlural: "Angstroms",
@@ -520,7 +521,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.lengthMetric.dataTypeId,
+          $ref: systemDataTypes["length(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -553,7 +554,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.astronomicalUnits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.astronomicalUnit.dataTypeBaseUrl,
     definition: {
       title: "Astronomical Unit",
       titlePlural: "Astronomical Units",
@@ -562,7 +563,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.lengthMetric.dataTypeId,
+          $ref: systemDataTypes["length(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -595,7 +596,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.daltons.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.dalton.dataTypeBaseUrl,
     definition: {
       title: "Dalton",
       titlePlural: "Daltons",
@@ -604,7 +605,7 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.massMetric.dataTypeId,
+          $ref: systemDataTypes["mass(metric)"].dataTypeId,
         },
       ],
       label: {

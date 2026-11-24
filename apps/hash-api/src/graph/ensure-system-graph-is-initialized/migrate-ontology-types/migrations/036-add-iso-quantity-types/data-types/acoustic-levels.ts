@@ -4,7 +4,7 @@ import type { IsoDataType } from "../data-types";
 
 export const acousticLevelsDataTypes: IsoDataType[] = [
   {
-    dataTypeBaseUrl: systemDataTypes.decibelsSoundPower.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["decibel(soundPower)"].dataTypeBaseUrl,
     definition: {
       title: "Decibel (Sound Power)",
       titlePlural: "Decibels (Sound Power)",
@@ -13,7 +13,7 @@ export const acousticLevelsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.powerLevelMetric.dataTypeId,
+          $ref: systemDataTypes["powerLevel(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -21,7 +21,7 @@ export const acousticLevelsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.decibelWatts.dataTypeBaseUrl]: {
+      [systemDataTypes.decibelWatt.dataTypeBaseUrl]: {
         to: {
           expression: [
             "+",
@@ -63,7 +63,7 @@ export const acousticLevelsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.decibelsSoundExposure.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["decibel(soundExposure)"].dataTypeBaseUrl,
     definition: {
       title: "Decibel (Sound Exposure)",
       titlePlural: "Decibels (Sound Exposure)",

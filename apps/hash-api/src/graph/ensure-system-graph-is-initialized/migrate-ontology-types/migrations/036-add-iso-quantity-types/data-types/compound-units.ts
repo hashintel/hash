@@ -21,7 +21,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.linearMassDensityMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["linearMassDensity(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Linear Mass Density (Metric)",
       titlePlural: "Linear Mass Densities (Metric)",
@@ -38,7 +39,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kilogramsPerMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kilogramPerMeter.dataTypeBaseUrl,
     definition: {
       title: "Kilogram per Meter",
       titlePlural: "Kilograms per Meter",
@@ -46,7 +47,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.linearMassDensityMetric.dataTypeId,
+          $ref: systemDataTypes["linearMassDensity(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -72,7 +73,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.momentOfInertiaMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["momentOfInertia(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Moment of Inertia (Metric)",
       titlePlural: "Moments of Inertia (Metric)",
@@ -89,7 +90,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kilogramSquareMeters.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kilogramSquareMeter.dataTypeBaseUrl,
     definition: {
       title: "Kilogram Square Meter",
       titlePlural: "Kilogram Square Meters",
@@ -97,7 +98,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.momentOfInertiaMetric.dataTypeId,
+          $ref: systemDataTypes["momentOfInertia(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -123,7 +124,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.momentumMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["momentum(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Momentum (Metric)",
       titlePlural: "Momenta (Metric)",
@@ -139,7 +140,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kilogramMetersPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kilogramMeterPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Kilogram Meter per Second",
       titlePlural: "Kilogram Meters per Second",
@@ -147,7 +148,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.momentumMetric.dataTypeId,
+          $ref: systemDataTypes["momentum(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -173,7 +174,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.impulseMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["impulse(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Impulse (Metric)",
       titlePlural: "Impulses (Metric)",
@@ -189,7 +190,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.newtonSeconds.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.newtonSecond.dataTypeBaseUrl,
     definition: {
       title: "Newton Second",
       titlePlural: "Newton Seconds",
@@ -197,7 +198,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.impulseMetric.dataTypeId,
+          $ref: systemDataTypes["impulse(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -223,7 +224,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.angularMomentumMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["angularMomentum(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Angular Momentum (Metric)",
       titlePlural: "Angular Momenta (Metric)",
@@ -241,7 +242,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.kilogramSquareMetersPerSecond.dataTypeBaseUrl,
+      systemDataTypes.kilogramSquareMeterPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Kilogram Square Meter per Second",
       titlePlural: "Kilogram Square Meters per Second",
@@ -249,7 +250,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.angularMomentumMetric.dataTypeId,
+          $ref: systemDataTypes["angularMomentum(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -275,7 +276,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.angularImpulseMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["angularImpulse(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Angular Impulse (Metric)",
       titlePlural: "Angular Impulses (Metric)",
@@ -292,7 +293,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.newtonMeterSeconds.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.newtonMeterSecond.dataTypeBaseUrl,
     definition: {
       title: "Newton Meter Second",
       titlePlural: "Newton Meter Seconds",
@@ -300,7 +301,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.angularImpulseMetric.dataTypeId,
+          $ref: systemDataTypes["angularImpulse(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -326,7 +327,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.actionMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["action(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Action (Metric)",
       titlePlural: "Actions (Metric)",
@@ -342,7 +343,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.jouleSeconds.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.jouleSecond.dataTypeBaseUrl,
     definition: {
       title: "Joule Second",
       titlePlural: "Joule Seconds",
@@ -350,7 +351,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.actionMetric.dataTypeId,
+          $ref: systemDataTypes["action(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -377,7 +378,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.reciprocalPressureMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["reciprocalPressure(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Reciprocal Pressure (Metric)",
       titlePlural: "Reciprocal Pressures (Metric)",
@@ -394,7 +396,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.reciprocalPascals.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.reciprocalPascal.dataTypeBaseUrl,
     definition: {
       title: "Reciprocal Pascal",
       titlePlural: "Reciprocal Pascals",
@@ -402,7 +404,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.reciprocalPressureMetric.dataTypeId,
+          $ref: systemDataTypes["reciprocalPressure(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -429,7 +431,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.fourthPowerOfLengthMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["fourthPowerOfLength(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Fourth Power of Length (Metric)",
       titlePlural: "Fourth Powers of Length (Metric)",
@@ -446,7 +449,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.metersToTheFourthPower.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.meterToTheFourthPower.dataTypeBaseUrl,
     definition: {
       title: "Meter to the Fourth Power",
       titlePlural: "Meters to the Fourth Power",
@@ -454,7 +457,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.fourthPowerOfLengthMetric.dataTypeId,
+          $ref: systemDataTypes["fourthPowerOfLength(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -480,7 +483,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.massFluxDensityMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["massFluxDensity(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Mass Flux Density (Metric)",
       titlePlural: "Mass Flux Densities (Metric)",
@@ -498,7 +501,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.kilogramsPerSquareMeterSecond.dataTypeBaseUrl,
+      systemDataTypes.kilogramPerSquareMeterSecond.dataTypeBaseUrl,
     definition: {
       title: "Kilogram per Square Meter Second",
       titlePlural: "Kilograms per Square Meter Second",
@@ -506,7 +509,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.massFluxDensityMetric.dataTypeId,
+          $ref: systemDataTypes["massFluxDensity(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -532,7 +535,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.massFlowRateMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["massFlowRate(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Mass Flow Rate (Metric)",
       titlePlural: "Mass Flow Rates (Metric)",
@@ -548,7 +551,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kilogramsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kilogramPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Kilogram per Second",
       titlePlural: "Kilograms per Second",
@@ -556,7 +559,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.massFlowRateMetric.dataTypeId,
+          $ref: systemDataTypes["massFlowRate(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -585,7 +588,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.reciprocalTemperatureIntervalMetric.dataTypeBaseUrl,
+      systemDataTypes["reciprocalTemperatureInterval(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Reciprocal Temperature Interval (Metric)",
       titlePlural: "Reciprocal Temperature Intervals (Metric)",
@@ -602,7 +605,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.reciprocalKelvins.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.reciprocalKelvin.dataTypeBaseUrl,
     definition: {
       title: "Reciprocal Kelvin",
       titlePlural: "Reciprocal Kelvins",
@@ -610,7 +613,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.reciprocalTemperatureIntervalMetric.dataTypeId,
+          $ref: systemDataTypes["reciprocalTemperatureInterval(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -639,7 +643,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.pressurePerTemperatureIntervalMetric.dataTypeBaseUrl,
+      systemDataTypes["pressurePerTemperatureInterval(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Pressure per Temperature Interval (Metric)",
       titlePlural: "Pressures per Temperature Interval (Metric)",
@@ -656,7 +660,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.pascalsPerKelvin.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.pascalPerKelvin.dataTypeBaseUrl,
     definition: {
       title: "Pascal per Kelvin",
       titlePlural: "Pascals per Kelvin",
@@ -664,7 +668,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.pressurePerTemperatureIntervalMetric.dataTypeId,
+          $ref: systemDataTypes["pressurePerTemperatureInterval(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -692,7 +697,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.heatTransferCoefficientMetric.dataTypeBaseUrl,
+      systemDataTypes["heatTransferCoefficient(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Heat Transfer Coefficient (Metric)",
       titlePlural: "Heat Transfer Coefficients (Metric)",
@@ -709,7 +714,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.wattsPerSquareMeterKelvin.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.wattPerSquareMeterKelvin.dataTypeBaseUrl,
     definition: {
       title: "Watt per Square Meter Kelvin",
       titlePlural: "Watts per Square Meter Kelvin",
@@ -717,7 +722,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.heatTransferCoefficientMetric.dataTypeId,
+          $ref: systemDataTypes["heatTransferCoefficient(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -743,7 +748,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.thermalInsulanceMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["thermalInsulance(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Thermal Insulance (Metric)",
       titlePlural: "Thermal Insulances (Metric)",
@@ -760,7 +766,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.squareMeterKelvinsPerWatt.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.squareMeterKelvinPerWatt.dataTypeBaseUrl,
     definition: {
       title: "Square Meter Kelvin per Watt",
       titlePlural: "Square Meter Kelvins per Watt",
@@ -768,7 +774,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.thermalInsulanceMetric.dataTypeId,
+          $ref: systemDataTypes["thermalInsulance(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -794,7 +800,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.thermalResistanceMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["thermalResistance(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Thermal Resistance (Metric)",
       titlePlural: "Thermal Resistances (Metric)",
@@ -811,7 +818,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kelvinsPerWatt.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kelvinPerWatt.dataTypeBaseUrl,
     definition: {
       title: "Kelvin per Watt",
       titlePlural: "Kelvins per Watt",
@@ -819,7 +826,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.thermalResistanceMetric.dataTypeId,
+          $ref: systemDataTypes["thermalResistance(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -846,7 +853,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.thermalConductanceMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["thermalConductance(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Thermal Conductance (Metric)",
       titlePlural: "Thermal Conductances (Metric)",
@@ -863,7 +871,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.wattsPerKelvin.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.wattPerKelvin.dataTypeBaseUrl,
     definition: {
       title: "Watt per Kelvin",
       titlePlural: "Watts per Kelvin",
@@ -871,7 +879,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.thermalConductanceMetric.dataTypeId,
+          $ref: systemDataTypes["thermalConductance(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -900,7 +908,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.temperatureIntervalPerPressureMetric.dataTypeBaseUrl,
+      systemDataTypes["temperatureIntervalPerPressure(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Temperature Interval per Pressure (Metric)",
       titlePlural: "Temperature Intervals per Pressure (Metric)",
@@ -917,7 +925,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kelvinsPerPascal.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kelvinPerPascal.dataTypeBaseUrl,
     definition: {
       title: "Kelvin per Pascal",
       titlePlural: "Kelvins per Pascal",
@@ -925,7 +933,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.temperatureIntervalPerPressureMetric.dataTypeId,
+          $ref: systemDataTypes["temperatureIntervalPerPressure(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -952,7 +961,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.linearChargeDensityMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["linearChargeDensity(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Linear Charge Density (Metric)",
       titlePlural: "Linear Charge Densities (Metric)",
@@ -969,7 +979,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.coulombsPerMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.coulombPerMeter.dataTypeBaseUrl,
     definition: {
       title: "Coulomb per Meter",
       titlePlural: "Coulombs per Meter",
@@ -977,7 +987,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.linearChargeDensityMetric.dataTypeId,
+          $ref: systemDataTypes["linearChargeDensity(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1004,7 +1014,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.electricDipoleMomentMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["electricDipoleMoment(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Electric Dipole Moment (Metric)",
       titlePlural: "Electric Dipole Moments (Metric)",
@@ -1021,7 +1032,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.coulombMeters.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.coulombMeter.dataTypeBaseUrl,
     definition: {
       title: "Coulomb Meter",
       titlePlural: "Coulomb Meters",
@@ -1029,7 +1040,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.electricDipoleMomentMetric.dataTypeId,
+          $ref: systemDataTypes["electricDipoleMoment(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1055,7 +1066,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.magneticMomentMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["magneticMoment(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Magnetic Moment (Metric)",
       titlePlural: "Magnetic Moments (Metric)",
@@ -1072,7 +1083,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.ampereSquareMeters.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.ampereSquareMeter.dataTypeBaseUrl,
     definition: {
       title: "Ampere Square Meter",
       titlePlural: "Ampere Square Meters",
@@ -1080,7 +1091,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.magneticMomentMetric.dataTypeId,
+          $ref: systemDataTypes["magneticMoment(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1107,7 +1118,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.magneticDipoleMomentMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["magneticDipoleMoment(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Magnetic Dipole Moment (Metric)",
       titlePlural: "Magnetic Dipole Moments (Metric)",
@@ -1124,7 +1136,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.weberMeters.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.weberMeter.dataTypeBaseUrl,
     definition: {
       title: "Weber Meter",
       titlePlural: "Weber Meters",
@@ -1132,7 +1144,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.magneticDipoleMomentMetric.dataTypeId,
+          $ref: systemDataTypes["magneticDipoleMoment(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1160,7 +1172,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.magneticVectorPotentialMetric.dataTypeBaseUrl,
+      systemDataTypes["magneticVectorPotential(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Magnetic Vector Potential (Metric)",
       titlePlural: "Magnetic Vector Potentials (Metric)",
@@ -1177,7 +1189,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.webersPerMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.weberPerMeter.dataTypeBaseUrl,
     definition: {
       title: "Weber per Meter",
       titlePlural: "Webers per Meter",
@@ -1185,7 +1197,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.magneticVectorPotentialMetric.dataTypeId,
+          $ref: systemDataTypes["magneticVectorPotential(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1212,7 +1224,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.magneticReluctanceMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["magneticReluctance(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Magnetic Reluctance (Metric)",
       titlePlural: "Magnetic Reluctances (Metric)",
@@ -1229,7 +1242,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.reciprocalHenries.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.reciprocalHenry.dataTypeBaseUrl,
     definition: {
       title: "Reciprocal Henry",
       titlePlural: "Reciprocal Henries",
@@ -1237,7 +1250,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.magneticReluctanceMetric.dataTypeId,
+          $ref: systemDataTypes["magneticReluctance(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1264,7 +1277,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.electricConductivityMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["electricConductivity(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Electric Conductivity (Metric)",
       titlePlural: "Electric Conductivities (Metric)",
@@ -1289,7 +1303,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.electricConductivityMetric.dataTypeId,
+          $ref: systemDataTypes["electricConductivity(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1316,7 +1330,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.electricResistivityMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["electricResistivity(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Electric Resistivity (Metric)",
       titlePlural: "Electric Resistivities (Metric)",
@@ -1333,7 +1348,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.ohmMeters.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.ohmMeter.dataTypeBaseUrl,
     definition: {
       title: "Ohm Meter",
       titlePlural: "Ohm Meters",
@@ -1341,7 +1356,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.electricResistivityMetric.dataTypeId,
+          $ref: systemDataTypes["electricResistivity(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1367,7 +1382,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.apparentPowerMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["apparentPower(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Apparent Power (Metric)",
       titlePlural: "Apparent Powers (Metric)",
@@ -1383,7 +1398,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.voltAmperes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.voltAmpere.dataTypeBaseUrl,
     definition: {
       title: "Volt Ampere",
       titlePlural: "Volt Amperes",
@@ -1391,7 +1406,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.apparentPowerMetric.dataTypeId,
+          $ref: systemDataTypes["apparentPower(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1417,7 +1432,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.reactivePowerMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["reactivePower(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Reactive Power (Metric)",
       titlePlural: "Reactive Powers (Metric)",
@@ -1433,7 +1448,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.vars.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.var.dataTypeBaseUrl,
     definition: {
       title: "Var",
       titlePlural: "Vars",
@@ -1441,7 +1456,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.reactivePowerMetric.dataTypeId,
+          $ref: systemDataTypes["reactivePower(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1467,7 +1482,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.energyPerAreaMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["energyPerArea(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Energy per Area (Metric)",
       titlePlural: "Energies per Area (Metric)",
@@ -1484,7 +1499,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.joulesPerSquareMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.joulePerSquareMeter.dataTypeBaseUrl,
     definition: {
       title: "Joule per Square Meter",
       titlePlural: "Joules per Square Meter",
@@ -1492,7 +1507,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.energyPerAreaMetric.dataTypeId,
+          $ref: systemDataTypes["energyPerArea(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1518,7 +1533,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.luminousEfficacyMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["luminousEfficacy(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Luminous Efficacy (Metric)",
       titlePlural: "Luminous Efficacies (Metric)",
@@ -1535,7 +1551,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.lumensPerWatt.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.lumenPerWatt.dataTypeBaseUrl,
     definition: {
       title: "Lumen per Watt",
       titlePlural: "Lumens per Watt",
@@ -1543,7 +1559,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.luminousEfficacyMetric.dataTypeId,
+          $ref: systemDataTypes["luminousEfficacy(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1569,7 +1585,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.luminousEnergyMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["luminousEnergy(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Luminous Energy (Metric)",
       titlePlural: "Luminous Energies (Metric)",
@@ -1586,7 +1602,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.lumenSeconds.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.lumenSecond.dataTypeBaseUrl,
     definition: {
       title: "Lumen Second",
       titlePlural: "Lumen Seconds",
@@ -1594,7 +1610,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.luminousEnergyMetric.dataTypeId,
+          $ref: systemDataTypes["luminousEnergy(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1620,7 +1636,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.luminousExposureMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["luminousExposure(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Luminous Exposure (Metric)",
       titlePlural: "Luminous Exposures (Metric)",
@@ -1637,7 +1654,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.luxSeconds.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.luxSecond.dataTypeBaseUrl,
     definition: {
       title: "Lux Second",
       titlePlural: "Lux Seconds",
@@ -1645,7 +1662,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.luminousExposureMetric.dataTypeId,
+          $ref: systemDataTypes["luminousExposure(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1672,7 +1689,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.reciprocalDurationMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["reciprocalDuration(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Reciprocal Duration (Metric)",
       titlePlural: "Reciprocal Durations (Metric)",
@@ -1689,7 +1707,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.reciprocalSeconds.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.reciprocalSecond.dataTypeBaseUrl,
     definition: {
       title: "Reciprocal Second",
       titlePlural: "Reciprocal Seconds",
@@ -1697,7 +1715,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.reciprocalDurationMetric.dataTypeId,
+          $ref: systemDataTypes["reciprocalDuration(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1723,7 +1741,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.particleIntensityMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["particleIntensity(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Particle Intensity (Metric)",
       titlePlural: "Particle Intensities (Metric)",
@@ -1740,7 +1759,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.reciprocalSecondSteradians.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.reciprocalSecondSteradian.dataTypeBaseUrl,
     definition: {
       title: "Reciprocal Second Steradian",
       titlePlural: "Reciprocal Second Steradians",
@@ -1748,7 +1767,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.particleIntensityMetric.dataTypeId,
+          $ref: systemDataTypes["particleIntensity(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1774,7 +1793,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.particleRadianceMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["particleRadiance(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Particle Radiance (Metric)",
       titlePlural: "Particle Radiances (Metric)",
@@ -1792,7 +1812,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.reciprocalSquareMeterSecondSteradians.dataTypeBaseUrl,
+      systemDataTypes.reciprocalSquareMeterSecondSteradian.dataTypeBaseUrl,
     definition: {
       title: "Reciprocal Square Meter Second Steradian",
       titlePlural: "Reciprocal Square Meter Second Steradians",
@@ -1801,7 +1821,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.particleRadianceMetric.dataTypeId,
+          $ref: systemDataTypes["particleRadiance(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1828,7 +1848,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.particleFluxDensityMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["particleFluxDensity(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Particle Flux Density (Metric)",
       titlePlural: "Particle Flux Densities (Metric)",
@@ -1846,7 +1867,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.reciprocalSquareMeterSeconds.dataTypeBaseUrl,
+      systemDataTypes.reciprocalSquareMeterSecond.dataTypeBaseUrl,
     definition: {
       title: "Reciprocal Square Meter Second",
       titlePlural: "Reciprocal Square Meter Seconds",
@@ -1854,7 +1875,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.particleFluxDensityMetric.dataTypeId,
+          $ref: systemDataTypes["particleFluxDensity(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1880,7 +1901,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.numberPerAreaMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["numberPerArea(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Number per Area (Metric)",
       titlePlural: "Numbers per Area (Metric)",
@@ -1897,7 +1918,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.reciprocalSquareMeters.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.reciprocalSquareMeter.dataTypeBaseUrl,
     definition: {
       title: "Reciprocal Square Meter",
       titlePlural: "Reciprocal Square Meters",
@@ -1905,7 +1926,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.numberPerAreaMetric.dataTypeId,
+          $ref: systemDataTypes["numberPerArea(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1931,7 +1952,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.areaPerMassMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["areaPerMass(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Area per Mass (Metric)",
       titlePlural: "Areas per Mass (Metric)",
@@ -1947,7 +1968,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.squareMetersPerKilogram.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.squareMeterPerKilogram.dataTypeBaseUrl,
     definition: {
       title: "Square Meter per Kilogram",
       titlePlural: "Square Meters per Kilogram",
@@ -1955,7 +1976,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.areaPerMassMetric.dataTypeId,
+          $ref: systemDataTypes["areaPerMass(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -1981,7 +2002,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.areaPerAmountMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["areaPerAmount(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Area per Amount (Metric)",
       titlePlural: "Areas per Amount (Metric)",
@@ -1998,7 +2019,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.squareMetersPerMole.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.squareMeterPerMole.dataTypeBaseUrl,
     definition: {
       title: "Square Meter per Mole",
       titlePlural: "Square Meters per Mole",
@@ -2006,7 +2027,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.areaPerAmountMetric.dataTypeId,
+          $ref: systemDataTypes["areaPerAmount(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2032,7 +2053,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.soundExposureMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["soundExposure(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Sound Exposure (Metric)",
       titlePlural: "Sound Exposures (Metric)",
@@ -2048,7 +2069,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.pascalSquaredSeconds.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.pascalSquaredSecond.dataTypeBaseUrl,
     definition: {
       title: "Pascal Squared Second",
       titlePlural: "Pascal Squared Seconds",
@@ -2056,7 +2077,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.soundExposureMetric.dataTypeId,
+          $ref: systemDataTypes["soundExposure(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2084,7 +2105,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.specificAcousticImpedanceMetric.dataTypeBaseUrl,
+      systemDataTypes["specificAcousticImpedance(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Specific Acoustic Impedance (Metric)",
       titlePlural: "Specific Acoustic Impedances (Metric)",
@@ -2101,7 +2122,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.pascalSecondsPerMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.pascalSecondPerMeter.dataTypeBaseUrl,
     definition: {
       title: "Pascal Second per Meter",
       titlePlural: "Pascal Seconds per Meter",
@@ -2109,7 +2130,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.specificAcousticImpedanceMetric.dataTypeId,
+          $ref: systemDataTypes["specificAcousticImpedance(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2135,7 +2156,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.acousticImpedanceMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["acousticImpedance(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Acoustic Impedance (Metric)",
       titlePlural: "Acoustic Impedances (Metric)",
@@ -2152,7 +2174,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.pascalSecondsPerCubicMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.pascalSecondPerCubicMeter.dataTypeBaseUrl,
     definition: {
       title: "Pascal Second per Cubic Meter",
       titlePlural: "Pascal Seconds per Cubic Meter",
@@ -2160,7 +2182,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.acousticImpedanceMetric.dataTypeId,
+          $ref: systemDataTypes["acousticImpedance(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2186,7 +2208,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.molarMassMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["molarMass(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Molar Mass (Metric)",
       titlePlural: "Molar Masses (Metric)",
@@ -2202,7 +2224,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kilogramsPerMole.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kilogramPerMole.dataTypeBaseUrl,
     definition: {
       title: "Kilogram per Mole",
       titlePlural: "Kilograms per Mole",
@@ -2210,7 +2232,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.molarMassMetric.dataTypeId,
+          $ref: systemDataTypes["molarMass(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2236,7 +2258,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.molarVolumeMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["molarVolume(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Molar Volume (Metric)",
       titlePlural: "Molar Volumes (Metric)",
@@ -2252,7 +2274,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.cubicMetersPerMole.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.cubicMeterPerMole.dataTypeBaseUrl,
     definition: {
       title: "Cubic Meter per Mole",
       titlePlural: "Cubic Meters per Mole",
@@ -2260,7 +2282,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.molarVolumeMetric.dataTypeId,
+          $ref: systemDataTypes["molarVolume(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2286,7 +2308,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.numberPerVolumeMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["numberPerVolume(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Number per Volume (Metric)",
       titlePlural: "Numbers per Volume (Metric)",
@@ -2303,7 +2325,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.reciprocalCubicMeters.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.reciprocalCubicMeter.dataTypeBaseUrl,
     definition: {
       title: "Reciprocal Cubic Meter",
       titlePlural: "Reciprocal Cubic Meters",
@@ -2311,7 +2333,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.numberPerVolumeMetric.dataTypeId,
+          $ref: systemDataTypes["numberPerVolume(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2337,7 +2359,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.molalityMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["molality(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Molality (Metric)",
       titlePlural: "Molalities (Metric)",
@@ -2353,7 +2375,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.molesPerKilogram.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.molePerKilogram.dataTypeBaseUrl,
     definition: {
       title: "Mole per Kilogram",
       titlePlural: "Moles per Kilogram",
@@ -2361,7 +2383,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.molalityMetric.dataTypeId,
+          $ref: systemDataTypes["molality(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2387,7 +2409,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.molarConductivityMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["molarConductivity(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Molar Conductivity (Metric)",
       titlePlural: "Molar Conductivities (Metric)",
@@ -2404,7 +2427,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.siemensSquareMetersPerMole.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.siemensSquareMeterPerMole.dataTypeBaseUrl,
     definition: {
       title: "Siemens Square Meter per Mole",
       titlePlural: "Siemens Square Meters per Mole",
@@ -2412,7 +2435,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.molarConductivityMetric.dataTypeId,
+          $ref: systemDataTypes["molarConductivity(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2440,7 +2463,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.molarOpticalRotatoryPowerMetric.dataTypeBaseUrl,
+      systemDataTypes["molarOpticalRotatoryPower(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Molar Optical Rotatory Power (Metric)",
       titlePlural: "Molar Optical Rotatory Powers (Metric)",
@@ -2457,7 +2480,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.radianSquareMetersPerMole.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.radianSquareMeterPerMole.dataTypeBaseUrl,
     definition: {
       title: "Radian Square Meter per Mole",
       titlePlural: "Radian Square Meters per Mole",
@@ -2465,7 +2488,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.molarOpticalRotatoryPowerMetric.dataTypeId,
+          $ref: systemDataTypes["molarOpticalRotatoryPower(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2494,7 +2517,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.specificOpticalRotatoryPowerMetric.dataTypeBaseUrl,
+      systemDataTypes["specificOpticalRotatoryPower(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Specific Optical Rotatory Power (Metric)",
       titlePlural: "Specific Optical Rotatory Powers (Metric)",
@@ -2512,7 +2535,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.radianSquareMetersPerKilogram.dataTypeBaseUrl,
+      systemDataTypes.radianSquareMeterPerKilogram.dataTypeBaseUrl,
     definition: {
       title: "Radian Square Meter per Kilogram",
       titlePlural: "Radian Square Meters per Kilogram",
@@ -2520,7 +2543,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.specificOpticalRotatoryPowerMetric.dataTypeId,
+          $ref: systemDataTypes["specificOpticalRotatoryPower(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -2546,7 +2570,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.gyromagneticRatioMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["gyromagneticRatio(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Gyromagnetic Ratio (Metric)",
       titlePlural: "Gyromagnetic Ratios (Metric)",
@@ -2564,7 +2589,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.ampereSquareMetersPerJouleSecond.dataTypeBaseUrl,
+      systemDataTypes.ampereSquareMeterPerJouleSecond.dataTypeBaseUrl,
     definition: {
       title: "Ampere Square Meter per Joule Second",
       titlePlural: "Ampere Square Meters per Joule Second",
@@ -2573,7 +2598,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.gyromagneticRatioMetric.dataTypeId,
+          $ref: systemDataTypes["gyromagneticRatio(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2599,7 +2624,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.activityPerMassMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["activityPerMass(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Activity per Mass (Metric)",
       titlePlural: "Activities per Mass (Metric)",
@@ -2616,7 +2641,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.becquerelsPerKilogram.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.becquerelPerKilogram.dataTypeBaseUrl,
     definition: {
       title: "Becquerel per Kilogram",
       titlePlural: "Becquerels per Kilogram",
@@ -2624,7 +2649,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.activityPerMassMetric.dataTypeId,
+          $ref: systemDataTypes["activityPerMass(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2651,7 +2676,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.activityPerVolumeMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["activityPerVolume(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Activity per Volume (Metric)",
       titlePlural: "Activities per Volume (Metric)",
@@ -2668,7 +2694,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.becquerelsPerCubicMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.becquerelPerCubicMeter.dataTypeBaseUrl,
     definition: {
       title: "Becquerel per Cubic Meter",
       titlePlural: "Becquerels per Cubic Meter",
@@ -2676,7 +2702,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.activityPerVolumeMetric.dataTypeId,
+          $ref: systemDataTypes["activityPerVolume(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2702,7 +2728,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.activityPerAreaMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["activityPerArea(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Activity per Area (Metric)",
       titlePlural: "Activities per Area (Metric)",
@@ -2719,7 +2745,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.becquerelsPerSquareMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.becquerelPerSquareMeter.dataTypeBaseUrl,
     definition: {
       title: "Becquerel per Square Meter",
       titlePlural: "Becquerels per Square Meter",
@@ -2727,7 +2753,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.activityPerAreaMetric.dataTypeId,
+          $ref: systemDataTypes["activityPerArea(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2755,7 +2781,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.crossSectionPerSolidAngleMetric.dataTypeBaseUrl,
+      systemDataTypes["crossSectionPerSolidAngle(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Cross Section per Solid Angle (Metric)",
       titlePlural: "Cross Sections per Solid Angle (Metric)",
@@ -2772,7 +2798,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.squareMetersPerSteradian.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.squareMeterPerSteradian.dataTypeBaseUrl,
     definition: {
       title: "Square Meter per Steradian",
       titlePlural: "Square Meters per Steradian",
@@ -2780,7 +2806,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.crossSectionPerSolidAngleMetric.dataTypeId,
+          $ref: systemDataTypes["crossSectionPerSolidAngle(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2808,7 +2834,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.crossSectionPerEnergyMetric.dataTypeBaseUrl,
+      systemDataTypes["crossSectionPerEnergy(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Cross Section per Energy (Metric)",
       titlePlural: "Cross Sections per Energy (Metric)",
@@ -2825,7 +2851,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.squareMetersPerJoule.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.squareMeterPerJoule.dataTypeBaseUrl,
     definition: {
       title: "Square Meter per Joule",
       titlePlural: "Square Meters per Joule",
@@ -2833,7 +2859,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.crossSectionPerEnergyMetric.dataTypeId,
+          $ref: systemDataTypes["crossSectionPerEnergy(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2862,7 +2888,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.crossSectionPerEnergyAndSolidAngleMetric.dataTypeBaseUrl,
+      systemDataTypes["crossSectionPerEnergyAndSolidAngle(metric)"]
+        .dataTypeBaseUrl,
     definition: {
       title: "Cross Section per Energy and Solid Angle (Metric)",
       titlePlural: "Cross Sections per Energy and Solid Angle (Metric)",
@@ -2880,7 +2907,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.squareMetersPerJouleSteradian.dataTypeBaseUrl,
+      systemDataTypes.squareMeterPerJouleSteradian.dataTypeBaseUrl,
     definition: {
       title: "Square Meter per Joule Steradian",
       titlePlural: "Square Meters per Joule Steradian",
@@ -2888,7 +2915,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.crossSectionPerEnergyAndSolidAngleMetric
+          $ref: systemDataTypes["crossSectionPerEnergyAndSolidAngle(metric)"]
             .dataTypeId,
         },
       ],
@@ -2915,7 +2942,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.mobilityMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["mobility(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Mobility (Metric)",
       titlePlural: "Mobilities (Metric)",
@@ -2931,7 +2958,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.squareMetersPerVoltSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.squareMeterPerVoltSecond.dataTypeBaseUrl,
     definition: {
       title: "Square Meter per Volt Second",
       titlePlural: "Square Meters per Volt Second",
@@ -2939,7 +2966,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.mobilityMetric.dataTypeId,
+          $ref: systemDataTypes["mobility(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -2967,7 +2994,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.particleProductionDensityMetric.dataTypeBaseUrl,
+      systemDataTypes["particleProductionDensity(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Particle Production Density (Metric)",
       titlePlural: "Particle Production Densities (Metric)",
@@ -2984,8 +3011,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl:
-      systemDataTypes.reciprocalCubicMeterSeconds.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.reciprocalCubicMeterSecond.dataTypeBaseUrl,
     definition: {
       title: "Reciprocal Cubic Meter Second",
       titlePlural: "Reciprocal Cubic Meter Seconds",
@@ -2993,7 +3019,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.particleProductionDensityMetric.dataTypeId,
+          $ref: systemDataTypes["particleProductionDensity(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -3020,7 +3046,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.doseEquivalentRateMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["doseEquivalentRate(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Dose Equivalent Rate (Metric)",
       titlePlural: "Dose Equivalent Rates (Metric)",
@@ -3037,7 +3064,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.sievertsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.sievertPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Sievert per Second",
       titlePlural: "Sieverts per Second",
@@ -3045,7 +3072,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.doseEquivalentRateMetric.dataTypeId,
+          $ref: systemDataTypes["doseEquivalentRate(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -3071,7 +3098,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.exposureRateMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["exposureRate(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Exposure Rate (Metric)",
       titlePlural: "Exposure Rates (Metric)",
@@ -3087,7 +3114,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.coulombsPerKilogramSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.coulombPerKilogramSecond.dataTypeBaseUrl,
     definition: {
       title: "Coulomb per Kilogram Second",
       titlePlural: "Coulombs per Kilogram Second",
@@ -3095,7 +3122,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.exposureRateMetric.dataTypeId,
+          $ref: systemDataTypes["exposureRate(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -3121,7 +3148,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.angularWavenumberMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["angularWavenumber(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Angular Wavenumber (Metric)",
       titlePlural: "Angular Wavenumbers (Metric)",
@@ -3138,7 +3166,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.radiansPerMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.radianPerMeter.dataTypeBaseUrl,
     definition: {
       title: "Radian per Meter",
       titlePlural: "Radians per Meter",
@@ -3146,7 +3174,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.angularWavenumberMetric.dataTypeId,
+          $ref: systemDataTypes["angularWavenumber(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -3174,7 +3202,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.vibrationalDensityOfStatesMetric.dataTypeBaseUrl,
+      systemDataTypes["vibrationalDensityOfStates(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Vibrational Density of States (Metric)",
       titlePlural: "Vibrational Densities of States (Metric)",
@@ -3191,7 +3219,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.secondsPerCubicMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.secondPerCubicMeter.dataTypeBaseUrl,
     definition: {
       title: "Second per Cubic Meter",
       titlePlural: "Seconds per Cubic Meter",
@@ -3199,7 +3227,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.vibrationalDensityOfStatesMetric.dataTypeId,
+          $ref: systemDataTypes["vibrationalDensityOfStates(metric)"]
+            .dataTypeId,
         },
       ],
       label: {
@@ -3227,7 +3256,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.energyDensityOfStatesMetric.dataTypeBaseUrl,
+      systemDataTypes["energyDensityOfStates(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Energy Density of States (Metric)",
       titlePlural: "Energy Densities of States (Metric)",
@@ -3244,7 +3273,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.reciprocalJouleCubicMeters.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.reciprocalJouleCubicMeter.dataTypeBaseUrl,
     definition: {
       title: "Reciprocal Joule Cubic Meter",
       titlePlural: "Reciprocal Joule Cubic Meters",
@@ -3252,7 +3281,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.energyDensityOfStatesMetric.dataTypeId,
+          $ref: systemDataTypes["energyDensityOfStates(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -3278,7 +3307,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.lorenzCoefficientMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["lorenzCoefficient(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Lorenz Coefficient (Metric)",
       titlePlural: "Lorenz Coefficients (Metric)",
@@ -3295,7 +3325,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.squareVoltsPerSquareKelvin.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.squareVoltPerSquareKelvin.dataTypeBaseUrl,
     definition: {
       title: "Square Volt per Square Kelvin",
       titlePlural: "Square Volts per Square Kelvin",
@@ -3303,7 +3333,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.lorenzCoefficientMetric.dataTypeId,
+          $ref: systemDataTypes["lorenzCoefficient(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -3329,7 +3359,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.hallCoefficientMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["hallCoefficient(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Hall Coefficient (Metric)",
       titlePlural: "Hall Coefficients (Metric)",
@@ -3346,7 +3376,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.cubicMetersPerCoulomb.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.cubicMeterPerCoulomb.dataTypeBaseUrl,
     definition: {
       title: "Cubic Meter per Coulomb",
       titlePlural: "Cubic Meters per Coulomb",
@@ -3354,7 +3384,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.hallCoefficientMetric.dataTypeId,
+          $ref: systemDataTypes["hallCoefficient(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -3382,7 +3412,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.thermoelectricCoefficientMetric.dataTypeBaseUrl,
+      systemDataTypes["thermoelectricCoefficient(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Thermoelectric Coefficient (Metric)",
       titlePlural: "Thermoelectric Coefficients (Metric)",
@@ -3399,7 +3429,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.voltsPerKelvin.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.voltPerKelvin.dataTypeBaseUrl,
     definition: {
       title: "Volt per Kelvin",
       titlePlural: "Volts per Kelvin",
@@ -3407,7 +3437,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.thermoelectricCoefficientMetric.dataTypeId,
+          $ref: systemDataTypes["thermoelectricCoefficient(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -3434,7 +3464,8 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.richardsonConstantMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["richardsonConstant(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Richardson Constant (Metric)",
       titlePlural: "Richardson Constants (Metric)",
@@ -3452,7 +3483,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
   },
   {
     dataTypeBaseUrl:
-      systemDataTypes.amperesPerSquareMeterSquareKelvin.dataTypeBaseUrl,
+      systemDataTypes.amperePerSquareMeterSquareKelvin.dataTypeBaseUrl,
     definition: {
       title: "Ampere per Square Meter Square Kelvin",
       titlePlural: "Amperes per Square Meter Square Kelvin",
@@ -3461,7 +3492,7 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.richardsonConstantMetric.dataTypeId,
+          $ref: systemDataTypes["richardsonConstant(metric)"].dataTypeId,
         },
       ],
       label: {

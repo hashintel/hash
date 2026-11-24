@@ -101,7 +101,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.informationBinary.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["information(binary)"].dataTypeBaseUrl,
     definition: {
       title: "Information (Binary)",
       titlePlural: "Information (Binary)",
@@ -117,7 +117,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.informationDecimal.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["information(decimal)"].dataTypeBaseUrl,
     definition: {
       title: "Information (Decimal)",
       titlePlural: "Information (Decimal)",
@@ -133,7 +133,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.shannons.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.shannon.dataTypeBaseUrl,
     definition: {
       title: "Shannon",
       titlePlural: "Shannons",
@@ -152,7 +152,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.shannonsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.shannonPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Shannon per Second",
       titlePlural: "Shannons per Second",
@@ -170,7 +170,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.hartleys.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.hartley.dataTypeBaseUrl,
     definition: {
       title: "Hartley",
       titlePlural: "Hartleys",
@@ -187,7 +187,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.shannons.dataTypeBaseUrl]: {
+      [systemDataTypes.shannon.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -212,7 +212,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.hartleysPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.hartleyPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Hartley per Second",
       titlePlural: "Hartleys per Second",
@@ -228,7 +228,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.shannonsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.shannonPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -253,7 +253,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.nats.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.nat.dataTypeBaseUrl,
     definition: {
       title: "Nat",
       titlePlural: "Nats",
@@ -270,7 +270,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.shannons.dataTypeBaseUrl]: {
+      [systemDataTypes.shannon.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -295,7 +295,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.natsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.natPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Nat per Second",
       titlePlural: "Nats per Second",
@@ -311,7 +311,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.shannonsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.shannonPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -336,7 +336,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.bitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.bitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Bit per Second",
       titlePlural: "Bits per Second",
@@ -354,7 +354,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.bytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.bytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Byte per Second",
       titlePlural: "Bytes per Second",
@@ -370,7 +370,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -395,7 +395,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.octets.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.octet.dataTypeBaseUrl,
     definition: {
       title: "Octet",
       titlePlural: "Octets",
@@ -437,7 +437,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.bauds.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.baud.dataTypeBaseUrl,
     definition: {
       title: "Baud",
       titlePlural: "Bauds",
@@ -456,7 +456,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.erlangs.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.erlang.dataTypeBaseUrl,
     definition: {
       title: "Erlang",
       titlePlural: "Erlangs",
@@ -476,7 +476,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.octaves.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.octave.dataTypeBaseUrl,
     definition: {
       title: "Octave",
       titlePlural: "Octaves",
@@ -495,7 +495,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.semitones.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.semitone.dataTypeBaseUrl,
     definition: {
       title: "Semitone",
       titlePlural: "Semitones",
@@ -511,7 +511,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.octaves.dataTypeBaseUrl]: {
+      [systemDataTypes.octave.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -536,7 +536,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.centsFrequencyInterval.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["cent(frequencyInterval)"].dataTypeBaseUrl,
     definition: {
       title: "Cent (Frequency Interval)",
       titlePlural: "Cents (Frequency Interval)",
@@ -552,7 +552,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.octaves.dataTypeBaseUrl]: {
+      [systemDataTypes.octave.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -577,7 +577,8 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.decadesFrequencyInterval.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["decade(frequencyInterval)"].dataTypeBaseUrl,
     definition: {
       title: "Decade (Frequency Interval)",
       titlePlural: "Decades (Frequency Interval)",
@@ -594,7 +595,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.octaves.dataTypeBaseUrl]: {
+      [systemDataTypes.octave.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -619,7 +620,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kibibits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kibibit.dataTypeBaseUrl,
     definition: {
       title: "Kibibit",
       titlePlural: "Kibibits",
@@ -627,7 +628,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -674,7 +675,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kibibitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kibibitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Kibibit per Second",
       titlePlural: "Kibibits per Second",
@@ -690,7 +691,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -715,7 +716,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kibibytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kibibyte.dataTypeBaseUrl,
     definition: {
       title: "Kibibyte",
       titlePlural: "Kibibytes",
@@ -723,7 +724,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -756,7 +757,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kibibytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kibibytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Kibibyte per Second",
       titlePlural: "Kibibytes per Second",
@@ -772,7 +773,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -811,7 +812,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.mebibits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.mebibit.dataTypeBaseUrl,
     definition: {
       title: "Mebibit",
       titlePlural: "Mebibits",
@@ -819,7 +820,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -866,7 +867,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.mebibitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.mebibitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Mebibit per Second",
       titlePlural: "Mebibits per Second",
@@ -882,7 +883,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -907,7 +908,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.mebibytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.mebibyte.dataTypeBaseUrl,
     definition: {
       title: "Mebibyte",
       titlePlural: "Mebibytes",
@@ -915,7 +916,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -948,7 +949,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.mebibytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.mebibytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Mebibyte per Second",
       titlePlural: "Mebibytes per Second",
@@ -964,7 +965,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -1003,7 +1004,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.gibibits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.gibibit.dataTypeBaseUrl,
     definition: {
       title: "Gibibit",
       titlePlural: "Gibibits",
@@ -1011,7 +1012,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -1058,7 +1059,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.gibibitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.gibibitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Gibibit per Second",
       titlePlural: "Gibibits per Second",
@@ -1074,7 +1075,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -1099,7 +1100,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.gibibytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.gibibyte.dataTypeBaseUrl,
     definition: {
       title: "Gibibyte",
       titlePlural: "Gibibytes",
@@ -1107,7 +1108,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -1140,7 +1141,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.gibibytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.gibibytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Gibibyte per Second",
       titlePlural: "Gibibytes per Second",
@@ -1156,7 +1157,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -1195,7 +1196,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.tebibits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.tebibit.dataTypeBaseUrl,
     definition: {
       title: "Tebibit",
       titlePlural: "Tebibits",
@@ -1203,7 +1204,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -1264,7 +1265,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.tebibitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.tebibitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Tebibit per Second",
       titlePlural: "Tebibits per Second",
@@ -1280,7 +1281,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -1319,7 +1320,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.tebibytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.tebibyte.dataTypeBaseUrl,
     definition: {
       title: "Tebibyte",
       titlePlural: "Tebibytes",
@@ -1327,7 +1328,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -1374,7 +1375,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.tebibytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.tebibytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Tebibyte per Second",
       titlePlural: "Tebibytes per Second",
@@ -1390,7 +1391,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -1443,7 +1444,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.pebibits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.pebibit.dataTypeBaseUrl,
     definition: {
       title: "Pebibit",
       titlePlural: "Pebibits",
@@ -1451,7 +1452,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -1512,7 +1513,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.pebibitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.pebibitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Pebibit per Second",
       titlePlural: "Pebibits per Second",
@@ -1528,7 +1529,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -1567,7 +1568,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.pebibytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.pebibyte.dataTypeBaseUrl,
     definition: {
       title: "Pebibyte",
       titlePlural: "Pebibytes",
@@ -1575,7 +1576,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -1622,7 +1623,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.pebibytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.pebibytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Pebibyte per Second",
       titlePlural: "Pebibytes per Second",
@@ -1638,7 +1639,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -1691,7 +1692,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.exbibits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.exbibit.dataTypeBaseUrl,
     definition: {
       title: "Exbibit",
       titlePlural: "Exbibits",
@@ -1699,7 +1700,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -1760,7 +1761,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.exbibitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.exbibitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Exbibit per Second",
       titlePlural: "Exbibits per Second",
@@ -1776,7 +1777,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -1815,7 +1816,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.exbibytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.exbibyte.dataTypeBaseUrl,
     definition: {
       title: "Exbibyte",
       titlePlural: "Exbibytes",
@@ -1823,7 +1824,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -1870,7 +1871,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.exbibytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.exbibytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Exbibyte per Second",
       titlePlural: "Exbibytes per Second",
@@ -1886,7 +1887,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -1939,7 +1940,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.zebibits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.zebibit.dataTypeBaseUrl,
     definition: {
       title: "Zebibit",
       titlePlural: "Zebibits",
@@ -1947,7 +1948,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -2022,7 +2023,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.zebibitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.zebibitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Zebibit per Second",
       titlePlural: "Zebibits per Second",
@@ -2038,7 +2039,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -2091,7 +2092,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.zebibytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.zebibyte.dataTypeBaseUrl,
     definition: {
       title: "Zebibyte",
       titlePlural: "Zebibytes",
@@ -2099,7 +2100,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -2160,7 +2161,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.zebibytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.zebibytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Zebibyte per Second",
       titlePlural: "Zebibytes per Second",
@@ -2176,7 +2177,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -2243,7 +2244,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.yobibits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.yobibit.dataTypeBaseUrl,
     definition: {
       title: "Yobibit",
       titlePlural: "Yobibits",
@@ -2251,7 +2252,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -2326,7 +2327,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.yobibitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.yobibitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Yobibit per Second",
       titlePlural: "Yobibits per Second",
@@ -2342,7 +2343,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -2395,7 +2396,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.yobibytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.yobibyte.dataTypeBaseUrl,
     definition: {
       title: "Yobibyte",
       titlePlural: "Yobibytes",
@@ -2403,7 +2404,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -2464,7 +2465,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.yobibytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.yobibytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Yobibyte per Second",
       titlePlural: "Yobibytes per Second",
@@ -2480,7 +2481,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -2547,7 +2548,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.robibits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.robibit.dataTypeBaseUrl,
     definition: {
       title: "Robibit",
       titlePlural: "Robibits",
@@ -2555,7 +2556,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -2630,7 +2631,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.robibitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.robibitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Robibit per Second",
       titlePlural: "Robibits per Second",
@@ -2646,7 +2647,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -2699,7 +2700,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.robibytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.robibyte.dataTypeBaseUrl,
     definition: {
       title: "Robibyte",
       titlePlural: "Robibytes",
@@ -2707,7 +2708,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -2768,7 +2769,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.robibytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.robibytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Robibyte per Second",
       titlePlural: "Robibytes per Second",
@@ -2784,7 +2785,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -2851,7 +2852,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.quebibits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.quebibit.dataTypeBaseUrl,
     definition: {
       title: "Quebibit",
       titlePlural: "Quebibits",
@@ -2859,7 +2860,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -2948,7 +2949,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.quebibitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.quebibitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Quebibit per Second",
       titlePlural: "Quebibits per Second",
@@ -2964,7 +2965,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -3031,7 +3032,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.quebibytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.quebibyte.dataTypeBaseUrl,
     definition: {
       title: "Quebibyte",
       titlePlural: "Quebibytes",
@@ -3039,7 +3040,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationBinary.dataTypeId,
+          $ref: systemDataTypes["information(binary)"].dataTypeId,
         },
       ],
       label: {
@@ -3114,7 +3115,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.quebibytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.quebibytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Quebibyte per Second",
       titlePlural: "Quebibytes per Second",
@@ -3130,7 +3131,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -3211,7 +3212,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kilobits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kilobit.dataTypeBaseUrl,
     definition: {
       title: "Kilobit",
       titlePlural: "Kilobits",
@@ -3219,7 +3220,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -3266,7 +3267,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kilobitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kilobitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Kilobit per Second",
       titlePlural: "Kilobits per Second",
@@ -3282,7 +3283,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -3307,7 +3308,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kilobytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kilobytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Kilobyte per Second",
       titlePlural: "Kilobytes per Second",
@@ -3323,7 +3324,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -3362,7 +3363,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.megabits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.megabit.dataTypeBaseUrl,
     definition: {
       title: "Megabit",
       titlePlural: "Megabits",
@@ -3370,7 +3371,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -3417,7 +3418,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.megabitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.megabitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Megabit per Second",
       titlePlural: "Megabits per Second",
@@ -3433,7 +3434,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -3458,7 +3459,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.megabytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.megabytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Megabyte per Second",
       titlePlural: "Megabytes per Second",
@@ -3474,7 +3475,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -3513,7 +3514,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.gigabits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.gigabit.dataTypeBaseUrl,
     definition: {
       title: "Gigabit",
       titlePlural: "Gigabits",
@@ -3521,7 +3522,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -3568,7 +3569,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.gigabitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.gigabitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Gigabit per Second",
       titlePlural: "Gigabits per Second",
@@ -3584,7 +3585,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -3609,7 +3610,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.gigabytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.gigabytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Gigabyte per Second",
       titlePlural: "Gigabytes per Second",
@@ -3625,7 +3626,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -3664,7 +3665,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.terabits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.terabit.dataTypeBaseUrl,
     definition: {
       title: "Terabit",
       titlePlural: "Terabits",
@@ -3672,7 +3673,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -3719,7 +3720,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.terabitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.terabitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Terabit per Second",
       titlePlural: "Terabits per Second",
@@ -3735,7 +3736,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -3760,7 +3761,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.terabytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.terabytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Terabyte per Second",
       titlePlural: "Terabytes per Second",
@@ -3776,7 +3777,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -3815,7 +3816,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.petabits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.petabit.dataTypeBaseUrl,
     definition: {
       title: "Petabit",
       titlePlural: "Petabits",
@@ -3823,7 +3824,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -3870,7 +3871,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.petabitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.petabitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Petabit per Second",
       titlePlural: "Petabits per Second",
@@ -3886,7 +3887,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -3911,7 +3912,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.petabytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.petabyte.dataTypeBaseUrl,
     definition: {
       title: "Petabyte",
       titlePlural: "Petabytes",
@@ -3919,7 +3920,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -3952,7 +3953,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.petabytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.petabytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Petabyte per Second",
       titlePlural: "Petabytes per Second",
@@ -3968,7 +3969,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -4007,7 +4008,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.exabits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.exabit.dataTypeBaseUrl,
     definition: {
       title: "Exabit",
       titlePlural: "Exabits",
@@ -4015,7 +4016,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -4062,7 +4063,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.exabitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.exabitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Exabit per Second",
       titlePlural: "Exabits per Second",
@@ -4078,7 +4079,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -4103,7 +4104,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.exabytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.exabyte.dataTypeBaseUrl,
     definition: {
       title: "Exabyte",
       titlePlural: "Exabytes",
@@ -4111,7 +4112,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -4144,7 +4145,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.exabytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.exabytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Exabyte per Second",
       titlePlural: "Exabytes per Second",
@@ -4160,7 +4161,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -4199,7 +4200,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.zettabits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.zettabit.dataTypeBaseUrl,
     definition: {
       title: "Zettabit",
       titlePlural: "Zettabits",
@@ -4207,7 +4208,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -4254,7 +4255,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.zettabitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.zettabitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Zettabit per Second",
       titlePlural: "Zettabits per Second",
@@ -4270,7 +4271,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -4295,7 +4296,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.zettabytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.zettabyte.dataTypeBaseUrl,
     definition: {
       title: "Zettabyte",
       titlePlural: "Zettabytes",
@@ -4303,7 +4304,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -4336,7 +4337,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.zettabytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.zettabytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Zettabyte per Second",
       titlePlural: "Zettabytes per Second",
@@ -4352,7 +4353,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -4391,7 +4392,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.yottabits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.yottabit.dataTypeBaseUrl,
     definition: {
       title: "Yottabit",
       titlePlural: "Yottabits",
@@ -4399,7 +4400,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -4446,7 +4447,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.yottabitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.yottabitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Yottabit per Second",
       titlePlural: "Yottabits per Second",
@@ -4462,7 +4463,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -4487,7 +4488,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.yottabytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.yottabyte.dataTypeBaseUrl,
     definition: {
       title: "Yottabyte",
       titlePlural: "Yottabytes",
@@ -4495,7 +4496,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -4528,7 +4529,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.yottabytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.yottabytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Yottabyte per Second",
       titlePlural: "Yottabytes per Second",
@@ -4544,7 +4545,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -4583,7 +4584,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.ronnabits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.ronnabit.dataTypeBaseUrl,
     definition: {
       title: "Ronnabit",
       titlePlural: "Ronnabits",
@@ -4591,7 +4592,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -4638,7 +4639,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.ronnabitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.ronnabitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Ronnabit per Second",
       titlePlural: "Ronnabits per Second",
@@ -4654,7 +4655,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -4679,7 +4680,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.ronnabytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.ronnabyte.dataTypeBaseUrl,
     definition: {
       title: "Ronnabyte",
       titlePlural: "Ronnabytes",
@@ -4687,7 +4688,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -4720,7 +4721,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.ronnabytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.ronnabytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Ronnabyte per Second",
       titlePlural: "Ronnabytes per Second",
@@ -4736,7 +4737,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -4775,7 +4776,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.quettabits.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.quettabit.dataTypeBaseUrl,
     definition: {
       title: "Quettabit",
       titlePlural: "Quettabits",
@@ -4783,7 +4784,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -4830,7 +4831,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.quettabitsPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.quettabitPerSecond.dataTypeBaseUrl,
     definition: {
       title: "Quettabit per Second",
       titlePlural: "Quettabits per Second",
@@ -4846,7 +4847,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -4871,7 +4872,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.quettabytes.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.quettabyte.dataTypeBaseUrl,
     definition: {
       title: "Quettabyte",
       titlePlural: "Quettabytes",
@@ -4879,7 +4880,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.informationDecimal.dataTypeId,
+          $ref: systemDataTypes["information(decimal)"].dataTypeId,
         },
       ],
       label: {
@@ -4912,7 +4913,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.quettabytesPerSecond.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.quettabytePerSecond.dataTypeBaseUrl,
     definition: {
       title: "Quettabyte per Second",
       titlePlural: "Quettabytes per Second",
@@ -4928,7 +4929,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bitsPerSecond.dataTypeBaseUrl]: {
+      [systemDataTypes.bitPerSecond.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -4967,7 +4968,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.kilobauds.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.kilobaud.dataTypeBaseUrl,
     definition: {
       title: "Kilobaud",
       titlePlural: "Kilobauds",
@@ -4983,7 +4984,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bauds.dataTypeBaseUrl]: {
+      [systemDataTypes.baud.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -5008,7 +5009,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.megabauds.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.megabaud.dataTypeBaseUrl,
     definition: {
       title: "Megabaud",
       titlePlural: "Megabauds",
@@ -5024,7 +5025,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bauds.dataTypeBaseUrl]: {
+      [systemDataTypes.baud.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -5049,7 +5050,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.gigabauds.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.gigabaud.dataTypeBaseUrl,
     definition: {
       title: "Gigabaud",
       titlePlural: "Gigabauds",
@@ -5065,7 +5066,7 @@ export const informationUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.bauds.dataTypeBaseUrl]: {
+      [systemDataTypes.baud.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
