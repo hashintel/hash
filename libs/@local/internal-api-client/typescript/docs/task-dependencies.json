@@ -5,7 +5,9 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": []
+      "dependsOn": [
+        "codegen"
+      ]
     },
     "codegen": {
       "dependsOn": []
@@ -13,12 +15,6 @@
     "lint:tsc": {
       "dependsOn": [
         "codegen"
-      ]
-    },
-    "test:unit": {
-      "dependsOn": [],
-      "env": [
-        "TEST_COVERAGE"
       ]
     }
   }

@@ -9719,8 +9719,6 @@ __metadata:
     orval: "patch:orval@npm%3A8.47.0#~/.yarn/patches/orval-npm-8.47.0-54d40be37b.patch"
     rimraf: "npm:6.1.4"
     typescript: "catalog:"
-    vite: "catalog:"
-    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 

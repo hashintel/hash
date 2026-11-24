@@ -1,3 +1,2 @@
 dist
-# Committed so a spec change shows up in review; `yarn test:unit` checks it is current.
-!src/api.gen.ts
+src/api.gen.ts

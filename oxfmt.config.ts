@@ -74,7 +74,6 @@ export default defineConfig({
     "**/*.snap.*",
     "apps/petrinaut-website/src/examples/generated/**/*.json",
     "apps/petrinaut-website/src/routeTree.gen.ts",
-    "libs/@local/internal-api-client/typescript/src/api.gen.ts",
     "**/openapi.json",
     "**/*.aux.mir",
     "**/docs/task-dependencies.json",
