@@ -34,7 +34,7 @@ state itself and is as tall as its content. A
 it as a descriptor, and the container saves whether it is collapsed and how
 tall it is in the user settings.
 
-## Protocols
+## Protocol
 
 `KeptStateContext` is a map by key. A key belongs to one caller, which gives
 the value its type. [The editor shell](doc:ui.views.editor/editor-shell) says

@@ -14,4 +14,6 @@ Keep the docs end-user-focused. If a change ships without doc updates, call that
 
 Architecture is declared next to the code it describes, via `@layerRoot` / `@role` on a folder’s primary file or `layer` / `role` in that folder’s `README.md` frontmatter. When you introduce a folder that is a new architectural unit, add a declaration.
 
-Verify with `yarn workspace @apps/petrinaut-docs lint:arch-docs`. See `libs/@hashintel/petrinaut/AGENTS.md` for the full vocabulary.
+A file at the root of `src/` is a package entry in the root layer `core`. It does not own the folder of its name, which declares a layer of its own. Code inside Core imports the file that defines a name, and an entry only where the folder's README names it as the interface, as `src/hir/README.md` does.
+
+Verify with `yarn workspace @apps/petrinaut-docs lint:arch-docs`. See `libs/@hashintel/petrinaut/AGENTS.md` for the full vocabulary, and `apps/petrinaut-docs/content/building-blocks.mdx` for the row of each block: its layer, folder, interface files, protocol and guide.

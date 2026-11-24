@@ -31,18 +31,19 @@ concurrency.
 
 ## What this means when changing code
 
-The two paths share the step. A fixed step of a run is `advanceRun` in
-`monte-carlo/advance-run.ts`, built on `frame-operations.ts` and
-`transition-effect.ts` beside it. The Monte Carlo simulator calls it for each
+The two paths share the step. The files named here are under
+`libs/@hashintel/petrinaut-core/src/simulation`. A fixed step of a run is
+`advanceRun` in `monte-carlo/advance-run.ts`, built on `frame-operations.ts`
+and `transition-effect.ts` beside it. The Monte Carlo simulator calls it for each
 run of an experiment, and the fixed-step and untimed
 [steppers](layer:core.simulation.steppers) call it for Quick Simulation. The
 adaptive stepper has an advance of its own in `steppers/adaptive-stepper.ts`,
 on the same run buffers, and serves both paths as well.
 
 `computeNextFrame` in [the engine](layer:core.simulation.engine) is a second
-implementation of the step. It serves `createSimulation` and the
-`compiled-model` entry, and neither path of the editor. A change to the order
-of a step is made in both `advance-run.ts` and `compute-next-frame.ts`.
+implementation of the step, in `engine/compute-next-frame.ts`. It serves
+`createSimulation` and the `compiled-model` entry, and neither path of the
+editor. A change to the order of a step is made in both files.
 
 The runtimes around the step are separate, so a change to how a run starts or
 ends is made once in [the event trace](layer:core.simulation.event-trace) and

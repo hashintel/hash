@@ -13,6 +13,8 @@
  * `VIEW_ELEMENT_ATTRIBUTES`, `VIEW_STYLE_PROPERTIES`, `isSafeViewValue`).
  * `render-visualizer-hir.test.tsx` checks that anything else is refused and
  * draws every example visualizer against recorded markup.
+ * [Compiling user code](doc:core.hir/user-code) says how Core lowers a
+ * visualizer and why nothing from it runs as JavaScript.
  */
 import { Suspense, use, useDeferredValue } from "react";
 
