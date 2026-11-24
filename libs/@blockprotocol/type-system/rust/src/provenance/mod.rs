@@ -22,6 +22,7 @@ pub use self::{
 #[cfg(test)]
 mod tests {
     use alloc::collections::BTreeSet;
+    use core::assert_matches;
 
     use serde::{Serialize, de::DeserializeOwned};
     use serde_json::{Value, json};
@@ -59,15 +60,13 @@ mod tests {
     #[test]
     fn location_null() {
         let location = location();
-        assert!(
-            matches!(
-                &location,
-                Location {
-                    name: Some(_),
-                    uri: Some(_),
-                    description: Some(_),
-                }
-            ),
+        assert_matches!(
+            &location,
+            Location {
+                name: Some(_),
+                uri: Some(_),
+                description: Some(_),
+            },
             "should set every optional field"
         );
         null_rejected(&location);
@@ -89,19 +88,17 @@ mod tests {
             last_updated: Some(OffsetDateTime::UNIX_EPOCH),
             loaded_at: Some(OffsetDateTime::UNIX_EPOCH),
         };
-        assert!(
-            matches!(
-                &source,
-                SourceProvenance {
-                    ty: _,
-                    entity_id: Some(_),
-                    authors: _,
-                    location: Some(_),
-                    first_published: Some(_),
-                    last_updated: Some(_),
-                    loaded_at: Some(_),
-                }
-            ),
+        assert_matches!(
+            &source,
+            SourceProvenance {
+                ty: _,
+                entity_id: Some(_),
+                authors: _,
+                location: Some(_),
+                first_published: Some(_),
+                last_updated: Some(_),
+                loaded_at: Some(_),
+            },
             "should set every optional field"
         );
         null_rejected(&source);
@@ -122,21 +119,19 @@ mod tests {
             api_key_public_id: Some("token".to_owned()),
             user_agent: Some("agent".to_owned()),
         };
-        assert!(
-            matches!(
-                &origin,
-                OriginProvenance {
-                    ty: _,
-                    id: Some(_),
-                    version: Some(_),
-                    semantic_version: Some(_),
-                    environment: Some(_),
-                    device_id: Some(_),
-                    session_id: Some(_),
-                    api_key_public_id: Some(_),
-                    user_agent: Some(_),
-                }
-            ),
+        assert_matches!(
+            &origin,
+            OriginProvenance {
+                ty: _,
+                id: Some(_),
+                version: Some(_),
+                semantic_version: Some(_),
+                environment: Some(_),
+                device_id: Some(_),
+                session_id: Some(_),
+                api_key_public_id: Some(_),
+                user_agent: Some(_),
+            },
             "should set every optional field"
         );
         null_rejected(&origin);

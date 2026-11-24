@@ -1,0 +1,169 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  hashPetrinautDocument,
+  petrinautNonSemanticParts,
+  type PetrinautNonSemanticPart,
+} from "./hash-petrinaut-document";
+
+import type { Place, SDCPN } from "../types/sdcpn";
+
+const place = (id: string, name: string): Place => ({
+  id,
+  name,
+  description: undefined,
+  colorId: null,
+  dynamicsEnabled: false,
+  x: 0,
+  y: 0,
+});
+
+const net: SDCPN = {
+  description: "Two places",
+  metadata: { owner: "demo" },
+  places: [place("place-a", "Waiting"), place("place-b", "Served")],
+  transitions: [],
+  types: [
+    {
+      id: "color-job",
+      name: "Job",
+      iconSlug: "circle",
+      displayColor: "#FF0000",
+      elements: [],
+    },
+  ],
+  differentialEquations: [],
+  parameters: [],
+  components: [
+    {
+      id: "component-1",
+      name: "Inner",
+      places: [place("place-inner", "Inner")],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    },
+  ],
+};
+
+const renamed: SDCPN = {
+  ...net,
+  places: net.places.map((item) => ({ ...item, name: `${item.name}!` })),
+};
+
+describe("hashPetrinautDocument", () => {
+  it("ignores the order of object keys", () => {
+    const reordered: SDCPN = {
+      ...net,
+      places: net.places.map(
+        (item) => Object.fromEntries(Object.entries(item).reverse()) as Place,
+      ),
+    };
+
+    expect(hashPetrinautDocument(reordered)).toBe(hashPetrinautDocument(net));
+  });
+
+  it("keeps the order of array items", () => {
+    expect(
+      hashPetrinautDocument({ ...net, places: net.places.toReversed() }),
+    ).not.toBe(hashPetrinautDocument(net));
+  });
+
+  it("hashes a net like its JSON round trip", () => {
+    expect(
+      hashPetrinautDocument(JSON.parse(JSON.stringify(net)) as SDCPN),
+    ).toBe(hashPetrinautDocument(net));
+
+    const sparse: SDCPN = { ...net, metadata: { values: new Array(1) } };
+    expect(
+      hashPetrinautDocument(JSON.parse(JSON.stringify(sparse)) as SDCPN),
+    ).toBe(hashPetrinautDocument(sparse));
+  });
+
+  it("changes with what the net simulates, whatever is excluded", () => {
+    const semantic = { exclude: petrinautNonSemanticParts };
+
+    expect(hashPetrinautDocument(renamed)).not.toBe(hashPetrinautDocument(net));
+    expect(hashPetrinautDocument(renamed, semantic)).not.toBe(
+      hashPetrinautDocument(net, semantic),
+    );
+  });
+
+  const changes: Record<PetrinautNonSemanticPart, (input: SDCPN) => SDCPN> = {
+    layout: (input) => ({
+      ...input,
+      components: input.components?.map((component) => ({
+        ...component,
+        places: component.places.map((item) => ({ ...item, x: item.x + 40 })),
+      })),
+    }),
+    descriptions: (input) => ({ ...input, description: "Changed" }),
+    appearance: (input) => ({
+      ...input,
+      types: input.types.map((type) => ({ ...type, displayColor: "#00FF00" })),
+    }),
+    metadata: (input) => ({ ...input, metadata: {} }),
+  };
+
+  it.each(petrinautNonSemanticParts)("leaves out %s when excluded", (part) => {
+    const changed = changes[part](net);
+
+    expect(hashPetrinautDocument(changed)).not.toBe(hashPetrinautDocument(net));
+    expect(hashPetrinautDocument(changed, { exclude: [part] })).toBe(
+      hashPetrinautDocument(net, { exclude: [part] }),
+    );
+  });
+
+  it("counts a component's icon and colour as appearance", () => {
+    const styled: SDCPN = {
+      ...net,
+      components: net.components?.map((component) => ({
+        ...component,
+        iconSvg: "<svg/>",
+        displayColor: "#00FF00",
+      })),
+    };
+
+    expect(hashPetrinautDocument(styled)).not.toBe(hashPetrinautDocument(net));
+    expect(hashPetrinautDocument(styled, { exclude: ["appearance"] })).toBe(
+      hashPetrinautDocument(net, { exclude: ["appearance"] }),
+    );
+  });
+
+  it("counts a place's showAsInitialState hint as appearance", () => {
+    const shown: SDCPN = {
+      ...net,
+      places: net.places.map((item) => ({ ...item, showAsInitialState: true })),
+    };
+    const hidden: SDCPN = {
+      ...net,
+      places: net.places.map((item) => ({
+        ...item,
+        showAsInitialState: false,
+      })),
+    };
+    const innerShown: SDCPN = {
+      ...net,
+      components: net.components?.map((component) => ({
+        ...component,
+        places: component.places.map((item) => ({
+          ...item,
+          showAsInitialState: true,
+        })),
+      })),
+    };
+
+    for (const toggled of [shown, hidden, innerShown]) {
+      expect(hashPetrinautDocument(toggled)).not.toBe(
+        hashPetrinautDocument(net),
+      );
+      expect(hashPetrinautDocument(toggled, { exclude: ["appearance"] })).toBe(
+        hashPetrinautDocument(net, { exclude: ["appearance"] }),
+      );
+    }
+    expect(hashPetrinautDocument(shown)).not.toBe(
+      hashPetrinautDocument(hidden),
+    );
+  });
+});

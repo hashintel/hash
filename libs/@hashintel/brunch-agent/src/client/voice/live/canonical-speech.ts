@@ -1,0 +1,143 @@
+import { offerIn } from "../../../conversation/offer-answers";
+import { spokenQuestion } from "../../../conversation/question-kinds";
+import { hashCanonicalSpeechText } from "./canonical-speech/fingerprint";
+
+import type { PetrinautAiMessage } from "../../../ui/chat/ai-assistant-panel";
+import type { AgentSendResult } from "@flue/sdk";
+
+export { hashCanonicalSpeechText };
+
+export interface CanonicalSpeechSegment {
+  readonly contentHash: string;
+  readonly id: string;
+  readonly messageId: string;
+  readonly partId: string;
+  /**
+   * `assistant-offer` is one question an `offer_answers` call asks, said whole
+   * (choice alternatives included) rather than recapped; `assistant-question`
+   * is what Realtime replays: the turn's offered questions, or for a turn
+   * that asks in prose alone, its whole finalized text.
+   */
+  readonly source: "assistant-offer" | "assistant-question" | "assistant-text";
+  /**
+   * Every Flue submission that wrote to this segment's message: the one that
+   * started it plus any client-tool continuation projected back onto it.
+   */
+  readonly submissionIds?: readonly AgentSendResult["submissionId"][];
+  readonly text: string;
+}
+
+const createSegment = (
+  messageId: string,
+  partId: string,
+  source: CanonicalSpeechSegment["source"],
+  text: string,
+): CanonicalSpeechSegment => {
+  const contentHash = hashCanonicalSpeechText(text);
+  return {
+    contentHash,
+    id: [
+      "canonical-speech",
+      encodeURIComponent(messageId),
+      encodeURIComponent(partId),
+      contentHash,
+    ].join(":"),
+    messageId,
+    partId,
+    source,
+    text,
+  };
+};
+
+const finalizedTurnText = (message: PetrinautAiMessage): string | undefined => {
+  const speechAndToolParts = message.parts.filter(
+    (part) => part.type === "text" || "toolCallId" in part,
+  );
+  const terminalPart = speechAndToolParts.at(-1);
+  if (terminalPart?.type !== "text" || terminalPart.state === "streaming") {
+    return undefined;
+  }
+
+  const finalizedTexts = message.parts.flatMap((part) =>
+    part.type === "text" && part.state !== "streaming" && part.text.trim()
+      ? [part.text]
+      : [],
+  );
+  return finalizedTexts.length > 0 ? finalizedTexts.join("\n\n") : undefined;
+};
+
+export interface CanonicalSpeechSelection {
+  readonly questionSegment?: CanonicalSpeechSegment;
+  readonly segments: CanonicalSpeechSegment[];
+}
+
+export const selectCanonicalSpeech = (
+  messages: PetrinautAiMessage[],
+): CanonicalSpeechSelection => {
+  const segments: CanonicalSpeechSegment[] = [];
+  let questionSegment: CanonicalSpeechSegment | undefined;
+
+  for (const message of messages) {
+    if (message.role !== "assistant" || message.metadata?.stopped) {
+      continue;
+    }
+
+    for (const [partIndex, part] of message.parts.entries()) {
+      if (
+        part.type === "text" &&
+        part.state !== "streaming" &&
+        part.text.trim()
+      ) {
+        segments.push(
+          createSegment(
+            message.id,
+            `text:${partIndex}`,
+            "assistant-text",
+            part.text,
+          ),
+        );
+      }
+    }
+
+    // The reply only leads into its questions; they are asked in the offer,
+    // which Voice has no dock to show.
+    const offered = (offerIn(message.parts)?.questions ?? []).map(
+      spokenQuestion,
+    );
+    for (const [index, question] of offered.entries()) {
+      segments.push(
+        createSegment(
+          message.id,
+          `question:${index}`,
+          "assistant-offer",
+          question,
+        ),
+      );
+    }
+
+    if (offered.length > 0) {
+      questionSegment = createSegment(
+        message.id,
+        "question:offer",
+        "assistant-question",
+        offered.join("\n\n"),
+      );
+      continue;
+    }
+    const turnText = finalizedTurnText(message);
+    if (turnText !== undefined) {
+      questionSegment = createSegment(
+        message.id,
+        "question:finalized-turn",
+        "assistant-question",
+        turnText,
+      );
+    }
+  }
+
+  return { questionSegment, segments };
+};
+
+export const selectCanonicalSpeechSegments = (
+  messages: PetrinautAiMessage[],
+): CanonicalSpeechSegment[] => selectCanonicalSpeech(messages).segments;

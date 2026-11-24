@@ -3,7 +3,7 @@ import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { CharacterCount } from "../../util/CharacterCount/character-count";
+import { CharacterCount } from "../../primitives/CharacterCount/character-count";
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { useFieldId } from "../Form/field-id-context";
 import { textAreaRecipe } from "./text-area.recipe";

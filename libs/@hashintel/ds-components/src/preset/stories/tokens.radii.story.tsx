@@ -40,7 +40,7 @@ const RadiusSwatch = ({ step }: { step: string }) => {
   const value = token(tokenPath);
 
   return (
-    <VStack gap="1" alignItems="center">
+    <VStack gap="1" css={{ alignItems: "center" }}>
       <div
         className={css({
           width: "[48px]",
@@ -80,12 +80,12 @@ const ComponentDemo = ({ roundness }: { roundness: Roundness }) => {
   ];
 
   return (
-    <HStack gap="6" flexWrap="wrap" className={css({ roundness })}>
+    <HStack gap="6" css={{ flexWrap: "wrap" }} className={css({ roundness })}>
       {items.map(({ label, radius, w, h }) => {
         const tokenPath = `radii.${radius}` as Token;
         const value = token(tokenPath);
         return (
-          <VStack key={label} gap="2" alignItems="center">
+          <VStack key={label} gap="2" css={{ alignItems: "center" }}>
             <div
               className={css({
                 bg: "neutral.s90",
@@ -111,8 +111,8 @@ const ComponentDemo = ({ roundness }: { roundness: Roundness }) => {
 
 export const RadiiDemo = ({ roundness }: { roundness: Roundness }) => (
   <div className={css({ roundness })}>
-    <VStack gap="8" alignItems="flex-start" p="6">
-      <VStack gap="2" alignItems="flex-start">
+    <VStack gap="8" css={{ alignItems: "flex-start", p: "6" }}>
+      <VStack gap="2" css={{ alignItems: "flex-start" }}>
         <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
           Border Radius Tokens
         </h1>
@@ -141,19 +141,19 @@ export const RadiiDemo = ({ roundness }: { roundness: Roundness }) => (
         </p>
       </VStack>
 
-      <VStack gap="4" alignItems="flex-start" width="[100%]">
+      <VStack gap="4" css={{ alignItems: "flex-start", width: "[100%]" }}>
         <h2 className={sectionTitleStyles}>
           Current Scale (roundness: {roundness})
         </h2>
         <SwatchGrid />
       </VStack>
 
-      <VStack gap="4" alignItems="flex-start" width="[100%]">
+      <VStack gap="4" css={{ alignItems: "flex-start", width: "[100%]" }}>
         <h2 className={sectionTitleStyles}>Component Examples</h2>
         <ComponentDemo roundness={roundness} />
       </VStack>
 
-      <VStack gap="6" alignItems="flex-start" width="[100%]">
+      <VStack gap="6" css={{ alignItems: "flex-start", width: "[100%]" }}>
         <h2 className={sectionTitleStyles}>All Roundness Levels Compared</h2>
         <Box
           className={css({
@@ -175,7 +175,11 @@ export const RadiiDemo = ({ roundness }: { roundness: Roundness }) => (
           </pre>
         </Box>
         {roundnessLevels.map((level) => (
-          <VStack key={level} gap="3" alignItems="flex-start" width="[100%]">
+          <VStack
+            key={level}
+            gap="3"
+            css={{ alignItems: "flex-start", width: "[100%]" }}
+          >
             <span
               className={css({
                 textStyle: "sm",

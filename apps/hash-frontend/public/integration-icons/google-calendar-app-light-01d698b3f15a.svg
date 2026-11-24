@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="google-calendar-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="google-calendar-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="google-calendar-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#google-calendar-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#google-calendar-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#google-calendar-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="google-calendar-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#google-calendar-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 32 32" x="16.0" y="16.0" width="32.0" height="32.0">
+    <path d="M24.4211 7.5789L16.8423 6.73682L7.57906 7.5789L6.73682 16L7.5789 24.4211L16 25.4738L24.4211 24.4211L25.2632 15.7896L24.4211 7.5789Z" fill="white" />
+    <path d="M11.0338 20.6442C10.4044 20.2189 9.96851 19.598 9.73059 18.7769L11.1917 18.1748C11.3244 18.6801 11.5559 19.0716 11.8864 19.3495C12.2149 19.6274 12.6149 19.7642 13.0823 19.7642C13.5602 19.7642 13.9708 19.6189 14.3138 19.3284C14.6568 19.0378 14.8296 18.6673 14.8296 18.2189C14.8296 17.7601 14.6485 17.3852 14.2864 17.0948C13.9244 16.8044 13.4696 16.6589 12.9264 16.6589H12.0823V15.2127H12.84C13.3074 15.2127 13.7012 15.0865 14.0212 14.8338C14.3412 14.5812 14.5012 14.2359 14.5012 13.7959C14.5012 13.4044 14.358 13.0927 14.0717 12.8591C13.7855 12.6255 13.4232 12.5076 12.9832 12.5076C12.5538 12.5076 12.2127 12.6213 11.96 12.8508C11.7074 13.0802 11.5242 13.3623 11.4085 13.6949L9.96227 13.0929C10.1538 12.5497 10.5055 12.0697 11.0212 11.6549C11.537 11.2402 12.1959 11.0317 12.9959 11.0317C13.5874 11.0317 14.12 11.1455 14.5917 11.3749C15.0632 11.6044 15.4338 11.9223 15.7012 12.3265C15.9685 12.7327 16.1012 13.1876 16.1012 13.6927C16.1012 14.2085 15.977 14.6442 15.7285 15.0021C15.48 15.3601 15.1748 15.6337 14.8127 15.8253V15.9116C15.2906 16.1116 15.68 16.4169 15.9874 16.8274C16.2927 17.238 16.4463 17.7285 16.4463 18.3012C16.4463 18.8738 16.301 19.3853 16.0104 19.8338C15.7199 20.2823 15.3178 20.6359 14.8084 20.8927C14.2968 21.1495 13.7221 21.2801 13.0842 21.2801C12.3453 21.2821 11.6632 21.0695 11.0338 20.6442Z" fill="#1A73E8" />
+    <path d="M20 13.3939L18.4041 14.5539L17.6021 13.3371L20.48 11.2612H21.5832V21.0528H20V13.3939Z" fill="#1A73E8" />
+    <path d="M24.4211 32.0001L32 24.4212L28.2105 22.7371L24.4211 24.4212L22.7369 28.2107L24.4211 32.0001Z" fill="#EA4335" />
+    <path d="M5.89478 28.2106L7.57894 32H24.421V24.4211H7.57894L5.89478 28.2106Z" fill="#34A853" />
+    <path d="M2.52624 0C1.13056 0 0 1.13056 0 2.52624V24.421L3.78944 26.1051L7.57888 24.421V7.57888H24.421L26.1051 3.78944L24.4211 0H2.52624Z" fill="#4285F4" />
+    <path d="M0 24.4211V29.4738C0 30.8696 1.13056 32 2.52624 32H7.57888V24.4211H0Z" fill="#188038" />
+    <path d="M24.4211 7.57894V24.421H32V7.57894L28.2106 5.89478L24.4211 7.57894Z" fill="#FBBC04" />
+    <path d="M32 7.57888V2.52624C32 1.1304 30.8695 0 29.4738 0H24.4211V7.57888H32Z" fill="#1967D2" />
+  </svg></g></svg>

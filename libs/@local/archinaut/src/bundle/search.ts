@@ -32,13 +32,38 @@ export interface SearchIndex {
 const frontmatterPattern = /^---\n[\s\S]*?\n---\n?/u;
 
 /**
+ * A TeX span reduced to the names and numbers it mentions: commands,
+ * braces and the characters that only shape the formula go, so a search
+ * for `bins` finds the formula that sizes them.
+ */
+const texToWords = (tex: string): string =>
+  tex.replace(/\\[a-zA-Z]+|\\.|[{}^_&]/gu, " ");
+
+/**
+ * Fenced code, a `$$` block and a `$…$` span, in one pattern. Code is kept
+ * as written, since a `$` there is code; a formula is reduced to its words.
+ */
+const codeOrMathPattern =
+  /(```|~~~)[\s\S]*?\1|\$\$([\s\S]*?)\$\$|\$([^$\n]+)\$/gu;
+
+const reduceMath = (text: string): string =>
+  text.replace(
+    codeOrMathPattern,
+    (match, _fence, block?: string, span?: string) => {
+      const tex = block ?? span;
+      return tex === undefined ? match : texToWords(tex);
+    },
+  );
+
+/**
  * An MDX section's lines as the text a reader sees: no ESM, no JSX, no
- * fences, no aside markers, no page title, and markdown reduced to its
- * text. Tags are removed after the lines are joined, since a component
- * with its props on several lines is one tag.
+ * fences, no aside markers, no page title, markdown reduced to its text
+ * and mathematics to its words. Tags are removed after the lines are
+ * joined, since a component with its props on several lines is one tag.
  */
 export const plainTextOf = (lines: string[]): string =>
-  lines
+  reduceMath(lines.join("\n"))
+    .split("\n")
     .filter((line) => !/^\s*(import|export)\s/u.test(line))
     .filter((line) => !/^\s*(```|~~~)/u.test(line))
     .filter((line) => !/^\s*:::/u.test(line))

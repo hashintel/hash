@@ -4,15 +4,19 @@
  */
 import { use, useEffect, useRef, useState } from "react";
 
-import { createReadableStore } from "@hashintel/petrinaut-core";
+import {
+  createReadableStore,
+  inlineImports,
+  resolvedLibraries,
+} from "@hashintel/petrinaut-core";
 
+import { usePetrinautInstance } from "../document/use-petrinaut-instance";
 import { ExperimentsContext } from "../experiments/context";
-import { useStableCallback } from "../hooks/use-stable-callback";
-import { PetrinautInstanceContext } from "../instance-context";
+import { NetManagementContext } from "../host/net-management-context";
 import { LanguageClientContext } from "../lsp/context";
 import { NotificationsContext } from "../notifications/context";
 import { OptimizationsContext } from "../optimizations/context";
-import { SDCPNContext } from "../state/sdcpn-context";
+import { useStableCallback } from "../shared/use-stable-callback";
 import { ExperimentHostContext } from "./context";
 import { runExperiment as runHostExperiment } from "./run-experiment";
 
@@ -22,8 +26,8 @@ import type { PetrinautExperimentHost } from "@hashintel/petrinaut-core/experime
 import type { PropsWithChildren } from "react";
 
 export const ExperimentHostProvider = ({ children }: PropsWithChildren) => {
-  const { petriNetDefinition, extensions, title } = use(SDCPNContext);
-  const instance = use(PetrinautInstanceContext);
+  const { title } = use(NetManagementContext);
+  const instance = usePetrinautInstance();
   const experimentsContext = use(ExperimentsContext);
   const optimizationsContext = use(OptimizationsContext);
   const languageClient = use(LanguageClientContext);
@@ -69,8 +73,11 @@ export const ExperimentHostProvider = ({ children }: PropsWithChildren) => {
       // compile without a `catch`.
       const result = await runHostExperiment(
         {
-          definition: instance?.definition.get() ?? petriNetDefinition,
-          extensions: instance?.extensions ?? extensions,
+          definition: inlineImports(
+            instance.definition.get(),
+            resolvedLibraries(instance.imports.get()),
+          ),
+          extensions: instance.extensions,
           title,
           experiments,
           optimizations,

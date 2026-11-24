@@ -1,36 +1,51 @@
-import { useStore, type ConnectionLineComponent } from "@xyflow/react";
 import { useId } from "react";
 
-import { getOutlineArcPath, getOutlineNode } from "./shared/outline-arcs";
+import { useArcLayerInput } from "./arc-layer-context";
+import { joinedPairs } from "./shared/joined-pairs";
+import {
+  curvePath,
+  fixedEndpoint,
+  getOutlineArcCurve,
+  getOutlineNode,
+} from "./shared/outline-arcs";
 
 import type { NodeType } from "./react-flow-types";
+import type { ConnectionLineComponent } from "@xyflow/react";
 
+/**
+ * The arc being drawn, along the path it will take once created: from the
+ * source node's outline, or the port it was dragged from, to the pointer, and
+ * to the target's outline or port once the target is valid.
+ */
 export const OutlineConnectionLine: ConnectionLineComponent<NodeType> = ({
   fromNode,
+  fromX,
+  fromY,
+  fromPosition,
   toNode,
   toX,
   toY,
+  toPosition,
   connectionStatus,
   connectionLineStyle,
 }) => {
   const markerId = useId();
-  const hasReverseArc = useStore(
-    (state) =>
-      toNode !== null &&
-      state.edges.some(
-        (edge) => edge.source === toNode.id && edge.target === fromNode.id,
-      ),
-  );
-  const source = getOutlineNode(fromNode.data);
-  const target =
-    connectionStatus === "valid" && toNode ? getOutlineNode(toNode.data) : null;
-  if (!source) {
-    return null;
-  }
-  const [path] = getOutlineArcPath(
-    source,
-    target ?? { x: toX, y: toY },
-    target !== null && hasReverseArc,
+  // The lane of an arc that has a line running the other way: an arc or a
+  // fusion link. React Flow mounts this only while a connection is drawn.
+  const { scene } = useArcLayerInput();
+  const hasReverseArc =
+    toNode !== null &&
+    joinedPairs([...scene.arcs, ...scene.fusions])(toNode.id, fromNode.id);
+  const sourceOutline = getOutlineNode(fromNode.data);
+  const snapped = connectionStatus === "valid" && toNode !== null;
+  const targetOutline = snapped ? getOutlineNode(toNode.data) : null;
+  const path = curvePath(
+    getOutlineArcCurve(
+      sourceOutline ?? fixedEndpoint(fromX, fromY, fromPosition),
+      targetOutline ??
+        fixedEndpoint(toX, toY, snapped ? toPosition : undefined),
+      snapped && hasReverseArc,
+    ),
   );
   return (
     <>

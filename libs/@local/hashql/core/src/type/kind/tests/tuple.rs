@@ -501,8 +501,9 @@ fn simplify_tuple_with_never() {
 
     // The result should be a Never type
     let result_type = env.r#type(result);
-    assert!(
-        matches!(result_type.kind, TypeKind::Never),
+    assert_matches!(
+        result_type.kind,
+        TypeKind::Never,
         "Expected Never, got {:?}",
         result_type.kind
     );
@@ -601,8 +602,9 @@ fn tuple_with_disjoint_field_types() {
 
     // The result should be a Never type
     let result_type = env.r#type(result);
-    assert!(
-        matches!(result_type.kind, TypeKind::Never),
+    assert_matches!(
+        result_type.kind,
+        TypeKind::Never,
         "Expected Never, got {:?}",
         result_type.kind
     );

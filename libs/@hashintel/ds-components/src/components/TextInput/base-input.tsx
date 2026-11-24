@@ -327,7 +327,12 @@ export const BaseInput = ({
         <div className={classes.inputWrapper}>
           {input}
           {styledValue && !focused && (
-            <div className={classes.styledValueOverlay}>{styledValue}</div>
+            <div
+              className={classes.styledValueOverlay}
+              data-part="styled-value"
+            >
+              {styledValue}
+            </div>
           )}
           {showClear && (
             <button
@@ -345,6 +350,7 @@ export const BaseInput = ({
                 clearValue();
                 internalRef.current?.focus();
               }}
+              data-hidden={!clearable || !value ? "" : undefined}
               className={cx(
                 classes.clear,
                 (!clearable || !value) && classes.hideClear,

@@ -395,7 +395,7 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
             {
               role: "user",
               content: [toolResultContent],
-            } as LlmUserMessage,
+            },
           ];
         }
 

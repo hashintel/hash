@@ -16,6 +16,21 @@ import { cva } from "@hashintel/ds-helpers/css";
 
 import type { CanvasArcFocus, CanvasNodeFocus } from "../canvas-focus";
 
+/**
+ * How long a focus takes to arrive and to leave, in milliseconds. The pane
+ * of a canvas writes it to `--canvas-focus-duration`, which every fade of a
+ * focus reads, and the arc layer waits this long for a fade to end. The
+ * `200ms` in the styles is what a node drawn outside a pane falls back to.
+ */
+export const focusFadeMs = 200;
+
+/**
+ * Marks what has a role in the focus: a node, an arc, a fusion link, a shape
+ * on the minimap. Only those are marked, so the pane can mute the rest
+ * without touching them. The pane's selectors spell it out, for Panda.
+ */
+export const focusRoleClass = "canvas-focus-role";
+
 const FOCUSED_COLOR = "var(--colors-neutral-s115)";
 const UPSTREAM_COLOR = "var(--colors-blue-s90)";
 const DOWNSTREAM_COLOR = "var(--colors-orange-s90)";
@@ -32,7 +47,9 @@ const BIDIRECTIONAL_COLOR = "var(--colors-purple-s90)";
  * lifting the node off the dotted canvas, then the role's colour. Both are
  * anchored on the border box, so they stay concentric whatever the node's
  * shape. They fade over 200ms, so a neighbourhood arrives and leaves as a fade
- * rather than a switch.
+ * rather than a switch. Nothing else of a node takes a transition at a change
+ * of focus: a node outside the neighbourhood dims in one frame, and
+ * `node-fade.ts` says how.
  */
 export const nodeFocusStyle = cva({
   base: {
@@ -89,14 +106,6 @@ export const arcHaloColor = (focus: CanvasArcFocus): string | undefined => {
       return undefined;
   }
 };
-
-/**
- * How far each casing stands out either side of the arc it wraps: white first,
- * lifting the arc off the canvas, then the role's colour around that. The two
- * match the bands a highlighted node wears outside its border.
- */
-export const ARC_WHITE_OVERHANG = 2;
-export const ARC_HALO_OVERHANG = ARC_WHITE_OVERHANG + 2;
 
 /**
  * The ring colour for a shape on the minimap, or undefined for a shape that

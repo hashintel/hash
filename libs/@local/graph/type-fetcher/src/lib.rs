@@ -1,10 +1,6 @@
 //! # HASH Graph Type Fetcher
 //!
 //! ## Workspace dependencies
-#![feature(
-    // Library Features
-    ip,
-)]
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 
 extern crate alloc;

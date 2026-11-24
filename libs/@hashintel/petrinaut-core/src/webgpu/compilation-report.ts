@@ -21,7 +21,7 @@
  * It is deliberately read-only and device-free: it answers "would this compile"
  * without acquiring a GPU, so it can run while editing.
  */
-import { resolveNetParameterValues } from "../parameter-values";
+import { resolveNetParameterValues } from "../document/parameter-values";
 import { compileNetShader } from "./compile-net-shader";
 import { assessGpuEligibility } from "./eligibility";
 import { toGpuMetricSpecs } from "./gpu-metric-frames";
@@ -29,7 +29,7 @@ import { hirFromArtifacts } from "./hir-from-artifacts";
 import { tryTranslateKernel } from "./try-translate-kernel";
 import { tryTranslateMetric } from "./try-translate-metric";
 
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirArtifacts } from "../hir-runtime";
 import type { MonteCarloMetricSpec } from "../simulation/monte-carlo/metrics/types";
 import type { SDCPN } from "../types/sdcpn";

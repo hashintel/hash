@@ -56,7 +56,7 @@ use type_system::{
         Confidence, Entity, Property,
         entity::{
             EntityMetadata, Link,
-            id::{EntityEditionId, EntityId, EntityRecordId, EntityUuid},
+            id::{DraftId, EntityEditionId, EntityId, EntityRecordId, EntityUuid},
             metadata::{EntityTemporalMetadata, EntityTypeIdDiff},
             provenance::{
                 EntityDeletionProvenance, EntityEditionProvenance, EntityProvenance,
@@ -178,6 +178,7 @@ use crate::rest::legacy::{
             PropertyMetadata,
             EntityUuid,
             EntityId,
+            DraftId,
             EntityEditionId,
             EntityMetadata,
             EntityProvenance,

@@ -7,6 +7,13 @@ The HASH Backend API service is configured using the following environment varia
 - `NODE_ENV`: ("development" or "production") the runtime environment. Controls
   default logging levels and output formatting.
 - `PORT`: the port number the API will listen on.
+- `HASH_API_CLIENT_IP_SOURCE`: (default: `connect-info`) where the client IP of a request is read from. Rate limits, request logs, and error reports use it. One of:
+  - `connect-info`: the address of the connection.
+  - `x-forwarded-for`: the rightmost address of the last `X-Forwarded-For` header, as appended by the closest proxy.
+  - `cf-connecting-ip`: the last `CF-Connecting-IP` header, as written by Cloudflare.
+
+  Pick a header only when a proxy in front of the API sets it, otherwise a client can choose its own IP. When the header is missing or holds no address, the connection address is used. The API refuses to start on any other value.
+
 - `SELF_HOSTED_HASH`: if `"true"` forces self-hosted behavior, which e.g. loads system types as external types.
 - `NODE_API_SENTRY_DSN`: the Sentry DSN to use for error reporting and tracing
 - `AWS_REGION`: the AWS region to use (for the Simple Email Service (SES) provider, and as a fallback for other AWS services)

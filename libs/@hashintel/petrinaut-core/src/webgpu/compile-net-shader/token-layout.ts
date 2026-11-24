@@ -149,24 +149,34 @@ export const makeTokenReader = (
 };
 
 /**
- * The `tokens` argument of a lambda or kernel: a record keyed by input slot
- * name, holding one token per consumed token. A slot with no readers is an
- * empty tuple, which is what an uncoloured place has.
+ * The `input` argument of a lambda or kernel: a record keyed by input place
+ * name. A slot holds one token per consumed token, plus the place's live
+ * `.count` when `inputCounts` names it; a place with a count and no slot
+ * (uncoloured, or joined by an inhibitor or read arc) exposes `.count` alone.
+ * A slot with no readers is an empty tuple, which is what an uncoloured place
+ * has.
  */
 export const tokenSlotsValue = (
   tokenSlots: ReadonlyMap<string, readonly TokenReader[]>,
-): WgslValue => ({
-  kind: "record",
-  fields: new Map(
-    [...tokenSlots].map(([slotName, readers]) => [
-      slotName,
-      {
-        kind: "array" as const,
-        elements: readers.map((read): WgslValue => ({ kind: "token", read })),
-      },
-    ]),
-  ),
-});
+  inputCounts: ReadonlyMap<string, string> = new Map(),
+): WgslValue => {
+  const fields = new Map<string, WgslValue>();
+  for (const [name, code] of inputCounts) {
+    fields.set(name, {
+      kind: "record",
+      fields: new Map([["count", { kind: "f32", code }]]),
+    });
+  }
+  for (const [slotName, readers] of tokenSlots) {
+    const code = inputCounts.get(slotName);
+    fields.set(slotName, {
+      kind: "array",
+      elements: readers.map((read): WgslValue => ({ kind: "token", read })),
+      ...(code === undefined ? {} : { count: { kind: "f32", code } }),
+    });
+  }
+  return { kind: "record", fields };
+};
 
 /** One attribute write of an output token, as a word relative to its slot. */
 export type TokenWordWrite = { wordOffset: number; valueExpr: string };

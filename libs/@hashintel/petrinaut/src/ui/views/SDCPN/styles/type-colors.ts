@@ -6,7 +6,7 @@
  * that the derivations for related roles sit together.
  */
 
-import { hexToHsl } from "../../../lib/hsl-color";
+import { hexToHsl } from "./hsl-color";
 
 const UNTYPED_PLACE_FILL = "var(--colors-neutral-s10)";
 const UNTYPED_MINI_MAP_PLACE_FILL = "#0F0F0F";

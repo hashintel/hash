@@ -4,6 +4,15 @@ description: React against Preact, Solid, Svelte, a plain patch applier and a ca
 sidebar_order: 3
 ---
 
+:::note[Status]
+This is a design note, written against revision `8bb19ca803`, and its numbers
+were taken there. Visualizer code is since lowered to a view HIR that the
+editor interprets and renders with React;
+[Compiling user code](doc:core.hir/user-code) describes it as it is. The
+per-frame benchmark does not depend on that change. The compiler and type
+columns of the candidates table describe the toolchain at that revision.
+:::
+
 Visualizers are written as TSX and rendered by the host's React. This page
 asks whether another library would compile faster, update long token lists
 faster, or be easier to check, and finds the runtime is not where the gains

@@ -26,7 +26,7 @@ mod tests;
 mod topo;
 
 use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
-use hashql_diagnostics::DiagnosticIssues;
+use hashql_diagnostics::{DiagnosticIssues, Failure};
 
 use self::{
     graph::{EdgeKind, Graph},
@@ -43,13 +43,15 @@ use crate::{
         FastHashMap, SmallVec, fast_hash_map_with_capacity, fast_hash_map_with_capacity_in,
     },
     heap::{ResetAllocator as _, Scratch},
+    span::SpanId,
     r#type::{
         PartialType, TypeId,
         environment::{InferenceEnvironment, LatticeEnvironment, Variance},
         error::{
-            TypeCheckDiagnosticIssues, TypeCheckStatus, bound_constraint_violation,
-            conflicting_equality_constraints, incompatible_lower_equal_constraint,
-            incompatible_upper_equal_constraint, unconstrained_type_variable,
+            TypeCheckDiagnosticCategory, TypeCheckDiagnosticIssues, TypeCheckStatus,
+            bound_constraint_violation, conflicting_equality_constraints,
+            incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
+            non_convergent_system, unconstrained_type_variable,
             unconstrained_type_variable_floating, unresolved_selection_constraint,
             unsatisfiable_upper_constraint,
         },
@@ -288,6 +290,41 @@ struct EvaluatedVariableConstraint {
     upper: Option<TypeId>,
 }
 
+/// Limit on the fix-point iterations of an [`InferenceSolver`].
+///
+/// Some constraint systems make progress in every iteration and never reach a fix-point. The
+/// solver stops such a system at the limit and reports it as non-convergent.
+///
+/// The limit grows with the size of the system, which is the number of constraints it starts with
+/// or the number of its variables, whichever is larger. A chain of selections that each depend on
+/// the one before it, or of orderings between variables, reaches its fix-point after a number of
+/// iterations proportional to its length.
+struct InferenceSolverConfig {
+    /// Iterations every system may take, whatever its size.
+    base_iterations: usize,
+    /// Iterations a system may take in addition for each constraint or variable.
+    iterations_per_constraint: usize,
+}
+
+impl InferenceSolverConfig {
+    const fn max_iterations(&self, size: usize) -> usize {
+        self.iterations_per_constraint
+            .saturating_mul(size)
+            .saturating_add(self.base_iterations)
+    }
+}
+
+impl Default for InferenceSolverConfig {
+    fn default() -> Self {
+        // Defaults that have been chosen from representative programs, may be adjusted in the
+        // future.
+        Self {
+            base_iterations: 16,
+            iterations_per_constraint: 4,
+        }
+    }
+}
+
 /// Constraint solver using fix-point iteration.
 ///
 /// Resolves type constraints to determine the most specific types for each variable.
@@ -326,6 +363,8 @@ pub struct InferenceSolver<'env, 'heap> {
     constraints: Vec<Constraint<'heap>>,
     /// Unification system for tracking variable equivalence.
     unification: Unification,
+
+    config: InferenceSolverConfig,
 }
 
 impl<'env, 'heap> InferenceSolver<'env, 'heap> {
@@ -350,6 +389,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             constraints,
             unification,
+
+            config: InferenceSolverConfig::default(),
         }
     }
 
@@ -1573,6 +1614,26 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         made_progress
     }
 
+    /// Builds the failure of a system that reached its iteration limit.
+    ///
+    /// The diagnostics of an iteration hold only if that iteration is the fix-point, and none was.
+    /// The persistent ones hold regardless. A constraint raises its persistent diagnostic again at
+    /// every discharge, and the failure carries one copy of each.
+    fn non_convergent(self) -> Failure<TypeCheckDiagnosticCategory, SpanId> {
+        let mut secondary = DiagnosticIssues::new();
+
+        for diagnostic in self.persistent_diagnostics.into_vec() {
+            if !secondary.contains(&diagnostic) {
+                secondary.push(diagnostic);
+            }
+        }
+
+        Failure {
+            primary: Box::new(non_convergent_system(&self.constraints)),
+            secondary,
+        }
+    }
+
     /// Solves the constraint system via fix-point iteration.
     ///
     /// # Algorithm
@@ -1595,7 +1656,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///
     /// # Errors
     ///
-    /// Returns an error if the type inference fails.
+    /// Returns an error if the type inference fails. That includes a system that has not reached a
+    /// fix-point after a number of iterations that grows with its size, which the solver reports
+    /// as non-convergent.
     pub fn solve(mut self) -> TypeCheckStatus<Substitution> {
         // This is the perfect use of a bump allocator, which is suited for phase-based memory
         // allocation. Each fix-point iteration requires temporary data structures that we can
@@ -1617,9 +1680,20 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         let mut force_validation_pass = true;
         let mut made_progress = true;
 
+        let constraints = self.constraints.len();
+        let mut iterations = 0;
+
         // Fix-point iteration - continue solving until no new constraints are generated or a
         // fix-point is reached
         while force_validation_pass || (!self.constraints.is_empty() && made_progress) {
+            // Size may monotonically increase as new variables are introduced, which in turn
+            // increases the budget.
+            let size = constraints.max(self.unification.variables.len());
+            if iterations == self.config.max_iterations(size) {
+                return Err(self.non_convergent());
+            }
+
+            iterations += 1;
             force_validation_pass = false;
             made_progress = false;
 

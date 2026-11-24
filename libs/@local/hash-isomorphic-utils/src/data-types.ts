@@ -9,6 +9,7 @@ import { add, divide, multiply, subtract } from "./numbers.js";
 
 import type { JsonValue } from "@blockprotocol/core";
 import type {
+  ArrayConstraints,
   BaseUrl,
   ClosedDataType,
   ConversionDefinition,
@@ -48,7 +49,7 @@ type TupleSchema = {
   items: false;
 };
 
-type ListSchema = {
+type ListSchema = Omit<ArrayConstraints, "items"> & {
   items: MergedDataTypeSingleSchema;
 };
 
@@ -273,7 +274,7 @@ const transformConstraint = (
       };
     }
 
-    if ("items" in constraint || !constraint.items) {
+    if (!("items" in constraint) || !constraint.items) {
       throw new Error("Expected items to be defined");
     }
 

@@ -1,0 +1,18 @@
+---
+title: Two dice land 36 ways
+notes:
+  default: >-
+    This MDX slide imports Histogram from the deck's components folder, as any
+    MDX file imports a component, and passes it the ways to roll each sum.
+  byStep:
+    1: Seven has the most ways, six of the 36.
+---
+
+import { waysToRoll } from "./components/dice.ts";
+import { Histogram } from "./components/histogram.tsx";
+
+## Two dice land 36 ways
+
+<Histogram counts={waysToRoll} highlight={7} />
+
+<Reveal at={1}>Seven is the likeliest sum: 6 ways in 36.</Reveal>

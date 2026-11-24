@@ -1,0 +1,27 @@
+# Hand-written; rendered by archinaut beside its page. The fusion Belt in the
+# root net joins the root's anchor place with ports of two instances;
+# flattening merges the three into the anchor, names it after the fusion and
+# moves the components' arcs onto it.
+direction: right
+
+document: "Document, as drawn" {
+  style.fill: "#f2f2f2"
+  style.stroke: "#777777"
+  cutter: "Cutter (Stage)\nports In, Out" {style.fill: "#ffffff"; style.stroke: "#777777"}
+  buffer: "Buffer\nplace of the root, capacity 5" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  drill: "Drill (Stage)\nports In, Out" {style.fill: "#ffffff"; style.stroke: "#777777"}
+  cutter -> buffer: "Belt fuses Cutter.Out" {style.stroke-dash: 4}
+  buffer -> drill: "Belt fuses Drill.In" {style.stroke-dash: 4}
+}
+
+flat: "Flattened, as simulated" {
+  style.fill: "#e8e0ff"
+  style.stroke: "#7051b5"
+  process1: "Cutter::Process" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  buffer: "Belt\nid of Buffer, capacity 5" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  process2: "Drill::Process" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  process1 -> buffer: "arc, was Cutter::Out"
+  buffer -> process2: "arc, was Drill::In"
+}
+
+document -> flat: "applyFusions: union-find, outermost place leads"

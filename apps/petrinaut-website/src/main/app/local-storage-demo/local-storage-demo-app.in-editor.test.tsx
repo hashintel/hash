@@ -13,17 +13,17 @@ import { type ComponentProps, useEffect, useState } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent";
-
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
-} from "../plugins/brunch/conversation/brunch-conversation-id";
-import { conversationWordsKey } from "../plugins/brunch/words/conversation-words";
+} from "@hashintel/brunch-agent/client";
 import {
   InProcessLspWorker,
   NoopResizeObserver,
   preloadMonaco,
-} from "../shared/petrinaut-jsdom";
+} from "@hashintel/brunch-agent/testing/petrinaut-jsdom";
+import { conversationWordsKey } from "@hashintel/brunch-agent/ui";
+
 import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 import {
@@ -36,7 +36,7 @@ import type { PetrinautProps } from "@hashintel/petrinaut/ui";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
-    await import("../shared/petrinaut-jsdom");
+    await import("@hashintel/brunch-agent/testing/petrinaut-jsdom");
   installPetrinautDomShims();
 });
 
@@ -53,14 +53,14 @@ vi.mock("@flue/sdk", async (importOriginal) => ({
     return client.current;
   },
 }));
-vi.mock("../plugins/brunch/brunch-preview-config", () => ({
+vi.mock("./brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => ({
     chatEndpoint: "/agents/petrinaut",
     isBrunchConfigured: true,
   }),
 }));
-vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
-  getOrCreateBrunchPrincipal: () => "prompt-test-principal",
+vi.mock("./brunch-actor-key", () => ({
+  getOrCreateBrunchActorKey: () => "prompt-test-owner",
 }));
 // The real editor, observed: the props the shell hands it.
 const editorProps = vi.hoisted(() => ({
@@ -82,6 +82,13 @@ beforeAll(preloadMonaco, 30_000);
 // Keep the platform shims until the environment is disposed: the language
 // server starts lazily and can finish loading after the editor unmounts.
 afterEach(cleanup);
+
+// The panel drops a definitely refused message, so tests that read the sent
+// prompt on screen fail admission ambiguously instead.
+const ambiguousAdmissionFailure = () =>
+  new FlueApiError(503, "Prompt test admission unavailable");
+const ambiguousNotice =
+  "The agent may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.";
 
 test("empty-canvas and composer text share one Brunch conversation and its budget and words", async () => {
   const entries = new Map<string, string>();
@@ -114,7 +121,7 @@ test("empty-canvas and composer text share one Brunch conversation and its budge
     ordinaryConstructionConversationIdFrom(netId),
   );
   localStorage.setItem(
-    conversationWordsKey("prompt-test-principal", conversationId),
+    conversationWordsKey("prompt-test-owner", conversationId),
     JSON.stringify({
       version: 1,
       entries: [
@@ -122,10 +129,11 @@ test("empty-canvas and composer text share one Brunch conversation and its budge
       ],
     }),
   );
-  // Refuse admission at the network boundary: no paid model call, and the
-  // editor must surface the failure without duplicating the prompt.
+  // Fail admission at the network boundary: no paid model call, and the
+  // editor must surface the failure without duplicating the prompt. The
+  // failure is ambiguous so the prompt stays on screen to be read.
   const send = vi.fn<FlueClient["send"]>(async () => {
-    throw new FlueApiError(400, "Prompt test refusal");
+    throw ambiguousAdmissionFailure();
   });
   client.current = {
     send,
@@ -174,11 +182,7 @@ test("empty-canvas and composer text share one Brunch conversation and its budge
   expect(send.mock.calls[0]?.[0].initialData).toMatchObject({
     binding: { documentId: netId, conversationId },
   });
-  expect(
-    await screen.findByText(
-      "The agent rejected the message before admission (HTTP 400).",
-    ),
-  ).toBeTruthy();
+  expect(await screen.findByText(ambiguousNotice)).toBeTruthy();
   expect(screen.getByText("Model RelayDesk", { selector: "div" })).toBeTruthy();
   await act(async () =>
     fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" })),
@@ -254,11 +258,13 @@ const stubBrowser = ({ voice = false }: { voice?: boolean } = {}) => {
   );
 };
 
-/** A Flue client that refuses every message at admission, as the first test's does. */
-const refusingFlueClient = () => {
+/** A Flue client that fails every message at admission, refusing it unless told otherwise. */
+const refusingFlueClient = (
+  failure: unknown = new FlueApiError(400, "Prompt test refusal"),
+) => {
   client.create.mockClear();
   const send = vi.fn<FlueClient["send"]>(async () => {
-    throw new FlueApiError(400, "Prompt test refusal");
+    throw failure;
   });
   client.current = {
     send,
@@ -335,7 +341,7 @@ const bindingOf = (send: ReturnType<typeof refusingFlueClient>, call: number) =>
   (send.mock.calls[call]?.[0].initialData as { binding?: unknown } | undefined)
     ?.binding;
 
-test("Brunch's own plugin is the editor's assistant, with no built-in chat and no Petrinaut AI", async () => {
+test("a saved Brunch choice makes Brunch's plugin the editor's assistant, with Petrinaut AI beside it", async () => {
   stubBrowser();
   const { id: netId } = startEmptyNetInStorage(localStorage);
   localStorage.setItem(assistantSelectionStorageKey, "brunch");
@@ -345,8 +351,9 @@ test("Brunch's own plugin is the editor's assistant, with no built-in chat and n
   await screen.findByRole("textbox", {
     name: "Describe the process you want to create",
   });
-  await vi.waitFor(() => expect(pluginIds()).toContain("website.brunch"));
-  expect(pluginIds()).not.toContain("website.petrinaut-ai");
+  expect(pluginIds()).toEqual(
+    expect.arrayContaining(["website.brunch", "website.petrinaut-ai"]),
+  );
   expect(
     editorProps.current?.plugins?.find(
       ({ manifest }) => manifest.id === "website.brunch",
@@ -357,6 +364,10 @@ test("Brunch's own plugin is the editor's assistant, with no built-in chat and n
     fireEvent.click(screen.getByRole("button", { name: "Show AI assistant" })),
   );
   const panel = screen.getByRole("complementary", { name: "AI assistant" });
+  // The website opts into its demo starters through the real hook and plugin.
+  expect(panel.textContent).toContain("Supply chain");
+  expect(panel.textContent).toContain("Epidemic");
+  expect(panel.textContent).toContain("Surprise me");
   // Brunch's chat, with its Ledger beside the transcript, fills the panel.
   expect(within(panel).getByRole("tab", { name: /Ledger/u })).toBeTruthy();
   expect(
@@ -364,7 +375,7 @@ test("Brunch's own plugin is the editor's assistant, with no built-in chat and n
   ).toBeTruthy();
 });
 
-test("with Stock selected, Petrinaut AI is the assistant and offers no Voice", async () => {
+test("with Stock saved, Petrinaut AI is the assistant, and Brunch is listed without connecting or offering Voice", async () => {
   stubBrowser({ voice: true });
   const { id: netId } = startEmptyNetInStorage(localStorage);
   localStorage.setItem(assistantSelectionStorageKey, "stock");
@@ -374,8 +385,9 @@ test("with Stock selected, Petrinaut AI is the assistant and offers no Voice", a
   await screen.findByRole("textbox", {
     name: "Describe the process you want to create",
   });
-  await vi.waitFor(() => expect(pluginIds()).toContain("website.petrinaut-ai"));
-  expect(pluginIds()).not.toContain("website.brunch");
+  expect(pluginIds()).toEqual(
+    expect.arrayContaining(["website.brunch", "website.petrinaut-ai"]),
+  );
   expect(screen.queryByRole("button", { name: "Start voice mode" })).toBeNull();
   expect(client.create).not.toHaveBeenCalled();
 });
@@ -502,13 +514,13 @@ test("opening another net gives it its own Brunch conversation, without resendin
     title: "Second process",
   });
   localStorage.setItem(assistantSelectionStorageKey, "brunch");
-  const send = refusingFlueClient();
+  const send = refusingFlueClient(ambiguousAdmissionFailure());
   render(<Shell initialNetId={firstNetId} />);
 
   await sendFirstPrompt("Model the first queue");
   await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
   expect(bindingOf(send, 0)).toMatchObject({ documentId: firstNetId });
-  expect(await screen.findByText(refusalNotice)).toBeTruthy();
+  expect(await screen.findByText(ambiguousNotice)).toBeTruthy();
 
   await act(async () => openNet.current(secondNetId));
   await vi.waitFor(() =>
@@ -544,15 +556,15 @@ test("opening another net gives it its own Brunch conversation, without resendin
   expect(clientUrls[1]).not.toBe(clientUrls[0]);
 });
 
-test("switching to Stock and back through the palette hands the panel over without resending Brunch's first prompt", async () => {
+test("switching to Petrinaut AI and back through the palette hands the panel over without resending Brunch's first prompt", async () => {
   stubBrowser();
   const { id: netId } = startEmptyNetInStorage(localStorage);
   localStorage.setItem(assistantSelectionStorageKey, "brunch");
-  const send = refusingFlueClient();
+  const send = refusingFlueClient(ambiguousAdmissionFailure());
   render(<Shell initialNetId={netId} />);
   await sendFirstPrompt("Model a queue");
   await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
-  expect(await screen.findByText(refusalNotice)).toBeTruthy();
+  expect(await screen.findByText(ambiguousNotice)).toBeTruthy();
   // The refusal is an editor notification, which outlives the assistant; the
   // conversation is the panel's.
   const panel = () =>
@@ -569,17 +581,17 @@ test("switching to Stock and back through the palette hands the panel over witho
     await act(async () => fireEvent.click(within(palette).getByText(label)));
   };
 
-  await runPaletteCommand("Use the stock Petrinaut assistant");
-  await vi.waitFor(() => expect(pluginIds()).toContain("website.petrinaut-ai"));
-  expect(pluginIds()).not.toContain("website.brunch");
+  await runPaletteCommand("Use Petrinaut AI as the AI assistant");
   await vi.waitFor(() =>
     expect(
       within(panel()).queryByText("Model a queue", { selector: "div" }),
     ).toBeNull(),
   );
+  expect(within(panel()).queryByRole("tab", { name: /Ledger/u })).toBeNull();
 
-  await runPaletteCommand("Use Brunch");
-  await vi.waitFor(() => expect(pluginIds()).toContain("website.brunch"));
-  expect(pluginIds()).not.toContain("website.petrinaut-ai");
+  await runPaletteCommand("Use Brunch as the AI assistant");
+  await vi.waitFor(() =>
+    expect(within(panel()).getByRole("tab", { name: /Ledger/u })).toBeTruthy(),
+  );
   expect(send).toHaveBeenCalledOnce();
 });

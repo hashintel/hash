@@ -1,7 +1,10 @@
+import { Position } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 
 import {
-  getOutlineArcPath,
+  curvePath,
+  fixedEndpoint,
+  getOutlineArcCurve,
   getOutlineAttachment,
   type OutlineNode,
 } from "./outline-arcs";
@@ -62,51 +65,86 @@ describe("outline attachments", () => {
   });
 });
 
-describe("outline arc paths", () => {
+describe("outline arc curves", () => {
   const source = { ...circle, position: { x: 0, y: 0 } };
   const target = { ...circle, position: { x: 300, y: 0 } };
 
-  it("places the label halfway along a symmetric connection", () => {
-    const [path, labelX, labelY] = getOutlineArcPath(source, target);
-    expect(path).toMatch(/^M 50,0 C /);
-    expect(path).toMatch(/ 250,0$/);
-    expect(labelX).toBe(150);
-    expect(labelY).toBe(0);
+  it("runs from the outline of the source to the outline of the target", () => {
+    const { start, end } = getOutlineArcCurve(source, target);
+    expect(start).toEqual({ x: 50, y: 0 });
+    expect(end).toEqual({ x: 250, y: 0 });
   });
 
   it("separates both directions onto opposite sides", () => {
-    const [forward, forwardX, forwardY] = getOutlineArcPath(
-      source,
-      target,
-      true,
-    );
-    const [reverse, reverseX, reverseY] = getOutlineArcPath(
-      target,
-      source,
-      true,
-    );
-    expect(forward).not.toBe(reverse);
-    expect(forwardX).toBeCloseTo(reverseX);
-    expect(forwardY).toBeGreaterThan(0);
-    expect(reverseY).toBeCloseTo(-forwardY);
+    const forward = getOutlineArcCurve(source, target, true);
+    const reverse = getOutlineArcCurve(target, source, true);
+    expect(forward.start.y).toBeGreaterThan(0);
+    expect(forward.end.y).toBeGreaterThan(0);
+    expect(reverse.end.x).toBeCloseTo(forward.start.x);
+    expect(reverse.end.y).toBeCloseTo(-forward.start.y);
+    expect(reverse.start.y).toBeCloseTo(-forward.end.y);
   });
 
   it("ends an unsnapped preview at the pointer", () => {
-    const [path] = getOutlineArcPath(source, { x: 75, y: 200 });
-    expect(path).toMatch(/ 75,200$/);
+    const { end } = getOutlineArcCurve(source, fixedEndpoint(75, 200));
+    expect(end).toEqual({ x: 75, y: 200 });
+  });
+
+  it("leaves a component port along the side its handle sits on", () => {
+    const { start, firstControl } = getOutlineArcCurve(
+      fixedEndpoint(-200, 100, Position.Right),
+      target,
+    );
+    expect(start).toEqual({ x: -200, y: 100 });
+    expect(firstControl.x).toBeGreaterThan(-200);
+    expect(firstControl.y).toBe(100);
+  });
+
+  it("arrives at a component port from the side its handle sits on", () => {
+    const { lastControl, end } = getOutlineArcCurve(
+      source,
+      fixedEndpoint(300, 100, Position.Left),
+    );
+    expect(end).toEqual({ x: 300, y: 100 });
+    expect(lastControl.x).toBeLessThan(300);
+  });
+
+  it("separates arcs into and out of one component at the transition", () => {
+    const transition = { ...circle, width: 160, height: 80, cornerRadius: 0 };
+    const intoPort = fixedEndpoint(400, 110, Position.Left);
+    const outOfPort = fixedEndpoint(600, 110, Position.Right);
+
+    const together = getOutlineArcCurve(transition, intoPort);
+    const back = getOutlineArcCurve(outOfPort, transition);
+    expect(Math.abs(together.start.y - back.end.y)).toBeLessThan(10);
+
+    const into = getOutlineArcCurve(transition, intoPort, true);
+    const outOf = getOutlineArcCurve(outOfPort, transition, true);
+    expect(Math.abs(into.start.y - outOf.end.y)).toBeGreaterThan(30);
   });
 
   it.each([0, 1, 50, 100])(
     "stays finite with %s pixels between centers",
     (distance) => {
-      const result = getOutlineArcPath(
+      const curve = getOutlineArcCurve(
         source,
         { ...target, position: { x: distance, y: 0 } },
         true,
       );
-      expect(result[0]).not.toMatch(/NaN|Infinity/);
-      expect(Number.isFinite(result[1])).toBe(true);
-      expect(Number.isFinite(result[2])).toBe(true);
+      expect(curvePath(curve)).not.toMatch(/NaN|Infinity/);
     },
   );
+});
+
+describe("path data", () => {
+  it("writes a curve to a hundredth of a unit", () => {
+    expect(
+      curvePath({
+        start: { x: 0.004, y: 1 / 3 },
+        firstControl: { x: 10, y: -20.129 },
+        lastControl: { x: 30.5, y: 40 },
+        end: { x: 50, y: 60 },
+      }),
+    ).toBe("M0,0.33C10,-20.13 30.5,40 50,60");
+  });
 });

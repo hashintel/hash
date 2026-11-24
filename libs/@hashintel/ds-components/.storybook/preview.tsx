@@ -4,21 +4,47 @@ import "@fontsource-variable/inter-tight";
 import "./preview.css";
 import "./docs.css";
 import { DocsContainer } from "@storybook/addon-docs/blocks";
+import { GLOBALS_UPDATED, SET_GLOBALS } from "storybook/internal/core-events";
+import { addons } from "storybook/preview-api";
+
+import { resolveTheme, systemDark } from "./resolve-theme";
 
 import type { Decorator, Preview } from "@storybook/react-vite";
 
 /**
  * Applies the selected color scheme the same way the app shell does: a
- * `light`/`dark` class on the root element drives the Panda theme conditions,
- * and `auto` leaves it to the system preference via CSS media queries.
+ * `light`/`dark` class on the root element drives the Panda theme conditions.
+ * The preset's conditions are class-based with no `prefers-color-scheme`
+ * fallback, so `auto` is resolved against the OS preference here (and tracks
+ * OS changes live). The theme global is consumed via channel events rather
+ * than only a decorator because decorators don't wrap MDX docs pages.
  */
-const withTheme: Decorator = (Story, context) => {
-  const theme = context.globals["theme"] as string;
+let selectedTheme = "light";
+
+const applyTheme = () => {
   const root = document.documentElement;
   root.classList.remove("light", "dark");
-  if (theme === "light" || theme === "dark") {
-    root.classList.add(theme);
+  root.classList.add(resolveTheme(selectedTheme));
+};
+
+const setTheme = (theme: unknown) => {
+  if (typeof theme === "string" && theme.length > 0) {
+    selectedTheme = theme;
   }
+  applyTheme();
+};
+
+systemDark.addEventListener("change", applyTheme);
+
+const onGlobals = (payload: { globals?: Record<string, unknown> }) => {
+  setTheme(payload.globals?.["theme"]);
+};
+const channel = addons.getChannel();
+channel.on(SET_GLOBALS, onGlobals);
+channel.on(GLOBALS_UPDATED, onGlobals);
+
+const withTheme: Decorator = (Story, context) => {
+  setTheme(context.globals["theme"]);
   return <Story />;
 };
 

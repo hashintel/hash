@@ -18,7 +18,8 @@
  * `histograms` (on-device metrics), `metric-sample` (metric bodies over the
  * live state) and `run-parameters` (per-run buffer).
  */
-import { getArcEndpointPlaceId } from "../arc-endpoints";
+import { getArcEndpointPlaceId } from "../document/arc-endpoints";
+import { netTimeOf } from "../extensions/net-class";
 import { emitDynamics } from "./compile-net-shader/dynamics";
 import {
   emitFrameHistograms,
@@ -57,7 +58,7 @@ import { WgslBailError, emitF32Literal } from "./emit-wgsl";
 import { commentSafe } from "./wgsl-identifiers";
 import { wgslPrelude } from "./wgsl-prelude";
 
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirFunction } from "../hir/hir";
 import type { SDCPN } from "../types/sdcpn";
 import type { GpuOdeMethod } from "./compile-net-shader/dynamics";
@@ -400,6 +401,7 @@ export function compileNetShader(
         profile,
         discreteTypesByPlaceId: discreteTypes,
         selectionTokenSlots: firing.selectionTokenSlots,
+        inputCounts: firing.inputCounts,
         parameterValues: emitterParameterValues,
         extensions,
       });
@@ -421,11 +423,18 @@ export function compileNetShader(
       );
     }
     // A run with nothing enabled and nothing fired is deadlocked; one that
-    // reaches the frame limit is complete. Both stop consuming work.
-    push(`      if (!any_fired && !any_enabled) { status = 1u; }`);
-    push(
-      `      if (absolute_frame + 1u >= config.frame_limit) { status = 2u; }`,
-    );
+    // reaches the frame limit is complete. Both stop consuming work, and the
+    // later test wins. In an untimed net nothing changes while nothing
+    // fires, so a frame that fires nothing is a deadlock whatever is
+    // enabled, at the frame limit too, as in the CPU engine.
+    const frameLimit = `      if (absolute_frame + 1u >= config.frame_limit) { status = 2u; }`;
+    if (netTimeOf(sdcpn, extensions) === "timed") {
+      push(`      if (!any_fired && !any_enabled) { status = 1u; }`);
+      push(frameLimit);
+    } else {
+      push(frameLimit);
+      push(`      if (!any_fired) { status = 1u; }`);
+    }
     // Derived capacities detect overflow instead of blocking: the highest slot
     // a frame writes is its post-fold count minus one, so a post-fold count
     // past the slab means this frame wrote out of bounds (harmlessly — robust

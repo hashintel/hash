@@ -1,0 +1,296 @@
+/**
+ * Petrinaut id helpers. A Petrinaut id is a lowercase UUID: a net id (a
+ * document's `PetrinautDocHandle.id`) and every entity id inside a document
+ * are Petrinaut ids. Ids in any other form are converted on load with
+ * {@link toPetrinautId}, so the same legacy id always names the same item.
+ */
+
+import { v4 as uuidv4, v5 as uuidv5 } from "uuid";
+import { z } from "zod";
+
+import { isUuidString } from "../tokens/uuid";
+import { getArcEndpointKey, parseArcEndpointKey } from "./arc-endpoints";
+import { generateArcId } from "./arc-id";
+import { parseArcId } from "./selection";
+
+import type {
+  AdHocScenarioState,
+  ArcEndpoint,
+  Color,
+  ComponentInstance,
+  ComponentReference,
+  DifferentialEquation,
+  Fusion,
+  InputArc,
+  OutputArc,
+  Place,
+  Scenario,
+  SDCPN,
+  Transition,
+} from "../types/sdcpn";
+
+/**
+ * UUIDv5 namespace under which non-UUID ids are converted. This value MUST
+ * NEVER change: converted ids are persisted in documents, URLs and host
+ * storage, and a new namespace would silently remap every one of them.
+ */
+const PETRINAUT_ID_NAMESPACE = "f346239e-b5e3-53b6-bb7e-297046d1ac64";
+
+/** Whether `value` is a Petrinaut id: a UUID string in lowercase. */
+export const isPetrinautId = (value: unknown): value is string =>
+  isUuidString(value) && value === value.toLowerCase();
+
+/**
+ * Converts any id to a Petrinaut id: a UUID is lowercased, anything else becomes
+ * its UUIDv5 under {@link PETRINAUT_ID_NAMESPACE}. Deterministic and
+ * idempotent.
+ */
+export const toPetrinautId = (id: string): string =>
+  isUuidString(id) ? id.toLowerCase() : uuidv5(id, PETRINAUT_ID_NAMESPACE);
+
+/** A fresh random Petrinaut id. */
+export const generatePetrinautId = (): string => uuidv4();
+
+/** An id in any form, converted to a Petrinaut id when parsed. */
+export const petrinautIdSchema = z.string().min(1).overwrite(toPetrinautId);
+
+/** `item` itself when no change differs from it, otherwise a changed copy. */
+const assignChanged = <Item extends object>(
+  item: Item,
+  changes: { [Key in keyof Item]?: Item[Key] },
+): Item => {
+  let changed: Item | undefined;
+  for (const key of Object.keys(changes) as (keyof Item)[]) {
+    if (changes[key] !== item[key]) {
+      changed ??= { ...item };
+      changed[key] = changes[key] as Item[keyof Item];
+    }
+  }
+  return changed ?? item;
+};
+
+const mapUnlessUnchanged = <Item>(
+  items: Item[],
+  mapItem: (item: Item) => Item,
+): Item[] => {
+  const mapped = items.map(mapItem);
+  return mapped.every((item, index) => item === items[index]) ? items : mapped;
+};
+
+const mapOptional = <Item>(
+  items: Item[] | undefined,
+  mapItem: (item: Item) => Item,
+): Item[] | undefined =>
+  items === undefined ? undefined : mapUnlessUnchanged(items, mapItem);
+
+/** `record` with every key converted; itself when every key is canonical. */
+const rekeyUnlessUnchanged = <Value>(
+  record: Record<string, Value>,
+): Record<string, Value> => {
+  const entries = Object.entries(record);
+  if (entries.every(([key]) => toPetrinautId(key) === key)) {
+    return record;
+  }
+  return Object.fromEntries(
+    entries.map(([key, value]) => [toPetrinautId(key), value]),
+  );
+};
+
+const toOptionalPetrinautId = (id: string | null): string | null =>
+  id === null ? null : toPetrinautId(id);
+
+const canonicalizeEndpoint = (endpoint: ArcEndpoint): ArcEndpoint =>
+  endpoint.kind === "place"
+    ? assignChanged(endpoint, { placeId: toPetrinautId(endpoint.placeId) })
+    : assignChanged(endpoint, {
+        componentInstanceId: toPetrinautId(endpoint.componentInstanceId),
+        portPlaceId: toPetrinautId(endpoint.portPlaceId),
+      });
+
+const canonicalizeArc = <Arc extends InputArc | OutputArc>(arc: Arc): Arc =>
+  assignChanged<InputArc | OutputArc>(arc, {
+    placeId: arc.placeId === undefined ? undefined : toPetrinautId(arc.placeId),
+    endpoint:
+      arc.endpoint === undefined
+        ? undefined
+        : canonicalizeEndpoint(arc.endpoint),
+  }) as Arc;
+
+const canonicalizePlace = (place: Place): Place =>
+  assignChanged(place, {
+    id: toPetrinautId(place.id),
+    colorId: toOptionalPetrinautId(place.colorId),
+    dynamics: mapOptional(place.dynamics, (term) =>
+      assignChanged(term, {
+        differentialEquationId: toPetrinautId(term.differentialEquationId),
+      }),
+    ),
+  });
+
+const canonicalizeTransition = (transition: Transition): Transition =>
+  assignChanged(transition, {
+    id: toPetrinautId(transition.id),
+    inputArcs: mapUnlessUnchanged(transition.inputArcs, canonicalizeArc),
+    outputArcs: mapUnlessUnchanged(transition.outputArcs, canonicalizeArc),
+  });
+
+const canonicalizeColor = (color: Color): Color =>
+  assignChanged(color, {
+    id: toPetrinautId(color.id),
+    elements: mapUnlessUnchanged(color.elements, (element) =>
+      assignChanged(element, { elementId: toPetrinautId(element.elementId) }),
+    ),
+  });
+
+const canonicalizeDifferentialEquation = (
+  equation: DifferentialEquation,
+): DifferentialEquation =>
+  assignChanged(equation, {
+    id: toPetrinautId(equation.id),
+    colorId: toOptionalPetrinautId(equation.colorId),
+  });
+
+/** A component of an import keeps the id its library gives it. */
+const canonicalizeReference = (
+  reference: ComponentReference,
+): ComponentReference =>
+  reference.from === undefined
+    ? assignChanged(reference, { id: toPetrinautId(reference.id) })
+    : reference;
+
+const canonicalizeComponentInstance = (
+  instance: ComponentInstance,
+): ComponentInstance =>
+  assignChanged(instance, {
+    id: toPetrinautId(instance.id),
+    component: canonicalizeReference(instance.component),
+    parameterValues: rekeyUnlessUnchanged(instance.parameterValues),
+    implementation:
+      instance.implementation === undefined
+        ? undefined
+        : canonicalizeReference(instance.implementation),
+  });
+
+const canonicalizeFusion = (fusion: Fusion): Fusion =>
+  assignChanged(fusion, {
+    id: toPetrinautId(fusion.id),
+    members: mapUnlessUnchanged(fusion.members, canonicalizeEndpoint),
+  });
+
+const canonicalizeAdHocState = (
+  state: AdHocScenarioState,
+): AdHocScenarioState =>
+  assignChanged(state, {
+    netParameters: mapUnlessUnchanged(state.netParameters, (parameter) =>
+      assignChanged(parameter, {
+        parameterId: toPetrinautId(parameter.parameterId),
+      }),
+    ),
+    places: rekeyUnlessUnchanged(state.places),
+  });
+
+const canonicalizeInitialState = (
+  initialState: Scenario["initialState"],
+): Scenario["initialState"] => {
+  switch (initialState.type) {
+    case "per_place":
+      return assignChanged(initialState, {
+        content: rekeyUnlessUnchanged(initialState.content),
+      });
+    case "adhoc":
+      return assignChanged(initialState, {
+        content: canonicalizeAdHocState(initialState.content),
+      });
+    case "code":
+      return initialState;
+  }
+};
+
+const canonicalizeScenario = (scenario: Scenario): Scenario =>
+  assignChanged(scenario, {
+    id: toPetrinautId(scenario.id),
+    parameterOverrides: rekeyUnlessUnchanged(scenario.parameterOverrides),
+    initialState: canonicalizeInitialState(scenario.initialState),
+  });
+
+/** The entity collections a net, a component or a clipboard selection carries. */
+type PetrinautIdNet = Pick<
+  SDCPN,
+  "places" | "transitions" | "types" | "differentialEquations" | "parameters"
+> &
+  Partial<
+    Pick<
+      SDCPN,
+      | "componentInstances"
+      | "scenarios"
+      | "metrics"
+      | "components"
+      | "fusions"
+      | "implementations"
+    >
+  >;
+
+/**
+ * Converts every entity id in `net` to a Petrinaut id, together with every
+ * reference to one, at the root and inside components. Names, user code,
+ * metadata and token values are left as they are. Returns `net` itself when
+ * every id is already canonical.
+ */
+export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
+  net: Net,
+): Net =>
+  assignChanged<PetrinautIdNet>(net, {
+    places: mapUnlessUnchanged(net.places, canonicalizePlace),
+    transitions: mapUnlessUnchanged(net.transitions, canonicalizeTransition),
+    types: mapUnlessUnchanged(net.types, canonicalizeColor),
+    differentialEquations: mapUnlessUnchanged(
+      net.differentialEquations,
+      canonicalizeDifferentialEquation,
+    ),
+    parameters: mapUnlessUnchanged(net.parameters, (parameter) =>
+      assignChanged(parameter, { id: toPetrinautId(parameter.id) }),
+    ),
+    componentInstances: mapOptional(
+      net.componentInstances,
+      canonicalizeComponentInstance,
+    ),
+    fusions: mapOptional(net.fusions, canonicalizeFusion),
+    implementations: mapOptional(net.implementations, (entry) =>
+      assignChanged(entry, {
+        interface: canonicalizeReference(entry.interface),
+        component: canonicalizeReference(entry.component),
+      }),
+    ),
+    scenarios: mapOptional(net.scenarios, canonicalizeScenario),
+    metrics: mapOptional(net.metrics, (metric) =>
+      assignChanged(metric, { id: toPetrinautId(metric.id) }),
+    ),
+    components: mapOptional(net.components, (component) =>
+      assignChanged(canonicalizePetrinautIds(component), {
+        id: toPetrinautId(component.id),
+        implements: mapOptional(component.implements, toPetrinautId),
+      }),
+    ),
+  }) as Net;
+
+/**
+ * Converts the ids inside a generated arc id (`$A_<input>___<output>`), so an
+ * arc id built from legacy ids names the same arc after its places and
+ * transitions are converted. Any other string is returned unchanged.
+ */
+export const canonicalizeArcId = (arcId: string): string => {
+  const parsed = parseArcId(arcId);
+  if (parsed === null) {
+    return arcId;
+  }
+  const canonicalizeSide = (side: string): string => {
+    const endpoint = parseArcEndpointKey(side);
+    return endpoint === null
+      ? toPetrinautId(side)
+      : getArcEndpointKey(canonicalizeEndpoint(endpoint));
+  };
+  return generateArcId({
+    inputId: canonicalizeSide(parsed.sourceId),
+    outputId: canonicalizeSide(parsed.targetId),
+  });
+};

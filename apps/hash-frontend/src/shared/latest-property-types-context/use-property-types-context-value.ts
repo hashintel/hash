@@ -9,8 +9,9 @@ import type { PropertyTypeRootType } from "@blockprotocol/graph";
 
 export const usePropertyTypesContextValue = (params?: {
   includeArchived?: boolean;
+  enabled?: boolean;
 }) => {
-  const { includeArchived = false } = params ?? {};
+  const { includeArchived = false, enabled = true } = params ?? {};
 
   const [propertyTypes, setPropertyTypes] = useState<
     PropertyTypesContextValues["propertyTypes"] | null
@@ -37,8 +38,10 @@ export const usePropertyTypesContextValue = (params?: {
   }, [queryPropertyTypes, includeArchived]);
 
   useEffect(() => {
-    void fetch();
-  }, [fetch]);
+    if (enabled) {
+      void fetch();
+    }
+  }, [fetch, enabled]);
 
   const result = useMemo(
     () => ({ refetch: fetch, propertyTypes }),

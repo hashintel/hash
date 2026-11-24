@@ -152,7 +152,7 @@ const boundsVisitor: CborDecoder.CborVisitor<
   }),
 };
 
-const readGlobal = Result.fn(function* readGlobal(
+const readGlobal = Result.fn(function* readGlobalFields(
   access: CborDecoder.CborMapAccess,
 ): Result.gen.Return<TileDocumentGlobal, TileError.DecodeError> {
   const partial: Partial<Mutable<TileDocumentGlobal>> = { bounds: null };
@@ -205,7 +205,7 @@ const globalVisitor: CborDecoder.CborVisitor<
   visitMap: readGlobal,
 };
 
-const readHead = Result.fn(function* readHead(
+const readHead = Result.fn(function* readTileHead(
   access: CborDecoder.CborMapAccess,
 ): Result.gen.Return<Head, TileError.DecodeError> {
   const partial: Partial<Mutable<Head>> = { global: null };
@@ -364,7 +364,7 @@ const checkGlobal = (
 };
 
 /** Reads metadata and validates the row partition and camera-framing metadata. */
-export const decode = Result.fn(function* decode(
+export const decode = Result.fn(function* decodeTileHead(
   bytes: Uint8Array,
 ): Result.gen.Return<Head, TileError.DecodeError> {
   const head = yield* decodeHead(bytes);

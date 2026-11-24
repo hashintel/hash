@@ -16,11 +16,12 @@
     "fix:eslint": "oxlint --fix --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsc --noEmit && tsc --noEmit -p site/tsconfig.json",
-    "test:unit": "vitest --run src"
+    "test:unit": "vitest --run src site/src"
   },
   "dependencies": {
     "@fontsource-variable/inter": "5.2.8",
     "@fontsource-variable/jetbrains-mono": "5.2.8",
+    "@hashintel/ds-icons": "workspace:*",
     "@mdx-js/react": "3.1.1",
     "@mdx-js/rollup": "3.1.1",
     "@shikijs/rehype": "4.5.0",
@@ -29,7 +30,9 @@
     "@vitejs/plugin-react": "6.1.1",
     "github-slugger": "2.0.0",
     "hast-util-from-html": "2.0.3",
+    "html-minifier-terser": "^7.0.0",
     "js-yaml": "4.3.2",
+    "katex": "0.19.1",
     "minisearch": "7.2.0",
     "oxc-transform-react": "0.152.0",
     "react": "19.2.6",
@@ -38,8 +41,10 @@
     "remark-directive": "4.0.0",
     "remark-frontmatter": "5.0.0",
     "remark-gfm": "4.0.1",
+    "remark-math": "6.0.0",
+    "terser": "^5.31.1",
     "tsx": "catalog:",
-    "typescript-7": "npm:typescript@7.1.0-dev.20261012.1",
+    "typescript": "catalog:beta",
     "unist-util-visit": "5.1.0",
     "vite": "catalog:",
     "zod": "4.6.7"
@@ -51,8 +56,7 @@
     "@types/node": "catalog:",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "oxlint": "1.86.0",
-    "typescript": "catalog:",
+    "oxlint": "catalog:",
     "vitest": "catalog:"
   },
   "engines": {

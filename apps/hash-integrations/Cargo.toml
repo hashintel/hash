@@ -20,6 +20,7 @@ clap           = { workspace = true, features = ["cargo", "derive", "env", "wrap
 clap_complete  = { workspace = true }
 mimalloc       = { workspace = true }
 simple-mermaid = { workspace = true }
+tokio          = { workspace = true, features = ["rt-multi-thread"] }
 
 [lints]
 workspace = true

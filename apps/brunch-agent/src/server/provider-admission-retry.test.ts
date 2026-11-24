@@ -19,6 +19,7 @@ import {
   claimModelStreamIdleRetry,
   withBufferedToolAdmission,
   type ModelStreamIdleRetryScope,
+  type ModelStreamIdleTimeout,
 } from "./provider-admission.ts";
 
 const faux = fauxProvider({
@@ -28,6 +29,7 @@ const faux = fauxProvider({
 let retryScope: ModelStreamIdleRetryScope = { idleRetryAvailable: true };
 let stallsRemaining = 0;
 let requests = 0;
+let timeouts: ModelStreamIdleTimeout[] = [];
 
 /** A provider whose next `stallsRemaining` invocations open and then go quiet, acknowledging cancellation. */
 const stalling: Provider = {
@@ -70,6 +72,7 @@ beforeAll(async () => {
         firstEventTimeoutMs: 50,
         idleTimeoutMs: 50,
         reasoningStartTimeoutMs: 50,
+        onIdleTimeout: (timeout) => timeouts.push(timeout),
       }),
     ],
   });
@@ -91,6 +94,7 @@ test("Flue re-runs a pre-tool idle failure once admission marks it retryable", a
   retryScope = { idleRetryAvailable: true };
   stallsRemaining = 1;
   requests = 0;
+  timeouts = [];
   faux.setResponses([fauxAssistantMessage([fauxText("Recovered.")])]);
 
   const outcome = await send();
@@ -98,12 +102,24 @@ test("Flue re-runs a pre-tool idle failure once admission marks it retryable", a
   expect(outcome).toMatchObject({ reply: { text: "Recovered." } });
   expect(requests).toBe(2);
   expect(retryScope.idleRetryAvailable).toBe(false);
+  expect(timeouts).toEqual([
+    {
+      provider: "anthropic",
+      model: "synthetic",
+      phase: "request_dispatch",
+      idleMs: 50,
+      lastEventType: undefined,
+      acknowledged: true,
+      retryClaimed: true,
+    },
+  ]);
 }, 15_000);
 
 test("Flue settles without re-running an idle failure once the single retry is spent", async () => {
   retryScope = { idleRetryAvailable: false };
   stallsRemaining = 1;
   requests = 0;
+  timeouts = [];
   faux.setResponses([fauxAssistantMessage([fauxText("Must not run.")])]);
 
   const outcome = await send();
@@ -111,4 +127,5 @@ test("Flue settles without re-running an idle failure once the single retry is s
   expect(outcome).not.toMatchObject({ reply: { text: "Must not run." } });
   expect(requests).toBe(1);
   expect(faux.getPendingResponseCount()).toBe(1);
+  expect(timeouts).toMatchObject([{ acknowledged: true, retryClaimed: false }]);
 }, 15_000);

@@ -5,6 +5,7 @@ import {
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { validateQueryLimit } from "@local/hash-isomorphic-utils/flows/entity-query";
 import { maxEntitiesPerStep } from "@local/hash-isomorphic-utils/flows/limits";
 import { generateTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { StatusCode } from "@local/status";
@@ -58,13 +59,12 @@ export const queryEntitiesAction: FlowActionActivity<"queryEntities"> = async ({
     };
   }
 
-  if (
-    limit != null &&
-    !(Number.isInteger(limit) && limit >= 1 && limit <= maxEntitiesPerStep)
-  ) {
+  const limitError = limit == null ? undefined : validateQueryLimit(limit);
+
+  if (limitError) {
     return {
       code: StatusCode.InvalidArgument,
-      message: `The limit must be a whole number from 1 to ${maxEntitiesPerStep.toLocaleString("en")}.`,
+      message: limitError,
       contents: [],
     };
   }

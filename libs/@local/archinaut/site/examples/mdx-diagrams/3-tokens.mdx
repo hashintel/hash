@@ -1,0 +1,28 @@
+---
+title: Tokens travel along connections
+align: center
+notes:
+  default: >-
+    token-n sends a token along a connection from its start to its end on
+    step n. Two connections with the same step send their tokens together.
+  byStep:
+    1: The browser asks the server for a page.
+    2: The server queries the database.
+    3: The rows come back.
+    4: And the page goes out.
+---
+
+## Tokens travel along connections
+
+```d2 A request: browser to server to database and back
+direction: right
+
+browser: Browser
+server: Server
+database: Database {shape: cylinder}
+
+browser -> server: request {class: token-1}
+server -> database: query {class: token-2}
+database -> server: rows {class: token-3}
+server -> browser: page {class: token-4}
+```

@@ -2,19 +2,19 @@
    staging views they receive */
 import { describe, expect, it } from "vitest";
 
+import { StringPool } from "../../tokens/string-pool";
 import {
   createEngineFrameLayout,
   materializeEngineFrame,
   type EngineFrameSnapshot,
 } from "../frames/internal-frame";
-import { makeCompiledTransition } from "./compiled-transition.test-helpers";
-import { executeTransitions as executeEngineTransitions } from "./execute-transitions";
-import { StringPool } from "./string-pool";
 import {
   decodePlaceTokens,
   makeTestFrame,
   type TestFrame,
-} from "./token-layout.test-helpers";
+} from "../frames/internal-frame.test-helpers";
+import { makeCompiledTransition } from "./compiled-transition.test-helpers";
+import { executeTransitions as executeEngineTransitions } from "./execute-transitions";
 
 import type {
   HirCompiledBufferKernel,
@@ -54,7 +54,6 @@ function makePlace(id: string, name: string, colorId: string | null): Place {
     name,
     colorId,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
   };

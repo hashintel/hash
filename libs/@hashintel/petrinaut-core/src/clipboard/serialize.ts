@@ -1,12 +1,12 @@
-import { getArcEndpointPlaceId } from "../arc-endpoints";
+import { getArcEndpointPlaceId } from "../document/arc-endpoints";
 import {
   CLIPBOARD_FORMAT_VERSION,
   type ClipboardPayload,
   clipboardPayloadSchema,
 } from "./types";
 
+import type { SelectionMap } from "../document/selection";
 import type { SDCPN } from "../types/sdcpn";
-import type { SelectionMap } from "../types/selection";
 
 /**
  * Collect the selected items from the SDCPN into a clipboard payload.

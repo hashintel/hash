@@ -1,11 +1,11 @@
-use core::{error::Error, fmt, io, pin::Pin};
+use core::{error::Error, fmt, pin::Pin};
 
 use aws_config::{BehaviorVersion, Region};
-use aws_credential_types::provider::error::CredentialsError;
 use aws_sdk_s3::{
     Client,
     config::{Credentials, ProvideCredentials as _},
 };
+use error_stack::{Report, ResultExt as _};
 use hash_crypto::Secret;
 
 /// A failure to resolve the region or credentials for an enabled S3 backend.
@@ -14,9 +14,7 @@ pub enum S3ArgsError {
     /// Neither explicit arguments nor SDK configuration supplied a region.
     MissingRegion,
     /// The configured credential provider failed to load credentials.
-    Credentials(CredentialsError),
-    /// An I/O error occurred.
-    Io(io::Error),
+    Credentials,
 }
 
 impl fmt::Display for S3ArgsError {
@@ -25,33 +23,12 @@ impl fmt::Display for S3ArgsError {
             Self::MissingRegion => {
                 fmt.write_str("neither the flags nor the AWS configuration name an S3 region")
             }
-            Self::Credentials(_) => fmt.write_str("the S3 credentials did not load"),
-            Self::Io(_) => fmt.write_str("an I/O error occurred"),
+            Self::Credentials => fmt.write_str("the S3 credentials did not load"),
         }
     }
 }
 
-impl Error for S3ArgsError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::MissingRegion => None,
-            Self::Credentials(error) => Some(error),
-            Self::Io(error) => Some(error),
-        }
-    }
-}
-
-impl From<CredentialsError> for S3ArgsError {
-    fn from(value: CredentialsError) -> Self {
-        Self::Credentials(value)
-    }
-}
-
-impl From<io::Error> for S3ArgsError {
-    fn from(value: io::Error) -> Self {
-        Self::Io(value)
-    }
-}
+impl Error for S3ArgsError {}
 
 /// Optional S3 access with explicit overrides for the SDK's configuration chain.
 #[derive(Debug, clap::Args)]
@@ -123,7 +100,7 @@ impl S3Args {
     /// # Errors
     ///
     /// Returns [`S3ArgsError`] if no region resolves or the configured credential provider fails.
-    pub async fn client(self) -> Result<Option<Client>, S3ArgsError> {
+    pub async fn client(self) -> Result<Option<Client>, Report<S3ArgsError>> {
         let Self {
             enabled,
             region,
@@ -173,11 +150,14 @@ impl S3Args {
         let config = loader.load().await;
 
         if config.region().is_none() {
-            return Err(S3ArgsError::MissingRegion);
+            return Err(Report::new(S3ArgsError::MissingRegion));
         }
 
         if let Some(credentials) = config.credentials_provider() {
-            credentials.provide_credentials().await?;
+            credentials
+                .provide_credentials()
+                .await
+                .change_context(S3ArgsError::Credentials)?;
         }
 
         let config = aws_sdk_s3::config::Builder::from(&config)

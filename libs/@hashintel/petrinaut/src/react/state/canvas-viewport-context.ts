@@ -13,7 +13,7 @@ export type SavedCanvasViewport = CanvasViewport & {
   savedAt?: number;
 };
 
-export type CanvasViewportContextValue = {
+type CanvasViewportContextValue = {
   /**
    * The viewport last saved for the active document, or null when the
    * document has never been viewed. Renderers read it when they mount and fit

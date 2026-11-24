@@ -1,6 +1,7 @@
 import {
   type CSSProperties,
   use,
+  useEffectEvent,
   useId,
   useLayoutEffect,
   useRef,
@@ -9,7 +10,10 @@ import {
 
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { BottomBarCollapseContext } from "./collapse-context";
+import {
+  BottomBarCollapseContext,
+  type CollapsibleGroupWidth,
+} from "./collapse-context";
 
 /**
  * The content stays at its natural width while its container animates. Measuring
@@ -96,6 +100,11 @@ export const CollapsibleGroup: React.FC<{
     animateEntry ? 0 : undefined,
   );
 
+  // Read when a width is reported, so a new reporter does not measure again.
+  const reportWidth = useEffectEvent((width: CollapsibleGroupWidth | null) =>
+    reportGroupWidth(groupId, width),
+  );
+
   useLayoutEffect(() => {
     const group = groupRef.current;
     const content = contentRef.current;
@@ -107,7 +116,7 @@ export const CollapsibleGroup: React.FC<{
       const natural = content.getBoundingClientRect().width;
       const rendered = group.getBoundingClientRect().width;
       setNaturalWidth(natural);
-      reportGroupWidth(groupId, { natural, rendered });
+      reportWidth({ natural, rendered });
     };
     measure();
 
@@ -117,9 +126,9 @@ export const CollapsibleGroup: React.FC<{
 
     return () => {
       observer.disconnect();
-      reportGroupWidth(groupId, null);
+      reportWidth(null);
     };
-  }, [groupId, reportGroupWidth]);
+  }, []);
 
   return (
     <div

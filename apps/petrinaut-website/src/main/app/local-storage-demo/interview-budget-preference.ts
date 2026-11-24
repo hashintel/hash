@@ -1,7 +1,8 @@
 import {
   isInterviewBudgetLevel,
   type InterviewBudgetLevel,
-} from "../../../shared/interview-budget";
+} from "@hashintel/brunch-agent";
+
 import { readBrowserStorage, writeBrowserStorage } from "./browser-storage";
 import { usePersistedState } from "./use-persisted-state";
 

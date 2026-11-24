@@ -1,6 +1,6 @@
 import { v4 as generateUuid } from "uuid";
 
-import { createAbortController } from "../../environment";
+import { createAbortController } from "../../environment/environment";
 import {
   deriveOptimizationTrialSeeds,
   describeOptimization,
@@ -27,7 +27,10 @@ import {
   type OptimizerWorkerLike,
 } from "./worker/create-optimizer-worker";
 
-import type { AbortControllerLike, AbortSignalLike } from "../../environment";
+import type {
+  AbortControllerLike,
+  AbortSignalLike,
+} from "../../environment/environment";
 import type {
   PetrinautConnectedOptimization,
   PetrinautConnectedOptimizationCapability,

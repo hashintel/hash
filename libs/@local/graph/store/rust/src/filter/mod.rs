@@ -1711,6 +1711,8 @@ mod tests {
     }
 
     mod policy_conversion {
+        use core::assert_matches;
+
         use hash_graph_authorization::policies::{
             Effect, OptimizationData, Policy, PolicyId,
             resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
@@ -2216,8 +2218,9 @@ mod tests {
                 actor_id,
                 &optimization_data,
             );
-            assert!(
-                matches!(filter, Filter::Any(ref permits) if permits.is_empty()),
+            assert_matches!(
+                filter,
+                Filter::Any(ref permits) if permits.is_empty(),
                 "a blank forbid should deny access regardless of optimization permits"
             );
 
@@ -2322,7 +2325,7 @@ mod tests {
                 1,
                 "a permit that cannot match should produce no branch"
             );
-            assert!(matches!(branches[0], Filter::Equal(..)));
+            assert_matches!(branches[0], Filter::Equal(..));
         }
 
         #[test]
@@ -2502,6 +2505,8 @@ mod tests {
         //! These tests verify that the optimization system correctly converts multiple OR
         //! conditions to efficient IN clauses while preserving all non-optimizable
         //! policies.
+
+        use core::assert_matches;
 
         use hash_graph_authorization::policies::{
             Effect, OptimizationData, resource::ResourceConstraint,
@@ -2821,8 +2826,9 @@ mod tests {
 
             match &optimized_filter {
                 Filter::All(conditions) => {
-                    assert!(
-                        matches!(conditions.as_slice(), [Filter::Any(_), Filter::Not(_)]),
+                    assert_matches!(
+                        conditions.as_slice(),
+                        [Filter::Any(_), Filter::Not(_)],
                         "should create All(permits, Not(forbids)) structure"
                     );
                 }

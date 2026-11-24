@@ -3,11 +3,13 @@ import { use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { UserSettingsContext } from "../../../../../../../react/state/user-settings-context";
-import { handleStyling } from "../../../../styles/styling";
+import { LinkRewiringContext } from "../link-rewiring-context";
+import { receivesDrag } from "./receives-drag";
 
-import type { KeyboardEvent } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
 
+// The dot is the pointer's own feedback, so it is drawn at full strength on
+// a node outside the focused neighbourhood too.
 const launchHandleStyle = css({
   opacity: "[0]",
   ".react-flow__node:hover &, .react-flow__node:focus-within &": {
@@ -30,8 +32,11 @@ const launchHandleStyle = css({
   },
 });
 
-// Pseudo-elements expand hit areas without moving the anchors of subnet arcs.
+// Pseudo-elements expand hit areas without moving the anchors of component
+// arcs. The handle names the colour of its outline: the pane of the canvas
+// reads it to draw the outline of a node outside the focused neighbourhood.
 const targetHandleStyle = css({
+  "--node-outline": "var(--colors-blue-s80)",
   _after: {
     content: '""',
     position: "absolute",
@@ -42,7 +47,7 @@ const targetHandleStyle = css({
     borderRadius: "[var(--arc-target-radius)]",
     outline: "[var(--arc-target-outline)]",
   },
-  _focusVisible: { _after: { outline: "[3px solid var(--colors-blue-s80)]" } },
+  _focusVisible: { _after: { outline: "[3px solid var(--node-outline)]" } },
 });
 
 const activateHandle = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -53,13 +58,23 @@ const activateHandle = (event: KeyboardEvent<HTMLDivElement>) => {
   }
 };
 
-export const NodeHandles = ({ isConnectable }: { isConnectable: boolean }) => {
-  const { enableAutomaticArcConnections } = use(UserSettingsContext);
+/**
+ * A place's or transition's two handles. Hovering the node reveals the
+ * outgoing one; while an arc is being drawn, the whole node of a kind that
+ * can receive it becomes its target.
+ */
+export const NodeHandles = ({
+  kind,
+  width,
+  height,
+  isConnectable,
+}: {
+  kind: "place" | "transition";
+  width: number;
+  height: number;
+  isConnectable: boolean;
+}) => {
   const nodeId = useNodeId();
-  const node = useStore((state) =>
-    nodeId ? state.nodeLookup.get(nodeId) : undefined,
-  );
-  const nodeKind = node?.type;
   const sourceKind = useStore((state) =>
     state.connection.inProgress
       ? state.connection.fromNode.type
@@ -73,11 +88,9 @@ export const NodeHandles = ({ isConnectable }: { isConnectable: boolean }) => {
       state.connection.toNode?.id === nodeId,
   );
 
+  const rewiring = use(LinkRewiringContext);
   const canReceive =
-    isConnectable &&
-    ((sourceKind === "place" && nodeKind === "transition") ||
-      (sourceKind === "transition" && nodeKind === "place"));
-  const borderRadius = nodeKind === "place" ? "999px" : "0";
+    isConnectable && receivesDrag({ rewiring, sourceKind, nodeKind: kind });
 
   return (
     <>
@@ -85,69 +98,55 @@ export const NodeHandles = ({ isConnectable }: { isConnectable: boolean }) => {
         type="target"
         position={Position.Left}
         isConnectable={isConnectable}
-        isConnectableStart={!enableAutomaticArcConnections}
-        isConnectableEnd={!enableAutomaticArcConnections || canReceive}
-        tabIndex={enableAutomaticArcConnections && canReceive ? 0 : undefined}
-        role={enableAutomaticArcConnections ? "button" : undefined}
-        aria-hidden={
-          enableAutomaticArcConnections && !canReceive ? true : undefined
+        isConnectableStart={false}
+        isConnectableEnd={canReceive}
+        tabIndex={canReceive ? 0 : undefined}
+        role="button"
+        aria-hidden={canReceive ? undefined : true}
+        aria-label="Connect arc to this node"
+        onKeyDown={activateHandle}
+        className={targetHandleStyle}
+        // Says that the outline of a target is drawn, for the pane to fade
+        // it with a faded node.
+        data-arc-target={isActiveTarget ? "" : undefined}
+        style={
+          {
+            "--arc-target-width": `${width}px`,
+            "--arc-target-height": `${height}px`,
+            "--arc-target-radius": kind === "place" ? "999px" : "0",
+            "--arc-target-outline": isActiveTarget
+              ? "3px solid var(--node-outline)"
+              : "none",
+            width: 9,
+            height: 9,
+            border: "none",
+            background: "transparent",
+            outline: "none",
+            pointerEvents: canReceive ? "all" : "none",
+            zIndex: canReceive ? 10 : -1,
+          } as CSSProperties
         }
-        aria-label={
-          enableAutomaticArcConnections ? "Connect arc to this node" : undefined
-        }
-        onKeyDown={enableAutomaticArcConnections ? activateHandle : undefined}
-        className={
-          enableAutomaticArcConnections ? targetHandleStyle : undefined
-        }
-        style={{
-          ...handleStyling,
-          ...(enableAutomaticArcConnections
-            ? {
-                "--arc-target-width": `${node?.measured.width ?? 0}px`,
-                "--arc-target-height": `${node?.measured.height ?? 0}px`,
-                "--arc-target-radius": borderRadius,
-                "--arc-target-outline": isActiveTarget
-                  ? "3px solid var(--colors-blue-s80)"
-                  : "none",
-                border: "none",
-                background: "transparent",
-                outline: "none",
-                pointerEvents: canReceive ? "all" : "none",
-                zIndex: canReceive ? 10 : -1,
-              }
-            : {}),
-        }}
       />
       <Handle
         type="source"
         position={Position.Right}
         isConnectable={isConnectable}
         isConnectableStart={isConnectable}
-        isConnectableEnd={!enableAutomaticArcConnections}
-        tabIndex={
-          enableAutomaticArcConnections && isConnectable ? 0 : undefined
-        }
-        role={enableAutomaticArcConnections ? "button" : undefined}
-        aria-label={
-          enableAutomaticArcConnections ? "Create outgoing arc" : undefined
-        }
-        onKeyDown={enableAutomaticArcConnections ? activateHandle : undefined}
-        className={
-          enableAutomaticArcConnections ? launchHandleStyle : undefined
-        }
-        style={
-          enableAutomaticArcConnections
-            ? {
-                width: 9,
-                height: 9,
-                right: 0,
-                border: "none",
-                background: "transparent",
-                zIndex: 11,
-                visibility: isConnectable && !sourceKind ? "visible" : "hidden",
-              }
-            : handleStyling
-        }
+        isConnectableEnd={false}
+        tabIndex={isConnectable ? 0 : undefined}
+        role="button"
+        aria-label="Create outgoing arc"
+        onKeyDown={activateHandle}
+        className={launchHandleStyle}
+        style={{
+          width: 9,
+          height: 9,
+          right: 0,
+          border: "none",
+          background: "transparent",
+          zIndex: 11,
+          visibility: isConnectable && !sourceKind ? "visible" : "hidden",
+        }}
       />
     </>
   );

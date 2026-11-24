@@ -1,8 +1,31 @@
-# Rust
-*.rs @hashintel/rust
-Cargo.toml @hashintel/rust
-/libs/@local/hashql/ @hashintel/backend-rust
-/libs/@local/harpc/ @hashintel/backend-rust
+# Rust workspace
+/Cargo.toml @hashintel/rust
+/Cargo.lock @hashintel/rust
+/rust-toolchain.toml @hashintel/rust
+/.cargo/ @hashintel/rust
+/.clippy.toml @hashintel/rust
+/.rustfmt.toml @hashintel/rust
+
+# Rust crates with their own team
+/libs/error-stack/ @hashintel/error-stack
+/libs/darwin-kperf/ @hashintel/darwin-kperf
+
+# Rust crates owned by the Rust team
+/libs/problematic/rust/ @hashintel/rust
+/libs/@local/codec/rust/ @hashintel/rust
+/libs/@local/codegen/ @hashintel/rust
+/libs/@local/config/ @hashintel/rust
+/libs/@local/crypto/ @hashintel/rust
+/libs/@local/durable-kernel/ @hashintel/rust
+/libs/@local/middleware/ @hashintel/rust
+/libs/@local/status/rust/ @hashintel/rust
+/libs/@local/telemetry/ @hashintel/rust
+/libs/@local/temporal-client/ @hashintel/rust
+/libs/@local/typst-railroad/ @hashintel/rust
+
+# HashQL and HaRPC
+/libs/@local/hashql/ @hashintel/hashql
+/libs/@local/harpc/ @hashintel/harpc
 
 # Design system
 /apps/hashdotdesign/ @hashintel/design-system
@@ -13,17 +36,66 @@ Cargo.toml @hashintel/rust
 /libs/@hashintel/petrinaut*/ @hashintel/petrinaut
 /libs/@local/petrinaut*/ @hashintel/petrinaut
 
+# Brunch agent
+/apps/brunch-agent/ @hashintel/frontend
+/libs/@hashintel/brunch-agent/ @hashintel/frontend
+
 # Core backend logic
 /apps/hash-api/ @hashintel/backend-ts
 /apps/hash-ai-worker-ts/ @hashintel/backend-ts
 /apps/hash-integration-worker/ @hashintel/backend-ts
-/apps/hash-graph/ @hashintel/backend-rust
-/libs/@local/graph/ @hashintel/backend-rust
+/apps/hash-graph/ @hashintel/graph
+/libs/@local/graph/ @hashintel/graph
+/tests/graph/ @hashintel/graph
 /libs/@local/graph/*/typescript/ @hashintel/backend-ts
 
 # Database migrations
-/libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/backend-rust
-/libs/@local/graph/migrations/graph-migrations/ @hashintel/backend-rust
+/libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/graph
+/libs/@local/graph/migrations/graph-migrations/ @hashintel/graph
+
+# Integrations
+/apps/hash-integrations/ @hashintel/integrations
+/libs/@local/integrations/ @hashintel/integrations
+
+# Frontend
+/apps/hash-frontend/ @hashintel/frontend
+/libs/@hashintel/block-design-system/ @hashintel/frontend
+/libs/@hashintel/design-system/ @hashintel/frontend
+/libs/@hashintel/query-editor/ @hashintel/frontend
+/libs/@hashintel/refractive/ @hashintel/frontend
+/libs/@hashintel/type-editor/ @hashintel/frontend
+/libs/@local/flow-petri-net/ @hashintel/frontend
+/libs/@local/flue-aisdk-transport/ @hashintel/frontend
+/libs/@local/pi-faux-providers/ @hashintel/frontend
+/apps/plugin-browser/ @hashintel/frontend
+
+# Backend libraries
+/libs/@local/advanced-types/ @hashintel/backend-ts
+/libs/@local/codec/typescript/ @hashintel/backend-ts
+/libs/@local/hash-backend-utils/ @hashintel/backend-ts
+/libs/@local/hash-isomorphic-utils/ @hashintel/backend-ts
+/libs/@local/internal-api-client/typescript/ @hashintel/backend-ts
+/libs/@local/status/typescript/ @hashintel/backend-ts
+
+# Block Protocol packages owned by the graph team
+/libs/@blockprotocol/graph/ @hashintel/graph
+/libs/@blockprotocol/type-system/ @hashintel/graph
+
+# Petrinaut tooling outside the petrinaut packages
+/libs/@local/archinaut/ @hashintel/petrinaut
+
+# Lint, TypeScript and repository tooling
+/libs/@local/eslint/ @hashintel/infra
+/libs/@local/oxlint/ @hashintel/infra
+/libs/@local/repo-chores/ @hashintel/infra
+/libs/@local/repo-chores/rust/ @hashintel/infra @hashintel/rust
+/libs/@local/tsconfig/ @hashintel/infra
+
+# Test suites
+/tests/hash-playwright/ @hashintel/frontend
+/tests/hash-backend-integration/ @hashintel/backend-ts
+/tests/integrations/graph/ @hashintel/graph
+/tests/petrinaut-brunch-integration/ @hashintel/petrinaut
 
 # Code ownership
 /.github/CODEOWNERS @hashintel/infra-admins
@@ -34,6 +106,9 @@ LICENSE* @hashintel/legal
 # Turborepo configuration
 turbo.json @hashintel/infra
 task-dependencies.json @hashintel/infra
+
+# Yarn configuration
+/.yarnrc.yml @hashintel/infra
 
 # GitHub Actions and CI configuration
 /.github/workflows/ @hashintel/infra

@@ -17,6 +17,14 @@ export const generateFlowDefinitionPath = ({
   `/@${shortname.replace(/^@/, "")}/flows/${extractEntityUuidFromEntityId(flowDefinitionEntityId)}`;
 
 /**
+ * The page that edits a flow definition.
+ */
+export const generateFlowEditorPath = (params: {
+  shortname: string;
+  flowDefinitionEntityId: EntityId;
+}) => `${generateFlowDefinitionPath(params)}/edit`;
+
+/**
  * The page of a flow run. The shortname names the run's web, so the path only needs the uuid of its entity.
  */
 export const generateWorkerRunPath = ({
@@ -36,3 +44,18 @@ export const generatedFilteredWorkersPath = ({
   flowDefinitionEntityIds: EntityId[];
 }) =>
   `/workers?${flowDefinitionEntityIds.map((flowDefinitionEntityId) => `${workerFlowFilterParam}=${encodeURIComponent(flowDefinitionEntityId)}`).join("&")}`;
+
+export const flowTriggersFlowFilterParam = "flow";
+
+/** Present to open the form for adding a trigger, filled in with the flow. */
+export const flowTriggersAddParam = "add";
+
+/** The Triggers page, filtered to one flow's triggers, and with `add`, with the form for adding one open. */
+export const generateFlowTriggersPath = ({
+  flowDefinitionEntityId,
+  add = false,
+}: {
+  flowDefinitionEntityId: EntityId;
+  add?: boolean;
+}) =>
+  `/flows/triggers?${flowTriggersFlowFilterParam}=${encodeURIComponent(flowDefinitionEntityId)}${add ? `&${flowTriggersAddParam}` : ""}`;

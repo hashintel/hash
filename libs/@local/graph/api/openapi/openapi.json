@@ -4934,6 +4934,10 @@
         },
         "additionalProperties": false
       },
+      "DraftId": {
+        "type": "string",
+        "format": "uuid"
+      },
       "EdgeDirection": {
         "type": "string",
         "enum": [
@@ -5065,6 +5069,13 @@
               },
               "createdById": {
                 "$ref": "#/components/schemas/ActorEntityUuid"
+              },
+              "createdFromDraftId": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/DraftId"
+                  }
+                ]
               }
             }
           }

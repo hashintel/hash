@@ -1,18 +1,10 @@
 export type {
-  BackpressureConfig,
-  CreateSimulationConfig,
   InitialMarking,
   InitialPlaceMarking,
   InitialTokenAttributeValue,
-  Simulation,
-  SimulationCompleteEvent,
-  SimulationConfig,
-  SimulationErrorEvent,
-  SimulationEvent,
   SimulationFrameRawView,
   SimulationFrameReader,
   SimulationFrameState,
-  SimulationFrameSummary,
   SimulationTransport,
   SimulationState,
   WorkerFactory,
@@ -73,5 +65,4 @@ export type {
   MonteCarloTransitionFiringCountMetricSpec,
   MonteCarloWorkerProgress,
 } from "./monte-carlo";
-export { createSimulation } from "./runtime/simulation";
-export { createWorkerTransport } from "./runtime/transport";
+export { createWorkerTransport } from "./worker-transport";

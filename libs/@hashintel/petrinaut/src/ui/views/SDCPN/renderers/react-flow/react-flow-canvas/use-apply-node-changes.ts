@@ -1,18 +1,23 @@
 import { useStoreApi } from "@xyflow/react";
 import { useEffect, useRef } from "react";
 
+import { documentPositionOf } from "./instance-anchor";
+
 import type {
   CanvasInteractions,
   CanvasNodeDrop,
   CanvasNodeMove,
   CanvasSelectionChange,
 } from "../../../use-canvas-interactions";
+import type { NodeType } from "./react-flow-types";
 import type { EdgeChange, NodeChange } from "@xyflow/react";
 
 /**
  * Turns the changes React Flow reports into canvas interactions. Adds,
  * replacements and dimension changes are ignored: the SDCPN store is the
- * source of truth for structure and sizes.
+ * source of truth for structure and sizes. A position comes back as the
+ * document holds it, which for a component instance is not where React Flow
+ * anchors it: see `instance-anchor.ts`.
  *
  * Drag ends use `change.position` directly rather than the dragging state,
  * because React Flow syncs `onNodesChange` to its store via an effect, so
@@ -28,8 +33,15 @@ import type { EdgeChange, NodeChange } from "@xyflow/react";
  *
  * @see https://github.com/xyflow/xyflow/blob/04055c9625cbd92cf83a2f4c340d6fae5199bfa3/packages/react/src/utils/changes.ts#L107
  */
-export const useApplyNodeChanges = (interactions: CanvasInteractions) => {
-  const flowStore = useStoreApi();
+export const useApplyNodeChanges = ({
+  applySelectionChanges,
+  moveNodes,
+  dropNodes,
+}: Pick<
+  CanvasInteractions,
+  "applySelectionChanges" | "moveNodes" | "dropNodes"
+>) => {
+  const flowStore = useStoreApi<NodeType>();
   const keptSelection = useRef<ReadonlySet<string> | null>(null);
 
   useEffect(
@@ -74,25 +86,25 @@ export const useApplyNodeChanges = (interactions: CanvasInteractions) => {
         }
         selections.push({ id: change.id, selected: change.selected });
       } else if (change.type === "position") {
+        const position = change.position
+          ? documentPositionOf(nodeLookup.get(change.id)?.data, change.position)
+          : null;
         if (change.dragging) {
-          moves.push({
-            id: change.id,
-            position: change.position ?? { x: 0, y: 0 },
-          });
+          moves.push({ id: change.id, position: position ?? { x: 0, y: 0 } });
         } else {
-          drops.push({ id: change.id, position: change.position ?? null });
+          drops.push({ id: change.id, position });
         }
       }
     }
 
     if (selections.length > 0) {
-      interactions.applySelectionChanges(selections);
+      applySelectionChanges(selections);
     }
     if (moves.length > 0) {
-      interactions.moveNodes(moves);
+      moveNodes(moves);
     }
     if (drops.length > 0) {
-      interactions.dropNodes(drops);
+      dropNodes(drops);
     }
   };
 };

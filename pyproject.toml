@@ -3,7 +3,7 @@ name            = "hash"
 version         = "0.1.0"
 description     = "HASH Monorepo"
 readme          = "README.md"
-requires-python = ">=3.14,<3.15"
+requires-python = ">=3.14.10,<3.15"
 dependencies    = []
 authors         = [
     { name = "HASH" },
@@ -24,12 +24,10 @@ dev = [
 
 [tool.uv]
 preview                 = true
-add-bounds              = "major"                              # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
-exclude-newer           = "7 days"                             # mirrors npm release age
+required-version        = ">=0.13.6"
+add-bounds              = "major"    # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
+exclude-newer           = "7 days"   # mirrors npm release age
 package                 = false
-# Admit the certifi security release without relaxing other packages' age limit.
-# Remove this ceiling after 2026-10-27T02:24:17Z and regenerate the lockfile.
-exclude-newer-package   = { certifi = "2026-10-20T02:24:17Z" }
 constraint-dependencies = [
     "deptry<0.26,>=0.25.1",
     "optuna<6.0.0,>=5.0.0",

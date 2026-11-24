@@ -8,7 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import throttle from "lodash/throttle";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ArrowDownRegularIcon,
@@ -26,6 +26,8 @@ type FilePreviewSearchProps = {
   /**
    * Called, throttled, when the search text or the case setting changes,
    * and at once with an empty `text` when the search is cleared.
+   * Callers must pass a function whose identity stays the same across
+   * renders, because a new function restarts the throttle.
    */
   onSearch: (text: string, ignoreCase: boolean) => void;
   onSelectHit: (index: number) => void;
@@ -47,7 +49,10 @@ export const FilePreviewSearch = ({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const throttledSearch = throttle(onSearch, 300);
+  // TODO(FE-1978): remove this useMemo once React Compiler compiles this component.
+  const throttledSearch = useMemo(() => throttle(onSearch, 300), [onSearch]);
+
+  useEffect(() => () => throttledSearch.cancel(), [throttledSearch]);
 
   const previousHitIndex =
     selectedIndex === null ? null : (selectedIndex - 1 + total) % total;

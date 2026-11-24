@@ -1,6 +1,6 @@
 import { nextRandom } from "./seeded-rng";
 
-import type { RuntimeDistribution } from "../authoring/user-code/distribution";
+import type { RuntimeDistribution } from "./distribution";
 
 /**
  * Samples a single numeric value from a distribution using the seeded RNG.

@@ -415,7 +415,6 @@ mod tests {
     };
     use hashql_core::id::IdSlice;
     use tokio::runtime::Handle;
-    use tokio_postgres::NoTls;
     use type_system::{
         knowledge::Entity,
         principal::actor::{ActorId, UserId},
@@ -488,7 +487,6 @@ mod tests {
                 &DatabasePoolConfig {
                     max_connections: nz!(1),
                 },
-                NoTls,
                 PostgresStoreSettings::default(),
             )
             .expect("should construct an unconnected pool"),

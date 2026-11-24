@@ -1,0 +1,1030 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, test, vi } from "vitest";
+
+import {
+  brunchTools,
+  canonicalContent,
+  hashProcessEditorId,
+} from "@hashintel/brunch-agent";
+import {
+  createJsonDocHandle,
+  createPetrinaut,
+  generateArcId,
+  toPetrinautId,
+  type SDCPN,
+  type SDCPNInput,
+} from "@hashintel/petrinaut-core";
+import { pruningUpdateActions } from "@hashintel/petrinaut-core/ai";
+
+import { createInBandBrowserCalls } from "../../client/tools/in-band-browser-call";
+import {
+  createBrunchMutationAdmission,
+  createBrunchMutationApprovalComponents,
+  createBrunchMutationApprovalCoordinator,
+  createBrunchMutationApprovalInteractiveTools,
+  createBrunchMutationApprovalWidget,
+  createBrunchSaveApprovalWidget,
+  type BrunchHostSave,
+  type ReadBrunchDocumentSaveState,
+} from "./brunch-mutation-approval";
+
+import type { FlueClient } from "@flue/sdk";
+
+vi.hoisted(() => {
+  window.matchMedia = (media) => ({
+    media,
+    matches: false,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent: () => true,
+  });
+});
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+const destructiveInput = {
+  items: [
+    { type: "place", id: "queue" },
+    { type: "differentialEquation", id: "decay" },
+    {
+      type: "arc",
+      id: generateArcId({ inputId: "place:queue", outputId: "serve" }),
+    },
+  ],
+};
+
+const netWith = (initial: SDCPNInput) =>
+  createPetrinaut({ document: createJsonDocHandle({ initial }) }).definition;
+
+const machinePort = {
+  id: "in",
+  name: "In",
+  colorId: null,
+  dynamicsEnabled: false,
+  isPort: true,
+  x: 0,
+  y: 0,
+};
+const machine = {
+  id: "machine",
+  name: "Machine",
+  places: [machinePort],
+  transitions: [],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
+};
+const instanceOfMachine = (id: string, name: string) => ({
+  id,
+  name,
+  component: { id: "machine" },
+  parameterValues: {},
+  x: 0,
+  y: 0,
+});
+/** Feed puts tokens into `M1.In`; nothing names a port of `M2`. */
+const wiredNet: SDCPNInput = {
+  places: [],
+  transitions: [
+    {
+      id: "feed",
+      name: "Feed",
+      inputArcs: [],
+      outputArcs: [
+        {
+          endpoint: {
+            kind: "componentPort",
+            componentInstanceId: "m1",
+            portPlaceId: "in",
+          },
+        },
+      ],
+      x: 0,
+      y: 0,
+    },
+  ],
+  components: [machine, { ...machine, id: "press", name: "Press", places: [] }],
+  componentInstances: [
+    instanceOfMachine("m1", "M1"),
+    instanceOfMachine("m2", "M2"),
+  ],
+};
+const unmarkPort = (update: object = { isPort: false }) => ({
+  placeId: "in",
+  targetComponentId: "machine",
+  update,
+});
+const repoint = (instanceId: string) => ({
+  instanceId,
+  update: { component: { id: "press" } },
+});
+const inPortOf = (componentInstanceId: string) =>
+  ({ kind: "componentPort", componentInstanceId, portPlaceId: "in" }) as const;
+/** The fusion Line makes the root place Belt and `M1.In` one place. */
+const fusedNet: SDCPNInput = {
+  ...wiredNet,
+  places: [{ id: "belt", name: "Belt", x: 0, y: 0 }],
+  fusions: [
+    {
+      id: "line",
+      name: "Line",
+      members: [{ kind: "place", placeId: "belt" }, inPortOf("m1")],
+    },
+  ],
+};
+/** Moves Line from `M1.In` to `M2.In`. */
+const moveLine = {
+  fusionId: "line",
+  member: inPortOf("m1"),
+  replacement: inPortOf("m2"),
+};
+
+describe("Brunch destructive edit approval", () => {
+  test("covers every destructive canonical tool, the updates that can prune, and no other", () => {
+    const toolNames = createBrunchMutationApprovalInteractiveTools(
+      createBrunchMutationApprovalComponents(
+        createBrunchMutationApprovalCoordinator(),
+      ),
+      new Set(),
+    ).map(({ toolName }) => toolName);
+    expect(toolNames).toContain("deleteItemsByIds");
+    expect(toolNames).toContain("removeArc");
+    expect(toolNames).toEqual(
+      expect.arrayContaining([
+        ...pruningUpdateActions,
+        "petrinaut_update_place",
+        "petrinaut_update_component_instance",
+      ]),
+    );
+    expect(toolNames).not.toContain("addPlace");
+    expect(toolNames).not.toContain("updateTransition");
+  });
+
+  // Keyed by core's list, so an update that starts pruning needs a row here.
+  const prunedRows: Record<
+    (typeof pruningUpdateActions)[number],
+    { input: unknown; row: string }
+  > = {
+    updatePlace: {
+      input: unmarkPort(),
+      row: "Remove arcs and fusion memberships on port — In",
+    },
+    updateComponentInstance: {
+      input: repoint("m1"),
+      row: "Remove arcs and fusion memberships on component instance — M1",
+    },
+  };
+
+  test.each(pruningUpdateActions)(
+    "says what an %s that prunes takes with it",
+    (toolName) => {
+      const ApprovalWidget = createBrunchMutationApprovalWidget(
+        createBrunchMutationApprovalCoordinator(),
+        toolName,
+      );
+      render(
+        <ApprovalWidget
+          input={prunedRows[toolName].input}
+          net={netWith(wiredNet)}
+          state="awaiting"
+          submit={vi.fn()}
+          submitAndWait={vi.fn()}
+          toolCallId="update-1"
+        />,
+      );
+
+      expect(screen.getByText(prunedRows[toolName].row)).not.toBeNull();
+    },
+  );
+
+  test("names a removed fusion by its own name, not a member's", () => {
+    const ApprovalWidget = createBrunchMutationApprovalWidget(
+      createBrunchMutationApprovalCoordinator(),
+      "removeFusion",
+    );
+    render(
+      <ApprovalWidget
+        input={{ fusionId: "belt" }}
+        net={netWith({
+          ...wiredNet,
+          places: [{ id: "buffer", name: "Buffer", x: 0, y: 0 }],
+          fusions: [
+            {
+              id: "belt",
+              name: "Belt",
+              members: [
+                { kind: "place", placeId: "buffer" },
+                {
+                  kind: "componentPort",
+                  componentInstanceId: "m1",
+                  portPlaceId: "in",
+                },
+              ],
+            },
+          ],
+        })}
+        state="awaiting"
+        submit={vi.fn()}
+        submitAndWait={vi.fn()}
+        toolCallId="remove-1"
+      />,
+    );
+
+    expect(screen.getByText("Remove fusion — Belt")).not.toBeNull();
+  });
+
+  test("names the member a fusion replacement takes out, and the one that joins", () => {
+    const ApprovalWidget = createBrunchMutationApprovalWidget(
+      createBrunchMutationApprovalCoordinator(),
+      "replaceFusionMember",
+    );
+    render(
+      <ApprovalWidget
+        input={moveLine}
+        net={netWith(fusedNet)}
+        state="awaiting"
+        submit={vi.fn()}
+        submitAndWait={vi.fn()}
+        toolCallId="replace-1"
+      />,
+    );
+
+    expect(
+      screen.getByText("Replace fusion member — Line / M1 / In with M2 / In"),
+    ).not.toBeNull();
+  });
+
+  test("renders itemized removals and resolves Allow without submitting a tool result", async () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const decision = coordinator.request({
+      toolCallId: "delete-1",
+      toolName: "deleteItemsByIds",
+      signal: new AbortController().signal,
+    });
+    // The equation is missing from the document, so its row shows the id.
+    const net = netWith({
+      places: [{ id: "queue", name: "Queue", x: 0, y: 0 }],
+      transitions: [
+        {
+          id: "serve",
+          name: "Serve",
+          inputArcs: [],
+          outputArcs: [],
+          x: 0,
+          y: 0,
+        },
+      ],
+    });
+    const ApprovalWidget = createBrunchMutationApprovalWidget(
+      coordinator,
+      "deleteItemsByIds",
+    );
+    const submit = vi.fn();
+    render(
+      <ApprovalWidget
+        input={destructiveInput}
+        net={net}
+        state="awaiting"
+        submit={submit}
+        submitAndWait={vi.fn()}
+        toolCallId="delete-1"
+      />,
+    );
+
+    expect(screen.getByText("Remove place — Queue")).not.toBeNull();
+    expect(screen.getByText("Remove arc — Queue → Serve")).not.toBeNull();
+    expect(
+      screen.getByText(
+        `Remove differential equation — ${toPetrinautId("decay")}`,
+      ),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/associated arcs or references may also be removed/iu),
+    ).not.toBeNull();
+    expect(
+      screen.getAllByRole("button").map((button) => button.textContent),
+    ).toEqual(["Allow", "Always allow", "Deny"]);
+    fireEvent.click(screen.getByRole("button", { name: "Allow" }));
+
+    await expect(decision).resolves.toEqual({ decision: "allow" });
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  test("Always allow is scoped to one coordinator and abort revokes stale UI authority", async () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const first = coordinator.request({
+      toolCallId: "delete-1",
+      toolName: "deleteItemsByIds",
+      signal: new AbortController().signal,
+    });
+    coordinator.resolve("delete-1", "always-allow");
+    await expect(first).resolves.toEqual({ decision: "allow" });
+    await expect(
+      coordinator.request({
+        toolCallId: "delete-2",
+        toolName: "deleteItemsByIds",
+        signal: new AbortController().signal,
+      }),
+    ).resolves.toEqual({ decision: "allow" });
+
+    const fresh = createBrunchMutationApprovalCoordinator();
+    const controller = new AbortController();
+    const pending = fresh.request({
+      toolCallId: "delete-3",
+      toolName: "deleteItemsByIds",
+      signal: controller.signal,
+    });
+    controller.abort();
+    await expect(pending).resolves.toEqual({
+      decision: "deny",
+      reason: "The destructive edit was stopped before approval.",
+    });
+    expect(fresh.resolve("delete-3", "allow")).toBe(false);
+    expect(fresh.hasPending("delete-3")).toBe(false);
+  });
+
+  test("approval state reports waiting and refused calls, not allowed ones", async () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const request = (
+      toolCallId: string,
+      signal = new AbortController().signal,
+    ) => coordinator.request({ toolCallId, toolName: "removePlace", signal });
+
+    const allowed = request("allowed");
+    const denied = request("denied");
+    const stopped = new AbortController();
+    const aborted = request("aborted", stopped.signal);
+    expect(coordinator.approvalState("denied")).toBe("awaiting");
+
+    coordinator.resolve("allowed", "allow");
+    coordinator.resolve("denied", "deny");
+    stopped.abort();
+    await Promise.all([allowed, denied, aborted]);
+    expect(coordinator.approvalState("allowed")).toBeNull();
+    expect(coordinator.approvalState("denied")).toBe("refused");
+    expect(coordinator.approvalState("aborted")).toBe("refused");
+    expect(coordinator.approvalState("unknown")).toBeNull();
+
+    coordinator.close();
+    await request("after-close");
+    expect(coordinator.approvalState("after-close")).toBe("refused");
+  });
+
+  test("closing stops waiting approvals and reopening accepts new ones", async () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const waiting = coordinator.request({
+      toolCallId: "delete-1",
+      toolName: "deleteItemsByIds",
+      signal: new AbortController().signal,
+    });
+    coordinator.close();
+    await expect(waiting).resolves.toEqual({
+      decision: "deny",
+      reason: "The destructive edit was stopped before approval.",
+    });
+    await expect(
+      coordinator.request({
+        toolCallId: "delete-2",
+        toolName: "deleteItemsByIds",
+        signal: new AbortController().signal,
+      }),
+    ).resolves.toMatchObject({ decision: "deny" });
+
+    coordinator.open();
+    void coordinator.request({
+      toolCallId: "delete-3",
+      toolName: "deleteItemsByIds",
+      signal: new AbortController().signal,
+    });
+    expect(coordinator.hasPending("delete-3")).toBe(true);
+  });
+
+  test("publishes a new pending snapshot for every change, including calls of the same tool", () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const idle = coordinator.getPendingSnapshot();
+    void coordinator.request({
+      toolCallId: "remove-1",
+      toolName: "removePlace",
+      signal: new AbortController().signal,
+    });
+    const waiting = coordinator.getPendingSnapshot();
+    expect(waiting).not.toBe(idle);
+    expect([...waiting]).toEqual(["remove-1"]);
+    expect(coordinator.getPendingSnapshot()).toBe(waiting);
+    void coordinator.request({
+      toolCallId: "remove-2",
+      toolName: "removePlace",
+      signal: new AbortController().signal,
+    });
+    const bothWaiting = coordinator.getPendingSnapshot();
+    expect(bothWaiting).not.toBe(waiting);
+    expect([...bothWaiting]).toEqual(["remove-1", "remove-2"]);
+    coordinator.resolve("remove-1", "deny");
+    expect([...coordinator.getPendingSnapshot()]).toEqual(["remove-2"]);
+    // An earlier snapshot never changes under a reader.
+    expect([...bothWaiting]).toEqual(["remove-1", "remove-2"]);
+    coordinator.close();
+  });
+
+  test("a malformed call is refused before it can wait for an approval that never renders", async () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const request = vi.spyOn(coordinator, "request");
+    await expect(
+      createBrunchMutationAdmission(
+        coordinator,
+        () => undefined,
+      )({
+        toolCallId: "remove-1",
+        toolName: "removePlace",
+        input: {},
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toThrow();
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  test("historical rendering cannot create approval authority", () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const ApprovalWidget = createBrunchMutationApprovalWidget(
+      coordinator,
+      "deleteItemsByIds",
+    );
+    render(
+      <ApprovalWidget
+        input={destructiveInput}
+        net={netWith({ places: [], transitions: [] })}
+        state="awaiting"
+        submit={vi.fn()}
+        submitAndWait={vi.fn()}
+        toolCallId="historical-call"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Allow" }));
+    expect(coordinator.hasPending("historical-call")).toBe(false);
+    expect(coordinator.resolve("historical-call", "allow")).toBe(false);
+  });
+});
+
+describe("Brunch save approval card", () => {
+  test("names the net and its last save, and offers only Allow and Deny", async () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const decision = coordinator.request({
+      toolCallId: "save-1",
+      toolName: brunchTools.appSaveNet,
+      signal: new AbortController().signal,
+    });
+    const lastSavedTime = "2026-10-24T00:00:00.000Z";
+    const readSaveState = vi.fn<ReadBrunchDocumentSaveState>(() => ({
+      title: "Replenishment",
+      lastSavedTime,
+      refusal: null,
+    }));
+    const SaveCard = createBrunchSaveApprovalWidget(coordinator, readSaveState);
+    render(
+      <SaveCard
+        input={{ documentId: "web~net" }}
+        state="awaiting"
+        submit={vi.fn()}
+        toolCallId="save-1"
+      />,
+    );
+
+    expect(readSaveState).toHaveBeenCalledWith("web~net");
+    expect(
+      screen.getByText("Save \u2018Replenishment\u2019 as a new version?"),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(
+        /every unsaved edit in the editor, yours and the assistant/iu,
+      ),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(
+        `Last saved ${new Date(lastSavedTime).toLocaleString()}`,
+      ),
+    ).not.toBeNull();
+    expect(
+      screen.getAllByRole("button").map((button) => button.textContent),
+    ).toEqual(["Allow", "Deny"]);
+    fireEvent.click(screen.getByRole("button", { name: "Deny" }));
+
+    await expect(decision).resolves.toEqual({
+      decision: "deny",
+      reason: "The user declined this save; nothing was saved.",
+    });
+  });
+
+  test("a save that names no document is refused before it can wait for approval", async () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const request = vi.spyOn(coordinator, "request");
+    await expect(
+      createBrunchMutationAdmission(coordinator, () => undefined, {
+        read: () => ({ title: "Net", lastSavedTime: null, refusal: null }),
+        save: vi.fn<BrunchHostSave["save"]>(),
+      })({
+        toolCallId: "save-1",
+        toolName: brunchTools.appSaveNet,
+        input: {},
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toThrow();
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  test("is offered only by a host that can save", () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const names = (hostSave?: BrunchHostSave) =>
+      createBrunchMutationApprovalInteractiveTools(
+        createBrunchMutationApprovalComponents(coordinator, hostSave),
+        new Set(),
+      ).map(({ toolName }) => toolName);
+    expect(names()).not.toContain(brunchTools.appSaveNet);
+    expect(
+      names({
+        read: () => ({ title: "Net", lastSavedTime: null, refusal: null }),
+        save: vi.fn<BrunchHostSave["save"]>(),
+      }),
+    ).toContain(brunchTools.appSaveNet);
+  });
+});
+
+describe("Brunch destructive edit approval on in-band browser calls", () => {
+  const binding = {
+    conversationId: "conversation",
+    documentId: "document",
+  };
+
+  const issuedCalls = (
+    toolName: string,
+    input: unknown,
+    hostSave?: BrunchHostSave,
+    /** The open document, as the admission reads it. */
+    definition?: SDCPN,
+  ) => {
+    const posted: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(async (_url, init) => {
+        if (init?.method === "POST") {
+          posted.push(
+            typeof init.body === "string" ? JSON.parse(init.body) : init.body,
+          );
+          return new Response(null, { status: 200 });
+        }
+        return Response.json({
+          capability: "capability",
+          binding: canonicalContent(binding),
+          toolName,
+          input,
+        });
+      }),
+    );
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const prepareInput = vi.fn();
+    const calls = createInBandBrowserCalls({
+      client: Promise.resolve({
+        url: "http://brunch.local/agents/petrinaut/instance",
+      } as FlueClient),
+      actorKey: "owner",
+      binding,
+      metadataFor: () => undefined,
+      prepareInput,
+      admit: createBrunchMutationAdmission(
+        coordinator,
+        () => definition,
+        hostSave,
+      ),
+      acceptsRevision: () => true,
+    });
+    return { calls, coordinator, posted, prepareInput };
+  };
+
+  const saveInput = { documentId: "web~net" };
+  /** A host that can save, whose save state refuses with `refusal`. */
+  const saveState = (refusal: string | null = null) => ({
+    read: vi.fn<ReadBrunchDocumentSaveState>(() => ({
+      title: "Replenishment",
+      lastSavedTime: "2026-10-24T00:00:00.000Z",
+      refusal,
+    })),
+    // The page's save, which the in-band call runs through `execute` here.
+    save: vi.fn<BrunchHostSave["save"]>(),
+  });
+  const runSave = (
+    calls: ReturnType<typeof issuedCalls>["calls"],
+    execute: (issuedInput: unknown) => Promise<unknown>,
+    signal = new AbortController().signal,
+  ) =>
+    calls.run(
+      {
+        toolCallId: "save-1",
+        toolName: brunchTools.appSaveNet,
+        input: saveInput,
+        signal,
+      },
+      execute,
+    );
+
+  test("a declined save settles as not applied and never runs the save", async () => {
+    const hostSave = saveState();
+    const { calls, coordinator, posted, prepareInput } = issuedCalls(
+      brunchTools.appSaveNet,
+      saveInput,
+      hostSave,
+    );
+    const execute = vi.fn(async () => ({ saved: true }));
+    const run = runSave(calls, execute);
+    await vi.waitFor(() => expect(coordinator.hasPending("save-1")).toBe(true));
+    expect(hostSave.read).toHaveBeenCalledWith("web~net");
+    coordinator.resolve("save-1", "deny");
+
+    await run;
+    expect(execute).not.toHaveBeenCalled();
+    expect(prepareInput).not.toHaveBeenCalled();
+    expect(posted).toEqual([
+      expect.objectContaining({
+        output: {
+          status: "not-started",
+          reason: "The user declined this save; nothing was saved.",
+        },
+      }),
+    ]);
+  });
+
+  test("a save the host refuses settles as not started with its reason, before any card", async () => {
+    const { calls, coordinator, posted } = issuedCalls(
+      brunchTools.appSaveNet,
+      saveInput,
+      saveState("A save of this net is already in progress."),
+    );
+    const request = vi.spyOn(coordinator, "request");
+    const execute = vi.fn(async () => ({ saved: true }));
+
+    await runSave(calls, execute);
+    expect(request).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
+    expect(posted).toEqual([
+      expect.objectContaining({
+        output: {
+          status: "not-started",
+          reason: "A save of this net is already in progress.",
+        },
+      }),
+    ]);
+  });
+
+  test("an allowed save runs once and reports its own result", async () => {
+    const { calls, coordinator, posted, prepareInput } = issuedCalls(
+      brunchTools.appSaveNet,
+      saveInput,
+      saveState(),
+    );
+    const saved = {
+      status: "saved",
+      decisionTime: "2026-10-24T01:00:00.000Z",
+      title: "Replenishment",
+      stillDirty: false,
+    };
+    const execute = vi.fn(async () => saved);
+    const run = runSave(calls, execute);
+    await vi.waitFor(() => expect(coordinator.hasPending("save-1")).toBe(true));
+    coordinator.resolve("save-1", "allow");
+
+    await run;
+    expect(execute).toHaveBeenCalledExactlyOnceWith(saveInput);
+    expect(prepareInput).toHaveBeenCalledOnce();
+    expect(posted).toEqual([expect.objectContaining({ output: saved })]);
+  });
+
+  test("Always allow for destructive edits never admits a save without its card", async () => {
+    const { calls, coordinator } = issuedCalls(
+      brunchTools.appSaveNet,
+      saveInput,
+      saveState(),
+    );
+    const removal = coordinator.request({
+      toolCallId: "remove-1",
+      toolName: "removePlace",
+      signal: new AbortController().signal,
+    });
+    coordinator.resolve("remove-1", "always-allow");
+    await expect(removal).resolves.toEqual({ decision: "allow" });
+
+    const execute = vi.fn(async () => ({ saved: true }));
+    const run = runSave(calls, execute);
+    await vi.waitFor(() => expect(coordinator.hasPending("save-1")).toBe(true));
+    expect(execute).not.toHaveBeenCalled();
+    coordinator.resolve("save-1", "allow");
+    await run;
+    expect(execute).toHaveBeenCalledOnce();
+
+    // The destructive Always allow still stands.
+    await expect(
+      coordinator.request({
+        toolCallId: "remove-2",
+        toolName: "removePlace",
+        signal: new AbortController().signal,
+      }),
+    ).resolves.toEqual({ decision: "allow" });
+  });
+
+  test("a save the conversation stops while it waits settles as stopped, not started", async () => {
+    const { calls, coordinator, posted } = issuedCalls(
+      brunchTools.appSaveNet,
+      saveInput,
+      saveState(),
+    );
+    const execute = vi.fn(async () => ({ saved: true }));
+    const run = runSave(calls, execute);
+    await vi.waitFor(() => expect(coordinator.hasPending("save-1")).toBe(true));
+    coordinator.close();
+
+    await run;
+    expect(execute).not.toHaveBeenCalled();
+    expect(posted).toEqual([
+      expect.objectContaining({
+        output: {
+          status: "not-started",
+          reason: "The save was stopped before approval; nothing was saved.",
+        },
+      }),
+    ]);
+  });
+
+  test("a denied removal settles as not applied without running", async () => {
+    const input = { placeId: "queue" };
+    const { calls, coordinator, posted } = issuedCalls("removePlace", input);
+    const execute = vi.fn(async () => ({ applied: true }));
+    const run = calls.run(
+      {
+        toolCallId: "remove-1",
+        toolName: "removePlace",
+        input,
+        signal: new AbortController().signal,
+      },
+      execute,
+    );
+    await vi.waitFor(() =>
+      expect(coordinator.hasPending("remove-1")).toBe(true),
+    );
+    coordinator.resolve("remove-1", "deny");
+
+    await expect(run).resolves.toBeUndefined();
+    expect(execute).not.toHaveBeenCalled();
+    expect(posted).toEqual([
+      expect.objectContaining({
+        output: {
+          applied: false,
+          reason: "The user denied this destructive edit.",
+        },
+      }),
+    ]);
+  });
+
+  test("an allowed removal runs once and reports its own result", async () => {
+    const input = { placeId: "queue" };
+    const { calls, coordinator, posted } = issuedCalls("removePlace", input);
+    const execute = vi.fn(async () => ({
+      applied: true,
+      title: "Removed place",
+    }));
+    const run = calls.run(
+      {
+        toolCallId: "remove-1",
+        toolName: "removePlace",
+        input,
+        signal: new AbortController().signal,
+      },
+      execute,
+    );
+    await vi.waitFor(() =>
+      expect(coordinator.hasPending("remove-1")).toBe(true),
+    );
+    coordinator.resolve("remove-1", "allow");
+
+    await run;
+    expect(execute).toHaveBeenCalledOnce();
+    expect(posted).toEqual([
+      expect.objectContaining({
+        output: { applied: true, title: "Removed place" },
+      }),
+    ]);
+  });
+
+  test("the host records a removal's starting revision only once it is allowed", async () => {
+    const input = { placeId: "queue" };
+    const denied = issuedCalls("removePlace", input);
+    const deniedRun = denied.calls.run(
+      {
+        toolCallId: "remove-1",
+        toolName: "removePlace",
+        input,
+        signal: new AbortController().signal,
+      },
+      vi.fn(async () => ({ applied: true })),
+    );
+    await vi.waitFor(() =>
+      expect(denied.coordinator.hasPending("remove-1")).toBe(true),
+    );
+    expect(denied.prepareInput).not.toHaveBeenCalled();
+    denied.coordinator.resolve("remove-1", "deny");
+    await deniedRun;
+    expect(denied.prepareInput).not.toHaveBeenCalled();
+
+    const allowed = issuedCalls("removePlace", input);
+    const allowedRun = allowed.calls.run(
+      {
+        toolCallId: "remove-2",
+        toolName: "removePlace",
+        input,
+        signal: new AbortController().signal,
+      },
+      vi.fn(async () => ({ applied: true })),
+    );
+    await vi.waitFor(() =>
+      expect(allowed.coordinator.hasPending("remove-2")).toBe(true),
+    );
+    expect(allowed.prepareInput).not.toHaveBeenCalled();
+    allowed.coordinator.resolve("remove-2", "allow");
+    await allowedRun;
+    expect(allowed.prepareInput).toHaveBeenCalledOnce();
+  });
+
+  test.each([
+    ["replaceFusionMember", moveLine],
+    [
+      "petrinaut_replace_fusion_member",
+      { editor_id: hashProcessEditorId, ...moveLine },
+    ],
+  ])(
+    "%s waits for approval, as taking the member out alone does",
+    async (toolName, input) => {
+      const { calls, coordinator } = issuedCalls(toolName, input);
+      const execute = vi.fn(async () => ({ applied: true }));
+      const run = calls.run(
+        {
+          toolCallId: "replace-1",
+          toolName,
+          input,
+          signal: new AbortController().signal,
+        },
+        execute,
+      );
+      await vi.waitFor(() =>
+        expect(coordinator.hasPending("replace-1")).toBe(true),
+      );
+      expect(execute).not.toHaveBeenCalled();
+      coordinator.resolve("replace-1", "allow");
+
+      await run;
+      expect(execute).toHaveBeenCalledOnce();
+    },
+  );
+
+  test("a constructive call runs without asking", async () => {
+    const input = {
+      id: "place",
+      name: "Place",
+      colorId: null,
+      dynamicsEnabled: false,
+      x: 0,
+      y: 0,
+    };
+    const { calls, coordinator } = issuedCalls("addPlace", input);
+    const request = vi.spyOn(coordinator, "request");
+    const execute = vi.fn(async () => ({ applied: true }));
+
+    await calls.run(
+      {
+        toolCallId: "add-1",
+        toolName: "addPlace",
+        input,
+        signal: new AbortController().signal,
+      },
+      execute,
+    );
+    expect(request).not.toHaveBeenCalled();
+    expect(execute).toHaveBeenCalledOnce();
+  });
+
+  describe("an update of a port or a component instance", () => {
+    const runUpdate = (toolName: string, input: unknown) => {
+      const { calls, coordinator } = issuedCalls(
+        toolName,
+        input,
+        undefined,
+        netWith(wiredNet).get(),
+      );
+      const execute = vi.fn(async () => ({ applied: true }));
+      const run = calls.run(
+        {
+          toolCallId: "update-1",
+          toolName,
+          input,
+          signal: new AbortController().signal,
+        },
+        execute,
+      );
+      return { coordinator, execute, run };
+    };
+    const forHash = (input: object) => ({
+      editor_id: hashProcessEditorId,
+      ...input,
+    });
+
+    test.each([
+      ["updatePlace", unmarkPort()],
+      ["updateComponentInstance", repoint("m1")],
+      ["petrinaut_update_place", forHash(unmarkPort())],
+      ["petrinaut_update_component_instance", forHash(repoint("m1"))],
+    ])(
+      "%s waits for approval when it would take arcs or fusion memberships",
+      async (toolName, input) => {
+        const { coordinator, execute, run } = runUpdate(toolName, input);
+        await vi.waitFor(() =>
+          expect(coordinator.hasPending("update-1")).toBe(true),
+        );
+        expect(execute).not.toHaveBeenCalled();
+        coordinator.resolve("update-1", "allow");
+
+        await run;
+        expect(execute).toHaveBeenCalledOnce();
+      },
+    );
+
+    test.each([
+      ["updatePlace", unmarkPort({ name: "Inlet" })],
+      ["updateComponentInstance", repoint("m2")],
+      ["petrinaut_update_place", forHash(unmarkPort({ name: "Inlet" }))],
+      ["petrinaut_update_component_instance", forHash(repoint("m2"))],
+    ])(
+      "%s runs without asking when it takes nothing",
+      async (toolName, input) => {
+        const { coordinator, execute, run } = runUpdate(toolName, input);
+        const request = vi.spyOn(coordinator, "request");
+
+        await run;
+        expect(request).not.toHaveBeenCalled();
+        expect(execute).toHaveBeenCalledOnce();
+      },
+    );
+
+    const clearChoice = { instanceId: "m1", update: { implementation: null } };
+    const unmarkInterface = {
+      componentId: "machine",
+      update: { interface: false },
+    };
+
+    // Neither removes what the user built, as clearing the document's default
+    // with `setImplementation` does not.
+    test.each([
+      ["updateComponentInstance", clearChoice],
+      ["petrinaut_update_component_instance", forHash(clearChoice)],
+      ["updateComponent", unmarkInterface],
+      ["petrinaut_update_component", forHash(unmarkInterface)],
+    ])(
+      "%s runs without asking when it clears a choice or an interface flag",
+      async (toolName, input) => {
+        const { coordinator, execute, run } = runUpdate(toolName, input);
+        const request = vi.spyOn(coordinator, "request");
+
+        await run;
+        expect(request).not.toHaveBeenCalled();
+        expect(execute).toHaveBeenCalledOnce();
+      },
+    );
+  });
+
+  test("Stop before approval reports nothing and never runs", async () => {
+    const input = { placeId: "queue" };
+    const { calls, coordinator, posted } = issuedCalls("removePlace", input);
+    const controller = new AbortController();
+    const execute = vi.fn(async () => ({ applied: true }));
+    const run = calls.run(
+      {
+        toolCallId: "remove-1",
+        toolName: "removePlace",
+        input,
+        signal: controller.signal,
+      },
+      execute,
+    );
+    await vi.waitFor(() =>
+      expect(coordinator.hasPending("remove-1")).toBe(true),
+    );
+    controller.abort();
+
+    await run;
+    expect(execute).not.toHaveBeenCalled();
+    expect(posted).toEqual([]);
+  });
+});

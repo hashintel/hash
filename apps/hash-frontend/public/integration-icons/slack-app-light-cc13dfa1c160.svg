@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="slack-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="slack-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="slack-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#slack-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#slack-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#slack-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="slack-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#slack-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 32 32" x="16.0" y="16.0" width="32.0" height="32.0">
+    <path d="M6.72343 20.2224C6.72343 22.0725 5.21205 23.5839 3.3619 23.5839C1.51175 23.5839 0.000366211 22.0725 0.000366211 20.2224C0.000366211 18.3722 1.51175 16.8608 3.3619 16.8608H6.72343V20.2224Z" fill="#E01E5A" />
+    <path d="M8.41809 20.2224C8.41809 18.3722 9.92948 16.8608 11.7796 16.8608C13.6298 16.8608 15.1412 18.3722 15.1412 20.2224V28.6392C15.1412 30.4894 13.6298 32.0008 11.7796 32.0008C9.92948 32.0008 8.41809 30.4894 8.41809 28.6392V20.2224Z" fill="#E01E5A" />
+    <path d="M11.7796 6.72233C9.92948 6.72233 8.41809 5.21095 8.41809 3.3608C8.41809 1.51066 9.92948 -0.000732422 11.7796 -0.000732422C13.6298 -0.000732422 15.1412 1.51066 15.1412 3.3608V6.72233H11.7796Z" fill="#36C5F0" />
+    <path d="M11.7788 8.41577C13.6289 8.41577 15.1403 9.92716 15.1403 11.7773C15.1403 13.6275 13.6289 15.1388 11.7788 15.1388H3.3619C1.51175 15.1388 0.000366211 13.6275 0.000366211 11.7773C0.000366211 9.92716 1.51175 8.41577 3.3619 8.41577H11.7788Z" fill="#36C5F0" />
+    <path d="M25.2772 11.7773C25.2772 9.92716 26.7886 8.41577 28.6388 8.41577C30.4889 8.41577 32.0003 9.92716 32.0003 11.7773C32.0003 13.6275 30.4889 15.1388 28.6388 15.1388H25.2772V11.7773Z" fill="#2EB67D" />
+    <path d="M23.5843 11.7777C23.5843 13.6278 22.0729 15.1392 20.2227 15.1392C18.3726 15.1392 16.8612 13.6278 16.8612 11.7777V3.3608C16.8612 1.51066 18.3726 -0.000732422 20.2227 -0.000732422C22.0729 -0.000732422 23.5843 1.51066 23.5843 3.3608V11.7777Z" fill="#2EB67D" />
+    <path d="M20.2227 25.2773C22.0729 25.2773 23.5843 26.7887 23.5843 28.6389C23.5843 30.489 22.0729 32.0004 20.2227 32.0004C18.3726 32.0004 16.8612 30.489 16.8612 28.6389V25.2773H20.2227Z" fill="#ECB22E" />
+    <path d="M20.2227 23.5839C18.3726 23.5839 16.8612 22.0725 16.8612 20.2224C16.8612 18.3722 18.3726 16.8608 20.2227 16.8608H28.6396C30.4897 16.8608 32.0011 18.3722 32.0011 20.2224C32.0011 22.0725 30.4897 23.5839 28.6396 23.5839H20.2227Z" fill="#ECB22E" />
+  </svg></g></svg>

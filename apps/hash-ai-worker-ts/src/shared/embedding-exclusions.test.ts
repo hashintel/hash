@@ -4,13 +4,11 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 
 import { isEntityExcludedFromEmbeddings } from "./embedding-exclusions.js";
 
-import type { VersionedUrl } from "@blockprotocol/type-system";
-
 describe("isEntityExcludedFromEmbeddings", () => {
   it("excludes Flow Run entities of any version", () => {
     expect(
       isEntityExcludedFromEmbeddings([
-        "https://hash.ai/@h/types/entity-type/flow-run/v/2" as VersionedUrl,
+        "https://hash.ai/@h/types/entity-type/flow-run/v/2",
       ]),
     ).toBe(true);
     expect(

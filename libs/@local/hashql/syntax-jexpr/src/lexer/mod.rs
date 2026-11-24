@@ -130,6 +130,8 @@ impl<'source> Lexer<'source> {
 #[cfg(test)]
 mod test {
     #![expect(clippy::non_ascii_literal)]
+    use core::assert_matches;
+
     use hashql_core::span::SpanTable;
     use hashql_diagnostics::source::SourceId;
     use insta::{assert_snapshot, with_settings};
@@ -445,12 +447,9 @@ mod test {
                 .expect_err("Invalid UTF-8 should produce an error");
 
             // For invalid UTF-8 we expect either InvalidCharacter or InvalidUtf8
-            assert!(
-                matches!(
-                    diagnostic.category,
-                    LexerDiagnosticCategory::InvalidCharacter
-                        | LexerDiagnosticCategory::InvalidUtf8
-                ),
+            assert_matches!(
+                diagnostic.category,
+                LexerDiagnosticCategory::InvalidCharacter | LexerDiagnosticCategory::InvalidUtf8,
                 "Expected InvalidCharacter or InvalidUtf8 error, got {:?}",
                 diagnostic.category
             );

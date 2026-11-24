@@ -4,12 +4,11 @@ import { generateText, Output } from "ai";
 import {
   createVoiceMediationHandler,
   voiceMediationInstructions,
-} from "../../src/server/voice/voice-mediation.js";
-import { stockAssistantModel } from "../../src/shared/stock-assistant-model.js";
-import {
   voiceBriefExtractionSchema,
   voiceWrapUpResponseSchema,
-} from "../../src/shared/voice-mediation.js";
+} from "@hashintel/brunch-agent/server";
+
+import { stockAssistantModel } from "../../src/shared/stock-assistant-model.js";
 
 declare const process: { env: Record<string, string | undefined> };
 

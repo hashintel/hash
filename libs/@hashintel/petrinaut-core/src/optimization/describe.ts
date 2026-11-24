@@ -1,4 +1,4 @@
-import { decodeScenarioParameterValue } from "../simulation/authoring/scenario/scenario-parameter-value";
+import { decodeScenarioParameterValue } from "../scenario/scenario-parameter-value";
 import { deriveRunSeed } from "../simulation/monte-carlo/run-state";
 import { createUserKeyedRecord, getOwn } from "../validation/record-keys";
 

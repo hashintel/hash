@@ -244,10 +244,10 @@ export const styles = sva({
           width: "[calc(var(--width) + 4px)]",
           height: "[calc(var(--height) + 4px)]",
           boxShadow:
-            "[0 1px 2px -1px {colors.black.a15}, 0 1px 1px -1px {colors.black.a10}, inset 0 1px 0 {colors.white.a50}]",
+            "[0 1px 2px -1px rgba(0, 0, 0, 0.075), 0 1px 1px -1px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.3)]",
           _dark: {
             boxShadow:
-              "[0 1px 1px {colors.black.a40}, inset 0 1px 0 {colors.white.a20}]",
+              "[0 1px 1px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)]",
           },
           "&[data-disabled]": {
             boxShadow: "[none]",

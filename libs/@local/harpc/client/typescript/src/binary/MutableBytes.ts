@@ -62,7 +62,7 @@ export const make = (options?: MakeOptions): MutableBytes =>
         options?.initialCapacity ?? DEFAULT_INITIAL_CAPACITY,
       ),
     },
-  ) satisfies MutableBytesImpl as MutableBytes;
+  ) satisfies MutableBytesImpl;
 
 interface FromOptions {
   /**
@@ -87,7 +87,7 @@ export const from = (
       length: buffer.byteLength,
       inner: buffer,
     },
-  ) satisfies MutableBytesImpl as MutableBytes;
+  ) satisfies MutableBytesImpl;
 
 export const capacity = (self: MutableBytes) =>
   (self as MutableBytesImpl).inner.byteLength;

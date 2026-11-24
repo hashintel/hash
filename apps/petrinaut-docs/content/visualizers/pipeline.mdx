@@ -6,6 +6,17 @@ sidebar_order: 2
 
 import { Lanes } from "@diagrams/lanes";
 
+:::note[Status]
+This is a design note, written against revision `8bb19ca803`. Two parts of it
+are built since: visualizer code is type-checked in the editor, and it is
+lowered to a view HIR and interpreted, so it is no longer compiled with
+`@babel/standalone` or run with `new Function`.
+[Compiling user code](doc:core.hir/user-code) describes that code as it is. Three parts are not built: a visualizer is
+still evaluated and rendered on the main thread, it is defined on places
+only, and there is no canvas backend. The "Today" section, the Babel timings
+and the syntax inventory describe the code at that revision.
+:::
+
 A place visualizer is the one piece of user code Petrinaut compiles on the
 main thread with Babel and executes as raw JavaScript, with no type checking,
 no completion and no diagnostics. This page proposes moving it onto the path
@@ -33,7 +44,7 @@ pin box on the canvas (`place-state-tooltip.tsx`), and the notebook cell.
 `PlaceStateVisualization` opts out of the React Compiler (`"use no memo"`)
 because its component is made at run time, and `compileVisualizer` keeps the
 24 most recent compiled sources. The sandbox around evaluation is hardening
-rather than isolation; [Compiling user code](doc:core.simulation.authoring/user-code) sets
+rather than isolation; [Compiling user code](doc:core.hir/user-code) sets
 out what it does and does not stop.
 
 ## The proposal

@@ -12,12 +12,12 @@ Drag the heading or empty space across the top of the settings window to move it
 
 Changes apply immediately and are saved as your preferences across nets. On hosts with app navigation enabled, opening or closing the dialog is part of Browser Back / Forward history. Switching settings sections updates the current history entry. Browser navigation leaves saved preferences in place.
 
-| Section      | Settings                                                             |
-| ------------ | -------------------------------------------------------------------- |
-| **General**  | Animations and panel loading.                                        |
-| **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection. |
-| **Plugins**  | The host's plugins: switch each on or off and see what it adds.      |
-| **Labs**     | Experimental modeling views, code layouts, and developer tools.      |
+| Section      | Settings                                                               |
+| ------------ | ---------------------------------------------------------------------- |
+| **General**  | Animations, the AI assistant, browser FPS, and the document view.      |
+| **Viewport** | Minimap, compact nodes, hover highlight, grid snapping, and selection. |
+| **Plugins**  | The host's plugins: switch each on or off and see what it adds.        |
+| **Labs**     | Experimental modeling views, code layouts, and developer tools.        |
 
 Plugins can add their own settings to **General**, **Viewport** and **Labs**,
 in a group under the plugin's name after the built-in groups.
@@ -32,9 +32,75 @@ Settings titles fade into focus with a small vertical movement as you change sec
 
 Canvas hover rings and the fading of nodes, arcs, and minimap shapes also follow this setting and your system's reduced-motion preference.
 
-### Keep panels mounted
+### AI assistant
 
-When enabled, hidden panels remain loaded in the background. Switching between panels is faster, but uses more memory. When disabled, panels are unmounted when hidden and re-created when opened.
+Shown when several of the host's plugins provide an AI assistant. **Assistant** chooses which one answers in the assistant panel. Whether a switch keeps the other assistant's conversation depends on that assistant. The choice is saved. The arrow beside the assistant icon in the panel's title bar and **Use … as the AI assistant** in the Command Palette change it too. While the chosen assistant's plugin is switched off or stopped, the panel shows the first running assistant in the **Plugins** list.
+
+### Browser FPS
+
+Turn on **Show FPS counter** under **General → Browser FPS**, run **Toggle browser
+FPS** from the Command Palette, or press **⌘⇧F** on Mac or **Ctrl⇧F** on Windows
+and Linux. The small dark counter starts hidden; its visibility is saved across
+nets. Drag its header to move it, or focus the header and use arrow keys. Hold
+**Shift** for larger steps. Closing it stops sampling and resets its position.
+
+The number counts browser animation callbacks per second. The square chart keeps
+24 samples, with the newest on the right. Each sample covers at least 250 ms,
+so the history usually spans about six seconds. Each square represents about
+10 FPS, up to six squares; the number can exceed 60 on faster displays. Columns
+are green from 50 FPS, amber from 30, and red below 30.
+
+A browser stall appears in the next sample. Hidden tabs pause sampling and start
+fresh when shown again. FPS does not measure painted frames or identify which
+part of the page caused a delay. **Plugins → Browser FPS** disables the counter
+and its command and shortcut.
+
+### Document view
+
+Turn on **Show document view** under **General → Document view**. A
+**Document data** tab appears in the bottom panel, after the other tabs. It
+has two sides, and each follows your edits:
+
+- **Document** shows the net as the document holds it, as an outline: each
+  key with its value, and the entries of a map or the items of a list indented
+  under it. An item of a list goes under its place in the list, from 0.
+- **Changes** lists what each edit did to the document, latest first. The list
+  starts empty when the tab appears and keeps the last fifty changes. The
+  switch at its top right picks how the changes show:
+  - **Formatted**, the default, gives each patch two lines that never wrap.
+    The first says what the patch did (`add`, `replace` or `remove`) and
+    where. The second, smaller, is the value it put there. A line across the
+    list separates one change from the next. An undo, a redo or a jump to an
+    entry of **Recent changes** is no patch, and shows as one tinted
+    `restore` row: the entry of the history the document went to, then the
+    document that entry holds.
+  - **Raw** shows each change as the document reported it, as an outline like
+    the document's: its patches, each with its `op`, its `path` as a list and
+    its `value`, and where the change came from. A move through the history
+    also says which entry it restored.
+
+The document, and the changes shown as **Raw**, read the same way:
+
+- Click a line with an arrow to open or close it. A closed list shows its
+  items where they are a few plain values, and else how many it holds. A
+  closed map shows the entries that fit on its line, its name first, a list
+  among them as it would show closed.
+- Text of several lines, such as a transition's code, is closed at first and
+  opens as a block.
+- **Expand all** and **Collapse all**, at the right of the tab bar, open or
+  close every line at once.
+- An item of the document stays open while others are added, removed or moved
+  around it, and a change stays open while newer ones arrive above it.
+- Each side draws at most 2,000 rows, and says so under them when it leaves
+  rows out. Close rows above to reach the ones below.
+
+Each side is one stop of the Tab order. **Up** and **Down** move from line to
+line, or from patch to patch. **Right** opens a closed line and **Left** closes
+an open one, and **Enter** or **Space** does either. Where there is nothing to
+open or close, **Right** and **Left** cross to the other side.
+
+The document shows everything it holds, including the data of extensions that
+are switched off. **Plugins → Document view** removes the tab and the setting.
 
 ## Viewport
 
@@ -42,20 +108,18 @@ When enabled, hidden panels remain loaded in the background. Switching between p
 
 Show or hide the **overview minimap** in the top-right corner of the canvas. The minimap provides a zoomed-out view of the entire net for orientation in large models.
 
-### Petricon
+### Icons
 
-In the **Viewport** section, **Petricon** is on by default and provides Petrinaut's
-custom icons for entities, playback, zoom, and navigation. Saved preferences are preserved. The pack includes the
-sidebar toggle, main menu, pan hand and compact selection arrow, add-place and add-transition
-buttons, settings gears, editing actions, diagnostics, simulation and data views,
-and assistant and voice controls, including icons inside shared menus and forms.
-Checkbox marks and loading indicators keep their default appearance.
-The change applies immediately, and turning it off
-restores the default icons.
+The editor draws one set of icons: the sidebar toggle, main menu, pan hand and
+compact selection arrow, add-place and add-transition buttons, settings gears,
+editing actions, diagnostics, simulation and data views, and assistant and voice
+controls, including icons inside shared menus and forms. Checkbox marks and
+loading indicators keep the design system's appearance. The icons have no
+setting of their own; their motion follows **Animations**.
 
 **Add Place** and **Add Transition** show a plain circle and square. Hover over
 either button to reveal a plus at the bottom-right of its shape; the plus disappears
-when you move away. Selecting either tool fills its icon and plays a short bounce. Turning off **Animations** below keeps the selection feedback and removes
+when you move away. Selecting either tool fills its icon and plays a short bounce. Turning off **Animations** keeps the selection feedback and removes
 the motion. Icons also respect your device's reduced-motion preference.
 The sidebar toggle keeps a thin line near the left edge of its frame when the
 sidebar is collapsed. Hovering makes it thicker and moves it slightly right.
@@ -79,7 +143,7 @@ along their tracks. These movements settle back without changing the control's
 meaning. Controls with a persistent state keep their existing state animation.
 
 **Recent changes** uses a clock with a return arrow. Hovering or opening its menu
-briefly rewinds the hands. The subnet cube turns in depth on hover and makes a
+briefly rewinds the hands. The component cube turns in depth on hover and makes a
 quarter-turn when clicked. The click turn finishes even if you move the pointer
 or keyboard focus away; rear edges stay hidden throughout the turn.
 
@@ -139,22 +203,6 @@ Dragging a node starts the highlight immediately, without waiting for the pointe
 
 Disable it and the pointer changes nothing. Selecting a node still highlights its neighbourhood, so the colours remain available on demand.
 
-### Automatic arc connections
-
-Off by default. Hides the fixed handles on places and transitions. Hover over a node to reveal one outgoing handle, then drag it onto a place or transition to create an arc. Arcs attach to the node outlines and adjust their direction as you move nodes. Opposite directions use separate curves.
-
-This setting uses automatic curves and temporarily hides the **Arc rendering** selector. Turning it off restores your previous style. Existing subnet connections stay visible; turn the setting off to create connections through subnet ports. See [Connecting with arcs](drawing-a-net.md#connecting-with-arcs).
-
-### Arcs rendering
-
-Choose how arcs are drawn between nodes:
-
-| Style               | Description                                                 |
-| ------------------- | ----------------------------------------------------------- |
-| **Square**          | Right-angle paths (smoothstep routing).                     |
-| **Bezier**          | Smooth curved paths.                                        |
-| **Adaptive Bezier** | Curved paths that adjust based on node positions. (Default) |
-
 ### Snap to grid
 
 When enabled, node positions snap to a grid when placing new nodes or dragging existing ones. Helps keep nets tidy and aligned.
@@ -168,25 +216,28 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 
 ## Plugins
 
-Hosts extend Petrinaut with plugins: extra buttons, top-bar items, settings
-and panels. The **Plugins** section lists every plugin the host gave this
+Hosts extend Petrinaut with plugins: extra buttons, top-bar items, tabs in
+the bottom panel, settings and panels. The **Plugins** section lists every plugin the host gave this
 editor, one line each with its name, its author and a switch. Click a line to
 read the plugin's description and what it adds. The header counts the plugins
 and how many of them run.
 
 - The **switch** runs the plugin, or not. Off, it adds nothing: its buttons,
-  items and settings disappear until you switch it back on. Your selection,
+  items, tabs and settings disappear until you switch it back on. Your selection,
   panels and open dialogs stay as they are. A plugin the host needs, such as
   its Save button, has no switch.
+- With a plugin's line focused, **Right** opens its description and tags and
+  **Left** closes them.
 - **Not running** marks a plugin that stopped on an error. Reload the page to
   start it again.
 - The tags under the description list what the plugin declares: the parts of
   the net it can read or change, its buttons and where they sit, its top-bar
-  items and settings, a service it offers other plugins, and whether it shows
-  something inside the editor.
+  items, its tabs in the bottom panel and its settings, a service it offers
+  other plugins, and whether it shows something inside the editor.
 - **Assistant** marks a plugin that provides the AI assistant. The assistant
   panel shows that plugin's content, such as its chat. When several plugins
-  carry the tag, the first running one in this list fills the panel.
+  carry the tag, **General › AI assistant** chooses one, and the first running
+  one in this list fills the panel until you do.
 
 Without plugins the section says so.
 
@@ -199,7 +250,7 @@ preferences are saved.
 
 ### Net Components (experimental)
 
-Enable subnet definitions and component instances for hierarchical nets. This option appears when the net supports subnets. Off by default.
+Shows the tools that build a net from [components](composition.md): the Nets panel, the component tool in the bottom toolbar and, where the application offers libraries, the Components panel. A net that already holds components draws and runs with the setting off. This option appears when the net supports components. Off by default.
 
 ### Compilation output (experimental)
 

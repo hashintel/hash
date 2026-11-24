@@ -39,7 +39,7 @@ export function typedEntries<T extends Record<string, unknown>>(
 export const typedKeys = <T extends Record<string, unknown>>(
   object: T,
 ): Entry<T>[0][] => {
-  return Object.keys(object) as Entry<T>[0][];
+  return Object.keys(object);
 };
 
 /** `Object.values` analogue which returns a well-typed array */

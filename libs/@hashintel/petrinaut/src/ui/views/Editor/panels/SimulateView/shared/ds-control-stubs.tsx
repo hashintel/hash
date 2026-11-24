@@ -14,15 +14,13 @@ export const Tooltip = ({ children }: { children: ReactNode }) => (
   <>{children}</>
 );
 
-export const Popover = Object.assign(
-  ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  {
-    Container: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    Body: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    Header: ({ title }: { title?: ReactNode }) => <div>{title}</div>,
-    Footer: ({ actions }: { actions?: ReactNode }) => <div>{actions}</div>,
-  },
+export const Popover = ({ children }: { children: ReactNode }) => (
+  <div>{children}</div>
 );
+Popover.Container = Popover;
+Popover.Body = Popover;
+Popover.Header = ({ title }: { title?: ReactNode }) => <div>{title}</div>;
+Popover.Footer = ({ actions }: { actions?: ReactNode }) => <div>{actions}</div>;
 
 /**
  * A single select: `onChange` receives the picked value. A null value shows

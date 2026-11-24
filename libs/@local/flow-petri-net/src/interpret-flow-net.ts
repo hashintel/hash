@@ -15,11 +15,11 @@ import type {
 } from "./flow-net-metadata.js";
 import type {
   ArcEndpoint,
+  Component,
   ComponentInstance,
   InputArc,
   JsonValue,
   SDCPN,
-  Subnet,
   Transition,
 } from "@hashintel/petrinaut-core";
 import type {
@@ -262,7 +262,7 @@ type InstanceScope = {
 };
 
 type IndexedSubnet = {
-  subnet: Subnet;
+  subnet: Component;
   transitionsByRole: Map<TransitionRole, Transition>;
   /** The places `startAttempt` takes from: a port per input, or a `Start` port. */
   inputPortIds: string[];
@@ -302,7 +302,7 @@ const singleOutputPlaceId = (transition: Transition) => {
   return endpoint.placeId;
 };
 
-const indexSubnet = (subnet: Subnet): IndexedSubnet => {
+const indexSubnet = (subnet: Component): IndexedSubnet => {
   const transitionsByRole = new Map(
     subnet.transitions.map((transition) => [roleOf(transition), transition]),
   );
@@ -367,7 +367,7 @@ export const startFlowNetRun = (
   }
 
   const subnetsById = new Map(
-    (net.subnets ?? []).map((subnet) => [subnet.id, indexSubnet(subnet)]),
+    (net.components ?? []).map((subnet) => [subnet.id, indexSubnet(subnet)]),
   );
 
   const rootTransitions: RootTransition[] = net.transitions.map(
@@ -411,7 +411,9 @@ export const startFlowNetRun = (
             ({ id }) => id === endpoint.componentInstanceId,
           )
         : undefined;
-    const subnet = instance ? subnetsById.get(instance.subnetId) : undefined;
+    const subnet = instance
+      ? subnetsById.get(instance.component.id)
+      : undefined;
 
     if (!instance || !subnet) {
       throw new FlowNetInterpreterError(
@@ -759,9 +761,50 @@ export const startFlowNetRun = (
     );
   };
 
-  /** A `forEach` step can't start while its array is missing. */
-  const hasMissingArray = (bindings: Binding[]) =>
-    bindings.some(({ token }) => token.kind === "value" && !token.present);
+  /** A step none of whose paths was taken waits (see `paths`), and the executor skips it. */
+  const isOnPathsNotTaken = (
+    metadata: Extract<
+      TransitionMetadata,
+      { role: "startStep" | "startForEach" }
+    >,
+    bindings: Binding[],
+  ) =>
+    (metadata.paths ?? []).length > 0 &&
+    (metadata.paths ?? []).every((endpoint) =>
+      bindings.some(
+        ({ position, token }) =>
+          isAt(position, rootPosition(endpoint)) &&
+          token.kind === "value" &&
+          !token.present,
+      ),
+    );
+
+  /** A `forEach` step can't start while its array is missing; what it reads for `runAfter` isn't its array. */
+  const hasMissingArray = (
+    metadata: Extract<TransitionMetadata, { role: "startForEach" }>,
+    bindings: Binding[],
+  ) =>
+    bindings.some(
+      ({ position, token }) =>
+        token.kind === "value" &&
+        !token.present &&
+        !(metadata.runAfter ?? []).some((endpoint) =>
+          isAt(position, rootPosition(endpoint)),
+        ),
+    );
+
+  /** Whether a held start can fire with `bindings`, which the executor decides the same way. */
+  const canStart = (
+    metadata: Extract<
+      TransitionMetadata,
+      { role: "startStep" | "startForEach" }
+    >,
+    bindings: Binding[],
+  ) =>
+    !isOnPathsNotTaken(metadata, bindings) &&
+    (metadata.role === "startForEach"
+      ? !hasMissingArray(metadata, bindings)
+      : !hasMissingSkipInput(metadata, bindings));
 
   const constantItemCount = (constant: JsonValue | undefined) => {
     if (constant === undefined) {
@@ -803,7 +846,7 @@ export const startFlowNetRun = (
           anchorAccepts: (anchor) =>
             fired?.role !== "startStep" ||
             isSamePath(anchor.itemPath, fired.stepRun.itemPath),
-          guard: (candidate) => !hasMissingSkipInput(metadata, candidate),
+          guard: (candidate) => canStart(metadata, candidate),
         });
 
         if (!bindings) {
@@ -839,7 +882,7 @@ export const startFlowNetRun = (
           anchorAccepts: (anchor) =>
             fired?.role !== "startForEach" ||
             isSamePath(anchor.itemPath, fired.stepRun.itemPath),
-          guard: (candidate) => !hasMissingArray(candidate),
+          guard: (candidate) => canStart(metadata, candidate),
         });
 
         if (!bindings) {
@@ -1321,10 +1364,7 @@ export const startFlowNetRun = (
             scope: null,
             anchorPosition: pendingPosition(stepId),
             anchorAccepts: (anchor) => anchor === pending,
-            guard: (candidate) =>
-              transitionMetadata.role === "startForEach"
-                ? !hasMissingArray(candidate)
-                : !hasMissingSkipInput(transitionMetadata, candidate),
+            guard: (candidate) => canStart(transitionMetadata, candidate),
           }) !== null,
       )
       .map(({ itemPath }) => ({ role, stepRun: { stepId, itemPath } }));

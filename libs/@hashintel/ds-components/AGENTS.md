@@ -51,7 +51,11 @@ import { preset } from "./src/preset";
 export default defineConfig({
   importMap: "@hashintel/ds-helpers",
   outdir: "../ds-helpers/styled-system",
-  include: ["./src/components/**/*.{ts,tsx}"],
+  include: [
+    "./src/components/**/*.{ts,tsx}",
+    "./src/primitives/**/*.{ts,tsx}",
+    "./src/util/**/*.{ts,tsx}",
+  ],
   jsxFramework: "react",
   outExtension: "mjs",
   preflight: false,
@@ -67,6 +71,8 @@ Key points:
 - `src/preset.ts` is the local source of truth for the preset.
 - publish codegen writes to `../ds-helpers/styled-system`
 - `panda.local.config.ts` also writes to `../ds-helpers/styled-system`; it only broadens the scanned demo/story globs.
+- `build:buildinfo` ships everything `panda.config.ts` extracts to consumers, so it excludes story and test files. `panda.local.config.ts` clears that exclusion for Storybook, and `panda.docs.config.ts` adds the stories to the docs build info, standing in for the `css()` calls in the `.mdx` pages that Panda can't read.
+- `jsxStyleProps: "minimal"`: under Panda's default `"all"`, any prop named like a CSS property on any capitalised JSX tag is read as a style (`<Tooltip position="right">` shipped `position: right`). Codegen follows the setting, so the `@hashintel/ds-helpers/jsx` components take styles through `css` and their pattern props only (`<VStack gap="2" css={{ alignItems: "center" }}>`).
 - `panda.local.config.ts` exists separately for local demo surfaces such as Storybook
 
 ### Token Naming Patterns (Strict Mode)
@@ -102,14 +108,20 @@ import { token, type Token } from "@hashintel/ds-helpers/tokens";
 
 ## Color Token Naming
 
-### Static Colors
+### Black & White (mode-relative poles)
 
-Opaque base colors with alpha scales (steps of 5):
+Base colors with alpha scales (steps of 5). These invert in dark mode
+(`white` → `#000000`, `black` → `#ffffff`, alpha scales likewise), mirroring
+the neutral scale's `s00`/`a125` endpoints — `white` means "the surface pole",
+`black` "the ink pole":
 
 ```
 black, black.a00–a125
 white, white.a00–a125
 ```
+
+Truly static shadows and scrims must use literal rgba values instead of these
+tokens.
 
 ### Palettes
 

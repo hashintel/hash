@@ -3,11 +3,12 @@
  * @role Serialises a selection and pastes it back, resolving name collisions
  */
 
-import { getArcEndpointPlaceId } from "../arc-endpoints";
-import { generatePetrinautId } from "../petrinaut-id";
+import { getArcEndpointPlaceId } from "../document/arc-endpoints";
+import { generatePetrinautId } from "../document/petrinaut-id";
+import { remapPlaceDynamics } from "../document/place-dynamics";
 import { deduplicateName } from "./deduplicate-name";
 
-import type { SDCPN, Subnet } from "../types/sdcpn";
+import type { Component, SDCPN } from "../types/sdcpn";
 import type { ClipboardPayload } from "./types";
 
 /** Offset pasted nodes so they don't overlap originals */
@@ -20,7 +21,7 @@ const PASTE_OFFSET = 50;
  * Returns the IDs of the newly created items so they can be selected.
  */
 export function pastePayloadIntoSDCPN(
-  sdcpn: SDCPN | Subnet,
+  sdcpn: SDCPN | Component,
   payload: ClipboardPayload,
 ): { newItemIds: Array<{ type: string; id: string }> } {
   const { data } = payload;
@@ -129,11 +130,10 @@ export function pastePayloadIntoSDCPN(
         place.colorId !== null
           ? (idMap.get(place.colorId) ?? place.colorId)
           : null,
-      differentialEquationId:
-        place.differentialEquationId !== null
-          ? (idMap.get(place.differentialEquationId) ??
-            place.differentialEquationId)
-          : null,
+      ...remapPlaceDynamics(
+        place,
+        (equationId) => idMap.get(equationId) ?? equationId,
+      ),
     });
     newItemIds.push({ type: "place", id: newId });
   }

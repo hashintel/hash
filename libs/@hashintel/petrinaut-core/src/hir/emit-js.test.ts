@@ -10,7 +10,7 @@ import { emitUserFunctionJs } from "./emit-js";
 import { hirDistributionRuntime } from "./instantiate";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 
-import type { RuntimeDistribution } from "../simulation/authoring/user-code/distribution";
+import type { RuntimeDistribution } from "../simulation/engine/distribution";
 
 type UserFunction = (tokens: unknown, parameters?: unknown) => unknown;
 

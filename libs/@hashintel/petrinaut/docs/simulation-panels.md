@@ -6,7 +6,7 @@ Experiment creation, experiment results, and scenario creation and editing open 
 
 Click an experiment or scenario once to open its panel. The selected row has a shaded background and a dark left edge. With focus in the list, press **Up** or **Down** to select and open the previous or next row. Focus stays in the list so you can keep browsing with the keyboard.
 
-Drag the divider between the list and the panel to adjust their widths. The panel keeps your chosen width when you return from fullscreen. If the window or docked assistant leaves less room, the panel fits the available space while keeping part of the list visible.
+Drag the divider between the list and the panel to adjust their widths. With the keyboard, press **Tab** until the divider is highlighted, then **Left** or **Right** to move it; **Home** makes the panel as wide as it can be and **End** as narrow. The panel keeps your chosen width when you return from fullscreen. If the window or docked assistant leaves less room, the panel fits the available space while keeping part of the list visible.
 
 ## Expand and return
 

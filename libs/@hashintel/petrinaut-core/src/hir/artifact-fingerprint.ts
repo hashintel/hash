@@ -1,4 +1,4 @@
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { SDCPN } from "../types/sdcpn";
 
 function stableJson(value: unknown): string {

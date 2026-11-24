@@ -15,12 +15,12 @@ import {
   createPetrinaut,
 } from "@hashintel/petrinaut-core";
 
-import { CommandRegistryProvider } from "../../react/commands/command-registry";
+import { CommandRegistryProvider } from "../../react/commands/command-registry-provider";
+import { useReadOnlyFeedback } from "../../react/editing/use-read-only-feedback";
 import {
   type ErrorTracker,
   ErrorTrackerContext,
-} from "../../react/error-tracker-context";
-import { useReadOnlyFeedback } from "../../react/hooks/use-read-only-feedback";
+} from "../../react/host/error-tracker-context";
 import { UserSettingsContext } from "../../react/state/user-settings-context";
 import {
   definePetrinautPlugin,
@@ -29,12 +29,12 @@ import {
   type PluginHook,
 } from "./define-petrinaut-plugin";
 import { PluginRoots, PluginToolbarItems } from "./plugin-outlets";
+import { renderPlugins } from "./plugins-test-harness";
 import {
   usePluginService,
   usePluginStatuses,
   useRunningPlugins,
-} from "./plugins-provider";
-import { renderPlugins } from "./plugins-test-harness";
+} from "./running-plugins";
 
 let mounts = 0;
 const nextMount = () => {
@@ -698,28 +698,13 @@ describe("PetrinautPluginsProvider", () => {
     });
     expect(commandRuns).toEqual(["toggle 0", "toggle 1", "clear"]);
 
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    expect(commandRuns).toEqual(["toggle 0", "toggle 1", "clear", "toggle 2"]);
+
     act(() => screen.getByRole("button", { name: "switch off" }).click());
     expect(registered()).toEqual([]);
-  });
-
-  it("skips a button's command while `when` withholds it", () => {
-    const runs = vi.fn();
-    const clicks = vi.fn();
-    const plugin = definePetrinautPlugin({
-      id: "test.withheld",
-      name: "Withheld",
-      commands: { act: { label: "Act" } },
-      buttons: { act: { label: "Act", place: "top-bar-end" } },
-    })({
-      commands: { act: { run: runs, when: false } },
-      buttons: { act: { icon: null, onClick: clicks, command: "act" } },
-    });
-
-    renderPlugins([plugin], <TopBarEnd />);
-    act(() => screen.getByRole("button", { name: "Act" }).click());
-
-    expect(clicks).toHaveBeenCalledOnce();
-    expect(runs).not.toHaveBeenCalled();
+    expect(fireEvent.keyDown(window, { key: "k", metaKey: true })).toBe(true);
+    expect(commandRuns).toHaveLength(4);
   });
 
   it("puts the first running plugin's read-only action on the notice of a blocked edit, and runs it", async () => {

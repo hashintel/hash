@@ -1,4 +1,4 @@
-import { GRID_SIZE } from "../grid-size";
+import { GRID_SIZE } from "../document/grid-size";
 
 import type { SDCPN } from "../types/sdcpn";
 
@@ -37,91 +37,78 @@ export const probabilisticSatellitesSDCPN: {
           "Satellites in orbit. The orbit dynamics integrate each one's position and velocity under the planet's gravity, and a custom visualizer draws them around the planet.",
         colorId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         dynamicsEnabled: true,
-        differentialEquationId: "1a2b3c4d-5e6f-7890-abcd-1234567890ab",
-        visualizerCode: `export default Visualization(({ tokens, parameters }) => {
-  const { satellite_radius, planet_radius } = parameters;
+        dynamics: [
+          { differentialEquationId: "1a2b3c4d-5e6f-7890-abcd-1234567890ab" },
+        ],
+        visualizerCode: `const { satellite_radius, planet_radius } = parameters;
 
-  const width = 800;
-  const height = 600;
+return (
+  <Visualizer.Svg
+    viewBox="-400 -300 800 600"
+    navigation="pan-zoom"
+    backgroundColor="#000014"
+  >
+    {/* Planet at center */}
+    <circle
+      cx={0}
+      cy={0}
+      r={planet_radius}
+      fill="#2196f3"
+      stroke="#1976d2"
+      strokeWidth="2"
+    />
 
-  const centerX = width / 2;
-  const centerY = height / 2;
-
-  return (
-    <svg
-      viewBox={\`0 0 \${width} \${height}\`}
-      style={{ borderRadius: "4px", width: "100%" }}
-    >
-      {/* Background */}
-      <rect width={width} height={height} fill="#000014" />
-
-      {/* Planet at center */}
-      <circle
-        cx={centerX}
-        cy={centerY}
-        r={planet_radius}
-        fill="#2196f3"
-        stroke="#1976d2"
-        strokeWidth="2"
-      />
-
-      {/* Satellites */}
-      {tokens.map(({ x, y, direction, velocity }, index) => {
-        // Convert satellite coordinates to screen coordinates
-        // Assuming satellite coordinates are relative to planet center
-        const screenX = centerX + x;
-        const screenY = centerY + y;
-
-        return (
-          <g key={index}>
-            {/* Satellite */}
-            <circle
-              cx={screenX}
-              cy={screenY}
-              r={satellite_radius}
-              fill="#ff5722"
-              stroke="#d84315"
-              strokeWidth="1"
-            />
-
-            {/* Velocity vector indicator */}
-            {velocity > 0 && (
-              <line
-                x1={screenX}
-                y1={screenY}
-                x2={screenX + Math.cos(direction) * Math.log(velocity) * 10}
-                y2={screenY + Math.sin(direction) * Math.log(velocity) * 10}
-                stroke="#ffc107"
-                strokeWidth="2"
-                markerEnd="url(#arrowhead)"
-              />
-            )}
-          </g>
-        );
-      })}
-
-      {/* Arrow marker for velocity vectors */}
-      <defs>
-        <marker
-          id="arrowhead"
-          markerWidth="8"
-          markerHeight="8"
-          refX="7"
-          refY="4"
-          orient="auto"
-          markerUnits="strokeWidth"
-        >
-          <polygon
-            points="0 0, 8 4, 0 8"
-            fill="#ffc107"
-            stroke="#f57f17"
-            strokeWidth="0.5"
+    {/* Satellites */}
+    {tokens.map(({ x, y, direction, velocity }, index) => {
+      return (
+        <g key={index}>
+          {/* Satellite */}
+          <circle
+            cx={x}
+            cy={y}
+            r={satellite_radius}
+            fill="#ff5722"
+            stroke="#d84315"
+            strokeWidth="1"
           />
-        </marker>
-      </defs>
-    </svg>
-  );
-});`,
+
+          {/* Velocity vector indicator */}
+          {velocity > 0 && (
+            <line
+              x1={x}
+              y1={y}
+              x2={x + Math.cos(direction) * Math.log(velocity) * 10}
+              y2={y + Math.sin(direction) * Math.log(velocity) * 10}
+              stroke="#ffc107"
+              strokeWidth="2"
+              markerEnd="url(#arrowhead)"
+            />
+          )}
+        </g>
+      );
+    })}
+
+    {/* Arrow marker for velocity vectors */}
+    <defs>
+      <marker
+        id="arrowhead"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"
+        markerUnits="strokeWidth"
+      >
+        <polygon
+          points="0 0, 8 4, 0 8"
+          fill="#ffc107"
+          stroke="#f57f17"
+          strokeWidth="0.5"
+        />
+      </marker>
+    </defs>
+  </Visualizer.Svg>
+);`,
         x: 1 * GRID_SIZE,
         y: 6 * GRID_SIZE,
       },
@@ -132,7 +119,6 @@ export const probabilisticSatellitesSDCPN: {
           "Defunct objects left by collisions and crashes, frozen at the point of impact with zero velocity.",
         colorId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 36 * GRID_SIZE,
         y: 6 * GRID_SIZE,
       },
@@ -305,27 +291,24 @@ return {
         id: "1a2b3c4d-5e6f-7890-abcd-1234567890ab",
         colorId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         name: "Satellite Orbit Dynamics",
-        code: `// Example of ODE for Satellite in orbit (simplified)
+        arity: 1,
+        code: `// Example of ODE for one satellite in orbit (simplified)
 const mu = parameters.gravitational_constant; // Gravitational parameter
 
-// Process each token (satellite)
-return tokens.map(({ x, y, direction, velocity }) => {
-  const r = Math.hypot(x, y); // Distance to planet center
+const { x, y, direction, velocity } = token;
+const r = Math.hypot(x, y); // Distance to planet center
 
-  // Gravitational acceleration vector (points toward origin)
-  const ax = (-mu * x) / (r * r * r);
-  const ay = (-mu * y) / (r * r * r);
+// Gravitational acceleration vector (points toward origin)
+const ax = (-mu * x) / (r * r * r);
+const ay = (-mu * y) / (r * r * r);
 
-  // Return derivatives for this token
-  return {
-    x: velocity * Math.cos(direction),
-    y: velocity * Math.sin(direction),
-    direction:
-      (-ax * Math.sin(direction) + ay * Math.cos(direction)) / velocity,
-    velocity:
-      ax * Math.cos(direction) + ay * Math.sin(direction),
-  }
-})`,
+// Return the derivatives of this satellite
+return {
+  x: velocity * Math.cos(direction),
+  y: velocity * Math.sin(direction),
+  direction: (-ax * Math.sin(direction) + ay * Math.cos(direction)) / velocity,
+  velocity: ax * Math.cos(direction) + ay * Math.sin(direction),
+};`,
       },
     ],
     parameters: [

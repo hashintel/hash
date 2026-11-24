@@ -26,10 +26,13 @@ import type {
 } from "@flue/sdk";
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
-/** The user turn a submission admits, identified by its AI SDK message. */
+/**
+ * The turn a submission admits, identified by its AI SDK message: the user's
+ * words, or a signal the host delivers in their place.
+ */
 export interface SubmittedUserMessage {
   readonly messageId: string;
-  readonly body: string;
+  readonly message: DeliveredMessage;
 }
 
 interface FlueChatResponseMessageEvent {
@@ -80,7 +83,7 @@ export interface FlueChatTransportOptions {
   readonly liveToolStream?: LiveToolStreamOptions;
   readonly onAdmission?: (event: {
     readonly admission: AgentSendResult;
-    readonly kind: "user";
+    readonly kind: DeliveredMessage["kind"];
     readonly messageId: string;
   }) => void;
   readonly onResponseMessage?: (
@@ -108,7 +111,11 @@ export interface FlueChatTransportOptions {
 }
 
 export type FlueChatAdmissionFailure =
-  | { readonly kind: "aborted" }
+  | {
+      readonly kind: "aborted";
+      /** False only when the signal was aborted before the request was made. */
+      readonly requestSent: boolean;
+    }
   | { readonly kind: "ambiguous" }
   | { readonly kind: "rejected"; readonly status: number }
   | {
@@ -116,6 +123,27 @@ export type FlueChatAdmissionFailure =
       readonly status: 409;
       readonly submissionId: AgentSendResult["submissionId"];
     };
+
+/**
+ * Whether the agent admitted a message whose send failed: `not-admitted` only
+ * when the failure proves it never arrived, and `admitted` when the delivery
+ * key already names an admitted submission. A retry of the same message must
+ * resend its original payload, so a conflict on retry is that message.
+ */
+export const admissionOutcome = (
+  failure: FlueChatAdmissionFailure,
+): "not-admitted" | "maybe-admitted" | "admitted" => {
+  switch (failure.kind) {
+    case "rejected":
+      return "not-admitted";
+    case "aborted":
+      return failure.requestSent ? "maybe-admitted" : "not-admitted";
+    case "ambiguous":
+      return "maybe-admitted";
+    case "submission-conflict":
+      return "admitted";
+  }
+};
 
 const admissionFailureMessage = (failure: FlueChatAdmissionFailure): string => {
   switch (failure.kind) {
@@ -184,7 +212,7 @@ export const finalUserMessage = (
   if (message === undefined || body.length === 0) {
     throw new Error("The submitted user message has no text.");
   }
-  return { messageId: message.id, body };
+  return { messageId: message.id, message: { kind: "user", body } };
 };
 
 const isAbortError = (error: unknown): boolean =>
@@ -202,8 +230,14 @@ const conflictingSubmissionId = (error: FlueApiError): string | null => {
     : null;
 };
 
+/**
+ * Statuses that always mean the message was refused before admission. 413
+ * and 429 come from limits that answer before the request reaches the
+ * agent, a host's or a proxy's alike, so neither can follow an admitted turn.
+ * A 5xx stays ambiguous: a proxy may answer one after the agent admitted it.
+ */
 const documentedPreAdmissionStatuses = new Set([
-  400, 401, 403, 404, 405, 409, 415,
+  400, 401, 403, 404, 405, 409, 413, 415, 429,
 ]);
 
 const admissionError = (
@@ -211,7 +245,10 @@ const admissionError = (
   signal: AbortSignal | undefined,
 ): FlueChatAdmissionError => {
   if (signal?.aborted || isAbortError(error)) {
-    return new FlueChatAdmissionError({ kind: "aborted" }, { cause: error });
+    return new FlueChatAdmissionError(
+      { kind: "aborted", requestSent: true },
+      { cause: error },
+    );
   }
   if (error instanceof FlueApiError) {
     const existingSubmissionId = conflictingSubmissionId(error);
@@ -496,15 +533,20 @@ export const createFlueChatTransport = (
       throw new Error("Regenerating a Flue conversation is not supported.");
     }
 
-    const userMessage = (options.submittedUserMessage ?? finalUserMessage)(
-      messages,
-    );
-    const message: DeliveredMessage = { kind: "user", body: userMessage.body };
-    const idempotencyKey = `ai-sdk:user:${userMessage.messageId}`;
+    const { messageId, message } = (
+      options.submittedUserMessage ?? finalUserMessage
+    )(messages);
+    const idempotencyKey = `ai-sdk:${message.kind}:${messageId}`;
     if (Array.from(idempotencyKey).length > 256) {
       throw new Error("The submitted message identity is too long.");
     }
 
+    if (abortSignal?.aborted) {
+      throw new FlueChatAdmissionError(
+        { kind: "aborted", requestSent: false },
+        { cause: abortSignal.reason },
+      );
+    }
     let admission: AgentSendResult;
     try {
       admission = await options.client.send({
@@ -518,8 +560,8 @@ export const createFlueChatTransport = (
     }
     notifyObserver(options.onAdmission, {
       admission,
-      kind: "user",
-      messageId: userMessage.messageId,
+      kind: message.kind,
+      messageId,
     });
     return streamSubmission(options, admission, abortSignal);
   },

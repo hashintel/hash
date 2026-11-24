@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
+  defineSimulator,
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
@@ -16,6 +17,7 @@ import {
   buildSweepAxes,
   compileExperimentScenario,
   createExperimentRequestBuilder,
+  experimentSimulatorBackends,
   newExperimentRecord,
 } from "./create-experiment";
 
@@ -26,6 +28,7 @@ import type {
   Constraint,
   Scenario,
   SDCPN,
+  SimulatorRegistration,
 } from "@hashintel/petrinaut-core";
 
 const span = { start: 0, length: 0 };
@@ -119,6 +122,55 @@ describe("assertExperimentInput", () => {
   });
 });
 
+describe("buildSweepAxes", () => {
+  const realAndInteger = {
+    id: "scenario",
+    name: "Scenario",
+    scenarioParameters: [
+      { type: "real" as const, identifier: "beta", default: 0.5 },
+      { type: "integer" as const, identifier: "count", default: 10 },
+    ],
+    parameterOverrides: {},
+    initialState: { type: "per_place" as const, content: {} },
+  };
+
+  it("splits fixed values from sweep axes", () => {
+    const { fixedValues, axes } = buildSweepAxes(realAndInteger, {
+      beta: { mode: "range", min: 0, max: 1 },
+      count: { mode: "fixed", value: "12" },
+    });
+
+    expect(fixedValues).toEqual({ count: "12" });
+    expect(axes).toEqual([
+      { identifier: "beta", min: 0, max: 1, stepCount: 50, integer: false },
+    ]);
+  });
+
+  it("gives integer parameters one step per integer on narrow intervals", () => {
+    const { axes } = buildSweepAxes(realAndInteger, {
+      count: { mode: "range", min: 0, max: 20 },
+    });
+    expect(axes).toEqual([
+      { identifier: "count", min: 0, max: 20, stepCount: 20, integer: true },
+    ]);
+  });
+
+  it("rejects an invalid range with the parameter named", () => {
+    expect(() =>
+      buildSweepAxes(realAndInteger, {
+        beta: { mode: "range", min: 1, max: 0 },
+      }),
+    ).toThrow("beta");
+  });
+
+  it("ignores inputs for parameters the scenario does not declare", () => {
+    const { axes } = buildSweepAxes(realAndInteger, {
+      ghost: { mode: "range", min: 0, max: 1 },
+    });
+    expect(axes).toEqual([]);
+  });
+});
+
 /** A one-place net for the ad-hoc definitions below. */
 const queueSdcpn: SDCPN = {
   places: [
@@ -127,7 +179,6 @@ const queueSdcpn: SDCPN = {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -225,6 +276,31 @@ describe("compileExperimentScenario", () => {
     expect(compiled.axes).toEqual([]);
   });
 
+  it("sweeps each selection as a generated parameter with the value's label", async () => {
+    const compiled = await compileAdHoc(true);
+    expect(compiled.axes).toEqual([
+      {
+        identifier: "adhoc_count_Queue",
+        label: "Queue › count",
+        min: 2,
+        max: 8,
+        stepCount: 6,
+        integer: true,
+      },
+    ]);
+    expect(
+      compiled.sweptCompiler?.compileForValues({ adhoc_count_Queue: 5 }).result
+        .initialState["place-queue"],
+    ).toBe(5);
+  });
+
+  it("runs the definition at its fixed values when sweeps are off", async () => {
+    const compiled = await compileAdHoc(false);
+    expect(compiled.axes).toEqual([]);
+    expect(compiled.sweptCompiler).toBeNull();
+    expect(compiled.initialMarking["place-queue"]).toBe(4);
+  });
+
   it("surfaces no values for an experiment without a scenario", async () => {
     const compiled = await compileExperimentScenario({
       input: { ...input, scenarioId: null },
@@ -243,6 +319,7 @@ describe("newExperimentRecord", () => {
   it("copies the constraints, the policy and the scenario values onto the record", () => {
     const record = newExperimentRecord({
       id: "experiment",
+      clock: "time",
       input: {
         ...input,
         constraints: [parameterConstraint, stateConstraint],
@@ -266,6 +343,7 @@ describe("newExperimentRecord", () => {
   it("records no constraints and no policy when the input carries none", () => {
     const record = newExperimentRecord({
       id: "experiment",
+      clock: "time",
       input,
       scenarioName: null,
       axes: [],
@@ -277,6 +355,22 @@ describe("newExperimentRecord", () => {
     expect(record.constraints).toEqual([]);
     expect(record.constraintPolicy).toBeNull();
     expect(record.scenarioParameterValues).toEqual({});
+  });
+
+  it("records the clock, and ends a run in steps at the first step at or past its end", () => {
+    const recordOn = (clock: "time" | "steps") =>
+      newExperimentRecord({
+        id: "experiment",
+        clock,
+        input: { ...input, maxTime: 9.5 },
+        scenarioName: null,
+        axes: [],
+        fixedScenarioValues: {},
+        scenario: null,
+      });
+
+    expect(recordOn("time")).toMatchObject({ clock: "time", maxTime: 9.5 });
+    expect(recordOn("steps")).toMatchObject({ clock: "steps", maxTime: 10 });
   });
 });
 
@@ -332,6 +426,7 @@ describe("createExperimentRequestBuilder", () => {
         artifact: {
           source: expect.any(String) as string,
           placeNames: ["Infected"],
+          shape: "discrete",
         },
         sampleRuns: "notErrored",
         runOutput: { type: "distribution" },
@@ -340,6 +435,7 @@ describe("createExperimentRequestBuilder", () => {
     ]);
     const record = newExperimentRecord({
       id: "experiment",
+      clock: "time",
       input: constrainedInput,
       scenarioName: null,
       axes: [],
@@ -378,6 +474,147 @@ describe("createExperimentRequestBuilder", () => {
             'The GPU backend does not aggregate metrics over time yet; metric "Infected under 900" uses a time aggregation.',
         },
       ],
+    });
+  });
+});
+
+describe("experimentSimulatorBackends", () => {
+  it("keeps the parameters the default Stochastic selection holds, and steps at the experiment's dt", async () => {
+    const assessed = vi.fn();
+    const registration = defineSimulator(
+      {
+        id: "test.stepped",
+        label: "Stepped",
+        description: "For tests.",
+        parameters: {
+          dt: {
+            type: "number",
+            label: "Time step",
+            default: 0.1,
+            min: 0,
+            exclusiveMin: true,
+          },
+          method: {
+            type: "enum",
+            label: "Method",
+            options: [
+              { value: "euler", label: "Euler" },
+              { value: "rk4", label: "Runge-Kutta 4" },
+            ],
+            default: "rk4",
+          },
+        },
+        produces: { run: false, experiment: true },
+        samplePeriodParameter: "dt",
+      },
+      {
+        isAvailable: () => true,
+        load: () =>
+          Promise.resolve({
+            needsHirTrees: false,
+            assess: (request) => {
+              assessed(request.simulatorParameters);
+              return Promise.resolve({
+                eligible: false,
+                blockers: [
+                  { code: "test", message: "Refused", origin: "model" },
+                ],
+              });
+            },
+          }),
+      },
+    ) as SimulatorRegistration;
+
+    const { registrations, samplePeriod } = experimentSimulatorBackends(
+      {
+        registrations: [registration],
+        defaultSelections: {
+          quick: { simulatorId: registration.id },
+          stochastic: {
+            simulatorId: registration.id,
+            parameters: { dt: 0.5, method: "euler" },
+          },
+        },
+      },
+      { dt: 0.2 },
+      "time",
+    );
+    expect(samplePeriod).toBe(0.2);
+
+    const backend = await registrations[0]!.load();
+    await backend.assess({
+      sdcpn: queueSdcpn,
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: samplePeriod,
+      maxTime: 1,
+      runCount: 1,
+      metricSpecs: [],
+    });
+    expect(assessed).toHaveBeenCalledWith({ dt: 0.2, method: "euler" });
+  });
+
+  describe("with a simulator that is not the default", () => {
+    const stepped = (id: string) =>
+      defineSimulator(
+        {
+          id,
+          label: id,
+          description: "For tests.",
+          parameters: {
+            dt: {
+              type: "number",
+              label: "Time step",
+              default: 0.1,
+              min: 0,
+              exclusiveMin: true,
+            },
+          },
+          produces: { run: false, experiment: true },
+          samplePeriodParameter: "dt",
+        },
+        {
+          isAvailable: () => true,
+          load: () => Promise.reject(new Error("never loaded")),
+        },
+      ) as SimulatorRegistration;
+    const simulators = {
+      registrations: [stepped("test.picked"), stepped("test.default")],
+      defaultSelections: {
+        quick: { simulatorId: "test.default" },
+        stochastic: { simulatorId: "test.default", parameters: { dt: 0.5 } },
+      },
+    };
+    const picked = {
+      simulator: { simulatorId: "test.picked", parameters: { dt: 0.25 } },
+      dt: 2,
+    };
+
+    it("samples at its time step, and follows it with the default one", () => {
+      const { registrations, samplePeriod } = experimentSimulatorBackends(
+        simulators,
+        picked,
+        "time",
+      );
+      expect(samplePeriod).toBe(0.25);
+      expect(registrations.map(({ id }) => id)).toEqual([
+        "test.picked",
+        "test.default",
+      ]);
+    });
+
+    it("samples every step on a clock of steps, and still follows it with the default one", () => {
+      const { registrations, samplePeriod } = experimentSimulatorBackends(
+        simulators,
+        picked,
+        "steps",
+      );
+      expect(samplePeriod).toBe(1);
+      expect(registrations.map(({ id }) => id)).toEqual([
+        "test.picked",
+        "test.default",
+      ]);
     });
   });
 });

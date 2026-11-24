@@ -3,10 +3,16 @@ import { promisify } from "node:util";
 
 import KeyvRedis from "@keyv/redis";
 import * as Sentry from "@sentry/node";
-import bodyParser from "body-parser";
 import cors from "cors";
-import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
-import { RuntimeException } from "effect/Cause";
+import {
+  Cause,
+  Effect,
+  Exit,
+  Layer,
+  Logger,
+  ManagedRuntime,
+  References,
+} from "effect";
 import express, { raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
 import { ipKeyGenerator, rateLimit } from "express-rate-limit";
@@ -27,7 +33,6 @@ import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import {
   getRequiredEnv,
-  realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { HEALTH_PATH } from "@local/hash-backend-utils/opentelemetry";
@@ -44,10 +49,6 @@ import {
 } from "@local/hash-isomorphic-utils/http-requests";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 
-import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs";
-import { gptQueryEntities } from "./ai/gpt/gpt-query-entities";
-import { gptQueryTypes } from "./ai/gpt/gpt-query-types";
-import { upsertGptOauthClient } from "./ai/gpt/upsert-gpt-oauth-client";
 import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket";
 import { setupAnalysisHandler } from "./analysis/setup-analysis-handler";
 import { setupAtlasProxy } from "./atlas-proxy";
@@ -71,13 +72,10 @@ import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-i
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { otelSetup } from "./instrument.mjs";
-import { enabledIntegrations } from "./integrations/enabled-integrations";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
 import { googleOAuthCallback } from "./integrations/google/oauth-callback";
-import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
-import { linearWebhook } from "./integrations/linear/webhook";
-import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
+import { clientIpFromHeader } from "./lib/client-ip";
 import {
   CORS_CONFIG,
   getEnvStorageType,
@@ -85,12 +83,13 @@ import {
   LOCAL_FILE_UPLOAD_PATH,
 } from "./lib/config";
 import {
+  clientIpSource,
   isDevEnv,
-  isProdEnv,
   isStatsDEnabled,
   isTestEnv,
   port,
 } from "./lib/env-config";
+import { isRequestAbortedError } from "./lib/is-request-aborted-error";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
@@ -229,23 +228,6 @@ const userIdentifierRateLimiter = rateLimit({
   skip: (req) => typeof req.body?.identifier !== "string",
 });
 
-/**
- * A rate limiter for the GPT endpoints. These are OAuth-protected but
- * should still be limited to prevent abuse by a compromised or misbehaving client.
- */
-const gptRateLimiter = rateLimit({
-  windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 60, // 1 minute
-  limit: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => {
-    if (req.user) {
-      return getActorIdFromRequest(req);
-    }
-    return ipKeyGenerator(req.ip!);
-  },
-});
-
 const hydraProxy = hydraPublicUrl
   ? createProxyMiddleware<Request, Response>({
       target: hydraPublicUrl,
@@ -356,16 +338,6 @@ const kratosProxy = guardKratosProxy({
   }),
 });
 
-/**
- * Whether `error` is the one `raw-body` raises when the client closes the
- * connection before the request body has arrived.
- */
-const isRequestAbortedError = (error: unknown): boolean =>
-  typeof error === "object" &&
-  error !== null &&
-  "type" in error &&
-  error.type === "request.aborted";
-
 const main = async () => {
   logger.info("Type System initialized");
 
@@ -408,15 +380,19 @@ const main = async () => {
     res.type("application/health+json").status(200).send({ status: "pass" });
   });
 
-  if (isProdEnv && !isSelfHostedInstance) {
+  if (clientIpSource !== "connect-info") {
     /**
-     * In production, hosted HASH, take the client IP from the Cloudflare-set header.
+     * When the header holds no usable address, falls back to the connection
+     * address, which is what Express reads without this override.
      */
     Object.defineProperty(app.request, "ip", {
       configurable: true,
       enumerable: true,
-      get() {
-        return this.get("cf-connecting-ip");
+      get(this: Request) {
+        return (
+          clientIpFromHeader(this.get(clientIpSource)) ??
+          this.socket.remoteAddress
+        );
       },
     });
   }
@@ -606,7 +582,7 @@ const main = async () => {
 
   app.use(express.static("public"));
 
-  const jsonParser = bodyParser.json({
+  const jsonParser = express.json({
     // default is 100kb
     limit: "16mb",
   });
@@ -620,7 +596,7 @@ const main = async () => {
    */
 
   /**
-   * Proxy to Ory Hydra's OAuth2 authorization and token endpoints, for OAuth2 clients (e.g. HashGPT)
+   * Proxy to Ory Hydra's OAuth2 authorization and token endpoints, for OAuth2 clients
    */
   if (hydraProxy) {
     app.use("/oauth2/auth", authRouteRateLimiter, hydraProxy);
@@ -689,16 +665,14 @@ const main = async () => {
    * if the middleware comes earlier.
    */
   app.use((req, _res, next) => {
-    const scope = Sentry.getCurrentScope();
-
-    // Clear the scope and breadcrumbs – requests seem to bleed into each other otherwise
-    scope.clear();
-    scope.clearBreadcrumbs();
+    // Sentry forks the isolation scope for each request. Data set on the
+    // current scope here does not reach errors raised in later middleware.
+    const scope = Sentry.getIsolationScope();
 
     if (req.ip) {
       /**
        * Sentry has its own logic to attach an IP to requests, which will favour X-Forwarded-For headers.
-       * We additionally attach our req.ip as context (which comes from cf-connecting-ip in production).
+       * We additionally attach our req.ip as context; `HASH_API_CLIENT_IP_SOURCE` sets where it is read from.
        * Both can be spoofed, but X-Forwarded-For is a bit easier to spoof, as it just involves adding an entry to that header with whatever.
        */
       scope.setContext("request", { ip: req.ip });
@@ -816,7 +790,7 @@ const main = async () => {
         RequestIdProducer.layer,
         JsonDecoder.layer,
         JsonEncoder.layer,
-        Logger.pretty,
+        Logger.layer([Logger.consolePretty(), Logger.tracerLogger]),
       ),
     );
 
@@ -858,7 +832,7 @@ const main = async () => {
       const effect = Effect.gen(function* () {
         const textQueryParam = req.query.text;
         if (typeof textQueryParam !== "string") {
-          return yield* new RuntimeException(
+          return yield* new Cause.IllegalArgumentError(
             "text query parameter is required",
           );
         }
@@ -871,7 +845,7 @@ const main = async () => {
             Transport.multiaddr(`/dns/${rpcHost}/tcp/${rpcPort}`),
           ),
         ),
-        Logger.withMinimumLogLevel(LogLevel.Trace),
+        Effect.provideService(References.MinimumLogLevel, "Trace"),
       );
 
       runtime.runCallback(effect, {
@@ -898,10 +872,6 @@ const main = async () => {
   });
 
   // Integrations
-  app.get("/oauth/linear", authRouteRateLimiter, oAuthLinear);
-  app.get("/oauth/linear/callback", authRouteRateLimiter, oAuthLinearCallback);
-  app.post("/webhooks/linear", linearWebhook);
-
   app.post("/oauth/google/callback", authRouteRateLimiter, googleOAuthCallback);
   app.post("/oauth/google/token", authRouteRateLimiter, getGoogleAccessToken);
   app.post(
@@ -909,28 +879,6 @@ const main = async () => {
     authRouteRateLimiter,
     checkGoogleAccessToken,
   );
-
-  // Endpoints used by HashGPT or in support of it
-  app.post("/gpt/entities/query", gptRateLimiter, gptQueryEntities);
-  app.post("/gpt/entities/query-types", gptRateLimiter, gptQueryTypes);
-  app.get("/gpt/user-webs", gptRateLimiter, gptGetUserWebs);
-  app.post(
-    "/gpt/upsert-gpt-oauth-client",
-    gptRateLimiter,
-    upsertGptOauthClient,
-  );
-
-  /**
-   * This middleware MUST:
-   * 1. Come AFTER all non-error controllers
-   * 2. Come BEFORE all error controllers/middleware
-   */
-  Sentry.setupExpressErrorHandler(app, {
-    /** Sentry's default skips every error with a status below 500. */
-    shouldHandleError(error) {
-      return !isRequestAbortedError(error);
-    },
-  });
 
   // Fallback error handler for errors that haven't been caught and sent as a response already
   const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
@@ -992,29 +940,6 @@ const main = async () => {
     //   "Unverified email cleanup job",
     //   unverifiedEmailCleanupJob.stop,
     // );
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (realtimeSyncEnabled && enabledIntegrations.linear) {
-    if (!vaultClient) {
-      throw new Error(
-        "Vault client is required for realtime sync and was not created (check preceding logs)",
-      );
-    }
-
-    const integrationSyncBackWatcher = await createIntegrationSyncBackWatcher({
-      graphApi,
-      redis,
-      logger,
-      vaultClient,
-    });
-
-    void integrationSyncBackWatcher.start();
-
-    shutdown.addCleanup(
-      "Integration sync back watcher",
-      integrationSyncBackWatcher.stop,
-    );
   }
 };
 

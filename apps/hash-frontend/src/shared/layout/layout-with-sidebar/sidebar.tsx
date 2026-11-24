@@ -112,6 +112,12 @@ export const PageSidebar: FunctionComponent = () => {
                   activeIfPathMatches: /^\/@([^/]+)\/flows\//,
                 },
                 {
+                  title: "Triggers",
+                  path: "/flows/triggers",
+                  /* Also while it's filtered, e.g. to one flow. */
+                  activeIfPathMatches: /^\/flows\/triggers(\?|$)/,
+                },
+                {
                   title: "Activity Log",
                   path: "/workers",
                   activeIfPathMatches: /^\/@([^/]+)\/workers\//,

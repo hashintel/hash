@@ -26,7 +26,6 @@ use hash_middleware::{
     },
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode},
 };
-use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
 use type_system::principal::actor::{ActorId, UserId};
 use uuid::Uuid;
@@ -94,7 +93,6 @@ async fn pool(database: &str) -> Arc<PostgresStorePool> {
             &DatabasePoolConfig {
                 max_connections: crate::math::nz!(4),
             },
-            NoTls,
             PostgresStoreSettings::default(),
         )
         .expect("should create the test database pool"),

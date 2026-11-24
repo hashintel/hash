@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { UserSettingsContext } from "./user-settings-context";
+import { UserSettingsContext, useUserSettings } from "./user-settings-context";
 import { UserSettingsProvider } from "./user-settings-provider";
 
 afterEach(cleanup);
@@ -23,67 +23,55 @@ beforeEach(() => {
   }
 });
 
-const ArcConnectionsProbe = ({
-  name = "Automatic arcs",
-}: {
-  name?: string;
-}) => {
-  const { enableAutomaticArcConnections, setEnableAutomaticArcConnections } =
-    use(UserSettingsContext);
+const CompactNodesProbe = ({ name }: { name: string }) => {
+  const { compactNodes, setCompactNodes } = use(UserSettingsContext);
   return (
-    <button
-      type="button"
-      onClick={() =>
-        setEnableAutomaticArcConnections(!enableAutomaticArcConnections)
-      }
-    >
-      {name}: {enableAutomaticArcConnections ? "on" : "off"}
+    <button type="button" onClick={() => setCompactNodes(!compactNodes)}>
+      {name}: {compactNodes ? "on" : "off"}
+    </button>
+  );
+};
+
+const onCompactNodesRender = vi.fn();
+
+// Counted from inside: a `Profiler` around a reader misses a render that a
+// context or a published value starts.
+const CompactNodesBySelector = () => {
+  "use no memo"; // The count below has to run on every render.
+  onCompactNodesRender();
+  const compactNodes = useUserSettings((settings) => settings.compactNodes);
+  return <output aria-label="compact">{compactNodes ? "on" : "off"}</output>;
+};
+
+const MinimapToggle = () => {
+  const { showMinimap, setShowMinimap } = use(UserSettingsContext);
+  return (
+    <button type="button" onClick={() => setShowMinimap(!showMinimap)}>
+      minimap: {showMinimap ? "on" : "off"}
     </button>
   );
 };
 
 describe("UserSettingsProvider", () => {
-  it("defaults automatic arcs off for saved preferences from before the experiment", () => {
-    localStorage.setItem(
-      "petrinaut:user-settings",
-      JSON.stringify({ compactNodes: false }),
-    );
+  it("renders a reader of one setting when that setting changes, and not when another is saved", () => {
     render(
       <UserSettingsProvider>
-        <ArcConnectionsProbe />
+        <CompactNodesBySelector />
+        <CompactNodesProbe name="compact" />
+        <MinimapToggle />
       </UserSettingsProvider>,
     );
-    expect(
-      screen.getByRole("button", { name: "Automatic arcs: off" }),
-    ).toBeTruthy();
-  });
+    onCompactNodesRender.mockClear();
 
-  it("persists automatic arcs independently of the saved arc style", () => {
-    localStorage.setItem(
-      "petrinaut:user-settings",
-      JSON.stringify({ arcRendering: "smoothstep" }),
+    fireEvent.click(screen.getByRole("button", { name: /minimap/ }));
+    expect(screen.getByRole("button", { name: /minimap/ }).textContent).toBe(
+      "minimap: off",
     );
-    const first = render(
-      <UserSettingsProvider>
-        <ArcConnectionsProbe />
-      </UserSettingsProvider>,
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Automatic arcs: off" }),
-    );
-    first.unmount();
-    render(
-      <UserSettingsProvider>
-        <ArcConnectionsProbe />
-      </UserSettingsProvider>,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Automatic arcs: on" }));
-    expect(
-      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
-    ).toMatchObject({
-      enableAutomaticArcConnections: false,
-      arcRendering: "smoothstep",
-    });
+    expect(onCompactNodesRender).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /compact/ }));
+    expect(screen.getByLabelText("compact").textContent).toBe("on");
+    expect(onCompactNodesRender).toHaveBeenCalledOnce();
   });
 
   it.each([false, true])(
@@ -103,6 +91,10 @@ describe("UserSettingsProvider", () => {
             enableInBrowserOptimization: enabled,
             computeBackend: "webgpu",
             showWalkthroughOnInit: enabled,
+            enableAutomaticArcConnections: enabled,
+            arcRendering: "smoothstep",
+            keepPanelsMounted: enabled,
+            enableExperimentalIconPack: enabled,
             showAnimations: false,
           }),
         ],
@@ -129,6 +121,10 @@ describe("UserSettingsProvider", () => {
           "enableInBrowserOptimization",
           "computeBackend",
           "showWalkthroughOnInit",
+          "enableAutomaticArcConnections",
+          "arcRendering",
+          "keepPanelsMounted",
+          "enableExperimentalIconPack",
         ]) {
           expect(key in persisted).toBe(false);
         }
@@ -183,9 +179,9 @@ describe("UserSettingsProvider", () => {
     // in its own components; the editor's own provider must not fork them.
     render(
       <UserSettingsProvider>
-        <ArcConnectionsProbe name="host" />
+        <CompactNodesProbe name="host" />
         <UserSettingsProvider>
-          <ArcConnectionsProbe name="editor" />
+          <CompactNodesProbe name="editor" />
         </UserSettingsProvider>
       </UserSettingsProvider>,
     );

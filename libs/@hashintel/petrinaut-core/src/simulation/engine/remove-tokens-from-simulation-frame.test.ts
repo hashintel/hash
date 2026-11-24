@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { materializeEngineFrame } from "../frames/internal-frame";
-import { removeTokensFromSimulationFrame as removeTokensFromEngineFrame } from "./remove-tokens-from-simulation-frame";
 import {
   decodePlaceTokens,
   makeTestFrame,
   realElements,
   type TestFrame,
-} from "./token-layout.test-helpers";
+} from "../frames/internal-frame.test-helpers";
+import { removeTokensFromSimulationFrame as removeTokensFromEngineFrame } from "./remove-tokens-from-simulation-frame";
 
 import type { TokenRecord } from "../../types/sdcpn";
 import type { EngineFrameSnapshot } from "../frames/internal-frame";

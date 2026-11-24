@@ -11,7 +11,7 @@ import { buildKernelContext } from "../../hir/surface-context";
 import { WgslBailError, WgslEmitter } from "../emit-wgsl";
 import { encodeTokenWrites, tokenSlotsValue } from "./token-layout";
 
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { HirFunction } from "../../hir/hir";
 import type { SDCPN } from "../../types/sdcpn";
 import type { GpuNetProfile, GpuPlaceProfile } from "../eligibility";
@@ -47,6 +47,7 @@ const emitKernel = (
   fn: HirFunction,
   parameterValues: Readonly<Record<string, WgslParameterValue>>,
   tokenSlots: ReadonlyMap<string, readonly TokenReader[]>,
+  inputCounts: ReadonlyMap<string, string>,
   outputs: readonly {
     slotName: string;
     placeIndex: number;
@@ -62,7 +63,7 @@ const emitKernel = (
   const env = new Map<string, WgslValue>();
   const tokensParam = fn.params[0];
   if (tokensParam) {
-    env.set(tokensParam.name, tokenSlotsValue(tokenSlots));
+    env.set(tokensParam.name, tokenSlotsValue(tokenSlots, inputCounts));
   }
 
   const result = emitter.emit(fn.body, env);
@@ -135,6 +136,7 @@ export const emitKernelValues = (
       ReadonlyMap<string, DiscreteType>
     >;
     selectionTokenSlots: ReadonlyMap<string, readonly TokenReader[]>;
+    inputCounts: ReadonlyMap<string, string>;
     parameterValues: Readonly<Record<string, WgslParameterValue>>;
     extensions: PetrinautExtensionSettings | undefined;
   },
@@ -160,6 +162,7 @@ export const emitKernelValues = (
     kernel,
     options.parameterValues,
     options.selectionTokenSlots,
+    options.inputCounts,
     typedOutputs.map(({ arc, placeIndex, place }, ordinal) => {
       const slotName = kernelContext.outputSlots[ordinal]?.name;
       if (slotName === undefined) {

@@ -1,63 +1,25 @@
-import { use, useState } from "react";
+import { useEffect, useState } from "react";
 
-import {
-  Button,
-  Icon,
-  Menu,
-  SegmentedControl,
-  Toggle,
-  Tooltip,
-} from "@hashintel/ds-components";
+import { Toggle, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultVisualizerCode,
+  getDocumentUri,
 } from "@hashintel/petrinaut-core";
 
-import { ExecutionFrameSourceContext } from "../../../../../../../../react/execution-frame/context";
-import { EditorContext } from "../../../../../../../../react/state/editor-context";
-import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
+import { useSDCPNState } from "../../../../../../../../react/document/sdcpn-context";
+import { usePetrinautMutations } from "../../../../../../../../react/editing/use-petrinaut-mutations";
+import { useStableCallback } from "../../../../../../../../react/shared/use-stable-callback";
+import { useEditorActions } from "../../../../../../../../react/state/editor-context";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
-import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
-import { PlaceStateVisualization } from "../../../../../../shared/place-state-visualization";
+import { useCodeNavigation } from "../../../../../../../monaco/code-navigation-context";
+import { UI_MESSAGES } from "../../../../../shared/ui-messages";
+import { CodeTemplateMenu } from "../../../code-template-menu";
+import { codeSectionStyle } from "../../../styles";
 import { usePlacePropertiesContext } from "../../context";
 
-import type { SubView } from "../../../../../../../components/sub-view/types";
-
-type ViewMode = "code" | "preview" | "split";
-
-const contentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-});
-
-const segmentGroupContainerStyle = css({
-  marginTop: "[8px]",
-  marginBottom: "[8px]",
-});
-
-// The SegmentedControl root is `width: fit-content` by default; `&&` doubles the
-// selector's specificity so this wins over the recipe regardless of source order.
-const fullWidthSegmentedControlStyle = css({
-  "&&": { width: "full" },
-});
-
-const viewContainerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-  gap: "[4px]",
-});
-
-const panelStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-});
+import type { editor } from "monaco-editor";
 
 const messageStyle = css({
   padding: "[12px]",
@@ -66,213 +28,133 @@ const messageStyle = css({
   lineHeight: "[1.5]",
 });
 
-const aiMenuItemStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-});
-
 const headerActionsStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1",
 });
 
-/**
- * Renders the visualizer preview for the current place,
- * using simulation frame data or initial marking.
- */
-const VisualizerPreview: React.FC = () => {
-  const { place, placeType } = usePlacePropertiesContext();
-
-  return <PlaceStateVisualization place={place} placeType={placeType} />;
-};
-
-const PlaceVisualizerContent: React.FC = () => {
-  const { place, updatePlace } = usePlacePropertiesContext();
-  const { totalFrames } = use(ExecutionFrameSourceContext);
-  const [viewMode, setViewMode] = useState<ViewMode>("code");
+export const PlaceVisualizerContent: React.FC = () => {
+  const { place } = usePlacePropertiesContext();
+  const { updatePlace } = usePetrinautMutations();
+  const readonly = useSDCPNState((document) => document.readonly);
+  const { setVisualizerEditorFocus } = useEditorActions();
+  const { focusRequest, acknowledgeFocus } = useCodeNavigation();
+  const [editorInstance, setEditorInstance] =
+    useState<editor.IStandaloneCodeEditor | null>(null);
+  const path = getDocumentUri("place-visualizer", place.id);
+  const setFocus = useStableCallback(setVisualizerEditorFocus);
+  const acknowledge = useStableCallback(acknowledgeFocus);
+  const onFocus = useStableCallback(() => setFocus(place.id, true));
+  const onBlur = useStableCallback(() => setFocus(place.id, false));
 
   const hasVisualizer = place.visualizerCode !== undefined;
-  const isSimulationRunning = totalFrames > 0;
+  useEffect(
+    () => () => setFocus(place.id, false),
+    [place.id, hasVisualizer, setFocus],
+  );
+  useEffect(() => {
+    if (!editorInstance || focusRequest?.path !== path) return;
+    const frame = requestAnimationFrame(() => {
+      editorInstance.focus();
+      acknowledge(path);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editorInstance, focusRequest, path, acknowledge]);
 
   if (!hasVisualizer) {
     return (
       <div className={messageStyle}>
         Enable the visualizer to define a custom token visualization for this
-        place. It renders here, and on the canvas when you point at the place.
+        place. Its Canvas preview opens while you edit the code.
       </div>
     );
   }
 
-  const activeMode = isSimulationRunning ? "preview" : viewMode;
-
   return (
-    <div className={contentStyle}>
-      {!isSimulationRunning && (
-        <div className={segmentGroupContainerStyle}>
-          <SegmentedControl
-            size="sm"
-            value={viewMode}
-            items={[
-              { value: "code", label: "Code" },
-              { value: "preview", label: "Preview" },
-              { value: "split", label: "Split" },
-            ]}
-            onChange={(value) => setViewMode(value as ViewMode)}
-            className={fullWidthSegmentedControlStyle}
-          />
-        </div>
-      )}
-
-      <div className={viewContainerStyle}>
-        {(activeMode === "code" || activeMode === "split") && (
-          <div className={panelStyle}>
-            <CodeEditor
-              path={getDocumentUri("place-visualizer", place.id)}
-              language="typescript"
-              height="100%"
-              value={place.visualizerCode}
-              onChange={(value) => {
-                updatePlace({
-                  placeId: place.id,
-                  update: { visualizerCode: value ?? "" },
-                });
-              }}
-            />
-          </div>
-        )}
-        {(activeMode === "preview" || activeMode === "split") && (
-          <div className={panelStyle}>
-            <VisualizerPreview />
-          </div>
-        )}
-      </div>
+    <div className={codeSectionStyle}>
+      <CodeEditor
+        path={path}
+        language="typescript"
+        height="100%"
+        value={place.visualizerCode}
+        options={{ readOnly: readonly }}
+        onMount={setEditorInstance}
+        onEditorFocus={onFocus}
+        onEditorBlur={onBlur}
+        onChange={(value) =>
+          updatePlace({
+            placeId: place.id,
+            update: { visualizerCode: value ?? "" },
+          })
+        }
+      />
     </div>
   );
 };
 
-const VisualizerHeaderAction: React.FC = () => {
-  const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
-  const { globalMode } = use(EditorContext);
+export const VisualizerHeaderAction: React.FC = () => {
+  const { place, types } = usePlacePropertiesContext();
+  const { updatePlace } = usePetrinautMutations();
+  const isReadOnly = useSDCPNState((document) => document.readonly);
 
-  const [savedVisualizerCodeState, setSavedVisualizerCodeState] = useState<{
-    placeId: string;
-    code: string;
-  } | null>(null);
-  const savedVisualizerCode =
-    savedVisualizerCodeState?.placeId === place.id
-      ? savedVisualizerCodeState.code
-      : undefined;
+  // The panel's sections are mounted per place, so this is this place's code.
+  const [savedVisualizerCode, setSavedVisualizerCode] = useState<string>();
 
   const hasVisualizer = place.visualizerCode !== undefined;
 
   return (
     <div className={headerActionsStyle}>
-      {globalMode === "edit" && (
-        <Tooltip
-          content={UI_MESSAGES.READ_ONLY_MODE}
-          disableTooltip={!isReadOnly}
-        >
-          <Toggle
-            aria-label="Visualizer"
-            size="sm"
-            tone="success"
-            value={hasVisualizer}
-            disabled={isReadOnly}
-            onChange={(checked) => {
-              if (checked) {
-                updatePlace({
-                  placeId: place.id,
-                  update: {
-                    visualizerCode:
-                      savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE,
-                  },
-                });
-              } else {
-                if (place.visualizerCode) {
-                  setSavedVisualizerCodeState({
-                    placeId: place.id,
-                    code: place.visualizerCode,
-                  });
-                }
-                updatePlace({
-                  placeId: place.id,
-                  update: { visualizerCode: undefined },
-                });
+      <Tooltip
+        content={UI_MESSAGES.READ_ONLY_MODE}
+        disableTooltip={!isReadOnly}
+      >
+        <Toggle
+          aria-label="Visualizer"
+          size="sm"
+          tone="success"
+          value={hasVisualizer}
+          disabled={isReadOnly}
+          onChange={(checked) => {
+            if (checked) {
+              updatePlace({
+                placeId: place.id,
+                update: {
+                  visualizerCode:
+                    savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE,
+                },
+              });
+            } else {
+              if (place.visualizerCode) {
+                setSavedVisualizerCode(place.visualizerCode);
               }
-            }}
-          />
-        </Tooltip>
-      )}
-      {hasVisualizer && globalMode === "edit" && (
-        <Menu
-          trigger={
-            <Button
-              aria-label="More options"
-              tooltip="More options"
-              variant="ghost"
-              size="xs"
-              iconName="ellipsisVertical"
-            />
-          }
-          items={[
-            {
-              id: "load-default",
-              text: "Load default template",
-              onClick: () => {
-                const currentPlaceType = place.colorId
-                  ? types.find((type) => type.id === place.colorId)
-                  : null;
+              updatePlace({
+                placeId: place.id,
+                update: { visualizerCode: undefined },
+              });
+            }
+          }}
+        />
+      </Tooltip>
+      {hasVisualizer && (
+        <CodeTemplateMenu
+          disabled={isReadOnly}
+          onLoadDefault={() => {
+            const currentPlaceType = place.colorId
+              ? types.find((type) => type.id === place.colorId)
+              : null;
 
-                updatePlace({
-                  placeId: place.id,
-                  update: {
-                    visualizerCode: currentPlaceType
-                      ? generateDefaultVisualizerCode(currentPlaceType)
-                      : DEFAULT_VISUALIZER_CODE,
-                  },
-                });
+            updatePlace({
+              placeId: place.id,
+              update: {
+                visualizerCode: currentPlaceType
+                  ? generateDefaultVisualizerCode(currentPlaceType)
+                  : DEFAULT_VISUALIZER_CODE,
               },
-            },
-            {
-              id: "generate-ai",
-              text: (
-                <Tooltip
-                  content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-                  position="bottom"
-                >
-                  <div className={aiMenuItemStyle}>
-                    <Icon name="sparkles" size="sm" />
-                    Generate with AI
-                  </div>
-                </Tooltip>
-              ),
-              disabled: true,
-              onClick: () => {
-                // TODO: Implement AI generation
-              },
-            },
-          ]}
+            });
+          }}
         />
       )}
     </div>
   );
-};
-
-export const placeVisualizerSubView: SubView = {
-  id: "place-visualizer",
-  canMaximize: true,
-  title: "Visualizer",
-  tooltip:
-    "Custom visualization of tokens in this place, defined by visualizer code.",
-  component: PlaceVisualizerContent,
-  renderHeaderAction: () => <VisualizerHeaderAction />,
-  alwaysShowHeaderAction: true,
-  defaultCollapsed: true,
-  resizable: {
-    minHeight: 200,
-    maxHeight: 1200,
-    defaultHeight: 300,
-  },
 };

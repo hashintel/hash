@@ -77,7 +77,6 @@ describe("findDangerousSdcpnKeys", () => {
       name: "Place 1",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });
@@ -92,7 +91,6 @@ describe("findDangerousSdcpnKeys", () => {
           name: "Place 1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -120,7 +118,13 @@ describe("findDangerousSdcpnKeys", () => {
         },
       ],
       differentialEquations: [
-        { id: "hasOwnProperty", name: "DE 1", colorId: null, code: "" },
+        {
+          arity: 1,
+          id: "hasOwnProperty",
+          name: "DE 1",
+          colorId: null,
+          code: "",
+        },
       ],
       parameters: [
         {
@@ -182,19 +186,18 @@ describe("findDangerousSdcpnKeys", () => {
     });
   });
 
-  it("walks subnets", () => {
+  it("walks components", () => {
     const sdcpn = emptySdcpn();
-    sdcpn.subnets = [
+    sdcpn.components = [
       {
         id: "s1",
-        name: "Subnet 1",
+        name: "Component 1",
         places: [
           {
             id: "constructor",
             name: "Place 1",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -207,7 +210,7 @@ describe("findDangerousSdcpnKeys", () => {
     ];
 
     expect(findDangerousSdcpnKeys(sdcpn)).toEqual([
-      { location: 'subnet "s1" place id', key: "constructor" },
+      { location: 'component "s1" place id', key: "constructor" },
     ]);
   });
 

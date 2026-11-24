@@ -1,0 +1,15 @@
+---
+title: Code is highlighted when the slide compiles
+align: center
+notes: >-
+  Shiki highlights the block with the docs' light and dark themes when the
+  slide compiles, so the deck ships no highlighter.
+---
+
+## Code is highlighted when the slide compiles
+
+```ts
+/** Natural order on the prefix: 1, 1a, 2, 10. */
+const compareSlideFiles = (left: string, right: string): number =>
+  left.localeCompare(right, "en", { numeric: true });
+```

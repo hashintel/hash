@@ -1,0 +1,27 @@
+---
+title: Reveals add steps
+notes:
+  default: >-
+    The arrow keys step through a slide before moving to the next one. The
+    slide counts its steps from the highest number its reveals and notes name;
+    nothing declares the count.
+  byStep:
+    1: Reveal at 1 shows a block from step 1. Until then it keeps its space, so nothing moves.
+    2: A Reveal inside a sentence shows only those words.
+    3: until 3 hides the first block again.
+    4: >-
+      OnlyInline takes no space while hidden, so two of them can share one
+      place: one until step 4, the other from it.
+---
+
+## Reveals add steps
+
+<Reveal at={1} until={3}>
+  A block arrives on its step.
+</Reveal>
+
+<Reveal at={2}>
+  A sentence can arrive <Reveal at={3}>in parts.</Reveal>
+</Reveal>
+
+Two words can share a place: <OnlyInline until={4}>**before**</OnlyInline><OnlyInline at={4}>**after**</OnlyInline>.

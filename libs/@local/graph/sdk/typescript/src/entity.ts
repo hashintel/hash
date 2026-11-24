@@ -1,3 +1,5 @@
+import { dequal } from "dequal";
+
 import {
   extractBaseUrl,
   isArrayMetadata,
@@ -125,6 +127,7 @@ export type BrandedPropertyObject<T extends Record<string, PropertyValue>> =
 export const brandPropertyObject = <T extends Record<string, PropertyValue>>(
   obj: T,
 ): BrandedPropertyObject<T> => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive
   return obj as BrandedPropertyObject<T>;
 };
 
@@ -536,7 +539,7 @@ export const propertyObjectToPatches = (
 
 /**
  * Creates an array of PropertyPatchOperations that, if applied, will transform the oldProperties into the
- * newProperties.
+ * newProperties. A property whose value and metadata are deep-equal in both is left out of the patches.
  *
  * @deprecated this is a function for migration purposes only.
  *    For new code, track which properties are actually changed where they are changed, and create the patch operations
@@ -549,25 +552,24 @@ export const patchesFromPropertyObjects = ({
   newProperties,
   removeProperties = true,
 }: {
-  oldProperties: PropertyObject;
+  oldProperties: PropertyObjectWithMetadata;
   newProperties: PropertyObjectWithMetadata;
   removeProperties?: boolean;
 }): PropertyPatchOperation[] => {
   const patches: PropertyPatchOperation[] = [];
 
   for (const [key, property] of typedEntries(newProperties.value)) {
-    if (
-      typeof oldProperties[key] !== "undefined" &&
-      oldProperties[key] !== property.value
-    ) {
+    const oldProperty = oldProperties.value[key];
+
+    if (oldProperty === undefined) {
       patches.push({
-        op: "replace",
+        op: "add",
         path: [key],
         property,
       });
-    } else {
+    } else if (!dequal(oldProperty, property)) {
       patches.push({
-        op: "add",
+        op: "replace",
         path: [key],
         property,
       });
@@ -575,7 +577,7 @@ export const patchesFromPropertyObjects = ({
   }
 
   if (removeProperties) {
-    for (const key of typedKeys(oldProperties)) {
+    for (const key of typedKeys(oldProperties.value)) {
       if (typeof newProperties.value[key] === "undefined") {
         patches.push({
           op: "remove",
@@ -1519,7 +1521,7 @@ export class HashLinkEntity<
       );
     }
 
-    super(input as EntityInput<Properties>);
+    super(input);
   }
 
   public static async createMultiple<T extends TypeIdsAndPropertiesForEntity[]>(
@@ -1589,7 +1591,7 @@ export class HashLinkEntity<
   }: PatchEntityParameters): GraphApiPatchEntityParams {
     if (propertyPatches) {
       const isUserEntity = this.metadata.entityTypeIds.some((id) =>
-        id.startsWith(userEntityTypeBaseUrl as string),
+        id.startsWith(userEntityTypeBaseUrl),
       );
 
       if (isUserEntity) {
@@ -1684,17 +1686,11 @@ export const summarizeEntities = async (
     .summarizeEntities(authentication.actorId, params)
     .then(({ data: response }) => ({
       ...response,
-      webIds: response.webIds as Record<WebId, number> | undefined,
-      createdByIds: response.createdByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
-      editionCreatedByIds: response.editionCreatedByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
-      typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
-      typeTitles: response.typeTitles as
-        | Record<VersionedUrl, string>
-        | undefined,
+      webIds: response.webIds,
+      createdByIds: response.createdByIds,
+      editionCreatedByIds: response.editionCreatedByIds,
+      typeIds: response.typeIds,
+      typeTitles: response.typeTitles,
     }));
 
 export const queryEntitiesTable = async (
@@ -1709,7 +1705,7 @@ export const queryEntitiesTable = async (
     .then(({ data: response }) => ({
       ...response,
       rows: response.rows as QueryEntitiesTableResponse["rows"],
-      summary: response.summary as QueryEntitiesTableResponse["summary"],
+      summary: response.summary,
       closedMultiEntityTypes: response.closedMultiEntityTypes
         ? mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
             response.closedMultiEntityTypes,

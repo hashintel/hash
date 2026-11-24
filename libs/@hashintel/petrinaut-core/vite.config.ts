@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import ts from "@typescript/typescript6";
 import { dts } from "rolldown-plugin-dts";
-import { esmExternalRequirePlugin, replacePlugin } from "rolldown/plugins";
+import { replacePlugin } from "rolldown/plugins";
 import { defineConfig } from "vite";
 
 const packageRoot = dirname(fileURLToPath(import.meta.url));
@@ -60,12 +60,15 @@ export default defineConfig(({ command }) => ({
         // main bundle and load only when a GPU experiment is requested.
         webgpu: resolve(packageRoot, "src/webgpu.ts"),
         "examples/index": resolve(packageRoot, "src/examples/index.ts"),
+        "workers/event-simulation": resolve(
+          packageRoot,
+          "src/workers/event-simulation.ts",
+        ),
         "workers/lsp": resolve(packageRoot, "src/workers/lsp.ts"),
         "workers/monte-carlo": resolve(
           packageRoot,
           "src/workers/monte-carlo.ts",
         ),
-        "workers/simulation": resolve(packageRoot, "src/workers/simulation.ts"),
       },
       fileName: (_format, entryName) => `${entryName}.js`,
       formats: ["es"],
@@ -111,14 +114,7 @@ export default defineConfig(({ command }) => ({
     ],
   },
 
-  plugins: [
-    esmExternalRequirePlugin({
-      // Peer (optional): only the ./hir compiler entry needs it.
-      external: ["@typescript/typescript6"],
-    }),
-
-    command === "build" && dts({ generator: "tsgo" }),
-  ],
+  plugins: [command === "build" && dts({ generator: "tsgo" })],
 
   experimental: {
     // A worker URL resolved against the importing module survives bundling by

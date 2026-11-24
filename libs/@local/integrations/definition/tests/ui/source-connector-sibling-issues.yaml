@@ -1,0 +1,23 @@
+connector: demo
+sources:
+  database:
+    postgres:
+      connection: not-a-uri
+      schema: ${SCHEMA}
+      table: ${TABLE}
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: []
+  warehouse:
+    redshift:
+      connection: not-a-uri
+      schema: ${SCHEMA}
+      table: ${TABLE}
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: []
+  api:
+    rest:
+      url: ${API}
+      resultsField: ${RESULTS}
+    primaryKey: []

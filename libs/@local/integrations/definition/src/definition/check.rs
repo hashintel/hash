@@ -62,6 +62,14 @@ impl<'parts> Check<'parts> {
             }
         }
 
+        for (name, source) in &self.parts.sources {
+            if let Err(reason) = source.validate() {
+                self.report(
+                    DefinitionPath::default().field("sources").key(name),
+                    IssueKind::InvalidSource { reason },
+                );
+            }
+        }
         for source in self.parts.sources.keys() {
             if !self.pipelines.contains_key(source) {
                 let path = DefinitionPath::default().field("sources").key(source);

@@ -1,0 +1,10 @@
+connector: demo
+sources:
+  invalid:
+    postgres:
+      connection: not-a-uri
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]

@@ -24,7 +24,6 @@ const cancelAnimation = vi.fn();
 const animate = vi.fn(() => ({ cancel: cancelAnimation }));
 
 beforeEach(() => {
-  vi.stubGlobal("matchMedia", () => ({ matches: false }));
   Object.defineProperty(HTMLElement.prototype, "animate", {
     configurable: true,
     value: animate,
@@ -34,7 +33,6 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
-  vi.clearAllMocks();
   Reflect.deleteProperty(HTMLElement.prototype, "animate");
 });
 

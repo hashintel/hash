@@ -10,30 +10,51 @@ authors.workspace = true
 [dependencies]
 # Public workspace dependencies
 error-stack                  = { workspace = true, public = true, features = ["std"] }
+hash-crypto                  = { workspace = true, public = true }
 hash-integrations-definition = { workspace = true, public = true }
 type-system                  = { workspace = true, public = true }
 
 # Public third-party dependencies
-duckdb = { workspace = true, public = true, features = ["bundled", "json"] }
+duckdb = { workspace = true, public = true, features = ["appender-arrow", "bundled", "json"] }
+uuid   = { workspace = true, public = true, features = ["v4", "v5"] }
 
 # Private workspace dependencies
+hash-codec       = { workspace = true, features = ["numeric"] }
+hash-graph-store = { workspace = true }
+hash-middleware  = { workspace = true }
 
 # Private third-party dependencies
-derive_more    = { workspace = true, features = ["display", "error"] }
+arrow-array    = { workspace = true }
+backon         = { workspace = true, features = ["std", "tokio-sleep"] }
+bytes          = { workspace = true }
+derive_more    = { workspace = true, features = ["display", "error", "from", "into"] }
 opentelemetry  = { workspace = true, features = ["metrics"] }
-serde_json     = { workspace = true }
+parquet        = { workspace = true, features = ["arrow", "snap"] }
+reqwest        = { workspace = true }
+serde          = { workspace = true, features = ["derive"] }
+serde_json     = { workspace = true, features = ["raw_value"] }
 simple-mermaid = { workspace = true }
-tokio          = { workspace = true, features = ["sync"] }
+tempfile       = { workspace = true }
+time           = { workspace = true, features = ["formatting", "macros", "parsing"] }
+tokio          = { workspace = true, features = ["net", "rt", "sync", "time"] }
 tracing        = { workspace = true, features = ["attributes"] }
-uuid           = { workspace = true, features = ["v4", "v5"] }
+url            = { workspace = true }
+zeroize        = { workspace = true }
 
 [dev-dependencies]
-opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }
-pretty_assertions = { workspace = true }
-proptest          = { workspace = true, features = ["attr-macro", "std"] }
-serde             = { workspace = true, features = ["derive"] }
-tempfile          = { workspace = true }
-tokio             = { workspace = true, features = ["macros", "rt", "time"] }
+hash-graph-temporal-versioning = { workspace = true }
+
+axum                   = { workspace = true, features = ["http1", "tokio"] }
+insta                  = { workspace = true }
+opentelemetry_sdk      = { workspace = true, features = ["metrics", "testing"] }
+pretty_assertions      = { workspace = true }
+proptest               = { workspace = true, features = ["attr-macro", "std"] }
+rstest                 = { workspace = true }
+serde                  = { workspace = true, features = ["derive"] }
+tempfile               = { workspace = true }
+testcontainers         = { workspace = true }
+testcontainers-modules = { workspace = true, features = ["postgres"] }
+tokio                  = { workspace = true, features = ["io-util", "macros", "rt", "test-util", "time"] }
 
 [lints]
 workspace = true

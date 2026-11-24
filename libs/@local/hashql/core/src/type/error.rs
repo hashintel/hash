@@ -5,13 +5,13 @@ use hashql_diagnostics::{
     Diagnostic, DiagnosticIssues, Label, Status,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
-    severity::Severity,
+    severity::{Critical, Severity},
 };
 
 use super::{
     Type, TypeId,
     environment::Environment,
-    inference::{SelectionConstraint, Variable},
+    inference::{Constraint, SelectionConstraint, Variable},
     kind::{StructType, generic::GenericArgumentId, intrinsic::DictType},
     pretty::{FormatType, TypeFormatter},
 };
@@ -170,6 +170,11 @@ const UNSATISFIABLE_UPPER_CONSTRAINT: TerminalDiagnosticCategory = TerminalDiagn
     name: "Unsatisfiable upper constraint",
 };
 
+const NON_CONVERGENT_SYSTEM: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "non-convergent-system",
+    name: "Non-convergent constraint system",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
@@ -200,6 +205,7 @@ pub enum TypeCheckDiagnosticCategory {
     ListIndexTypeMismatch,
     DictKeyTypeMismatch,
     UnsatisfiableUpperConstraint,
+    NonConvergentSystem,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -241,6 +247,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::ListIndexTypeMismatch => Some(&LIST_INDEX_TYPE_MISMATCH),
             Self::DictKeyTypeMismatch => Some(&DICT_KEY_TYPE_MISMATCH),
             Self::UnsatisfiableUpperConstraint => Some(&UNSATISFIABLE_UPPER_CONSTRAINT),
+            Self::NonConvergentSystem => Some(&NON_CONVERGENT_SYSTEM),
         }
     }
 }
@@ -1837,6 +1844,65 @@ pub(crate) fn unsatisfiable_upper_constraint(
          upper constraint is unsatisfiable, it means the type system has determined that no type \
          can meet all the requirements, often due to conflicting constraints from different parts \
          of the code.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for a constraint system the solver stopped before it reached a fix-point.
+///
+/// `pending` are the constraints the last iteration left to apply. The labels point at the
+/// variables of the ones that the iteration produced, which are the types the solver had not
+/// settled. A selection in `pending` waits for its subject or has failed, and is a cause only if
+/// the iteration produced nothing else.
+pub(crate) fn non_convergent_system(pending: &[Constraint<'_>]) -> TypeCheckDiagnostic<Critical> {
+    // the rendered diagnostic gets too long with more than four labels
+    const MAX_LABELS: usize = 4;
+
+    let is_selection =
+        |constraint: &Constraint<'_>| matches!(constraint, Constraint::Selection(..));
+    let only_selections = pending.iter().all(is_selection);
+
+    let mut variables = pending
+        .iter()
+        .copied()
+        .filter(|constraint| only_selections || !is_selection(constraint))
+        .flat_map(Constraint::variables);
+
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::NonConvergentSystem,
+        Critical::ERROR,
+    )
+    .primary(Label::new(
+        variables
+            .next()
+            .map_or(SpanId::SYNTHETIC, |variable| variable.span),
+        "type inference did not settle on a type here",
+    ));
+
+    for variable in variables {
+        if diagnostic.labels.len() == MAX_LABELS {
+            break;
+        }
+
+        if diagnostic
+            .labels
+            .iter()
+            .all(|label| *label.span() != variable.span)
+        {
+            diagnostic
+                .labels
+                .push(Label::new(variable.span, "... nor here"));
+        }
+    }
+
+    diagnostic.add_message(Message::help(
+        "add a type annotation, for example by binding the value with `let` and an explicit type",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "type inference stops after a number of iterations that grows with the program, and it \
+         was still producing constraints on the labelled types when it stopped",
     ));
 
     diagnostic

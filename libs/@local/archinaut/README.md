@@ -54,6 +54,12 @@ emitter rewrites that to a plain image of the rendered SVG, so the package
 needs no MDX or D2 tooling and the bundle stays framework-neutral. Pages that belong to no
 layer, and diagrams several pages share, live under `contentDirectory`.
 
+A React component a page imports lives under `contentDirectory/components`,
+with the `.ts`, `.tsx` and `.css` files it needs beside it or in folders below,
+and a page imports it as `@diagrams/<path without the extension>`. A test
+(`*.test.ts`, `*.test.tsx`) beside a component runs where it is authored and is
+left out of the bundle.
+
 Every node of a generated diagram carries its layer's role as a tooltip and
 links to the layer's page, relative to the page the diagram is embedded in;
 the badges d2 draws for both are stripped, since the tooltip is the node's
@@ -64,7 +70,7 @@ drawing alone.
 ## Facts providers
 
 **TypeScript** facts come from the native TypeScript compiler, the 7.1 line,
-through its API (`typescript-7/sync`). Every covered TypeScript package goes
+through its API (`typescript/sync`). Every covered TypeScript package goes
 into one program, with `paths` mapping workspace packages to their source
 entries so a cross-package reference lands on the defining source file rather
 than on a built declaration file. The program lives in a worker thread
@@ -110,7 +116,7 @@ Written to `outputDirectory`, framework-neutral, and consumed by the site:
 | `architecture.md`        | The whole architecture as one file, the cheapest read for an agent            |
 | `manifest.json`          | The page tree, and on a diff build each page's status                         |
 | `pages/**.mdx`           | Generated layer pages, plus the authored pages merged in                      |
-| `components/*.tsx`       | The React cards generated pages import, and authored diagram components       |
+| `components/**`          | The React cards generated pages import, and the authored components           |
 | `diagrams/**.d2`, `.svg` | Diagram sources, and their renderings when `d2` is installed                  |
 
 Only files whose content changed are written, so a watcher downstream sees one
@@ -138,7 +144,9 @@ status.
 `site/` is a Vite and React project shipped with the tool: TanStack Router
 for navigation that never leaves the document, MDX compiled by Vite with the
 same remark and rehype steps the pages were written against, code blocks
-highlighted by shiki, and one HTML file per page in the output. Before Vite
+highlighted by shiki, formulas between `$` signs rendered by KaTeX when the
+page compiles, with one KaTeX cannot parse failing the build, and one HTML
+file per page in the output. Before Vite
 runs, the tool writes the bundle into `site/src/content/` and `site/public/`,
 together with the instance's title, logo and favicon.
 
@@ -147,8 +155,9 @@ manifest through the server entry into `dist/<slug>.html`, with the client's
 own script tags kept, so a page is complete on arrival and the browser
 hydrates it and navigates in place from there.
 
-Search reads the bundle's `search.json`, every page cut into its sections,
-and ranks the sections in the browser with MiniSearch: title, heading and
+Search reads the bundle's `search.json`, every page cut into its sections
+with a formula reduced to the names it mentions, and ranks the sections in
+the browser with MiniSearch: title, heading and
 description outweigh body text, words match by prefix, and a near miss
 still counts. A result is a section, so it lands on the heading that
 matched, and results group under their page with the page's kind beside

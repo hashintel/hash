@@ -10,6 +10,10 @@ both surfaces. You can pan and zoom the canvas, fit the net into view, and use
 the minimap. You cannot move, connect, add, delete, or otherwise edit net
 elements.
 
+The preview's buttons and menus carry the same icons as the editor. An icon
+that moves, such as the one on **Play**, stays still when Petrinaut animations
+are turned off.
+
 Text in the preview is not selectable, so dragging across the canvas always
 pans or selects rather than highlighting a label.
 
@@ -27,7 +31,7 @@ are still rendered, and simply do nothing. On a wide embed the
 inspector docks to the right of the canvas. On a narrow embed it sits under
 the canvas so the canvas remains usable.
 
-Use the compact net selector to move between the root net and its subnets. The
+Use the compact net selector to move between the root net and its components. The
 canvas, selection, and inspector update together when you change nets.
 
 ## Quick Simulation
@@ -43,13 +47,13 @@ the preview never starts it automatically. The same bar lets you pause, reset,
 choose from the playback speeds allowed by the embed, and scrub through the
 run. It reads out the elapsed time and the run's total time.
 
-As soon as frames arrive, the compact bar expands upward to show a small
+As soon as the run starts, the compact bar expands upward to show a small
 timeline. The timeline follows playback, lets you hover to inspect a series,
-and supports clicking or dragging to scrub the canvas to another frame. It
+and supports clicking or dragging to scrub the canvas to another time. It
 collapses again when you reset the simulation. This expansion is animated when
 Petrinaut animations are enabled and reduced-motion is not requested.
 
-Quick Simulation uses a fixed time step and time horizon selected by the embed.
+Quick Simulation uses the time step and time horizon selected by the embed.
 It intentionally does not expose the full Simulate workspace, timeline-series
 configuration, metric authoring, or controls for changing those run settings.
 Scenario parameters are limited to the safe ranges chosen for that embedded
@@ -58,7 +62,7 @@ example.
 ## Navigation and embedding
 
 The application hosting `PetrinautPreview` owns navigation. It can reflect the
-selected subnet or item in its URL and restore that state when the page loads;
+selected component or item in its URL and restore that state when the page loads;
 the preview does not install or access an application router itself.
 
 The Petrinaut demo's oEmbed route replaces its current iframe URL when preview

@@ -3,8 +3,7 @@ import { type NodeProps } from "@xyflow/react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
-import { usePlaceTokenCount } from "../../../canvas-frame-store";
+import { usePlaceTokenLabel } from "../../../canvas-frame-store-context";
 import {
   classicNodeBoxStyle,
   classicNodeLabelStyle,
@@ -13,7 +12,10 @@ import {
 import { nodeFocusStyle } from "../../../styles/focus";
 import { nodeSurfaceStyle } from "../../../styles/node-surface";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
+import { withLabelWrapPoints } from "./label-wrap-points";
 import { PlaceStateTooltip } from "./place-state-tooltip";
+import { PortPins } from "./port-pin";
+import { portPlaceLabels } from "./port-place-labels";
 import { NodeHandles } from "./shared/node-handles";
 
 import type { PlaceNodeType } from "./react-flow-types";
@@ -38,6 +40,16 @@ const placeBoxStyle = css({
 
 const placeRowStyle = css({
   height: "[18px]",
+  gap: "[4px]",
+});
+
+const portCaptionStyle = css({
+  fontSize: "[11px]",
+  fontWeight: "medium",
+  lineHeight: "[1]",
+  "--node-text": "var(--colors-neutral-s90)",
+  color: "[var(--node-text)]",
+  whiteSpace: "nowrap",
 });
 
 const placeLabelStyle = css({
@@ -58,8 +70,10 @@ const tokenCountBadgeStyle = css({
   borderRadius: "[9px]",
   padding: "[0 6px]",
   fontSize: "sm",
-  color: "neutral.s00",
-  backgroundColor: "[black]",
+  "--node-text": "var(--colors-neutral-s00)",
+  "--node-fill": "black",
+  color: "[var(--node-text)]",
+  backgroundColor: "[var(--node-fill)]",
   fontWeight: "semibold",
   fontVariantNumeric: "tabular-nums",
 });
@@ -71,18 +85,11 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   selected,
 }: NodeProps<PlaceNodeType>) => {
   // A frame re-renders this place only when its own count moves.
-  const tokenCount = usePlaceTokenCount(id);
+  const tokenLabel = usePlaceTokenLabel(id);
 
-  // Show the visualizer on hover for places that define one, and keep it up
-  // for as long as it is pinned. Before a run it draws the initial marking,
-  // so a net still being built is worth pointing at too.
   const showStateTooltip =
-    data.hasColorType &&
     data.hasVisualizer &&
-    // Dragging the place would carry the box along over the canvas it is
-    // being dropped on, and redraw the visualizer every frame of the drag.
-    !data.dragging &&
-    (data.hovered || data.visualizerPinned);
+    (data.visualizerKeptOpen || data.visualizerActive || selected);
 
   // Wrap points let a long name break inside the box instead of clipping.
   const label = withLabelWrapPoints(data.label);
@@ -98,7 +105,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         style={
           {
             "--node-outline-color": placeBorderColor(data.typeColor),
-            backgroundColor: placeFillColor(data.typeColor),
+            "--node-fill": placeFillColor(data.typeColor),
           } as React.CSSProperties
         }
       >
@@ -108,17 +115,32 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
               <Icon name="function" size="sm" />
             </div>
           ) : null}
+          {data.portDirection === null ? null : (
+            <span className={`node-text ${portCaptionStyle}`}>
+              {portPlaceLabels[data.portDirection]}
+            </span>
+          )}
         </div>
         <div className={`${classicNodeLabelStyle} ${placeLabelStyle}`}>
           {label}
         </div>
         <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
-          {tokenCount === null ? null : (
-            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
+          {tokenLabel === null ? null : (
+            <div className={`node-cover node-text ${tokenCountBadgeStyle}`}>
+              {tokenLabel}
+            </div>
           )}
         </div>
+        {data.portDirection === null ? null : (
+          <PortPins direction={data.portDirection} typeColor={data.typeColor} />
+        )}
       </div>
-      <NodeHandles isConnectable={isConnectable} />
+      <NodeHandles
+        kind="place"
+        width={data.width}
+        height={data.height}
+        isConnectable={isConnectable}
+      />
     </div>
   );
 };

@@ -32,7 +32,6 @@ export const createPlace = ({
   description,
   colorId,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   ...(isPort ? { isPort: true } : {}),
   x: 0,
   y: 0,

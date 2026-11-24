@@ -1,0 +1,53 @@
+---
+title: Next steps
+description: What composition does not do yet, in the order it is expected to come, with what each step is and what it needs first.
+sidebar_order: 30
+---
+
+Composition fuses places across components, binds implementations to
+interfaces, and lets a document import libraries. This page lists what comes
+after that, in order. Each entry says what the step is and what it needs
+first.
+
+1. **Token types matched by element name.** The members of a fusion must
+   carry the same tokens: the same elements, in the same order, with the same
+   names and types. Matching elements by name would let two ports fuse when
+   their types list the same elements in another order. That needs a
+   translator at run time, because user code is compiled once per component
+   against a fixed memory layout, and a fused place has one layout.
+2. **Interfaces that implement interfaces.** An interface cannot implement an
+   interface: the mutations refuse it and the checks report it. Allowing it
+   would let one interface build on another. It needs a design for what an
+   implementation of the outer interface must provide.
+3. **Undo and redo without a shared history.** History is one list on the
+   document's handle, and undo steps back through every change in it. In a
+   synced document that several people edit, the last change may be someone
+   else's, so undo can only mean reverting one's own changes. It needs a
+   handle that can tell those changes apart, and the editor's history controls
+   change with it.
+4. **Markings inside component instances.** A scenario's initial state
+   addresses the places of the root net, and a fused place takes its marking
+   from the place of the containing net among its members. A place inside a
+   component instance has no marking of its own. Two things are open: how
+   such a place gets a marking, and what the initial state shows when places
+   are fused within one net. Both need a decision on where that marking is
+   written: in the scenario, for one instance, or in the component, for all
+   of its instances.
+5. **Names in place of ids.** The file refers to ports and components by id.
+   A form that people write would refer to them by name. That needs names to
+   be unique where they are looked up, and it belongs with a text language for
+   nets more than with the file as it is.
+6. **Versions of libraries and of documents.** An import names a library by
+   its id alone, and the document gets the library's current content each
+   time it is opened. A version in the import would fix what the document was
+   built against. It comes when libraries and documents have versions to
+   name.
+7. **Adding imports from the editor.** The host lists the libraries on offer,
+   and a document imports one when the first instance from it is placed. Two
+   things come later: choosing libraries in the editor, and libraries that a
+   mode of the editor requires. The list is given when the editor is created,
+   so both need a way to find a library and add it while the editor runs.
+8. **Transition fusion.** Two fused transitions fire as one, as
+   [Interfaces, injection and the three fusions](doc:core.composition/interfaces-and-fusions)
+   describes. It is not planned for now. It needs transitions that are ports,
+   and an engine that runs several kernels in one firing.

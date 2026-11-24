@@ -36,6 +36,11 @@ const sorters = [
     sortKey: "updatedAt",
     directionsAvailable: "descending",
   },
+  {
+    name: "Published at",
+    sortKey: "publishedAt",
+    defaultDirection: "DESCENDING",
+  },
   { name: "Relevance", sortKey: "relevance", directionsAvailable: "none" },
   { name: "Entity count", sortKey: "entityCount", sortIcon: "numeric" },
   { name: "Priority", sortKey: "priority", sortIcon: "generic" },

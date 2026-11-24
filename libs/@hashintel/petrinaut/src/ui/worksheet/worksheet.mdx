@@ -1,12 +1,14 @@
 ---
 title: The worksheet keyboard flow
-description: The Focus primitives that route arrow keys through panels of grids and controls, and the contract every worksheet obeys.
+description: The arrow-key flow between grids, stop tables, headers and controls, which every panel, the notebook and the dialogs share.
 sidebar_order: 10
 ---
 
-A worksheet is a panel composed of spreadsheet grids and ordinary controls,
-laid out in nested columns and rows. This layer gives every worksheet one
-keyboard model. It knows nothing about what the grids contain: consumers own
+This layer is the arrow-key flow between grids, stop tables, headers and
+controls, which every panel, the notebook and the dialogs share. A worksheet
+is a panel composed of spreadsheet grids and ordinary controls, laid out in
+nested columns and rows, and the layer gives every worksheet one keyboard
+model. It knows nothing about what the grids contain: consumers own
 their cells, refs, and state; the layer owns movement, memory, and the tab
 order. The [usage manual](doc:ui.worksheet/usage-manual) shows the wiring
 for each piece.
@@ -22,20 +24,31 @@ for each piece.
   enclosing stack.
 - `useFocusStops`: a table whose lines are not uniform: full-width stops,
   sparse lines, and a gutter lane, declared as an ordered stop list.
+- `useFocusMemory`: the last-focused position of a grid or a stops table.
+  Both hooks keep it there, in a ref for the move that enters and, under the
+  roving tab stop, in state for `tabIndexFor`.
 - `useFocusHeader` / `useFocusMember`: single-element members (collapsible
   headers, lone cells) and custom navigators.
-- `useSelectFirstActivation` and `useRowSelection`: the interaction
-  grammar shared by worksheet tables: the first click selects, the second
-  acts; a focused gutter selects its whole row.
+- `FocusControls`: ordinary controls, such as a row's button and its
+  switch, as one member whose controls the arrows walk.
+
+The interaction grammar of the tables, `useSelectFirstActivation` (the first
+click selects, the second acts) and `useRowSelection` (a focused gutter
+selects its whole row), is part of the
+[spreadsheet kit](layer:ui.spreadsheet-kit).
+[Building a spreadsheet](doc:ui.spreadsheet-kit/building-a-spreadsheet) has
+its manual.
 
 ## The contract
 
 Each numbered rule is a test target; `focus-flow.test.tsx` covers them.
 
 1. Tab order is never rerouted. Each grid is one tab stop (roving
-   tabindex: `tabIndexFor` marks the remembered cell 0 and the rest -1);
-   plain controls keep their own stops. Arrow-crossing between siblings is
-   an enhancement over that intact order.
+   tabindex: `tabIndexFor` marks the remembered cell 0 and the rest -1),
+   or, with `tabStop: "native"`, leaves Tab to the cells' own stops and
+   remembers the cell without a render. Plain controls keep their own
+   stops. Arrow-crossing between siblings is an enhancement over that intact
+   order.
 2. Arrows move within a member; a move that runs off the member's edge
    asks the nearest enclosing stack whose axis matches the direction to
    carry focus to a sibling. A stack at its own edge asks its parent.
@@ -55,7 +68,11 @@ Each numbered rule is a test target; `focus-flow.test.tsx` covers them.
 7. Inside a text input the horizontal arrows stay with the caret; only
    vertical arrows navigate.
 8. A header owns Left/Right when it collapses and expands; a member whose
-   entry fails (collapsed content) is skipped in the walk.
+   entry fails (collapsed content) is skipped in the walk. A `row` stop of a
+   stop table folds the same way from its first column, and a `FocusControls`
+   group from its first control. Each gives the action that applies now:
+   with only `expand` given, ArrowLeft is a move like any other, and
+   ArrowRight is one with only `collapse`.
 9. In a stop table, vertical arrows walk the declared stops, carrying the
    column across full-width stops; a sparse line is entered at the nearest
    declared column. The gutter is its own lane: vertical moves stay
@@ -73,15 +90,21 @@ keeping the form layer out of its imports ships with the form.
 Consumers:
 
 - The ad-hoc scenario form: grids, headers, and controls in nested stacks.
-- The token spreadsheet (`ui/components/spreadsheet.tsx`): a stop table with
+- The token spreadsheet (`ui/spreadsheet-kit/spreadsheet.tsx`): a stop table with
   a gutter lane. A scenario form mounts one grid per place inside a vertical
   stack, so arrows flow from one place's grid into the next.
 - The left sidebar lists (`filterable-list-sub-view.tsx`, `nets-list.tsx`):
   two-column stop tables, a row and its action button, with the selection
   following the arrows. The search panel joins its input (`useFocusMember`)
   and its result list in one vertical stack.
-- The Simulate view `Table` (`ui/components/table.tsx`): one-column stop
+- The Simulate view `Table` (`ui/spreadsheet-kit/table.tsx`): one-column stop
   rows with select-first activation.
+- The Document view's outlines (`ui/plugins/built-in/document-view-plugin`): two
+  one-column stop tables side by side in a horizontal stack. Their rows fold,
+  a map, a list or a block of text opening on ArrowRight and closing on
+  ArrowLeft, and an arrow with nothing to fold crosses to the other outline.
+- The Plugins table in User settings: a row's line and its switch are one
+  `FocusControls` group, which folds the row's details from the line.
 
 Stories in `worksheet.stories.tsx` demonstrate the configurations:
 side-by-side columns, aligned entry, contained stacks, a stop table, and

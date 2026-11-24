@@ -59,7 +59,6 @@ const graphQLContext = {
 };
 
 beforeEach(() => {
-  vi.clearAllMocks();
   mocks.getRunnableFlowDefinition.mockResolvedValue({
     flowDefinition: { inputs },
     flowType: "integration",

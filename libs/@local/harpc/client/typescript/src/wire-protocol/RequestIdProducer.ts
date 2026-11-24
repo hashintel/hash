@@ -1,5 +1,4 @@
-import { Effect, Layer, Ref } from "effect";
-import { GenericTag } from "effect/Context";
+import { Context, Effect, Layer, Ref } from "effect";
 
 import { createProto } from "../utils.js";
 import * as RequestId from "./models/request/RequestId.js";
@@ -22,7 +21,7 @@ const RequestIdProducerProto: Omit<RequestIdProducer, "value"> = {
   [TypeId]: TypeId,
 };
 
-export const RequestIdProducer = GenericTag<RequestIdProducer>(
+export const RequestIdProducer = Context.Service<RequestIdProducer>(
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- always defined
   TypeId.description!,
 );
@@ -30,7 +29,7 @@ export const RequestIdProducer = GenericTag<RequestIdProducer>(
 const make = Effect.fn("make")(function* () {
   const next = yield* Ref.make(0);
 
-  return createProto(RequestIdProducerProto, { next }) as RequestIdProducer;
+  return createProto(RequestIdProducerProto, { next });
 });
 
 export const layer = Layer.effect(RequestIdProducer, make());

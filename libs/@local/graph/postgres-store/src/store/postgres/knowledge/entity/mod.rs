@@ -1470,6 +1470,7 @@ where
                 edition: EntityEditionProvenance {
                     created_by_id: ActorEntityUuid::from(actor_id),
                     archived_by_id: None,
+                    created_from_draft_id: None,
                     provided: params.provenance,
                 },
             });
@@ -1718,7 +1719,18 @@ where
                     db.query.text = statement,
                 ))
                 .await
-                .change_context(EntityCreationError::Store)?;
+                .map_err(|error| {
+                    let already_exists = error.as_db_error().is_some_and(|error| {
+                        error.code() == &SqlState::UNIQUE_VIOLATION
+                            && error.table() == Some("entity_ids")
+                    });
+                    let report = Report::new(error).change_context(EntityCreationError::Store);
+                    if already_exists {
+                        report.attach_opaque(StatusCode::AlreadyExists)
+                    } else {
+                        report
+                    }
+                })?;
             if inserted_rows != *expected_rows as u64 {
                 return Err(Report::new(EntityCreationError::Store).attach(format!(
                     "bulk insert into `{table}` affected {inserted_rows} rows but {expected_rows} \

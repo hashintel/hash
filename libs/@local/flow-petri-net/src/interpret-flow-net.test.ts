@@ -26,6 +26,7 @@ import {
   fileFlowDefinition,
   forEachFlowDefinition,
   hardcodedFlowDefinitions,
+  ifPathsFlowDefinition,
 } from "./testing/flow-definitions.js";
 
 import type { FlowNetMetadata } from "./flow-net-metadata.js";
@@ -44,9 +45,11 @@ import type {
   SDCPN,
 } from "@hashintel/petrinaut-core";
 import type {
+  ActionStepDefinition,
   FlowActionDefinitionId,
   FlowDefinition,
   StepDefinition,
+  StepInputSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 const keyOf = (position: FlowNetPosition) =>
@@ -211,7 +214,8 @@ const expectFiringsFollowArcs = (net: SDCPN, run: FlowNetRun) => {
       : undefined;
     const transition = (
       instance
-        ? net.subnets?.find(({ id }) => id === instance.subnetId)?.transitions
+        ? net.components?.find(({ id }) => id === instance.component.id)
+            ?.transitions
         : net.transitions
     )?.find(({ id }) => id === firing.transitionId);
 
@@ -612,6 +616,307 @@ describe("startFlowNetRun", () => {
         stepRun: { stepId: "get", itemPath: [1] },
       }),
     ).toThrow("can't startStep now");
+  });
+
+  describe("steps that run after other steps", () => {
+    const textInput = (name: string, array = false) => ({
+      name,
+      payloadKind: "Text" as const,
+      array,
+      required: true,
+    });
+
+    const getFileStep = (
+      stepId: string,
+      url: StepInputSource,
+    ): ActionStepDefinition => ({
+      kind: "action",
+      stepId,
+      actionDefinitionId: "getFileFromUrl",
+      description: "",
+      inputs: { url },
+    });
+
+    const inTurnFlowDefinition: FlowDefinition = {
+      name: "Get a file twice, in turn",
+      description: "",
+      inputs: [textInput("url")],
+      steps: [
+        getFileStep("first", { kind: "flow-input", inputName: "url" }),
+        {
+          ...getFileStep("second", { kind: "flow-input", inputName: "url" }),
+          runAfter: [{ stepId: "first" }],
+        },
+      ],
+      outputs: [],
+    };
+
+    it("starts a step once each step it runs after has finished", async () => {
+      const first = { stepId: "first", itemPath: [] };
+      const second = { stepId: "second", itemPath: [] };
+      const net = await compileFlowDefinition(inTurnFlowDefinition);
+      const run = startFlowNetRun(net, { flowInputNames: ["url"] });
+
+      expect(run.held()).toEqual(attemptEnds(first, 1));
+      expect(run.isPending(second)).toBe(true);
+
+      expect(
+        run
+          .fire({
+            role: "succeedAttempt",
+            stepRun: first,
+            outputNames: ["fileEntity"],
+          })
+          .map(({ role, stepRun }) => [role, stepRun.stepId]),
+      ).toEqual([
+        ["succeedAttempt", "first"],
+        ["startStep", "second"],
+        ["startAttempt", "second"],
+      ]);
+      expectFiringsFollowArcs(net, run);
+      expectActualModeReplays(run);
+    });
+
+    it("starts a step inside a forEach step once the step it runs after has finished for the same item", async () => {
+      const net = await compileFlowDefinition({
+        name: "Get each file twice, in turn",
+        description: "",
+        inputs: [textInput("urls", true)],
+        steps: [
+          {
+            kind: "for-each",
+            stepId: "each",
+            description: "",
+            over: { kind: "flow-input", inputName: "urls" },
+            steps: [
+              getFileStep("first", { kind: "item" }),
+              {
+                ...getFileStep("second", { kind: "item" }),
+                runAfter: [{ stepId: "first" }],
+              },
+            ],
+            collect: {
+              stepId: "second",
+              outputName: "fileEntity",
+              as: "files",
+            },
+          },
+        ],
+        outputs: [],
+      });
+      const run = startFlowNetRun(net, { flowInputNames: ["urls"] });
+
+      run.fire({
+        role: "startForEach",
+        stepRun: { stepId: "each", itemPath: [] },
+        itemCount: 2,
+      });
+
+      expect(run.held()).toEqual([
+        ...attemptEnds({ stepId: "first", itemPath: [0] }, 1),
+        ...attemptEnds({ stepId: "first", itemPath: [1] }, 1),
+      ]);
+
+      run.fire({
+        role: "succeedAttempt",
+        stepRun: { stepId: "first", itemPath: [1] },
+        outputNames: ["fileEntity"],
+      });
+
+      expect(run.isPending({ stepId: "second", itemPath: [0] })).toBe(true);
+      expect(run.held()).toEqual([
+        ...attemptEnds({ stepId: "first", itemPath: [0] }, 1),
+        ...attemptEnds({ stepId: "second", itemPath: [1] }, 1),
+      ]);
+      expectFiringsFollowArcs(net, run);
+      expectActualModeReplays(run);
+    });
+
+    it("starts a forEach step after a step that finished without the output it waits on", async () => {
+      const net = await compileFlowDefinition({
+        name: "Ask, then get files",
+        description: "",
+        inputs: [textInput("question"), textInput("urls", true)],
+        steps: [
+          {
+            kind: "action",
+            stepId: "ask",
+            actionDefinitionId: "answerQuestion",
+            description: "",
+            inputs: { question: { kind: "flow-input", inputName: "question" } },
+          },
+          {
+            kind: "for-each",
+            stepId: "each",
+            description: "",
+            over: { kind: "flow-input", inputName: "urls" },
+            steps: [getFileStep("get", { kind: "item" })],
+            collect: { stepId: "get", outputName: "fileEntity", as: "files" },
+            runAfter: [{ stepId: "ask" }],
+          },
+        ],
+        outputs: [],
+      });
+      const run = startFlowNetRun(net, {
+        flowInputNames: ["question", "urls"],
+      });
+      const ask = { stepId: "ask", itemPath: [] };
+
+      expect(run.held()).toEqual(attemptEnds(ask, 1));
+
+      /* Its first output, `answer`, which the forEach waits on, is optional. */
+      run.fire({
+        role: "succeedAttempt",
+        stepRun: ask,
+        outputNames: ["explanation", "confidence"],
+      });
+
+      expect(run.held()).toEqual([
+        { role: "startForEach", stepRun: { stepId: "each", itemPath: [] } },
+      ]);
+    });
+  });
+
+  describe("steps on an if's paths", () => {
+    const stepRun = (stepId: string, itemPath: number[] = []) => ({
+      stepId,
+      itemPath,
+    });
+
+    /** A run of `ifPathsFlowDefinition` whose `check` has taken `path`, and every step since has succeeded. */
+    const runTaking = async (path: "true" | "false") => {
+      const net = await compileFlowDefinition(ifPathsFlowDefinition);
+      const run = startFlowNetRun(net, {
+        flowInputNames: ["url", "urls"],
+      });
+
+      run.fire({
+        role: "succeedAttempt",
+        stepRun: stepRun("check"),
+        outputNames: [path],
+      });
+
+      runToEnd(run, (held) =>
+        held.role === "startForEach"
+          ? { role: "startForEach", stepRun: held.stepRun, itemCount: 0 }
+          : {
+              role: "succeedAttempt",
+              stepRun: held.stepRun,
+              outputNames: ["fileEntity"],
+            },
+      );
+
+      return { net, run };
+    };
+
+    const startedStepIds = (run: FlowNetRun) =>
+      run.firings
+        .filter(({ role }) => role === "startStep")
+        .map(({ stepRun: { stepId } }) => stepId);
+
+    it("starts the steps on the path the if takes, and none on the other", async () => {
+      const tookYes = await runTaking("true");
+
+      expect(startedStepIds(tookYes.run)).toEqual(["check", "yes", "afterYes"]);
+      expect(tookYes.run.isPending(stepRun("no"))).toBe(true);
+      expectFiringsFollowArcs(tookYes.net, tookYes.run);
+      expectActualModeReplays(tookYes.run);
+
+      const tookNo = await runTaking("false");
+
+      expect(startedStepIds(tookNo.run)).toEqual(["check", "no"]);
+      for (const stepId of ["yes", "afterYes"]) {
+        expect(tookNo.run.isPending(stepRun(stepId))).toBe(true);
+      }
+      expectFiringsFollowArcs(tookNo.net, tookNo.run);
+      expectActualModeReplays(tookNo.run);
+    });
+
+    it("doesn't start a step where the paths rejoin, as it has no transition to skip the path not taken", async () => {
+      for (const path of ["true", "false"] as const) {
+        const { run } = await runTaking(path);
+
+        expect(run.isPending(stepRun("rejoin"))).toBe(true);
+        expect(run.held()).toEqual([]);
+      }
+    });
+
+    it("starts a step when any line into it was followed, as the executor does", async () => {
+      const ifStep = (stepId: string) =>
+        ({
+          ...(ifPathsFlowDefinition.steps[0] as ActionStepDefinition),
+          stepId,
+        }) satisfies ActionStepDefinition;
+      const getFile = (
+        stepId: string,
+        runAfter: ActionStepDefinition["runAfter"],
+      ): ActionStepDefinition => ({
+        kind: "action",
+        stepId,
+        actionDefinitionId: "getFileFromUrl",
+        description: "",
+        inputs: { url: { kind: "flow-input", inputName: "url" } },
+        runAfter,
+      });
+
+      const net = await compileFlowDefinition({
+        ...ifPathsFlowDefinition,
+        steps: [
+          ifStep("first"),
+          ifStep("second"),
+          getFile("onEitherYes", [
+            { stepId: "first", outputName: "true" },
+            { stepId: "second", outputName: "true" },
+          ]),
+          getFile("afterFirstOrOnNo", [
+            { stepId: "first" },
+            { stepId: "first", outputName: "false" },
+          ]),
+        ],
+      });
+      const run = startFlowNetRun(net, { flowInputNames: ["url", "urls"] });
+
+      for (const [stepId, path] of [
+        ["first", "true"],
+        ["second", "false"],
+      ] as const) {
+        run.fire({
+          role: "succeedAttempt",
+          stepRun: stepRun(stepId),
+          outputNames: [path],
+        });
+      }
+
+      expect(run.isPending(stepRun("onEitherYes"))).toBe(false);
+      expect(run.isPending(stepRun("afterFirstOrOnNo"))).toBe(false);
+    });
+
+    it("follows each item's if inside a forEach step", async () => {
+      const net = await compileFlowDefinition(ifPathsFlowDefinition);
+      const run = startFlowNetRun(net, {
+        flowInputNames: ["url", "urls"],
+      });
+
+      run.fire({
+        role: "startForEach",
+        stepRun: stepRun("each"),
+        itemCount: 2,
+      });
+      run.fire({
+        role: "succeedAttempt",
+        stepRun: stepRun("innerCheck", [0]),
+        outputNames: ["true"],
+      });
+      run.fire({
+        role: "succeedAttempt",
+        stepRun: stepRun("innerCheck", [1]),
+        outputNames: ["false"],
+      });
+
+      expect(run.isPending(stepRun("innerYes", [0]))).toBe(false);
+      expect(run.isPending(stepRun("innerYes", [1]))).toBe(true);
+      expectFiringsFollowArcs(net, run);
+    });
   });
 
   it("holds a step whose value to skip on is missing", async () => {

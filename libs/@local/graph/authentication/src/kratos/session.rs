@@ -783,12 +783,10 @@ mod tests {
         let authentication: ControlFlow<Result<ActorId, _>> =
             provider.authenticate(&session_token_header()).await;
 
-        assert!(
-            matches!(
-                authentication,
-                ControlFlow::Break(Ok(ActorId::User(user_id)))
-                if ActorEntityUuid::new(user_id) == actor_id
-            ),
+        assert_matches!(
+            authentication,
+            ControlFlow::Break(Ok(ActorId::User(user_id)))
+            if ActorEntityUuid::new(user_id) == actor_id,
             "a valid session should verify to the provisioned user actor"
         );
     }
@@ -811,8 +809,9 @@ mod tests {
 
         let authentication: ControlFlow<Result<ActorId, _>> = provider.authenticate(&headers).await;
 
-        assert!(
-            matches!(authentication, ControlFlow::Break(Ok(ActorId::User(_)))),
+        assert_matches!(
+            authentication,
+            ControlFlow::Break(Ok(ActorId::User(_))),
             "a session cookie next to non-ASCII cookies should verify"
         );
     }
@@ -903,8 +902,9 @@ mod tests {
         );
 
         let decision: ControlFlow<Result<ActorId, _>> = provider.authenticate(&headers).await;
-        assert!(
-            matches!(decision, ControlFlow::Continue(())),
+        assert_matches!(
+            decision,
+            ControlFlow::Continue(()),
             "unrelated cookies should not be recognized as a session credential"
         );
     }
@@ -915,8 +915,9 @@ mod tests {
 
         let decision: ControlFlow<Result<ActorId, _>> =
             provider.authenticate(&HeaderMap::new()).await;
-        assert!(
-            matches!(decision, ControlFlow::Continue(())),
+        assert_matches!(
+            decision,
+            ControlFlow::Continue(()),
             "a request without session credentials should not be recognized"
         );
     }
@@ -1090,12 +1091,10 @@ mod tests {
         let headers = with_delegation_pair(session_token_header(), random_actor());
 
         let decision: ControlFlow<Result<ActorId, _>> = chain.authenticate(&headers).await;
-        assert!(
-            matches!(
-                decision,
-                ControlFlow::Break(Ok(ActorId::User(user_id)))
-                    if ActorEntityUuid::new(user_id) == session_actor
-            ),
+        assert_matches!(
+            decision,
+            ControlFlow::Break(Ok(ActorId::User(user_id)))
+                if ActorEntityUuid::new(user_id) == session_actor,
             "a valid session should act as the session user, not the delegated actor"
         );
     }

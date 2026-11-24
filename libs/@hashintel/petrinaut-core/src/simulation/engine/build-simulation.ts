@@ -1,22 +1,35 @@
-import { getArcEndpointPlaceId } from "../../arc-endpoints";
-import { SDCPNItemError } from "../../errors";
+import {
+  flattenComponentInstancesForSimulation,
+  getArcPlaceNameOverrideKey,
+} from "../../composition/flatten-component-instances";
+import { sourceItemId } from "../../composition/scoped-id";
+import { getArcEndpointPlaceId } from "../../document/arc-endpoints";
+import {
+  deriveDefaultParameterValues,
+  mergeParameterValues,
+} from "../../document/parameter-values";
+import { getRunningEquationIds } from "../../document/place-dynamics";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
   sanitizeSDCPNForExtensions,
   type PetrinautExtensionSettings,
-} from "../../extensions";
+} from "../../extensions/extensions";
 import {
   fingerprintHirCompilationInput,
   instantiateHirBufferDynamics,
   instantiateHirBufferKernel,
   instantiateHirBufferLambda,
 } from "../../hir-runtime";
+import { StringPool } from "../../tokens/string-pool";
 import {
-  deriveDefaultParameterValues,
-  mergeParameterValues,
-} from "../../parameter-values";
+  computeTokenSlotLayout,
+  createTokenRegionViews,
+  encodeTokenToBytes,
+  type TokenSlotLayout,
+} from "../../tokens/token-layout";
+import { coerceTokenRecord } from "../../tokens/token-values";
 import {
   createUserKeyedRecord,
   describeDangerousSdcpnKeys,
@@ -29,23 +42,13 @@ import {
   type EngineFrameSnapshot,
   type EngineFrameLayout,
 } from "../frames/internal-frame";
+import { SDCPNItemError } from "../sdcpn-item-error";
 import {
   PLACE_CAPACITY_UNBOUNDED,
   computeTransitionCapacityConstraints,
   normalizePlaceCapacity,
 } from "./capacity";
-import {
-  flattenComponentInstancesForSimulation,
-  getArcPlaceNameOverrideKey,
-} from "./flatten-component-instances";
-import { StringPool } from "./string-pool";
-import {
-  computeTokenSlotLayout,
-  createTokenRegionViews,
-  encodeTokenToBytes,
-  type TokenSlotLayout,
-} from "./token-layout";
-import { coerceTokenRecord } from "./token-values";
+import { composeDerivatives } from "./compose-derivatives";
 
 import type {
   HirArtifacts,
@@ -223,18 +226,6 @@ function getPlaceElements(
   }
 
   return type.elements;
-}
-
-/**
- * Recovers the pre-flattening item id: flattening scopes ids as
- * `instancePath::originalId`, while HIR artifacts are keyed by the original
- * (root or subnet-local) id.
- */
-function sourceItemId(flattenedId: string): string {
-  const separatorIndex = flattenedId.lastIndexOf("::");
-  return separatorIndex === -1
-    ? flattenedId
-    : flattenedId.slice(separatorIndex + 2);
 }
 
 /** Error for items whose code has no compiled artifact (outside the
@@ -583,6 +574,7 @@ function createCompiledTransition({
     kernelFn,
     placeBases: new Int32Array(coloredInputArcCount),
     indices: new Int32Array(expectedSlotCount),
+    inputCounts: new Float64Array(transition.inputArcs.length),
     kernelStaging,
     kernelStagingViews,
   };
@@ -699,22 +691,26 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     packedInitialMarking.set(place.id, packed);
   }
 
-  // Compile all differential equation functions
+  // Instantiate every place's dynamics: one program per composed equation,
+  // summed into the place's derivative when there are several.
   const differentialEquationFns = new Map<string, DifferentialEquationFn>();
   for (const place of sdcpn.places) {
-    // Skip places without dynamics enabled or without differential equation code
-    if (!place.dynamicsEnabled || !place.differentialEquationId) {
+    const equationIds = getRunningEquationIds(place);
+    if (equationIds.length === 0) {
       continue;
     }
 
-    const differentialEquation = sdcpn.differentialEquations.find(
-      (de) => de.id === place.differentialEquationId,
-    );
-    if (!differentialEquation) {
-      throw new Error(
-        `Differential equation with ID ${place.differentialEquationId} referenced by place ${place.id} does not exist in SDCPN`,
+    const differentialEquations = equationIds.map((equationId) => {
+      const differentialEquation = sdcpn.differentialEquations.find(
+        (de) => de.id === equationId,
       );
-    }
+      if (!differentialEquation) {
+        throw new Error(
+          `Differential equation with ID ${equationId} referenced by place ${place.id} does not exist in SDCPN`,
+        );
+      }
+      return differentialEquation;
+    });
     try {
       if (!place.colorId) {
         continue;
@@ -734,28 +730,27 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       const placeParameterValues =
         flattened.placeParameterValues.get(place.id) ?? parameterValues;
 
-      const artifact: HirDynamicsArtifact | undefined = getOwn(
-        input.hirArtifacts?.dynamics,
-        sourceItemId(differentialEquation.id),
-      );
-      if (!artifact) {
-        throw missingArtifactError(
-          "dynamics",
-          differentialEquation.name,
-          place.id,
-        );
-      }
-
-      // Buffer-native program: matches the byte-addressed
+      // Buffer-native programs: each matches the byte-addressed
       // DifferentialEquationFn shape directly — no per-token record decoding.
-      differentialEquationFns.set(
-        place.id,
-        instantiateHirBufferDynamics(
+      const terms = differentialEquations.map((differentialEquation) => {
+        const artifact: HirDynamicsArtifact | undefined = getOwn(
+          input.hirArtifacts?.dynamics,
+          sourceItemId(differentialEquation.id),
+        );
+        if (!artifact) {
+          throw missingArtifactError(
+            "dynamics",
+            differentialEquation.name,
+            place.id,
+          );
+        }
+        return instantiateHirBufferDynamics(
           artifact.source,
           placeParameterValues,
           stringPool,
-        ),
-      );
+        );
+      });
+      differentialEquationFns.set(place.id, composeDerivatives(terms));
     } catch (error) {
       throw new SDCPNItemError(
         `Failed to compile differential equation for place \`${

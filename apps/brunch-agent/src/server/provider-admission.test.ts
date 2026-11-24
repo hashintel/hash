@@ -16,6 +16,8 @@ import {
   modelAdmissionScope,
   modelStreamIdleTimeoutDefaults,
   withBufferedToolAdmission,
+  type ModelOutputLimit,
+  type ModelStreamIdleTimeout,
 } from "./provider-admission";
 
 const emptyTranscript = normalizeContext({ messages: [] });
@@ -86,6 +88,36 @@ test.each(["stream", "streamSimple"] as const)(
     );
   },
 );
+
+test("a response stopped at the output limit fails without being marked retryable, and is reported", async () => {
+  const { faux, model } = fixture();
+  const onOutputLimit = vi.fn<(limit: ModelOutputLimit) => void>();
+  const provider = withBufferedToolAdmission(
+    faux.provider,
+    () => true,
+    new Set(["browser"]),
+    {
+      ...modelStreamIdleTimeoutDefaults,
+      claimRetry: () => false,
+      onOutputLimit,
+    },
+  );
+  faux.setResponses([
+    fauxAssistantMessage([fauxText("The account is partly")], {
+      stopReason: "length",
+    }),
+  ]);
+  const failure: unknown = await collect(
+    provider.streamSimple(model, emptyTranscript),
+  ).catch((error: unknown) => error);
+  expect(String(failure)).toContain("model_output_limit");
+  expect(String(failure)).not.toContain("retryable_interruption");
+  expect(onOutputLimit).toHaveBeenCalledOnce();
+  expect(onOutputLimit.mock.calls[0]?.[0]).toMatchObject({
+    provider: model.provider,
+    model: model.id,
+  });
+});
 
 test.each(["stream", "streamSimple"] as const)(
   "%s admits a complete browser-only proposal containing multiple calls",
@@ -408,6 +440,7 @@ test("stops without claiming a retry when idle cancellation is not acknowledged"
     const upstream = createAssistantMessageEventStream();
     let upstreamSignal: AbortSignal | undefined;
     const claimRetry = vi.fn<() => boolean>(() => true);
+    const onIdleTimeout = vi.fn<(timeout: ModelStreamIdleTimeout) => void>();
     const provider = withBufferedToolAdmission(
       {
         ...faux.provider,
@@ -424,6 +457,7 @@ test("stops without claiming a retry when idle cancellation is not acknowledged"
         firstEventTimeoutMs: 100,
         idleTimeoutMs: 10,
         reasoningStartTimeoutMs: 15,
+        onIdleTimeout,
       },
     );
     const toolCall = fauxToolCall("browser", {}, { id: "unacknowledged" });
@@ -451,6 +485,19 @@ test("stops without claiming a retry when idle cancellation is not acknowledged"
     await expect(reading).rejects.toMatchObject({
       code: "model_stream_cancellation_unacknowledged",
     });
+    expect(onIdleTimeout.mock.calls).toEqual([
+      [
+        {
+          provider: model.provider,
+          model: model.id,
+          phase: "tool_arguments",
+          idleMs: 10,
+          lastEventType: "toolcall_delta",
+          acknowledged: false,
+          retryClaimed: false,
+        },
+      ],
+    ]);
 
     upstream.push({
       contentIndex: 0,

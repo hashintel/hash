@@ -25,6 +25,27 @@ export const focusForward = (direction: FocusDirection): boolean =>
   direction === "down" || direction === "right";
 
 /**
+ * The direction an arrow key asks for. Null for any other key, and for a
+ * horizontal arrow in a text field, where it moves the caret.
+ */
+export const arrowDirection = (
+  event: React.KeyboardEvent,
+): FocusDirection | null => {
+  const target = event.target as HTMLElement;
+  const inTextField =
+    target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+  return event.key === "ArrowDown"
+    ? "down"
+    : event.key === "ArrowUp"
+      ? "up"
+      : event.key === "ArrowRight" && !inTextField
+        ? "right"
+        : event.key === "ArrowLeft" && !inTextField
+          ? "left"
+          : null;
+};
+
+/**
  * How an arriving move lands inside a member: the direction it travels
  * (entering downward means arriving at the top), and — under a stack's
  * `entry="aligned"` policy — the position it left from, so a grid can keep
@@ -33,6 +54,17 @@ export const focusForward = (direction: FocusDirection): boolean =>
 export interface FocusEntry {
   direction: FocusDirection;
   from?: { row: number; column: number };
+}
+
+/**
+ * What the horizontal arrows do on something that folds, in place of moving:
+ * ArrowRight calls `expand` and ArrowLeft calls `collapse`. Give the one that
+ * applies now. A collapsed thing has only `expand`, so ArrowLeft on it is a
+ * move like any other, and ArrowRight is one on an expanded thing.
+ */
+export interface FocusFold {
+  expand?: () => void;
+  collapse?: () => void;
 }
 
 export interface FocusMemberHandle {

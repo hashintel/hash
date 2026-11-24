@@ -19,6 +19,7 @@ export {
   type HirDependencies,
   type HirTokenRead,
 } from "./hir/analyze";
+export { classifyNet } from "./hir/classify-net";
 export {
   compileHirArtifacts,
   type CompileHirArtifactsOptions,
@@ -87,7 +88,7 @@ export {
   type ConstraintSource,
   type LowerConstraintContext,
   type LowerConstraintResult,
-} from "./constraint/lower";
+} from "./constraints/lower";
 export {
   hirExprSchema,
   hirFunctionSchema,
@@ -101,6 +102,8 @@ export {
 } from "./hir/lower-typescript";
 export {
   AMBIENT_INPUT_NAMES,
+  dynamicsInputName,
+  SINGLE_TOKEN_INPUT_NAME,
   detectStateConstraintForm,
   detectUserCodeForm,
   getStateConstraintExpression,

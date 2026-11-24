@@ -1,26 +1,33 @@
+/**
+ * @layerRoot ui.views.editor.top-bar
+ * @role The bar above the editor: the editor menu, the title of the net, the mode switch and the buttons plugins add
+ *
+ * The editor shell imports this file only.
+ */
 import { use } from "react";
 
 import {
   Button,
-  Menu,
+  SegmentedControl,
   TextInput,
-  type MenuItem,
+  type SegmentedControlItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { SidebarIcon } from "@hashintel/ds-icons";
 
+import { useComposesOnly } from "../../../../../react/document/use-composes-only";
+import { ActualModeContext } from "../../../../../react/host/actual-mode-context";
+import { NetManagementContext } from "../../../../../react/host/net-management-context";
 import {
-  EditorContext,
-  type EditorState,
+  useEditorActions,
+  useEditorFields,
 } from "../../../../../react/state/editor-context";
-import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
-import { MenuIcon, SidebarIcon } from "../../../../experimental-icons";
 import { PluginToolbarItems } from "../../../../plugins/plugin-outlets";
-import { ModeSelector } from "./mode-selector";
+import { EditorMenu } from "./editor-menu";
 import { RunningExperimentsPopover } from "./running-experiments-popover";
 import { VersionHistoryButton } from "./version-history-button";
 
-import type { ExperimentRecord } from "../../../../../react/experiments/context";
+import type { EditorGlobalMode } from "../../../../../react/navigation/navigation";
 
 const topBarStyle = css({
   display: "flex",
@@ -66,33 +73,41 @@ const readonlyTitleStyles = css({
   whiteSpace: "nowrap",
 });
 
+const modeItems = (
+  actualModeAvailable: boolean,
+): SegmentedControlItem<EditorGlobalMode>[] => [
+  { label: "Edit", value: "edit", iconName: "shapes" },
+  { label: "Simulate", value: "simulate", iconName: "play" },
+  {
+    label: "Actual",
+    value: "actual",
+    iconName: "circleFilled",
+    disabled: !actualModeAvailable,
+    tooltip: actualModeAvailable
+      ? "View actual execution state."
+      : "Actual mode is not yet available.",
+  },
+];
+
+const ignoreTitle = () => {};
+
 interface TopBarProps {
-  actualModeAvailable: boolean;
-  menuItems: MenuItem[];
-  title: string;
-  onTitleChange: (value: string) => void;
-  titleEditable: boolean;
   hideNetManagementControls?: "all" | "except-title";
-  mode: EditorState["globalMode"];
-  onModeChange: (mode: EditorState["globalMode"]) => void;
-  onRunningExperimentClick?: (experiment: ExperimentRecord) => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
-  actualModeAvailable,
-  menuItems,
-  title,
-  onTitleChange,
-  titleEditable,
   hideNetManagementControls,
-  mode,
-  onModeChange,
-  onRunningExperimentClick,
 }) => {
-  const { isLeftSidebarOpen, setLeftSidebarOpen, setSearchOpen } =
-    use(EditorContext);
-  const undoRedo = use(UndoRedoContext);
-  const { enableExperimentalIconPack } = use(UserSettingsContext);
+  const { globalMode, isLeftSidebarOpen } = useEditorFields(
+    "globalMode",
+    "isLeftSidebarOpen",
+  );
+  const { setGlobalMode, setLeftSidebarOpen, setSearchOpen } =
+    useEditorActions();
+  // A host that takes no new title gives no `setTitle`.
+  const { title, setTitle } = use(NetManagementContext);
+  const actualMode = use(ActualModeContext);
+  const composesOnly = useComposesOnly();
 
   return (
     <div className={topBarStyle}>
@@ -108,32 +123,17 @@ export const TopBar: React.FC<TopBarProps> = ({
           }}
           aria-label={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
           tooltip={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-          {...(enableExperimentalIconPack
-            ? {
-                prefix: (
-                  <SidebarIcon
-                    size={16}
-                    collapsed={!isLeftSidebarOpen}
-                    duration={240}
-                  />
-                ),
-              }
-            : { iconName: "sidebar" })}
-        />
-
-        <Menu
-          trigger={
-            <Button
-              aria-label="Menu"
-              size="sm"
-              variant="ghost"
-              tooltip="Menu"
-              {...(enableExperimentalIconPack
-                ? { prefix: <MenuIcon size={16} duration={200} /> }
-                : { iconName: "bars" })}
+          prefix={
+            <SidebarIcon
+              size={16}
+              collapsed={!isLeftSidebarOpen}
+              duration={240}
             />
           }
-          items={menuItems}
+        />
+
+        <EditorMenu
+          showNetManagementItems={hideNetManagementControls === undefined}
         />
 
         <PluginToolbarItems place="top-bar-start" />
@@ -142,27 +142,28 @@ export const TopBar: React.FC<TopBarProps> = ({
           <TextInput
             variant="subtle"
             value={title}
-            onChange={onTitleChange}
-            readonly={!titleEditable}
+            onChange={setTitle ?? ignoreTitle}
+            readonly={!setTitle}
             placeholder="Process"
-            className={cx(titleStyles, !titleEditable && readonlyTitleStyles)}
+            className={cx(titleStyles, !setTitle && readonlyTitleStyles)}
             size="sm"
           />
         )}
       </div>
 
-      {/* Center section - mode switcher */}
-      <ModeSelector
-        actualModeAvailable={actualModeAvailable}
-        mode={mode}
-        onChange={onModeChange}
-      />
+      {/* Center section - mode switcher. An editor that only composes has one mode. */}
+      {composesOnly ? null : (
+        <SegmentedControl
+          size="sm"
+          value={globalMode}
+          items={modeItems(actualMode.available)}
+          onChange={setGlobalMode}
+        />
+      )}
 
       <div className={rightSectionStyle}>
-        <RunningExperimentsPopover
-          onExperimentClick={onRunningExperimentClick}
-        />
-        {undoRedo && <VersionHistoryButton />}
+        <RunningExperimentsPopover />
+        <VersionHistoryButton />
         <PluginToolbarItems place="top-bar-end" />
       </div>
     </div>

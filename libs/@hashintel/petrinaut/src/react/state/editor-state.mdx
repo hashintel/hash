@@ -1,0 +1,98 @@
+---
+title: Editor state
+description: Who owns each piece of the state of an editing session, who writes it, and which hook reads it.
+sidebar_order: 10
+---
+
+The state layer publishes the state of an editing session that the document
+does not hold. Each piece has one owner and one way to write it, which the
+table below names with the hooks or the context that read it.
+
+![An action writes the location or the editor's own state, and a reader renders when the part it selected changes. The slide of a panel is written to its element each frame, without a render.](./editor-state.d2)
+
+## Entry point
+
+`EditorProvider` in `editor-provider.tsx` builds the editor's state on every
+render from two sources: the location, and its own `useState`. It gives the
+result out through `EditorContext`, publishes it for the selector hooks, and
+gives the actions out through a context of their own.
+
+The location is the state of [navigation](layer:react.navigation): the mode,
+the view, the selection, and the selected scenario and experiment. In an
+editor that only composes, which `useComposesOnly` answers, the mode is
+`edit` and the view is `canvas` whatever the location says.
+
+## State
+
+| State                                                                                                                 | Owner                                                             | Written by                                       | Read through                                         |
+| --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------- |
+| Mode, Edit view, Simulate view and drawer, selection                                                                  | The location                                                      | `useEditorActions`, which navigate               | `useEditorState`, `useEditorFields`, `useIsSelected` |
+| The other fields of `EditorState`: open panels, tool, cursor, hovered item, search, timeline view, visualizer windows | A `useState` of `EditorProvider`                                  | `useEditorActions`                               | `useEditorState`, `useEditorFields`                  |
+| User settings                                                                                                         | `UserSettingsProvider`, saved in `localStorage`                   | The setters of `useUserSettingsFields`           | `useUserSettings`, `useUserSettingsFields`           |
+| Panel sizes, and how far each panel is in view                                                                        | Motion values, see [Panel geometry](doc:react.state/panel-sizes)  | A resize drag, `PanelPresenceProvider`           | `usePanelSizes`, `usePanelPresence`                  |
+| Read-only reason                                                                                                      | `ReadOnlyReasonProvider`, from the document, the mode and the run | Nothing: it is derived                           | `useReadOnlyReason`, `useIsReadOnly`                 |
+| Undo history                                                                                                          | The history of the Core handle                                    | `undo`, `redo`, `goToIndex` of `UndoRedoContext` | `useStore` on `canUndo`, `canRedo` or `history`      |
+| Active net                                                                                                            | The location's component id                                       | `setActiveComponentId`                           | `ActiveNetContext`                                   |
+| Saved canvas viewport                                                                                                 | User settings, one entry per document                             | `rememberViewport`                               | `CanvasViewportContext`                              |
+| Title, list of nets and callbacks of the host                                                                         | The host                                                          | The props of `Petrinaut`                         | `NetManagementContext`                               |
+| The action offered with the notice of a blocked edit, where the host made the document read-only                      | The first running plugin that declares `readOnlyAction`           | That plugin                                      | `ReadOnlyActionContext`                              |
+| Imports, libraries and the host's rules                                                                               | The Core instance                                                 | Core                                             | `CompositionContext`, `useComposesOnly`              |
+
+The table names every piece of state a component of the editor reads,
+whichever block publishes it. The read-only reason belongs to
+[the edit guard](layer:react.editing). The undo history, the active net and
+the imports belong to [the document](layer:react.document). The host's
+values belong to [the host contexts](layer:react.host).
+
+The left sidebar, the bottom panel and its tab, the cursor and the timeline
+chart type start from the user settings, and `useSyncEditorToSettings` saves
+them back. Search and the assistant start closed and are not saved. In
+Actual mode with a timeline, the bottom panel starts open on that timeline
+whatever the setting.
+
+`UndoRedoContext` is null where the Core handle keeps no history.
+
+## Data flow
+
+Clicking a row of a list:
+
+1. The handler calls `selectItem` of `useEditorActions`.
+2. The action navigates: the selection is part of the location.
+3. `EditorProvider` renders with the selection of the new location and
+   publishes the value.
+4. The two rows whose `useIsSelected` answer flipped render. A reader of
+   `useEditorState((editor) => editor.globalMode)` does not.
+5. `PanelPresenceProvider` reads `hasSelection` and has Motion slide the
+   Properties panel in. The panel's style is written each frame without a
+   render.
+
+## Rules
+
+- **A component reads a part of the editor's state, and never
+  `use(EditorContext)`.** A panel that opens, a selection and a tool change
+  are all changes of that context, and `use` renders its reader for each.
+  Held by `editor-provider.test.tsx` for the hooks. No lint rule refuses the
+  `use` call.
+- **Actions come from `useEditorActions`, one object for the editor's
+  life.** An action reads what it needs when it is called, so a handler built
+  from one keeps its identity and its reader renders for no change of state.
+  Held by `editor-provider.test.tsx`.
+- **A list row or a canvas node asks `useIsSelected(id)`.** A row that read
+  the selection would render on every move of it. Held by
+  `select-from-context.test.tsx`, which pins that a reader renders only when
+  its part changes.
+- **What changes on every edit is handed out as a store.** `UndoRedoContext`
+  carries its actions, and `canUndo`, `canRedo` and `history` as stores, so a
+  reader that only undoes never renders for an edit. The type
+  `UndoRedoContextValue` holds it: the three fields are `ReadableStore`.
+- **The same rules hold for the settings.** A reader of one setting does not
+  render when another is saved. Held by `user-settings-provider.test.tsx`.
+
+## Pitfalls
+
+- A value read through a selector arrives one render pass after the
+  context's, in the same frame, before paint. What must hold in the commit
+  that changes the mode reads the mode with `useEditorMode`, from the
+  context that `EditorProvider` changes with the mode. The read-only reason
+  does, as [the edit guard](layer:react.editing) describes, so that it
+  refuses a layout effect of that commit that edits the document.

@@ -83,4 +83,16 @@ describe("petrinautPandaPreset", () => {
       petrinautKeyframeNames.filter((name) => dsKeyframeNames.includes(name)),
     ).toEqual([]);
   });
+
+  /**
+   * A custom property registered anywhere in a document, by `@property` or by
+   * `CSS.registerProperty`, slows every style recalculation of the editor in
+   * Chromium, whether or not an element uses the property. On a net of 470
+   * nodes a change of focus restyles in 480 to 850 ms, where it takes 40 to
+   * 80 ms. `globalVars` is how this preset would register one, for this
+   * package and for every host that compiles with it.
+   */
+  it("registers no custom property", () => {
+    expect(petrinautPandaPreset).not.toHaveProperty("globalVars");
+  });
 });

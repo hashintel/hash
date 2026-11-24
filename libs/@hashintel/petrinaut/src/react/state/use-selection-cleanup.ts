@@ -7,9 +7,9 @@ import {
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
 
-import { ActiveNetContext } from "./active-net-context";
-import { EditorContext } from "./editor-context";
-import { SDCPNContext } from "./sdcpn-context";
+import { ActiveNetContext } from "../document/active-net-context";
+import { SDCPNContext } from "../document/sdcpn-context";
+import { useEditorActions, useEditorState } from "./editor-context";
 
 /**
  * Reactively removes stale IDs from the selection when items are deleted from the SDCPN.
@@ -17,11 +17,11 @@ import { SDCPNContext } from "./sdcpn-context";
 export function useSelectionCleanup() {
   const { activeNet } = use(ActiveNetContext);
   const { extensions } = use(SDCPNContext);
-  const { selection, setSelection, hoveredItem, clearHoveredItem } =
-    use(EditorContext);
+  const selection = useEditorState((editor) => editor.selection);
+  const { setSelection } = useEditorActions();
 
   useEffect(() => {
-    if (selection.size === 0 && !hoveredItem) {
+    if (selection.size === 0) {
       return;
     }
 
@@ -70,6 +70,9 @@ export function useSelectionCleanup() {
     for (const instance of activeNet.componentInstances) {
       validIds.add(instance.id);
     }
+    for (const fusion of activeNet.fusions) {
+      validIds.add(fusion.id);
+    }
 
     // Check if any selected ID is stale
     let hasStale = false;
@@ -94,17 +97,5 @@ export function useSelectionCleanup() {
         { cause: "normalization" },
       );
     }
-
-    // Clear hoveredItem if it references a deleted element
-    if (hoveredItem && !validIds.has(hoveredItem.id)) {
-      clearHoveredItem();
-    }
-  }, [
-    activeNet,
-    extensions,
-    selection,
-    setSelection,
-    hoveredItem,
-    clearHoveredItem,
-  ]);
+  }, [activeNet, extensions, selection, setSelection]);
 }

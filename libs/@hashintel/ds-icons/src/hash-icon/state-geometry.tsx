@@ -1,5 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 
+import { FilledShape } from "./filled-shape";
+
 const menuStyle = css({
   "--menu-open": "0",
   '&[data-open="true"], button[aria-expanded="true"] &': { "--menu-open": "1" },
@@ -40,8 +42,8 @@ export const MenuGeometry = ({
 
 export const PauseGeometry = () => (
   <>
-    <rect x="5.5" y="4" width="4" height="16" rx="1" />
-    <rect x="14.5" y="4" width="4" height="16" rx="1" />
+    <rect x="5.5" y="4" width="4" height="16" rx=".5" />
+    <rect x="14.5" y="4" width="4" height="16" rx=".5" />
   </>
 );
 
@@ -55,7 +57,7 @@ export const PlaybackGeometry = ({
   <g fill="currentColor">
     <path
       data-icon-part="play"
-      d="M7 4.5 20 12 7 19.5Z"
+      d="M7 4.75 19.5 12 7 19.25Z"
       style={{
         opacity: playing ? 0 : 1,
         transform: playing ? "scale(0.85)" : "scale(1)",
@@ -121,6 +123,11 @@ export const DiagnosticsGeometry = ({
       <path
         key={stroke.id}
         data-icon-part="diagnostic-stroke"
+        strokeLinecap={
+          status === "warning" && stroke.id === "trailing"
+            ? "square"
+            : undefined
+        }
         d="M0 0h20"
         style={{
           transform: `translate(${stroke.x}px, ${stroke.y}px) rotate(${stroke.angle}deg)`,
@@ -142,7 +149,9 @@ export const MicrophoneGeometry = ({
 }) => (
   <g fill="none">
     <g style={{ opacity: muted ? 0.55 : 1, transition }}>
-      <rect x="8" y="3" width="8" height="12" rx="4" />
+      <FilledShape>
+        <rect x="8" y="3" width="8" height="12" rx="4" />
+      </FilledShape>
       <path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8" />
     </g>
     <path

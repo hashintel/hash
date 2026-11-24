@@ -1,0 +1,23 @@
+import { FilledShape } from "../filled-shape";
+
+export const fileCodeGeometry = (
+  <g fill="none">
+    <FilledShape
+      cutout={
+        <>
+          <path d="M13.5 3.5v5h5" />
+          <path
+            data-icon-detail="file-code-left"
+            d="m10.75 12-1.75 2.5 1.75 2.5"
+          />
+          <path
+            data-icon-detail="file-code-right"
+            d="m13.25 12 1.75 2.5-1.75 2.5"
+          />
+        </>
+      }
+    >
+      <path d="M5.5 3.5h8l5 5v12h-13Z" />
+    </FilledShape>
+  </g>
+);

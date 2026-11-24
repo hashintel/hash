@@ -40,7 +40,7 @@ export const resolveObjectiveMetricId = (
     : (metrics[0]?.id ?? null);
 
 /** What the study start reads of the experiment's execution, and the runs a step computes. */
-export type SweepObjectiveExecution = {
+type SweepObjectiveExecution = {
   dt: number;
   maxTime: number;
   runsPerStep: number;

@@ -152,6 +152,7 @@ impl DatabaseTestWrapper {
                     },
                     conflict_behavior: ConflictBehavior::Skip,
                     provenance: ontology_provenance.clone(),
+                    fetched_from_origin: false,
                 }),
             )
             .await?;

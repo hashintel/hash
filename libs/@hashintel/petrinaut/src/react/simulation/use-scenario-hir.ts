@@ -1,6 +1,7 @@
 import { use, useEffect, useState } from "react";
 
 import { LanguageClientContext } from "../lsp/context";
+import { errorMessage } from "../shared/error-message";
 
 import type {
   AdHocSynthesisContext,
@@ -41,7 +42,6 @@ const projectAdHocContext = (
     name: place.name,
     colorId: place.colorId,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
   })),
@@ -94,6 +94,21 @@ export type ScenarioHirRequest = (
   scenarioId?: string,
 ) => Promise<ScenarioHir>;
 
+/** What a request answered, with the scenario it was for. */
+type Lowered = {
+  key: string;
+  scenarioId: string | undefined;
+  state: ScenarioHirState;
+};
+
+/**
+ * The last scenario each requester lowered. A hook that mounts for that
+ * scenario starts with the result and requests nothing: the Simulation
+ * Settings tab mounts each time its panel opens, for the scenario the
+ * simulation provider has lowered already.
+ */
+const lastLowered = new WeakMap<ScenarioHirRequest, Lowered>();
+
 /**
  * Lowers a scenario's expressions and code-mode body to HIR via the language
  * worker (where the TypeScript compiler lives), so `compileScenario` can
@@ -115,31 +130,38 @@ export function useScenarioHir(
     options?.requestScenarioHir ?? languageClient.requestScenarioHir;
   const adHocContext = options?.adHocContext;
   const key = scenario ? loweringKey(scenario, adHocContext) : null;
+  const scenarioId = scenario?.id;
 
-  const [entry, setEntry] = useState<{
-    key: string;
-    state: ScenarioHirState;
-  } | null>(null);
+  const [lowered, setLowered] = useState(
+    () => lastLowered.get(requestScenarioHir) ?? null,
+  );
+  const isLowered =
+    lowered !== null &&
+    lowered.key === key &&
+    lowered.scenarioId === scenarioId;
 
   useEffect(() => {
-    if (key === null) {
+    if (key === null || isLowered) {
       return;
     }
     let cancelled = false;
     const payload = JSON.parse(key) as LoweringPayload;
-    requestScenarioHir(payload.scenario, payload.adHocContext, scenario?.id)
+    requestScenarioHir(payload.scenario, payload.adHocContext, scenarioId)
       .then((hir) => {
+        const answer = { key, scenarioId, state: { hir, error: null } };
+        lastLowered.set(requestScenarioHir, answer);
         if (!cancelled) {
-          setEntry({ key, state: { hir, error: null } });
+          setLowered(answer);
         }
       })
       .catch((error: unknown) => {
         if (!cancelled) {
-          setEntry({
+          setLowered({
             key,
+            scenarioId,
             state: {
               hir: null,
-              error: error instanceof Error ? error.message : String(error),
+              error: errorMessage(error),
             },
           });
         }
@@ -147,10 +169,7 @@ export function useScenarioHir(
     return () => {
       cancelled = true;
     };
-  }, [key, requestScenarioHir, scenario?.id]);
+  }, [key, isLowered, requestScenarioHir, scenarioId]);
 
-  if (key === null) {
-    return PENDING;
-  }
-  return entry !== null && entry.key === key ? entry.state : PENDING;
+  return isLowered ? lowered.state : PENDING;
 }

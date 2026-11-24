@@ -28,7 +28,7 @@ use problematic::{ProblemDetails, ProblemVariant as _};
 use tower_http::{catch_panic::CatchPanicLayer, set_header::SetResponseHeaderLayer};
 use type_system::principal::actor::ActorId;
 
-use super::{Api, Audience, legacy};
+use super::{Api, Audience, cors::CorsConfig, legacy};
 
 /// The `Cache-Control` value of every response that does not set its own.
 ///
@@ -137,6 +137,7 @@ pub(super) struct Middleware<P, I, L> {
     pub service_secret: Pin<Arc<Secret<str>>>,
     pub authentication_metrics: Arc<AuthenticationMetrics>,
     pub rate_limiters: Arc<RateLimiters>,
+    pub cors: CorsConfig,
 }
 
 impl<P, I, L> Middleware<P, I, L>
@@ -171,8 +172,10 @@ where
     /// on the same budgets, and answer a method a path does not serve after authentication. The
     /// service secret passes the address gate everywhere, but the caller budgets only on the legacy
     /// routes, the only routes the services holding it call. A request whose handling panics is
-    /// answered with [`InternalServerError`]. Every response that sets no `Cache-Control` of its
-    /// own carries [`DEFAULT_CACHE_CONTROL`].
+    /// answered with [`InternalServerError`]. With CORS origins configured, [`CorsConfig::layer`]
+    /// answers every `OPTIONS` request ahead of all of this, and adds its headers to every other
+    /// response, rejections included. Every response that sets no `Cache-Control` of its own
+    /// carries [`DEFAULT_CACHE_CONTROL`].
     ///
     /// # Panics
     ///
@@ -192,12 +195,14 @@ where
             }),
             Challenge::Service,
         );
+        let mut prefixes = Vec::new();
         for api in apis {
+            prefixes.push((api.prefix, api.audience));
             router = router.merge(self.attach_api(api));
         }
         // Axum sets the method-not-allowed fallback only on routes without one, which leaves the
         // documentation routes.
-        router
+        let router = router
             .merge(documentation)
             .method_not_allowed_fallback(method_not_allowed)
             .fallback(|method: Method, uri: Uri| async move {
@@ -208,8 +213,12 @@ where
                 limiters: Arc::clone(&self.rate_limiters),
                 service_secret: Some(Pin::clone(&self.service_secret)),
             })
-            .layer(CatchPanicLayer::custom(panicked))
-            .layer(default_cache_control())
+            .layer(CatchPanicLayer::custom(panicked));
+        let router = match self.cors.layer(prefixes) {
+            Some(cors) => router.layer(cors),
+            None => router,
+        };
+        router.layer(default_cache_control())
     }
 
     /// Attaches authentication and the caller budget to `routes`.
