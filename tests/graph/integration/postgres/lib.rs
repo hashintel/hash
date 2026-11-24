@@ -1,3 +1,4 @@
+#![feature(async_fn_track_caller)]
 #![recursion_limit = "256"]
 #![expect(
     clippy::missing_panics_doc,
