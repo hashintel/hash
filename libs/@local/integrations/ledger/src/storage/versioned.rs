@@ -1,6 +1,8 @@
 use bytes::Bytes;
 use error_stack::{Report, ResultExt as _};
-use object_store::{ObjectMeta, ObjectStoreExt as _, PutMode, PutOptions, PutPayload, UpdateVersion};
+use object_store::{
+    ObjectMeta, ObjectStoreExt as _, PutMode, PutOptions, PutPayload, UpdateVersion,
+};
 
 use super::{Storage, StorageError, location};
 
