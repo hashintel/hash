@@ -174,6 +174,12 @@ export type DurableAgentsServerOptions = ConversationRegistryOptions & {
    */
   readonly isUnavailable?: (error: unknown) => boolean;
   /**
+   * Told when a request fails with an unexpected error and is answered 500;
+   * `console.error` when absent. Not told for `HTTPException` or errors
+   * `isUnavailable` answers 503 for.
+   */
+  readonly onRequestError?: (error: unknown) => void;
+  /**
    * Told when a stopped conversation's work fails to unwind after the stop
    * answered, so no request is left to tell; `console.error` when absent.
    * Not told during `close`, which ends that wait itself.
@@ -314,6 +320,13 @@ export const createDurableAgentsServer = (
       console.error("Stopping conversation %s failed:", conversationId, error);
     });
 
+  const reportRequestError =
+    options.onRequestError ??
+    ((error: unknown) => {
+      // oxlint-disable-next-line no-console -- As Hono's default handler, which this one replaces.
+      console.error(error);
+    });
+
   // Hono's own handler, but a request the server could not serve for now is a 503 the client may retry.
   app.onError((error, ctx) => {
     if (options.isUnavailable?.(error) === true) {
@@ -321,8 +334,7 @@ export const createDurableAgentsServer = (
       return ctx.text("The server is busy; try again shortly.", 503);
     }
     if (error instanceof HTTPException) return error.getResponse();
-    // oxlint-disable-next-line no-console -- As Hono's default handler, which this one replaces.
-    console.error(error);
+    reportRequestError(error);
     return ctx.text("Internal Server Error", 500);
   });
 

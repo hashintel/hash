@@ -54,7 +54,7 @@
  * - an idle pool client's error (`"event": "durable-agents.pool-error"`);
  * - a session check hash-api could not answer, answered 503
  *   (`"event": "durable-agents.session-check"`);
- * - an error the Node adapter answered 500 for
+ * - an unexpected error a request was answered 500 for
  *   (`"event": "durable-agents.serve-error"`).
  *
  * SIGTERM and SIGINT stop serving, close every conversation and end the pool.
@@ -123,7 +123,7 @@ const server = await startDurableAgentsServer({
     logLine({
       level: "error",
       event: "durable-agents.serve-error",
-      message: "A request failed outside the app; it was answered 500.",
+      message: "A request failed unexpectedly; it was answered 500.",
       error: errorText(error),
     });
   },

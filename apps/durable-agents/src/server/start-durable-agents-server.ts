@@ -44,6 +44,7 @@ import {
   type ModelRef,
 } from "@earendil-works/pi-durable";
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import * as v from "valibot";
 
 import {
@@ -91,7 +92,7 @@ export type StartDurableAgentsServerOptions = {
   readonly hostname?: string;
   /** Whether a proxy in front sets `Host` and `X-Forwarded-Proto` (`serveNode`'s `trustProxy`). */
   readonly trustProxy?: boolean;
-  /** Told each error the Node adapter answered 500 for, outside the app's own handler. */
+  /** Told each unexpected error answered 500, in the app, the entry, or the Node adapter. */
   readonly onServeError?: (error: unknown) => void;
   /** The process's one pool; every conversation's schema is opened on it. */
   readonly pool: Pool;
@@ -242,6 +243,7 @@ export const startDurableAgentsServer = async (
     limits: { ...limitsFromEnvironment(process.env), ...options.limits },
     onCrashLoop: options.onCrashLoop,
     onReport: options.onReport,
+    onRequestError: options.onServeError,
     onStopError: options.onStopError,
     isUnavailable: isPoolConnectTimeout,
   });
@@ -263,6 +265,17 @@ export const startDurableAgentsServer = async (
   // each of them; the server's app keeps its `onError`, so a storage timeout
   // is still a 503.
   const app = new Hono();
+  // Catch unexpected throws in the outer app (health, HASH's entry) the same
+  // way `server.app` and `serveNode` do, so none falls through to bare `console.error`.
+  app.onError((error, ctx) => {
+    if (error instanceof HTTPException) return error.getResponse();
+    if (options.onServeError !== undefined) options.onServeError(error);
+    else {
+      // oxlint-disable-next-line no-console -- As Hono's default handler, which this one replaces.
+      console.error(error);
+    }
+    return ctx.text("Internal Server Error", 500);
+  });
   // Ahead of the entry, so a load balancer's probe needs no session.
   app.get(brunchRoutes.health, (request) =>
     request.json({ status: "pass" }, 200, {

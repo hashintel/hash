@@ -115,6 +115,7 @@ type ChatOptions = {
   readonly admitChat?: DurableAgentsServerOptions["admitChat"];
   readonly admitConversation?: DurableAgentsServerOptions["admitConversation"];
   readonly sseHeartbeatMs?: number;
+  readonly onRequestError?: DurableAgentsServerOptions["onRequestError"];
   readonly onStopError?: DurableAgentsServerOptions["onStopError"];
 };
 
@@ -131,6 +132,7 @@ const openChat = ({
   admitChat,
   admitConversation,
   sseHeartbeatMs,
+  onRequestError,
   onStopError,
 }: ChatOptions = {}) => {
   const faux = fauxProvider({
@@ -163,6 +165,7 @@ const openChat = ({
     admitChat,
     admitConversation,
     sseHeartbeatMs,
+    onRequestError,
     onStopError,
     context,
   });
@@ -1835,6 +1838,29 @@ test("a HEAD request is refused before any route runs, so it follows no turn", a
   } finally {
     await listener.close();
   }
+});
+
+test("an unexpected route error is answered 500 without its detail and reported to `onRequestError`", async () => {
+  const failure = new Error("secret database detail");
+  const reported: unknown[] = [];
+  const { server } = openChat({
+    admitConversation: () => Promise.reject(failure),
+    onRequestError: (error) => reported.push(error),
+  });
+  const response = await server.app.request(`${origin}/chat`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      id: chatId,
+      trigger: "submit-message",
+      messages: [
+        { id: "m-1", role: "user", parts: [{ type: "text", text: "Hi" }] },
+      ],
+    }),
+  });
+  expect(response.status).toBe(500);
+  expect(await response.text()).toBe("Internal Server Error");
+  expect(reported).toEqual([failure]);
 });
 
 test("a watched turn outlives the timeout", async () => {
