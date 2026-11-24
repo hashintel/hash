@@ -389,9 +389,8 @@ export const useAgentConversation = ({
    */
   const savedHere = useRef(new Set<EntityId>());
 
-  const subjectSaved = useCallback(
+  const flushUnsaved = useCallback(
     (subject: EntityId) => {
-      savedHere.current.add(subject);
       const intents = unsaved.current.get(subject) ?? [];
       unsaved.current.delete(subject);
       for (const { source, conversationId } of intents) {
@@ -401,6 +400,14 @@ export const useAgentConversation = ({
     [enqueue],
   );
 
+  const subjectSaved = useCallback(
+    (subject: EntityId) => {
+      savedHere.current.add(subject);
+      flushUnsaved(subject);
+    },
+    [flushUnsaved],
+  );
+
   const record = useCallback(
     (source: string, conversationId: string) => {
       if (subjectEntityId === null) {
@@ -408,7 +415,7 @@ export const useAgentConversation = ({
       }
       if (isSaved(subjectEntityId)) {
         // Any it had while a draft, as when it was saved elsewhere, go first.
-        subjectSaved(subjectEntityId);
+        flushUnsaved(subjectEntityId);
         enqueue(source, conversationId, subjectEntityId);
         return;
       }
@@ -418,7 +425,7 @@ export const useAgentConversation = ({
       }
       unsaved.current.set(subjectEntityId, intents);
     },
-    [subjectEntityId, isSaved, subjectSaved, enqueue],
+    [subjectEntityId, isSaved, flushUnsaved, enqueue],
   );
 
   // Called for every message: only the first has anything to write. Skip

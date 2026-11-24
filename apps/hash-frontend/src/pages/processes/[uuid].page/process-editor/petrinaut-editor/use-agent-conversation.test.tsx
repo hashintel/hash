@@ -925,6 +925,28 @@ test("after a failed read on an unsaved draft, start persists both before and af
   );
 });
 
+test("messaging on a saved subject does not bypass the failed-read guard on a later failed read", async () => {
+  const { result, rerender } = renderConversation(processId, true);
+  // First visit: read succeeds and user sends a message (calls record, not subjectSaved).
+  act(() => result.current.start("initial"));
+  await settle();
+  expect(graph.writes).toEqual(created("initial", processId, processWebId));
+
+  // Switch away, clear cached answer for processId, and switch back with a failing read.
+  rerender({ subjectEntityId: otherProcessId });
+  graph.writes.length = 0;
+  graph.answers.clear();
+  graph.failingReads = 1;
+  rerender({ subjectEntityId: processId });
+  await settle();
+  expect(result.current.conversationId).toBeNull();
+
+  // Fallback start must still be skipped so it cannot shadow a newer conversation.
+  act(() => result.current.start("fallback-after-later-read-failure"));
+  await settle();
+  expect(graph.writes).toEqual([]);
+});
+
 test("where the conversation isn't offered, or with no subject, nothing is read", () => {
   const { rerender } = renderHook<
     ReturnType<typeof useAgentConversation>,
