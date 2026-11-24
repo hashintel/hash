@@ -18,8 +18,8 @@ Send    ◄── read(run)        ◄── only that run's files are opened
 | --------- | ------- | -------------------------------------------------------------------- |
 | Moved     | 0       |                                                                      |
 | Adapted   | 35      | `storage/s3.rs`: the bucket is opened at its root for the sync table |
-| New       | 505     | the row and its conversion, opening the table, writing, reading      |
-| **Total** | **540** | **reused 6%**                                                        |
+| New       | 510     | the row and its conversion, opening the table, writing, reading      |
+| **Total** | **545** | **reused 6%**                                                        |
 
 The plan estimated 600 for Iceberg. Delta needs no pointer file and no catalog.
 
@@ -84,7 +84,7 @@ async fn run_files(table, run) -> Result<Vec<LogicalFileView>, _>;   // the file
 
 The first call registers Delta's default log store for `s3://` locations. It commits with "create if absent", which S3 and MinIO support, so no lock and no second service are needed.
 
-**`sync_table/write.rs`: writing a run** (new, 95 lines)
+**`sync_table/write.rs`: writing a run** (new, 100 lines)
 
 ```rust
 pub(crate) async fn write(storage, run, rows: Vec<SyncRow>) -> Result<(), Report<SyncTableError>> {
@@ -102,7 +102,7 @@ pub(crate) async fn write(storage, run, rows: Vec<SyncRow>) -> Result<(), Report
     if actions.is_empty() { return Ok(()); }
     CommitBuilder::from(CommitProperties::default())                    // a checkpoint every 100 commits
         .with_actions(actions)                                           // in one commit, written last
-        .with_read_files(files.iter().map(LogicalFileView::add_action))  // conflicts only over the run's files
+        .with_read_files(files.iter().map(read_file))                    // conflicts only over the run's files
         .build(Some(table.snapshot()?), table.log_store(), DeltaOperation::Write {
             mode: SaveMode::Overwrite, partition_by: Some(vec!["run".into()]), predicate: Some(format!("run = '{run}'")),
         })
@@ -139,7 +139,7 @@ pub(crate) async fn read(storage, run) -> Result<Vec<SyncRow>, Report<SyncTableE
 | --------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------- | ------- | ----- |
 | `sync_table/row.rs`   | `Op`, `SyncRow`, `order_key`, the columns, the two conversions          | none                                                  | new     | 160   |
 | `sync_table/mod.rs`   | `open`, `run_files`, `classify`, the log store for S3, `SyncTableError` | none                                                  | new     | 190   |
-| `sync_table/write.rs` | `write`                                                                 | none                                                  | new     | 95    |
+| `sync_table/write.rs` | `write`                                                                 | none                                                  | new     | 100   |
 | `sync_table/read.rs`  | `read`                                                                  | none                                                  | new     | 60    |
 | `storage/s3.rs`       | `open_bucket`                                                           | `open`, split so the bucket can be opened at its root | adapted | 35    |
 

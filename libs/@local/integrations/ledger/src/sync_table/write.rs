@@ -1,6 +1,6 @@
 use deltalake_core::{
     kernel::{
-        Action, LogicalFileView,
+        Action, Add, LogicalFileView,
         transaction::{CommitBuilder, CommitProperties},
     },
     protocol::{DeltaOperation, SaveMode},
@@ -45,14 +45,7 @@ pub(crate) async fn write(
     }
 
     let files = run_files(&table, run).await?;
-    #[expect(
-        deprecated,
-        reason = "the conflict checker takes the files a commit read as `Add` actions"
-    )]
-    let read_files = files
-        .iter()
-        .map(LogicalFileView::add_action)
-        .collect::<Vec<_>>();
+    let read_files = files.iter().map(read_file).collect::<Vec<_>>();
     let mut actions = files
         .iter()
         .map(|file| Action::Remove(file.remove_action(true)))
@@ -92,4 +85,18 @@ pub(crate) async fn write(
         .await
         .map_err(delta_error)?;
     Ok(())
+}
+
+/// `file` as a file the commit read. The conflict checker takes read files as `Add` actions and
+/// compares only their paths with the files a concurrent commit removed.
+fn read_file(file: &LogicalFileView) -> Add {
+    Add {
+        path: file.path().into_owned(),
+        partition_values: file.partition_values_map(),
+        size: file.size(),
+        modification_time: file.modification_time(),
+        data_change: true,
+        stats: file.stats(),
+        ..Add::default()
+    }
 }

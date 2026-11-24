@@ -22,7 +22,7 @@ Lines are source lines without tests, with doc comments and blank lines. Moved a
 | 1   | `01-crate-and-storage.md`         | agreed                      | 316       | 51        | 237       | 28        | 91%     |
 | 2   | `02-run-state.md`                 | agreed                      | 425       | 0         | 0         | 425       | 0%      |
 | 3   | `03-stage-frame-and-capture.md`   | agreed                      | 305       | 0         | 35        | 270       | 11%     |
-| 4   | `04-sync-table.md`                | waiting for Paul            | 540       | 0         | 35        | 505       | 6%      |
+| 4   | `04-sync-table.md`                | waiting for Paul            | 545       | 0         | 35        | 510       | 6%      |
 | 5   | `05-workspace.md`                 | agreed                      | 690       | 298       | 389       | 3         | 100%    |
 | 6   | `06-sql-steps.md`                 | agreed                      | 328       | 63        | 265       | 0         | 100%    |
 | 7   | `07-ids-and-properties.md`        | agreed                      | 705       | 681       | 20        | 4         | 99%     |
@@ -30,7 +30,7 @@ Lines are source lines without tests, with doc comments and blank lines. Moved a
 | 9   | `09-graph-requests-and-client.md` | agreed                      | 371       | 72        | 240       | 59        | 84%     |
 | 10  | `10-send.md`                      | waiting for Fedor's changes | 440       | 0         | 40        | 400       | 9%      |
 | 11  | `11-whole-pipeline.md`            | agreed                      | 260       | 0         | 20        | 240       | 8%      |
-|     | **All**                           |                             | **5,130** | **1,165** | **1,651** | **2,314** | **55%** |
+|     | **All**                           |                             | **5,135** | **1,165** | **1,651** | **2,319** | **55%** |
 
 The numbers of every milestone come from its source table. This table replaces the estimate in `../plan.md`, step 6.
 
