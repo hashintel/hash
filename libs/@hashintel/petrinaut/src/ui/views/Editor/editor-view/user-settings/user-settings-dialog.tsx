@@ -1,4 +1,3 @@
-import { Tabs } from "@ark-ui/react/tabs";
 import { motionValue } from "motion";
 import {
   use,
@@ -9,7 +8,14 @@ import {
   type ReactNode,
 } from "react";
 
-import { Chip, Dialog, Icon, Select, Toggle } from "@hashintel/ds-components";
+import {
+  Chip,
+  Dialog,
+  Icon,
+  Select,
+  Tabs,
+  Toggle,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useSDCPNState } from "../../../../../react/document/sdcpn-context";
@@ -88,59 +94,60 @@ const layoutStyle = css({
     cursor: "grab",
     touchAction: "none",
   },
-  display: "grid",
-  gridTemplateColumns: "[160px minmax(0, 1fr)]",
   height: "full",
   overflow: "hidden",
   borderRadius: "[inherit]",
   minHeight: "0",
-  "@media (max-width: 600px)": {
-    gridTemplateColumns: "[124px minmax(0, 1fr)]",
-  },
+});
+
+const tabsStyle = css({
+  display: "flex",
+  height: "full",
+  minHeight: "0",
 });
 
 const sidebarStyle = css({
-  userSelect: "none",
-  gridArea: "[1 / 1]",
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  padding: "3",
-  background: "neutral.s10",
-  borderRight: "[1px solid {colors.neutral.s40}]",
-  overflowY: "auto",
-  "@media (max-width: 600px)": { padding: "2" },
+  "&&": {
+    flexShrink: "0",
+    width: "[160px]",
+    background: "neutral.s10",
+    borderRight: "[1px solid {colors.neutral.s40}]",
+    "@media (max-width: 600px)": { width: "[124px]" },
+  },
+  "&& > [data-scope='tabs'][data-part='list']": {
+    padding: "3",
+    "@media (max-width: 600px)": { padding: "2" },
+  },
+  "& [data-scope='tabs'][data-part='indicator']": { display: "none" },
 });
 
 const tabStyle = css({
-  userSelect: "none",
-  display: "flex",
-  alignItems: "center",
-  gap: "2.5",
-  paddingX: "3",
-  paddingY: "2",
-  borderRadius: "lg",
-  fontSize: "sm",
-  fontWeight: "medium",
-  textAlign: "left",
-  color: "neutral.fg.body",
-  cursor: "pointer",
-  position: "relative",
-  transition:
-    "[background-color 140ms ease, color 140ms ease, box-shadow 140ms ease]",
-  _hover: { background: "neutral.s20", color: "neutral.fg.heading" },
-  _selected: {
+  "&&": {
+    gap: "2.5",
+    paddingX: "3",
+    paddingY: "2",
+    borderRadius: "lg",
+    fontSize: "sm",
+    color: "neutral.fg.body",
+    transition:
+      "[background-color 140ms ease, color 140ms ease, box-shadow 140ms ease]",
+    "@media (max-width: 600px)": { paddingX: "2", gap: "2", fontSize: "xs" },
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
+  "&&:hover:not([data-disabled]):not([data-selected])": {
+    background: "neutral.s20",
+    color: "neutral.fg.heading",
+  },
+  "&&[data-selected]": {
     background: "neutral.s00",
     color: "neutral.fg.heading",
     boxShadow:
       "[0 1px 3px rgba(0, 0, 0, 0.06), 0 0 0 1px {colors.neutral.s40}]",
   },
-  _focusVisible: {
+  "&&:focus-visible": {
     outline: "[2px solid {colors.blue.s70}]",
     outlineOffset: "[2px]",
   },
-  "@media (max-width: 600px)": { paddingX: "2", gap: "2", fontSize: "xs" },
-  "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
 });
 
 const descriptionStyle = css({
@@ -348,7 +355,7 @@ const SettingsTabs = () => {
   );
 
   return (
-    <Tabs.List
+    <Tabs.TabList
       ref={(element) => {
         elementRef.current = element;
         member.attach(element);
@@ -369,14 +376,17 @@ const SettingsTabs = () => {
           member.moveFrom(event.key === "ArrowRight" ? "right" : "left");
         }
       }}
-    >
-      {sections.map((item) => (
-        <Tabs.Trigger key={item.id} value={item.id} className={tabStyle}>
-          <Icon name={item.icon} size="sm" />
-          {item.label}
-        </Tabs.Trigger>
-      ))}
-    </Tabs.List>
+      items={sections.map((item) => ({
+        id: item.id,
+        className: tabStyle,
+        children: (
+          <>
+            <Icon name={item.icon} size="sm" />
+            {item.label}
+          </>
+        ),
+      }))}
+    />
   );
 };
 
@@ -453,15 +463,8 @@ export const UserSettingsDialog = ({
           label="User settings"
           getHandleProps={getResizeHandleProps}
         />
-        <Tabs.Root
-          value={section}
-          orientation="vertical"
-          onValueChange={({ value }) => {
-            const selected = sections.find(
-              (candidate) => candidate.id === value,
-            );
-            if (selected) onSectionChange(selected.id);
-          }}
+        <div
+          role="presentation"
           className={layoutStyle}
           {...handleProps}
           onKeyDown={undefined}
@@ -482,111 +485,120 @@ export const UserSettingsDialog = ({
         >
           <FocusRoot>
             <FocusStack axis="horizontal" contain>
-              <SettingsTabs />
-              <SettingsPanel
-                section={section}
-                headingRef={headingRef}
-                animated={settings.showAnimations}
-                heading={
-                  <SettingsHeading
-                    section={item}
-                    animated={settings.showAnimations}
-                  />
-                }
+              <Tabs
+                value={section}
+                onChange={onSectionChange}
+                orientation="vertical"
+                variant="pill"
+                size="sm"
+                className={tabsStyle}
               >
-                <FocusStack key={section} axis="vertical">
-                  {item.id === "general" && (
-                    <>
-                      <SettingsGroup title="Interface">
-                        <SettingToggle
-                          label="Animations"
-                          description="Animate panel transitions and interface interactions."
-                          value={settings.showAnimations}
-                          onChange={settings.setShowAnimations}
-                        />
-                      </SettingsGroup>
-                      <AssistantGroup />
-                      <PluginSettingsRows
-                        section="general"
-                        components={pluginRowComponents}
-                      />
-                    </>
-                  )}
-                  {item.id === "viewport" && (
-                    <>
-                      <SettingsGroup title="Appearance">
-                        <SettingToggle
-                          label="Minimap"
-                          description="Show an overview of your net in the top-right corner."
-                          value={settings.showMinimap}
-                          onChange={settings.setShowMinimap}
-                        />
-                        <SettingToggle
-                          label="Compact nodes"
-                          description="Use smaller nodes to fit more of your net on screen."
-                          value={settings.compactNodes}
-                          onChange={settings.setCompactNodes}
-                        />
-                      </SettingsGroup>
-                      <SettingsGroup title="Interaction">
-                        <SettingToggle
-                          label="Highlight on hover"
-                          description="Highlight a node's neighborhood when the pointer rests on it."
-                          value={settings.highlightOnHover}
-                          onChange={settings.setHighlightOnHover}
-                        />
-                        <SettingToggle
-                          label="Snap to grid"
-                          description="Align nodes to the grid when placing or dragging them."
-                          value={settings.snapToGrid}
-                          onChange={settings.setSnapToGrid}
-                        />
-                        <SettingToggle
-                          label="Partial selection"
-                          description="Select nodes that are only partly inside the selection box."
-                          value={settings.partialSelection}
-                          onChange={settings.setPartialSelection}
-                        />
-                      </SettingsGroup>
-                      <PluginSettingsRows
-                        section="viewport"
-                        components={pluginRowComponents}
-                      />
-                    </>
-                  )}
-                  {item.id === "plugins" && <PluginsSection />}
-                  {item.id === "labs" && (
-                    <>
-                      {extensions.components && (
-                        <SettingsGroup title="Modeling">
+                <SettingsTabs />
+                <SettingsPanel
+                  section={section}
+                  headingRef={headingRef}
+                  animated={settings.showAnimations}
+                  heading={
+                    <SettingsHeading
+                      section={item}
+                      animated={settings.showAnimations}
+                    />
+                  }
+                >
+                  <FocusStack key={section} axis="vertical">
+                    {item.id === "general" && (
+                      <>
+                        <SettingsGroup title="Interface">
                           <SettingToggle
-                            label="Net Components"
-                            description="Build hierarchical nets from components and their instances."
-                            value={settings.enableNetComponents}
-                            onChange={settings.setEnableNetComponents}
+                            label="Animations"
+                            description="Animate panel transitions and interface interactions."
+                            value={settings.showAnimations}
+                            onChange={settings.setShowAnimations}
                           />
                         </SettingsGroup>
-                      )}
-                      <SettingsGroup title="Developer tools">
-                        <SettingToggle
-                          label="Compilation output"
-                          description="Add a Compilation tab to inspect generated code and GPU compatibility."
-                          value={settings.showCompilationOutput}
-                          onChange={settings.setShowCompilationOutput}
+                        <AssistantGroup />
+                        <PluginSettingsRows
+                          section="general"
+                          components={pluginRowComponents}
                         />
-                      </SettingsGroup>
-                      <PluginSettingsRows
-                        section="labs"
-                        components={pluginRowComponents}
-                      />
-                      <HostLabsSettings />
-                    </>
-                  )}
-                </FocusStack>
-              </SettingsPanel>
+                      </>
+                    )}
+                    {item.id === "viewport" && (
+                      <>
+                        <SettingsGroup title="Appearance">
+                          <SettingToggle
+                            label="Minimap"
+                            description="Show an overview of your net in the top-right corner."
+                            value={settings.showMinimap}
+                            onChange={settings.setShowMinimap}
+                          />
+                          <SettingToggle
+                            label="Compact nodes"
+                            description="Use smaller nodes to fit more of your net on screen."
+                            value={settings.compactNodes}
+                            onChange={settings.setCompactNodes}
+                          />
+                        </SettingsGroup>
+                        <SettingsGroup title="Interaction">
+                          <SettingToggle
+                            label="Highlight on hover"
+                            description="Highlight a node's neighborhood when the pointer rests on it."
+                            value={settings.highlightOnHover}
+                            onChange={settings.setHighlightOnHover}
+                          />
+                          <SettingToggle
+                            label="Snap to grid"
+                            description="Align nodes to the grid when placing or dragging them."
+                            value={settings.snapToGrid}
+                            onChange={settings.setSnapToGrid}
+                          />
+                          <SettingToggle
+                            label="Partial selection"
+                            description="Select nodes that are only partly inside the selection box."
+                            value={settings.partialSelection}
+                            onChange={settings.setPartialSelection}
+                          />
+                        </SettingsGroup>
+                        <PluginSettingsRows
+                          section="viewport"
+                          components={pluginRowComponents}
+                        />
+                      </>
+                    )}
+                    {item.id === "plugins" && <PluginsSection />}
+                    {item.id === "labs" && (
+                      <>
+                        {extensions.components && (
+                          <SettingsGroup title="Modeling">
+                            <SettingToggle
+                              label="Net Components"
+                              description="Build hierarchical nets from components and their instances."
+                              value={settings.enableNetComponents}
+                              onChange={settings.setEnableNetComponents}
+                            />
+                          </SettingsGroup>
+                        )}
+                        <SettingsGroup title="Developer tools">
+                          <SettingToggle
+                            label="Compilation output"
+                            description="Add a Compilation tab to inspect generated code and GPU compatibility."
+                            value={settings.showCompilationOutput}
+                            onChange={settings.setShowCompilationOutput}
+                          />
+                        </SettingsGroup>
+                        <PluginSettingsRows
+                          section="labs"
+                          components={pluginRowComponents}
+                        />
+                        <HostLabsSettings />
+                      </>
+                    )}
+                  </FocusStack>
+                </SettingsPanel>
+              </Tabs>
             </FocusStack>
           </FocusRoot>
-        </Tabs.Root>
+        </div>
       </Dialog.Body>
     </Dialog>
   );
