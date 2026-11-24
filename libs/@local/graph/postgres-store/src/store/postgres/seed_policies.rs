@@ -95,6 +95,16 @@ static RECORDS_USAGE_OF: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
 static USER_SECRET: LazyLock<EntityTypeConfig> =
     LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/user-secret/"));
 
+static AGENT_CONVERSATION: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/agent-conversation/")
+});
+
+/// Links an agent conversation to an entity it focuses on. It is private to its creator, as the
+/// conversation is, so it has its own type rather than a general one such as `Has Subject`.
+static HAS_AGENT_CONVERSATION_FOCUS: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/has-agent-conversation-focus/")
+});
+
 static SYNC_LINEAR_DATA_WITH: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
     EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/sync-linear-data-with/")
 });
@@ -620,6 +630,44 @@ fn web_create_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
     })
 }
 
+/// Types that default web policies keep private to the principal that created them, across both
+/// members and administrators. Because access flows through the web's roles, leaving the web ends
+/// access to entities of these types created there.
+fn creator_private_types() -> impl Iterator<Item = EntityResourceFilter> {
+    [
+        AGENT_CONVERSATION.entity_is_of_base_type(),
+        HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
+    ]
+    .into_iter()
+}
+
+/// Permits every entity type except `excluded` and [`creator_private_types`], while still
+/// permitting entities of [`creator_private_types`] created by the acting principal.
+fn all_except_and_creator_private(
+    excluded: impl IntoIterator<Item = EntityResourceFilter>,
+) -> EntityResourceFilter {
+    EntityResourceFilter::Any {
+        filters: vec![
+            EntityResourceFilter::Not {
+                filter: Box::new(EntityResourceFilter::Any {
+                    filters: excluded
+                        .into_iter()
+                        .chain(creator_private_types())
+                        .collect(),
+                }),
+            },
+            EntityResourceFilter::All {
+                filters: vec![
+                    EntityResourceFilter::CreatedByPrincipal,
+                    EntityResourceFilter::Any {
+                        filters: creator_private_types().collect(),
+                    },
+                ],
+            },
+        ],
+    }
+}
+
 fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {
     iter::once(PolicyCreationParams {
         name: Some("default-web-view-entity".to_owned()),
@@ -632,13 +680,24 @@ fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreati
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
             web_id: role.web_id,
             filter: match role.name {
-                RoleName::Administrator => EntityResourceFilter::All { filters: vec![] },
+                RoleName::Administrator => EntityResourceFilter::Any {
+                    filters: vec![
+                        EntityResourceFilter::CreatedByPrincipal,
+                        EntityResourceFilter::Not {
+                            filter: Box::new(EntityResourceFilter::Any {
+                                filters: creator_private_types().collect(),
+                            }),
+                        },
+                    ],
+                },
                 RoleName::Member => EntityResourceFilter::Any {
                     filters: vec![
                         EntityResourceFilter::CreatedByPrincipal,
                         EntityResourceFilter::Not {
                             filter: Box::new(EntityResourceFilter::Any {
-                                filters: vec![USER_SECRET.entity_is_of_base_type()],
+                                filters: iter::once(USER_SECRET.entity_is_of_base_type())
+                                    .chain(creator_private_types())
+                                    .collect(),
                             }),
                         },
                     ],
@@ -660,51 +719,43 @@ fn web_update_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
             web_id: role.web_id,
             filter: match role.name {
-                RoleName::Administrator => EntityResourceFilter::Not {
-                    filter: Box::new(EntityResourceFilter::Any {
-                        filters: vec![
-                            MACHINE.entity_is_of_base_type(),
-                            PROSPECTIVE_USER.entity_is_of_base_type(),
-                            USAGE_RECORD.entity_is_of_base_type(),
-                            INCURRED_IN.entity_is_of_base_type(),
-                            NOTIFICATION.entity_is_of_base_type(),
-                            GRAPH_CHANGE_NOTIFICATION.entity_is_of_base_type(),
-                            COMMENT_NOTIFICATION.entity_is_of_base_type(),
-                            MENTION_NOTIFICATION.entity_is_of_base_type(),
-                            TRIGGERED_BY_USER.entity_is_of_base_type(),
-                            OCCURRED_IN_BLOCK.entity_is_of_base_type(),
-                            OCCURRED_IN_ENTITY.entity_is_of_base_type(),
-                            OCCURRED_IN_COMMENT.entity_is_of_base_type(),
-                            OCCURRED_IN_TEXT.entity_is_of_base_type(),
-                            GOOGLE_ACCOUNT.entity_is_of_base_type(),
-                        ],
-                    }),
-                },
-                RoleName::Member => EntityResourceFilter::Not {
-                    filter: Box::new(EntityResourceFilter::Any {
-                        filters: vec![
-                            MACHINE.entity_is_of_base_type(),
-                            ORGANIZATION.entity_is_of_base_type(),
-                            PROSPECTIVE_USER.entity_is_of_base_type(),
-                            USAGE_RECORD.entity_is_of_base_type(),
-                            INCURRED_IN.entity_is_of_base_type(),
-                            COMMENT.entity_is_of_base_type(),
-                            IS_MEMBER_OF.entity_is_of_base_type(),
-                            NOTIFICATION.entity_is_of_base_type(),
-                            GRAPH_CHANGE_NOTIFICATION.entity_is_of_base_type(),
-                            COMMENT_NOTIFICATION.entity_is_of_base_type(),
-                            MENTION_NOTIFICATION.entity_is_of_base_type(),
-                            TRIGGERED_BY_USER.entity_is_of_base_type(),
-                            OCCURRED_IN_BLOCK.entity_is_of_base_type(),
-                            OCCURRED_IN_ENTITY.entity_is_of_base_type(),
-                            OCCURRED_IN_COMMENT.entity_is_of_base_type(),
-                            OCCURRED_IN_TEXT.entity_is_of_base_type(),
-                            GOOGLE_ACCOUNT.entity_is_of_base_type(),
-                            LINEAR_INTEGRATION.entity_is_of_base_type(),
-                            SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
-                        ],
-                    }),
-                },
+                RoleName::Administrator => all_except_and_creator_private([
+                    MACHINE.entity_is_of_base_type(),
+                    PROSPECTIVE_USER.entity_is_of_base_type(),
+                    USAGE_RECORD.entity_is_of_base_type(),
+                    INCURRED_IN.entity_is_of_base_type(),
+                    NOTIFICATION.entity_is_of_base_type(),
+                    GRAPH_CHANGE_NOTIFICATION.entity_is_of_base_type(),
+                    COMMENT_NOTIFICATION.entity_is_of_base_type(),
+                    MENTION_NOTIFICATION.entity_is_of_base_type(),
+                    TRIGGERED_BY_USER.entity_is_of_base_type(),
+                    OCCURRED_IN_BLOCK.entity_is_of_base_type(),
+                    OCCURRED_IN_ENTITY.entity_is_of_base_type(),
+                    OCCURRED_IN_COMMENT.entity_is_of_base_type(),
+                    OCCURRED_IN_TEXT.entity_is_of_base_type(),
+                    GOOGLE_ACCOUNT.entity_is_of_base_type(),
+                ]),
+                RoleName::Member => all_except_and_creator_private([
+                    MACHINE.entity_is_of_base_type(),
+                    ORGANIZATION.entity_is_of_base_type(),
+                    PROSPECTIVE_USER.entity_is_of_base_type(),
+                    USAGE_RECORD.entity_is_of_base_type(),
+                    INCURRED_IN.entity_is_of_base_type(),
+                    COMMENT.entity_is_of_base_type(),
+                    IS_MEMBER_OF.entity_is_of_base_type(),
+                    NOTIFICATION.entity_is_of_base_type(),
+                    GRAPH_CHANGE_NOTIFICATION.entity_is_of_base_type(),
+                    COMMENT_NOTIFICATION.entity_is_of_base_type(),
+                    MENTION_NOTIFICATION.entity_is_of_base_type(),
+                    TRIGGERED_BY_USER.entity_is_of_base_type(),
+                    OCCURRED_IN_BLOCK.entity_is_of_base_type(),
+                    OCCURRED_IN_ENTITY.entity_is_of_base_type(),
+                    OCCURRED_IN_COMMENT.entity_is_of_base_type(),
+                    OCCURRED_IN_TEXT.entity_is_of_base_type(),
+                    GOOGLE_ACCOUNT.entity_is_of_base_type(),
+                    LINEAR_INTEGRATION.entity_is_of_base_type(),
+                    SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
+                ]),
             },
         })),
     }];
@@ -742,44 +793,36 @@ fn web_archive_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCre
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
             web_id: role.web_id,
             filter: match role.name {
-                RoleName::Administrator => EntityResourceFilter::Not {
-                    filter: Box::new(EntityResourceFilter::Any {
-                        filters: vec![
-                            MACHINE.entity_is_of_base_type(),
-                            ORGANIZATION.entity_is_of_base_type(),
-                            PROSPECTIVE_USER.entity_is_of_base_type(),
-                            USAGE_RECORD.entity_is_of_base_type(),
-                            INCURRED_IN.entity_is_of_base_type(),
-                            TRIGGERED_BY_USER.entity_is_of_base_type(),
-                            OCCURRED_IN_BLOCK.entity_is_of_base_type(),
-                            OCCURRED_IN_ENTITY.entity_is_of_base_type(),
-                            OCCURRED_IN_COMMENT.entity_is_of_base_type(),
-                            OCCURRED_IN_TEXT.entity_is_of_base_type(),
-                            GOOGLE_ACCOUNT.entity_is_of_base_type(),
-                        ],
-                    }),
-                },
-                RoleName::Member => EntityResourceFilter::Not {
-                    filter: Box::new(EntityResourceFilter::Any {
-                        filters: vec![
-                            MACHINE.entity_is_of_base_type(),
-                            ORGANIZATION.entity_is_of_base_type(),
-                            PROSPECTIVE_USER.entity_is_of_base_type(),
-                            USAGE_RECORD.entity_is_of_base_type(),
-                            INCURRED_IN.entity_is_of_base_type(),
-                            COMMENT.entity_is_of_base_type(),
-                            IS_MEMBER_OF.entity_is_of_base_type(),
-                            TRIGGERED_BY_USER.entity_is_of_base_type(),
-                            OCCURRED_IN_BLOCK.entity_is_of_base_type(),
-                            OCCURRED_IN_ENTITY.entity_is_of_base_type(),
-                            OCCURRED_IN_COMMENT.entity_is_of_base_type(),
-                            OCCURRED_IN_TEXT.entity_is_of_base_type(),
-                            GOOGLE_ACCOUNT.entity_is_of_base_type(),
-                            LINEAR_INTEGRATION.entity_is_of_base_type(),
-                            SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
-                        ],
-                    }),
-                },
+                RoleName::Administrator => all_except_and_creator_private([
+                    MACHINE.entity_is_of_base_type(),
+                    ORGANIZATION.entity_is_of_base_type(),
+                    PROSPECTIVE_USER.entity_is_of_base_type(),
+                    USAGE_RECORD.entity_is_of_base_type(),
+                    INCURRED_IN.entity_is_of_base_type(),
+                    TRIGGERED_BY_USER.entity_is_of_base_type(),
+                    OCCURRED_IN_BLOCK.entity_is_of_base_type(),
+                    OCCURRED_IN_ENTITY.entity_is_of_base_type(),
+                    OCCURRED_IN_COMMENT.entity_is_of_base_type(),
+                    OCCURRED_IN_TEXT.entity_is_of_base_type(),
+                    GOOGLE_ACCOUNT.entity_is_of_base_type(),
+                ]),
+                RoleName::Member => all_except_and_creator_private([
+                    MACHINE.entity_is_of_base_type(),
+                    ORGANIZATION.entity_is_of_base_type(),
+                    PROSPECTIVE_USER.entity_is_of_base_type(),
+                    USAGE_RECORD.entity_is_of_base_type(),
+                    INCURRED_IN.entity_is_of_base_type(),
+                    COMMENT.entity_is_of_base_type(),
+                    IS_MEMBER_OF.entity_is_of_base_type(),
+                    TRIGGERED_BY_USER.entity_is_of_base_type(),
+                    OCCURRED_IN_BLOCK.entity_is_of_base_type(),
+                    OCCURRED_IN_ENTITY.entity_is_of_base_type(),
+                    OCCURRED_IN_COMMENT.entity_is_of_base_type(),
+                    OCCURRED_IN_TEXT.entity_is_of_base_type(),
+                    GOOGLE_ACCOUNT.entity_is_of_base_type(),
+                    LINEAR_INTEGRATION.entity_is_of_base_type(),
+                    SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
+                ]),
             },
         })),
     })
