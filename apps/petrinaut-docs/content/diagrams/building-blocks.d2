@@ -19,7 +19,7 @@ petrinaut: "@hashintel/petrinaut" {
 }
 
 core: "Core\n@hashintel/petrinaut-core\ndocument, compiler, runtimes, language service" {class: core}
-workers: "Workers\nlanguage server, event simulation,\nframe simulation, Monte Carlo, optimizer" {class: core}
+workers: "Workers\nlanguage server, event simulation,\nMonte Carlo, optimizer" {class: core}
 
 host -> petrinaut.ui: "imports the editor\nand the preview from"
 host -> core: "imports handles\nand worker factories from"

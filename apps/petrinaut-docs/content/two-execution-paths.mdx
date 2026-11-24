@@ -19,10 +19,6 @@ this path.
 reusable buffers per run, and send only metric aggregates to the main thread.
 Frame buffers never leave the worker.
 
-A third runtime keeps every frame in a store: `createSimulation` in
-[the simulation controller](layer:core.simulation.runtime). The package exports
-it, and the editor starts no run through it.
-
 ## Why an experiment does not reuse the single run
 
 An experiment is hundreds or thousands of runs. Keeping the recorded states of
@@ -41,9 +37,9 @@ adaptive stepper has an advance of its own in `steppers/adaptive-stepper.ts`,
 on the same run buffers, and serves both paths as well.
 
 `computeNextFrame` in [the engine](layer:core.simulation.engine) is a second
-implementation of the step, in `engine/compute-next-frame.ts`. It serves
-`createSimulation` and the `compiled-model` entry, and neither path of the
-editor. A change to the order of a step is made in both files.
+implementation of the step, in `engine/compute-next-frame.ts`. It serves the
+`compiled-model` entry, which runs a net in the calling thread, and neither
+path of the editor. A change to the order of a step is made in both files.
 
 The runtimes around the step are separate, so a change to how a run starts or
 ends is made once in [the event trace](layer:core.simulation.event-trace) and

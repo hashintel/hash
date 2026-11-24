@@ -62,8 +62,8 @@ lists below group the guides to read first.
 Detail the generated pages do not carry: binary formats, message protocols,
 and the costs behind each design choice.
 
-- [Memory model](doc:core.simulation.frames/memory-model): which buffer lives on
-  which thread, and the frame format.
+- [Memory model](doc:core.simulation.frames/memory-model): the frame format,
+  how a frame is read, and where the frames of a run live.
 - [How a step is computed](doc:core.simulation.engine/stepping): the fixed
   stage order, and determinism.
 - [Compiling user code](doc:core.hir/user-code): the HIR
@@ -76,9 +76,6 @@ and the costs behind each design choice.
 - [Monte Carlo worker protocol](doc:core.simulation.monte-carlo.worker/protocol):
   the messages of one shard of an experiment, and how a worker is reset for
   the next one.
-- [Worker protocol and backpressure](doc:core.simulation.worker/protocol):
-  the messages and the ack contract of the frame runtime, which is for other
-  hosts: the editor starts no run through it.
 
 ### Editor
 

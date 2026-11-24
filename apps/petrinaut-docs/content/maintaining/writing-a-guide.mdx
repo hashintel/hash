@@ -81,8 +81,8 @@ with these sections:
 | Flow control       | What bounds how far one side runs ahead of the other.                    |
 | Lifecycle          | The states of each side, and the message that moves it from one to next. |
 
-[Worker protocol and backpressure](doc:core.simulation.worker/protocol) is
-the model for such a page. A channel without flow control keeps the section
+[Monte Carlo worker protocol](doc:core.simulation.monte-carlo.worker/protocol)
+is the model for such a page. A channel without flow control keeps the section
 and says so. The optimizer's worker has no such page: its messages are steps
 of the study loop, which
 [The browser runtime](doc:core.optimization.browser/browser-runtime) states
