@@ -201,15 +201,15 @@ gives its readers.
   ]}
 />
 
-| Memory             | Structure                                                         | Thread              | Lifetime                                                                                     |
-| ------------------ | ----------------------------------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------- |
-| SDCPN document     | Plain JS objects (editor state)                                   | Main                | Structured-cloned into the worker at `init`. Later edits do not reach a run.                 |
-| Initial marking    | JSON: a count or `TokenRecord[]` per place                        | Main                | Packed into frame 0 by `buildSimulation`.                                                    |
-| Run buffers        | 2 × `MonteCarloFrameBuffer` per run                               | Either worker       | Current and next, for the whole run. They never cross to the main thread.                    |
-| Frame of an event  | `ArrayBuffer`: a 64-byte header, typed sections and packed tokens | Event worker → Main | Copied out of the current run buffer when a state is recorded. Kept by the trace store.      |
-| Interpolated frame | A copy of an event's frame                                        | Main                | Made by `getStateAt` for a time after the event, in a net with dynamics. Its reader owns it. |
-| Metric aggregates  | Accumulator states per sample                                     | Monte Carlo → Main  | Posted as `metricFrames`. No frame of a run goes with them.                                  |
-| Compiled user code | Versioned HIR buffer programs                                     | Workers             | Instantiated once at `init` from the artifacts the language worker compiled.                 |
+| Memory             | Structure                                                         | Thread                                                                      | Lifetime                                                                                         |
+| ------------------ | ----------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| SDCPN document     | Plain JS objects (editor state)                                   | Main                                                                        | Structured-cloned into the worker at `init`. Later edits do not reach a run.                     |
+| Initial marking    | JSON: a count or `TokenRecord[]` per place                        | Main                                                                        | Packed into frame 0 by `buildSimulation`.                                                        |
+| Run buffers        | 2 × `MonteCarloFrameBuffer` per run                               | The worker of the run, or the calling thread of an experiment in local mode | Current and next, for the whole run. No message carries them.                                    |
+| Frame of an event  | `ArrayBuffer`: a 64-byte header, typed sections and packed tokens | Event worker → Main                                                         | Copied out of the current run buffer when a state is recorded. Kept by the trace store.          |
+| Interpolated frame | A copy of an event's frame                                        | Main                                                                        | Made by `getStateAt` for a time after the event, in a net with dynamics. Its reader owns it.     |
+| Metric aggregates  | Accumulator states per sample                                     | Monte Carlo → Main                                                          | Posted as `metricFrames`. No frame of a run goes with them.                                      |
+| Compiled user code | Versioned HIR buffer programs                                     | With the run buffers                                                        | Instantiated when a run is built, once per run, from the artifacts the language worker compiled. |
 
 A run buffer is no frame of the format above. It has no header, and its token
 region has spare capacity so that a step can add tokens without a new
