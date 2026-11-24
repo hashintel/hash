@@ -11,6 +11,15 @@ const Reason = Schema.TaggedUnion({
   UnsupportedMerge: { name: Schema.String, kinds: Schema.Array(Schema.String) },
   UnresolvedReference: { file: Schema.String, text: Schema.String },
   UnreservedReference: { name: Schema.String, owner: Schema.String },
+  SharedEntrypoint: {
+    file: Schema.String,
+    entrypoints: Schema.Array(Schema.String),
+  },
+  AnonymousAlias: {
+    file: Schema.String,
+    name: Schema.String,
+    typeOnlyExport: Schema.Boolean,
+  },
 });
 
 /** Parsing stops for missing or unsupported declaration input. */
@@ -31,6 +40,10 @@ export class ParseError extends Schema.TaggedError<ParseError>()("ParseError", {
         `Unresolved reference ${text} in ${file}`,
       UnreservedReference: ({ name, owner }) =>
         `Reference to ${name} before ${owner} reserved its node`,
+      SharedEntrypoint: ({ file, entrypoints }) =>
+        `Entrypoints ${entrypoints.join(", ")} share ${file}`,
+      AnonymousAlias: ({ file, name, typeOnlyExport }) =>
+        `Anonymous declaration in ${file} exported ${typeOnlyExport ? "type-only " : ""}as ${name} needs a name of its own`,
     });
   }
 }
@@ -76,3 +89,18 @@ export const unresolvedReference = (fields: {
   readonly text: string;
 }): ParseError =>
   ParseError.make({ reason: { _tag: "UnresolvedReference", ...fields } });
+
+/** An entrypoint names a module another entrypoint already names. */
+export const sharedEntrypoint = (fields: {
+  readonly file: string;
+  readonly entrypoints: readonly string[];
+}): ParseError =>
+  ParseError.make({ reason: { _tag: "SharedEntrypoint", ...fields } });
+
+/** A namespace exports an anonymous declaration type-only or under a name other than `default`, which no export statement can spell. */
+export const anonymousAlias = (fields: {
+  readonly file: string;
+  readonly name: string;
+  readonly typeOnlyExport: boolean;
+}): ParseError =>
+  ParseError.make({ reason: { _tag: "AnonymousAlias", ...fields } });

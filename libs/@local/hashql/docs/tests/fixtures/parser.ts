@@ -4,7 +4,7 @@ import {
   TSDocTagDefinition,
   TSDocTagSyntaxKind,
 } from "@microsoft/tsdoc";
-import { Context, Effect, Layer, flow } from "effect";
+import { Array, Context, Effect, Layer, flow } from "effect";
 
 import * as DocumentationParser from "../../src/DocumentationParser.js";
 import * as Parser from "../../src/Parser.js";
@@ -35,8 +35,11 @@ export const configuration = (): TSDocConfiguration => {
   return value;
 };
 
-/** The fixture parsed into a store, or the failure that stopped the parse. The compiler stops when the parse finishes. */
-export const parse = Effect.fnUntraced(function* (options: Compiler.Options) {
+/** The fixture parsed into a store under each of `entrypoints`, or the failure that stopped the parse. The compiler stops when the parse finishes. */
+export const parse = Effect.fnUntraced(function* (
+  options: Compiler.Options,
+  entrypoints: readonly string[] = ["fixture"],
+) {
   // The parse reads paths through the Node services.
   const services = yield* Layer.build(
     Layer.mergeAll(
@@ -49,7 +52,9 @@ export const parse = Effect.fnUntraced(function* (options: Compiler.Options) {
     ),
   );
   const { source } = Context.get(services, Compiler.Fixture);
-  return yield* Parser.parse([["fixture", source]]).pipe(
+  return yield* Parser.parse(
+    Array.map(entrypoints, (name) => [name, source] as const),
+  ).pipe(
     Effect.map(({ ast }): AST.Store["Service"] => ast),
     Effect.result,
     Effect.provide(services),
