@@ -79,11 +79,11 @@ where
     }
 }
 
-/// Converts a value-only HIR [`Value`](HirValue) into a runtime MIR [`Value`].
+/// Converts a value-only [`hir::Value`] into a runtime [`mir::Value`].
 ///
 /// Struct field name slices are interned into `symbols`. Retained aggregate storage allocates in
 /// `alloc`, and temporary field-name buffers allocate in `scratch`. Empty tuples lower to
-/// [`Value::Unit`], and integers outside the `i128` range widen to [`Value::Number`].
+/// [`mir::Value::Unit`], and integers outside the `i128` range widen to [`mir::Value::Number`].
 #[must_use]
 pub fn from_hir_value_in<'heap, A, S>(
     value: hir::Value<'heap>,
