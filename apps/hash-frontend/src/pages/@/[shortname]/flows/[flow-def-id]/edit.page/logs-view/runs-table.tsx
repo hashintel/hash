@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Icon, SortMenu, Tabs, TextInput } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -183,6 +183,8 @@ export const RunsTable = ({
   const [searchText, setSearchText] = useState("");
   /* The inputs of the run Re-run was picked for, which open its form. Kept here, as its row may leave the table. */
   const [rerunInputs, setRerunInputs] = useState<FlowInputValues | null>(null);
+  /* The run Re-run was last picked for, so a slower read of an earlier pick can't replace its inputs. */
+  const rerunPick = useRef<EntityId | null>(null);
   const [shownFilters, setShownFilters] = useState<RunFilterProperty[]>([]);
   const [addedFilter, setAddedFilter] = useState<RunFilterProperty | null>(
     null,
@@ -347,7 +349,14 @@ export const RunsTable = ({
                       row={row}
                       rerunBlocker={rerunBlocker}
                       onOpen={openRun}
-                      onRerun={setRerunInputs}
+                      onRerunPick={() => {
+                        rerunPick.current = row.flowRunEntityId;
+                      }}
+                      onRerun={(flowInputs) => {
+                        if (rerunPick.current === row.flowRunEntityId) {
+                          setRerunInputs(flowInputs);
+                        }
+                      }}
                     />
                   </span>
                 </td>

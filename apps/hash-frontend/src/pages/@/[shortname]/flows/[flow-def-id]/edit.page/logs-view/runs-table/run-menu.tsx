@@ -22,12 +22,15 @@ export const RunMenu = ({
   row,
   rerunBlocker,
   onOpen,
+  onRerunPick,
   onRerun,
 }: {
   row: RunRow;
   /** Why the flow can't be run, if it can't. */
   rerunBlocker: string | null;
   onOpen: () => void;
+  /** Called when Re-run is picked, before the run's inputs are read. */
+  onRerunPick: () => void;
   onRerun: (flowInputs: FlowInputValues) => void;
 }) => {
   const client = useApolloClient();
@@ -40,6 +43,7 @@ export const RunMenu = ({
 
   /* The table's runs don't carry their inputs. */
   const rerun = async () => {
+    onRerunPick();
     setReading(true);
 
     try {
