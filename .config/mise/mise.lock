@@ -81,7 +81,7 @@ url_api = "https://api.github.com/repos/cargo-bins/cargo-binstall/releases/asset
 provenance = "github-attestations"
 
 [[tools."cargo:cargo-codspeed"]]
-version = "4.1.0"
+version = "6.0.0"
 backend = "cargo:cargo-codspeed"
 
 [[tools."cargo:cargo-hack"]]

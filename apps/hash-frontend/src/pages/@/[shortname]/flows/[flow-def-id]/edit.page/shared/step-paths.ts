@@ -12,6 +12,8 @@ export type StepPath = {
   renamable: boolean;
   /** When the step takes the path. */
   help: string;
+  /** Whether the step's condition is set on this path: the one taken when it matches. */
+  showsCondition?: boolean;
 };
 
 /** By action, in card order. */
@@ -22,6 +24,7 @@ const actionPaths: Partial<Record<string, StepPath[]>> = {
       name: "Yes",
       renamable: true,
       help: "When the condition matches",
+      showsCondition: true,
     },
     {
       outputName: "false",

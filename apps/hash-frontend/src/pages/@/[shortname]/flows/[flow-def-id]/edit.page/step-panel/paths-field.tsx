@@ -12,6 +12,7 @@ import type {
   FlowDefinition,
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
+import type { ReactNode } from "react";
 
 const pathGroup = css({
   display: "flex",
@@ -40,20 +41,23 @@ const getAllSteps = (
   ]);
 
 /**
- * Each path's name and next step. The next step is the path's connection, as drawn on the canvas: a path with several
- * shows the first, and picking a step makes it the only one.
+ * Each path's name, its condition when it has the step's, and its next step. The next step is the path's connection,
+ * as drawn on the canvas: a path with several shows the first, and picking a step makes it the only one.
  */
 export const PathsField = ({
   editor,
   flowDefinition,
   step,
   paths,
+  condition,
   readOnly,
 }: {
   editor: FlowEditor;
   flowDefinition: FlowDefinition<string>;
   step: StepDefinition<string>;
   paths: StepPath[];
+  /** The step's condition field, shown on the path that has it. */
+  condition?: ReactNode;
   /** Inside a for-each step (FE-1915). */
   readOnly: boolean;
 }) => {
@@ -91,6 +95,7 @@ export const PathsField = ({
         )}
         <span className={help}>{path.help}</span>
         <Form.Section>
+          {path.showsCondition && condition}
           <Form.Field layout="inline" label="Goes to">
             <Select
               size="sm"
