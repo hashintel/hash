@@ -70,6 +70,9 @@ const serializeTypeIds = (
             ...(schema.kind === "dataType"
               ? {
                   title: schema.title,
+                  ...(schema.titlePlural === undefined
+                    ? {}
+                    : { titlePlural: schema.titlePlural }),
                   description: schema.description,
                 }
               : {}),
