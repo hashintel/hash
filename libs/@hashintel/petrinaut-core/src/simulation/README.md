@@ -22,7 +22,7 @@ experiment have a runtime each.
 | The contract  | `api.ts`                                      | The types a host sees whichever runtime computes: `SimulationState`, `InitialMarking`, `SimulationFrameReader`, `SimulationTransport`, `WorkerFactory`. |
 | The transport | `worker-transport.ts`                         | Wraps a worker factory in a `SimulationTransport` that queues messages until the worker has booted.                                                     |
 | Token values  | [`../tokens/`](layer:core.tokens)             | What a token attribute is in a document, in memory and packed in a buffer.                                                                              |
-| The engine    | [`engine/`](layer:core.simulation.engine)     | `buildSimulation`, which every runtime calls to compile a net with its HIR artifacts, and `computeNextFrame`, the step of the frame runtime.            |
+| The engine    | [`engine/`](layer:core.simulation.engine)     | `buildSimulation`, which every runtime calls to compile a net with its HIR artifacts, and `computeNextFrame`, the step of the compiled model.           |
 | Frames        | [`frames/`](layer:core.simulation.frames)     | The layout of a frame buffer and the readers a host inspects one with. [Memory model](doc:core.simulation.frames/memory-model) has the format.          |
 | Steppers      | [`steppers/`](layer:core.simulation.steppers) | How a run gets from one time to the next: a fixed step, an untimed step, or an error-controlled solver.                                                 |
 
@@ -31,24 +31,22 @@ blames, which a runtime passes on as `itemId`.
 
 ## The runtimes
 
-| Runtime                                                                                         | Entry                                          | What it keeps                                                               | Who starts it                                                                                                      |
-| ----------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| [Event trace](layer:core.simulation.event-trace)                                                | `createEventSimulation` in `event-trace/`      | The states its stepper finds worth recording, read at any time between them | The editor's Quick Simulation and the preview's, through a simulator of [`core.simulators`](layer:core.simulators) |
-| [Monte Carlo](layer:core.simulation.monte-carlo)                                                | `createMonteCarloExperiment` in `monte-carlo/` | Two buffers per run, and metric aggregates on the host                      | The editor's experiments, through a backend of [`core.experiments`](layer:core.experiments)                        |
-| Frame runtime, [host](layer:core.simulation.runtime) and [worker](layer:core.simulation.worker) | `createSimulation` in `runtime/`               | Every frame of the run                                                      | A host that calls it. The editor starts no run through it.                                                         |
+| Runtime                                          | Entry                                          | What it keeps                                                               | Who starts it                                                                                                      |
+| ------------------------------------------------ | ---------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| [Event trace](layer:core.simulation.event-trace) | `createEventSimulation` in `event-trace/`      | The states its stepper finds worth recording, read at any time between them | The editor's Quick Simulation and the preview's, through a simulator of [`core.simulators`](layer:core.simulators) |
+| [Monte Carlo](layer:core.simulation.monte-carlo) | `createMonteCarloExperiment` in `monte-carlo/` | Two buffers per run, and metric aggregates on the host                      | The editor's experiments, through a backend of [`core.experiments`](layer:core.experiments)                        |
 
 Each runtime talks to the worker that computes through messages. The
 protocols are on pages of their own:
-[event worker](doc:core.simulation.event-trace.worker/protocol),
-[Monte Carlo worker](doc:core.simulation.monte-carlo.worker/protocol) and
-[frame worker](doc:core.simulation.worker/protocol).
+[event worker](doc:core.simulation.event-trace.worker/protocol) and
+[Monte Carlo worker](doc:core.simulation.monte-carlo.worker/protocol).
 [Worker sharding](doc:core.simulation.monte-carlo/worker-sharding) says how
 an experiment splits its runs over several Monte Carlo workers.
 
 `compilePetrinautModel` in `compiled-model.ts`, published as
 `@hashintel/petrinaut-core/compiled-model`, runs a net in the calling thread
-without a worker. It steps with `computeNextFrame`, as the frame runtime
-does.
+without a worker. It steps with `computeNextFrame` and keeps the latest
+frame only.
 
 ## Where a run is advanced
 
@@ -62,7 +60,7 @@ worker reads a recorded state from those buffers, so the event trace imports
 
 A change to the order of a fixed step is made in
 `monte-carlo/advance-run.ts` for Quick Simulation and experiments, and in
-`engine/compute-next-frame.ts` for the frame runtime and the compiled model.
+`engine/compute-next-frame.ts` for the compiled model.
 The adaptive stepper advances in `steppers/adaptive-stepper.ts`.
 [How a step is computed](doc:core.simulation.engine/stepping) states the
 order.

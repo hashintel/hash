@@ -886,9 +886,11 @@ type SimulationHandle = {
 engine takes its step from a backend option at construction, the same way
 the GPU backend takes its ODE method. `demand` replaces `ack`: the consumer
 names the time it wants computed, the backend runs until its trace covers it
-and then waits, which is the backpressure contract of
-[Worker protocol and backpressure](doc:core.simulation.worker/protocol) with time in
-place of frame counts.
+and then waits. That is the contract of the frame worker this note started
+from, which waited for an `ack` of the frames it had sent, with time in place
+of frame counts.
+[Event worker protocol and demand](doc:core.simulation.event-trace.worker/protocol)
+states the demand as it is built.
 
 The worker protocol gains `events` batches in place of `frames`, a
 `getState` request and response, and `sampleStates`. The transport, the

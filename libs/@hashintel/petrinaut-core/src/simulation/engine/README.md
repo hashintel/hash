@@ -13,12 +13,12 @@ The engine builds an SDCPN definition into a runnable `SimulationInstance` and
 computes frames by evaluating transitions and differential equations. It
 compiles nothing: `buildSimulation` takes the HIR artifacts the language
 worker produced and instantiates them through `src/hir-runtime.ts`. It owns
-the stepping state of the frame runtime. The frame layout is in
-[`frames/`](layer:core.simulation.frames) and the token layout in
+`SimulationInstance`, the state `computeNextFrame` steps. The frame layout is
+in [`frames/`](layer:core.simulation.frames) and the token layout in
 [`tokens/`](layer:core.tokens).
 
 Every runtime builds with `buildSimulation`. `computeNextFrame` steps the
-frame runtime and the compiled model. The editor's runs step through
+compiled model of `../compiled-model.ts`. The editor's runs step through
 [the steppers](layer:core.simulation.steppers) and `advanceRun` in
 `../monte-carlo/advance-run.ts`, as
 [Two execution paths](doc:two-execution-paths) describes.
@@ -58,9 +58,9 @@ arc weights.
 
 ## Internal EngineFrame
 
-A snapshot of simulation state. The run controller owns frame number and
-simulation time; `EngineFrame` only stores the state needed to advance the
-simulation. Public callers should read frames through `SimulationFrameReader`.
+A snapshot of simulation state. `SimulationInstance` holds the frame number
+and the simulation time; `EngineFrame` only stores the state needed to advance
+the simulation. Public callers should read frames through `SimulationFrameReader`.
 
 ```typescript
 type EngineFrame = ArrayBuffer;
