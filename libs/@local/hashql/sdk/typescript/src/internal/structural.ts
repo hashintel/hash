@@ -52,7 +52,7 @@ const collectionPaths = Record.map(
 /**
  * Checks that no two fields share a name.
  *
- * Fields compare by {@link JExpr.Ident.name}, so `+` and `` `+` ``, or the precomposed `"\u00E9"` and the combining `"e\u0301"`, are one field. Comparing names reports the later spelling before the struct reaches syntax.
+ * Fields compare by {@link JExpr.Ident.name}, so `+` and <code>\`+\`</code>, or the precomposed `"\u00E9"` and the combining `"e\u0301"`, are one field. Comparing names reports the later spelling before the struct reaches syntax.
  */
 const distinct = <
   F extends { readonly key: string; readonly name: JExpr.Ident.Ident },

@@ -1,5 +1,6 @@
 #![expect(clippy::min_ident_chars, reason = "tests")]
-use std::{assert_matches, io::Write as _, path::PathBuf};
+use core::assert_matches;
+use std::{io::Write as _, path::PathBuf};
 
 use bstr::ByteVec as _;
 use hashql_core::{

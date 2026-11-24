@@ -86,6 +86,7 @@ export default defineConfig({
     "./src/components/tiled-network-graph/**/*.{ts,tsx}",
     "./src/pages/flows.page.tsx",
     "./src/pages/flows.page/**/*.{ts,tsx}",
+    "./src/pages/flows/**/*.{ts,tsx}",
     "./src/pages/@/*/flows/**/*.{ts,tsx}",
     "./src/pages/shared/filter-bar/filter-chip-pill-chrome.ts",
     "./src/pages/shared/sort-menu-chrome.ts",

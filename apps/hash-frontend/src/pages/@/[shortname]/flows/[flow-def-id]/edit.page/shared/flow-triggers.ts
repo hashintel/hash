@@ -1,6 +1,8 @@
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+
 import { formatScheduleSpec } from "../../../../../../shared/use-flow-schedules";
 
-import type { EntityId } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
 import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -8,6 +10,9 @@ import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/flo
 
 /** What can start a run of a flow. Every flow can be run by hand, so Manual is always on. */
 export type TriggerKind = "manual" | "schedule";
+
+/** The flow's schedules, or why they aren't known yet: still loading, or failed to load (they're fetched again). */
+export type FlowSchedules = TriggerRow[] | "loading" | "unavailable";
 
 /** One of the flow's schedules, as the triggers panel lists it. */
 export type TriggerRow = {
@@ -64,3 +69,22 @@ export const filterTriggerRows = (
       row.text.toLowerCase().includes(term),
   );
 };
+
+/**
+ * What started a run, for its card: Manual, as a run doesn't record who started it, or the schedule that did, by its
+ * text. That's left out for a schedule that's no longer one of the flow's, e.g. one archived since.
+ */
+export const getRunTrigger = (
+  flowScheduleId: EntityUuid | null,
+  schedules: FlowSchedules,
+): { kind: TriggerKind; line: string } =>
+  flowScheduleId === null
+    ? { kind: "manual", line: "" }
+    : {
+        kind: "schedule",
+        line:
+          (Array.isArray(schedules) ? schedules : []).find(
+            ({ entityId }) =>
+              extractEntityUuidFromEntityId(entityId) === flowScheduleId,
+          )?.text ?? "",
+      };

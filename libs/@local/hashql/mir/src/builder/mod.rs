@@ -97,20 +97,22 @@ pub use self::{
 /// Comparison and logical operators are supported:
 ///
 /// ```
+/// use core::assert_matches;
+///
 /// use hashql_mir::body::rvalue::BinOp;
 /// use hashql_mir::op;
 ///
 /// // Bitwise
-/// assert!(matches!(op![&], BinOp::BitAnd));
-/// assert!(matches!(op![|], BinOp::BitOr));
+/// assert_matches!(op![&], BinOp::BitAnd);
+/// assert_matches!(op![|], BinOp::BitOr);
 ///
 /// // Comparison
-/// assert!(matches!(op![==], BinOp::Eq));
-/// assert!(matches!(op![!=], BinOp::Ne));
-/// assert!(matches!(op![<], BinOp::Lt));
-/// assert!(matches!(op![<=], BinOp::Lte));
-/// assert!(matches!(op![>], BinOp::Gt));
-/// assert!(matches!(op![>=], BinOp::Gte));
+/// assert_matches!(op![==], BinOp::Eq);
+/// assert_matches!(op![!=], BinOp::Ne);
+/// assert_matches!(op![<], BinOp::Lt);
+/// assert_matches!(op![<=], BinOp::Lte);
+/// assert_matches!(op![>], BinOp::Gt);
+/// assert_matches!(op![>=], BinOp::Gte);
 /// ```
 ///
 /// Arithmetic operators are also available (`op![+]`, `op![-]`, `op![*]`, `op![/]`),
@@ -119,11 +121,13 @@ pub use self::{
 /// # Unary Operators
 ///
 /// ```
+/// use core::assert_matches;
+///
 /// use hashql_mir::body::rvalue::UnOp;
 /// use hashql_mir::op;
 ///
-/// assert!(matches!(op![neg], UnOp::Neg)); // `neg` is used since `-` alone is ambiguous
-/// assert!(matches!(op![~], UnOp::BitNot));
+/// assert_matches!(op![neg], UnOp::Neg); // `neg` is used since `-` alone is ambiguous
+/// assert_matches!(op![~], UnOp::BitNot);
 /// ```
 #[macro_export]
 macro_rules! op {

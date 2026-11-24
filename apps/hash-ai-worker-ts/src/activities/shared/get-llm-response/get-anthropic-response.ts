@@ -316,6 +316,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
     previousInvalidResponses,
     retryContext,
     toolChoice,
+    maxTokens = anthropicMessageModelToMaxOutput[params.model],
     ...remainingParams
   } = params;
 
@@ -326,12 +327,6 @@ export const getAnthropicResponse = async <ToolName extends string>(
   const anthropicMessages = messages.map((message) =>
     mapLlmMessageToAnthropicMessage({ message }),
   );
-
-  /**
-   * Default to the maximum context window, if `max_tokens` is not provided.
-   */
-  const maxTokens =
-    params.maxTokens ?? anthropicMessageModelToMaxOutput[params.model];
 
   let anthropicResponse: AnthropicMessagesCreateResponse;
 

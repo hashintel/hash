@@ -1,4 +1,4 @@
-use core::num::NonZero;
+use core::{assert_matches, num::NonZero};
 use std::collections::HashSet;
 
 use hash_graph_store::{
@@ -334,10 +334,10 @@ async fn rejects_invalid_parameters() {
         )
         .await
         .expect_err("dimension not a multiple of 8 should be rejected");
-    assert!(matches!(
+    assert_matches!(
         report.current_context(),
         ClusterError::InvalidDimension { .. }
-    ));
+    );
 
     // Dimension must not exceed 512.
     let report = api
@@ -352,10 +352,10 @@ async fn rejects_invalid_parameters() {
         )
         .await
         .expect_err("dimension above 512 should be rejected");
-    assert!(matches!(
+    assert_matches!(
         report.current_context(),
         ClusterError::DimensionTooLarge { .. }
-    ));
+    );
 
     // Cluster count must not exceed 64.
     let report = api
@@ -370,8 +370,5 @@ async fn rejects_invalid_parameters() {
         )
         .await
         .expect_err("cluster count above 64 should be rejected");
-    assert!(matches!(
-        report.current_context(),
-        ClusterError::KTooLarge { .. }
-    ));
+    assert_matches!(report.current_context(), ClusterError::KTooLarge { .. });
 }

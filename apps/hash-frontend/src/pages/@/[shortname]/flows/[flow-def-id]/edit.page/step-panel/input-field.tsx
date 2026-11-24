@@ -86,6 +86,15 @@ const triggerValue = css({
   textAlign: "left",
 });
 const placeholder = css({ color: "fg.muted" });
+/* A value's step and name share its row's line: the Menu's `description` would put the name on a second one. */
+const optionText = css({ display: "flex", minWidth: "0" });
+const optionStep = css({ minWidth: "0", truncate: true });
+const optionValue = css({
+  flexShrink: "0",
+  color: "fg.subtle",
+  whiteSpace: "nowrap",
+});
+const optionSeparator = css({ px: "1.5" });
 
 const matchesQuery = ({ label, from }: SourceOption, query: string) => {
   const text = `${label} ${from}`.toLowerCase();
@@ -139,10 +148,18 @@ const SourceMenu = ({
     showAll || query !== "" ? matching : matching.slice(0, shownOptionCount);
 
   const earlierStepItems: MenuItem[] = [
+    /* Step first, as a large flow can have many values of one name, such as "email". */
     ...shown.map((option): MenuItem => ({
       id: getSourceKey(option.source),
-      text: option.label,
-      description: option.from,
+      text: (
+        <span className={optionText}>
+          <span className={optionStep}>{option.from}</span>
+          <span className={optionValue}>
+            <span className={optionSeparator}>›</span>
+            {option.label}
+          </span>
+        </span>
+      ),
       icon: getKindIcon(option.shape),
       selected: getSourceKey(option.source) === pickedKey,
       onClick: () => onPick(option),

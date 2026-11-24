@@ -128,6 +128,8 @@ impl Validator<ClosedDataType> for DataTypeValidator {
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches;
+
     use serde_json::json;
 
     use super::{DataType, DataTypeValidator, ValidateDataTypeError};
@@ -135,7 +137,7 @@ mod tests {
 
     #[tokio::test]
     async fn concrete_any_of() {
-        assert!(matches!(
+        assert_matches!(
             ensure_failed_validation::<DataType, _>(
                 json!({
                   "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -155,6 +157,6 @@ mod tests {
             )
             .await,
             ValidateDataTypeError::MissingType
-        ));
+        );
     }
 }

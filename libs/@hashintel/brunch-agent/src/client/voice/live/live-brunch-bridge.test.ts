@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import { liveQuestionBlockHeading } from "../../../shared/live-question-block";
 import { prepareVoiceBrief } from "../../../shared/voice-mediation";
 import { VoiceMediationHistory } from "../history/voice-mediation-history";
 import { LiveBrunchBridge } from "./live-brunch-bridge";
@@ -3482,3 +3483,160 @@ test.each([true, false])(
     fixture.bridge.stop();
   },
 );
+
+const offeredQuestions = [
+  "Quarantined shipment? Stays counted as open; Drops out until released.",
+  "Who releases it?",
+] as const;
+const offerSegments = (messageId = "answer", submissionIds?: string[]) =>
+  offeredQuestions.map((text, index) => ({
+    id: `offer:${index}:${text}`,
+    contentHash: text,
+    messageId,
+    partId: `question:${index}`,
+    source: "assistant-offer" as const,
+    text,
+    ...(submissionIds ? { submissionIds } : {}),
+  }));
+
+test("offered questions follow the recap under the question-block heading, whole and in order, never recapped", async () => {
+  const summarize = vi.fn(async () => "Recap.");
+  const fixture = setup({
+    history: new VoiceMediationHistory("offers"),
+    prepare: async () => ({}),
+    summarize,
+    offered: vi.fn(),
+  });
+  fixture.bridge.acceptDelegation("delegation");
+  await fixture.bridge.accept(speech("one", "Shipments get quarantined"));
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({
+    segments: [segment(), ...offerSegments("answer", ["root"])],
+    settlements: completed,
+  });
+
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      ["Recap.", liveQuestionBlockHeading, ...offeredQuestions].join("\n\n"),
+      "delegation",
+    ),
+  );
+  expect(summarize).toHaveBeenCalledExactlyOnceWith(
+    segment().text,
+    expect.any(AbortSignal),
+  );
+});
+
+test("an offer without prose is said whole under the question-block heading without a recap", async () => {
+  const summarize = vi.fn(async () => "Recap.");
+  const fixture = setup({
+    history: new VoiceMediationHistory("offer-only"),
+    prepare: async () => ({}),
+    summarize,
+    offered: vi.fn(),
+  });
+  await fixture.bridge.accept(speech("one", "Shipments get quarantined"));
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({
+    segments: offerSegments("answer", ["root"]),
+    settlements: completed,
+  });
+
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      [liveQuestionBlockHeading, ...offeredQuestions].join("\n\n"),
+      null,
+    ),
+  );
+  expect(summarize).not.toHaveBeenCalled();
+  expect(fixture.mediation.offered).toHaveBeenCalledExactlyOnceWith("one");
+});
+
+test("snapshot recovery keeps the offer's questions but no other tool", async () => {
+  const summarize = vi.fn(async () => "Recap.");
+  const fixture = setup({
+    history: new VoiceMediationHistory("offer-recovery"),
+    prepare: async () => ({}),
+    summarize,
+    offered: vi.fn(),
+  });
+  const settlements = [
+    {
+      submissionId: "root",
+      outcome: "completed" as const,
+      answeredBySubmissionId: "answering",
+    },
+    { submissionId: "answering", outcome: "completed" as const },
+  ];
+  const snapshot: FlueConversationState = {
+    conversationId: "conversation",
+    settlements,
+    messages: [
+      {
+        id: "answer",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        submissionId: "answering",
+        parts: [
+          { type: "text", state: "done", text: segment().text },
+          {
+            type: "dynamic-tool",
+            toolName: "ledger_commit",
+            toolCallId: "commit-1",
+            state: "output-available",
+            input: { text: "Not speech" },
+            output: { status: "recorded" },
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "offer_answers",
+            toolCallId: "offer-1",
+            state: "output-available",
+            input: {
+              questions: [
+                {
+                  kind: "choose",
+                  label: "Quarantined shipment",
+                  text: "Quarantined shipment?",
+                  options: [
+                    { label: "Stays counted as open" },
+                    { label: "Drops out until released" },
+                  ],
+                },
+                { kind: "open", label: "Releaser", text: "Who releases it?" },
+              ],
+            },
+            output: { offered: 2 },
+          },
+        ],
+      },
+    ],
+  };
+  await fixture.bridge.accept(speech("input", "Shipments get quarantined"));
+  fixture.update({ status: "streaming" });
+  fixture.update({
+    settlements,
+    segments: [{ ...segment(), submissionIds: undefined }, ...offerSegments()],
+    snapshot,
+  });
+
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      ["Recap.", liveQuestionBlockHeading, ...offeredQuestions].join("\n\n"),
+      null,
+    ),
+  );
+  expect(summarize).toHaveBeenCalledExactlyOnceWith(
+    segment().text,
+    expect.any(AbortSignal),
+  );
+});

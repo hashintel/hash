@@ -2,6 +2,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { Button, Form, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { generateFlowTriggersPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
@@ -24,9 +25,12 @@ import { getNewFlowInput } from "./step-panel/input-sources";
 import { OutputField } from "./step-panel/output-field";
 import { PathsField } from "./step-panel/paths-field";
 import { QueryField } from "./step-panel/query-field";
+import { TriggersPanelBody } from "./step-panel/triggers-panel";
 
+import type { FlowSchedules } from "./shared/flow-triggers";
 import type { StepTone } from "./shared/step-display";
 import type { FlowValue, ValueUse } from "./shared/value-uses";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { IconName } from "@hashintel/ds-components";
 import type { ConnectionTarget } from "@local/hash-isomorphic-utils/flows/can-connect";
 import type {
@@ -46,8 +50,11 @@ const takesEntityQuery = (input: InputDefinition) =>
   "oneOfPayloadKinds" in input &&
   input.oneOfPayloadKinds.includes("EntityQuery");
 
-/** What the panel shows: the start step, or one step at any depth. */
-export type StepPanelSubject = { start: true } | { stepId: string };
+/** What the panel shows: the flow's triggers, the start step, or one step at any depth. */
+export type StepPanelSubject =
+  | { triggers: true }
+  | { start: true }
+  | { stepId: string };
 
 const header = css({ display: "flex", alignItems: "center", gap: "3" });
 const headerText = css({
@@ -70,6 +77,7 @@ const derivedDescription = css({
 });
 const empty = css({ textStyle: "sm", color: "fg.subtle" });
 const addInputButton = css({ alignSelf: "flex-start" });
+const editTriggersLink = css({ alignSelf: "flex-start" });
 
 /** The step's tile in its hue, then its type, then "Group · description" with the description given as `children`. */
 const PanelHeader = ({
@@ -105,6 +113,41 @@ const newInputTarget: ConnectionTarget = {
   oneOfPayloadKinds: ["Text"],
   array: false,
   required: true,
+};
+
+const TriggersPanel = ({
+  flowDefinitionEntityId,
+  schedules,
+}: {
+  flowDefinitionEntityId: EntityId;
+  schedules: FlowSchedules;
+}) => {
+  /* The panel is inert under the sheet "Show all" opens, so Tab and Esc stay in the sheet. */
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  return (
+    <SidePanel label="Triggers" inert={sheetOpen}>
+      <PanelHeader icon="lightning" tone="neutral" title="Triggers">
+        What can start this flow
+      </PanelHeader>
+      <TriggersPanelBody
+        schedules={schedules}
+        sheetOpen={sheetOpen}
+        onSheetOpenChange={setSheetOpen}
+      />
+      <Button
+        variant="subtle"
+        tone="neutral"
+        size="sm"
+        href={generateFlowTriggersPath({ flowDefinitionEntityId })}
+        iconName="arrowRight"
+        iconPosition="right"
+        className={editTriggersLink}
+      >
+        Edit flow triggers
+      </Button>
+    </SidePanel>
+  );
 };
 
 const StartPanel = ({
@@ -345,12 +388,16 @@ const SelectedStepPanel = ({
 /** The panel beside the canvas for the selected step: its description, the values it takes and those it gives. */
 export const StepPanel = ({
   editor,
+  flowDefinitionEntityId,
   subject,
+  schedules,
   onSelectStart,
   onSelectStep,
 }: {
   editor: FlowEditor;
+  flowDefinitionEntityId: EntityId;
   subject: StepPanelSubject;
+  schedules: FlowSchedules;
   onSelectStart: () => void;
   /** Selects a step that uses a value, picked from "Used in". */
   onSelectStep: (stepId: string) => void;
@@ -363,6 +410,15 @@ export const StepPanel = ({
     () => indexValueUses(flowDefinition.steps),
     [flowDefinition.steps],
   );
+
+  if ("triggers" in subject) {
+    return (
+      <TriggersPanel
+        flowDefinitionEntityId={flowDefinitionEntityId}
+        schedules={schedules}
+      />
+    );
+  }
 
   if ("start" in subject) {
     return (

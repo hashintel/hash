@@ -222,6 +222,38 @@ test("a failure before admission is a failed response; after admission it settle
   });
 });
 
+test("answer submits one answer per question, and the reply carries the questions docked next", async () => {
+  const questions = [
+    {
+      kind: "choose",
+      label: "Quarantined shipment",
+      text: "Quarantined shipment?",
+      options: [{ label: "Stays open", value: "It stays counted as open" }],
+    },
+    { kind: "open", label: "Recent order", text: "Recent order?" },
+  ];
+  const prompt = vi.fn<PersonaBridgeHandlers["prompt"]>(
+    async (_utterance, turn) => {
+      turn.admitted("1. Quarantined shipment: It stays counted as open");
+      return { text: "Two things.", submissionIds: ["sub_1"], questions };
+    },
+  );
+  const bridge = await openBridge({ prompt });
+  const records = await sendPersonaCommand(bridge.socketPath, {
+    type: "answer",
+    answers: ["Stays open", ""],
+  });
+  expect(prompt.mock.calls[0]?.[0]).toEqual(["Stays open", ""]);
+  expect(records.slice(1)).toEqual([
+    {
+      type: "turn_start",
+      message: "1. Quarantined shipment: It stays counted as open",
+    },
+    { type: "assistant_message", text: "Two things.", questions },
+    { type: "turn_settled", outcome: "replied", submissionIds: ["sub_1"] },
+  ]);
+});
+
 test("turns are sequential, and disconnecting the sender aborts its turn", async () => {
   const admitted = deferred();
   const aborted = deferred();
