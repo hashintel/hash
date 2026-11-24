@@ -35,6 +35,8 @@ export type CardRun = {
   mark: StepRunMark;
   /** Whether one of the step's outputs is one of the flow's, which show in its runs' results. */
   featured: boolean;
+  /** Whether the run is still going. */
+  live: boolean;
 };
 
 type StepNodeDataBase = {

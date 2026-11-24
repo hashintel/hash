@@ -53,7 +53,7 @@ type TypeInputs<I extends Inputs> = {
  * // @ts-expect-error The unused `verbose` entry stays required.
  * const partial: Program.Expression.Expression<Type.PrimitiveInteger, Pick<Whole, "limit">> = built;
  *
- * const outside = Program.Structural.input("outside", BigInt);
+ * const outside = Program.Expression.input("outside", BigInt);
  * program({}, ($) => {
  *   // @ts-expect-error The schema does not declare `outside`.
  *   $.let("ignored", outside);
@@ -121,8 +121,12 @@ export type Check<S, I> = [I] extends [never]
       unknown
     : never;
 
-/** Checks the inputs the expression `E` requires against the schema record `I`, as {@link Check} does. */
-type Accept<I, E> = Check<I, Expression.Value.Inputs<E>>;
+/** Checks the inputs the value `E` requires against the schema record `I`, as {@link Check} does. Every array in `E` also needs a statically known length, as {@link Structural.Value.FixedLength} requires. */
+type Accept<I, E extends Structural.Value.Any> = Check<
+  I,
+  Structural.Value.Requirements<E>
+> &
+  Structural.Value.FixedLength<E>;
 
 /**
  * A graph query in a program callback, whose predicates must fit the program's schema `I`. Otherwise it is {@link Construction.Query | `Context.Query`}.
@@ -136,7 +140,7 @@ export interface Query<
   V extends Type.Any,
   R,
 > extends Expression.Expression.Handle<Graph<V>, R> {
-  /** Keeps the vertices `predicate` accepts. The predicate receives a fresh restricted context and returns a Boolean whose input requirements fit the schema. The result requires the whole schema, because the filter closure emits the predicate's declarations and no type records their inputs. Otherwise this is the `filter` of {@link Construction.Query | `Context.Query`}. */
+  /** Keeps the vertices `predicate` accepts. The predicate receives the restricted context and returns a Boolean whose input requirements fit the schema. The result requires the whole schema, because the filter closure emits the predicate's declarations and no type records their inputs. Otherwise this is the `filter` of {@link Construction.Query | `Context.Query`}. */
   readonly filter: <const P extends Expression.Value<Type.PrimitiveBoolean>>(
     name: string,
     predicate: (
@@ -181,20 +185,20 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
   /**
    * Binds a value to a HashQL name and returns a reference to the binding.
    *
-   * `value` is an expression or host primitive whose input requirements fit the schema, and the reference keeps its semantic type and requirements.
+   * `value` is an expression or structural shorthand, such as a host primitive or a record of values, whose input requirements fit the schema. The reference keeps its semantic type and requirements.
    *
    * A `type` annotates the binding, and the reference takes the annotation's type, as {@link @local/hashql/Draft#Context.Context.let | `Context.Context.let`} describes.
    */
   readonly let: {
-    <const E extends Expression.Value.Any>(
+    <const E extends Structural.Value.Any>(
       name: string,
       value: E & Accept<I, E>,
     ): Expression.Expression<
-      Expression.Value.Type<E>,
-      Expression.Value.Inputs<E>
+      Structural.Value.Type<E>,
+      Structural.Value.Requirements<E>
     >;
     <
-      const E extends Expression.Value.Any,
+      const E extends Structural.Value.Any,
       const D extends Structural.Definition,
     >(
       name: string,
@@ -202,14 +206,14 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
       type: D,
     ): Expression.Expression<
       Structural.Definition.Type<D>,
-      Expression.Value.Inputs<E>
+      Structural.Value.Requirements<E>
     >;
   };
 
   /**
    * Constructs a HashQL conditional from a Boolean condition and a record of branch callbacks.
    *
-   * The condition and every branch must fit the schema. The result requires the whole schema, because the conditional emits each branch's declarations and no branch's type records their inputs. HashQL decides the condition when the query runs, so construction always builds every branch. The callbacks run immediately, `then` first, whatever the condition's value. Each receives a fresh restricted context, and the `if` of {@link Construction.Context | `Context.Context`} describes where its declarations belong. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
+   * The condition and every branch must fit the schema. The result requires the whole schema, because the conditional emits each branch's declarations and no branch's type records their inputs. HashQL decides the condition when the query runs, so construction always builds every branch. The callbacks run immediately, `then` first, whatever the condition's value. Each receives the restricted context, and the `if` of {@link Construction.Context | `Context.Context`} describes where its declarations belong. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
    *
    * @example <caption>Construct both branches, one with a branch-local binding.</caption>
    * ```ts
@@ -255,8 +259,8 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
   readonly if: {
     <
       const C extends Expression.Value<Type.PrimitiveBoolean>,
-      const T extends Expression.Value.Any,
-      const E extends Expression.Value.Any,
+      const T extends Structural.Value.Any,
+      const E extends Structural.Value.Any,
     >(
       condition: C & Accept<I, C>,
       branches: {
@@ -265,18 +269,18 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
       },
     ): Expression.Expression<
       Expression.Conditional<
-        Expression.Value.Type<T>,
-        Expression.Value.Type<E>
+        Structural.Value.Type<T>,
+        Structural.Value.Type<E>
       >,
       I
     >;
     <
       const C extends Expression.Value<Type.PrimitiveBoolean>,
-      const T extends Expression.Value.Any,
+      const T extends Structural.Value.Any,
     >(
       condition: C & Accept<I, C>,
       branches: { readonly then: ($: Context<S, I>) => T & Accept<I, T> },
-    ): Expression.Expression<Construction.Option<Expression.Value.Type<T>>, I>;
+    ): Expression.Expression<Construction.Option<Structural.Value.Type<T>>, I>;
   };
 
   /** Starts a graph query from a graph expression, or from every entity with `$.query.entities(axis)`, whose input requirements fit the schema. */
@@ -286,7 +290,7 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
 /**
  * The callback a Draft program runs with the restricted context and the input handles to obtain the root expression.
  *
- * The returned expression's input requirements must fit the schema. Returning anything other than an expression handle fails construction with `InvalidBodyResult`. The type rejects an asynchronous callback, and at runtime its promise fails construction the same way.
+ * The callback returns an expression or structural shorthand, such as a host primitive or a record of values, and its input requirements must fit the schema. Returning anything else fails construction with `InvalidBodyResult`. The type rejects an asynchronous callback, and at runtime its promise fails construction the same way.
  *
  * @category Models
  * @since 0.1.0
@@ -294,11 +298,13 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
 export type Body<
   S extends Scope.Scope.Any,
   I extends Inputs,
-  O extends Expression.Value.Any & Expression.Expression.Any,
+  O extends Structural.Value.Any,
 > = (
   $: Context<S, Requirements<I>>,
   inputs: Handles<I>,
-) => O & Check<NoInfer<Requirements<I>>, Expression.Value.Inputs<O>>;
+) => O &
+  Check<NoInfer<Requirements<I>>, Structural.Value.Requirements<O>> &
+  Structural.Value.FixedLength<O>;
 
 /**
  * A {@link Body} with its input handles already supplied.
@@ -309,5 +315,5 @@ export type Body<
 export type WithoutInputs<
   S extends Scope.Scope.Any,
   I extends Inputs,
-  O extends Expression.Value.Any & Expression.Expression.Any,
+  O extends Structural.Value.Any,
 > = ($: Context<S, Requirements<I>>) => ReturnType<Body<S, I, O>>;

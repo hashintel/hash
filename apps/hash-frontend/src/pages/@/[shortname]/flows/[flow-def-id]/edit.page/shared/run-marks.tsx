@@ -1,6 +1,10 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { getBarSegments, stepStateLabels } from "./step-states";
+import {
+  getBarSegments,
+  getCardStateText,
+  stepStateLabels,
+} from "./step-states";
 
 import type { ItemState, StepRunMark, StepState } from "./step-states";
 import type { ReactNode } from "react";
@@ -107,7 +111,7 @@ const visuallyHidden = css({
 
 /** A step's state as text for screen readers only, for a card: its status bar is all that shows the state. */
 export const StepStateText = ({ state }: { state: StepState }) => (
-  <span className={visuallyHidden}>{stepStateLabels[state]}</span>
+  <span className={visuallyHidden}>{getCardStateText(state)}</span>
 );
 
 const segmentColors: Record<ItemState, string> = {

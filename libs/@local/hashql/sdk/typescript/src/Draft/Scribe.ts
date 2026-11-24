@@ -1,13 +1,13 @@
 /**
  * Collects declarations while a synchronous callback constructs an expression.
  *
- * Handles retain semantic parameters until conversion to syntax. Only the declaration wrappers are heterogeneous: each is already an AST operation, so their collection needs no type recovery. A child collector prevents branch declarations from escaping their lexical body. Callback exceptions retain their original cause inside construction failures.
+ * Handles retain semantic parameters until conversion to syntax. Only the declaration wrappers are heterogeneous: each is already an AST operation, so their collection needs no type recovery. Each body takes back the declarations its program's `$` made while Draft built it, whether it succeeds or fails, so none of them escapes into the enclosing body. Callback exceptions retain their original cause inside construction failures.
  *
  * @since 0.1.0
  * @module
  */
 // oxlint-disable import/max-dependencies -- the collector composes every construction module
-import { Cause, Data, Option, Pipeable, Result, pipe } from "effect";
+import { Array, Cause, Data, Option, Pipeable, Result, pipe } from "effect";
 
 import * as Referential from "../internal/referential.js";
 import * as StructuralSyntax from "../internal/structural.js";
@@ -18,60 +18,20 @@ import * as Namespace from "../Program/Namespace.js";
 import * as Operators from "../Program/Operators.js";
 import * as ProgramError from "../Program/ProgramError.js";
 import * as Query from "../Program/Query.js";
+import * as Structural from "../Program/Structural.js";
 import * as TAST from "../Program/TAST/index.js";
 import * as TypeExpression from "../Program/TypeExpression.js";
+import { nominalValue } from "./nominal.js";
 
 import type * as Inputs from "../Program/Inputs.js";
 import type * as Module from "../Program/Module.js";
 import type * as Scope from "../Program/Scope.js";
-import type * as Structural from "../Program/Structural.js";
 import type * as Type from "../Type.js";
 import type * as Body from "./Body.js";
 import type * as Context from "./Context.js";
+import type { NominalBinding } from "./nominal.js";
 
 type Wrap = (child: AST.Node.Any) => AST.Node.Any;
-
-/** A newtype's binding and the id of its constructor. */
-interface NominalBinding {
-  readonly binding: AST.Binding.Type;
-  readonly valueReference: Referential.ReferenceId<"value">;
-}
-
-/** Adds structural argument normalization without losing the nominal identity on relocation. */
-const nominalValue = <N extends string, T extends Type.Any>(
-  expression: Expression.Expression<
-    Type.Function<readonly [T], Type.Opaque<N, T>>,
-    Inputs.Empty
-  >,
-): Context.NominalValue<N, T> =>
-  Expression.adaptCallable(
-    expression,
-    (self): Context.NominalCall<N, T> =>
-      <const V extends Structural.Value<T> & Structural.Value.Any>(
-        value: Structural.Value.Exact<T, V>,
-      ): Expression.Expression<
-        Type.Opaque<N, T>,
-        Structural.Value.Requirements<V>
-      > =>
-        pipe(
-          {
-            callee: Expression.toNode(self),
-            argument: pipe(
-              value,
-              StructuralSyntax.valueNode,
-              Result.flatMap(AST.validate),
-            ),
-          },
-          Result.all,
-          Result.map(
-            ({ callee, argument }) => new AST.Call(callee, [argument]),
-          ),
-          Expression.fromResult<
-            Type.Opaque<N, T>,
-            Structural.Value.Requirements<V>
-          >,
-        ),
-  );
 
 const nominal = <N extends string, T extends Type.Any>(
   nominalBinding: Result.Result<NominalBinding, ProgramError.Construction>,
@@ -124,7 +84,6 @@ const ConstructionFailure = Data.TaggedError("DraftConstructionFailure")<{
 }>;
 
 class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
-  readonly #scope: S & Namespace.Rebindable<S>;
   readonly #next: Referential.ReferenceProducer;
   readonly #prelude: Namespace.Flatten<S>;
   readonly #modules: Namespace.Modules<S>;
@@ -132,7 +91,12 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   readonly literal = Expression.literal;
   readonly integer = Expression.integer;
   readonly number = Expression.number;
+  readonly struct = Structural.struct;
+  readonly tuple = Structural.tuple;
+  readonly list = Structural.list;
+  readonly dict = Structural.dict;
   readonly assume = Expression.assume;
+  readonly as = Expression.as;
   readonly input = Expression.input;
   readonly eq = Operators.eq;
   readonly ne = Operators.ne;
@@ -148,7 +112,6 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     scope: S & Namespace.Rebindable<S>,
     next: Referential.ReferenceProducer,
   ) {
-    this.#scope = scope;
     this.#next = next;
     this.#prelude = Namespace.flatten<S>(scope);
     this.#modules = Namespace.modules<S>(scope);
@@ -208,15 +171,15 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     );
   }
 
-  let<const E extends Expression.Value.Any>(
+  let<const E extends Structural.Value.Any>(
     name: string,
     value: E,
   ): Expression.Expression<
-    Expression.Value.Type<E>,
-    Expression.Value.Inputs<E>
+    Structural.Value.Type<E>,
+    Structural.Value.Requirements<E>
   >;
   let<
-    const E extends Expression.Value.Any,
+    const E extends Structural.Value.Any,
     const D extends Structural.Definition,
   >(
     name: string,
@@ -224,17 +187,17 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     type: D,
   ): Expression.Expression<
     Structural.Definition.Type<D>,
-    Expression.Value.Inputs<E>
+    Structural.Value.Requirements<E>
   >;
   let(
     name: string,
-    value: Expression.Value.Any,
+    value: Structural.Value.Any,
     type?: Structural.Definition,
   ): Expression.Expression.Any {
     const declaration = pipe(
       {
         name: AST.decodeName(name),
-        node: Expression.toNode(value),
+        node: StructuralSyntax.valueNode(value),
         type: Result.transposeMapOption(
           Option.fromUndefinedOr(type),
           StructuralSyntax.typeNode,
@@ -327,8 +290,8 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
 
   if<
     const C extends Expression.Value<Type.PrimitiveBoolean>,
-    const T extends Expression.Value.Any,
-    const E extends Expression.Value.Any,
+    const T extends Structural.Value.Any,
+    const E extends Structural.Value.Any,
   >(
     condition: C,
     branches: {
@@ -338,7 +301,7 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   ): Context.Conditional<C, T, E>;
   if<
     const C extends Expression.Value<Type.PrimitiveBoolean>,
-    const T extends Expression.Value.Any,
+    const T extends Structural.Value.Any,
   >(
     condition: C,
     branches: { readonly then: ($: Context.Context<S>) => T },
@@ -346,16 +309,13 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   if(
     condition: Expression.Value<Type.PrimitiveBoolean>,
     branches: {
-      readonly then: ($: Context.Context<S>) => Expression.Value.Any;
-      readonly else?: ($: Context.Context<S>) => Expression.Value.Any;
+      readonly then: ($: Context.Context<S>) => Structural.Value.Any;
+      readonly else?: ($: Context.Context<S>) => Structural.Value.Any;
     },
   ): Expression.Expression.Any {
-    const consequent = new ContextImpl<S>(this.#scope, this.#next).build(
-      branches.then,
-    );
-    const alternate = Result.transposeMapOption(
-      Option.fromUndefinedOr(branches.else),
-      (body) => new ContextImpl<S>(this.#scope, this.#next).build(body),
+    const consequent = this.build(branches.then);
+    const alternate = Option.fromUndefinedOr(branches.else).pipe(
+      Result.transposeMapOption((body) => this.build(body)),
     );
 
     return pipe(
@@ -391,8 +351,6 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
 
   /** Adds `filter` and `collect` to a graph expression. The vertex type stays erased here, and `Context.Queries` restores it. */
   #query(graph: Expression.Expression.Any): ErasedQuery<S> {
-    const scope = this.#scope;
-    const next = this.#next;
     const expression = pipe(
       graph,
       Expression.toNode,
@@ -406,9 +364,7 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
         this.#query(
           Query.filter(expression, name, (vertex) =>
             pipe(
-              new ContextImpl<S>(scope, next).build(($) =>
-                predicate($, vertex),
-              ),
+              this.build(($) => predicate($, vertex)),
               Expression.fromResult<Type.PrimitiveBoolean, Inputs.Empty>,
             ),
           ),
@@ -418,24 +374,23 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   }
 
   build(
-    body: ($: Context.Context<S>) => Expression.Value.Any,
+    body: ($: Context.Context<S>) => Structural.Value.Any,
   ): Result.Result<AST.Node.Any, ProgramError.Construction> {
+    const stackSize = this.#wrappers.length;
+
     try {
-      const expression = body(this);
-      if (
-        !Expression.isExpression(expression) &&
-        !(
-          expression === null ||
-          ["string", "number", "bigint", "boolean"].includes(typeof expression)
-        )
-      ) {
+      const value = body(this);
+
+      if (!Structural.isValue(value)) {
         return Result.fail(ProgramError.Construction.invalidBodyResult());
       }
 
+      const wrappers = Array.drop(this.#wrappers, stackSize);
+
       return pipe(
         {
-          wrappers: Result.all(this.#wrappers),
-          node: Expression.toNode(expression),
+          wrappers: Result.all(wrappers),
+          node: StructuralSyntax.valueNode(value),
         },
         Result.all,
         Result.map(({ wrappers, node }) => {
@@ -457,6 +412,8 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
           new Cause.UnknownError(error),
         ),
       );
+    } finally {
+      this.#wrappers.splice(stackSize);
     }
   }
 }
@@ -466,32 +423,25 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
 export const evaluate = <
   S extends Scope.Scope.Any,
   I extends Body.Inputs,
-  O extends Expression.Value.Any & Expression.Expression.Any,
+  O extends Structural.Value.Any,
 >(
   scope: S & Namespace.Rebindable<S>,
   body: Body.WithoutInputs<S, I, O>,
 ): Result.Result<
-  Expression.Expression<Expression.Value.Type<O>, Body.Requirements<I>>,
+  Expression.Expression<Structural.Value.Type<O>, Body.Requirements<I>>,
   ProgramError.Construction
 > =>
   pipe(
     new ContextImpl<S>(
       scope,
       Referential.referenceProducer(Symbol("~hashql/Draft")),
-    ).build(($) => {
+    ).build(($) =>
       // SAFETY: the restricted view runs these same operations. It narrows what `let`, `if` and `query` accept, and its `if` and `filter` report the whole schema as requirements, which TypeScript cannot relate to the requirements the shared operations compute.
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the restricted view is a type-level policy over the unrestricted context
-      const expression = body($ as Body.Context<S, Body.Requirements<I>>);
-      if (Expression.isExpression(expression)) {
-        return expression;
-      }
-      return Expression.fromResult<
-        Expression.Value.Type<O>,
-        Body.Requirements<I>
-      >(Result.fail(ProgramError.Construction.invalidBodyResult()));
-    }),
+      body($ as Body.Context<S, Body.Requirements<I>>),
+    ),
     Result.flatMap(AST.resolveReferences),
     Result.map(
-      Expression.fromNode<Expression.Value.Type<O>, Body.Requirements<I>>,
+      Expression.fromNode<Structural.Value.Type<O>, Body.Requirements<I>>,
     ),
   );

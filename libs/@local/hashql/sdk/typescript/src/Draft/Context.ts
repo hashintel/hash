@@ -1,7 +1,7 @@
 /**
  * Typed construction operations inside a synchronous Draft callback.
  *
- * Context preserves each operation's semantic type and input requirements. It does not select an input policy: the program callback contract checks declarations against its explicit input schema. Nested callbacks receive fresh declaration collectors with the same prelude.
+ * Context preserves each operation's semantic type and input requirements. It does not select an input policy: the program callback contract checks declarations against its explicit input schema. A declaration belongs to the body its program is building at the time, so a branch or a filter predicate keeps every declaration made while its callback runs, whichever of the program's `$` makes it.
  *
  * @since 0.1.0
  * @module
@@ -88,13 +88,16 @@ export type Option<T extends Type.Any> = Type.Union<
  */
 export type Conditional<
   C extends Expression.Value<Type.PrimitiveBoolean>,
-  T extends Expression.Value.Any,
-  E extends Expression.Value.Any,
+  T extends Structural.Value.Any,
+  E extends Structural.Value.Any,
 > = Expression.Expression<
-  Expression.Conditional<Expression.Value.Type<T>, Expression.Value.Type<E>>,
+  Expression.Conditional<Structural.Value.Type<T>, Structural.Value.Type<E>>,
   Inputs.Merge<
     Expression.Value.Inputs<C>,
-    Inputs.Merge<Expression.Value.Inputs<T>, Expression.Value.Inputs<E>>
+    Inputs.Merge<
+      Structural.Value.Requirements<T>,
+      Structural.Value.Requirements<E>
+    >
   >
 >;
 
@@ -106,10 +109,10 @@ export type Conditional<
  */
 export type Optional<
   C extends Expression.Value<Type.PrimitiveBoolean>,
-  T extends Expression.Value.Any,
+  T extends Structural.Value.Any,
 > = Expression.Expression<
-  Option<Expression.Value.Type<T>>,
-  Inputs.Merge<Expression.Value.Inputs<C>, Expression.Value.Inputs<T>>
+  Option<Structural.Value.Type<T>>,
+  Inputs.Merge<Expression.Value.Inputs<C>, Structural.Value.Requirements<T>>
 >;
 
 /**
@@ -126,9 +129,9 @@ export interface Query<
   I,
 > extends Expression.Expression.Handle<Graph<V>, I> {
   /**
-   * Keeps the vertices `predicate` accepts, constructing it now with a fresh context whose declarations stay inside the filter. Declarations made through a captured outer `$` belong to the outer callback instead.
+   * Keeps the vertices `predicate` accepts, constructing it now. Every declaration made while `predicate` runs stays inside the filter, including one made through a captured outer `$` of the same program.
    *
-   * `name` becomes the filter closure's parameter and `vertex` refers to it, as in {@link @local/hashql#Program.Query.filter | `Query.filter`}, whose documentation also says when `predicate` does not run. `vertex` is valid inside the predicate alone, so using it in a declaration made through the outer `$` fails the program with the `StaleReference` reason. An exception it throws becomes a `CallbackException` failure on the returned query.
+   * `name` becomes the filter closure's parameter and `vertex` refers to it, as in {@link @local/hashql#Program.Query.filter | `Query.filter`}, whose documentation also says when `predicate` does not run. `vertex` is valid inside the predicate alone, so using it after the predicate returns fails the program with the `StaleReference` reason. An exception it throws becomes a `CallbackException` failure on the returned query.
    */
   readonly filter: <const P extends Expression.Value<Type.PrimitiveBoolean>>(
     name: string,
@@ -214,29 +217,44 @@ export interface Context<S extends Scope.Scope.Any>
   /** References a program input, optionally with a default. This is {@link Expression.input}. */
   readonly input: typeof Expression.input;
 
+  /** Asserts that an expression has a type, which the HashQL compiler checks. This is {@link Expression.as}. */
+  readonly as: typeof Expression.as;
+
+  /** Constructs a struct from a record of values, where each field is an expression or structural shorthand. This is {@link Structural.struct}. */
+  readonly struct: typeof Structural.struct;
+
+  /** Constructs a tuple from an array of values, where each element is an expression or structural shorthand. This is {@link Structural.tuple}. */
+  readonly tuple: typeof Structural.tuple;
+
+  /** Constructs a list from its elements. This is {@link Structural.list}. */
+  readonly list: typeof Structural.list;
+
+  /** Constructs a dictionary from its entries. This is {@link Structural.dict}. */
+  readonly dict: typeof Structural.dict;
+
   /**
    * Binds a value to a HashQL name and returns a reference to the binding.
    *
-   * Pass `type`, a type expression or structural shorthand as {@link "type" | `$.type`} takes it, to annotate the binding as in `let name: type = value`. The reference then has the annotation's type, which widens the value's. Draft does not check the value against the annotation, as with {@link assume}, and the HashQL compiler does.
+   * `value` is an expression or structural shorthand, such as a host primitive or a record of values, and the reference keeps its semantic type and input requirements. Pass `type`, a type expression or structural shorthand as {@link "type" | `$.type`} takes it, to annotate the binding as in `let name: type = value`. The reference then has the annotation's type, which widens the value's. Draft does not check the value against the annotation, as with {@link assume}, and the HashQL compiler does.
    */
   readonly let: {
-    <const E extends Expression.Value.Any>(
+    <const E extends Structural.Value.Any>(
       name: string,
-      value: E,
+      value: E & Structural.Value.FixedLength<E>,
     ): Expression.Expression<
-      Expression.Value.Type<E>,
-      Expression.Value.Inputs<E>
+      Structural.Value.Type<E>,
+      Structural.Value.Requirements<E>
     >;
     <
-      const E extends Expression.Value.Any,
+      const E extends Structural.Value.Any,
       const D extends Structural.Definition,
     >(
       name: string,
-      value: E,
+      value: E & Structural.Value.FixedLength<E>,
       type: D,
     ): Expression.Expression<
       Structural.Definition.Type<D>,
-      Expression.Value.Inputs<E>
+      Structural.Value.Requirements<E>
     >;
   };
 
@@ -266,26 +284,28 @@ export interface Context<S extends Scope.Scope.Any>
   /**
    * Constructs a HashQL conditional from a Boolean condition and a record of branch callbacks.
    *
-   * The callbacks run immediately, `then` first, whatever the condition's value, each with a fresh context whose declarations stay inside that branch. Declarations made through a captured outer `$` belong to the outer callback instead. Without `else`, the conditional is an {@link Option}: `Some` of the `then` branch when the condition holds, and `None` otherwise. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
+   * The callbacks run immediately, `then` first, whatever the condition's value, and each returns an expression or structural shorthand. Every declaration made while a callback runs stays inside its branch, including one made through a captured outer `$` of the same program. Without `else`, the conditional is an {@link Option}: `Some` of the `then` branch when the condition holds, and `None` otherwise. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
    */
   readonly if: {
     <
       const C extends Expression.Value<Type.PrimitiveBoolean>,
-      const T extends Expression.Value.Any,
-      const E extends Expression.Value.Any,
+      const T extends Structural.Value.Any,
+      const E extends Structural.Value.Any,
     >(
       condition: C,
       branches: {
-        readonly then: ($: Context<S>) => T;
-        readonly else: ($: Context<S>) => E;
+        readonly then: ($: Context<S>) => T & Structural.Value.FixedLength<T>;
+        readonly else: ($: Context<S>) => E & Structural.Value.FixedLength<E>;
       },
     ): Conditional<C, T, E>;
     <
       const C extends Expression.Value<Type.PrimitiveBoolean>,
-      const T extends Expression.Value.Any,
+      const T extends Structural.Value.Any,
     >(
       condition: C,
-      branches: { readonly then: ($: Context<S>) => T },
+      branches: {
+        readonly then: ($: Context<S>) => T & Structural.Value.FixedLength<T>;
+      },
     ): Optional<C, T>;
   };
 

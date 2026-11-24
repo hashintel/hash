@@ -1,4 +1,5 @@
 import { Array, Context, Effect, Function, Layer, Option, pipe } from "effect";
+import { toRootedDirectoryPath } from "typescript/path";
 
 import * as Api from "./Api.js";
 import * as Checker from "./Checker.js";
@@ -22,10 +23,8 @@ export declare namespace Program {
     readonly declarations: (
       symbol: $Symbol,
     ) => Effect.Effect<readonly Declaration[], Cause.UnknownError>;
-    /** Whether the compiler classifies the file as a dependency or a default library. */
-    readonly isExternal: (
-      file: SourceFile,
-    ) => Effect.Effect<boolean, Cause.UnknownError>;
+    /** Whether `file` belongs to a dependency or to the standard library. Such a file lies outside the directory of the package's own files, or in a `node_modules` directory below it. */
+    readonly isExternal: (file: SourceFile) => boolean;
     /** The source file at `file`, or none when the program does not hold it. */
     readonly sourceFile: (
       file: string,
@@ -69,12 +68,17 @@ export const extend = (
  */
 export const make = ({
   project,
+  directory,
   extend: grow,
 }: Api.Snapshot): Program["Service"] => {
   const resolveIn: Program.Shape["resolve"] = (handle) =>
     Effect.tryPromise(() => handle.resolve(project)).pipe(
       Effect.map(Option.fromUndefinedOr),
     );
+  // The compiler names every file by a rooted path with forward slashes, and compares names as the file system does.
+  const own = project.program.getCanonicalFileName(
+    `${toRootedDirectoryPath(directory, project.program.getCurrentDirectory())}/`,
+  );
 
   return Program.of({
     resolve: resolveIn,
@@ -84,19 +88,14 @@ export const make = ({
         Effect.forEach(resolveIn),
         Effect.map(Array.getSomes),
       ),
-    isExternal: Effect.fnUntraced(function* (file: SourceFile) {
-      const dependency = yield* Effect.tryPromise(() =>
-        project.program.isSourceFileFromExternalLibrary(file),
-      );
+    isExternal: (file) => {
+      const name = project.program.getCanonicalFileName(file.fileName);
 
-      if (dependency) {
-        return true;
-      }
-
-      return yield* Effect.tryPromise(() =>
-        project.program.isSourceFileDefaultLibrary(file),
+      return (
+        !name.startsWith(own) ||
+        name.slice(own.length).split("/").includes("node_modules")
       );
-    }),
+    },
     sourceFile: (file) =>
       Effect.tryPromise(() => project.program.getSourceFile(file)).pipe(
         Effect.map(Option.fromUndefinedOr),

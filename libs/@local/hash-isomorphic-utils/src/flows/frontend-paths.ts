@@ -47,10 +47,15 @@ export const generatedFilteredWorkersPath = ({
 
 export const flowTriggersFlowFilterParam = "flow";
 
-/** The Triggers page, filtered to one flow's triggers. */
+/** Present to open the form for adding a trigger, filled in with the flow. */
+export const flowTriggersAddParam = "add";
+
+/** The Triggers page, filtered to one flow's triggers, and with `add`, with the form for adding one open. */
 export const generateFlowTriggersPath = ({
   flowDefinitionEntityId,
+  add = false,
 }: {
   flowDefinitionEntityId: EntityId;
+  add?: boolean;
 }) =>
-  `/flows/triggers?${flowTriggersFlowFilterParam}=${encodeURIComponent(flowDefinitionEntityId)}`;
+  `/flows/triggers?${flowTriggersFlowFilterParam}=${encodeURIComponent(flowDefinitionEntityId)}${add ? `&${flowTriggersAddParam}` : ""}`;

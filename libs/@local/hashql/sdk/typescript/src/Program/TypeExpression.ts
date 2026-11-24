@@ -194,7 +194,7 @@ export const fromNode = <T extends Type.Any>(
 /**
  * Annotates type syntax, or a construction failure, with a trusted semantic descriptor.
  *
- * The caller must ensure that successful syntax denotes `T`. A failure stays in the handle until something reads its syntax. Rebinding a successful result produces a reference to the new path. Rebinding a failed result returns its failure.
+ * The caller must ensure that successful syntax denotes `T`. The J-Expr type schema checks successful syntax, as in {@link fromType}. A failure stays in the handle until something reads its syntax. Rebinding a successful result produces a reference to the new path. Rebinding a failed result returns its failure.
  *
  * @category Conversions
  * @since 0.1.0
@@ -202,11 +202,7 @@ export const fromNode = <T extends Type.Any>(
 export const fromResult = <T extends Type.Any>(
   syntax: Result.Result<Syntax.Type, ProgramError.Construction>,
 ): TypeExpression<T> =>
-  pipe(
-    syntax,
-    Result.map((syntax) => new TAST.Syntax(syntax)),
-    fromNode<T>,
-  );
+  pipe(syntax, Result.flatMap(TAST.fromSyntax), fromNode<T>);
 
 /**
  * Reads the type syntax a type expression emits, or its construction failure.
@@ -221,7 +217,7 @@ export const toType = (
 /**
  * Annotates syntax supplied by a trusted type declaration.
  *
- * The caller must ensure that `syntax` denotes `T`, because the annotation performs no runtime type check.
+ * The caller must ensure that `syntax` denotes `T`, because the annotation performs no runtime type check. The J-Expr type schema checks the syntax itself, because an object literal can hold a name that no parser has read. Syntax the schema refuses, such as a struct member whose name is not an identifier, stores a {@link ProgramError.Construction} with the `InvalidExpression` reason, which {@link toType} returns. Syntax nested deep enough to exhaust the call stack during the check stores the same reason.
  *
  * @category Conversions
  * @since 0.1.0
@@ -267,7 +263,9 @@ const constructorAt = <F extends Type.TypeConstructor>(
       handles,
       Array.map((handle) => handle[TAST.Node]),
       Result.all,
-      Result.flatMap((arguments_) => TAST.apply(path, arguments_, reference)),
+      Result.map(
+        (arguments_) => new TAST.Reference(path, arguments_, reference),
+      ),
       fromNode<Type.TypeLambda.Apply<F, A>>,
     );
   };

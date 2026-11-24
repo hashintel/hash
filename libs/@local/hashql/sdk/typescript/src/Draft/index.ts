@@ -1,9 +1,11 @@
 /**
  * Synchronous program construction with an explicit input schema.
  *
- * {@link program} runs one callback that receives a construction context `$` and typed handles for the inputs its schema declares. Draft emits the declarations made through `$`, such as {@link Context.Context.let | `$.let`}, {@link Context.Context."type" | `$.type`}, {@link Context.Context.newtype | `$.newtype`} and {@link Context.Context.import | `$.import`}, around the callback's returned expression in call order, including declarations that nothing refers to. Every emitted initializer and nested body must fit the schema, and {@link Body.Requirements} gives the inputs the result requires. {@link Context.Context.query | `$.query`} starts a graph query from any graph expression, and `$.query.entities(axis)` from every entity, then builds it with the query's {@link Context.Query.filter | `filter`} and {@link Context.Query.collect | `collect`}.
+ * {@link program} runs one callback that receives a construction context `$` and typed handles for the inputs its schema declares. Draft emits the declarations made through `$`, such as {@link Context.Context.let | `$.let`}, {@link Context.Context."type" | `$.type`}, {@link Context.Context.newtype | `$.newtype`} and {@link Context.Context.import | `$.import`}, in call order, including declarations that nothing refers to. Each declaration wraps the returned expression of the body its program is building at the time: the program callback, a branch or a filter predicate. Every emitted initializer and nested body must fit the schema, and {@link Body.Requirements} gives the inputs the result requires. {@link Context.Context.query | `$.query`} starts a graph query from any graph expression, and `$.query.entities(axis)` from every entity, then builds it with the query's {@link Context.Query.filter | `filter`} and {@link Context.Query.collect | `collect`}.
  *
- * Each declaration returns a handle that HashQL resolves by name, so the handle is valid only where its name still means that declaration. Using it where a later declaration or a filter's parameter of the same name shadows it, outside the branch that declared it, or in another program fails the program with the `StaleReference` reason. Draft assumes that every module record matches HashQL's module. With a malformed record, a program Draft admits may fail to compile, or one of its names may resolve to a different binding than its handle. Apart from `$.import`, a declaration whose name, value or definition is invalid does not interrupt the callback, but Draft records the failure and the program fails.
+ * TypeScript makes the schema check from each value's static type, and Draft does not compare the inputs it emits with the schema at runtime. A record assigned to a type that omits one of its fields still emits that field. Draft emits an input inside such a field even when the schema does not declare it.
+ *
+ * Each declaration returns a handle that HashQL resolves by name, so the handle is valid only where its name still means that declaration. Using it where a later declaration or a filter's parameter of the same name shadows it, outside the branch or filter predicate that declared it, or in another program fails the program with the `StaleReference` reason. Draft assumes that every module record matches HashQL's module. With a malformed record, a program Draft admits may fail to compile, or one of its names may resolve to a different binding than its handle. Apart from `$.import`, a declaration whose name, value or definition is invalid does not interrupt the callback. Draft stores the failure with the body the declaration belongs to: the program for the program callback, and otherwise the conditional or query that contains the callback.
  *
  * {@link program} uses {@link Prelude.builtin}. {@link withPrelude} creates a program constructor for custom declarations instead, replacing the default and retaining their exact export keys. The {@link Body} namespace names the types of a program callback, and a helper that receives `$` takes {@link Body.Context | `Body.Context`}. The {@link Context} namespace names the unrestricted construction operations.
  *
@@ -31,15 +33,15 @@
 
 import { Record } from "effect";
 
+import * as Expression from "../Program/Expression.js";
 import * as Prelude from "../Program/Prelude.js";
 import * as Scope from "../Program/Scope.js";
-import * as Structural from "../Program/Structural.js";
 import * as Scribe from "./Scribe.js";
 
 import type { StringKeyed } from "../internal/record.js";
-import type * as Expression from "../Program/Expression.js";
 import type * as Namespace from "../Program/Namespace.js";
 import type * as ProgramError from "../Program/ProgramError.js";
+import type * as Structural from "../Program/Structural.js";
 import type * as Body from "./Body.js";
 import type { Result } from "effect";
 
@@ -56,12 +58,12 @@ export type * as Context from "./Context.js";
  */
 export type Draft<S extends Scope.Scope.Any> = <
   const I extends Body.Inputs,
-  const O extends Expression.Value.Any & Expression.Expression.Any,
+  const O extends Structural.Value.Any,
 >(
   inputs: I & StringKeyed<I>,
   draft: Body.Body<S, I, O>,
 ) => Result.Result<
-  Expression.Expression<Expression.Value.Type<O>, Body.Requirements<I>>,
+  Expression.Expression<Structural.Value.Type<O>, Body.Requirements<I>>,
   ProgramError.Construction
 >;
 
@@ -74,7 +76,7 @@ function inputHandle(
   name: string,
   definition: Structural.Definition,
 ): Expression.Expression.Any {
-  return Structural.input(name, definition);
+  return Expression.input(name, definition);
 }
 
 /** Creates each handle at the same schema key and semantic type, including its own input name. */
@@ -98,10 +100,7 @@ const inputHandles = <I extends Body.Inputs>(schema: I): Body.Handles<I> => {
 /** Creates a program constructor whose callbacks see `scope` as their prelude and receive the handles of their schema's inputs. */
 const fromScope =
   <S extends Scope.Scope.Any>(scope: S & Namespace.Rebindable<S>): Draft<S> =>
-  <
-    const I extends Body.Inputs,
-    const O extends Expression.Value.Any & Expression.Expression.Any,
-  >(
+  <const I extends Body.Inputs, const O extends Structural.Value.Any>(
     inputs: I,
     draft: Body.Body<S, I, O>,
   ) => {
@@ -172,7 +171,7 @@ export const withPrelude = <const D extends Scope.Definition.Any>(
  * Use {@link withPrelude} to supply custom declarations.
  *
  * @param inputs - The input names and their types, as type expressions or structural shorthand such as `Boolean`.
- * @param draft - A synchronous construction callback returning an expression handle.
+ * @param draft - A synchronous construction callback returning an expression or structural shorthand.
  * @returns The root expression or a construction failure. Synchronous callback exceptions become `CallbackException` failures retaining the thrown value. Expected construction failures retain their original reasons.
  *
  * @example <caption>Construct and serialize a program.</caption>

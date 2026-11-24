@@ -1,7 +1,10 @@
+import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import {
+  Banner,
   Button,
   LoadingSpinner,
   SortMenu,
@@ -9,14 +12,23 @@ import {
   TextInput,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { flowTriggersFlowFilterParam } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+import {
+  flowTriggersAddParam,
+  flowTriggersFlowFilterParam,
+} from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
+import {
+  archiveFlowScheduleMutation,
+  pauseFlowScheduleMutation,
+  resumeFlowScheduleMutation,
+} from "../../graphql/queries/knowledge/flow.queries";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { FlowsEmptyState } from "../flows.page/flows-empty-state";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { DsComponentsScope } from "../shared/ds-components-scope";
 import { useFlowSchedules } from "../shared/use-flow-schedules";
+import { DeleteTriggerDialog } from "./triggers.page/delete-trigger-dialog";
 import {
   filterFlowTriggerRows,
   sortFlowTriggerRows,
@@ -26,8 +38,17 @@ import {
   AddTriggerFilter,
   TriggerFilterBar,
 } from "./triggers.page/trigger-filters";
+import { EditTriggerForm, NewTriggerForm } from "./triggers.page/trigger-forms";
 import { TriggersTable } from "./triggers.page/triggers-table";
 
+import type {
+  ArchiveFlowScheduleMutation,
+  ArchiveFlowScheduleMutationVariables,
+  PauseFlowScheduleMutation,
+  PauseFlowScheduleMutationVariables,
+  ResumeFlowScheduleMutation,
+  ResumeFlowScheduleMutationVariables,
+} from "../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { TriggerState } from "../@/[shortname]/flows/[flow-def-id]/edit.page/shared/flow-triggers";
 import type {
@@ -37,6 +58,7 @@ import type {
 import type { TriggerFilterProperty } from "./triggers.page/trigger-filters";
 import type { TriggerColumn } from "./triggers.page/triggers-table";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
+import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
 
 const tabs: { id: TriggerState; label: string }[] = [
   { id: "all", label: "All" },
@@ -112,25 +134,116 @@ const TriggersPage: NextPageWithLayout = () => {
     null,
   );
 
+  /** Sets or removes query parameters, keeping the others. */
+  const replaceQuery = (changes: Record<string, string | null>) => {
+    const query = { ...router.query };
+
+    for (const [param, value] of Object.entries(changes)) {
+      if (value === null) {
+        delete query[param];
+      } else {
+        query[param] = value;
+      }
+    }
+
+    void router.replace({ pathname: router.pathname, query }, undefined, {
+      shallow: true,
+    });
+  };
+
   /* In the URL, so the editor can link to one flow's triggers. */
   const flowParam = router.query[flowTriggersFlowFilterParam];
   const flowEntityId =
     typeof flowParam === "string" && flowParam !== ""
       ? (flowParam as EntityId)
       : null;
-  const setFlowEntityId = (nextFlowEntityId: EntityId | null) => {
-    const { [flowTriggersFlowFilterParam]: _, ...query } = router.query;
+  const setFlowEntityId = (nextFlowEntityId: EntityId | null) =>
+    replaceQuery({ [flowTriggersFlowFilterParam]: nextFlowEntityId });
 
-    void router.replace(
-      {
-        pathname: router.pathname,
-        query: nextFlowEntityId
-          ? { ...query, [flowTriggersFlowFilterParam]: nextFlowEntityId }
-          : query,
-      },
-      undefined,
-      { shallow: true },
-    );
+  /*
+   * Whether the form for adding a trigger is open: in the URL too, so the editor's "Add trigger" can open it. Only one
+   * form is open at a time, so opening it closes the trigger being edited.
+   */
+  const adding = flowTriggersAddParam in router.query;
+  const [editingEntityId, setEditingEntityId] = useState<EntityId | null>(null);
+  const setAdding = (open: boolean) => {
+    setEditingEntityId(null);
+    replaceQuery({ [flowTriggersAddParam]: open ? "" : null });
+  };
+  const edit = (entityId: EntityId) => {
+    if (adding) {
+      replaceQuery({ [flowTriggersAddParam]: null });
+    }
+
+    setEditingEntityId(entityId);
+  };
+
+  const [deletingRow, setDeletingRow] = useState<FlowTriggerRow | null>(null);
+  /* Why pausing or resuming a trigger failed, e.g. the API refusing to resume one whose flow has changed. */
+  const [actionError, setActionError] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
+
+  const [pauseFlowSchedule] = useMutation<
+    PauseFlowScheduleMutation,
+    PauseFlowScheduleMutationVariables
+  >(pauseFlowScheduleMutation);
+  const [resumeFlowSchedule] = useMutation<
+    ResumeFlowScheduleMutation,
+    ResumeFlowScheduleMutationVariables
+  >(resumeFlowScheduleMutation);
+  const [archiveFlowSchedule] = useMutation<
+    ArchiveFlowScheduleMutation,
+    ArchiveFlowScheduleMutationVariables
+  >(archiveFlowScheduleMutation);
+
+  /*
+   * Fetches the triggers after a change. One that fails leaves the rows as they were until the next poll, rather than
+   * making the change look like it failed, which would invite making it again.
+   */
+  const refresh = () => refetch().catch(() => undefined);
+
+  /* The trigger being paused or resumed, whose switch and menu wait for it. */
+  const [switchingEntityId, setSwitchingEntityId] = useState<EntityId | null>(
+    null,
+  );
+
+  const setOn = async (row: FlowTriggerRow, on: boolean) => {
+    setActionError(null);
+    setSwitchingEntityId(row.entityId);
+
+    try {
+      const variables = { scheduleEntityId: row.entityId };
+
+      await (on
+        ? resumeFlowSchedule({ variables })
+        : pauseFlowSchedule({ variables }));
+    } catch (caught) {
+      setActionError({
+        title: `“${row.text}” wasn't ${on ? "resumed" : "paused"}`,
+        message: caught instanceof Error ? caught.message : String(caught),
+      });
+      setSwitchingEntityId(null);
+      return;
+    }
+
+    await refresh();
+    setSwitchingEntityId(null);
+  };
+
+  /* Archiving a schedule deletes its Temporal schedule; its runs stay readable. */
+  const deleteTrigger = async (row: FlowTriggerRow) => {
+    await archiveFlowSchedule({
+      variables: { scheduleEntityId: row.entityId },
+    });
+    await refresh();
+
+    if (editingEntityId === row.entityId) {
+      setEditingEntityId(null);
+    }
+
+    setDeletingRow(null);
   };
 
   const rows = useMemo<FlowTriggerRow[]>(
@@ -203,18 +316,44 @@ const TriggersPage: NextPageWithLayout = () => {
     on: filtered.filter((row) => row.on).length,
     paused: filtered.filter((row) => !row.on).length,
   };
-  const shown = useMemo(
-    () =>
-      sortFlowTriggerRows(
-        filtered.filter((row) => tab === "all" || (tab === "on") === row.on),
-        sort,
-      ),
-    [filtered, tab, sort],
-  );
+  /*
+   * The trigger being edited stays while its form is open, even once it no longer matches the tab, search or filters,
+   * e.g. after pausing it on the On tab, so its unsaved edits aren't lost. It goes once the form is closed.
+   */
+  const shown = useMemo(() => {
+    const matching = filtered.filter(
+      (row) => tab === "all" || (tab === "on") === row.on,
+    );
+    const edited = matching.some((row) => row.entityId === editingEntityId)
+      ? undefined
+      : rows.find((row) => row.entityId === editingEntityId);
+
+    return sortFlowTriggerRows(edited ? [...matching, edited] : matching, sort);
+  }, [rows, filtered, tab, sort, editingEntityId]);
 
   const flowWithoutTriggers =
     flowEntityId !== null &&
     !rows.some((row) => row.flowEntityId === flowEntityId);
+
+  const editingRow = shown.find((row) => row.entityId === editingEntityId);
+  const editingSchedule = editingRow
+    ? schedulesByEntityUuid.get(
+        extractEntityUuidFromEntityId(editingRow.entityId),
+      )
+    : undefined;
+
+  const addTrigger = (
+    <Button
+      size="sm"
+      variant="subtle"
+      tone="neutral"
+      iconName="plus"
+      pressed={adding}
+      onClick={() => setAdding(true)}
+    >
+      Add trigger
+    </Button>
+  );
 
   const changeFilter = (
     property: TriggerFilterProperty,
@@ -253,11 +392,13 @@ const TriggersPage: NextPageWithLayout = () => {
               <LoadingSpinner size="lg" />
             </div>
           )
-        ) : rows.length === 0 && flowEntityId === null ? (
+        ) : rows.length === 0 && flowEntityId === null && !adding ? (
           <FlowsEmptyState
             title="No triggers yet"
             description="Schedules that start your flows are listed here."
-          />
+          >
+            {addTrigger}
+          </FlowsEmptyState>
         ) : (
           <div className={body}>
             <Tabs value={tab} onChange={setTab} variant="pill" size="sm">
@@ -319,6 +460,7 @@ const TriggersPage: NextPageWithLayout = () => {
                         clearable
                       />
                     </div>
+                    {addTrigger}
                   </>
                 }
               />
@@ -343,7 +485,20 @@ const TriggersPage: NextPageWithLayout = () => {
                 }}
               />
             )}
-            {shown.length === 0 ? (
+            {actionError !== null && (
+              <Banner
+                tone="error"
+                dismissible={{ onDismiss: () => setActionError(null) }}
+              >
+                <Banner.Title>{actionError.title}</Banner.Title>
+                <Banner.Description as="div">
+                  {actionError.message.split("\n").map((line) => (
+                    <div key={line}>{line}</div>
+                  ))}
+                </Banner.Description>
+              </Banner>
+            )}
+            {shown.length === 0 && !adding ? (
               <FlowsEmptyState
                 title={
                   flowWithoutTriggers ? "No triggers yet" : "No triggers match"
@@ -360,9 +515,58 @@ const TriggersPage: NextPageWithLayout = () => {
                 columns={columns}
                 sort={sort}
                 onSort={setSort}
+                newTriggerForm={
+                  adding ? (
+                    <NewTriggerForm
+                      initialFlowEntityId={flowEntityId}
+                      onAdded={async () => {
+                        await refresh();
+                        setAdding(false);
+                      }}
+                      onCancel={() => setAdding(false)}
+                    />
+                  ) : null
+                }
+                editing={
+                  editingRow && editingSchedule
+                    ? {
+                        entityId: editingRow.entityId,
+                        form: (
+                          <EditTriggerForm
+                            key={editingRow.entityId}
+                            scheduleEntityId={editingRow.entityId}
+                            scheduleSpec={
+                              editingSchedule.properties
+                                .scheduleSpec as ScheduleSpec
+                            }
+                            webName={editingRow.webName}
+                            onSaved={async () => {
+                              await refresh();
+                              setEditingEntityId(null);
+                            }}
+                            onCancel={() => setEditingEntityId(null)}
+                          />
+                        ),
+                      }
+                    : null
+                }
+                onEdit={(row) => edit(row.entityId)}
+                onCloseEdit={() => setEditingEntityId(null)}
+                switchingEntityId={switchingEntityId}
+                onSetOn={(row, on) => {
+                  void setOn(row, on);
+                }}
+                onDelete={setDeletingRow}
               />
             )}
           </div>
+        )}
+        {deletingRow && (
+          <DeleteTriggerDialog
+            text={deletingRow.text}
+            onDelete={() => deleteTrigger(deletingRow)}
+            onClose={() => setDeletingRow(null)}
+          />
         )}
       </main>
     </DsComponentsScope>

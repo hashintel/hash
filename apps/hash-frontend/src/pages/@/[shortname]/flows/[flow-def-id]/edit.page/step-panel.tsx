@@ -27,6 +27,7 @@ import { OutputField } from "./step-panel/output-field";
 import { PathsField } from "./step-panel/paths-field";
 import { QueryField } from "./step-panel/query-field";
 import { TriggersPanelBody } from "./step-panel/triggers-panel";
+import { getRunBlocker } from "./top-bar/run-flow/run-form";
 
 import type { FlowSchedules } from "./shared/flow-triggers";
 import type { StepTone } from "./shared/step-display";
@@ -86,7 +87,7 @@ const derivedDescription = css({
 });
 const empty = css({ textStyle: "sm", color: "fg.subtle" });
 const addInputButton = css({ alignSelf: "flex-start" });
-const editTriggersLink = css({ alignSelf: "flex-start" });
+const triggerLinks = css({ display: "flex", gap: "2" });
 
 /** The step's tile in its hue, then its type, then "Group · description" with the description given as `children`. */
 const PanelHeader = ({
@@ -127,9 +128,12 @@ const newInputTarget: ConnectionTarget = {
 const TriggersPanel = ({
   flowDefinitionEntityId,
   schedules,
+  addBlocker,
 }: {
   flowDefinitionEntityId: EntityId;
   schedules: FlowSchedules;
+  /** Why a trigger can't be added, as a flow that can't run can't be scheduled, or `null` if it can. */
+  addBlocker: string | null;
 }) => {
   /* The panel is inert under the sheet "Show all" opens, so Tab and Esc stay in the sheet. */
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -144,17 +148,29 @@ const TriggersPanel = ({
         sheetOpen={sheetOpen}
         onSheetOpenChange={setSheetOpen}
       />
-      <Button
-        variant="subtle"
-        tone="neutral"
-        size="sm"
-        href={generateFlowTriggersPath({ flowDefinitionEntityId })}
-        iconName="arrowRight"
-        iconPosition="right"
-        className={editTriggersLink}
-      >
-        Edit flow triggers
-      </Button>
+      <div className={triggerLinks}>
+        <Button
+          variant="ghost"
+          tone="neutral"
+          size="sm"
+          href={generateFlowTriggersPath({ flowDefinitionEntityId, add: true })}
+          iconName="plus"
+          disabled={addBlocker !== null}
+          tooltip={addBlocker ?? undefined}
+        >
+          Add trigger
+        </Button>
+        <Button
+          variant="subtle"
+          tone="neutral"
+          size="sm"
+          href={generateFlowTriggersPath({ flowDefinitionEntityId })}
+          iconName="arrowRight"
+          iconPosition="right"
+        >
+          Edit flow triggers
+        </Button>
+      </div>
     </SidePanel>
   );
 };
@@ -427,10 +443,8 @@ export const StepPanel = ({
   /** Selects a step that uses a value, picked from "Used in". */
   onSelectStep: (stepId: string) => void;
 }) => {
-  const { flowDefinition, problemsByStepId } = useSyncExternalStore(
-    editor.subscribe,
-    editor.getState,
-  );
+  const editorState = useSyncExternalStore(editor.subscribe, editor.getState);
+  const { flowDefinition, problemsByStepId } = editorState;
   const usesOf = useMemo(
     () => indexValueUses(flowDefinition.steps),
     [flowDefinition.steps],
@@ -441,6 +455,7 @@ export const StepPanel = ({
       <TriggersPanel
         flowDefinitionEntityId={flowDefinitionEntityId}
         schedules={schedules}
+        addBlocker={getRunBlocker(editorState)}
       />
     );
   }

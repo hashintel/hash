@@ -5,12 +5,12 @@ import {
   DocsPage,
   DocsTitle,
 } from "@fumadocs/base-ui/layouts/docs/page";
-import defaultMdxComponents from "@fumadocs/base-ui/mdx";
 import { notFound } from "next/navigation.js";
 
 import { Body } from "../../../../../src/components.js";
 import { components, html } from "../../../../components/api.js";
 import { Glyph } from "../../../../components/glyph.js";
+import { components as mdxComponents } from "../../../../components/mdx.js";
 import { Rail } from "../../../../components/rail.js";
 import { source } from "../../../../lib/source.js";
 
@@ -74,7 +74,7 @@ export default async function Page({ params }: Props): Promise<ReactNode> {
         <DocsTitle>{data.title}</DocsTitle>
         <DocsDescription>{data.description}</DocsDescription>
         <DocsBody>
-          <data.body components={defaultMdxComponents} />
+          <data.body components={mdxComponents} />
         </DocsBody>
       </DocsPage>
     );

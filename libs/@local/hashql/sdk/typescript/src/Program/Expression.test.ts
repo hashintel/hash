@@ -11,6 +11,7 @@ import * as JExpr from "../JExpr/index.js";
 import * as Expression from "./Expression.js";
 import * as Module from "./Module.js";
 import * as Structural from "./Structural.js";
+import * as TypeExpression from "./TypeExpression.js";
 
 import type * as Type from "../Type.js";
 import type * as Inputs from "./Inputs.js";
@@ -287,6 +288,99 @@ describe("expression", () => {
     );
     expect(compile(record.prototype)).toBe(
       '["::kernel::special_form::access","record","prototype"]',
+    );
+  });
+
+  test("type_assertion", () => {
+    expect.hasAssertions();
+    const expected =
+      '["::kernel::special_form::as",{"#literal":2},"::kernel::type::Number"]';
+    expect(compile(Expression.as(2n, numberType))).toBe(expected);
+    expect(
+      compile(pipe(Expression.literal(2n), Expression.as(numberType))),
+    ).toBe(expected);
+    const failure = Result.getOrThrow(
+      Result.flip(Expression.toJExpr(Expression.as(Number.NaN, numberType))),
+    );
+    expect(failure.reason._tag).toBe("InvalidExpression");
+    const record =
+      '["::kernel::special_form::as",{"#struct":{"count":{"#literal":2}}},{"#struct":{"count":"::kernel::type::Number"}}]';
+    expect(compile(Expression.as({ count: 2n }, { count: Number }))).toBe(
+      record,
+    );
+    expect(compile(pipe({ count: 2n }, Expression.as({ count: Number })))).toBe(
+      record,
+    );
+  });
+
+  test("structural_defaults", () => {
+    expect.hasAssertions();
+    const count = Expression.input("count", BigInt);
+    const row = Expression.input("row", { count: BigInt }, { count });
+    expect(compile(row)).toBe(
+      '["::kernel::special_form::input","row",{"#struct":{"count":"::kernel::type::Integer"}},{"#struct":{"count":["::kernel::special_form::input","count","::kernel::type::Integer"]}}]',
+    );
+    expect(compile(Expression.input("pair", [BigInt, String], [1n, "x"]))).toBe(
+      '["::kernel::special_form::input","pair",{"#tuple":["::kernel::type::Integer","::kernel::type::String"]},{"#tuple":[{"#literal":1},{"#literal":"x"}]}]',
+    );
+    // oxlint-disable-next-line unicorn/no-useless-undefined -- explicitly absent defaults must behave like omitted defaults
+    expect(compile(Expression.input("count", BigInt, undefined))).toBe(
+      compile(count),
+    );
+  });
+
+  test("host_objects", () => {
+    expect.hasAssertions();
+    // @ts-expect-error exercise an unchecked JavaScript caller
+    const asserted = Expression.as(Promise.resolve(2n), numberType);
+    const row = { at: new Map() };
+    // @ts-expect-error exercise an unchecked JavaScript caller
+    const defaulted = Expression.input("row", { at: String }, row);
+    for (const expression of [asserted, defaulted]) {
+      expect(
+        Result.getOrThrow(Result.flip(Expression.toJExpr(expression))).reason
+          ._tag,
+      ).toBe("InvalidExpression");
+    }
+  });
+
+  test("input_failures", () => {
+    expect.hasAssertions();
+    const bad = Expression.number(Number.NaN);
+    const failure = Result.getOrThrow(Result.flip(Expression.toJExpr(bad)));
+    const defaulted = Expression.input("number", Number, bad);
+    expect(Result.getOrThrow(Result.flip(Expression.toJExpr(defaulted)))).toBe(
+      failure,
+    );
+    const invalid = Expression.input("invalid", { "": String });
+    expect(
+      Result.getOrThrow(Result.flip(Expression.toJExpr(invalid))),
+    ).toStrictEqual(
+      Result.getOrThrow(Result.flip(Structural.type({ "": String }))),
+    );
+  });
+
+  test("unchecked_assertion", () => {
+    expect.hasAssertions();
+    const unchecked = TypeExpression.fromType<Type.PrimitiveNumber>({
+      _tag: "Struct",
+      members: [[{ _tag: "Lexical", value: "first name" }, { _tag: "Infer" }]],
+    });
+    expect(
+      Result.getOrThrow(
+        Result.flip(Expression.toJExpr(Expression.as(2n, unchecked))),
+      ).reason._tag,
+    ).toBe("InvalidExpression");
+  });
+
+  test("deep_assertion", () => {
+    expect.hasAssertions();
+    let value: Expression.Value.Any = 0n;
+    for (let depth = 0; depth < 2000; depth += 1) {
+      value = Expression.ifElse(true, { then: value, else: 0n });
+    }
+    expect(compile(Expression.as(value, numberType))).toBe(
+      `["::kernel::special_form::as",${compile(value)},"::kernel::type::Number"]`,
     );
   });
 

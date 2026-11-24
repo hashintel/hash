@@ -1,0 +1,110 @@
+.figure {
+  max-width: 24rem;
+  margin-block: 1.5rem;
+  margin-inline: auto;
+  color: var(--color-fd-foreground);
+}
+
+.figure svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-inline: auto;
+  overflow: visible;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.figure figcaption {
+  margin: 0.75rem auto 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.grid {
+  fill: none;
+  stroke: var(--color-fd-border);
+  stroke-dasharray: 2 4;
+  stroke-width: 0.5;
+}
+
+.later-decision-region {
+  fill: color-mix(
+    in oklab,
+    var(--color-fd-foreground) 8%,
+    var(--color-fd-background)
+  );
+}
+
+.equal-time {
+  fill: none;
+  stroke: var(--color-fd-muted-foreground);
+  stroke-width: 1;
+}
+
+.later-decision-label {
+  fill: var(--color-fd-foreground);
+  text-anchor: middle;
+}
+
+.axis {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1;
+}
+
+.tick,
+.label {
+  fill: currentcolor;
+  text-anchor: middle;
+}
+
+.tick {
+  font-variant-numeric: tabular-nums;
+}
+
+.transaction-tick {
+  text-anchor: end;
+}
+
+.version rect {
+  fill: var(--color-fd-muted);
+  stroke: var(--color-fd-muted-foreground);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.version text {
+  fill: var(--color-fd-foreground);
+  font-weight: 600;
+  text-anchor: middle;
+}
+
+.version[data-selected="true"] rect {
+  fill: color-mix(
+    in oklab,
+    var(--color-fd-primary) 12%,
+    var(--color-fd-background)
+  );
+  stroke: var(--color-fd-primary);
+  stroke-dasharray: none;
+}
+
+.guide {
+  fill: none;
+  stroke: var(--color-fd-foreground);
+  stroke-dasharray: 2 2;
+}
+
+.query {
+  fill: var(--color-fd-foreground);
+  stroke: var(--color-fd-foreground);
+  stroke-width: 2.5;
+}
+
+.query text {
+  font-size: 12px;
+  font-weight: 600;
+  stroke: none;
+}

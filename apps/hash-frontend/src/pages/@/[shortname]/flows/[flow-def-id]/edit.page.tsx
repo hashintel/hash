@@ -45,6 +45,7 @@ import { sidePanelWidth } from "./edit.page/shared/side-panel";
 import { useFlowRuns } from "./edit.page/shared/use-flow-runs";
 import { StepPanel } from "./edit.page/step-panel";
 import { TopBar } from "./edit.page/top-bar";
+import { editorRunDataSources } from "./edit.page/top-bar/run-flow/run-form";
 import {
   FlowChangedElsewhereError,
   FlowSaveRefusedError,
@@ -67,10 +68,7 @@ import type { StepPanelSubject } from "./edit.page/step-panel";
 import type { FlowEditorView } from "./edit.page/top-bar";
 import type { JsonObject } from "@blockprotocol/core";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
-import type {
-  FlowDataSources,
-  FlowInputValues,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowInputValues } from "@local/hash-isomorphic-utils/flows/types";
 
 const editorHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
@@ -108,18 +106,6 @@ const useCollapsedSidebar = () => {
       }
     };
   }, []);
-};
-
-/**
- * The API requires data sources to run a flow with an AI action. Nothing in the editor picks files or turns on internet
- * access, so a run from it has neither.
- */
-const editorRunDataSources: FlowDataSources = {
-  files: { fileEntityIds: [] },
-  internetAccess: {
-    enabled: false,
-    browserPlugin: { enabled: false, domains: [] },
-  },
 };
 
 const isConflictError = (error: unknown) =>
@@ -411,6 +397,7 @@ const FlowEditor = ({
       <TopBar
         editorKey={session.key}
         webId={webId}
+        shortname={shortname}
         editorState={editorState}
         flowDefinitionEntityId={flowDefinitionEntityId}
         view={view}

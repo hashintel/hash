@@ -310,7 +310,11 @@ describe("getFlowGraph", () => {
           kind: "schedule",
           line: "Monthly review",
           on: true,
-          run: { mark: { state: "done", items: null }, featured: false },
+          run: {
+            mark: { state: "done", items: null },
+            featured: false,
+            live: false,
+          },
         },
       ],
     );

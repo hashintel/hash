@@ -1,6 +1,20 @@
 {
   "extends": ["//"],
   "tasks": {
+    "build": {
+      "dependsOn": ["codegen"],
+      "outputs": ["dist/**"]
+    },
+    "generate": {
+      "cache": false,
+      "dependsOn": ["build"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["build"]
+    },
+    "lint:oxlint": {
+      "dependsOn": ["$TURBO_EXTENDS$", "build"]
+    },
     "codegen": {
       "dependsOn": ["@local/hashql#build"],
       "outputs": [".generated/**"]
