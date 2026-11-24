@@ -1,8 +1,9 @@
 /** @vitest-environment jsdom */
 import { FlueApiError } from "@flue/sdk";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { createUIMessageStreamResponse } from "ai";
 import { Children, isValidElement, type ReactNode } from "react";
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import {
   brunchTools,
@@ -50,7 +51,10 @@ import type {
 
 const netOneId = toPetrinautId("net-1");
 const netTwoId = toPetrinautId("net-2");
-const flueClientMock = vi.hoisted(() => ({ current: null as unknown }));
+const flueClientMock = vi.hoisted(() => ({
+  current: null as unknown,
+  created: 0,
+}));
 const brunchFlueAdapterTools = vi.hoisted(() => ({
   current: undefined as
     | Parameters<typeof createBrunchFlueAdapter>[0]
@@ -72,7 +76,10 @@ const mutationApprovalCoordinators = vi.hoisted(
 
 vi.mock("@flue/sdk", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@flue/sdk")>()),
-  createFlueClient: () => flueClientMock.current,
+  createFlueClient: () => {
+    flueClientMock.created += 1;
+    return flueClientMock.current;
+  },
 }));
 vi.mock("./tools/brunch-mutation-approval", async (importOriginal) => {
   const actual =
@@ -240,6 +247,7 @@ beforeEach(() => {
       subscribe: () => () => {},
     }),
   };
+  flueClientMock.created = 0;
   brunchPanelTransportSessions.length = 0;
   mutationApprovalCoordinators.length = 0;
   brunchPanelTransportOptions.current = undefined;
@@ -1731,4 +1739,199 @@ test("a conversation Flue does not have yet is a known, empty history", async ()
   // The first turn, from another tab, is new to this one.
   publish(observedHistory(highlightFirstTurn));
   expect(highlighted()).toBe(true);
+});
+
+test("Flue serves the conversation unless the host names another backend", async () => {
+  const { result } = renderAssistant();
+  expect(result.current.backend).toBe("flue");
+  await waitFor(() => expect(flueClientMock.created).toBeGreaterThan(0));
+});
+
+describe("on the durable agents server", () => {
+  /** `history` answers the conversation's history read, or `null` for an unknown conversation. */
+  const durableServer = ({
+    history = () => [],
+  }: { history?: () => unknown[] | null } = {}) => {
+    const historyReads: { url: string; init: RequestInit }[] = [];
+    const requests: { url: string; init: RequestInit }[] = [];
+    const callRecordReads: string[] = [];
+    const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+      const url = input instanceof Request ? input.url : input.toString();
+      if (url.endsWith("/browser-calls")) {
+        callRecordReads.push(url);
+        return Response.json({ calls: {} });
+      }
+      if (url.endsWith("/messages")) {
+        historyReads.push({ url, init: init ?? {} });
+        const messages = history();
+        return messages === null
+          ? Response.json({ error: "Not found" }, { status: 404 })
+          : Response.json(messages);
+      }
+      requests.push({ url, init: init ?? {} });
+      if (url.endsWith("/abort")) return new Response(null, { status: 204 });
+      return createUIMessageStreamResponse({
+        stream: new ReadableStream({
+          start: (controller) => {
+            controller.enqueue({ type: "start", messageId: "reply" });
+            controller.enqueue({ type: "finish" });
+            controller.close();
+          },
+        }),
+      });
+    });
+    const body = (index: number): unknown => {
+      const sent = requests[index]?.init.body;
+      return typeof sent === "string" ? JSON.parse(sent) : undefined;
+    };
+    return { body, callRecordReads, fetch, historyReads, requests };
+  };
+  const renderOnDurableServer = (fetch: typeof globalThis.fetch) =>
+    renderAssistant({
+      chatEndpoint: "http://durable.test",
+      backend: { kind: "successor", web: "web-1" },
+      fetch,
+    });
+  const conversationId = () =>
+    brunchEvaluationConversationIdFrom(
+      ordinaryConstructionConversationIdFrom(netOneId),
+    );
+
+  test("each message goes to the durable server, bound to the open net, without a Flue client", async () => {
+    const server = durableServer();
+    const rendered = renderOnDurableServer(server.fetch);
+    expect(rendered.result.current.backend).toBe("successor");
+
+    const response = await rendered.assistant().transport.sendMessages({
+      trigger: "submit-message",
+      chatId: "chat",
+      messageId: undefined,
+      messages: [
+        { id: "m1", role: "user", parts: [{ type: "text", text: "A queue." }] },
+      ],
+      abortSignal: undefined,
+    });
+    for await (const _chunk of response as AsyncIterable<unknown>) {
+      // Drain the reply.
+    }
+
+    expect(server.requests.map(({ url }) => url)).toEqual([
+      "http://durable.test/chat",
+    ]);
+    // The replay's read, and the hand-edit reporter's of what was shown.
+    expect(server.callRecordReads).toHaveLength(2);
+    for (const url of server.callRecordReads)
+      expect(url).toMatch(
+        /^http:\/\/durable\.test\/conversations\/[^/]+\/browser-calls$/,
+      );
+    expect(server.body(0)).toMatchObject({
+      messages: [{ id: "m1", role: "user" }],
+    });
+    expect((server.body(0) as { binding?: unknown }).binding).toEqual({
+      conversationId: conversationId(),
+      documentId: netOneId,
+      incarnationId: netOneId,
+    });
+    expect(
+      new Headers(server.requests[0]?.init.headers).get("x-brunch-web"),
+    ).toBe("web-1");
+    expect(flueClientMock.created).toBe(0);
+  });
+
+  test("Stop asks the durable server to stop the conversation", async () => {
+    const server = durableServer();
+    const rendered = renderOnDurableServer(server.fetch);
+
+    await expect(rendered.assistant().requestStop?.()).resolves.toBe(
+      "stop-requested",
+    );
+    expect(server.requests).toHaveLength(1);
+    expect(server.requests[0]?.url).toMatch(
+      /^http:\/\/durable\.test\/chat\/[^/]+\/abort$/,
+    );
+    expect(flueClientMock.created).toBe(0);
+  });
+
+  test("the panel opens with the conversation's history, read with its headers, and resumes its running turn", async () => {
+    const server = durableServer({
+      history: () => [
+        { id: "m1", role: "user", parts: [{ type: "text", text: "A queue." }] },
+        {
+          id: "durable:2",
+          role: "assistant",
+          parts: [{ type: "text", text: "A queue it is." }],
+        },
+      ],
+    });
+    const rendered = renderOnDurableServer(server.fetch);
+
+    await waitFor(() =>
+      expect(rendered.assistant().messages?.map(({ id }) => id)).toEqual([
+        "m1",
+        "durable:2",
+      ]),
+    );
+    expect(rendered.assistant().followMessages?.resumeOnOpen).toBe(true);
+    expect(server.historyReads[0]?.url).toMatch(
+      /^http:\/\/durable\.test\/chat\/[^/]+\/messages$/,
+    );
+    const headers = new Headers(server.historyReads[0]?.init.headers);
+    expect(headers.get("x-brunch-conversation")).toBe(conversationId());
+    expect(headers.get("x-brunch-web")).toBe("web-1");
+  });
+
+  test("a conversation the durable server does not know opens empty, with no turn to resume", async () => {
+    const server = durableServer({ history: () => null });
+    const rendered = renderOnDurableServer(server.fetch);
+
+    await waitFor(() => expect(server.historyReads).not.toHaveLength(0));
+    await waitFor(() => expect(rendered.assistant().messages).toEqual([]));
+    expect(rendered.assistant().followMessages?.resumeOnOpen).toBe(false);
+  });
+
+  test("a sent turn's end reads the history again, which then settles it", async () => {
+    let answered = false;
+    const server = durableServer({
+      history: () =>
+        answered
+          ? [
+              {
+                id: "m1",
+                role: "user",
+                parts: [{ type: "text", text: "A queue." }],
+              },
+              {
+                id: "reply",
+                role: "assistant",
+                parts: [{ type: "text", text: "A queue it is." }],
+              },
+            ]
+          : [],
+    });
+    const rendered = renderOnDurableServer(server.fetch);
+    await waitFor(() => expect(rendered.assistant().messages).toEqual([]));
+
+    const response = await rendered.assistant().transport.sendMessages({
+      trigger: "submit-message",
+      chatId: "chat",
+      messageId: undefined,
+      messages: [
+        { id: "m1", role: "user", parts: [{ type: "text", text: "A queue." }] },
+      ],
+      abortSignal: undefined,
+    });
+    expect(rendered.assistant().followMessages?.canReplace()).toBe(false);
+    answered = true;
+    for await (const _chunk of response as AsyncIterable<unknown>) {
+      // Drain the reply.
+    }
+
+    await waitFor(() =>
+      expect(rendered.assistant().messages?.map(({ id }) => id)).toEqual([
+        "m1",
+        "reply",
+      ]),
+    );
+    expect(rendered.assistant().followMessages?.canReplace()).toBe(true);
+  });
 });

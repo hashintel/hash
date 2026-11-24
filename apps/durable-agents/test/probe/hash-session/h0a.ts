@@ -3,14 +3,14 @@
  * Probe H0a: does a real HASH session reach a separate local origin, and does
  * Brunch's session middleware resolve it there?
  *
- * A stub on port 4323 mounts credentialed CORS for `http://localhost:3000`,
- * the copied `hashSessionActor` over hash-api at `http://localhost:5001`, and
- * `POST /probe` answering `{ actorKey }`. Headless Chromium then fetches it
- * from pages on the real frontend:
+ * A stub on port 4324 mounts credentialed CORS for `http://localhost:3000`,
+ * the Brunch library's `hashSessionActor` over hash-api at
+ * `http://localhost:5001`, and `POST /probe` answering `{ actorKey }`.
+ * Headless Chromium then fetches it from pages on the real frontend:
  *
  * 1. with no session: expects 401;
  * 2. signed in as the seeded alice: expects 200 and `hash:<webId>`;
- * 3. the same page against `http://127.0.0.1:4323`: reported, not required;
+ * 3. the same page against `http://127.0.0.1:4324`: reported, not required;
  * 4. as a newly registered account, before and after verifying its email,
  *    stopping before HASH's account setup: expects 401 both times.
  *
@@ -20,7 +20,7 @@
  *
  * Usage: `turbo run probe:hash-session --filter @apps/durable-agents`, with
  * the compose stack, the graph, hash-api and the frontend already running
- * from this slot, and port 4323 free. No model is called. Each run registers
+ * from this slot, and port 4324 free. No model is called. Each run registers
  * one Kratos identity (`h0a-<timestamp>@example.com`, random password) and
  * leaves it mid-signup. It takes about 30 s.
  */
@@ -30,19 +30,20 @@ import { type BrowserContext, chromium, type Page } from "@playwright/test";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
-import { serveNode } from "../../../src/server/start-durable-agents-server/serve-node";
 import {
   type HashSessionVariables,
   hashSessionActor,
   hashSessionCookie,
   sessionAccountQuery,
   sessionCookiePair,
-} from "./hash-session-actor";
+} from "@hashintel/brunch-agent/server";
+
+import { serveNode } from "../../../src/server/start-durable-agents-server/serve-node";
 
 const frontendOrigin = "http://localhost:3000";
 const apiOrigin = "http://localhost:5001";
 const mailslurperApiOrigin = "http://localhost:4437";
-const stubPort = 4323;
+const stubPort = 4324;
 const stubOrigins = {
   localhost: `http://localhost:${stubPort}`,
   loopbackAddress: `http://127.0.0.1:${stubPort}`,
@@ -115,7 +116,14 @@ app.use(
     allowHeaders: ["Content-Type", "x-brunch-conversation"],
   }),
 );
-app.use(hashSessionActor({ apiOrigin }));
+app.use(
+  hashSessionActor({
+    apiOrigin,
+    logWarning: (message, fields) => {
+      process.stderr.write(`${JSON.stringify({ message, ...fields })}\n`);
+    },
+  }),
+);
 app.post("/probe", (context) =>
   context.json({ actorKey: context.get("hashSessionActorKey") }),
 );

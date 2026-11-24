@@ -11,6 +11,7 @@ import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { buildStamp } from "../../buildstamp";
 import {
   brunchAgentOrigin,
+  durableAgentsOrigin,
   SENTRY_DSN,
   SENTRY_ENVIRONMENT,
 } from "./public-env";
@@ -141,6 +142,8 @@ export const buildCspHeader = ({
       // `https:` below admits it too, and naming it keeps the assistant
       // working if that allowance narrows.
       ...(brunchAgentOrigin !== null ? [brunchAgentOrigin] : []),
+      // The durable agents server, which runs the assistant instead when set.
+      ...(durableAgentsOrigin !== null ? [durableAgentsOrigin] : []),
       // Sentry error reporting and session replay
       "https://*.ingest.sentry.io",
       // Google APIs (OAuth, Drive)

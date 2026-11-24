@@ -41,7 +41,7 @@ interface OpenAIRealtimeCallDependencies {
 const response = (
   body: string,
   status: number,
-  headers?: HeadersInit,
+  headers?: ConstructorParameters<typeof Headers>[0],
 ): Response => {
   const responseHeaders = new Headers(headers);
   responseHeaders.set("cache-control", "no-store");

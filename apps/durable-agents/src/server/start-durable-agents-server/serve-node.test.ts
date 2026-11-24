@@ -130,3 +130,112 @@ test("a slow reader holds the response stream back instead of the server bufferi
   expect(received).toBe(chunkSize * chunkCount);
   expect(counter.pulled).toBe(chunkCount);
 });
+
+/** Send `chunks` as the request body, chunked unless `headers` declares a length; resolves with the answer. */
+const send = (
+  port: number,
+  {
+    method = "POST",
+    headers = {},
+    chunks = [],
+  }: {
+    readonly method?: string;
+    readonly headers?: Record<string, string>;
+    readonly chunks?: readonly Uint8Array[];
+  },
+) =>
+  new Promise<{ status: number; body: string }>((resolve, reject) => {
+    const request = httpRequest(
+      { host: "127.0.0.1", port, path: "/path?query", method, headers },
+      (response) => {
+        let body = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk: string) => {
+          body += chunk;
+        });
+        response.on("end", () =>
+          resolve({ status: response.statusCode ?? 0, body }),
+        );
+      },
+    ).on("error", reject);
+    for (const chunk of chunks) request.write(chunk);
+    request.end();
+  });
+
+test("a body over the byte limit is refused with 413 before the handler runs, whether declared or streamed; one within it arrives whole", async () => {
+  const received: number[] = [];
+  const listener = await serveNode(
+    async (request) => {
+      received.push((await request.arrayBuffer()).byteLength);
+      return new Response("served");
+    },
+    { port: 0, maxBodyBytes: 1024 },
+  );
+  listeners.push(listener);
+  const tooLarge = { status: 413, body: '{"error":"request too large"}' };
+  expect(
+    await send(listener.port, {
+      headers: { "content-length": "1025" },
+      chunks: [new Uint8Array(1025)],
+    }),
+  ).toEqual(tooLarge);
+  expect(
+    await send(listener.port, {
+      chunks: [new Uint8Array(600), new Uint8Array(600)],
+    }),
+  ).toEqual(tooLarge);
+  expect(received).toEqual([]);
+  expect(
+    await send(listener.port, {
+      chunks: [new Uint8Array(512), new Uint8Array(512)],
+    }),
+  ).toEqual({ status: 200, body: "served" });
+  expect(received).toEqual([1024]);
+});
+
+test("a request's URL names the listener, not the client's Host, unless the proxy in front is trusted", async () => {
+  const echoUrl = (request: Request) => new Response(request.url);
+  const direct = await serveNode(echoUrl, { port: 0 });
+  listeners.push(direct);
+  expect(
+    await send(direct.port, {
+      method: "GET",
+      headers: { host: "attacker.example", "x-forwarded-proto": "https" },
+    }),
+  ).toEqual({
+    status: 200,
+    body: `http://127.0.0.1:${direct.port}/path?query`,
+  });
+
+  const proxied = await serveNode(echoUrl, { port: 0, trustProxy: true });
+  listeners.push(proxied);
+  expect(
+    await send(proxied.port, {
+      method: "GET",
+      headers: { host: "agents.hash.ai", "x-forwarded-proto": "https" },
+    }),
+  ).toEqual({ status: 200, body: "https://agents.hash.ai/path?query" });
+  expect(
+    await send(proxied.port, {
+      method: "GET",
+      headers: { host: "agents.hash.ai" },
+    }),
+  ).toEqual({ status: 200, body: "http://agents.hash.ai/path?query" });
+});
+
+test("a handler's failure is answered 500 without its detail, and told to `onError`", async () => {
+  const told: unknown[] = [];
+  const failure = new Error("connection string postgres://secret");
+  const listener = await serveNode(
+    () => {
+      throw failure;
+    },
+    { port: 0, onError: (error) => told.push(error) },
+  );
+  listeners.push(listener);
+  expect(await send(listener.port, { method: "GET" })).toEqual({
+    status: 500,
+    body: "Internal Server Error",
+  });
+  expect(told).toEqual([failure]);
+});

@@ -17,6 +17,11 @@ import {
   brunchRoutes,
   brunchTools,
 } from "@hashintel/brunch-agent";
+import {
+  hashSessionActor,
+  hashTurnLimit,
+  type TurnWindows,
+} from "@hashintel/brunch-agent/server";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 import {
   createLiveToolBroadcaster,
@@ -38,11 +43,6 @@ import {
   createAgentCors,
   parseCorsAllowedOrigins,
 } from "./server/http/cors.ts";
-import { hashSessionActor } from "./server/http/hash-session-actor.ts";
-import {
-  hashTurnLimit,
-  type TurnWindows,
-} from "./server/http/hash-turn-limit.ts";
 import { agentOwnershipGuard } from "./server/http/ownership.ts";
 import { logger } from "./server/logger.ts";
 import { createModelCallScope } from "./server/model-call-scope.ts";
@@ -64,6 +64,7 @@ import { shutdownBrunchTelemetry } from "./server/telemetry-bootstrap.ts";
 import { recordOperationalFailure } from "./server/telemetry.ts";
 
 import type { Provider } from "@earendil-works/pi-ai";
+import type { Context } from "hono";
 
 // Failed runtime events (tools, turns, tasks, compaction, operations,
 // settlement, recovery) reach the server log with their runtime IDs; the
@@ -308,8 +309,23 @@ const hashCors = createAgentCors(
 // One session cache for the HASH agent's routes and the identity route.
 const resolveSessionActor = hashSessionActor({
   apiOrigin: process.env[brunchEnv.apiOrigin],
+  logWarning: (message, fields) =>
+    fields === undefined
+      ? logger.warn(`[brunch] ${message}`)
+      : logger.warn(`[brunch] ${message}`, fields),
 });
 const hashTurnWindows: TurnWindows = new Map();
+/**
+ * A turn submission is Flue's `send`, a `POST` to the conversation's instance
+ * URL itself. Its sub-routes (`abort`, browser-call claims, leases and
+ * settlements), every `GET` and the identity route start no turn.
+ */
+const isFlueTurnSubmission =
+  (mountPrefix: string) =>
+  (context: Context): boolean =>
+    context.req.method === "POST" &&
+    context.req.path.startsWith(mountPrefix) &&
+    /^[^/]+\/?$/u.test(context.req.path.slice(mountPrefix.length));
 // The signed-in user's actor key, which the page needs to address their
 // conversations and which tells it Brunch will serve them. It sits under the
 // HASH agent's mount, so the ingress rule for the agents covers it, and is
@@ -347,7 +363,10 @@ for (const { route, aliases = [], agent } of mountedAgents) {
     if (sessionActor)
       app.use(
         `${mount}/*`,
-        hashTurnLimit({ mountPrefix: `${mount}/`, windows: hashTurnWindows }),
+        hashTurnLimit({
+          isTurnSubmission: isFlueTurnSubmission(`${mount}/`),
+          windows: hashTurnWindows,
+        }),
       );
     app.get(`${mount}/:id/${liveToolRouteSegment}`, (context) =>
       liveToolResponse(broadcaster, {

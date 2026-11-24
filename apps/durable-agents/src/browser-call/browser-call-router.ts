@@ -4,8 +4,9 @@
  * claim rule. Mounted where the server serves a conversation's agent:
  *
  * - `POST <id>/browser-calls/<callId>` claims, with
- *   `browserCallClaimBodySchema`; a claim for a call not yet issued waits up
- *   to `issueWaitMs` for its issue commit before answering 404;
+ *   `browserCallClaimBodySchema` and a claimant of at most 256 characters; a
+ *   claim for a call not yet issued waits up to `issueWaitMs` for its issue
+ *   commit before answering 404;
  * - `POST …/start` says the holder is executing it, with the lease body;
  * - `POST …/lease`, `…/result` and `…/fail` take the library's bodies;
  * - `GET <id>/browser-calls` reads every call's committed record, without its
@@ -52,6 +53,18 @@ import {
 } from "./browser-call";
 import { reportHandEdit } from "./hand-edit";
 
+/** The longest claimant, a tab's ID, a claim may name: it is stored on the call's record. */
+const maxClaimantLength = 256;
+
+/** The library's claim body, with its claimant bounded. */
+const claimBodySchema = v.object({
+  ...browserCallClaimBodySchema.entries,
+  claimant: v.pipe(
+    browserCallClaimBodySchema.entries.claimant,
+    v.maxLength(maxClaimantLength),
+  ),
+});
+
 /** A start: the claim's proof, as the lease body carries it. */
 export const browserCallStartBodySchema = browserCallLeaseBodySchema;
 
@@ -59,10 +72,17 @@ export type BrowserCallStartBody = v.InferOutput<
   typeof browserCallStartBodySchema
 >;
 
-/** The open Harness serving a conversation, by the conversation ID in the route; `undefined` when none does. */
+/**
+ * The open Harness serving a conversation, by the conversation ID in the
+ * route; `undefined` when none does, and a response when the request may not
+ * reach it, which is then the route's answer.
+ */
 export type ResolveHarness = (
   conversationId: string,
-) => Harness | undefined | Promise<Harness | undefined>;
+  request: Context,
+) => Resolved | Promise<Resolved>;
+
+type Resolved = Harness | Response | undefined;
 
 const callRoute =
   `/:conversationId/${brunchRoutes.browserCalls}/:callId` as const;
@@ -118,7 +138,12 @@ const waitForIssue = async (
   }
 };
 
-/** A call's committed record as a panel replays it: no capability, claimant or tasks. */
+/**
+ * A call's committed record as a panel replays it: no capability, claimant
+ * or tasks, and no `failure`. A failure keeps `output` at `null`, which is
+ * all a panel needs to tell a kept failure from a kept result; any failure
+ * the model received is in history.
+ */
 export type BrowserCallView = Pick<
   BrowserCallRecord,
   | "toolCallId"
@@ -185,11 +210,12 @@ export const createBrowserCallRouter = ({
     if (body === undefined)
       return { response: request.json({ error: "invalid-body" }, 400) };
     const params = request.req.param();
-    const harness = await resolveHarness(params.conversationId ?? "");
+    const harness = await resolveHarness(params.conversationId ?? "", request);
     if (harness === undefined)
       return {
         response: request.json({ error: "unknown-conversation" }, 404),
       };
+    if (harness instanceof Response) return { response: harness };
     return { harness, body, toolCallId: params.callId ?? "" };
   };
 
@@ -197,9 +223,13 @@ export const createBrowserCallRouter = ({
     `/:conversationId/${brunchRoutes.browserCalls}`,
     async (request) => {
       request.header("Cache-Control", "no-store");
-      const harness = await resolveHarness(request.req.param("conversationId"));
+      const harness = await resolveHarness(
+        request.req.param("conversationId"),
+        request,
+      );
       if (harness === undefined)
         return request.json({ error: "unknown-conversation" }, 404);
+      if (harness instanceof Response) return harness;
       const calls =
         (await harness.snapshot(BrowserCallsDoc, conversationId, context))
           ?.calls ?? {};
@@ -239,7 +269,7 @@ export const createBrowserCallRouter = ({
 
   router.post(callRoute, async (request) => {
     request.header("Cache-Control", "no-store");
-    const target = await addressed(request, browserCallClaimBodySchema);
+    const target = await addressed(request, claimBodySchema);
     if ("response" in target) return target.response;
     const claim = () =>
       claimBrowserCallAs(

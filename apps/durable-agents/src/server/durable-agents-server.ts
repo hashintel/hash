@@ -19,13 +19,23 @@
  *   If the last run ended in a crash loop, reconnect replays that failed input
  *   under the same message ID, until a newer run starts.
  * - `POST /chat/:id/abort` stops the conversation; AI SDK's `stop()` only
- *   drops the client's fetch, so a client calls it itself. 404 for an unknown
- *   conversation.
+ *   drops the client's fetch, so a client calls it itself. It answers 204
+ *   once the stop is stored (its work marked aborted, queued inputs
+ *   withdrawn), not once that work has unwound: a tool or model call that
+ *   ignores its abort signal unwinds behind the answer, and a failure there
+ *   goes to `onStopError`. 404 for an unknown conversation.
  * - `GET /chat/:id/messages` answers the conversation's history as AI SDK
  *   `UIMessage[]` (`historyHandler`), projected with the live stream's own
  *   options; 404 for an unknown conversation.
  * - Any `HEAD` request is answered 405, on these routes and on any mounted
  *   on `app` later.
+ *
+ * Each SSE stream (`POST /chat`'s and a reconnect's) carries a comment
+ * heartbeat after `sseHeartbeatMs` without a byte, between events, so the
+ * proxies in front (Cloudflare closes a response after 125 s of silence)
+ * keep a turn's stream open while it waits on the user or a browser call.
+ * AI SDK's parser skips comments; a heartbeat is not a watcher, and a
+ * stream's end or cancel stops it.
  *
  * Each conversation is its own Harness on its own storage (see
  * `createConversationRegistry`), checked to still own that storage before
@@ -42,9 +52,12 @@ import {
   createUIMessageStreamResponse,
   type TextUIPart,
   type UIMessage,
+  type UIMessageChunk,
 } from "ai";
-import { Hono } from "hono";
+import { type Context as HonoContext, Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
+
+import { withSseHeartbeat } from "@hashintel/brunch-agent/server";
 
 import { createAbandonedTurns } from "./durable-agents-server/abandoned-turns";
 import {
@@ -78,9 +91,15 @@ export type { RequestSlotsState } from "./durable-agents-server/request-slots";
 
 /** Why a chat request is refused before its submission. */
 export type ChatRefusal = {
-  readonly status: 400 | 404 | 409;
+  readonly status: 400 | 404 | 409 | 413;
   readonly error: string;
 };
+
+/** The longest message id a chat request may send: the request ID its input is admitted under. */
+const maxRequestIdLength = 256;
+
+/** The most text a chat request's message may carry, across its text parts, in UTF-16 code units. */
+const maxUserTextLength = 100_000;
 
 export type DurableAgentsServerLimits = {
   /** Tool rounds one run takes at most; a run that reaches it fails with `turn_limit`. */
@@ -108,14 +127,26 @@ export type DurableAgentsServerOptions = ConversationRegistryOptions & {
   readonly dynamicClientToolNames?: ReadonlySet<string>;
   /**
    * Runs on a `POST /chat` that names a conversation that does not exist,
-   * before anything is created, with the request's whole body. A refusal
-   * answers the request and creates nothing; a seed is written in the commit
-   * that creates the conversation. Absent, every chat request creates its
-   * conversation.
+   * before anything is created, with the request's whole body and the
+   * request. A refusal answers the request and creates nothing; a seed is
+   * written in the commit that creates the conversation. Absent, every chat
+   * request creates its conversation.
    */
   readonly admitNewConversation?: (
     body: Readonly<Record<string, unknown>>,
+    request: HonoContext,
   ) => ChatRefusal | ConversationSeed | undefined;
+  /**
+   * Runs on every route that names a conversation, once it is open and before
+   * the route reads or writes it (on `POST /chat` also after creating it,
+   * before `admitChat`), so a host can check the request against what the
+   * conversation records, such as who owns it. A response refuses the
+   * request and is its answer.
+   */
+  readonly admitConversation?: (
+    conversation: OpenConversation,
+    request: HonoContext,
+  ) => Promise<Response | undefined>;
   /**
    * Runs on every `POST /chat` before its submission, with the request's
    * whole body, so a host can check or record what its client sends beside
@@ -142,6 +173,24 @@ export type DurableAgentsServerOptions = ConversationRegistryOptions & {
    * `Retry-After` instead of 500.
    */
   readonly isUnavailable?: (error: unknown) => boolean;
+  /**
+   * Told when a request fails with an unexpected error and is answered 500;
+   * `console.error` when absent. Not told for `HTTPException` or errors
+   * `isUnavailable` answers 503 for.
+   */
+  readonly onRequestError?: (error: unknown) => void;
+  /**
+   * Told when a stopped conversation's work fails to unwind after the stop
+   * answered, so no request is left to tell; `console.error` when absent.
+   * Not told during `close`, which ends that wait itself.
+   */
+  readonly onStopError?: (conversationId: string, error: unknown) => void;
+  /**
+   * How long a turn's stream may go without a byte before it carries an SSE
+   * comment heartbeat (`withSseHeartbeat`), so a proxy in front keeps it open
+   * while the turn waits; `defaultSseHeartbeatMs` (30 s) when absent.
+   */
+  readonly sseHeartbeatMs?: number;
   readonly context?: Context;
 };
 
@@ -182,7 +231,9 @@ const partText = (part: unknown): TextUIPart["text"] | undefined =>
  * The user message a submit-message request sends: the last message, its
  * text parts joined, as an input. Only what this reads of the last message is
  * checked: it is refused when it is not a user message, or is one without a
- * string `id` and a list of `parts`.
+ * string `id` and a list of `parts`, with 400; when its id is longer than
+ * `maxRequestIdLength`, with 400; and when its text is longer than
+ * `maxUserTextLength`, with 413.
  */
 const userInput = (
   messages: readonly unknown[],
@@ -205,8 +256,18 @@ const userInput = (
       status: 400,
       error: "The last message must have a string id and a list of parts.",
     };
+  if (message.id.length > maxRequestIdLength)
+    return {
+      status: 400,
+      error: `The last message's id must be at most ${maxRequestIdLength} characters.`,
+    };
   const parts: readonly unknown[] = message.parts;
   const text = parts.flatMap((part) => partText(part) ?? []).join("");
+  if (text.length > maxUserTextLength)
+    return {
+      status: 413,
+      error: `The message must be at most ${maxUserTextLength} characters.`,
+    };
   return { requestId: message.id, ...brunchUserInput(text) };
 };
 
@@ -252,6 +313,20 @@ export const createDurableAgentsServer = (
     ctx.req.method === "HEAD" ? ctx.body(null, 405) : next(),
   );
 
+  const reportStopError =
+    options.onStopError ??
+    ((conversationId: string, error: unknown) => {
+      // oxlint-disable-next-line no-console -- No request is left to answer with it.
+      console.error("Stopping conversation %s failed:", conversationId, error);
+    });
+
+  const reportRequestError =
+    options.onRequestError ??
+    ((error: unknown) => {
+      // oxlint-disable-next-line no-console -- As Hono's default handler, which this one replaces.
+      console.error(error);
+    });
+
   // Hono's own handler, but a request the server could not serve for now is a 503 the client may retry.
   app.onError((error, ctx) => {
     if (options.isUnavailable?.(error) === true) {
@@ -259,10 +334,15 @@ export const createDurableAgentsServer = (
       return ctx.text("The server is busy; try again shortly.", 503);
     }
     if (error instanceof HTTPException) return error.getResponse();
-    // oxlint-disable-next-line no-console -- As Hono's default handler, which this one replaces.
-    console.error(error);
+    reportRequestError(error);
     return ctx.text("Internal Server Error", 500);
   });
+
+  /** A UI message stream as SSE, with heartbeats while it is quiet. */
+  const streamResponse = (stream: ReadableStream<UIMessageChunk>) =>
+    withSseHeartbeat(createUIMessageStreamResponse({ stream }), {
+      intervalMs: options.sseHeartbeatMs,
+    });
 
   /** A client stream of `submission`, counted as watching the conversation until it ends. */
   const follow = async (
@@ -271,8 +351,8 @@ export const createDurableAgentsServer = (
     signal: AbortSignal,
     detach: () => void,
   ) =>
-    createUIMessageStreamResponse({
-      stream: await followSubmission(
+    streamResponse(
+      await followSubmission(
         root,
         submission,
         projection,
@@ -280,7 +360,7 @@ export const createDurableAgentsServer = (
         detach,
         signal,
       ),
-    });
+    );
 
   /** Admit the last user message, once per message id, and stream its answer. */
   app.post("/chat", async (ctx) => {
@@ -298,11 +378,13 @@ export const createDurableAgentsServer = (
     try {
       let conversation = await conversations.acquire(body.id);
       if (conversation === undefined) {
-        const admission = options.admitNewConversation?.(body);
+        const admission = options.admitNewConversation?.(body, ctx);
         if (admission !== undefined && "error" in admission)
           return ctx.text(admission.error, admission.status);
         conversation = await conversations.create(body.id, admission);
       }
+      const refused = await options.admitConversation?.(conversation, ctx);
+      if (refused !== undefined) return refused;
       const refusal = await options.admitChat?.(conversation, body);
       if (refusal !== undefined) return ctx.text(refusal.error, refusal.status);
       const { harness, root } = conversation;
@@ -363,6 +445,8 @@ export const createDurableAgentsServer = (
         },
       );
       if (conversation === undefined) return ctx.text(unknownConversation, 404);
+      const refused = await options.admitConversation?.(conversation, ctx);
+      if (refused !== undefined) return refused;
       const { harness, root } = conversation;
       // The opening reconnect has already selected its input. Other requests
       // select independently and do not inherit that owner's recovery result.
@@ -396,7 +480,7 @@ export const createDurableAgentsServer = (
           await stream.cancel();
           return ctx.body(null, 204);
         }
-        return createUIMessageStreamResponse({ stream });
+        return streamResponse(stream);
       }
       const response = await follow(
         conversation,
@@ -411,18 +495,47 @@ export const createDurableAgentsServer = (
     }
   });
 
-  /** Stop the conversation: withdraw queued inputs and abort its current work. */
+  /** Each stop whose work is still unwinding, so `close` waits for it. */
+  const unwinding = new Set<Promise<void>>();
+  let closing = false;
+
+  /**
+   * Stop the conversation: withdraw queued inputs and abort its current work,
+   * answering once that is stored, while the work unwinds behind the answer.
+   */
   app.post("/chat/:id/abort", async (ctx) => {
-    const conversation = await conversations.acquire(ctx.req.param("id"));
+    const conversationId = ctx.req.param("id");
+    const conversation = await conversations.acquire(conversationId);
     if (conversation === undefined) return ctx.text(unknownConversation, 404);
-    await conversation.root.abort(context);
+    const refused = await options.admitConversation?.(conversation, ctx);
+    if (refused !== undefined) return refused;
+    const { root } = conversation;
+    // Pi's `abort` puts its commit (the abort marks, the queued inputs
+    // withdrawn) on the Session's line as it is called, then waits for the
+    // conversation to be idle, which a tool or model call that ignores its
+    // signal can hold off indefinitely.
+    const unwound: Promise<void> = root
+      .abort(context)
+      .catch((error: unknown) => {
+        // A close ends the wait with the Harness's closed error.
+        if (!closing) reportStopError(conversationId, error);
+      })
+      .finally(() => unwinding.delete(unwound));
+    unwinding.add(unwound);
+    // A commit after it on the line is delivered once the abort's is stored, and fails if that failed.
+    await root.commit(() => undefined, context);
     return ctx.body(null, 204);
   });
 
   /** The conversation's history, as the live stream projects it. */
   app.get(
     "/chat/:id/messages",
-    historyHandler({ conversations, context, ...projection }),
+    historyHandler({
+      conversations,
+      admit: options.admitConversation,
+      context,
+      ...projection,
+    }),
   );
 
   return {
@@ -432,8 +545,10 @@ export const createDurableAgentsServer = (
     now,
     requestSlots: { state: requestSlots.state },
     close: async () => {
+      closing = true;
       turns.close();
       await conversations.close();
+      await Promise.all(unwinding);
     },
   };
 };

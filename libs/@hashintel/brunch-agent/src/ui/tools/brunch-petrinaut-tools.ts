@@ -6,6 +6,7 @@ import {
   type NetReaderLevel,
   netReaderToolNames,
   netStructureOf,
+  parseClientToolResultMetadata,
   projectNetDefinition,
   parseNetReaderInput,
 } from "@hashintel/brunch-agent";
@@ -26,6 +27,7 @@ import {
   documentRevisionOf,
 } from "./shared/document-revision";
 
+import type { SuccessorBrowserCall } from "../../client/successor/successor-browser-calls";
 import type { PetrinautAiAutomaticTool } from "../chat/ai-automatic-tool";
 import type { ReplayReadiness } from "../use-brunch-assistant/use-immutable-replay-baseline";
 import type { FlueConversationState } from "@flue/sdk";
@@ -77,6 +79,43 @@ export const issuedCanonicalCallsFromHistory = async ({
         ...(metadata === undefined ? {} : { metadata }),
       });
     }
+  }
+  return { calls };
+};
+
+/**
+ * The durable agents server's records of a conversation's calls, which keep
+ * what the browser posted where its history shows only what the model saw.
+ * A call with a committed result replays it, a kept one of a stopped turn
+ * included; an ended call without one stays attempted, never retried. A call
+ * still awaiting a browser is left out: whether it may run is the server's
+ * claim to answer.
+ */
+export const issuedCanonicalCallsFromBrowserCalls = (
+  records: readonly SuccessorBrowserCall[],
+): CanonicalPetrinautReplay => {
+  const calls = new Map<string, RetainedCall>();
+  for (const record of records) {
+    if (
+      !browserToolFacts(record.toolName).runsOnNet ||
+      record.status === "pending" ||
+      record.status === "claimed"
+    )
+      continue;
+    // A stopped turn's kept failure has neither output nor metadata.
+    const hasResult =
+      record.status === "finished" ||
+      record.status === "settled" ||
+      (record.status === "discarded" && record.output !== null);
+    const metadata = hasResult
+      ? parseClientToolResultMetadata(record.metadata)
+      : undefined;
+    calls.set(record.toolCallId, {
+      toolName: record.toolName,
+      input: record.input,
+      ...(hasResult ? { output: record.output } : {}),
+      ...(metadata === undefined ? {} : { metadata }),
+    });
   }
   return { calls };
 };

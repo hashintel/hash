@@ -97,6 +97,7 @@ test("a request that gets no pool connection in time is answered 503 with Retry-
   const server = await startDurableAgentsServer({
     port: 0,
     hostname: "127.0.0.1",
+    hashEntry: null,
     pool,
     models,
     model,
@@ -169,6 +170,7 @@ test("the production server reports a Harness failed by a commit without a conne
   const server = await startDurableAgentsServer({
     port: 0,
     hostname: "127.0.0.1",
+    hashEntry: null,
     pool,
     models,
     model,

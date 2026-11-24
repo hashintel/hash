@@ -20,14 +20,28 @@ import {
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
+  createBrunchSuccessorPanelTransport,
+  type BrunchPanelAdmission,
 } from "../client/brunch-panel-transport";
+import { brunchSubmittedUserMessage } from "../client/brunch-panel-transport/submitted-user-message";
 import {
   brunchEvaluationConversationIdFrom,
   getOrCreateBrunchConversationId,
   ordinaryConstructionConversationIdFrom,
   replaceBrunchConversationId,
 } from "../client/conversation/brunch-conversation-id";
-import { requestFlueStop } from "../client/request-flue-stop";
+import {
+  requestFlueStop,
+  requestFlueStopIfStillWanted,
+} from "../client/request-flue-stop";
+import {
+  requestSuccessorStop,
+  requestSuccessorStopIfStillWanted,
+} from "../client/successor/request-successor-stop";
+import {
+  createSuccessorBrowserCalls,
+  readSuccessorBrowserCalls,
+} from "../client/successor/successor-browser-calls";
 import {
   brunchPetrinautClientToolNames,
   canonicalPetrinautClientToolNames,
@@ -39,6 +53,7 @@ import {
   type FixtureProcessAgentConfiguration,
   type ProcessAgentBinding,
 } from "./conversation/use-process-agent-binding";
+import { useSuccessorChatHistory } from "./conversation/use-successor-chat-history";
 import { WithBrunchEditorApi } from "./editor-api-plugin";
 import {
   countInterviewReplies,
@@ -72,13 +87,18 @@ import {
 } from "./tools/brunch-mutation-approval";
 import {
   createCanonicalPetrinautHostTools,
+  issuedCanonicalCallsFromBrowserCalls,
   issuedCanonicalCallsFromHistory,
   EMPTY_CANONICAL_PETRINAUT_REPLAY,
   type CanonicalPetrinautHostToolsInput,
   type CanonicalPetrinautReplay,
 } from "./tools/brunch-petrinaut-tools";
-import { resolveBrunchToolPresentation } from "./tools/brunch-tool-presentation";
+import {
+  resolveBrunchToolPresentation,
+  withCallsOpenInOtherTabs,
+} from "./tools/brunch-tool-presentation";
 import { createHashPetrinautSaveTool } from "./tools/hash-petrinaut-save";
+import { useHandEditReports } from "./use-brunch-assistant/use-hand-edit-reports";
 import { useImmutableReplayBaseline } from "./use-brunch-assistant/use-immutable-replay-baseline";
 import { useStopTurnOnLeave } from "./use-brunch-assistant/use-stop-turn-on-leave";
 import { getBrunchVoiceMode } from "./voice/brunch-voice-mode";
@@ -90,11 +110,15 @@ import {
 import { useConversationWords } from "./words/conversation-words";
 import { WordsHeaderAction } from "./words/words-configurer";
 
+import type { SuccessorConversation } from "../client/successor/successor-endpoints";
 import type { VoiceWord } from "../shared/voice-words";
 import type { PetrinautAiComposerControlContext } from "./chat/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
 import type { PetrinautAiAutomaticTool } from "./chat/ai-automatic-tool";
-import type { PetrinautAiAssistant } from "./chat/petrinaut";
+import type {
+  PetrinautAiAssistant,
+  PetrinautAiChatTransport,
+} from "./chat/petrinaut";
 import type {
   InterviewBudgetLevel,
   SdcpnInitialData,
@@ -115,18 +139,47 @@ const createConversationTrackerFor = (
   _conversationId: string | null,
 ): BrunchPanelConversationTracker => new BrunchPanelConversationTracker();
 
+/**
+ * The server a Brunch conversation runs on: Flue's agent, or the durable
+ * agents server.
+ */
+export type BrunchBackend =
+  | { readonly kind: "flue" }
+  | {
+      readonly kind: "successor";
+      /**
+       * The conversation's web: the process's web, or a draft's `draftWeb`,
+       * never the active workspace.
+       */
+      readonly web: string;
+    };
+
 const useProcessAgentSession = (
   input: BrunchConnection & {
     readonly binding: ProcessAgentBinding | null;
     readonly brunchSelected: boolean;
+    /** The durable agents server's web, or `undefined` on Flue. */
+    readonly successorWeb: string | undefined;
   },
 ) => {
+  const { binding, successorWeb } = input;
   return useMemo(() => {
     const conversationTracker = createConversationTrackerFor(
-      input.binding?.conversationId ?? null,
+      binding?.conversationId ?? null,
     );
+    const bound = input.brunchSelected && binding !== null;
+    const successorConversation: SuccessorConversation | null =
+      bound && successorWeb !== undefined
+        ? {
+            endpoint: input.chatEndpoint,
+            actorKey: input.actorKey,
+            conversationId: binding.conversationId,
+            web: successorWeb,
+            ...(input.fetch === undefined ? {} : { fetch: input.fetch }),
+          }
+        : null;
     const flueClientPromise =
-      input.brunchSelected && input.binding !== null
+      bound && successorWeb === undefined
         ? createBrunchFlueClient(
             {
               actorKey: input.actorKey,
@@ -134,13 +187,14 @@ const useProcessAgentSession = (
               chatEndpoint: input.chatEndpoint,
               fetch: input.fetch,
             },
-            input.binding.conversationId,
+            binding.conversationId,
           )
         : null;
-    return { conversationTracker, flueClientPromise };
+    return { conversationTracker, flueClientPromise, successorConversation };
   }, [
-    input.binding,
+    binding,
     input.brunchSelected,
+    successorWeb,
     input.actorKey,
     input.legacyActorHeader,
     input.chatEndpoint,
@@ -196,11 +250,13 @@ export interface BrunchAssistant {
    * does not or Brunch is not selected.
    */
   readonly openAIVoiceConfig: OpenAIVoiceConfig | null | undefined;
+  /** The server the conversation runs on. */
+  readonly backend: BrunchBackend["kind"];
 }
 
 /**
- * Brunch as the editor's assistant: binds the open document to its Flue
- * conversation and assembles the chat, the Ledger tab, Brunch's browser tools
+ * Brunch as the editor's assistant: binds the open document to its
+ * conversation, on Flue or the durable agents server, and assembles the chat, the Ledger tab, Brunch's browser tools
  * and Voice. Pass a stable connection `fetch` (module-level or memoized): a
  * new identity recreates the conversation's client and tracker.
  */
@@ -218,6 +274,7 @@ export const useBrunchAssistant = ({
   hostSave,
   versionLoad,
   starterChips,
+  backend,
 }: BrunchConnection & {
   /**
    * The editor shows Brunch's assistant. Brunch reads no history, checks no
@@ -249,7 +306,14 @@ export const useBrunchAssistant = ({
    * agent once, and the Ledger marks reflections on elements the net lacks.
    */
   readonly versionLoad?: VersionLoad;
+  /**
+   * The server the conversation runs on; Flue when omitted. On the durable
+   * agents server, `chatEndpoint` names its base, and the panel opens on
+   * the conversation's history from it, resuming a running turn.
+   */
+  readonly backend?: BrunchBackend;
 }): BrunchAssistant => {
+  const successorWeb = backend?.kind === "successor" ? backend.web : undefined;
   const currentNetId = openDocument?.documentId ?? null;
   const editor = openDocument?.editor ?? null;
   const interviewBudgetEnabled = interviewBudget.enabled;
@@ -383,8 +447,10 @@ export const useBrunchAssistant = ({
     legacyActorHeader,
     chatEndpoint,
     fetch: hostFetch,
+    successorWeb,
   });
-  const { conversationTracker, flueClientPromise } = processAgentSession;
+  const { conversationTracker, flueClientPromise, successorConversation } =
+    processAgentSession;
   // Failures the host contains — a stopped batch operation, an unrecordable
   // transition, a lost history observation, a failed server tool, a dropped
   // update stream — resolve normally for the panel and the model; this is
@@ -431,16 +497,63 @@ export const useBrunchAssistant = ({
       ),
     [constructionClientTools, dynamicClientToolNames, reportBrunchFailure],
   );
-  const flueHistory = useFlueChatHistory(
+  const observedFlueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
     flueAdapter,
   );
+  const reportInvalidReopenedMetadata = useCallback(
+    ({ messageId, error }: { messageId: string; error: unknown }) =>
+      reportBrunchFailure("reopened-metadata", error, { messageId }),
+    [reportBrunchFailure],
+  );
+  const successorHistory = useSuccessorChatHistory(successorConversation, {
+    onInvalidMetadata: reportInvalidReopenedMetadata,
+  });
+  const { followStream, settleStop } = successorHistory;
+  const flueHistory =
+    successorConversation === null ? observedFlueHistory : successorHistory;
+  const requestStop = useMemo(() => {
+    if (successorConversation !== null)
+      return async () => {
+        const stopped = await requestSuccessorStop(
+          successorConversation,
+          conversationTracker,
+        );
+        settleStop();
+        return stopped;
+      };
+    if (flueClientPromise !== null)
+      return () => requestFlueStop(flueClientPromise, conversationTracker);
+    return null;
+  }, [
+    successorConversation,
+    flueClientPromise,
+    conversationTracker,
+    settleStop,
+  ]);
+  const stopOnLeave = useMemo(() => {
+    if (successorConversation !== null)
+      return (stillWanted: () => boolean) =>
+        requestSuccessorStopIfStillWanted(
+          successorConversation,
+          conversationTracker,
+          stillWanted,
+        );
+    if (flueClientPromise !== null)
+      return (stillWanted: () => boolean) =>
+        requestFlueStopIfStillWanted(
+          flueClientPromise,
+          conversationTracker,
+          stillWanted,
+        );
+    return null;
+  }, [successorConversation, flueClientPromise, conversationTracker]);
   useStopTurnOnLeave({
     editorHandle: editor?.handle ?? null,
     binding: processAgentBinding,
     session: {
-      client: flueClientPromise,
+      stop: stopOnLeave,
       tracker: conversationTracker,
       snapshot: flueHistory.snapshot,
     },
@@ -510,16 +623,47 @@ export const useBrunchAssistant = ({
     },
     [constructionBrowser],
   );
-  const canonicalReplayReadiness = useImmutableReplayBaseline<
+  const flueReplayReadiness = useImmutableReplayBaseline<
     NonNullable<typeof flueHistory.snapshot>,
     CanonicalPetrinautReplay
   >({
-    bindingKey: replayBindingKey,
+    bindingKey: successorConversation === null ? replayBindingKey : undefined,
     emptyReplay: EMPTY_CANONICAL_PETRINAUT_REPLAY,
     historyPhase: flueHistory.phase,
     snapshot: flueHistory.snapshot,
     derive: deriveCanonicalReplay,
   });
+  // The durable agents server's call records keep what the browser posted,
+  // which its history doesn't. Without them a reload loses only the
+  // revisions Brunch's changes produced: the server refuses to hand out a
+  // call that started or ended.
+  const deriveSuccessorReplay = useCallback(
+    async (conversation: SuccessorConversation) => {
+      try {
+        return issuedCanonicalCallsFromBrowserCalls(
+          await readSuccessorBrowserCalls(conversation),
+        );
+      } catch (error) {
+        reportBrunchFailure("browser-call-replay", error);
+        return EMPTY_CANONICAL_PETRINAUT_REPLAY;
+      }
+    },
+    [reportBrunchFailure],
+  );
+  const successorReplayReadiness = useImmutableReplayBaseline<
+    SuccessorConversation,
+    CanonicalPetrinautReplay
+  >({
+    bindingKey: successorConversation === null ? undefined : replayBindingKey,
+    emptyReplay: EMPTY_CANONICAL_PETRINAUT_REPLAY,
+    historyPhase: undefined,
+    snapshot: successorConversation ?? undefined,
+    derive: deriveSuccessorReplay,
+  });
+  const canonicalReplayReadiness =
+    successorConversation === null
+      ? flueReplayReadiness
+      : successorReplayReadiness;
   const canonicalHostTools = useMemo(() => {
     if (!constructionBrowser || !editor) return undefined;
     return createCanonicalPetrinautHostTools({
@@ -575,94 +719,143 @@ export const useBrunchAssistant = ({
     ],
   );
   const { refresh: refreshHistory } = flueHistory;
-  const brunchChatTransport = useMemo(
-    () =>
-      flueClientPromise === null
-        ? null
-        : createBrunchPanelTransport(flueClientPromise, conversationTracker, {
-            interviewBudgetLevel,
-            interviewRepliesAsked,
-            readWords: () => readWords().map((word) => word.spelling),
-            ...(versionLoad === undefined ? {} : { versionLoad }),
-            ...(constructionBrowser
-              ? {
-                  initialData: {
-                    binding: constructionBrowser.binding,
-                  } satisfies SdcpnInitialData,
-                }
-              : {}),
-            ...(conversationId === null
-              ? {}
-              : {
-                  liveToolStream: brunchLiveToolStream(
-                    { actorKey, legacyActorHeader, fetch: hostFetch },
-                    conversationId,
-                  ),
-                }),
-            adapter: flueAdapter,
-            onAdmission: (admission) => {
-              refreshHistory();
-              setHighlightDismissal((current) =>
-                current?.tracker === conversationTracker &&
-                conversationTracker.submissionForInput(current.messageId) ===
-                  admission.submissionId
-                  ? { ...current, submissionId: admission.submissionId }
-                  : current,
-              );
-            },
-            onSubmission: (messageId) =>
-              setHighlightDismissal({
-                tracker: conversationTracker,
-                // The latest turn the user saw when they sent the message,
-                // or, while the history is being read, of the first read.
-                ...(historyKnown ? { turn: { id: latestTurnId } } : {}),
-                messageId,
-              }),
-            onToolOutputError: (event) =>
-              reportBrunchFailure("server-tool", new Error(event.errorText), {
-                submissionId: event.submissionId,
-                toolCallId: event.toolCallId,
-                toolName: event.toolName ?? "unknown",
-              }),
-            onReattach: (event) =>
-              reportBrunchFailure("stream-reattach", event.error, {
-                submissionId: event.submissionId,
-                attempt: event.attempt,
-              }),
-            onSubmissionConflict: (conflict) =>
-              reportBrunchFailure(
-                "submission-conflict",
-                new Error(
-                  "A retried message met an earlier admission of another payload; only the earlier payload reached the agent.",
-                ),
-                {
-                  messageId: conflict.messageId,
-                  submissionId: conflict.submissionId,
-                },
-              ),
-            onDisconnect: refreshHistory,
-          }),
-    [
-      conversationTracker,
-      conversationId,
-      constructionBrowser,
-      flueAdapter,
-      flueClientPromise,
-      refreshHistory,
-      historyKnown,
+  const brunchChatTransport = useMemo(() => {
+    const submission = {
       interviewBudgetLevel,
       interviewRepliesAsked,
-      latestTurnId,
-      actorKey,
-      legacyActorHeader,
-      hostFetch,
-      readWords,
-      reportBrunchFailure,
-      versionLoad,
-    ],
-  );
+      readWords: () => readWords().map((word) => word.spelling),
+      ...(versionLoad === undefined ? {} : { versionLoad }),
+      onSubmission: (messageId: string) =>
+        setHighlightDismissal({
+          tracker: conversationTracker,
+          // The latest turn the user saw when they sent the message,
+          // or, while the history is being read, of the first read.
+          ...(historyKnown ? { turn: { id: latestTurnId } } : {}),
+          messageId,
+        }),
+    };
+    const onAdmission = (admission: BrunchPanelAdmission["admission"]) => {
+      refreshHistory();
+      setHighlightDismissal((current) =>
+        current?.tracker === conversationTracker &&
+        conversationTracker.submissionForInput(current.messageId) ===
+          admission.submissionId
+          ? { ...current, submissionId: admission.submissionId }
+          : current,
+      );
+    };
+    if (successorConversation !== null && processAgentBinding !== null) {
+      const transport = createBrunchSuccessorPanelTransport(
+        successorConversation,
+        conversationTracker,
+        {
+          ...submission,
+          binding: processAgentBinding,
+          onAdmission,
+        },
+      );
+      return {
+        reconnectToStream: async (options) => {
+          const stream = await transport.reconnectToStream(options);
+          return stream === null ? null : followStream(stream);
+        },
+        sendMessages: async (options) =>
+          followStream(
+            await transport.sendMessages(options),
+            brunchSubmittedUserMessage(options.messages).messageId,
+          ),
+      } satisfies PetrinautAiChatTransport;
+    }
+    return flueClientPromise === null
+      ? null
+      : createBrunchPanelTransport(flueClientPromise, conversationTracker, {
+          ...submission,
+          ...(constructionBrowser
+            ? {
+                initialData: {
+                  binding: constructionBrowser.binding,
+                } satisfies SdcpnInitialData,
+              }
+            : {}),
+          ...(conversationId === null
+            ? {}
+            : {
+                liveToolStream: brunchLiveToolStream(
+                  { actorKey, legacyActorHeader, fetch: hostFetch },
+                  conversationId,
+                ),
+              }),
+          adapter: flueAdapter,
+          onAdmission,
+          onToolOutputError: (event) =>
+            reportBrunchFailure("server-tool", new Error(event.errorText), {
+              submissionId: event.submissionId,
+              toolCallId: event.toolCallId,
+              toolName: event.toolName ?? "unknown",
+            }),
+          onReattach: (event) =>
+            reportBrunchFailure("stream-reattach", event.error, {
+              submissionId: event.submissionId,
+              attempt: event.attempt,
+            }),
+          onSubmissionConflict: (conflict) =>
+            reportBrunchFailure(
+              "submission-conflict",
+              new Error(
+                "A retried message met an earlier admission of another payload; only the earlier payload reached the agent.",
+              ),
+              {
+                messageId: conflict.messageId,
+                submissionId: conflict.submissionId,
+              },
+            ),
+          onDisconnect: refreshHistory,
+        });
+  }, [
+    conversationTracker,
+    conversationId,
+    constructionBrowser,
+    flueAdapter,
+    flueClientPromise,
+    followStream,
+    processAgentBinding,
+    successorConversation,
+    refreshHistory,
+    historyKnown,
+    interviewBudgetLevel,
+    interviewRepliesAsked,
+    latestTurnId,
+    actorKey,
+    legacyActorHeader,
+    hostFetch,
+    readWords,
+    reportBrunchFailure,
+    versionLoad,
+  ]);
 
-  const inBandBrowserTools = useMemo(
+  /** How the open document admits, prepares and records a browser call, on either server. */
+  const browserCallHost = useMemo(
+    () => ({
+      metadataFor: (toolCallId: string, output: unknown) =>
+        canonicalHostTools?.clientToolResultMetadataFor(toolCallId, output),
+      prepareInput: (call: {
+        toolCallId: string;
+        toolName: string;
+        input: unknown;
+      }) => {
+        canonicalHostTools?.mapClientToolInput(call);
+      },
+      admit: createBrunchMutationAdmission(
+        mutationApproval.coordinator,
+        () => editor?.handle.doc(),
+        hostSave,
+      ),
+      acceptsRevision: (expected: string) =>
+        canonicalHostTools?.acceptsRevision(expected) ?? false,
+    }),
+    [canonicalHostTools, mutationApproval, hostSave, editor],
+  );
+  const flueBrowserCalls = useMemo(
     () =>
       constructionBrowser && flueClientPromise
         ? createInBandBrowserCalls({
@@ -671,41 +864,64 @@ export const useBrunchAssistant = ({
             legacyActorHeader,
             fetch: hostFetch,
             binding: constructionBrowser.binding,
-            metadataFor: (toolCallId, output) =>
-              canonicalHostTools?.clientToolResultMetadataFor(
-                toolCallId,
-                output,
-              ),
-            prepareInput: (call) => {
-              canonicalHostTools?.mapClientToolInput(call);
-            },
-            admit: createBrunchMutationAdmission(
-              mutationApproval.coordinator,
-              () => editor?.handle.doc(),
-              hostSave,
-            ),
-            acceptsRevision: (expected) =>
-              canonicalHostTools?.acceptsRevision(expected) ?? false,
+            ...browserCallHost,
           })
         : undefined,
     [
       constructionBrowser,
       flueClientPromise,
-      canonicalHostTools,
-      mutationApproval,
+      browserCallHost,
       actorKey,
       legacyActorHeader,
       hostFetch,
-      hostSave,
-      editor,
     ],
   );
+  const successorBrowserCalls = useMemo(
+    () =>
+      constructionBrowser && successorConversation
+        ? createSuccessorBrowserCalls({
+            conversation: successorConversation,
+            binding: constructionBrowser.binding,
+            ...browserCallHost,
+          })
+        : undefined,
+    [constructionBrowser, successorConversation, browserCallHost],
+  );
+  const inBandBrowserTools = successorBrowserCalls ?? flueBrowserCalls;
+  const callsOpenInOtherTabs = useSyncExternalStore(
+    successorBrowserCalls?.openInOtherTabs.subscribe ?? subscribeToNothing,
+    successorBrowserCalls?.openInOtherTabs.getSnapshot ?? readNothing,
+    successorBrowserCalls?.openInOtherTabs.getSnapshot ?? readNothing,
+  );
+  const resolveToolPresentation = useMemo(
+    () =>
+      callsOpenInOtherTabs === undefined
+        ? resolveBrunchToolPresentation
+        : withCallsOpenInOtherTabs(
+            resolveBrunchToolPresentation,
+            callsOpenInOtherTabs,
+          ),
+    [callsOpenInOtherTabs],
+  );
+
+  const reportHandEditRefusal = useCallback(
+    ({ status, reason }: { status: number; reason: string }) =>
+      reportBrunchFailure("hand-edit-report", new Error(reason), { status }),
+    [reportBrunchFailure],
+  );
+  const reportingBrowserTools = useHandEditReports({
+    conversation: successorConversation,
+    binding: processAgentBinding,
+    handle: editor?.handle ?? null,
+    browserCalls: inBandBrowserTools,
+    onRefused: reportHandEditRefusal,
+  });
 
   const draftInteractiveTool = useMemo(
     () =>
-      constructionBrowser && editor && flueClientPromise && inBandBrowserTools
+      constructionBrowser && editor && flueClientPromise && flueBrowserCalls
         ? createBrunchDraftExperimentInteractiveTool({
-            browserCalls: inBandBrowserTools,
+            browserCalls: flueBrowserCalls,
             readTitle: editor.readTitle,
             handle: editor.handle,
             readDraftAuthority: async (toolCallId) => {
@@ -717,10 +933,10 @@ export const useBrunchAssistant = ({
             },
           })
         : undefined,
-    [editor, flueClientPromise, inBandBrowserTools, constructionBrowser],
+    [editor, flueClientPromise, flueBrowserCalls, constructionBrowser],
   );
   const assistant = useMemo((): PetrinautAiAssistant | null => {
-    if (flueClientPromise === null || brunchChatTransport === null) {
+    if (requestStop === null || brunchChatTransport === null) {
       return null;
     }
     const activityIdentities =
@@ -776,7 +992,7 @@ export const useBrunchAssistant = ({
           <InterviewBudgetNote level={change.level} />
         ) : undefined;
       },
-      resolveToolPresentation: resolveBrunchToolPresentation,
+      resolveToolPresentation,
       workingLabel: "Working…",
       renderComposerControl: (context: PetrinautAiComposerControlContext) => {
         const admittedContext: PetrinautAiComposerControlContext = {
@@ -838,7 +1054,7 @@ export const useBrunchAssistant = ({
       // These exact-name tools override the static registry only while a
       // document binding is attached. Every other canonical capability remains
       // on Petrinaut's registry.
-      inBandBrowserTools,
+      inBandBrowserTools: reportingBrowserTools,
       automaticTools: [
         ...(canonicalHostTools?.tools ?? []),
         ...(canonicalHostTools ? (hostTools ?? []) : []),
@@ -847,17 +1063,20 @@ export const useBrunchAssistant = ({
       // The automatic tools run against the handle the editor shows.
       ...(editor === null ? {} : { documentHandle: editor.handle }),
       interactiveTools: [
-        ...(inBandBrowserTools ? mutationApprovalTools : []),
+        ...(reportingBrowserTools ? mutationApprovalTools : []),
         ...(draftInteractiveTool ? [draftInteractiveTool] : []),
       ],
       transport: brunchChatTransport,
-      requestStop: () =>
-        requestFlueStop(flueClientPromise, conversationTracker),
+      requestStop,
       followMessages: {
         // This closure and `messages` below describe the same observed
         // snapshot, never a later mutable settlement cache.
         canReplace: () =>
           conversationTracker.canReplaceMessages(flueHistory.snapshot),
+        // Flue's observation follows a running turn itself; the durable server's history does not.
+        ...(successorConversation === null
+          ? {}
+          : { resumeOnOpen: flueHistory.phase === "live" }),
       },
       messages: flueHistory.messages,
       onClearMessages: () => {
@@ -888,7 +1107,6 @@ export const useBrunchAssistant = ({
     currentNetId,
     draftInteractiveTool,
     editor,
-    flueClientPromise,
     flueHistory.messages,
     flueHistory.phase,
     flueHistory.ready,
@@ -896,7 +1114,6 @@ export const useBrunchAssistant = ({
     highlightChanges,
     hostTools,
     hostSaveTool,
-    inBandBrowserTools,
     interviewBudgetEnabled,
     interviewBudgetLevel,
     interviewBudgetLevelChanges,
@@ -904,8 +1121,12 @@ export const useBrunchAssistant = ({
     interviewRepliesAsked,
     mapVoiceMessages,
     mutationApprovalTools,
+    reportingBrowserTools,
+    requestStop,
+    resolveToolPresentation,
     setInterviewBudgetLevel,
     starterChips,
+    successorConversation,
     versionLoad,
     wordsActive,
   ]);
@@ -913,5 +1134,6 @@ export const useBrunchAssistant = ({
   return {
     assistant,
     openAIVoiceConfig: selected ? openAIVoiceConfig : null,
+    backend: successorWeb === undefined ? "flue" : "successor",
   };
 };

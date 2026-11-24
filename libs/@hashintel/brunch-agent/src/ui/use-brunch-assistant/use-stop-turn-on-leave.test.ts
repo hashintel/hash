@@ -7,6 +7,7 @@ import { expect, test, vi } from "vitest";
 import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import { BrunchPanelConversationTracker } from "../../client/brunch-panel-transport";
+import { requestFlueStopIfStillWanted } from "../../client/request-flue-stop";
 import { useStopTurnOnLeave } from "./use-stop-turn-on-leave";
 
 import type {
@@ -69,7 +70,16 @@ const renderLeaving = (initialProps: Props) => {
       useStopTurnOnLeave({
         editorHandle,
         binding,
-        session: { client: sent.client, tracker: sent.tracker, snapshot },
+        session: {
+          stop: (stillWanted) =>
+            requestFlueStopIfStillWanted(
+              sent.client,
+              sent.tracker,
+              stillWanted,
+            ),
+          tracker: sent.tracker,
+          snapshot,
+        },
         onError,
       }),
     { initialProps },

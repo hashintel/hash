@@ -11,12 +11,14 @@ import {
 import { createTestEditorApi } from "../chat/testing/create-test-editor-api";
 import {
   createCanonicalPetrinautHostTools,
+  issuedCanonicalCallsFromBrowserCalls,
   issuedCanonicalCallsFromHistory,
   EMPTY_CANONICAL_PETRINAUT_REPLAY,
   netReadOutput,
 } from "./brunch-petrinaut-tools";
 import { documentRevisionOf } from "./shared/document-revision";
 
+import type { SuccessorBrowserCall } from "../../client/successor/successor-browser-calls";
 import type { PetrinautAiAutomaticToolExecuteParams } from "../chat/ai-automatic-tool";
 import type { EditRefusal } from "@hashintel/petrinaut/ui/plugin";
 
@@ -325,6 +327,50 @@ describe("net freshness", () => {
       targetComponentId: null,
     });
     expect(adapter.acceptsRevision(seen)).toBe(false);
+  });
+
+  test("on the durable agents server, the chain and the recorded results survive a reload through the call records", () => {
+    const record = (
+      toolCallId: string,
+      status: SuccessorBrowserCall["status"],
+      result?: { readonly before: string; readonly after: string },
+    ): SuccessorBrowserCall => ({
+      toolCallId,
+      toolName: "addPlace",
+      input: { ...place, id: toolCallId },
+      status,
+      output: result === undefined ? null : { applied: true },
+      metadata:
+        result === undefined ? null : { documentRevision: { ...result } },
+      expiresAt: 0,
+      admittable: status === "pending" || status === "claimed",
+    });
+    const replay = issuedCanonicalCallsFromBrowserCalls([
+      record("settled", "settled", { before: "r-seen", after: "r-settled" }),
+      // Answered, then its turn was stopped: the effect happened.
+      record("discarded", "discarded", {
+        before: "r-settled",
+        after: documentRevisionOf(emptyNet),
+      }),
+      record("stopped", "stopped"),
+      record("waiting", "claimed"),
+    ]);
+    const { adapter, instance, tool, params } = setup(replay);
+
+    expect(adapter.acceptsRevision("r-seen")).toBe(true);
+    expect(adapter.acceptsRevision("r-other")).toBe(false);
+    expect(
+      tool("addPlace").execute(
+        params({ ...place, id: "discarded" }, "discarded"),
+      ),
+    ).toEqual({ applied: true });
+    expect(() =>
+      tool("addPlace").execute(params({ ...place, id: "stopped" }, "stopped")),
+    ).toThrow(/already attempted/u);
+    expect(instance.handle.doc()?.places).toEqual([]);
+    // A call no browser has started yet is the server's to admit, not history's to refuse.
+    tool("addPlace").execute(params({ ...place, id: "waiting" }, "waiting"));
+    expect(instance.handle.doc()?.places).toHaveLength(1);
   });
 
   test("the chain survives a reload through the settled revisions in history", () => {
