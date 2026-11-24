@@ -9,30 +9,23 @@ use error_stack::Report;
 use hash_graph_authorization::policies::store::{CreateWebParameter, PrincipalStore as _};
 use hash_graph_store::{
     entity::{CreateEntityParams, EntityStore as _, PatchEntityParams},
-    entity_type::{CreateEntityTypeParams, EntityTypeStore as _},
     error::UpdateError,
-    query::ConflictBehavior,
 };
-use hash_graph_test_data::{data_type, entity, entity_type, property_type};
+use hash_graph_test_data::{data_type, entity_type, property_type};
 use hash_status::StatusCode;
 use pretty_assertions::{assert_eq, assert_ne};
 use rstest::rstest;
-use serde_json::json;
 use type_system::{
     knowledge::{
         Entity,
         entity::{EntityId, Link, LinkEndpoint, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
-    ontology::{
-        VersionedUrl,
-        entity_type::EntityType,
-        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
-    },
+    ontology::VersionedUrl,
     principal::{
         actor::{ActorId, ActorType, UserId},
         actor_group::{ActorGroupId, WebId},
-        role::RoleName,
+        role::{RoleId, RoleName},
     },
     provenance::{OriginProvenance, OriginType},
 };
@@ -42,8 +35,9 @@ use crate::{DatabaseApi, DatabaseTestWrapper};
 const AGENT_CONVERSATION_TYPE: &str = "https://hash.ai/@h/types/entity-type/agent-conversation/v/1";
 const HAS_AGENT_CONVERSATION_FOCUS_TYPE: &str =
     "https://hash.ai/@h/types/entity-type/has-agent-conversation-focus/v/1";
-const LINK_TYPE: &str = "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
-const PERSON_TYPE: &str = "https://blockprotocol.org/@alice/types/entity-type/person/v/1";
+const USAGE_RECORD_TYPE: &str = "https://hash.ai/@h/types/entity-type/usage-record/v/1";
+const ORGANIZATION_TYPE: &str =
+    "https://blockprotocol.org/@alice/types/entity-type/organization/v/1";
 
 /// An organization web holding a shared entity, one agent conversation, and its focus link.
 struct Fixture<'pool> {
@@ -53,7 +47,6 @@ struct Fixture<'pool> {
     creator: UserId,
     /// Member of the web who did not create the conversation.
     member: UserId,
-    /// Administrator of the web.
     administrator: UserId,
     conversation: EntityId,
     /// A shared entity in the web, created by a third member so neither `member` nor
@@ -71,159 +64,49 @@ const fn entity_provenance() -> ProvidedEntityEditionProvenance {
     }
 }
 
-const fn ontology_provenance() -> ProvidedOntologyEditionProvenance {
-    ProvidedOntologyEditionProvenance {
-        actor_type: ActorType::User,
-        origin: OriginProvenance::from_empty_type(OriginType::Api),
-        sources: Vec::new(),
-    }
-}
-
-async fn create_conversation_types(api: &mut DatabaseApi<'_>, actor_id: ActorId, web_id: WebId) {
-    // Minimal conversation and focus link schemas matching the base URLs in `seed_policies.rs`.
-    api.create_entity_types(
-        actor_id,
-        [
-            CreateEntityTypeParams {
-                schema: serde_json::from_value::<EntityType>(json!({
-                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
-                    "kind": "entityType",
-                    "$id": HAS_AGENT_CONVERSATION_FOCUS_TYPE,
-                    "type": "object",
-                    "title": "Has Agent Conversation Focus",
-                    "description": "Links an agent conversation to a focused entity.",
-                    "allOf": [{ "$ref": LINK_TYPE }],
-                    "properties": {}
-                }))
-                .expect("could not build focus link schema"),
-                ownership: OntologyOwnership::Local { web_id },
-                conflict_behavior: ConflictBehavior::Skip,
-                provenance: ontology_provenance(),
-                fetched_from_origin: false,
-            },
-            CreateEntityTypeParams {
-                schema: serde_json::from_value::<EntityType>(json!({
-                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
-                    "kind": "entityType",
-                    "$id": AGENT_CONVERSATION_TYPE,
-                    "type": "object",
-                    "title": "Agent Conversation",
-                    "description": "A conversation between a user and an AI agent.",
-                    "properties": {},
-                    "links": {
-                        HAS_AGENT_CONVERSATION_FOCUS_TYPE: { "type": "array", "items": {} }
-                    }
-                }))
-                .expect("could not build conversation schema"),
-                ownership: OntologyOwnership::Local { web_id },
-                conflict_behavior: ConflictBehavior::Skip,
-                provenance: ontology_provenance(),
-                fetched_from_origin: false,
-            },
-        ],
+/// Creates an entity of `entity_types` without properties in `web_id`.
+async fn create_entity(
+    api: &mut DatabaseApi<'_>,
+    creator: UserId,
+    web_id: WebId,
+    entity_types: &[&str],
+) -> EntityId {
+    api.create_entity(
+        ActorId::User(creator),
+        CreateEntityParams {
+            web_id,
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: entity_types
+                .iter()
+                .map(|entity_type| {
+                    VersionedUrl::from_str(entity_type).expect("could not parse entity type URL")
+                })
+                .collect(),
+            properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
+                .expect("could not build properties"),
+            confidence: None,
+            link_data: None,
+            draft: false,
+            policies: Vec::new(),
+            provenance: entity_provenance(),
+            read_only: false,
+        },
     )
     .await
-    .expect("could not create conversation entity types");
+    .expect("could not create entity")
+    .metadata
+    .record_id
+    .entity_id
 }
 
-async fn create_fixture_entities(
-    api: &mut DatabaseApi<'_>,
-    web_id: WebId,
-    creator: UserId,
-    other_author: UserId,
-) -> (EntityId, EntityId, EntityId) {
-    let person: PropertyObject =
-        serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse person entity");
-    let shared_entity = api
-        .create_entity(
-            ActorId::User(other_author),
-            CreateEntityParams {
-                web_id,
-                entity_uuid: None,
-                decision_time: None,
-                entity_type_ids: HashSet::from([
-                    VersionedUrl::from_str(PERSON_TYPE).expect("valid person type URL")
-                ]),
-                properties: PropertyObjectWithMetadata::from_parts(person, None)
-                    .expect("could not build person properties"),
-                confidence: None,
-                link_data: None,
-                draft: false,
-                policies: Vec::new(),
-                provenance: entity_provenance(),
-                read_only: false,
-            },
-        )
+async fn web_role_id(api: &DatabaseApi<'_>, web_id: WebId, role: RoleName) -> RoleId {
+    api.store
+        .get_role(ActorGroupId::Web(web_id), role)
         .await
-        .expect("could not create shared entity")
-        .metadata
-        .record_id
-        .entity_id;
-
-    let conversation = api
-        .create_entity(
-            ActorId::User(creator),
-            CreateEntityParams {
-                web_id,
-                entity_uuid: None,
-                decision_time: None,
-                entity_type_ids: HashSet::from([VersionedUrl::from_str(AGENT_CONVERSATION_TYPE)
-                    .expect("valid conversation type URL")]),
-                properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
-                    .expect("could not build conversation properties"),
-                confidence: None,
-                link_data: None,
-                draft: false,
-                policies: Vec::new(),
-                provenance: entity_provenance(),
-                read_only: false,
-            },
-        )
-        .await
-        .expect("could not create conversation")
-        .metadata
-        .record_id
-        .entity_id;
-
-    let focus = api
-        .create_entity(
-            ActorId::User(creator),
-            CreateEntityParams {
-                web_id,
-                entity_uuid: None,
-                decision_time: None,
-                entity_type_ids: HashSet::from([VersionedUrl::from_str(
-                    HAS_AGENT_CONVERSATION_FOCUS_TYPE,
-                )
-                .expect("valid focus link type URL")]),
-                properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
-                    .expect("could not build focus link properties"),
-                confidence: None,
-                link_data: Some(Link::Directed {
-                    source: LinkEndpoint {
-                        entity_id: conversation,
-                        confidence: None,
-                        provenance: PropertyProvenance::default(),
-                    },
-                    target: LinkEndpoint {
-                        entity_id: shared_entity,
-                        confidence: None,
-                        provenance: PropertyProvenance::default(),
-                    },
-                }),
-                draft: false,
-                policies: Vec::new(),
-                provenance: entity_provenance(),
-                read_only: false,
-            },
-        )
-        .await
-        .expect("could not create focus link")
-        .metadata
-        .record_id
-        .entity_id;
-
-    (shared_entity, conversation, focus)
+        .expect("could not query role")
+        .expect("web should have the role")
+        .id()
 }
 
 async fn setup_with_creator_role(
@@ -232,24 +115,14 @@ async fn setup_with_creator_role(
 ) -> Fixture<'_> {
     let mut api = database
         .seed(
-            [
-                data_type::VALUE_V1,
-                data_type::TEXT_V1,
-                data_type::NUMBER_V1,
-            ],
-            [
-                property_type::NAME_V1,
-                property_type::AGE_V1,
-                property_type::FAVORITE_SONG_V1,
-                property_type::FAVORITE_FILM_V1,
-                property_type::HOBBY_V1,
-                property_type::INTERESTS_V1,
-            ],
+            [data_type::VALUE_V1, data_type::TEXT_V1],
+            [property_type::NAME_V1],
             [
                 entity_type::LINK_V1,
-                entity_type::link::FRIEND_OF_V1,
-                entity_type::link::ACQUAINTANCE_OF_V1,
-                entity_type::PERSON_V1,
+                entity_type::link::HAS_AGENT_CONVERSATION_FOCUS_V1,
+                entity_type::ORGANIZATION_V1,
+                entity_type::AGENT_CONVERSATION_V1,
+                entity_type::USAGE_RECORD_V1,
             ],
         )
         .await
@@ -281,36 +154,57 @@ async fn setup_with_creator_role(
         .expect("could not create web")
         .web_id;
 
-    let member_role = api
-        .store
-        .get_role(ActorGroupId::Web(web_id), RoleName::Member)
-        .await
-        .expect("could not query member role")
-        .expect("web should have a member role")
-        .id();
-    api.store
-        .assign_role_by_id(ActorId::User(member), member_role)
-        .await
-        .expect("could not assign member role");
-    api.store
-        .assign_role_by_id(ActorId::User(other_author), member_role)
-        .await
-        .expect("could not assign other author role");
-    let creator_role_id = api
-        .store
-        .get_role(ActorGroupId::Web(web_id), creator_role)
-        .await
-        .expect("could not query creator role")
-        .expect("web should have the creator's role")
-        .id();
-    api.store
-        .assign_role_by_id(ActorId::User(creator), creator_role_id)
-        .await
-        .expect("could not assign creator role");
+    for (user, role) in [
+        (member, RoleName::Member),
+        (other_author, RoleName::Member),
+        (creator, creator_role),
+    ] {
+        let role_id = web_role_id(&api, web_id, role).await;
+        api.store
+            .assign_role_by_id(ActorId::User(user), role_id)
+            .await
+            .expect("could not assign role");
+    }
 
-    create_conversation_types(&mut api, ActorId::User(administrator), web_id).await;
-    let (shared_entity, conversation, focus) =
-        create_fixture_entities(&mut api, web_id, creator, other_author).await;
+    let shared_entity = create_entity(&mut api, other_author, web_id, &[ORGANIZATION_TYPE]).await;
+    let conversation = create_entity(&mut api, creator, web_id, &[AGENT_CONVERSATION_TYPE]).await;
+    let focus = api
+        .create_entity(
+            ActorId::User(creator),
+            CreateEntityParams {
+                web_id,
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([VersionedUrl::from_str(
+                    HAS_AGENT_CONVERSATION_FOCUS_TYPE,
+                )
+                .expect("could not parse entity type URL")]),
+                properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
+                    .expect("could not build properties"),
+                confidence: None,
+                link_data: Some(Link::Directed {
+                    source: LinkEndpoint {
+                        entity_id: conversation,
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                    },
+                    target: LinkEndpoint {
+                        entity_id: shared_entity,
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                    },
+                }),
+                draft: false,
+                policies: Vec::new(),
+                provenance: entity_provenance(),
+                read_only: false,
+            },
+        )
+        .await
+        .expect("could not create focus link")
+        .metadata
+        .record_id
+        .entity_id;
 
     Fixture {
         api,
@@ -337,6 +231,7 @@ impl Fixture<'_> {
             .is_some()
     }
 
+    /// Requests an edit to `entity` as `user`, opening a draft of it.
     async fn update_entity(
         &mut self,
         user: UserId,
@@ -387,6 +282,7 @@ fn status(report: &Report<UpdateError>) -> Option<&StatusCode> {
 }
 
 /// Asserts that `user` can view, update, and archive `entity`.
+#[track_caller]
 async fn assert_accessible(fixture: &mut Fixture<'_>, user: UserId, entity: EntityId) {
     assert!(
         fixture.can_view_entity(user, entity).await,
@@ -402,12 +298,9 @@ async fn assert_accessible(fixture: &mut Fixture<'_>, user: UserId, entity: Enti
         .expect("user should be able to archive the entity");
 }
 
-/// Asserts that `user` cannot view, update, or archive `entity`.
-async fn assert_private(fixture: &mut Fixture<'_>, user: UserId, entity: EntityId) {
-    assert!(
-        !fixture.can_view_entity(user, entity).await,
-        "user should not be able to view the entity"
-    );
+/// Asserts that `user` can neither update nor archive `entity`.
+#[track_caller]
+async fn assert_unmodifiable(fixture: &mut Fixture<'_>, user: UserId, entity: EntityId) {
     let report = fixture
         .update_entity(user, entity)
         .await
@@ -428,11 +321,21 @@ async fn assert_private(fixture: &mut Fixture<'_>, user: UserId, entity: EntityI
     );
 }
 
+/// Asserts that `user` cannot view, update, or archive `entity`.
+#[track_caller]
+async fn assert_private(fixture: &mut Fixture<'_>, user: UserId, entity: EntityId) {
+    assert!(
+        !fixture.can_view_entity(user, entity).await,
+        "user should not be able to view the entity"
+    );
+    assert_unmodifiable(fixture, user, entity).await;
+}
+
 #[rstest]
 #[case::member(RoleName::Member)]
 #[case::administrator(RoleName::Administrator)]
 #[tokio::test]
-async fn creator_can_access_conversation_and_focus(#[case] creator_role: RoleName) {
+async fn access_creator(#[case] creator_role: RoleName) {
     let mut database = DatabaseTestWrapper::new().await;
     let mut fixture = setup_with_creator_role(&mut database, creator_role).await;
     let (creator, conversation, focus) = (fixture.creator, fixture.conversation, fixture.focus);
@@ -442,7 +345,7 @@ async fn creator_can_access_conversation_and_focus(#[case] creator_role: RoleNam
 }
 
 #[tokio::test]
-async fn other_member_cannot_access_conversation_and_focus() {
+async fn access_other_member() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut fixture = setup(&mut database).await;
     let (member, conversation, focus) = (fixture.member, fixture.conversation, fixture.focus);
@@ -452,7 +355,7 @@ async fn other_member_cannot_access_conversation_and_focus() {
 }
 
 #[tokio::test]
-async fn administrator_cannot_access_other_users_conversation_and_focus() {
+async fn access_administrator() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut fixture = setup(&mut database).await;
     let (administrator, conversation, focus) =
@@ -468,7 +371,7 @@ async fn administrator_cannot_access_other_users_conversation_and_focus() {
 #[case::member(RoleName::Member)]
 #[case::administrator(RoleName::Administrator)]
 #[tokio::test]
-async fn non_creator_retains_access_to_shared_entity(#[case] role: RoleName) {
+async fn access_shared_entity(#[case] role: RoleName) {
     let mut database = DatabaseTestWrapper::new().await;
     let mut fixture = setup(&mut database).await;
     let user = match role {
@@ -482,7 +385,7 @@ async fn non_creator_retains_access_to_shared_entity(#[case] role: RoleName) {
 
 /// Leaving the web revokes the creator's access to conversations created there.
 #[tokio::test]
-async fn creator_loses_access_after_leaving_web() {
+async fn access_after_leaving_web() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut fixture = setup(&mut database).await;
     let (creator, web_id, conversation, focus) = (
@@ -492,14 +395,7 @@ async fn creator_loses_access_after_leaving_web() {
         fixture.focus,
     );
 
-    let member_role = fixture
-        .api
-        .store
-        .get_role(ActorGroupId::Web(web_id), RoleName::Member)
-        .await
-        .expect("could not query member role")
-        .expect("web should have a member role")
-        .id();
+    let member_role = web_role_id(&fixture.api, web_id, RoleName::Member).await;
     fixture
         .api
         .store
@@ -511,8 +407,29 @@ async fn creator_loses_access_after_leaving_web() {
     assert_private(&mut fixture, creator, focus).await;
 }
 
+/// A creator-private type does not let its creator update or archive an entity whose other type
+/// the web's policies exclude.
+#[rstest]
+#[case::member(RoleName::Member)]
+#[case::administrator(RoleName::Administrator)]
 #[tokio::test]
-async fn creator_can_publish_private_conversation_draft() {
+async fn access_excluded_type_creator(#[case] creator_role: RoleName) {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut fixture = setup_with_creator_role(&mut database, creator_role).await;
+    let (creator, web_id) = (fixture.creator, fixture.web_id);
+    let entity = create_entity(
+        &mut fixture.api,
+        creator,
+        web_id,
+        &[AGENT_CONVERSATION_TYPE, USAGE_RECORD_TYPE],
+    )
+    .await;
+
+    assert_unmodifiable(&mut fixture, creator, entity).await;
+}
+
+#[tokio::test]
+async fn publish_draft_creator() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut fixture = setup(&mut database).await;
     let (creator, conversation) = (fixture.creator, fixture.conversation);
