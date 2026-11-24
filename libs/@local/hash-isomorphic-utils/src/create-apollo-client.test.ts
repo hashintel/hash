@@ -73,11 +73,53 @@ test("an operation that opts in is retried after each of its delays, then fails"
   expect(sent).toEqual([0, 1_000, 3_000, 7_000]);
 });
 
-test("an operation that opts in is retried for an answer with errors too", async () => {
+test("an operation that opts in is retried for an answer with errors and preserves graphQLErrors", async () => {
   respond = graphQLFailure;
   const outcome = await run({ retryDelaysMs: [500] });
   expect(outcome).toBeInstanceOf(Error);
+  expect(outcome).toMatchObject({
+    networkError: null,
+    graphQLErrors: [
+      expect.objectContaining({
+        message: "The graph is down",
+        extensions: { code: "INTERNAL_SERVER_ERROR" },
+      }),
+    ],
+  });
   expect(sent).toEqual([0, 500]);
+});
+
+test("an operation that opts in preserves partial data with errorPolicy: 'all' after retries exhaust", async () => {
+  respond = () =>
+    Promise.resolve(
+      Response.json({
+        data: { probe: "partial" },
+        errors: [
+          {
+            message: "Partial failure",
+            path: ["probe"],
+            extensions: { code: "PARTIAL" },
+          },
+        ],
+      }),
+    );
+  const client = createApolloClient({ isBrowser: true });
+  const outcomePromise = client.query({
+    query,
+    fetchPolicy: "network-only",
+    errorPolicy: "all",
+    context: { retryDelaysMs: [250] } satisfies RetryContext,
+  });
+  await vi.runAllTimersAsync();
+  const outcome = await outcomePromise;
+  expect(outcome.data).toEqual({ probe: "partial" });
+  expect(outcome.errors).toEqual([
+    expect.objectContaining({
+      message: "Partial failure",
+      extensions: { code: "PARTIAL" },
+    }),
+  ]);
+  expect(sent).toEqual([0, 250]);
 });
 
 test("an operation that opts in stops retrying once it is answered", async () => {

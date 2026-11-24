@@ -3,6 +3,7 @@ import {
   ApolloLink,
   HttpLink,
   InMemoryCache,
+  Observable,
 } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
 import { RetryLink } from "@apollo/client/link/retry";
@@ -47,12 +48,31 @@ class ResultWithErrors extends Error {
 
 /**
  * Retries the operations that opt in through {@link RetryContext}, after
- * each of their delays in turn, and fails with the last attempt's error.
- * Every other operation passes through it untouched.
+ * each of their delays in turn. When retries are exhausted, GraphQL error
+ * results are restored as normal {@link FetchResult}s so Apollo preserves
+ * `graphQLErrors`, partial `data`, and `errorPolicy` instead of surfacing them
+ * as network errors. Every other operation passes through untouched.
  */
 const retryLink = ApolloLink.split(
   (operation) => retryDelaysOf(operation) !== undefined,
   ApolloLink.from([
+    new ApolloLink(
+      (operation, forward) =>
+        new Observable((observer) =>
+          forward(operation).subscribe({
+            next: (result) => observer.next(result),
+            complete: () => observer.complete(),
+            error: (err) => {
+              if (err instanceof ResultWithErrors) {
+                observer.next(err.result);
+                observer.complete();
+              } else {
+                observer.error(err);
+              }
+            },
+          }),
+        ),
+    ),
     new RetryLink({
       delay: (count, operation) => retryDelaysOf(operation)?.[count - 1] ?? 0,
       attempts: (count, operation) =>
