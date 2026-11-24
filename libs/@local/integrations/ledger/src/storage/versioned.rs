@@ -1,9 +1,7 @@
 use error_stack::{Report, ResultExt as _};
-use object_store::{
-    ObjectMeta, PutMode, PutOptions, PutPayload, UpdateVersion, path::Path as Location,
-};
+use object_store::{ObjectMeta, PutMode, PutOptions, PutPayload, UpdateVersion};
 
-use super::{Storage, StorageError};
+use super::{Storage, StorageError, location};
 
 /// The largest versioned file that is read or written, in bytes.
 pub(super) const MAX_VERSIONED_BYTES: usize = 16 * 1024 * 1024;
@@ -25,19 +23,22 @@ impl Storage {
     ///
     /// # Errors
     ///
-    /// Returns [`StorageError::Read`] if the file cannot be read or is larger than
-    /// [`MAX_VERSIONED_BYTES`]. A larger file is refused before its bytes are downloaded.
+    /// - [`StorageError::InvalidKey`] if `key` is not a path in the bucket
+    /// - [`StorageError::TooLarge`] if the file is larger than [`MAX_VERSIONED_BYTES`]. It is
+    ///   refused before its bytes are downloaded.
+    /// - [`StorageError::Read`] if the file cannot be read
     pub(crate) async fn read_versioned(
         &self,
         key: &str,
     ) -> Result<Option<(Vec<u8>, CasVersion)>, Report<StorageError>> {
-        let result = match self.store.get(&Location::from(key)).await {
+        let location = location(key)?;
+        let result = match self.store.get(&location).await {
             Ok(result) => result,
             Err(object_store::Error::NotFound { .. }) => return Ok(None),
             Err(error) => return Err(Report::new(error).change_context(StorageError::Read)),
         };
         if result.meta.size > MAX_VERSIONED_BYTES as u64 {
-            return Err(Report::new(StorageError::Read));
+            return Err(Report::new(StorageError::TooLarge));
         }
         let version = cas_version(&result.meta);
         let bytes = result.bytes().await.change_context(StorageError::Read)?;
@@ -53,16 +54,18 @@ impl Storage {
     ///
     /// # Errors
     ///
-    /// Returns [`StorageError::Write`] if `bytes` are larger than [`MAX_VERSIONED_BYTES`] or the
-    /// write fails.
+    /// - [`StorageError::InvalidKey`] if `key` is not a path in the bucket
+    /// - [`StorageError::TooLarge`] if `bytes` are larger than [`MAX_VERSIONED_BYTES`]
+    /// - [`StorageError::Write`] if the write fails
     pub(crate) async fn replace_if(
         &self,
         key: &str,
         expected: Option<&CasVersion>,
         bytes: Vec<u8>,
     ) -> Result<bool, Report<StorageError>> {
+        let location = location(key)?;
         if bytes.len() > MAX_VERSIONED_BYTES {
-            return Err(Report::new(StorageError::Write));
+            return Err(Report::new(StorageError::TooLarge));
         }
         let mode = expected.map_or(PutMode::Create, |expected| {
             PutMode::Update(UpdateVersion {
@@ -76,7 +79,7 @@ impl Storage {
         };
         match self
             .store
-            .put_opts(&Location::from(key), PutPayload::from(bytes), options)
+            .put_opts(&location, PutPayload::from(bytes), options)
             .await
         {
             Ok(_) => Ok(true),

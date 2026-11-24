@@ -7,17 +7,25 @@ mod versioned;
 
 use alloc::sync::Arc;
 
-use error_stack::Report;
-use object_store::ObjectStore;
+use error_stack::{Report, ResultExt as _};
+use object_store::{ObjectStore, path::Path as Location};
 
 pub use self::{namespace::IntegrationNamespace, s3::S3Bucket};
 
 /// Reports why a file in the bucket could not be read or written.
 #[derive(Debug, Clone, Copy, derive_more::Display, derive_more::Error)]
 pub enum StorageError {
-    #[display("the file could not be read")]
+    #[display("the bucket's settings are invalid")]
+    InvalidBucket,
+    #[display("the key is not a path in the bucket")]
+    InvalidKey,
+    #[display("the file is larger than a versioned file may be")]
+    TooLarge,
+    #[display("the local file could not be read or written")]
+    LocalFile,
+    #[display("the bucket could not be read")]
     Read,
-    #[display("the file could not be written")]
+    #[display("the bucket could not be written")]
     Write,
 }
 
@@ -34,8 +42,8 @@ impl Storage {
     ///
     /// # Errors
     ///
-    /// Returns [`StorageError::Read`] if the bucket's URI is not an `s3://` URI or its secret is
-    /// not UTF-8. Credentials are checked by the first request, not here.
+    /// Returns [`StorageError::InvalidBucket`] if the bucket's URI is not an `s3://` URI or its
+    /// secret is not UTF-8. Credentials are checked by the first request, not here.
     pub fn s3(
         bucket: S3Bucket,
         namespace: &IntegrationNamespace,
@@ -68,4 +76,18 @@ impl Storage {
             bucket: None,
         }
     }
+}
+
+/// Parses `key` as the location of a file in the bucket.
+///
+/// # Errors
+///
+/// Returns [`StorageError::InvalidKey`] if `key` is empty, starts or ends with `/`, or has an
+/// empty, `.` or `..` segment or a control character.
+fn location(key: &str) -> Result<Location, Report<StorageError>> {
+    let location = Location::parse(key).change_context(StorageError::InvalidKey)?;
+    if location.as_ref().is_empty() || location.as_ref() != key {
+        return Err(Report::new(StorageError::InvalidKey));
+    }
+    Ok(location)
 }

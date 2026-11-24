@@ -28,8 +28,9 @@ pub(super) fn open(bucket: &S3Bucket) -> Result<Arc<dyn ObjectStore>, Report<Sto
         .uri
         .strip_prefix("s3://")
         .map(|path| path.split_once('/').unwrap_or((path, "")))
-        .ok_or_else(|| Report::new(StorageError::Read))?;
-    let secret = str::from_utf8(bucket.secret.expose()).change_context(StorageError::Read)?;
+        .ok_or_else(|| Report::new(StorageError::InvalidBucket))?;
+    let secret =
+        str::from_utf8(bucket.secret.expose()).change_context(StorageError::InvalidBucket)?;
     let mut builder = AmazonS3Builder::new()
         .with_bucket_name(name)
         .with_region(&*bucket.region)
@@ -42,7 +43,9 @@ pub(super) fn open(bucket: &S3Bucket) -> Result<Arc<dyn ObjectStore>, Report<Sto
             .with_allow_http(!bucket.use_ssl)
             .with_virtual_hosted_style_request(false);
     }
-    let store = builder.build().change_context(StorageError::Read)?;
+    let store = builder
+        .build()
+        .change_context(StorageError::InvalidBucket)?;
     Ok(if prefix.is_empty() {
         Arc::new(store)
     } else {

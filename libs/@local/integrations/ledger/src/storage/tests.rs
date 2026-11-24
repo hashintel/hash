@@ -1,5 +1,6 @@
 use std::{fs, path::PathBuf};
 
+use futures_util::TryStreamExt as _;
 use hash_crypto::Secret;
 use object_store::{ObjectStore as _, PutPayload, path::Path as Location};
 use rstest::rstest;
@@ -191,26 +192,83 @@ async fn upload_missing_file() {
         .await
         .expect_err("should fail for a missing file");
     assert!(
-        matches!(error.current_context(), StorageError::Read),
-        "a missing file should be a read error"
+        matches!(error.current_context(), StorageError::LocalFile),
+        "a missing file should be a local file error"
     );
 }
 
 #[tokio::test]
-async fn download_keeps_inside_directory() {
+async fn invalid_keys_are_refused() {
     let storage = Storage::memory();
     let downloads = TempDir::new().expect("should create a directory");
 
-    for key in ["../escape.bin", "runs/../../escape.bin", "/escape.bin"] {
+    for key in [
+        "",
+        "/",
+        "../escape.bin",
+        "runs/../../escape.bin",
+        "runs/./escape.bin",
+        "runs//escape.bin",
+        "/escape.bin",
+        "runs/",
+    ] {
         let error = storage
             .download(key, downloads.path())
             .await
-            .expect_err("should refuse a key that leaves the directory");
+            .expect_err("should refuse the key");
         assert!(
-            matches!(error.current_context(), StorageError::Write),
-            "the key {key} should be a write error"
+            matches!(error.current_context(), StorageError::InvalidKey),
+            "the key {key:?} should be an invalid key in a download"
+        );
+        let error = storage
+            .read_versioned(key)
+            .await
+            .expect_err("should refuse the key");
+        assert!(
+            matches!(error.current_context(), StorageError::InvalidKey),
+            "the key {key:?} should be an invalid key in a read"
         );
     }
+    assert_eq!(
+        fs::read_dir(downloads.path())
+            .expect("should read the directory")
+            .count(),
+        0,
+        "should leave the directory empty"
+    );
+}
+
+#[tokio::test]
+async fn key_names_object_and_local_file() {
+    let storage = Storage::memory();
+    let uploads = TempDir::new().expect("should create a directory");
+    let downloads = TempDir::new().expect("should create a directory");
+    let key = "runs/run/capture/a#b~c.parquet";
+
+    storage
+        .upload(&file(&uploads, "upload.bin", b"bytes"), key)
+        .await
+        .expect("should upload the file");
+    let stored: Vec<String> = storage
+        .store
+        .list(None)
+        .map_ok(|meta| meta.location.to_string())
+        .try_collect()
+        .await
+        .expect("should list the bucket");
+    assert_eq!(
+        stored,
+        [key],
+        "should store the object under the key as it is"
+    );
+    assert_eq!(
+        storage
+            .download(key, downloads.path())
+            .await
+            .expect("should download the file"),
+        downloads.path().join(key),
+        "should download to the key as it is"
+    );
 }
 
 #[tokio::test]
@@ -337,8 +395,8 @@ async fn versioned_size_limit() {
         .await
         .expect_err("should refuse to write more than 16 MiB");
     assert!(
-        matches!(error.current_context(), StorageError::Write),
-        "an oversized write should be a write error"
+        matches!(error.current_context(), StorageError::TooLarge),
+        "an oversized write should be too large"
     );
     assert_eq!(
         storage
@@ -359,7 +417,7 @@ async fn versioned_size_limit() {
         .await
         .expect_err("should refuse to read more than 16 MiB");
     assert!(
-        matches!(error.current_context(), StorageError::Read),
-        "an oversized read should be a read error"
+        matches!(error.current_context(), StorageError::TooLarge),
+        "an oversized read should be too large"
     );
 }
