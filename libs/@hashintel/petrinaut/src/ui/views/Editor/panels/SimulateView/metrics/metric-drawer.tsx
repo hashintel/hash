@@ -1,3 +1,12 @@
+/**
+ * @layerRoot ui.views.editor.simulate.metrics
+ * @role The drawer a metric is created and edited in, with the checks of its code
+ *
+ * Other blocks import this file for the drawer. The form that creates an
+ * experiment also takes `metric-lsp.ts`, `metric-picker-options.ts` and
+ * `use-metric-lsp-session.ts`, so a metric row there is checked the way the
+ * drawer checks it.
+ */
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 

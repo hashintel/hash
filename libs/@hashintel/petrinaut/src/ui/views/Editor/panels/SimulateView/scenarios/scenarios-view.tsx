@@ -1,3 +1,12 @@
+/**
+ * @layerRoot ui.views.editor.simulate.scenarios
+ * @role Lists the saved scenarios of a net, with the drawers that create one and edit one
+ *
+ * Other blocks import this file for the list, `create-scenario-drawer.tsx`
+ * and `view-scenario-drawer.tsx` for the drawers, and
+ * `use-ad-hoc-scenario-authoring.ts` for the context a scenario form is read
+ * against.
+ */
 import { Button, Icon } from "@hashintel/ds-components";
 
 import { usePetrinautDefinitionSelector } from "../../../../../../react/document/use-document";

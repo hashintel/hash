@@ -1,3 +1,10 @@
+/**
+ * @layerRoot ui.views.editor.simulate.experiments
+ * @role Lists the experiments of a session, and holds what the form that creates one and the results of one share
+ *
+ * The form and the results drawer both read the sweep's objective and its
+ * optimizer from here (`sweep-optimizer.ts`, `shared/`).
+ */
 import { type ComponentProps, use } from "react";
 
 import { Button, Chip, Icon } from "@hashintel/ds-components";
