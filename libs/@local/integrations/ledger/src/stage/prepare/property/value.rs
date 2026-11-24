@@ -71,9 +71,11 @@ impl TryFrom<&Value> for ColumnValue {
             | Value::UHugeInt(_)
             | Value::Float(_)
             | Value::Double(_)
-            | Value::Decimal(_) => {
-                PropertyValue::Number(as_number(value).ok_or(UnsupportedValue::NonFiniteNumber)?)
-            }
+            | Value::Decimal(_) => PropertyValue::Number(
+                as_number(value)
+                    .and_then(real)
+                    .ok_or(UnsupportedValue::NonFiniteNumber)?,
+            ),
             Value::Date32(_) | Value::Timestamp(..) | Value::Time64(..) => {
                 PropertyValue::String(text(value).ok_or(UnsupportedValue::DateTimeOutOfRange)?)
             }
@@ -104,22 +106,27 @@ impl TryFrom<&Value> for ColumnValue {
     }
 }
 
-/// The number a numeric row value holds, or `None` if it is not numeric or not finite.
-pub(super) fn as_number(value: &Value) -> Option<Real> {
+/// The number a numeric row value holds, rounded to the nearest `f64`, or `None` if it is not
+/// numeric.
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "the Graph stores numbers as `f64`, so they are rounded to the nearest one here"
+)]
+pub(super) fn as_number(value: &Value) -> Option<f64> {
     match value {
-        Value::TinyInt(number) => Some(Real::from(*number)),
-        Value::SmallInt(number) => Some(Real::from(*number)),
-        Value::Int(number) => Some(Real::from(*number)),
-        Value::BigInt(number) => Some(Real::from(*number)),
-        Value::HugeInt(number) => Some(Real::from(*number)),
-        Value::UTinyInt(number) => Some(Real::from(*number)),
-        Value::USmallInt(number) => Some(Real::from(*number)),
-        Value::UInt(number) => Some(Real::from(*number)),
-        Value::UBigInt(number) => Some(Real::from(*number)),
-        Value::UHugeInt(number) => Some(Real::from(*number)),
-        // `Real` holds infinities and `NaN`, which a property cannot.
-        Value::Float(number) => Real::try_from(*number).ok().and_then(finite),
-        Value::Double(number) => Real::try_from(*number).ok().and_then(finite),
+        Value::TinyInt(number) => Some(f64::from(*number)),
+        Value::SmallInt(number) => Some(f64::from(*number)),
+        Value::Int(number) => Some(f64::from(*number)),
+        Value::BigInt(number) => Some(*number as f64),
+        Value::HugeInt(number) => Some(*number as f64),
+        Value::UTinyInt(number) => Some(f64::from(*number)),
+        Value::USmallInt(number) => Some(f64::from(*number)),
+        Value::UInt(number) => Some(f64::from(*number)),
+        Value::UBigInt(number) => Some(*number as f64),
+        Value::UHugeInt(number) => Some(*number as f64),
+        // Through its shortest text, so `0.1` stays `0.1` and does not widen to `0.10000000149…`.
+        Value::Float(number) => number.to_string().parse().ok(),
+        Value::Double(number) => Some(*number),
         Value::Decimal(number) => number.to_string().parse().ok(),
         Value::Null
         | Value::Boolean(_)
@@ -140,10 +147,13 @@ pub(super) fn as_number(value: &Value) -> Option<Real> {
     }
 }
 
-/// `number` if it is finite. A property's number is written as an `f64`, so this also rejects
-/// numbers too large for one.
-pub(super) fn finite(number: Real) -> Option<Real> {
-    number.to_f64_lossy().is_finite().then_some(number)
+/// `number` as a property's number, or `None` if it is infinite, `NaN`, or too close to the
+/// largest `f64` to be written as one.
+///
+/// Every property number is made here, as the Graph makes one from a JSON number.
+pub(super) fn real(number: f64) -> Option<Real> {
+    let real = Real::try_from(number).ok()?;
+    real.to_f64_lossy().is_finite().then_some(real)
 }
 
 /// Renders a row value as text for a conversion to read, or `None` if it is null or has no text
@@ -167,8 +177,15 @@ pub(super) fn text(value: &Value) -> Option<String> {
         Value::UHugeInt(number) => number.to_string(),
         Value::Float(number) => float_text(f64::from(*number))?,
         Value::Double(number) => float_text(*number)?,
-        // `Real` drops the zeros the column's scale pads with, so `8030.00` reads as `8030`.
-        Value::Decimal(_) => as_number(value)?.to_string(),
+        // The zeros the column's scale pads with are dropped, so `8030.00` reads as `8030`.
+        Value::Decimal(number) => {
+            let text = number.to_string();
+            if text.contains('.') {
+                text.trim_end_matches('0').trim_end_matches('.').to_owned()
+            } else {
+                text
+            }
+        }
         Value::Date32(days) => date(*days)?.to_string(),
         Value::Timestamp(unit, value) => {
             OffsetDateTime::from_unix_timestamp_nanos(i128::from(unit.to_micros(*value)) * 1_000)

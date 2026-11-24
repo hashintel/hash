@@ -158,6 +158,7 @@ impl SinkRow<'_> {
                     return Ok(None);
                 };
                 let amount = coerce::number(value)
+                    .and_then(value::real)
                     .ok_or_else(|| Unconverted::new(value, FailureReason::MeasureAmount))?;
                 let unit = self.get(unit);
                 let data_type_id = unit_maps

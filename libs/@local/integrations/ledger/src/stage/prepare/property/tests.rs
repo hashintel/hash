@@ -35,10 +35,14 @@ fn string(value: &str) -> Option<PropertyValue> {
     clippy::unnecessary_wraps,
     reason = "builds an expected value, which may be absent"
 )]
-fn number(value: &str) -> Option<PropertyValue> {
+fn number(value: f64) -> Option<PropertyValue> {
     Some(PropertyValue::Number(
-        value.parse::<Real>().expect("should be a valid number"),
+        Real::try_from(value).expect("should be a finite number"),
     ))
+}
+
+fn decimal(width: u8, scale: u8, value: i128) -> Value {
+    Value::Decimal(duckdb::types::Decimal::new(width, scale, value).expect("should be a decimal"))
 }
 
 fn property(name: &str) -> VersionedUrl {
@@ -107,22 +111,33 @@ fn boolean(#[case] value: Value, #[case] expected: bool) {
 }
 
 #[rstest]
-#[case::integer(Coercion::Number, text("12"), number("12"))]
-#[case::decimal(Coercion::Number, text(" 37.6 "), number("37.6"))]
-#[case::decimal_comma(Coercion::Number, text("1,5"), number("1.5"))]
-#[case::thousands_dot(Coercion::Number, text("1.234,56"), number("1234.56"))]
-#[case::numeric_value(Coercion::Number, Value::BigInt(-4), number("-4"))]
+#[case::integer(Coercion::Number, text("12"), number(12.0))]
+#[case::decimal(Coercion::Number, text(" 37.6 "), number(37.6))]
+#[case::decimal_comma(Coercion::Number, text("1,5"), number(1.5))]
+#[case::thousands_dot(Coercion::Number, text("1.234,56"), number(1234.56))]
+#[case::numeric_value(Coercion::Number, Value::BigInt(-4), number(-4.0))]
+#[case::decimal_value(Coercion::Number, decimal(10, 2, 3_760), number(37.6))]
+#[case::rounded_to_even(
+    Coercion::Number,
+    text("9007199254740993"),
+    number(9_007_199_254_740_992.0)
+)]
 #[case::beyond_f64(Coercion::Number, text("1e400"), None)]
+#[case::below_f64(Coercion::Number, text("1e-400"), number(0.0))]
 #[case::not_a_number(Coercion::Number, text("n/a"), None)]
-#[case::truncated(Coercion::Integer, text("12.9"), number("12"))]
-#[case::truncated_negative(Coercion::Integer, text("-3,7"), number("-3"))]
-#[case::double(Coercion::Integer, Value::Double(8.5), number("8"))]
+#[case::nan(Coercion::Number, text("NaN"), None)]
+#[case::infinity(Coercion::Number, text("inf"), None)]
+#[case::truncated(Coercion::Integer, text("12.9"), number(12.0))]
+#[case::truncated_negative(Coercion::Integer, text("-3,7"), number(-3.0))]
+#[case::truncated_to_zero(Coercion::Integer, text("-0.5"), number(0.0))]
+#[case::double(Coercion::Integer, Value::Double(8.5), number(8.0))]
 #[case::beyond_f64_integers(
     Coercion::Integer,
     text("9007199254740993.7"),
-    number("9007199254740993")
+    number(9_007_199_254_740_994.0)
 )]
-#[case::year(Coercion::Year, text("1998"), number("1998"))]
+#[case::tiny_exponent(Coercion::Integer, text("1e-1000000000"), number(0.0))]
+#[case::year(Coercion::Year, text("1998"), number(1998.0))]
 #[case::trim(Coercion::Trim, text("  DC-3 "), string("DC-3"))]
 fn numbers_and_text(
     #[case] coercion: Coercion,
@@ -150,6 +165,24 @@ fn numbers_and_text(
     Err(UnsupportedValue::Interval)
 )]
 #[case::infinite(Value::Double(f64::INFINITY), Err(UnsupportedValue::NonFiniteNumber))]
+#[case::nan(Value::Float(f32::NAN), Err(UnsupportedValue::NonFiniteNumber))]
+#[case::float(Value::Float(0.1), Ok(number(0.1).expect("should be a number")))]
+#[case::largest_bigint(
+    Value::BigInt(i64::MAX),
+    Ok(number(2_f64.powi(63)).expect("should be a number"))
+)]
+#[case::hugeint(
+    Value::HugeInt(1 << 70),
+    Ok(number(2_f64.powi(70)).expect("should be a number"))
+)]
+#[case::largest_uhugeint(
+    Value::UHugeInt(u128::MAX),
+    Ok(number(2_f64.powi(128)).expect("should be a number"))
+)]
+#[case::wide_decimal(
+    decimal(38, 20, 12_345_678_901_234_567_890),
+    Ok(number(0.123_456_789_012_345_68).expect("should be a number"))
+)]
 fn column_value(#[case] input: Value, #[case] expected: Result<PropertyValue, UnsupportedValue>) {
     assert_eq!(
         ColumnValue::try_from(&input).map(PropertyValue::from),
@@ -159,9 +192,13 @@ fn column_value(#[case] input: Value, #[case] expected: Result<PropertyValue, Un
 
 #[rstest]
 #[case::fraction(Value::Double(1.5), "1.5")]
-#[case::decimal_scale(
-    Value::Decimal(duckdb::types::Decimal::new(10, 2, 803_000).expect("should be a decimal")),
-    "8030"
+#[case::decimal_scale(decimal(10, 2, 803_000), "8030")]
+#[case::decimal_fraction(decimal(10, 3, -1_500), "-1.5")]
+#[case::decimal_zero(decimal(10, 2, 0), "0")]
+#[case::decimal_integer(decimal(10, 0, 8_030), "8030")]
+#[case::wide_decimal(
+    decimal(38, 2, 12_345_678_901_234_567_890_123),
+    "123456789012345678901.23"
 )]
 #[case::timestamp(
     Value::Timestamp(TimeUnit::Microsecond, 1_794_220_200_000_000),
@@ -169,6 +206,48 @@ fn column_value(#[case] input: Value, #[case] expected: Result<PropertyValue, Un
 )]
 fn rendered_text(#[case] input: Value, #[case] expected: &str) {
     assert_eq!(value::text(&input).as_deref(), Some(expected));
+}
+
+#[rstest]
+#[case::tenth(0.1)]
+#[case::inch(0.0254)]
+#[case::fraction(1.5)]
+#[case::whole(3.0)]
+#[case::negative(-12.0)]
+#[case::largest_exact_integer(9_007_199_254_740_992.0)]
+#[case::beyond_exact_integers(9_007_199_254_740_994.0)]
+#[case::largest_bigint(2_f64.powi(63))]
+#[case::large(1e300)]
+#[case::smallest_normal(f64::MIN_POSITIVE)]
+#[case::smallest(5e-324)]
+fn number_round_trip(#[case] number: f64) {
+    let real = value::real(number).expect("should be a property number");
+    let property = PropertyValue::Number(real.clone());
+    let json = serde_json::to_string(&property).expect("should serialize");
+    assert_eq!(
+        serde_json::from_str::<PropertyValue>(&json).expect("should deserialize"),
+        property,
+        "should read back from JSON as the sync table stores it"
+    );
+    let written = real.to_f64().expect("should be written as an `f64`");
+    assert_eq!(
+        value::real(written),
+        Some(real),
+        "should read back as the same number after the Graph writes it as an `f64`"
+    );
+}
+
+#[test]
+fn largest_numbers() {
+    assert_eq!(
+        value::real(f64::MAX),
+        None,
+        "should refuse a number that rounds past the largest `f64`"
+    );
+    assert!(
+        value::real(1.797_693_134_862_31e308).is_some(),
+        "should keep a number just below it"
+    );
 }
 
 fn aircraft_properties() -> Properties {

@@ -2,7 +2,6 @@
 //! engine, except that dates and times are checked to be real ones.
 
 use duckdb::types::Value;
-use hash_codec::numeric::Real;
 use hash_integrations_definition::Coercion;
 use time::{
     Date, Time, UtcOffset, format_description::BorrowedFormatItem, macros::format_description,
@@ -18,12 +17,16 @@ pub(super) fn apply(coercion: Coercion, value: &Value) -> Option<PropertyValue> 
         Coercion::Date => date(value).map(PropertyValue::String),
         Coercion::Time => time(value).map(PropertyValue::String),
         Coercion::Boolean => Some(PropertyValue::Bool(boolean(value))),
-        Coercion::Number => number(value).map(PropertyValue::Number),
-        Coercion::Integer => integer(value).map(PropertyValue::Number),
-        Coercion::Year => {
-            let text = value::text(value)?;
-            parse_number(text.trim()).map(PropertyValue::Number)
-        }
+        Coercion::Number => number(value)
+            .and_then(value::real)
+            .map(PropertyValue::Number),
+        Coercion::Integer => number(value)
+            .map(f64::trunc)
+            .and_then(value::real)
+            .map(PropertyValue::Number),
+        Coercion::Year => parse_number(value::text(value)?.trim())
+            .and_then(value::real)
+            .map(PropertyValue::Number),
         Coercion::Trim => ColumnValue::try_from(value)
             .ok()
             .map(ColumnValue::into_trimmed),
@@ -129,19 +132,8 @@ fn boolean(value: &Value) -> bool {
 }
 
 /// Reads a number, accepting a decimal comma when it follows the last dot, as in `1.234,56`.
-pub(super) fn number(value: &Value) -> Option<Real> {
-    if let Some(number) = value::as_number(value) {
-        return Some(number);
-    }
-    parse_number(&decimal_text(value)?)
-}
-
-/// Reads a number as [`number`] does and drops its fraction, rounding toward zero.
-fn integer(value: &Value) -> Option<Real> {
-    // `Real` writes a plain decimal, never an exponent, so the whole part is the text before the
-    // point, exactly at any size.
-    let number = number(value)?.to_string();
-    number.split('.').next()?.parse().ok()
+pub(super) fn number(value: &Value) -> Option<f64> {
+    value::as_number(value).or_else(|| parse_number(&decimal_text(value)?))
 }
 
 /// The text of `value` with a decimal comma replaced by a dot.
@@ -156,7 +148,7 @@ fn decimal_text(value: &Value) -> Option<String> {
     })
 }
 
-/// Parses a decimal or scientific number that a property can hold.
-fn parse_number(text: &str) -> Option<Real> {
-    value::finite(text.parse().ok()?)
+/// Parses a decimal or scientific number, rounded to the nearest `f64`.
+fn parse_number(text: &str) -> Option<f64> {
+    text.parse().ok()
 }
