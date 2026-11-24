@@ -20,7 +20,7 @@ It renders what the [React layer](layer:react) holds and calls its hooks to chan
 5. `PetrinautPluginsProvider`, which runs the [built-in plugins](layer:ui.plugins.built-in) and the host's. See [How the editor runs plugins](doc:ui.plugins/runtime).
 6. `EditorView`. See [The editor shell](doc:ui.views.editor/editor-shell).
 
-`PetrinautPreview` in [`ui.preview`](layer:ui.preview) mounts the same canvas without the shell. It takes five components from inside the shell's folder: `SelectedItemProperties` for the properties of the selected item, `NetNavigationList` for the list of nets, `EventSimulationControls` and `EventTimeline` for a quick simulation, and `ActualTimeline` for Actual mode.
+`PetrinautPreview` in [`ui.preview`](layer:ui.preview) mounts the same canvas without the shell, as [The preview](doc:ui.preview/preview) describes. It takes five components from inside the shell's folder: `SelectedItemProperties` for the properties of the selected item, `NetNavigationList` for the list of nets, `EventSimulationControls` and `EventTimeline` for a quick simulation, and `ActualTimeline` for Actual mode.
 
 `EditorView` and `PetrinautPreview` each mount `PetrinautIconProvider` from `ui/views/shared`. Below it the design system's `Icon` draws from the `@hashintel/ds-icons` set, and the icons of that set move only while the Animations setting is on.
 
