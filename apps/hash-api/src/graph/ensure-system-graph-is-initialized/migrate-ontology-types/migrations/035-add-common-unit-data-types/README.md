@@ -17,9 +17,9 @@ New data types use singular `title` values and explicit `titlePlural` values, wi
 | Angle and rotation        | Arcminute, arcsecond, revolution, revolutions per second and per minute                                                               |
 | Acceleration and force    | Standard gravity, kilogram-force                                                                                                      |
 | Viscosity                 | Poise, centipoise, square meter and square millimeter per second, stokes, centistokes                                                 |
-| Ratios and concentration  | One, parts per million, parts per billion, milligrams per decilitre and litre, grams per litre; existing Percentage gains conversions |
-| Volume flow               | Cubic meters per second and hour, litres per second and minute, US and imperial gallons per minute, cubic feet per minute             |
-| Fuel economy              | Litres per 100 kilometers, kilometers per litre, miles per US and imperial gallon                                                     |
+| Ratios and concentration  | One, parts per million, parts per billion, milligrams per deciliter and liter, grams per liter; existing Percentage gains conversions |
+| Volume flow               | Cubic meters per second and hour, liters per second and minute, US and imperial gallons per minute, cubic feet per minute             |
+| Fuel economy              | Liters per 100 kilometers, kilometers per liter, miles per US and imperial gallon                                                     |
 | Light                     | Foot-lambert                                                                                                                          |
 | Sound and signal          | Bel, decibel, dBW, dBm, unweighted dB SPL, A-weighted and C-weighted sound pressure levels                                            |
 | Temperature differences   | Kelvin Difference, Celsius Difference, Fahrenheit Difference, Rankine Difference                                                      |
