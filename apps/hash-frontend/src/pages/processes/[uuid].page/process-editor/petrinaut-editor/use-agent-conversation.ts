@@ -128,10 +128,15 @@ export const useAgentConversation = ({
 }): {
   conversationPointer: BrunchConversationPointer;
   /**
-   * The editor's save made `subjectEntityId` exist, or found it existing:
-   * its pending conversations are written at once, in order.
+   * The editor's first save of a draft made `subjectEntityId` exist (with
+   * `createdHere: true`), or found it already existing elsewhere
+   * (`createdHere: false`): its pending conversations are written at once, in
+   * order.
    */
-  subjectSaved: (subjectEntityId: EntityId) => void;
+  subjectSaved: (
+    subjectEntityId: EntityId,
+    options?: { createdHere?: boolean },
+  ) => void;
 } => {
   const { authenticatedUser } = useAuthInfo();
   const userId = authenticatedUser?.accountId ?? null;
@@ -401,8 +406,10 @@ export const useAgentConversation = ({
   );
 
   const subjectSaved = useCallback(
-    (subject: EntityId) => {
-      savedHere.current.add(subject);
+    (subject: EntityId, { createdHere = true } = {}) => {
+      if (createdHere) {
+        savedHere.current.add(subject);
+      }
       flushUnsaved(subject);
     },
     [flushUnsaved],

@@ -423,7 +423,10 @@ const isSaved = (subjectEntityId: EntityId) =>
   editor.saved.has(subjectEntityId);
 
 /** The hook's latest `subjectSaved`, which the editor's save calls. */
-let subjectSaved: (subjectEntityId: EntityId) => void = () => {};
+let subjectSaved: (
+  subjectEntityId: EntityId,
+  options?: { createdHere?: boolean },
+) => void = () => {};
 
 const renderConversation = (
   subjectEntityId: EntityId = processId,
@@ -452,10 +455,10 @@ const renderConversation = (
 };
 
 /** The editor's save of `subjectEntityId` lands, or finds it saved already. */
-const save = (subjectEntityId: EntityId) =>
+const save = (subjectEntityId: EntityId, options?: { createdHere?: boolean }) =>
   act(() => {
     editor.saved.add(subjectEntityId);
-    subjectSaved(subjectEntityId);
+    subjectSaved(subjectEntityId, options);
   });
 
 /** Opens the page again, in this browser or another: everything is read afresh. */
@@ -943,6 +946,20 @@ test("messaging on a saved subject does not bypass the failed-read guard on a la
 
   // Fallback start must still be skipped so it cannot shadow a newer conversation.
   act(() => result.current.start("fallback-after-later-read-failure"));
+  await settle();
+  expect(graph.writes).toEqual([]);
+});
+
+test("a draft found to already exist elsewhere flushes unsaved intents but keeps the failed-read guard", async () => {
+  graph.failingReads = 1;
+  const { result } = renderConversation(draftId, false);
+  expect(result.current.conversationId).toBeNull();
+
+  // Save discovers the entity already existed elsewhere (NetExistsError).
+  save(draftId, { createdHere: false });
+
+  // A fallback conversation started after the failed read must not be persisted.
+  act(() => result.current.start("fallback-after-net-exists"));
   await settle();
   expect(graph.writes).toEqual([]);
 });

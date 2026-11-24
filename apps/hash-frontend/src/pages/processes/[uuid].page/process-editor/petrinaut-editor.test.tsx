@@ -5,6 +5,7 @@ import { createContext, use, useEffect, useLayoutEffect } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { PetrinautEditor } from "./petrinaut-editor";
+import { NetExistsError } from "./shared/net-exists-error";
 
 import type {
   PetrinautEditorLoad,
@@ -45,6 +46,11 @@ const observed = vi.hoisted(() => ({
   brunchFailure: null as null | { error: Error; source: string },
   /** The HASH graph reads the page gives Brunch. */
   hashGraphReadTools: [{ toolName: "hash_query_entities" }],
+  /** Calls to `useAgentConversation`'s `subjectSaved` callback. */
+  subjectSaved:
+    vi.fn<
+      (subjectEntityId: EntityId, options?: { createdHere?: boolean }) => void
+    >(),
 }));
 
 const sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
@@ -147,7 +153,7 @@ vi.mock("./petrinaut-editor/use-agent-conversation", () => {
   };
   const conversationRead = {
     conversationPointer: conversation,
-    subjectSaved: () => {},
+    subjectSaved: observed.subjectSaved,
   };
   return { useAgentConversation: () => conversationRead };
 });
@@ -238,6 +244,7 @@ beforeEach(() => {
   observed.brunchInputs.length = 0;
   observed.petrinautFailure = null;
   observed.brunchFailure = null;
+  observed.subjectSaved.mockClear();
   identityRequests.length = 0;
   sentry.captureException.mockClear();
   onDirtyChange.mockClear();
@@ -1136,4 +1143,89 @@ test("the agent's save of a net with no unsaved changes is refused as not starte
     reason: clean,
   });
   expect(onSave).not.toHaveBeenCalled();
+});
+
+test("subjectSaved is called only on a draft's first save, not on updates to an already-saved net", async () => {
+  // Saving an already-saved net must not call subjectSaved.
+  const { rerender } = renderEditor({ load: savedLoad() });
+  await waitFor(() => expect(lastTopBar()).toBeDefined());
+  onSave.mockResolvedValueOnce({
+    entityId: savedEntityId,
+    decisionTime: "2026-10-24T01:00:00.000Z",
+  });
+  act(() => lastTopBar()?.onTitleChange("Net (edited)"));
+  await act(async () => {
+    lastTopBar()?.onSave();
+    await Promise.resolve();
+  });
+  expect(onSave).toHaveBeenCalledTimes(1);
+  expect(observed.subjectSaved).not.toHaveBeenCalled();
+
+  // Saving a draft for the first time calls subjectSaved with createdHere: true,
+  // and a subsequent save of the now-saved net does not call it again.
+  rerender({ load: draftLoad() });
+  await waitFor(() => expect(lastTopBar()?.title).toBe("Draft"));
+  const draftEntityId = "web~draft" as EntityId;
+  onSave
+    .mockResolvedValueOnce({
+      entityId: draftEntityId,
+      decisionTime: "2026-10-24T02:00:00.000Z",
+    })
+    .mockResolvedValueOnce({
+      entityId: draftEntityId,
+      decisionTime: "2026-10-24T03:00:00.000Z",
+    });
+  await act(async () => {
+    lastTopBar()?.onSave();
+    await Promise.resolve();
+  });
+  expect(observed.subjectSaved).toHaveBeenCalledTimes(1);
+  expect(observed.subjectSaved).toHaveBeenCalledWith(draftEntityId, {
+    createdHere: true,
+  });
+
+  act(() => lastTopBar()?.onTitleChange("Draft (second save)"));
+  await act(async () => {
+    lastTopBar()?.onSave();
+    await Promise.resolve();
+  });
+  expect(observed.subjectSaved).toHaveBeenCalledTimes(1);
+
+  // If a draft's first save discovers the net already exists elsewhere,
+  // subjectSaved is called with createdHere: false.
+  observed.subjectSaved.mockClear();
+  const collidedId = "web~collided" as EntityId;
+  const collidedLoad: PetrinautEditorLoad = {
+    definition,
+    title: "Collided",
+    mode: { kind: "draft", seedKey: null, entityId: collidedId },
+    savedSnapshot: null,
+    reason: "open",
+  };
+  rerender({ load: collidedLoad });
+  await waitFor(() =>
+    expect(lastTopBar()).toMatchObject({
+      title: "Collided",
+      persistPending: false,
+    }),
+  );
+  onSave.mockRejectedValueOnce(
+    new NetExistsError({
+      entityId: collidedId,
+      savedSnapshot: {
+        definition,
+        title: "Collided",
+        decisionTime: "2026-10-24T00:00:00.000Z",
+      },
+      userEditable: true,
+    }),
+  );
+  await act(async () => {
+    lastTopBar()?.onSave();
+    await Promise.resolve();
+  });
+  await waitFor(() => expect(observed.subjectSaved).toHaveBeenCalledTimes(1));
+  expect(observed.subjectSaved).toHaveBeenCalledWith(collidedId, {
+    createdHere: false,
+  });
 });

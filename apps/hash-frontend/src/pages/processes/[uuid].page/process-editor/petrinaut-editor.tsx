@@ -460,6 +460,7 @@ export const PetrinautEditor = ({
         return null;
       }
       const { handle: savedHandle, mode, title } = live;
+      const wasDraft = mode.kind === "draft";
       const definition = savedHandle.doc() ?? live.definition;
       updateSession(savedHandle, (current) => ({
         ...current,
@@ -471,7 +472,7 @@ export const PetrinautEditor = ({
             definition,
             title,
             entityId: mode.entityId,
-            exists: mode.kind === "saved",
+            exists: !wasDraft,
           });
           const snapshot = {
             definition,
@@ -487,8 +488,10 @@ export const PetrinautEditor = ({
             mode: { kind: "saved", entityId: saved.entityId },
             savedSnapshot: snapshot,
           }));
-          // The net exists, whatever is open now.
-          subjectSaved(saved.entityId);
+          // Only a draft's first save transitions the net into existence here.
+          if (wasDraft) {
+            subjectSaved(saved.entityId, { createdHere: true });
+          }
         } catch (error) {
           updateSession(savedHandle, (current) =>
             error instanceof NetExistsError
@@ -500,8 +503,8 @@ export const PetrinautEditor = ({
                 }
               : { ...current, savePending: false },
           );
-          if (error instanceof NetExistsError) {
-            subjectSaved(error.entityId);
+          if (wasDraft && error instanceof NetExistsError) {
+            subjectSaved(error.entityId, { createdHere: false });
           }
           throw error;
         }
