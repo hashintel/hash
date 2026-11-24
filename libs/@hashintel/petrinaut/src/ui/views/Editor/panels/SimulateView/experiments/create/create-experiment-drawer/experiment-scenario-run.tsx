@@ -21,8 +21,8 @@ import {
 import { OverlayScrollArea } from "../../../../../../../shared/overlay-scroll-area";
 import { Section } from "../../../../../../../shared/section";
 import { StackedSections } from "../../../../../../../shared/stacked-sections";
-import { scenarioExpressions } from "../../../../../../shared/scenario-expressions";
-import { useScenarioRun } from "../../../shared/use-scenario-run";
+import { scenarioExpressions } from "../../../../../shared/scenario-run/scenario-expressions";
+import { useScenarioRun } from "../../../../../shared/scenario-run/use-scenario-run";
 import {
   scenarioRunInputs,
   seedRunVariables,

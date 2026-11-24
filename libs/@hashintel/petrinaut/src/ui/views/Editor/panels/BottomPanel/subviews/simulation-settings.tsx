@@ -26,9 +26,9 @@ import { OverlayScrollArea } from "../../../../../shared/overlay-scroll-area";
 import { StackedSections } from "../../../../../shared/stacked-sections";
 import { FocusControls } from "../../../../../worksheet/focus-controls";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
-import { scenarioExpressions } from "../../../../shared/scenario-expressions";
+import { scenarioExpressions } from "../../../shared/scenario-run/scenario-expressions";
+import { useScenarioRun } from "../../../shared/scenario-run/use-scenario-run";
 import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
-import { useScenarioRun } from "../../SimulateView/shared/use-scenario-run";
 import { RunSettingsPicker } from "./run-settings-picker";
 import {
   scenarioRunParameterValues,
