@@ -1,9 +1,8 @@
 /**
  * Messages between the host and the event simulation worker.
  *
- * The shape follows the frame worker's protocol, with time in place of frame
- * counts: the host demands a time rather than acknowledging frames, and the
- * worker reports the time its trace covers rather than a frame number.
+ * The channel counts in time: the host demands the time the trace is to
+ * cover, and the worker reports the time its trace covers.
  */
 
 import type { PetrinautExtensionSettings } from "../../../extensions/extensions";

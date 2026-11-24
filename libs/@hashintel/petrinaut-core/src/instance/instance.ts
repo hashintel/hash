@@ -55,20 +55,21 @@ export type PetrinautCommands = CommandHelperFunctions;
  *
  * Mutations and commands are namespaced:
  *
- * - `instance.mutations` — atomic, schema-driven operations keyed by
+ * - `instance.mutations`: atomic, schema-driven operations keyed by
  *   `mutationActionInputSchemas`. This is the AI-safe surface; the AI tool
  *   bundle is derived from these schemas.
- * - `instance.commands` — composite host operations (clipboard paste,
+ * - `instance.commands`: composite host operations (clipboard paste,
  *   auto-layout). Only the subset registered in `aiCommandActionInputSchemas`
  *   is exposed to the AI.
  *
- * There is no top-level `mutate` escape hatch — every write must flow
+ * There is no top-level `mutate` escape hatch: every write must flow
  * through a typed helper so it is schema-validated.
  *
  * **Simulation does not live here.** A simulation runs against a frozen SDCPN
- * snapshot and has no need for the live document. To run one, call
- * {@link createSimulation} directly with `instance.handle.doc()` (or any other
- * SDCPN value). The host owns the simulation's lifecycle.
+ * snapshot and has no need for the live document. To run one, give a
+ * simulator of `../simulators` a request whose `sdcpn` is
+ * `instance.handle.doc()` (or any other SDCPN value) and start what it
+ * offers. The host owns the simulation's lifecycle.
  */
 export type Petrinaut = {
   readonly handle: PetrinautDocHandle;

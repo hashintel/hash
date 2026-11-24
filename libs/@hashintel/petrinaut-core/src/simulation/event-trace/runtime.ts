@@ -117,10 +117,10 @@ const EMPTY_SUMMARY: EventTraceSummary = {
  * once the worker reports `ready`; rejects (and disposes) on an
  * initialization error or when `signal` aborts first.
  *
- * The host side mirrors `createSimulation`: a transport to the worker, a
- * store that keeps what the worker sends, and stores that publish status and
- * progress. What differs is the unit: the worker sends events rather than
- * frames, and the host asks for time rather than acknowledging frames.
+ * The host side is a transport to the worker, a store that keeps the events
+ * the worker sends, and stores that publish status and progress. The host
+ * bounds the worker by time: the worker computes until its trace covers the
+ * time last passed to `demand`.
  */
 export function createEventSimulation(
   config: CreateEventSimulationConfig,

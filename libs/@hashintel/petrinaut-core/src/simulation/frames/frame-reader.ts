@@ -87,8 +87,8 @@ function createSimulationFrameReader(
 /**
  * Compiles the SDCPN's frame layout once and returns a per-frame reader
  * factory. `stringPool` is required to decode `string` token elements (the
- * frame stores pool references, not the strings) — the frame store passes an
- * accessor over its accumulated main-thread pool copy.
+ * frame stores pool references, not the strings): the event trace store
+ * passes an accessor over its accumulated main-thread pool copy.
  */
 export function compileSimulationFrameReader(
   sdcpn: Pick<SDCPN, "places" | "transitions" | "types">,

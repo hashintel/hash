@@ -1,5 +1,5 @@
 /**
- * Public surface for `@hashintel/petrinaut-core` — the headless engine.
+ * Public surface for `@hashintel/petrinaut-core`: the headless engine.
  *
  * No React, no DOM, no Monaco. Stateful handles, streams, and pure logic for
  * SDCPN documents, simulation, LSP, and playback, and an in-browser
@@ -541,8 +541,8 @@ export {
 } from "./lsp/document-uris";
 
 // --- Simulation: core.simulation ---
-// simulation/index.ts carries the contract, the frame-store runtime and Monte
-// Carlo together: one statement for their values, one for their types.
+// simulation/index.ts carries the contract and Monte Carlo together: one
+// statement for their values, one for their types.
 export {
   PETRINAUT_DEFAULT_SEED,
   addAllMonteCarloMetricValues,

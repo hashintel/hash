@@ -2,12 +2,10 @@
  * @layerRoot core.simulation.event-trace
  * @role Runs a net as a trace of events, one frame per firing with its derivatives, and reads the state at any time by interpolating between them
  *
- * The event-driven counterpart of the frame-per-step runtime. The worker
- * advances the run with the stepper of the simulator the host selected and
- * records only the states that stepper finds worth keeping; the host keeps
- * those events and reconstructs the state at any time from them, so playback
- * addresses time rather than frame indices. Everything here is its own path:
- * nothing in the frame runtime changes to make room for it.
+ * The worker advances the run with the stepper of the simulator the host
+ * selected and records only the states that stepper finds worth keeping; the
+ * host keeps those events and reconstructs the state at any time from them,
+ * so playback addresses time rather than frame indices.
  */
 
 export { createEventSimulation } from "./runtime";
