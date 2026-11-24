@@ -6826,6 +6826,7 @@ dependencies = [
  "hash-status",
  "hash-telemetry",
  "pretty_assertions",
+ "rstest",
  "serde",
  "serde_json",
  "time",

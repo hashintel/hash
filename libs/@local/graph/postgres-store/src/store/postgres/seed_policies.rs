@@ -99,8 +99,6 @@ static AGENT_CONVERSATION: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
     EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/agent-conversation/")
 });
 
-/// Links an agent conversation to an entity it focuses on. It is private to its creator, as the
-/// conversation is, so it has its own type rather than a general one such as `Has Subject`.
 static HAS_AGENT_CONVERSATION_FOCUS: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
     EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/has-agent-conversation-focus/")
 });
