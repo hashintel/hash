@@ -202,7 +202,7 @@ We then use this type to define the `task` input of `summarizeTask`. This has tw
 const summarizeTask = Draft.program({ task: taskType }, ($, { task }) => {
   const { add } = $.prelude();
 
-  return Program.Structural.struct({
+  return $.struct({
     title: task.title,
     nextRevision: add(task.revision, 1n),
   });
@@ -219,7 +219,7 @@ console.log(compile(summarizeTask));
 
 </details>
 
-[`Program.Structural.struct`] creates a struct value from the field expressions we provide. HashQL operates in three "universes": modules, types and values. Whereas [`Program.Structural.type`] constructs a struct type, [`Program.Structural.struct`] constructs a struct value. We can then use standard JavaScript property access notation to access the fields of these struct values, with each access returning an expression handle.
+[`$.struct`] creates a struct value from the field expressions we provide. HashQL operates in three "universes": modules, types and values. Whereas [`Program.Structural.type`] constructs a struct type, [`$.struct`] constructs a struct value. We can then use standard JavaScript property access notation to access the fields of these struct values, with each access returning an expression handle.
 
 <Callout>
 
@@ -240,7 +240,7 @@ const summarizeTaskWithAttention = Draft.program(
       else: () => $.literal("clear"),
     });
 
-    return Program.Structural.struct({
+    return $.struct({
       title: task.title,
       nextRevision: add(task.revision, 1n),
       attention,
@@ -287,7 +287,7 @@ Let's see how that works in a smaller example:
 const repeatedRevision = Draft.program(revisionInputs, ($, { revision }) => {
   const nextRevision = $.prelude().add(revision, 1n);
 
-  return Program.Structural.struct({
+  return $.struct({
     nextRevision,
     auditRevision: nextRevision,
   });
@@ -307,7 +307,7 @@ Let's try one:
 const namedRevision = Draft.program(revisionInputs, ($, { revision }) => {
   const nextRevision = $.let("nextRevision", $.prelude().add(revision, 1n));
 
-  return Program.Structural.struct({
+  return $.struct({
     nextRevision,
     auditRevision: nextRevision,
   });
@@ -332,7 +332,7 @@ const namedRevision = Draft.program(revisionInputs, ($, { revision }) => {
   const nextRevision = $.let("nextRevision", $.prelude().add(revision, 1n));
   const nextRevision2 = $.let("nextRevision", "foo");
 
-  return Program.Structural.struct({
+  return $.struct({
     nextRevision,
     auditRevision: nextRevision,
   });
@@ -397,7 +397,7 @@ Let's look at an example:
 
 ```ts title="Compare a nullable lookup" data-example="nullable-equality-rejected"
 const missingLabel = Draft.program({}, ($) =>
-  $.eq(Program.Structural.list(String, ["review"]).$index(1n), null),
+  $.eq($.list(String, ["review"]).$index(1n), null),
 );
 ```
 
@@ -419,7 +419,7 @@ import type { Type } from "@local/hashql";
 
 const missingLabel = Draft.program({}, ($) =>
   $.eq(
-    Program.Structural.list(String, ["review"]).$index(1n),
+    $.list(String, ["review"]).$index(1n),
     // [!code focus:3]
     Program.Expression.assume<
       Type.Union<readonly [Type.PrimitiveString, Type.PrimitiveNull]>
@@ -490,7 +490,7 @@ We can now assemble our summary using the extracted helpers:
 const reusableSummary = Draft.program(taskInputs, ($, { task }) => {
   const attention = attentionFor($, task);
 
-  return Program.Structural.struct({
+  return $.struct({
     title: task.title,
     nextRevision: $.prelude().add(task.revision, 1n),
     attention,
@@ -555,7 +555,7 @@ For construction issues and common mistakes, see the [troubleshooting guide][tro
 [`Effect.fromResult`]: https://effect.website/docs/v4/api/effect/Effect#fromResult
 [`Program.Structural.type`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural#type
 [structural-definitions]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural#Definition
-[`Program.Structural.struct`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural#struct
+[`$.struct`]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.struct
 [`Program.Structural`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural
 [`Program.Expression`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Expression
 [`Expression.assume`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Expression#assume

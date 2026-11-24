@@ -214,6 +214,18 @@ export interface Context<S extends Scope.Scope.Any>
   /** References a program input, optionally with a default. This is {@link Expression.input}. */
   readonly input: typeof Expression.input;
 
+  /** Constructs a struct from a record of values, where each field is an expression or structural shorthand. This is {@link Structural.struct}. */
+  readonly struct: typeof Structural.struct;
+
+  /** Constructs a tuple from an array of values, where each element is an expression or structural shorthand. This is {@link Structural.tuple}. */
+  readonly tuple: typeof Structural.tuple;
+
+  /** Constructs a list from its elements. This is {@link Structural.list}. */
+  readonly list: typeof Structural.list;
+
+  /** Constructs a dictionary from its entries. This is {@link Structural.dict}. */
+  readonly dict: typeof Structural.dict;
+
   /**
    * Binds a value to a HashQL name and returns a reference to the binding.
    *

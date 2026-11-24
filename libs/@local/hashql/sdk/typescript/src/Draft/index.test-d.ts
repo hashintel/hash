@@ -334,6 +334,31 @@ describe("construction", () => {
     ).toEqualTypeOf<Result.Result<Next, Program.ProgramError.Construction>>();
   });
 
+  test("structural_constructors", () => {
+    Draft.program({ count: BigInt }, ($, { count }) => {
+      expectTypeOf($.struct).toEqualTypeOf<typeof Structural.struct>();
+      expectTypeOf($.tuple).toEqualTypeOf<typeof Structural.tuple>();
+      expectTypeOf($.list).toEqualTypeOf<typeof Structural.list>();
+      expectTypeOf($.dict).toEqualTypeOf<typeof Structural.dict>();
+      const point = $.struct({ count });
+      expectTypeOf(point).toEqualTypeOf<
+        Program.Expression.Expression<
+          Type.Struct<{ readonly count: Type.PrimitiveInteger }>,
+          { readonly count: Type.PrimitiveInteger }
+        >
+      >();
+      // @ts-expect-error a struct field reads an input the schema does not declare
+      $.let("escaped", $.struct({ outside }));
+      return $.if(true, {
+        then: (branch) => {
+          // @ts-expect-error a list member reads an input the schema does not declare
+          branch.let("escaped", branch.list(BigInt, [outside]));
+          return branch.tuple([point, 1n]);
+        },
+      });
+    });
+  });
+
   test("escaped_conditional", () => {
     Draft.program({ count: BigInt }, ($, { count }) => {
       const both = $.if(true, {

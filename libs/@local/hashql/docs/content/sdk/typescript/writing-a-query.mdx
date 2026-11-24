@@ -299,7 +299,7 @@ const briefing = Draft.program({ axis: axes }, ($, { axis }) => {
     .filter("vertex", ($, vertex) =>
       $.eq(
         vertex.metadata.entity_type_ids,
-        Program.Structural.list(VersionedUrl, [
+        $.list(VersionedUrl, [
           VersionedUrl({
             base_url: BaseUrl(
               Url("https://example.com/types/entity-type/task/"),
@@ -409,7 +409,7 @@ const briefing = Draft.program(
       .filter("vertex", ($, vertex) =>
         $.eq(
           vertex.metadata.entity_type_ids,
-          Program.Structural.list(VersionedUrl, [
+          $.list(VersionedUrl, [
             VersionedUrl({
               base_url: BaseUrl(
                 Url("https://example.com/types/entity-type/task/"),
@@ -508,7 +508,7 @@ const briefing = Draft.program(
       .filter("vertex", ($, vertex) =>
         $.eq(
           vertex.metadata.entity_type_ids,
-          Program.Structural.list(VersionedUrl, [
+          $.list(VersionedUrl, [
             versionedUrl($, "https://example.com/types/entity-type/task/", "1"),
           ]),
         ),
@@ -577,10 +577,7 @@ const releaseTasks = $.let(
   $.query
     .entities(axis)
     .filter("vertex", ($, vertex) =>
-      $.eq(
-        vertex.metadata.entity_type_ids,
-        Program.Structural.list(VersionedUrl, [taskType]),
-      ),
+      $.eq(vertex.metadata.entity_type_ids, $.list(VersionedUrl, [taskType])),
     )
     .filter("task", ($, task) => $.eq(taskFields(task).release, release)),
 );
@@ -592,7 +589,7 @@ const unfinished = $.let(
   ),
 );
 
-return Program.Structural.struct({
+return $.struct({
   unfinished: $.query(unfinished).collect(),
   blocked: $.query(unfinished)
     .filter("task", ($, task) => $.eq(taskFields(task).status, "blocked"))

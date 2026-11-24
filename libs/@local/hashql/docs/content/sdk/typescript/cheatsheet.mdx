@@ -13,10 +13,10 @@ The TypeScript, Rust, and Python tabs show either a program that you can run you
 
 | Form                 | Reference notation     | Functional notation   | TypeScript SDK                              |
 | -------------------- | ---------------------- | --------------------- | ------------------------------------------- |
-| [`struct`][struct]   | `(x: e)`               | `(x: e)`              | `Program.Structural.struct({ x: e })`       |
-| [`tuple`][tuple]     | `(a, b)`               | `(a, b)`              | `Program.Structural.tuple([a, b])`          |
-| [`list`][list]       | `[a, b]`               | `[a, b]`              | `Program.Structural.list(T, [a, b])`        |
-| [`dict`][dict]       | `{k: v}`               | `{k: v}`              | `Program.Structural.dict(K, V, [[k, v]])`   |
+| [`struct`][struct]   | `(x: e)`               | `(x: e)`              | `$.struct({ x: e })`                        |
+| [`tuple`][tuple]     | `(a, b)`               | `(a, b)`              | `$.tuple([a, b])`                           |
+| [`list`][list]       | `[a, b]`               | `[a, b]`              | `$.list(T, [a, b])`                         |
+| [`dict`][dict]       | `{k: v}`               | `{k: v}`              | `$.dict(K, V, [[k, v]])`                    |
 | [`let`][let]         | `let x = e in body`    | `(let x e body)`      | `$.let("x", e)`                             |
 | [`if`][if]           | `if c then a else b`   | `(if c a b)`          | `$.if(c, { then, else })`                   |
 | [`input`][input]     | `input(x, T)`          | `(input x T)`         | `Draft.program({ x: T }, ($, inputs) => e)` |
@@ -246,11 +246,11 @@ import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
 
-const built = Draft.program({}, () =>
+const built = Draft.program({}, ($) =>
   // [!code focus:6]
   // A nested record becomes a nested struct. A program's result and
   // a $.let value take this constructed struct, not a raw record.
-  Program.Structural.struct({
+  $.struct({
     count: 2n,
     owner: { name: "Ada", active: true },
   }),
@@ -352,10 +352,10 @@ import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
 
-const built = Draft.program({}, () =>
+const built = Draft.program({}, ($) =>
   // [!code focus:2]
   // A raw array is a tuple, never a list.
-  Program.Structural.tuple([2n, "two"]),
+  $.tuple([2n, "two"]),
 );
 
 const text = pipe(
@@ -445,14 +445,11 @@ import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
 
 const built = Draft.program({}, ($) => {
-  // [!code focus:7]
+  // [!code focus:4]
   const { List } = $.prelude();
   // Pass the element type first. Each inner list needs its own
   // constructor, because a raw inner array would be a tuple.
-  return Program.Structural.list(List(BigInt), [
-    Program.Structural.list(BigInt, [2n, 3n]),
-    Program.Structural.list(BigInt, []),
-  ]);
+  return $.list(List(BigInt), [$.list(BigInt, [2n, 3n]), $.list(BigInt, [])]);
 });
 
 const text = pipe(
@@ -572,7 +569,7 @@ const built = Draft.program({}, ($) => {
   const status = $.let("status", "blocked");
   // Pass the key and value types first. Entry pairs take any key
   // expression. Literal String keys can also be a record: { open: 2n }.
-  return Program.Structural.dict(String, BigInt, [
+  return $.dict(String, BigInt, [
     ["open", 2n],
     [status, 1n],
   ]);
@@ -1740,11 +1737,8 @@ import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
 
 const built = Draft.program({}, ($) => {
-  // [!code focus:6]
-  const foo = $.let(
-    "foo",
-    Program.Structural.struct({ value: 2n, label: "two" }),
-  );
+  // [!code focus:3]
+  const foo = $.let("foo", $.struct({ value: 2n, label: "two" }));
 
   return foo.value;
 });
@@ -1788,7 +1782,7 @@ foo.value
 </div>
 </SideBySide>
 
-A missing field is a compile-time type error in HashQL. Python's dictionary raises `KeyError` only when the lookup runs. Draft's `$.let` needs `Program.Structural.struct` here, not a plain object.
+A missing field is a compile-time type error in HashQL. Python's dictionary raises `KeyError` only when the lookup runs. Draft's `$.let` needs [`$.struct`][draft-context-struct] here, not a plain object.
 
 #### Read a tuple position [#access-tuple]
 
@@ -1844,7 +1838,7 @@ import { Result, pipe } from "effect";
 
 const built = Draft.program({}, ($) => {
   // [!code focus:3]
-  const foo = $.let("foo", Program.Structural.tuple([2n, "two"]));
+  const foo = $.let("foo", $.tuple([2n, "two"]));
 
   return foo[0];
 });
@@ -1947,7 +1941,7 @@ import { Result, pipe } from "effect";
 
 const built = Draft.program({}, ($) => {
   // [!code focus:4]
-  const foo = $.let("foo", Program.Structural.list(BigInt, [2n, 3n]));
+  const foo = $.let("foo", $.list(BigInt, [2n, 3n]));
   const position = $.let("position", 0n);
 
   return foo.$index(position);
@@ -2499,7 +2493,7 @@ const built = Draft.program({}, ($) => {
     }),
   );
 
-  return Program.Structural.struct({ status, attention });
+  return $.struct({ status, attention });
 });
 
 const text = pipe(
@@ -2642,7 +2636,7 @@ const built = Draft.program(inputs, ($, { task }) => {
     }),
   );
 
-  return Program.Structural.struct({ title: task.title, attention });
+  return $.struct({ title: task.title, attention });
 });
 
 const text = pipe(
@@ -2963,6 +2957,7 @@ The closure reads `flagged` from the input without receiving it as an argument. 
 [newtype]: #newtype
 [program-structural-definition]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural#Definition
 [draft-context-prelude]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.prelude
+[draft-context-struct]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.struct
 [access-struct]: #access-struct
 [access-tuple]: #access-tuple
 [read-a-task]: #read-a-task
