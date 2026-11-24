@@ -642,25 +642,25 @@ fn creator_private_types() -> impl Iterator<Item = EntityResourceFilter> {
 }
 
 /// Permits every entity type except `excluded` and [`creator_private_types`], while still
-/// permitting entities of [`creator_private_types`] created by the acting principal.
+/// permitting entities of [`creator_private_types`] created by the acting principal (provided
+/// they are not also of an `excluded` type).
 fn all_except_and_creator_private(
     excluded: impl IntoIterator<Item = EntityResourceFilter>,
 ) -> EntityResourceFilter {
-    EntityResourceFilter::Any {
+    EntityResourceFilter::All {
         filters: vec![
             EntityResourceFilter::Not {
                 filter: Box::new(EntityResourceFilter::Any {
-                    filters: excluded
-                        .into_iter()
-                        .chain(creator_private_types())
-                        .collect(),
+                    filters: excluded.into_iter().collect(),
                 }),
             },
-            EntityResourceFilter::All {
+            EntityResourceFilter::Any {
                 filters: vec![
                     EntityResourceFilter::CreatedByPrincipal,
-                    EntityResourceFilter::Any {
-                        filters: creator_private_types().collect(),
+                    EntityResourceFilter::Not {
+                        filter: Box::new(EntityResourceFilter::Any {
+                            filters: creator_private_types().collect(),
+                        }),
                     },
                 ],
             },
