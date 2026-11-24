@@ -3,9 +3,9 @@ import { createPortal } from "react-dom";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { PinIcon } from "@hashintel/ds-icons";
 
-import { PinIcon } from "../../../../../../components/pin-icon";
-import { useCanvasInsets } from "../../../../../../hooks/use-canvas-insets";
+import { useCanvasInsets } from "../../../../../../shared/use-canvas-insets";
 import { FloatingResizeHandles } from "../../../../../shared/floating-resize-handles";
 import { useVisualizerLayout } from "./visualizer-window/use-visualizer-layout";
 import { getVisualizerConnector } from "./visualizer-window/visualizer-layout";
@@ -201,7 +201,9 @@ export const VisualizerWindow = ({
       )}
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Drag the picture while keeping control events from reaching the source node. */}
       <div
-        className={`${panelStyle} nodrag nopan nowheel`}
+        // nokey: with the selection key held, a press on the canvas draws a
+        // selection box. A press on the window is not one on the canvas.
+        className={`${panelStyle} nodrag nopan nowheel nokey`}
         style={{
           zIndex: 1001 + stackIndex,
           left: layout.position.x,
@@ -257,7 +259,7 @@ export const VisualizerWindow = ({
           <Button
             size="xxs"
             variant="ghost"
-            prefix={<PinIcon />}
+            prefix={<PinIcon size={12} />}
             aria-label="Fix position on screen"
             aria-pressed={fixed}
             tooltip={fixed ? "Follow place" : "Fix position on screen"}

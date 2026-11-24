@@ -1,0 +1,33 @@
+# Hand-written; rendered by the arch-docs build. React components use the
+# purple palette, stores the blue one.
+direction: down
+
+vars: {
+  d2-legend: {
+    a -> b: passes data or calls
+    a -> b: writes each frame {style.stroke-dash: 3}
+    a.style.opacity: 0
+    b.style.opacity: 0
+  }
+}
+
+commands: "EditorCommands, useKeyboardShortcuts\npalette commands and key handlers" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+state: "Editor state\nglobalMode, editViewMode,\nopen panels, selection" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+geometry: "Panel sizes and presence\nMotion values" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+editor: "EditorView" {
+  style.fill: "#e8e0ff"
+  style.stroke: "#7051b5"
+
+  topbar: "TopBar\ntitle, mode, menu, plugin items" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  simulate: "SimulateView\nSimulate mode" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  canvas: "Canvas workspace, hidden in Definitions\nLeftSideBar, PropertiesPanel,\nSDCPNView, BottomPanel" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  notebook: "NotebookView\nDefinitions" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  bar: "BottomBar\ntools, playback" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  assistant: "EditorAssistantPanel\ndocked or floating" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+}
+
+commands -> state: "run actions"
+state -> editor: "decides which regions mount"
+state -> geometry: "animates presence"
+geometry -> editor: "places the panels" {style.stroke-dash: 3}

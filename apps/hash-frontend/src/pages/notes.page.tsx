@@ -212,7 +212,7 @@ const NotesPage: NextPageWithLayout = () => {
       />
       <Container>
         <BlockLoadedProvider>
-          <UserBlocksProvider value={{}}>
+          <UserBlocksProvider>
             <BlockCollectionContextProvider
               blockCollectionSubgraph={quickNotesSubgraph}
               userPermissionsOnEntities={

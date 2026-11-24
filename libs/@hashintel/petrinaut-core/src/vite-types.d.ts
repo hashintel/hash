@@ -8,7 +8,7 @@ declare module "*?raw" {
 // Vite's `?worker&inline` import shape.
 declare module "*?worker&inline" {
   const WorkerConstructor: {
-    new (): import("./environment").WorkerLike;
+    new (): import("./environment/environment").WorkerLike;
   };
 
   export default WorkerConstructor;

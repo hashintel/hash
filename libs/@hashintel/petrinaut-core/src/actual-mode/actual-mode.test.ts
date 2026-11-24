@@ -6,8 +6,11 @@ import {
   parseActualModeRecording,
   retimeActualModeRecordingForReplay,
 } from ".";
+import {
+  canonicalizePetrinautIds,
+  toPetrinautId,
+} from "../document/petrinaut-id";
 import { compileHirArtifacts } from "../hir/compile";
-import { canonicalizePetrinautIds, toPetrinautId } from "../petrinaut-id";
 import { createHirMetricEvaluator } from "../simulation/frames/hir-metric";
 
 import type { SDCPN } from "../types/sdcpn";
@@ -19,7 +22,6 @@ const definition: SDCPN = {
       name: "Queued",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -168,7 +170,6 @@ describe("Actual mode recordings", () => {
             name: "Done",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 100,
             y: 0,
           },

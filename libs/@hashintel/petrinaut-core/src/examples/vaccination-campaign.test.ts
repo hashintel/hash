@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { compileHirArtifacts } from "../hir";
 import { lowerScenarioToHir } from "../hir/scenario";
-import { compileScenario } from "../simulation/authoring/scenario/compile-scenario";
+import { compileScenario } from "../scenario/compile-scenario";
 import { createMonteCarloExperiment } from "../simulation/monte-carlo";
 import { analyzeCompilation } from "../webgpu/compilation-report";
 import { assessGpuEligibility } from "../webgpu/eligibility";
 import { tryTranslateMetric } from "../webgpu/try-translate-metric";
 import { vaccinationCampaign } from "./vaccination-campaign";
 
-import type { CompiledScenarioResult } from "../simulation/authoring/scenario/compile-scenario";
+import type { CompiledScenarioResult } from "../scenario/compile-scenario";
 import type { MonteCarloExperimentEvent } from "../simulation/monte-carlo";
 
 const { petriNetDefinition } = vaccinationCampaign;

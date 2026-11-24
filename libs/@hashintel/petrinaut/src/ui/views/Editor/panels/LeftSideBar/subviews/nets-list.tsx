@@ -2,19 +2,20 @@ import { use, useEffect, useRef, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { generatePetrinautId } from "@hashintel/petrinaut-core";
+import { generatePetrinautId, isInterface } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../react";
-import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
-import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import { ActiveNetContext } from "../../../../../../react/document/active-net-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../react/document/use-document";
+import { useIsReadOnly } from "../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../react/editing/use-petrinaut-mutations";
+import { usePetrinautPresentation } from "../../../../../presentation/presentation-context";
+import { ComponentGlyph } from "../../../../../shared/component-glyph";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
-import { usePetrinautPresentation } from "../../../../shared/presentation-context";
+import { UI_MESSAGES } from "../../../shared/ui-messages";
+import { ComponentOptionsPopover } from "./component-options-popover";
 import { RowActionCell } from "./row-action-cell";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import type {
   FocusStop,
   FocusStopTarget,
@@ -48,12 +49,17 @@ const itemStyle = cva({
       outline: "none",
       backgroundColor: "neutral.bg.surface.hover",
     },
-    /* The delete button shows on hover or while the row or the button holds
-       focus. Hidden with `display` so it takes no width until shown. */
+    /* The row's buttons show on hover or while the row or a button holds
+       focus. Hidden with `display` so they take no width until shown. */
     "& [data-row-action]": {
       display: "none",
     },
     "&:focus-within [data-row-action]": {
+      display: "flex",
+    },
+    /* The options popover hangs off the gear: the gear has to stay laid out
+       while it is open, or the popover loses its anchor. */
+    "&[data-options-open] [data-row-action]": {
       display: "flex",
     },
   },
@@ -102,26 +108,25 @@ const renameInputStyle = css({
   width: "full",
 });
 
-const NetsHeaderAction: React.FC = () => {
-  const {
-    petriNetDefinition: { subnets },
-  } = use(SDCPNContext);
-  const { addSubnet } = usePetrinautMutations();
+export const NetsHeaderAction: React.FC = () => {
+  const componentCount = usePetrinautDefinitionSelector(
+    (definition) => definition.components?.length ?? 0,
+  );
+  const { addComponent } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
   return (
     <Button
-      aria-label="Add subnet"
+      aria-label="Add component"
       size="xs"
       variant="ghost"
       iconName="plus"
       disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add subnet"}
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add component"}
       onClick={() => {
-        const count = (subnets ?? []).length;
-        addSubnet({
+        addComponent({
           id: generatePetrinautId(),
-          name: `Subnet ${count + 1}`,
+          name: `Component ${componentCount + 1}`,
           places: [],
           transitions: [],
           types: [],
@@ -144,11 +149,11 @@ export const NetNavigationList: React.FC<{
   onSelect?: () => void;
 }> = ({ onSelect }) => {
   const presentation = usePetrinautPresentation();
-  const {
-    petriNetDefinition: { subnets },
-  } = use(SDCPNContext);
-  const { activeSubnetId, setActiveSubnetId } = use(ActiveNetContext);
-  const { updateSubnet, removeSubnet } = usePetrinautMutations();
+  const components = usePetrinautDefinitionSelector(
+    (definition) => definition.components,
+  );
+  const { activeComponentId, setActiveComponentId } = use(ActiveNetContext);
+  const { updateComponent, removeComponent } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
   const mutationActionsVisible = presentation.showMutationActions;
 
@@ -157,11 +162,18 @@ export const NetNavigationList: React.FC<{
   const inputRef = useRef<HTMLInputElement>(null);
   const cancellingRef = useRef(false);
   const targets = useRef<Map<string, HTMLElement>>(new Map());
+  const [optionsAnchor, setOptionsAnchor] = useState<{
+    componentId: string;
+    element: Element;
+  } | null>(null);
+  const optionsComponent = optionsAnchor
+    ? (components ?? []).find(({ id }) => id === optionsAnchor.componentId)
+    : undefined;
 
   const stops: FocusStop[] = [
     { id: ROOT_STOP_ID, kind: "row" },
-    ...(subnets ?? []).map((subnet): FocusStop => ({
-      id: subnet.id,
+    ...(components ?? []).map((component): FocusStop => ({
+      id: component.id,
       kind: "row",
     })),
   ];
@@ -173,8 +185,9 @@ export const NetNavigationList: React.FC<{
     attach,
   } = useFocusStops({
     stops,
-    // Column 0 is the row, column 1 its delete button.
-    columnCount: 2,
+    // Column 0 is the row, column 1 its options button, column 2 its
+    // delete button.
+    columnCount: 3,
     focusTarget: (target) => focusLands(targets.current.get(targetKey(target))),
   });
 
@@ -194,14 +207,14 @@ export const NetNavigationList: React.FC<{
     }
   }, [editingId]);
 
-  const handleSelect = (subnetId: string | null) => {
-    setActiveSubnetId(subnetId);
+  const handleSelect = (componentId: string | null) => {
+    setActiveComponentId(componentId);
     onSelect?.();
   };
 
-  const startEditing = (subnetId: string, currentName: string) => {
+  const startEditing = (componentId: string, currentName: string) => {
     if (isReadOnly) return;
-    setEditingId(subnetId);
+    setEditingId(componentId);
     setEditingName(currentName);
   };
 
@@ -213,7 +226,7 @@ export const NetNavigationList: React.FC<{
     if (editingId === null) return;
     const trimmed = editingName.trim();
     if (trimmed) {
-      updateSubnet({ subnetId: editingId, update: { name: trimmed } });
+      updateComponent({ componentId: editingId, update: { name: trimmed } });
     }
     setEditingId(null);
   };
@@ -223,11 +236,11 @@ export const NetNavigationList: React.FC<{
     setEditingId(null);
   };
 
-  const deleteSubnet = (subnetId: string) => {
-    if (activeSubnetId === subnetId) {
-      setActiveSubnetId(null);
+  const deleteComponent = (componentId: string) => {
+    if (activeComponentId === componentId) {
+      setActiveComponentId(null);
     }
-    removeSubnet({ subnetId });
+    removeComponent({ componentId });
   };
 
   const onRowKeyDown =
@@ -257,7 +270,7 @@ export const NetNavigationList: React.FC<{
             targets.current.get(targetKey({ stopId: neighbour.id, column: 0 })),
           );
         }
-        deleteSubnet(stopId);
+        deleteComponent(stopId);
         return;
       }
       onStopsKeyDown({ stopId, column: 0 })(event);
@@ -268,7 +281,7 @@ export const NetNavigationList: React.FC<{
     return {
       ref: registerTarget(rowTarget),
       onFocus: (event: React.FocusEvent) => {
-        // Focus bubbles: the rename input and the delete button report their
+        // Focus bubbles: the rename input and the row's buttons report their
         // own positions.
         if (event.target === event.currentTarget) {
           onFocusTarget(rowTarget);
@@ -281,11 +294,11 @@ export const NetNavigationList: React.FC<{
     <div ref={attach} className={listStyle} role="listbox" aria-label="Nets">
       <div
         {...rowFocusProps(ROOT_STOP_ID)}
-        className={itemStyle({ active: activeSubnetId === null })}
+        className={itemStyle({ active: activeComponentId === null })}
         onClick={() => handleSelect(null)}
         onKeyDown={onRowKeyDown(ROOT_STOP_ID, () => handleSelect(null))}
         role="option"
-        aria-selected={activeSubnetId === null}
+        aria-selected={activeComponentId === null}
         tabIndex={tabIndexFor({ stopId: ROOT_STOP_ID, column: 0 })}
       >
         <span className={iconStyle}>
@@ -293,35 +306,55 @@ export const NetNavigationList: React.FC<{
         </span>
         Root
       </div>
-      {(subnets ?? []).map((subnet) => {
-        const actionTarget: FocusStopTarget = {
-          stopId: subnet.id,
+      {(components ?? []).map((component) => {
+        const optionsTarget: FocusStopTarget = {
+          stopId: component.id,
           column: 1,
+        };
+        const deleteTarget: FocusStopTarget = {
+          stopId: component.id,
+          column: 2,
         };
         return (
           <div
-            key={subnet.id}
-            {...rowFocusProps(subnet.id)}
-            className={itemStyle({ active: activeSubnetId === subnet.id })}
+            key={component.id}
+            {...rowFocusProps(component.id)}
+            className={itemStyle({
+              active: activeComponentId === component.id,
+            })}
+            data-options-open={
+              optionsAnchor?.componentId === component.id ? "" : undefined
+            }
             onClick={() => {
-              if (editingId !== subnet.id) {
-                handleSelect(subnet.id);
+              if (editingId !== component.id) {
+                handleSelect(component.id);
               }
             }}
             onDoubleClick={() => {
               if (mutationActionsVisible) {
-                startEditing(subnet.id, subnet.name);
+                startEditing(component.id, component.name);
               }
             }}
-            onKeyDown={onRowKeyDown(subnet.id, () => handleSelect(subnet.id))}
+            onKeyDown={onRowKeyDown(component.id, () =>
+              handleSelect(component.id),
+            )}
             role="option"
-            aria-selected={activeSubnetId === subnet.id}
-            tabIndex={tabIndexFor({ stopId: subnet.id, column: 0 })}
+            aria-selected={activeComponentId === component.id}
+            tabIndex={tabIndexFor({ stopId: component.id, column: 0 })}
           >
-            <span className={iconStyle}>
-              <Icon name="diagramNested" size="xs" />
+            <span
+              className={iconStyle}
+              style={{ color: component.displayColor }}
+            >
+              <ComponentGlyph
+                iconSvg={component.iconSvg}
+                fallback={
+                  isInterface(component) ? "puzzlePiece" : "diagramNested"
+                }
+                size="xs"
+              />
             </span>
-            {editingId === subnet.id ? (
+            {editingId === component.id ? (
               <input
                 ref={inputRef}
                 className={renameInputStyle}
@@ -336,45 +369,66 @@ export const NetNavigationList: React.FC<{
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className={nameStyle}>{subnet.name}</span>
+              <span className={nameStyle}>{component.name}</span>
             )}
-            {mutationActionsVisible && editingId !== subnet.id && (
-              <RowActionCell
-                registerButton={registerTarget(actionTarget)}
-                onArrowKeyDown={onStopsKeyDown(actionTarget)}
-                onButtonFocus={() => onFocusTarget(actionTarget)}
-              >
-                <Button
-                  aria-label="Delete subnet"
-                  size="xs"
-                  variant="ghost"
-                  tone="error"
-                  iconName="trash"
-                  disabled={isReadOnly}
-                  tooltip={
-                    isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete subnet"
-                  }
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteSubnet(subnet.id);
-                  }}
-                />
-              </RowActionCell>
+            {mutationActionsVisible && editingId !== component.id && (
+              <>
+                <RowActionCell
+                  registerButton={registerTarget(optionsTarget)}
+                  onArrowKeyDown={onStopsKeyDown(optionsTarget)}
+                  onButtonFocus={() => onFocusTarget(optionsTarget)}
+                >
+                  <Button
+                    aria-label="Component options"
+                    size="xs"
+                    variant="ghost"
+                    iconName="gear"
+                    tooltip="Interface, icon and colour"
+                    onClick={(event) =>
+                      setOptionsAnchor({
+                        componentId: component.id,
+                        element: event.currentTarget,
+                      })
+                    }
+                  />
+                </RowActionCell>
+                <RowActionCell
+                  registerButton={registerTarget(deleteTarget)}
+                  onArrowKeyDown={onStopsKeyDown(deleteTarget)}
+                  onButtonFocus={() => onFocusTarget(deleteTarget)}
+                >
+                  <Button
+                    aria-label="Delete component"
+                    size="xs"
+                    variant="ghost"
+                    tone="error"
+                    iconName="trash"
+                    disabled={isReadOnly}
+                    tooltip={
+                      isReadOnly
+                        ? UI_MESSAGES.READ_ONLY_MODE
+                        : "Delete component"
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteComponent(component.id);
+                    }}
+                  />
+                </RowActionCell>
+              </>
             )}
           </div>
         );
       })}
+      {optionsAnchor && optionsComponent && (
+        <ComponentOptionsPopover
+          // One popover per component: opening another row's starts afresh.
+          key={optionsComponent.id}
+          component={optionsComponent}
+          anchor={optionsAnchor.element}
+          onClose={() => setOptionsAnchor(null)}
+        />
+      )}
     </div>
   );
-};
-
-export const netsListSubView: SubView = {
-  id: "nets-list",
-  title: "Nets",
-  tooltip:
-    "View the root net and reusable subnets. Mark subnet places as ports, then instantiate subnets as components in the root net.",
-  component: NetNavigationList,
-  renderHeaderAction: () => <NetsHeaderAction />,
-  headerActionMutates: true,
-  defaultCollapsed: false,
 };

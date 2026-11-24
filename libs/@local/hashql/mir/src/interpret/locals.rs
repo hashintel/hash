@@ -404,8 +404,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
 mod tests {
     #![expect(unsafe_code)]
     use alloc::{alloc::Global, vec::Vec};
-    use core::mem::MaybeUninit;
-    use std::assert_matches;
+    use core::{assert_matches, mem::MaybeUninit};
 
     use hashql_core::{
         heap::Heap,

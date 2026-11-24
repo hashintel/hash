@@ -1,33 +1,43 @@
 import { describe, expect, it } from "vitest";
 
 import { compileHirArtifacts } from "../hir";
-import { checkSDCPN } from "../lsp/lib/checker";
+import { checkSDCPN } from "../lsp/language-service/checker";
 import {
   createLanguageServers,
   syncLanguageServers,
-} from "../lsp/lib/language-servers";
+} from "../lsp/language-service/language-servers";
 import {
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
+  planetsAndSatellites,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  satellitesWithAttraction,
+  sirMassActionModel,
   sirModel,
   supplyChainProfit,
   supplyChainWithDisruption,
   vaccinationCampaign,
+  wheelTruing,
 } from "./index";
 
 const EXAMPLES = [
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
+  planetsAndSatellites,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  satellitesWithAttraction,
+  sirMassActionModel,
   sirModel,
   supplyChainProfit,
   supplyChainWithDisruption,
   vaccinationCampaign,
+  wheelTruing,
 ];
 
 describe.each(EXAMPLES.map((example) => [example.title, example] as const))(

@@ -419,7 +419,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
         )}
 
         <CollabPositionProvider value={[]}>
-          <UserBlocksProvider value={{}}>
+          <UserBlocksProvider>
             <BlockLoadedProvider routeHash={routeHash}>
               <BlockCollectionContextProvider
                 blockCollectionSubgraph={pageSubgraph}

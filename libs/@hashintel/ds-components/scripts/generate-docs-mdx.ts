@@ -692,6 +692,15 @@ export declare const ReferenceLinks: (props: {
   links: ReferenceLink[];
 }) => ReactElement;
 `,
+  "resize-example": `import type { ReactElement, ReactNode } from "react";
+
+export declare const ResizeExample: (props: {
+  resize?: "horizontal" | "vertical" | "both";
+  width?: number;
+  minWidth?: number;
+  children: ReactNode;
+}) => ReactElement;
+`,
   stage: `import type { ReactElement, ReactNode } from "react";
 
 export declare const Stage: (props: {

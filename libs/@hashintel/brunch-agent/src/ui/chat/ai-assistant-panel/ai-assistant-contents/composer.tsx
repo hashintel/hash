@@ -6,7 +6,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import { AiVoiceModeIcon } from "../../ai-voice-mode-button";
 
 import type { PetrinautAiInputMode } from "../../ai-assistant-composer-control";
-import type { PetrinautAiAssistant } from "../../petrinaut";
 
 const composerActionGlyphStyle = css({
   display: "inline-flex",
@@ -133,15 +132,15 @@ export const AiAssistantComposer = ({
   onInputModeChange,
   onStop,
   onSubmit,
-  hasHistory,
-  presentation,
+  sendable = false,
+  submitLabel = "Send message",
   textEntry,
   voiceModeAvailable,
 }: {
   busy: boolean;
   control?: ReactNode;
   disabled: boolean;
-  /** Brunch only; a status shown beside the actions. */
+  /** A status shown beside the actions. */
   hint?: string;
   input: string;
   inputRef: RefObject<HTMLTextAreaElement | null>;
@@ -150,17 +149,18 @@ export const AiAssistantComposer = ({
   onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   onStop: () => void;
   onSubmit: () => void;
-  /** Whether the transcript already has messages to continue from. */
-  hasHistory: boolean;
-  presentation: NonNullable<PetrinautAiAssistant["presentation"]>;
+  /** Whether Send has something to send though the textarea is empty. */
+  sendable?: boolean;
+  /** What Send does, when that isn't sending the textarea's text. */
+  submitLabel?: string;
   /** Whether this surface composes messages; false while a review tab shows. */
   textEntry: boolean;
   voiceModeAvailable: boolean;
 }) => {
-  const isBrunch = presentation === "brunch";
   const hasInput = input.trim().length > 0;
-  const canSubmit = hasInput && !busy && !disabled;
+  const canSubmit = (hasInput || sendable) && !busy && !disabled;
 
+  const offerVoice = !hasInput && voiceModeAvailable && onInputModeChange;
   const action: ComposerAction = busy
     ? {
         disabled: false,
@@ -168,21 +168,21 @@ export const AiAssistantComposer = ({
         isSubmit: false,
         label: "Stop AI response",
         onClick: onStop,
-        tone: isBrunch ? "brand" : "neutral",
+        tone: "brand",
         type: "button",
-        variant: isBrunch ? "solid" : "subtle",
+        variant: "solid",
       }
     : canSubmit
       ? {
           disabled: false,
           glyph: "arrowUp",
           isSubmit: true,
-          label: "Send message",
+          label: submitLabel,
           tone: "brand",
           type: "submit",
           variant: "solid",
         }
-      : !hasInput && voiceModeAvailable && onInputModeChange
+      : offerVoice
         ? {
             disabled: false,
             glyph: "voice",
@@ -223,12 +223,11 @@ export const AiAssistantComposer = ({
       contentHeight > composerMaxHeight ? "auto" : "hidden";
   }, [input, inputRef, isOpen, textEntry]);
 
-  const brunchStop = isBrunch && busy;
   const actionButton = (textEntry || busy) && (
     <Button
       aria-label={action.label}
       className={composerActionButtonStyle}
-      data-stop={brunchStop || undefined}
+      data-stop={busy || undefined}
       data-ai-assistant-submit={action.isSubmit || undefined}
       disabled={action.disabled}
       onClick={action.onClick}
@@ -237,7 +236,7 @@ export const AiAssistantComposer = ({
           {action.glyph === "voice" ? (
             <AiVoiceModeIcon size={16} />
           ) : (
-            <Icon name={action.glyph} size={brunchStop ? "xs" : "sm"} />
+            <Icon name={action.glyph} size={busy ? "xs" : "sm"} />
           )}
         </span>
       }
@@ -246,6 +245,23 @@ export const AiAssistantComposer = ({
       tooltip={action.label}
       type={action.type}
       variant={action.variant}
+    />
+  );
+
+  // Send that acts on an empty composer (moving through docked questions)
+  // takes Voice's place, so Voice stays reachable beside it.
+  const voiceButton = textEntry && canSubmit && !hasInput && offerVoice && (
+    <Button
+      aria-label="Start voice mode"
+      className={composerActionButtonStyle}
+      data-voice-entry
+      onClick={() => offerVoice("voice")}
+      prefix={<AiVoiceModeIcon size={16} />}
+      size="sm"
+      tone="neutral"
+      tooltip="Start voice mode"
+      type="button"
+      variant="subtle"
     />
   );
 
@@ -261,9 +277,9 @@ export const AiAssistantComposer = ({
     >
       <div
         className={textEntry ? composerStyle : reviewControlsStyle}
-        data-brunch={isBrunch || undefined}
+        data-brunch
       >
-        {isBrunch && control}
+        {control}
         {textEntry && (
           <textarea
             ref={inputRef}
@@ -289,39 +305,30 @@ export const AiAssistantComposer = ({
                 }
               }
             }}
-            placeholder={
-              isBrunch || hasHistory
-                ? "Continue iterating..."
-                : "Describe the process you want to create"
-            }
+            placeholder="Continue iterating..."
             aria-label="Message AI assistant"
             disabled={disabled}
           />
         )}
-        {isBrunch ? (
-          (hint || actionButton) && (
-            <div
-              className={css({
-                display: "flex",
-                alignItems: "center",
-                gap: "1",
-                "& > :last-child": { marginLeft: "auto" },
-              })}
-              data-brunch
-            >
-              {hint && (
-                <span className={composerHintStyle} role="status">
-                  {hint}
-                </span>
-              )}
-              {actionButton}
-            </div>
-          )
-        ) : (
-          <>
-            {control}
+        {(hint || actionButton) && (
+          <div
+            className={css({
+              display: "flex",
+              alignItems: "center",
+              gap: "1",
+              "& > :last-child, & > [data-voice-entry]": { marginLeft: "auto" },
+              "& > [data-voice-entry] + :last-child": { marginLeft: "[0]" },
+            })}
+            data-brunch
+          >
+            {hint && (
+              <span className={composerHintStyle} role="status">
+                {hint}
+              </span>
+            )}
+            {voiceButton}
             {actionButton}
-          </>
+          </div>
         )}
       </div>
     </form>

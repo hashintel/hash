@@ -1,12 +1,12 @@
 import {
   getItemId,
   isGroup,
-} from "../../util/SelectableList/selectable-list-util";
+} from "../../primitives/SelectableList/selectable-list-util";
 
 import type {
   Item,
   ItemOrGroup,
-} from "../../util/SelectableList/selectable-list";
+} from "../../primitives/SelectableList/selectable-list";
 import type { MenuItem } from "./menu";
 
 // A submenu's `subItems` are plain `Item`s (MenuItem only constrains the

@@ -120,14 +120,14 @@ describe("chat model provider lookup", () => {
   test("looks up the default OpenAI model with its bearer key", async () => {
     vi.stubEnv("OPENAI_API_KEY", syntheticKey);
     const fetchMock = fetchReturning(200, {
-      id: "gpt-5.5-2026-04-23",
+      id: "gpt-6.1-sol",
       object: "model",
     });
     await expect(verifyChatModel(providers, fetchMock)).resolves.toEqual({
       verified: true,
     });
     const { url, headers } = lookupFor(fetchMock);
-    expect(url).toBe("https://api.openai.com/v1/models/gpt-5.5-2026-04-23");
+    expect(url).toBe("https://api.openai.com/v1/models/gpt-6.1-sol");
     expect(headers.get("authorization")).toBe(`Bearer ${syntheticKey}`);
   });
 

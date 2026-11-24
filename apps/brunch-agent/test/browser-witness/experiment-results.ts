@@ -18,7 +18,7 @@ import { agentOwnershipHeaders } from "@hashintel/brunch-agent";
 import { toPetrinautId, type SDCPN } from "@hashintel/petrinaut-core";
 import { petrinautExperimentResultSchema } from "@hashintel/petrinaut-core/experiments";
 
-import { submitPersonaBrowserTurn } from "../../evals/petrinaut/persona/browser-turn.ts";
+import { submitPersonaBrowserTurn } from "../../evals/persona/browser-turn.ts";
 import {
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,
@@ -56,7 +56,6 @@ const net: SDCPN = {
     name,
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: index * 200,
     y: 0,
   })),

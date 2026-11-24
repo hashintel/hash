@@ -60,12 +60,15 @@ export default defineConfig(({ command }) => ({
         // main bundle and load only when a GPU experiment is requested.
         webgpu: resolve(packageRoot, "src/webgpu.ts"),
         "examples/index": resolve(packageRoot, "src/examples/index.ts"),
+        "workers/event-simulation": resolve(
+          packageRoot,
+          "src/workers/event-simulation.ts",
+        ),
         "workers/lsp": resolve(packageRoot, "src/workers/lsp.ts"),
         "workers/monte-carlo": resolve(
           packageRoot,
           "src/workers/monte-carlo.ts",
         ),
-        "workers/simulation": resolve(packageRoot, "src/workers/simulation.ts"),
       },
       fileName: (_format, entryName) => `${entryName}.js`,
       formats: ["es"],

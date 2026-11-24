@@ -1,3 +1,4 @@
+import { resolveComponent } from "../composition/interfaces";
 /**
  * Surface contexts describe the model-derived environment a piece of user
  * code executes in: which parameters exist, which places deliver tokens (and
@@ -21,20 +22,26 @@
  * `input` object keeps the LAST arc's tokens (object key overwrite) —
  * both the merged `inputPlaces` bindings and name-based slot resolution
  * follow that rule.
+ *
+ * `inputCounts` is wider than the slots: every input arc, of any type and
+ * any colour, makes its place's live token count readable as
+ * `input.<name>.count`. Counts are passed per arc, in `transition.inputArcs`
+ * order, which matches the engine's `CompiledTransition.inputPlaces`.
  */
-import { getArcEndpoint } from "../arc-endpoints";
+import { getArcEndpoint } from "../document/arc-endpoints";
 import {
   createArcPlaceResolver,
   DEFAULT_PETRINAUT_EXTENSIONS,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
-} from "../extensions";
+} from "../extensions/extensions";
 
 import type {
   Color,
   ColorElementType,
   ComponentInstance,
+  DifferentialEquation,
   InputArc,
   OutputArc,
   Parameter,
@@ -44,7 +51,7 @@ import type {
   Transition,
 } from "../types/sdcpn";
 
-/** The net a transition/differential equation belongs to (root or subnet). */
+/** The net a transition/differential equation belongs to (root or component). */
 export type HirNetScope = {
   places: Place[];
   parameters: Parameter[];
@@ -75,6 +82,18 @@ export type HirPlaceBinding = {
 };
 
 /**
+ * A place an input arc connects to the transition, readable as
+ * `input.<name>.count` (see module doc).
+ */
+export type HirInputPlaceCount = {
+  /** Display name, the key in `input` (last arc wins for duplicates). */
+  name: string;
+  /** Index of that arc in `transition.inputArcs`: the engine passes the
+   * place's count at this position of the `inputCounts` argument. */
+  arcIndex: number;
+};
+
+/**
  * One arc's worth of token slots in the buffer ABI (see module doc).
  * `slotStart` is the index of the arc's first token slot.
  */
@@ -91,6 +110,13 @@ export type HirDynamicsContext = {
   parameters: HirParameterInfo[];
   /** Attributes of the color the differential equation is attached to. */
   elements: HirTokenElementInfo[];
+  /**
+   * The equation's arity (`DifferentialEquation.arity`): the function takes
+   * a tuple of exactly this many tokens, which a bare body reads as `token`
+   * (arity 1) or `tokens`, and the result is one record (arity 1) or an
+   * array of `arity` records.
+   */
+  arity: number;
 };
 
 export type HirLambdaContext = {
@@ -99,6 +125,8 @@ export type HirLambdaContext = {
   inputPlaces: HirPlaceBinding[];
   /** Buffer-ABI input slot layout (see module doc). */
   inputSlots: HirArcSlot[];
+  /** Every input-arc place, for `input.<name>.count` (see module doc). */
+  inputCounts: HirInputPlaceCount[];
   lambdaType: "predicate" | "stochastic";
 };
 
@@ -108,6 +136,8 @@ export type HirKernelContext = {
   inputPlaces: HirPlaceBinding[];
   /** Buffer-ABI input slot layout (see module doc). */
   inputSlots: HirArcSlot[];
+  /** Every input-arc place, for `input.<name>.count` (see module doc). */
+  inputCounts: HirInputPlaceCount[];
   outputPlaces: HirPlaceBinding[];
   /** Buffer-ABI output slot layout: colored output arcs in arc order. */
   outputSlots: HirArcSlot[];
@@ -181,8 +211,8 @@ export type HirScenarioCodeContext = {
 
 /**
  * Context for one place's visualizer: `tokens` carries the place's colour
- * attributes (`null` for an uncoloured place, which never draws), and
- * `parameters` the net's parameters.
+ * attributes (`null` for an uncoloured place, whose tokens carry none and
+ * can only be counted), and `parameters` the net's parameters.
  */
 export type HirVisualizerContext = {
   surface: "visualizer";
@@ -235,10 +265,10 @@ function getArcPlaceDisplayName(
   const instance = net.componentInstances?.find(
     (inst) => inst.id === endpoint.componentInstanceId,
   );
-  const subnet = instance
-    ? sdcpn.subnets?.find((sn) => sn.id === instance.subnetId)
+  const component = instance
+    ? resolveComponent(sdcpn, instance.component)
     : undefined;
-  const portPlace = subnet?.places.find(
+  const portPlace = component?.places.find(
     (pl) => pl.id === endpoint.portPlaceId && pl.isPort,
   );
 
@@ -265,7 +295,7 @@ function collectArcs(
   options: { includeZeroElementColors: boolean },
 ): ArcCollection {
   const resolveArcPlace = createArcPlaceResolver(sdcpn, net, {
-    componentPortsEnabled: extensions.subnets,
+    componentPortsEnabled: extensions.components,
   });
   const bindings = new Map<string, HirPlaceBinding>();
   const slots: HirArcSlot[] = [];
@@ -315,6 +345,32 @@ function collectArcs(
   return { bindings: [...bindings.values()], slots };
 }
 
+/**
+ * Every place an input arc connects to the transition, by display name (last
+ * arc wins), with the index of that arc. Inhibitor arcs and uncoloured places
+ * count too: their tokens are not delivered, but their count is readable.
+ */
+function collectInputCounts(
+  arcs: InputArc[],
+  sdcpn: SDCPN,
+  net: HirNetScope,
+  extensions: PetrinautExtensionSettings,
+): HirInputPlaceCount[] {
+  const resolveArcPlace = createArcPlaceResolver(sdcpn, net, {
+    componentPortsEnabled: extensions.components,
+  });
+  const byName = new Map<string, HirInputPlaceCount>();
+  for (const [arcIndex, arc] of arcs.entries()) {
+    if (!resolveArcPlace(arc)) {
+      continue;
+    }
+    const name = getArcPlaceDisplayName(arc, sdcpn, net);
+    byName.delete(name);
+    byName.set(name, { name, arcIndex });
+  }
+  return [...byName.values()];
+}
+
 function collectColors(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
@@ -322,23 +378,27 @@ function collectColors(
   const allColors = extensions.colors
     ? [
         ...sdcpn.types,
-        ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+        ...(sdcpn.components ?? []).flatMap((component) => component.types),
       ]
     : [];
   return new Map(allColors.map((color) => [color.id, color]));
 }
 
 /**
- * Builds the context for a differential equation attached to `color`.
- * Pass `net` when the equation belongs to a subnet (its parameters apply).
+ * Builds the context for a differential equation: its colour's attributes
+ * and its arity. `null` when the equation has no colour or the colour does
+ * not exist. Pass `net` when the equation belongs to a component (its
+ * parameters apply).
  */
 export function buildDynamicsContext(
   sdcpn: SDCPN,
-  colorId: string,
+  equation: Pick<DifferentialEquation, "colorId" | "arity">,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
   net: HirNetScope = sdcpn,
 ): HirDynamicsContext | null {
-  const color = collectColors(sdcpn, extensions).get(colorId);
+  const color = equation.colorId
+    ? collectColors(sdcpn, extensions).get(equation.colorId)
+    : undefined;
   if (!color) {
     return null;
   }
@@ -349,6 +409,7 @@ export function buildDynamicsContext(
       name: element.name,
       type: element.type,
     })),
+    arity: equation.arity,
   };
 }
 
@@ -379,7 +440,7 @@ export function buildVisualizerContext(
 
 /**
  * Builds the context for a transition's lambda. Pass `net` when the
- * transition belongs to a subnet.
+ * transition belongs to a component.
  */
 export function buildLambdaContext(
   sdcpn: SDCPN,
@@ -406,6 +467,12 @@ export function buildLambdaContext(
     parameters: toParameterInfos(extensions.parameters ? net.parameters : []),
     inputPlaces: bindings,
     inputSlots: slots,
+    inputCounts: collectInputCounts(
+      transition.inputArcs,
+      sdcpn,
+      net,
+      extensions,
+    ),
     lambdaType: getEffectiveTransitionLambdaType(transition, availability),
   };
 }
@@ -505,7 +572,7 @@ export function buildScenarioCodeContext(
 
 /**
  * Builds the context for a transition's kernel. Pass `net` when the
- * transition belongs to a subnet.
+ * transition belongs to a component.
  */
 export function buildKernelContext(
   sdcpn: SDCPN,
@@ -537,6 +604,12 @@ export function buildKernelContext(
     parameters: toParameterInfos(extensions.parameters ? net.parameters : []),
     inputPlaces: inputs.bindings,
     inputSlots: inputs.slots,
+    inputCounts: collectInputCounts(
+      transition.inputArcs,
+      sdcpn,
+      net,
+      extensions,
+    ),
     outputPlaces: outputs.bindings,
     outputSlots: outputs.slots,
     stochasticity: extensions.stochasticity,

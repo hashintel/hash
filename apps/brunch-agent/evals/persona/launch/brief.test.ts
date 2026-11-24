@@ -1,0 +1,127 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, expect, test } from "vitest";
+
+import { writePersonaBrief, writePersonaResumeBrief } from "./brief.ts";
+
+const runs: string[] = [];
+afterEach(async () => {
+  await Promise.all(runs.splice(0).map((run) => rm(run, { recursive: true })));
+});
+
+const temporaryRun = async () => {
+  const run = await mkdtemp(join(tmpdir(), "TEST-persona-brief-"));
+  runs.push(run);
+  return run;
+};
+
+test("the fresh brief assembles the role, command guide, opening to send and pack in order", async () => {
+  const run = await temporaryRun();
+  const [brief, system] = await Promise.all([
+    readFile(
+      await writePersonaBrief({
+        run,
+        helper: "/tmp/run/bin/persona",
+        objective: undefined,
+        opening: "PUBLIC opening",
+        pack: "PRIVATE pack",
+      }),
+      "utf8",
+    ),
+    readFile(new URL("brief/system.md", import.meta.url), "utf8"),
+  ]);
+  const order = [
+    "# Persona brief",
+    system.trim(),
+    "## How to talk to Brunch",
+    '/tmp/run/bin/persona say "<your message>"',
+    '/tmp/run/bin/persona answer "<answer to 1>" "<answer to 2>"',
+    "/tmp/run/bin/persona end",
+    "## Starting the conversation",
+    "/tmp/run/bin/persona open",
+    "PUBLIC opening",
+    "## Situation pack",
+    "PRIVATE pack",
+  ].map((part) => brief.indexOf(part));
+  expect(order.every((index) => index >= 0)).toBe(true);
+  expect(order).toEqual([...order].sort((left, right) => left - right));
+  expect(brief).toContain("Nothing has been sent yet.");
+});
+
+test("an objective is placed after the command guide and before the conversation", async () => {
+  const run = await temporaryRun();
+  const brief = await readFile(
+    await writePersonaBrief({
+      run,
+      helper: "persona",
+      objective: "TEST objective",
+      opening: "Hi",
+      pack: "Pack",
+    }),
+    "utf8",
+  );
+  const order = [
+    "## How to talk to Brunch",
+    "## What you're after today\n\nTEST objective",
+    "## Starting the conversation",
+  ].map((part) => brief.indexOf(part));
+  expect(order.every((index) => index >= 0)).toBe(true);
+  expect(order).toEqual([...order].sort((left, right) => left - right));
+});
+
+test("the resume notice points back to the original brief and forbids resending", async () => {
+  const run = await temporaryRun();
+  const notice = await readFile(
+    await writePersonaResumeBrief({
+      run,
+      helper: "/tmp/run/bin/persona",
+      settlement: "aborted",
+      reply: "",
+      questions: [],
+    }),
+    "utf8",
+  );
+  expect(notice).toContain(join(run, "persona-brief.md"));
+  expect(notice).toContain("/tmp/run/bin/persona transcript");
+  expect(notice).toContain("WAS received. Do not resend it");
+  expect(notice).toContain("do not run `open`");
+  expect(notice).toContain("settled as: aborted");
+  expect(notice).toContain("No reply prose was retained.");
+});
+
+test("a resumed persona sees the pending questions in answer order", async () => {
+  const run = await temporaryRun();
+  const input = {
+    run,
+    helper: "/tmp/run/bin/persona",
+    settlement: "completed",
+    reply: "Two things to check.",
+    questions: [
+      {
+        kind: "confirm",
+        label: "Production demand",
+        text: "Is demand fixed for the week?",
+        options: [{ label: "Yes" }],
+      },
+      {
+        kind: "open",
+        label: "Late orders",
+        text: "How do you handle late orders?",
+      },
+    ],
+  };
+  const notice = await readFile(await writePersonaResumeBrief(input), "utf8");
+  expect(notice).toContain(
+    [
+      "Two things to check.",
+      "",
+      'Brunch asks 2 questions on its message box. Answer them together with `answer`, one quoted argument each in this order, "" to skip one:',
+      "1. Production demand: Is demand fixed for the week?",
+      "   Pick one by its label, or answer in your own words:",
+      "   - Yes",
+      "2. Late orders: How do you handle late orders?",
+    ].join("\n"),
+  );
+});

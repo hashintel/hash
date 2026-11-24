@@ -6,18 +6,18 @@
 /.clippy.toml @hashintel/rust
 /.rustfmt.toml @hashintel/rust
 
-# Rust crates without an area team
+# Rust crates with their own team
 /libs/error-stack/ @hashintel/error-stack
 /libs/darwin-kperf/ @hashintel/darwin-kperf
+
+# Rust crates owned by the Rust team
 /libs/problematic/rust/ @hashintel/rust
-/libs/@blockprotocol/type-system/ @hashintel/graph
 /libs/@local/codec/rust/ @hashintel/rust
 /libs/@local/codegen/ @hashintel/rust
 /libs/@local/config/ @hashintel/rust
 /libs/@local/crypto/ @hashintel/rust
 /libs/@local/durable-kernel/ @hashintel/rust
 /libs/@local/middleware/ @hashintel/rust
-/libs/@local/repo-chores/rust/ @hashintel/rust
 /libs/@local/status/rust/ @hashintel/rust
 /libs/@local/telemetry/ @hashintel/rust
 /libs/@local/temporal-client/ @hashintel/rust
@@ -36,6 +36,10 @@
 /libs/@hashintel/petrinaut*/ @hashintel/petrinaut
 /libs/@local/petrinaut*/ @hashintel/petrinaut
 
+# Brunch agent
+/apps/brunch-agent/ @hashintel/frontend
+/libs/@hashintel/brunch-agent/ @hashintel/frontend
+
 # Core backend logic
 /apps/hash-api/ @hashintel/backend-ts
 /apps/hash-ai-worker-ts/ @hashintel/backend-ts
@@ -53,6 +57,46 @@
 /apps/hash-integrations/ @hashintel/integrations
 /libs/@local/integrations/ @hashintel/integrations
 
+# Frontend
+/apps/hash-frontend/ @hashintel/frontend
+/libs/@hashintel/block-design-system/ @hashintel/frontend
+/libs/@hashintel/design-system/ @hashintel/frontend
+/libs/@hashintel/query-editor/ @hashintel/frontend
+/libs/@hashintel/refractive/ @hashintel/frontend
+/libs/@hashintel/type-editor/ @hashintel/frontend
+/libs/@local/flow-petri-net/ @hashintel/frontend
+/libs/@local/flue-aisdk-transport/ @hashintel/frontend
+/libs/@local/pi-faux-providers/ @hashintel/frontend
+/apps/plugin-browser/ @hashintel/frontend
+
+# Backend libraries
+/libs/@local/advanced-types/ @hashintel/backend-ts
+/libs/@local/codec/typescript/ @hashintel/backend-ts
+/libs/@local/hash-backend-utils/ @hashintel/backend-ts
+/libs/@local/hash-isomorphic-utils/ @hashintel/backend-ts
+/libs/@local/internal-api-client/typescript/ @hashintel/backend-ts
+/libs/@local/status/typescript/ @hashintel/backend-ts
+
+# Block Protocol packages owned by the graph team
+/libs/@blockprotocol/graph/ @hashintel/graph
+/libs/@blockprotocol/type-system/ @hashintel/graph
+
+# Petrinaut tooling outside the petrinaut packages
+/libs/@local/archinaut/ @hashintel/petrinaut
+
+# Lint, TypeScript and repository tooling
+/libs/@local/eslint/ @hashintel/infra
+/libs/@local/oxlint/ @hashintel/infra
+/libs/@local/repo-chores/ @hashintel/infra
+/libs/@local/repo-chores/rust/ @hashintel/infra @hashintel/rust
+/libs/@local/tsconfig/ @hashintel/infra
+
+# Test suites
+/tests/hash-playwright/ @hashintel/frontend
+/tests/hash-backend-integration/ @hashintel/backend-ts
+/tests/integrations/graph/ @hashintel/graph
+/tests/petrinaut-brunch-integration/ @hashintel/petrinaut
+
 # Code ownership
 /.github/CODEOWNERS @hashintel/infra-admins
 
@@ -62,6 +106,9 @@ LICENSE* @hashintel/legal
 # Turborepo configuration
 turbo.json @hashintel/infra
 task-dependencies.json @hashintel/infra
+
+# Yarn configuration
+/.yarnrc.yml @hashintel/infra
 
 # GitHub Actions and CI configuration
 /.github/workflows/ @hashintel/infra

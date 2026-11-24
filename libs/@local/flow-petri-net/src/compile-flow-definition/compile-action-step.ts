@@ -116,7 +116,11 @@ export const compileActionStep = ({
     }
   }
 
-  const runAfterArcs = values.runAfterArcs(step, valueArcs);
+  const {
+    arcs: runAfterArcs,
+    runAfter,
+    paths,
+  } = values.runAfterArcs(step, valueArcs);
 
   const startStepKey = generateStepTransitionKey("startStep", step.stepId);
 
@@ -131,13 +135,10 @@ export const compileActionStep = ({
         role: "startStep",
         stepId: step.stepId,
         inputSources,
-        ...(runAfterArcs.length > 0
-          ? {
-              runAfter: runAfterArcs.map(({ endpoint }) =>
-                toPetrinautEndpoint(endpoint),
-              ),
-            }
+        ...(runAfter.length > 0
+          ? { runAfter: runAfter.map(toPetrinautEndpoint) }
           : {}),
+        ...(paths.length > 0 ? { paths: paths.map(toPetrinautEndpoint) } : {}),
       },
       inputArcs: [
         inputArc(placeEndpoint(generatePendingPlaceKey(step.stepId))),
@@ -173,7 +174,7 @@ export const compileActionStep = ({
       actionDefinitionId: step.actionDefinitionId,
       ...(Object.keys(constants).length > 0 ? { constants } : {}),
     } satisfies InstanceMetadata,
-    subnetId: generateSubnetKey(subnetName),
+    component: { id: generateSubnetKey(subnetName) },
     parameterValues: {
       [maxRetriesParameterKey]: String(step.retryCount ?? defaultMaxRetries),
     },

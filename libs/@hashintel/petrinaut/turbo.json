@@ -5,6 +5,10 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
+    "build:storybook": {
+      "dependsOn": ["^build"],
+      "outputs": [".build/storybook/**"]
+    },
     "test:unit": {
       "dependsOn": ["^build"]
     },

@@ -70,6 +70,8 @@ type PetrinautAiUiTools = {
  */
 export type PetrinautAiMessageMetadata = {
   source?: "voice";
+  /** This user turn is a batch of Ledger comments, sent as their signal. */
+  ledgerComments?: true;
   /** This assistant response was stopped, rather than completed normally. */
   stopped?: true;
   /**

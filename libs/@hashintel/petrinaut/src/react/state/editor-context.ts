@@ -1,38 +1,47 @@
-import { createContext, createRef } from "react";
+import { createContext, createRef, use } from "react";
 
 import {
-  DEFAULT_AI_ASSISTANT_WIDTH,
-  DEFAULT_BOTTOM_PANEL_HEIGHT,
-  DEFAULT_LEFT_SIDEBAR_WIDTH,
-  DEFAULT_PROPERTIES_PANEL_WIDTH,
-} from "./panel-defaults";
+  useSelected,
+  useSelectedFields,
+  type Published,
+} from "../shared/select-from-context";
 
-import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
+import type {
+  EditorGlobalMode,
+  EditViewMode,
+  SimulateViewMode,
+} from "../navigation/navigation";
+import type {
+  ComponentReference,
+  SelectionItem,
+  SelectionMap,
+} from "@hashintel/petrinaut-core";
 
-export type DraggingStateByNodeId = Record<
-  string,
-  { dragging: boolean; position: { x: number; y: number } }
->;
-
-export type EditorGlobalMode = "edit" | "simulate" | "actual";
-export type EditViewMode = "canvas" | "definitions";
 type EditorEditionMode =
   | "cursor"
   | "add-place"
   | "add-transition"
   | "add-component";
 export type CursorMode = "select" | "pan";
+/**
+ * A tab a plugin adds to the bottom panel. Its id holds a dot, which the id
+ * of none of the editor's own tabs does.
+ */
+export type PluginBottomPanelTab = `${string}.${string}`;
+
 export type BottomPanelTab =
   | "compilation"
   | "diagnostics"
   | "simulation-settings"
   | "actual-events"
   | "actual-timeline"
-  | "simulation-timeline";
+  | "simulation-timeline"
+  | PluginBottomPanelTab;
 
 export type TimelineChartType = "run" | "stacked";
 
-export type SimulateViewMode = "scenarios" | "metrics" | "experiments";
+/** Beside the editor in a column of its own, or over it as a window. */
+export type AssistantPlacement = "docked" | "floating";
 
 export type SimulateDrawerState =
   | { type: "closed" }
@@ -43,7 +52,7 @@ export type SimulateDrawerState =
   | { type: "view-experiment"; experimentId: string }
   | { type: "create-experiment" };
 
-export type EditorNavigationTarget = {
+type EditorNavigationTarget = {
   globalMode?: EditorGlobalMode;
   editViewMode?: EditViewMode;
   simulateViewMode?: SimulateViewMode;
@@ -60,12 +69,16 @@ export type EditorNavigationTarget = {
  * - `per-transition`: a series per transition, plotting its cumulative
  *   firing count over time.
  * - `metric`: a single series computed by a user-authored metric function.
+ * - `solver-error`: a series per place with dynamics, the error the adaptive
+ *   solver has accumulated for it, recorded at the events of a run. Offered
+ *   only while the selected simulator can produce it.
  */
 export type TimelineView =
   | { kind: "per-place" }
   | { kind: "per-type" }
   | { kind: "per-transition" }
-  | { kind: "metric"; metricId: string };
+  | { kind: "metric"; metricId: string }
+  | { kind: "solver-error" };
 
 /**
  * The state values for the editor.
@@ -76,34 +89,25 @@ export type EditorState = {
   editionMode: EditorEditionMode;
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
-  leftSidebarWidth: number;
-  propertiesPanelWidth: number;
   isBottomPanelOpen: boolean;
-  bottomPanelHeight: number;
-  /**
-   * Width of the AI assistant panel. Held here rather than inside the panel so
-   * the surfaces that have to keep clear of it can read it.
-   */
-  aiAssistantWidth: number;
-  /** Rendered compact dock height; null when expanded or closed. */
-  aiAssistantDockHeight: number | null;
-  aiAssistantPlacement: "docked" | "floating";
-  isAiAssistantCollapsed: boolean;
   activeBottomPanelTab: BottomPanelTab;
-  componentSubnetId: string | null;
+  /** The component the next click on the canvas places an instance of. */
+  componentToAdd: ComponentReference | null;
   selection: SelectionMap;
   /** Whether any items are currently selected. */
   hasSelection: boolean;
-  /** The item currently being hovered, if any. */
-  hoveredItem: SelectionItem | null;
   /** Windows explicitly kept open, independently of their positioning mode. */
   keptOpenVisualizerPlaceIds: Set<string>;
   /** Visualizer place IDs ordered from back to front. */
   visualizerStack: string[];
+  /**
+   * Component instances whose ports are unfolded on the canvas. A component
+   * with many ports starts folded, its wires meeting the card's edges.
+   */
+  unfoldedComponentInstanceIds: Set<string>;
   /** The temporary hover or keyboard preview. */
   openVisualizerPlaceId: string | null;
   focusedVisualizerPlaceId: string | null;
-  draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
   /**
    * Which view is rendered in the simulation timeline chart. See
@@ -123,9 +127,9 @@ export type EditorState = {
    */
   simulateViewMode: SimulateViewMode;
   simulateDrawer: SimulateDrawerState;
-  isPanelAnimating: boolean;
   isSearchOpen: boolean;
   isAiAssistantOpen: boolean;
+  assistantPlacement: AssistantPlacement;
 };
 
 /**
@@ -139,19 +143,10 @@ export type EditorActions = {
   setEditionMode: (mode: EditorEditionMode) => void;
   setCursorMode: (mode: CursorMode) => void;
   setLeftSidebarOpen: (isOpen: boolean) => void;
-  setLeftSidebarWidth: (width: number) => void;
-  setPropertiesPanelWidth: (width: number) => void;
-  setAiAssistantWidth: (width: number) => void;
-  setAiAssistantDockHeight: (height: number | null) => void;
-  setAiAssistantPlacement: (placement: "docked" | "floating") => void;
-  setAiAssistantCollapsed: (collapsed: boolean) => void;
   setBottomPanelOpen: (isOpen: boolean) => void;
   toggleBottomPanel: () => void;
-  setBottomPanelHeight: (height: number) => void;
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
-  setAddComponentMode: (subnetId: string) => void;
-  /** Check whether a given ID is in the current selection. */
-  isSelected: (id: string) => boolean;
+  setAddComponentMode: (component: ComponentReference) => void;
   setSelection: (
     selection: SelectionMap | ((prev: SelectionMap) => SelectionMap),
     options?: { cause: "normalization" } | { batch: "react-flow" },
@@ -161,19 +156,14 @@ export type EditorActions = {
   selectItem: (item: SelectionItem) => void;
   toggleItem: (item: SelectionItem) => void;
   clearSelection: () => void;
-  setHoveredItem: (item: SelectionItem) => void;
-  clearHoveredItem: () => void;
   keepPlaceVisualizerOpen: (placeId: string) => void;
   closePlaceVisualizer: (placeId: string) => void;
   bringVisualizerToFront: (placeId: string) => void;
+  /** Unfold a component instance's ports on the canvas, or fold them again. */
+  toggleComponentInstanceFold: (instanceId: string) => void;
   /** Show or dismiss a temporary preview. */
   openPlaceVisualizer: (placeId: string | null) => void;
   setVisualizerEditorFocus: (placeId: string, focused: boolean) => void;
-  setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
-  updateDraggingStateByNodeId: (
-    updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
-  ) => void;
-  resetDraggingState: () => void;
   collapseAllPanels: () => void;
   setTimelineChartType: (chartType: TimelineChartType) => void;
   setTimelineView: (view: TimelineView) => void;
@@ -183,7 +173,7 @@ export type EditorActions = {
   setSearchOpen: (isOpen: boolean) => void;
   setAiAssistantOpen: (isOpen: boolean) => void;
   toggleAiAssistant: () => void;
-  triggerPanelAnimation: () => void;
+  setAssistantPlacement: (placement: AssistantPlacement) => void;
 };
 
 export type EditorContextValue = EditorState &
@@ -198,32 +188,24 @@ export const initialEditorState: EditorState = {
   editionMode: "cursor",
   cursorMode: "pan",
   isLeftSidebarOpen: true,
-  leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
-  propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
   isBottomPanelOpen: false,
-  bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
-  aiAssistantWidth: DEFAULT_AI_ASSISTANT_WIDTH,
-  aiAssistantDockHeight: null,
-  aiAssistantPlacement: "docked",
-  isAiAssistantCollapsed: false,
   activeBottomPanelTab: "diagnostics",
-  componentSubnetId: null,
+  componentToAdd: null,
   selection: new Map(),
   hasSelection: false,
-  hoveredItem: null,
   keptOpenVisualizerPlaceIds: new Set<string>(),
   visualizerStack: [],
+  unfoldedComponentInstanceIds: new Set<string>(),
   openVisualizerPlaceId: null,
   focusedVisualizerPlaceId: null,
-  draggingStateByNodeId: {},
   timelineChartType: "run",
   timelineView: { kind: "per-place" },
   hiddenTimelineSeriesIds: new Set(),
   simulateViewMode: "experiments",
   simulateDrawer: { type: "closed" },
-  isPanelAnimating: false,
   isSearchOpen: false,
   isAiAssistantOpen: false,
+  assistantPlacement: "docked",
 };
 
 const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
@@ -234,34 +216,22 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setEditionMode: () => {},
   setCursorMode: () => {},
   setLeftSidebarOpen: () => {},
-  setLeftSidebarWidth: () => {},
-  setPropertiesPanelWidth: () => {},
-  setAiAssistantWidth: () => {},
-  setAiAssistantDockHeight: () => {},
-  setAiAssistantPlacement: () => {},
-  setAiAssistantCollapsed: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},
-  setBottomPanelHeight: () => {},
   setActiveBottomPanelTab: () => {},
   setAddComponentMode: () => {},
-  isSelected: () => false,
   setSelection: () => {},
   beginSelectionGesture: () => {},
   endSelectionGesture: () => {},
   selectItem: () => {},
   toggleItem: () => {},
   clearSelection: () => {},
-  setHoveredItem: () => {},
-  clearHoveredItem: () => {},
   keepPlaceVisualizerOpen: () => {},
   closePlaceVisualizer: () => {},
   bringVisualizerToFront: () => {},
+  toggleComponentInstanceFold: () => {},
   openPlaceVisualizer: () => {},
   setVisualizerEditorFocus: () => {},
-  setDraggingStateByNodeId: () => {},
-  updateDraggingStateByNodeId: () => {},
-  resetDraggingState: () => {},
   collapseAllPanels: () => {},
   setTimelineChartType: () => {},
   setTimelineView: () => {},
@@ -271,10 +241,90 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setSearchOpen: () => {},
   setAiAssistantOpen: () => {},
   toggleAiAssistant: () => {},
+  setAssistantPlacement: () => {},
   searchInputRef: createRef<HTMLInputElement | null>(),
-  triggerPanelAnimation: () => {},
 };
 
 export const EditorContext = createContext<EditorContextValue>(
   DEFAULT_CONTEXT_VALUE,
 );
+
+/** Where `EditorProvider` publishes the context value for {@link useEditorState}. */
+export const EditorPublishedContext =
+  createContext<Published<EditorContextValue>>(null);
+
+/**
+ * One part of the editor's state, or one of its actions. The reader renders
+ * when that part changes.
+ *
+ * Almost every change in the editor is a change of the editor context: a
+ * panel opening, a selection, a hover. `use(EditorContext)` renders its
+ * reader for each of them. A component with many components below it, or one
+ * of many like it, reads the parts it needs through this hook instead.
+ *
+ * ```tsx
+ * const globalMode = useEditorState((editor) => editor.globalMode);
+ * ```
+ */
+export const useEditorState = <Selected>(
+  select: (editor: EditorContextValue) => Selected,
+): Selected => useSelected(EditorContext, EditorPublishedContext, select);
+
+/**
+ * Several fields of the editor's state and actions, by name, for a reader
+ * that needs more than one. It renders when one of them changes.
+ *
+ * ```tsx
+ * const { cursorMode, selectItem } = useEditorFields("cursorMode", "selectItem");
+ * ```
+ */
+export const useEditorFields = <Key extends keyof EditorContextValue>(
+  ...keys: Key[]
+): Pick<EditorContextValue, Key> =>
+  useSelectedFields(EditorContext, EditorPublishedContext, keys);
+
+/**
+ * Where `EditorProvider` gives out the editor's actions, apart from its
+ * state. Null where only `EditorContext` is provided, such as under a test.
+ */
+export const EditorActionsContext = createContext<EditorActions | null>(null);
+
+/**
+ * The editor's actions: one object for the editor's life. A component that
+ * only acts on the editor reads them here and renders for no change of the
+ * editor's state. Each action reads what it needs when it is called.
+ *
+ * ```tsx
+ * const { selectItem } = useEditorActions();
+ * ```
+ */
+export const useEditorActions = (): EditorActions =>
+  // `use` is the one hook that may sit in a condition.
+  use(EditorActionsContext) ?? use(EditorContext);
+
+/** The mode of the editor and the view of its Edit mode. */
+type EditorMode = Pick<EditorState, "globalMode" | "editViewMode">;
+
+/**
+ * Where `EditorProvider` gives out the mode. Null where only `EditorContext`
+ * is provided, such as under a test.
+ */
+export const EditorModeContext = createContext<EditorMode | null>(null);
+
+/**
+ * The mode, in the commit that changes it. What decides which part of the
+ * editor is shown reads the mode here and not by part: a part read through
+ * `useEditorState` arrives one commit later, after the contexts that follow
+ * the mode have changed, the read-only reason among them. The value changes
+ * with the mode alone, so its readers render for no selection.
+ */
+export const useEditorMode = (): EditorMode =>
+  use(EditorModeContext) ?? use(EditorContext);
+
+/**
+ * Whether one item is selected. The reader renders when that answer changes,
+ * so a list renders two of its rows when the selection moves from one to
+ * another.
+ */
+export const useIsSelected = (id: string): boolean =>
+  useEditorState((editor) => editor.selection.has(id));

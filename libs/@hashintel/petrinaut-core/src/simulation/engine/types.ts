@@ -5,12 +5,17 @@
  * part of the public simulation API.
  */
 
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type {
   HirArtifacts,
   HirCompiledBufferKernel,
   HirCompiledBufferLambda,
 } from "../../hir-runtime";
+import type { StringPool } from "../../tokens/string-pool";
+import type {
+  TokenRegionViews,
+  TokenSlotLayout,
+} from "../../tokens/token-layout";
 import type {
   Color,
   InputArcType,
@@ -21,8 +26,6 @@ import type {
 import type { InitialMarking } from "../api";
 import type { EngineFrame, EngineFrameLayout } from "../frames/internal-frame";
 import type { TransitionCapacityConstraint } from "./capacity";
-import type { StringPool } from "./string-pool";
-import type { TokenRegionViews, TokenSlotLayout } from "./token-layout";
 
 /**
  * Runtime parameter values used during simulation execution.
@@ -78,8 +81,9 @@ export type CompiledTransition = {
    * so the enablement check costs nothing for nets that do not use capacities.
    */
   capacityConstraints: readonly TransitionCapacityConstraint[];
-  /** Buffer-ABI lambda `(f64, u64, u8, placeBases, indices) => number |
-   * boolean` (token format v2 packed structs); parameters/pool pre-bound. */
+  /** Buffer-ABI lambda `(f64, u64, u8, placeBases, indices, inputCounts) =>
+   * number | boolean` (token format v2 packed structs); parameters/pool
+   * pre-bound. */
   lambdaFn: HirCompiledBufferLambda;
   /**
    * The lambda's result cannot depend on which tokens a combination selects —
@@ -98,6 +102,9 @@ export type CompiledTransition = {
   /** Reusable scratch: one selected token index per input token slot (sum of
    * those arcs' weights — see `hir/surface-context.ts` slot layout). */
   indices: Int32Array;
+  /** Reusable scratch: the live token count of each input arc's place, in
+   * `inputPlaces` order, read by `input.<name>.count`. */
+  inputCounts: Float64Array;
   /** Reusable kernel output staging: colored output arcs place-major, tokens
    * back-to-back (`strideBytes` each). */
   kernelStaging: Uint8Array;
@@ -133,7 +140,7 @@ export type SimulationInput = {
 };
 
 /**
- * A running simulation instance with compiled functions and frame history.
+ * A running simulation instance with compiled functions and its frames.
  * Contains all state needed to execute and advance the simulation.
  */
 export type SimulationInstance = {
@@ -153,7 +160,7 @@ export type SimulationInstance = {
   dt: number;
   /** Maximum simulation time (immutable). Null means no limit. */
   maxTime: number | null;
-  /** Simulation time for the current frame, owned by the run controller. */
+  /** Simulation time of the current frame, advanced by `dt` with each step. */
   currentTime: number;
   /** Current state of the seeded random number generator */
   rngState: number;
@@ -165,7 +172,10 @@ export type SimulationInstance = {
   stringPool: StringPool;
   /** SDCPN-specialized binary frame layout for this simulation run. */
   frameLayout: EngineFrameLayout;
-  /** History of all computed frames */
+  /**
+   * The current frame, and the earlier ones until the caller that steps drops
+   * them: `computeNextFrame` appends a frame and removes none.
+   */
   frames: EngineFrame[];
   /** Index of the current frame in the frames array */
   currentFrameNumber: number;

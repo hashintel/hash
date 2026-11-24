@@ -31,6 +31,7 @@ const voice = () => {
       >[0]["session"]["speakCanonical"]
     >();
   const bridge = new RealtimeBrunchBridge({
+    readSelection: () => [],
     session: { speakCanonical, subscribe: () => () => {} },
     submitInterviewAnswer: async () => {
       throw new Error(

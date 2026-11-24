@@ -1,0 +1,168 @@
+---
+title: Building a spreadsheet
+description: How to compose a new editable table from the state-agnostic spreadsheet kit, the way the ad-hoc form's three tables do.
+sidebar_order: 10
+---
+
+The kit exists so that a new table costs a render function, not a
+reimplementation of the form's interaction grammar. The three tables of the
+[ad-hoc form](layer:ui.adhoc-form) — Parameters, Variables, and the token
+spreadsheet — are each a thin composition over the same few files, and so
+is any new table, such as a results grid or the list of a net entity's parts.
+
+The kit's one invariant is that **it knows nothing about what the rows
+mean**: no form state, no dispatch, no highlight. A rule of `archinaut check`
+holds it: no file of the kit imports from the
+[ad-hoc form](layer:ui.adhoc-form). Everything row-specific stays in the
+composing table, and the styles only the form's rows wear are in its own
+`form-row-styles.ts`. The ready-made `Spreadsheet` is the one file that
+imports Core, for the value types of its cells.
+
+## The pieces
+
+| Piece                      | What it owns                                                                                                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `FormSpreadsheet`          | The bordered shell: the container that registers as a member of the enclosing `FocusStack`, and the `<table>` with the form's fixed layout. Rows are `children`.                                                   |
+| `form-table.ts`            | The style grammar: 28px `cellStyle`, `gutterCellStyle`, the blue `selectedRowCellStyle` wash, the shorter phantom-row styles.                                                                                      |
+| `GutterCell`               | The inside of a gutter cell: the main button (focus selects the row, a pointer click selects first, Enter or the trailing `⋯` opens the menu, Delete deletes) plus the menu with its dismiss-refocus choreography. |
+| `GutterMenu`               | The keyboard-first pop-up itself — usually reached through `GutterCell`.                                                                                                                                           |
+| `PhantomLine`              | The quiet trailing add-line: a `+` gutter that creates the entry, plus whatever cells the table renders after it.                                                                                                  |
+| `TextCell`                 | A text cell under the selection model: a second click or Enter opens its editor, Enter or leaving commits, Escape cancels. The owner holds the text and hears how the edit ended.                                  |
+| `ReorderableRows`          | The table body whose `ReorderableRow`s move by a pointer drag on their gutter or by Alt with an arrow on any cell; the owner applies the move it is told about.                                                    |
+| `useRowSelection`          | The selection model: `selectedRow` is the focused gutter's row, or the row whose menu is open. One menu at a time per table.                                                                                       |
+| `useSelectFirstActivation` | The click grammar of a cell that is also a target: the first click selects it, a click on the selected cell or Enter activates it.                                                                                 |
+| `Spreadsheet`              | A ready-made table: the editable grid of typed cells that holds the tokens of a place.                                                                                                                             |
+| `Table`                    | A ready-made table: read-only rows that a click or an arrow selects, as the lists of the Simulate view use.                                                                                                        |
+
+Keyboard movement is the neighbouring
+[worksheet layer](layer:ui.worksheet)'s business:
+`useFocusGrid` gives a table arrow-key cells and an `attach` ref that
+`FormSpreadsheet` takes, so a move past an edge continues into the next
+member of the enclosing stack.
+
+## The recipe
+
+A minimal table with one gutter column, one content column and an add-line,
+composed the way `variable-rows.tsx` is:
+
+```tsx
+const { register, onKeyDown, attach } = useFocusGrid({ tabStop: "native" });
+const rowSelection = useRowSelection();
+
+return (
+  <FormSpreadsheet attach={attach} ariaLabel="Things">
+    <tbody>
+      {items.map((item, index) => {
+        const selected =
+          rowSelection.selectedRow === index && selectedRowCellStyle;
+        return (
+          <tr key={item.id}>
+            <td className={cx(gutterCellStyle, selected)}>
+              <GutterCell
+                glyph={`#${index + 1}`}
+                label={`Thing ${index + 1} actions`}
+                menuLabel={`Thing ${index + 1} menu`}
+                items={[{ id: "delete", label: "Delete", destructive: true }]}
+                onMenuSelect={(id) => id === "delete" && deleteItem(index)}
+                menuAnchor={
+                  rowSelection.menu?.row === index
+                    ? rowSelection.menu.anchor
+                    : null
+                }
+                onOpenMenu={(anchor) => rowSelection.openMenu(index, anchor)}
+                onCloseMenu={rowSelection.closeMenu}
+                buttonRef={register(index, 0)}
+                onFocus={() => rowSelection.setFocusedRow(index)}
+                onBlur={() => rowSelection.setFocusedRow(null)}
+                onKeyDown={onKeyDown(index, 0)}
+                onDelete={() => deleteItem(index)}
+              />
+            </td>
+            <td className={cx(cellStyle, selected)}>{/* the cell */}</td>
+          </tr>
+        );
+      })}
+      <PhantomLine gutterLabel="Add a thing" onMaterialize={addItem}>
+        <td className={cx(cellStyle, phantomRowCellStyle)}>
+          <button
+            ref={register(items.length, 0)}
+            type="button"
+            className={phantomCellButtonStyle}
+            onClick={addItem}
+            onKeyDown={onKeyDown(items.length, 0)}
+          >
+            Add a thing…
+          </button>
+        </td>
+      </PhantomLine>
+    </tbody>
+  </FormSpreadsheet>
+);
+```
+
+The contract the composition keeps, in exchange for the kit's behaviour:
+
+- **Selection styling is the table's job.** `useRowSelection` only says which
+  row is selected; the table paints `selectedRowCellStyle` on every cell of
+  that row, so a selected row reads as one unit.
+- **Focus after a deletion is the table's job.** `GutterCell` intercepts
+  Delete and calls `onDelete`, but only the table knows where focus should
+  land next — the neighbouring row's gutter, or the phantom line when the
+  last row went. Keep a ref map of gutter buttons and refocus in a
+  `setTimeout(0)`, after React commits the removal.
+- **Menu items mean whatever the table says.** `GutterCell` closes the menu
+  and hands the chosen id to `onMenuSelect`; kinds, checkmarks, and
+  destructive styling are declared per item.
+- **Rows can be richer than `<tr>`s.** The token table renders count strips
+  and shared-value lines between rows; the kit does not care, because the
+  shell only owns the container and the `<table>`.
+- **Moving a row is the table's job.** `ReorderableRows` reports a drop as
+  `onMove(from, to)`, and `rowMoveKeyDown` builds the cells' key handler,
+  which calls the same `onMove` for Alt+arrow and hands every other key to
+  the grid, so a drag and the shortcut can never disagree. Rows keyed by a
+  stable id keep the focused element on the row that moved.
+
+## The selection grammar
+
+`use-select-first.ts` and `use-row-selection.ts` hold the selection grammar:
+how a click selects before it acts, and which row reads as selected.
+
+`useSelectFirstActivation` gives a click target that is also a selectable
+cell the worksheet's activation behaviour: the first pointer click only
+selects (focuses) it, a click on an already-selected target activates, and
+Enter or Space always activates.
+
+```tsx
+const { onPointerDown, shouldActivate } = useSelectFirstActivation();
+
+<button
+  type="button"
+  onPointerDown={onPointerDown}
+  onClick={(event) => {
+    if (shouldActivate(event)) {
+      activate();
+    }
+  }}
+/>;
+```
+
+- Double-click needs no handler of its own: a repeated click on the same
+  target activates through its click count (`event.detail`), even in
+  browsers that do not focus buttons on pointer down. This matters where
+  activation is not idempotent, such as materializing a phantom row.
+- One instance serves any number of sibling targets.
+
+`useRowSelection` is the row-selection model gutter tables share. Its
+`selectedRow` is the row to render as selected: the row whose gutter holds
+focus, or the row whose gutter menu is open. Report gutter focus with
+`setFocusedRow(row)` and blur with `setFocusedRow(null)`; `openMenu(row,
+anchor)` and `closeMenu()` keep one menu open per table, and the menu's row
+stays selected while the menu holds focus.
+
+## What not to add here
+
+A piece belongs in the kit only if a table that knows nothing about the
+ad-hoc model could still want it. Cell editors do not qualify — the form's
+`value-editor` dispatches actions against a form target, so it lives with
+the form. The same test keeps the kit's layer page honest: if a new file
+here needs form state, it is a table concern wearing the wrong folder.

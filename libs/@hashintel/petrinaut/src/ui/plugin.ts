@@ -14,6 +14,8 @@ export type {
   PetrinautPluginManifest,
   PluginApi,
   PluginAssistant,
+  PluginBottomPanelView,
+  PluginBottomPanelViewSpec,
   PluginButton,
   PluginButtonPlace,
   PluginButtonSpec,
@@ -39,6 +41,7 @@ export type {
   PluginAccess,
   PluginDiagnostics,
   PluginDocument,
+  PluginDocumentHandle,
   PluginDocumentReader,
   PluginEditor,
   PluginEditorReader,
@@ -48,24 +51,24 @@ export type {
   PluginExperimentsReader,
   PluginNotifications,
 } from "./plugins/plugin-access";
-export { usePluginService } from "./plugins/plugins-provider";
-export {
-  AssistantPanelTitle,
-  useAssistantPanel,
-} from "./plugins/plugin-assistant";
+export { usePluginService } from "./plugins/running-plugins";
+export { AssistantPanelTitle } from "./plugins/assistant-panel-title";
+export { useAssistantPanel } from "./plugins/plugin-assistant";
 export type { AssistantPanel } from "./plugins/plugin-assistant";
 export {
   useCommand,
   useCommandRegistry,
   useCommands,
 } from "../react/commands/command-registry";
-export { useStore, useStoreSelector } from "../react/use-store";
-export type { PetrinautRevealTarget } from "../react/hooks/use-reveal-in-editor";
+export { useStore, useStoreSelector } from "../react/shared/use-store";
+export type { PetrinautRevealTarget } from "../react/state/use-reveal-in-editor";
 export type { AddNotificationInput } from "../react/notifications/context";
-export type { ReadOnlyReason } from "../react/state/use-read-only-reason";
+export type { ReadOnlyReason } from "../react/editing/use-read-only-reason";
 export { parseDocumentUri } from "@hashintel/petrinaut-core";
 export type {
   DiagnosticsSnapshot,
+  DocChangeEvent,
+  PetrinautPatch,
   ReadableStore,
   SelectionItem,
 } from "@hashintel/petrinaut-core";

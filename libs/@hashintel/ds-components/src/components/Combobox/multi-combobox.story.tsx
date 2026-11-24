@@ -4,7 +4,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { Combobox } from "./combobox";
 
-import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
+import type { ItemOrGroup } from "../../primitives/SelectableList/selectable-list";
 import type { ComboboxProps, MultiComboboxItem } from "./combobox";
 
 // The multiple, no-new-values arm of the props union: `value`/`onChange` are

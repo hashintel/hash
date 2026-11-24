@@ -14,19 +14,19 @@ type TokenRecord = Record<string, InitialTokenAttributeValue>;
 
 /**
  * Lightweight, decoupled snapshot of every colour type's element schema
- * (root types AND subnet types), keyed by type ID. Element objects are
+ * (root types AND component types), keyed by type ID. Element objects are
  * copied so later document mutations cannot alias into the snapshot.
  */
 export type TypeElementsSnapshot = Map<string, ColorElement[]>;
 
 const collectAllTypes = (sdcpn: SDCPN): Color[] => [
   ...sdcpn.types,
-  ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+  ...(sdcpn.components ?? []).flatMap((component) => component.types),
 ];
 
 const collectAllPlaces = (sdcpn: SDCPN) => [
   ...sdcpn.places,
-  ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.places),
+  ...(sdcpn.components ?? []).flatMap((component) => component.places),
 ];
 
 export function snapshotTypeElements(sdcpn: SDCPN): TypeElementsSnapshot {

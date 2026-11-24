@@ -1,38 +1,11 @@
 import { Button, Chip } from "@hashintel/ds-components";
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
-
-import type { PetrinautAiAssistantPresentation } from "../../petrinaut";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 export type PromptChip = {
   id: string;
   label: string;
   prompt: string;
 };
-
-/**
- * Quick-action chips shown when the net is empty — they kick off a
- * domain-shaped build with the AI's interview-first behaviour taking over.
- */
-export const STARTER_CHIPS: PromptChip[] = [
-  {
-    id: "supply-chain",
-    label: "Supply chain",
-    prompt:
-      "Build a supply-chain SDCPN — orders flowing through warehouses, in-transit, and delivered states. Interview me first for more details.",
-  },
-  {
-    id: "epidemic",
-    label: "Epidemic",
-    prompt:
-      "Build an SIR-style epidemic model with susceptible, infected, and recovered places. Interview me first for more details.",
-  },
-  {
-    id: "surprise-me",
-    label: "Surprise me",
-    prompt:
-      "Pick an interesting domain and build a small but complete SDCPN end-to-end — use all available features (including place visualizers).",
-  },
-];
 
 /**
  * Quick-action chips shown when the net already has content — they ask the
@@ -66,25 +39,13 @@ const containerStyle = css({
   minWidth: "[0]",
 });
 
-const railStyle = cva({
-  base: {
-    display: "flex",
-    alignItems: "center",
-    gap: "1.5",
-    flex: "[1]",
-    minWidth: "[0]",
-  },
-  variants: {
-    wrap: {
-      true: { flexWrap: "wrap" },
-      false: {
-        flexWrap: "nowrap",
-        overflowX: "auto",
-        scrollbarWidth: "[none]",
-        "&::-webkit-scrollbar": { display: "none" },
-      },
-    },
-  },
+const railStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+  flex: "[1]",
+  minWidth: "[0]",
+  flexWrap: "wrap",
 });
 
 const chipStyle = css({
@@ -107,7 +68,6 @@ const dismissStyle = css({
 export type PromptChipsProps = {
   chips: PromptChip[];
   disabled?: boolean;
-  presentation?: PetrinautAiAssistantPresentation;
   onDismiss: () => void;
   onSelect: (prompt: string) => void;
 };
@@ -115,7 +75,6 @@ export type PromptChipsProps = {
 export const PromptChips = ({
   chips,
   disabled = false,
-  presentation = "stock",
   onDismiss,
   onSelect,
 }: PromptChipsProps) => {
@@ -125,11 +84,7 @@ export const PromptChips = ({
 
   return (
     <div className={containerStyle}>
-      <div
-        className={railStyle({ wrap: presentation === "brunch" })}
-        data-prompt-chips
-        data-wrap={presentation === "brunch" || undefined}
-      >
+      <div className={railStyle} data-prompt-chips data-wrap>
         {chips.map((chip) => (
           <Chip
             key={chip.id}

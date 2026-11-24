@@ -133,7 +133,6 @@ describe("compilePetrinautModel", () => {
             name: "Place",
             colorId: "color",
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -166,7 +165,7 @@ describe("compilePetrinautModel", () => {
         stochasticity: true,
         dynamics: false,
         parameters: false,
-        subnets: true,
+        components: true,
       },
     });
 
@@ -252,7 +251,6 @@ describe("compilePetrinautModel", () => {
               name: "Place",
               colorId: "missing-color",
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -315,7 +313,6 @@ describe("compilePetrinautModel", () => {
       name: id,
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });
@@ -330,16 +327,16 @@ describe("compilePetrinautModel", () => {
           {
             id: "worker",
             name: "Worker",
-            subnetId: "worker-subnet",
+            component: { id: "worker-component" },
             parameterValues: {},
             x: 0,
             y: 0,
           },
         ],
-        subnets: [
+        components: [
           {
-            id: "worker-subnet",
-            name: "Worker subnet",
+            id: "worker-component",
+            name: "Worker component",
             places: [place("internal")],
             transitions: [],
             types: [],
@@ -372,7 +369,6 @@ describe("compilePetrinautModel", () => {
             name: "EmptyColoredPlace",
             colorId: "empty-color",
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           },

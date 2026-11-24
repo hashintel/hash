@@ -1,10 +1,11 @@
 import { createContext } from "react";
 
 import {
-  DEFAULT_BOTTOM_PANEL_HEIGHT,
-  DEFAULT_LEFT_SIDEBAR_WIDTH,
-  DEFAULT_PROPERTIES_PANEL_WIDTH,
-} from "./panel-defaults";
+  useSelected,
+  useSelectedFields,
+  type Published,
+} from "../shared/select-from-context";
+import { defaultPanelSizes } from "./panel-sizes";
 
 import type {
   CanvasViewport,
@@ -16,8 +17,6 @@ import type {
   TimelineChartType,
 } from "./editor-context";
 
-export type ArcRendering = "smoothstep" | "bezier" | "custom";
-
 export type SubViewSectionSettings = {
   collapsed: boolean;
   /** Last known panel height in pixels */
@@ -25,18 +24,14 @@ export type SubViewSectionSettings = {
 };
 
 /** Outer key: container name, inner key: subview ID */
-export type SubViewPanelsSettings = Record<
+type SubViewPanelsSettings = Record<
   string,
   Record<string, SubViewSectionSettings>
 >;
 
 export type UserSettings = {
   showAnimations: boolean;
-  keepPanelsMounted: boolean;
   compactNodes: boolean;
-  enableExperimentalIconPack: boolean;
-  enableAutomaticArcConnections: boolean;
-  arcRendering: ArcRendering;
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   leftSidebarWidth: number;
@@ -75,27 +70,52 @@ export type UserSettings = {
   canvasViewports: Record<string, SavedCanvasViewport>;
 };
 
-export type UserSettingsActions = {
-  setShowAnimations: (value: boolean) => void;
-  setKeepPanelsMounted: (value: boolean) => void;
-  setCompactNodes: (value: boolean) => void;
-  setEnableExperimentalIconPack: (value: boolean) => void;
-  setEnableAutomaticArcConnections: (value: boolean) => void;
-  setArcRendering: (value: ArcRendering) => void;
-  setIsLeftSidebarOpen: (value: boolean) => void;
-  setLeftSidebarWidth: (value: number) => void;
-  setPropertiesPanelWidth: (value: number) => void;
-  setIsBottomPanelOpen: (value: boolean) => void;
-  setBottomPanelHeight: (value: number) => void;
-  setActiveBottomPanelTab: (value: BottomPanelTab) => void;
-  setCursorMode: (value: CursorMode) => void;
-  setTimelineChartType: (value: TimelineChartType) => void;
-  setShowMinimap: (value: boolean) => void;
-  setSnapToGrid: (value: boolean) => void;
-  setHighlightOnHover: (value: boolean) => void;
-  setPartialSelection: (value: boolean) => void;
-  setEnableNetComponents: (value: boolean) => void;
-  setShowCompilationOutput: (value: boolean) => void;
+/**
+ * The settings that change whole. Each has a setter named after it:
+ * `showMinimap` is changed by `setShowMinimap`.
+ */
+const plainSettingKeys = [
+  "showAnimations",
+  "compactNodes",
+  "cursorMode",
+  "isLeftSidebarOpen",
+  "leftSidebarWidth",
+  "propertiesPanelWidth",
+  "isBottomPanelOpen",
+  "bottomPanelHeight",
+  "activeBottomPanelTab",
+  "timelineChartType",
+  "showMinimap",
+  "snapToGrid",
+  "highlightOnHover",
+  "partialSelection",
+  "enableNetComponents",
+  "showCompilationOutput",
+] as const satisfies (keyof UserSettings)[];
+
+type PlainSettingKey = (typeof plainSettingKeys)[number];
+
+type PlainSettingSetters = {
+  [Key in PlainSettingKey as `set${Capitalize<Key>}`]: (
+    value: UserSettings[Key],
+  ) => void;
+};
+
+/** The setter of every plain setting, each writing through `set`. */
+export const createPlainSettingSetters = (
+  set: <Key extends PlainSettingKey>(
+    key: Key,
+    value: UserSettings[Key],
+  ) => void,
+): PlainSettingSetters =>
+  Object.fromEntries(
+    plainSettingKeys.map((key) => [
+      `set${key.charAt(0).toUpperCase()}${key.slice(1)}`,
+      (value: UserSettings[typeof key]) => set(key, value),
+    ]),
+  ) as PlainSettingSetters;
+
+export type UserSettingsActions = PlainSettingSetters & {
   setPluginEnabled: (pluginId: string, enabled: boolean) => void;
   setAssistantPluginId: (pluginId: string) => void;
   updateSubViewSection: (
@@ -110,17 +130,13 @@ export type UserSettingsContextValue = UserSettings & UserSettingsActions;
 
 export const defaultUserSettings: UserSettings = {
   showAnimations: true,
-  keepPanelsMounted: true,
   compactNodes: false,
-  enableExperimentalIconPack: true,
-  enableAutomaticArcConnections: false,
-  arcRendering: "custom",
   cursorMode: "pan",
   isLeftSidebarOpen: true,
-  leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
-  propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
+  leftSidebarWidth: defaultPanelSizes.leftSidebarWidth,
+  propertiesPanelWidth: defaultPanelSizes.propertiesPanelWidth,
   isBottomPanelOpen: false,
-  bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
+  bottomPanelHeight: defaultPanelSizes.bottomPanelHeight,
   activeBottomPanelTab: "diagnostics",
   timelineChartType: "run",
   showMinimap: true,
@@ -141,26 +157,7 @@ export const defaultUserSettings: UserSettings = {
  */
 export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   ...defaultUserSettings,
-  setShowAnimations: () => {},
-  setKeepPanelsMounted: () => {},
-  setCompactNodes: () => {},
-  setEnableExperimentalIconPack: () => {},
-  setEnableAutomaticArcConnections: () => {},
-  setArcRendering: () => {},
-  setIsLeftSidebarOpen: () => {},
-  setLeftSidebarWidth: () => {},
-  setPropertiesPanelWidth: () => {},
-  setIsBottomPanelOpen: () => {},
-  setBottomPanelHeight: () => {},
-  setActiveBottomPanelTab: () => {},
-  setCursorMode: () => {},
-  setTimelineChartType: () => {},
-  setShowMinimap: () => {},
-  setSnapToGrid: () => {},
-  setHighlightOnHover: () => {},
-  setPartialSelection: () => {},
-  setEnableNetComponents: () => {},
-  setShowCompilationOutput: () => {},
+  ...createPlainSettingSetters(() => {}),
   setPluginEnabled: () => {},
   setAssistantPluginId: () => {},
   updateSubViewSection: () => {},
@@ -170,3 +167,41 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
 export const UserSettingsContext = createContext<UserSettingsContextValue>(
   defaultUserSettingsContextValue,
 );
+
+/** Where the settings provider publishes the context value for {@link useUserSettings}. */
+export const UserSettingsPublishedContext =
+  createContext<Published<UserSettingsContextValue>>(null);
+
+/**
+ * One setting, or one of the functions that change them. The reader renders
+ * when that part changes.
+ *
+ * The settings hold what the editor saves as it is used: which panels are
+ * open, their sizes, the canvas viewport. `use(UserSettingsContext)` renders
+ * its reader each time any of them is saved. A component with many
+ * components below it, or one of many like it, reads the settings it needs
+ * through this hook instead.
+ *
+ * ```tsx
+ * const compactNodes = useUserSettings((settings) => settings.compactNodes);
+ * ```
+ */
+export const useUserSettings = <Selected>(
+  select: (settings: UserSettingsContextValue) => Selected,
+): Selected =>
+  useSelected(UserSettingsContext, UserSettingsPublishedContext, select);
+
+/**
+ * Several settings, or functions that change them, by name. The reader
+ * renders when one of them changes.
+ *
+ * ```tsx
+ * const { compactNodes, showMinimap } = useUserSettingsFields("compactNodes", "showMinimap");
+ * ```
+ */
+export const useUserSettingsFields = <
+  Key extends keyof UserSettingsContextValue,
+>(
+  ...keys: Key[]
+): Pick<UserSettingsContextValue, Key> =>
+  useSelectedFields(UserSettingsContext, UserSettingsPublishedContext, keys);

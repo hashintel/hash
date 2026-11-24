@@ -1,5 +1,5 @@
 import bundleAnalyzer from "@next/bundle-analyzer";
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import { config } from "dotenv-flow";
 import webpack from "webpack";
 
@@ -14,10 +14,9 @@ const withBundleAnalyzer = bundleAnalyzer({
 config({ silent: true, path: "../.." });
 
 /**
- * @type {import('@sentry/nextjs').SentryBuildOptions}
+ * @type {import('@sentry/nextjs/config').SentryBuildOptions}
  */
 const sentryWebpackPluginOptions = {
-  disableLogger: true,
   reactComponentAnnotation: {
     enabled: true,
   },
@@ -25,6 +24,11 @@ const sentryWebpackPluginOptions = {
     name: buildStamp,
   },
   silent: true,
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
   widenClientFileUpload: true,
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options.
@@ -41,6 +45,11 @@ process.env.NEXT_PUBLIC_SHOW_WORKER_COST =
 // The API origin
 process.env.NEXT_PUBLIC_API_ORIGIN =
   process.env.API_ORIGIN ?? "http://localhost:5001";
+
+// Brunch's origin, which the process page's assistant calls with the user's
+// session. Unset, the page offers no assistant.
+process.env.NEXT_PUBLIC_HASH_BRUNCH_AGENT_ORIGIN =
+  process.env.HASH_BRUNCH_AGENT_ORIGIN ?? "";
 
 process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN ?? "";
 process.env.NEXT_PUBLIC_ENVIRONMENT = process.env.ENVIRONMENT ?? "";
@@ -85,6 +94,11 @@ export default withSentryConfig(
           {
             source: "/@:shortname/types",
             destination: "/@/:shortname?tab=Types",
+          },
+          {
+            source:
+              "/@:shortname/types/:typeKind(data-type|entity-type|property-type|link-type)s",
+            destination: "/@/:shortname?tab=Types&typeKind=:typeKind",
           },
           {
             source: "/@:shortname/:path*",
@@ -147,6 +161,24 @@ export default withSentryConfig(
       async headers() {
         return [
           {
+            source: "/:path*",
+            headers: [
+              // `frame-ancestors` in the Content Security Policy supersedes
+              // this where supported; it covers routes the policy isn't set on.
+              { key: "X-Frame-Options", value: "SAMEORIGIN" },
+              { key: "X-Content-Type-Options", value: "nosniff" },
+              {
+                key: "Referrer-Policy",
+                value: "strict-origin-when-cross-origin",
+              },
+              {
+                key: "Permissions-Policy",
+                value:
+                  "camera=(), geolocation=(), display-capture=(), payment=()",
+              },
+            ],
+          },
+          {
             /**
              * allow fetching types as JSON from anywhere
              * see /src/middleware.page.ts for middleware which serves the JSON
@@ -159,22 +191,6 @@ export default withSentryConfig(
                 value: "(.*application/json.*)",
               },
             ],
-            headers: [
-              {
-                key: "access-control-allow-origin",
-                value: "*",
-              },
-            ],
-          },
-          {
-            /**
-             * Self-hosted fonts referenced from `globals.scss` (Inter, Open
-             * Sauce Two, Apercu, IBM Plex, …). The Petrinaut embed route is
-             * loaded into a sandboxed null-origin iframe; the browser's
-             * anonymous-CORS rule for font fetches treats the same-host
-             * request as cross-origin and rejects it without these headers.
-             */
-            source: "/fonts/:path*",
             headers: [
               {
                 key: "access-control-allow-origin",

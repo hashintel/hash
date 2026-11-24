@@ -1,6 +1,6 @@
 import { dsIconsPandaPreset } from "@hashintel/ds-icons/panda-preset";
 
-import { CODE_FONT_FAMILY } from "./ui/constants/fonts";
+import { CODE_FONT_FAMILY } from "./ui/shared/fonts";
 
 /**
  * Petrinaut's Panda CSS theme extension, shared between:
@@ -17,11 +17,11 @@ import { CODE_FONT_FAMILY } from "./ui/constants/fonts";
  * generation pipelines compile Petrinaut's style usage against an identical
  * theme contract.
  *
- * All keyframes are namespaced with a `petrinaut` prefix (or an otherwise
- * Petrinaut-specific name) so they can never collide with a host theme's
- * keyframes: Panda deep-merges same-name keyframes across presets, which
- * would otherwise mutate the host's animations (e.g. ds-components' `fadeIn`
- * gaining this package's `translateY`).
+ * All keyframes are namespaced with a `petrinaut` prefix so they can never
+ * collide with a host theme's keyframes: Panda deep-merges same-name
+ * keyframes across presets, which would otherwise mutate the host's
+ * animations (e.g. ds-components' `fadeIn` gaining this package's
+ * `translateY`).
  *
  * This is a plain object (rather than `definePreset(...)`), deliberately not
  * typed against `@pandacss/dev`, so that importing it creates no runtime or
@@ -46,44 +46,6 @@ export const petrinautPandaPreset = {
         petrinautFadeIn: {
           from: { opacity: "0", transform: "translateY(-10px)" },
           to: { opacity: "1", transform: "translateY(0)" },
-        },
-        petrinautFadeOut: {
-          from: { opacity: "1", transform: "translateY(0)" },
-          to: { opacity: "0", transform: "translateY(-10px)" },
-        },
-        optimizationGlow: {
-          "0%, 100%": {
-            boxShadow:
-              "-2px 0 6px rgba(0, 220, 255, 0.03), 2px 0 6px rgba(255, 0, 128, 0.045)",
-          },
-          "25%": {
-            boxShadow:
-              "0 -2px 6px rgba(0, 220, 255, 0.03), 0 2px 6px rgba(255, 0, 128, 0.045)",
-          },
-          "50%": {
-            boxShadow:
-              "2px 0 6px rgba(0, 220, 255, 0.03), -2px 0 6px rgba(255, 0, 128, 0.045)",
-          },
-          "75%": {
-            boxShadow:
-              "0 2px 6px rgba(0, 220, 255, 0.03), 0 -2px 6px rgba(255, 0, 128, 0.045)",
-          },
-        },
-        /**
-         * Breathing purple glow for the GPU side of the experiment backend
-         * toggle. Both steps repeat the control's inset shadows, because
-         * animating `box-shadow` replaces the whole property and the depth
-         * would otherwise vanish for the duration.
-         */
-        petrinautGpuGlow: {
-          "0%, 100%": {
-            boxShadow:
-              "inset 0 2px 4px rgba(0, 0, 0, 0.05), inset 0 0 0 1px var(--colors-black-a10), 0 0 5px var(--colors-purple-a30), 0 0 11px var(--colors-purple-a15)",
-          },
-          "50%": {
-            boxShadow:
-              "inset 0 2px 4px rgba(0, 0, 0, 0.05), inset 0 0 0 1px var(--colors-black-a10), 0 0 9px var(--colors-purple-a50), 0 0 20px var(--colors-purple-a30)",
-          },
         },
         /**
          * The halo breathing around a card whose controls an optimizer
@@ -116,38 +78,6 @@ export const petrinautPandaPreset = {
         petrinautCollapse: {
           from: { height: "var(--height)", opacity: "1" },
           to: { height: "0", opacity: "0" },
-        },
-        dialogBackdropIn: {
-          from: { opacity: "0" },
-          to: { opacity: "1" },
-        },
-        dialogBackdropOut: {
-          from: { opacity: "1" },
-          to: { opacity: "0" },
-        },
-        dialogContentIn: {
-          from: { opacity: "0", transform: "scale(0.95)" },
-          to: { opacity: "1", transform: "scale(1)" },
-        },
-        dialogContentOut: {
-          from: { opacity: "1", transform: "scale(1)" },
-          to: { opacity: "0", transform: "scale(0.95)" },
-        },
-        "popover-in": {
-          from: { opacity: "0", transform: "scale(0.96)" },
-          to: { opacity: "1", transform: "scale(1)" },
-        },
-        "popover-out": {
-          from: { opacity: "1", transform: "scale(1)" },
-          to: { opacity: "0", transform: "scale(0.96)" },
-        },
-        "drawer-in": {
-          from: { opacity: "0", transform: "translateX(100px)" },
-          to: { opacity: "1", transform: "translateX(0)" },
-        },
-        "drawer-out": {
-          from: { opacity: "1", transform: "translateX(0)" },
-          to: { opacity: "0", transform: "translateX(100px)" },
         },
         petrinautVoiceSwap: {
           from: { opacity: "0" },

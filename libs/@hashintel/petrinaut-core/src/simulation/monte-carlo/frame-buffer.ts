@@ -2,7 +2,7 @@
 import {
   createTokenRegionViews,
   type TokenRegionViews,
-} from "../engine/token-layout";
+} from "../../tokens/token-layout";
 
 import type {
   EngineFrameLayout,

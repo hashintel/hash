@@ -6,6 +6,7 @@ import { actionStep, flowWith } from "../shared/step-fixtures";
 import {
   getInputTarget,
   getNewFlowInput,
+  getSourceLabel,
   getSourceOptions,
 } from "./input-sources";
 
@@ -166,9 +167,14 @@ describe("getSourceOptions", () => {
 });
 
 describe("getNewFlowInput", () => {
-  it("names a new flow input after the input, apart from the flow's other inputs, in a kind the input takes", () => {
+  it("names a new flow input after the input, apart from the flow's other inputs and those steps still refer to, in a kind the input takes", () => {
     const flowDefinition: FlowDefinition<string> = {
-      ...flowWith([]),
+      /* `url3` was removed, but a step still refers to it. */
+      ...flowWith([
+        answer("ask", {
+          inputs: { question: { kind: "flow-input", inputName: "url3" } },
+        }),
+      ]),
       inputs: [
         { name: "url", payloadKind: "Text", array: false, required: true },
         { name: "url2", payloadKind: "Text", array: false, required: true },
@@ -182,8 +188,8 @@ describe("getNewFlowInput", () => {
         target: { oneOfPayloadKinds: ["Text"], array: false, required: true },
       }),
     ).toEqual({
-      name: "url3",
-      label: "Url 3",
+      name: "url4",
+      label: "Url 4",
       payloadKind: "Text",
       array: false,
       required: true,
@@ -205,5 +211,30 @@ describe("getNewFlowInput", () => {
       array: true,
       required: false,
     });
+  });
+});
+
+describe("getSourceLabel", () => {
+  it("names a for-each's item after the for-each, as a step's output is after its step", () => {
+    const forEach = (description: string) =>
+      flowWith([
+        {
+          kind: "for-each",
+          stepId: "each",
+          description,
+          over: { kind: "flow-input", inputName: "suppliers" },
+          steps: [answer("inner", { inputs: { question: { kind: "item" } } })],
+          collect: { stepId: "inner", outputName: "explanation", as: "all" },
+        },
+      ]);
+    const item = { kind: "item" as const };
+    const scope = { stepId: "each", itemName: "Supplier" };
+
+    expect(getSourceLabel(forEach("Check suppliers"), item, scope)).toBe(
+      "Check suppliers › Supplier",
+    );
+    expect(getSourceLabel(forEach(""), item, scope)).toBe(
+      "For each › Supplier",
+    );
   });
 });

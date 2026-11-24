@@ -26,7 +26,7 @@ const emptyNet: SDCPN = {
   types: [],
   parameters: [],
   differentialEquations: [],
-  subnets: [],
+  components: [],
   componentInstances: [],
 };
 

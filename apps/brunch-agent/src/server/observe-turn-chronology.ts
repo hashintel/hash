@@ -78,6 +78,9 @@ type TurnChronology = {
   readonly toolCalls: readonly ToolCallChronology[];
 };
 
+/** The message a submission's chronology is logged under; telemetry readback finds it by this. */
+export const chronologyLogMessage = "[brunch] flue.submission chronology";
+
 export type SubmissionChronology = {
   readonly submissionId: string;
   readonly outcome: Extract<

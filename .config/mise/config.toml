@@ -1,5 +1,5 @@
 # renovate: datasource=github-releases depName=jdx/mise
-min_version = "2026.10.22"
+min_version = "2026.11.5"
 
 [env]
 TURBO_GLOBAL_WARNING_DISABLED = 1
@@ -34,7 +34,7 @@ protoc                          = "35.1"
 # CLI tools
 "aqua:nextest-rs/nextest/cargo-nextest" = "0.9.137"
 "aqua:taiki-e/cargo-llvm-cov"           = "0.8.7"
-"cargo:cargo-codspeed"                  = "4.1.0"
+"cargo:cargo-codspeed"                  = "6.0.0"
 "cargo:cargo-hack"                      = "0.6.45"
 # cargo-insta publishes no linux-arm64 binary, so arm64 image builds compile it from source. Its
 # bundled Cargo.lock pins rustix 0.37.27, which fails to build under the repo's pinned nightly;

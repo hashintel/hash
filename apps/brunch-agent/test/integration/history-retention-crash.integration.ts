@@ -39,7 +39,7 @@ assert(
 const dbPath = join(directory, "conversation.db");
 assert.equal(existsSync(dbPath), phase === "recover");
 const identity = {
-  ownerKey: `a4-crash-${basename(directory)}`,
+  actorKey: `a4-crash-${basename(directory)}`,
   conversationId: `a4-crash-${basename(directory)}`,
 };
 const inspect = () => {
@@ -70,6 +70,7 @@ process.env.NODE_ENV = "test";
 process.env.OTEL_SDK_DISABLED = "true";
 delete process.env.HASH_OTLP_ENDPOINT;
 process.env.BRUNCH_DEV_DB_PATH = dbPath;
+process.env.BRUNCH_CHAT_MODEL = "openai/gpt-5.5-2026-04-23";
 const nativeFetch = globalThis.fetch;
 globalThis.fetch = () => {
   throw new Error("Network disabled in crash diagnostic");

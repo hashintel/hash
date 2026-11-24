@@ -80,7 +80,7 @@ describe("development configuration preflight (synthetic only)", () => {
       present: true,
       selection: "not loaded by dev server",
     });
-    expect(report.model.actual).toBe("openai/gpt-5.5-2026-04-23");
+    expect(report.model.actual).toBe("openai/gpt-6.1-sol");
   });
 
   it("rejects a process dummy overriding valid local configuration", async () => {
@@ -221,9 +221,9 @@ describe("development configuration preflight (synthetic only)", () => {
 });
 
 it("selects the shared Petrinaut default unless the environment overrides it", () => {
-  expect(selectChatModelSpecifier({})).toBe("openai/gpt-5.5-2026-04-23");
+  expect(selectChatModelSpecifier({})).toBe("openai/gpt-6.1-sol");
   expect(selectChatModelSpecifier({ BRUNCH_CHAT_MODEL: "" })).toBe(
-    "openai/gpt-5.5-2026-04-23",
+    "openai/gpt-6.1-sol",
   );
   expect(
     selectChatModelSpecifier({ BRUNCH_CHAT_MODEL: "claude-sonnet-4-6" }),

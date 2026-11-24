@@ -3,29 +3,27 @@ import { use, useRef, useState } from "react";
 import { Button, Icon, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { ActiveNetContext } from "../../react/state/active-net-context";
-import { SDCPNContext } from "../../react/state/sdcpn-context";
+import { ActiveNetContext } from "../../react/document/active-net-context";
+import { usePetrinautDefinitionSelector } from "../../react/document/use-document";
 import { NetNavigationList } from "../views/Editor/panels/LeftSideBar/subviews/nets-list";
 
 const popoverWidthStyle = css({
   width: "[min(320px, calc(100vw - 24px))]",
 });
 
-/** Compact host for the editor's shared root/subnet navigation list. */
+/** Compact host for the editor's shared root/component navigation list. */
 export const PreviewNetNavigation: React.FC = () => {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const { activeSubnetId } = use(ActiveNetContext);
-  const {
-    petriNetDefinition: { subnets },
-  } = use(SDCPNContext);
+  const { activeComponentId } = use(ActiveNetContext);
+  const components = usePetrinautDefinitionSelector((net) => net.components);
 
-  if (!subnets?.length) {
+  if (!components?.length) {
     return null;
   }
 
   const activeNetName =
-    subnets.find(({ id }) => id === activeSubnetId)?.name ?? "Root";
+    components.find(({ id }) => id === activeComponentId)?.name ?? "Root";
 
   return (
     <>

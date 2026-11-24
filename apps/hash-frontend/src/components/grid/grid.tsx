@@ -11,7 +11,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 
-import { getCellHorizontalPadding, gridHeaderBaseFont } from "./utils";
+import {
+  getCellHorizontalPadding,
+  getCellSearchableText,
+  gridHeaderBaseFont,
+} from "./utils";
 import { ColumnFilterMenu } from "./utils/column-filter-menu";
 import {
   ConversionMenu,
@@ -46,7 +50,7 @@ import type {
   Instance as PopperInstance,
   VirtualElement,
 } from "@popperjs/core";
-import type { MutableRefObject, Ref } from "react";
+import type { MutableRefObject, ReactNode, Ref } from "react";
 
 export type { ConversionTargetsByColumnKey };
 
@@ -95,6 +99,11 @@ export type GridProps<
    */
   initialSort?: GridSort<Sortable>;
   noResultsMessage?: { title: string; description?: string };
+  /**
+   * Replaces the default "No results found" message, and can hold controls
+   * the user interacts with.
+   */
+  noResultsContent?: ReactNode;
   onConversionTargetSelected?: ({
     columnKey,
     dataTypeId,
@@ -103,6 +112,7 @@ export type GridProps<
     dataTypeId: VersionedUrl | null;
   }) => void;
   onSelectedRowsChange?: (selectedRows: Row[]) => void;
+  preserveCurrentCell?: boolean;
   resizable?: boolean;
   rows?: Row[];
   selectedRows?: Row[];
@@ -137,27 +147,6 @@ const emptyRect: ReturnType<VirtualElement["getBoundingClientRect"]> = {
 
 export const searchResultHighlightColor = "#fff9e3";
 
-/** Mirrors the cell text glide's built-in search tests, per cell kind. */
-const getCellSearchableText = (cell: GridCell): string | undefined => {
-  switch (cell.kind) {
-    case GridCellKind.Text:
-    case GridCellKind.Number:
-      return cell.displayData;
-    case GridCellKind.Uri:
-    case GridCellKind.Markdown:
-      return cell.data;
-    case GridCellKind.Boolean:
-      return typeof cell.data === "boolean" ? cell.data.toString() : undefined;
-    case GridCellKind.Image:
-    case GridCellKind.Bubble:
-      return cell.data.join("\n");
-    case GridCellKind.Custom:
-      return cell.copyData;
-    default:
-      return undefined;
-  }
-};
-
 const gridHeaderHeight = 42;
 
 export const gridHeaderHeightWithBorder = gridHeaderHeight + 1;
@@ -185,11 +174,15 @@ export const Grid = <
   gridRef,
   highlightRegions,
   initialSort,
+  noResultsContent,
   noResultsMessage,
   onConversionTargetSelected,
   onSearchClose,
+  onSearchValueChange,
+  searchValue: externalSearchValue,
   onSelectedRowsChange,
   onVisibleRegionChanged,
+  preserveCurrentCell = false,
   resizable = true,
   rows,
   selectedRows,
@@ -212,6 +205,7 @@ export const Grid = <
     columns: CompactSelection.empty(),
     rows: CompactSelection.empty(),
   });
+  const [currentCellRowId, setCurrentCellRowId] = useState<string>();
 
   useEffect(() => {
     // delete saved interactables on unmount
@@ -370,7 +364,15 @@ export const Grid = <
     }
   }, [externalSort, filteredRows, localSort, sortRows]);
 
-  const [searchValue, setSearchValue] = useState("");
+  const [localSearchValue, setLocalSearchValue] = useState("");
+  const searchValue = externalSearchValue ?? localSearchValue;
+  const setSearchValue = useCallback(
+    (value: string) => {
+      setLocalSearchValue(value);
+      onSearchValueChange?.(value);
+    },
+    [onSearchValueChange],
+  );
 
   /**
    * Search supplied to glide in place of its built-in cell-by-cell search.
@@ -438,9 +440,24 @@ export const Grid = <
   const handleSearchClose = useCallback(() => {
     setSearchValue("");
     onSearchClose?.();
-  }, [onSearchClose]);
+  }, [onSearchClose, setSearchValue]);
 
   const gridSelection = useMemo(() => {
+    let current = selection.current;
+    if (preserveCurrentCell && current) {
+      const rowIndex =
+        sortedAndFilteredRows?.findIndex(
+          (row) => row.rowId === currentCellRowId,
+        ) ?? -1;
+      current =
+        rowIndex < 0
+          ? undefined
+          : {
+              cell: [current.cell[0], rowIndex],
+              range: { x: current.cell[0], y: rowIndex, width: 1, height: 1 },
+              rangeStack: [],
+            };
+    }
     if (sortedAndFilteredRows && selectedRows) {
       let mergedRowSelection = CompactSelection.empty();
 
@@ -456,12 +473,19 @@ export const Grid = <
 
       return {
         ...selection,
+        current,
         rows: mergedRowSelection,
       };
     }
 
-    return selection;
-  }, [selection, sortedAndFilteredRows, selectedRows]);
+    return { ...selection, current };
+  }, [
+    selection,
+    sortedAndFilteredRows,
+    selectedRows,
+    preserveCurrentCell,
+    currentCellRowId,
+  ]);
 
   const gridTheme: Partial<Theme> = useMemo(
     () => ({
@@ -776,6 +800,11 @@ export const Grid = <
         onColumnResize={resizable ? handleColumnResize : undefined}
         onGridSelectionChange={(newSelection) => {
           setSelection(newSelection);
+          setCurrentCellRowId(
+            newSelection.current
+              ? sortedAndFilteredRows?.[newSelection.current.cell[1]]?.rowId
+              : undefined,
+          );
 
           if (onSelectedRowsChange && sortedAndFilteredRows) {
             newSelection.rows.toArray();
@@ -877,6 +906,8 @@ export const Grid = <
                   </Typography>
                 </Stack>
               </Fade>
+            ) : noResultsContent ? (
+              <Box sx={{ pointerEvents: "auto" }}>{noResultsContent}</Box>
             ) : (
               <Stack sx={{ alignItems: "center" }}>
                 <Typography

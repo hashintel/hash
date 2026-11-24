@@ -1,163 +1,89 @@
 ---
 layer: core.simulation
-role: Executes SDCPN nets — stepping, frames, workers and batch statistics
+role: Executes SDCPN nets, with the contract the runtimes share, the engine, the frame format, the steppers and the runtimes
 ---
 
-# Simulation Module
+# Simulation
 
-Headless SDCPN simulation runtime.
+This folder executes a net. Its own files are the contract every runtime
+shares, and each subfolder is a block with a layer of its own. Nothing here
+depends on a UI framework.
 
-> Deep-dive documentation (memory layouts, the frame format, worker protocol,
-> Monte Carlo) lives in the `.mdx` guides beside the code in this folder,
-> rendered in the architecture docs.
+A run works on a copy of the net taken when it starts, so a later edit of the
+document does not reach it. Each runtime first removes from that copy what
+the disabled extensions cover.
+[Two execution paths](doc:two-execution-paths) says why a single run and an
+experiment have a runtime each.
 
-## Overview
+## What a run is built from
 
-The simulation module exposes the core `createSimulation` factory and the
-transport protocol used to run SDCPN simulations off the main thread. It has no
-UI-framework dependency.
+| Part          | Where                                         | What it holds                                                                                                                                           |
+| ------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The contract  | `api.ts`                                      | The types a host sees whichever runtime computes: `SimulationState`, `InitialMarking`, `SimulationFrameReader`, `SimulationTransport`, `WorkerFactory`. |
+| The transport | `worker-transport.ts`                         | Wraps a worker factory in a `SimulationTransport` that queues messages until the worker has booted.                                                     |
+| Token values  | [`../tokens/`](layer:core.tokens)             | What a token attribute is in a document, in memory and packed in a buffer.                                                                              |
+| The engine    | [`engine/`](layer:core.simulation.engine)     | `buildSimulation`, which every runtime calls to compile a net with its HIR artifacts, and `computeNextFrame`, the step of the compiled model.           |
+| Frames        | [`frames/`](layer:core.simulation.frames)     | The layout of a frame buffer and the readers a host inspects one with. [Memory model](doc:core.simulation.frames/memory-model) has the format.          |
+| Steppers      | [`steppers/`](layer:core.simulation.steppers) | How a run gets from one time to the next: a fixed step, an untimed step, or an error-controlled solver.                                                 |
 
-`createSimulation` runs against an immutable SDCPN snapshot. After
-initialization, later document mutations do not affect the active simulation.
+`sdcpn-item-error.ts` holds the error that names the item of the net it
+blames, which a runtime passes on as `itemId`.
 
-## File Layout
+## The runtimes
 
-- `api.ts`: public simulation contract and exposed types.
-- `runtime/`: `createSimulation` implementation and worker transport adapter.
-- `frames/`: frame reader, metric projection, and internal frame storage.
-- `authoring/metric/`: user-authored metric compilation.
-- `authoring/scenario/`: user-authored scenario compilation.
-- `authoring/user-code/`: engine user-code compilation helpers.
-- `engine/`: internal SDCPN build/step execution engine.
-- `worker/`: worker protocol and runtime entrypoint.
+| Runtime                                          | Entry                                          | What it keeps                                                               | Who starts it                                                                                                      |
+| ------------------------------------------------ | ---------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| [Event trace](layer:core.simulation.event-trace) | `createEventSimulation` in `event-trace/`      | The states its stepper finds worth recording, read at any time between them | The editor's Quick Simulation and the preview's, through a simulator of [`core.simulators`](layer:core.simulators) |
+| [Monte Carlo](layer:core.simulation.monte-carlo) | `createMonteCarloExperiment` in `monte-carlo/` | Two buffers per run, and metric aggregates on the host                      | The editor's experiments, through a backend of [`core.experiments`](layer:core.experiments)                        |
 
-## Simulation State
+Each runtime talks to the worker that computes through messages. The
+protocols are on pages of their own:
+[event worker](doc:core.simulation.event-trace.worker/protocol) and
+[Monte Carlo worker](doc:core.simulation.monte-carlo.worker/protocol).
+[Worker sharding](doc:core.simulation.monte-carlo/worker-sharding) says how
+an experiment splits its runs over several Monte Carlo workers.
 
-```typescript
-type SimulationState =
-  "Initializing" | "Ready" | "Running" | "Paused" | "Complete" | "Error";
-```
+`compilePetrinautModel` in `compiled-model.ts`, published as
+`@hashintel/petrinaut-core/compiled-model`, runs a net in the calling thread
+without a worker. It steps with `computeNextFrame` and keeps the latest
+frame only.
 
-| State          | Description                                           |
-| -------------- | ----------------------------------------------------- |
-| `Initializing` | Worker or transport is booting and compiling the run. |
-| `Ready`        | Simulation is initialized and ready to run.           |
-| `Running`      | Frames are being computed.                            |
-| `Paused`       | Computation is paused; frame history is retained.     |
-| `Complete`     | Simulation ended because of deadlock or max time.     |
-| `Error`        | Initialization or computation failed.                 |
+## Where a run is advanced
 
-## Configuration
+The state of one run and the step that advances it sit in `monte-carlo/`,
+and more than the Monte Carlo runtime uses them: `run-state.ts`,
+`frame-buffer.ts`, `frame-operations.ts`, `transition-effect.ts` and
+`advance-run.ts`. The fixed-step and untimed steppers advance a run with
+`advanceRun`, and the adaptive stepper works on the same buffers. The event
+worker reads a recorded state from those buffers, so the event trace imports
+`monte-carlo/` too.
 
-| Property          | Description                                        |
-| ----------------- | -------------------------------------------------- |
-| `sdcpn`           | SDCPN snapshot to simulate.                        |
-| `extensions`      | Optional enabled extension settings for the run.   |
-| `initialMarking`  | JSON-serializable initial token placement.         |
-| `parameterValues` | Parameter values overriding SDCPN defaults.        |
-| `seed`            | Seed for deterministic stochastic behavior.        |
-| `dt`              | Time step in seconds.                              |
-| `maxTime`         | Maximum simulation time. `null` disables it.       |
-| `backpressure`    | Optional worker frame-ahead and batch settings.    |
-| `signal`          | Optional abort signal for initialization/teardown. |
+A change to the order of a fixed step is made in
+`monte-carlo/advance-run.ts` for Quick Simulation and experiments, and in
+`engine/compute-next-frame.ts` for the compiled model.
+The adaptive stepper advances in `steppers/adaptive-stepper.ts`.
+[How a step is computed](doc:core.simulation.engine/stepping) states the
+order.
 
-Provide exactly one execution transport:
+## States of a run
 
-- `createWorker`: a factory returning a `Worker` or `Promise<Worker>`.
-- `transport`: a pre-built opaque `SimulationTransport` for tests or custom
-  worker adapters.
+`SimulationState` is the status every single-run handle publishes:
 
-`initialMarking` is keyed by place ID. Uncolored places use a token count
-number, while colored places use one record per token:
+| State          | Meaning                                                    |
+| -------------- | ---------------------------------------------------------- |
+| `Initializing` | The worker is booting and building the run.                |
+| `Ready`        | The run is built and has not started.                      |
+| `Running`      | The worker computes as far as the host lets it.            |
+| `Paused`       | Computation is paused, and what was computed is kept.      |
+| `Complete`     | The run ended by deadlock or by reaching its maximum time. |
+| `Error`        | Building or computing failed.                              |
+
+`initialMarking` is keyed by place id. An uncoloured place takes a token
+count, and a coloured place one record per token:
 
 ```ts
 {
   susceptible: 100,
   infected: [{ age: 42, viralLoad: 0.8 }]
 }
-```
-
-The runtime sanitizes a copy of `sdcpn` according to `extensions` before
-compilation. Disabled colour, dynamics, stochasticity, and parameter surfaces
-are ignored for that run without mutating the source document.
-
-## Lifecycle
-
-```text
-                    ┌──────────────┐
-                    │ Initializing │
-                    └──────┬───────┘
-                           │ worker ready
-                           ▼
-                    ┌──────────────┐
-             ┌─────►│    Ready     │◄─────┐
-             │      └──────┬───────┘      │
-             │             │ run()        │ pause()
-             │             ▼              │
-             │      ┌──────────────┐      │
-             │      │   Running    │──────┘
-             │      └──────┬───────┘
-             │             │
-             │ deadlock / maxTime / error
-             │             │
-             │             ▼
-             │      ┌──────────────┐
-             └──────│ Complete or  │
-                    │    Error     │
-                    └──────────────┘
-```
-
-## API
-
-- `createSimulation(config)`: initialize a simulation and resolve a live
-  `Simulation` handle once the worker reports ready.
-- `simulation.status`: readable store containing the current
-  `SimulationState`.
-- `simulation.frames`: readable store containing `{ count, latest }`, where
-  `latest` is a `SimulationFrameReader`.
-- `simulation.events`: event stream for completion and runtime errors.
-- `simulation.run()` / `simulation.pause()` / `simulation.reset()`: control
-  computation.
-- `simulation.getFrame(index)`: read a computed frame by index as a
-  `SimulationFrameReader`.
-- `simulation.ack(frameNumber)`: acknowledge consumed frames for worker
-  backpressure.
-- `simulation.setBackpressure(config)`: update worker frame-ahead and batch
-  settings.
-- `simulation.dispose()`: stop and terminate the underlying transport.
-
-## Usage
-
-```ts
-import { createSimulation } from "@hashintel/petrinaut-core";
-
-const simulation = await createSimulation({
-  sdcpn,
-  initialMarking,
-  parameterValues,
-  seed: 42,
-  dt: 0.01,
-  maxTime: null,
-  backpressure: {
-    maxFramesAhead: 100,
-    batchSize: 50,
-  },
-  createWorker: () =>
-    new Worker(new URL("./simulation.worker.js", import.meta.url)),
-});
-
-const unsubscribe = simulation.frames.subscribe(({ count, latest }) => {
-  if (latest) {
-    console.log(
-      `Computed ${count} frames; place p1 has ${latest.getPlaceTokenCount("p1")} tokens`,
-    );
-  }
-});
-
-simulation.ack(0);
-simulation.run();
-
-// Later:
-unsubscribe();
-simulation.dispose();
 ```

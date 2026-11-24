@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { generatedArcId } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
-import { queryBasis } from "../../agents/petrinaut/tools/query-basis.ts";
+import { queryBasis } from "../../agents/shared/query-basis.ts";
 import {
   isAppliedChange,
   latestNetDefinition,
@@ -40,7 +40,6 @@ const definition = {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -287,7 +286,7 @@ test("query_basis matches a root arc to canonical addArc by transition, directio
       placeId: "queue",
       weight: 1,
       type: "standard",
-      targetSubnetId: null,
+      targetComponentId: null,
     },
     output: {
       brunchBrowserResult: true,

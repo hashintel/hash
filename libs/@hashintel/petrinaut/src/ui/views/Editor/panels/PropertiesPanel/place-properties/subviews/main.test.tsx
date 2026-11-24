@@ -12,26 +12,26 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
+  type Petrinaut,
   type Place,
   type SelectionItem,
 } from "@hashintel/petrinaut-core";
 
-import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
+import { ActiveNetContext } from "../../../../../../../react/document/active-net-context";
+import { PetrinautInstanceContext } from "../../../../../../../react/document/instance-context";
+import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import { CodeNavigationProvider } from "../../../../../../monaco/code-navigation";
-import { PlacePropertiesProvider } from "../context";
-import { placeMainContentSubView } from "./main";
+import { PlacePropertiesContext } from "../context";
+import { PlaceMainContent } from "./main";
 
 afterEach(cleanup);
 
-const PlaceMainContent = placeMainContentSubView.component;
 const initialPlace: Place = {
   id: "place-1",
   name: "Orders",
   colorId: "type-1",
   dynamicsEnabled: true,
-  differentialEquationId: "equation-1",
+  dynamics: [{ differentialEquationId: "equation-1" }],
   x: 0,
   y: 0,
 };
@@ -77,25 +77,31 @@ const Harness = ({
                   id: "equation-1",
                   name: "Order aging",
                   colorId: "type-1",
-                  code: "return [];",
+                  code: "return {};",
+                  arity: 1,
                 },
               ],
             },
           }}
         >
-          <PlacePropertiesProvider
-            place={place}
-            placeType={null}
-            types={types}
-            isReadOnly={readOnly}
-            updatePlace={({ update }) =>
-              setPlace((currentPlace) => ({ ...currentPlace, ...update }))
+          <PetrinautInstanceContext
+            value={
+              {
+                mutations: {
+                  updatePlace: ({ update }: { update: Partial<Place> }) =>
+                    setPlace((currentPlace) => ({
+                      ...currentPlace,
+                      ...update,
+                    })),
+                },
+                mutationRefusal: () => null,
+              } as unknown as Petrinaut
             }
           >
-            <CodeNavigationProvider>
+            <PlacePropertiesContext value={{ place, placeType: null, types }}>
               <PlaceMainContent />
-            </CodeNavigationProvider>
-          </PlacePropertiesProvider>
+            </PlacePropertiesContext>
+          </PetrinautInstanceContext>
         </ActiveNetContext>
       </EditorContext>
     </SDCPNContext>
@@ -158,7 +164,7 @@ describe("Place properties", () => {
   });
 
   it.each([false, true])(
-    "opens the assigned type and equation (read-only: %s)",
+    "opens the assigned type (read-only: %s)",
     (readOnly) => {
       const selectItem = vi.fn();
       render(<Harness readOnly={readOnly} selectItem={selectItem} />);
@@ -166,14 +172,6 @@ describe("Place properties", () => {
       expect(selectItem).toHaveBeenLastCalledWith({
         type: "type",
         id: "type-1",
-      });
-      fireEvent.click(screen.getByRole("button", { name: /View equation/ }));
-      expect(
-        screen.queryByRole("button", { name: "Open equation code" }),
-      ).toBeNull();
-      expect(selectItem).toHaveBeenLastCalledWith({
-        type: "differentialEquation",
-        id: "equation-1",
       });
     },
   );

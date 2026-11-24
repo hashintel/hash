@@ -106,12 +106,12 @@ describe("generateActionSubnet", () => {
               types: [],
               differentialEquations: [],
               parameters: [],
-              subnets: [subnet],
+              components: [subnet],
               componentInstances: [
                 {
                   id: generateInstanceKey("step"),
                   name: "step",
-                  subnetId: subnet.id,
+                  component: { id: subnet.id },
                   parameterValues: {},
                   x: 0,
                   y: 0,

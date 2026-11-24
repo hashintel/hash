@@ -82,7 +82,7 @@ describe("hirFromArtifacts", () => {
       stochasticity: false,
       dynamics: true,
       parameters: true,
-      subnets: true,
+      components: true,
     });
 
     expect(result.lambdas.size).toBe(0);
@@ -100,7 +100,7 @@ describe("hirFromArtifacts", () => {
       stochasticity: true,
       dynamics: false,
       parameters: true,
-      subnets: true,
+      components: true,
     });
 
     expect(result.dynamics.size).toBe(0);

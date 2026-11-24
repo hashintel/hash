@@ -16,7 +16,7 @@
  * `interpretHirExpr` with the visualizer's rules, so no JavaScript from the
  * net ever runs there either.
  */
-import { range } from "../simulation/authoring/scenario/helpers";
+import { range } from "../scenario/helpers";
 import {
   createUserKeyedRecord,
   defineOwn,

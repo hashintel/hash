@@ -13,8 +13,12 @@ import { createDraftExperimentTool } from "./petrinaut-tools/draft-experiment.ts
 import {
   asyncCanonicalPetrinautTools,
   netReaderTools,
-  type BrowserToolExecutor,
 } from "./petrinaut-tools/petrinaut-construction.ts";
+
+import type { BrowserToolExecutor } from "./conversation/browser-tool-executor.ts";
+
+/** Petrinaut's canonical tools, each executed through the browser-call rendezvous. */
+export { asyncCanonicalPetrinautTools };
 
 type SdcpnToolOptions = {
   readonly executeBrowserTool?: BrowserToolExecutor;

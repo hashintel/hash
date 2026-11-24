@@ -1,7 +1,7 @@
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { usePanelTarget } from "../../react/state/use-selection";
-import { GlassPanel } from "../components/glass-panel";
+import { GlassPanel } from "../shared/glass-panel";
 import { SelectedItemProperties } from "../views/Editor/panels/PropertiesPanel/selected-item-properties";
 
 // Docked beside the canvas like the editor's inspector: a flat bordered
@@ -34,9 +34,7 @@ const previewPanelContentStyle = css({
  * under it on narrow viewports; the entity-specific content is identical to
  * the full editor.
  */
-export const PreviewPropertiesPanel: React.FC<{ className?: string }> = ({
-  className,
-}) => {
+export const PreviewPropertiesPanel: React.FC = () => {
   const panelTarget = usePanelTarget();
 
   if (panelTarget.kind === "none") {
@@ -45,10 +43,10 @@ export const PreviewPropertiesPanel: React.FC<{ className?: string }> = ({
 
   return (
     <GlassPanel
-      className={cx(previewPanelStyle, className)}
+      className={previewPanelStyle}
       contentClassName={previewPanelContentStyle}
     >
-      <SelectedItemProperties />
+      <SelectedItemProperties panelTarget={panelTarget} />
     </GlassPanel>
   );
 };

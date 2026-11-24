@@ -18,7 +18,7 @@
  * that both declare a capacity and gain tokens on balance. A net without
  * capacities produces empty constraint lists, so the hot path pays nothing.
  */
-import { getArcEndpointPlaceId } from "../../arc-endpoints";
+import { getArcEndpointPlaceId } from "../../document/arc-endpoints";
 
 import type { ID, Place, Transition } from "../../types/sdcpn";
 

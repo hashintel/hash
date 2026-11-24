@@ -6,17 +6,20 @@ import {
 } from "immer";
 
 import {
+  generatePetrinautId,
+  toPetrinautId,
+} from "../../document/petrinaut-id";
+import {
   resolvePetrinautHandleCapabilities,
   sanitizeSDCPNForExtensions,
   stripDisabledExtensionData,
   type PetrinautHandleCapabilities,
-} from "../../extensions";
-import { generatePetrinautId, toPetrinautId } from "../../petrinaut-id";
+} from "../../extensions/extensions";
+import { normalizeSDCPN } from "../../file-format/sdcpn-input";
 import { createReadableStore } from "../../store";
-import { normalizeSDCPN } from "../../types/sdcpn-input";
 
+import type { SDCPNInput } from "../../file-format/sdcpn-input";
 import type { SDCPN } from "../../types/sdcpn";
-import type { SDCPNInput } from "../../types/sdcpn-input";
 import type {
   DocChangeEvent,
   DocHandleState,
@@ -164,6 +167,17 @@ export function createJsonDocHandle(
     refreshHistoryStores();
   }
 
+  /** Reports the document as put at the history entry the cursor is on. */
+  function emitRestored(patches: ImmerPatch[]): void {
+    refreshHistoryStores();
+    emit({
+      next: current,
+      patches: patches.map(fromImmerPatch),
+      source: "local",
+      restored: { index: cursor + 1 },
+    });
+  }
+
   const history: PetrinautHistory = {
     canUndo: canUndoStore,
     canRedo: canRedoStore,
@@ -176,12 +190,7 @@ export function createJsonDocHandle(
       const entry = stack[cursor]!;
       const patches = applyPatchesAndSanitize(entry.inverse);
       cursor -= 1;
-      refreshHistoryStores();
-      emit({
-        next: current,
-        patches: patches.map(fromImmerPatch),
-        source: "local",
-      });
+      emitRestored(patches);
       return true;
     },
     redo() {
@@ -191,12 +200,7 @@ export function createJsonDocHandle(
       cursor += 1;
       const entry = stack[cursor]!;
       const patches = applyPatchesAndSanitize(entry.forward);
-      refreshHistoryStores();
-      emit({
-        next: current,
-        patches: patches.map(fromImmerPatch),
-        source: "local",
-      });
+      emitRestored(patches);
       return true;
     },
     goToIndex(index) {
@@ -222,12 +226,7 @@ export function createJsonDocHandle(
       }
       const patches = applyPatchesAndSanitize(collected);
       cursor = targetCursor;
-      refreshHistoryStores();
-      emit({
-        next: current,
-        patches: patches.map(fromImmerPatch),
-        source: "local",
-      });
+      emitRestored(patches);
       return true;
     },
     clear() {

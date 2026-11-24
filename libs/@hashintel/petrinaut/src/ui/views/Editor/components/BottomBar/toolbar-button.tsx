@@ -1,6 +1,6 @@
 import { cva } from "@hashintel/ds-helpers/css";
 
-import { ShortcutTooltip } from "../../../../keyboard-shortcut";
+import { ShortcutTooltip } from "../../../../shared/keyboard-shortcut";
 
 import type { CSSProperties, ReactNode, Ref } from "react";
 
@@ -45,25 +45,18 @@ const buttonStyle = cva({
 });
 
 interface ToolbarButtonProps {
-  /** Tooltip content shown on hover */
   tooltip: string;
   shortcut?: string;
-  /** Click handler */
   onClick?: () => void;
-  /** Button content (icons, text, etc.) */
   children: ReactNode;
   style?: CSSProperties;
   /** Whether the button is in a selected state */
   isSelected?: boolean;
   /** Whether the button appears disabled (lower opacity, but still clickable) */
   disabled?: boolean;
-  /** Accessibility label */
   ariaLabel: string;
-  /** Accessibility expanded state */
   ariaExpanded?: boolean;
-  /** Whether the button is draggable */
   draggable?: boolean;
-  /** Drag start handler */
   onDragStart?: (event: React.DragEvent) => void;
   /** Forwarded to the underlying `<button>` (e.g. to anchor a popover) */
   ref?: Ref<HTMLButtonElement>;
@@ -75,10 +68,6 @@ interface ToolbarButtonProps {
   [dataAttribute: `data-${string}`]: unknown;
 }
 
-/**
- * Unified button component for the BottomBar toolbar.
- * Provides consistent styling, tooltip, and accessibility across all toolbar buttons.
- */
 export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   tooltip,
   shortcut,
@@ -93,34 +82,26 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   onDragStart,
   ref,
   ...rest
-}) => {
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if ((event.key === "Enter" || event.key === " ") && onClick) {
-      event.preventDefault();
-      onClick();
-    }
-  };
-
-  return (
-    <ShortcutTooltip label={tooltip} shortcut={shortcut}>
-      <button
-        ref={ref}
-        type="button"
-        onClick={onClick}
-        onKeyDown={handleKeyDown}
-        className={buttonStyle({ isSelected, isDisabled: disabled })}
-        style={style}
-        aria-label={ariaLabel}
-        aria-expanded={ariaExpanded}
-        aria-pressed={isSelected}
-        aria-disabled={disabled}
-        draggable={draggable}
-        onDragStart={onDragStart}
-        tabIndex={0}
-        {...rest}
-      >
-        {children}
-      </button>
-    </ShortcutTooltip>
-  );
-};
+}) => (
+  <ShortcutTooltip label={tooltip} shortcut={shortcut}>
+    <button
+      ref={ref}
+      type="button"
+      onClick={onClick}
+      className={buttonStyle({ isSelected, isDisabled: disabled })}
+      style={style}
+      aria-label={ariaLabel}
+      aria-expanded={ariaExpanded}
+      aria-pressed={isSelected}
+      aria-disabled={disabled}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      // Safari reaches a button with Tab, and focuses it on a click, only
+      // when its tabindex is set.
+      tabIndex={0}
+      {...rest}
+    >
+      {children}
+    </button>
+  </ShortcutTooltip>
+);

@@ -4,7 +4,7 @@
  * `createRunner` supplies the study runner, so a test drives the protocol with
  * a fake of each.
  */
-import type { WorkerThreadRuntime } from "../../../environment";
+import type { WorkerThreadRuntime } from "../../../environment/environment";
 import type { PetrinautOptimizationTrialOutcome } from "../../index";
 import type {
   OptimizerInitMessage,

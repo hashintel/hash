@@ -1,0 +1,25 @@
+---
+title: Focus fades the rest
+align: center
+notes:
+  default: >-
+    focus-n fades every part of the drawing except the ones that carry it, on
+    step n alone.
+  byStep:
+    1: core, the package every other one depends on.
+    2: ui and the connection it draws on.
+---
+
+## Focus fades the rest
+
+```d2 Three packages: ui depends on react and core, react depends on core
+direction: right
+
+ui: ui {class: focus-2}
+react: react
+core: core {class: focus-1}
+
+ui -> react: {class: focus-2}
+ui -> core
+react -> core
+```

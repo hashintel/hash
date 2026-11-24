@@ -32,7 +32,10 @@ import type {
   Span,
 } from "./hir";
 import type {
+  HirDynamicsContext,
   HirFunctionContext,
+  HirKernelContext,
+  HirLambdaContext,
   HirSurfaceContext,
   HirTokenElementInfo,
 } from "./surface-context";
@@ -112,6 +115,53 @@ export function hirTokenRecordType(elements: HirTokenElementInfo[]): HirType {
   };
 }
 
+/**
+ * The type of a lambda's or kernel's `input`: one field per input-arc place.
+ * A place that delivers tokens is a tuple of the arc's weight that also
+ * exposes `.count`; any other (uncoloured, or joined by an inhibitor arc)
+ * exposes `.count` alone.
+ */
+function transitionInputType(
+  context: HirLambdaContext | HirKernelContext,
+): HirType {
+  const bindings = new Map(
+    context.inputPlaces.map((place) => [place.name, place]),
+  );
+  return {
+    kind: "record",
+    fields: context.inputCounts.map(({ name }) => {
+      const binding = bindings.get(name);
+      return {
+        name,
+        type: binding
+          ? {
+              kind: "array",
+              element: hirTokenRecordType(binding.elements),
+              length: binding.tokenCount,
+              inputPlace: true,
+            }
+          : {
+              kind: "record",
+              fields: [{ name: "count", type: HIR_TYPE_INT }],
+              inputPlace: true,
+            },
+      };
+    }),
+  };
+}
+
+/** Why a count-only input cannot be indexed, naming it when the source does. */
+function countOnlyInputMessage(target: HirExpr): string {
+  const subject =
+    target.kind === "fieldAccess" ? `\`${target.field}\`` : "This place";
+  return `${subject} delivers no token values to the transition: it is uncoloured, or joined by an inhibitor arc. Read \`.count\` for how many tokens it holds.`;
+}
+
+/** A transition input that exposes `.count` and nothing else. */
+function isCountOnlyInput(type: HirType): boolean {
+  return type.kind === "record" && type.inputPlace === true;
+}
+
 function isNumeric(type: HirType): boolean {
   return type.kind === "real" || type.kind === "int" || type.kind === "unknown";
 }
@@ -155,6 +205,7 @@ function joinTypes(left: HirType, right: HirType): HirType {
         kind: "array",
         element: joinTypes(left.element, right.element),
         length: left.length === right.length ? left.length : undefined,
+        ...(left.inputPlace && right.inputPlace ? { inputPlace: true } : {}),
       };
     }
     if (left.kind === "record" && right.kind === "record") {
@@ -173,6 +224,7 @@ function joinTypes(left: HirType, right: HirType): HirType {
           name: field.name,
           type: joinTypes(field.type, rightByName.get(field.name)!),
         })),
+        ...(left.inputPlace && right.inputPlace ? { inputPlace: true } : {}),
       };
     }
     return left;
@@ -239,20 +291,15 @@ class Typechecker {
   private tokensParamType(context: HirFunctionContext): HirType {
     switch (context.surface) {
       case "dynamics":
-        return { kind: "array", element: hirTokenRecordType(context.elements) };
+        // The function's input is a tuple of exactly `arity` tokens.
+        return {
+          kind: "array",
+          element: hirTokenRecordType(context.elements),
+          length: context.arity,
+        };
       case "lambda":
       case "kernel":
-        return {
-          kind: "record",
-          fields: context.inputPlaces.map((place) => ({
-            name: place.name,
-            type: {
-              kind: "array",
-              element: hirTokenRecordType(place.elements),
-              length: place.tokenCount,
-            } satisfies HirType,
-          })),
-        };
+        return transitionInputType(context);
       case "scenario-expression":
       case "scenario-code":
         // Scenario functions have no declared parameters — `parameters` and
@@ -417,6 +464,13 @@ class Typechecker {
       }
       case "fieldAccess": {
         const targetType = this.infer(expr.target, env);
+        if (
+          targetType.kind === "array" &&
+          targetType.inputPlace &&
+          expr.field === "count"
+        ) {
+          return HIR_TYPE_INT;
+        }
         if (targetType.kind === "record") {
           const field = targetType.fields.find(
             (candidate) => candidate.name === expr.field,
@@ -466,7 +520,13 @@ class Typechecker {
           }
           return targetType.element;
         }
-        if (targetType.kind !== "unknown") {
+        if (isCountOnlyInput(targetType)) {
+          this.report(
+            expr.span,
+            "hir:count-only-input",
+            countOnlyInputMessage(expr.target),
+          );
+        } else if (targetType.kind !== "unknown") {
           this.report(
             expr.span,
             "hir:invalid-index",
@@ -477,7 +537,13 @@ class Typechecker {
       }
       case "length": {
         const targetType = this.infer(expr.target, env);
-        if (
+        if (isCountOnlyInput(targetType)) {
+          this.report(
+            expr.span,
+            "hir:count-only-input",
+            countOnlyInputMessage(expr.target),
+          );
+        } else if (
           targetType.kind !== "array" &&
           targetType.kind !== "string" &&
           targetType.kind !== "unknown"
@@ -954,44 +1020,43 @@ class Typechecker {
 
     switch (context.surface) {
       case "dynamics": {
+        const { arity } = context;
+        if (arity === 1) {
+          // One token in, one derivative record out.
+          if (returnType.kind !== "record") {
+            if (returnType.kind !== "unknown") {
+              this.report(
+                bodySpan,
+                "hir:dynamics-return",
+                `An equation over one token must return one derivative record, got ${formatHirType(returnType)}.`,
+              );
+            }
+            return;
+          }
+          this.checkDerivativeRecord(returnType, fn, bodySpan, context);
+          return;
+        }
         if (returnType.kind !== "array") {
           if (returnType.kind !== "unknown") {
             this.report(
               bodySpan,
               "hir:dynamics-return",
-              `Dynamics must return an array of derivative records (one per token), got ${formatHirType(returnType)}.`,
+              `An equation over ${arity} tokens must return an array of ${arity} derivative records (one per token), got ${formatHirType(returnType)}.`,
             );
           }
           return;
+        }
+        if (returnType.length !== undefined && returnType.length !== arity) {
+          this.report(
+            bodySpan,
+            "hir:dynamics-return",
+            `An equation over ${arity} tokens must return ${arity} derivative records, one per token, got ${returnType.length}.`,
+          );
         }
         if (returnType.element.kind !== "record") {
           return;
         }
-        const elementByName = new Map(
-          context.elements.map((element) => [element.name, element]),
-        );
-        for (const field of returnType.element.fields) {
-          const element = elementByName.get(field.name);
-          if (!element) {
-            this.report(
-              this.derivativeKeySpan(fn.body, field.name) ?? bodySpan,
-              "hir:unknown-attribute",
-              `\`${field.name}\` is not an attribute of this type.`,
-            );
-          } else if (element.type !== "real") {
-            this.report(
-              this.derivativeKeySpan(fn.body, field.name) ?? bodySpan,
-              "hir:discrete-derivative",
-              `\`${field.name}\` is a discrete (${element.type}) attribute — only real attributes can have derivatives.`,
-            );
-          } else if (!isNumeric(field.type)) {
-            this.report(
-              this.derivativeKeySpan(fn.body, field.name) ?? bodySpan,
-              "hir:type-mismatch",
-              `The derivative of \`${field.name}\` must be a number, got ${formatHirType(field.type)}.`,
-            );
-          }
-        }
+        this.checkDerivativeRecord(returnType.element, fn, bodySpan, context);
         return;
       }
       case "lambda": {
@@ -1325,6 +1390,41 @@ class Typechecker {
       return this.resultRecordLit(expr.body);
     }
     return null;
+  }
+
+  /** Every key of a derivative record names a real attribute of the colour
+   * and carries a number. */
+  private checkDerivativeRecord(
+    record: Extract<HirType, { kind: "record" }>,
+    fn: HirFunction,
+    bodySpan: Span,
+    context: HirDynamicsContext,
+  ): void {
+    const elementByName = new Map(
+      context.elements.map((element) => [element.name, element]),
+    );
+    for (const field of record.fields) {
+      const element = elementByName.get(field.name);
+      if (!element) {
+        this.report(
+          this.derivativeKeySpan(fn.body, field.name) ?? bodySpan,
+          "hir:unknown-attribute",
+          `\`${field.name}\` is not an attribute of this type.`,
+        );
+      } else if (element.type !== "real") {
+        this.report(
+          this.derivativeKeySpan(fn.body, field.name) ?? bodySpan,
+          "hir:discrete-derivative",
+          `\`${field.name}\` is a discrete (${element.type}) attribute — only real attributes can have derivatives.`,
+        );
+      } else if (!isNumeric(field.type)) {
+        this.report(
+          this.derivativeKeySpan(fn.body, field.name) ?? bodySpan,
+          "hir:type-mismatch",
+          `The derivative of \`${field.name}\` must be a number, got ${formatHirType(field.type)}.`,
+        );
+      }
+    }
   }
 
   /** Span of the `name:` key inside the derivative record literal returned by

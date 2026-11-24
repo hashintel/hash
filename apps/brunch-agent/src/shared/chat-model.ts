@@ -6,7 +6,11 @@ import type { ThinkingLevel } from "@flue/runtime";
 export const STEP_A_MODEL_ID = "claude-sonnet-4-6";
 
 /** Brunch's default model and thinking level; `BRUNCH_CHAT_MODEL` and `BRUNCH_CHAT_THINKING` override them. */
-export const DEFAULT_CHAT_MODEL = "openai/gpt-5.5-2026-04-23";
+/**
+ * OpenAI lists no dated snapshot of `gpt-6.1-sol`, so the default follows the
+ * alias (FE-2289).
+ */
+export const DEFAULT_CHAT_MODEL = "openai/gpt-6.1-sol";
 export const DEFAULT_CHAT_THINKING = "medium";
 export const LEGACY_PERSONA_THINKING = "medium";
 

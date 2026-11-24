@@ -1,31 +1,36 @@
 import {
   compileScenario,
   constraintLabel,
-  getDefaultMonteCarloShardCount,
+  experimentBackendOfSimulator,
+  experimentSamplePeriod,
   getOwn,
   prepareScenarioCompiler,
   synthesizeAdHocOptimization,
   synthesizeAdHocScenario,
+  WEBGPU_FIXED_STEP_SIMULATOR_ID,
   type InitialMarking,
   type PetrinautExtensionSettings,
+  type RunClock,
   type Scenario,
   type ScenarioParameter,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
-import {
-  createWorkerPoolExperimentBackend,
-  WORKER_POOL_BACKEND_ID,
-} from "@hashintel/petrinaut-core/experiments";
 
+import { runEndOf } from "../../simulation/run-end";
+import { findSimulator } from "../../simulators/context";
 import { constraintIndicatorSpecs } from "../constraint-indicators";
 import {
   buildAdHocSweepAxes,
   buildParameterAxis,
   pointSweepSelection,
+  sweepSelectionKey,
 } from "../parameter-grid";
-import { sweepSelectionKey } from "../sweep-session";
 
 import type { LanguageClientContextValue } from "../../lsp/context";
+import type {
+  SimulatorSelection,
+  SimulatorsContextValue,
+} from "../../simulators/context";
 import type {
   CreateExperimentInput,
   ExperimentRecord,
@@ -36,10 +41,7 @@ import type {
   BuildExperimentRequest,
   SweptScenarioCompiler,
 } from "./shared/experiment-request";
-import type {
-  ExperimentBackendRegistration,
-  ReusableWorkerFactory,
-} from "@hashintel/petrinaut-core/experiments";
+import type { ExperimentBackendRegistration } from "@hashintel/petrinaut-core/experiments";
 
 export const assertExperimentInput = (input: CreateExperimentInput): void => {
   if (input.name.trim() === "") {
@@ -363,7 +365,7 @@ export const compileExperimentScenario = async ({
   };
 };
 
-/** A sweep's state before anything computed: the whole space selected. */
+/** A sweep's state before anything computed: the midpoint of every axis selected. */
 const idleSweepState = (
   axes: readonly ExperimentParameterAxis[],
 ): ExperimentSweepState => {
@@ -382,6 +384,7 @@ const idleSweepState = (
 export const newExperimentRecord = ({
   id,
   input,
+  clock,
   scenarioName,
   axes,
   fixedScenarioValues,
@@ -389,6 +392,8 @@ export const newExperimentRecord = ({
 }: {
   id: string;
   input: CreateExperimentInput;
+  /** What the experiment's positions count, as its net says. */
+  clock: RunClock;
   scenarioName: string | null;
   axes: readonly ExperimentParameterAxis[];
   fixedScenarioValues: Readonly<Record<string, number>>;
@@ -401,13 +406,15 @@ export const newExperimentRecord = ({
   scenarioName,
   runCount: input.runCount,
   seed: input.seed,
+  clock,
   dt: input.dt,
-  maxTime: input.maxTime,
+  maxTime: runEndOf(clock, input.maxTime),
   status: "initializing",
   error: null,
   metricSpecs: input.metricSpecs,
   computeBackend: "cpu",
   computeBackendFallbackReason: null,
+  simulatorLabel: null,
   startedAt: null,
   finishedAt: null,
   progress: null,
@@ -436,12 +443,15 @@ export const newExperimentRecord = ({
  */
 export const createExperimentRequestBuilder = ({
   input,
+  dt = input.dt,
   sdcpn,
   extensions,
   compiled,
   requestHirArtifacts,
 }: {
   input: CreateExperimentInput;
+  /** The spacing of the samples, when the simulator sets it. Defaults to the input's. */
+  dt?: number;
   /** The exact snapshot to run, metrics substituted. */
   sdcpn: SDCPN;
   extensions: PetrinautExtensionSettings;
@@ -502,7 +512,7 @@ export const createExperimentRequestBuilder = ({
       initialMarking: compiled.initialMarking,
       parameterValues: compiled.parameterValues,
       seed: input.seed,
-      dt: input.dt,
+      dt,
       maxTime: input.maxTime,
       runCount: input.runCount,
       metricSpecs: [...metricSpecs, ...indicatorSpecs],
@@ -513,45 +523,101 @@ export const createExperimentRequestBuilder = ({
 };
 
 /**
- * Backends in preference order, best first. The GPU backend is a candidate
- * only when asked for; the worker-pool backend is always last because it
- * accepts everything, which is what makes it the fallback.
+ * The simulator an experiment runs on. Named outright, or chosen by the
+ * compute backend an older caller asks for: WebGPU fixed step for `webgpu`,
+ * otherwise the simulator a Stochastic simulation starts on. A chosen
+ * simulator that is the one a Stochastic simulation starts on keeps the
+ * parameters that start holds, and a fixed-step one steps at the input's
+ * `dt`.
  */
-export const experimentBackendRegistrations = ({
-  computeBackend,
-  createWorker,
-  shardCount,
-}: {
-  computeBackend: CreateExperimentInput["computeBackend"];
-  createWorker: ReusableWorkerFactory;
-  shardCount: number | undefined;
-}): ExperimentBackendRegistration[] => {
-  const registrations: ExperimentBackendRegistration[] = [];
-  if (computeBackend === "webgpu") {
-    registrations.push({
-      id: "webgpu",
-      label: "GPU (WebGPU)",
-      // Imported here, not at module scope, so a session that never asks
-      // for the GPU never loads the shader generator.
-      load: async () => {
-        const { createWebGpuExperimentBackend } =
-          await import("@hashintel/petrinaut-core/webgpu");
-        return createWebGpuExperimentBackend();
-      },
-    });
+const experimentSimulatorSelection = (
+  simulators: SimulatorsContextValue,
+  input: Pick<CreateExperimentInput, "simulator" | "computeBackend" | "dt">,
+): SimulatorSelection => {
+  if (input.simulator) {
+    return input.simulator;
   }
-  registrations.push({
-    id: WORKER_POOL_BACKEND_ID,
-    label: "CPU (Web Workers)",
-    load: () =>
-      Promise.resolve(
-        createWorkerPoolExperimentBackend({
-          createWorker,
-          // The experiment never inspects the host, so the provider — the
-          // piece that knows this is a browser — states the parallelism.
-          shardCount: shardCount ?? getDefaultMonteCarloShardCount(),
-        }),
-      ),
-  });
-  return registrations;
+  const defaultSelection = simulators.defaultSelections.stochastic;
+  const simulatorId =
+    input.computeBackend === "webgpu"
+      ? WEBGPU_FIXED_STEP_SIMULATOR_ID
+      : defaultSelection.simulatorId;
+  const timeStepParameter = findSimulator(
+    simulators.registrations,
+    simulatorId,
+  )?.samplePeriodParameter;
+  return {
+    simulatorId,
+    parameters: {
+      ...(simulatorId === defaultSelection.simulatorId
+        ? defaultSelection.parameters
+        : {}),
+      ...(timeStepParameter === undefined
+        ? {}
+        : { [timeStepParameter]: input.dt }),
+    },
+  };
+};
+
+/**
+ * What an experiment runs on: the backends to try, best first, and the
+ * spacing of its samples.
+ *
+ * A simulator that samples at its time step fixes the spacing; any other
+ * takes the one asked for. On a clock of steps every simulator samples at
+ * each step. A simulator that fixes the spacing and is not the default is
+ * followed by the default one at the same spacing, so a net the GPU cannot
+ * take still runs. The default is the simulator a Stochastic simulation
+ * starts on.
+ */
+export const experimentSimulatorBackends = (
+  simulators: SimulatorsContextValue,
+  input: Pick<CreateExperimentInput, "simulator" | "computeBackend" | "dt">,
+  clock: RunClock,
+): {
+  registrations: ExperimentBackendRegistration[];
+  samplePeriod: number;
+} => {
+  const selection = experimentSimulatorSelection(simulators, input);
+  const registration = findSimulator(
+    simulators.registrations,
+    selection.simulatorId,
+  );
+  if (!registration) {
+    throw new Error(`Simulator "${selection.simulatorId}" is not registered`);
+  }
+  const timeStep = experimentSamplePeriod(
+    clock,
+    registration,
+    selection.parameters,
+  );
+  const samplePeriod = timeStep ?? input.dt;
+  const registrations = [
+    experimentBackendOfSimulator(registration, selection.parameters),
+  ];
+
+  const fallbackSelection = simulators.defaultSelections.stochastic;
+  const fallback = findSimulator(
+    simulators.registrations,
+    fallbackSelection.simulatorId,
+  );
+  // A run in steps reads no time step, so any simulator can stand in.
+  const fallbackTimeStepParameter =
+    clock === "steps" ? undefined : fallback?.samplePeriodParameter;
+  if (
+    timeStep !== null &&
+    fallback !== undefined &&
+    fallback.id !== registration.id &&
+    (clock === "steps" || fallbackTimeStepParameter !== undefined)
+  ) {
+    registrations.push(
+      experimentBackendOfSimulator(fallback, {
+        ...fallbackSelection.parameters,
+        ...(fallbackTimeStepParameter === undefined
+          ? {}
+          : { [fallbackTimeStepParameter]: samplePeriod }),
+      }),
+    );
+  }
+  return { registrations, samplePeriod };
 };

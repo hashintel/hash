@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { toPetrinautId } from "../petrinaut-id";
+import { toPetrinautId } from "../document/petrinaut-id";
 import {
   petrinautOptimizationEventSchema,
   petrinautOptimizationManifestSchema,
@@ -25,7 +25,7 @@ const definition = {
   types: [],
   differentialEquations: [],
   parameters: [],
-  subnets: [],
+  components: [],
   componentInstances: [],
   scenarios: [scenario],
   metrics: [{ id: toPetrinautId("profit"), name: "Profit", code: "return 1;" }],

@@ -1,8 +1,5 @@
 import { selectionItemTypes } from "@hashintel/petrinaut-core/selection";
 
-import { brunchTools } from "../constants";
-import { netReaderLevelOf } from "./net-readers";
-
 import type { PetrinautAiToolName } from "@hashintel/petrinaut-core/ai";
 
 /** The net elements a Brunch explanation can name, and a canonical change can target. */
@@ -12,10 +9,18 @@ export const netElementKinds = [
   "typeElement",
   "scenario",
   "metric",
-  "subnet",
+  "component",
 ] as const;
 
 export type NetElementKind = (typeof netElementKinds)[number];
+
+/**
+ * A net element kind as a conversation recorded it, under the name the kind
+ * has today: a component was recorded as a `subnet`. Any other value is
+ * returned as it is.
+ */
+export const readRecordedNetElementKind = (kind: unknown): unknown =>
+  kind === "subnet" ? ("component" satisfies NetElementKind) : kind;
 
 /**
  * A read or experiment leaves the bound document unchanged; a mutation or
@@ -31,88 +36,100 @@ export interface PetrinautToolEffect {
   readonly capability: PetrinautToolCapability;
   /** Element kinds whose meaning a document change made by this tool can change, and so whose IDs it can name. */
   readonly targets: readonly NetElementKind[];
+  /** It removes what the user built, so the user approves it first. */
+  readonly destructive: boolean;
 }
 
-const read = { capability: "petrinaut-read", targets: [] } as const;
+const read = {
+  capability: "petrinaut-read",
+  targets: [],
+  destructive: false,
+} as const;
 const mutation = (...targets: readonly NetElementKind[]) =>
-  ({ capability: "petrinaut-mutation", targets }) as const;
+  ({ capability: "petrinaut-mutation", targets, destructive: false }) as const;
+const removal = (...targets: readonly NetElementKind[]) =>
+  ({ capability: "petrinaut-mutation", targets, destructive: true }) as const;
 /** Positions are layout, which is not part of what an element means, so no element is credited with a layout change. */
 const layout = mutation();
 
-/** What each canonical Petrinaut tool does to the bound document. */
+/**
+ * What each canonical Petrinaut tool does to the bound document. An effect
+ * is what the tool is asked to do: what a change takes with it, such as the
+ * arcs and fusions on a place that stops being a port, does not make it a
+ * removal. The user approves a call that would take any all the same.
+ */
 export const petrinautToolEffects = {
   addPlace: mutation("place"),
   updatePlace: mutation("place"),
   updatePlacePosition: layout,
-  removePlace: mutation("place"),
+  removePlace: removal("place"),
   addTransition: mutation("transition"),
   updateTransition: mutation("transition"),
   updateTransitionPosition: layout,
-  removeTransition: mutation("transition"),
+  removeTransition: removal("transition"),
   addArc: mutation("arc"),
-  removeArc: mutation("arc"),
+  removeArc: removal("arc"),
   updateArcWeight: mutation("arc"),
   updateArcType: mutation("arc"),
   updateArcPlace: mutation("arc"),
   addType: mutation("type"),
   updateType: mutation("type"),
-  removeType: mutation("type"),
+  removeType: removal("type"),
   // A type element belongs to its type, so a change to one changes both.
   addTypeElement: mutation("typeElement", "type"),
   updateTypeElement: mutation("typeElement", "type"),
-  removeTypeElement: mutation("typeElement", "type"),
+  removeTypeElement: removal("typeElement", "type"),
   moveTypeElement: mutation("typeElement", "type"),
   addDifferentialEquation: mutation("differentialEquation"),
   updateDifferentialEquation: mutation("differentialEquation"),
-  removeDifferentialEquation: mutation("differentialEquation"),
+  removeDifferentialEquation: removal("differentialEquation"),
   addParameter: mutation("parameter"),
   updateParameter: mutation("parameter"),
-  removeParameter: mutation("parameter"),
+  removeParameter: removal("parameter"),
   addScenario: mutation("scenario"),
   updateScenario: mutation("scenario"),
-  removeScenario: mutation("scenario"),
+  removeScenario: removal("scenario"),
   addMetric: mutation("metric"),
   updateMetric: mutation("metric"),
-  removeMetric: mutation("metric"),
-  addSubnet: mutation("subnet"),
-  updateSubnet: mutation("subnet"),
-  removeSubnet: mutation("subnet"),
+  removeMetric: removal("metric"),
+  addComponent: mutation("component"),
+  updateComponent: mutation("component"),
+  removeComponent: removal("component"),
   addComponentInstance: mutation("componentInstance"),
   updateComponentInstance: mutation("componentInstance"),
   updateComponentInstancePosition: layout,
-  removeComponentInstance: mutation("componentInstance"),
-  deleteItemsByIds: mutation(...selectionItemTypes),
+  removeComponentInstance: removal("componentInstance"),
+  addFusion: mutation("fusion"),
+  updateFusion: mutation("fusion"),
+  removeFusion: removal("fusion"),
+  addFusionMember: mutation("fusion"),
+  removeFusionMember: removal("fusion"),
+  // The member it replaces leaves the fusion, as `removeFusionMember` takes one out.
+  replaceFusionMember: removal("fusion"),
+  setImplementation: mutation("component"),
+  deleteItemsByIds: removal(...selectionItemTypes),
   commitNodePositions: layout,
   setNetTitle: mutation(),
-  applyAutoLayout: { capability: "petrinaut-command", targets: [] },
+  applyAutoLayout: {
+    capability: "petrinaut-command",
+    targets: [],
+    destructive: false,
+  },
   getLatestNetDefinition: read,
   getNetCompilationErrors: read,
   readPetrinautDoc: read,
-  createExperiment: { capability: "petrinaut-experiment", targets: [] },
+  createExperiment: {
+    capability: "petrinaut-experiment",
+    targets: [],
+    destructive: false,
+  },
 } as const satisfies Record<PetrinautAiToolName, PetrinautToolEffect>;
 
-const canonicalEffectOf = (
-  toolName: string,
-): PetrinautToolEffect | undefined =>
-  Object.hasOwn(petrinautToolEffects, toolName)
-    ? petrinautToolEffects[toolName as PetrinautAiToolName]
-    : undefined;
-
-/**
- * Whether a settled browser call may have changed the bound document. The
- * experiment draft prepares in editor memory only, and the net readers only
- * read. An unknown tool's effect is unknown, so it counts as a possible change.
- */
-export const browserToolMutatesDocument = (toolName: string): boolean => {
-  if (toolName === brunchTools.draftPetrinautExperiment) return false;
-  if (netReaderLevelOf(toolName) !== undefined) return false;
-  const capability = canonicalEffectOf(toolName)?.capability;
-  return (
-    capability !== "petrinaut-read" && capability !== "petrinaut-experiment"
-  );
-};
-
-/** The element kinds a canonical tool's document change can name; none for other tools. */
-export const petrinautToolTargets = (
-  toolName: string,
-): readonly NetElementKind[] => canonicalEffectOf(toolName)?.targets ?? [];
+/** The canonical operations that remove what the user built. */
+export type DestructivePetrinautOperation = {
+  [
+    Name in PetrinautAiToolName
+  ]: (typeof petrinautToolEffects)[Name]["destructive"] extends true
+    ? Name
+    : never;
+}[PetrinautAiToolName];

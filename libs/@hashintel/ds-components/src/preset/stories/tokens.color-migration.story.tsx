@@ -165,8 +165,8 @@ export const ColorMappingsDemo = ({ isDark }: { isDark: boolean }) => {
   });
 
   return (
-    <VStack gap="6" alignItems="flex-start" p="6">
-      <VStack gap="1" alignItems="flex-start">
+    <VStack gap="6" css={{ alignItems: "flex-start", p: "6" }}>
+      <VStack gap="1" css={{ alignItems: "flex-start" }}>
         <h1
           className={css({
             textStyle: "2xl",
@@ -229,7 +229,7 @@ export const ColorMappingsDemo = ({ isDark }: { isDark: boolean }) => {
       </div>
 
       {/* Mapping table */}
-      <Box mt="4">
+      <Box css={{ mt: "4" }}>
         <h2
           className={css({
             textStyle: "lg",

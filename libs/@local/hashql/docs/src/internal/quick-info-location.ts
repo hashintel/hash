@@ -1,0 +1,415 @@
+import { HashMap, HashSet, Option, Predicate } from "effect";
+import {
+  ModifierFlags,
+  NodeFlags,
+  SyntaxKind,
+  isBreakOrContinueStatement,
+  isCallOrNewExpression,
+  isClassDeclaration,
+  isEnumDeclaration,
+  isExportDeclaration,
+  isExpressionWithTypeArguments,
+  isFunctionDeclaration,
+  isHeritageClause,
+  isIdentifier,
+  isImportDeclaration,
+  isImportEqualsDeclaration,
+  isImportTypeNode,
+  isInterfaceDeclaration,
+  isJsxNamespacedName,
+  isLabeledStatement,
+  isModuleBlock,
+  isModuleDeclaration,
+  isNamedExports,
+  isNamedTupleMember,
+  isParameterDeclaration,
+  isPropertyAccessExpression,
+  isQualifiedName,
+  isSourceFile,
+  isStringLiteral,
+  isTypeAliasDeclaration,
+  isTypeReferenceNode,
+  isVariableDeclarationList,
+  isVariableStatement,
+} from "typescript/ast";
+
+import * as Node from "../TypeScript/Node.js";
+
+import type {
+  CallOrNewExpression,
+  Declaration,
+  ExpressionWithTypeArguments,
+  Identifier,
+  ModuleDeclaration,
+  Statement,
+} from "typescript/ast";
+
+/**
+ * What a name means where it stands, for a symbol that declares more than one of a value, a type and a namespace.
+ *
+ * Quick info shows the meaning the position asks for. A position that asks for none in particular, such as an import, shows every meaning.
+ */
+export type Meaning = "value" | "type" | "namespace" | "any";
+
+/** Whether `statement` declares `name`, by its own name or as one of its variables. */
+const declares = (statement: Statement, name: string): boolean => {
+  if (isVariableStatement(statement)) {
+    return statement.declarationList.declarations.some(
+      (declaration) =>
+        isIdentifier(declaration.name) && declaration.name.text === name,
+    );
+  }
+
+  const declared =
+    isFunctionDeclaration(statement) ||
+    isClassDeclaration(statement) ||
+    isInterfaceDeclaration(statement) ||
+    isTypeAliasDeclaration(statement) ||
+    isEnumDeclaration(statement) ||
+    isModuleDeclaration(statement) ||
+    isImportEqualsDeclaration(statement)
+      ? statement.name
+      : undefined;
+
+  return (
+    declared !== undefined && isIdentifier(declared) && declared.text === name
+  );
+};
+
+/** The statements of the innermost module or file at or around `scope` that declare `name`, which an export of `name` there exports. */
+const declarationsOf = (
+  scope: Node.Node,
+  name: string,
+): readonly Statement[] => {
+  if (isModuleBlock(scope) || isSourceFile(scope)) {
+    const found = scope.statements.filter((statement) =>
+      declares(statement, name),
+    );
+
+    if (found.length > 0 || isSourceFile(scope)) {
+      return found;
+    }
+  }
+
+  return declarationsOf(scope.parent, name);
+};
+
+/**
+ * Whether `statement` leaves a value behind at run time, as the compiler counts it. A module leaves one where a statement in it does, which makes its name a value as well as a namespace.
+ *
+ * An export of local names leaves one where something it exports does. The compiler counts an exported or re-exported import alias and a name it cannot find as values, and a module it meets again while reading that module, which `visiting` holds, as none.
+ */
+const leavesValue = (
+  statement: Statement,
+  visiting: readonly ModuleDeclaration[],
+): boolean => {
+  if (
+    isInterfaceDeclaration(statement) ||
+    isTypeAliasDeclaration(statement) ||
+    isImportDeclaration(statement)
+  ) {
+    return false;
+  }
+
+  if (isImportEqualsDeclaration(statement)) {
+    return Node.hasModifier(statement, ModifierFlags.Export);
+  }
+
+  if (isEnumDeclaration(statement)) {
+    return !Node.hasModifier(statement, ModifierFlags.Const);
+  }
+
+  if (isModuleDeclaration(statement)) {
+    const { body } = statement;
+    if (body === undefined || visiting.includes(statement)) {
+      return false;
+    }
+
+    const inner = [...visiting, statement];
+    if (!isModuleBlock(body)) {
+      return isModuleDeclaration(body) && leavesValue(body, inner);
+    }
+
+    return body.statements.some((member) => leavesValue(member, inner));
+  }
+
+  if (
+    !isExportDeclaration(statement) ||
+    statement.moduleSpecifier !== undefined ||
+    statement.exportClause === undefined ||
+    !isNamedExports(statement.exportClause)
+  ) {
+    return true;
+  }
+
+  return statement.exportClause.elements.some((specifier) => {
+    const name = specifier.propertyName ?? specifier.name;
+    if (!isIdentifier(name)) {
+      return true;
+    }
+
+    const declarations = declarationsOf(statement.parent, name.text);
+
+    return (
+      declarations.length === 0 ||
+      declarations.some(
+        (declaration) =>
+          isImportEqualsDeclaration(declaration) ||
+          leavesValue(declaration, visiting),
+      )
+    );
+  });
+};
+
+/** What the name of each kind of declaration means. A declaration of another kind has a meaning of its own, or none. */
+const meanings = HashMap.fromIterable<SyntaxKind, Meaning>([
+  [SyntaxKind.VariableDeclaration, "value"],
+  [SyntaxKind.Parameter, "value"],
+  [SyntaxKind.BindingElement, "value"],
+  [SyntaxKind.PropertyDeclaration, "value"],
+  [SyntaxKind.PropertySignature, "value"],
+  [SyntaxKind.PropertyAssignment, "value"],
+  [SyntaxKind.ShorthandPropertyAssignment, "value"],
+  [SyntaxKind.MethodDeclaration, "value"],
+  [SyntaxKind.MethodSignature, "value"],
+  [SyntaxKind.GetAccessor, "value"],
+  [SyntaxKind.SetAccessor, "value"],
+  [SyntaxKind.FunctionDeclaration, "value"],
+  [SyntaxKind.FunctionExpression, "value"],
+  [SyntaxKind.TypeParameter, "type"],
+  [SyntaxKind.InterfaceDeclaration, "type"],
+  [SyntaxKind.TypeAliasDeclaration, "type"],
+  [SyntaxKind.EnumMember, "any"],
+  [SyntaxKind.ClassDeclaration, "any"],
+  [SyntaxKind.ClassExpression, "any"],
+  [SyntaxKind.EnumDeclaration, "any"],
+  [SyntaxKind.NamespaceImport, "any"],
+  [SyntaxKind.NamespaceExport, "any"],
+  [SyntaxKind.NamedTupleMember, "any"],
+  [SyntaxKind.ImportEqualsDeclaration, "any"],
+]);
+
+/** What the name of `declaration` means, or none for a node whose name declares nothing, such as a property access. */
+const declared = (declaration: Node.Node): Option.Option<Meaning> => {
+  if (!isModuleDeclaration(declaration)) {
+    return HashMap.get(meanings, declaration.kind);
+  }
+
+  // A module declared by its specifier is a value, as is a namespace that holds one.
+  const typesOnly =
+    !isStringLiteral(declaration.name) && !leavesValue(declaration, []);
+
+  return Option.some(typesOnly ? "namespace" : "any");
+};
+
+/** Whether a heritage clause names a type with `node`. A class names the value it extends, and every other clause names a type. */
+const isTypeHeritage = (node: ExpressionWithTypeArguments): boolean => {
+  const clause = node.parent;
+  if (!isHeritageClause(clause)) {
+    return false;
+  }
+
+  const keyword = isInterfaceDeclaration(clause.parent)
+    ? SyntaxKind.ExtendsKeyword
+    : SyntaxKind.ImplementsKeyword;
+
+  return clause.token === keyword;
+};
+
+/** Whether `name` stands in the place of a type, as the name of a type reference or the last name of a qualified one. */
+const isTypeReference = (name: Identifier): boolean => {
+  const last =
+    (isQualifiedName(name.parent) && name.parent.right === name) ||
+    (isPropertyAccessExpression(name.parent) && name.parent.name === name);
+  const { parent } = last ? name.parent : name;
+
+  if (isImportTypeNode(parent)) {
+    return !parent.isTypeOf;
+  }
+
+  return (
+    isTypeReferenceNode(parent) ||
+    (isExpressionWithTypeArguments(parent) && isTypeHeritage(parent))
+  );
+};
+
+/** Whether `name` qualifies the type that a type reference or a heritage clause names, as `Space` does in `Space.Kind`. */
+const isNamespaceReference = (name: Identifier): boolean => {
+  let root: Node.Node = name;
+  while (isQualifiedName(root.parent)) {
+    root = root.parent;
+  }
+
+  if (isQualifiedName(root)) {
+    return isTypeReferenceNode(root.parent) && root.right !== name;
+  }
+
+  while (isPropertyAccessExpression(root.parent)) {
+    root = root.parent;
+  }
+
+  return (
+    isPropertyAccessExpression(root) &&
+    root.name !== name &&
+    isExpressionWithTypeArguments(root.parent) &&
+    isTypeHeritage(root.parent)
+  );
+};
+
+/** The syntax in which a name brings a symbol in or sends one out, whatever the symbol means. */
+const passing = HashSet.make(
+  SyntaxKind.ExportAssignment,
+  SyntaxKind.ExportSpecifier,
+  SyntaxKind.ExternalModuleReference,
+  SyntaxKind.ImportSpecifier,
+  SyntaxKind.ImportClause,
+);
+
+/**
+ * What `name` means in the entity an import alias names, as `Space` and `Kind` are in `import Kind = Space.Kind`, or none for a name outside one.
+ *
+ * The alias takes every meaning of the entity, so its last name has them all. A name before a dot is a namespace, and so is an entity of one name.
+ */
+const aliased = (name: Identifier): Option.Option<Meaning> => {
+  let root: Node.Node = name;
+  while (isQualifiedName(root.parent)) {
+    root = root.parent;
+  }
+
+  if (
+    !isImportEqualsDeclaration(root.parent) ||
+    root.parent.moduleReference !== root
+  ) {
+    return Option.none();
+  }
+
+  const last = isQualifiedName(root) && root.right === name;
+
+  return Option.some(last ? "any" : "namespace");
+};
+
+/** What `name` means where it stands. */
+export const meaningOf = (name: Identifier): Meaning => {
+  const { parent } = name;
+  if (HashSet.has(passing, parent.kind)) {
+    return "any";
+  }
+
+  const entity = aliased(name);
+  if (Option.isSome(entity)) {
+    return entity.value;
+  }
+
+  if (Predicate.hasProperty(parent, "name") && parent.name === name) {
+    const meaning = declared(parent);
+    if (Option.isSome(meaning)) {
+      return meaning.value;
+    }
+  }
+
+  if (isTypeReference(name)) {
+    return "type";
+  }
+
+  return isNamespaceReference(name) ? "namespace" : "value";
+};
+
+/** Whether `name` is the label of a statement, where the statement declares it or a `break` or `continue` names it. */
+const isStatementLabel = (name: Identifier): boolean => {
+  const { parent } = name;
+
+  return (
+    (isLabeledStatement(parent) || isBreakOrContinueStatement(parent)) &&
+    parent.label === name
+  );
+};
+
+/**
+ * The node whose type an editor shows for `name` where the compiler resolves the name to no symbol. An editor shows nothing on the label of a statement and on either name of a JSX tag such as `svg:rect`, and those have none.
+ *
+ * The label that starts a member of a tuple reads as the member.
+ */
+export const typedAt = (name: Identifier): Option.Option<Node.Node> => {
+  const { parent } = name;
+  if (isStatementLabel(name) || isJsxNamespacedName(parent)) {
+    return Option.none();
+  }
+
+  const starts = isNamedTupleMember(parent) && parent.pos === name.pos;
+
+  return Option.some(starts ? parent : name);
+};
+
+const containers = HashSet.make(
+  SyntaxKind.SourceFile,
+  SyntaxKind.MethodDeclaration,
+  SyntaxKind.MethodSignature,
+  SyntaxKind.FunctionDeclaration,
+  SyntaxKind.FunctionExpression,
+  SyntaxKind.GetAccessor,
+  SyntaxKind.SetAccessor,
+  SyntaxKind.ClassDeclaration,
+  SyntaxKind.InterfaceDeclaration,
+  SyntaxKind.EnumDeclaration,
+  SyntaxKind.ModuleDeclaration,
+);
+
+/** The declaration around `name` that quick info writes its types for: the nearest function, method, accessor, class, interface, enum, namespace or source file. */
+export const containerOf = (name: Identifier): Node.Node => {
+  let current = name.parent;
+  while (!HashSet.has(containers, current.kind)) {
+    current = current.parent;
+  }
+
+  return current;
+};
+
+/** The call or `new` expression that `name` is the callee of, also as the member that a property access names. */
+export const callOf = (
+  name: Identifier,
+): Option.Option<CallOrNewExpression> => {
+  let callee: Node.Node = name;
+  if (isPropertyAccessExpression(name.parent) && name.parent.name === name) {
+    callee = name.parent;
+  }
+
+  const { parent } = callee;
+  if (isCallOrNewExpression(parent) && parent.expression === callee) {
+    return Option.some(parent);
+  }
+
+  return Option.none();
+};
+
+/** The keyword quick info shows before a variable declared at or above `node`: `(parameter)`, or the keyword of the declaration list that declares it. */
+export const bindingOf = (node: Node.Node): string => {
+  if (isParameterDeclaration(node)) {
+    return "(parameter) ";
+  }
+
+  if (isVariableDeclarationList(node)) {
+    const constant = Node.hasFlag(node, NodeFlags.Const);
+    if (Node.hasFlag(node, NodeFlags.Using)) {
+      // The compiler marks `await using` as both constant and disposed.
+      return constant ? "await using " : "using ";
+    }
+
+    if (constant) {
+      return "const ";
+    }
+
+    return Node.hasFlag(node, NodeFlags.Let) ? "let " : "var ";
+  }
+
+  // A binding element inside the declaration list declares a destructured name.
+  if (isSourceFile(node.parent)) {
+    return "var ";
+  }
+
+  return bindingOf(node.parent);
+};
+
+/** Whether `declaration` declares an abstract class. */
+export const isAbstractClass = (declaration: Declaration): boolean =>
+  isClassDeclaration(declaration) &&
+  Node.hasModifier(declaration, ModifierFlags.Abstract);

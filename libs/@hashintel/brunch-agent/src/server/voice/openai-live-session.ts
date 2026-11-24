@@ -3,6 +3,7 @@ import {
   isInterviewBudgetLevel,
   liveInterviewBudgetInstruction,
 } from "../../petrinaut/interview-budget-levels.js";
+import { liveQuestionBlockHeading } from "../../shared/live-question-block.js";
 import {
   isSupportedVoice,
   voicePreferenceHeader,
@@ -85,8 +86,16 @@ use or call tools or give independent substantive answers or follow-up questions
 Convey supplied settled Brunch context faithfully: preserve facts, quantities,
 negation, uncertainty, corrections and Brunch-authored questions. Never present
 unreported work as complete.
-Once a settled summary is supplied, give a wrap-up in one or two short sentences:
-what Brunch produced and the supplied next action or question. Do not read Brunch's full written answer.
+Once a settled summary is supplied, give its recap as a wrap-up
+in one or two short sentences: what Brunch produced and any supplied next action.
+Do not read Brunch's full written answer. This length limit applies to the recap only.
+A supplied summary may end with a question block:
+a line that reads exactly "${liveQuestionBlockHeading}", then one question per paragraph.
+That line is application scaffolding, not part of the reply: never say it aloud.
+After any recap, ask every question in the block, in the order supplied, in full,
+including every alternative it offers, as written.
+Do not add, guess, merge, reorder, skip or shorten questions or alternatives,
+and do not answer them yourself.
 Start with the result or question itself, not another "Sure thing", "Alright",
 or "Just so I get it right". Continue the conversation rather than restarting it.
 For a comparison that was drafted but not run, the tone could be "The comparison's

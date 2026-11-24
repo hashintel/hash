@@ -1,0 +1,73 @@
+.presenter {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1.25rem 1.5rem;
+  background: #0a0a0a;
+  color: #fff;
+  font-family: var(--pnd-font-sans);
+}
+
+.presenter__waiting {
+  color: rgb(255 255 255 / 0.4);
+}
+
+.presenter__progress {
+  height: 3px;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.08);
+  overflow: hidden;
+}
+
+.presenter__progress-fill {
+  height: 100%;
+  background: var(--sl-color-accent);
+  transition: width 0.3s ease-out;
+}
+
+.presenter__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.presenter__slide {
+  font-family: var(--pnd-font-mono);
+  font-size: 0.95rem;
+  color: rgb(255 255 255 / 0.5);
+}
+
+.presenter__position {
+  font-size: 0.9rem;
+  color: rgb(255 255 255 / 0.35);
+  font-variant-numeric: tabular-nums;
+}
+
+.presenter__note {
+  flex: 1;
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.5;
+}
+
+.presenter hr {
+  border: 0;
+  height: 1px;
+  background: rgb(255 255 255 / 0.08);
+}
+
+.presenter__next-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgb(255 255 255 / 0.3);
+}
+
+.presenter__next {
+  margin: 0;
+  font-size: 1.3rem;
+  line-height: 1.45;
+  color: rgb(255 255 255 / 0.45);
+}

@@ -1,31 +1,39 @@
 import * as v from "valibot";
 
-export const vOrigin = v.pipe(
-  v.union([
-    v.pipe(
-      v.literal("assumed"),
-      v.description(
-        "The agent supplied a stand-in that nothing said supports.",
-      ),
-    ),
-    v.pipe(
-      v.literal("inferred"),
-      v.description("The agent derived it from what was said."),
-    ),
-    v.pipe(
-      v.literal("evidenced"),
-      v.description(
-        "It is in material the USER shared, such as a log or a document. A run, an optimization or anything else a tool produced is not evidence for the account: record what it showed in a reflection.",
-      ),
-    ),
-    v.pipe(v.literal("stated"), v.description("The USER said it.")),
-  ]),
-  v.description(
-    "Where the entry's content came from, independently of whether the USER has agreed to it. Omit for stated.",
-  ),
-);
+const defaultEvidencedDescription =
+  "It is in material the USER shared, such as a log or a document. A run, an optimization or anything else a tool produced is not evidence for the account: record what it showed in a reflection.";
 
-export const vStatus = v.pipe(
+/**
+ * The origin enum. By default `evidenced` covers only material the USER
+ * shared; an agent that also reads records on the USER's behalf passes a
+ * description that names them.
+ */
+export const originSchemaWith = ({
+  evidencedDescription = defaultEvidencedDescription,
+}: { evidencedDescription?: string } = {}) =>
+  v.pipe(
+    v.union([
+      v.pipe(
+        v.literal("assumed"),
+        v.description(
+          "The agent supplied a stand-in that nothing said supports.",
+        ),
+      ),
+      v.pipe(
+        v.literal("inferred"),
+        v.description("The agent derived it from what was said."),
+      ),
+      v.pipe(v.literal("evidenced"), v.description(evidencedDescription)),
+      v.pipe(v.literal("stated"), v.description("The USER said it.")),
+    ]),
+    v.description(
+      "Where the entry's content came from, independently of whether the USER has agreed to it. Omit for stated.",
+    ),
+  );
+
+export const originSchema = originSchemaWith();
+
+export const statusSchema = v.pipe(
   v.union([
     v.pipe(
       v.literal("open"),
@@ -57,8 +65,8 @@ export const vStatus = v.pipe(
   ),
 );
 
-export type Origin = v.InferOutput<typeof vOrigin>;
-export type Status = v.InferOutput<typeof vStatus>;
+export type Origin = v.InferOutput<typeof originSchema>;
+export type Status = v.InferOutput<typeof statusSchema>;
 
 /** Statuses the map lists as questions, which need no entity to be shown. */
 export const questionStatuses: ReadonlySet<Status> = new Set([
@@ -71,10 +79,14 @@ export const questionStatuses: ReadonlySet<Status> = new Set([
  * defaults to `stated`, and only a stated entry may leave its status to
  * default to `confirmed`. Pair with {@link resolveStatus} on the object.
  */
-export const epistemicFields = {
-  origin: v.optional(vOrigin, "stated"),
-  status: v.optional(vStatus),
-};
+export const epistemicFieldsWith = ({
+  origin,
+}: {
+  origin: typeof originSchema;
+}) => ({
+  origin: v.optional(origin, "stated"),
+  status: v.optional(statusSchema),
+});
 
 /** Fills a stated entry's missing status with `confirmed`; refuses any other entry without one. */
 export const resolveStatus = <

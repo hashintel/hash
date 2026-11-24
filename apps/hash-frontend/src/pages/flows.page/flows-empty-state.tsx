@@ -1,10 +1,7 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { DsComponentsScope } from "../shared/ds-components-scope";
-import { NewFlowButton } from "./new-flow-button";
-
-import type { CreateFlow } from "./use-create-flow";
+import type { ReactNode } from "react";
 
 const emptyState = css({
   display: "flex",
@@ -16,6 +13,7 @@ const emptyState = css({
   borderStyle: "solid",
   borderColor: "bd.subtle",
   borderRadius: "xl",
+  bg: "bgSolid.min",
 });
 const iconCircle = css({
   display: "flex",
@@ -38,25 +36,29 @@ const copy = css({
 const heading = css({
   textStyle: "base",
   fontWeight: "semibold",
-  color: "fg.max",
+  color: "fg.heading",
 });
-const description = css({ textStyle: "sm", color: "fg.subtle" });
+const detail = css({ textStyle: "sm", color: "fg.subtle" });
 
-/** Shown on the flows page when there are no flows yet. */
-export const FlowsEmptyState = ({ createFlow }: { createFlow: CreateFlow }) => (
-  <DsComponentsScope>
-    <div className={emptyState}>
-      <div className={iconCircle}>
-        <Icon name="infinity" size="md" />
-      </div>
-      <div className={copy}>
-        <h2 className={heading}>No flows yet</h2>
-        <p className={description}>
-          A flow runs the same steps each time: by hand, on a schedule, or when
-          data changes.
-        </p>
-      </div>
-      <NewFlowButton {...createFlow} />
+/** Shown on the flows page in place of the table: when there are no flows yet, or none matches a search. */
+export const FlowsEmptyState = ({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  /** What to do about it, such as New flow. */
+  children?: ReactNode;
+}) => (
+  <div className={emptyState}>
+    <div className={iconCircle}>
+      <Icon name="infinity" size="md" />
     </div>
-  </DsComponentsScope>
+    <div className={copy}>
+      <h2 className={heading}>{title}</h2>
+      <p className={detail}>{description}</p>
+    </div>
+    {children}
+  </div>
 );

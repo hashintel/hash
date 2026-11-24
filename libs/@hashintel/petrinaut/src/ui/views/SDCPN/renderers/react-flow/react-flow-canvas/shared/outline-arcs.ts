@@ -1,4 +1,5 @@
 import type { CanvasNode, CanvasPoint } from "../../../../canvas-scene";
+import type { Position } from "@xyflow/react";
 
 export type OutlineNode = {
   position: CanvasPoint;
@@ -7,7 +8,41 @@ export type OutlineNode = {
   cornerRadius: number;
 };
 
-export type OutlineArcPath = [path: string, labelX: number, labelY: number];
+/** Where an arc meets an endpoint, and the direction it leaves in. */
+export type FixedEndpoint = { point: CanvasPoint; normal: CanvasPoint };
+
+/** What an arc ends at: the outline of a node, or a point. */
+export type ArcEnd = OutlineNode | FixedEndpoint;
+
+/** The cubic curve an arc follows, as its four points. */
+export type ArcCurve = {
+  start: CanvasPoint;
+  firstControl: CanvasPoint;
+  lastControl: CanvasPoint;
+  end: CanvasPoint;
+};
+
+// Keyed by React Flow's side names, so this module needs only its types.
+const sideNormals: Record<`${Position}`, CanvasPoint> = {
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+  top: { x: 0, y: -1 },
+  bottom: { x: 0, y: 1 },
+};
+
+/**
+ * A point an arc ends at rather than an outline: a component port's handle,
+ * which the arc leaves along the side it sits on, or the pointer, which has
+ * none.
+ */
+export const fixedEndpoint = (
+  x: number,
+  y: number,
+  side?: Position,
+): FixedEndpoint => ({
+  point: { x, y },
+  normal: side ? sideNormals[side] : { x: 0, y: 0 },
+});
 
 export const getOutlineNode = (node: CanvasNode): OutlineNode | null =>
   node.kind === "componentInstance"
@@ -23,7 +58,7 @@ export const getOutlineNode = (node: CanvasNode): OutlineNode | null =>
 export const getOutlineAttachment = (
   node: OutlineNode,
   direction: CanvasPoint,
-): { point: CanvasPoint; normal: CanvasPoint } => {
+): FixedEndpoint => {
   const length = Math.hypot(direction.x, direction.y);
   const unit =
     length > 0
@@ -78,48 +113,89 @@ export const getOutlineAttachment = (
   };
 };
 
-export const getOutlineArcPath = (
-  source: OutlineNode,
-  target: OutlineNode | CanvasPoint,
+/** Whether two ends are one object, or two points with the same normal. */
+export const sameEnd = (left: ArcEnd | null, right: ArcEnd | null): boolean =>
+  left === right ||
+  (left !== null &&
+    right !== null &&
+    "point" in left &&
+    "point" in right &&
+    left.point.x === right.point.x &&
+    left.point.y === right.point.y &&
+    left.normal.x === right.normal.x &&
+    left.normal.y === right.normal.y);
+
+const attach = (endpoint: ArcEnd, direction: CanvasPoint): FixedEndpoint =>
+  "position" in endpoint ? getOutlineAttachment(endpoint, direction) : endpoint;
+
+const centerOf = (endpoint: ArcEnd): CanvasPoint =>
+  "position" in endpoint ? endpoint.position : endpoint.point;
+
+/**
+ * The curve of an arc between two ends. It leaves an outline where the line
+ * between the two centres crosses it, along the outline's normal there, and
+ * a fixed end along that end's own normal. An arc that has one running the
+ * other way between the same two nodes takes a lane to one side, so the two
+ * do not lie on each other.
+ */
+export const getOutlineArcCurve = (
+  source: ArcEnd,
+  target: ArcEnd,
   hasReverseArc = false,
-): OutlineArcPath => {
-  const targetCenter = "position" in target ? target.position : target;
+): ArcCurve => {
+  const sourceCenter = centerOf(source);
+  const targetCenter = centerOf(target);
   const direction = {
-    x: targetCenter.x - source.position.x,
-    y: targetCenter.y - source.position.y,
+    x: targetCenter.x - sourceCenter.x,
+    y: targetCenter.y - sourceCenter.y,
   };
   if (direction.x === 0 && direction.y === 0) {
     direction.x = 1;
   }
   const lane = hasReverseArc ? 0.3 : 0;
-  const sourceAttachment = getOutlineAttachment(source, {
+  const sourceAttachment = attach(source, {
     x: direction.x - direction.y * lane,
     y: direction.y + direction.x * lane,
   });
-  const targetAttachment =
-    "position" in target
-      ? getOutlineAttachment(target, {
-          x: -direction.x - direction.y * lane,
-          y: -direction.y + direction.x * lane,
-        })
-      : { point: target, normal: { x: 0, y: 0 } };
+  const targetAttachment = attach(target, {
+    x: -direction.x - direction.y * lane,
+    y: -direction.y + direction.x * lane,
+  });
   const start = sourceAttachment.point;
   const end = targetAttachment.point;
   const controlDistance = Math.min(
     80,
     Math.hypot(end.x - start.x, end.y - start.y) * 0.35,
   );
-  const firstControl = {
-    x: start.x + sourceAttachment.normal.x * controlDistance,
-    y: start.y + sourceAttachment.normal.y * controlDistance,
+  return {
+    start,
+    firstControl: {
+      x: start.x + sourceAttachment.normal.x * controlDistance,
+      y: start.y + sourceAttachment.normal.y * controlDistance,
+    },
+    lastControl: {
+      x: end.x + targetAttachment.normal.x * controlDistance,
+      y: end.y + targetAttachment.normal.y * controlDistance,
+    },
+    end,
   };
-  const lastControl = {
-    x: end.x + targetAttachment.normal.x * controlDistance,
-    y: end.y + targetAttachment.normal.y * controlDistance,
-  };
-  return [
-    `M ${start.x},${start.y} C ${firstControl.x},${firstControl.y} ${lastControl.x},${lastControl.y} ${end.x},${end.y}`,
-    (start.x + 3 * firstControl.x + 3 * lastControl.x + end.x) / 8,
-    (start.y + 3 * firstControl.y + 3 * lastControl.y + end.y) / 8,
-  ];
 };
+
+/**
+ * A number of path data to a hundredth of a unit. A net's arcs are written
+ * out together, and the digits past that are most of what they would write.
+ */
+const rounded = (value: number): number => Math.round(value * 100) / 100;
+
+/** A point as path data. */
+export const pathPoint = ({ x, y }: CanvasPoint): string =>
+  `${rounded(x)},${rounded(y)}`;
+
+/** A curve as path data. */
+export const curvePath = ({
+  start,
+  firstControl,
+  lastControl,
+  end,
+}: ArcCurve): string =>
+  `M${pathPoint(start)}C${pathPoint(firstControl)} ${pathPoint(lastControl)} ${pathPoint(end)}`;

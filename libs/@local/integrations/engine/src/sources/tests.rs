@@ -1,4 +1,4 @@
-use core::future::ready;
+use core::{assert_matches, future::ready};
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
 use std::{
@@ -27,13 +27,13 @@ use super::{
 };
 use crate::{Workspace, WorkspaceConfig};
 
-pub(super) struct Server {
+pub(crate) struct Server {
     url: String,
     task: JoinHandle<()>,
 }
 
 impl Server {
-    pub(super) fn url(&self) -> &str {
+    pub(crate) fn url(&self) -> &str {
         &self.url
     }
 }
@@ -44,7 +44,7 @@ impl Drop for Server {
     }
 }
 
-pub(super) async fn server(router: Router) -> Server {
+pub(crate) async fn server(router: Router) -> Server {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("should bind the test server");
@@ -290,8 +290,9 @@ async fn capture_isolation(#[case] change_identity: fn(CaptureRun) -> CaptureRun
         )
         .await
         .expect_err("another web, run or definition should not recover this capture");
-    assert!(
-        matches!(error.current_context(), SourceError::Secret),
+    assert_matches!(
+        error.current_context(),
+        SourceError::Secret,
         "should capture the live source again, resolving its credentials"
     );
     workspace.close().await.expect("should close the workspace");
@@ -320,8 +321,9 @@ async fn failed_recovery_keeps_the_capture_error() {
         .capture_sources(&workspace, &definition, run, &resolver)
         .await
         .expect_err("should fail both the capture and its recovery");
-    assert!(
-        matches!(error.current_context(), SourceError::Secret),
+    assert_matches!(
+        error.current_context(),
+        SourceError::Secret,
         "should report the capture failure"
     );
     assert!(
@@ -344,8 +346,9 @@ fn overlapping_roots(#[case] captures: &str) {
     fs::create_dir_all(&local).expect("should create the local source root");
     let error = CaptureStore::new(&local, &local.join(captures))
         .expect_err("should keep captures outside the local source root");
-    assert!(
-        matches!(error.current_context(), SourceError::Configuration),
+    assert_matches!(
+        error.current_context(),
+        SourceError::Configuration,
         "overlapping roots should be rejected as invalid configuration"
     );
 }
@@ -361,8 +364,9 @@ fn local_root_invalid_key(#[case] key: &str) {
     let error = store
         .local_file(key)
         .expect_err("should reject an invalid source key");
-    assert!(
-        matches!(error.current_context(), SourceError::Configuration),
+    assert_matches!(
+        error.current_context(),
+        SourceError::Configuration,
         "invalid source keys should fail validation before accessing the filesystem"
     );
 }
@@ -380,8 +384,9 @@ fn local_root_symlink() {
     let error = store
         .local_file("escape/source.parquet")
         .expect_err("should reject a symlink escaping the local root");
-    assert!(
-        matches!(error.current_context(), SourceError::Read),
+    assert_matches!(
+        error.current_context(),
+        SourceError::Read,
         "the resolved source path should remain inside its configured root"
     );
 }

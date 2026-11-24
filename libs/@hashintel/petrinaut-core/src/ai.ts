@@ -1,10 +1,9 @@
 import { z } from "zod";
 
-import { mutationActionInputSchemas } from "./action-schemas";
-import { aiCommandActionInputSchemas } from "./command-schemas";
+import { mutationActionInputSchemas } from "./actions/action-schemas";
+import { aiCommandActionInputSchemas } from "./actions/command-schemas";
 import { probabilisticSatellitesSDCPN } from "./examples";
 import { petrinautExperimentRequestSchema } from "./experiments/host";
-import { typedKeys } from "./lib/typed-entries";
 
 export {
   petrinautExperimentRequestSchema,
@@ -24,19 +23,20 @@ export {
   parameterSchema,
   mutationActionInputSchemas,
   placeSchema,
+  pruningUpdateActions,
   scenarioSchema,
-  subnetSchema,
+  componentSchema,
   transitionSchema,
-} from "./action-schemas";
+} from "./actions/action-schemas";
 export type {
   MutationActionInput as PetrinautAiMutationToolInput,
   MutationActionName as PetrinautAiMutationToolName,
-} from "./action-schemas";
-export { aiCommandActionInputSchemas } from "./command-schemas";
+} from "./actions/action-schemas";
+export { aiCommandActionInputSchemas } from "./actions/command-schemas";
 export type {
   AiCommandActionInput as PetrinautAiCommandToolInput,
   AiCommandActionName as PetrinautAiCommandToolName,
-} from "./command-schemas";
+} from "./actions/command-schemas";
 
 export type PetrinautAiTool<InputSchema extends z.ZodType> = {
   description: string;
@@ -75,7 +75,8 @@ function createToolBundle<const InputSchemas extends Record<string, z.ZodType>>(
     };
   };
 
-  for (const name of typedKeys(schemas)) {
+  // `Object.keys` returns `string[]`: the keys of `schemas` are its tool names.
+  for (const name of Object.keys(schemas) as (keyof InputSchemas)[]) {
     setTool(name, schemas[name]);
   }
 
@@ -99,6 +100,7 @@ export const petrinautDocNames = [
   "drawing-a-net",
   "petri-net-extensions",
   "useful-patterns",
+  "composition",
   "simulation",
   "scenarios",
   "ad-hoc-scenarios",
@@ -122,36 +124,38 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
     "Token types, parameters, differential equations, visualizers, transition kernels, distributions, firing rate vs predicate, inhibitor arcs, diagnostics.",
   "useful-patterns":
     "Duration modelling (exponential / non-exponential), resource pools, mutual exclusion, source / sink transitions, competing/routing transitions, multi-token arcs.",
+  composition:
+    "Components and instances, marking ports and their direction (input, output, both), fusing a place with instance ports by dragging, what fused places must agree on, interfaces (port-only components) and the components that implement them, choosing an implementation per document or per instance, fusion, port and interface checks in Diagnostics, moving or detaching a fusion by dragging an end of its link, components from the libraries an embedding application offers, the Components panel, imports, what shows while a library resolves or when one fails, exporting with imports inlined, an editor set up to compose those components only.",
   simulation:
-    "Single-run simulation: initial state, simulation settings (scenario picker, dt, ODE solver, parameters), running, frame computation, deadlock, playback controls, timeline, locked editing.",
+    "Simulating the open net: initial state, simulation settings (scenario picker, parameters, mode, simulator and its parameters), the class of a net (timed or untimed, its colouring, stochastic or deterministic), Quick Simulation of one run, Stochastic mode across many runs, deadlock, playback controls, timeline, locked editing.",
   scenarios:
     "Named simulation configurations authored through the scenario form: Variables exposed as scenario parameters, parameter overrides, per-place initial state blocks, running and switching scenarios, the expression language, scenarios stored per place or as code by files, the AI or earlier versions.",
   "ad-hoc-scenarios":
     "Inline initial state + parameters without saving a scenario: the shared form (scenario.<name> variables, fixed/dynamic/swept-count rows chosen from the row gutter's menu, shared columns, phantom row, place totals, live type checking), its three surfaces (quick simulation, experiments, scenario creation and editing with Scenario Parameter toggles), Sweep interval selections with generated adhoc_* parameter names, saved scenarios shown in run mode.",
   experiments:
-    "Monte Carlo batches: configuration (runs, seed, dt, max time, scenario), parameter sweeps, constraints (parameter and state, pass threshold), metric objectives (metric, direction, steps), optional optimizer startup at creation or later from Parameters, Stop and restart, one study per experiment, lifecycle/statuses, cancel/remove, progress and Details, metric charts, the Constraints and Sensitivity analysis cards, the steps table, Objective by step, compute backend, active-experiments popover.",
+    "Monte Carlo batches: configuration (runs, seed, simulator and its parameters, max time, scenario), parameter sweeps, constraints (parameter and state, pass threshold), metric objectives (metric, direction, steps), optional optimizer startup at creation or later from Parameters, Stop and restart, one study per experiment, lifecycle/statuses, cancel/remove, progress and Details, metric charts, the Constraints and Sensitivity analysis cards, the steps table, Objective by step, compute backend, active-experiments popover.",
   "simulation-panels":
     "Experiment and scenario panels, fullscreen controls, state preservation, docked and floating AI layout, links and browser history, session limits for experiments.",
   "actual-mode":
     "Actual mode: host-provided live execution view, read-only net, timeline scrubbing, Events tab with recording and net exports.",
   preview:
-    "Compact read-only PetrinautPreview for host-controlled embeds: shared SDCPN canvas, pan/zoom/fit/minimap, selection and responsive inspector, root/subnet navigation, URL-state ownership, omitted editing and management UI, and host-owned iframe security.",
+    "Compact read-only PetrinautPreview for host-controlled embeds: shared SDCPN canvas, pan/zoom/fit/minimap, selection and responsive inspector, root/component navigation, URL-state ownership, omitted editing and management UI, and host-owned iframe security.",
   "ai-assistant":
     "In-app AI assistant: opening the panel, one text and Voice mode transcript/composer, waveform start, inline Voice state and provenance, typed handoff, consent/recovery, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
   "code-editor":
     "Code editing in the Properties Panel: expand a section to fill the panel, return to the item’s other properties, direct function navigation, automatic edits and read-only behavior.",
   "visual-settings":
-    "General, Viewport, Plugins and Labs preferences: animations, keep-panels-mounted, minimap, snap-to-grid, compact nodes, partial selection, arc rendering style, switching plugins on or off, plugin settings, net components, and compilation output.",
+    "General, Viewport, Plugins and Labs preferences: animations, minimap, snap-to-grid, compact nodes, partial selection, switching plugins on or off, plugin settings, net components, and compilation output.",
   "compilation-output":
     "The Compilation bottom-panel tab: enabling it, the GPU verdict line, structural blockers, shader emission failures, per-item GPU/CPU/untested/no-HIR/unused status, and HIR node counts.",
   examples:
-    "Walkthroughs of the built-in examples and the scenarios/metrics each ships with: SIR, Vaccination Campaign, Supply Chain with Disruption, Supply Chain Profit, Deployment Pipeline, Production with Machine Failure, Probabilistic Satellite Launcher, Café Queue, Drone Patrol.",
+    "Walkthroughs of the built-in examples and the scenarios/metrics each ships with: SIR, Vaccination Campaign, Supply Chain with Disruption, Supply Chain Profit, Deployment Pipeline, Production with Machine Failure, Probabilistic Satellite Launcher, Café Queue, Drone Patrol, and the untimed Bicycle Assembly and Wheel Truing.",
 };
 
 const getLatestNetDefinitionToolInputSchema = z
   .strictObject({})
   .describe(
-    "Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.",
+    "Get the current Petrinaut net state. Returns `{ title, definition, extensions, imports }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, `extensions` lists the currently enabled Petrinaut extension capabilities, and `imports` lists the libraries the net imports and those the application offers: each with its `status` (`resolving`, `resolved` or `failed` with a `message`) and, once resolved, its `name` and `components`. A component gives its `id`, whether it is an `interface`, its `ports` and its `parameters`. Place an instance of one with `addComponentInstance` and `component: { from: <library id>, id: <component id> }`; name its ports by their `id` as `portPlaceId`, and key `parameterValues` by its parameters' `id`s.",
   );
 
 const getNetCompilationErrorsToolInputSchema = z
@@ -236,7 +240,7 @@ const petrinautDocIndex = petrinautDocNames
   .join("\n");
 
 const petrinautAiCapabilityIntroduction = `Use the provided tools to directly modify the current net. The tools use Petrinaut's raw mutation interfaces, so include stable IDs, full entity objects where required, and canvas positions for places and transitions.
-You can check the current net state at any point using the ${getLatestNetDefinitionToolName} tool, which returns \`{ title, definition, extensions }\` — the user-visible net title, the complete SDCPN, and the active extension capabilities for this document. Use it before making changes that depend on existing places, transitions, arcs, scenarios, metrics, parameters, or types; consult \`extensions\` before authoring extension-specific content; and consult the \`title\` when deciding whether the net could use a more descriptive name.
+You can check the current net state at any point using the ${getLatestNetDefinitionToolName} tool, which returns \`{ title, definition, extensions, imports }\` — the user-visible net title, the complete SDCPN, the active extension capabilities for this document, and the libraries it imports or is offered, with their components. Use it before making changes that depend on existing places, transitions, arcs, scenarios, metrics, parameters, or types; consult \`extensions\` before authoring extension-specific content; and consult the \`title\` when deciding whether the net could use a more descriptive name.
 You can check current TypeScript compilation diagnostics at any point using the ${getNetCompilationErrorsToolName} tool.
 You can rename the net at any point using the ${setNetTitleToolName} tool.
 You can read pages of the Petrinaut user guide at any point using the ${readPetrinautDocToolName} tool. Reach for it when the user asks how a UI workflow works (panels, simulation controls, visual settings, the built-in examples), or when you need to confirm a UI detail before instructing them. The available pages and what they cover:
@@ -265,8 +269,8 @@ Place names are part of the code surface: lambdas/kernels read \`input.PlaceName
 Code-surface cheatsheet (exact shapes expected by the runtime). Lambda, kernel, and dynamics code is a plain function body ending in \`return\` — no module, no \`export default\`, no wrapper — with the input object and \`parameters\` available ambiently. (The legacy \`export default Lambda((input, parameters) => …)\` / \`TransitionKernel(…)\` / \`Dynamics(…)\` module form still runs but is deprecated: remove the export, wrapper and callback declaration, keep its body, and add return for an expression callback. Preserve renamed or destructured arguments as local bindings. Deprecation hints do not block simulation; write new code as a bare body.)
 - Transition lambda (\`transition.lambdaCode\`): function body returning the firing condition; \`input\` and \`parameters\` are ambient. Available when stochasticity is enabled OR when colours are enabled and the transition has at least one standard or read input arc from a coloured place. \`input.PlaceName\` is a tuple sized to the input arc weight for coloured standard and read input arcs; token attributes are typed by the colour element: real/integer → number, boolean → boolean, uuid → bigint, string → string (plain JS strings everywhere, compared by value). Read arcs expose tokens in \`input\` but do not consume them when the transition fires. Inhibitor arcs and uncoloured input places are NOT in \`input\`. Predicate → return a boolean; stochastic → return a non-negative rate in firings per simulation second (0 disables, Infinity always fires). Must be deterministic. If unavailable or empty, the runtime uses true for predicate-style transitions and Infinity for stochastic-style transitions. Example: \`return input.Queue[0].priority > parameters.threshold;\`.
 - Transition kernel (\`transition.transitionKernelCode\`): function body returning \`{ OutputPlaceName: [token, …] }\` sized to the output arc weight; \`input\` and \`parameters\` are ambient. Available only for transitions with coloured output places. Include only coloured output places; uncoloured output places are auto-populated. Output values must match element types: real/integer use numbers, boolean uses booleans, string uses plain strings (REQUIRED in the token type; a missing/undefined value becomes the empty string \`""\`, and non-string values are stringified via \`String(value)\`). uuid attributes are OPTIONAL in output tokens: omit them to auto-generate a fresh UUID deterministically from the seeded simulation RNG, use \`Uuid.generate()\` for an explicit fresh UUID, \`Uuid.from(value)\` to derive one from a number or arbitrary string, use a UUID string directly, or forward an input token's uuid bigint unchanged. Plain non-UUID values must be wrapped in \`Uuid.from(...)\`; supplying them directly is a type error. When stochasticity is enabled, real attributes may use \`Distribution.Gaussian(mean, sd)\` / \`Distribution.Uniform(min, max)\` / \`Distribution.Lognormal(mu, sigma)\` (never integer/boolean/uuid/string attributes), and chained \`.map(fn)\` on the same distribution shares one draw. When stochasticity is disabled, kernel outputs must use plain values only. Leave empty when no coloured outputs exist. Example: \`return { Processed: [{ id: input.Queue[0].id, done: true }] };\`.
-- Differential equation (\`differentialEquation.code\`): function body returning the derivatives array; \`tokens\` and \`parameters\` are ambient. \`tokens\` is THIS place's tokens only. Return an array of the same length whose entries provide derivatives for real-valued elements only (i.e. dx/dt, not the new value); integer, boolean, uuid, and string elements are discrete and remain unchanged by dynamics (they can be read from input tokens but never written). The equation's \`colorId\` MUST match every referencing place's \`colorId\`. Example: \`return tokens.map(({ level }) => ({ level: -level * parameters.decay_rate }));\`.
-- Place visualizer (\`place.visualizerCode\`): a JavaScript function body returning one \`<Visualizer.Svg backgroundColor="#eff6ff">…</Visualizer.Svg>\`; \`tokens\`, \`parameters\`, \`width\`, and \`height\` are already in scope. Dimensions are the drawable window size in screen pixels, independent of Canvas zoom. No function wrapper or export is needed. Set \`backgroundColor="#eff6ff"\` for a full-window background; Petrinaut controls the SVG size and window corners, so omit width, height and borderRadius on the root. Root properties are backgroundColor, origin ("top-left" or "center"), optional viewBox (mutually exclusive with origin), and navigation ("none" or "pan-zoom"). Use ambient dimensions for responsive charts; use viewBox for fixed proportional drawings. Only SVG drawing elements and fragments are allowed inside Visualizer.Svg; nested Visualizer.Svg is forbidden. Legacy export default Visualization(...) wrappers and native <svg> elements still render but carry @deprecated editor hints. Migrate to a bare body and Visualizer.Svg: move style.backgroundColor to backgroundColor, retain a needed viewBox, remove root layout styles and dimensions, and move inherited paint/text attributes to a child <g>. For nested legacy SVG, preserve coordinates and clipping with groups, transforms and clip paths. Visualizer.Svg itself is not deprecated. These compatibility forms are scheduled for removal; do not generate them in new code. Imports, hooks and event handlers are not supported.
+- Differential equation (\`differentialEquation.code\`, with \`differentialEquation.arity\`): function body returning derivatives; the input and \`parameters\` are ambient. With arity 1, the usual case, the input is \`token\`, ONE token of THIS place, and \`tokens\` is not defined; with arity 2 and above it is \`tokens\`, a tuple of exactly \`arity\` tokens of THIS place (\`const [a, b] = tokens;\`). The body runs once per combination of that many tokens and returns one record of real-valued derivatives (i.e. dx/dt, not the new value) for arity 1, or an array of \`arity\` records, one per token in order, above that. Integer, boolean, uuid, and string elements are discrete and remain unchanged by dynamics (they can be read but never written). A place lists the equations it composes in \`place.dynamics\` (\`[{ differentialEquationId }]\`, derivatives summed) and runs them while \`place.dynamicsEnabled\`; every listed equation's \`colorId\` MUST match the place's \`colorId\`. Example (arity 1): \`return { level: -token.level * parameters.decay_rate };\`.
+- Place visualizer (\`place.visualizerCode\`): a JavaScript function body returning one \`<Visualizer.Svg backgroundColor="#eff6ff">…</Visualizer.Svg>\`; \`tokens\`, \`parameters\`, \`width\`, and \`height\` are already in scope. Dimensions are the drawable window size in screen pixels, independent of Canvas zoom. A place with no type has tokens with no values: draw from \`tokens.length\`, or one mark per token with \`tokens.map((_, index) => …)\`. No function wrapper or export is needed. Set \`backgroundColor="#eff6ff"\` for a full-window background; Petrinaut controls the SVG size and window corners, so omit width, height and borderRadius on the root. Root properties are backgroundColor, origin ("top-left" or "center"), optional viewBox (mutually exclusive with origin), and navigation ("none" or "pan-zoom"). Use ambient dimensions for responsive charts; use viewBox for fixed proportional drawings. Only SVG drawing elements and fragments are allowed inside Visualizer.Svg; nested Visualizer.Svg is forbidden. Legacy export default Visualization(...) wrappers and native <svg> elements still render but carry @deprecated editor hints. Migrate to a bare body and Visualizer.Svg: move style.backgroundColor to backgroundColor, retain a needed viewBox, remove root layout styles and dimensions, and move inherited paint/text attributes to a child <g>. For nested legacy SVG, preserve coordinates and clipping with groups, transforms and clip paths. Visualizer.Svg itself is not deprecated. These compatibility forms are scheduled for removal; do not generate them in new code. Imports, hooks and event handlers are not supported.
 - Metric (\`metric.code\`): a plain function body — NOT a module, no \`export default\`, no wrapper. \`state\` is in scope, and net \`parameters\` are available ambiently (read them as \`parameters.<variableName>\`). Must \`return\` a finite number. Example: \`return state.places.Infected.count / (state.places.Susceptible.count + state.places.Infected.count + state.places.Recovered.count);\`. \`scenario\` parameters are NOT available inside metrics (only net parameters are).
 - Scenario per_place initial state: \`content\` keys are place IDs; uncoloured values are expressions with \`parameters\` and \`scenario\` in scope; coloured values are row arrays in colour element order using numbers and booleans; string columns take literal text; uuid columns accept UUID strings (any other text converts deterministically to a UUID via UUIDv5).
 - Scenario code-mode initial state: function body returning \`{ PlaceName: tokens }\` keyed by NAME (asymmetric with per_place IDs); unknown names are silently dropped.

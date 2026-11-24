@@ -1,0 +1,17 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Underscore-prefixed type in a generic constraint
+expression: "List<T: _internal>"
+info:
+  kind: Ok
+---
+Type#4294967040@8
+  TypeKind (Path)
+    Path#4294967040@8 (rooted: false)
+      PathSegment#4294967040@7 (name: List)
+        PathSegmentArgument (GenericConstraint)
+          GenericConstraint#4294967040@6 (name: T)
+            Type#4294967040@5
+              TypeKind (Path)
+                Path#4294967040@5 (rooted: false)
+                  PathSegment#4294967040@4 (name: _internal)

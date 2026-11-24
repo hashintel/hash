@@ -24,8 +24,12 @@ const app = (
   </StrictMode>
 );
 // The prerendered page has elements to hydrate; the dev server's template
-// has only the placeholder comment.
-if (root.firstElementChild !== null) {
+// has only the placeholder comment. A deck is prerendered at its first
+// slide but opens on the slide its hash names, so it renders afresh.
+if (
+  root.firstElementChild !== null &&
+  !window.location.pathname.startsWith("/slides")
+) {
   hydrateRoot(root, app);
 } else {
   createRoot(root).render(app);

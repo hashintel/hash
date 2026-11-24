@@ -1,3 +1,4 @@
+import { toUuid } from "../../tokens/uuid";
 /**
  * Shared buffer-ABI transition execution helpers used by both the single-run
  * engine (`compute-possible-transition.ts`) and the Monte Carlo path
@@ -9,12 +10,12 @@
  * `kernelStaging` scratch lives on the `CompiledTransition` and is reused
  * across evaluations; the engine is single-threaded per simulation instance.
  */
+import { generateUuidFromRng } from "./generate-uuid-from-rng";
 import { sampleDistribution } from "./sample-distribution";
-import { generateUuidFromRng, toUuid } from "./uuid";
 
 import type { HirKernelSink } from "../../hir-runtime";
-import type { RuntimeDistribution } from "../authoring/user-code/distribution";
-import type { TokenRegionViews } from "./token-layout";
+import type { TokenRegionViews } from "../../tokens/token-layout";
+import type { RuntimeDistribution } from "./distribution";
 import type { CompiledTransition } from "./types";
 
 const UUID_LO_MASK = 0xffffffffffffffffn;
@@ -41,6 +42,22 @@ export function fillPlaceBases(
     placeBases[arcIndex] = place.byteOffset;
   }
   return true;
+}
+
+/**
+ * Fills `inputCounts` with the live token count of each input arc's place,
+ * in arc order — the emitter's `inputCounts[arc]` reads for
+ * `input.<name>.count`. Runs once per transition evaluation: a count is the
+ * same for every token combination.
+ */
+export function fillInputCounts(
+  inputCounts: Float64Array,
+  places: readonly { count: number }[],
+): void {
+  for (const [arcIndex, place] of places.entries()) {
+    // eslint-disable-next-line no-param-reassign -- writes into the reusable scratch buffer
+    inputCounts[arcIndex] = place.count;
+  }
 }
 
 /**
@@ -134,6 +151,7 @@ export function executeBufferKernel(args: {
     kernelStagingViews.u64,
     kernelStagingViews.u8,
     sink,
+    transition.inputCounts,
   );
 
   const add: Record<string, Uint8Array[]> = {};

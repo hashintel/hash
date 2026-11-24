@@ -1,6 +1,6 @@
-import { SDCPNItemError } from "../../errors";
 import {
   executeBufferKernel,
+  fillInputCounts,
   fillPlaceBases,
   fillTokenIndices,
 } from "../engine/buffer-transition";
@@ -10,6 +10,7 @@ import {
   firstWeightedMarkingIndices,
 } from "../engine/enumerate-weighted-markings";
 import { nextRandom } from "../engine/seeded-rng";
+import { SDCPNItemError } from "../sdcpn-item-error";
 import { getPlaceIndex } from "./layout";
 
 import type { CompiledTransition } from "../engine/types";
@@ -102,6 +103,8 @@ export function computeTransitionEffect(
     );
   }
 
+  fillInputCounts(transition.inputCounts, inputPlaces);
+
   for (const tokenCombinationIndices of tokenCombinations) {
     if (!fillTokenIndices(transition.indices, tokenCombinationIndices)) {
       throw new SDCPNItemError(
@@ -118,6 +121,7 @@ export function computeTransitionEffect(
         frame.tokenViews.u8,
         transition.placeBases,
         transition.indices,
+        transition.inputCounts,
       );
     } catch (error) {
       throw new SDCPNItemError(

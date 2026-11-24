@@ -29,7 +29,7 @@ workflows:
     '.github/workflows/codspeed.yml':
         - 'actions/cache@v4.3.0'
         - 'actions/checkout@v6.0.2'
-        - 'codspeedhq/action@v4.18.5'
+        - 'codspeedhq/action@v5.8.0'
         - 'hashicorp/vault-action@v3.4.0'
         - 'hashintel/actions@main'
         - 'jdx/mise-action@v4.3.0'
@@ -163,9 +163,9 @@ dependencies:
         repo_id: 200299178
         uses:
             - 'actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea'
-    'codspeedhq/action@v4.18.5':
-        ref: 'v4.18.5'
-        commit: 'sha1-f99becdce5e5d51fd556489ebef684f4ecfd6286'
+    'codspeedhq/action@v5.8.0':
+        ref: 'v5.8.0'
+        commit: 'sha1-b1f28b5eccf7cb5bfe6a2a89cb3053eb67f1150c'
         owner_id: 116658140
         repo_id: 561699778
         uses:
@@ -203,7 +203,7 @@ dependencies:
         repo_id: 209846629
     'hashintel/actions@main':
         ref: 'main'
-        commit: 'sha1-41315b492dafd1dfa97eaf302f056859ae7a3778'
+        commit: 'sha1-716db7f330dd96fcac4b2219c1583f767beee925'
         owner_id: 22116112
         repo_id: 1389230708
         uses:

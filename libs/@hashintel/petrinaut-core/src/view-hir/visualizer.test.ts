@@ -3,12 +3,14 @@ import { describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultVisualizerCode,
-} from "../default-codes";
+} from "../actions/default-codes";
 import {
+  bicycleAssembly,
   deploymentPipelineSDCPN,
   probabilisticSatellitesSDCPN,
   supplyChainProfit,
   supplyChainWithDisruption,
+  wheelTruing,
 } from "../examples";
 import { buildVisualizerContext } from "../hir/surface-context";
 import { interpretViewHir, ViewElementValue } from "./interpret-view";
@@ -118,6 +120,8 @@ describe("the view HIR", () => {
       deploymentPipelineSDCPN,
       supplyChainWithDisruption,
       supplyChainProfit,
+      wheelTruing,
+      bicycleAssembly,
     ].filter((example) =>
       example.petriNetDefinition.places.some((place) => place.visualizerCode),
     ),
@@ -414,6 +418,49 @@ describe("the view HIR", () => {
       expect(
         lowerOk(
           `return <Visualizer.Svg><line markerEnd="url(#arrow)" /></Visualizer.Svg>;`,
+        ).body.kind,
+      ).toBe("element");
+    });
+
+    it("rejects literal values that load images through other CSS functions", () => {
+      const imageSet = `export default Visualization(() => <svg style={{ background: 'image-set("https://x.invalid/a" 1x)' }} />);`;
+      expect(lowerErr(imageSet)[0]).toMatchObject({
+        code: "hir:unsafe-value",
+        span: {
+          start: imageSet.indexOf("'image-set"),
+          length: `'image-set("https://x.invalid/a" 1x)'`.length,
+        },
+      });
+      for (const value of [
+        String.raw`"-webkit-image-set(url(https://x.invalid/a) 1x)"`,
+        String.raw`"linear-gradient(red, blue), image-set('https://x.invalid/a' 1x)"`,
+        // The JavaScript string holds `u\72l(...)`, which CSS reads as `url(...)`.
+        String.raw`"u\\72l('https://x.invalid/a')"`,
+      ]) {
+        expect(
+          lowerErr(
+            `export default Visualization(() => <svg style={{ background: ${value} }} />);`,
+          ).map((diagnostic) => diagnostic.code),
+        ).toEqual(["hir:unsafe-value"]);
+      }
+    });
+
+    it("accepts colours, gradients, transforms, fonts and any text child", () => {
+      expect(
+        lowerOk(
+          `export default Visualization(() => (
+  <svg
+    style={{
+      background: "linear-gradient(90deg, #fff, rgba(0, 0, 0, 0.5))",
+      fontFamily: '"Helvetica Neue", Arial, sans-serif',
+      transform: "translate(10px, 20px) rotate(45deg)",
+    }}
+  >
+    <g transform="rotate(45 5 5)" fill="url(#gradient) red">
+      <text>{"f(x) = url(https://x.invalid/a)"}</text>
+    </g>
+  </svg>
+));`,
         ).body.kind,
       ).toBe("element");
     });

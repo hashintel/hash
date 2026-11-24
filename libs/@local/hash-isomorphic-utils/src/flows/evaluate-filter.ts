@@ -29,7 +29,7 @@ const orderingOperators = [
  * The operators that compare a value of each primitive type with an operand. `onSameUtcDate` matches two instants on
  * the same UTC calendar date, whatever their offsets.
  */
-const binaryFilterOperatorsByPrimitive = {
+export const binaryFilterOperatorsByPrimitive = {
   text: [...equalityOperators, "contains", "startsWith", "endsWith"],
   number: orderingOperators,
   date: orderingOperators,

@@ -1,0 +1,41 @@
+# Hand-written; rendered by the arch-docs build. React components and hooks
+# use the purple palette, stores the blue one.
+direction: down
+
+vars: {
+  d2-legend: {
+    a -> b: passes data or calls
+    a -> b: writes each frame {style.stroke-dash: 3}
+    a.style.opacity: 0
+    b.style.opacity: 0
+  }
+}
+
+net: "Active net\ndocument store" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+selection: "Editor selection" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+pointer: "Canvas pointer\nhoveredId, hoverOnReleaseId,\ndragPreview" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+frames: "Canvas frame store\ntoken counts and firings by id" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+scene: "useCanvasScene\nnodes, arcs, focus roles" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+elements: "useReactFlowElements\nuseStableItems" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+flow: "ReactFlow" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+items: "Node components" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+layer: "ArcLayer\nshapes and runs of the arcs" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+pane: "Viewport element" {style.fill: "#ffffff"; style.stroke: "#6b6b6b"}
+interactions: "useCanvasInteractions\nactions that keep their identity" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+
+net -> scene: "derives nodes and arcs"
+selection -> scene: "marks selected nodes"
+pointer -> scene: "hover, drag preview"
+scene -> elements: "maps to nodes and edges"
+elements -> flow: "same object for an unchanged node"
+flow -> items: "renders the changed ones"
+flow -> layer: "renders it as one edge"
+scene -> layer: "by context: the same shape for an unchanged arc"
+items -> layer: "a firing pulses its arcs" {style.stroke-dash: 3}
+frames -> items: "each reads its own value by id"
+flow -> pane: "pan and zoom transform" {style.stroke-dash: 3}
+flow -> interactions: "reports gestures"
+interactions -> selection: "sets on a click or a box"
+interactions -> pointer: "moves the drag preview"
+interactions -> net: "commits a drop"

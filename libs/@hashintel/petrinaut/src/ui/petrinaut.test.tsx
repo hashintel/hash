@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -11,38 +12,34 @@ import {
 import { useEffect, useState } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+const onEditorViewRender = vi.hoisted(() => vi.fn());
+
 vi.mock("./views/Editor/editor-view", async () => {
-  const [{ use }, { SDCPNContext }, { TopBar }, { usePetrinautNavigation }] =
-    await Promise.all([
-      import("react"),
-      import("../react/state/sdcpn-context"),
-      import("./views/Editor/components/TopBar/top-bar"),
-      import("../react/navigation"),
-    ]);
+  const [
+    { use },
+    { NetManagementContext },
+    { TopBar },
+    { usePetrinautNavigation },
+  ] = await Promise.all([
+    import("react"),
+    import("../react/host/net-management-context"),
+    import("./views/Editor/components/TopBar/top-bar"),
+    import("../react/navigation/navigation"),
+  ]);
 
   return {
-    EditorView: ({ titleEditable }: { titleEditable: boolean }) => {
-      const {
-        setTitle,
-        title,
-        titleEditable: contextTitleEditable,
-      } = use(SDCPNContext);
+    EditorView: () => {
+      "use no memo"; // The call below has to run on every render.
+      onEditorViewRender();
+      const { setTitle } = use(NetManagementContext);
       const { state, navigate } = usePetrinautNavigation();
 
       return (
         <div
           data-testid="title-capability"
-          data-available={contextTitleEditable}
+          data-available={setTitle !== undefined}
         >
-          <TopBar
-            actualModeAvailable={false}
-            menuItems={[]}
-            title={title}
-            onTitleChange={setTitle}
-            titleEditable={titleEditable}
-            mode="edit"
-            onModeChange={() => {}}
-          />
+          <TopBar />
           <button
             type="button"
             onClick={() =>
@@ -86,32 +83,19 @@ vi.mock("./views/Editor/editor-view", async () => {
   };
 });
 
-import { createJsonDocHandle, type SDCPN } from "@hashintel/petrinaut-core";
+import {
+  createJsonDocHandle,
+  type PetrinautRules,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 
-import { defaultPetrinautNavigationState } from "../react/navigation";
+import { defaultPetrinautNavigationState } from "../react/navigation/navigation";
+import "../testing/worker-stub";
 import { Petrinaut } from "./petrinaut";
 import {
   definePetrinautPlugin,
   type PluginHook,
 } from "./plugins/define-petrinaut-plugin";
-
-class ObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
-class WorkerStub extends EventTarget {
-  onerror = null;
-  onmessage = null;
-  onmessageerror = null;
-
-  postMessage() {}
-  terminate() {}
-}
-
-globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
-globalThis.Worker = WorkerStub as unknown as typeof Worker;
 
 const testSdcpn: SDCPN = {
   places: [],
@@ -167,6 +151,34 @@ describe("Petrinaut title editing", () => {
     expect(setTitle).toHaveBeenCalledOnce();
     expect(setTitle.mock.calls[0]?.[0]).toBe("Renamed model");
   });
+});
+
+test("renders nothing of the editor for a host that passes new slots on every render", async () => {
+  const handle = createHandle();
+  const editor = (title: string) => (
+    <Petrinaut
+      handle={handle}
+      title={title}
+      slots={{ settingsLabs: <span>Host settings</span> }}
+    />
+  );
+  const { rerender } = render(editor("Model"));
+  await screen.findByText("Model");
+  onEditorViewRender.mockClear();
+
+  // New slots alone, then a new title to wait for: the editor's view renders
+  // some time after its host does.
+  rerender(editor("Model"));
+  await act(async () => {
+    await new Promise((resolve) => {
+      setTimeout(resolve, 100);
+    });
+  });
+  rerender(editor("Renamed"));
+  await screen.findByText("Renamed");
+
+  // Once, for the title.
+  expect(onEditorViewRender).toHaveBeenCalledTimes(1);
 });
 
 test.each([false, true])(
@@ -228,6 +240,30 @@ test.each([false, true])(
   },
 );
 
+test("keeps its instance while rules written inline say the same", async () => {
+  const handle = createHandle();
+  // An instance resolves the libraries on offer once, when it is created.
+  const resolveImport = vi.fn(() => undefined);
+  const libraries = ["@hashintel/logistics"];
+  const editor = (title: string, rules: PetrinautRules) => (
+    <Petrinaut
+      handle={handle}
+      title={title}
+      resolveImport={resolveImport}
+      libraries={libraries}
+      rules={rules}
+    />
+  );
+
+  const view = render(editor("First", { edit: "compose" }));
+  view.rerender(editor("Second", { edit: "compose" }));
+  await screen.findByText("Second");
+  expect(resolveImport).toHaveBeenCalledTimes(1);
+
+  view.rerender(editor("Second", { edit: "all" }));
+  await waitFor(() => expect(resolveImport).toHaveBeenCalledTimes(2));
+});
+
 /** What the run plugin's button did, in order. */
 const runCalls: string[] = [];
 
@@ -276,4 +312,16 @@ test("mounts a plugin's hook once when the editor opens", () => {
   render(<Petrinaut handle={createHandle()} plugins={[mountPlugin]} />);
 
   expect(hookMounts).toEqual(["mount"]);
+});
+
+test("includes the browser FPS shortcut without a toolbar button", () => {
+  localStorage.removeItem("petrinaut:plugin:hash.fps");
+  render(<Petrinaut handle={createHandle()} />);
+  expect(
+    screen.queryByRole("button", { name: "Toggle browser FPS" }),
+  ).toBeNull();
+  fireEvent.keyDown(window, { key: "F", metaKey: true, shiftKey: true });
+  expect(
+    JSON.parse(localStorage.getItem("petrinaut:plugin:hash.fps") ?? "{}"),
+  ).toEqual({ showFps: true });
 });

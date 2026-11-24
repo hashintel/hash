@@ -50,7 +50,6 @@ export const useHashInstance = (): {
     const { __typename, ...rest } =
       hashInstanceSettings?.enabledIntegrations ?? {
         googleSheets: false,
-        linear: false,
       };
 
     return rest;

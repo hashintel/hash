@@ -327,12 +327,10 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
             .authenticate(&access_token_header(&mint_token(&valid_claims(EMAIL))))
             .await;
 
-        assert!(
-            matches!(
-                authentication,
-                ControlFlow::Break(Ok(ActorId::User(user_id)))
-                    if ActorEntityUuid::new(user_id) == actor_id
-            ),
+        assert_matches!(
+            authentication,
+            ControlFlow::Break(Ok(ActorId::User(user_id)))
+                if ActorEntityUuid::new(user_id) == actor_id,
             "a valid token should verify to the actor resolved from its email claim"
         );
     }
@@ -343,8 +341,9 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
 
         let decision: ControlFlow<Result<ActorId, _>> =
             provider.authenticate(&HeaderMap::new()).await;
-        assert!(
-            matches!(decision, ControlFlow::Continue(())),
+        assert_matches!(
+            decision,
+            ControlFlow::Continue(()),
             "a request without an Access token should not be recognized"
         );
     }
@@ -500,8 +499,9 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
         );
 
         let decision: ControlFlow<Result<ActorId, _>> = provider.authenticate(&headers).await;
-        assert!(
-            matches!(decision, ControlFlow::Continue(())),
+        assert_matches!(
+            decision,
+            ControlFlow::Continue(()),
             "the unsigned email header should not be recognized as a credential"
         );
     }

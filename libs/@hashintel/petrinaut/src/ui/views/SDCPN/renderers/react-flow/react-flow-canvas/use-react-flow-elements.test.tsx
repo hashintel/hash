@@ -1,255 +1,152 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, renderHook, screen } from "@testing-library/react";
-import { useState, type ReactNode } from "react";
+import {
+  act,
+  cleanup,
+  render,
+  renderHook as renderBareHook,
+} from "@testing-library/react";
+import {
+  ConnectionMode,
+  type Node,
+  Position,
+  ReactFlow,
+  ReactFlowProvider,
+  useStoreApi,
+} from "@xyflow/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  classicNodeDimensions,
-  compactNodeDimensions,
-} from "@hashintel/petrinaut-core";
-
-import {
-  defaultUserSettingsContextValue,
-  UserSettingsContext,
-} from "../../../../../../react/state/user-settings-context";
+import { ArcLayer } from "./arc-layer";
+import { ArcLayerContext, arcLayerEdgeId } from "./arc-layer-context";
+import { arcBase, nodes, scene, withArcs } from "./scene.test-helpers";
 import { useReactFlowElements } from "./use-react-flow-elements";
 
-import type { CanvasArc, CanvasNode, CanvasScene } from "../../../canvas-scene";
+import type { CanvasScene } from "../../../canvas-scene";
 
 afterEach(cleanup);
 
-const nodeBase = {
-  position: { x: 0, y: 0 },
-  width: 100,
-  height: 100,
-  label: "Node",
-  dragging: false,
+/** The hook reads React Flow's store, so it runs inside a provider. */
+const renderHook: typeof renderBareHook = (callback, options) =>
+  renderBareHook(callback, { wrapper: ReactFlowProvider, ...options });
+
+const linkBase = {
+  fusionId: "belt",
+  name: "Belt",
+  sourceId: "place",
+  targetId: "component",
+  sourcePortId: null,
+  targetPortId: "port",
   selected: false,
-  hovered: false,
+  severity: null,
   focus: "none" as const,
 };
-const nodes: CanvasNode[] = [
-  {
-    ...nodeBase,
-    id: "place",
-    kind: "place",
-    dynamicsEnabled: false,
-    hasColorType: false,
-    hasVisualizer: false,
-    visualizerKeptOpen: false,
-    visualizerActive: false,
-    typeColor: undefined,
-  },
-  {
-    ...nodeBase,
-    id: "transition",
-    kind: "transition",
-    position: { x: 300, y: 200 },
-    width: 160,
-    height: 80,
-    lambdaType: "none",
-  },
-  {
-    ...nodeBase,
-    id: "subnet",
-    kind: "componentInstance",
-    position: { x: 600, y: 0 },
-    subnetName: "Subnet",
-    ports: [{ id: "port", name: "Port" }],
-  },
-];
-const arcBase: Omit<CanvasArc, "id" | "sourceId" | "targetId"> = {
-  kind: "read",
-  weight: 3,
-  sourcePortId: null,
-  targetPortId: null,
-  transitionId: "transition",
-  color: "#123456",
-  selected: true,
-  focus: "none",
-};
-const scene: CanvasScene = {
-  nodes,
-  dimensions: compactNodeDimensions,
-  focusActive: false,
-  arcs: [
-    { ...arcBase, id: "input", sourceId: "place", targetId: "transition" },
-    {
-      ...arcBase,
-      id: "output",
-      sourceId: "transition",
-      targetId: "place",
-      kind: "standard",
-    },
-    {
-      ...arcBase,
-      id: "port-input",
-      sourceId: "subnet",
-      targetId: "transition",
-      sourcePortId: "port",
-    },
-    {
-      ...arcBase,
-      id: "port-output",
-      sourceId: "transition",
-      targetId: "subnet",
-      targetPortId: "port",
-    },
-  ],
-};
 
-const Settings = ({ children }: { children: ReactNode }) => {
-  const [enabled, setEnabled] = useState(false);
-  return (
-    <UserSettingsContext
-      value={{
-        ...defaultUserSettingsContextValue,
-        enableAutomaticArcConnections: enabled,
-      }}
-    >
-      <button type="button" onClick={() => setEnabled(!enabled)}>
-        Toggle automatic arcs
-      </button>
-      {children}
-    </UserSettingsContext>
-  );
-};
-
-describe("automatic arc rendering", () => {
-  it.each([false, true])(
-    "attaches diagonal arcs to square transition corners with compact nodes %s",
-    (compactNodes) => {
-      const dimensions = compactNodes
-        ? compactNodeDimensions
-        : classicNodeDimensions;
-      const transitionSize = dimensions.transition;
-      const transitionPosition = {
-        x: transitionSize.width * 3,
-        y: transitionSize.height * 3,
-      };
-      const { result } = renderHook(
-        () =>
-          useReactFlowElements({
-            ...scene,
-            dimensions,
-            nodes: nodes.map((node) =>
-              node.kind === "transition"
-                ? { ...node, ...transitionSize, position: transitionPosition }
-                : node,
-            ),
-            arcs: [
-              {
-                ...arcBase,
-                id: "input",
-                sourceId: "place",
-                targetId: "transition",
-              },
-            ],
-          }),
-        {
-          wrapper: ({ children }) => (
-            <UserSettingsContext
-              value={{
-                ...defaultUserSettingsContextValue,
-                compactNodes,
-                enableAutomaticArcConnections: true,
-              }}
-            >
-              {children}
-            </UserSettingsContext>
-          ),
-        },
-      );
-
-      const path = result.current.edges.find((edge) => edge.id === "input")
-        ?.data?.outlinePath?.[0];
-      expect(path).toBeDefined();
-      const endpoint = path?.split(" ").at(-1)?.split(",").map(Number);
-      expect(endpoint?.[0]).toBeCloseTo(
-        transitionPosition.x - transitionSize.width / 2,
-      );
-      expect(endpoint?.[1]).toBeCloseTo(
-        transitionPosition.y - transitionSize.height / 2,
-      );
-    },
-  );
-
-  it("changes only ordinary arc geometry and restores all legacy edge data when switched off", () => {
-    const { result } = renderHook(() => useReactFlowElements(scene), {
-      wrapper: Settings,
-    });
-    const legacy = result.current.edges;
-    expect(legacy.every((edge) => edge.data?.outlinePath === undefined)).toBe(
-      true,
+describe("fusion links", () => {
+  it("offers the ends the scene says can move", () => {
+    const { result } = renderHook(() =>
+      useReactFlowElements({
+        ...scene,
+        fusions: [
+          { ...linkBase, id: "two", movableEnds: "both" },
+          { ...linkBase, id: "three", movableEnds: "target" },
+        ],
+      }),
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Toggle automatic arcs" }),
-    );
-    for (const edge of result.current.edges) {
-      const original = legacy.find((candidate) => candidate.id === edge.id);
-      if (edge.id.startsWith("port-")) {
-        expect(edge).toEqual(original);
-      } else {
-        expect(edge.data?.outlinePath).toBeDefined();
-        expect({
-          ...edge,
-          data: { ...edge.data, outlinePath: undefined },
-        }).toEqual(original);
-      }
-    }
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Toggle automatic arcs" }),
-    );
-    expect(result.current.edges).toEqual(legacy);
-  });
-
-  it("recomputes attachments during node movement without mutating the scene", () => {
-    const snapshot = structuredClone(scene);
-    const { result, rerender } = renderHook(
-      (input: CanvasScene) => useReactFlowElements(input),
-      { initialProps: scene, wrapper: Settings },
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Toggle automatic arcs" }),
-    );
-    const previous = result.current.edges.find((edge) => edge.id === "input")
-      ?.data?.outlinePath;
-    rerender({
-      ...scene,
-      nodes: nodes.map((node) =>
-        node.id === "transition"
-          ? { ...node, position: { x: -200, y: 100 }, dragging: true }
-          : node,
-      ),
-    });
     expect(
-      result.current.edges.find((edge) => edge.id === "input")?.data
-        ?.outlinePath,
-    ).not.toEqual(previous);
-    expect(scene).toEqual(snapshot);
+      result.current.edges
+        .filter((edge) => edge.type === "fusion")
+        .map(({ id, reconnectable, targetHandle }) => [
+          id,
+          reconnectable,
+          targetHandle,
+        ]),
+    ).toEqual([
+      ["two", true, "port-in-port"],
+      ["three", "target", "port-in-port"],
+    ]);
+  });
+});
+
+describe("the edge that draws the arcs", () => {
+  it("is one edge for all the arcs, before the fusion links", () => {
+    const { result } = renderHook(() =>
+      useReactFlowElements({
+        ...scene,
+        fusions: [{ ...linkBase, id: "link", movableEnds: "both" }],
+      }),
+    );
+
+    expect(result.current.edges.map((edge) => edge.id)).toEqual([
+      arcLayerEdgeId,
+      "link",
+    ]);
   });
 
-  it("preserves unaffected nodes and arcs when focus changes", () => {
+  it("is absent from a net without arcs", () => {
+    const { result } = renderHook(() =>
+      useReactFlowElements({ ...scene, arcs: [] }),
+    );
+    expect(result.current.edges).toEqual([]);
+  });
+
+  it("stays the same object while the arcs change", () => {
     const { result, rerender } = renderHook(
       (input: CanvasScene) => useReactFlowElements(input),
-      { initialProps: scene, wrapper: Settings },
+      { initialProps: scene },
     );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Toggle automatic arcs" }),
+    const [layer] = result.current.edges;
+
+    rerender(withArcs({ input: { focus: "outgoing" } }));
+    expect(result.current.edges[0]).toBe(layer);
+  });
+});
+
+describe("selected arcs", () => {
+  it("are edges React Flow holds and does not draw, so that it can deselect them", () => {
+    const { result } = renderHook(() =>
+      useReactFlowElements(
+        withArcs({
+          output: { selected: true },
+          "port-input": { selected: true },
+        }),
+      ),
+    );
+
+    expect(result.current.edges.slice(1)).toEqual([
+      {
+        id: "output",
+        source: "transition",
+        target: "place",
+        sourceHandle: undefined,
+        targetHandle: undefined,
+        hidden: true,
+        selected: true,
+      },
+      {
+        id: "port-input",
+        source: "component",
+        target: "transition",
+        sourceHandle: "port-out-port",
+        targetHandle: undefined,
+        hidden: true,
+        selected: true,
+      },
+    ]);
+  });
+});
+
+describe("nodes", () => {
+  it("preserves unaffected nodes when focus changes", () => {
+    const { result, rerender } = renderHook(
+      (input: CanvasScene) => useReactFlowElements(input),
+      { initialProps: scene },
     );
     const previous = result.current;
     rerender({
       ...scene,
       focusActive: true,
       nodes: nodes.map((node) =>
-        node.id === "place"
-          ? { ...node, focus: "focused", hovered: true }
-          : { ...node },
-      ),
-      arcs: scene.arcs.map((arc) =>
-        arc.id === "input" ? { ...arc, focus: "outgoing" } : { ...arc },
+        node.id === "place" ? { ...node, focus: "focused" } : { ...node },
       ),
     });
 
@@ -264,18 +161,237 @@ describe("automatic arc rendering", () => {
         expect(node).toBe(original);
       }
     }
-    for (const edge of result.current.edges) {
-      const original = previous.edges.find(
-        (candidate) => candidate.id === edge.id,
+  });
+
+  it("hangs a component instance from its top edge, other nodes from their centre", () => {
+    const { result } = renderHook(() => useReactFlowElements(scene));
+    const byId = new Map(result.current.nodes.map((node) => [node.id, node]));
+
+    // Centred at (600, 0) and 100 high in the scene.
+    expect(byId.get("component")?.origin).toEqual([0.5, 0]);
+    expect(byId.get("component")?.position).toEqual({ x: 600, y: -50 });
+
+    expect(byId.get("place")?.origin).toBeUndefined();
+    expect(byId.get("place")?.position).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe("the focus", () => {
+  const focusOn = (id: string): CanvasScene => ({
+    ...scene,
+    focusActive: true,
+    nodes: nodes.map((node) =>
+      node.id === id ? { ...node, focus: "focused" } : node,
+    ),
+  });
+
+  it("is drawn once React Flow holds a node with a role, and ends with the scene", () => {
+    const { result, rerender } = renderHook(
+      (input: CanvasScene) => ({
+        elements: useReactFlowElements(input),
+        store: useStoreApi(),
+      }),
+      { initialProps: scene },
+    );
+    const takeNodesUp = () =>
+      act(() =>
+        result.current.store.getState().setNodes(result.current.elements.nodes),
       );
-      if (edge.id === "input") {
-        expect(edge).not.toBe(original);
-        expect(edge.data?.focus).toBe("outgoing");
-        expect(edge.data?.outlinePath).toEqual(original?.data?.outlinePath);
-        expect(edge.markerEnd).not.toEqual(original?.markerEnd);
-      } else {
-        expect(edge).toBe(original);
-      }
-    }
+    takeNodesUp();
+    expect(result.current.elements.focusDrawn).toBe(false);
+
+    // The scene has a focus, and React Flow still holds the nodes without it.
+    rerender(focusOn("place"));
+    expect(result.current.elements.focusDrawn).toBe(false);
+    takeNodesUp();
+    expect(result.current.elements.focusDrawn).toBe(true);
+
+    // The focus moves: the nodes React Flow holds have the roles of the last.
+    rerender(focusOn("transition"));
+    expect(result.current.elements.focusDrawn).toBe(true);
+
+    // The focus ends, and React Flow still holds a node with a role.
+    rerender(scene);
+    expect(result.current.elements.focusDrawn).toBe(false);
+  });
+
+  it("reads the role of a node React Flow holds, and not the classes of its element", () => {
+    const { result } = renderHook(
+      (input: CanvasScene) => ({
+        elements: useReactFlowElements(input),
+        store: useStoreApi(),
+      }),
+      { initialProps: focusOn("place") },
+    );
+
+    act(() =>
+      result.current.store.getState().setNodes(
+        result.current.elements.nodes.map((node) => ({
+          ...node,
+          className: `${node.className ?? ""} another`,
+        })),
+      ),
+    );
+
+    expect(result.current.elements.focusDrawn).toBe(true);
+  });
+});
+
+describe("inside React Flow", () => {
+  // What a browser measures on a place or a transition: a handle of each
+  // kind. A node without them is one React Flow has not measured yet.
+  const handles: Node["handles"] = [
+    { type: "source", position: Position.Right, x: 0, y: 0 },
+    { type: "target", position: Position.Left, x: 0, y: 0 },
+  ];
+
+  const NodeStub = () => null;
+  const nodeTypes = {
+    place: NodeStub,
+    transition: NodeStub,
+    componentInstance: NodeStub,
+  };
+  const edgeTypes = { arcs: ArcLayer };
+
+  const gestures = {
+    selectLink: () => {},
+    enterItem: () => {},
+    clearHover: () => {},
+    isAddMode: false,
+  };
+  const onEdgeClick = () => {};
+
+  type CanvasProps = {
+    scene: CanvasScene;
+    /** The nodes React Flow has not measured yet. */
+    unmeasured?: string[];
+    onEdgeClick?: () => void;
+  };
+
+  const Canvas = ({ scene: input, unmeasured = [], ...rest }: CanvasProps) => {
+    const elements = useReactFlowElements(input);
+    return (
+      <ArcLayerContext value={{ scene: input, gestures }}>
+        <ReactFlow
+          nodes={elements.nodes.map((node) =>
+            unmeasured.includes(node.id) ? node : { ...node, handles },
+          )}
+          edges={elements.edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          connectionMode={ConnectionMode.Loose}
+          {...rest}
+        />
+      </ArcLayerContext>
+    );
+  };
+
+  const mount = (props: CanvasProps) => {
+    const tree = (next: CanvasProps) => (
+      <ReactFlowProvider>
+        <Canvas {...next} />
+      </ReactFlowProvider>
+    );
+    const { container, rerender } = render(tree(props));
+    return {
+      container,
+      /** React Flow's wrapper around the arc layer. */
+      layer: () => container.querySelector(".react-flow__edge-arcs"),
+      arc: (id: string) =>
+        container.querySelector(`.arc-item[data-id="${id}"]`),
+      show: (next: CanvasProps) => rerender(tree(next)),
+    };
+  };
+
+  // The arcs between the place and the transition: the component of the
+  // scene has no pin here.
+  const plainScene: CanvasScene = { ...scene, arcs: scene.arcs.slice(0, 2) };
+
+  // A second transition, later in the document, with an arc each way.
+  const twoTransitions: CanvasScene = {
+    ...plainScene,
+    nodes: [
+      ...nodes,
+      ...nodes
+        .filter((node) => node.id === "transition")
+        .map((node) => ({ ...node, id: "other" })),
+    ],
+    arcs: [
+      ...plainScene.arcs,
+      {
+        ...arcBase,
+        id: "other-input",
+        sourceId: "place",
+        targetId: "other",
+        transitionId: "other",
+      },
+      {
+        ...arcBase,
+        id: "other-output",
+        sourceId: "other",
+        targetId: "place",
+        transitionId: "other",
+      },
+    ],
+  };
+  const withoutFirstTransition: CanvasScene = {
+    ...twoTransitions,
+    nodes: twoTransitions.nodes.filter((node) => node.id !== "transition"),
+    arcs: twoTransitions.arcs.filter(
+      (arc) => arc.transitionId !== "transition",
+    ),
+  };
+
+  it("draws the layer as one edge that says nothing and takes no focus", () => {
+    const { container, layer } = mount({ scene: plainScene, onEdgeClick });
+    const wrapper = layer();
+
+    expect(container.querySelectorAll(".react-flow__edge-arcs")).toHaveLength(
+      1,
+    );
+    expect(wrapper?.getAttribute("class")).toBe(
+      "react-flow__edge react-flow__edge-arcs nopan",
+    );
+    expect(wrapper?.getAttribute("role")).toBe("none");
+    expect(wrapper?.hasAttribute("aria-label")).toBe(false);
+    expect(wrapper?.hasAttribute("aria-roledescription")).toBe(false);
+    expect(wrapper?.hasAttribute("tabindex")).toBe(false);
+    expect(wrapper?.querySelectorAll(".arc-item")).toHaveLength(2);
+  });
+
+  it("describes each arc by the element React Flow describes an edge with", () => {
+    const { arc, container } = mount({ scene: plainScene, onEdgeClick });
+    const describedBy = arc("input")?.getAttribute("aria-describedby") ?? "";
+
+    expect(describedBy).not.toBe("");
+    expect(container.ownerDocument.getElementById(describedBy)).not.toBeNull();
+  });
+
+  it("leaves the pointer to the arcs only while React Flow has a click handler for edges", () => {
+    const { layer, show } = mount({ scene: plainScene, onEdgeClick });
+    expect(layer()?.classList.contains("inactive")).toBe(false);
+
+    show({ scene: plainScene });
+    expect(layer()?.classList.contains("inactive")).toBe(true);
+  });
+
+  it("keeps every arc on the page while the first arc's transition is deleted and comes back unmeasured", () => {
+    const { layer, arc, show } = mount({ scene: twoTransitions, onEdgeClick });
+    const wrapper = layer();
+    const kept = arc("other-input");
+    expect(wrapper).not.toBeNull();
+    expect(kept).not.toBeNull();
+
+    show({ scene: withoutFirstTransition, onEdgeClick });
+    expect(layer()).toBe(wrapper);
+    expect(arc("other-input")).toBe(kept);
+    expect(arc("input")).toBeNull();
+
+    // An undo: the transition is a new node, which React Flow measures a
+    // frame after it appears.
+    show({ scene: twoTransitions, unmeasured: ["transition"], onEdgeClick });
+    expect(layer()).toBe(wrapper);
+    expect(arc("other-input")).toBe(kept);
+    expect(arc("input")).not.toBeNull();
   });
 });

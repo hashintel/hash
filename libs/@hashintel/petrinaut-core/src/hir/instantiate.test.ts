@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { StringPool } from "../simulation/engine/string-pool";
+import { StringPool } from "../tokens/string-pool";
 import { instantiateHirBufferLambda } from "./instantiate";
 
 /**
@@ -22,6 +22,7 @@ const callLambda = (
     new Uint8Array(0),
     new Int32Array(0),
     new Int32Array(0),
+    new Float64Array(0),
   );
 
 describe("instantiate parameter binding", () => {

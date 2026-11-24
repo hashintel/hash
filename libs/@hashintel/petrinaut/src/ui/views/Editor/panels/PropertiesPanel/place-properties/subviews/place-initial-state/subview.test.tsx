@@ -4,14 +4,14 @@ import { use } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
-import { PlacePropertiesProvider } from "../../context";
-import { placeInitialStateSubView } from "./subview";
+import { PlacePropertiesContext } from "../../context";
+import { PlaceInitialStateContent } from "./subview";
 
 import type { Color, Place } from "@hashintel/petrinaut-core";
 
 afterEach(cleanup);
 
-vi.mock("../../../../../../../components/spreadsheet", () => ({
+vi.mock("../../../../../../../spreadsheet-kit/spreadsheet", () => ({
   Spreadsheet: ({ data, onChange }: { data: unknown; onChange?: unknown }) => (
     <div role="grid" aria-readonly={onChange === undefined}>
       {JSON.stringify(data)}
@@ -24,7 +24,6 @@ const place: Place = {
   name: "Queue",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 };
@@ -35,56 +34,35 @@ const color: Color = {
   displayColor: "#3366ff",
   elements: [{ elementId: "value", name: "value", type: "real" }],
 };
-const StateContent = placeInitialStateSubView.component;
 
-const Harness = ({
-  typed,
-  selectedScenarioId,
-}: {
-  typed: boolean;
-  selectedScenarioId: string | null;
-}) => {
+const Harness = ({ typed }: { typed: boolean }) => {
   const simulationDefaults = use(SimulationContext);
   return (
     <SimulationContext
       value={{
         ...simulationDefaults,
-        selectedScenarioId,
         initialMarking: { [place.id]: typed ? [{ value: 42 }] : 3 },
       }}
     >
-      <PlacePropertiesProvider
-        place={place}
-        placeType={typed ? color : null}
-        types={[color]}
-        isReadOnly={false}
-        updatePlace={vi.fn()}
+      <PlacePropertiesContext
+        value={{ place, placeType: typed ? color : null, types: [color] }}
       >
-        {placeInitialStateSubView.renderHeaderAction?.()}
-        <StateContent />
-      </PlacePropertiesProvider>
+        <PlaceInitialStateContent />
+      </PlacePropertiesContext>
     </SimulationContext>
   );
 };
 
-it.each([null, "scenario-1"])(
-  "keeps typed state read-only with scenario %s",
-  (selectedScenarioId) => {
-    render(<Harness typed selectedScenarioId={selectedScenarioId} />);
-    const grid = screen.getByRole("grid");
-    expect(grid.getAttribute("aria-readonly")).toBe("true");
-    expect(grid.textContent).toBe("[[42]]");
-    expect(screen.queryByRole("button", { name: "Clear state" })).toBeNull();
-  },
-);
+it("shows the tokens of a typed place read-only", () => {
+  render(<Harness typed />);
+  const grid = screen.getByRole("grid");
+  expect(grid.getAttribute("aria-readonly")).toBe("true");
+  expect(grid.textContent).toBe("[[42]]");
+});
 
-it.each([null, "scenario-1"])(
-  "keeps untyped state read-only with scenario %s",
-  (selectedScenarioId) => {
-    render(<Harness typed={false} selectedScenarioId={selectedScenarioId} />);
-    const input = screen.getByRole<HTMLInputElement>("spinbutton");
-    expect(input.disabled).toBe(true);
-    expect(input.value).toBe("3");
-    expect(screen.queryByRole("button", { name: "Clear state" })).toBeNull();
-  },
-);
+it("shows the token count of an untyped place read-only", () => {
+  render(<Harness typed={false} />);
+  const input = screen.getByRole<HTMLInputElement>("spinbutton");
+  expect(input.disabled).toBe(true);
+  expect(input.value).toBe("3");
+});

@@ -3,11 +3,11 @@ import { type ReactNode, useRef, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
-import { LanguageClientProvider } from "../../react/lsp/provider";
 import {
   SDCPNContext,
   type SDCPNContextValue,
-} from "../../react/state/sdcpn-context";
+} from "../../react/document/sdcpn-context";
+import { LanguageClientProvider } from "../../react/lsp/provider";
 import { CodeEditor } from "./code-editor";
 import { MonacoProvider } from "./provider";
 
@@ -45,7 +45,6 @@ const LAMBDA_SDCPN: SDCPN = {
       name: "Susceptible",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -54,7 +53,6 @@ const LAMBDA_SDCPN: SDCPN = {
       name: "Infected",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -96,15 +94,10 @@ const LAMBDA_SDCPN: SDCPN = {
 };
 
 const LSP_CONTEXT: SDCPNContextValue = {
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
   petriNetId: "story-net",
   petriNetDefinition: LAMBDA_SDCPN,
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "Story Net",
   getItemType: () => null,
 };
 
@@ -121,7 +114,7 @@ const LspFrame = ({ children }: { children: ReactNode }) => (
 // -- Meta ---------------------------------------------------------------------
 
 const meta = {
-  title: "Components / CodeEditor",
+  title: "Components/CodeEditor",
   component: CodeEditor,
   parameters: {
     layout: "padded",

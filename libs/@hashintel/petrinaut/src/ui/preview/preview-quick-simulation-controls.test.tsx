@@ -10,15 +10,18 @@ import {
 } from "../../react/execution-frame/context";
 import { PreviewSimulationPlaybackControls } from "./preview-quick-simulation-controls";
 
-vi.mock("../views/Editor/components/BottomBar/simulation-controls", () => ({
-  SimulationControls: () => <div>Simulation controls</div>,
-}));
+vi.mock(
+  "../views/Editor/components/BottomBar/event-simulation-controls",
+  () => ({
+    EventSimulationControls: () => <div>Event simulation controls</div>,
+  }),
+);
 
 vi.mock(
-  "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/content",
+  "../views/Editor/panels/BottomPanel/subviews/timeline/run-timeline",
   () => ({
-    SimulationTimeline: ({ showLegend }: { showLegend?: boolean }) => (
-      <div data-show-legend={showLegend}>Compact simulation timeline</div>
+    EventTimeline: ({ showLegend }: { showLegend?: boolean }) => (
+      <div data-show-legend={showLegend}>Compact event timeline</div>
     ),
   }),
 );
@@ -42,7 +45,8 @@ describe("PreviewSimulationPlaybackControls", () => {
 
     expect(panel.getAttribute("data-state")).toBe("collapsed");
     expect(timelineReveal.getAttribute("aria-hidden")).toBe("true");
-    const timeline = screen.getByText("Compact simulation timeline");
+    const timeline = screen.getByText("Compact event timeline");
+    expect(screen.getByText("Event simulation controls")).toBeDefined();
 
     rerender(
       <ExecutionFrameSourceContext
@@ -54,10 +58,10 @@ describe("PreviewSimulationPlaybackControls", () => {
 
     expect(panel.getAttribute("data-state")).toBe("expanded");
     expect(timelineReveal.getAttribute("aria-hidden")).toBe("false");
-    expect(screen.getByText("Compact simulation timeline")).toBe(timeline);
+    expect(screen.getByText("Compact event timeline")).toBe(timeline);
     expect(
       screen
-        .getByText("Compact simulation timeline")
+        .getByText("Compact event timeline")
         .getAttribute("data-show-legend"),
     ).toBe("false");
 
@@ -71,6 +75,6 @@ describe("PreviewSimulationPlaybackControls", () => {
 
     expect(panel.getAttribute("data-state")).toBe("collapsed");
     expect(timelineReveal.getAttribute("aria-hidden")).toBe("true");
-    expect(screen.getByText("Compact simulation timeline")).toBe(timeline);
+    expect(screen.getByText("Compact event timeline")).toBe(timeline);
   });
 });

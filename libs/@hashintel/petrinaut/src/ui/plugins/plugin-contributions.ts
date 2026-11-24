@@ -12,6 +12,7 @@ export type PluginContributionKind =
   | "access"
   | "button"
   | "top-bar-item"
+  | "bottom-panel-view"
   | "read-only-action"
   | "command"
   | "setting"
@@ -56,6 +57,11 @@ export const describePluginContributions = (
     kind: "top-bar-item" as const,
     subject: key,
     detail: placeText[spec.place],
+  })),
+  ...Object.values(manifest.bottomPanelViews ?? {}).map((spec) => ({
+    kind: "bottom-panel-view" as const,
+    subject: spec.title,
+    detail: "Bottom panel",
   })),
   ...(manifest.readOnlyAction === undefined
     ? []

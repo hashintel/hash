@@ -1,5 +1,6 @@
 /**
- * Membership in the enclosing `FocusStack`, for units that are not grids: a
+ * Membership in the enclosing `FocusStack`. Grids, stop tables and nested
+ * stacks register through it, and so does a unit with no hook of its own: a
  * single focusable element (a collapsible header, a lone cell) or a custom
  * navigator that owns its internal movement and only delegates edge moves.
  */
@@ -11,11 +12,14 @@ import {
   focusLands,
   type FocusDirection,
   type FocusEntry,
+  type FocusFold,
 } from "./focus-flow";
 
-export interface FocusMember {
+interface FocusMember {
   /** Attach to the member's root element; registered while mounted. */
   attach: (element: HTMLElement | null) => void;
+  /** The attached element, for a member that listens on its own root. */
+  element: HTMLElement | null;
   /** Carry focus out of this member. Returns whether focus moved. */
   moveFrom: (
     direction: FocusDirection,
@@ -43,11 +47,12 @@ export function useFocusMember(
 
   return {
     attach: setElement,
+    element,
     moveFrom: (direction, from) => group.moveFrom(id, direction, from),
   };
 }
 
-export interface FocusHeader {
+interface FocusHeader {
   /** Attach to the header's focusable trigger. */
   attach: (element: HTMLButtonElement | null) => void;
   /**
@@ -59,14 +64,10 @@ export interface FocusHeader {
 }
 
 /**
- * A single-element member for a section or place header. Left/Right drive
- * its collapse state when handlers are given — a header that owns
- * horizontal keys never emits horizontal moves.
+ * A single-element member for a section or place header. Left/Right fold it
+ * as `FocusFold` says; the arrow with no handler leaves horizontally.
  */
-export function useFocusHeader(options: {
-  collapse?: () => void;
-  expand?: () => void;
-}): FocusHeader {
+export function useFocusHeader(options: FocusFold): FocusHeader {
   const [element, setElement] = useState<HTMLButtonElement | null>(null);
   const member = useFocusMember(() => focusLands(element));
 

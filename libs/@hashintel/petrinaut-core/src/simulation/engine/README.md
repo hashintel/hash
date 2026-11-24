@@ -10,9 +10,18 @@ Core simulation logic for SDCPN Petri net execution.
 ## Overview
 
 The engine builds an SDCPN definition into a runnable `SimulationInstance` and
-computes frames by evaluating transitions and differential equations. It imports
-user-code compilation helpers from `authoring/user-code/`, but owns the
-runtime stepping state and frame layout.
+computes frames by evaluating transitions and differential equations. It
+compiles nothing: `buildSimulation` takes the HIR artifacts the language
+worker produced and instantiates them through `src/hir-runtime.ts`. It owns
+`SimulationInstance`, the state `computeNextFrame` steps. The frame layout is
+in [`frames/`](layer:core.simulation.frames) and the token layout in
+[`tokens/`](layer:core.tokens).
+
+Every runtime builds with `buildSimulation`. `computeNextFrame` steps the
+compiled model of `../compiled-model.ts`. The editor's runs step through
+[the steppers](layer:core.simulation.steppers) and `advanceRun` in
+`../monte-carlo/advance-run.ts`, as
+[Two execution paths](doc:two-execution-paths) describes.
 
 ## Core Functions
 
@@ -33,7 +42,7 @@ SimulationInstance (frame 0)
 computeNextFrame(simulation)
        │
        ├─► Check if maxTime reached → "maxTime" completion
-       ├─► Apply differential equations
+       ├─► Apply each place's composed differential equations
        ├─► For each transition: check enablement, sample firing, execute kernel
        ├─► Build new EngineFrame
        └─► Check deadlock → "deadlock" completion
@@ -49,9 +58,9 @@ arc weights.
 
 ## Internal EngineFrame
 
-A snapshot of simulation state. The run controller owns frame number and
-simulation time; `EngineFrame` only stores the state needed to advance the
-simulation. Public callers should read frames through `SimulationFrameReader`.
+A snapshot of simulation state. `SimulationInstance` holds the frame number
+and the simulation time; `EngineFrame` only stores the state needed to advance
+the simulation. Public callers should read frames through `SimulationFrameReader`.
 
 ```typescript
 type EngineFrame = ArrayBuffer;
@@ -65,8 +74,9 @@ writers.
 
 Token values are stored as a byte region of packed structs inside the frame
 buffer (`FRAME_VERSION = 2`). Each colour has a `TokenSlotLayout` computed by
-`engine/token-layout.ts` — the single source of truth for the physical
-mapping:
+`tokens/token-layout.ts`, the one place that maps an element type to bytes.
+The table shows the numeric and boolean types, and
+[Memory model](doc:core.simulation.frames/memory-model) lists every type:
 
 | Element type | Physical type                       | Size | Alignment |
 | ------------ | ----------------------------------- | ---- | --------- |
@@ -80,7 +90,7 @@ the stride (`sizeof(token)`) is rounded up to 8 bytes. Because the token
 region starts at an 8-aligned offset and every stride is a multiple of 8, all
 f64 fields are addressable through a shared `Float64Array` view
 (`index = (placeByteOffset + token * strideBytes + fieldByteOffset) / 8`) and
-u8 fields through a `Uint8Array` view — no `DataView` in hot paths.
+u8 fields through a `Uint8Array` view, with no `DataView` in hot paths.
 
 Place counts and per-place byte offsets are stored in separate `Uint32Array`
 sections, so a place can be accessed in $O(1)$ when the SDCPN layout is known.
@@ -104,8 +114,8 @@ const place = frameView.getPlaceState("p1"); // { byteOffset, count, strideBytes
 const layout = simulation.frameLayout.placeTokenLayouts[placeIndex];
 const token = readTokenRecord(
   layout,
-  frameView.tokenF64,
-  frameView.tokenBytes,
+  frameView.tokenViews,
   place.byteOffset + tokenIndex * place.strideBytes,
+  simulation.stringPool,
 );
 ```

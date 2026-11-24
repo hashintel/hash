@@ -13,6 +13,12 @@ describe("Brunch's user guide", () => {
 
     expect(page).toContain("This page describes Brunch's assistant");
     expect(page).not.toBe(petrinautDocsContent["ai-assistant"]);
+    expect(page).not.toMatch(/stock assistant|worked-model/iu);
+    expect(page).toContain("both the Petrinaut website and HASH");
+    expect(page).toContain("`askUserFirst` input is `true`");
+    expect(page).toContain(
+      "`petrinaut_layout_auto` tool applies layout immediately",
+    );
   });
 
   test("reads every other page from Petrinaut", () => {

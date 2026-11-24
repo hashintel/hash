@@ -1,13 +1,16 @@
 import { createContext } from "react";
 
+import { WEBGPU_FIXED_STEP_SIMULATOR_ID } from "@hashintel/petrinaut-core";
+
+import type { SimulatorSelection } from "../simulators/context";
 import type {
   ExperimentParameterAxis,
   ExperimentParameterInput,
+  SweepSelection,
 } from "./parameter-grid";
 import type {
   SweepBatchStatus,
   SweepNavigateOptions,
-  SweepSelection,
   SweepVisitedCell,
 } from "./sweep-session";
 
@@ -19,10 +22,12 @@ export type {
 import type {
   AdHocScenarioState,
   Constraint,
+  MonteCarloExperiment,
   MonteCarloExpressionMetricSpec,
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
+  RunClock,
   Scenario,
   SDCPN,
   PetrinautExtensionSettings,
@@ -50,15 +55,17 @@ export type ExperimentMetricSpecInput =
   | Exclude<MonteCarloMetricSpec, MonteCarloExpressionMetricSpec>
   | Omit<MonteCarloExpressionMetricSpec, "artifact">;
 
-/**
- * Engine an experiment should try to use.
- *
- * Passed per experiment rather than read from user settings inside the
- * provider, because `UserSettingsProvider` is mounted *inside*
- * `ExperimentsProvider` (see `petrinaut-provider.tsx`) and so is not visible
- * there. The create-experiment surface reads the setting and passes it here.
- */
+/** What an experiment's runs were computed on: worker threads, or the GPU. */
 export type ExperimentComputeBackend = "cpu" | "webgpu";
+
+/**
+ * Which of the two compute paths the backend that ran is: the graphics
+ * card, or worker threads.
+ */
+export const computeBackendOf = (
+  backendId: string,
+): ExperimentComputeBackend =>
+  backendId === WEBGPU_FIXED_STEP_SIMULATOR_ID ? "webgpu" : "cpu";
 
 export type CreateExperimentInput = {
   name: string;
@@ -86,15 +93,27 @@ export type CreateExperimentInput = {
   /** Number of runs per parameter combination. */
   runCount: number;
   seed: number;
+  /**
+   * Spacing of the samples, in simulated seconds. A simulator that samples
+   * at its time step does so whatever is asked here, and the record's `dt`
+   * says what it was. Without `simulator`, the time step itself.
+   */
   dt: number;
   maxTime: number;
   metricSpecs: readonly ExperimentMetricSpecInput[];
   /**
-   * Backend to attempt. Defaults to `cpu`.
+   * The simulator that computes the runs, with the parameter values the
+   * form holds for it. One that steps at a fixed time step and cannot take
+   * the net falls back to the default simulator at the same step, and the
+   * record says so. Any other refusal fails the experiment with its reason.
    *
-   * `webgpu` is a request, not a guarantee: a net the GPU backend cannot run
-   * falls back to the CPU, and `ExperimentRecord.computeBackend` records which
-   * one actually ran.
+   * Left out, `computeBackend` chooses one, stepping at `dt`.
+   */
+  simulator?: SimulatorSelection;
+  /**
+   * Chooses the simulator when none is named: the WebGPU fixed-step one for
+   * `webgpu`, otherwise the default. `ExperimentRecord.computeBackend`
+   * records which of the two actually ran.
    */
   computeBackend?: ExperimentComputeBackend;
   /**
@@ -130,6 +149,11 @@ export type ExperimentRecord = {
   scenarioName: string | null;
   runCount: number;
   seed: number;
+  /**
+   * What the experiment's positions count: simulated seconds, or the steps
+   * of an untimed net. `dt` and `maxTime` are in its unit.
+   */
+  clock: RunClock;
   dt: number;
   maxTime: number;
   status: ExperimentStatus;
@@ -143,8 +167,16 @@ export type ExperimentRecord = {
    * (statistically equivalent) trajectories.
    */
   computeBackend: ExperimentComputeBackend;
-  /** Why the GPU backend was not used, when `webgpu` was requested but declined. */
+  /**
+   * Why the simulator or backend asked for was not used, when another one
+   * ran in its place.
+   */
   computeBackendFallbackReason: string | null;
+  /**
+   * The simulator that computed the runs, as the picker names it. Null until
+   * one is chosen.
+   */
+  simulatorLabel: string | null;
   /**
    * When stepping began — i.e. when the engine handle was started, after user
    * code compiled and the workers (or the GPU device and shader) were ready.
@@ -256,6 +288,28 @@ export function getExperimentElapsedMs(
   return Math.max(0, (experiment.finishedAt ?? now) - experiment.startedAt);
 }
 
+/** An experiment something else started, handed over to be listed. */
+type AdoptExperimentInput = {
+  name: string;
+  /** The experiment, started by its previous owner. */
+  handle: MonteCarloExperiment;
+  /** The model snapshot its runs compute. */
+  definition: SDCPN;
+  scenarioId: string | null;
+  scenarioName: string | null;
+  runCount: number;
+  seed: number;
+  /** What its positions count: simulated seconds, or steps. */
+  clock: RunClock;
+  /** The spacing of its samples, in simulated seconds or steps. */
+  dt: number;
+  maxTime: number;
+  metricSpecs: readonly ExperimentMetricSpecInput[];
+  computeBackend: ExperimentComputeBackend;
+  /** The simulator that computes it, as the picker names it. */
+  simulatorLabel?: string;
+};
+
 export type ExperimentsContextValue = {
   experiments: readonly ExperimentRecord[];
   selectedExperimentId: string | null;
@@ -270,6 +324,12 @@ export type ExperimentsContextValue = {
     input: CreateExperimentInput,
     options?: CreateExperimentOptions,
   ) => Promise<ExperimentRecord>;
+  /**
+   * Lists an experiment that is already computing, or has finished, and
+   * takes over its handle: from here on it is cancelled, removed and
+   * disposed like one this provider created.
+   */
+  adoptExperiment: (input: AdoptExperimentInput) => ExperimentRecord;
   cancelExperiment: (experimentId: string) => void;
   removeExperiment: (experimentId: string) => void;
   /** Moves a sweep's navigator; compute follows the selection up to the run count. */
@@ -297,6 +357,11 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
     Promise.reject(
       new Error("createExperiment was called outside an ExperimentsProvider"),
     ),
+  adoptExperiment: () => {
+    throw new Error(
+      "adoptExperiment was called outside an ExperimentsProvider",
+    );
+  },
   cancelExperiment: () => {},
   removeExperiment: () => {},
   setSweepSelection: () => {},
@@ -317,6 +382,7 @@ export type ExperimentsActionsValue = Pick<
   ExperimentsContextValue,
   | "setSelectedExperimentId"
   | "createExperiment"
+  | "adoptExperiment"
   | "cancelExperiment"
   | "removeExperiment"
   | "setSweepSelection"

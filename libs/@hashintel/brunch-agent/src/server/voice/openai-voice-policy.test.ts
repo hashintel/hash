@@ -105,7 +105,7 @@ When Petrinaut supplies response_text, speak only those strings, in array order 
             model: "gpt-4o-transcribe",
             language: "en",
             prompt:
-              "Expect English process-modeling vocabulary including SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet, scenario, and metric.",
+              "Expect English process-modeling vocabulary including SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, component, scenario, and metric.",
           },
           turn_detection: {
             type: "semantic_vad",

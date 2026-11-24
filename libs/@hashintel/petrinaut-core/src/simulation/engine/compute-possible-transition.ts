@@ -1,10 +1,12 @@
-import { SDCPNItemError } from "../../errors";
+import { createTokenRegionViews } from "../../tokens/token-layout";
 import {
   materializeEngineFrame,
   readEngineFrame,
 } from "../frames/internal-frame";
+import { SDCPNItemError } from "../sdcpn-item-error";
 import {
   executeBufferKernel,
+  fillInputCounts,
   fillPlaceBases,
   fillTokenIndices,
 } from "./buffer-transition";
@@ -14,7 +16,6 @@ import {
   firstWeightedMarkingIndices,
 } from "./enumerate-weighted-markings";
 import { nextRandom } from "./seeded-rng";
-import { createTokenRegionViews } from "./token-layout";
 
 import type { ID } from "../../types/sdcpn";
 import type {
@@ -158,6 +159,8 @@ export function computePossibleTransition(
     );
   }
 
+  fillInputCounts(transition.inputCounts, inputPlaces);
+
   for (const tokenCombinationIndices of tokensCombinations) {
     if (!fillTokenIndices(transition.indices, tokenCombinationIndices)) {
       throw new SDCPNItemError(
@@ -174,6 +177,7 @@ export function computePossibleTransition(
         tokenViews.u8,
         transition.placeBases,
         transition.indices,
+        transition.inputCounts,
       );
     } catch (err) {
       throw new SDCPNItemError(

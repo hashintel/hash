@@ -71,6 +71,17 @@
   color: var(--pnd-muted);
 }
 
+/* A button in a note reads as a link in its sentence. */
+.pnd-box-note button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .pnd-box code,
 .pnd-lane code,
 .pnd-step code {
