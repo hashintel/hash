@@ -18,7 +18,6 @@
 /libs/@local/crypto/ @hashintel/rust
 /libs/@local/durable-kernel/ @hashintel/rust
 /libs/@local/middleware/ @hashintel/rust
-/libs/@local/repo-chores/rust/ @hashintel/rust
 /libs/@local/status/rust/ @hashintel/rust
 /libs/@local/telemetry/ @hashintel/rust
 /libs/@local/temporal-client/ @hashintel/rust
@@ -68,9 +67,9 @@
 /libs/@local/flow-petri-net/ @hashintel/frontend
 /libs/@local/flue-aisdk-transport/ @hashintel/frontend
 /libs/@local/pi-faux-providers/ @hashintel/frontend
+/apps/plugin-browser/ @hashintel/frontend
 
-# Backend libraries and the browser plugin
-/apps/plugin-browser/ @hashintel/backend-ts
+# Backend libraries
 /libs/@local/advanced-types/ @hashintel/backend-ts
 /libs/@local/codec/typescript/ @hashintel/backend-ts
 /libs/@local/hash-backend-utils/ @hashintel/backend-ts
@@ -88,7 +87,7 @@
 # Lint, TypeScript and repository tooling
 /libs/@local/eslint/ @hashintel/infra
 /libs/@local/oxlint/ @hashintel/infra
-/libs/@local/repo-chores/node/ @hashintel/infra
+/libs/@local/repo-chores/ @hashintel/infra
 /libs/@local/tsconfig/ @hashintel/infra
 
 # Test suites
