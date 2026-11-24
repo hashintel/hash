@@ -42,6 +42,20 @@ A file with no annotation belongs to the nearest ancestor folder that declares a
 layer. Declare a layer where the architecture changes, at a boundary or a
 different responsibility, and leave every other directory to inherit.
 
+## Package entries in Core
+
+In `@hashintel/petrinaut-core`, a file at the root of `src/` is a package
+entry: `package.json` publishes it, and it belongs to the root layer
+[core](layer:core). An entry such as `hir.ts` or `experiments.ts` sits beside
+a folder of the same name and does not own that folder. The folder declares a
+layer of its own, and the entry re-exports from it for a host. The model
+follows a reference to the file that defines the symbol, so an import through
+an entry is a dependency on the folder's layer and adds no edge to the root
+layer. Code inside Core imports the file that defines a name. It imports an
+entry only where the folder's README names that entry as its interface, as
+[the HIR README](layer:core.hir) does for `hir.ts` and `hir-runtime.ts`,
+which differ in whether the importer loads the TypeScript compiler.
+
 ## Moving or renaming a folder
 
 Nothing to update, provided the folder keeps its declaration with it. The
