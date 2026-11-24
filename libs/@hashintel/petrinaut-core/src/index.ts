@@ -72,6 +72,85 @@ export type {
   TransitionLogicAvailability,
 } from "./extensions";
 
+// --- Composition: place fusion ---
+export {
+  describeFusionMember,
+  findFusionWithMember,
+  fusionAnchor,
+  fusionHub,
+  resolveFusionMember,
+} from "./composition/fusions";
+export type { FusionNet, ResolvedFusionMember } from "./composition/fusions";
+export { checkFusion, fusionCheckPass } from "./composition/check-fusions";
+export type {
+  FusionCheckPass,
+  FusionProblem,
+  FusionProblemCode,
+  ProblemSeverity,
+} from "./composition/check-fusions";
+export type { PortProblem } from "./composition/check-ports";
+export { checkComposition } from "./composition/check-composition";
+export type { CompositionProblem } from "./composition/check-composition";
+export type { ImportProblem } from "./composition/check-imports";
+export {
+  checkInterfaces,
+  implementationsOf,
+} from "./composition/check-interfaces";
+export type {
+  InterfaceProblem,
+  InterfaceProblemCode,
+} from "./composition/check-interfaces";
+export {
+  componentKey,
+  defaultImplementation,
+  describeUnboundInstance,
+  hasBody,
+  implementsInterface,
+  indexById,
+  indexDocument,
+  isInterface,
+  resolveComponent,
+  resolveImplementation,
+  sameComponent,
+} from "./composition/interfaces";
+export type {
+  DocumentIndex,
+  ImplementationBinding,
+} from "./composition/interfaces";
+
+// --- Composition: imports and the libraries a host resolves them to ---
+export {
+  describeImports,
+  isResolvingImports,
+  resolvedLibraries,
+} from "./composition/imports";
+export { inlineImports } from "./composition/inline-imports";
+export type {
+  ImportState,
+  ImportStates,
+  ImportSummary,
+  LibraryComponentSummary,
+  ResolveImport,
+} from "./composition/imports";
+export { resolveLibrary } from "./composition/libraries";
+export type {
+  Library,
+  LibraryComponent,
+  LibraryComponentBody,
+  LibraryParameter,
+  LibraryPort,
+  LibraryTokenType,
+  ResolvedLibraries,
+  ResolvedLibrary,
+} from "./composition/libraries";
+export {
+  describePortDirection,
+  effectivePortDirection,
+  effectivePortDirections,
+  inferPortDirection,
+  portDirections,
+} from "./composition/ports";
+
 // --- Command registry (palette commands) ---
 export {
   combineCommandRegistries,
@@ -92,6 +171,8 @@ export type {
   PetrinautCommands,
   PetrinautMutations,
 } from "./instance";
+export { composesOnly, sameRules } from "./composition/host-rules";
+export type { PetrinautRules } from "./composition/host-rules";
 export {
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
   PETRINAUT_OPTIMIZATION_MAX_SEED,
@@ -139,7 +220,7 @@ export type {
   PetrinautOptimizationConstraintPolicy,
   PetrinautIntegerOptimizationDomain,
 } from "./optimization";
-export { createPetrinautActions } from "./actions";
+export { createPetrinautActions, updatePrunesReferences } from "./actions";
 export type {
   CreatePetrinautActionsOptions,
   MutationHelperFunctions,
@@ -165,6 +246,8 @@ export {
   calculateGraphLayout,
   classicNodeDimensions,
   compactNodeDimensions,
+  componentInstanceFooterHeight,
+  componentInstanceHeaderHeight,
   getBoundsOfCenteredBoxes,
   getComponentInstanceHeight,
   getMinZoomForBounds,
@@ -182,6 +265,7 @@ export {
 export {
   colorSchema,
   componentInstanceSchema,
+  componentSchema,
   createExperimentToolName,
   differentialEquationSchema,
   getLatestNetDefinitionToolName,
@@ -201,7 +285,6 @@ export {
   scenarioSchema,
   setNetTitleToolInputSchema,
   setNetTitleToolName,
-  subnetSchema,
   transitionSchema,
 } from "./ai";
 export type {
@@ -308,9 +391,11 @@ export type {
 // --- LSP ---
 export {
   CompletionItemKind,
+  CompletionItemTag,
   createLanguageClient,
   createWorkerLspTransport,
   DiagnosticSeverity,
+  DiagnosticTag,
   MarkupKind,
   Position,
   Range,
@@ -327,6 +412,7 @@ export type {
   LspTransport,
   LspWorkerFactory,
   MarkupContent,
+  NetAnalysis,
   SignatureHelp,
   TextDocumentIdentifier,
 } from "./lsp";
@@ -342,14 +428,80 @@ export type {
   HirMetricArtifact,
 } from "./hir";
 
+// --- Event-driven simulation (experimental) ---
+export {
+  ADAPTIVE_SIMULATOR_ID,
+  FIXED_STEP_SIMULATOR_ID,
+  SOLVER_ERROR_DIAGNOSTIC,
+} from "./simulation/event-trace";
+export type {
+  EventSimulation,
+  EventSimulationEvent,
+  EventTraceSummary,
+  TraceEvent,
+  TraceEventKind,
+} from "./simulation/event-trace";
+
+// --- Simulators (experimental) ---
+export {
+  assessSimulator,
+  createExperimentReader,
+  createJsAdaptiveSimulator,
+  createJsFixedStepSimulator,
+  createWebGpuFixedStepSimulator,
+  DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
+  defaultSimulatorParameters,
+  defineSimulator,
+  experimentBackendOfSimulator,
+  experimentSamplePeriod,
+  placeCountMetricId,
+  placeCountMetricSpecs,
+  resolveSimulatorParameters,
+  simulatorFromExperimentBackend,
+  simulatorSamplePeriod,
+  WEBGPU_FIXED_STEP_SIMULATOR_ID,
+} from "./simulation/simulators";
+export type {
+  CountStatistics,
+  ExperimentBackendStepping,
+  ExperimentReader,
+  JsSimulatorOptions,
+  ResolvedSimulatorParameters,
+  SimulationRequest,
+  SimulationRequestBase,
+  Simulator,
+  SimulatorAssessment,
+  SimulatorExperimentRequest,
+  SimulatorImplementation,
+  SimulatorManifest,
+  SimulatorOffer,
+  SimulatorParameterProblem,
+  SimulatorParameterSpec,
+  SimulatorParameterSpecs,
+  SimulatorParameterValues,
+  SimulatorProducts,
+  SimulatorRegistration,
+  SimulatorSelectionOutcome,
+  SimulatorStart,
+  SimulatorStartOptions,
+  StoredSimulatorParameters,
+  WebGpuFixedStepSimulatorOptions,
+} from "./simulation/simulators";
+
 // --- Playback ---
 export {
+  createEventPlayback,
   createPlayback,
+  EVENT_PLAY_MODE_LEAD,
   formatPlaybackSpeed,
   getPlayModeBackpressure,
   PLAYBACK_SPEEDS,
 } from "./playback";
 export type {
+  EventPlayback,
+  EventPlaybackSnapshot,
+  EventTickInput,
+  EventTickResult,
   Playback,
   ComputePlayMode,
   PlaybackSnapshot,
@@ -364,6 +516,7 @@ export type {
 // --- Domain types ---
 export type * from "./types/sdcpn";
 export { normalizeSDCPN } from "./types/sdcpn-input";
+export { migrateLegacyComponentKeys } from "./migrate-legacy-component-keys";
 export type {
   SDCPNInput,
   SDCPNInputArcInput,
@@ -405,10 +558,30 @@ export {
   getArcEndpointKey,
   getArcEndpointNodeId,
   getArcEndpointPlaceId,
-  getComponentPortEndpointSubnet,
+  getComponentPortEndpointComponent,
   parseArcEndpointKey,
   placeArcEndpoint,
 } from "./arc-endpoints";
+export {
+  isSupportedArity,
+  MAX_DIFFERENTIAL_EQUATION_ARITY,
+} from "./equation-arity";
+export {
+  getPlaceDynamicsEquationIds,
+  placeUsesDifferentialEquation,
+} from "./place-dynamics";
+export {
+  netColoringOf,
+  netTimeOf,
+  runClockOf,
+  runContinuityOf,
+  type NetChance,
+  type NetClass,
+  type NetColoring,
+  type NetTime,
+  type RunClock,
+  type RunContinuity,
+} from "./net-class";
 export { GRID_SIZE } from "./grid-size";
 export {
   type DefaultParameterValues,
@@ -508,6 +681,7 @@ export {
   isSafeViewValue,
   VIEW_ELEMENT_ATTRIBUTES,
   VIEW_ELEMENT_TAGS,
+  VIEW_LEGACY_STYLE_PROPERTIES,
   VIEW_STYLE_PROPERTIES,
 } from "./view-hir/view-elements";
 // Type-only: lowering itself stays in ./hir (worker/Node).
@@ -675,3 +849,16 @@ export {
   parseConstraintDocumentUri,
   parseDocumentUri,
 } from "./lsp/lib/document-uris";
+
+export {
+  visualizerSvgTag,
+  visualizerSvgAttributes,
+  parseVisualizerSvgOptions,
+  type VisualizerSvgOptions,
+} from "./view-hir/visualizer-svg";
+export type { MetricShape } from "./hir/metric-shape";
+export {
+  describeDisallowedComponentIconElement,
+  disallowedComponentIconElement,
+  maxComponentIconLength,
+} from "./schemas/entity-schemas";

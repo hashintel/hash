@@ -181,7 +181,7 @@ impl IdentityProvider for KratosIdentityProvider {
 
 #[cfg(test)]
 mod tests {
-    use core::{net::SocketAddr, time::Duration};
+    use core::{assert_matches, net::SocketAddr, time::Duration};
     use std::collections::HashMap;
 
     use axum::{
@@ -362,13 +362,11 @@ mod tests {
             provider_for(json!([identity_json(Uuid::now_v7(), Some(Uuid::now_v7()))])).await;
 
         let outcome = provider.find_user_by_email("").await;
-        assert!(
-            matches!(
-                outcome
-                    .expect_err("an empty email should be rejected")
-                    .current_context(),
-                EmailLookupError::EmptyEmail
-            ),
+        assert_matches!(
+            outcome
+                .expect_err("an empty email should be rejected")
+                .current_context(),
+            EmailLookupError::EmptyEmail,
             "an empty email should name its rejection rather than reach Kratos"
         );
     }
@@ -492,11 +490,9 @@ mod tests {
             .find_user_by_email(EMAIL)
             .await
             .expect_err("an identity without a Graph actor should fail the lookup");
-        assert!(
-            matches!(
-                report.current_context(),
-                EmailLookupError::NotProvisioned { .. }
-            ),
+        assert_matches!(
+            report.current_context(),
+            EmailLookupError::NotProvisioned { .. },
             "the lookup should report the identity as not provisioned, got {:?}",
             report.current_context()
         );
@@ -514,11 +510,9 @@ mod tests {
             .find_user_by_email(EMAIL)
             .await
             .expect_err("an email held by several identities should fail the lookup");
-        assert!(
-            matches!(
-                report.current_context(),
-                EmailLookupError::AmbiguousEmail { count: 2 }
-            ),
+        assert_matches!(
+            report.current_context(),
+            EmailLookupError::AmbiguousEmail { count: 2 },
             "the lookup should report the email as ambiguous, got {:?}",
             report.current_context()
         );
@@ -562,8 +556,9 @@ mod tests {
                 .find_user_by_email(EMAIL)
                 .await
                 .expect_err("a failure status should fail the lookup rather than read as unknown");
-            assert!(
-                matches!(report.current_context(), EmailLookupError::LookupFailed),
+            assert_matches!(
+                report.current_context(),
+                EmailLookupError::LookupFailed,
                 "a {status} should fail the lookup, got {:?}",
                 report.current_context()
             );
@@ -582,8 +577,9 @@ mod tests {
             .find_user_by_email(EMAIL)
             .await
             .expect_err("an undeserializable listing should fail the lookup");
-        assert!(
-            matches!(report.current_context(), EmailLookupError::LookupFailed),
+        assert_matches!(
+            report.current_context(),
+            EmailLookupError::LookupFailed,
             "an undeserializable listing should fail the lookup, got {:?}",
             report.current_context()
         );
@@ -611,11 +607,9 @@ mod tests {
                 "a traits object without addresses should fail the read rather than read as an \
                  identity without addresses",
             );
-        assert!(
-            matches!(
-                report.current_context(),
-                super::IdentityProviderError::LookupFailed
-            ),
+        assert_matches!(
+            report.current_context(),
+            super::IdentityProviderError::LookupFailed,
             "the broken contract should fail the read as a lookup failure"
         );
     }
@@ -637,11 +631,9 @@ mod tests {
                 "an undeserializable identity should fail the read rather than leave the \
                  addresses unknown",
             );
-        assert!(
-            matches!(
-                report.current_context(),
-                super::IdentityProviderError::LookupFailed
-            ),
+        assert_matches!(
+            report.current_context(),
+            super::IdentityProviderError::LookupFailed,
             "the undeserializable identity should fail the read as a lookup failure"
         );
         assert!(

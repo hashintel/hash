@@ -12,6 +12,7 @@ import {
 import { buildPerPlaceSeriesConfig } from "./per-place";
 import { buildPerTransitionSeriesConfig } from "./per-transition";
 import { buildPerTypeSeriesConfig } from "./per-type";
+import { buildSolverErrorSeriesConfig } from "./solver-error";
 
 import type { TimelineView } from "../../../../../../../../react/state/editor-context";
 import type { TimelineSeriesConfig } from "../types";
@@ -51,5 +52,7 @@ export function buildTimelineSeriesConfig(args: {
       return buildPerTypeSeriesConfig({ places, types });
     case "per-place":
       return buildPerPlaceSeriesConfig({ places, types });
+    case "solver-error":
+      return buildSolverErrorSeriesConfig({ places, types });
   }
 }

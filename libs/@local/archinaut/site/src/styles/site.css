@@ -3,8 +3,8 @@
  * unlayered and first so everything below can adjust it; Starlight's
  * layers, which carry the tokens, reset, content and component styles the
  * pages were written against; the layout the shell reproduces; the code
- * block theme; the formula sizing; and `chrome.css`, the instance's own
- * look, unlayered so it wins.
+ * block theme; the formula sizing; `chrome.css`, the instance's own look,
+ * unlayered so it wins; and `type.css`, the two faces.
  */
 
 @import "katex/dist/katex.min.css";
@@ -19,12 +19,4 @@
 @import "./code.css";
 @import "./math.css";
 @import "./chrome.css";
-
-:root {
-  --pnd-font-sans:
-    "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
-  --pnd-font-mono:
-    "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas,
-    monospace;
-}
+@import "./type.css";

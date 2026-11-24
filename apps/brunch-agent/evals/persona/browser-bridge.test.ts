@@ -1,0 +1,340 @@
+import { execFile } from "node:child_process";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
+
+import { afterEach, expect, test, vi } from "vitest";
+
+import {
+  openPersonaBrowserBridge,
+  sendPersonaCommand,
+  type PersonaBridgeHandlers,
+} from "./browser-bridge.ts";
+import { writePersonaHelper } from "./launch/agent.ts";
+
+const cleanup: (() => Promise<void>)[] = [];
+afterEach(async () => {
+  await Promise.all(cleanup.splice(0).map((close) => close()));
+});
+
+const openBridge = async (handlers: Partial<PersonaBridgeHandlers>) => {
+  const bridge = await openPersonaBrowserBridge({
+    // Most tests talk to an open conversation, as on resume.
+    opening: undefined,
+    prompt: async (_message, turn) => {
+      turn.admitted();
+      return { text: "Tell me more.", submissionIds: ["sub_1"] };
+    },
+    getState: () => ({ conversationId: "TEST-conversation" }),
+    getTranscript: async () => [
+      { speaker: "user", text: "Hello." },
+      { speaker: "brunch", text: "Tell me more." },
+    ],
+    end: () => undefined,
+    ...handlers,
+  });
+  cleanup.push(() => bridge.close());
+  return bridge;
+};
+
+const deferred = () => {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+};
+
+test("an admitted prompt yields its response, then the turn's events through settlement", async () => {
+  const bridge = await openBridge({});
+  const records = await sendPersonaCommand(bridge.socketPath, {
+    id: "turn-1",
+    type: "prompt",
+    message: "Hello.",
+  });
+  expect(records).toEqual([
+    { id: "turn-1", type: "response", command: "prompt", success: true },
+    { type: "turn_start", message: "Hello." },
+    { type: "assistant_message", text: "Tell me more." },
+    { type: "turn_settled", outcome: "replied", submissionIds: ["sub_1"] },
+  ]);
+  const [state] = await sendPersonaCommand(bridge.socketPath, {
+    type: "get_state",
+  });
+  expect(state).toMatchObject({
+    success: true,
+    data: {
+      conversationId: "TEST-conversation",
+      turnActive: false,
+      completedTurns: 1,
+    },
+  });
+});
+
+test("open sends the case's opening once, and say waits for it", async () => {
+  const prompt = vi.fn<PersonaBridgeHandlers["prompt"]>(
+    async (_message, turn) => {
+      turn.admitted();
+      return { text: "Tell me more.", submissionIds: ["sub_1"] };
+    },
+  );
+  const bridge = await openBridge({ opening: "Hello, I run a desk.", prompt });
+  expect(
+    await sendPersonaCommand(bridge.socketPath, {
+      type: "prompt",
+      message: "Hi.",
+    }),
+  ).toEqual([
+    expect.objectContaining({
+      success: false,
+      error:
+        "Start the conversation with `open`, which sends your opening message.",
+    }),
+  ]);
+  expect(
+    await sendPersonaCommand(bridge.socketPath, { id: "o", type: "open" }),
+  ).toEqual([
+    { id: "o", type: "response", command: "open", success: true },
+    { type: "turn_start", message: "Hello, I run a desk." },
+    { type: "assistant_message", text: "Tell me more." },
+    { type: "turn_settled", outcome: "replied", submissionIds: ["sub_1"] },
+  ]);
+  expect(prompt).toHaveBeenLastCalledWith(
+    "Hello, I run a desk.",
+    expect.objectContaining({ opening: true }),
+  );
+  expect(await sendPersonaCommand(bridge.socketPath, { type: "open" })).toEqual(
+    [
+      expect.objectContaining({
+        success: false,
+        error: "The conversation is already open; reply with `say`.",
+      }),
+    ],
+  );
+  await sendPersonaCommand(bridge.socketPath, {
+    type: "prompt",
+    message: "Six agents.",
+  });
+  expect(prompt).toHaveBeenLastCalledWith(
+    "Six agents.",
+    expect.objectContaining({ opening: false }),
+  );
+});
+
+test("an opening refused before admission may be retried; once admitted it is never resent", async () => {
+  let attempts = 0;
+  const bridge = await openBridge({
+    opening: "Hello.",
+    prompt: async (_message, turn) => {
+      attempts += 1;
+      if (attempts === 1) throw new Error("Composer has an unsent draft");
+      turn.admitted();
+      throw new Error("Brunch turn failed");
+    },
+  });
+  expect(await sendPersonaCommand(bridge.socketPath, { type: "open" })).toEqual(
+    [expect.objectContaining({ success: false })],
+  );
+  expect(
+    (await sendPersonaCommand(bridge.socketPath, { type: "open" })).at(-1),
+  ).toMatchObject({ type: "turn_settled", outcome: "failed" });
+  expect(await sendPersonaCommand(bridge.socketPath, { type: "open" })).toEqual(
+    [
+      expect.objectContaining({
+        error: "The conversation is already open; reply with `say`.",
+      }),
+    ],
+  );
+});
+
+test("a failure before admission is a failed response; after admission it settles the turn", async () => {
+  const early = await openBridge({
+    prompt: async () => {
+      throw new Error("Composer has an unsent draft");
+    },
+  });
+  expect(
+    await sendPersonaCommand(early.socketPath, {
+      type: "prompt",
+      message: "Hello.",
+    }),
+  ).toEqual([
+    expect.objectContaining({
+      success: false,
+      error: "Composer has an unsent draft",
+    }),
+  ]);
+
+  const unadmitted = await openBridge({
+    prompt: async () => ({ text: "Tell me more.", submissionIds: [] }),
+  });
+  expect(
+    await sendPersonaCommand(unadmitted.socketPath, {
+      type: "prompt",
+      message: "Hello.",
+    }),
+  ).toEqual([
+    expect.objectContaining({
+      success: false,
+      error: "The persona turn replied without being admitted",
+    }),
+  ]);
+
+  const late = await openBridge({
+    prompt: async (_message, turn) => {
+      turn.admitted();
+      throw new Error("Brunch turn failed");
+    },
+  });
+  const records = await sendPersonaCommand(late.socketPath, {
+    type: "prompt",
+    message: "Hello.",
+  });
+  expect(records.at(-1)).toEqual({
+    type: "turn_settled",
+    outcome: "failed",
+    submissionIds: [],
+    error: "Brunch turn failed",
+  });
+
+  const stopped = await openBridge({
+    prompt: async (_message, turn) => {
+      turn.admitted();
+      // Shape of `PersonaBrowserTurnError` wrapping a Brunch Stop.
+      const wrapped = new Error("Persona browser turn was stopped.", {
+        cause: new DOMException(
+          "Persona browser turn was stopped.",
+          "AbortError",
+        ),
+      });
+      wrapped.name = "PersonaBrowserTurnError";
+      throw wrapped;
+    },
+  });
+  const stoppedRecords = await sendPersonaCommand(stopped.socketPath, {
+    type: "prompt",
+    message: "Hello.",
+  });
+  expect(stoppedRecords.at(-1)).toMatchObject({
+    type: "turn_settled",
+    outcome: "aborted",
+  });
+});
+
+test("answer submits one answer per question, and the reply carries the questions docked next", async () => {
+  const questions = [
+    {
+      kind: "choose",
+      label: "Quarantined shipment",
+      text: "Quarantined shipment?",
+      options: [{ label: "Stays open", value: "It stays counted as open" }],
+    },
+    { kind: "open", label: "Recent order", text: "Recent order?" },
+  ];
+  const prompt = vi.fn<PersonaBridgeHandlers["prompt"]>(
+    async (_utterance, turn) => {
+      turn.admitted("1. Quarantined shipment: It stays counted as open");
+      return { text: "Two things.", submissionIds: ["sub_1"], questions };
+    },
+  );
+  const bridge = await openBridge({ prompt });
+  const records = await sendPersonaCommand(bridge.socketPath, {
+    type: "answer",
+    answers: ["Stays open", ""],
+  });
+  expect(prompt.mock.calls[0]?.[0]).toEqual(["Stays open", ""]);
+  expect(records.slice(1)).toEqual([
+    {
+      type: "turn_start",
+      message: "1. Quarantined shipment: It stays counted as open",
+    },
+    { type: "assistant_message", text: "Two things.", questions },
+    { type: "turn_settled", outcome: "replied", submissionIds: ["sub_1"] },
+  ]);
+});
+
+test("turns are sequential, and disconnecting the sender aborts its turn", async () => {
+  const admitted = deferred();
+  const aborted = deferred();
+  const bridge = await openBridge({
+    prompt: (_message, turn) => {
+      turn.admitted();
+      admitted.resolve();
+      return new Promise((_resolve, reject) => {
+        turn.signal.addEventListener("abort", () => {
+          aborted.resolve();
+          reject(new Error("aborted"));
+        });
+      });
+    },
+  });
+  const sender = new AbortController();
+  const first = sendPersonaCommand(
+    bridge.socketPath,
+    { type: "prompt", message: "First." },
+    { signal: sender.signal },
+  );
+  await admitted.promise;
+  expect(
+    await sendPersonaCommand(bridge.socketPath, {
+      type: "prompt",
+      message: "Second.",
+    }),
+  ).toEqual([
+    expect.objectContaining({
+      success: false,
+      error: "A persona turn is already active",
+    }),
+  ]);
+  sender.abort(new Error("sender gave up"));
+  await expect(first).rejects.toThrow("sender gave up");
+  await aborted.promise;
+});
+
+test("end is acknowledged before the launcher is told to stop", async () => {
+  const end = vi.fn<(reason: string | undefined) => void>();
+  const bridge = await openBridge({ end });
+  expect(
+    await sendPersonaCommand(bridge.socketPath, {
+      type: "end",
+      reason: "Goal reached",
+    }),
+  ).toEqual([expect.objectContaining({ command: "end", success: true })]);
+  await vi.waitFor(() => expect(end).toHaveBeenCalledWith("Goal reached"));
+});
+
+test("the generated helper reads like an ordinary CLI over the bridge", async () => {
+  const run = await mkdtemp(join(tmpdir(), "TEST-persona-helper-"));
+  cleanup.push(() => rm(run, { recursive: true }));
+  const bridge = await openBridge({ opening: "Hello." });
+  const helper = await writePersonaHelper(run, bridge.socketPath);
+  const persona = (...args: string[]) =>
+    promisify(execFile)(helper, args, { env: process.env });
+
+  expect((await persona("open")).stdout).toBe(
+    "You: Hello.\n\nBrunch: Tell me more.\n",
+  );
+  expect((await persona("say", "Go on.")).stdout).toBe("Tell me more.\n");
+  expect((await persona("transcript")).stdout).toBe(
+    "You: Hello.\n\nBrunch: Tell me more.\n",
+  );
+  const raw = (await persona("rpc", '{"id":"s","type":"get_state"}')).stdout
+    .trim()
+    .split("\n")
+    .map((line): unknown => JSON.parse(line));
+  expect(raw).toEqual([
+    expect.objectContaining({ id: "s", command: "get_state", success: true }),
+  ]);
+  await expect(persona("say", "  ")).rejects.toMatchObject({
+    stderr: "Expected nonblank text\n",
+  });
+}, 20_000);
+
+test("a command to a run whose launcher has stopped says the run has ended", async () => {
+  await expect(
+    sendPersonaCommand(join(tmpdir(), "TEST-persona-gone", "s"), {
+      type: "get_state",
+    }),
+  ).rejects.toThrow("This run has ended");
+});

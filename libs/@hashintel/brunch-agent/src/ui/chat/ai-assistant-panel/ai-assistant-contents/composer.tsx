@@ -6,7 +6,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import { AiVoiceModeIcon } from "../../ai-voice-mode-button";
 
 import type { PetrinautAiInputMode } from "../../ai-assistant-composer-control";
-import type { PetrinautAiAssistant } from "../../petrinaut";
 
 const composerActionGlyphStyle = css({
   display: "inline-flex",
@@ -48,6 +47,13 @@ const composerStyle = css({
   "@media (prefers-reduced-motion: reduce)": {
     transition: "[none]",
   },
+});
+
+// Without the textarea the box is a row of controls, not an input field.
+const reviewControlsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
 });
 
 // Caps how tall the composer can auto-grow before it starts scrolling
@@ -110,7 +116,9 @@ type ComposerAction = {
 /**
  * The message form: an auto-growing textarea, an optional host control, and
  * one trailing action that is Stop while busy, Send once there is text, and
- * Voice mode otherwise.
+ * Voice mode otherwise. Without `textEntry` (a review tab is showing), it keeps
+ * the host control, hint and Stop, and leaves the textarea, Send and Voice
+ * launch to Chat; the host control stays mounted across the switch.
  */
 export const AiAssistantComposer = ({
   busy,
@@ -124,14 +132,15 @@ export const AiAssistantComposer = ({
   onInputModeChange,
   onStop,
   onSubmit,
-  hasHistory,
-  presentation,
+  sendable = false,
+  submitLabel = "Send message",
+  textEntry,
   voiceModeAvailable,
 }: {
   busy: boolean;
   control?: ReactNode;
   disabled: boolean;
-  /** Brunch only; a status shown beside the actions. */
+  /** A status shown beside the actions. */
   hint?: string;
   input: string;
   inputRef: RefObject<HTMLTextAreaElement | null>;
@@ -140,15 +149,18 @@ export const AiAssistantComposer = ({
   onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   onStop: () => void;
   onSubmit: () => void;
-  /** Whether the transcript already has messages to continue from. */
-  hasHistory: boolean;
-  presentation: NonNullable<PetrinautAiAssistant["presentation"]>;
+  /** Whether Send has something to send though the textarea is empty. */
+  sendable?: boolean;
+  /** What Send does, when that isn't sending the textarea's text. */
+  submitLabel?: string;
+  /** Whether this surface composes messages; false while a review tab shows. */
+  textEntry: boolean;
   voiceModeAvailable: boolean;
 }) => {
-  const isBrunch = presentation === "brunch";
   const hasInput = input.trim().length > 0;
-  const canSubmit = hasInput && !busy && !disabled;
+  const canSubmit = (hasInput || sendable) && !busy && !disabled;
 
+  const offerVoice = !hasInput && voiceModeAvailable && onInputModeChange;
   const action: ComposerAction = busy
     ? {
         disabled: false,
@@ -156,21 +168,21 @@ export const AiAssistantComposer = ({
         isSubmit: false,
         label: "Stop AI response",
         onClick: onStop,
-        tone: isBrunch ? "brand" : "neutral",
+        tone: "brand",
         type: "button",
-        variant: isBrunch ? "solid" : "subtle",
+        variant: "solid",
       }
     : canSubmit
       ? {
           disabled: false,
           glyph: "arrowUp",
           isSubmit: true,
-          label: "Send message",
+          label: submitLabel,
           tone: "brand",
           type: "submit",
           variant: "solid",
         }
-      : !hasInput && voiceModeAvailable && onInputModeChange
+      : offerVoice
         ? {
             disabled: false,
             glyph: "voice",
@@ -209,14 +221,13 @@ export const AiAssistantComposer = ({
     textarea.style.height = `${Math.min(contentHeight, composerMaxHeight)}px`;
     textarea.style.overflowY =
       contentHeight > composerMaxHeight ? "auto" : "hidden";
-  }, [input, inputRef, isOpen]);
+  }, [input, inputRef, isOpen, textEntry]);
 
-  const brunchStop = isBrunch && busy;
-  const actionButton = (
+  const actionButton = (textEntry || busy) && (
     <Button
       aria-label={action.label}
       className={composerActionButtonStyle}
-      data-stop={brunchStop || undefined}
+      data-stop={busy || undefined}
       data-ai-assistant-submit={action.isSubmit || undefined}
       disabled={action.disabled}
       onClick={action.onClick}
@@ -225,7 +236,7 @@ export const AiAssistantComposer = ({
           {action.glyph === "voice" ? (
             <AiVoiceModeIcon size={16} />
           ) : (
-            <Icon name={action.glyph} size={brunchStop ? "xs" : "sm"} />
+            <Icon name={action.glyph} size={busy ? "xs" : "sm"} />
           )}
         </span>
       }
@@ -234,6 +245,23 @@ export const AiAssistantComposer = ({
       tooltip={action.label}
       type={action.type}
       variant={action.variant}
+    />
+  );
+
+  // Send that acts on an empty composer (moving through docked questions)
+  // takes Voice's place, so Voice stays reachable beside it.
+  const voiceButton = textEntry && canSubmit && !hasInput && offerVoice && (
+    <Button
+      aria-label="Start voice mode"
+      className={composerActionButtonStyle}
+      data-voice-entry
+      onClick={() => offerVoice("voice")}
+      prefix={<AiVoiceModeIcon size={16} />}
+      size="sm"
+      tone="neutral"
+      tooltip="Start voice mode"
+      type="button"
+      variant="subtle"
     />
   );
 
@@ -247,47 +275,49 @@ export const AiAssistantComposer = ({
         }
       }}
     >
-      <div className={composerStyle} data-brunch={isBrunch || undefined}>
-        {isBrunch && control}
-        <textarea
-          ref={inputRef}
-          // The plugin panel focuses this when the user opens it.
-          data-autofocus
-          className={composerTextareaStyle}
-          rows={1}
-          value={input}
-          onChange={(event) => onInputChange(event.currentTarget.value)}
-          onKeyDown={(event) => {
-            // Enter sends; Shift+Enter inserts a newline (the textarea's
-            // native behaviour, so we just let it through). The
-            // `isComposing` guard stops an IME confirmation keystroke
-            // from sending a half-finished message.
-            if (
-              event.key === "Enter" &&
-              !event.shiftKey &&
-              !event.nativeEvent.isComposing
-            ) {
-              event.preventDefault();
-              if (canSubmit) {
-                onSubmit();
+      <div
+        className={textEntry ? composerStyle : reviewControlsStyle}
+        data-brunch
+      >
+        {control}
+        {textEntry && (
+          <textarea
+            ref={inputRef}
+            // The plugin panel focuses this when the user opens it.
+            data-autofocus
+            className={composerTextareaStyle}
+            rows={1}
+            value={input}
+            onChange={(event) => onInputChange(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              // Enter sends; Shift+Enter inserts a newline (the textarea's
+              // native behaviour, so we just let it through). The
+              // `isComposing` guard stops an IME confirmation keystroke
+              // from sending a half-finished message.
+              if (
+                event.key === "Enter" &&
+                !event.shiftKey &&
+                !event.nativeEvent.isComposing
+              ) {
+                event.preventDefault();
+                if (canSubmit) {
+                  onSubmit();
+                }
               }
-            }
-          }}
-          placeholder={
-            isBrunch || hasHistory
-              ? "Continue iterating..."
-              : "Describe the process you want to create"
-          }
-          aria-label="Message AI assistant"
-          disabled={disabled}
-        />
-        {isBrunch ? (
+            }}
+            placeholder="Continue iterating..."
+            aria-label="Message AI assistant"
+            disabled={disabled}
+          />
+        )}
+        {(hint || actionButton) && (
           <div
             className={css({
               display: "flex",
               alignItems: "center",
               gap: "1",
-              "& > :last-child": { marginLeft: "auto" },
+              "& > :last-child, & > [data-voice-entry]": { marginLeft: "auto" },
+              "& > [data-voice-entry] + :last-child": { marginLeft: "[0]" },
             })}
             data-brunch
           >
@@ -296,13 +326,9 @@ export const AiAssistantComposer = ({
                 {hint}
               </span>
             )}
+            {voiceButton}
             {actionButton}
           </div>
-        ) : (
-          <>
-            {control}
-            {actionButton}
-          </>
         )}
       </div>
     </form>

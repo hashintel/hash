@@ -19,7 +19,6 @@ const sampleNet: SDCPN = {
       name: "Place 1",
       colorId: "c1",
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 100,
       y: 200,
     },
@@ -107,7 +106,7 @@ describe("isSDCPNEqual", () => {
       ...sampleNet,
       scenarios: undefined,
       metrics: undefined,
-      subnets: undefined,
+      components: undefined,
       componentInstances: undefined,
     };
 
@@ -122,7 +121,6 @@ describe("isSDCPNEqual", () => {
       name: "Place 2",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });

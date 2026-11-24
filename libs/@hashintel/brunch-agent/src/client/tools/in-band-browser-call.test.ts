@@ -1,7 +1,12 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import { canonicalContent } from "@hashintel/brunch-agent";
+import { brunchTools, canonicalContent } from "@hashintel/brunch-agent";
 
+import { executeSetNetTitle } from "../../ui/chat/ai-assistant-panel/editor-commands";
+import {
+  summarizePetrinautAiToolCall,
+  toPetrinautAiToolOutput,
+} from "../../ui/chat/ai-assistant-panel/tool-summaries";
 import { createInBandBrowserCalls } from "./in-band-browser-call";
 
 import type { FlueClient } from "@flue/sdk";
@@ -15,7 +20,6 @@ const input = {
   name: "Place",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 };
@@ -45,7 +49,7 @@ test("an unknown mutation record is submitted without failing the call", async (
     client: Promise.resolve({
       url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
-    ownerKey: "owner",
+    actorKey: "owner",
     binding,
     // Classification doubt is diagnostic evidence, not a reason to refuse the result.
     metadataFor: () =>
@@ -55,6 +59,7 @@ test("an unknown mutation record is submitted without failing the call", async (
         Parameters<typeof createInBandBrowserCalls>[0]["metadataFor"]
       >,
     prepareInput: () => {},
+    admit: async () => ({ admitted: true }),
     acceptsRevision: () => true,
   });
 
@@ -96,10 +101,11 @@ test("the binding matches the issued call whatever its key order", async () => {
     client: Promise.resolve({
       url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
-    ownerKey: "owner",
+    actorKey: "owner",
     binding: reordered,
     metadataFor: () => undefined,
     prepareInput: () => {},
+    admit: async () => ({ admitted: true }),
     acceptsRevision: () => true,
   });
 
@@ -155,12 +161,101 @@ const createCalls = (
     client: Promise.resolve({
       url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
-    ownerKey: "owner",
+    actorKey: "owner",
     binding,
     metadataFor: () => undefined,
     prepareInput,
+    admit: async () => ({ admitted: true }),
     acceptsRevision: () => true,
   });
+
+test.each([
+  [
+    "setNetTitle with no previous title",
+    executeSetNetTitle({
+      input: { title: "Replenishment" },
+      document: {
+        title: { get: () => "", subscribe: () => () => {} },
+        setTitle: () => ({ applied: true, value: undefined }),
+      },
+    }),
+  ],
+  [
+    "updateTransition without a rename",
+    toPetrinautAiToolOutput(
+      summarizePetrinautAiToolCall({
+        toolName: "updateTransition",
+        input: {
+          transitionId: "transition",
+          update: { lambdaCode: "export default Lambda(() => 1);" },
+        },
+      }),
+    ),
+  ],
+])(
+  "an edit output with undefined properties is submitted without them: %s",
+  async (_name, output) => {
+    const posted: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(async (_url, init) => {
+        if (init?.method === "POST") {
+          posted.push(
+            typeof init.body === "string" ? JSON.parse(init.body) : init.body,
+          );
+          return new Response(null, { status: 200 });
+        }
+        return Response.json({
+          capability: "capability",
+          binding: canonicalContent(binding),
+          toolName: "addPlace",
+          input,
+        });
+      }),
+    );
+    expect(Object.values(output)).toContain(undefined);
+
+    await createCalls().run(
+      {
+        toolCallId: "call",
+        toolName: "addPlace",
+        input,
+        signal: new AbortController().signal,
+      },
+      async () => output,
+    );
+
+    expect(posted).toStrictEqual([
+      expect.objectContaining({
+        output: JSON.parse(JSON.stringify(output)) as unknown,
+      }),
+    ]);
+  },
+);
+
+test.each([undefined, [undefined], [NaN], new Date()])(
+  "a non-JSON result fails before HTTP serialization: %s",
+  async (output) => {
+    const posted = stubIssuingFetch();
+    await expect(
+      createCalls().run(
+        {
+          toolCallId: "call",
+          toolName: "addPlace",
+          input,
+          signal: new AbortController().signal,
+        },
+        async () => output,
+      ),
+    ).rejects.toThrow("Expected a JSON value");
+    expect(posted).toEqual([
+      {
+        url: "http://brunch.local/agents/petrinaut/instance/browser-calls/call/fail",
+        disposition: "failed",
+      },
+    ]);
+  },
+);
 
 test("a call that throws once executed is reported failed", async () => {
   const posted = stubIssuingFetch();
@@ -229,6 +324,46 @@ test("a call stopped during its claim neither executes nor reports", async () =>
   expect(posted).toEqual([]);
 });
 
+test("a call the server issues after a few refused claims is still claimed and run", async () => {
+  let claims = 0;
+  const posted: string[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async (url, init) => {
+      if (init?.method === "POST") {
+        posted.push(typeof url === "string" ? url : "");
+        return new Response(null, { status: 200 });
+      }
+      claims += 1;
+      return claims < 3
+        ? new Response(null, { status: 404 })
+        : Response.json({
+            capability: "capability",
+            binding: canonicalContent(binding),
+            toolName: "addPlace",
+            input,
+          });
+    }),
+  );
+  const execute = vi.fn(async () => ({ applied: true }));
+
+  await createCalls().run(
+    {
+      toolCallId: "call",
+      toolName: "addPlace",
+      input,
+      signal: new AbortController().signal,
+    },
+    execute,
+  );
+
+  expect(claims).toBe(3);
+  expect(execute).toHaveBeenCalledOnce();
+  expect(posted).toEqual([
+    "http://brunch.local/agents/petrinaut/instance/browser-calls/call",
+  ]);
+});
+
 test("a change whose expected revision the document has left is reported stale and never prepared", async () => {
   const posted: unknown[] = [];
   vi.stubGlobal(
@@ -255,10 +390,11 @@ test("a change whose expected revision the document has left is reported stale a
     client: Promise.resolve({
       url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
-    ownerKey: "owner",
+    actorKey: "owner",
     binding,
     metadataFor: () => undefined,
     prepareInput,
+    admit: async () => ({ admitted: true }),
     acceptsRevision: (expected) => {
       accepted.push(expected);
       return false;
@@ -276,4 +412,74 @@ test("a change whose expected revision the document has left is reported stale a
   expect(prepareInput).not.toHaveBeenCalled();
   await issued.fail("unstarted");
   expect(posted).toEqual([expect.objectContaining({ disposition: "stale" })]);
+});
+
+const hashRead = {
+  toolName: brunchTools.hashQueryEntities,
+  input: { entityTypes: ["Supplier"], traversalDepth: 1 },
+};
+const stubHashReadFetch = () => {
+  const posted: { url: string; body: unknown }[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async (url, init) => {
+      if (init?.method === "POST") {
+        posted.push({
+          url: typeof url === "string" ? url : "",
+          body: typeof init.body === "string" ? JSON.parse(init.body) : null,
+        });
+        return new Response(null, { status: 200 });
+      }
+      return Response.json({
+        capability: "capability",
+        binding: canonicalContent(binding),
+        ...hashRead,
+      });
+    }),
+  );
+  return posted;
+};
+
+test("HASH's entity read is claimed for the input the server issued and settles with the page's result", async () => {
+  const posted = stubHashReadFetch();
+  const output = { entities: [] };
+
+  await createCalls().run(
+    {
+      toolCallId: "read",
+      ...hashRead,
+      signal: new AbortController().signal,
+    },
+    async (issuedInput) => {
+      expect(issuedInput).toEqual(hashRead.input);
+      return output;
+    },
+  );
+
+  expect(posted.map(({ url }) => url)).toEqual([
+    "http://brunch.local/agents/petrinaut/instance/browser-calls/read",
+  ]);
+  expect(posted[0]?.body).toMatchObject({
+    toolName: brunchTools.hashQueryEntities,
+    canonicalInput: hashRead.input,
+    output,
+  });
+});
+
+test("a HASH entity read whose host tool throws is reported failed", async () => {
+  const posted = stubHashReadFetch();
+  const failure = new Error("GraphQL error");
+
+  await expect(
+    createCalls().run(
+      { toolCallId: "read", ...hashRead, signal: new AbortController().signal },
+      async () => {
+        throw failure;
+      },
+    ),
+  ).rejects.toBe(failure);
+  expect(posted.map(({ url }) => url)).toEqual([
+    "http://brunch.local/agents/petrinaut/instance/browser-calls/read/fail",
+  ]);
+  expect(posted[0]?.body).toMatchObject({ disposition: "failed" });
 });

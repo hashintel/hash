@@ -18,7 +18,9 @@ import type {
   ArcEndpoint,
   Color,
   ComponentInstance,
+  ComponentReference,
   DifferentialEquation,
+  Fusion,
   InputArc,
   OutputArc,
   Place,
@@ -118,7 +120,11 @@ const canonicalizePlace = (place: Place): Place =>
   assignChanged(place, {
     id: toPetrinautId(place.id),
     colorId: toOptionalPetrinautId(place.colorId),
-    differentialEquationId: toOptionalPetrinautId(place.differentialEquationId),
+    dynamics: mapOptional(place.dynamics, (term) =>
+      assignChanged(term, {
+        differentialEquationId: toPetrinautId(term.differentialEquationId),
+      }),
+    ),
   });
 
 const canonicalizeTransition = (transition: Transition): Transition =>
@@ -144,13 +150,31 @@ const canonicalizeDifferentialEquation = (
     colorId: toOptionalPetrinautId(equation.colorId),
   });
 
+/** A component of an import keeps the id its library gives it. */
+const canonicalizeReference = (
+  reference: ComponentReference,
+): ComponentReference =>
+  reference.from === undefined
+    ? assignChanged(reference, { id: toPetrinautId(reference.id) })
+    : reference;
+
 const canonicalizeComponentInstance = (
   instance: ComponentInstance,
 ): ComponentInstance =>
   assignChanged(instance, {
     id: toPetrinautId(instance.id),
-    subnetId: toPetrinautId(instance.subnetId),
+    component: canonicalizeReference(instance.component),
     parameterValues: rekeyUnlessUnchanged(instance.parameterValues),
+    implementation:
+      instance.implementation === undefined
+        ? undefined
+        : canonicalizeReference(instance.implementation),
+  });
+
+const canonicalizeFusion = (fusion: Fusion): Fusion =>
+  assignChanged(fusion, {
+    id: toPetrinautId(fusion.id),
+    members: mapUnlessUnchanged(fusion.members, canonicalizeEndpoint),
   });
 
 const canonicalizeAdHocState = (
@@ -189,22 +213,28 @@ const canonicalizeScenario = (scenario: Scenario): Scenario =>
     initialState: canonicalizeInitialState(scenario.initialState),
   });
 
-/** The entity collections a net, a subnet or a clipboard selection carries. */
+/** The entity collections a net, a component or a clipboard selection carries. */
 type PetrinautIdNet = Pick<
   SDCPN,
   "places" | "transitions" | "types" | "differentialEquations" | "parameters"
 > &
   Partial<
-    Pick<SDCPN, "componentInstances" | "scenarios" | "metrics" | "subnets">
+    Pick<
+      SDCPN,
+      | "componentInstances"
+      | "scenarios"
+      | "metrics"
+      | "components"
+      | "fusions"
+      | "implementations"
+    >
   >;
 
 /**
  * Converts every entity id in `net` to a Petrinaut id, together with every
- * reference to it: arc endpoints, type and equation references, component
- * instances' subnets and parameter values, and the scenario overrides and
- * initial states keyed by id, at the root and inside subnets. Names, user
- * code, metadata and token values are left as they are. Returns `net` itself
- * when every id is already canonical.
+ * reference to one, at the root and inside components. Names, user code,
+ * metadata and token values are left as they are. Returns `net` itself when
+ * every id is already canonical.
  */
 export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
   net: Net,
@@ -224,13 +254,21 @@ export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
       net.componentInstances,
       canonicalizeComponentInstance,
     ),
+    fusions: mapOptional(net.fusions, canonicalizeFusion),
+    implementations: mapOptional(net.implementations, (entry) =>
+      assignChanged(entry, {
+        interface: canonicalizeReference(entry.interface),
+        component: canonicalizeReference(entry.component),
+      }),
+    ),
     scenarios: mapOptional(net.scenarios, canonicalizeScenario),
     metrics: mapOptional(net.metrics, (metric) =>
       assignChanged(metric, { id: toPetrinautId(metric.id) }),
     ),
-    subnets: mapOptional(net.subnets, (subnet) =>
-      assignChanged(canonicalizePetrinautIds(subnet), {
-        id: toPetrinautId(subnet.id),
+    components: mapOptional(net.components, (component) =>
+      assignChanged(canonicalizePetrinautIds(component), {
+        id: toPetrinautId(component.id),
+        implements: mapOptional(component.implements, toPetrinautId),
       }),
     ),
   }) as Net;

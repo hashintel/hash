@@ -26,6 +26,7 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 #[derive(Debug, Serialize, Deserialize)]
 pub enum FetcherError {
     Network(String),
+    NotPredefined(String),
     PredefinedTypes(String),
     Serialization(String),
 }
@@ -38,6 +39,7 @@ impl fmt::Display for FetcherError {
 
         match self {
             Self::Network(message)
+            | Self::NotPredefined(message)
             | Self::Serialization(message)
             | Self::PredefinedTypes(message) => fmt.write_str(message),
         }

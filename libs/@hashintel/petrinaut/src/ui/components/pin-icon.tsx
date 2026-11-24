@@ -1,5 +1,5 @@
 /**
- * A thumbtack, for holding a floating surface open.
+ * A thumbtack, for fixing a floating surface in place.
  *
  * Drawn here rather than taken from the icon set, which has no pin. Rounded
  * throughout and stroked thinly: it sits over a visualizer's own artwork, so

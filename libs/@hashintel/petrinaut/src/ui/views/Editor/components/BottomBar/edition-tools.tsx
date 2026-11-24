@@ -1,6 +1,7 @@
 import { use } from "react";
 
 import { Icon, type MenuItem, Menu } from "@hashintel/ds-components";
+import { sameComponent } from "@hashintel/petrinaut-core";
 
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import {
@@ -8,6 +9,8 @@ import {
   type EditorState,
 } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { useComposesOnly } from "../../../../../react/state/use-composes-only";
+import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import {
@@ -21,28 +24,30 @@ import { ToolbarMenuTrigger } from "./toolbar-menu-trigger";
 
 type EditorEditionMode = EditorState["editionMode"];
 
-/** Picks which subnet the next component instance comes from. */
+/** Picks which component the next component instance comes from. */
 const ComponentDropdown: React.FC<{
   editionMode: EditorEditionMode;
 }> = ({ editionMode }) => {
   const {
-    petriNetDefinition: { subnets },
+    petriNetDefinition: { components },
   } = use(SDCPNContext);
-  const { componentSubnetId, setAddComponentMode } = use(EditorContext);
+  const { componentToAdd, setAddComponentMode } = use(EditorContext);
 
-  const items: MenuItem[] = (subnets ?? []).map((subnet) => ({
-    id: subnet.id,
+  const items: MenuItem[] = (components ?? []).map((component) => ({
+    id: component.id,
     icon: "cube",
-    text: subnet.name,
+    text: component.name,
     selected:
-      editionMode === "add-component" && componentSubnetId === subnet.id,
-    onClick: () => setAddComponentMode(subnet.id),
+      editionMode === "add-component" &&
+      componentToAdd !== null &&
+      sameComponent(componentToAdd, { id: component.id }),
+    onClick: () => setAddComponentMode({ id: component.id }),
   }));
 
   if (items.length === 0) {
     items.push({
       id: "empty",
-      text: "No subnets defined",
+      text: "No components defined",
       disabled: true,
       onClick: () => {},
     });
@@ -53,9 +58,7 @@ const ComponentDropdown: React.FC<{
       trigger={
         <ToolbarMenuTrigger
           icon="cube"
-          isActive={
-            editionMode === "add-component" && componentSubnetId !== null
-          }
+          isActive={editionMode === "add-component" && componentToAdd !== null}
           aria-label="Add component"
         />
       }
@@ -67,20 +70,21 @@ const ComponentDropdown: React.FC<{
 
 /**
  * The tools that add nodes to the net. Nothing to offer on a read-only net,
- * where every one of them is refused.
+ * where every one of them is refused, nor in an editor that only composes:
+ * what it places comes from the Components panel.
  */
 export const EditionTools: React.FC<{
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
 }> = ({ editionMode, onEditionModeChange }) => {
   const isReadOnly = useIsReadOnly();
-  const { activeSubnetId } = use(ActiveNetContext);
-  const isRootNet = activeSubnetId === null;
-  const { extensions } = use(SDCPNContext);
-  const { enableNetComponents, enableExperimentalIconPack } =
-    use(UserSettingsContext);
+  const { activeComponentId } = use(ActiveNetContext);
+  const isRootNet = activeComponentId === null;
+  const composesOnly = useComposesOnly();
+  const isCompositionInterfaceOn = useIsCompositionInterfaceOn();
+  const { enableExperimentalIconPack } = use(UserSettingsContext);
 
-  if (isReadOnly) {
+  if (isReadOnly || composesOnly) {
     return null;
   }
 
@@ -139,7 +143,7 @@ export const EditionTools: React.FC<{
           <Icon name="squarePlus" />
         )}
       </ToolbarButton>
-      {isRootNet && extensions.subnets && enableNetComponents && (
+      {isRootNet && isCompositionInterfaceOn && (
         <ComponentDropdown editionMode={editionMode} />
       )}
     </>

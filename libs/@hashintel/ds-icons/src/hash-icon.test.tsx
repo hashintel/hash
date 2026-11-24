@@ -23,12 +23,31 @@ import {
   HashIconProvider,
   hashIconNames,
   hashIconPack,
+  LogicAndIcon,
+  LogicOrIcon,
+  LogicNotIcon,
+  LogicImpliesIcon,
+  LogicEquivalentIcon,
+  LogicForAllIcon,
+  LogicExistsIcon,
+  LogicNextIcon,
+  LogicUntilIcon,
+  LogicBranchingIcon,
+  LogicInvariantIcon,
+  LogicCounterexampleIcon,
+  LogicConstraintIcon,
+  LogicRobustnessIcon,
   PlaceIcon,
+  LoadingIcon,
   AddPlaceIcon,
   AddTransitionIcon,
   getHashIconEffects,
   useHashIconPackEnabled,
 } from "./hash-icon";
+import {
+  projectCube,
+  projectCubeFaces,
+} from "./hash-icon/shared/cube-projection";
 
 afterEach(cleanup);
 
@@ -57,6 +76,84 @@ describe("HashIcon SVG API", () => {
       Array.from(container.querySelectorAll("clipPath"), (clip) => clip.id),
     ).toEqual(clipIds);
   });
+
+  it.each([
+    { name: "logicAnd", IconComponent: LogicAndIcon, filledDots: 0 },
+    { name: "logicOr", IconComponent: LogicOrIcon, filledDots: 0 },
+    { name: "logicNot", IconComponent: LogicNotIcon, filledDots: 0 },
+    { name: "logicImplies", IconComponent: LogicImpliesIcon, filledDots: 0 },
+    {
+      name: "logicEquivalent",
+      IconComponent: LogicEquivalentIcon,
+      filledDots: 0,
+    },
+    { name: "logicForAll", IconComponent: LogicForAllIcon, filledDots: 0 },
+    { name: "logicExists", IconComponent: LogicExistsIcon, filledDots: 0 },
+    { name: "logicNext", IconComponent: LogicNextIcon, filledDots: 1 },
+    { name: "logicUntil", IconComponent: LogicUntilIcon, filledDots: 1 },
+    {
+      name: "logicBranching",
+      IconComponent: LogicBranchingIcon,
+      filledDots: 1,
+    },
+    {
+      name: "logicInvariant",
+      IconComponent: LogicInvariantIcon,
+      filledDots: 0,
+    },
+    {
+      name: "logicCounterexample",
+      IconComponent: LogicCounterexampleIcon,
+      filledDots: 0,
+    },
+    {
+      name: "logicConstraint",
+      IconComponent: LogicConstraintIcon,
+      filledDots: 0,
+    },
+    {
+      name: "logicRobustness",
+      IconComponent: LogicRobustnessIcon,
+      filledDots: 0,
+    },
+  ] as const)(
+    "preserves the meaning of $name in both styles across the weight range",
+    ({ name, IconComponent, filledDots }) => {
+      expect(hashIconPack[name]).toBe(IconComponent);
+      for (const variant of ["outline", "filled"] as const) {
+        for (const weight of [100, 400, 700]) {
+          const { container, unmount } = render(
+            <IconComponent
+              variant={variant}
+              weight={weight}
+              aria-label={name}
+              motion="none"
+            />,
+          );
+          expect(
+            screen.getByRole("img", { name }).getAttribute("data-icon"),
+          ).toBe(name);
+          expect(
+            container.querySelector("svg")?.getAttribute("stroke-width"),
+          ).toBe(String(0.75 + weight / 400));
+          const shapes = container.querySelectorAll("path, circle");
+          expect(shapes.length).toBeGreaterThan(0);
+          let filled = 0;
+          for (const shape of shapes) {
+            const fill = shape.closest("[fill]")?.getAttribute("fill");
+            if (fill === "currentColor") {
+              expect(shape.tagName).toBe("circle");
+              filled++;
+            } else {
+              expect(fill).toBe("none");
+            }
+          }
+          expect(filled).toBe(filledDots);
+          unmount();
+        }
+      }
+    },
+  );
 
   it("renders every icon as a single 24 by 24 SVG", () => {
     for (const name of hashIconNames) {
@@ -98,7 +195,7 @@ describe("HashIcon SVG API", () => {
     );
     const labelled = screen.getByRole("img", { name: "Place" });
     expect(labelled.getAttribute("width")).toBe("20");
-    expect(labelled.getAttribute("stroke-width")).toBe("3");
+    expect(labelled.getAttribute("stroke-width")).toBe("2.5");
     expect(labelled.getAttribute("color")).toBe("red");
     expect(labelled.hasAttribute("aria-hidden")).toBe(false);
     const decorative = container.querySelector('svg[aria-hidden="true"]');
@@ -136,9 +233,9 @@ describe("HashIcon SVG API", () => {
 
   it.each([
     [0, 1],
-    [800, 3],
-    [Number.NaN, 2],
-    [Number.POSITIVE_INFINITY, 2],
+    [800, 2.5],
+    [Number.NaN, 1.75],
+    [Number.POSITIVE_INFINITY, 1.75],
   ])(
     "keeps weight %s within the supported stroke range",
     (weight, strokeWidth) => {
@@ -165,7 +262,18 @@ describe("HashIcon motion", () => {
 
   beforeEach(() => {
     reducedMotion = false;
-    animate.mockClear();
+    const matches = Object.getOwnPropertyDescriptor(
+      Element.prototype,
+      "matches",
+    )?.value as Element["matches"];
+    vi.spyOn(Element.prototype, "matches").mockImplementation(
+      function matchesWithoutHover(this: Element, selector: string) {
+        return selector === ":hover" ? false : matches.call(this, selector);
+      },
+    );
+    animate
+      .mockReset()
+      .mockImplementation(() => ({ cancel }) as unknown as Animation);
     cancel.mockClear();
     mediaListeners.clear();
     Object.defineProperty(Element.prototype, "animate", {
@@ -185,12 +293,444 @@ describe("HashIcon motion", () => {
 
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     if (originalAnimate) {
       Object.defineProperty(Element.prototype, "animate", originalAnimate);
     } else {
       Reflect.deleteProperty(Element.prototype, "animate");
     }
+  });
+
+  it("plays explicit effects once by default, with repetition independent of active", () => {
+    const { rerender } = render(
+      <HashIcon name="personRunning" effect="bounce" />,
+    );
+    expect(animate.mock.calls.length).toBeGreaterThan(0);
+    expect(
+      animate.mock.calls.every(([, options]) => options.iterations === 1),
+    ).toBe(true);
+    animate.mockClear();
+    rerender(
+      <HashIcon
+        name="personRunning"
+        effect="bounce"
+        active
+        animationMode="once"
+      />,
+    );
+    expect(animate.mock.calls.length).toBeGreaterThan(0);
+    expect(
+      animate.mock.calls.every(([, options]) => options.iterations === 1),
+    ).toBe(true);
+    animate.mockClear();
+    rerender(
+      <HashIcon
+        name="personRunning"
+        effect="bounce"
+        animationMode="continuous"
+      />,
+    );
+    expect(
+      animate.mock.calls.every(
+        ([, options]) => options.iterations === Infinity,
+      ),
+    ).toBe(true);
+  });
+
+  it("defaults the runner gait to one cycle and allows provider and local overrides", () => {
+    const { container, rerender } = render(<HashIcon name="personRunning" />);
+    expect(
+      container
+        .querySelector("svg")
+        ?.style.getPropertyValue("--petricon-iterations"),
+    ).toBe("1");
+    rerender(
+      <HashIconProvider animationMode="continuous">
+        <HashIcon name="personRunning" />
+      </HashIconProvider>,
+    );
+    expect(
+      container
+        .querySelector("svg")
+        ?.style.getPropertyValue("--petricon-iterations"),
+    ).toBe("infinite");
+    rerender(
+      <HashIconProvider animationMode="continuous">
+        <HashIcon name="personRunning" animationMode="once" />
+      </HashIconProvider>,
+    );
+    expect(
+      container
+        .querySelector("svg")
+        ?.style.getPropertyValue("--petricon-iterations"),
+    ).toBe("1");
+  });
+
+  it.each(["once", "continuous"] as const)(
+    "plays %s hover effects on pointer entry or keyboard focus and stops on exit",
+    (animationMode) => {
+      const { unmount } = render(
+        <button type="button">
+          <HashIcon
+            name="personRunning"
+            hoverEffect="bounce"
+            animationMode={animationMode}
+          />
+        </button>,
+      );
+      const button = screen.getByRole("button");
+      expect(animate).not.toHaveBeenCalled();
+      fireEvent.pointerEnter(button);
+      const count = animate.mock.calls.length;
+      expect(count).toBeGreaterThan(0);
+      expect(
+        animate.mock.calls.every(
+          ([, options]) =>
+            options.iterations ===
+            (animationMode === "continuous" ? Infinity : 1),
+        ),
+      ).toBe(true);
+      fireEvent.focus(button);
+      expect(animate).toHaveBeenCalledTimes(count);
+      fireEvent.pointerLeave(button);
+      expect(cancel).not.toHaveBeenCalled();
+      fireEvent.blur(button);
+      expect(cancel).toHaveBeenCalledTimes(count);
+      fireEvent.focus(button);
+      expect(animate).toHaveBeenCalledTimes(count * 2);
+      unmount();
+      expect(cancel).toHaveBeenCalledTimes(count * 2);
+    },
+  );
+
+  it("does not play hover effects on disabled controls, hover opt-out, or reduced motion", () => {
+    const { rerender } = render(
+      <button type="button" disabled>
+        <HashIcon name="place" hoverEffect="pulse" animationMode="continuous" />
+      </button>,
+    );
+    fireEvent.pointerEnter(screen.getByRole("button"));
+    expect(animate).not.toHaveBeenCalled();
+    rerender(
+      <button type="button">
+        <HashIcon name="place" hoverEffect="pulse" hover="none" />
+      </button>,
+    );
+    fireEvent.pointerEnter(screen.getByRole("button"));
+    expect(animate).not.toHaveBeenCalled();
+    rerender(
+      <button type="button">
+        <HashIcon name="place" hoverEffect="pulse" animationMode="continuous" />
+      </button>,
+    );
+    fireEvent.pointerEnter(screen.getByRole("button"));
+    expect(animate.mock.calls.length).toBeGreaterThan(0);
+    const count = animate.mock.calls.length;
+    act(() => {
+      reducedMotion = true;
+      mediaListeners.forEach((listener) => listener());
+    });
+    expect(cancel).toHaveBeenCalledTimes(count);
+    fireEvent.focus(screen.getByRole("button"));
+    expect(animate).toHaveBeenCalledTimes(count);
+  });
+
+  it("keeps click actions available when a hover effect is configured", () => {
+    render(
+      <button type="button">
+        <HashIcon name="personRunning" hoverEffect="bounce" />
+      </button>,
+    );
+    const button = screen.getByRole("button");
+    fireEvent.pointerEnter(button);
+    const hoverCount = animate.mock.calls.length;
+    fireEvent.click(button);
+    expect(cancel).toHaveBeenCalledTimes(hoverCount);
+    expect(
+      animate.mock.calls
+        .slice(hoverCount)
+        .some(([frames]) =>
+          frames.some(
+            (frame) => frame.transform === "translateY(-4px) scaleY(1.04)",
+          ),
+        ),
+    ).toBe(true);
+    fireEvent.pointerLeave(button);
+    expect(cancel).toHaveBeenCalledTimes(hoverCount);
+  });
+
+  it("keeps checkbox hover playback running while its input has focus", () => {
+    const { container, unmount } = render(
+      <label data-scope="checkbox">
+        <input type="checkbox" aria-label="Select" />
+        <HashIcon name="place" hoverEffect="pulse" />
+      </label>,
+    );
+    const input = screen.getByRole("checkbox");
+    const label = container.querySelector("label")!;
+    fireEvent.focus(input);
+    const count = animate.mock.calls.length;
+    expect(count).toBeGreaterThan(0);
+    fireEvent.pointerEnter(label);
+    fireEvent.pointerLeave(label);
+    expect(animate).toHaveBeenCalledTimes(count);
+    expect(cancel).not.toHaveBeenCalled();
+    fireEvent.blur(input);
+    expect(cancel).toHaveBeenCalledTimes(count);
+    fireEvent.focus(input);
+    expect(animate).toHaveBeenCalledTimes(count * 2);
+    unmount();
+    expect(cancel).toHaveBeenCalledTimes(count * 2);
+    fireEvent.focus(input);
+    expect(animate).toHaveBeenCalledTimes(count * 2);
+  });
+
+  it("starts hover playback when an icon mounts or changes inside an already-focused control", () => {
+    const Sample = ({
+      show,
+      filled = false,
+    }: {
+      show: boolean;
+      filled?: boolean;
+    }) => (
+      <label data-scope="checkbox">
+        <input type="checkbox" aria-label="Select" />
+        {show && (
+          <HashIcon
+            name="place"
+            variant={filled ? "filled" : "outline"}
+            hoverEffect="pulse"
+          />
+        )}
+      </label>
+    );
+    const { container, rerender } = render(<Sample show={false} />);
+    const input = screen.getByRole("checkbox");
+    act(() => input.focus());
+    rerender(<Sample show />);
+    const count = animate.mock.calls.length;
+    expect(count).toBeGreaterThan(0);
+    const label = container.querySelector("label")!;
+    fireEvent.pointerEnter(label);
+    fireEvent.pointerLeave(label);
+    expect(animate).toHaveBeenCalledTimes(count);
+    expect(cancel).not.toHaveBeenCalled();
+    rerender(<Sample show filled />);
+    expect(cancel).toHaveBeenCalledTimes(count);
+    expect(animate).toHaveBeenCalledTimes(count * 2);
+    act(() => input.blur());
+    expect(cancel).toHaveBeenCalledTimes(count * 2);
+  });
+
+  it.each([false, true])(
+    "retains pointer hover across mounting and variant changes with focus=%s",
+    (focused) => {
+      const Sample = ({
+        show,
+        filled = false,
+      }: {
+        show: boolean;
+        filled?: boolean;
+      }) => (
+        <label data-scope="checkbox">
+          <input type="checkbox" aria-label="Select" />
+          {show && (
+            <HashIcon
+              name="place"
+              variant={filled ? "filled" : "outline"}
+              hoverEffect="pulse"
+              animationMode="continuous"
+            />
+          )}
+        </label>
+      );
+      const { container, rerender } = render(<Sample show={false} />);
+      const input = screen.getByRole("checkbox");
+      const label = container.querySelector("label")!;
+      const matches = vi.spyOn(label, "matches").mockReturnValue(true);
+      if (focused) act(() => input.focus());
+      rerender(<Sample show />);
+      const count = animate.mock.calls.length;
+      expect(count).toBeGreaterThan(0);
+      fireEvent.pointerEnter(label);
+      expect(animate).toHaveBeenCalledTimes(count);
+      rerender(<Sample show filled />);
+      expect(cancel).toHaveBeenCalledTimes(count);
+      expect(animate).toHaveBeenCalledTimes(count * 2);
+      act(() => input.blur());
+      expect(cancel).toHaveBeenCalledTimes(count);
+      fireEvent.pointerLeave(label);
+      expect(cancel).toHaveBeenCalledTimes(count * 2);
+      matches.mockRestore();
+    },
+  );
+
+  it.each(["action", "pulse"] as const)(
+    "protects explicit continuous %s playback without active from hover and focus",
+    (effect) => {
+      const Sample = ({ trigger }: { trigger?: number }) => (
+        <button type="button">
+          <HashIcon
+            name="clockRotateLeft"
+            effect={effect}
+            trigger={trigger}
+            animationMode="continuous"
+          />
+        </button>
+      );
+      const { rerender, unmount } = render(<Sample />);
+      const button = screen.getByRole("button");
+      const exerciseHover = () => {
+        const count = animate.mock.calls.length;
+        expect(count).toBeGreaterThan(0);
+        cancel.mockClear();
+        fireEvent.pointerEnter(button);
+        fireEvent.focus(button);
+        fireEvent.pointerLeave(button);
+        fireEvent.blur(button);
+        expect(animate).toHaveBeenCalledTimes(count);
+        expect(cancel).not.toHaveBeenCalled();
+      };
+      exerciseHover();
+      rerender(<Sample trigger={0} />);
+      exerciseHover();
+      rerender(<Sample trigger={1} />);
+      exerciseHover();
+      unmount();
+      expect(cancel.mock.calls.length).toBeGreaterThan(0);
+    },
+  );
+
+  it("allows hover playback again after all explicit one-time effects finish", async () => {
+    const completions: (() => void)[] = [];
+    animate.mockImplementation(
+      () =>
+        ({
+          cancel,
+          finished: new Promise<void>((resolve) => completions.push(resolve)),
+        }) as unknown as Animation,
+    );
+    render(
+      <button type="button">
+        <HashIcon name="clockRotateLeft" effect={["action", "pulse"]} />
+      </button>,
+    );
+    const button = screen.getByRole("button");
+    const count = animate.mock.calls.length;
+    fireEvent.pointerEnter(button);
+    fireEvent.pointerLeave(button);
+    expect(animate).toHaveBeenCalledTimes(count);
+    expect(cancel).not.toHaveBeenCalled();
+    await act(async () =>
+      completions.slice(0, -1).forEach((finish) => finish()),
+    );
+    fireEvent.pointerEnter(button);
+    fireEvent.pointerLeave(button);
+    expect(animate).toHaveBeenCalledTimes(count);
+    await act(async () => completions.at(-1)?.());
+    fireEvent.pointerEnter(button);
+    expect(animate.mock.calls.length).toBeGreaterThan(count);
+  });
+
+  it("keeps cube faces and edges aligned when changing variants after hover", () => {
+    let frame: FrameRequestCallback = () => {};
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      frame = callback;
+      return 1;
+    });
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    const Sample = ({ filled }: { filled: boolean }) => (
+      <button type="button">
+        <HashIcon name="cube" variant={filled ? "filled" : "outline"} />
+      </button>
+    );
+    const { container, rerender } = render(<Sample filled={false} />);
+    fireEvent.pointerEnter(screen.getByRole("button"));
+    act(() => {
+      frame(0);
+      frame(240);
+    });
+    expect(
+      container
+        .querySelector("[data-icon-cube]")
+        ?.getAttribute("data-cube-angle"),
+    ).toBe("55");
+    rerender(<Sample filled />);
+    const cube = container.querySelector("[data-icon-cube]")!;
+    const angle = Number(cube.getAttribute("data-cube-angle"));
+    for (const face of projectCubeFaces(angle)) {
+      expect(
+        cube
+          .querySelector(`[data-cube-face="${face.index}"]`)
+          ?.getAttribute("d"),
+      ).toBe(face.path);
+    }
+    for (const edge of projectCube(angle)) {
+      expect(
+        cube
+          .querySelector(`[data-cube-edge="${edge.index}"]`)
+          ?.getAttribute("d"),
+      ).toBe(edge.path);
+    }
+  });
+
+  it("stops continuous authored hover actions when the pointer leaves", () => {
+    render(
+      <button type="button">
+        <HashIcon name="clockRotateLeft" animationMode="continuous" />
+      </button>,
+    );
+    fireEvent.pointerEnter(screen.getByRole("button"));
+    const count = animate.mock.calls.length;
+    expect(count).toBeGreaterThan(0);
+    expect(
+      animate.mock.calls.every(
+        ([, options]) => options.iterations === Infinity,
+      ),
+    ).toBe(true);
+    fireEvent.pointerLeave(screen.getByRole("button"));
+    expect(cancel).toHaveBeenCalledTimes(count);
+  });
+
+  it("hands a hover effect over to explicit playback without overlapping loops", () => {
+    const Sample = ({ active }: { active?: boolean }) => (
+      <button type="button">
+        <HashIcon
+          name="place"
+          effect="pulse"
+          hoverEffect="pulse"
+          trigger={0}
+          active={active}
+          animationMode="continuous"
+        />
+      </button>
+    );
+    const { rerender } = render(<Sample />);
+    fireEvent.pointerEnter(screen.getByRole("button"));
+    const count = animate.mock.calls.length;
+    expect(count).toBeGreaterThan(0);
+    rerender(<Sample active />);
+    expect(cancel).toHaveBeenCalledTimes(count);
+    expect(animate).toHaveBeenCalledTimes(count * 2);
+    fireEvent.focus(screen.getByRole("button"));
+    expect(animate).toHaveBeenCalledTimes(count * 2);
+    rerender(<Sample active={false} />);
+    expect(cancel).toHaveBeenCalledTimes(count * 2);
+  });
+
+  it("keeps LoadingIcon continuous even under a one-time provider", () => {
+    render(
+      <HashIconProvider animationMode="once">
+        <LoadingIcon />
+      </HashIconProvider>,
+    );
+    expect(animate.mock.calls.length).toBeGreaterThan(0);
+    expect(
+      animate.mock.calls.every(
+        ([, options]) => options.iterations === Infinity,
+      ),
+    ).toBe(true);
   });
 
   it("replays only when its trigger changes and cancels interrupted effects", () => {
@@ -393,7 +933,7 @@ describe("HashIcon motion", () => {
     );
     expect(animate).not.toHaveBeenCalled();
     expect(ref.current).toBe(screen.getByRole("img", { name: "Add place" }));
-    expect(ref.current?.getAttribute("stroke-width")).toBe("3");
+    expect(ref.current?.getAttribute("stroke-width")).toBe("2.5");
     const maskIds = Array.from(
       container.querySelectorAll("mask"),
       (mask) => mask.id,
@@ -428,7 +968,7 @@ describe("HashIcon motion", () => {
     const frame = container.querySelector('[data-icon-draw="frame"]');
     rerender(<HashIcon name="addTransition" selected />);
     expect(container.querySelector('[data-icon-draw="frame"]')).toBe(frame);
-    expect(frame?.getAttribute("rx")).toBe("2");
+    expect(frame?.getAttribute("rx")).toBe("1");
     expect(getHashIconEffects("addPlace")).toContain("draw");
     expect(getHashIconEffects("settings")).not.toContain("draw");
   });
@@ -456,6 +996,140 @@ describe("HashIcon motion", () => {
     unmount();
     expect(cancel).toHaveBeenCalledTimes(4);
   });
+
+  it.each(["outline", "filled"] as const)(
+    "sweeps %s Radar once and stops when reduced motion is requested",
+    (variant) => {
+      const { container } = render(
+        <HashIcon name="radar" variant={variant} effect="action" />,
+      );
+      const sweep = container.querySelector('[data-icon-detail="radar-sweep"]');
+      expect(sweep?.querySelector("path")).not.toBeNull();
+      expect(animate).toHaveBeenCalledTimes(1);
+      expect(animate.mock.contexts[0]).toBe(sweep);
+      expect(animate.mock.calls[0]).toEqual([
+        [
+          { transform: "rotate(0deg)", transformOrigin: "12px 12px" },
+          { transform: "rotate(360deg)", transformOrigin: "12px 12px" },
+        ],
+        expect.objectContaining({ iterations: 1, easing: "linear" }),
+      ]);
+      act(() => {
+        reducedMotion = true;
+        mediaListeners.forEach((listener) => listener());
+      });
+      expect(cancel).toHaveBeenCalledTimes(1);
+      expect(animate).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(["outline", "filled"] as const)(
+    "animates individual Dash and file details in %s icons and cancels them together",
+    (variant) => {
+      const names = [
+        "dashSolid",
+        "dashDashed",
+        "dashDotted",
+        "dashDraw",
+        "filePlus",
+        "fileAudio",
+        "fileCode",
+        "scanLine",
+        "signal",
+      ] as const;
+      const { container, rerender, unmount } = render(
+        <button type="button">
+          {names.map((name) => (
+            <HashIcon key={name} name={name} variant={variant} />
+          ))}
+        </button>,
+      );
+      fireEvent.click(screen.getByRole("button"));
+      const details = container.querySelectorAll("[data-icon-detail]");
+      expect(animate).toHaveBeenCalledTimes(details.length);
+      for (const detail of details)
+        expect(animate.mock.contexts.includes(detail)).toBe(true);
+      for (const [, options] of animate.mock.calls) {
+        expect(options).toMatchObject({ iterations: 1, fill: "none" });
+      }
+      fireEvent.click(screen.getByRole("button"));
+      expect(cancel).toHaveBeenCalledTimes(details.length);
+      expect(animate).toHaveBeenCalledTimes(details.length * 2);
+      rerender(
+        <button type="button">
+          {names.map((name) => (
+            <HashIcon key={name} name={name} variant={variant} motion="none" />
+          ))}
+        </button>,
+      );
+      expect(cancel).toHaveBeenCalledTimes(details.length * 2);
+      fireEvent.click(screen.getByRole("button"));
+      expect(animate).toHaveBeenCalledTimes(details.length * 2);
+      unmount();
+    },
+  );
+
+  it.each(["outline", "filled"] as const)(
+    "moves the upload arrow into its stationary cloud in the %s variant",
+    (variant) => {
+      const { container } = render(
+        <HashIcon name="cloudUpload" variant={variant} effect="action" />,
+      );
+      const arrow = container.querySelector('[data-icon-detail="up"]');
+      expect(arrow).not.toBeNull();
+      expect(animate).toHaveBeenCalledTimes(1);
+      expect(animate.mock.contexts[0]).toBe(arrow);
+      const frames = animate.mock.calls[0]![0];
+      expect(frames).toContainEqual(
+        expect.objectContaining({ transform: "translateY(-2px)" }),
+      );
+      expect(frames.at(-1)?.transform).toBe(frames[0]?.transform);
+    },
+  );
+
+  it.each(["dashDashed", "dashDotted", "signal"] as const)(
+    "staggers %s details within one seamless cycle and stops for reduced motion",
+    (name) => {
+      render(
+        <HashIcon name={name} effect="action" animationMode="continuous" />,
+      );
+      const peaks = animate.mock.calls.map(([frames, options]) => {
+        expect(options.iterations).toBe(Infinity);
+        expect(frames[0]).toEqual(frames.at(-1));
+        const peak = frames.find(
+          (frame) =>
+            frame.opacity === 0.25 ||
+            frame.transform === "translateY(-1.6px)" ||
+            frame.transform === "scaleY(.45)",
+        );
+        expect(peak?.offset).toBeGreaterThan(0);
+        expect(peak?.offset).toBeLessThan(1);
+        return peak!.offset!;
+      });
+      expect(peaks.length).toBeGreaterThan(1);
+      expect(new Set(peaks).size).toBe(peaks.length);
+      expect(peaks).toEqual([...peaks].sort((left, right) => left - right));
+      act(() => {
+        reducedMotion = true;
+        mediaListeners.forEach((listener) => listener());
+      });
+      expect(cancel).toHaveBeenCalledTimes(peaks.length);
+      expect(animate).toHaveBeenCalledTimes(peaks.length);
+    },
+  );
+
+  it.each(["dashSolid", "dashDraw"] as const)(
+    "wiggles %s along its path and returns to its original shape",
+    (name) => {
+      const { container } = render(<HashIcon name={name} effect="action" />);
+      const path = container.querySelector("[data-icon-detail]");
+      expect(animate).toHaveBeenCalledTimes(1);
+      const frames = animate.mock.calls[0]![0];
+      expect(frames[0]?.d).toBe(`path('${path?.getAttribute("d")}')`);
+      expect(frames.at(-1)?.d).toBe(frames[0]?.d);
+      expect(new Set(frames.map((frame) => frame.d)).size).toBe(3);
+    },
+  );
 
   it("jumps on click without replacing the runner's independent gait", () => {
     const { container, unmount } = render(
@@ -579,6 +1253,63 @@ describe("HashIcon motion", () => {
     ).toHaveLength(2);
   });
 
+  it.each(["equationCurve", "equationFlow"] as const)(
+    "keeps the endpoints of %s fixed while the curve changes",
+    (name) => {
+      const { container } = render(
+        <button type="button">
+          <HashIcon name={name} />
+        </button>,
+      );
+      const curve = container.querySelector(
+        '[data-icon-detail="equation-curve"], [data-icon-detail="equation-solution"]',
+      );
+      const coordinates = (value: unknown) =>
+        String(value)
+          .match(/-?\d*\.?\d+/g)
+          ?.map(Number) ?? [];
+      const resting = coordinates(curve?.getAttribute("d"));
+      fireEvent.click(screen.getByRole("button"));
+      const frames =
+        animate.mock.calls[animate.mock.contexts.indexOf(curve)]?.[0];
+      expect(frames).toBeDefined();
+      for (const frame of frames ?? []) {
+        const values = coordinates(frame.d);
+        expect(values.slice(0, 2)).toEqual(resting.slice(0, 2));
+        expect(values.slice(-2)).toEqual(resting.slice(-2));
+      }
+    },
+  );
+
+  it("keeps the range value attached to both moving bounds", () => {
+    const { container } = render(
+      <button type="button">
+        <HashIcon name="parameterRange" />
+      </button>,
+    );
+    const left = container.querySelector('[data-icon-detail="range-left"]');
+    const right = container.querySelector('[data-icon-detail="range-right"]');
+    const value = container.querySelector('[data-icon-detail="range-value"]');
+    fireEvent.click(screen.getByRole("button"));
+    const peak = (element: Element | null) =>
+      animate.mock.calls[animate.mock.contexts.indexOf(element)]?.[0][1]
+        ?.transform;
+    const number = (input: unknown) =>
+      Number(String(input).match(/-?\d*\.?\d+/)?.[0]);
+    const start = number(value?.getAttribute("d"));
+    const end = start + number(value?.getAttribute("d")?.split("h")[1]);
+    const center = (start + end) / 2;
+    const scale = number(peak(value));
+    expect(center + (start - center) * scale).toBeCloseTo(
+      number(left?.querySelector("path")?.getAttribute("d")) +
+        number(peak(left)),
+    );
+    expect(center + (end - center) * scale).toBeCloseTo(
+      number(right?.querySelector("path")?.getAttribute("d")) +
+        number(peak(right)),
+    );
+  });
+
   it("offers matching labels and drawable paths for every modeling alternative", () => {
     for (const study of hashIconStudies.filter(
       (candidate) => candidate.category === "Modeling",
@@ -657,7 +1388,7 @@ describe("HashIcon motion", () => {
     { exit: "blur", triggered: true },
   ] as const)(
     "finishes a cube turn after $exit with triggered=$triggered",
-    ({ exit, triggered }) => {
+    async ({ exit, triggered }) => {
       const frames = new Map<number, FrameRequestCallback>();
       let frameId = 0;
       vi.stubGlobal(
@@ -699,7 +1430,7 @@ describe("HashIcon motion", () => {
       fireEvent[enter](button);
       fireEvent[exit](button);
       expect(frames.size).toBe(1);
-      tick(1100);
+      await act(async () => tick(1100));
       expect(Number(cube?.getAttribute("data-cube-angle"))).toBeCloseTo(
         startingAngle + 90,
       );

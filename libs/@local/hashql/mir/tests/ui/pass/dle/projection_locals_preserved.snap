@@ -2,7 +2,7 @@
 source: libs/@local/hashql/mir/src/pass/transform/dle/tests.rs
 expression: value
 ---
-fn {intrinsic#4294967040}(%0: List<Integer>) -> Integer {
+fn {closure@4294967040}(%0: List<Integer>) -> Integer {
     let %1: Integer
     let %2: Integer
 
@@ -16,7 +16,7 @@ fn {intrinsic#4294967040}(%0: List<Integer>) -> Integer {
 
 ================== Changed: No ===================
 
-fn {intrinsic#4294967040}(%0: List<Integer>) -> Integer {
+fn {closure@4294967040}(%0: List<Integer>) -> Integer {
     let %1: Integer
     let %2: Integer
 

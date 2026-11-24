@@ -18,7 +18,7 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
 
 import {
-  browserToolMutatesDocument,
+  browserToolFacts,
   canonicalContent,
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
@@ -95,7 +95,11 @@ export function PetrinautAgent({ id }: AgentProps) {
     CHAT_MODEL_SPECIFIER,
     chatModelOptions,
     history,
-    { interviewBudget: submitted?.interviewBudget, words },
+    {
+      interviewBudget: submitted?.interviewBudget,
+      words,
+      selection: submitted?.selection,
+    },
   );
   usePetrinautTools(
     initialData
@@ -112,7 +116,7 @@ export function PetrinautAgent({ id }: AgentProps) {
             toolCallId,
             signal,
           }) => {
-            const expected = browserToolMutatesDocument(toolName)
+            const expected = browserToolFacts(toolName).requiresFreshView
               ? expectedNetRevision(
                   await history(),
                   toolCallId,
@@ -122,6 +126,7 @@ export function PetrinautAgent({ id }: AgentProps) {
             if (expected && "refusal" in expected)
               throw new Error(expected.refusal);
             return issueBrowserCall({
+              agentName: PetrinautAgent.agentName,
               instanceId: id,
               toolCallId,
               toolName,

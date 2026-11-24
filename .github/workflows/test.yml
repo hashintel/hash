@@ -380,7 +380,7 @@ jobs:
     needs:
       [setup, sccache-credentials, unit-tests, integration-tests, publish-rust]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check setup script
         run: |

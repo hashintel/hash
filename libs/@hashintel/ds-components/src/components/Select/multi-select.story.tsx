@@ -4,7 +4,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { Select } from "./select";
 
-import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
+import type { ItemOrGroup } from "../../primitives/SelectableList/selectable-list";
 import type { MultiSelectItem, SelectItem } from "./select";
 
 type SelectProps = React.ComponentProps<typeof Select>;

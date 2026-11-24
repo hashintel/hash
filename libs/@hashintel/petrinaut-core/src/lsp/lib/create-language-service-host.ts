@@ -63,12 +63,13 @@ export type VirtualFile = {
   suffix?: string;
   /**
    * Wrappers per user-code form for files that accept both authoring forms
-   * (dynamics/lambda/kernel code). When set, `prefix`/`suffix` are re-derived
+   * (dynamics/lambda/kernel/visualizer code). When set, `prefix`/`suffix` are re-derived
    * from the current content's detected form on every write, so the file
    * type-checks as an `export default <Ctor>(...)` module or as a bare
    * function body depending on what the user wrote.
    */
   formWrappers?: {
+    scriptKind?: ts.ScriptKind;
     module: VirtualFileWrapper;
     body: VirtualFileWrapper;
   };
@@ -81,6 +82,7 @@ export function virtualFileEquals(a: VirtualFile, b: VirtualFile): boolean {
     a.content === b.content &&
     a.prefix === b.prefix &&
     a.suffix === b.suffix &&
+    a.formWrappers?.scriptKind === b.formWrappers?.scriptKind &&
     a.formWrappers?.module.prefix === b.formWrappers?.module.prefix &&
     a.formWrappers?.module.suffix === b.formWrappers?.module.suffix &&
     a.formWrappers?.body.prefix === b.formWrappers?.body.prefix &&
@@ -96,7 +98,10 @@ export function applyFormWrapper(file: VirtualFile): VirtualFile {
   if (!file.formWrappers) {
     return file;
   }
-  const wrapper = file.formWrappers[detectUserCodeForm(file.content)];
+  const wrapper =
+    file.formWrappers[
+      detectUserCodeForm(file.content, file.formWrappers.scriptKind)
+    ];
   return { ...file, prefix: wrapper.prefix, suffix: wrapper.suffix };
 }
 

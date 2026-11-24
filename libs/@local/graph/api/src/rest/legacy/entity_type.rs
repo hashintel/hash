@@ -296,6 +296,7 @@ where
             ownership: OntologyOwnership::Local { web_id },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: provenance.clone(),
+            fetched_from_origin: false,
         });
     }
 
@@ -472,6 +473,7 @@ where
                             },
                             conflict_behavior: ConflictBehavior::Fail,
                             provenance: *provenance,
+                            fetched_from_origin: false,
                         },
                     )
                     .await

@@ -74,7 +74,7 @@ shortcut. `onClick` runs first.
 
 Declare each command under `commands` with what the palette shows: its
 `label`, and optionally a `category` (the plugin's name by default),
-`keywords` and a `shortcut` to display. Return what it does from the hook
+`keywords` and a `shortcut` to bind and display. Return what it does from the hook
 under the same key: `run`, and `when` to withhold it while a condition does
 not hold.
 
@@ -112,9 +112,21 @@ The editor registers each command as `<plugin id>.<key>`
 (`example.history.show`) while the plugin runs and `when` holds, and keeps the
 registration pointed at the latest `run`. A palette, from the host or from
 another plugin, lists it with the editor's own commands; see
-[Commands and the palette](doc:core.command-registry/usage-manual). `shortcut` is display
-only: a plugin that wants the keys bound listens for them itself and runs the
-same handler, or calls `useCommandRegistry()?.execute(pluginCommandId(id, key))`.
+[Commands and the palette](doc:core.command-registry/usage-manual).
+
+The Plugin API binds `shortcut` to the same `run` handler while the command is
+available, including in hosts without a command registry. Declare a key with
+optional `+`-separated modifiers: `mod`, `ctrl`, `meta`, `alt`, and `shift`.
+`mod` accepts either Command or Control; all other modifiers must match exactly.
+Choose either `mod` or explicit `ctrl`/`meta` modifiers.
+Key names are case-insensitive and use `KeyboardEvent.key`, with `space` for the
+space bar. For example, `mod+shift+f` requires Command or Control plus Shift and F.
+
+The binding ignores held-key repeats, text composition, and events another
+handler has consumed. Shortcuts without Command, Control, or Alt are ignored
+inside editable fields. Withholding a command with `when: false` or stopping
+the plugin removes its binding. Plugins declare shortcuts through `commands`;
+the host owns the key listener.
 
 ## Render UI inside the editor
 
@@ -122,6 +134,43 @@ Declare `root: true` and return a `root` for dialogs, overlays and tours,
 `null` while there is nothing to show. The editor renders it inside itself,
 behind the plugin's error boundary. Return `overlay: true` while the root
 covers the editor: it holds back the empty-canvas assistant prompt.
+
+## Add a tab to the bottom panel
+
+Declare a view under `bottomPanelViews` with its tab's `title`, and return
+its `content` under the same key. The tab comes after the editor's own, and
+the content renders behind the plugin's error boundary while the tab is the
+active one.
+
+```tsx
+const LogPlugin = definePetrinautPlugin({
+  id: "example.log",
+  name: "Log",
+  bottomPanelViews: { log: { title: "Log", tooltip: "What the plugin saw." } },
+});
+
+const useLogPlugin: PluginHook<typeof LogPlugin> = () => {
+  const [lines, setLines] = useState<readonly string[]>([]);
+
+  return {
+    bottomPanelViews: {
+      log: {
+        content: <LogLines lines={lines} />,
+        headerAction: <ClearButton onClick={() => setLines([])} />,
+        when: lines.length > 0,
+      },
+    },
+  };
+};
+
+export const logPlugin = LogPlugin(useLogPlugin);
+```
+
+`headerAction` sits at the right of the tab bar while the tab is the active
+one, where the editor's own tabs put their controls. State the content and
+the header action share lives in the hook, as `lines` does here. `when: false`
+withholds the tab; when it was the active one, the panel returns to its first
+tab.
 
 ## Add an action to the read-only notice
 
@@ -345,9 +394,9 @@ const SelectedPlace = ({ editor }: { editor: PluginEditorReader }) => {
 };
 ```
 
-The ids name items of the net the editor shows: the root net, or the subnet at
-`subnetId`. Right after an edit, an id can name a deleted item, so look each
-one up in `document.net` before using it.
+The ids name items of the net the editor shows: the root net, or the component
+at `componentId`. Right after an edit, an id can name a deleted item, so look
+each one up in `document.net` before using it.
 
 ### Read diagnostics
 

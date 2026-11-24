@@ -8,6 +8,7 @@ import { reflectionSelection } from "./brunch-ledger-selection";
 
 import type {
   CommentRecord,
+  LedgerChange,
   LedgerComment,
   LedgerProjection,
   ProjectedClaim,
@@ -43,6 +44,28 @@ const documentStyle = css({
 const recordStyle = css({
   borderRadius: "sm",
   transition: "[background-color 150ms, box-shadow 150ms, opacity 150ms]",
+  // The latest turn's changes carry a word as well as a tint. As generated
+  // content, the word is in Chrome's accessibility tree but not in the DOM
+  // text that selections and comment quotes take.
+  "&[data-ledger-change]": {
+    backgroundColor: "green.s10",
+    boxDecorationBreak: "clone",
+  },
+  "&[data-ledger-change]::before": {
+    marginRight: "1",
+    paddingX: "1",
+    borderRadius: "sm",
+    backgroundColor: "green.s20",
+    color: "green.s110",
+    fontSize: "[10px]",
+    fontStyle: "normal",
+    fontWeight: "semibold",
+    letterSpacing: "[0.02em]",
+    textTransform: "uppercase",
+    verticalAlign: "[1px]",
+  },
+  "&[data-ledger-change=added]::before": { content: '"New"' },
+  "&[data-ledger-change=updated]::before": { content: '"Updated"' },
   "&[data-traced]": {
     backgroundColor: "blue.s40",
     boxShadow: "[0 0 0 2px {colors.blue.s70}]",
@@ -61,6 +84,16 @@ const recordStyle = css({
 const qualifierStyle = css({ color: "neutral.s90" });
 
 const reflectionStyle = css({ color: "neutral.s100", fontStyle: "italic" });
+
+const notInVersionStyle = css({
+  color: "neutral.s90",
+  fontSize: "xs",
+  borderWidth: "thin",
+  borderColor: "neutral.s40",
+  borderRadius: "sm",
+  paddingX: "1",
+  whiteSpace: "nowrap",
+});
 
 const openMarkStyle = css({
   marginLeft: "1",
@@ -104,11 +137,15 @@ interface LedgerCommentMarks {
 export interface LedgerDocumentOptions {
   /** Record addresses to mark, such as those behind the canvas selection. */
   readonly traced: ReadonlySet<string>;
+  /** What the latest turn added or changed, by address. */
+  readonly changed: ReadonlyMap<string, LedgerChange>;
   /** Whether to show the agent's reflections under the entities they concern. */
   readonly showReflections: boolean;
   /** Select a reflection's net elements on the canvas; absent where there is no canvas. */
   readonly onSelectNetElements?: (items: SelectionItem[]) => void;
   readonly comments?: LedgerCommentMarks;
+  /** Reflections on net elements the open version lacks, by address. */
+  readonly notInThisVersion?: ReadonlySet<string>;
 }
 
 /** The options, with the occurrence each record first appears at. */
@@ -298,6 +335,7 @@ const RecordMark = ({
       <span
         className={recordStyle}
         data-ledger-address={address}
+        data-ledger-change={options.changed.get(address)}
         data-traced={options.traced.has(address) ? "" : undefined}
         data-commented={
           marks?.pending.some(({ records }) => records.includes(address))
@@ -377,6 +415,12 @@ const ReflectionItem = ({
       >
         <span className={reflectionStyle}>{reflection.text}</span>
       </RecordMark>
+      {options.notInThisVersion?.has(reflection.address) && (
+        <>
+          {" "}
+          <span className={notInVersionStyle}>not in this version</span>
+        </>
+      )}
       {onSelectNetElements && items.length > 0 && (
         <>
           {" "}

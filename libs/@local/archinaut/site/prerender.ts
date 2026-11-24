@@ -42,6 +42,8 @@ export const prerender = async (options: {
   /** Absolute path of the built server entry. */
   serverEntry: string;
   manifest: BundleManifest;
+  /** URL paths beyond the manifest's pages, such as the decks. */
+  extraPaths?: string[];
 }): Promise<string[]> => {
   const template = await readFile(
     join(options.clientDirectory, "index.html"),
@@ -51,6 +53,7 @@ export const prerender = async (options: {
     ...options.manifest.pages.map((page) =>
       page.slug === "index" ? "/" : `/${page.slug}`,
     ),
+    ...(options.extraPaths ?? []),
     "/404",
   ];
   const writePage = async (path: string, page: RenderedPage): Promise<void> => {

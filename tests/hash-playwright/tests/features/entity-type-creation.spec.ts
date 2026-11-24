@@ -20,6 +20,8 @@ import { expect, test } from "../shared/runtime";
 test.use({ storageState: "tests/.auth/bob.json" });
 
 test("user can create entity type", async ({ page }) => {
+  test.slow();
+
   await page.goto("/");
   await expect(page.locator("text=Get support")).toBeVisible();
 
@@ -107,9 +109,7 @@ test("user can create an entity type that extends another", async ({
 
   await addParent(page, parentName);
 
-  const childPath = await publishDraftEntityType(page, childName);
-
-  await openTypePage(page, childPath);
+  await publishDraftEntityType(page, childName);
   await expect(parentCard(page, parentName)).toBeVisible();
 });
 

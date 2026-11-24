@@ -265,6 +265,8 @@ pub enum CloseError {
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches;
+
     use duckdb::ffi;
     use error_stack::Report;
 
@@ -279,30 +281,24 @@ mod tests {
 
     #[test]
     fn from_duckdb_reads_error_type() {
-        assert!(
-            matches!(
-                from_message("Mismatch Type Error: Cannot compare values").current_context(),
-                StatementError::InvalidQuery {
-                    error_type: QueryErrorType::MismatchType
-                }
-            ),
+        assert_matches!(
+            from_message("Mismatch Type Error: Cannot compare values").current_context(),
+            StatementError::InvalidQuery {
+                error_type: QueryErrorType::MismatchType
+            },
             "a query error type should be read from the message"
         );
-        assert!(
-            matches!(
-                from_message("Out of Range Error: Overflow in addition").current_context(),
-                StatementError::InvalidData {
-                    error_type: DataErrorType::OutOfRange
-                }
-            ),
+        assert_matches!(
+            from_message("Out of Range Error: Overflow in addition").current_context(),
+            StatementError::InvalidData {
+                error_type: DataErrorType::OutOfRange
+            },
             "a data error type should be read from the message"
         );
         for message in ["IO Error: No space left on device", "Error: no error type"] {
-            assert!(
-                matches!(
-                    from_message(message).current_context(),
-                    StatementError::Failed
-                ),
+            assert_matches!(
+                from_message(message).current_context(),
+                StatementError::Failed,
                 "`{message}` should be reported as failed"
             );
         }

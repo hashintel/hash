@@ -1,6 +1,6 @@
 import {
   browserToolEnvelopeOf,
-  browserToolMutatesDocument,
+  browserToolFacts,
   type ClientToolHistoryResult,
   type ClientToolResultMetadata,
   type NetReaderLevel,
@@ -10,11 +10,13 @@ import {
   parseNetReaderInput,
 } from "@hashintel/brunch-agent";
 import {
+  describeImports,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   mutationActionInputSchemas,
   petrinautAiTools,
   resolvePetrinautHandleCapabilities,
+  type ImportStates,
   type PetrinautDocHandle,
 } from "@hashintel/petrinaut-core";
 
@@ -53,7 +55,10 @@ export const issuedCanonicalCallsFromHistory = async ({
     if (message.role !== "assistant" || message.purpose !== "assistant")
       continue;
     for (const part of message.parts) {
-      if (part.type !== "dynamic-tool" || !(part.toolName in petrinautAiTools))
+      if (
+        part.type !== "dynamic-tool" ||
+        !browserToolFacts(part.toolName).runsOnNet
+      )
         continue;
       const recorded =
         part.state === "output-available" ? part.output : undefined;
@@ -87,6 +92,36 @@ const currentRevision = (
 ): DocumentRevision | undefined => {
   const definition = handle.doc();
   return definition === undefined ? undefined : documentRevisionOf(definition);
+};
+
+/**
+ * The net as a read shows it: its title, its definition at `detail` (the
+ * readers' projections, or all of it), the document's enabled extensions,
+ * and the libraries it imports or is offered, where there are any.
+ */
+export const netReadOutput = ({
+  handle,
+  title,
+  detail,
+  imports,
+}: {
+  readonly handle: PetrinautDocHandle;
+  readonly title: string;
+  readonly detail: NetReaderLevel | "full";
+  readonly imports: ImportStates;
+}) => {
+  const definition = handle.doc();
+  if (!definition)
+    throw new Error("The bound browser document is unavailable.");
+  const copy = structuredClone(definition);
+  return {
+    title,
+    definition: detail === "full" ? copy : projectNetDefinition(copy, detail),
+    extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
+      .extensions,
+    // Left out of a net that imports nothing and is offered nothing.
+    ...(imports.size > 0 ? { imports: describeImports(imports) } : {}),
+  };
 };
 
 /** Petrinaut executes canonical actions; the host records the content revision before each call, and after it when the call changed the document. */
@@ -140,23 +175,21 @@ export const createCanonicalPetrinautHostTools = (
 
   const readNet = (
     toolName: string,
-    view: (definition: unknown) => unknown,
+    detail: NetReaderLevel | "full",
     toolCallId: string,
     handle: PetrinautDocHandle,
+    imports: ImportStates,
   ) => {
     const prior = priorOutput(toolCallId);
     if (prior.found) return prior.output;
     if (input.replayReadiness.status === "pending")
       throw new Error("Conversation history is not ready.");
-    const definition = handle.doc();
-    if (!definition)
-      throw new Error("The bound browser document is unavailable.");
-    const output = {
+    const output = netReadOutput({
+      handle,
       title: input.readTitle(),
-      definition: view(structuredClone(definition)),
-      extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
-        .extensions,
-    };
+      detail,
+      imports,
+    });
     stampBefore(toolCallId, handle);
     toolNames.set(toolCallId, toolName);
     started.set(toolCallId, { toolName, input: {}, output });
@@ -164,34 +197,36 @@ export const createCanonicalPetrinautHostTools = (
   };
   const readNetTool: PetrinautAiAutomaticTool = {
     toolName: getLatestNetDefinitionToolName,
-    inputSchema: petrinautAiTools[getLatestNetDefinitionToolName].inputSchema,
-    outputSchema: passthrough,
-    execute: ({ toolCallId, handle }) =>
+    inputParser: petrinautAiTools[getLatestNetDefinitionToolName].inputSchema,
+    outputParser: passthrough,
+    execute: ({ toolCallId, handle, document }) =>
       readNet(
         getLatestNetDefinitionToolName,
-        (definition) => definition,
+        "full",
         toolCallId,
         handle,
+        document.imports.get(),
       ),
   };
   const readerTools: PetrinautAiAutomaticTool[] = (
     Object.keys(netReaderToolNames) as NetReaderLevel[]
   ).map((level) => ({
     toolName: netReaderToolNames[level],
-    inputSchema: { parse: parseNetReaderInput },
-    outputSchema: passthrough,
-    execute: ({ toolCallId, handle }) =>
+    inputParser: { parse: parseNetReaderInput },
+    outputParser: passthrough,
+    execute: ({ toolCallId, handle, document }) =>
       readNet(
         netReaderToolNames[level],
-        (definition) => projectNetDefinition(definition, level),
+        level,
         toolCallId,
         handle,
+        document.imports.get(),
       ),
   }));
   const diagnosticsTool: PetrinautAiAutomaticTool = {
     toolName: getNetCompilationErrorsToolName,
-    inputSchema: petrinautAiTools[getNetCompilationErrorsToolName].inputSchema,
-    outputSchema: passthrough,
+    inputParser: petrinautAiTools[getNetCompilationErrorsToolName].inputSchema,
+    outputParser: passthrough,
     execute: async ({ toolCallId, readDiagnosticsContext }) => {
       const prior = priorOutput(toolCallId);
       if (prior.found) return prior.output;
@@ -208,8 +243,8 @@ export const createCanonicalPetrinautHostTools = (
     ["addPlace", "addTransition", "addArc"] as const
   ).map((toolName) => ({
     toolName,
-    inputSchema: mutationActionInputSchemas[toolName],
-    outputSchema: passthrough,
+    inputParser: mutationActionInputSchemas[toolName],
+    outputParser: passthrough,
     execute: ({ toolCallId, input: rawInput, handle, edit }) => {
       const prior = priorOutput(toolCallId);
       if (prior.found) return prior.output;
@@ -300,17 +335,23 @@ export const createCanonicalPetrinautHostTools = (
     clientToolResultMetadataFor: (
       toolCallId: string,
       _output?: unknown,
-    ): ClientToolResultMetadata => {
+    ): ClientToolResultMetadata | undefined => {
       const existing = metadata.get(toolCallId);
       if (existing) return existing;
+      const toolName = toolNames.get(toolCallId);
+      // A call whose tool was never recorded counts as a possible change.
+      const recorded =
+        toolName === undefined
+          ? "change"
+          : browserToolFacts(toolName).documentRevision;
+      if (recorded === "none") return undefined;
       const revisionBefore = before.get(toolCallId);
       const revisionAfter = currentRevision(input.handle);
-      const toolName = toolNames.get(toolCallId);
       const changed =
         revisionBefore !== undefined &&
         revisionAfter !== undefined &&
         revisionBefore !== revisionAfter &&
-        (toolName === undefined || browserToolMutatesDocument(toolName));
+        recorded === "change";
       if (changed) producedFrom.set(revisionAfter, revisionBefore);
       const definition = changed ? input.handle.doc() : undefined;
       const result: ClientToolResultMetadata = {

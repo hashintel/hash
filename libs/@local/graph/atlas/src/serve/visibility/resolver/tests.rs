@@ -20,7 +20,6 @@ use hash_graph_postgres_store::store::{
 use hash_graph_store::pool::StorePool as _;
 use serde_json::value::RawValue;
 use tokio::{sync::mpsc, time::timeout};
-use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
 use tracing::{
     Dispatch, Event, Instrument as _, Level, Subscriber,
@@ -193,7 +192,6 @@ fn pool() -> Arc<PostgresStorePool> {
             &DatabasePoolConfig {
                 max_connections: nz!(1),
             },
-            NoTls,
             PostgresStoreSettings::default(),
         )
         .expect("an unconnected pool should construct"),

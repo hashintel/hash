@@ -34,7 +34,6 @@ describe("normalizeSDCPN", () => {
       name: "P1",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 1,
       y: 2,
     });
@@ -62,6 +61,7 @@ describe("normalizeSDCPN", () => {
 
     expect(Object.hasOwn(result.places[0]!, "visualizerCode")).toBe(false);
     expect(Object.hasOwn(result.places[0]!, "showAsInitialState")).toBe(false);
+    expect(Object.hasOwn(result.places[0]!, "dynamics")).toBe(false);
     expect(Object.hasOwn(result, "scenarios")).toBe(false);
     expect(Object.hasOwn(result, "metrics")).toBe(false);
   });
@@ -82,7 +82,6 @@ describe("normalizeSDCPN", () => {
           y: 2,
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           ...(capacity === undefined ? {} : { capacity }),
         },
       ]);
@@ -100,7 +99,10 @@ describe("normalizeSDCPN", () => {
           y: 0,
           colorId: "c1",
           dynamicsEnabled: true,
-          differentialEquationId: "d1",
+          dynamics: [
+            { differentialEquationId: "d1" },
+            { differentialEquationId: "d2" },
+          ],
           visualizerCode: "code",
           showAsInitialState: true,
         },
@@ -123,7 +125,10 @@ describe("normalizeSDCPN", () => {
     expect(result.places[0]).toMatchObject({
       colorId: idOf("c1"),
       dynamicsEnabled: true,
-      differentialEquationId: idOf("d1"),
+      dynamics: [
+        { differentialEquationId: idOf("d1") },
+        { differentialEquationId: idOf("d2") },
+      ],
       visualizerCode: "code",
       showAsInitialState: true,
     });
@@ -136,7 +141,7 @@ describe("normalizeSDCPN", () => {
     });
   });
 
-  it("preserves explicit arc endpoints and passes through subnet fields", () => {
+  it("preserves explicit arc endpoints and passes through component fields", () => {
     const result = normalizeSDCPN({
       places: [{ id: "p1", name: "P1", x: 0, y: 0, isPort: true }],
       transitions: [
@@ -157,7 +162,7 @@ describe("normalizeSDCPN", () => {
           y: 0,
         },
       ],
-      subnets: [
+      components: [
         {
           id: "s1",
           name: "S1",
@@ -172,7 +177,7 @@ describe("normalizeSDCPN", () => {
         {
           id: "ci1",
           name: "CI1",
-          subnetId: "s1",
+          component: { id: "s1" },
           parameterValues: {},
           x: 0,
           y: 0,
@@ -194,13 +199,15 @@ describe("normalizeSDCPN", () => {
       endpoint: { kind: "place", placeId: idOf("p1") },
       weight: 1,
     });
-    expect(result.subnets?.map(({ id }) => id)).toEqual([toPetrinautId("s1")]);
-    expect(result.componentInstances?.map(({ subnetId }) => subnetId)).toEqual([
+    expect(result.components?.map(({ id }) => id)).toEqual([
       toPetrinautId("s1"),
     ]);
+    expect(
+      result.componentInstances?.map(({ component }) => component),
+    ).toEqual([{ id: toPetrinautId("s1") }]);
   });
 
-  it("omits subnet fields and arc endpoints that are absent", () => {
+  it("omits component fields and arc endpoints that are absent", () => {
     const result = normalizeSDCPN({
       places: [],
       transitions: [
@@ -215,12 +222,57 @@ describe("normalizeSDCPN", () => {
       ],
     });
 
-    expect(Object.hasOwn(result, "subnets")).toBe(false);
+    expect(Object.hasOwn(result, "components")).toBe(false);
     expect(Object.hasOwn(result, "componentInstances")).toBe(false);
     expect(Object.hasOwn(result.places, "isPort")).toBe(false);
     expect(
       Object.hasOwn(result.transitions[0]!.inputArcs[0]!, "endpoint"),
     ).toBe(false);
+  });
+
+  it("loads a net saved before equations composed with an arity", () => {
+    // Stored JSON reaches the handle typed as the editor's own shape.
+    const stored = {
+      places: [
+        {
+          id: "p1",
+          name: "P1",
+          colorId: "c1",
+          dynamicsEnabled: true,
+          differentialEquationId: "de1",
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [],
+      differentialEquations: [
+        {
+          id: "de1",
+          colorId: "c1",
+          name: "Drift",
+          code: "return tokens.map(({ level }) => ({ level: -level }));",
+        },
+      ],
+    } as unknown as SDCPNInput;
+    const result = normalizeSDCPN(stored);
+    expect(result.places[0]).toEqual({
+      id: idOf("p1"),
+      name: "P1",
+      colorId: idOf("c1"),
+      dynamicsEnabled: true,
+      dynamics: [{ differentialEquationId: idOf("de1") }],
+      x: 0,
+      y: 0,
+    });
+    expect(result.differentialEquations).toEqual([
+      {
+        id: idOf("de1"),
+        colorId: idOf("c1"),
+        name: "Drift",
+        arity: 1,
+        code: "const { level } = token;\nreturn { level: -level };",
+      },
+    ]);
   });
 
   it("is idempotent on an already-complete SDCPN", () => {
@@ -231,7 +283,6 @@ describe("normalizeSDCPN", () => {
           name: "P1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -255,5 +306,40 @@ describe("normalizeSDCPN", () => {
     };
 
     expect(isSDCPNEqual(normalizeSDCPN(complete), complete)).toBe(true);
+  });
+});
+
+describe("normalizeSDCPN composition fields", () => {
+  it("keeps fusions and port directions, canonicalizing the ids members name", () => {
+    const result = normalizeSDCPN({
+      places: [
+        { id: "p", name: "P", x: 0, y: 0, isPort: true, portDirection: "in" },
+      ],
+      transitions: [],
+      components: [],
+      componentInstances: [],
+      fusions: [
+        { id: "f", name: "F", members: [{ kind: "place", placeId: "p" }] },
+      ],
+      implementations: [
+        { interface: { id: "stage" }, component: { id: "fast" } },
+      ],
+    });
+
+    expect(result.implementations).toEqual([
+      {
+        interface: { id: toPetrinautId("stage") },
+        component: { id: toPetrinautId("fast") },
+      },
+    ]);
+
+    expect(result.places[0]?.portDirection).toBe("in");
+    expect(result.fusions).toEqual([
+      {
+        id: toPetrinautId("f"),
+        name: "F",
+        members: [{ kind: "place", placeId: toPetrinautId("p") }],
+      },
+    ]);
   });
 });

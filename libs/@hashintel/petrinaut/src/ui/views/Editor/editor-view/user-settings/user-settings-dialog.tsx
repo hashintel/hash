@@ -19,7 +19,7 @@ import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { useFocusMember } from "../../../../worksheet/use-focus-member";
-import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
+import { FloatingResizeHandles } from "../../../shared/floating-resize-handles";
 import { useFloatingPanel } from "../../shared/use-floating-panel";
 import { PluginsSection } from "./user-settings-dialog/plugins-section";
 import { SettingsHeading } from "./user-settings-dialog/settings-heading";
@@ -545,35 +545,6 @@ export const UserSettingsDialog = ({
                           value={settings.enableExperimentalIconPack}
                           onChange={settings.setEnableExperimentalIconPack}
                         />
-                        <SettingToggle
-                          label="Automatic arc connections"
-                          description="Connect node outlines and choose attachment directions automatically."
-                          value={settings.enableAutomaticArcConnections}
-                          onChange={settings.setEnableAutomaticArcConnections}
-                        />
-                        {!settings.enableAutomaticArcConnections && (
-                          <SettingRow
-                            label="Arc rendering"
-                            description="Choose the shape of connections between nodes."
-                            wideControl
-                          >
-                            {(aria) => (
-                              <Select
-                                {...aria}
-                                size="sm"
-                                className={selectStyle}
-                                required
-                                value={settings.arcRendering}
-                                onChange={settings.setArcRendering}
-                                items={[
-                                  { value: "smoothstep", text: "Square" },
-                                  { value: "bezier", text: "Bezier" },
-                                  { value: "custom", text: "Adaptive Bezier" },
-                                ]}
-                              />
-                            )}
-                          </SettingRow>
-                        )}
                       </SettingsGroup>
                       <SettingsGroup title="Interaction">
                         <SettingToggle
@@ -604,11 +575,11 @@ export const UserSettingsDialog = ({
                   {item.id === "plugins" && <PluginsSection />}
                   {item.id === "labs" && (
                     <>
-                      {extensions.subnets && (
+                      {extensions.components && (
                         <SettingsGroup title="Modeling">
                           <SettingToggle
                             label="Net Components"
-                            description="Build hierarchical nets with subnet definitions and component instances."
+                            description="Build hierarchical nets from components and their instances."
                             value={settings.enableNetComponents}
                             onChange={settings.setEnableNetComponents}
                           />

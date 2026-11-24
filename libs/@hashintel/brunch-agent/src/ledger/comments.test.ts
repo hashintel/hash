@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import { expect, test } from "vitest";
 
-import { vLedgerAppend } from "./append";
+import { ledgerAppendSchema } from "./append";
 import { ledgerCommentsMessage, parseLedgerComments } from "./comments";
 import {
   foldCommits,
@@ -99,7 +99,7 @@ const receiptFor = (
   messages: readonly LedgerHistoryMessage[],
   submitted: unknown[],
 ) => {
-  const { entries } = v.parse(vLedgerAppend, { entries: submitted });
+  const { entries } = v.parse(ledgerAppendSchema, { entries: submitted });
   return prepareAppend({
     history: {
       messages: [
@@ -141,10 +141,10 @@ const resolvingUpdate = [
   { ...crew, kind: "resource", resolves: ["n1"] },
 ];
 
-test("a comment turn counts as an exchange on the receipt", () => {
+test("a comment turn anchors the commit but is not an exchange, as it spends no question", () => {
   expect(receiptFor(commented, [["entity/update/e1", crew]])).toMatchObject({
     status: "recorded",
-    exchanges: 2,
+    exchanges: 1,
   });
 });
 

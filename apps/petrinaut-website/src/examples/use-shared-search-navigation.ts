@@ -33,7 +33,7 @@ const mergeSharedSearch = (
   return {
     ...current,
     scenarioId: shared.scenarioId,
-    subnetId: shared.subnetId,
+    componentId: shared.componentId,
     selection: shared.selection,
     expandedSubView: shared.expandedSubView,
     mode: shared.mode,
@@ -47,7 +47,7 @@ const mergeSharedSearch = (
 
 /**
  * Navigation controller for pages whose URL carries the shared location: the
- * selected scenario, subnet, focused item, expanded properties section,
+ * selected scenario, component, focused item, expanded properties section,
  * mode, Simulate section, open record, overlay and panel presentation.
  * Page state also retains multi-selection.
  *

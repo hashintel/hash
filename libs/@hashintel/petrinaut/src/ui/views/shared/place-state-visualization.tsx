@@ -1,4 +1,4 @@
-import { Suspense, use } from "react";
+import { Suspense, use, useDeferredValue } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -16,9 +16,13 @@ import {
 } from "../../../react/hooks/use-default-parameter-values";
 import { SimulationContext } from "../../../react/simulation/context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
-import { renderVisualizerHir } from "../../lib/render-visualizer-hir";
+import {
+  renderVisualizerHir,
+  type VisualizerSize,
+} from "../../lib/render-visualizer-hir";
 import { useVisualizerHir } from "../../lib/use-visualizer-hir";
 import { VisualizerErrorBoundary } from "../Editor/panels/PropertiesPanel/place-properties/subviews/place-visualizer/visualizer-error-boundary";
+import { VisualizerLoading } from "./visualizer-loading";
 
 import type { Color, Place, TokenRecord } from "@hashintel/petrinaut-core";
 
@@ -38,24 +42,60 @@ const visualizerErrorStyle = css({
 interface PlaceStateVisualizationProps {
   place: Place;
   placeType: Color | null;
+  size: VisualizerSize;
 }
+
+/** The token of a place with no type: it carries no attribute. */
+const plainToken: TokenRecord = Object.freeze(
+  createUserKeyedRecord<TokenRecord[string]>(),
+);
+
+/**
+ * The most tokens a count is drawn from. A count costs the engine nothing to
+ * hold, and a visualizer is handed one record per token, so a larger one
+ * would freeze the tab. It is the ceiling `range()` has, for the same reason.
+ */
+const maxCountedTokens = 1_000_000;
 
 /**
  * The place's tokens for the frame being shown: the current frame of a run,
- * or the initial marking before one. Marking records may hold uuid values as
- * at-rest strings; they are coerced to runtime token values (uuid → bigint)
- * as the engine would. Total per element: a stored value that no longer
- * converts (e.g. legacy data predating a schema edit) falls back to the
- * element's default instead of crashing the panel.
+ * or the initial marking before one. A place whose tokens carry nothing, for
+ * want of a type or of an element in it, holds a count, so its tokens are
+ * that many records with no attribute: `tokens.length` reads the count, and
+ * `tokens.map` draws one mark per token. A count above `maxCountedTokens`
+ * gives `null`.
+ *
+ * Marking records may hold uuid values as at-rest strings; they are coerced
+ * to runtime token values (uuid → bigint) as the engine would. Total per
+ * element: a stored value that no longer converts (e.g. legacy data
+ * predating a schema edit) falls back to the element's default instead of
+ * crashing the panel.
  */
-const useCurrentTokens = (place: Place, placeType: Color): TokenRecord[] => {
+const useCurrentTokens = (
+  place: Place,
+  placeType: Color | null,
+): TokenRecord[] | null => {
   const { initialMarking } = use(SimulationContext);
   const { currentFrameReader, totalFrames } = use(ExecutionFrameSourceContext);
-
-  if (totalFrames > 0 && currentFrameReader) {
-    return currentFrameReader.getPlaceTokens(place);
-  }
+  const frameReader = totalFrames > 0 ? currentFrameReader : null;
   const marking = initialMarking[place.id];
+
+  // A frame keeps the count of such a place and no token to read.
+  if (!placeType || placeType.elements.length === 0) {
+    const count = frameReader
+      ? frameReader.getPlaceTokenCount(place.id)
+      : Array.isArray(marking)
+        ? marking.length
+        : typeof marking === "number"
+          ? marking
+          : 0;
+    return count > maxCountedTokens
+      ? null
+      : new Array<TokenRecord>(count).fill(plainToken);
+  }
+  if (frameReader) {
+    return frameReader.getPlaceTokens(place);
+  }
   if (!Array.isArray(marking)) {
     return [];
   }
@@ -83,9 +123,10 @@ const useCurrentTokens = (place: Place, placeType: Color): TokenRecord[] => {
  */
 const VisualizerPicture: React.FC<{
   place: Place;
-  placeType: Color;
+  placeType: Color | null;
   code: string;
-}> = ({ place, placeType, code }) => {
+  size: VisualizerSize;
+}> = ({ place, placeType, code, size }) => {
   const { petriNetDefinition, extensions } = use(SDCPNContext);
   const { parameterValues } = use(SimulationContext);
   const defaultParameterValues = useDefaultParameterValues();
@@ -102,37 +143,47 @@ const VisualizerPicture: React.FC<{
       </div>
     );
   }
+  if (tokens === null) {
+    return (
+      <div className={visualizerErrorStyle}>
+        {`This place holds more than ${maxCountedTokens.toLocaleString("en-US")} tokens, too many to draw.`}
+      </div>
+    );
+  }
   return renderVisualizerHir(
     hir.view,
     tokens,
     mergeParameterValues(parameterValues, defaultParameterValues),
+    size,
   );
 };
 
 /**
  * Renders a place's custom visualizer using simulation frame data, falling back
- * to the initial marking when no simulation has run.
+ * to the initial marking when no simulation has run. A place with no type
+ * draws too, from its token count.
  */
 export const PlaceStateVisualization: React.FC<
   PlaceStateVisualizationProps
-> = ({ place, placeType }) => {
-  if (!place.visualizerCode) {
+> = ({ place, placeType, size }) => {
+  const code = useDeferredValue(place.visualizerCode);
+  if (!code) {
     return <div className={messageStyle}>No visualizer code defined</div>;
   }
 
-  if (!placeType) {
-    return <div className={messageStyle}>Place has no type set</div>;
-  }
-
   return (
-    <VisualizerErrorBoundary>
-      <Suspense fallback={null}>
-        <VisualizerPicture
-          place={place}
-          placeType={placeType}
-          code={place.visualizerCode}
-        />
+    <>
+      <Suspense fallback={<VisualizerLoading />}>
+        <VisualizerErrorBoundary resetKey={code}>
+          <VisualizerPicture
+            place={place}
+            placeType={placeType}
+            code={code}
+            size={size}
+          />
+        </VisualizerErrorBoundary>
       </Suspense>
-    </VisualizerErrorBoundary>
+      {code !== place.visualizerCode && <VisualizerLoading />}
+    </>
   );
 };

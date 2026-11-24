@@ -9,27 +9,36 @@ import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   calculateGraphLayout,
+  generatePetrinautId,
+  inlineImports,
   layoutNodeDimensions,
   type DocumentFormat,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
+  planetsAndSatellites,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  satellitesWithAttraction,
+  sirMassActionModel,
   sirModel,
   supplyChainWithDisruption,
   supplyChainProfit,
   vaccinationCampaign,
+  wheelTruing,
 } from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
 import { usePetrinautNavigation } from "../../../react/navigation";
+import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
@@ -182,6 +191,7 @@ const EditorViewContent = ({
     title,
     setTitle,
   } = use(SDCPNContext);
+  const { libraries } = use(CompositionContext);
   const { applyAutoLayout } = usePetrinautCommands();
   const {
     frameSceneAfterRender,
@@ -209,6 +219,7 @@ const EditorViewContent = ({
     bottomPanelHeight,
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
+  const composesOnly = useComposesOnly();
   const assistant = useEditorAssistant();
 
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
@@ -248,6 +259,19 @@ const EditorViewContent = ({
 
   function handleExportWithoutVisualInfo(format: DocumentFormat) {
     exportSDCPN({ petriNetDefinition, title, removeVisualInfo: true, format });
+  }
+
+  /** The document with what it takes from its libraries made its own, so it reads without them. */
+  function handleExportInlined(format: DocumentFormat) {
+    exportSDCPN({
+      petriNetDefinition: inlineImports(
+        petriNetDefinition,
+        libraries,
+        generatePetrinautId,
+      ),
+      title,
+      format,
+    });
   }
 
   function handleExportTikZ() {
@@ -360,6 +384,21 @@ const EditorViewContent = ({
           text: "JSON without visual info",
           onClick: () => handleExportWithoutVisualInfo("json"),
         },
+        // Offered where there is something to inline.
+        ...((petriNetDefinition.imports ?? []).length > 0
+          ? [
+              {
+                id: "export-yaml-inlined",
+                text: "YAML with imports inlined",
+                onClick: () => handleExportInlined("yaml"),
+              },
+              {
+                id: "export-json-inlined",
+                text: "JSON with imports inlined",
+                onClick: () => handleExportInlined("json"),
+              },
+            ]
+          : []),
         {
           id: "export-tikz",
           text: "TikZ",
@@ -399,6 +438,14 @@ const EditorViewContent = ({
                 text: "SIR Model",
                 onClick: () => {
                   createNewNet(sirModel);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-sir-mass-action",
+                text: "SIR Mass-Action Model",
+                onClick: () => {
+                  createNewNet(sirMassActionModel);
                   clearSelection();
                 },
               },
@@ -451,6 +498,22 @@ const EditorViewContent = ({
                 },
               },
               {
+                id: "load-example-satellites-attraction",
+                text: "Satellites with Attraction",
+                onClick: () => {
+                  createNewNet(satellitesWithAttraction);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-planets-and-satellites",
+                text: "Planets and Satellites",
+                onClick: () => {
+                  createNewNet(planetsAndSatellites);
+                  clearSelection();
+                },
+              },
+              {
                 id: "load-example-supply-chain-profit",
                 text: "Supply Chain Profit",
                 onClick: () => {
@@ -463,6 +526,22 @@ const EditorViewContent = ({
                 text: "Vaccination Campaign",
                 onClick: () => {
                   createNewNet(vaccinationCampaign);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-bicycle-assembly",
+                text: "Bicycle Assembly",
+                onClick: () => {
+                  createNewNet(bicycleAssembly);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-wheel-truing",
+                text: "Wheel Truing",
+                onClick: () => {
+                  createNewNet(wheelTruing);
                   clearSelection();
                 },
               },
@@ -550,7 +629,7 @@ const EditorViewContent = ({
             <SimulateView />
           ) : (
             <div className={workspaceStyle}>
-              {globalMode === "edit" && <EditViewSelector />}
+              {globalMode === "edit" && !composesOnly && <EditViewSelector />}
               <Activity
                 mode={
                   globalMode === "actual" || editViewMode === "canvas"

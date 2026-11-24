@@ -27,6 +27,7 @@ import { foldBrunchLedgerHistory } from "./brunch-ledger-history";
 import { BrunchLedgerPane } from "./brunch-ledger-pane";
 
 import type { PetrinautAiComposerControlContext } from "../chat/ai-assistant-composer-control";
+import type { SDCPN } from "@hashintel/petrinaut-core";
 
 // jsdom does not implement scrolling or layout.
 const scrollIntoView = vi.fn();
@@ -123,6 +124,55 @@ test("renders accepted commits as a document whose records carry their addresses
   expect(document.textContent).toContain("Hillcrest service reservoir");
   expect(document.textContent).not.toContain("e1");
   expect(document.querySelector('[data-ledger-address="e1"]')).not.toBeNull();
+});
+
+test("shows a threshold's stated timing beside the timing nobody has given yet", () => {
+  const entries = [
+    [
+      "entity/create",
+      {
+        name: "30 °C inlet limit",
+        kind: "threshold",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+    [
+      "claim/create",
+      {
+        text: "Rack inlet stays at or below 30 °C throughout the incident.",
+        entities: ["$0"],
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+    [
+      "claim/create",
+      {
+        text: "When the 30 °C limit must hold: unasked, whether any reading above it counts or only a sustained one.",
+        entities: ["$0"],
+        origin: "inferred",
+        status: "open",
+      },
+    ],
+  ];
+  render(
+    <BrunchLedgerPane
+      messages={[
+        assistant(commit("ledger-1", {}, entries, ["e1", "c1", "c2"])),
+      ]}
+    />,
+  );
+  const sectionUnder = (name: string) =>
+    screen.getByRole("heading", { name }).closest("section")?.textContent ?? "";
+  const thresholds = sectionUnder("Thresholds");
+  expect(thresholds).toContain(
+    "Rack inlet stays at or below 30 °C throughout the incident.",
+  );
+  expect(thresholds).toContain("When the 30 °C limit must hold: unasked");
+  const questions = sectionUnder("Open questions");
+  expect(questions).toContain("When the 30 °C limit must hold: unasked");
+  expect(questions).toContain("Concerns: 30 °C inlet limit.");
 });
 
 test("never shows refused, failed, pending or unbound commits", () => {
@@ -247,6 +297,112 @@ test("shows reflections under their entities only when switched on, and selects 
 
   fireEvent.click(screen.getByRole("button", { name: "Show in net" }));
   expect(onSelectNetElements).toHaveBeenCalledWith([reservoirPlace]);
+});
+
+/** The reflected turn, plus a reflection on an arc and one on a place only a later version has. */
+const reflectedAcrossVersions = [
+  ...reflected,
+  assistant(
+    commit(
+      "ledger-2",
+      {},
+      [
+        [
+          "reflection/create",
+          {
+            text: "The draw arc takes supply out of the reservoir.",
+            netElements: [
+              {
+                kind: "arc",
+                id: `$A_${toPetrinautId("draw")}___place:${toPetrinautId("reservoir")}`,
+              },
+            ],
+            entities: ["e1"],
+          },
+        ],
+        [
+          "reflection/create",
+          {
+            text: "The Overflow place holds what the reservoir sheds.",
+            netElements: [
+              { kind: "place", id: "reservoir" },
+              { kind: "place", id: "overflow" },
+            ],
+            entities: ["e1"],
+          },
+        ],
+      ],
+      ["r2", "r3"],
+    ),
+  ),
+];
+
+const place = (id: string) => ({
+  id: toPetrinautId(id),
+  name: id,
+  colorId: null,
+  dynamicsEnabled: false,
+  x: 0,
+  y: 0,
+});
+
+/** The earlier version: the reservoir and the draw transition, without the overflow. */
+const earlierVersion = {
+  places: [place("reservoir")],
+  transitions: [
+    {
+      id: toPetrinautId("draw"),
+      name: "Draw",
+      inputArcs: [],
+      outputArcs: [
+        {
+          endpoint: { kind: "place", placeId: toPetrinautId("reservoir") },
+          weight: 1,
+        },
+      ],
+      lambdaType: "predicate",
+      lambdaCode: "",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    },
+  ],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
+} satisfies SDCPN;
+
+test("marks reflections on elements the open version lacks, and leaves the records unchanged", async () => {
+  const { rerender } = render(
+    <BrunchLedgerPane messages={reflectedAcrossVersions} />,
+  );
+  const document = screen.getByTestId("brunch-ledger-document");
+  fireEvent.click(
+    screen.getByRole("checkbox", { name: "Show Brunch’s reflections" }),
+  );
+  await waitFor(() =>
+    expect(document.querySelector('[data-ledger-address="r3"]')).not.toBeNull(),
+  );
+  const before = document.textContent;
+  expect(before).not.toContain("not in this version");
+
+  rerender(
+    <BrunchLedgerPane
+      messages={reflectedAcrossVersions}
+      loadedVersionNet={earlierVersion}
+    />,
+  );
+  const marked = (address: string) =>
+    document
+      .querySelector(`[data-ledger-address="${address}"]`)
+      ?.closest("li")
+      ?.textContent.includes("not in this version");
+  expect(marked("r1")).toBe(false);
+  expect(marked("r2")).toBe(false);
+  expect(marked("r3")).toBe(true);
+  expect(document.textContent.match(/not in this version/g)).toHaveLength(1);
+  // Entities and claims read as before; only the mark is added.
+  expect(document.textContent.replace(" not in this version", "")).toBe(before);
 });
 
 const selectText = (element: Element) => {
@@ -546,4 +702,117 @@ test("marks the records of a sent comment until Brunch resolves it", () => {
   expect(
     screen.queryByRole("button", { name: /Comments waiting for Brunch/ }),
   ).toBeNull();
+});
+
+/** Each marked record occurrence, in document order, with how the latest turn changed it. */
+const latestTurnMarks = () =>
+  [
+    ...screen
+      .getByTestId("brunch-ledger-document")
+      .querySelectorAll<HTMLElement>("[data-ledger-change]"),
+  ].map(({ dataset }) => `${dataset.ledgerAddress} ${dataset.ledgerChange}`);
+
+test("marks every occurrence the latest turn added or changed, but not what a replacement superseded", () => {
+  const owed = [
+    "obligation/create",
+    { text: "A run shows a day of supply.", entities: ["e1"] },
+  ];
+  const latestTurn = [
+    ...reflected,
+    assistant(commit("ledger-owed", {}, [owed], ["o1"])),
+    user("user-2", "It holds two days, and a pump fills it."),
+    assistant(
+      commit(
+        "ledger-2",
+        {},
+        [
+          [
+            "entity/create",
+            {
+              name: "Booster pump",
+              kind: "resource",
+              origin: "stated",
+              status: "confirmed",
+            },
+          ],
+          [
+            "claim/create",
+            {
+              text: "The reservoir and its pump hold two days of supply.",
+              entities: ["e1", "$0"],
+              origin: "stated",
+              status: "confirmed",
+              supersedes: ["c1"],
+            },
+          ],
+          [
+            "reflection/create",
+            {
+              text: "A run held two days of supply.",
+              discharges: ["o1"],
+            },
+          ],
+        ],
+        ["e2", "c2", "r2"],
+      ),
+      commit("refused-2", {
+        output: {
+          status: "refused",
+          applied: false,
+          code: "unknown-address",
+          message: "No such record.",
+          revision: 3,
+        },
+      }),
+    ),
+  ];
+  // The replacement shows under both its entities; the met obligation and
+  // the reflection meeting it show under Checks met.
+  const expected = [
+    "c2 updated",
+    "e2 added",
+    "c2 updated",
+    "o1 updated",
+    "r2 added",
+  ];
+  const { unmount } = render(<BrunchLedgerPane messages={latestTurn} />);
+  expect(latestTurnMarks()).toEqual(expected);
+  const document = screen.getByTestId("brunch-ledger-document");
+  // The superseded claim stays as struck-through context, without a mark.
+  const superseded = [
+    ...document.querySelectorAll<HTMLElement>('[data-ledger-address="c1"]'),
+  ];
+  expect(superseded).toHaveLength(2);
+  for (const occurrence of superseded) {
+    expect(occurrence.textContent).toContain(
+      "The reservoir holds a day of supply.",
+    );
+    expect(occurrence.dataset.ledgerChange).toBeUndefined();
+  }
+  unmount();
+
+  // Remounted from the same history, as after a reload or a tab switch.
+  const { unmount: unmountAgain } = render(
+    <BrunchLedgerPane messages={latestTurn} />,
+  );
+  expect(latestTurnMarks()).toEqual(expected);
+  unmountAgain();
+
+  // A dismissed latest turn keeps its records and drops only their marks.
+  const { unmount: unmountDismissed } = render(
+    <BrunchLedgerPane messages={latestTurn} highlightChanges={false} />,
+  );
+  expect(latestTurnMarks()).toEqual([]);
+  expect(screen.getByTestId("brunch-ledger-document").textContent).toContain(
+    "Booster pump",
+  );
+  unmountDismissed();
+
+  // A next turn clears the marks until it changes something.
+  render(
+    <BrunchLedgerPane
+      messages={[...latestTurn, user("user-3", "That is all for now.")]}
+    />,
+  );
+  expect(latestTurnMarks()).toEqual([]);
 });

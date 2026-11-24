@@ -83,7 +83,7 @@ describe("Petrinaut AI core exports", () => {
       { name: "metrics", pattern: /Metric \(`metric\.code`\)/u },
       {
         name: "hierarchy",
-        pattern: /addSubnet.*subnet.*addComponentInstance/su,
+        pattern: /addComponent.*component.*addComponentInstance/su,
       },
       { name: "layout", pattern: /Auto-layout policy.*applyAutoLayout/su },
       {
@@ -164,7 +164,7 @@ describe("Petrinaut AI core exports", () => {
       {};
 
     expect(
-      propertiesOf(petrinautAiTools.removeSubnet.inputSchema).subnetId,
+      propertiesOf(petrinautAiTools.removeComponent.inputSchema).componentId,
     ).toMatchObject({ type: "string" });
     expect(
       propertiesOf(petrinautAiTools.addPlace.inputSchema).id,
@@ -185,6 +185,32 @@ describe("Petrinaut AI core exports", () => {
     ).toMatchObject({ type: "string" });
   });
 
+  test("the update tools tell a model how to clear an instance's choice and an interface flag", () => {
+    type JsonSchemaNode = {
+      type?: unknown;
+      description?: string;
+      properties?: Record<string, JsonSchemaNode>;
+      anyOf?: JsonSchemaNode[];
+    };
+    const updateOf = (schema: z.ZodType) =>
+      (z.toJSONSchema(schema) as JsonSchemaNode).properties?.update
+        ?.properties ?? {};
+
+    const { implementation } = updateOf(
+      petrinautAiTools.updateComponentInstance.inputSchema,
+    );
+    // Beside the two ways to name a component.
+    expect(implementation?.anyOf).toContainEqual({ type: "null" });
+    expect(implementation?.description).toMatch(/null to clear/u);
+    expect(implementation?.description).toMatch(/Omit to leave/u);
+
+    const { interface: flag } = updateOf(
+      petrinautAiTools.updateComponent.inputSchema,
+    );
+    expect(flag).toMatchObject({ type: "boolean" });
+    expect(flag?.description).toMatch(/false/u);
+  });
+
   test("converts invented entity ids so references and arc ids resolve", () => {
     const instance = createInstance();
     const { mutations } = instance;
@@ -194,7 +220,6 @@ describe("Petrinaut AI core exports", () => {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });
@@ -246,7 +271,6 @@ describe("Petrinaut AI core exports", () => {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });
@@ -267,7 +291,6 @@ describe("Petrinaut AI core exports", () => {
         name: "Queue",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       }),

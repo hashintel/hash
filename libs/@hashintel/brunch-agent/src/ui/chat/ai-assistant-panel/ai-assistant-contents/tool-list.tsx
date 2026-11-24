@@ -1,4 +1,5 @@
 import {
+  createExperimentToolName,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   petrinautAiMutationTools,
@@ -7,21 +8,24 @@ import {
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
 
+import {
+  hashPetrinautPrimaryOperation,
+  hashPetrinautTools,
+  type HashPetrinautToolName,
+  isHashPetrinautToolName,
+} from "../../../../hash/petrinaut-tools";
 import { userGuidePageUrl } from "../../docs/user-guide-url";
 import { getInteractiveTool } from "../interactive-tools/registry";
 import {
   type AiToolTarget,
   type AiToolSummary,
+  type AiToolSummaryContext,
   summarizePetrinautAiToolCall,
 } from "../tool-summaries";
 import { BrunchToolList } from "./tool-list/brunch-tool-list";
-import { StockToolList } from "./tool-list/stock-tool-list";
 
 import type { PetrinautAiInteractiveTool } from "../../ai-interactive-tool";
-import type {
-  PetrinautAiAssistantPresentation,
-  PetrinautAiToolPresentationResolver,
-} from "../../petrinaut";
+import type { PetrinautAiToolPresentationResolver } from "../../petrinaut";
 import type { InteractiveToolDefinition } from "../interactive-tools/types";
 import type { PetrinautAiMessage } from "../types";
 import type { SimulateViewMode } from "@hashintel/petrinaut/react";
@@ -38,6 +42,8 @@ export type ToolRenderItem = {
   tone: ToolTone;
   toolName: string;
   notApplied: boolean;
+  /** Its response failed before it returned, so it will not get a result. */
+  noResult: boolean;
   stateLabel: string;
   /** Server-reported error message for tools whose state is `output-error`. */
   errorText?: string;
@@ -62,6 +68,9 @@ export const defaultPetrinautAiToolStateLabels: DefaultToolStateLabels = {
   outputAvailable: "",
   outputError: "",
 };
+
+/** The state of a call its failed response left without a result. */
+export const failedResponseToolStateLabel = "No result — response failed";
 
 export type RenderableToolPart = PetrinautAiMessage["parts"][number] & {
   errorText?: unknown;
@@ -148,15 +157,109 @@ const isNotAppliedResult = (part: RenderableToolPart): boolean =>
   "applied" in part.output &&
   part.output.applied === false;
 
+/**
+ * The tool a row presents as: for one of HASH's Petrinaut tools, the canonical
+ * operation it runs (the first, for a merged update); otherwise itself.
+ */
+const presentedToolName = (toolName: string): string =>
+  hashPetrinautPrimaryOperation(toolName) ?? toolName;
+
+/** A canonical operation's name as a sentence, such as "Add place". */
+const operationTitle = (operation: string): string =>
+  operation
+    .replace(/([A-Z])/gu, " $1")
+    .toLowerCase()
+    .replace(/^./u, (char) => char.toUpperCase());
+
+/** A row for a call of one of HASH's Petrinaut tools before its input is complete. */
+const hashPetrinautToolTitle = (toolName: HashPetrinautToolName): string =>
+  operationTitle(hashPetrinautTools[toolName].operations[0]);
+
+const experimentSummary = (input: unknown, output: unknown): AiToolSummary => {
+  const name =
+    typeof input === "object" &&
+    input !== null &&
+    typeof (input as { name?: unknown }).name === "string"
+      ? (input as { name: string }).name
+      : undefined;
+  const label = name === undefined ? "experiment" : `experiment ${name}`;
+  const result =
+    typeof output === "object" && output !== null
+      ? (output as { status?: unknown; message?: unknown })
+      : undefined;
+  const message =
+    typeof result?.message === "string" ? result.message : undefined;
+  switch (result?.status) {
+    case "complete":
+      return { title: `Ran ${label}`, detail: message };
+    case "cancelled":
+      return { title: `Cancelled ${label}`, detail: message };
+    case "error":
+      return { title: `Could not run ${label}`, detail: message };
+    default:
+      return { title: `Running ${label}` };
+  }
+};
+
+/**
+ * A call of one of HASH's Petrinaut tools, as the canonical calls it makes
+ * present: one call's summary, or, for a merged update making several, their
+ * titles together, as the page's output for it reads, in `context`'s wording.
+ */
+const summarizeHashPetrinautCall = (
+  toolName: HashPetrinautToolName,
+  part: RenderableToolPart,
+  context: AiToolSummaryContext,
+): AiToolSummary => {
+  const operation = hashPetrinautTools[toolName].operations[0];
+  if (operation === createExperimentToolName) {
+    return experimentSummary(part.input, part.output);
+  }
+  if (operation === "applyAutoLayout") {
+    return summarizePetrinautAiToolCall(
+      { toolName: "applyAutoLayout", input: { askUserFirst: false } },
+      context,
+    );
+  }
+  try {
+    const summaries = hashPetrinautTools[toolName]
+      .parseCall(part.input)
+      .calls.map((call) => summarizePetrinautAiToolCall(call, context));
+    const [first] = summaries;
+    if (first === undefined || summaries.length === 1) {
+      return first ?? { title: hashPetrinautToolTitle(toolName) };
+    }
+    return {
+      title: summaries.map(({ title }) => title).join("; "),
+      target: summaries.find(({ target }) => target !== undefined)?.target,
+    };
+  } catch {
+    return { title: hashPetrinautToolTitle(toolName) };
+  }
+};
+
 export const getToolSummaryFromPart = (
   part: RenderableToolPart,
 ): AiToolSummary => {
-  const toolName = getToolName(part);
+  const partToolName = getToolName(part);
+  const toolName = presentedToolName(partToolName);
+  // Until a successful result exists, a row names the requested action: an
+  // unanswered or failed call may or may not have run.
+  const succeeded =
+    part.state === "output-available" && !isNotAppliedResult(part);
   if (toolName === getLatestNetDefinitionToolName) {
-    return { title: "Checked latest net definition" };
+    return {
+      title: succeeded
+        ? "Checked latest net definition"
+        : "Check latest net definition",
+    };
   }
   if (toolName === getNetCompilationErrorsToolName) {
-    return { title: "Checked net compilation errors" };
+    return {
+      title: succeeded
+        ? "Checked net compilation errors"
+        : "Check net compilation errors",
+    };
   }
   if (toolName === readPetrinautDocToolName) {
     const docName =
@@ -181,17 +284,6 @@ export const getToolSummaryFromPart = (
           ? output.reason
           : "No change was applied.",
     };
-  }
-  if (toolName === setNetTitleToolName) {
-    const proposedTitle =
-      typeof part.input === "object" &&
-      part.input !== null &&
-      typeof (part.input as { title?: unknown }).title === "string"
-        ? (part.input as { title: string }).title
-        : undefined;
-    if (proposedTitle) {
-      return { title: `Renaming net to "${proposedTitle}"` };
-    }
   }
 
   const output = part.output;
@@ -219,14 +311,36 @@ export const getToolSummaryFromPart = (
     }
   }
 
+  if (toolName === setNetTitleToolName) {
+    const proposedTitle =
+      typeof part.input === "object" &&
+      part.input !== null &&
+      typeof (part.input as { title?: unknown }).title === "string"
+        ? (part.input as { title: string }).title
+        : undefined;
+    if (proposedTitle) {
+      return {
+        title: `${succeeded ? "Renamed" : "Rename"} net to "${proposedTitle}"`,
+      };
+    }
+  }
+
+  if (isHashPetrinautToolName(partToolName)) {
+    return summarizeHashPetrinautCall(partToolName, part, {
+      wording: succeeded ? "result" : "action",
+    });
+  }
   if (!(toolName in petrinautAiMutationTools)) {
     return { title: toolName };
   }
   try {
-    return summarizePetrinautAiToolCall({
-      toolName: toolName as never,
-      input: part.input as never,
-    });
+    return summarizePetrinautAiToolCall(
+      {
+        toolName: toolName as never,
+        input: part.input as never,
+      },
+      { wording: succeeded ? "result" : "action" },
+    );
   } catch {
     return { title: toolName };
   }
@@ -275,9 +389,18 @@ export const toToolRenderItem = (
 ): ToolRenderItem => {
   const state = part.state ?? "input-available";
   const toolName = getToolName(part);
+  // Neither an `error` chunk nor a failed settlement changes a tool part, so
+  // only the message's durable failure says an unanswered call has ended.
+  const noResult =
+    message.metadata?.failed === true &&
+    (state === "input-streaming" || state === "input-available");
   const defaultSummary: AiToolSummary =
     state === "input-streaming"
-      ? { title: toolName }
+      ? {
+          title: isHashPetrinautToolName(toolName)
+            ? hashPetrinautToolTitle(toolName)
+            : toolName,
+        }
       : getToolSummaryFromPart(part);
   const notApplied = isNotAppliedResult(part);
   const errorText =
@@ -318,12 +441,13 @@ export const toToolRenderItem = (
     typeof part.toolCallId === "string"
       ? part.toolCallId
       : `${message.id}-${part.type}`;
-  const interactiveDefinition = hasInteractiveToolInput(state)
-    ? getInteractiveTool(
-        { toolName, toolCallId: id, input: part.input },
-        interactiveTools,
-      )
-    : undefined;
+  const interactiveDefinition =
+    hasInteractiveToolInput(state) && !noResult
+      ? getInteractiveTool(
+          { toolName, toolCallId: id, input: part.input },
+          interactiveTools,
+        )
+      : undefined;
   const interactive = interactiveDefinition
     ? {
         definition: interactiveDefinition,
@@ -339,13 +463,21 @@ export const toToolRenderItem = (
     output: part.output,
     summary,
     hasConfiguredTitle: presentation !== undefined,
-    tone:
-      presentation?.tone ??
-      getToolTone({ state, summary, toolName, notApplied }),
+    tone: noResult
+      ? "neutral"
+      : (presentation?.tone ??
+        getToolTone({
+          state,
+          summary,
+          toolName: presentedToolName(toolName),
+          notApplied,
+        })),
     toolName,
     notApplied,
-    stateLabel:
-      presentation !== undefined
+    noResult,
+    stateLabel: noResult
+      ? failedResponseToolStateLabel
+      : presentation !== undefined
         ? ""
         : state === "input-streaming"
           ? defaultPetrinautAiToolStateLabels.inputStreaming
@@ -367,33 +499,23 @@ export const AiAssistantToolList = ({
   stopped = false,
   producedCard = false,
   preserveOpen = false,
-  presentation = "stock",
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tools: ToolRenderItem[];
   stopped?: boolean;
-  /** Brunch only; the options below shape the fold around the tools. */
+  /** The options below shape the fold around the tools. */
   active?: boolean;
   producedCard?: boolean;
   preserveOpen?: boolean;
-  presentation?: PetrinautAiAssistantPresentation;
-}) =>
-  presentation === "stock" ? (
-    <StockToolList
-      tools={tools}
-      stopped={stopped}
-      onInteractiveToolSubmit={onInteractiveToolSubmit}
-      onSelectToolTarget={onSelectToolTarget}
-    />
-  ) : (
-    <BrunchToolList
-      tools={tools}
-      active={active}
-      stopped={stopped}
-      producedCard={producedCard}
-      preserveOpen={preserveOpen}
-      onInteractiveToolSubmit={onInteractiveToolSubmit}
-      onSelectToolTarget={onSelectToolTarget}
-    />
-  );
+}) => (
+  <BrunchToolList
+    tools={tools}
+    active={active}
+    stopped={stopped}
+    producedCard={producedCard}
+    preserveOpen={preserveOpen}
+    onInteractiveToolSubmit={onInteractiveToolSubmit}
+    onSelectToolTarget={onSelectToolTarget}
+  />
+);

@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import {
+  latestTurnChanges,
   projectLedger,
   type LedgerHistoryMessage,
   type LedgerTrace,
@@ -18,6 +19,7 @@ import { selectedLedgerAddresses } from "./brunch-ledger-comment-anchor";
 import { shortQuote } from "./brunch-ledger-comment-messages";
 import { BrunchLedgerDocument } from "./brunch-ledger-document";
 import { foldBrunchLedgerHistory } from "./brunch-ledger-history";
+import { reflectionsNotInNet } from "./brunch-ledger-open-net";
 import {
   traceCanvasSelection,
   tracedAddresses,
@@ -27,7 +29,7 @@ import type {
   PendingComments,
   PendingCommentsState,
 } from "./brunch-ledger-comments";
-import type { SelectionItem } from "@hashintel/petrinaut-core";
+import type { SDCPN, SelectionItem } from "@hashintel/petrinaut-core";
 
 const noticeStyle = css({
   color: "neutral.s90",
@@ -204,13 +206,16 @@ const commentTargetOf = (
  * The Ledger compiled from conversation history, read as a document. With a
  * canvas selection, it shows why the selection is modelled as it is and marks
  * the records behind it. With `comments`, the user can select text and comment
- * on the records it touches.
+ * on the records it touches. With `loadedVersionNet`, it marks reflections on
+ * elements that net lacks as not in this version.
  */
 export const BrunchLedgerPane = ({
   messages,
   selection = [],
   onSelectNetElements,
   comments,
+  highlightChanges = true,
+  loadedVersionNet,
 }: {
   messages: readonly LedgerHistoryMessage[];
   /** The editor's selection, when the pane sits beside a canvas. */
@@ -218,6 +223,10 @@ export const BrunchLedgerPane = ({
   onSelectNetElements?: (items: SelectionItem[]) => void;
   /** The editor's pending comments, which the composer sends to Brunch. */
   comments?: PendingComments;
+  /** Mark what the latest turn changed; off once the user has moved past it. */
+  highlightChanges?: boolean;
+  /** The open net, once the host has loaded another saved version of it. */
+  loadedVersionNet?: SDCPN;
 }) => {
   const id = useId();
   const paneRef = useRef<HTMLElement>(null);
@@ -230,8 +239,14 @@ export const BrunchLedgerPane = ({
     comments?.get ?? readNoPending,
   );
   const { ledger } = foldBrunchLedgerHistory(messages);
+  const changed =
+    highlightChanges && ledger
+      ? latestTurnChanges({ messages }, ledger)
+      : undefined;
   const trace = ledger && traceCanvasSelection(ledger, selection);
   const projection = ledger && projectLedger(ledger);
+  const notInThisVersion =
+    ledger && loadedVersionNet && reflectionsNotInNet(ledger, loadedVersionNet);
 
   useEffect(() => {
     if (!comments) return;
@@ -297,7 +312,9 @@ export const BrunchLedgerPane = ({
               projection={projection}
               options={{
                 traced: tracedAddresses(trace),
+                changed: changed ?? new Map(),
                 showReflections,
+                ...(notInThisVersion ? { notInThisVersion } : {}),
                 ...(onSelectNetElements ? { onSelectNetElements } : {}),
                 comments: {
                   pending: pending.comments,

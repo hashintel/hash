@@ -6,12 +6,19 @@ import {
   VIEW_ELEMENT_ATTRIBUTES,
   VIEW_ELEMENT_TAGS,
   VIEW_FRAGMENT_TAG,
+  VIEW_LEGACY_STYLE_PROPERTIES,
   VIEW_STYLE_PROPERTIES,
   ViewElementValue,
+  visualizerSvgTag,
+  parseVisualizerSvgOptions,
   type HirValue,
   type ViewHir,
   type ViewValue,
 } from "@hashintel/petrinaut-core";
+
+import { VisualizerSvg } from "./render-visualizer-hir/visualizer-svg";
+
+export type VisualizerSize = { width: number; height: number };
 
 export type VisualizerTokens = readonly Readonly<
   Record<string, number | boolean | bigint | string>
@@ -26,18 +33,21 @@ const isRecord = (
 
 const unsafeValue = (name: string): Error =>
   new Error(
-    `\`${name}\` may only reference an element of this picture with \`url(#id)\`.`,
+    `\`${name}\` contains unsupported CSS or an external resource. Use supported styling functions and unquoted local references such as \`url(#id)\`.`,
   );
 
 const toStyle = (
   value: HirValue,
+  root: boolean,
 ): Record<string, string | number> | undefined => {
   if (!isRecord(value)) {
     return undefined;
   }
   const style: Record<string, string | number> = {};
   for (const [property, raw] of Object.entries(value)) {
-    if (!VIEW_STYLE_PROPERTIES.has(property)) {
+    const legacy = VIEW_LEGACY_STYLE_PROPERTIES.has(property);
+    if (root && legacy) continue;
+    if (!legacy && !VIEW_STYLE_PROPERTIES.has(property)) {
       throw new Error(
         `\`${property}\` is not a style property a visualizer can set.`,
       );
@@ -59,9 +69,10 @@ const toStyle = (
 const toAttributeValue = (
   name: string,
   raw: HirValue,
+  root: boolean,
 ): string | number | boolean | Record<string, string | number> | undefined => {
   if (name === "style") {
-    return toStyle(raw);
+    return toStyle(raw, root);
   }
   switch (typeof raw) {
     case "string":
@@ -80,17 +91,16 @@ const toAttributeValue = (
   }
 };
 
-const elementToReactNode = (element: ViewElementValue): ReactNode => {
-  const { tag } = element;
-  if (tag !== VIEW_FRAGMENT_TAG && !VIEW_ELEMENT_TAGS.has(tag)) {
-    throw new Error(`\`<${tag}>\` cannot be drawn by a visualizer.`);
-  }
+const elementProps = (
+  element: ViewElementValue,
+  root = false,
+): Record<string, unknown> => {
   const props: Record<string, unknown> = {};
   for (const [name, raw] of element.attributes) {
     if (!VIEW_ELEMENT_ATTRIBUTES.has(name)) {
       throw new Error(`\`${name}\` is not an attribute a visualizer can set.`);
     }
-    const value = toAttributeValue(name, raw);
+    const value = toAttributeValue(name, raw, root);
     if (value !== undefined) {
       props[name] = value;
     }
@@ -101,11 +111,21 @@ const elementToReactNode = (element: ViewElementValue): ReactNode => {
   } else if (typeof key === "bigint") {
     props.key = String(key);
   }
+  return props;
+};
+
+const elementToReactNode = (element: ViewElementValue): ReactNode => {
+  const { tag } = element;
+  if (tag !== VIEW_FRAGMENT_TAG && !VIEW_ELEMENT_TAGS.has(tag)) {
+    throw new Error(`\`<${tag}>\` cannot be drawn by a visualizer.`);
+  }
   return createElement(
     tag === VIEW_FRAGMENT_TAG ? Fragment : tag,
-    props,
-    // eslint-disable-next-line no-use-before-define -- mutual recursion
-    ...element.children.map(toReactNode),
+    elementProps(element),
+    ...element.children.map((child) =>
+      // eslint-disable-next-line no-use-before-define -- mutual recursion
+      toReactNode(child),
+    ),
   );
 };
 
@@ -120,7 +140,7 @@ const toReactNode = (value: ViewValue): ReactNode => {
     return String(value);
   }
   if (Array.isArray(value)) {
-    return (value as readonly ViewValue[]).map(toReactNode);
+    return (value as readonly ViewValue[]).map((child) => toReactNode(child));
   }
   if (value instanceof ViewElementValue) {
     return elementToReactNode(value);
@@ -143,4 +163,35 @@ export const renderVisualizerHir = (
   view: ViewHir,
   tokens: VisualizerTokens,
   parameters: VisualizerParameters,
-): ReactNode => toReactNode(interpretViewHir(view, { tokens, parameters }));
+  size: VisualizerSize,
+): ReactNode => {
+  const picture = interpretViewHir(view, { tokens, parameters, ...size });
+  if (
+    !(picture instanceof ViewElementValue) ||
+    (picture.tag !== visualizerSvgTag && picture.tag !== "svg")
+  ) {
+    throw new Error(
+      "A visualizer must return a single `<Visualizer.Svg>…</Visualizer.Svg>` element.",
+    );
+  }
+  const legacyProps =
+    picture.tag === "svg" ? elementProps(picture, true) : undefined;
+  const parsed = parseVisualizerSvgOptions(
+    legacyProps
+      ? new Map(
+          Object.entries(legacyProps).filter(([name]) => name === "viewBox"),
+        )
+      : picture.attributes,
+  );
+  if (!parsed.ok) throw new Error(parsed.message);
+  return createElement(
+    VisualizerSvg,
+    {
+      key: parsed.options.navigation,
+      options: parsed.options,
+      size,
+      legacyProps,
+    },
+    ...picture.children.map(toReactNode),
+  );
+};

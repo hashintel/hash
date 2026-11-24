@@ -1,5 +1,7 @@
 #![expect(missing_docs, reason = "integration tests")]
 
+use core::assert_matches;
+
 use hash_integrations_definition::{Definition, Pagination, RestAuth, SourceKind};
 
 #[test]
@@ -23,8 +25,9 @@ fn rest_interpolation() {
         Some("active"),
         "parameter keys and values should expand their variables"
     );
-    assert!(
-        matches!(&endpoint.auth, Some(RestAuth::Header { name, .. }) if name == "X-Api-Key"),
+    assert_matches!(
+        &endpoint.auth,
+        Some(RestAuth::Header { name, .. }) if name == "X-Api-Key",
         "the header name should expand its variable"
     );
     assert_eq!(
@@ -32,8 +35,9 @@ fn rest_interpolation() {
         Some("data.items"),
         "the result path should expand its variable"
     );
-    assert!(
-        matches!(&endpoint.pagination, Some(Pagination::NextLink { field }) if field == "pagination.next"),
+    assert_matches!(
+        &endpoint.pagination,
+        Some(Pagination::NextLink { field }) if field == "pagination.next",
         "the next-link path should expand its variable"
     );
     assert_eq!(

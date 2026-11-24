@@ -392,7 +392,6 @@ impl ResolvedPolicy {
 }
 
 #[cfg(test)]
-#[expect(clippy::panic_in_result_fn, reason = "Assertions in test are expected")]
 mod tests {
     use core::error::Error;
 
@@ -434,7 +433,7 @@ mod tests {
 
     mod serialization {
         use alloc::borrow::Cow;
-        use core::{error::Error, str::FromStr as _};
+        use core::{assert_matches, error::Error, str::FromStr as _};
         use std::collections::HashSet;
 
         use type_system::{
@@ -532,7 +531,7 @@ mod tests {
                 .with_tracked_actions(HashSet::from([ActionName::View, ActionName::Update]))
                 .with_policy(&policy)?;
 
-            assert!(matches!(
+            assert_matches!(
                 policy_set.evaluate(
                     &Request {
                         actor: Some(actor_id),
@@ -543,9 +542,9 @@ mod tests {
                     &context
                 )?,
                 Authorized::Always
-            ));
+            );
 
-            assert!(matches!(
+            assert_matches!(
                 policy_set.evaluate(
                     &Request {
                         actor: Some(actor_id),
@@ -556,7 +555,7 @@ mod tests {
                     &context
                 )?,
                 Authorized::Never
-            ));
+            );
 
             Ok(())
         }

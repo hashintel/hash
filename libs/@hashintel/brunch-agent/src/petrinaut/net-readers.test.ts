@@ -1,13 +1,10 @@
 import { expect, expectTypeOf, test } from "vitest";
 
 import {
-  isNetObservationTool,
-  netReaderToolNames,
   netStructureOf,
   projectNetDefinition,
   type NetStructure,
 } from "./net-readers";
-import { browserToolMutatesDocument } from "./petrinaut-tool-effects";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
@@ -216,13 +213,24 @@ test("the outline drops scenario code and expressions but keeps the ad-hoc shape
   });
 });
 
-test("presentational and code fields are stripped from subnet items too", () => {
+test("presentational and code fields are stripped from component items too", () => {
   const nested = projectNetDefinition(
-    { ...definition, subnets: [{ id: "n1", name: "Sub", ...definition }] },
+    {
+      ...definition,
+      components: [
+        {
+          id: "n1",
+          name: "Sub",
+          iconSvg: "<svg><circle r='4'/></svg>",
+          displayColor: "#3b82f6",
+          ...definition,
+        },
+      ],
+    },
     "outline",
   );
   expect(nested).toMatchObject({
-    subnets: [
+    components: [
       {
         id: "n1",
         places: [{ id: "p1", name: "Queue", colorId: null }],
@@ -231,16 +239,6 @@ test("presentational and code fields are stripped from subnet items too", () => 
     ],
   });
   expect(JSON.stringify(nested)).not.toMatch(
-    /"x"|"metadata"|lambdaCode|visualizerCode/u,
+    /"x"|"metadata"|lambdaCode|visualizerCode|iconSvg|displayColor/u,
   );
-});
-
-test("the readers are net observations that never change the document", () => {
-  for (const name of Object.values(netReaderToolNames)) {
-    expect(isNetObservationTool(name)).toBe(true);
-    expect(browserToolMutatesDocument(name)).toBe(false);
-  }
-  expect(isNetObservationTool("getLatestNetDefinition")).toBe(true);
-  expect(isNetObservationTool("getNetCompilationErrors")).toBe(false);
-  expect(isNetObservationTool("addPlace")).toBe(false);
 });

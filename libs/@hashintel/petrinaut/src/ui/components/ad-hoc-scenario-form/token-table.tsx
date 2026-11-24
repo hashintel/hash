@@ -40,8 +40,7 @@ import {
 } from "../../worksheet/use-focus-stops";
 import { useRowSelection } from "../../worksheet/use-row-selection";
 import { useSelectFirstActivation } from "../../worksheet/use-select-first";
-import { AdHocFormContext, adHocIntervalSelection } from "./form-context";
-import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
+import { FormSpreadsheet } from "../spreadsheet-kit/form-spreadsheet";
 import {
   cellStyle,
   columnHeaderStyle,
@@ -53,9 +52,10 @@ import {
   rowTintCellStyle,
   rowTintStrongStyle,
   selectedRowCellStyle,
-} from "./spreadsheet/form-table";
-import { GutterCell } from "./spreadsheet/gutter-cell";
-import { PhantomLine } from "./spreadsheet/phantom-line";
+} from "../spreadsheet-kit/form-table";
+import { GutterCell } from "../spreadsheet-kit/gutter-cell";
+import { PhantomLine } from "../spreadsheet-kit/phantom-line";
+import { AdHocFormContext, adHocIntervalSelection } from "./form-context";
 import { ValueEditor } from "./value-editor";
 
 // A background image, not a solid color, so it composites over row tints.

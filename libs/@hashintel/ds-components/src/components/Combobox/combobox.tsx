@@ -13,23 +13,29 @@ import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { resolveAutoFocusProps } from "../../util/form-shared";
-import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
-import { OverflowRow } from "../../util/OverflowRow/overflow-row";
-import { parkedPopperPositioner } from "../../util/popper-positioner";
-import { usePortalContainerRef } from "../../util/portal-container-context";
-import { renderAdornment } from "../../util/render-adornment";
-import { hasMultiItemSuffix } from "../../util/SelectableList/has-multi-item-suffix";
+import { OverflowRow } from "../../primitives/OverflowRow/overflow-row";
+import { hasMultiItemSuffix } from "../../primitives/SelectableList/has-multi-item-suffix";
 import {
   type Item,
   type ItemOrGroup,
   SelectableList,
-} from "../../util/SelectableList/selectable-list";
-import { MultiItemSuffix } from "../../util/SelectableList/selectable-list-multi-suffix";
+} from "../../primitives/SelectableList/selectable-list";
+import { MultiItemSuffix } from "../../primitives/SelectableList/selectable-list-multi-suffix";
 import {
+  type CollapsibleExpansion,
+  type CollapsibleFolder,
+  type NotCollapsible,
+  collectSelectedAncestorIds,
+  flattenVisibleItems,
   getItemId,
-  isCustomItem,
-} from "../../util/SelectableList/selectable-list-util";
+  useCollapsibleExpansion,
+} from "../../primitives/SelectableList/selectable-list-util";
+import { resolveAutoFocusProps } from "../../util/form-shared";
+import { isInteractiveTarget } from "../../util/interactive-target";
+import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
+import { parkedPopperPositioner } from "../../util/popper-positioner";
+import { usePortalContainerRef } from "../../util/portal-container-context";
+import { renderAdornment } from "../../util/render-adornment";
 import { Chip } from "../Chip/chip";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
@@ -48,7 +54,7 @@ import type { FormInputSize } from "../../util/form-shared";
 import type { ChipSize } from "../Chip/chip-util";
 import type { TextInput } from "../TextInput/text-input";
 
-export type ComboboxItem<TValue extends string = string> = {
+type ComboboxItemBase<TValue extends string> = {
   /** What `onChange` receives when the option is selected */
   value: TValue;
   /** Visible label, also the text matched by filtering */
@@ -57,8 +63,12 @@ export type ComboboxItem<TValue extends string = string> = {
   disabled?: boolean;
 } & Pick<Item, "selectedStyle">;
 
+export type ComboboxItem<TValue extends string = string> =
+  ComboboxItemBase<TValue> &
+    (NotCollapsible | CollapsibleFolder<ComboboxItem<TValue>>);
+
 export type MultiComboboxItem<TValue extends string = string> =
-  ComboboxItem<TValue> & {
+  ComboboxItemBase<TValue> & {
     /** Optional content aligned to the right of the item in the dropdown */
     suffix?: React.ReactNode;
     /** Show an "Only" button while the item is hovered, which sets the selection to just this item. It renders in the suffix position, replacing `suffix` while visible. */
@@ -66,7 +76,8 @@ export type MultiComboboxItem<TValue extends string = string> =
     // selectedTone: the selected indicator's tone (checkbox fill, tick or
     // highlight color), defaulting to `neutral`. Named after the list `Item`
     // field it maps onto, matching MultiSelectItem.
-  } & Pick<Item, "selectedTone">;
+  } & Pick<Item, "selectedTone"> &
+    (NotCollapsible | CollapsibleFolder<MultiComboboxItem<TValue>>);
 
 type AllowNewValueOptions = {
   /** If left undefined shows the option when the input does not match an enabled option */
@@ -83,7 +94,14 @@ export const AllowNewValueOptionsDoc = (_props: AllowNewValueOptions): null =>
 
 type ComboboxBaseProps = Omit<
   React.ComponentProps<typeof TextInput>,
-  "autocomplete" | "onChange" | "value" | "clearable"
+  | "autocomplete"
+  | "onChange"
+  | "value"
+  | "clearable"
+  | "maxLength"
+  | "minLength"
+  | "pattern"
+  | "spellcheck"
 > & {
   /** Called as the input's text changes, whether typed or set by a selection */
   onChangeInput?: (value: string) => void;
@@ -189,22 +207,38 @@ type ComboboxMultipleProps<TValue extends string> = {
 export type ComboboxProps<TValue extends string = string> = ComboboxBaseProps &
   (ComboboxSingleProps<TValue> | ComboboxMultipleProps<TValue>);
 
+/**
+ * Flattens groups and collapsible folders into the depth-first list of every
+ * option, folders included and regardless of their expansion state.
+ */
+const flattenComboboxOptions = <TItem extends ComboboxItem>(
+  items: ReadonlyArray<ItemOrGroup<TItem>>,
+): TItem[] => {
+  const result: TItem[] = [];
+  const visitItem = (item: TItem) => {
+    result.push(item);
+    if (item.subItems) {
+      for (const child of item.subItems as ReadonlyArray<TItem>) {
+        visitItem(child);
+      }
+    }
+  };
+  for (const entry of items) {
+    if ("items" in entry) {
+      for (const item of entry.items) {
+        visitItem(item);
+      }
+    } else {
+      visitItem(entry);
+    }
+  }
+  return result;
+};
+
 const findComboboxItem = <TItem extends ComboboxItem>(
   items: ReadonlyArray<ItemOrGroup<TItem>>,
   matches: (option: TItem) => boolean,
-): TItem | undefined => {
-  for (const entry of items) {
-    if ("items" in entry) {
-      const found = entry.items.find(matches);
-      if (found) {
-        return found;
-      }
-    } else if (matches(entry)) {
-      return entry;
-    }
-  }
-  return undefined;
-};
+): TItem | undefined => flattenComboboxOptions(items).find(matches);
 
 const findComboboxItemByValue = <TItem extends ComboboxItem>(
   items: ReadonlyArray<ItemOrGroup<TItem>>,
@@ -316,18 +350,6 @@ const maskComboboxRoleFromTagsMachine = (
   };
 };
 
-const flattenListItems = (items: Array<ItemOrGroup<Item>>): Item[] => {
-  const flat: Item[] = [];
-  for (const entry of items) {
-    if ("items" in entry) {
-      flat.push(...entry.items);
-    } else if (!isCustomItem(entry)) {
-      flat.push(entry);
-    }
-  }
-  return flat;
-};
-
 /**
  * A text input with a dropdown of autocomplete options. The committed
  * `value` is an option's `value` (or, with `allowNewValue`, any typed
@@ -394,7 +416,6 @@ export const Combobox = <TValue extends string>({
     showEditIcon: _showEditIcon,
     connectToLeftInput,
     connectToRightInput,
-    spellcheck,
     inputRef,
     ...forwardedInputAttrs
   } = inputProps;
@@ -447,6 +468,19 @@ export const Combobox = <TValue extends string>({
   const effectiveItems = useMemo<ReadonlyArray<ItemOrGroup<MultiComboboxItem>>>(
     () => (orphanItems.length === 0 ? items : [...orphanItems, ...items]),
     [items, orphanItems],
+  );
+
+  // The collapsible options' values (those with subItems), wherever they
+  // nest — the set held open while the typed text filters, and the rows
+  // ArrowRight/ArrowLeft toggle.
+  const folderValues = useMemo<ReadonlySet<string>>(
+    () =>
+      new Set(
+        flattenComboboxOptions(effectiveItems)
+          .filter((option) => option.subItems !== undefined)
+          .map((option) => option.value),
+      ),
+    [effectiveItems],
   );
 
   const committedValue = multiple ? "" : (value ?? "");
@@ -586,15 +620,30 @@ export const Combobox = <TValue extends string>({
         ? text.startsWith(query)
         : text.includes(query);
     };
+    // A matching folder keeps its whole subtree; otherwise it stays visible
+    // only while a descendant matches, trimmed to the matching ones.
+    const filterItems = (
+      entries: ReadonlyArray<MultiComboboxItem>,
+    ): MultiComboboxItem[] =>
+      entries.flatMap((option): MultiComboboxItem[] => {
+        if (option.subItems) {
+          if (matches(option)) {
+            return [option];
+          }
+          const children = filterItems(option.subItems);
+          return children.length > 0 ? [{ ...option, subItems: children }] : [];
+        }
+        return matches(option) ? [option] : [];
+      });
     const filtered: Array<ItemOrGroup<MultiComboboxItem>> = [];
     for (const entry of effectiveItems) {
       if ("items" in entry) {
-        const children = entry.items.filter(matches);
+        const children = filterItems(entry.items);
         if (children.length > 0) {
           filtered.push({ ...entry, items: children });
         }
-      } else if (matches(entry)) {
-        filtered.push(entry);
+      } else {
+        filtered.push(...filterItems([entry]));
       }
     }
     return filtered;
@@ -612,6 +661,35 @@ export const Combobox = <TValue extends string>({
     () => (atMaxItems ? new Set(selectedValues) : undefined),
     [atMaxItems, selectedValues],
   );
+
+  // The first filter match the highlight should land on while filtering.
+  // The visible tree also keeps non-matching rows for context (a matching
+  // row's folder ancestors, a matching folder's children), which arrow
+  // navigation and the multi's autohighlight would reach first — see the
+  // sync below.
+  const firstFilterMatch = useMemo<string | undefined>(() => {
+    if (filterQuery === "" || filterAlgorithm === "none") {
+      return undefined;
+    }
+    const query = filterQuery.toLowerCase();
+    const isEnabledMatch = (option: MultiComboboxItem) => {
+      if (
+        option.disabled ||
+        (selectableAtMaxSet !== undefined &&
+          !selectableAtMaxSet.has(option.value))
+      ) {
+        return false;
+      }
+      if (typeof filterAlgorithm === "function") {
+        return filterAlgorithm(filterQuery, option.text, option.value);
+      }
+      const text = option.text.toLowerCase();
+      return filterAlgorithm === "startsWith"
+        ? text.startsWith(query)
+        : text.includes(query);
+    };
+    return flattenComboboxOptions(visibleOptions).find(isEnabledMatch)?.value;
+  }, [visibleOptions, filterQuery, filterAlgorithm, selectableAtMaxSet]);
 
   const showNewValueOption =
     newValueOptions !== undefined &&
@@ -634,17 +712,14 @@ export const Combobox = <TValue extends string>({
   );
 
   const listItems = useMemo<Array<ItemOrGroup<Item>>>(() => {
-    const toItem = (option: MultiComboboxItem): Item => ({
-      id: option.value,
-      text: renderOption ? renderOption(option.value) : option.text,
-      disabled:
+    const toItem = (option: MultiComboboxItem): Item => {
+      const optionDisabled =
         option.disabled ||
         (selectableAtMaxSet !== undefined &&
-          !selectableAtMaxSet.has(option.value)),
-      selectedStyle:
-        option.selectedStyle ?? (multiple ? "checkbox" : "highlight"),
-      selectedTone: option.selectedTone,
-      suffix:
+          !selectableAtMaxSet.has(option.value));
+      const selectedStyle =
+        option.selectedStyle ?? (multiple ? "checkbox" : "highlight");
+      const optionSuffix =
         multiple && hasMultiItemSuffix(option) ? (
           <MultiItemSuffix
             suffix={option.suffix}
@@ -653,10 +728,32 @@ export const Combobox = <TValue extends string>({
             tone={option.selectedTone}
             onSelectOnly={() => selectOnly(option.value)}
           />
-        ) : undefined,
-      subItems: undefined,
-      onClick: () => {},
-    });
+        ) : undefined;
+      // An option with subItems is a collapsible folder — a selectable
+      // option like any other; only its chevron button toggles expansion.
+      if (option.subItems) {
+        return {
+          id: option.value,
+          text: renderOption ? renderOption(option.value) : option.text,
+          disabled: optionDisabled,
+          selectedStyle,
+          selectedTone: option.selectedTone,
+          suffix: optionSuffix,
+          collapsible: true,
+          subItems: option.subItems.map(toItem),
+        };
+      }
+      return {
+        id: option.value,
+        text: renderOption ? renderOption(option.value) : option.text,
+        disabled: optionDisabled,
+        selectedStyle,
+        selectedTone: option.selectedTone,
+        suffix: optionSuffix,
+        subItems: undefined,
+        onClick: () => {},
+      };
+    };
     const mapped: Array<ItemOrGroup<Item>> = visibleOptions.map((entry) =>
       "items" in entry
         ? { id: entry.id, label: entry.label, items: entry.items.map(toItem) }
@@ -690,22 +787,60 @@ export const Combobox = <TValue extends string>({
     size,
   ]);
 
+  // Expansion state of collapsible folders. Ancestors of the selection start
+  // expanded (and re-expand on open, in onOpenChange) so the selection is
+  // visible. While the typed text filters the options, every folder on the
+  // way to a match must be open for the match to be reachable, so the user's
+  // expansion state is overridden (and resumes when the filter clears).
+  const expansion = useCollapsibleExpansion(
+    listItems,
+    new Set<string>(
+      multiple ? selectedValues : committedValue === "" ? [] : [committedValue],
+    ),
+  );
+  const filtering = filterQuery !== "" && filterAlgorithm !== "none";
+  const effectiveExpansion = useMemo<CollapsibleExpansion>(
+    () =>
+      filtering
+        ? // Toggling is a no-op while every folder is held open: on screen
+          // nothing would change, but the write would silently flip the
+          // underlying state, surprising once the filter clears.
+          { expandedIds: folderValues, onToggle: () => {} }
+        : expansion,
+    [filtering, folderValues, expansion],
+  );
+
   const collection = useMemo(() => {
     const valueToText = new Map<string, string>();
-    const collect = (option: MultiComboboxItem) => {
+    for (const option of flattenComboboxOptions(effectiveItems)) {
       valueToText.set(option.value, option.text);
-    };
-    for (const entry of effectiveItems) {
-      if ("items" in entry) {
-        for (const option of entry.items) {
-          collect(option);
-        }
-      } else {
-        collect(entry);
-      }
     }
+    // The rows currently rendered, in visual order: folders count (they
+    // are highlightable, and Enter toggles them), collapsed children and
+    // custom rows don't.
+    const rows = flattenVisibleItems(listItems, effectiveExpansion.expandedIds);
+    // The single machine re-derives its input text from the collection
+    // whenever the committed value changes, stringifying a value the
+    // collection lacks to an empty input. A committed option hidden in a
+    // collapsed folder (e.g. right after a filtered selection, when the
+    // all-folders-open filter override drops) is exactly that, so it rides
+    // along disabled — out of keyboard navigation, and never in need of
+    // selecting again.
+    const hiddenCommitted =
+      !multiple &&
+      committedItem !== undefined &&
+      !rows.some((row) => getItemId(row) === committedItem.value)
+        ? [
+            {
+              id: committedItem.value,
+              text: committedItem.text,
+              disabled: true,
+              onClick: () => {},
+            } satisfies Item,
+          ]
+        : [];
     return createListCollection<Item>({
-      items: flattenListItems(listItems),
+      items: [...rows, ...hiddenCommitted],
       itemToValue: (item) => getItemId(item),
       // What selecting the item puts into the input
       itemToString: (item) => {
@@ -717,7 +852,15 @@ export const Combobox = <TValue extends string>({
       },
       isItemDisabled: (item) => !!item.disabled,
     });
-  }, [listItems, effectiveItems, inputText, newValueOptionId]);
+  }, [
+    listItems,
+    effectiveItems,
+    effectiveExpansion,
+    inputText,
+    newValueOptionId,
+    multiple,
+    committedItem,
+  ]);
 
   // A single machine only receives values that resolve to an option: on a
   // value change it re-derives the input text from the collection, which
@@ -810,6 +953,16 @@ export const Combobox = <TValue extends string>({
       if (open) {
         valueAtOpenRef.current = selectedValuesRef.current;
         setHighlightNavigated(false);
+        // Reveal the selection: its collapsed ancestors open with the
+        // dropdown, so the selected options are visible from the start.
+        const selectedNow = new Set<string>(
+          multiple
+            ? selectedValuesRef.current
+            : committedValue === ""
+              ? []
+              : [committedValue],
+        );
+        expansion.expand?.(collectSelectedAncestorIds(listItems, selectedNow));
         return;
       }
       if (reason === "escape-key") {
@@ -842,21 +995,67 @@ export const Combobox = <TValue extends string>({
     },
   });
 
+  // While the typed text filters, keep the highlight on the first actual
+  // match — the visible tree also keeps non-matching rows (a match's folder
+  // ancestors), which the multi's autohighlight would land on and which the
+  // single's first ArrowDown would otherwise reach first, putting Enter on a
+  // folder instead of the match. Re-synced when the filter or its first
+  // match changes, but not on plain re-renders, so arrow-key navigation
+  // keeps its highlight (mirrors the Select's SearchHighlightSync).
+  const lastFilterSyncRef = useRef<{
+    query: string;
+    match: string | undefined;
+  }>({ query: "", match: undefined });
+  useEffect(() => {
+    const last = lastFilterSyncRef.current;
+    if (last.query === filterQuery && last.match === firstFilterMatch) {
+      return;
+    }
+    const wasFiltering = last.query !== "";
+    lastFilterSyncRef.current = { query: filterQuery, match: firstFilterMatch };
+    if (!openRef.current) {
+      return;
+    }
+    if (filterQuery === "") {
+      // The multi's autohighlight re-highlights on its own once the filter
+      // clears; the single machine would keep the last match highlighted on
+      // the restored full tree.
+      if (!multiple && wasFiltering) {
+        combobox.clearHighlightValue();
+      }
+      return;
+    }
+    if (firstFilterMatch !== undefined) {
+      combobox.setHighlightValue(firstFilterMatch);
+    } else {
+      combobox.clearHighlightValue();
+    }
+  }, [multiple, filterQuery, firstFilterMatch, combobox]);
+
   // The dropdown exits over an animation (see the selectable-list recipe),
   // and closing is also what abandons typed text — re-filtering on the
-  // revert would resize the list mid-exit. While open the dropdown renders
-  // live values, mirrored here render-adjusted (as with lastCommittedText
-  // above); a closed (exiting) dropdown keeps rendering the last open ones.
+  // revert would resize the list mid-exit. The expansion state is frozen
+  // along with the rows: the revert also drops the all-folders-open filter
+  // override, which would otherwise collapse the folders the rows still
+  // paint. While open the dropdown renders live values, mirrored here
+  // render-adjusted (as with lastCommittedText above); a closed (exiting)
+  // dropdown keeps rendering the last open ones.
   const [displayedDropdown, setDisplayedDropdown] = useState({
     listItems,
     filterQuery,
+    expansion: effectiveExpansion,
   });
   if (
     combobox.open &&
     (displayedDropdown.listItems !== listItems ||
-      displayedDropdown.filterQuery !== filterQuery)
+      displayedDropdown.filterQuery !== filterQuery ||
+      displayedDropdown.expansion !== effectiveExpansion)
   ) {
-    setDisplayedDropdown({ listItems, filterQuery });
+    setDisplayedDropdown({
+      listItems,
+      filterQuery,
+      expansion: effectiveExpansion,
+    });
   }
 
   const selectedIds = useMemo(() => {
@@ -965,13 +1164,10 @@ export const Combobox = <TValue extends string>({
         )
       : undefined;
 
-  // Every option, disabled included — the total behind the `summary` row
+  // Every option, disabled and nested included — the total behind the
+  // `summary` row
   const optionCount = useMemo(
-    () =>
-      effectiveItems.reduce<number>(
-        (count, entry) => count + ("items" in entry ? entry.items.length : 1),
-        0,
-      ),
+    () => flattenComboboxOptions(effectiveItems).length,
     [effectiveItems],
   );
 
@@ -1082,7 +1278,6 @@ export const Combobox = <TValue extends string>({
           "data-testid": testId,
           ...resolveAutoFocusProps(autoFocus),
           ...forwardedInputAttrs,
-          spellCheck: spellcheck,
           ref: inputRef,
         }
       : {}),
@@ -1114,6 +1309,28 @@ export const Combobox = <TValue extends string>({
           !(event.repeat && backspaceHoldBeganWithTextRef.current)
         ) {
           emitMultiChange(selectedValuesRef.current.slice(0, -1), false);
+        }
+      }
+      // ArrowRight expands and ArrowLeft collapses a highlighted collapsible
+      // option — activation selects it, so the horizontal arrows carry the
+      // keyboard toggle. Only taken while a folder row is highlighted and the
+      // key would change its state (otherwise the caret keeps the arrows),
+      // and never while the typed text filters (folders are held open then).
+      if (
+        openRef.current &&
+        !filtering &&
+        (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
+        !hasCaretModifier(event)
+      ) {
+        const highlighted = highlightedValueRef.current;
+        if (highlighted !== null && folderValues.has(highlighted)) {
+          const isExpanded = expansion.expandedIds.has(highlighted);
+          if (event.key === "ArrowRight" ? !isExpanded : isExpanded) {
+            event.preventDefault();
+            event.stopPropagation();
+            expansion.onToggle(highlighted);
+            return;
+          }
         }
       }
       // Enter with nothing highlighted acts on the typed text; decided
@@ -1159,7 +1376,7 @@ export const Combobox = <TValue extends string>({
       // commit via the close handler); handing it to the chip row too would
       // submit the draft a second time, and un-prevented it would submit a
       // surrounding form.
-      if (multiple && event.key === "Enter") {
+      if (multiple && event.key === "Enter" && !event.nativeEvent.isComposing) {
         event.preventDefault();
       }
       if (rejectsTypedText) {
@@ -1214,10 +1431,11 @@ export const Combobox = <TValue extends string>({
         <ArkCombobox.Positioner className={parkedPopperPositioner}>
           <SelectableList
             as="Combobox"
-            className={comboboxDropdownRecipe({ variant })}
+            className={comboboxDropdownRecipe({ variant, multi: !!multiple })}
             items={displayedDropdown.listItems}
             selected={selectedIds}
             size={size}
+            expansion={displayedDropdown.expansion}
             highlightNavigated={highlightNavigated}
             emptyState={
               displayedDropdown.filterQuery === "" || !hasAnyOption
@@ -1277,19 +1495,18 @@ export const Combobox = <TValue extends string>({
             // collapsed truncate/summary row, focusing expands the row to
             // chips, and that remount detaches the pressed element so the
             // browser never dispatches the subsequent click. The exception is
-            // a chip's remove button, whose press only removes the value.
+            // an interactive element inside the field — a chip's remove or
+            // other buttons, an adornment button — whose press acts on its
+            // own: it neither opens the dropdown nor cedes focus.
             onPointerDown={(event) => {
               if (disabled) {
                 return;
               }
               const target = event.target;
               if (
-                target instanceof Element &&
-                (target.closest("[data-chip-segment='remove']") ||
-                  target.closest("[data-part='adornment-button']"))
+                target !== document.getElementById(multiInputId) &&
+                isInteractiveTarget(target, event.currentTarget)
               ) {
-                // A chip's remove button and interactive adornments act on
-                // their own; they neither open the dropdown nor cede focus.
                 return;
               }
               combobox.setOpen(true);
@@ -1305,10 +1522,14 @@ export const Combobox = <TValue extends string>({
               if (disabled) {
                 return;
               }
-              // Focus/open happen on pointerdown above; the click pass lands
-              // focus back on the input after a remove-button press (skipped
-              // there) and runs the consumer's handler.
-              document.getElementById(multiInputId)?.focus();
+              // Focus/open happen on pointerdown above. A click a chip
+              // handled stops propagating and never lands here; one that
+              // still bubbled from an interactive element stays that
+              // element's — only an unhandled click pulls focus back to the
+              // input.
+              if (!isInteractiveTarget(event.target, event.currentTarget)) {
+                document.getElementById(multiInputId)?.focus();
+              }
               onClick?.(event);
             }}
             onFocus={() => setRowFocused(true)}
@@ -1381,6 +1602,9 @@ export const Combobox = <TValue extends string>({
                     clearSelection();
                     document.getElementById(multiInputId)?.focus();
                   }}
+                  data-hidden={
+                    !clearable || !hasContentToClear ? "" : undefined
+                  }
                   className={cx(
                     multiClasses.clear,
                     (!clearable || !hasContentToClear) &&

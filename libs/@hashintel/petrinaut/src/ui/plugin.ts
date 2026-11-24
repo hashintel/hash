@@ -14,6 +14,8 @@ export type {
   PetrinautPluginManifest,
   PluginApi,
   PluginAssistant,
+  PluginBottomPanelView,
+  PluginBottomPanelViewSpec,
   PluginButton,
   PluginButtonPlace,
   PluginButtonSpec,
@@ -39,6 +41,7 @@ export type {
   PluginAccess,
   PluginDiagnostics,
   PluginDocument,
+  PluginDocumentHandle,
   PluginDocumentReader,
   PluginEditor,
   PluginEditorReader,
@@ -66,6 +69,8 @@ export type { ReadOnlyReason } from "../react/state/use-read-only-reason";
 export { parseDocumentUri } from "@hashintel/petrinaut-core";
 export type {
   DiagnosticsSnapshot,
+  DocChangeEvent,
+  PetrinautPatch,
   ReadableStore,
   SelectionItem,
 } from "@hashintel/petrinaut-core";

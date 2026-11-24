@@ -1,14 +1,55 @@
-import { type Effect, type Queue, Deferred, Function } from "effect";
+import {
+  type Cause,
+  Data,
+  Deferred,
+  type Effect,
+  Function,
+  type Queue,
+  Stream,
+} from "effect";
 
 import { createProto } from "../utils.js";
 import * as Response from "./Response.js";
 
-import type { RequestId } from "../wire-protocol/models/request/index.js";
+import type {
+  RequestId,
+  Request as WireRequest,
+} from "../wire-protocol/models/request/index.js";
 import type { Response as WireResponse } from "../wire-protocol/models/response/index.js";
+import type { IncompleteResponseError } from "../wire-protocol/stream/ResponseFromBytesStream.js";
+import type * as Transport from "./Transport.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Transaction");
 
 export type TypeId = typeof TypeId;
+
+export class TransactionLaggedError extends Data.TaggedError(
+  "TransactionLaggedError",
+)<{
+  id: RequestId.RequestId;
+}> {
+  get message() {
+    return `Transaction ${this.id.value} fell behind the connection and was dropped before its response was complete`;
+  }
+}
+
+export class ConnectionClosedError extends Data.TaggedError(
+  "ConnectionClosedError",
+)<{
+  id: RequestId.RequestId;
+}> {
+  get message() {
+    return `Transaction ${this.id.value} was dropped because its connection closed before its response was complete`;
+  }
+}
+
+export type TransactionError =
+  | TransactionLaggedError
+  | ConnectionClosedError
+  | Transport.TransportError
+  | WireRequest.EncodeError
+  | WireResponse.DecodeError
+  | IncompleteResponseError;
 
 export interface Transaction {
   readonly [TypeId]: TypeId;
@@ -17,7 +58,10 @@ export interface Transaction {
 }
 
 interface TransactionImpl extends Transaction {
-  readonly read: Queue.Dequeue<WireResponse.Response>;
+  readonly read: Queue.Dequeue<
+    WireResponse.Response,
+    TransactionError | Cause.Done
+  >;
 
   readonly drop: Deferred.Deferred<void>;
 }
@@ -29,7 +73,10 @@ const TransactionProto: Omit<TransactionImpl, "id" | "read" | "drop"> = {
 /** @internal */
 export const makeUnchecked = (
   id: RequestId.RequestId,
-  readQueue: Queue.Dequeue<WireResponse.Response>,
+  readQueue: Queue.Dequeue<
+    WireResponse.Response,
+    TransactionError | Cause.Done
+  >,
   drop: Deferred.Deferred<void>,
 ): Transaction => createProto(TransactionProto, { id, read: readQueue, drop });
 
@@ -43,5 +90,10 @@ export const registerDestructor: {
   Deferred.completeWith(self.drop, destructor),
 );
 
+/**
+ * Reads the transaction's response.
+ *
+ * The body fails with {@link Response.NetworkError} when the server answers with an error code. It fails with {@link TransactionLaggedError} when the connection dropped the transaction because its response buffer stayed full, and with {@link ConnectionClosedError} when the connection stopped reading before the response was complete. An error writing the request fails its transaction with that error, and an error reading the connection fails every open transaction with it.
+ */
 export const read = (transaction: Transaction) =>
-  Response.decode((transaction as TransactionImpl).read);
+  Response.decode(Stream.fromQueue((transaction as TransactionImpl).read));

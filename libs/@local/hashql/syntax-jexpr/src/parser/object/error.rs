@@ -339,13 +339,16 @@ pub(crate) fn unknown_key(
     key: impl AsRef<str>,
     expected: &[&'static str],
 ) -> ObjectDiagnostic {
+    // labels are not escaped by annotate-snippets, but are user-controlled via the `key` input.
+    let key = key.as_ref().escape_debug();
+
     let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::UnknownKey, Critical::ERROR)
         .primary(Label::new(
             span,
             if expected.is_empty() {
-                format!("Remove the `{}` key", key.as_ref())
+                format!("Remove the `{key}` key")
             } else {
-                format!("Replace `{}` with a valid key", key.as_ref())
+                format!("Replace `{key}` with a valid key")
             },
         ));
 

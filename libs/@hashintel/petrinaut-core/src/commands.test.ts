@@ -52,7 +52,6 @@ describe("applyClipboardPaste", () => {
           name: "Queue",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -77,7 +76,6 @@ describe("applyClipboardPaste", () => {
           name: "Queue",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -123,7 +121,7 @@ describe("applyClipboardPaste", () => {
           name: "Dynamic",
           colorId: "type-1",
           dynamicsEnabled: true,
-          differentialEquationId: "equation-1",
+          dynamics: [{ differentialEquationId: "equation-1" }],
           x: 0,
           y: 0,
         },
@@ -142,7 +140,8 @@ describe("applyClipboardPaste", () => {
           id: "equation-1",
           name: "Motion",
           colorId: "type-1",
-          code: "export default Dynamics(() => []);",
+          code: "export default Dynamics((token) => ({}));",
+          arity: 1,
         },
       ],
       parameters: [
@@ -166,7 +165,6 @@ describe("applyClipboardPaste", () => {
     expect(definition.places[0]).toMatchObject({
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
     });
   });
 
@@ -193,13 +191,13 @@ describe("applyClipboardPaste", () => {
     expect(instance.definition.get().places).toEqual([]);
   });
 
-  test("can paste into a subnet target", () => {
+  test("can paste into a component target", () => {
     const instance = createInstance({
       ...emptySDCPN,
-      subnets: [
+      components: [
         {
-          id: "subnet-1",
-          name: "Reusable subnet",
+          id: "component-1",
+          name: "Reusable component",
           places: [],
           transitions: [],
           types: [],
@@ -217,7 +215,6 @@ describe("applyClipboardPaste", () => {
           name: "Queue",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -226,14 +223,14 @@ describe("applyClipboardPaste", () => {
 
     const { newItemIds } = instance.commands.applyClipboardPaste({
       payload,
-      targetSubnetId: "subnet-1",
+      targetComponentId: "component-1",
     });
     const pastedPlace = newItemIds.find((item) => item.type === "place");
 
     expect(pastedPlace).toBeDefined();
     expect(instance.definition.get().places).toHaveLength(0);
-    expect(instance.definition.get().subnets?.[0]?.places).toHaveLength(1);
-    expect(instance.definition.get().subnets?.[0]?.places[0]?.id).toBe(
+    expect(instance.definition.get().components?.[0]?.places).toHaveLength(1);
+    expect(instance.definition.get().components?.[0]?.places[0]?.id).toBe(
       pastedPlace!.id,
     );
   });
@@ -257,7 +254,6 @@ describe("applyAutoLayout", () => {
           name: "Input",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -266,7 +262,6 @@ describe("applyAutoLayout", () => {
           name: "Output",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -296,20 +291,19 @@ describe("applyAutoLayout", () => {
     expect(places.some((place) => place.x !== 0 || place.y !== 0)).toBe(true);
   });
 
-  test("repositions subnet nodes when targetSubnetId is provided", async () => {
+  test("repositions component nodes when targetComponentId is provided", async () => {
     const instance = createInstance({
       ...emptySDCPN,
-      subnets: [
+      components: [
         {
-          id: "subnet-1",
-          name: "Reusable subnet",
+          id: "component-1",
+          name: "Reusable component",
           places: [
             {
               id: "place-1",
               name: "Input",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -318,7 +312,6 @@ describe("applyAutoLayout", () => {
               name: "Output",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -345,7 +338,7 @@ describe("applyAutoLayout", () => {
     });
 
     const { commitCount } = await instance.commands.applyAutoLayout({
-      targetSubnetId: "subnet-1",
+      targetComponentId: "component-1",
     });
 
     expect(commitCount).toBeGreaterThan(0);
@@ -353,7 +346,9 @@ describe("applyAutoLayout", () => {
     expect(
       instance.definition
         .get()
-        .subnets?.[0]?.places.some((place) => place.x !== 0 || place.y !== 0),
+        .components?.[0]?.places.some(
+          (place) => place.x !== 0 || place.y !== 0,
+        ),
     ).toBe(true);
   });
 });

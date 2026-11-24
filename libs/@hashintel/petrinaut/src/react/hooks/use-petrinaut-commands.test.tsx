@@ -3,7 +3,7 @@
  */
 import { act, renderHook } from "@testing-library/react";
 import { type ReactNode } from "react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import {
   CLIPBOARD_FORMAT_VERSION,
@@ -12,11 +12,20 @@ import {
   createJsonDocHandle,
   createPetrinaut,
   type Petrinaut,
+  type PetrinautRules,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautInstanceContext } from "../instance-context";
-import { SimulationContext, type SimulationState } from "../simulation/context";
+import {
+  NotificationsContext,
+  type AddNotificationInput,
+} from "../notifications/context";
+import {
+  SimulationContext,
+  type SimulationState,
+  DEFAULT_SIMULATION_CONTEXT,
+} from "../simulation/context";
 import {
   EditorContext,
   type EditorContextValue,
@@ -64,8 +73,12 @@ const editorContextValue = (
   clearSelection: () => {},
   setHoveredItem: () => {},
   clearHoveredItem: () => {},
-  toggleVisualizerPin: () => {},
+  keepPlaceVisualizerOpen: () => {},
+  closePlaceVisualizer: () => {},
+  toggleComponentInstanceFold: () => {},
   openPlaceVisualizer: () => {},
+  setVisualizerEditorFocus: () => {},
+  bringVisualizerToFront: () => {},
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},
@@ -85,6 +98,7 @@ const editorContextValue = (
 type WrapperOptions = {
   sdcpn?: SDCPN;
   readonly?: boolean;
+  rules?: PetrinautRules;
   globalMode?: "edit" | "simulate";
   simulationState?: SimulationState;
 };
@@ -93,12 +107,14 @@ const createWrapper = (options: WrapperOptions = {}) => {
   const {
     sdcpn: initialSdcpn = EMPTY_SDCPN,
     readonly = false,
+    rules,
     globalMode = "edit",
     simulationState = "NotRun",
   } = options;
 
   const instance: Petrinaut = createPetrinaut({
     document: createJsonDocHandle({ initial: structuredClone(initialSdcpn) }),
+    rules,
   });
 
   const sdcpnContextValue: SDCPNContextValue = {
@@ -118,38 +134,7 @@ const createWrapper = (options: WrapperOptions = {}) => {
     <PetrinautInstanceContext value={instance}>
       <SDCPNContext value={sdcpnContextValue}>
         <SimulationContext
-          value={{
-            state: simulationState,
-            error: null,
-            errorItemId: null,
-            parameterValues: {},
-            initialMarking: {},
-            selectedScenarioId: null,
-            scenarioParameterValues: {},
-            compiledScenarioResult: null,
-            scenarioCompilationErrors: null,
-            adHocScenario: null,
-            adHocNetParameters: [],
-            setAdHocScenario: () => {},
-            dt: 0.01,
-            maxTime: null,
-            totalFrames: 0,
-            getFrame: () => Promise.resolve(null),
-            getAllFrames: () => Promise.resolve([]),
-            getFramesInRange: () => Promise.resolve([]),
-            setSelectedScenarioId: () => {},
-            setScenarioParameterValue: () => {},
-            setInitialMarking: () => {},
-            setParameterValue: () => {},
-            setDt: () => {},
-            setMaxTime: () => {},
-            initialize: () => Promise.resolve(),
-            run: () => {},
-            pause: () => {},
-            reset: () => {},
-            setBackpressure: () => {},
-            ack: () => {},
-          }}
+          value={{ ...DEFAULT_SIMULATION_CONTEXT, state: simulationState }}
         >
           <EditorContext value={editorContextValue(globalMode)}>
             {children}
@@ -173,7 +158,6 @@ const samplePastePayload: ClipboardPayload = {
         name: "Pasted",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 10,
         y: 10,
       },
@@ -214,6 +198,37 @@ describe("usePetrinautCommands", () => {
 
       const { commitCount } = await result.current.applyAutoLayout();
       expect(commitCount).toBe(0);
+    });
+  });
+
+  describe("in an editor that only composes", () => {
+    test("applyClipboardPaste says why it pastes nothing", () => {
+      const addNotification = vi.fn((_notice: AddNotificationInput) => "");
+      const { Wrapper, instance } = createWrapper({
+        rules: { edit: "compose" },
+      });
+      const { result } = renderHook(usePetrinautCommands, {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <NotificationsContext
+            value={{ addNotification, dismissNotification: () => {} }}
+          >
+            <Wrapper>{children}</Wrapper>
+          </NotificationsContext>
+        ),
+      });
+
+      let output: ReturnType<typeof result.current.applyClipboardPaste>;
+      act(() => {
+        output = result.current.applyClipboardPaste({
+          payload: samplePastePayload,
+        });
+      });
+
+      expect(output!).toEqual({ newItemIds: [] });
+      expect(instance.definition.get().places).toHaveLength(0);
+      expect(addNotification.mock.calls[0]?.[0].message).toContain(
+        "nothing can be pasted into it",
+      );
     });
   });
 
@@ -263,7 +278,6 @@ describe("usePetrinautCommands", () => {
               name: "P",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },

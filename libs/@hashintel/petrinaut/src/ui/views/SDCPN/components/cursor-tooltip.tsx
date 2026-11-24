@@ -1,7 +1,9 @@
 import { use, useEffect, useRef, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
+import { resolveComponent } from "@hashintel/petrinaut-core";
 
+import { CompositionContext } from "../../../../react/state/composition-context";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 
@@ -24,10 +26,9 @@ const OFFSET_X = 14;
 const OFFSET_Y = 18;
 
 export const CursorTooltip: React.FC = () => {
-  const { editionMode, componentSubnetId } = use(EditorContext);
-  const {
-    petriNetDefinition: { subnets },
-  } = use(SDCPNContext);
+  const { editionMode, componentToAdd } = use(EditorContext);
+  const { petriNetDefinition } = use(SDCPNContext);
+  const { libraries } = use(CompositionContext);
 
   const [position, setPosition] = useState<{ x: number; y: number } | null>(
     null,
@@ -55,9 +56,13 @@ export const CursorTooltip: React.FC = () => {
     label = "Add Place";
   } else if (editionMode === "add-transition") {
     label = "Add Transition";
-  } else if (editionMode === "add-component" && componentSubnetId) {
-    const subnet = (subnets ?? []).find(({ id }) => id === componentSubnetId);
-    label = subnet ? `Instantiate ${subnet.name}` : null;
+  } else if (editionMode === "add-component" && componentToAdd) {
+    const component = resolveComponent(
+      petriNetDefinition,
+      componentToAdd,
+      libraries,
+    );
+    label = component ? `Instantiate ${component.name}` : null;
   }
 
   if (!label || !position) {

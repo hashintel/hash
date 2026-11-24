@@ -18,8 +18,14 @@ export const visibleOrdinaryBrunchToolNames = [
   brunchTools.readSkillResource,
   brunchTools.ledgerCommit,
   brunchTools.ledgerCompile,
+  brunchTools.ledgerQuery,
   brunchTools.queryBasis,
+  brunchTools.ledgerQueryBasis,
   brunchTools.ping,
+  brunchTools.hashQueryEntities,
+  brunchTools.hashQueryEntityTypes,
+  brunchTools.hashQueryWebs,
+  brunchTools.appSaveNet,
   netReaderToolNames.outline,
   netReaderToolNames.structure,
 ] as const;
@@ -27,55 +33,85 @@ export const visibleOrdinaryBrunchToolNames = [
 type VisibleOrdinaryBrunchToolName =
   (typeof visibleOrdinaryBrunchToolNames)[number];
 
+const readingTheLedger = {
+  pending: "Read the Ledger",
+  success: "Read the Ledger",
+  error: "Could not read the Ledger",
+};
+const checkingRecordedBasis = {
+  pending: "Check recorded basis",
+  success: "Checked recorded basis",
+  error: "Could not check recorded basis",
+};
+
 type LifecycleTitles = Readonly<
   Record<PetrinautAiToolPresentationState, string>
 >;
 
+/**
+ * A call without a result, still pending or ended by a failed response, names
+ * the requested action; only a successful result claims it happened.
+ */
 const lifecycleTitles = {
   task: {
-    pending: "Delegating task",
+    pending: "Delegate task",
     success: "Completed task",
     error: "Could not complete task",
   },
   [brunchTools.activateSkill]: {
-    pending: "Activating skill",
+    pending: "Activate skill",
     success: "Activated skill",
     error: "Could not activate skill",
   },
   [brunchTools.readSkillResource]: {
-    pending: "Reviewing modelling guidance",
+    pending: "Review modelling guidance",
     success: "Reviewed modelling guidance",
     error: "Could not review modelling guidance",
   },
   [brunchTools.ledgerCommit]: {
-    pending: "Recording in the Ledger",
+    pending: "Record in the Ledger",
     success: "Recorded in the Ledger",
     error: "Could not record in the Ledger",
   },
-  [brunchTools.ledgerCompile]: {
-    pending: "Reading the Ledger",
-    success: "Read the Ledger",
-    error: "Could not read the Ledger",
-  },
+  // The Petrinaut agent's name and the HASH agent's for the same tool.
+  [brunchTools.ledgerCompile]: readingTheLedger,
+  [brunchTools.ledgerQuery]: readingTheLedger,
   [netReaderToolNames.outline]: {
-    pending: "Reading the net outline",
+    pending: "Read the net outline",
     success: "Read the net outline",
     error: "Could not read the net outline",
   },
   [netReaderToolNames.structure]: {
-    pending: "Reading the net structure",
+    pending: "Read the net structure",
     success: "Read the net structure",
     error: "Could not read the net structure",
   },
-  [brunchTools.queryBasis]: {
-    pending: "Checking recorded basis",
-    success: "Checked recorded basis",
-    error: "Could not check recorded basis",
-  },
+  [brunchTools.queryBasis]: checkingRecordedBasis,
+  [brunchTools.ledgerQueryBasis]: checkingRecordedBasis,
   [brunchTools.ping]: {
-    pending: "Checking connection to the AI assistant",
+    pending: "Check connection to the AI assistant",
     success: "Checked connection to the AI assistant",
     error: "Could not reach the AI assistant",
+  },
+  [brunchTools.hashQueryEntities]: {
+    pending: "Look up entities in HASH",
+    success: "Looked up entities in HASH",
+    error: "Could not look up entities in HASH",
+  },
+  [brunchTools.hashQueryEntityTypes]: {
+    pending: "Look up entity types in HASH",
+    success: "Looked up entity types in HASH",
+    error: "Could not look up entity types in HASH",
+  },
+  [brunchTools.hashQueryWebs]: {
+    pending: "List your HASH webs",
+    success: "Listed your HASH webs",
+    error: "Could not list your HASH webs",
+  },
+  [brunchTools.appSaveNet]: {
+    pending: "Save the net",
+    success: "Saved the net",
+    error: "Could not save the net",
   },
 } satisfies Record<VisibleOrdinaryBrunchToolName, LifecycleTitles>;
 
@@ -150,6 +186,31 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
         tone: "neutral",
         items: [context.output.message],
       };
+    }
+
+    if (toolName === brunchTools.appSaveNet) {
+      // A save the page refused, or the person declined, saved nothing; one
+      // whose result never came back may or may not have saved. The browser
+      // reports `status`, and the history stores `hashSaveForModel`'s
+      // `{ saved: false, reason }` or `{ saved: false, error, note }`.
+      const status = stringProperty(context.output, "status");
+      const notSaved = asRecord(context.output)?.saved === false;
+      const reason = stringProperty(context.output, "reason");
+      const error = stringProperty(context.output, "error");
+      if (status === "not-started" || (notSaved && reason !== undefined)) {
+        return {
+          title: "Did not save the net",
+          detail: reason,
+          tone: "neutral",
+        };
+      }
+      if (status === "unconfirmed" || (notSaved && error !== undefined)) {
+        return {
+          title: "Could not confirm the save",
+          detail: error,
+          tone: "danger",
+        };
+      }
     }
 
     if (toolName === brunchTools.task) {

@@ -39,6 +39,7 @@ use uuid::Uuid;
 
 use super::{echo_caller, response_json};
 use crate::rest::{
+    cors::CorsConfig,
     credentials::{API_TOKEN, Actor, AdmitsAnonymous, Credentials, MaybeActor},
     middleware::Middleware,
     openapi,
@@ -192,6 +193,7 @@ fn caller_router<C: Credentials>(
         service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&meter)),
         rate_limiters: RateLimiters::start(&config, &meter),
+        cors: CorsConfig::default(),
     };
     (
         middleware.assemble(Router::new(), [api], Router::new()),

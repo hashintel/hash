@@ -1,10 +1,13 @@
 use core::str::FromStr as _;
-use std::{collections::HashSet, sync::LazyLock};
+use std::sync::LazyLock;
 
 use thiserror::Error;
 
 use super::{ClosedDataType, DataType, DataTypeReference};
-use crate::{Valid, Validator, ontology::VersionedUrl};
+use crate::{
+    Valid, Validator,
+    ontology::{VersionedUrl, json_schema::ValueConstraints},
+};
 
 /// Errors that can occur when validating a [`DataType`].
 ///
@@ -19,12 +22,11 @@ pub enum ValidateDataTypeError {
     #[error("A data type requires a parent specified in `allOf`")]
     MissingParent,
 
-    /// Only primitive data types can inherit from the `value` data type.
+    /// A concrete data type must state its `type`.
     ///
-    /// The primitive data types are: null, boolean, number, text, list, and object.
-    /// Custom data types should inherit from one of these primitives, not directly from `value`.
-    #[error("Only primitive data types can inherit from the value data type")]
-    NonPrimitiveValueInheritance,
+    /// Only an abstract data type can allow values of more than one type through `anyOf`.
+    #[error("A concrete data type requires a `type`")]
+    MissingType,
 }
 
 /// Validator for data type definitions.
@@ -33,8 +35,8 @@ pub enum ValidateDataTypeError {
 ///
 /// 1. Verifying proper inheritance - all data types (except the base 'value' type) must have at
 ///    least one parent type specified in `allOf`
-/// 2. Enforcing inheritance rules - only primitive data types can inherit directly from the 'value'
-///    data type
+/// 2. Requiring a `type` - every concrete data type (except the base 'value' type) must state its
+///    `type`
 ///
 /// # Examples
 ///
@@ -75,39 +77,13 @@ pub struct DataTypeValidator;
 /// Reference to the base value data type in the Block Protocol.
 ///
 /// This is the root data type from which all other data types inherit.
-static VALUE_DATA_TYPE_ID: LazyLock<DataTypeReference> = LazyLock::new(|| DataTypeReference {
-    url: VersionedUrl::from_str(
-        "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
-    )
-    .expect("should contain a valid URL"),
-});
-
-/// Set of primitive data type IDs in the Block Protocol.
-///
-/// These are the fundamental data types that can directly inherit from the value data type.
-/// All custom data types should inherit from one of these primitive types.
-static PRIMITIVE_DATA_TYPE_IDS: LazyLock<HashSet<VersionedUrl>> = LazyLock::new(|| {
-    HashSet::from([
-        VersionedUrl::from_str("https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1")
-            .expect("should contain a valid URL"),
-        VersionedUrl::from_str(
-            "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+pub(crate) static VALUE_DATA_TYPE_ID: LazyLock<DataTypeReference> =
+    LazyLock::new(|| DataTypeReference {
+        url: VersionedUrl::from_str(
+            "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
         )
         .expect("should contain a valid URL"),
-        VersionedUrl::from_str(
-            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
-        )
-        .expect("should contain a valid URL"),
-        VersionedUrl::from_str("https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1")
-            .expect("should contain a valid URL"),
-        VersionedUrl::from_str("https://blockprotocol.org/@blockprotocol/types/data-type/list/v/1")
-            .expect("should contain a valid URL"),
-        VersionedUrl::from_str(
-            "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-        )
-        .expect("should contain a valid URL"),
-    ])
-});
+    });
 
 impl Validator<DataType> for DataTypeValidator {
     type Error = ValidateDataTypeError;
@@ -118,15 +94,18 @@ impl Validator<DataType> for DataTypeValidator {
     ///
     /// - [`ValidateDataTypeError::MissingParent`] if the data type doesn't inherit from any parent
     ///   (unless it's the base value data type)
-    /// - [`ValidateDataTypeError::NonPrimitiveValueInheritance`] if a non-primitive data type
-    ///   directly inherits from the value data type
+    /// - [`ValidateDataTypeError::MissingType`] if a concrete data type does not state its `type`
+    ///   (unless it's the base value data type)
     fn validate_ref<'v>(&self, value: &'v DataType) -> Result<&'v Valid<DataType>, Self::Error> {
-        if value.all_of.is_empty() && value.id != VALUE_DATA_TYPE_ID.url {
+        let is_value = value.id == VALUE_DATA_TYPE_ID.url;
+
+        if value.all_of.is_empty() && !is_value {
             Err(ValidateDataTypeError::MissingParent)
-        } else if value.all_of.contains(&*VALUE_DATA_TYPE_ID)
-            && !PRIMITIVE_DATA_TYPE_IDS.contains(&value.id)
+        } else if !value.r#abstract
+            && !is_value
+            && matches!(value.constraints, ValueConstraints::AnyOf(_))
         {
-            Err(ValidateDataTypeError::NonPrimitiveValueInheritance)
+            Err(ValidateDataTypeError::MissingType)
         } else {
             // Unsatisfiable constraints will automatically be checked when attempting to close the
             // schema so it's not needed to check constraints here.
@@ -144,5 +123,40 @@ impl Validator<ClosedDataType> for DataTypeValidator {
     ) -> Result<&'v Valid<ClosedDataType>, Self::Error> {
         // Closed data types are validated on creation during the resolution process
         Ok(Valid::new_ref_unchecked(value))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::assert_matches;
+
+    use serde_json::json;
+
+    use super::{DataType, DataTypeValidator, ValidateDataTypeError};
+    use crate::utils::tests::{JsonEqualityCheck, ensure_failed_validation};
+
+    #[tokio::test]
+    async fn concrete_any_of() {
+        assert_matches!(
+            ensure_failed_validation::<DataType, _>(
+                json!({
+                  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                  "kind": "dataType",
+                  "$id": "https://example.com/data-type/web-color/v/1",
+                  "title": "Web Color",
+                  "description": "A color as used on the web.",
+                  "allOf": [{ "$ref": "https://example.com/data-type/color/v/1" }],
+                  "abstract": false,
+                  "anyOf": [
+                    { "type": "array" },
+                    { "type": "string" },
+                  ],
+                }),
+                DataTypeValidator,
+                JsonEqualityCheck::Yes
+            )
+            .await,
+            ValidateDataTypeError::MissingType
+        );
     }
 }

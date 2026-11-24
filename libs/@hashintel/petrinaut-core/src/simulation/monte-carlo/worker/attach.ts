@@ -21,6 +21,10 @@ import type {
   MonteCarloUserDefinedMetric,
   MonteCarloUserDefinedMetricFrame,
 } from "../metrics";
+import type {
+  MonteCarloRunDriverFactory,
+  MonteCarloSimulatorSelection,
+} from "../run-driver";
 import type { MonteCarloAdvanceResult, MonteCarloSimulator } from "../types";
 import type {
   MonteCarloInitMessage,
@@ -37,11 +41,23 @@ const DEFAULT_BATCH_SIZE = 4;
  * Handles `init`/`start`/`cancel`, and streams `progress` and `metricFrames`
  * until `complete`.
  */
+export type AttachMonteCarloWorkerOptions = {
+  /**
+   * Builds the run drivers of a simulator other than the fixed-step engine.
+   * Without it the worker hosts that engine alone, and refuses an
+   * experiment that names another simulator.
+   */
+  createRunDriver?: (
+    selection: MonteCarloSimulatorSelection,
+  ) => MonteCarloRunDriverFactory;
+};
+
 export function attachMonteCarloWorker(
   runtime: WorkerThreadRuntime<
     MonteCarloToWorkerMessage,
     MonteCarloToMainMessage
   >,
+  options: AttachMonteCarloWorkerOptions = {},
 ): void {
   let simulator: MonteCarloSimulator | null = null;
   let userMetrics: MonteCarloUserDefinedMetric[] = [];
@@ -172,7 +188,16 @@ export function attachMonteCarloWorker(
           ),
         ).map((metricConfig) => createMonteCarloUserDefinedMetric(metricConfig))
       : [];
+    const selection = message.simulator;
+    if (selection && !options.createRunDriver) {
+      throw new Error(
+        `Simulator "${selection.id}" is not hosted by this Monte Carlo worker`,
+      );
+    }
     simulator = createMonteCarloSimulator({
+      ...(selection && options.createRunDriver
+        ? { createRunDriver: options.createRunDriver(selection) }
+        : {}),
       sdcpn: message.sdcpn,
       extensions: message.extensions,
       initialMarking: message.initialMarking,

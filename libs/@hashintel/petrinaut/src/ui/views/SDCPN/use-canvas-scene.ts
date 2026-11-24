@@ -6,11 +6,13 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { ActiveNetContext } from "../../../react/state/active-net-context";
+import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
+import { fusionStatuses } from "./fusion-links";
 import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
 
 /**
@@ -21,14 +23,18 @@ import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
 export const useCanvasScene = (
   canvasRef: React.RefObject<HTMLElement | null>,
 ): CanvasScene => {
-  const { activeNet } = use(ActiveNetContext);
+  const { activeNet, activeComponentId } = use(ActiveNetContext);
   const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { libraries } = use(CompositionContext);
   const {
     draggingStateByNodeId,
     isSelected,
     selection,
     hoveredItem,
-    pinnedVisualizerPlaceIds,
+    keptOpenVisualizerPlaceIds,
+    openVisualizerPlaceId,
+    focusedVisualizerPlaceId,
+    unfoldedComponentInstanceIds,
   } = use(EditorContext);
   const { compactNodes, highlightOnHover } = use(UserSettingsContext);
 
@@ -55,13 +61,21 @@ export const useCanvasScene = (
     setSettledHoverId(nextHoverId);
   }
 
-  // Indexed on the net alone, so the compiler holds it across the renders a
-  // hover causes and only rebuilds it when the net itself changes.
+  // Indexed and checked on the net alone, so the compiler holds both across
+  // the renders a hover causes and only redoes them when the net changes.
   const adjacency = buildNetAdjacency(activeNet);
+  const statuses = fusionStatuses(
+    petriNetDefinition,
+    activeNet,
+    activeComponentId,
+    libraries,
+  );
 
   return buildCanvasScene({
     net: activeNet,
     sdcpn: petriNetDefinition,
+    libraries,
+    fusionStatuses: statuses,
     extensions,
     dimensions: compactNodes ? compactNodeDimensions : classicNodeDimensions,
     draggingStateByNodeId,
@@ -74,6 +88,12 @@ export const useCanvasScene = (
       hoveredId: highlightOnHover ? settledHoverId : null,
       selectedIds: new Set(selection.keys()),
     }),
-    pinnedVisualizerIds: pinnedVisualizerPlaceIds,
+    keptOpenVisualizerIds: keptOpenVisualizerPlaceIds,
+    activeVisualizerIds: new Set(
+      [hoveredId, openVisualizerPlaceId, focusedVisualizerPlaceId].filter(
+        (id) => id !== null,
+      ),
+    ),
+    unfoldedInstanceIds: unfoldedComponentInstanceIds,
   });
 };

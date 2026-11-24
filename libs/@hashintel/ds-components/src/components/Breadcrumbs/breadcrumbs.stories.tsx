@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 
+import { ResizeExample } from "../../../docs/blocks/resize-example";
 import { formInputSizes, type FormInputSize } from "../../util/form-shared";
 import { Button } from "../Button/button";
 import { BreadCrumbs } from "./breadcrumbs";
@@ -114,17 +115,6 @@ const label = css({
   fontSize: "[12px]",
   fontFamily: "[sans-serif]",
   color: "[#666]",
-});
-
-const resizable = css({
-  resize: "horizontal",
-  overflow: "auto",
-  border: "[1px dashed #ccc]",
-  borderRadius: "[6px]",
-  padding: "[12px]",
-  width: "[520px]",
-  minWidth: "[70px]",
-  maxWidth: "[100%]",
 });
 
 type Args = { size: FormInputSize; maxItems: number };
@@ -258,14 +248,14 @@ export const Default: Story = {
       </Example>
 
       <Example title="Overflow on resize (drag the handle → — “Workspace” never collapses)">
-        <div className={resizable}>
+        <ResizeExample width={520} minWidth={70}>
           <Trail
             {...args}
             withNoCollapse
             withCustomItems
             aria-label="Breadcrumb (resizable)"
           />
-        </div>
+        </ResizeExample>
       </Example>
     </div>
   ),

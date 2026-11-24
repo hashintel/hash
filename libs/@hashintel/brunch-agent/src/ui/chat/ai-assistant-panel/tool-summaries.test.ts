@@ -14,7 +14,6 @@ const definition: SDCPN = canonicalizePetrinautIds({
   places: [
     {
       colorId: null,
-      differentialEquationId: null,
       dynamicsEnabled: false,
       id: "place__buffer",
       name: "Buffer",
@@ -82,6 +81,38 @@ describe("summarizePetrinautAiToolCall", () => {
     ).toMatchObject({
       detail: "Previous name: Buffer",
       title: "Updated place Queue",
+    });
+  });
+
+  test("names the requested action when asked for action wording", () => {
+    const removal = {
+      input: { placeId: "place__buffer" },
+      toolName: "removePlace",
+    } as const;
+    expect(
+      summarizePetrinautAiToolCall(removal, { definition, wording: "action" })
+        .title,
+    ).toBe("Remove place Buffer");
+    expect(summarizePetrinautAiToolCall(removal, { definition }).title).toBe(
+      "Removed place Buffer",
+    );
+    expect(
+      summarizePetrinautAiToolCall(
+        {
+          input: {
+            arcDirection: "input",
+            placeId: "place__buffer",
+            transitionId: "transition__ship",
+            type: "read",
+            weight: 1,
+          },
+          toolName: "addArc",
+        },
+        { definition, wording: "action" },
+      ),
+    ).toMatchObject({
+      detail: "Buffer <-> Ship",
+      title: "Add read input arc",
     });
   });
 

@@ -220,10 +220,10 @@ motion preferences.
 
 `effect` accepts `action`, `bounce`, `pulse`, `rotate`, or `draw`, or an array that combines
 effects. `action` plays the icon's authored response: clocks rewind, parameters
-scrub, and subnet cubes make a quarter-turn. Interactive controls play this response
+scrub, and component cubes make a quarter-turn. Interactive controls play this response
 on click when no explicit effect is supplied. Use `interaction="none"` to opt out.
 `draw` is supported by Add Place, Add Transition, history/reset, parameters, the
-subnet cube, and all modeling studies. The add frame and corner badge draw in order,
+component cube, and all modeling studies. The add frame and corner badge draw in order,
 and filled add frames use a reveal mask.
 `getPetriconEffects(name)` lists the effects supported by an icon.
 Unsupported effects leave the artwork unchanged.
@@ -237,7 +237,7 @@ The Modeling studies compare three alternatives each for differential equations
 (`differentialEquation`, `equationCurve`, `equationFlow`), parameters (`parameter`,
 `parameterDial`, `parameterRange`), variables (`variable`, `variableBrackets`,
 `variableRegister`), token types (`tokenType`, `tokenTypeStack`, `tokenTypeTag`),
-and subnets (`cube`, `subnetNetwork`, `subnetLayers`). The website and Storybook's
+and components (`cube`, `subnetNetwork`, `subnetLayers`). The website and Storybook's
 Modeling Studies story expose both their action and drawing effects.
 
 Interactive icons give small hover hints: arrows move in their direction, the

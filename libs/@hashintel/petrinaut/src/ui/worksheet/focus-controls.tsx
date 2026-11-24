@@ -6,14 +6,22 @@ import { focusForward, focusLands } from "./focus-flow";
 import { FocusRoot } from "./focus-stack";
 import { useFocusMember } from "./use-focus-member";
 
-import type { FocusAxis, FocusDirection } from "./focus-flow";
+import type { FocusAxis, FocusDirection, FocusFold } from "./focus-flow";
 
 const contentsStyle = css({ display: "contents" });
 
-export const FocusControls: React.FC<{
-  children: React.ReactNode;
-  axis?: FocusAxis;
-}> = ({ children, axis = "vertical" }) => {
+/**
+ * Ordinary controls as one member of the enclosing stack: the arrows along
+ * `axis` walk them, and the others leave the group. With `expand` or
+ * `collapse` the group folds from its first control, as a row of a stop
+ * table does: see `FocusFold`.
+ */
+export const FocusControls: React.FC<
+  {
+    children: React.ReactNode;
+    axis?: FocusAxis;
+  } & FocusFold
+> = ({ children, axis = "vertical", expand, collapse }) => {
   const [root, setRoot] = useState<HTMLDivElement | null>(null);
   const remembered = useRef<HTMLElement | null>(null);
   const controls = () =>
@@ -97,6 +105,18 @@ export const FocusControls: React.FC<{
           }
         }
         const candidates = controls();
+        const fold =
+          direction === "right"
+            ? expand
+            : direction === "left"
+              ? collapse
+              : undefined;
+        if (fold && candidates[0] === target) {
+          event.preventDefault();
+          event.stopPropagation();
+          fold();
+          return;
+        }
         const index = candidates.indexOf(target);
         if (index < 0) {
           if (remembered.current === target && member.moveFrom(direction)) {

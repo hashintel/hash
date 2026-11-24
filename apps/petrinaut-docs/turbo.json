@@ -9,9 +9,10 @@
     // `archinaut` reads the annotations in the packages the config covers;
     // `manifest` carries their sources into the hash. Not cached: with
     // ARCHINAUT_DIFF_BASE the build annotates the difference to a git ref whose
-    // content the hash cannot see.
+    // content the hash cannot see. The site's deck chrome imports
+    // `@hashintel/ds-icons`, which ships built.
     "build": {
-      "dependsOn": ["manifest"],
+      "dependsOn": ["manifest", "@hashintel/ds-icons#build"],
       "cache": false,
       "outputs": ["dist/**"],
       "env": [
@@ -50,6 +51,7 @@
       "cache": false
     },
     "dev": {
+      "dependsOn": ["@hashintel/ds-icons#build"],
       "cache": false,
       "persistent": true,
       "env": ["PORT"]

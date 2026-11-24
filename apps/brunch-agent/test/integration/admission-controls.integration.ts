@@ -37,6 +37,7 @@ if (process.env.A2_OUTPUT_DIRECTORY !== undefined) {
   mkdirSync(directory, { recursive: true });
 }
 process.env.BRUNCH_DEV_DB_PATH = join(directory, "conversation.db");
+process.env.BRUNCH_CHAT_MODEL = "openai/gpt-5.5-2026-04-23";
 const save = (name: string, value: unknown) =>
   writeFileSync(join(directory, name), `${JSON.stringify(value, null, 2)}\n`);
 const timeline: unknown[] = [];
@@ -108,7 +109,7 @@ const run = async () => {
   const application = await loadBuiltBrunchApplication();
   const clientFor = () => {
     const identity = {
-      ownerKey: "admission-synthetic",
+      actorKey: "admission-synthetic",
       conversationId: `${crypto.randomUUID()}-${caseId}`,
     };
     const initialData = {
@@ -192,6 +193,47 @@ const run = async () => {
         attempt,
         history: await conversation.client.history(),
         providerCalls: requests.length - requestStart,
+      });
+    }
+    const outputLimits = [];
+    for (const [limitCase, content] of [
+      ["length-with-text", () => [fauxText("The account is partly")]],
+      ["length-without-text", () => []],
+      // The limit cuts the response off while it writes a server tool call.
+      [
+        "length-mid-tool-call",
+        () => [
+          fauxText("Recording the account"),
+          makeCall(brunchTools.ledgerCommit),
+        ],
+      ],
+    ] as const) {
+      caseId = limitCase;
+      const limited = clientFor();
+      faux.setResponses([
+        fauxAssistantMessage(content(), { stopReason: "length" }),
+      ]);
+      const attempt = await limited.send({
+        kind: "user",
+        body: "Synthetic output-limit probe; no plant facts.",
+      });
+      const failedHistory = await limited.client.history();
+      // The conversation still takes the next message.
+      const followUpRequest = requests.length;
+      faux.setResponses([
+        fauxAssistantMessage([fauxText("Timing remains unknown.")]),
+      ]);
+      const followUp = await limited.send({
+        kind: "user",
+        body: "Synthetic follow-up; no plant facts.",
+      });
+      outputLimits.push({
+        caseId,
+        attempt,
+        history: failedHistory,
+        followUp,
+        followUpContext: requests[followUpRequest],
+        followUpHistory: await limited.client.history(),
       });
     }
     caseId = brunchTools.ledgerCommit;
@@ -326,6 +368,7 @@ const run = async () => {
     }
     return {
       observations,
+      outputLimits,
       refusals,
       buffering,
       question,

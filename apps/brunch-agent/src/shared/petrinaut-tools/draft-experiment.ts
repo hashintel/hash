@@ -8,7 +8,7 @@ import {
 import {
   browserResultEnvelope,
   type BrowserToolExecutor,
-} from "./petrinaut-construction.ts";
+} from "../conversation/browser-tool-executor.ts";
 
 /**
  * Drafts one experiment for this conversation. The server resolves the

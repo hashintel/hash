@@ -27,7 +27,7 @@ import {
 } from "./shared/net-elements.js";
 
 import type { SubnetMetadata } from "../flow-net-metadata.js";
-import type { ArcEndpoint, Color, Subnet } from "@hashintel/petrinaut-core";
+import type { ArcEndpoint, Color, Component } from "@hashintel/petrinaut-core";
 import type {
   ActionDefinition,
   FlowActionDefinitionId,
@@ -90,7 +90,7 @@ export const generateActionSubnet = async (
   actionDefinition: ActionDefinition<FlowActionDefinitionId>,
   resolvedKinds: ResolvedKinds = {},
   { layout = true }: { layout?: boolean } = {},
-): Promise<Subnet> => {
+): Promise<Component> => {
   const { actionDefinitionId, name, description, inputs, outputs } =
     actionDefinition;
 

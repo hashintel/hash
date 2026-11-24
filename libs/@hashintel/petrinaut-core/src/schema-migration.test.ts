@@ -18,7 +18,6 @@ const makePlace = (id: string, colorId: string | null): Place => ({
   name: `Place${id.replaceAll(/[^a-zA-Z0-9]/g, "")}`,
   colorId,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 });
@@ -41,9 +40,9 @@ const makeBaseSDCPN = (): SDCPN => ({
   ],
   differentialEquations: [],
   parameters: [],
-  subnets: [
+  components: [
     {
-      id: "subnet-1",
+      id: "component-1",
       name: "Inner",
       places: [makePlace("place-sub", "type-1")],
       transitions: [],
@@ -166,7 +165,7 @@ describe("migrateScenarioRowsForTypeEdit", () => {
 });
 
 describe("scenario row migration through actions", () => {
-  test("addTypeElement appends default cells to root and subnet place rows", () => {
+  test("addTypeElement appends default cells to root and component place rows", () => {
     const instance = createInstance();
 
     instance.mutations.addTypeElement({

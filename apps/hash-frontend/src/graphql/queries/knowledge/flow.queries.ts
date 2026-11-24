@@ -16,6 +16,33 @@ export const startFlowMutation = gql`
   }
 `;
 
+export const getFlowDefinitionRunsQuery = gql`
+  query getFlowDefinitionRuns(
+    $flowDefinitionEntityId: EntityId!
+    $cursor: String
+    $limit: Int
+  ) {
+    getFlowRuns(
+      flowDefinitionEntityIds: [$flowDefinitionEntityId]
+      cursor: $cursor
+      limit: $limit
+    ) {
+      nextCursor
+      totalCount
+      flowRuns {
+        flowRunEntityId
+        flowScheduleId
+        webId
+        status
+        startedAt
+        closedAt
+        updatedAt
+        openInputRequests
+      }
+    }
+  }
+`;
+
 export const getFlowRunProgressQuery = gql`
   query getFlowRunProgress($flowRunEntityId: EntityId!, $after: String) {
     getFlowRunById(flowRunEntityId: $flowRunEntityId) {
@@ -60,6 +87,15 @@ export const cancelFlowMutation = gql`
 export const createFlowScheduleMutation = gql`
   mutation createFlowSchedule($input: CreateFlowScheduleInput!) {
     createFlowSchedule(input: $input)
+  }
+`;
+
+export const updateFlowScheduleMutation = gql`
+  mutation updateFlowSchedule(
+    $scheduleEntityId: EntityId!
+    $input: UpdateFlowScheduleInput!
+  ) {
+    updateFlowSchedule(scheduleEntityId: $scheduleEntityId, input: $input)
   }
 `;
 

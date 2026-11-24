@@ -15,6 +15,7 @@ import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
+import { resolveBrunchToolPresentation } from "../../tools/brunch-tool-presentation";
 import { definePetrinautAiInteractiveTool } from "../ai-interactive-tool";
 import {
   createTestEditorApi,
@@ -76,7 +77,7 @@ const expandWork = async () => {
     );
   }
   for (const tools of screen.queryAllByRole("button", {
-    name: /^Used \d+ tools?/u,
+    name: /^(?:Used|Stopped after) \d+ tools?/u,
   })) {
     if (tools.getAttribute("aria-expanded") === "false") fireEvent.click(tools);
     await waitFor(() =>
@@ -106,7 +107,6 @@ beforeAll(() => {
 
 afterEach(() => {
   cleanup();
-  vi.clearAllMocks();
   vi.useRealTimers();
   if (initialClipboardDescriptor === undefined) {
     Reflect.deleteProperty(navigator, "clipboard");
@@ -195,7 +195,6 @@ describe("AiAssistantContents", () => {
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
-      presentation: "brunch" as const,
       status: "ready" as const,
       messages: [message],
       additionalTab: { label: "Ledger", content: <p>Ledger stays mounted</p> },
@@ -219,7 +218,6 @@ describe("AiAssistantContents", () => {
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
-      presentation: "brunch" as const,
       status: "ready" as const,
       actionsInputMode: "voice" as const,
       headerActions: <button type="button">Words</button>,
@@ -247,8 +245,8 @@ describe("AiAssistantContents", () => {
     const card = definePetrinautAiInteractiveTool({
       toolName: "draft",
       placement: "card",
-      inputSchema: { parse: (raw: unknown) => raw },
-      outputSchema: { parse: (raw: unknown) => raw },
+      inputParser: { parse: (raw: unknown) => raw },
+      outputParser: { parse: (raw: unknown) => raw },
       component: () => (
         <section aria-label="Drafted experiment">Experiment draft</section>
       ),
@@ -261,7 +259,6 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        presentation="brunch"
         status="ready"
         messages={[
           {
@@ -322,7 +319,6 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        presentation="brunch"
         status="ready"
         messages={[
           {
@@ -346,7 +342,6 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        presentation="brunch"
         status="ready"
         messages={[
           {
@@ -415,7 +410,6 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        presentation="brunch"
         status="ready"
         messages={[
           {
@@ -450,19 +444,18 @@ describe("AiAssistantContents", () => {
     expect(details?.className).not.toContain("ov-y_auto");
   });
 
-  test("marks unfinished stock tools cancelled after a stop", () => {
+  test("marks unfinished tools cancelled after a stop", async () => {
     render(
       <AiAssistantContents
         input=""
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        presentation="stock"
         status="ready"
         stopped
         messages={[
           {
-            id: "stopped-stock-tools",
+            id: "stopped-pending-tools",
             role: "assistant",
             parts: [
               {
@@ -477,6 +470,7 @@ describe("AiAssistantContents", () => {
         ]}
       />,
     );
+    await expandWork();
     const pending = screen.getByRole("button", { name: /check.*Cancelled/u });
     expect(
       pending.querySelector('[data-tool-status="cancelled"]'),
@@ -491,7 +485,6 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        presentation="brunch"
         status="ready"
         stopped
         messages={[
@@ -509,30 +502,62 @@ describe("AiAssistantContents", () => {
     expect(note?.parentElement).toBe(screen.getByTestId("ai-transcript"));
   });
 
-  test.each([
-    ["brunch", "true"],
-    ["stock", null],
-  ] as const)(
-    "sets the compact Stop marker for the %s presentation to %s",
-    (presentation, dataStop) => {
-      render(
-        <AiAssistantContents
-          input=""
-          messages={[]}
-          onInputChange={noop}
-          onStop={noop}
-          onSubmit={noop}
-          presentation={presentation}
-          status="streaming"
-        />,
-      );
-      expect(
-        screen
-          .getByRole("button", { name: "Stop AI response" })
-          .getAttribute("data-stop"),
-      ).toBe(dataStop);
-    },
-  );
+  test("ends the transcript with a no-reply note distinct from Stop", () => {
+    render(
+      <AiAssistantContents
+        input=""
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        noReply
+        messages={[
+          {
+            id: "question",
+            role: "user",
+            parts: [{ type: "text", text: "Read the net" }],
+          },
+          {
+            id: "tool-step",
+            role: "assistant",
+            parts: [
+              { type: "step-start" },
+              {
+                type: "dynamic-tool",
+                toolName: "readNet",
+                toolCallId: "net-read-1",
+                state: "output-available",
+                input: {},
+                output: {},
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    const [note, ...rest] = screen.getAllByText("No reply received");
+    expect(rest).toHaveLength(0);
+    expect(note?.parentElement).toBe(screen.getByTestId("ai-transcript"));
+    expect(screen.queryByText("Response stopped")).toBeNull();
+  });
+
+  test("sets the compact Stop marker while streaming", () => {
+    render(
+      <AiAssistantContents
+        input=""
+        messages={[]}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="streaming"
+      />,
+    );
+    expect(
+      screen
+        .getByRole("button", { name: "Stop AI response" })
+        .getAttribute("data-stop"),
+    ).toBe("true");
+  });
 
   test.each([true, false])(
     "keeps Brunch activity and tools open=%s across streamed steps and completion",
@@ -555,7 +580,6 @@ describe("AiAssistantContents", () => {
       ) => (
         <AiAssistantContents
           primaryLabel="Chat"
-          presentation="brunch"
           input=""
           onInputChange={noop}
           onStop={noop}
@@ -621,7 +645,6 @@ describe("AiAssistantContents", () => {
   test("reveals a new approval after Brunch activity was manually collapsed", async () => {
     const props = {
       primaryLabel: "Chat",
-      presentation: "brunch" as const,
       input: "",
       onInputChange: noop,
       onStop: noop,
@@ -630,8 +653,8 @@ describe("AiAssistantContents", () => {
       interactiveTools: [
         definePetrinautAiInteractiveTool({
           toolName: "confirm",
-          inputSchema: { parse: (value: unknown) => value },
-          outputSchema: { parse: (value: unknown) => value },
+          inputParser: { parse: (value: unknown) => value },
+          outputParser: { parse: (value: unknown) => value },
           component: () => <button type="button">Approve change</button>,
         }),
       ],
@@ -680,13 +703,12 @@ describe("AiAssistantContents", () => {
     expect(screen.getByRole("button", { name: "Approve change" })).toBeTruthy();
   });
 
-  test("opens running tools, then settles stock work while the answer streams", async () => {
+  test("keeps running tools open while the answer streams", async () => {
     const props = {
       input: "",
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
-      presentation: "brunch" as const,
       status: "streaming" as const,
     };
     const tool = {
@@ -759,7 +781,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         inputMode="voice"
-        presentation="brunch"
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -800,7 +821,6 @@ describe("AiAssistantContents", () => {
         onStop={noop}
         onSubmit={noop}
         onRetryPrompt={onRetryPrompt}
-        presentation="brunch"
         status="ready"
         messages={[
           {
@@ -852,7 +872,6 @@ describe("AiAssistantContents", () => {
         onStop={noop}
         onSubmit={noop}
         onRetryPrompt={vi.fn()}
-        presentation="brunch"
         status="streaming"
         messages={[
           {
@@ -908,70 +927,222 @@ describe("AiAssistantContents", () => {
       />,
     );
     const transcript = screen.getByRole("tabpanel", { name: "AI" });
-    const composer = screen.getByRole("textbox", {
-      name: "Message AI assistant",
-    });
     fireEvent.click(screen.getByRole("tab", { name: "Workpiece" }));
     expect(transcript.hidden).toBe(true);
     expect(
       screen.getByRole("tabpanel", { name: "Workpiece" }).textContent,
     ).toContain("Saved account");
-    expect(screen.getByRole("textbox", { name: "Message AI assistant" })).toBe(
-      composer,
-    );
-    expect((composer as HTMLTextAreaElement).value).toBe("Unsent question");
+    expect(
+      screen.queryByRole("textbox", { name: "Message AI assistant" }),
+    ).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
     expect(onStop).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole("tab", { name: "AI" }));
     expect(screen.getByRole("tabpanel", { name: "AI" })).toBe(transcript);
+    expect(
+      screen.getByRole<HTMLTextAreaElement>("textbox", {
+        name: "Message AI assistant",
+      }).value,
+    ).toBe("Unsent question");
     expect(contentMounted).toHaveBeenCalledOnce();
   });
 
-  test.each(["stock", "brunch"] as const)(
-    "keeps tab names stable and one tab live region mounted across announcements in the %s presentation",
-    (presentation) => {
-      const props = {
-        additionalTab: { label: "Ledger", content: <p>Saved account</p> },
-        hostAttentionCount: 2,
-        input: "",
-        messages: [],
-        onInputChange: noop,
-        onStop: noop,
-        onSubmit: noop,
-        primaryAttention: true,
-        primaryLabel: "Chat",
-        presentation,
-        status: "ready" as const,
-      };
-      const { rerender } = render(
-        <AiAssistantContents
-          {...props}
-          attentionAnnouncement="2 unseen Ledger updates"
-        />,
-      );
+  test("keeps composer, quick actions and Voice launch off a custom review tab", () => {
+    render(
+      <AiAssistantContents
+        additionalTab={{ label: "Workpiece", content: <p>Saved account</p> }}
+        hostTabSelected
+        input=""
+        messages={[]}
+        onInputChange={noop}
+        onInputModeChange={noop}
+        onSendPrompt={noop}
+        onStop={noop}
+        onSubmit={noop}
+        promptChips={[{ id: "review", label: "Review", prompt: "Review" }]}
+        status="ready"
+        voiceModeAvailable
+      />,
+    );
+    expect(screen.getByRole("tabpanel", { name: "Workpiece" })).not.toBeNull();
+    expect(
+      screen.queryByRole("textbox", { name: "Message AI assistant" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Dismiss quick actions" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Start voice mode" }),
+    ).toBeNull();
+  });
 
-      expect(screen.getByRole("tab", { name: "Chat" })).not.toBeNull();
-      expect(screen.getByRole("tab", { name: "Ledger" })).not.toBeNull();
-      const tabHeader = within(screen.getByRole("tablist").parentElement!);
-      expect(tabHeader.getAllByRole("status")).toHaveLength(1);
-      expect(tabHeader.getByRole("status").textContent).toBe(
-        "2 unseen Ledger updates",
-      );
+  test("leaves composing and Voice launch to Chat while the host tab reviews", () => {
+    const onInputModeChange = vi.fn();
+    const onSendPrompt = vi.fn();
+    const onStop = vi.fn();
+    const onSubmit = vi.fn();
+    const props = {
+      additionalTab: { label: "Ledger", content: <p>Ledger body</p> },
+      composerControl: (
+        <button type="button" aria-label="Send Ledger comments">
+          Send
+        </button>
+      ),
+      composerStatus: <span>Budget pill</span>,
+      input: "",
+      messages: [] as PetrinautAiMessage[],
+      onInputChange: noop,
+      onInputModeChange,
+      onSendPrompt,
+      onStop,
+      onSubmit,
+      primaryLabel: "Chat",
+      promptChips: [{ id: "review", label: "Review", prompt: "Review" }],
+      status: "ready" as const,
+      voiceModeAvailable: true,
+    };
+    const view = render(<AiAssistantContents {...props} />);
+    expect(
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+    ).not.toBeNull();
+    expect(screen.getByRole("button", { name: /Review/u })).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Start voice mode" }),
+    ).not.toBeNull();
 
-      rerender(<AiAssistantContents {...props} attentionAnnouncement="" />);
-      expect(tabHeader.getAllByRole("status")).toHaveLength(1);
-      expect(tabHeader.getByRole("status").textContent).toBe("");
-      rerender(
+    const chatTab = screen.getByRole("tab", { name: "Chat" });
+    chatTab.focus();
+    fireEvent.keyDown(chatTab, { key: "ArrowRight" });
+    const ledgerTab = screen.getByRole("tab", { name: "Ledger" });
+    expect(ledgerTab.getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(ledgerTab);
+    expect(
+      screen.queryByRole("textbox", { name: "Message AI assistant" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /Review/u })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Dismiss quick actions" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Start voice mode" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Stop AI response" }),
+    ).toBeNull();
+    // The host's explicit controls stay on the review tab.
+    expect(screen.getByText("Budget pill")).not.toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Send Ledger comments" }),
+    );
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    view.rerender(<AiAssistantContents {...props} status="submitted" />);
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+    expect(onStop).toHaveBeenCalledOnce();
+    expect(
+      screen.queryByRole("textbox", { name: "Message AI assistant" }),
+    ).toBeNull();
+
+    // A focus request on the review tab lands on the panel, not a hidden field.
+    view.rerender(
+      <AiAssistantContents
+        {...props}
+        status="submitted"
+        composerFocusRequest={1}
+      />,
+    );
+    expect(document.activeElement).toBe(
+      screen.getByRole("complementary", { name: "AI assistant" }),
+    );
+
+    fireEvent.keyDown(ledgerTab, { key: "ArrowLeft" });
+    expect(chatTab.getAttribute("aria-selected")).toBe("true");
+    expect(
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+    ).not.toBeNull();
+    expect(onInputModeChange).not.toHaveBeenCalled();
+    expect(onSendPrompt).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(onStop).toHaveBeenCalledOnce();
+  });
+
+  test("keeps an active Voice session's controls and Stop on the host tab", () => {
+    const store = createVoiceSessionStore();
+    const end = vi.fn();
+    const onStop = vi.fn();
+    store.setActions({ end, pause: noop });
+    store.setState({
+      errorMessage: null,
+      microphoneLevel: 0,
+      microphoneMuted: false,
+      phase: "thinking",
+    });
+    render(
+      <VoiceSessionContext.Provider value={store}>
         <AiAssistantContents
-          {...props}
-          attentionAnnouncement="2 unseen Ledger updates"
-        />,
-      );
-      expect(tabHeader.getByRole("status").textContent).toBe(
-        "2 unseen Ledger updates",
-      );
-    },
-  );
+          additionalTab={{ label: "Ledger", content: <p>Ledger body</p> }}
+          composerControl={<span>Ledger comments</span>}
+          hostTabSelected
+          input=""
+          inputMode="voice"
+          messages={[]}
+          onInputChange={noop}
+          onStop={onStop}
+          onSubmit={noop}
+          status="streaming"
+        />
+      </VoiceSessionContext.Provider>,
+    );
+
+    expect(screen.getByRole("tabpanel", { name: "Ledger" })).not.toBeNull();
+    expect(screen.getByText("Ledger comments")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+    expect(onStop).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "End voice mode" }));
+    expect(end).toHaveBeenCalledOnce();
+  });
+
+  test("keeps tab names stable and one tab live region mounted across announcements", () => {
+    const props = {
+      additionalTab: { label: "Ledger", content: <p>Saved account</p> },
+      hostAttentionCount: 2,
+      input: "",
+      messages: [],
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      primaryAttention: true,
+      primaryLabel: "Chat",
+      status: "ready" as const,
+    };
+    const { rerender } = render(
+      <AiAssistantContents
+        {...props}
+        attentionAnnouncement="2 unseen Ledger updates"
+      />,
+    );
+
+    expect(screen.getByRole("tab", { name: "Chat" })).not.toBeNull();
+    expect(screen.getByRole("tab", { name: "Ledger" })).not.toBeNull();
+    const tabHeader = within(screen.getByRole("tablist").parentElement!);
+    expect(tabHeader.getAllByRole("status")).toHaveLength(1);
+    expect(tabHeader.getByRole("status").textContent).toBe(
+      "2 unseen Ledger updates",
+    );
+
+    rerender(<AiAssistantContents {...props} attentionAnnouncement="" />);
+    expect(tabHeader.getAllByRole("status")).toHaveLength(1);
+    expect(tabHeader.getByRole("status").textContent).toBe("");
+    rerender(
+      <AiAssistantContents
+        {...props}
+        attentionAnnouncement="2 unseen Ledger updates"
+      />,
+    );
+    expect(tabHeader.getByRole("status").textContent).toBe(
+      "2 unseen Ledger updates",
+    );
+  });
 
   test("returns to chat when the host withdraws its additional tab", () => {
     const props = {
@@ -1120,10 +1291,11 @@ describe("AiAssistantContents", () => {
     expect(workpiece.textContent).toContain("Saved model account");
     expect(transcript.hidden).toBe(true);
     fireEvent.click(screen.getByRole("tab", { name: "AI" }));
-    expect(screen.getByRole("textbox", { name: "Message AI assistant" })).toBe(
-      textarea,
-    );
-    expect((textarea as HTMLTextAreaElement).value).toBe("Keep this draft");
+    expect(
+      screen.getByRole<HTMLTextAreaElement>("textbox", {
+        name: "Message AI assistant",
+      }).value,
+    ).toBe("Keep this draft");
     expect(screen.getByTestId("ai-transcript")).toBe(transcript);
     expect(screen.getByText("The infection rate")).not.toBeNull();
     expect(mount).toHaveBeenCalledTimes(1);
@@ -1140,7 +1312,6 @@ describe("AiAssistantContents", () => {
           input=""
           status="ready"
           stopped={false}
-          presentation="brunch"
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
@@ -1302,7 +1473,6 @@ describe("AiAssistantContents", () => {
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
-          presentation="brunch"
           status="ready"
           voiceMode={<div>Host Voice controls</div>}
         />
@@ -1921,7 +2091,6 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        presentation="brunch"
         status="ready"
         voiceMode={<VoiceLevel />}
       />,
@@ -1952,7 +2121,6 @@ describe("AiAssistantContents", () => {
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
-          presentation="brunch"
           status="ready"
         />,
       );
@@ -1988,7 +2156,6 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        presentation="brunch"
         status="streaming"
       />,
     );
@@ -2022,7 +2189,6 @@ describe("AiAssistantContents", () => {
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
-          presentation="brunch"
           status="ready"
         />,
       );
@@ -2073,7 +2239,7 @@ describe("AiAssistantContents", () => {
     ).toBe(true);
   });
 
-  test("keeps one AI header, transcript, and composer visible in Voice mode", () => {
+  test("keeps one Voice header, transcript, and composer visible in Voice mode", () => {
     const onInputModeChange = vi.fn();
     render(
       <AiAssistantContents
@@ -2096,7 +2262,7 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    expect(screen.getByText("AI")).not.toBeNull();
+    expect(screen.getByText("Voice")).not.toBeNull();
     expect(screen.getByText("Existing transcript")).not.toBeNull();
     expect(screen.getByText("Voice mode stage")).not.toBeNull();
     expect(
@@ -2118,7 +2284,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         inputMode={inputMode}
-        presentation="brunch"
         messages={[
           {
             id: "voice-user",
@@ -2170,7 +2335,6 @@ describe("AiAssistantContents", () => {
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
-      presentation: "brunch" as const,
       status: "ready" as const,
     };
     const message = (text: string): PetrinautAiMessage[] => [
@@ -2202,10 +2366,10 @@ describe("AiAssistantContents", () => {
   test("retains spoken tool answers without per-message voice markers", () => {
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       component: ({ submittedOutput, toolCallId }) => (
@@ -2290,7 +2454,7 @@ describe("AiAssistantContents", () => {
     expect(renderMarkdown).toHaveBeenCalledOnce();
   });
 
-  test("renders a host composer control between the textarea and send button", () => {
+  test("renders a host composer control before the textarea and send button", () => {
     render(
       <AiAssistantContents
         composerControl={
@@ -2313,8 +2477,8 @@ describe("AiAssistantContents", () => {
     const control = screen.getByRole("button", { name: "Alternate input" });
     const sendButton = screen.getByRole("button", { name: "Send message" });
 
-    expect(textarea.nextElementSibling?.contains(control)).toBe(true);
-    expect(control.nextElementSibling?.contains(sendButton)).toBe(true);
+    expect(control.nextElementSibling).toBe(textarea);
+    expect(textarea.nextElementSibling?.contains(sendButton)).toBe(true);
   });
 
   test.each([
@@ -2333,7 +2497,6 @@ describe("AiAssistantContents", () => {
           onInputModeChange={noop}
           onStop={noop}
           onSubmit={noop}
-          presentation="brunch"
           status={status}
           voiceModeAvailable
         />,
@@ -2362,7 +2525,6 @@ describe("AiAssistantContents", () => {
         onStop={noop}
         onSubmit={noop}
         primaryLabel="Chat"
-        presentation="brunch"
         status="ready"
         voiceModeAvailable
       />,
@@ -2390,12 +2552,11 @@ describe("AiAssistantContents", () => {
       onStop: noop,
       onSubmit: noop,
       primaryLabel: "Chat",
-      presentation: "brunch" as const,
       interactiveTools: [
         definePetrinautAiInteractiveTool({
           toolName: "confirm",
-          inputSchema: { parse: (value: unknown) => value },
-          outputSchema: { parse: (value: unknown) => value },
+          inputParser: { parse: (value: unknown) => value },
+          outputParser: { parse: (value: unknown) => value },
           component: () => <span>Approval</span>,
         }),
       ],
@@ -2443,8 +2604,8 @@ describe("AiAssistantContents", () => {
           definePetrinautAiInteractiveTool({
             toolName: "confirm",
             placement: "card",
-            inputSchema: { parse: (value: unknown) => value },
-            outputSchema: { parse: (value: unknown) => value },
+            inputParser: { parse: (value: unknown) => value },
+            outputParser: { parse: (value: unknown) => value },
             component: () => <span>Preparing a draft</span>,
           }),
         ]}
@@ -2602,7 +2763,7 @@ describe("AiAssistantContents", () => {
     const onInteractiveToolSubmit = vi.fn();
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => {
           if (
             typeof raw !== "object" ||
@@ -2615,7 +2776,7 @@ describe("AiAssistantContents", () => {
           return raw as { question: string };
         },
       },
-      outputSchema: { parse: parseOutput },
+      outputParser: { parse: parseOutput },
       component: ({ input, state, submit, submittedOutput, toolCallId }) => (
         <div>
           <span>{`${toolCallId}:${input.question}:${state}`}</span>
@@ -2720,8 +2881,8 @@ describe("AiAssistantContents", () => {
     });
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: { parse: parseInput },
-      outputSchema: { parse: (raw: unknown) => raw },
+      inputParser: { parse: parseInput },
+      outputParser: { parse: (raw: unknown) => raw },
       component: ({ input }) => <span>{input.question}</span>,
     });
     const createMessages = (
@@ -2752,7 +2913,6 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        presentation="brunch"
         status="streaming"
       />,
     );
@@ -2786,8 +2946,8 @@ describe("AiAssistantContents", () => {
       .mockResolvedValueOnce(undefined);
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: { parse: () => ({ question: "Ship this change?" }) },
-      outputSchema: { parse: () => ({ approved: true }) },
+      inputParser: { parse: () => ({ question: "Ship this change?" }) },
+      outputParser: { parse: () => ({ approved: true }) },
       component: ({ submit }) => (
         <button type="button" onClick={() => submit({ approved: true })}>
           Approve
@@ -2845,7 +3005,7 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    expect(screen.getByText(/Ask AI to create a Petri net/u)).not.toBeNull();
+    expect(screen.getByText(/Describe your process/u)).not.toBeNull();
   });
 
   test("holds the Activity row's place while waiting for Brunch", () => {
@@ -2862,7 +3022,6 @@ describe("AiAssistantContents", () => {
       onStop: noop,
       onSubmit: noop,
       primaryLabel: "Chat",
-      presentation: "brunch" as const,
     };
     const { rerender } = render(
       <AiAssistantContents {...props} status="ready" />,
@@ -2904,7 +3063,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         {...props}
         primaryLabel="AI assistant"
-        presentation="stock"
         status="submitted"
       />,
     );
@@ -2940,7 +3098,6 @@ describe("AiAssistantContents", () => {
         onStop: noop,
         onSubmit: noop,
         primaryLabel: "Chat",
-        presentation: "brunch" as const,
       };
       const replyTurn = () =>
         screen
@@ -3008,7 +3165,6 @@ describe("AiAssistantContents", () => {
       onStop: noop,
       onSubmit: noop,
       primaryLabel: "Chat",
-      presentation: "brunch" as const,
       promptChips: [{ id: "review", label: "Review", prompt: "Review" }],
     };
     const { rerender } = render(
@@ -3031,8 +3187,10 @@ describe("AiAssistantContents", () => {
     );
   });
 
-  test("shows an optional turn-level working label only while busy", () => {
+  test("shows an optional working label on the host tab only while busy", () => {
     const props = {
+      additionalTab: { label: "Ledger", content: <p>Saved account</p> },
+      hostTabSelected: true,
       input: "",
       messages: [],
       onInputChange: noop,
@@ -3044,12 +3202,11 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents {...props} status="submitted" />,
     );
 
-    expect(screen.getByRole("status").textContent).toContain(
+    expect(screen.getByTestId("brunch-response-status").textContent).toContain(
       "Brunch is working",
     );
-
     rerender(<AiAssistantContents {...props} status="streaming" />);
-    expect(screen.getByRole("status").textContent).toContain(
+    expect(screen.getByTestId("brunch-response-status").textContent).toContain(
       "Brunch is working",
     );
 
@@ -3073,7 +3230,6 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        presentation="brunch"
         status="submitted"
       />,
     );
@@ -3104,12 +3260,12 @@ describe("AiAssistantContents", () => {
     );
 
     expect(screen.getByRole("tabpanel", { name: "Ledger" })).not.toBeNull();
-    const status = screen.getByTestId("ai-working-status");
+    const status = screen.getByTestId("brunch-response-status");
     expect(status.textContent).toContain("Brunch is working");
     expect(status.closest("[hidden]")).toBeNull();
   });
 
-  test("uses stock behavior for a Chat label until Brunch presentation is explicit", () => {
+  test("keeps working status in the transcript regardless of the host label", () => {
     const props = {
       input: "",
       messages: [],
@@ -3120,24 +3276,15 @@ describe("AiAssistantContents", () => {
       workingLabel: "Working",
     };
     const { rerender } = render(<AiAssistantContents {...props} />);
-    expect(screen.getByTestId("ai-working-status").className).not.toContain(
-      "d_none",
+    expect(screen.queryByTestId("ai-working-status")).toBeNull();
+    expect(screen.getByTestId("ai-transcript").textContent).toContain(
+      "Working",
     );
-
     rerender(<AiAssistantContents {...props} primaryLabel="Chat" />);
-    expect(screen.getByTestId("ai-working-status")).not.toBeNull();
-
-    rerender(
-      <AiAssistantContents
-        {...props}
-        primaryLabel="Chat"
-        presentation="brunch"
-      />,
-    );
     expect(screen.queryByTestId("ai-working-status")).toBeNull();
   });
 
-  test("keeps Brunch answer cards and wrapping out of the stock presentation", () => {
+  test("renders Brunch answer cards and wrapping by default", () => {
     const props = {
       input: "",
       messages: [
@@ -3154,17 +3301,7 @@ describe("AiAssistantContents", () => {
       promptChips: [{ id: "review", label: "Review", prompt: "Review" }],
       status: "ready" as const,
     };
-    const { container, rerender } = render(<AiAssistantContents {...props} />);
-
-    expect(container.querySelector('[data-answer="brunch"]')).toBeNull();
-    expect(
-      container.querySelector("[data-prompt-chips]")?.hasAttribute("data-wrap"),
-    ).toBe(false);
-    expect(container.querySelector("[data-prompt-chips]")?.className).toContain(
-      "ov-x_auto",
-    );
-
-    rerender(<AiAssistantContents {...props} presentation="brunch" />);
+    const { container } = render(<AiAssistantContents {...props} />);
 
     expect(container.querySelector('[data-answer="brunch"]')).not.toBeNull();
     expect(
@@ -3172,7 +3309,7 @@ describe("AiAssistantContents", () => {
     ).toBe("true");
   });
 
-  test("uses stock tabs for a stock assistant with an additional tab", () => {
+  test("uses pill tabs with an additional tab", () => {
     const props = {
       additionalTab: { label: "Ledger", content: <p>Ledger body</p> },
       input: "",
@@ -3182,21 +3319,16 @@ describe("AiAssistantContents", () => {
       onSubmit: noop,
       status: "ready" as const,
     };
-    const { rerender } = render(<AiAssistantContents {...props} />);
+    render(<AiAssistantContents {...props} />);
     const tablist = () => screen.getByRole("tablist");
     const inactiveTab = () => screen.getByRole("tab", { name: "Ledger" });
 
-    expect(tablist().getAttribute("data-style-variant")).toBe("default");
-    expect(tablist().querySelector("[data-mark]")).toBeNull();
-    expect(inactiveTab().className).toContain("op_[0.6]");
-
-    rerender(<AiAssistantContents {...props} presentation="brunch" />);
     expect(tablist().getAttribute("data-style-variant")).toBe("pill");
     expect(tablist().querySelectorAll("[data-mark]")).toHaveLength(2);
     expect(inactiveTab().className).not.toContain("op_[0.6]");
   });
 
-  test("keeps the stock transcript chrome for a stock assistant", () => {
+  test("renders Brunch transcript chrome by default", () => {
     const props = {
       input: "",
       messages: [
@@ -3216,23 +3348,18 @@ describe("AiAssistantContents", () => {
       onSubmit: noop,
       status: "ready" as const,
     };
-    const { container, rerender } = render(<AiAssistantContents {...props} />);
+    const { container } = render(<AiAssistantContents {...props} />);
     const userMessage = () => container.querySelector('[data-role="user"]');
     const userBubble = () => container.querySelector("[data-user-bubble]");
     const assistantMessage = () =>
       container.querySelector('[data-role="assistant"]');
 
-    expect(userMessage()?.className).toContain("bg-c_neutral.bg.subtle");
-    expect(userBubble()).toBeNull();
-    expect(assistantMessage()?.className).not.toContain("p_[6px_0]");
-
-    rerender(<AiAssistantContents {...props} presentation="brunch" />);
     expect(userMessage()?.className).not.toContain("bg-c_neutral.bg.subtle");
     expect(userBubble()?.className).toContain("bg-c_neutral.a20");
     expect(assistantMessage()?.className).toContain("p_[6px_0]");
   });
 
-  test("keeps the stock AI transcript label in both input modes", () => {
+  test("uses the default text label and switches it to Voice", () => {
     const props = {
       input: "",
       messages: [],
@@ -3251,7 +3378,7 @@ describe("AiAssistantContents", () => {
         inputMode="voice"
       />,
     );
-    expect(screen.getByRole("tab", { name: "AI" })).not.toBeNull();
+    expect(screen.getByRole("tab", { name: "Voice" })).not.toBeNull();
   });
 
   test("shows the host transcript label, switching Brunch Chat to Voice", () => {
@@ -3266,17 +3393,15 @@ describe("AiAssistantContents", () => {
       status: "ready" as const,
     };
     const { rerender } = render(
-      <AiAssistantContents {...props} primaryLabel="Copilot" />,
+      <AiAssistantContents
+        {...props}
+        inputMode="text"
+        primaryLabel="Copilot"
+      />,
     );
     expect(screen.getByRole("tab", { name: "Copilot" })).not.toBeNull();
 
-    rerender(
-      <AiAssistantContents
-        {...props}
-        primaryLabel="Chat"
-        presentation="brunch"
-      />,
-    );
+    rerender(<AiAssistantContents {...props} primaryLabel="Chat" />);
     expect(screen.getByRole("tab", { name: "Voice" })).not.toBeNull();
   });
 
@@ -3302,7 +3427,6 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        presentation="brunch"
         status="streaming"
       />,
     );
@@ -3343,7 +3467,6 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        presentation="brunch"
         status="ready"
       />,
     );
@@ -3371,6 +3494,52 @@ describe("AiAssistantContents", () => {
       ).toBe("true"),
     );
     expect(screen.getByText("Planning the net")).not.toBeNull();
+  });
+
+  test("renders no model-written image in a reply or reasoning", async () => {
+    const startedAt = Date.parse("2026-05-14T12:00:00Z");
+    const { container } = render(
+      <AiAssistantContents
+        input=""
+        messages={[
+          {
+            id: "assistant-1",
+            role: "assistant",
+            parts: [
+              {
+                type: "reasoning",
+                state: "done",
+                text: "**Planning**\n\nThinking ![r](https://attacker.example/r.png)",
+                providerMetadata: {
+                  petrinaut: { startedAt, finishedAt: startedAt + 4_500 },
+                },
+              },
+              {
+                type: "text",
+                state: "done",
+                text: "Done ![x](https://attacker.example/a.png) [docs](https://hash.ai/docs) [bad](javascript:alert(1))",
+              },
+            ],
+          },
+        ]}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    await expandWork();
+    fireEvent.click(screen.getByRole("button", { name: "Thought for 4s" }));
+    await waitFor(() => expect(screen.getByText(/^Thinking/u)).not.toBeNull());
+
+    expect(screen.getByText(/^Thinking/u).querySelector("img")).toBeNull();
+    expect(screen.getByText(/^Done/u).querySelector("img")).toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "docs" }).getAttribute("href"),
+    ).toBe("https://hash.ai/docs");
+    expect(container.querySelector("[href^='javascript']")).toBeNull();
   });
 
   test("calls the clear handler from the header", () => {
@@ -3562,71 +3731,64 @@ describe("AiAssistantContents", () => {
     expect(screen.queryByRole("button", { name: /^Activity/u })).toBeNull();
   });
 
-  test.each([
-    { presentation: "brunch", follows: false },
-    { presentation: "stock", follows: true },
-  ] as const)(
-    "$presentation presentation follows new content after the reader scrolls more than 96px from the end: $follows",
-    ({ presentation, follows }) => {
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- Saved only for restoration.
-      const originalScrollTo = window.HTMLElement.prototype.scrollTo;
-      const originalRequestAnimationFrame = window.requestAnimationFrame;
-      const scrollTo = vi.fn();
-      window.HTMLElement.prototype.scrollTo = scrollTo;
-      window.requestAnimationFrame = (callback) => {
-        callback(0);
-        return 0;
-      };
-      const props = {
-        input: "",
-        messages: [
-          {
-            id: "assistant-1",
-            role: "assistant" as const,
-            parts: [
-              {
-                type: "text" as const,
-                state: "streaming" as const,
-                text: "One",
-              },
-            ],
-          },
-        ],
-        onInputChange: noop,
-        onStop: noop,
-        onSubmit: noop,
-        presentation,
-        status: "streaming" as const,
-      };
-      const view = render(<AiAssistantContents {...props} />);
-      const transcript = screen.getByTestId("ai-transcript");
-      Object.defineProperties(transcript, {
-        clientHeight: { configurable: true, value: 400 },
-        scrollHeight: { configurable: true, value: 1000 },
-        scrollTop: { configurable: true, writable: true, value: 600 },
-      });
-      fireEvent.scroll(transcript);
-      transcript.scrollTop = 400;
-      fireEvent.scroll(transcript);
-      scrollTo.mockClear();
-
-      view.rerender(
-        <AiAssistantContents
-          {...props}
-          messages={[
+  test("does not follow new content after the reader scrolls more than 96px from the end", () => {
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- Saved only for restoration.
+    const originalScrollTo = window.HTMLElement.prototype.scrollTo;
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const scrollTo = vi.fn();
+    window.HTMLElement.prototype.scrollTo = scrollTo;
+    window.requestAnimationFrame = (callback) => {
+      callback(0);
+      return 0;
+    };
+    const props = {
+      input: "",
+      messages: [
+        {
+          id: "assistant-1",
+          role: "assistant" as const,
+          parts: [
             {
-              ...props.messages[0]!,
-              parts: [{ type: "text", state: "streaming", text: "One two" }],
+              type: "text" as const,
+              state: "streaming" as const,
+              text: "One",
             },
-          ]}
-        />,
-      );
+          ],
+        },
+      ],
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "streaming" as const,
+    };
+    const view = render(<AiAssistantContents {...props} />);
+    const transcript = screen.getByTestId("ai-transcript");
+    Object.defineProperties(transcript, {
+      clientHeight: { configurable: true, value: 400 },
+      scrollHeight: { configurable: true, value: 1000 },
+      scrollTop: { configurable: true, writable: true, value: 600 },
+    });
+    fireEvent.scroll(transcript);
+    transcript.scrollTop = 400;
+    fireEvent.scroll(transcript);
+    scrollTo.mockClear();
 
-      expect(scrollTo.mock.calls.length > 0).toBe(follows);
-      window.HTMLElement.prototype.scrollTo = originalScrollTo;
-      window.requestAnimationFrame = originalRequestAnimationFrame;
-    },
-  );
+    view.rerender(
+      <AiAssistantContents
+        {...props}
+        messages={[
+          {
+            ...props.messages[0]!,
+            parts: [{ type: "text", state: "streaming", text: "One two" }],
+          },
+        ]}
+      />,
+    );
+
+    expect(scrollTo).not.toHaveBeenCalled();
+    window.HTMLElement.prototype.scrollTo = originalScrollTo;
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  });
 
   test("keeps following while its smooth scroll trails content that grew mid-animation", () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method -- Saved only for restoration.
@@ -3652,7 +3814,6 @@ describe("AiAssistantContents", () => {
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
-      presentation: "brunch" as const,
       status: "streaming" as const,
     };
     const view = render(<AiAssistantContents {...props} />);
@@ -3707,7 +3868,6 @@ describe("AiAssistantContents", () => {
     render(
       <AiAssistantContents
         primaryLabel="Chat"
-        presentation="brunch"
         input=""
         messages={messages}
         onInputChange={noop}
@@ -3795,7 +3955,7 @@ describe("AiAssistantContents", () => {
     );
 
     expect(container.textContent).toMatch(
-      /Thinking[\s\S]*I found the current places\./u,
+      /Thought[\s\S]*I found the current places\./u,
     );
   });
 
@@ -3868,7 +4028,6 @@ describe("AiAssistantContents", () => {
               name: "Buffer",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -3931,7 +4090,6 @@ describe("AiAssistantContents", () => {
               name: "Buffer",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -3970,14 +4128,15 @@ describe("AiAssistantContents", () => {
         .getByRole("button", { name: /Added place Buffer/u })
         .getAttribute("data-tone"),
     ).toBe("success");
+    // Still running, the removal names its request rather than an outcome.
     expect(
       screen
-        .getByRole("button", { name: /Deleted 1 item/u })
+        .getByRole("button", { name: /Delete 1 item/u })
         .getAttribute("data-tone"),
     ).toBe("danger");
     expect(
       screen
-        .getByRole("button", { name: /Deleted 1 item/u })
+        .getByRole("button", { name: /Delete 1 item/u })
         .getAttribute("aria-busy"),
     ).toBe("true");
   });
@@ -4044,7 +4203,6 @@ describe("AiAssistantContents", () => {
               name: "Buffer",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -4171,7 +4329,6 @@ describe("AiAssistantContents", () => {
               name: "Buffer",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -4314,255 +4471,357 @@ describe("AiAssistantContents", () => {
   });
 });
 
-const toolRowPresentations = [
-  {
-    presentation: "stock",
-    revealTools: () => Promise.resolve(),
-    markers: {
-      pending: "[data-tool-progress-spinner]",
-      complete: '[data-tool-result-icon="complete"]',
-      notApplied: '[data-tool-result-icon="not-applied"]',
-      error: "svg",
+describe("AiAssistantContents tool rows", () => {
+  const revealTools = expandWork;
+  const markers = {
+    pending: '[data-tool-status="pending"]',
+    complete: '[data-tool-status="ok"]',
+    notApplied: '[data-tool-status="ok"]',
+    error: '[data-tool-status="error"]',
+  };
+  test.each([
+    {
+      label: "blocked",
+      output: {
+        applied: false,
+        blocked: "readonly",
+        reason: "Read-only document.",
+      },
     },
-  },
-  {
-    presentation: "brunch",
-    revealTools: expandWork,
-    markers: {
-      pending: '[data-tool-status="pending"]',
-      complete: '[data-tool-status="ok"]',
-      notApplied: '[data-tool-status="ok"]',
-      error: '[data-tool-status="error"]',
+    {
+      label: "declined",
+      output: { applied: false, reason: "User declined auto-layout." },
     },
-  },
-] as const;
-
-describe.each(toolRowPresentations)(
-  "AiAssistantContents tool rows in the $presentation presentation",
-  ({ presentation, revealTools, markers }) => {
-    test.each([
-      {
-        label: "blocked",
-        output: {
-          applied: false,
-          blocked: "readonly",
-          reason: "Read-only document.",
-        },
+    {
+      label: "no-op",
+      output: {
+        applied: false,
+        reason: "The mutation left the document unchanged.",
       },
-      {
-        label: "declined",
-        output: { applied: false, reason: "User declined auto-layout." },
+    },
+    {
+      label: "stale host",
+      output: {
+        applied: false,
+        reason:
+          "The requested base does not match the independently observed document.",
       },
-      {
-        label: "no-op",
-        output: {
-          applied: false,
-          reason: "The mutation left the document unchanged.",
-        },
+    },
+    {
+      label: "contradictory supplied summary",
+      output: {
+        applied: false,
+        reason: "Not applied by the host.",
+        title: "Updated arc weight",
+        detail: "Requested value: 4",
       },
-      {
-        label: "stale host",
-        output: {
-          applied: false,
-          reason:
-            "The requested base does not match the independently observed document.",
-        },
-      },
-      {
-        label: "contradictory supplied summary",
-        output: {
-          applied: false,
-          reason: "Not applied by the host.",
-          title: "Updated arc weight",
-          detail: "Requested value: 4",
-        },
-      },
-    ])(
-      "renders an explicit $label result as not applied, never requested-value success",
-      async ({ output }) => {
-        render(
-          <AiAssistantContents
-            input=""
-            status="ready"
-            onInputChange={noop}
-            onStop={noop}
-            onSubmit={noop}
-            presentation={presentation}
-            messages={[
-              {
-                id: "assistant-unapplied",
-                role: "assistant",
-                parts: [
-                  {
-                    type: "dynamic-tool",
-                    toolName: "updateArcWeight",
-                    toolCallId: "unapplied",
-                    state: "output-available",
-                    input: {
-                      transitionId: "transition",
-                      placeId: "place",
-                      arcDirection: "input",
-                      weight: 4,
-                    },
-                    output,
+    },
+  ])(
+    "renders an explicit $label result as not applied, never requested-value success",
+    async ({ output }) => {
+      render(
+        <AiAssistantContents
+          input=""
+          status="ready"
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          messages={[
+            {
+              id: "assistant-unapplied",
+              role: "assistant",
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolName: "updateArcWeight",
+                  toolCallId: "unapplied",
+                  state: "output-available",
+                  input: {
+                    transitionId: "transition",
+                    placeId: "place",
+                    arcDirection: "input",
+                    weight: 4,
                   },
-                ],
-              },
-            ]}
-          />,
-        );
-        await revealTools();
-        const row = screen.getByRole("button", { name: /Not applied/u });
-        expect(row.getAttribute("data-tone")).toBe("neutral");
-        expect(within(row).getByText(output.reason)).not.toBeNull();
-        expect(
-          within(row).queryByText("Updated arc weight", { exact: true }),
-        ).toBeNull();
-        expect(row.querySelector(markers.notApplied)).not.toBeNull();
-        expect(
-          row.querySelector('[data-tool-result-icon="complete"]'),
-        ).toBeNull();
-      },
-    );
-
-    test("shows known noninteractive tool progress and replaces it with the terminal result", async () => {
-      const createMessages = (
-        state: "input-streaming" | "input-available" | "output-available",
-      ) =>
-        [
-          {
-            id: "assistant-1",
-            role: "assistant",
-            parts: [
-              {
-                type: "tool-addPlace",
-                state,
-                toolCallId: "tool-1",
-                input: {
-                  id: "place__buffer",
-                  name: "Buffer",
-                  colorId: null,
-                  dynamicsEnabled: false,
-                  differentialEquationId: null,
-                  x: 0,
-                  y: 0,
+                  output,
                 },
-                output:
-                  state === "output-available"
-                    ? { applied: true, title: "Added place Buffer" }
-                    : undefined,
-              },
-            ],
-          },
-        ] as PetrinautAiMessage[];
-      const props = {
-        input: "",
-        onInputChange: noop,
-        onStop: noop,
-        onSubmit: noop,
-        presentation,
-        status: "streaming" as const,
-      };
-      const rendered = render(
-        <AiAssistantContents
-          {...props}
-          messages={createMessages("input-streaming")}
+              ],
+            },
+          ]}
         />,
       );
-
       await revealTools();
-      expect(screen.getByText("Preparing…")).not.toBeNull();
-      const pendingRow = screen.getByRole("button", { name: /Preparing/u });
-      expect(within(pendingRow).queryByText(/Buffer/u)).toBeNull();
-      expect(pendingRow.getAttribute("aria-busy")).toBe("true");
-      expect(pendingRow.getAttribute("data-tone")).toBe("success");
-      expect(pendingRow.querySelector(markers.pending)).not.toBeNull();
+      const row = screen.getByRole("button", { name: /Not applied/u });
+      expect(row.getAttribute("data-tone")).toBe("neutral");
+      expect(within(row).getByText(output.reason)).not.toBeNull();
+      expect(
+        within(row).queryByText("Updated arc weight", { exact: true }),
+      ).toBeNull();
+      expect(row.querySelector(markers.notApplied)).not.toBeNull();
+      expect(
+        row.querySelector('[data-tool-result-icon="complete"]'),
+      ).toBeNull();
+    },
+  );
 
-      rendered.rerender(
-        <AiAssistantContents
-          {...props}
-          messages={createMessages("input-available")}
-        />,
-      );
-
-      expect(screen.queryByText("Preparing…")).toBeNull();
-      expect(screen.getByText("Running…")).not.toBeNull();
-
-      rendered.rerender(
-        <AiAssistantContents
-          {...props}
-          messages={createMessages("output-available")}
-        />,
-      );
-
-      expect(screen.queryByText("Running…")).toBeNull();
-      const completedRow = screen.getByRole("button", {
-        name: /Added place Buffer/u,
-      });
-      expect(completedRow.hasAttribute("aria-busy")).toBe(false);
-      expect(completedRow.querySelector(markers.complete)).not.toBeNull();
-    });
-
-    test("uses the host presentation resolver at every lifecycle site", async () => {
-      const messages = [
+  test("shows known noninteractive tool progress and replaces it with the terminal result", async () => {
+    const createMessages = (
+      state: "input-streaming" | "input-available" | "output-available",
+    ) =>
+      [
         {
-          id: "assistant-labels",
+          id: "assistant-1",
           role: "assistant",
           parts: [
             {
-              type: "dynamic-tool",
-              toolName: "one",
-              toolCallId: "one",
-              state: "input-streaming",
-            },
-            {
-              type: "dynamic-tool",
-              toolName: "two",
-              toolCallId: "two",
-              state: "input-available",
-              input: {},
-            },
-            {
-              type: "dynamic-tool",
-              toolName: "three",
-              toolCallId: "three",
-              state: "output-available",
-              output: { title: "Stable result title" },
-            },
-            {
-              type: "dynamic-tool",
-              toolName: "four",
-              toolCallId: "four",
-              state: "output-error",
-              errorText: "Host tool failed",
-            },
-            {
-              type: "dynamic-tool",
-              toolName: "unknown-tool",
-              toolCallId: "unknown",
-              state: "output-available",
-              output: { title: "Unknown result title" },
-            },
-            {
-              type: "dynamic-tool",
-              toolName: "five",
-              toolCallId: "not-applied",
-              state: "output-available",
-              output: { applied: false, reason: "Nothing changed" },
-            },
-            {
-              type: "dynamic-tool",
-              toolName: "six",
-              toolCallId: "preserved-detail",
-              state: "output-available",
-              output: {
-                title: "Default result title",
-                detail: "Viewport frame: framed.",
+              type: "tool-addPlace",
+              state,
+              toolCallId: "tool-1",
+              input: {
+                id: "place__buffer",
+                name: "Buffer",
+                colorId: null,
+                dynamicsEnabled: false,
+                x: 0,
+                y: 0,
               },
+              output:
+                state === "output-available"
+                  ? { applied: true, title: "Added place Buffer" }
+                  : undefined,
             },
           ],
         },
       ] as PetrinautAiMessage[];
+    const props = {
+      input: "",
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "streaming" as const,
+    };
+    const rendered = render(
+      <AiAssistantContents
+        {...props}
+        messages={createMessages("input-streaming")}
+      />,
+    );
+
+    await revealTools();
+    expect(screen.getByText("Preparing…")).not.toBeNull();
+    const pendingRow = screen.getByRole("button", { name: /Preparing/u });
+    expect(within(pendingRow).queryByText(/Buffer/u)).toBeNull();
+    expect(pendingRow.getAttribute("aria-busy")).toBe("true");
+    expect(pendingRow.getAttribute("data-tone")).toBe("success");
+    expect(pendingRow.querySelector(markers.pending)).not.toBeNull();
+
+    rendered.rerender(
+      <AiAssistantContents
+        {...props}
+        messages={createMessages("input-available")}
+      />,
+    );
+
+    expect(screen.queryByText("Preparing…")).toBeNull();
+    expect(screen.getByText("Running…")).not.toBeNull();
+
+    rendered.rerender(
+      <AiAssistantContents
+        {...props}
+        messages={createMessages("output-available")}
+      />,
+    );
+
+    expect(screen.queryByText("Running…")).toBeNull();
+    const completedRow = screen.getByRole("button", {
+      name: /Added place Buffer/u,
+    });
+    expect(completedRow.hasAttribute("aria-busy")).toBe(false);
+    expect(completedRow.querySelector(markers.complete)).not.toBeNull();
+  });
+
+  test("uses the host presentation resolver at every lifecycle site", async () => {
+    const messages = [
+      {
+        id: "assistant-labels",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "one",
+            toolCallId: "one",
+            state: "input-streaming",
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "two",
+            toolCallId: "two",
+            state: "input-available",
+            input: {},
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "three",
+            toolCallId: "three",
+            state: "output-available",
+            output: { title: "Stable result title" },
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "four",
+            toolCallId: "four",
+            state: "output-error",
+            errorText: "Host tool failed",
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "unknown-tool",
+            toolCallId: "unknown",
+            state: "output-available",
+            output: { title: "Unknown result title" },
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "five",
+            toolCallId: "not-applied",
+            state: "output-available",
+            output: { applied: false, reason: "Nothing changed" },
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "six",
+            toolCallId: "preserved-detail",
+            state: "output-available",
+            output: {
+              title: "Default result title",
+              detail: "Viewport frame: framed.",
+            },
+          },
+        ],
+      },
+    ] as PetrinautAiMessage[];
+    render(
+      <AiAssistantContents
+        input=""
+        messages={messages}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="streaming"
+        resolveToolPresentation={({ error, output, state, toolName }) => {
+          if (toolName === "unknown-tool") return undefined;
+          if (toolName === "five") {
+            return {
+              title: "Correctable five",
+              tone: "neutral",
+              items: ["Nothing changed"],
+            };
+          }
+          if (toolName === "six") return { title: "Completed six" };
+          const verb =
+            state === "pending"
+              ? toolName === "one"
+                ? "Preparing"
+                : "Running"
+              : state === "success"
+                ? "Completed"
+                : "Could not complete";
+          return {
+            title: `${verb} ${toolName}`,
+            detail:
+              error ??
+              (typeof output === "object" &&
+              output !== null &&
+              "title" in output &&
+              typeof output.title === "string"
+                ? output.title
+                : undefined),
+          };
+        }}
+      />,
+    );
+
+    await revealTools();
+    const preparingOne = screen.getByText("Preparing one").closest("button");
+    const runningTwo = screen.getByText("Running two").closest("button");
+    expect(preparingOne?.getAttribute("aria-busy")).toBe("true");
+    expect(runningTwo?.getAttribute("aria-busy")).toBe("true");
+    expect(screen.queryByText(/operations/u)).toBeNull();
+    expect(screen.getByText("Completed three")).not.toBeNull();
+    expect(screen.getByText("Could not complete four")).not.toBeNull();
+    expect(
+      within(
+        screen.getByText("Completed three").closest("button")!,
+      ).getByTestId("tool-detail").textContent,
+    ).toBe("Stable result title");
+    expect(
+      within(
+        screen.getByText("Could not complete four").closest("button")!,
+      ).getByTestId("tool-detail").textContent,
+    ).toBe("Host tool failed");
+    expect(screen.getByText("Unknown result title")).not.toBeNull();
+    expect(screen.getByText("Correctable five")).not.toBeNull();
+    expect(screen.queryByText("Not applied")).toBeNull();
+    expect(screen.queryByText("Completed five")).toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: /Correctable five/u })
+        .getAttribute("data-tone"),
+    ).toBe("neutral");
+    expect(
+      screen
+        .getByRole("button", { name: /Correctable five/u })
+        .querySelector(markers.notApplied),
+    ).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Correctable five/u }));
+    expect(screen.getByText("Nothing changed")).not.toBeNull();
+    expect(
+      within(screen.getByText("Completed six").closest("button")!).getByTestId(
+        "tool-detail",
+      ).textContent,
+    ).toBe("Viewport frame: framed.");
+  });
+
+  test("renders host pending, applied, refused and thrown tool cues", async () => {
+    const resolveToolPresentation = ({
+      output,
+      state,
+      toolName,
+    }: {
+      output: unknown;
+      state: "error" | "pending" | "success";
+      toolName: string;
+    }) => {
+      if (toolName !== "mutate_workpiece") return undefined;
+      if (
+        typeof output === "object" &&
+        output !== null &&
+        "disposition" in output &&
+        output.disposition === "refused" &&
+        "message" in output &&
+        typeof output.message === "string"
+      ) {
+        return {
+          title: "Ledger update needs correction",
+          tone: "neutral" as const,
+          items: [output.message],
+        };
+      }
+      return {
+        title:
+          state === "pending"
+            ? "Updating ledger"
+            : state === "success"
+              ? "Updated ledger"
+              : "Could not update ledger",
+        tone:
+          state === "pending"
+            ? ("pending" as const)
+            : state === "error"
+              ? ("danger" as const)
+              : ("success" as const),
+      };
+    };
+    const renderTools = (messages: PetrinautAiMessage[]) =>
       render(
         <AiAssistantContents
           input=""
@@ -4570,263 +4829,135 @@ describe.each(toolRowPresentations)(
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
-          presentation={presentation}
+          resolveToolPresentation={resolveToolPresentation}
           status="streaming"
-          resolveToolPresentation={({ error, output, state, toolName }) => {
-            if (toolName === "unknown-tool") return undefined;
-            if (toolName === "five") {
-              return {
-                title: "Correctable five",
-                tone: "neutral",
-                items: ["Nothing changed"],
-              };
-            }
-            if (toolName === "six") return { title: "Completed six" };
-            const verb =
-              state === "pending"
-                ? toolName === "one"
-                  ? "Preparing"
-                  : "Running"
-                : state === "success"
-                  ? "Completed"
-                  : "Could not complete";
-            return {
-              title: `${verb} ${toolName}`,
-              detail:
-                error ??
-                (typeof output === "object" &&
-                output !== null &&
-                "title" in output &&
-                typeof output.title === "string"
-                  ? output.title
-                  : undefined),
-            };
-          }}
         />,
       );
 
-      await revealTools();
-      const preparingOne = screen.getByText("Preparing one").closest("button");
-      const runningTwo = screen.getByText("Running two").closest("button");
-      expect(preparingOne?.getAttribute("aria-busy")).toBe("true");
-      expect(runningTwo?.getAttribute("aria-busy")).toBe("true");
-      expect(screen.queryByText(/operations/u)).toBeNull();
-      expect(screen.getByText("Completed three")).not.toBeNull();
-      expect(screen.getByText("Could not complete four")).not.toBeNull();
-      expect(
-        within(
-          screen.getByText("Completed three").closest("button")!,
-        ).getByTestId("tool-detail").textContent,
-      ).toBe("Stable result title");
-      expect(
-        within(
-          screen.getByText("Could not complete four").closest("button")!,
-        ).getByTestId("tool-detail").textContent,
-      ).toBe("Host tool failed");
-      expect(screen.getByText("Unknown result title")).not.toBeNull();
-      expect(screen.getByText("Correctable five")).not.toBeNull();
-      expect(screen.queryByText("Not applied")).toBeNull();
-      expect(screen.queryByText("Completed five")).toBeNull();
-      expect(
-        screen
-          .getByRole("button", { name: /Correctable five/u })
-          .getAttribute("data-tone"),
-      ).toBe("neutral");
-      expect(
-        screen
-          .getByRole("button", { name: /Correctable five/u })
-          .querySelector(markers.notApplied),
-      ).not.toBeNull();
-      fireEvent.click(
-        screen.getByRole("button", { name: /Correctable five/u }),
-      );
-      expect(screen.getByText("Nothing changed")).not.toBeNull();
-      expect(
-        within(
-          screen.getByText("Completed six").closest("button")!,
-        ).getByTestId("tool-detail").textContent,
-      ).toBe("Viewport frame: framed.");
+    const pending = renderTools([
+      {
+        id: "assistant-pending",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "mutate_workpiece",
+            toolCallId: "pending-call",
+            state: "input-streaming",
+            input: {},
+          },
+        ],
+      },
+    ]);
+    await revealTools();
+    const pendingRow = screen.getByRole("button", {
+      name: /Updating ledger/u,
     });
+    expect(pendingRow.getAttribute("data-tone")).toBe("pending");
+    expect(pendingRow.querySelector(markers.pending)).not.toBeNull();
+    pending.unmount();
 
-    test("renders host pending, applied, refused and thrown tool cues", async () => {
-      const resolveToolPresentation = ({
-        output,
-        state,
-        toolName,
-      }: {
-        output: unknown;
-        state: "error" | "pending" | "success";
-        toolName: string;
-      }) => {
-        if (toolName !== "mutate_workpiece") return undefined;
-        if (
-          typeof output === "object" &&
-          output !== null &&
-          "disposition" in output &&
-          output.disposition === "refused" &&
-          "message" in output &&
-          typeof output.message === "string"
-        ) {
-          return {
-            title: "Ledger update needs correction",
-            tone: "neutral" as const,
-            items: [output.message],
-          };
-        }
-        return {
-          title:
-            state === "pending"
-              ? "Updating ledger"
-              : state === "success"
-                ? "Updated ledger"
-                : "Could not update ledger",
-          tone:
-            state === "pending"
-              ? ("pending" as const)
-              : state === "error"
-                ? ("danger" as const)
-                : ("success" as const),
-        };
-      };
-      const renderTools = (messages: PetrinautAiMessage[]) =>
-        render(
-          <AiAssistantContents
-            input=""
-            messages={messages}
-            onInputChange={noop}
-            onStop={noop}
-            onSubmit={noop}
-            presentation={presentation}
-            resolveToolPresentation={resolveToolPresentation}
-            status="streaming"
-          />,
-        );
-
-      const pending = renderTools([
-        {
-          id: "assistant-pending",
-          role: "assistant",
-          parts: [
-            {
-              type: "dynamic-tool",
-              toolName: "mutate_workpiece",
-              toolCallId: "pending-call",
-              state: "input-streaming",
-              input: {},
+    const applied = renderTools([
+      {
+        id: "assistant-applied",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "mutate_workpiece",
+            toolCallId: "applied-call",
+            state: "output-available",
+            input: {},
+            output: {
+              disposition: "applied",
+              applied: true,
+              revisionId: "applied-call",
+              sha256: "b".repeat(64),
+              ordinal: 1,
             },
-          ],
-        },
-      ]);
-      await revealTools();
-      const pendingRow = screen.getByRole("button", {
-        name: /Updating ledger/u,
-      });
-      expect(pendingRow.getAttribute("data-tone")).toBe("pending");
-      expect(pendingRow.querySelector(markers.pending)).not.toBeNull();
-      pending.unmount();
-
-      const applied = renderTools([
-        {
-          id: "assistant-applied",
-          role: "assistant",
-          parts: [
-            {
-              type: "dynamic-tool",
-              toolName: "mutate_workpiece",
-              toolCallId: "applied-call",
-              state: "output-available",
-              input: {},
-              output: {
-                disposition: "applied",
-                applied: true,
-                revisionId: "applied-call",
-                sha256: "b".repeat(64),
-                ordinal: 1,
-              },
-            },
-          ],
-        },
-      ]);
-      await revealTools();
-      const appliedRow = screen.getByRole("button", {
-        name: /Updated ledger/u,
-      });
-      expect(appliedRow.getAttribute("data-tone")).toBe("success");
-      expect(appliedRow.querySelector(markers.complete)).not.toBeNull();
-      applied.unmount();
-
-      const refused = renderTools([
-        {
-          id: "assistant-refused",
-          role: "assistant",
-          parts: [
-            {
-              type: "dynamic-tool",
-              toolName: "mutate_workpiece",
-              toolCallId: "refused-call",
-              state: "output-available",
-              input: {},
-              output: {
-                disposition: "refused",
-                applied: false,
-                correctable: true,
-                code: "silent-shrink",
-                message:
-                  "Nothing was written; resubmit the complete settled account.",
-                currentRevision: null,
-              },
-            },
-          ],
-        },
-      ]);
-      await revealTools();
-      const refusedRow = screen.getByRole("button", {
-        name: /Ledger update needs correction/u,
-      });
-      expect(refusedRow.getAttribute("data-tone")).toBe("neutral");
-      expect(refusedRow.querySelector(markers.notApplied)).not.toBeNull();
-      expect(within(refusedRow).queryByTestId("tool-detail")).toBeNull();
-      fireEvent.click(refusedRow);
-      expect(
-        screen.getByText(
-          "Nothing was written; resubmit the complete settled account.",
-        ),
-      ).not.toBeNull();
-      refused.unmount();
-
-      renderTools([
-        {
-          id: "assistant-thrown",
-          role: "assistant",
-          parts: [
-            {
-              type: "dynamic-tool",
-              toolName: "mutate_workpiece",
-              toolCallId: "thrown-call",
-              state: "output-error",
-              input: {},
-              errorText: "Current state missing",
-            },
-          ],
-        },
-      ]);
-      await revealTools();
-      const thrownRow = screen.getByRole("button", {
-        name: /Could not update ledger/u,
-      });
-      expect(thrownRow.getAttribute("data-tone")).toBe("danger");
-      expect(thrownRow.querySelector(markers.error)).not.toBeNull();
+          },
+        ],
+      },
+    ]);
+    await revealTools();
+    const appliedRow = screen.getByRole("button", {
+      name: /Updated ledger/u,
     });
-  },
-);
+    expect(appliedRow.getAttribute("data-tone")).toBe("success");
+    expect(appliedRow.querySelector(markers.complete)).not.toBeNull();
+    applied.unmount();
 
-describe("AiAssistantContents in the stock presentation", () => {
+    const refused = renderTools([
+      {
+        id: "assistant-refused",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "mutate_workpiece",
+            toolCallId: "refused-call",
+            state: "output-available",
+            input: {},
+            output: {
+              disposition: "refused",
+              applied: false,
+              correctable: true,
+              code: "silent-shrink",
+              message:
+                "Nothing was written; resubmit the complete settled account.",
+              currentRevision: null,
+            },
+          },
+        ],
+      },
+    ]);
+    await revealTools();
+    const refusedRow = screen.getByRole("button", {
+      name: /Ledger update needs correction/u,
+    });
+    expect(refusedRow.getAttribute("data-tone")).toBe("neutral");
+    expect(refusedRow.querySelector(markers.notApplied)).not.toBeNull();
+    expect(within(refusedRow).queryByTestId("tool-detail")).toBeNull();
+    fireEvent.click(refusedRow);
+    expect(
+      screen.getByText(
+        "Nothing was written; resubmit the complete settled account.",
+      ),
+    ).not.toBeNull();
+    refused.unmount();
+
+    renderTools([
+      {
+        id: "assistant-thrown",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "mutate_workpiece",
+            toolCallId: "thrown-call",
+            state: "output-error",
+            input: {},
+            errorText: "Current state missing",
+          },
+        ],
+      },
+    ]);
+    await revealTools();
+    const thrownRow = screen.getByRole("button", {
+      name: /Could not update ledger/u,
+    });
+    expect(thrownRow.getAttribute("data-tone")).toBe("danger");
+    expect(thrownRow.querySelector(markers.error)).not.toBeNull();
+  });
+});
+
+describe("AiAssistantContents Markdown and actions", () => {
   test.each([
     { status: "streaming" as const, live: true },
     { status: "error" as const, live: false },
   ])(
     "keeps reasoning live only while its reply streams ($status)",
-    ({ status, live }) => {
+    async ({ status, live }) => {
       render(
         <AiAssistantContents
           input=""
@@ -4851,15 +4982,16 @@ describe("AiAssistantContents in the stock presentation", () => {
         />,
       );
 
+      await expandWork();
       expect(
         screen
-          .getByRole("button", { name: /Thinking/u })
+          .getByRole("button", { name: live ? /Thinking/u : /Thought/u })
           .getAttribute("aria-expanded"),
       ).toBe(String(live));
     },
   );
 
-  test("renders streamed markdown and collapsed reasoning", () => {
+  test("renders streamed markdown and collapsed reasoning", async () => {
     const startedAt = Date.parse("2026-05-14T12:00:00Z");
     const finishedAt = startedAt + 4_500;
     const messages: PetrinautAiMessage[] = [
@@ -4896,77 +5028,55 @@ describe("AiAssistantContents in the stock presentation", () => {
     );
 
     expect(screen.getByText("Created")).not.toBeNull();
+    await expandWork();
     expect(
       screen
-        .getByRole("button", { name: /Thinking: Planning the net/u })
+        .getByRole("button", { name: "Thought for 4s" })
         .getAttribute("aria-expanded"),
     ).toBe("false");
-    expect(screen.getByText("Thinking: Planning the net")).not.toBeNull();
     expect(screen.queryByTestId("reasoning-status")).toBeNull();
-    expect(screen.getByLabelText(/Reasoning time/u)).not.toBeNull();
   });
 
-  test("selects a target from a completed tool summary without a single-item chevron", () => {
-    const onSelectToolTarget = vi.fn();
-    const messages: PetrinautAiMessage[] = [
-      {
-        id: "assistant-1",
-        role: "assistant",
-        parts: [
-          {
-            type: "tool-addPlace",
-            state: "output-available",
-            toolCallId: "tool-1",
-            input: {
-              id: "place__buffer",
-              name: "Buffer",
-              colorId: null,
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 0,
-              y: 0,
-            },
-            output: {
-              applied: true,
-              title: "Added place Buffer",
-              detail: "Previous name: Queue",
-              target: {
-                kind: "selection",
-                item: { type: "place", id: "place__buffer" },
-              },
-            },
-          },
-        ],
-      },
-    ];
-
-    render(
+  test("renders no model-written image in a reply or reasoning", async () => {
+    const { container } = render(
       <AiAssistantContents
         input=""
-        messages={messages}
+        messages={[
+          {
+            id: "assistant-1",
+            role: "assistant",
+            parts: [
+              {
+                type: "reasoning",
+                state: "done",
+                text: "**Planning**\n\nThinking ![r](https://attacker.example/r.png)",
+              },
+              {
+                type: "text",
+                state: "done",
+                text: "Done ![x](https://attacker.example/a.png) [docs](https://hash.ai/docs) [bad](javascript:alert(1))",
+              },
+            ],
+          },
+        ]}
         onInputChange={noop}
-        onSelectToolTarget={onSelectToolTarget}
         onStop={noop}
         onSubmit={noop}
         status="ready"
       />,
     );
 
-    const toolButton = screen.getByRole("button", {
-      name: /Added place Buffer/u,
-    });
+    await expandWork();
+    fireEvent.click(screen.getByRole("button", { name: "Thought" }));
+    await waitFor(() => expect(screen.getByText(/^Thinking$/u)).not.toBeNull());
 
-    fireEvent.click(toolButton);
-
-    expect(screen.queryByTestId("tool-item-chevron")).toBeNull();
-    expect(toolButton.getAttribute("data-tone")).toBe("success");
-    expect(screen.getByTestId("tool-detail").textContent).toBe(
-      "Previous name: Queue",
-    );
-    expect(onSelectToolTarget).toHaveBeenCalledWith({
-      kind: "selection",
-      item: { type: "place", id: "place__buffer" },
-    });
+    expect(screen.getByText(/^Thinking$/u).querySelector("img")).toBeNull();
+    expect(screen.getByText(/^Done/u).querySelector("img")).toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "docs" }).getAttribute("href"),
+    ).toBe("https://hash.ai/docs");
+    expect(container.querySelector("[href^='javascript']")).toBeNull();
   });
 
   test("prioritizes Stop and retains disabled Send without Voice mode", () => {
@@ -5046,5 +5156,937 @@ describe("AiAssistantContents in the stock presentation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 
     expect(onSubmit).toHaveBeenCalledOnce();
+  });
+});
+
+/**
+ * FE-2134: a call that is still waiting stays answerable; one that succeeded,
+ * errored or ended unanswered must not look as though it waits. Neither an
+ * `abort` nor an `error` chunk changes a tool part's state, so an unanswered
+ * call stays `input-available`; only the panel's Stop or the message's
+ * durable ending (`metadata.stopped`, `metadata.failed`) says it will not
+ * return. A ready chat or a panel-wide error alone does not.
+ */
+describe("interactive ending", () => {
+  const decisionTool = (placement: "work" | "card") =>
+    definePetrinautAiInteractiveTool({
+      toolName: "decide",
+      placement,
+      inputParser: { parse: (value: unknown) => value },
+      outputParser: { parse: (value: unknown) => value },
+      component: ({ state, submit }) =>
+        state === "awaiting" ? (
+          <button type="button" onClick={() => submit({ approved: true })}>
+            Answer decision
+          </button>
+        ) : (
+          <span>Decision recorded</span>
+        ),
+    });
+  const decisionPart = (
+    state: "input-available" | "output-available" | "output-error",
+  ): PetrinautAiMessage["parts"][number] =>
+    state === "input-available"
+      ? {
+          type: "dynamic-tool",
+          toolName: "decide",
+          toolCallId: "decision",
+          state,
+          input: {},
+        }
+      : state === "output-available"
+        ? {
+            type: "dynamic-tool",
+            toolName: "decide",
+            toolCallId: "decision",
+            state,
+            input: {},
+            output: { approved: true },
+          }
+        : {
+            type: "dynamic-tool",
+            toolName: "decide",
+            toolCallId: "decision",
+            state,
+            input: {},
+            errorText: "Decision failed",
+          };
+  const renderDecision = ({
+    placement,
+    messages,
+    stopped,
+    onInteractiveToolSubmit = noop,
+  }: {
+    placement: "work" | "card";
+    messages: PetrinautAiMessage[];
+    stopped?: boolean;
+    onInteractiveToolSubmit?: () => void;
+  }) =>
+    render(
+      <AiAssistantContents
+        input=""
+        interactiveTools={[decisionTool(placement)]}
+        onInputChange={noop}
+        onInteractiveToolSubmit={onInteractiveToolSubmit}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        stopped={stopped}
+        messages={messages}
+      />,
+    );
+
+  test.each(["work", "card"] as const)(
+    "interactive ending: a pending %s decision stays answerable while the chat is ready",
+    (placement) => {
+      const onInteractiveToolSubmit = vi.fn();
+      renderDecision({
+        placement,
+        onInteractiveToolSubmit,
+        messages: [
+          {
+            id: "asking",
+            role: "assistant",
+            parts: [decisionPart("input-available")],
+          },
+        ],
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Answer decision" }));
+      expect(onInteractiveToolSubmit).toHaveBeenCalledOnce();
+      // Card decisions prepare in place; only work decisions ask the person.
+      expect(screen.queryByText("Waiting for your decision") !== null).toBe(
+        placement === "work",
+      );
+    },
+  );
+
+  test.each(["work", "card"] as const)(
+    "interactive ending: a succeeded %s decision keeps its result",
+    async (placement) => {
+      renderDecision({
+        placement,
+        messages: [
+          {
+            id: "answered",
+            role: "assistant",
+            parts: [decisionPart("output-available")],
+          },
+        ],
+      });
+      await expandWork();
+      expect(screen.getByText("Decision recorded")).not.toBeNull();
+      expect(screen.queryByRole("button", { name: "Answer decision" })).toBe(
+        null,
+      );
+      expect(screen.queryByText("Waiting for your decision")).toBeNull();
+    },
+  );
+
+  test.each(["work", "card"] as const)(
+    "interactive ending: a failed %s decision shows its error without the widget",
+    async (placement) => {
+      renderDecision({
+        placement,
+        messages: [
+          {
+            id: "failed",
+            role: "assistant",
+            parts: [decisionPart("output-error")],
+          },
+        ],
+      });
+      await expandWork();
+      expect(
+        screen
+          .getByRole("button", { name: /Decision failed/u })
+          .querySelector('[data-tool-status="error"]'),
+      ).not.toBeNull();
+      expect(screen.queryByRole("button", { name: "Answer decision" })).toBe(
+        null,
+      );
+      expect(screen.queryByText("Waiting for your decision")).toBeNull();
+    },
+  );
+
+  // Observed through the website panel: Stop while an approval waits renders
+  // the row Cancelled until history follow turns it into an `output-error`.
+  test("interactive ending: an unanswered work decision ended by panel Stop cannot be answered", async () => {
+    renderDecision({
+      placement: "work",
+      stopped: true,
+      messages: [
+        {
+          id: "stopped",
+          role: "assistant",
+          parts: [decisionPart("input-available")],
+        },
+      ],
+    });
+    await expandWork();
+    expect(screen.getByText("Response stopped")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Answer decision" })).toBe(
+      null,
+    );
+    expect(screen.queryByText("Waiting for your decision")).toBeNull();
+  });
+
+  // Observed through the website panel and built Brunch server: a provider
+  // failure in the step that proposes a call leaves it `input-available`,
+  // live and reopened; Brunch projects the failed outcome onto the message.
+  const removeScenarioPart = (
+    state: "input-available" | "output-available",
+  ): PetrinautAiMessage["parts"][number] =>
+    state === "input-available"
+      ? {
+          type: "dynamic-tool",
+          toolName: "removeScenario",
+          toolCallId: "remove-scenario-call",
+          state,
+          input: { scenarioId: "baseline" },
+        }
+      : {
+          type: "dynamic-tool",
+          toolName: "removeScenario",
+          toolCallId: "remove-scenario-call",
+          state,
+          input: { scenarioId: "baseline" },
+          output: { title: "Removed scenario Baseline" },
+        };
+
+  test("interactive ending: a call left unanswered by a failed response reads as no result, not pending", async () => {
+    render(
+      <AiAssistantContents
+        input=""
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        messages={[
+          {
+            id: "failed-response",
+            role: "assistant",
+            metadata: { failed: true },
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "addScenario",
+                toolCallId: "add-scenario-call",
+                state: "output-available",
+                input: {},
+                output: { title: "Added scenario Baseline" },
+              },
+              removeScenarioPart("input-available"),
+            ],
+          },
+        ]}
+      />,
+    );
+    await expandWork();
+    // Without a result, the row names the requested action, not an outcome.
+    const row = screen.getByRole("button", {
+      name: /Remove scenario /u,
+    });
+    expect(screen.queryByText(/Removed scenario/u)).toBeNull();
+    expect(row.textContent).toContain("No result — response failed");
+    expect(row.getAttribute("data-tone")).toBe("neutral");
+    expect(row.textContent).not.toContain("Running…");
+    expect(row.getAttribute("aria-busy")).toBeNull();
+    expect(row.querySelector('[data-tool-status="no-result"]')).not.toBeNull();
+    expect(row.querySelector('[data-tool-status="pending"]')).toBeNull();
+    expect(row.querySelector("[data-tool-progress-spinner]")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /Added scenario Baseline/u })
+        .textContent,
+    ).not.toContain("No result");
+    expect(screen.queryByText("Response stopped")).toBeNull();
+  });
+
+  test("interactive ending: a call still awaiting its result names the requested action", async () => {
+    render(
+      <AiAssistantContents
+        input=""
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="streaming"
+        messages={[
+          {
+            id: "pending-response",
+            role: "assistant",
+            parts: [removeScenarioPart("input-available")],
+          },
+        ]}
+      />,
+    );
+    await expandWork();
+    const row = screen.getByRole("button", {
+      name: /Remove scenario /u,
+    });
+    expect(screen.queryByText(/Removed scenario/u)).toBeNull();
+    expect(row.textContent).not.toContain("No result");
+  });
+
+  test("interactive ending: a call the failed response completed keeps its result", async () => {
+    render(
+      <AiAssistantContents
+        input=""
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        messages={[
+          {
+            id: "failed-response",
+            role: "assistant",
+            metadata: { failed: true },
+            parts: [removeScenarioPart("output-available")],
+          },
+        ]}
+      />,
+    );
+    await expandWork();
+    const row = screen.getByRole("button", {
+      name: /Removed scenario Baseline/u,
+    });
+    expect(row.querySelector('[data-tool-status="ok"]')).not.toBeNull();
+    expect(row.textContent).not.toContain("No result");
+  });
+
+  test("interactive ending: a net rename names its request until its result confirms it", async () => {
+    const renamePart = (
+      toolCallId: string,
+      state: "input-available" | "output-available",
+      title: string,
+    ): PetrinautAiMessage["parts"][number] =>
+      state === "input-available"
+        ? {
+            type: "dynamic-tool",
+            toolName: "setNetTitle",
+            toolCallId,
+            state,
+            input: { title },
+          }
+        : {
+            type: "dynamic-tool",
+            toolName: "setNetTitle",
+            toolCallId,
+            state,
+            input: { title },
+            output: {
+              applied: true,
+              title: `Renamed net to "${title}"`,
+              detail: "Previous title: Draft",
+            },
+          };
+    render(
+      <AiAssistantContents
+        input=""
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        messages={[
+          {
+            id: "renamed",
+            role: "assistant",
+            parts: [renamePart("rename-ok", "output-available", "Clinic")],
+          },
+          {
+            id: "failed-response",
+            role: "assistant",
+            metadata: { failed: true },
+            parts: [renamePart("rename-lost", "input-available", "Ward")],
+          },
+        ]}
+      />,
+    );
+    await expandWork();
+    const renamed = screen.getByRole("button", {
+      name: /Renamed net to "Clinic"/u,
+    });
+    expect(renamed.textContent).toContain("Previous title: Draft");
+    const unanswered = screen.getByRole("button", {
+      name: /Rename net to "Ward"/u,
+    });
+    expect(unanswered.textContent).toContain("No result — response failed");
+    expect(screen.queryByText(/Renaming/u)).toBeNull();
+  });
+
+  test("interactive ending: a Brunch-titled call left unanswered by a failed response names its request", async () => {
+    render(
+      <AiAssistantContents
+        input=""
+        resolveToolPresentation={resolveBrunchToolPresentation}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        messages={[
+          {
+            id: "failed-response",
+            role: "assistant",
+            metadata: { failed: true },
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "ledger_commit",
+                toolCallId: "commit-call",
+                state: "input-available",
+                input: { entries: [] },
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    await expandWork();
+    const row = screen.getByRole("button", { name: /Record in the Ledger/u });
+    expect(row.textContent).toContain("No result — response failed");
+    expect(row.getAttribute("data-tone")).toBe("neutral");
+  });
+
+  test.each(["work", "card"] as const)(
+    "interactive ending: an unanswered %s decision whose response failed reads as no result and cannot be answered",
+    async (placement) => {
+      const onInteractiveToolSubmit = vi.fn();
+      renderDecision({
+        placement,
+        onInteractiveToolSubmit,
+        messages: [
+          {
+            id: "failed-response",
+            role: "assistant",
+            metadata: { failed: true },
+            parts: [decisionPart("input-available")],
+          },
+        ],
+      });
+      await expandWork();
+      expect(
+        screen
+          .getByRole("button", { name: /No result — response failed/u })
+          .querySelector('[data-tool-status="no-result"]'),
+      ).not.toBeNull();
+      expect(screen.queryByRole("button", { name: "Answer decision" })).toBe(
+        null,
+      );
+      expect(screen.queryByText("Waiting for your decision")).toBeNull();
+      expect(
+        document.querySelector('[data-work-status="approval"]'),
+      ).toBeNull();
+      expect(onInteractiveToolSubmit).not.toHaveBeenCalled();
+    },
+  );
+
+  test("interactive ending: a decision the failed response answered keeps its result", async () => {
+    renderDecision({
+      placement: "card",
+      messages: [
+        {
+          id: "failed-response",
+          role: "assistant",
+          metadata: { failed: true },
+          parts: [decisionPart("output-available")],
+        },
+      ],
+    });
+    await expandWork();
+    expect(screen.getByText("Decision recorded")).not.toBeNull();
+    expect(screen.queryByText("No result — response failed")).toBeNull();
+  });
+
+  test("interactive ending: a decision left by an earlier failed response does not hold a later pending one", () => {
+    const onInteractiveToolSubmit = vi.fn();
+    renderDecision({
+      placement: "work",
+      onInteractiveToolSubmit,
+      messages: [
+        {
+          id: "failed-response",
+          role: "assistant",
+          metadata: { failed: true },
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "decide",
+              toolCallId: "earlier",
+              state: "input-available",
+              input: {},
+            },
+          ],
+        },
+        {
+          id: "retry",
+          role: "user",
+          parts: [{ type: "text", text: "Try again." }],
+        },
+        {
+          id: "asking",
+          role: "assistant",
+          parts: [decisionPart("input-available")],
+        },
+      ],
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Answer decision" }));
+    expect(onInteractiveToolSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ toolCallId: "decision" }),
+    );
+    expect(screen.getByText("Waiting for your decision")).not.toBeNull();
+  });
+});
+
+describe("questions docked on the composer", () => {
+  const quarantine = {
+    kind: "choose",
+    label: "Quarantined shipment",
+    text: "Quarantined shipment?",
+    options: [
+      { label: "Stays open", value: "It stays counted as an open order" },
+      { label: "Drops out", value: "It drops out until quality releases it" },
+    ],
+  };
+  const asking = (questions: unknown[]): PetrinautAiMessage => ({
+    id: "asking",
+    role: "assistant",
+    parts: [
+      { type: "text", text: "A couple of things to check." },
+      {
+        type: "dynamic-tool",
+        toolName: "offer_answers",
+        toolCallId: "offer-1",
+        state: "output-available",
+        input: { questions },
+        output: { offered: questions.length },
+      },
+      {
+        type: "dynamic-tool",
+        toolName: "ledger_commit",
+        toolCallId: "commit-1",
+        state: "output-available",
+        input: { entries: [], endTurn: true },
+        output: { status: "recorded" },
+      },
+    ],
+  });
+  const opening: PetrinautAiMessage = {
+    id: "opening",
+    role: "user",
+    parts: [{ type: "text", text: "We quarantine Flowbind on arrival." }],
+  };
+  type ContentsProps = Parameters<typeof AiAssistantContents>[0];
+  /** The contents, with the composer's text held as the panel holds it. */
+  const Docked = ({
+    input: initialInput = "",
+    ...props
+  }: Partial<ContentsProps>) => {
+    const [input, setInput] = useState(initialInput);
+    return (
+      <AiAssistantContents
+        messages={[opening, asking([quarantine])]}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        {...props}
+        input={input}
+        onInputChange={setInput}
+      />
+    );
+  };
+  const renderDock = (props: Partial<ContentsProps> = {}) => {
+    const onSendAnswer = vi.fn<(answer: string) => void>();
+    const onSubmit = vi.fn<() => void>();
+    const view = render(
+      <Docked onSendAnswer={onSendAnswer} onSubmit={onSubmit} {...props} />,
+    );
+    return { ...view, onSendAnswer, onSubmit };
+  };
+  const dock = () =>
+    screen.queryByRole("region", { name: "Brunch's questions" });
+  const composer = () =>
+    screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+  const option = (name: string) => screen.getByRole("button", { name });
+  const send = (name = "Send message") =>
+    fireEvent.click(screen.getByRole("button", { name }));
+
+  test("a click writes the option's answer into the composer, and Send sends it", () => {
+    const { onSendAnswer, onSubmit } = renderDock();
+    expect(
+      within(screen.getByTestId("ai-transcript")).queryByText(
+        /Quarantined shipment|Stays open/,
+      ),
+      "Nothing about the questions is drawn in the transcript.",
+    ).toBeNull();
+
+    fireEvent.click(option("Drops out"));
+    expect(composer().value).toBe("It drops out until quality releases it");
+    expect(document.activeElement).toBe(composer());
+    expect(option("Drops out").getAttribute("aria-pressed")).toBe("true");
+    expect(onSendAnswer).not.toHaveBeenCalled();
+
+    send();
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
+      "It drops out until quality releases it",
+    );
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(dock(), "Questions that were sent don't come back.").toBeNull();
+  });
+
+  test("another click replaces the first pick and keeps what the person typed", () => {
+    renderDock({ input: "Only for imported lots." });
+    fireEvent.click(option("Stays open"));
+    fireEvent.click(option("Drops out"));
+    expect(composer().value).toBe(
+      "It drops out until quality releases it\nOnly for imported lots.",
+    );
+    expect(option("Stays open").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  test("the person's own words in the composer are the answer", () => {
+    const { onSendAnswer } = renderDock();
+    fireEvent.change(composer(), {
+      target: { value: "Neither: it is scrapped." },
+    });
+    fireEvent.keyDown(composer(), { key: "Enter" });
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
+      "Neither: it is scrapped.",
+    );
+  });
+
+  test("pointing at an option shows its answer in full beneath the buttons", () => {
+    const { container } = renderDock();
+    const description = () =>
+      container.querySelector("[data-answer-description]")?.textContent;
+    expect(description()).toBeUndefined();
+    fireEvent.mouseEnter(option("Stays open"));
+    expect(description()).toBe("It stays counted as an open order");
+    fireEvent.mouseLeave(option("Stays open"));
+    expect(description()).toBeUndefined();
+    fireEvent.focus(option("Drops out"));
+    expect(description()).toBe("It drops out until quality releases it");
+  });
+
+  const three = [
+    quarantine,
+    { kind: "open", label: "Recent order", text: "Recent order?" },
+    { kind: "confirm", label: "Production demand", text: "Production demand?" },
+  ];
+
+  test("several questions show one at a time: Send moves on, and on the last sends them all", () => {
+    const { onSendAnswer } = renderDock({
+      messages: [opening, asking(three)],
+    });
+    expect(
+      screen.getByText("Question 1/3 · Quarantined shipment"),
+    ).not.toBeNull();
+    fireEvent.click(option("Stays open"));
+    send("Continue to next question");
+
+    expect(screen.getByText("Question 2/3 · Recent order")).not.toBeNull();
+    expect(
+      screen.getByText("Type your answer in the message box."),
+    ).not.toBeNull();
+    expect(composer().value).toBe("");
+    fireEvent.change(composer(), {
+      target: { value: "The last one took nine days." },
+    });
+    fireEvent.keyDown(composer(), { key: "Enter" });
+
+    expect(screen.getByText("Question 3/3 · Production demand")).not.toBeNull();
+    fireEvent.click(option("Yes"));
+    expect(onSendAnswer).not.toHaveBeenCalled();
+    send("Send answers");
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
+      [
+        "1. Quarantined shipment: It stays counted as an open order",
+        "2. Recent order: The last one took nine days.",
+        "3. Production demand: Yes",
+      ].join("\n"),
+    );
+  });
+
+  test("Send moves past a question left empty, and Voice stays reachable beside it", () => {
+    const onInputModeChange = vi.fn();
+    const { onSendAnswer } = renderDock({
+      messages: [opening, asking(three)],
+      onInputModeChange,
+      voiceModeAvailable: true,
+    });
+    fireEvent.click(option("Stays open"));
+    send("Continue to next question");
+    expect(composer().value).toBe("");
+    expect(
+      screen.getByRole("button", { name: "Continue to next question" }),
+    ).not.toBeNull();
+
+    fireEvent.keyDown(composer(), { key: "Enter" });
+    expect(screen.getByText("Question 3/3 · Production demand")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
+    expect(onInputModeChange).toHaveBeenCalledExactlyOnceWith("voice");
+    send("Send answers");
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
+      "1. Quarantined shipment: It stays counted as an open order\n\nNot answered yet: Recent order, Production demand.",
+    );
+  });
+
+  const followUp: PetrinautAiMessage = {
+    id: "follow-up",
+    role: "user",
+    parts: [{ type: "text", text: "The experiment finished." }],
+  };
+  const askingAgain = { ...asking([quarantine]), id: "asking-again" };
+
+  test("a reply with other questions discards the draft left for the earlier ones", () => {
+    const { onSendAnswer, rerender } = renderDock({
+      messages: [opening, asking(three)],
+    });
+    fireEvent.click(option("Stays open"));
+    send("Continue to next question");
+    fireEvent.change(composer(), { target: { value: "Nine days." } });
+
+    // A follow-up sent on its own keeps the composer's text while Brunch replies.
+    const props = { onSendAnswer, onSubmit: noop };
+    rerender(
+      <Docked
+        {...props}
+        messages={[opening, asking(three), followUp]}
+        status="streaming"
+      />,
+    );
+    rerender(
+      <Docked
+        {...props}
+        messages={[
+          opening,
+          asking(three),
+          followUp,
+          { ...asking([quarantine]), id: "asking-again" },
+        ]}
+      />,
+    );
+
+    expect(composer().value).toBe("");
+    expect(option("Stays open").getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(option("Drops out"));
+    send();
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
+      "It drops out until quality releases it",
+    );
+  });
+
+  test("a failed turn between them doesn't let the earlier draft answer the next questions", () => {
+    const { onSendAnswer, rerender } = renderDock({
+      messages: [opening, asking(three)],
+    });
+    fireEvent.click(option("Stays open"));
+    send("Continue to next question");
+    fireEvent.change(composer(), { target: { value: "Nine days." } });
+
+    const props = { onSendAnswer, onSubmit: noop };
+    // The follow-up failed: settled, with no questions showing.
+    rerender(
+      <Docked
+        {...props}
+        messages={[opening, asking(three), followUp]}
+        status="error"
+      />,
+    );
+    expect(dock()).toBeNull();
+    rerender(
+      <Docked
+        {...props}
+        messages={[opening, asking(three), followUp, askingAgain]}
+      />,
+    );
+
+    expect(composer().value).toBe("");
+  });
+
+  test("what the person types after a reply without questions stays for the next ones", () => {
+    const { onSendAnswer, rerender } = renderDock({
+      messages: [opening, asking(three)],
+    });
+    fireEvent.change(composer(), { target: { value: "Nine days." } });
+
+    const props = { onSendAnswer, onSubmit: noop };
+    const plainReply: PetrinautAiMessage = {
+      id: "plain",
+      role: "assistant",
+      parts: [{ type: "text", text: "Noted." }],
+    };
+    rerender(
+      <Docked
+        {...props}
+        messages={[opening, asking(three), followUp, plainReply]}
+      />,
+    );
+    fireEvent.change(composer(), { target: { value: "Also, we scrap it." } });
+    rerender(
+      <Docked
+        {...props}
+        messages={[opening, asking(three), followUp, plainReply, askingAgain]}
+      />,
+    );
+
+    expect(composer().value).toBe("Also, we scrap it.");
+  });
+
+  test("an equivalent message refresh keeps a focused option's description", () => {
+    const { container, rerender, onSendAnswer } = renderDock();
+    fireEvent.focus(option("Drops out"));
+    rerender(
+      <Docked
+        onSendAnswer={onSendAnswer}
+        onSubmit={noop}
+        messages={[opening, asking([quarantine])]}
+      />,
+    );
+    expect(
+      container.querySelector("[data-answer-description]")?.textContent,
+    ).toBe("It drops out until quality releases it");
+  });
+
+  test("the arrows step between questions, each keeping its answer", () => {
+    const { onSendAnswer } = renderDock({
+      messages: [opening, asking(three)],
+    });
+    fireEvent.click(option("Drops out"));
+    fireEvent.click(option("Next question"));
+    fireEvent.click(option("Next question"));
+    expect(
+      screen.getByRole("button", { name: "Send answers" }),
+      "An answer given earlier can be sent from the last question, left empty.",
+    ).not.toBeNull();
+
+    fireEvent.click(option("Previous question"));
+    fireEvent.click(option("Previous question"));
+    expect(composer().value).toBe("It drops out until quality releases it");
+    expect(option("Drops out").getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(option("Next question"));
+    fireEvent.click(option("Next question"));
+    send("Send answers");
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
+      "1. Quarantined shipment: It drops out until quality releases it\n\nNot answered yet: Recent order, Production demand.",
+    );
+  });
+
+  test("a turn of open questions docks too, each showing its wording", () => {
+    const { onSendAnswer } = renderDock({
+      messages: [
+        opening,
+        asking([
+          {
+            kind: "open",
+            label: "Recent order",
+            text: "Can you walk me through one recent order?",
+          },
+        ]),
+      ],
+    });
+    expect(
+      within(dock() as HTMLElement).getByText(
+        "Can you walk me through one recent order?",
+      ),
+    ).not.toBeNull();
+    fireEvent.change(composer(), {
+      target: { value: "It took nine days." },
+    });
+    send();
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith("It took nine days.");
+  });
+
+  test("a values question names what to type", () => {
+    renderDock({
+      messages: [
+        opening,
+        asking([
+          {
+            kind: "values",
+            label: "Reorder points",
+            text: "Reorder points?",
+            fields: [
+              { label: "Lower reorder point", unit: "units" },
+              { label: "Higher reorder point", unit: "units" },
+            ],
+          },
+        ]),
+      ],
+    });
+    expect(
+      screen.getByText(
+        "Type Lower reorder point (units), Higher reorder point (units) in the message box.",
+      ),
+    ).not.toBeNull();
+  });
+
+  test.each([
+    ["while Brunch is busy", { status: "streaming" as const }],
+    ["after the turn was stopped", { stopped: true }],
+    [
+      "when the reply asking was stopped",
+      {
+        messages: [
+          opening,
+          { ...asking([quarantine]), metadata: { stopped: true as const } },
+        ],
+      },
+    ],
+    [
+      "when the reply asking failed, though its offer succeeded",
+      {
+        messages: [
+          opening,
+          { ...asking([quarantine]), metadata: { failed: true as const } },
+        ],
+      },
+    ],
+    [
+      "when a later reply failed",
+      {
+        messages: [
+          opening,
+          asking([quarantine]),
+          {
+            id: "failed",
+            role: "assistant" as const,
+            metadata: { failed: true as const },
+            parts: [{ type: "text" as const, text: "Something went wrong." }],
+          },
+        ],
+      },
+    ],
+    ["in Voice mode", { inputMode: "voice" as const }],
+    [
+      "once the person has answered",
+      {
+        messages: [
+          opening,
+          asking([quarantine]),
+          {
+            id: "answered",
+            role: "user" as const,
+            parts: [{ type: "text" as const, text: "It drops out." }],
+          },
+        ],
+      },
+    ],
+  ] satisfies [string, Partial<ContentsProps>][])(
+    "is absent %s",
+    (_name, props) => {
+      renderDock(props);
+      expect(dock()).toBeNull();
+    },
+  );
+
+  test("without questions, Send is the composer's own", () => {
+    const { onSendAnswer, onSubmit } = renderDock({
+      input: "A message.",
+      messages: [opening],
+    });
+    send();
+    expect(onSubmit).toHaveBeenCalledOnce();
+    expect(onSendAnswer).not.toHaveBeenCalled();
   });
 });

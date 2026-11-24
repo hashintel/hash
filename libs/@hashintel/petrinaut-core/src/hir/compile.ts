@@ -2,7 +2,7 @@
  * Compilation of user code through the HIR pipeline.
  *
  * `compileHirArtifacts` batch-compiles a whole SDCPN (root net and all
- * subnets) into serializable artifact sources (`HirArtifacts`) — the only
+ * components) into serializable artifact sources (`HirArtifacts`) — the only
  * runtime compilation path. Per item it produces:
  *
  * - a buffer-ABI program (`emit-buffer-js.ts`) when the code typechecks cleanly
@@ -31,6 +31,7 @@ import {
   emitBufferMetricJs,
 } from "./emit-buffer-js";
 import { lowerTypeScriptToHir } from "./lower-typescript";
+import { inferMetricShape } from "./metric-shape";
 import {
   buildDynamicsContext,
   buildKernelContext,
@@ -39,7 +40,7 @@ import {
 } from "./surface-context";
 import { typecheckHir } from "./typecheck";
 
-import type { SDCPN, Subnet } from "../types/sdcpn";
+import type { Component, SDCPN } from "../types/sdcpn";
 import type { HirDiagnostic, HirFunction, HirFunctionSurfaceKind } from "./hir";
 import type { HirArtifacts } from "./instantiate";
 import type { HirFunctionContext, HirNetScope } from "./surface-context";
@@ -74,12 +75,16 @@ type ItemResult =
   | { ok: true; fn: HirFunction }
   | { ok: false; diagnostics: HirDiagnostic[] };
 
-function lowerAndCheck(
+export function lowerAndCheck(
   code: string,
   surface: HirFunctionSurfaceKind,
   context: HirFunctionContext | null,
 ): ItemResult {
-  const lowered = lowerTypeScriptToHir(code, surface);
+  const lowered = lowerTypeScriptToHir(
+    code,
+    surface,
+    context?.surface === "dynamics" ? { arity: context.arity } : {},
+  );
   if (!lowered.ok) {
     return { ok: false, diagnostics: lowered.diagnostics };
   }
@@ -97,7 +102,7 @@ function lowerAndCheck(
 
 /**
  * Batch-compiles all dynamics/lambda/kernel code of an SDCPN (root and
- * subnets) to buffer programs — the simulator's only compilation path.
+ * components) to buffer programs — the simulator's only compilation path.
  * Items whose code cannot be lowered, fails the schema typecheck, or does
  * not scalarize to a buffer program are reported in `failures` (mirrored by
  * the LSP as error diagnostics); such items cannot simulate.
@@ -139,20 +144,25 @@ export function compileHirArtifacts(
   const colorById = new Map(
     [
       ...sanitized.types,
-      ...(sanitized.subnets ?? []).flatMap((subnet) => subnet.types),
+      ...(sanitized.components ?? []).flatMap((component) => component.types),
     ].map((color) => [color.id, color]),
   );
 
-  const nets: { net: HirNetScope; subnet: Subnet | null }[] = [
-    { net: sanitized, subnet: null },
-    ...(sanitized.subnets ?? []).map((subnet) => ({ net: subnet, subnet })),
+  const nets: { net: HirNetScope; component: Component | null }[] = [
+    { net: sanitized, component: null },
+    ...(sanitized.components ?? []).map((component) => ({
+      net: component,
+      component,
+    })),
   ];
 
-  for (const { net, subnet } of nets) {
-    const differentialEquations = subnet
-      ? subnet.differentialEquations
+  for (const { net, component } of nets) {
+    const differentialEquations = component
+      ? component.differentialEquations
       : sanitized.differentialEquations;
-    const transitions = subnet ? subnet.transitions : sanitized.transitions;
+    const transitions = component
+      ? component.transitions
+      : sanitized.transitions;
 
     for (const de of differentialEquations) {
       const color = de.colorId ? colorById.get(de.colorId) : undefined;
@@ -162,9 +172,7 @@ export function compileHirArtifacts(
       ) {
         continue;
       }
-      const context = de.colorId
-        ? buildDynamicsContext(sanitized, de.colorId, extensions, net)
-        : null;
+      const context = buildDynamicsContext(sanitized, de, extensions, net);
       const item = lowerAndCheck(de.code, "dynamics", context);
       if (!item.ok) {
         failures.push({
@@ -174,7 +182,7 @@ export function compileHirArtifacts(
         });
         continue;
       }
-      const source = emitBufferDynamicsJs(item.fn, color.elements);
+      const source = emitBufferDynamicsJs(item.fn, color.elements, de.arity);
       if (source === null) {
         failures.push({
           itemId: de.id,
@@ -185,6 +193,7 @@ export function compileHirArtifacts(
       }
       artifacts.dynamics[de.id] = {
         source,
+        arity: de.arity,
         ...(options.includeHir ? { hir: item.fn } : {}),
       };
     }
@@ -303,6 +312,7 @@ export function compileHirArtifacts(
     artifacts.metrics[metric.id] = {
       source: program.source,
       placeNames: program.placeNames,
+      shape: inferMetricShape(item.fn, sanitized.places, sanitized.types),
       ...(options.includeHir ? { hir: item.fn } : {}),
     };
   }

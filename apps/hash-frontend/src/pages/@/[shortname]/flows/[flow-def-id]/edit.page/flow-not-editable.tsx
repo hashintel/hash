@@ -6,6 +6,15 @@ import { css } from "@hashintel/ds-helpers/css";
 import { HEADER_HEIGHT } from "../../../../../../shared/layout/layout-with-header/page-header";
 import { DsComponentsScope } from "../../../../../shared/ds-components-scope";
 
+const notEditable = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "4",
+  px: "4",
+  textAlign: "center",
+});
 const title = css({ textStyle: "base", fontWeight: "semibold" });
 
 /**
@@ -15,29 +24,23 @@ export const FlowNotEditable = () => {
   const router = useRouter();
 
   return (
-    <DsComponentsScope
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 2,
-        height: `calc(100vh - ${HEADER_HEIGHT}px)`,
-        px: 2,
-        textAlign: "center",
-      }}
-    >
-      <h2 className={title}>You can't edit this flow</h2>
-      <Button
-        variant="solid"
-        size="md"
-        iconName="arrowLeft"
-        onClick={() => {
-          void router.push("/flows");
-        }}
+    <DsComponentsScope>
+      <div
+        className={notEditable}
+        style={{ height: `calc(100vh - ${HEADER_HEIGHT}px)` }}
       >
-        Back to flows
-      </Button>
+        <h2 className={title}>You can't edit this flow</h2>
+        <Button
+          variant="solid"
+          size="md"
+          iconName="arrowLeft"
+          onClick={() => {
+            void router.push("/flows");
+          }}
+        >
+          Back to flows
+        </Button>
+      </div>
     </DsComponentsScope>
   );
 };

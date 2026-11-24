@@ -46,6 +46,7 @@ export {
   usePlaybackMode,
   usePlaybackSpeed,
   usePlaybackState,
+  usePlaybackTime,
   type PlaybackActionsBundle,
   type PlaybackSpeed,
   type PlaybackState,
@@ -69,7 +70,10 @@ export {
 } from "../state/use-read-only-reason";
 
 // Mutation + command surfaces.
-export { usePetrinautMutations } from "./use-petrinaut-mutations";
+export {
+  usePetrinautMutations,
+  type GuardedPetrinautMutations,
+} from "./use-petrinaut-mutations";
 export { usePetrinautCommands } from "./use-petrinaut-commands";
 export type {
   PetrinautCommands,

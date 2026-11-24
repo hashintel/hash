@@ -3,6 +3,7 @@ import { use } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 import { getTransitionLogicAvailability } from "@hashintel/petrinaut-core";
 
+import { CompositionContext } from "../../../../../../react/state/composition-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { createDeferredSubView } from "../../../../../components/sub-view/deferred-sub-view";
@@ -87,11 +88,13 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   const isReadOnly = useIsReadOnly();
   const presentation = usePetrinautPresentation();
   const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { libraries } = use(CompositionContext);
   const logicAvailability = getTransitionLogicAvailability(
     transition,
     petriNetDefinition,
     extensions,
     net,
+    libraries,
   );
 
   const subViews: SubView[] = [

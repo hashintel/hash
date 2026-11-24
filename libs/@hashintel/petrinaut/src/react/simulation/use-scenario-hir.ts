@@ -41,7 +41,6 @@ const projectAdHocContext = (
     name: place.name,
     colorId: place.colorId,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
   })),

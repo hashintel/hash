@@ -3,6 +3,7 @@ import { Suspense, use, useEffect } from "react";
 import {
   type CompletionItem,
   CompletionItemKind,
+  CompletionItemTag,
   Position,
 } from "@hashintel/petrinaut-core";
 
@@ -60,6 +61,9 @@ function toMonacoCompletion(
     kind: toMonacoCompletionKind(entry.kind, monaco),
     insertText: entry.insertText ?? entry.label,
     sortText: entry.sortText,
+    tags: entry.tags?.includes(CompletionItemTag.Deprecated)
+      ? [monaco.languages.CompletionItemTag.Deprecated]
+      : undefined,
     range,
   };
 }

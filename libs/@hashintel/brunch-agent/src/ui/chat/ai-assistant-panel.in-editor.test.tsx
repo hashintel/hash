@@ -11,7 +11,8 @@ import {
 import { useEffect, useState } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+import { canonicalContent } from "@hashintel/brunch-agent";
+import { createJsonDocHandle, toPetrinautId } from "@hashintel/petrinaut-core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 import {
   definePetrinautPlugin,
@@ -19,18 +20,22 @@ import {
   type PluginHook,
 } from "@hashintel/petrinaut/ui/plugin";
 
+import { createInBandBrowserCalls } from "../../client/tools/in-band-browser-call";
+import { BrunchAssistantContext, brunchPlugin } from "../editor-api-plugin";
 import {
   InProcessLspWorker,
   NoopResizeObserver,
   preloadLanguageServer,
 } from "../testing/petrinaut-jsdom";
 import { AiAssistantPanel } from "./ai-assistant-panel";
+import { fixedBrunchAssistant } from "./testing/fixed-brunch-assistant";
 
 import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
 } from "./ai-assistant-panel";
 import type { PetrinautAiAssistant } from "./petrinaut";
+import type { FlueClient } from "@flue/sdk";
 import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
 import type { UIMessageChunk } from "ai";
 
@@ -132,8 +137,6 @@ const chatPlugin = (assistant: PetrinautAiAssistant): PetrinautPlugin => {
             api={api}
             initialMessage={promptText}
             onInitialMessageConsumed={() => setPromptText(null)}
-            initialInteractionMode={promptText === null ? null : "text"}
-            onInitialInteractionModeConsumed={() => setPromptText(null)}
           />
         ),
         onPrompt: setPromptText,
@@ -188,7 +191,7 @@ const userTexts = (messages: PetrinautAiMessage[] | undefined) =>
 
 test("sends the empty-net prompt once through the chat's composer path in the editor's panel", async () => {
   const transport = transportOf([textReply("reply", "Drafted the queue.")]);
-  renderChat(() => ({ presentation: "brunch", transport }));
+  renderChat(() => ({ transport }));
 
   fireEvent.change(
     await screen.findByRole("textbox", {
@@ -213,13 +216,285 @@ test("sends the empty-net prompt once through the chat's composer path in the ed
   ).toBeTruthy();
 });
 
+const SelectionTestPlugin = definePetrinautPlugin({
+  id: "test.selection",
+  name: "Selection test",
+  description: "Hands the test the editor's navigation.",
+  author: "HASH",
+  access: { editor: "write" },
+});
+
+test("shows the editor's selection on the composer and sends it with the message", async () => {
+  const bodies: unknown[] = [];
+  const transport: PetrinautAiTransport = {
+    reconnectToStream: () => Promise.resolve(null),
+    sendMessages: ({ body }) => {
+      bodies.push(structuredClone(body));
+      return Promise.resolve(
+        streamChunks(textReply("reply", "It holds work.")),
+      );
+    },
+  };
+  let editor:
+    | Parameters<PluginHook<typeof SelectionTestPlugin>>[0]["editor"]
+    | undefined;
+  const selectionPlugin = SelectionTestPlugin((api) => {
+    editor = api.editor;
+    return {};
+  });
+  render(
+    <Petrinaut
+      handle={createJsonDocHandle({
+        initial: {
+          places: [
+            {
+              id: "queue",
+              name: "Queue",
+              colorId: null,
+              dynamicsEnabled: false,
+              x: 0,
+              y: 0,
+            },
+          ],
+          transitions: [],
+        },
+      })}
+      plugins={[selectionPlugin, chatPlugin({ transport })]}
+    />,
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Show AI assistant" }),
+  );
+  expect(screen.queryByText(/Asking about/)).toBeNull();
+
+  act(() =>
+    editor?.navigate((current) => ({
+      ...current,
+      selection: [{ type: "place", id: "queue" }],
+    })),
+  );
+  expect(await screen.findByText("Asking about place: Queue")).toBeTruthy();
+  fireEvent.change(
+    screen.getByRole("textbox", { name: "Message AI assistant" }),
+    { target: { value: "Why is this here?" } },
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+  await screen.findByText("It holds work.", {}, { timeout: 4_000 });
+  // The editor selects the ID the document stores, which Brunch's net reads
+  // also return.
+  expect(bodies).toEqual([
+    {
+      inputMode: "text",
+      selection: [{ type: "place", id: toPetrinautId("queue") }],
+    },
+  ]);
+
+  // Clearing the chip clears the editor's selection, and the next send
+  // carries none.
+  fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
+  await waitFor(() => expect(screen.queryByText(/Asking about/)).toBeNull());
+});
+
+test("lists at most 50 selected elements on the composer, shortened, and says how many more", async () => {
+  let editor:
+    | Parameters<PluginHook<typeof SelectionTestPlugin>>[0]["editor"]
+    | undefined;
+  const selectionPlugin = SelectionTestPlugin((api) => {
+    editor = api.editor;
+    return {};
+  });
+  const places = Array.from({ length: 60 }, (_, index) => ({
+    id: `place${index}`,
+    name: `Place${index}${"X".repeat(100)}`,
+    colorId: null,
+    dynamicsEnabled: false,
+    x: index * 10,
+    y: 0,
+  }));
+  render(
+    <Petrinaut
+      handle={createJsonDocHandle({
+        initial: { places, transitions: [] },
+      })}
+      plugins={[
+        selectionPlugin,
+        chatPlugin({
+          transport: {
+            reconnectToStream: () => Promise.resolve(null),
+            sendMessages: () => Promise.reject(new Error("Not sent.")),
+          },
+        }),
+      ]}
+    />,
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Show AI assistant" }),
+  );
+  act(() =>
+    editor?.navigate((current) => ({
+      ...current,
+      selection: places.map(({ id }) => ({
+        type: "place" as const,
+        id: toPetrinautId(id),
+      })),
+    })),
+  );
+  const line = await screen.findByText(/^Asking about 60 elements: /);
+  expect(line.textContent).toMatch(/… and 10 more$/);
+  const tooltip = line.getAttribute("title")?.split("\n") ?? [];
+  expect(tooltip).toHaveLength(51);
+  expect(tooltip.at(-1)).toBe("and 10 more");
+  expect(
+    tooltip
+      .slice(0, 50)
+      .every(
+        (label) => label.startsWith("place: Place") && label.length === 80,
+      ),
+  ).toBe(true);
+});
+
+test("sends a Voice turn with the selection it finished with, and shows it in the dock", async () => {
+  const bodies: unknown[] = [];
+  let releaseFirst = () => {};
+  const transport: PetrinautAiTransport = {
+    reconnectToStream: () => Promise.resolve(null),
+    sendMessages: ({ body }) => {
+      bodies.push(structuredClone(body));
+      if (bodies.length > 1) {
+        return Promise.resolve(
+          streamChunks(textReply("second", "Second answer.")),
+        );
+      }
+      // The first response stays open, so the next turn waits in the queue.
+      return Promise.resolve(
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            releaseFirst = () => {
+              for (const chunk of textReply("first", "First answer.")) {
+                controller.enqueue(chunk);
+              }
+              controller.close();
+            };
+          },
+        }),
+      );
+    },
+  };
+  let editor:
+    | Parameters<PluginHook<typeof SelectionTestPlugin>>[0]["editor"]
+    | undefined;
+  let voice:
+    | Parameters<NonNullable<PetrinautAiAssistant["renderVoiceMode"]>>[0]
+    | undefined;
+  const VoiceMode = ({
+    context,
+  }: {
+    context: Parameters<
+      NonNullable<PetrinautAiAssistant["renderVoiceMode"]>
+    >[0];
+  }) => {
+    const { reportVoiceSessionState } = context;
+    useEffect(() => {
+      reportVoiceSessionState({
+        canReadFullResponse: false,
+        canRepeatQuestion: false,
+        canTakeTurn: true,
+        errorMessage: null,
+        microphoneLevel: 0,
+        microphoneMuted: false,
+        phase: "listening",
+        speakerMuted: false,
+        speakerVolume: 1,
+      });
+      return () => reportVoiceSessionState(null);
+    }, [reportVoiceSessionState]);
+    return null;
+  };
+  const place = (id: string, name: string) => ({
+    id,
+    name,
+    colorId: null,
+    dynamicsEnabled: false,
+    x: 0,
+    y: 0,
+  });
+  render(
+    <Petrinaut
+      handle={createJsonDocHandle({
+        initial: {
+          places: [place("queue", "Queue"), place("server", "Server")],
+          transitions: [],
+        },
+      })}
+      plugins={[
+        SelectionTestPlugin((api) => {
+          editor = api.editor;
+          return {};
+        }),
+        chatPlugin({
+          transport,
+          renderVoiceMode: (context) => {
+            voice = context;
+            return <VoiceMode context={context} />;
+          },
+        }),
+      ]}
+    />,
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Show AI assistant" }),
+  );
+  act(() =>
+    editor?.navigate((current) => ({
+      ...current,
+      selection: [{ type: "place", id: "queue" }],
+    })),
+  );
+  const queue = [{ type: "place" as const, id: toPetrinautId("queue") }];
+  // The Voice dock names the selection a spoken turn will carry.
+  expect(await screen.findByText("Asking about place: Queue")).toBeTruthy();
+  expect(voice?.readSelection()).toEqual({
+    items: queue,
+    labels: ["place: Queue"],
+  });
+
+  // A selection captured as the person finished speaking wins over the
+  // editor's selection when the turn is sent.
+  const server = [{ type: "place" as const, id: toPetrinautId("server") }];
+  act(() => {
+    void voice?.submitVoiceInput({ text: "Make this two", selection: server });
+  });
+  await waitFor(() => expect(bodies).toHaveLength(1));
+
+  // A turn spoken while Brunch is busy waits, and keeps the selection it
+  // finished with though the editor's selection changes before it is sent.
+  let queued: Promise<unknown> | undefined;
+  act(() => {
+    queued = voice?.submitVoiceInput({
+      text: "Why is this here?",
+      selection: queue,
+    });
+  });
+  await waitFor(() => expect(voice?.canAcceptVoiceInput).toBe(false));
+  act(() => editor?.navigate((current) => ({ ...current, selection: [] })));
+  act(() => releaseFirst());
+  await act(async () => {
+    await queued;
+  });
+  await screen.findByText("Second answer.", {}, { timeout: 4_000 });
+  // The panel never chose Voice here, so the requests carry text mode.
+  expect(bodies).toEqual([
+    { inputMode: "text", selection: server },
+    { inputMode: "text", selection: queue },
+  ]);
+});
+
 test("runs automatic tools against the editor through refusal-aware plugin edits", async () => {
   const place = {
     id: "queue",
     name: "Queue",
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
   };
@@ -231,13 +506,12 @@ test("runs automatic tools against the editor through refusal-aware plugin edits
     const passthrough = { parse: (raw: unknown) => raw };
     const { handle } = renderChat(
       (documentHandle) => ({
-        presentation: "brunch",
         documentHandle,
         automaticTools: [
           {
             toolName: "hostAddPlace",
-            inputSchema: passthrough,
-            outputSchema: passthrough,
+            inputParser: passthrough,
+            outputParser: passthrough,
             execute: ({ edit, handle: boundHandle }) => {
               expect(boundHandle).toBe(documentHandle);
               return edit.addPlace(
@@ -291,7 +565,7 @@ test("refuses layout on a read-only net before asking for consent", async () => 
     }),
     textReply("done", "Layout refused."),
   ]);
-  renderChat(() => ({ presentation: "brunch", transport }), {
+  renderChat(() => ({ transport }), {
     readonly: true,
   });
 
@@ -320,7 +594,6 @@ test("refuses a static mutation on a read-only net before its host boundary runs
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     }),
@@ -329,10 +602,9 @@ test("refuses a static mutation on a read-only net before its host boundary runs
   const executeMutation = vi.fn<
     NonNullable<PetrinautAiAssistant["executeMutation"]>
   >(({ execute }) => execute());
-  const { handle } = renderChat(
-    () => ({ presentation: "brunch", transport, executeMutation }),
-    { readonly: true },
-  );
+  const { handle } = renderChat(() => ({ transport, executeMutation }), {
+    readonly: true,
+  });
 
   await sendFromComposer("Add a queue");
 
@@ -379,7 +651,6 @@ test("starts Voice from the composer in the editor's panel and pauses it when th
     );
   };
   renderChat(() => ({
-    presentation: "brunch",
     transport: transportOf([]),
     renderVoiceMode: (context) => <VoiceMode {...context} />,
   }));
@@ -411,4 +682,170 @@ test("starts Voice from the composer in the editor's panel and pauses it when th
   expect(pauseVoice).toHaveBeenCalledOnce();
   expect(endVoice).not.toHaveBeenCalled();
   expect(screen.getByText("Voice voice closed")).toBeTruthy();
+});
+
+test("a call claimed in one editor never runs in a replacement with identical content, and posts no result (T1)", async () => {
+  const place = {
+    id: "queue",
+    name: "Queue",
+    colorId: null,
+    dynamicsEnabled: false,
+    x: 0,
+    y: 0,
+  };
+  const binding = { conversationId: "conversation", documentId: "net" };
+  const requests: { readonly method: string; readonly url: string }[] = [];
+  // The Brunch server, as the browser calls see it: a claim is granted, and
+  // a result or failure is accepted.
+  const brunchFetch = vi.fn<typeof fetch>(async (url, init) => {
+    const method = init?.method ?? "GET";
+    requests.push({
+      method,
+      url: url instanceof Request ? url.url : url.toString(),
+    });
+    return method === "GET"
+      ? Response.json({
+          capability: "capability",
+          binding: canonicalContent(binding),
+          toolName: "addPlace",
+          input: place,
+        })
+      : new Response(null, { status: 200 });
+  });
+  // The first editor's call waits at admission, after its claim, until the
+  // editor has been replaced.
+  let admit = () => {};
+  const admission = new Promise<void>((resolve) => {
+    admit = resolve;
+  });
+  const ranOn: PetrinautDocHandle[] = [];
+  /** Whether each in-band run was already stopped when it reached its tool. */
+  const reachedToolStopped: boolean[] = [];
+  const passthrough = { parse: (raw: unknown) => raw };
+  const assistantFor = (
+    documentHandle: PetrinautDocHandle,
+    history: {
+      readonly transport: PetrinautAiTransport;
+      readonly messages: PetrinautAiMessage[];
+      readonly waitForAdmission: boolean;
+    },
+  ): PetrinautAiAssistant => {
+    const calls = createInBandBrowserCalls({
+      client: Promise.resolve({
+        url: "http://brunch.local/agents/petrinaut/instance",
+      } as FlueClient),
+      actorKey: "owner",
+      fetch: brunchFetch,
+      binding,
+      metadataFor: () => undefined,
+      prepareInput: () => {},
+      admit: history.waitForAdmission
+        ? () => admission.then(() => ({ admitted: true }) as const)
+        : async () => ({ admitted: true }),
+      // The replacement holds the same content, so its revision matches.
+      acceptsRevision: () => true,
+    });
+    return {
+      conversationId: binding.conversationId,
+      transport: history.transport,
+      // Brunch's history arrives as followed messages.
+      messages: history.messages,
+      followMessages: { canReplace: () => true },
+      documentHandle,
+      automaticTools: [
+        {
+          toolName: "addPlace",
+          inputParser: passthrough,
+          outputParser: passthrough,
+          execute: ({ edit, handle }) => {
+            ranOn.push(handle);
+            return edit.addPlace(place as Parameters<typeof edit.addPlace>[0]);
+          },
+        },
+      ],
+      inBandBrowserTools: {
+        has: calls.has,
+        run: (call, execute) =>
+          calls.run(call, (input) => {
+            reachedToolStopped.push(call.signal.aborted);
+            return execute(input);
+          }),
+      },
+    };
+  };
+
+  const firstHandle = createJsonDocHandle({ initial: emptyNet });
+  const firstTransport = transportOf([toolCall("add", "addPlace", place)]);
+  const { rerender } = render(
+    <BrunchAssistantContext
+      value={fixedBrunchAssistant(
+        assistantFor(firstHandle, {
+          transport: firstTransport,
+          messages: [],
+          waitForAdmission: true,
+        }),
+      )}
+    >
+      <Petrinaut handle={firstHandle} plugins={[brunchPlugin]} />
+    </BrunchAssistantContext>,
+  );
+  await sendFromComposer("Add a queue");
+  await waitFor(() =>
+    expect(requests).toEqual([
+      {
+        method: "GET",
+        url: expect.stringContaining("/browser-calls/add?binding=") as string,
+      },
+    ]),
+  );
+
+  // The host loads the same saved net again, into a new handle. The
+  // replacement's history shows the call, still pending.
+  const secondHandle = createJsonDocHandle({ initial: emptyNet });
+  const secondTransport = transportOf([]);
+  rerender(
+    <BrunchAssistantContext
+      value={fixedBrunchAssistant(
+        assistantFor(secondHandle, {
+          transport: secondTransport,
+          messages: [
+            ...(firstTransport.requests[0] ?? []),
+            {
+              id: "turn",
+              role: "assistant",
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolName: "addPlace",
+                  toolCallId: "add",
+                  state: "input-available",
+                  input: place,
+                },
+              ],
+            },
+          ],
+          waitForAdmission: false,
+        }),
+      )}
+    >
+      <Petrinaut handle={secondHandle} plugins={[brunchPlugin]} />
+    </BrunchAssistantContext>,
+  );
+  // Open the replacement's panel, if it isn't open already, on the same
+  // conversation.
+  const show = screen.queryByRole("button", { name: "Show AI assistant" });
+  if (show !== null) fireEvent.click(show);
+  await screen.findByRole("textbox", { name: "Message AI assistant" });
+  admit();
+  await waitFor(() => expect(reachedToolStopped).toEqual([true]));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+  expect(secondHandle.id).not.toBe(firstHandle.id);
+  // The replacement never claims or runs the call.
+  expect(ranOn).not.toContain(secondHandle);
+  expect(secondHandle.doc()?.places).toEqual([]);
+  expect(secondTransport.requests).toEqual([]);
+  // The first editor's run, stopped with its editor, posts no result and no
+  // failure: the claim is the only request.
+  expect(requests).toHaveLength(1);
 });

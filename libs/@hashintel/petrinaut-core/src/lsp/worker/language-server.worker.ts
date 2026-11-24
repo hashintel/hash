@@ -15,6 +15,7 @@
 import ts from "@typescript/typescript6";
 import {
   type CompletionItem,
+  CompletionItemTag,
   type CompletionList,
   type Hover,
   MarkupKind,
@@ -66,6 +67,7 @@ import type {
   PublishDiagnosticsParams,
   ScenarioSessionParams,
   ServerMessage,
+  NetAnalysis,
 } from "./protocol";
 
 const workerRuntime = createWorkerThreadRuntime<ClientMessage, ServerMessage>();
@@ -182,6 +184,7 @@ function sessionDocumentDiagnostics(
   const allDiags = [
     ...server.getSyntacticDiagnostics(filePath),
     ...server.getSemanticDiagnostics(filePath),
+    ...server.getDeprecationDiagnostics(filePath),
   ];
   // HIR lints assume type-valid input, so they only run once TypeScript is
   // clean; stacking both would be noise.
@@ -226,15 +229,16 @@ let netDiagnosticsCache: {
   sdcpn: SDCPN;
   extensions: PetrinautExtensionSettings;
   params: readonly PublishDiagnosticsParams[];
+  analysis: NetAnalysis;
 } | null = null;
 
-function checkAndSerializeNetDiagnostics(
+function checkNet(
   sdcpn: SDCPN,
   checkingServers: LanguageServers,
   extensions: PetrinautExtensionSettings,
-): PublishDiagnosticsParams[] {
+): { params: PublishDiagnosticsParams[]; analysis: NetAnalysis } {
   const result = checkSDCPN(sdcpn, checkingServers, extensions);
-  return result.itemDiagnostics.map((item) => {
+  const params = result.itemDiagnostics.map((item) => {
     const uri = filePathToUri(item.filePath);
     const userContent =
       languageServerForFile(checkingServers, item.filePath).getUserContent(
@@ -247,21 +251,28 @@ function checkAndSerializeNetDiagnostics(
       ),
     };
   });
+  return {
+    params,
+    analysis: {
+      metricShapes: result.metricShapes,
+      netClass: result.netClass,
+    },
+  };
 }
 
 function netDiagnostics(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
-): readonly PublishDiagnosticsParams[] {
+): { params: readonly PublishDiagnosticsParams[]; analysis: NetAnalysis } {
   if (
     netDiagnosticsCache?.sdcpn === sdcpn &&
     netDiagnosticsCache.extensions === extensions
   ) {
-    return netDiagnosticsCache.params;
+    return netDiagnosticsCache;
   }
-  const params = checkAndSerializeNetDiagnostics(sdcpn, servers!, extensions);
-  netDiagnosticsCache = { sdcpn, extensions, params };
-  return params;
+  const { params, analysis } = checkNet(sdcpn, servers!, extensions);
+  netDiagnosticsCache = { sdcpn, extensions, params, analysis };
+  return netDiagnosticsCache;
 }
 
 /** Check a captured definition in an isolated language service. */
@@ -272,7 +283,7 @@ function requestedDiagnostics(
   const requestServers = createLanguageServers();
   try {
     syncLanguageServers(requestServers, sdcpn, extensions);
-    return checkAndSerializeNetDiagnostics(sdcpn, requestServers, extensions);
+    return checkNet(sdcpn, requestServers, extensions).params;
   } finally {
     disposeLanguageServers(requestServers);
   }
@@ -287,9 +298,8 @@ function publishAllDiagnostics(
     return;
   }
 
-  const params: PublishDiagnosticsParams[] = [
-    ...netDiagnostics(sdcpn, extensions),
-  ];
+  const net = netDiagnostics(sdcpn, extensions);
+  const params: PublishDiagnosticsParams[] = [...net.params];
 
   const pushSessionDiagnostics = (
     filePaths: string[],
@@ -352,6 +362,12 @@ function publishAllDiagnostics(
     jsonrpc: "2.0",
     method: "textDocument/publishDiagnostics",
     params,
+  } satisfies ServerMessage);
+  // What the check learned about the net beyond its diagnostics.
+  workerRuntime.postMessage({
+    jsonrpc: "2.0",
+    method: "sdcpn/netAnalysis",
+    params: net.analysis,
   } satisfies ServerMessage);
 }
 
@@ -834,6 +850,9 @@ workerRuntime.onMessage((data) => {
             kind: toCompletionItemKind(entry.kind),
             sortText: entry.sortText,
             insertText: entry.insertText,
+            tags: entry.kindModifiers?.split(",").includes("deprecated")
+              ? [CompletionItemTag.Deprecated]
+              : undefined,
           }),
         );
 
@@ -879,6 +898,12 @@ workerRuntime.onMessage((data) => {
                 value: [
                   `\`\`\`typescript\n${ts.displayPartsToString(info.displayParts)}\n\`\`\``,
                   ts.displayPartsToString(info.documentation),
+                  ...(info.tags ?? [])
+                    .filter((tag) => tag.name === "deprecated")
+                    .map(
+                      (tag) =>
+                        `**Deprecated:** ${ts.displayPartsToString(tag.text)}`,
+                    ),
                 ]
                   .filter(Boolean)
                   .join("\n\n"),

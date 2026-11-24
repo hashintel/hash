@@ -1,0 +1,92 @@
+/* The histogram both kinds of slide draw. */
+
+.dice-histogram {
+  width: 100%;
+}
+
+.dice-histogram ol {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  gap: 0.75rem;
+  height: 22rem;
+  padding: 0;
+  list-style: none;
+}
+
+.dice-histogram li {
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  justify-items: center;
+  gap: 0.35rem;
+  min-height: 0;
+}
+
+.dice-histogram__plot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  min-height: 0;
+}
+
+.dice-histogram__bar {
+  width: 100%;
+  border-radius: var(--pnd-radius-sm) var(--pnd-radius-sm) 0 0;
+  background: var(--chip-border);
+  transition: height 300ms ease;
+}
+
+.dice-histogram li[data-highlight="true"] .dice-histogram__bar {
+  background: var(--accent);
+}
+
+.dice-histogram__expected {
+  position: absolute;
+  right: 0;
+  left: 0;
+  border-top: 2px dashed var(--text-primary);
+  transition: bottom 300ms ease;
+}
+
+.dice-histogram__count {
+  font-family: var(--pnd-font-mono);
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.dice-histogram__sum {
+  font-family: var(--pnd-font-mono);
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.dice-rolls {
+  display: grid;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* Shorter here, so the buttons and the takeaway fit under it. */
+.dice-rolls .dice-histogram ol {
+  height: 18rem;
+}
+
+.dice-rolls__controls {
+  display: flex;
+  gap: 1rem;
+}
+
+.deck .dice-rolls__controls button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--chip-border);
+  border-radius: var(--pnd-radius-sm);
+  background: var(--chip-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.deck .dice-rolls__controls button:hover {
+  border-color: var(--accent);
+}

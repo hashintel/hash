@@ -86,7 +86,11 @@ vi.mock("./views/Editor/editor-view", async () => {
   };
 });
 
-import { createJsonDocHandle, type SDCPN } from "@hashintel/petrinaut-core";
+import {
+  createJsonDocHandle,
+  type PetrinautRules,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 
 import { defaultPetrinautNavigationState } from "../react/navigation";
 import { Petrinaut } from "./petrinaut";
@@ -228,6 +232,30 @@ test.each([false, true])(
   },
 );
 
+test("keeps its instance while rules written inline say the same", async () => {
+  const handle = createHandle();
+  // An instance resolves the libraries on offer once, when it is created.
+  const resolveImport = vi.fn(() => undefined);
+  const libraries = ["@hashintel/logistics"];
+  const editor = (title: string, rules: PetrinautRules) => (
+    <Petrinaut
+      handle={handle}
+      title={title}
+      resolveImport={resolveImport}
+      libraries={libraries}
+      rules={rules}
+    />
+  );
+
+  const view = render(editor("First", { edit: "compose" }));
+  view.rerender(editor("Second", { edit: "compose" }));
+  await screen.findByText("Second");
+  expect(resolveImport).toHaveBeenCalledTimes(1);
+
+  view.rerender(editor("Second", { edit: "all" }));
+  await waitFor(() => expect(resolveImport).toHaveBeenCalledTimes(2));
+});
+
 /** What the run plugin's button did, in order. */
 const runCalls: string[] = [];
 
@@ -276,4 +304,16 @@ test("mounts a plugin's hook once when the editor opens", () => {
   render(<Petrinaut handle={createHandle()} plugins={[mountPlugin]} />);
 
   expect(hookMounts).toEqual(["mount"]);
+});
+
+test("includes the browser FPS shortcut without a toolbar button", () => {
+  localStorage.removeItem("petrinaut:plugin:hash.fps");
+  render(<Petrinaut handle={createHandle()} />);
+  expect(
+    screen.queryByRole("button", { name: "Toggle browser FPS" }),
+  ).toBeNull();
+  fireEvent.keyDown(window, { key: "F", metaKey: true, shiftKey: true });
+  expect(
+    JSON.parse(localStorage.getItem("petrinaut:plugin:hash.fps") ?? "{}"),
+  ).toEqual({ showFps: true });
 });

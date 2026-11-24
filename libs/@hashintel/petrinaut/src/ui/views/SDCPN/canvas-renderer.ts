@@ -19,6 +19,11 @@ export type FrameSceneResult = "framed" | "empty" | "no-renderer" | "timed-out";
 
 export type CanvasController = {
   getViewport: () => CanvasViewport;
+  /**
+   * Where the viewport will come to rest: the target of an eased move under
+   * way, or where it is now.
+   */
+  getRestViewport: () => CanvasViewport;
   /** `animate` eases the move when the renderer supports it. */
   setViewport: (
     viewport: CanvasViewport,

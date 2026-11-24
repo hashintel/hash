@@ -14,11 +14,13 @@ import {
   parseArcId,
   parseArcEndpointKey,
   placeArcEndpoint,
+  resolveComponent,
   type ArcEndpoint,
   type InputArc,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
+import { CompositionContext } from "../../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { PropertyValue } from "../../../../../components/property-value";
@@ -205,6 +207,7 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
   updateArcType,
   removeArc,
 }) => {
+  const { libraries } = use(CompositionContext);
   const parsed = parseArcId(arcId);
   if (!parsed) {
     return null;
@@ -233,10 +236,10 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
     const instance = (petriNetDefinition.componentInstances ?? []).find(
       ({ id }) => id === endpoint.componentInstanceId,
     );
-    const subnet = (fullSdcpn.subnets ?? []).find(
-      ({ id }) => id === instance?.subnetId,
-    );
-    const port = subnet?.places.find(
+    const component = instance
+      ? resolveComponent(fullSdcpn, instance.component, libraries)
+      : undefined;
+    const port = component?.places.find(
       (place) => place.id === endpoint.portPlaceId,
     );
     return `${instance?.name ?? "Unknown component"}.${

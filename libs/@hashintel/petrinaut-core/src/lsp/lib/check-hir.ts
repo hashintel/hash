@@ -104,7 +104,14 @@ export const HIR_DIAGNOSTIC_CODES: Record<string, number> = {
   "hir:to-fixed-arity": 99090,
   "hir:element-attribute-value": 99091,
   "hir:element-child": 99092,
+  "hir:count-only-input": 99093,
+  "hir:deprecated-length": 99094,
+  "hir:dynamics-arity": 99095,
 };
+
+/** Codes for syntax that still works but has a standard replacement: shown
+ * struck through, like TypeScript's own `@deprecated` reports. */
+const DEPRECATED_CODES = new Set(["hir:deprecated-length"]);
 
 const FALLBACK_CODE = 99000;
 
@@ -132,6 +139,9 @@ function toTsDiagnostic(diagnostic: HirDiagnostic): ts.Diagnostic {
     category: toTsCategory(diagnostic.severity),
     code: HIR_DIAGNOSTIC_CODES[diagnostic.code] ?? FALLBACK_CODE,
     source: "hir",
+    ...(DEPRECATED_CODES.has(diagnostic.code)
+      ? { reportsDeprecated: true as const }
+      : {}),
   };
 }
 

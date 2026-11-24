@@ -504,6 +504,12 @@ export type AcceptedKinds<ActionInputs, Input> = Input extends {
     : never;
 
 /**
+ * How much room a value typed for an input takes in the flow editor: `short` fits beside its label, `medium` is a few
+ * lines beside it, and `long` takes a line of its own.
+ */
+export type InputSize = "short" | "medium" | "long";
+
+/**
  * An action's input: the kinds it accepts, or the kind connected to another input (see `KindFrom`).
  */
 export type InputDefinition = {
@@ -512,6 +518,11 @@ export type InputDefinition = {
   array: boolean;
   required: boolean;
   default?: Payload;
+  /**
+   * How much room a value typed for it takes in the editor, where its kind doesn't settle that (see `getInputSize`).
+   * Only the editor reads it.
+   */
+  size?: InputSize;
 } & ({ oneOfPayloadKinds: readonly PayloadKind[] } | KindFrom);
 
 /**
@@ -535,7 +546,12 @@ export type ActionStepCheck = (params: {
   step: ActionStepDefinition<string>;
   /** The kind of the value connected to an input of the step, or `null` if it isn't connected or doesn't resolve. */
   getInputKind: (inputName: string) => PayloadKind | null;
-  report: (inputName: string, message: string) => void;
+  /** Reports a problem with an input, or with the part of its source at `pathInSource`, e.g. `["payload", "value", "limit"]`. */
+  report: (
+    inputName: string,
+    message: string,
+    pathInSource?: (string | number)[],
+  ) => void;
 }) => void;
 
 /**
@@ -623,8 +639,12 @@ type StepDefinitionBase = {
   /**
    * Steps this step starts after, a line drawn in the editor. Only sets order: the step's values still come from its
    * inputs. A skipped step counts as finished.
+   *
+   * With `outputName`, the step is on that output's path, such as an If's `true`, and should start only when the
+   * output is given. TODO(FE-2277): the engine and the compiled net ignore `outputName` and would start it either
+   * way, so `validateFlowDefinition` rejects it for now.
    */
-  runAfter?: { stepId: string }[];
+  runAfter?: { stepId: string; outputName?: string }[];
 };
 
 export type ActionStepDefinition<
@@ -640,6 +660,8 @@ export type ActionStepDefinition<
   /** The source of each of the action's inputs that is connected, by input name. */
   inputs: Record<string, StepInputSource>;
   retryCount?: number;
+  /** Names given to the step's paths, by output name, e.g. `{ true: "Over budget" }`. Only an editor reads them. */
+  pathNames?: Record<string, string>;
 };
 
 /**

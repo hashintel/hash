@@ -137,6 +137,23 @@ export class VirtualFileLanguageServer {
     return adjustDiagnostics(diagnostics, prefixLength, contentLength);
   }
 
+  getDeprecationDiagnostics(fileName: string): ts.Diagnostic[] {
+    const entry = this.controller.getFile(fileName);
+    const prefixLength = entry?.prefix?.length ?? 0;
+    return adjustDiagnostics(
+      this.service
+        .getSuggestionDiagnostics(fileName)
+        .filter(
+          (diagnostic) =>
+            diagnostic.reportsDeprecated &&
+            diagnostic.start >= prefixLength &&
+            diagnostic.start < prefixLength + (entry?.content.length ?? 0),
+        ),
+      prefixLength,
+      entry?.suffix ? entry.content.length : undefined,
+    );
+  }
+
   getCompletionsAtPosition(
     fileName: string,
     position: number,

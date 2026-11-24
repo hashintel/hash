@@ -59,7 +59,7 @@ export type PetrinautNavigationState = {
   /** Omission uses the panel presentation, including in existing host controllers. */
   simulatePresentation?: "panel" | "fullscreen";
   scenarioId: string | null | undefined;
-  subnetId: string | null;
+  componentId: string | null;
   selection: readonly SelectionItem[];
   expandedSubView: { container: string; id: string } | null;
   overlay: PetrinautNavigationOverlay;
@@ -71,7 +71,7 @@ export const defaultPetrinautNavigationState: PetrinautNavigationState = {
   simulateView: "experiments",
   simulateResource: null,
   scenarioId: undefined,
-  subnetId: null,
+  componentId: null,
   selection: [],
   expandedSubView: null,
   overlay: null,
@@ -86,7 +86,7 @@ export type PetrinautNavigationAction =
   | "simulation-resource"
   | "simulation-presentation"
   | "scenario"
-  | "subnet"
+  | "component"
   | "selection"
   | "subview"
   | "overlay";
@@ -188,7 +188,7 @@ export const petrinautNavigationStatesMatch = (
   (left.simulatePresentation ?? "panel") ===
     (right.simulatePresentation ?? "panel") &&
   left.scenarioId === right.scenarioId &&
-  left.subnetId === right.subnetId &&
+  left.componentId === right.componentId &&
   selectionsMatch(left.selection, right.selection) &&
   left.expandedSubView?.container === right.expandedSubView?.container &&
   left.expandedSubView?.id === right.expandedSubView?.id &&
@@ -206,7 +206,7 @@ const resolveNavigationUpdate = (
     typeof update === "function" ? update(current) : { ...current, ...update };
   const selection = canonicalizeSelection(updated.selection);
   const scopeChanged =
-    updated.subnetId !== current.subnetId ||
+    updated.componentId !== current.componentId ||
     !selectionsMatch(selection, current.selection);
 
   return {
@@ -400,11 +400,11 @@ export const openPetrinautSimulationResource =
     overlay: null,
   });
 
-export const openPetrinautSubnet =
+export const openPetrinautComponent =
   (
-    subnetId: string | null,
+    componentId: string | null,
   ): PetrinautNavigationUpdater<PetrinautNavigationState> =>
-  (current) => ({ ...current, subnetId, selection: [] });
+  (current) => ({ ...current, componentId, selection: [] });
 
 export const simulateDrawerToNavigationResource = (
   drawer: SimulateDrawerState,

@@ -20,6 +20,12 @@ export type DocChangeEvent = {
   next: SDCPN;
   patches?: PetrinautPatch[];
   source?: "local" | "remote";
+  /**
+   * Present when the change put the document at an entry of the handle's
+   * history instead of editing it: an undo, a redo or a jump. `index` is the
+   * entry's place in `history.entries`.
+   */
+  restored?: { index: number };
 };
 
 export type HistoryEntry = {

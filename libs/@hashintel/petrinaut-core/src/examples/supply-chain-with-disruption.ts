@@ -37,7 +37,6 @@ export const supplyChainWithDisruption: {
           "Reliable supplier A is operating and can take purchase orders; the token moves to SupplierADown during a disruption.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 405,
@@ -50,7 +49,6 @@ export const supplyChainWithDisruption: {
           "Supplier A is disrupted and takes no orders until it recovers.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 960,
@@ -63,7 +61,6 @@ export const supplyChainWithDisruption: {
           "Low-cost supplier B is operating and can take purchase orders; cheaper than A but riskier and slower.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 405,
@@ -76,7 +73,6 @@ export const supplyChainWithDisruption: {
           "Supplier B is disrupted and takes no orders until it recovers.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 960,
@@ -89,7 +85,6 @@ export const supplyChainWithDisruption: {
           "Warehouse stock of usable material from cleanly received inbound shipments, consumed by production batches.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 960,
@@ -102,7 +97,6 @@ export const supplyChainWithDisruption: {
           "Inbound shipments that arrived too damaged to use, written off on receipt.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 960,
@@ -115,7 +109,6 @@ export const supplyChainWithDisruption: {
           "Sellable stock: production batches that passed quality, waiting to fulfil open orders and backorders.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 2085,
@@ -128,7 +121,6 @@ export const supplyChainWithDisruption: {
           "Production batches that failed the quality check and were scrapped.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 2085,
@@ -141,7 +133,6 @@ export const supplyChainWithDisruption: {
           "Orders that completed the outbound leg and reached the customer.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 3765,
@@ -154,7 +145,6 @@ export const supplyChainWithDisruption: {
           "Outbound shipments lost or damaged in transit and never delivered.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 3765,
@@ -167,7 +157,6 @@ export const supplyChainWithDisruption: {
           "Backorders whose customers gave up waiting and cancelled.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 3195,
@@ -180,35 +169,58 @@ export const supplyChainWithDisruption: {
           "Purchase orders in transit from a supplier. The ETA-countdown dynamics run each one down to arrival, where it is received cleanly or written off as damaged.",
         colorId: "type_shipment",
         dynamicsEnabled: true,
-        differentialEquationId: "dyn_shipment_eta",
+        dynamics: [{ differentialEquationId: "dyn_shipment_eta" }],
         visualizerCode: `// Inbound lanes: each shipment is a truck whose horizontal position shows
 // how close it is to arriving (right edge = ETA 0). Blue = Supplier A,
 // purple = Supplier B (decoded from the token's \`source\` field).
-export default Visualization(({ tokens, parameters }) => {
-  const width = 520;
-  const height = 170;
-  const maxEta = Math.max(1, parameters.max_eta_visual || 10);
-  return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px" }}>
-      <rect width={width} height={height} fill="#eff6ff" />
-      <text x="18" y="26" fontSize="18" fontWeight="700" fill="#1e3a8a">Inbound lanes</text>
-      <line x1="60" y1="82" x2="470" y2="82" stroke="#93c5fd" strokeWidth="8" strokeLinecap="round" />
-      {tokens.slice(0, 18).map((t, i) => {
-        const x = 60 + (1 - Math.min(maxEta, Math.max(0, t.eta)) / maxEta) * 410;
-        const y = 58 + (i % 3) * 24;
-        const color = t.source < 1.5 ? "#2563eb" : "#7c3aed";
-        return (
-          <g key={i}>
-            <rect x={x - 11} y={y - 8} width="22" height="16" rx="3" fill={color} opacity={0.9} />
-            <circle cx={x - 6} cy={y + 10} r="3" fill="#0f172a" />
-            <circle cx={x + 7} cy={y + 10} r="3" fill="#0f172a" />
-          </g>
-        );
-      })}
-      <text x="18" y="152" fontSize="14" fill="#475569">{tokens.length} shipments moving toward dock</text>
-    </svg>
-  );
-});`,
+
+const maxEta = Math.max(1, parameters.max_eta_visual || 10);
+
+return (
+  <Visualizer.Svg backgroundColor="#eff6ff">
+    <text x="18" y="26" fontSize="18" fontWeight="700" fill="#1e3a8a">
+      Inbound lanes
+    </text>
+
+    <line
+      x1="60"
+      y1={height / 2}
+      x2={width - 50}
+      y2={height / 2}
+      stroke="#93c5fd"
+      strokeWidth="8"
+      strokeLinecap="round"
+    />
+
+    {tokens.slice(0, 18).map((t, i) => {
+      const x =
+        60 +
+        (1 - Math.min(maxEta, Math.max(0, t.eta)) / maxEta) * (width - 110);
+      const y = height / 2 - 24 + (i % 3) * 24;
+      const color = t.source < 1.5 ? "#2563eb" : "#7c3aed";
+
+      return (
+        <g key={i}>
+          <rect
+            x={x - 11}
+            y={y - 8}
+            width="22"
+            height="16"
+            rx="3"
+            fill={color}
+            opacity={0.9}
+          />
+          <circle cx={x - 6} cy={y + 10} r="3" fill="#0f172a" />
+          <circle cx={x + 7} cy={y + 10} r="3" fill="#0f172a" />
+        </g>
+      );
+    })}
+
+    <text x="18" y={height - 18} fontSize="14" fill="#475569">
+      {tokens.length} shipments moving toward dock
+    </text>
+  </Visualizer.Svg>
+);`,
         showAsInitialState: true,
         x: 405,
         y: 300,
@@ -220,36 +232,67 @@ export default Visualization(({ tokens, parameters }) => {
           "Batches on the factory floor. Dynamics count their remaining processing time down while quality decays; each finishes as a good batch or scrap.",
         colorId: "type_batch",
         dynamicsEnabled: true,
-        differentialEquationId: "dyn_batch_processing",
+        dynamics: [{ differentialEquationId: "dyn_batch_processing" }],
         visualizerCode: `// Factory WIP: one card per in-process batch. The fill bar shows processing
 // progress (toward completion) and the % label is current quality; the bar
 // turns green when quality is above the minimum and red when it has decayed
 // below it (i.e. the batch is heading for scrap).
-export default Visualization(({ tokens, parameters }) => {
-  const width = 520;
-  const height = 170;
-  const maxTime = Math.max(1, parameters.production_time_mean || 3);
-  return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px" }}>
-      <rect width={width} height={height} fill="#f0fdf4" />
-      <text x="18" y="26" fontSize="18" fontWeight="700" fill="#14532d">Factory WIP</text>
-      {tokens.slice(0, 14).map((b, i) => {
-        const progress = 1 - Math.min(maxTime, Math.max(0, b.processing_left)) / maxTime;
-        const x = 24 + (i % 7) * 68;
-        const y = 46 + Math.floor(i / 7) * 52;
-        const fill = b.quality >= parameters.min_quality ? "#22c55e" : "#ef4444";
-        return (
-          <g key={i}>
-            <rect x={x} y={y} width="52" height="34" rx="6" fill="#dcfce7" stroke="#166534" />
-            <rect x={x} y={y + 25} width={52 * progress} height="9" rx="3" fill={fill} />
-            <text x={x + 26} y={y + 20} textAnchor="middle" fontSize="12" fill="#14532d">{Math.round(b.quality * 100)}%</text>
-          </g>
-        );
-      })}
-      <text x="18" y="154" fontSize="14" fill="#166534">{tokens.length} batches being processed</text>
-    </svg>
-  );
-});`,
+
+const columns = Math.max(1, Math.floor((width - 48) / 68));
+const rows = Math.max(1, Math.floor((height - 80) / 52));
+
+const maxTime = Math.max(1, parameters.production_time_mean || 3);
+
+return (
+  <Visualizer.Svg backgroundColor="#f0fdf4">
+    <text x="18" y="26" fontSize="18" fontWeight="700" fill="#14532d">
+      Factory WIP
+    </text>
+
+    {tokens.slice(0, columns * rows).map((b, i) => {
+      const progress =
+        1 - Math.min(maxTime, Math.max(0, b.processing_left)) / maxTime;
+      const x = 24 + (i % columns) * 68;
+      const y = 46 + Math.floor(i / columns) * 52;
+      const fill = b.quality >= parameters.min_quality ? "#22c55e" : "#ef4444";
+
+      return (
+        <g key={i}>
+          <rect
+            x={x}
+            y={y}
+            width="52"
+            height="34"
+            rx="6"
+            fill="#dcfce7"
+            stroke="#166534"
+          />
+          <rect
+            x={x}
+            y={y + 25}
+            width={52 * progress}
+            height="9"
+            rx="3"
+            fill={fill}
+          />
+          <text
+            x={x + 26}
+            y={y + 20}
+            textAnchor="middle"
+            fontSize="12"
+            fill="#14532d"
+          >
+            {Math.round(b.quality * 100)}%
+          </text>
+        </g>
+      );
+    })}
+
+    <text x="18" y={height - 18} fontSize="14" fill="#166534">
+      {tokens.length} batches being processed
+    </text>
+  </Visualizer.Svg>
+);`,
         showAsInitialState: true,
         x: 1515,
         y: 300,
@@ -261,30 +304,55 @@ export default Visualization(({ tokens, parameters }) => {
           "New customer orders awaiting same-day fulfilment from stock; those that outlive their promised lead time convert to backorders.",
         colorId: "type_order",
         dynamicsEnabled: true,
-        differentialEquationId: "dyn_order_age",
+        dynamics: [{ differentialEquationId: "dyn_order_age" }],
         visualizerCode: `// Customer queue: one dot per open order. Red = past its promised lead time
 // (late), orange = on-time VIP, pale orange = on-time standard. The bottom
 // bar grows with the queue length.
-export default Visualization(({ tokens, parameters }) => {
-  const width = 520;
-  const height = 170;
-  const urgent = tokens.filter(o => o.age > o.promised_lead_time).length;
-  return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px" }}>
-      <rect width={width} height={height} fill="#fff7ed" />
-      <text x="18" y="26" fontSize="18" fontWeight="700" fill="#9a3412">Customer queue</text>
-      {tokens.slice(0, 40).map((o, i) => {
-        const x = 24 + (i % 20) * 23;
-        const y = 48 + Math.floor(i / 20) * 34;
-        const late = o.age > o.promised_lead_time;
-        const fill = late ? "#dc2626" : (o.priority > 0.5 ? "#f97316" : "#fdba74");
-        return <circle key={i} cx={x} cy={y} r="8" fill={fill} stroke="#7c2d12" strokeWidth="1" />;
-      })}
-      <text x="18" y="134" fontSize="14" fill="#9a3412">{tokens.length} open orders · {urgent} late</text>
-      <rect x="18" y="145" width={Math.min(480, tokens.length * 8)} height="10" rx="5" fill="#fb923c" />
-    </svg>
-  );
-});`,
+
+const columns = Math.max(1, Math.floor((width - 48) / 23));
+const rows = Math.max(1, Math.floor((height - 100) / 34));
+
+const urgent = tokens.filter((o) => o.age > o.promised_lead_time).length;
+
+return (
+  <Visualizer.Svg backgroundColor="#fff7ed">
+    <text x="18" y="26" fontSize="18" fontWeight="700" fill="#9a3412">
+      Customer queue
+    </text>
+
+    {tokens.slice(0, columns * rows).map((o, i) => {
+      const x = 24 + (i % columns) * 23;
+      const y = 48 + Math.floor(i / columns) * 34;
+      const late = o.age > o.promised_lead_time;
+      const fill = late ? "#dc2626" : o.priority > 0.5 ? "#f97316" : "#fdba74";
+
+      return (
+        <circle
+          key={i}
+          cx={x}
+          cy={y}
+          r="8"
+          fill={fill}
+          stroke="#7c2d12"
+          strokeWidth="1"
+        />
+      );
+    })}
+
+    <text x="18" y={height - 36} fontSize="14" fill="#9a3412">
+      {tokens.length} open orders · {urgent} late
+    </text>
+
+    <rect
+      x="18"
+      y={height - 25}
+      width={Math.min(width - 36, tokens.length * 8)}
+      height="10"
+      rx="5"
+      fill="#fb923c"
+    />
+  </Visualizer.Svg>
+);`,
         showAsInitialState: true,
         x: 2085,
         y: 585,
@@ -296,26 +364,41 @@ export default Visualization(({ tokens, parameters }) => {
           "Orders that missed their promised lead time and now wait for replenished stock, at growing risk of cancellation as they age.",
         colorId: "type_order",
         dynamicsEnabled: true,
-        differentialEquationId: "dyn_order_age",
+        dynamics: [{ differentialEquationId: "dyn_order_age" }],
         visualizerCode: `// Backorder heat: one bar per backorder, taller the longer it has waited.
 // Dark red bars are VIP orders. Tall bars signal customers about to cancel.
-export default Visualization(({ tokens, parameters }) => {
-  const width = 520;
-  const height = 150;
-  const maxAge = tokens.reduce((m, o) => Math.max(m, o.age), 0);
-  return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px" }}>
-      <rect width={width} height={height} fill="#fef2f2" />
-      <text x="18" y="26" fontSize="18" fontWeight="700" fill="#991b1b">Backorder heat</text>
-      {tokens.slice(0, 30).map((o, i) => {
-        const h = Math.min(90, 12 + o.age * 6);
-        const x = 22 + i * 16;
-        return <rect key={i} x={x} y={124 - h} width="11" height={h} rx="3" fill={o.priority > 0.5 ? "#7f1d1d" : "#ef4444"} opacity="0.85" />;
-      })}
-      <text x="18" y="142" fontSize="14" fill="#991b1b">{tokens.length} waiting · oldest {maxAge.toFixed(1)} days</text>
-    </svg>
-  );
-});`,
+
+const maxAge = tokens.reduce((m, o) => Math.max(m, o.age), 0);
+
+return (
+  <Visualizer.Svg backgroundColor="#fef2f2">
+    <text x="18" y="26" fontSize="18" fontWeight="700" fill="#991b1b">
+      Backorder heat
+    </text>
+
+    {tokens.slice(0, Math.max(1, Math.floor((width - 44) / 16))).map((o, i) => {
+      const h = Math.min(height - 70, 12 + o.age * 6);
+      const x = 22 + i * 16;
+
+      return (
+        <rect
+          key={i}
+          x={x}
+          y={height - 30 - h}
+          width="11"
+          height={h}
+          rx="3"
+          fill={o.priority > 0.5 ? "#7f1d1d" : "#ef4444"}
+          opacity="0.85"
+        />
+      );
+    })}
+
+    <text x="18" y={height - 18} fontSize="14" fill="#991b1b">
+      {tokens.length} waiting · oldest {maxAge.toFixed(1)} days
+    </text>
+  </Visualizer.Svg>
+);`,
         showAsInitialState: true,
         x: 2640,
         y: 585,
@@ -327,32 +410,54 @@ export default Visualization(({ tokens, parameters }) => {
           "Fulfilled orders on the last-mile leg to the customer; each arrives and is delivered, or is lost or damaged in transit.",
         colorId: "type_shipment",
         dynamicsEnabled: true,
-        differentialEquationId: "dyn_shipment_eta",
+        dynamics: [{ differentialEquationId: "dyn_shipment_eta" }],
         visualizerCode: `// Last-mile deliveries: outbound shipments (vans) move left-to-right as
 // their ETA counts down to 0, at which point they are delivered (or lost).
-export default Visualization(({ tokens, parameters }) => {
-  const width = 520;
-  const height = 150;
-  const maxEta = Math.max(1, parameters.outbound_lead_time * 2 || 3);
-  return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px" }}>
-      <rect width={width} height={height} fill="#f8fafc" />
-      <text x="18" y="26" fontSize="18" fontWeight="700" fill="#334155">Last-mile deliveries</text>
-      <line x1="55" y1="82" x2="470" y2="82" stroke="#cbd5e1" strokeWidth="7" strokeLinecap="round" />
-      {tokens.slice(0, 20).map((t, i) => {
-        const x = 55 + (1 - Math.min(maxEta, Math.max(0, t.eta)) / maxEta) * 415;
-        const y = 60 + (i % 2) * 30;
-        return (
-          <g key={i}>
-            <rect x={x - 10} y={y - 7} width="20" height="14" rx="3" fill="#0f766e" />
-            <path d={\`M \${x + 12} \${y} l 13 -8 v 16 z\`} fill="#14b8a6" />
-          </g>
-        );
-      })}
-      <text x="18" y="136" fontSize="14" fill="#475569">{tokens.length} customer shipments in transit</text>
-    </svg>
-  );
-});`,
+
+const maxEta = Math.max(1, parameters.outbound_lead_time * 2 || 3);
+
+return (
+  <Visualizer.Svg backgroundColor="#f8fafc">
+    <text x="18" y="26" fontSize="18" fontWeight="700" fill="#334155">
+      Last-mile deliveries
+    </text>
+
+    <line
+      x1="55"
+      y1={height / 2}
+      x2={width - 50}
+      y2={height / 2}
+      stroke="#cbd5e1"
+      strokeWidth="7"
+      strokeLinecap="round"
+    />
+
+    {tokens.slice(0, 20).map((t, i) => {
+      const x =
+        55 +
+        (1 - Math.min(maxEta, Math.max(0, t.eta)) / maxEta) * (width - 105);
+      const y = height / 2 - 15 + (i % 2) * 30;
+
+      return (
+        <g key={i}>
+          <rect
+            x={x - 10}
+            y={y - 7}
+            width="20"
+            height="14"
+            rx="3"
+            fill="#0f766e"
+          />
+          <path d={\`M \${x + 12} \${y} l 13 -8 v 16 z\`} fill="#14b8a6" />
+        </g>
+      );
+    })}
+
+    <text x="18" y={height - 18} fontSize="14" fill="#475569">
+      {tokens.length} customer shipments in transit
+    </text>
+  </Visualizer.Svg>
+);`,
         showAsInitialState: true,
         x: 3195,
         y: 420,
@@ -364,24 +469,58 @@ export default Visualization(({ tokens, parameters }) => {
           "The factory machine while operational. Its health and wear drift over time and gate whether production can start.",
         colorId: "type_machine",
         dynamicsEnabled: true,
-        differentialEquationId: "dyn_machine_health",
-        visualizerCode: `export default Visualization(({ tokens, parameters }) => {
-  const m = tokens[0] || { health: 0, wear: 1 };
-  const health = Math.max(0, Math.min(1, m.health));
-  const wear = Math.max(0, Math.min(1, m.wear));
-  return (
-    <svg viewBox="0 0 360 130" style={{ width: "100%", borderRadius: "8px" }}>
-      <rect width="360" height="130" fill="#f8fafc" />
-      <text x="18" y="26" fontSize="17" fontWeight="700" fill="#334155">Machine condition</text>
-      <rect x="26" y="48" width="260" height="22" rx="11" fill="#e2e8f0" />
-      <rect x="26" y="48" width={260 * health} height="22" rx="11" fill={health > 0.5 ? "#22c55e" : "#f59e0b"} />
-      <text x="300" y="65" fontSize="13" fill="#334155">health</text>
-      <rect x="26" y="86" width="260" height="18" rx="9" fill="#e2e8f0" />
-      <rect x="26" y="86" width={260 * wear} height="18" rx="9" fill="#64748b" />
-      <text x="300" y="100" fontSize="13" fill="#334155">wear</text>
-    </svg>
-  );
-});`,
+        dynamics: [{ differentialEquationId: "dyn_machine_health" }],
+        visualizerCode: `const m = tokens[0] || { health: 0, wear: 1 };
+const health = Math.max(0, Math.min(1, m.health));
+const wear = Math.max(0, Math.min(1, m.wear));
+
+return (
+  <Visualizer.Svg backgroundColor="#f8fafc">
+    <text x="18" y="26" fontSize="17" fontWeight="700" fill="#334155">
+      Machine condition
+    </text>
+
+    <rect
+      x="26"
+      y={height * 0.4}
+      width={width - 100}
+      height="22"
+      rx="11"
+      fill="#e2e8f0"
+    />
+    <rect
+      x="26"
+      y={height * 0.4}
+      width={(width - 100) * health}
+      height="22"
+      rx="11"
+      fill={health > 0.5 ? "#22c55e" : "#f59e0b"}
+    />
+    <text x={width - 60} y={height * 0.4 + 17} fontSize="13" fill="#334155">
+      health
+    </text>
+
+    <rect
+      x="26"
+      y={height * 0.7}
+      width={width - 100}
+      height="18"
+      rx="9"
+      fill="#e2e8f0"
+    />
+    <rect
+      x="26"
+      y={height * 0.7}
+      width={(width - 100) * wear}
+      height="18"
+      rx="9"
+      fill="#64748b"
+    />
+    <text x={width - 60} y={height * 0.7 + 14} fontSize="13" fill="#334155">
+      wear
+    </text>
+  </Visualizer.Svg>
+);`,
         showAsInitialState: true,
         x: 960,
         y: 735,
@@ -393,7 +532,6 @@ export default Visualization(({ tokens, parameters }) => {
           "The factory machine while broken down, halting production until it is repaired.",
         colorId: "type_machine",
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 405,
@@ -1214,56 +1352,62 @@ return {};`,
         id: "dyn_shipment_eta",
         name: "Shipment ETA countdown",
         colorId: "type_shipment",
-        code: `// Counts each shipment's ETA down by 1 per simulated unit of time. Dynamics
+        arity: 1,
+        code: `// Counts the shipment's ETA down by 1 per simulated unit of time. Dynamics
 // return DERIVATIVES, so eta: -1 means "decrease eta at rate 1"; once it
 // reaches 0 the derivative becomes 0 (it holds, ready for arrival predicates).
 // All other attributes are constant during transit (derivative 0).
-return tokens.map(({ eta }) => ({
-  eta: eta > 0 ? -1 : 0,
+return {
+  eta: token.eta > 0 ? -1 : 0,
   risk_score: 0,
   cost: 0,
-}));`,
+};`,
       },
       {
         id: "dyn_order_age",
         name: "Order aging",
         colorId: "type_order",
+        arity: 1,
         code: `// Every waiting order ages at a constant rate (age derivative = 1), driving
 // the backorder-conversion and cancellation hazards that depend on age.
-return tokens.map(() => ({
+return {
   age: 1,
   priority: 0,
   promised_lead_time: 0,
-}));`,
+};`,
       },
       {
         id: "dyn_batch_processing",
         name: "Batch processing countdown",
         colorId: "type_batch",
+        arity: 1,
         code: `// While a batch is in process, processing_left counts down toward 0 and its
 // quality slowly decays. So a batch that sits in WIP too long can drift below
 // the minimum quality and end up scrapped rather than finished.
-return tokens.map(({ processing_left, quality, source_mix, cost }) => ({
+const { processing_left, quality } = token;
+return {
   processing_left: processing_left > 0 ? -parameters.production_progress_rate : 0,
   // Decay stops at 0 so quality stays within its implied [0, 1] range
   // (a batch is scrapped once it falls below the minimum quality anyway).
   quality: quality > 0 ? -parameters.quality_decay_rate : 0,
   source_mix: 0,
   cost: 0,
-}));`,
+};`,
       },
       {
         id: "dyn_machine_health",
         name: "Machine health drift",
         colorId: "type_machine",
+        arity: 1,
         code: `// The running machine continuously loses a little health and gains a little
 // wear even between batches. Combined with the per-batch wear in production,
 // this is the slow degradation that maintenance and repair counteract.
-return tokens.map(({ health, wear }) => ({
+const { health, wear } = token;
+return {
   health: health > 0 ? -parameters.machine_health_decay : 0,
   // Wear accrues only up to 1 so it stays within its implied [0, 1] range.
   wear: wear < 1 ? parameters.machine_wear_rate : 0,
-}));`,
+};`,
       },
     ],
     parameters: [

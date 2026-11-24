@@ -17,13 +17,22 @@ import remarkDirective from "remark-directive";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-import { defineConfig } from "vite";
+import { defineConfig, searchForWorkspaceRoot } from "vite";
 
+import { examplesRoot } from "../src/slides/folders.ts";
 import { resolveDiffCompareContext } from "./src/diff-context.ts";
+import { deckExportPlugin } from "./src/plugins/deck-export/index.ts";
+import { deckAliases } from "./src/plugins/deck-specifier.ts";
+import { decksPlugin } from "./src/plugins/decks.ts";
+import { remarkDocSteps } from "./src/plugins/doc-steps.mjs";
 import { rehypeFormulas } from "./src/plugins/formulas.mjs";
 import { rehypeInlineDiagrams } from "./src/plugins/inline-diagrams.mjs";
+import { remarkLayerCards } from "./src/plugins/layer-cards.mjs";
 import { reloadDiagrams } from "./src/plugins/reload-diagrams.mjs";
 import { remarkAsides } from "./src/plugins/remark-asides.mjs";
+import { remarkSchemeLinks } from "./src/plugins/scheme-links.mjs";
+import { remarkSlideDiagrams } from "./src/plugins/slide-diagrams.ts";
+import { remarkSlideMetadata } from "./src/plugins/slide-metadata.mjs";
 
 import type { BundleManifest } from "../src/bundle/outputs.ts";
 
@@ -33,6 +42,14 @@ const contentPath = (name: string): string =>
 const manifest = JSON.parse(
   readFileSync(contentPath("manifest.json"), "utf8"),
 ) as BundleManifest;
+
+/** The instance's decks, read from wherever `site.json` says they are. */
+const slidesRoot = (
+  JSON.parse(readFileSync(contentPath("site.json"), "utf8")) as {
+    slides: string | null;
+  }
+).slides;
+const siteSource = fileURLToPath(new URL("./src", import.meta.url));
 
 export default defineConfig(async () => ({
   // Astro's prerender entry resolved its own dependencies; this one has none
@@ -55,10 +72,57 @@ export default defineConfig(async () => ({
           remarkMath,
           remarkDirective,
           remarkAsides,
+          [
+            remarkLayerCards,
+            {
+              docsDirectory: contentPath("docs/"),
+              // The bundle's model, which the site serves from `public/`.
+              modelPath: fileURLToPath(
+                new URL("./public/architecture.json", import.meta.url),
+              ),
+            },
+          ],
+          [
+            remarkSchemeLinks,
+            {
+              slugs: new Set(manifest.pages.map((page) => page.slug)),
+              docsDirectory: contentPath("docs/"),
+            },
+          ],
+          [
+            remarkSlideMetadata,
+            {
+              docsDirectory: contentPath("docs/"),
+              diagramsDirectory: contentPath("diagrams"),
+            },
+          ],
+          [
+            remarkDocSteps,
+            {
+              docsDirectory: contentPath("docs/"),
+              diagramsDirectory: contentPath("diagrams"),
+            },
+          ],
+          // After the step count, which reads the d2 source this replaces.
+          [
+            remarkSlideDiagrams,
+            {
+              docsDirectory: contentPath("docs/"),
+              cwd: fileURLToPath(new URL("..", import.meta.url)),
+              fontsDirectory: fileURLToPath(
+                new URL("../fonts", import.meta.url),
+              ),
+            },
+          ],
         ],
         rehypePlugins: [
           rehypeSlug,
-          rehypeInlineDiagrams,
+          [
+            rehypeInlineDiagrams,
+            { diagramsDirectory: contentPath("diagrams") },
+          ],
+          // Formulas render here, so a page ships no math runtime; one
+          // KaTeX cannot parse stops the build instead of shipping in red.
           rehypeFormulas,
           [
             rehypeShiki,
@@ -84,11 +148,40 @@ export default defineConfig(async () => ({
       diagramsDirectory: contentPath("diagrams/"),
       docsDirectory: contentPath("docs/"),
     }),
+    decksPlugin(slidesRoot),
+    deckExportPlugin(slidesRoot),
   ],
+  resolve: {
+    // What a deck may import (`src/slides/index.ts` is the list), the
+    // deck folder itself, wherever it is, and the examples.
+    alias: [
+      {
+        find: /^@archinaut\/slides$/u,
+        replacement: `${siteSource}/slides/index.ts`,
+      },
+      ...(slidesRoot === null
+        ? []
+        : [{ find: deckAliases.instance, replacement: slidesRoot }]),
+      { find: deckAliases.example, replacement: examplesRoot },
+    ],
+    // A deck outside the workspace resolves React from its own folder up;
+    // there must be one React.
+    dedupe: ["react", "react-dom", "@mdx-js/react"],
+  },
   build: {
     // Lightning CSS folds animation longhands into a shorthand no browser
     // accepts with a timeline in it, which kills the scroll-driven fades.
     cssMinify: "esbuild" as const,
   },
-  server: { host: "localhost" },
+  server: {
+    host: "localhost",
+    fs: {
+      // The workspace, as Vite allows by default, plus the deck folder when
+      // it lies outside the workspace.
+      allow: [
+        searchForWorkspaceRoot(siteSource),
+        ...(slidesRoot === null ? [] : [slidesRoot]),
+      ],
+    },
+  },
 }));

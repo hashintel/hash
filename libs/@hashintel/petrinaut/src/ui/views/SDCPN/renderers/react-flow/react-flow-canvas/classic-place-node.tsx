@@ -4,7 +4,7 @@ import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
-import { usePlaceTokenCount } from "../../../canvas-frame-store";
+import { usePlaceTokenLabel } from "../../../canvas-frame-store";
 import {
   classicNodeBoxStyle,
   classicNodeLabelStyle,
@@ -14,6 +14,7 @@ import { nodeFocusStyle } from "../../../styles/focus";
 import { nodeSurfaceStyle } from "../../../styles/node-surface";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
 import { PlaceStateTooltip } from "./place-state-tooltip";
+import { portPlaceLabels, PortPins } from "./port-pin";
 import { NodeHandles } from "./shared/node-handles";
 
 import type { PlaceNodeType } from "./react-flow-types";
@@ -38,6 +39,15 @@ const placeBoxStyle = css({
 
 const placeRowStyle = css({
   height: "[18px]",
+  gap: "[4px]",
+});
+
+const portCaptionStyle = css({
+  fontSize: "[11px]",
+  fontWeight: "medium",
+  lineHeight: "[1]",
+  color: "neutral.s90",
+  whiteSpace: "nowrap",
 });
 
 const placeLabelStyle = css({
@@ -71,18 +81,11 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   selected,
 }: NodeProps<PlaceNodeType>) => {
   // A frame re-renders this place only when its own count moves.
-  const tokenCount = usePlaceTokenCount(id);
+  const tokenLabel = usePlaceTokenLabel(id);
 
-  // Show the visualizer on hover for places that define one, and keep it up
-  // for as long as it is pinned. Before a run it draws the initial marking,
-  // so a net still being built is worth pointing at too.
   const showStateTooltip =
-    data.hasColorType &&
     data.hasVisualizer &&
-    // Dragging the place would carry the box along over the canvas it is
-    // being dropped on, and redraw the visualizer every frame of the drag.
-    !data.dragging &&
-    (data.hovered || data.visualizerPinned);
+    (data.visualizerKeptOpen || data.visualizerActive || selected);
 
   // Wrap points let a long name break inside the box instead of clipping.
   const label = withLabelWrapPoints(data.label);
@@ -108,15 +111,23 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
               <Icon name="function" size="sm" />
             </div>
           ) : null}
+          {data.portDirection === null ? null : (
+            <span className={portCaptionStyle}>
+              {portPlaceLabels[data.portDirection]}
+            </span>
+          )}
         </div>
         <div className={`${classicNodeLabelStyle} ${placeLabelStyle}`}>
           {label}
         </div>
         <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
-          {tokenCount === null ? null : (
-            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
+          {tokenLabel === null ? null : (
+            <div className={tokenCountBadgeStyle}>{tokenLabel}</div>
           )}
         </div>
+        {data.portDirection === null ? null : (
+          <PortPins direction={data.portDirection} typeColor={data.typeColor} />
+        )}
       </div>
       <NodeHandles isConnectable={isConnectable} />
     </div>

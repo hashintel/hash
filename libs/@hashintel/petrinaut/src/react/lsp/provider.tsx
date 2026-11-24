@@ -16,6 +16,7 @@ import { createLanguageServerWorker } from "@hashintel/petrinaut-core/workers/ls
 
 import { createValueStore } from "../create-value-store";
 import { SDCPNContext } from "../state/sdcpn-context";
+import { useExecutableDefinition } from "../state/use-executable-definition";
 import { useStore } from "../use-store";
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
@@ -33,12 +34,15 @@ export const LanguageClientProvider: React.FC<{
   /**
    * Optional LSP worker factory. When provided, used instead of the bundled
    * inlined-blob default (which can fail under some host bundler setups when
-   * consuming the published dist). Mirrors `simulationWorkerFactory` on
-   * SimulationProvider.
+   * consuming the published dist). Mirrors `eventSimulationWorkerFactory`
+   * on PetrinautProvider.
    */
   workerFactory?: LspWorkerFactory;
 }> = ({ children, workerFactory }) => {
-  const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { extensions } = use(SDCPNContext);
+  // Code is checked against the net that runs: the ports of a component of
+  // an import are places only once it is inlined.
+  const petriNetDefinition = useExecutableDefinition();
 
   /**
    * Create the language client inside a useEffect rather than `useState`'s
@@ -110,6 +114,7 @@ export const LanguageClientProvider: React.FC<{
     requestHover: client.requestHover,
     requestSignatureHelp: client.requestSignatureHelp,
     requestDiagnostics: client.requestDiagnostics,
+    netAnalysis: client.netAnalysis,
     requestHirArtifacts: client.requestHirArtifacts,
     requestScenarioHir: client.requestScenarioHir,
     requestFormatExpression: client.requestFormatExpression,

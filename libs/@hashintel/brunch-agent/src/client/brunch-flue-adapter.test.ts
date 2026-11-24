@@ -15,7 +15,12 @@ import type {
   FlueConversationSettlement,
 } from "@flue/sdk";
 
-const agentMetadata = { stopped: true, source: "voice", unrendered: 1 };
+const agentMetadata = {
+  stopped: true,
+  failed: true,
+  source: "voice",
+  unrendered: 1,
+};
 
 const runLiveTurn = async (
   outcome: FlueConversationSettlement["outcome"],
@@ -116,8 +121,8 @@ test("reopens contextual user turns as human text, never as host framing", () =>
   ]);
 });
 
-describe("Brunch's stop marker through Petrinaut's metadata schema", () => {
-  test("a completed response drops agent-authored `stopped` and keys Petrinaut does not render", async () => {
+describe("Brunch's ending markers through Petrinaut's metadata schema", () => {
+  test("a completed response drops agent-authored ending markers and keys Petrinaut does not render", async () => {
     const live = await runLiveTurn("completed");
 
     expect(live?.metadata).toEqual({ source: "voice" });
@@ -130,9 +135,16 @@ describe("Brunch's stop marker through Petrinaut's metadata schema", () => {
     expect(live?.metadata).toEqual({ source: "voice", stopped: true });
     expect(reopen("aborted")).toEqual({ source: "voice", stopped: true });
   });
+
+  test("a failed response is failed, live and after reopen", async () => {
+    const live = await runLiveTurn("failed");
+
+    expect(live?.metadata).toEqual({ source: "voice", failed: true });
+    expect(reopen("failed")).toEqual({ source: "voice", failed: true });
+  });
 });
 
-test("a reopened turn of Ledger comments reads as the user's message, as it was sent", () => {
+test("a reopened turn of Ledger comments reads as the user's message, marked as comments as it was sent", () => {
   const { body, tagName } = ledgerCommentsMessage([
     { id: "n1", records: ["e1"], text: "There are two crews." },
   ]);
@@ -153,7 +165,26 @@ test("a reopened turn of Ledger comments reads as the user's message, as it was 
     {
       id: "comments-1",
       role: "user",
+      metadata: { ledgerComments: true },
       parts: [{ type: "text", text: body, state: "done" }],
     },
   ]);
+});
+
+test("a reopened typed turn whose text parses as comments is not marked as comments", () => {
+  const { body } = ledgerCommentsMessage([
+    { id: "n1", records: ["e1"], text: "There are two crews." },
+  ]);
+  const [typed] = canonicalBrunchFlueAdapter.reopen({
+    messages: [
+      {
+        id: "user-1",
+        role: "user",
+        purpose: "user",
+        display: "visible",
+        parts: [{ type: "text", text: body, state: "done" }],
+      },
+    ],
+  });
+  expect(typed?.metadata).toBeUndefined();
 });

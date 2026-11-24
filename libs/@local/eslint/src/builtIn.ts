@@ -1,4 +1,4 @@
-import { Array as ReadonlyArray, Option, pipe, Predicate } from "effect";
+import { Array as ReadonlyArray, pipe, Predicate, Result } from "effect";
 
 import { defineConfig, type ESConfig } from "./utils.js";
 
@@ -46,15 +46,15 @@ const noRestrictedImports = (
     ReadonlyArray.filter(Predicate.isNotUndefined),
     ReadonlyArray.filterMap((entry) =>
       Array.isArray(entry) && entry.length === 2
-        ? Option.some(entry[1])
-        : Option.none(),
+        ? Result.succeed(entry[1])
+        : Result.failVoid,
     ),
   );
 
   const current = candidates.at(-1);
 
   // the value should be a dictionary with `paths` and `patterns` keys
-  if (!Predicate.isRecord(current) || Predicate.hasProperty(current, "name")) {
+  if (!Predicate.isObject(current) || Predicate.hasProperty(current, "name")) {
     throw new Error(
       "expected no-restricted-imports to follow the `paths` and `patterns` structure",
     );

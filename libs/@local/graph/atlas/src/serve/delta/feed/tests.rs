@@ -15,7 +15,6 @@ use tokio::{
     sync::{mpsc, oneshot},
     time::Instant,
 };
-use tokio_postgres::NoTls;
 use type_system::knowledge::entity::{EntityId, id::EntityEditionId};
 use uuid::Uuid;
 
@@ -72,7 +71,6 @@ fn fixture(name: &str) -> Fixture {
         &DatabasePoolConfig {
             max_connections: nz!(1),
         },
-        NoTls,
         PostgresStoreSettings::default(),
     )
     .expect("should construct an unconnected pool");

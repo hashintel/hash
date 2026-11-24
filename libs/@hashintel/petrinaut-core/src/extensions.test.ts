@@ -15,7 +15,7 @@ const allEnabled: PetrinautExtensionSettings = {
   stochasticity: true,
   dynamics: true,
   parameters: true,
-  subnets: true,
+  components: true,
 };
 
 const createSDCPN = (
@@ -28,7 +28,6 @@ const createSDCPN = (
       name: "Input",
       colorId: place.colorId ?? "type-1",
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
       ...place,
@@ -105,23 +104,22 @@ const createComponentPortSDCPN = (
     {
       id: "instance-1",
       name: "Instance 1",
-      subnetId: "subnet-1",
+      component: { id: "component-1" },
       parameterValues: {},
       x: 0,
       y: 0,
     },
   ],
-  subnets: [
+  components: [
     {
-      id: "subnet-1",
-      name: "Subnet 1",
+      id: "component-1",
+      name: "Component 1",
       places: [
         {
           id: "port-in",
           name: "Port In",
           colorId: "type-1",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           isPort: true,
           x: 0,
           y: 0,
@@ -131,7 +129,6 @@ const createComponentPortSDCPN = (
           name: "Port Out",
           colorId: "type-1",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           isPort: true,
           x: 0,
           y: 0,
@@ -246,14 +243,14 @@ describe("transition logic availability", () => {
     });
   });
 
-  it("ignores component-port arcs when subnets are disabled", () => {
+  it("ignores component-port arcs when components are disabled", () => {
     const sdcpn = createComponentPortSDCPN();
 
     expect(
       getTransitionLogicAvailability(sdcpn.transitions[0]!, sdcpn, {
         ...allEnabled,
         stochasticity: false,
-        subnets: false,
+        components: false,
       }),
     ).toMatchObject({
       lambda: false,
@@ -279,7 +276,7 @@ describe("transition logic availability", () => {
         stochasticity: false,
         dynamics: false,
         parameters: true,
-        subnets: true,
+        components: true,
       },
     );
 
@@ -342,7 +339,7 @@ describe("transition logic availability", () => {
       stochasticity: false,
       dynamics: false,
       parameters: false,
-      subnets: true,
+      components: true,
     });
 
     expect(sanitized.places[0]!.colorId).toBeNull();
@@ -355,16 +352,16 @@ describe("transition logic availability", () => {
     expect(sdcpn.transitions[0]!.lambdaCode).not.toBe("");
   });
 
-  it("removes component-port arcs and code when subnets are disabled", () => {
+  it("removes component-port arcs and code when components are disabled", () => {
     const sdcpn = createComponentPortSDCPN();
 
     const sanitized = sanitizeSDCPNForExtensions(sdcpn, {
       ...allEnabled,
       stochasticity: false,
-      subnets: false,
+      components: false,
     });
 
-    expect(sanitized.subnets).toBeUndefined();
+    expect(sanitized.components).toBeUndefined();
     expect(sanitized.componentInstances).toBeUndefined();
     expect(sanitized.transitions[0]).toMatchObject({
       inputArcs: [],
@@ -422,17 +419,17 @@ describe("transition logic availability", () => {
     expect(Object.hasOwn(sanitized, "metadata")).toBe(false);
     expect(Object.hasOwn(sanitized, "scenarios")).toBe(false);
     expect(Object.hasOwn(sanitized, "metrics")).toBe(false);
-    expect(Object.hasOwn(sanitized, "subnets")).toBe(false);
+    expect(Object.hasOwn(sanitized, "components")).toBe(false);
     expect(Object.hasOwn(sanitized, "componentInstances")).toBe(false);
   });
 
-  it("does not add optional keys to subnets that are absent on the source", () => {
+  it("does not add optional keys to components that are absent on the source", () => {
     const sdcpn: SDCPN = {
       ...createSDCPN(),
-      subnets: [
+      components: [
         {
-          id: "subnet-1",
-          name: "Subnet 1",
+          id: "component-1",
+          name: "Component 1",
           places: [],
           transitions: [],
           types: [],
@@ -444,22 +441,46 @@ describe("transition logic availability", () => {
 
     const sanitized = sanitizeSDCPNForExtensions(sdcpn, allEnabled);
 
-    expect(Object.hasOwn(sanitized.subnets![0]!, "componentInstances")).toBe(
+    expect(Object.hasOwn(sanitized.components![0]!, "componentInstances")).toBe(
       false,
     );
-    expect(Object.hasOwn(sanitized.subnets![0]!, "description")).toBe(false);
-    expect(Object.hasOwn(sanitized.subnets![0]!, "metadata")).toBe(false);
+    expect(Object.hasOwn(sanitized.components![0]!, "description")).toBe(false);
+    expect(Object.hasOwn(sanitized.components![0]!, "metadata")).toBe(false);
   });
 
-  it("keeps the description and metadata of the net and its subnets", () => {
+  it("keeps a component's icon and colour", () => {
+    const iconSvg = '<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>';
+    const sdcpn: SDCPN = {
+      ...createSDCPN(),
+      components: [
+        {
+          id: "component-1",
+          name: "Component 1",
+          iconSvg,
+          displayColor: "#3b82f6",
+          places: [],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+        },
+      ],
+    };
+
+    expect(
+      sanitizeSDCPNForExtensions(sdcpn, allEnabled).components?.[0],
+    ).toMatchObject({ iconSvg, displayColor: "#3b82f6" });
+  });
+
+  it("keeps the description and metadata of the net and its components", () => {
     const sdcpn: SDCPN = {
       ...createSDCPN(),
       description: "An SIR model",
       metadata: { source: { app: "host", tags: ["sir"] } },
-      subnets: [
+      components: [
         {
-          id: "subnet-1",
-          name: "Subnet 1",
+          id: "component-1",
+          name: "Component 1",
           description: "A reusable stage",
           metadata: { owner: "host" },
           places: [],
@@ -476,7 +497,7 @@ describe("transition logic availability", () => {
     expect(sanitized.description).toBe("An SIR model");
     expect(sanitized.metadata).toEqual(sdcpn.metadata);
     expect(sanitized.metadata).not.toBe(sdcpn.metadata);
-    expect(sanitized.subnets?.[0]).toMatchObject({
+    expect(sanitized.components?.[0]).toMatchObject({
       description: "A reusable stage",
       metadata: { owner: "host" },
     });
@@ -488,6 +509,83 @@ describe("transition logic availability", () => {
         persisted,
       ),
     ).toBe(true);
+  });
+
+  it("strips composed dynamics when the dynamics extension is disabled", () => {
+    const sdcpn = createSDCPN(
+      {},
+      {
+        dynamicsEnabled: true,
+        dynamics: [
+          { differentialEquationId: "equation-1" },
+          { differentialEquationId: "equation-2" },
+        ],
+      },
+    );
+
+    const sanitized = sanitizeSDCPNForExtensions(sdcpn, {
+      ...allEnabled,
+      dynamics: false,
+    });
+
+    expect(sanitized.places[0]).toMatchObject({
+      dynamicsEnabled: false,
+    });
+    expect(sanitized.places[0]).not.toHaveProperty("dynamics");
+    expect(sdcpn.places[0]!.dynamics).toHaveLength(2);
+  });
+
+  it("copies composed dynamics without sharing them with the source", () => {
+    const sdcpn = createSDCPN(
+      {},
+      {
+        dynamicsEnabled: true,
+        dynamics: [
+          { differentialEquationId: "equation-1" },
+          { differentialEquationId: "equation-2" },
+        ],
+      },
+    );
+
+    const sanitized = sanitizeSDCPNForExtensions(sdcpn, allEnabled);
+
+    expect(sanitized.places[0]!.dynamics).toEqual(sdcpn.places[0]!.dynamics);
+    expect(sanitized.places[0]!.dynamics).not.toBe(sdcpn.places[0]!.dynamics);
+    expect(sanitized.places[0]!.dynamics![0]).not.toBe(
+      sdcpn.places[0]!.dynamics![0],
+    );
+    expect(
+      sanitizeSDCPNForExtensions(createSDCPN(), allEnabled).places[0],
+    ).not.toHaveProperty("dynamics");
+  });
+
+  it("copies fusions without sharing them, and drops them when components are disabled", () => {
+    const sdcpn: SDCPN = {
+      ...createComponentPortSDCPN(),
+      places: createSDCPN().places,
+      fusions: [
+        {
+          id: "fusion-1",
+          name: "Fusion-1",
+          members: [
+            { kind: "place", placeId: "place-1" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "instance-1",
+              portPlaceId: "port-1",
+            },
+          ],
+        },
+      ],
+    };
+
+    const sanitized = sanitizeSDCPNForExtensions(sdcpn, allEnabled);
+    expect(sanitized.fusions).toEqual(sdcpn.fusions);
+    expect(sanitized.fusions![0]!.members).not.toBe(sdcpn.fusions![0]!.members);
+
+    expect(
+      sanitizeSDCPNForExtensions(sdcpn, { ...allEnabled, components: false }),
+    ).not.toHaveProperty("fusions");
   });
 
   it("leaves a freshly loaded net comparing equal to its persisted form", () => {

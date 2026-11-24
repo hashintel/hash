@@ -54,7 +54,12 @@ export type FlowDefinitionDiagnosticCode =
   /** An input with a derived kind, given a value of a different kind from its kind source's. */
   | "kindMismatch"
   /** An input its action's own check rejects (see `ActionStepCheck`). */
-  | "invalidInput";
+  | "invalidInput"
+  /**
+   * A `runAfter` naming an output's path, which a run would start whichever path is taken. TODO(FE-2277): allow it
+   * once runs follow paths.
+   */
+  | "pathNotRunnable";
 
 export type FlowDefinitionDiagnostic = {
   severity: "error" | "warning";
@@ -646,7 +651,7 @@ export const validateFlowDefinition = (
         report(
           "missingInput",
           `Required input "${actionInput.name}" of action "${step.actionDefinitionId}" is not connected`,
-          [...entry.path, "inputs"],
+          [...entry.path, "inputs", actionInput.name],
         );
       }
     }
@@ -654,8 +659,13 @@ export const validateFlowDefinition = (
     actionDefinition.check?.({
       step,
       getInputKind: (inputName) => shapes.getInputKind(step.stepId, inputName),
-      report: (inputName, message) =>
-        report("invalidInput", message, [...entry.path, "inputs", inputName]),
+      report: (inputName, message, pathInSource = []) =>
+        report("invalidInput", message, [
+          ...entry.path,
+          "inputs",
+          inputName,
+          ...pathInSource,
+        ]),
     });
   };
 
@@ -677,7 +687,9 @@ export const validateFlowDefinition = (
   }
 
   for (const { step, path, scope } of entries) {
-    for (const [index, { stepId }] of (step.runAfter ?? []).entries()) {
+    for (const [index, { stepId, outputName }] of (
+      step.runAfter ?? []
+    ).entries()) {
       const runAfterPath = [...path, "runAfter", index, "stepId"];
       const before = stepsById.get(stepId);
 
@@ -695,7 +707,24 @@ export const validateFlowDefinition = (
           `Step "${stepId}" runs once per item of a for-each step, so only steps inside that step can run after it`,
           runAfterPath,
         );
+      } else if (
+        outputName !== undefined &&
+        !hasStepOutput(before.step, outputName)
+      ) {
+        report(
+          "unknownStepOutput",
+          `Step "${stepId}" has no output "${outputName}"`,
+          [...path, "runAfter", index, "outputName"],
+        );
       } else {
+        if (outputName !== undefined) {
+          report(
+            "pathNotRunnable",
+            "This step is on a path, and flows can't run steps on paths yet",
+            [...path, "runAfter", index, "outputName"],
+          );
+        }
+
         addDependency(step.stepId, stepId);
       }
     }
@@ -749,6 +778,34 @@ export const getValidFlowDefinition = ({
     ? /* Every action id was checked against `actionDefinitions`. */
       (flowDefinition as FlowDefinition)
     : null;
+
+/**
+ * Which of a step's outputs a run has when it finishes, and so can be flow outputs: e.g. a for-each step's collected
+ * output, but not an output of a step inside it. Each is checked as a flow output of the definition, so this and the
+ * validator agree on what one can be.
+ */
+export const getOutputsAvailableToFlow = (
+  flowDefinition: FlowDefinition<string>,
+  stepId: string,
+  outputNames: string[],
+): string[] => {
+  const { diagnostics } = validateFlowDefinition({
+    ...flowDefinition,
+    outputs: outputNames.map((outputName) => ({
+      name: outputName,
+      stepId,
+      outputName,
+    })),
+  });
+
+  const unavailable = new Set(
+    diagnostics.flatMap(({ path: [collection, index] }) =>
+      collection === "outputs" && typeof index === "number" ? [index] : [],
+    ),
+  );
+
+  return outputNames.filter((_outputName, index) => !unavailable.has(index));
+};
 
 /**
  * The id of the innermost step a path into a definition goes through, if it goes through one with an id: e.g. the

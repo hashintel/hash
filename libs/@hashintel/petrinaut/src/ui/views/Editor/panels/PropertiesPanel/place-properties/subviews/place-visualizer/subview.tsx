@@ -1,58 +1,25 @@
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 
-import {
-  Button,
-  Icon,
-  Menu,
-  SegmentedControl,
-  Toggle,
-  Tooltip,
-} from "@hashintel/ds-components";
+import { Button, Icon, Menu, Toggle, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultVisualizerCode,
 } from "@hashintel/petrinaut-core";
 
-import { ExecutionFrameSourceContext } from "../../../../../../../../react/execution-frame/context";
+import { useStableCallback } from "../../../../../../../../react/hooks/use-stable-callback";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../../../../react/state/sdcpn-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
+import { useCodeNavigation } from "../../../../../../../monaco/code-navigation";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
-import { PlaceStateVisualization } from "../../../../../../shared/place-state-visualization";
 import { usePlacePropertiesContext } from "../../context";
 
 import type { SubView } from "../../../../../../../components/sub-view/types";
-
-type ViewMode = "code" | "preview" | "split";
+import type { editor } from "monaco-editor";
 
 const contentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-});
-
-const segmentGroupContainerStyle = css({
-  marginTop: "[8px]",
-  marginBottom: "[8px]",
-});
-
-// The SegmentedControl root is `width: fit-content` by default; `&&` doubles the
-// selector's specificity so this wins over the recipe regardless of source order.
-const fullWidthSegmentedControlStyle = css({
-  "&&": { width: "full" },
-});
-
-const viewContainerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-  gap: "[4px]",
-});
-
-const panelStyle = css({
   display: "flex",
   flexDirection: "column",
   flex: "[1]",
@@ -78,83 +45,67 @@ const headerActionsStyle = css({
   gap: "1",
 });
 
-/**
- * Renders the visualizer preview for the current place,
- * using simulation frame data or initial marking.
- */
-const VisualizerPreview: React.FC = () => {
-  const { place, placeType } = usePlacePropertiesContext();
-
-  return <PlaceStateVisualization place={place} placeType={placeType} />;
-};
-
 const PlaceVisualizerContent: React.FC = () => {
   const { place, updatePlace } = usePlacePropertiesContext();
-  const { totalFrames } = use(ExecutionFrameSourceContext);
-  const [viewMode, setViewMode] = useState<ViewMode>("code");
+  const { readonly } = use(SDCPNContext);
+  const { setVisualizerEditorFocus } = use(EditorContext);
+  const { focusRequest, acknowledgeFocus } = useCodeNavigation();
+  const [editorInstance, setEditorInstance] =
+    useState<editor.IStandaloneCodeEditor | null>(null);
+  const path = getDocumentUri("place-visualizer", place.id);
+  const setFocus = useStableCallback(setVisualizerEditorFocus);
+  const acknowledge = useStableCallback(acknowledgeFocus);
+  const onFocus = useStableCallback(() => setFocus(place.id, true));
+  const onBlur = useStableCallback(() => setFocus(place.id, false));
 
   const hasVisualizer = place.visualizerCode !== undefined;
-  const isSimulationRunning = totalFrames > 0;
+  useEffect(
+    () => () => setFocus(place.id, false),
+    [place.id, hasVisualizer, setFocus],
+  );
+  useEffect(() => {
+    if (!editorInstance || focusRequest?.path !== path) return;
+    const frame = requestAnimationFrame(() => {
+      editorInstance.focus();
+      acknowledge(path);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editorInstance, focusRequest, path, acknowledge]);
 
   if (!hasVisualizer) {
     return (
       <div className={messageStyle}>
         Enable the visualizer to define a custom token visualization for this
-        place. It renders here, and on the canvas when you point at the place.
+        place. Its Canvas preview opens while you edit the code.
       </div>
     );
   }
 
-  const activeMode = isSimulationRunning ? "preview" : viewMode;
-
   return (
     <div className={contentStyle}>
-      {!isSimulationRunning && (
-        <div className={segmentGroupContainerStyle}>
-          <SegmentedControl
-            size="sm"
-            value={viewMode}
-            items={[
-              { value: "code", label: "Code" },
-              { value: "preview", label: "Preview" },
-              { value: "split", label: "Split" },
-            ]}
-            onChange={(value) => setViewMode(value as ViewMode)}
-            className={fullWidthSegmentedControlStyle}
-          />
-        </div>
-      )}
-
-      <div className={viewContainerStyle}>
-        {(activeMode === "code" || activeMode === "split") && (
-          <div className={panelStyle}>
-            <CodeEditor
-              path={getDocumentUri("place-visualizer", place.id)}
-              language="typescript"
-              height="100%"
-              value={place.visualizerCode}
-              onChange={(value) => {
-                updatePlace({
-                  placeId: place.id,
-                  update: { visualizerCode: value ?? "" },
-                });
-              }}
-            />
-          </div>
-        )}
-        {(activeMode === "preview" || activeMode === "split") && (
-          <div className={panelStyle}>
-            <VisualizerPreview />
-          </div>
-        )}
-      </div>
+      <CodeEditor
+        path={path}
+        language="typescript"
+        height="100%"
+        value={place.visualizerCode}
+        options={{ readOnly: readonly }}
+        onMount={setEditorInstance}
+        onEditorFocus={onFocus}
+        onEditorBlur={onBlur}
+        onChange={(value) =>
+          updatePlace({
+            placeId: place.id,
+            update: { visualizerCode: value ?? "" },
+          })
+        }
+      />
     </div>
   );
 };
 
 const VisualizerHeaderAction: React.FC = () => {
-  const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
-  const { globalMode } = use(EditorContext);
+  const { place, types, updatePlace } = usePlacePropertiesContext();
+  const { readonly: isReadOnly } = use(SDCPNContext);
 
   const [savedVisualizerCodeState, setSavedVisualizerCodeState] = useState<{
     placeId: string;
@@ -169,46 +120,45 @@ const VisualizerHeaderAction: React.FC = () => {
 
   return (
     <div className={headerActionsStyle}>
-      {globalMode === "edit" && (
-        <Tooltip
-          content={UI_MESSAGES.READ_ONLY_MODE}
-          disableTooltip={!isReadOnly}
-        >
-          <Toggle
-            aria-label="Visualizer"
-            size="sm"
-            tone="success"
-            value={hasVisualizer}
-            disabled={isReadOnly}
-            onChange={(checked) => {
-              if (checked) {
-                updatePlace({
+      <Tooltip
+        content={UI_MESSAGES.READ_ONLY_MODE}
+        disableTooltip={!isReadOnly}
+      >
+        <Toggle
+          aria-label="Visualizer"
+          size="sm"
+          tone="success"
+          value={hasVisualizer}
+          disabled={isReadOnly}
+          onChange={(checked) => {
+            if (checked) {
+              updatePlace({
+                placeId: place.id,
+                update: {
+                  visualizerCode:
+                    savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE,
+                },
+              });
+            } else {
+              if (place.visualizerCode) {
+                setSavedVisualizerCodeState({
                   placeId: place.id,
-                  update: {
-                    visualizerCode:
-                      savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE,
-                  },
-                });
-              } else {
-                if (place.visualizerCode) {
-                  setSavedVisualizerCodeState({
-                    placeId: place.id,
-                    code: place.visualizerCode,
-                  });
-                }
-                updatePlace({
-                  placeId: place.id,
-                  update: { visualizerCode: undefined },
+                  code: place.visualizerCode,
                 });
               }
-            }}
-          />
-        </Tooltip>
-      )}
-      {hasVisualizer && globalMode === "edit" && (
+              updatePlace({
+                placeId: place.id,
+                update: { visualizerCode: undefined },
+              });
+            }
+          }}
+        />
+      </Tooltip>
+      {hasVisualizer && (
         <Menu
           trigger={
             <Button
+              disabled={isReadOnly}
               aria-label="More options"
               tooltip="More options"
               variant="ghost"

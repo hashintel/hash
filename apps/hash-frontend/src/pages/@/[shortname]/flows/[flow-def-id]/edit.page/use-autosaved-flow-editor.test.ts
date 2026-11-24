@@ -42,12 +42,15 @@ const renderEditor = ({
   saveFlowDefinition,
   reloadFlow = vi.fn(),
   onLeftUnsaved,
+  flowDefinition = emptyFlow("Flow"),
 }: Pick<EditorOptions, "saveFlowDefinition"> &
-  Partial<Pick<EditorOptions, "reloadFlow" | "onLeftUnsaved">>) => {
+  Partial<Pick<EditorOptions, "reloadFlow" | "onLeftUnsaved">> & {
+    flowDefinition?: FlowDefinition<string>;
+  }) => {
   const { result, unmount } = renderHook(() =>
     useAutosavedFlowEditor({
       flow: {
-        flowDefinition: emptyFlow("Flow"),
+        flowDefinition,
         editionId: editionId("edition-1"),
         userCanUpdate: true,
       },
@@ -117,7 +120,46 @@ describe("useAutosavedFlowEditor", () => {
     expect(leavingIsConfirmed()).toBe(false);
   });
 
-  it("reloads the flow when it changed elsewhere, retrying a failed reload, and saves the next edit against the reloaded edition", async () => {
+  it("doesn't save steps placed on opening the flow, but saves their positions with the first edit", async () => {
+    const saveFlowDefinition = vi
+      .fn()
+      .mockResolvedValue(editionId("edition-2"));
+    const { result, addStep } = renderEditor({
+      saveFlowDefinition,
+      flowDefinition: {
+        ...emptyFlow("Built in"),
+        steps: [
+          {
+            kind: "action",
+            stepId: "unplaced",
+            actionDefinitionId: "answerQuestion",
+            description: "",
+            inputs: {},
+          },
+        ],
+      },
+    });
+
+    act(() => {
+      result.current.editor.placeSteps(
+        new Map([["unplaced", { x: 100, y: 50 }]]),
+      );
+    });
+    await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs * 3));
+    expect(saveFlowDefinition).not.toHaveBeenCalled();
+    expect(result.current.status).toBe("saved");
+    expect(leavingIsConfirmed()).toBe(false);
+
+    addStep("first");
+    await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
+    expect(saveFlowDefinition).toHaveBeenCalledTimes(1);
+    expect(saveFlowDefinition.mock.calls[0]![0].steps[0]).toMatchObject({
+      stepId: "unplaced",
+      position: { x: 100, y: 50 },
+    });
+  });
+
+  it("reloads the flow when it changed elsewhere, retrying a failed reload, reports the dropped edits from flush, and saves the next edit against the reloaded edition", async () => {
     const saveFlowDefinition = vi
       .fn()
       .mockRejectedValueOnce(new FlowChangedElsewhereError())
@@ -139,7 +181,11 @@ describe("useAutosavedFlowEditor", () => {
     await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
     expect(result.current.status).toBe("failed");
 
-    await act(() => result.current.flush());
+    let flushed: boolean | undefined;
+    await act(async () => {
+      flushed = await result.current.flush();
+    });
+    expect(flushed).toBe(false);
     expect(reloadFlow).toHaveBeenCalledTimes(2);
     expect(result.current.changedElsewhere).toBe(true);
     expect(result.current.status).toBe("saved");

@@ -209,6 +209,7 @@ describe("runtime diagnostics observer", () => {
           api: "messages",
         },
         response: {
+          responseModel: "claude-2026-01-01",
           error: { type: "overloaded_error", message: SENTINEL },
           finishReason: "error",
         },
@@ -280,7 +281,9 @@ describe("runtime diagnostics observer", () => {
     ]);
     expect(sink.error.mock.calls[0]![1]).toMatchObject({
       turnId: "turn-2",
+      provider: "anthropic",
       requestedModel: "claude",
+      responseModel: "claude-2026-01-01",
       error: { type: "overloaded_error" },
     });
     expect(sink.error.mock.calls[4]![1]).toMatchObject({

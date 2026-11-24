@@ -112,8 +112,8 @@ const editorProps = vi.hoisted(() => ({
   } | null,
 }));
 
-vi.mock("./brunch-owner-key", () => ({
-  getOrCreateBrunchOwnerKey: () => "test-owner",
+vi.mock("./brunch-actor-key", () => ({
+  getOrCreateBrunchActorKey: () => "test-actor",
 }));
 vi.mock("../plugins/petrinaut-ai/plugin", () => ({
   petrinautAiPlugin: {
@@ -295,12 +295,16 @@ describe("local storage demo URL navigation", () => {
     render(
       <DemoApp
         onSearchChange={() => {}}
-        search={{ subnet: "subnet-1", itemType: "place", itemId: "place-1" }}
+        search={{
+          component: "component-1",
+          itemType: "place",
+          itemId: "place-1",
+        }}
       />,
     );
 
     const navigation = mountedNavigation();
-    expect(navigation.state.subnetId).toBe("subnet-1");
+    expect(navigation.state.componentId).toBe("component-1");
     expect(navigation.state.selection).toEqual([
       { type: "place", id: "place-1" },
     ]);
@@ -313,14 +317,17 @@ describe("local storage demo URL navigation", () => {
     render(<DemoApp onSearchChange={onSearchChange} search={{}} />);
 
     mountedNavigation().onNavigate(
-      (current) => ({ ...current, subnetId: "subnet-2" }),
+      (current) => ({ ...current, componentId: "component-2" }),
       {
         history: "push",
-        intent: { cause: "user", action: "subnet" },
+        intent: { cause: "user", action: "component" },
       },
     );
 
-    expect(onSearchChange).toHaveBeenCalledWith({ subnet: "subnet-2" }, "push");
+    expect(onSearchChange).toHaveBeenCalledWith(
+      { component: "component-2" },
+      "push",
+    );
   });
 
   test("leaves history to the library default, so a discrete click pushes", () => {
@@ -359,7 +366,11 @@ describe("local storage demo URL navigation", () => {
         netId={netOneId}
         onOpenNet={onOpenNet}
         onSearchChange={onSearchChange}
-        search={{ subnet: "subnet-1", itemType: "place", itemId: "place-1" }}
+        search={{
+          component: "component-1",
+          itemType: "place",
+          itemId: "place-1",
+        }}
       />,
     );
 
@@ -550,7 +561,6 @@ describe("local document revision persistence", () => {
           name: "Direct place",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -586,7 +596,6 @@ describe("local document revision persistence", () => {
           name: "Reopened place",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -624,7 +633,6 @@ describe("local document revision persistence", () => {
           name: "Listed place",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -674,7 +682,6 @@ describe("local document revision persistence", () => {
       name: "Other tab place",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     };
@@ -745,7 +752,6 @@ describe("local document revision persistence", () => {
             name: id,
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           });
@@ -827,7 +833,6 @@ describe("local document revision persistence", () => {
       name: "Other tab place",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     };
@@ -852,7 +857,6 @@ describe("local document revision persistence", () => {
           name: "Refused place",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -910,7 +914,6 @@ describe("local document revision persistence", () => {
           name: "First place",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -1025,6 +1028,15 @@ describe("local storage demo Brunch controls", () => {
     // Brunch reaches the editor through context, not its built-in assistant prop.
     expect(editorProps.current).not.toHaveProperty("aiAssistant");
     expect(aiAssistant.documentHandle).toBe(editorProps.current?.handle);
+    // The website still names its actor under the header's former name, so
+    // it keeps working against a Brunch that predates the actor header.
+    const { headers } = flueClientOptions.current as {
+      headers: () => Record<string, string>;
+    };
+    expect(headers()).toEqual({
+      "x-brunch-principal": "test-actor",
+      "x-brunch-conversation": aiAssistant.conversationId,
+    });
   });
 });
 
@@ -1078,6 +1090,7 @@ describe("assistant selection", () => {
       inputMode: "text",
       isAiAssistantOpen: true,
       messages: [],
+      readSelection: () => ({ items: [], labels: [] }),
       registerVoiceModeControls: vi.fn(() => () => {}),
       reportVoiceSessionState: vi.fn(),
       setInputMode: vi.fn(),
@@ -1250,6 +1263,7 @@ describe("assistant selection", () => {
           inputMode: "voice",
           isAiAssistantOpen: true,
           canAcceptVoiceInput: true,
+          readSelection: () => ({ items: [], labels: [] }),
           registerVoiceModeControls: vi.fn(() => () => {}),
           reportVoiceSessionState: vi.fn(),
           setInputMode: vi.fn(),
@@ -1259,7 +1273,6 @@ describe("assistant selection", () => {
         if (
           !isValidElement<{
             interviewBudgetLevel: string;
-            onInputModeChange?: (mode: "text" | "voice") => void;
           }>(voice)
         )
           throw new Error("Missing Voice control");

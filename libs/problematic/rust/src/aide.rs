@@ -55,10 +55,12 @@ impl<E: JsonSchema> OperationOutput for ProblemDetails<'_, E> {
 /// The variants join those that other sources, such as middlewares, document at the same status.
 /// A variant listed by several sources is documented once. Variants with the same type URI and
 /// status that differ in title, description or members are documented side by side, and their
-/// status gets an `anyOf` instead of a `oneOf`. Their branches and examples are labelled with the
-/// first paragraph of their description. A header is documented if a variant at its status lists
-/// it, and required if every one of them does. Variants that give a header different schemas
-/// document it with an `anyOf` of them, each described like the first variant that gives it.
+/// status gets an `anyOf` instead of a `oneOf`. Variants at a status that share a title are listed
+/// in the description of the response without it, and their branches and examples are labelled
+/// with the first paragraph of their description. A header is documented if a variant at its
+/// status lists it, and required if every one of them does. Variants that give a header different
+/// schemas document it with an `anyOf` of them, each described like the first variant that gives
+/// it.
 ///
 /// # Panics
 ///
@@ -510,27 +512,36 @@ fn share_type_uri(fragments: &[Fragment]) -> bool {
     })
 }
 
+fn titles(fragments: &[Fragment]) -> Vec<&str> {
+    fragments
+        .iter()
+        .map(|fragment| fragment.title.as_str())
+        .collect()
+}
+
+/// For each of `titles`, whether another of them is the same.
+fn shared_titles(titles: &[&str]) -> Vec<bool> {
+    titles
+        .iter()
+        .map(|title| titles.iter().filter(|other| *other == title).count() > 1)
+        .collect()
+}
+
 /// The label of each of `fragments`, which documentation viewers show to choose between variants:
-/// the title, followed by the first paragraph of the description where another variant has the
-/// same type URI, and numbered where it repeats.
+/// the first paragraph of the description where another variant has the same title, and otherwise
+/// the title, numbered where it repeats.
 fn labels(fragments: &[Fragment]) -> Vec<String> {
     let labels = fragments
         .iter()
-        .map(|fragment| {
-            let shared = fragments
-                .iter()
-                .filter(|other| other.type_uri == fragment.type_uri)
-                .count()
-                > 1;
+        .zip(shared_titles(&titles(fragments)))
+        .map(|(fragment, shared)| {
             match fragment
                 .description
                 .as_deref()
                 .and_then(|description| description.split("\n\n").next())
             {
                 // A description keeps the line breaks of the doc comment it was taken from.
-                Some(paragraph) if shared && !paragraph.is_empty() => {
-                    format!("{}: {}", fragment.title, paragraph.replace('\n', " "))
-                }
+                Some(paragraph) if shared && !paragraph.is_empty() => paragraph.replace('\n', " "),
                 _ => fragment.title.clone(),
             }
         })
@@ -642,12 +653,12 @@ fn problem_media(schema: Schema) -> MediaType {
     }
 }
 
-/// The description of a response: that of its one variant, or a list item per variant with its
-/// title.
+/// The description of a response: that of its one variant, or a list item per variant.
 ///
 /// A variant is described by its extension schema, which a derived schema takes from the doc
-/// comment, and otherwise by its title alone. No schema of the response repeats the description,
-/// so [`descriptions`] reads the variants' descriptions back from this format.
+/// comment, and otherwise by its title alone. Its list item starts with its title, unless another
+/// variant has the same title. No schema of the response repeats the description, so
+/// [`descriptions`] reads the variants' descriptions back from this format.
 fn describe(fragments: &[Fragment]) -> String {
     if let [fragment] = fragments {
         return fragment
@@ -658,12 +669,20 @@ fn describe(fragments: &[Fragment]) -> String {
 
     fragments
         .iter()
-        .map(|fragment| {
+        .zip(shared_titles(&titles(fragments)))
+        .map(|(fragment, shared)| {
             let title = &fragment.title;
             fragment.description.as_ref().map_or_else(
                 || format!("- {title}"),
-                // Indented, so a description of several paragraphs stays within its list item.
-                |description| format!("- {title}: {}", description.replace('\n', "\n  ")),
+                |description| {
+                    // Indented, so a description of several paragraphs stays within its list item.
+                    let description = description.replace('\n', "\n  ");
+                    if shared {
+                        format!("- {description}")
+                    } else {
+                        format!("- {title}: {description}")
+                    }
+                },
             )
         })
         .collect::<Vec<_>>()
@@ -688,11 +707,17 @@ fn descriptions(description: &str, titles: &[&str]) -> Vec<Option<String>> {
             items
                 .into_iter()
                 .zip(titles)
-                .map(|(item, title)| match item.strip_prefix(title)? {
-                    "" => Some(None),
-                    described => described
-                        .strip_prefix(": ")
-                        .map(|description| Some(description.replace("\n  ", "\n"))),
+                .zip(shared_titles(titles))
+                .map(|((item, title), shared)| {
+                    if shared {
+                        return Some(Some(item.replace("\n  ", "\n")));
+                    }
+                    match item.strip_prefix(title)? {
+                        "" => Some(None),
+                        described => described
+                            .strip_prefix(": ")
+                            .map(|description| Some(description.replace("\n  ", "\n"))),
+                    }
                 })
                 .collect::<Option<Vec<_>>>()
         })

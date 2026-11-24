@@ -13,6 +13,7 @@ import type {
   OpenAIRealtimeSessionEvent,
   OpenAIRealtimeTranscriptKey,
 } from "./openai-realtime-session";
+import type { SelectionItem } from "@hashintel/petrinaut-core/selection";
 
 const segment = (
   id: string,
@@ -63,7 +64,11 @@ const completedResponseMessage = (
   submissionId,
 });
 
-const createHarness = () => {
+const createHarness = ({
+  readSelection = () => [],
+}: {
+  readSelection?: () => readonly SelectionItem[];
+} = {}) => {
   let listener: ((event: OpenAIRealtimeSessionEvent) => void) | undefined;
   const session = {
     speakCanonical: vi.fn(),
@@ -87,6 +92,7 @@ const createHarness = () => {
     };
   });
   const bridge = new RealtimeBrunchBridge({
+    readSelection,
     session,
     submitInterviewAnswer,
     reportDiagnostic: vi.fn(),
@@ -117,7 +123,7 @@ const startReady = (
 
 describe("RealtimeBrunchBridge", () => {
   const vocabularyLeak =
-    "SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet, scenario, and metric.";
+    "SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, component, scenario, and metric.";
   const assistantText =
     "The supervisor reviews the request before the manager approves it.";
 
@@ -126,7 +132,7 @@ describe("RealtimeBrunchBridge", () => {
     ["prompt-regurgitation", vocabularyLeak.normalize("NFKC").toUpperCase()],
     [
       "prompt-regurgitation",
-      "place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet",
+      "place, transition, arc, token, marking, guard, rate, distribution, parameter, component",
     ],
     ["self-echo", assistantText],
     [
@@ -222,7 +228,7 @@ describe("RealtimeBrunchBridge", () => {
     "transition",
     "The supervisor does not approve it; the auditor makes that decision.",
     "Use a place and transition with a token and a guard for approval.",
-    "metric scenario subnet parameter distribution rate guard marking token arc transition place net Petri stochastic SDCPN",
+    "metric scenario component parameter distribution rate guard marking token arc transition place net Petri stochastic SDCPN",
   ])(
     "admits novel interruption exactly once without changing its text: %s",
     (text) => {
@@ -291,7 +297,7 @@ describe("RealtimeBrunchBridge", () => {
 
   test("classes an interruption that matches both playback and the prompt as self-echo", () => {
     const vocabulary =
-      "place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet";
+      "place, transition, arc, token, marking, guard, rate, distribution, parameter, component";
     const harness = createHarness();
     startReady(harness);
     harness.emit({
@@ -540,6 +546,84 @@ describe("RealtimeBrunchBridge", () => {
     harness.bridge.updateChat(update);
     expect(harness.submitInterviewAnswer).toHaveBeenCalledTimes(2);
     expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+  });
+
+  test("a turn carries the selection from when speech stopped, not when its transcript completes", async () => {
+    let selection: readonly SelectionItem[] = [];
+    const harness = createHarness({ readSelection: () => selection });
+    startReady(harness);
+    harness.emit({
+      type: "input-speech-started",
+      connectionEpoch: 3,
+      itemId: "user-item-1",
+    });
+    selection = [{ type: "place", id: "doctors" }];
+    harness.emit({
+      type: "input-speech-stopped",
+      connectionEpoch: 3,
+      itemId: "user-item-1",
+    });
+    selection = [{ type: "place", id: "nurses" }];
+    harness.emit(completedTranscript(3, "Remove this."));
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        selection: [{ type: "place", id: "doctors" }],
+      }),
+    );
+  });
+
+  test("a retained interruption keeps its selection while Brunch finishes answering", async () => {
+    let selection: readonly SelectionItem[] = [];
+    const harness = createHarness({ readSelection: () => selection });
+    startReady(harness);
+    harness.emit(completedTranscript(3));
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "streaming",
+    });
+    harness.emit({
+      type: "canonical-speech-requested",
+      connectionEpoch: 3,
+      speechRequestId: "speech-1",
+    });
+    harness.emit({
+      type: "input-speech-started",
+      connectionEpoch: 3,
+      itemId: "interruption",
+      interruptionBySpeaking: true,
+    });
+    selection = [{ type: "transition", id: "approve" }];
+    harness.emit({
+      type: "input-speech-stopped",
+      connectionEpoch: 3,
+      itemId: "interruption",
+    });
+    harness.emit(completedTranscript(3, "Delete this one.", "interruption"));
+    // The person selects something else before Brunch finishes.
+    selection = [{ type: "place", id: "nurses" }];
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [
+        segment("reply", "Who is informed?", "submission-voice-1"),
+      ],
+      status: "ready",
+    });
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledTimes(2),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        id: "voice-realtime:3:interruption:0",
+        selection: [{ type: "transition", id: "approve" }],
+      }),
+    );
   });
 
   test("submits sequential utterances in speech order when transcription completes out of order", async () => {
@@ -1920,7 +2004,7 @@ describe("RealtimeBrunchBridge", () => {
     },
     {
       code: "admission-aborted",
-      failure: { kind: "aborted" } as const,
+      failure: { kind: "aborted", requestSent: true } as const,
       message: "The local chat submission was cancelled.",
     },
   ])(

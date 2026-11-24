@@ -17,6 +17,7 @@ import {
   isTerminalExperimentStatus,
   type SweepVisitedCell,
 } from "../../../../../../react/experiments/context";
+import { computeBackendOf } from "../../../../../../react/experiments/provider/create-experiment";
 import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session";
 import { useLatest } from "../../../../../../react/hooks/use-latest";
 import {
@@ -92,6 +93,7 @@ export function makeExperiment(
     id: `experiment-${index}`,
     computeBackend: "cpu",
     computeBackendFallbackReason: null,
+    simulatorLabel: null,
     name: `SIR Monte Carlo ${index}`,
     createdAt,
     startedAt,
@@ -105,6 +107,7 @@ export function makeExperiment(
     scenarioName: "Seasonal Flu",
     runCount: 1_000,
     seed: 1_000 + index,
+    clock: "time",
     dt: 1,
     maxTime: 180,
     status,
@@ -526,14 +529,18 @@ const createFakeExperiment = (
   input: CreateExperimentInput,
 ): ExperimentRecord => ({
   id: `experiment-${Date.now()}`,
-  computeBackend: input.computeBackend ?? "cpu",
+  computeBackend: input.simulator
+    ? computeBackendOf(input.simulator.simulatorId)
+    : (input.computeBackend ?? "cpu"),
   computeBackendFallbackReason: null,
+  simulatorLabel: null,
   name: input.name,
   createdAt: Date.now(),
   scenarioId: input.scenarioId,
   scenarioName: getScenario(input.scenarioId)?.name ?? null,
   runCount: input.runCount,
   seed: input.seed,
+  clock: "time",
   dt: input.dt,
   maxTime: input.maxTime,
   status: "initializing",
@@ -761,6 +768,9 @@ export function FakeExperimentsProvider({
       setExperiments((current) => [experiment, ...current]);
       return Promise.resolve(experiment);
     },
+    adoptExperiment: () => {
+      throw new Error("Nothing adopts an experiment here");
+    },
     cancelExperiment: (experimentId) => {
       setExperiments((current) =>
         current.map((experiment) =>
@@ -880,8 +890,12 @@ export function FakeEditorProvider({
     clearSelection: () => {},
     setHoveredItem: () => {},
     clearHoveredItem: () => {},
-    toggleVisualizerPin: () => {},
+    keepPlaceVisualizerOpen: () => {},
+    closePlaceVisualizer: () => {},
+    toggleComponentInstanceFold: () => {},
     openPlaceVisualizer: () => {},
+    setVisualizerEditorFocus: () => {},
+    bringVisualizerToFront: () => {},
     setDraggingStateByNodeId: () => {},
     updateDraggingStateByNodeId: () => {},
     simulateDrawer,
