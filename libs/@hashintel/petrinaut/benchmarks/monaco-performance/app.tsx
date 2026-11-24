@@ -34,7 +34,13 @@ const models: Record<string, (typeof examples)[keyof typeof examples]> = {
 const loadModel = async (
   url: string,
 ): Promise<{ title: string; petriNetDefinition: SDCPN }> => {
-  const text = await (await fetch(url)).text();
+  // Only a file of the benchmark's own server: the address comes from the
+  // page's query.
+  const address = new URL(url, location.href);
+  if (address.origin !== location.origin) {
+    throw new Error(`${url}: a model is read from this server only`);
+  }
+  const text = await (await fetch(address.pathname)).text();
   const parsed = parseDocumentText(text);
   if (!parsed.ok) {
     throw new Error(`${url}: ${parsed.error}`);
