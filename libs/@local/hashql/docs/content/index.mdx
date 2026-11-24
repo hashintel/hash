@@ -415,13 +415,17 @@ An **intersection**, written `A & B`, requires a value to belong to both types. 
 
 ### Stating a type with `as`
 
-Draft's missing `as` builder is tracked in [BE-1141]. The functional and reference tabs below show the language form.
-
 Strong typing doesn't mean you have to write every type yourself. The compiler can usually infer them, as it did for the literals and comparisons in our earlier examples. When we want to state a type explicitly, the `as` special form checks that the expression fits it:
 
-```text tab="TypeScript (Draft)" tab-group="hashql-language"
-// Draft has no builder for the HashQL `as` special form yet.
-// The functional and reference tabs show the HashQL program.
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
+import * as Draft from "@local/hashql/Draft";
+
+Draft.program({}, ($) => {
+  const { Number: NumberType } = $.prelude();
+  const foo = $.let("foo", $.as(2n, NumberType));
+
+  return foo;
+});
 ```
 
 ```text tab="Functional notation" tab-group="hashql-language"
@@ -571,6 +575,5 @@ The same reasoning applies if we add valid time, which records when a fact is tr
 [draft-context-list]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.list
 [BE-1015]: https://linear.app/hash/issue/BE-1015
 [BE-645]: https://linear.app/hash/issue/BE-645
-[BE-1141]: https://linear.app/hash/issue/BE-1141
 [BE-1121]: https://linear.app/hash/issue/BE-1121
 [BE-550]: https://linear.app/hash/issue/BE-550

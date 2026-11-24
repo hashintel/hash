@@ -24,7 +24,7 @@ The TypeScript, Rust, and Python tabs show either a program that you can run you
 | [`use`][use]         | `use(path, (a: b), e)` | `(use path (a: b) e)` | `$.import(module, { a: "b" })`              |
 | [`access`][access]   | `e.field`, `e.0`       | `(. e field)`         | `e.field`, `e[0]`                           |
 | [`index`][index]     | `e[i]`                 | `([] e i)`            | `e.$index(i)`                               |
-| [`as`][as]           | `e as T`               | `(as e T)`            | Not available ([BE-1141])                   |
+| [`as`][as]           | `e as T`               | `(as e T)`            | `$.as(e, T)`                                |
 | [`type`][type]       | `type T = U in e`      | `(type T U e)`        | `$.type("T", U)`                            |
 | [`newtype`][newtype] | `newtype T = U in e`   | `(newtype T U e)`     | `$.newtype("T", U)`                         |
 
@@ -2006,7 +2006,7 @@ With the [new polymorphic core][BE-645], indexing will return an [`Option`][draf
 
 ### `as` states a wider type [#as]
 
-`as` checks that a value fits the stated type, either its own type or a wider one, and leaves the value unchanged. `Integer` is a subtype of `Number`. [More on `as`][intro-stating-a-type-with-as]. Draft's missing builder is tracked in [BE-1141].
+`as` checks that a value fits the stated type, either its own type or a wider one, and leaves the value unchanged. `Integer` is a subtype of `Number`. [More on `as`][intro-stating-a-type-with-as].
 
 <SideBySide>
 <div>
@@ -2051,10 +2051,26 @@ $ python3 main.py
 </div>
 <div>
 
-```text tab="TypeScript (Draft)" tab-group="hashql-language"
-// Draft has no builder for the HashQL `as` special form yet.
-// A typed binding, $.let("foo", 2n, Number), checks the same subtype
-// relation, but builds let's four-argument form instead of `as`.
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+import { Result, pipe } from "effect";
+
+const built = Draft.program({}, ($) => {
+  // [!code focus:4]
+  const { Number: NumberType } = $.prelude();
+  const foo = $.let("foo", $.as(2n, NumberType));
+
+  return foo;
+});
+
+const text = pipe(
+  built,
+  Result.map(Program.program),
+  Result.flatMap(Program.compile),
+  Result.getOrThrow,
+);
+console.log(text);
 ```
 
 ```text tab="Functional notation" tab-group="hashql-language"
@@ -2952,7 +2968,6 @@ The closure reads `flagged` from the input without receiving it as an argument. 
 [access]: #access
 [index]: #index
 [as]: #as
-[BE-1141]: https://linear.app/hash/issue/BE-1141
 [type]: #type
 [newtype]: #newtype
 [program-structural-definition]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural#Definition

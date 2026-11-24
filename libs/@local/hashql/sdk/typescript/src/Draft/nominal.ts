@@ -44,11 +44,7 @@ export const nominalValue = <N extends string, T extends Type.Any>(
         pipe(
           {
             callee: Expression.toNode(self),
-            argument: pipe(
-              value,
-              StructuralSyntax.valueNode,
-              Result.flatMap(AST.validate),
-            ),
+            argument: StructuralSyntax.valueNode(value),
           },
           Result.all,
           Result.map(

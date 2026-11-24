@@ -11,6 +11,7 @@ import * as JExpr from "../JExpr/index.js";
 import * as Expression from "./Expression.js";
 import * as Module from "./Module.js";
 import * as Structural from "./Structural.js";
+import * as TypeExpression from "./TypeExpression.js";
 
 import type * as Type from "../Type.js";
 import type * as Inputs from "./Inputs.js";
@@ -287,6 +288,44 @@ describe("expression", () => {
     );
     expect(compile(record.prototype)).toBe(
       '["::kernel::special_form::access","record","prototype"]',
+    );
+  });
+
+  test("type_assertion", () => {
+    expect.hasAssertions();
+    const expected =
+      '["::kernel::special_form::as",{"#literal":2},"::kernel::type::Number"]';
+    expect(compile(Expression.as(2n, numberType))).toBe(expected);
+    expect(
+      compile(pipe(Expression.literal(2n), Expression.as(numberType))),
+    ).toBe(expected);
+    const failure = Result.getOrThrow(
+      Result.flip(Expression.toJExpr(Expression.as(Number.NaN, numberType))),
+    );
+    expect(failure.reason._tag).toBe("InvalidExpression");
+  });
+
+  test("unchecked_assertion", () => {
+    expect.hasAssertions();
+    const unchecked = TypeExpression.fromType<Type.PrimitiveNumber>({
+      _tag: "Struct",
+      members: [[{ _tag: "Lexical", value: "first name" }, { _tag: "Infer" }]],
+    });
+    expect(
+      Result.getOrThrow(
+        Result.flip(Expression.toJExpr(Expression.as(2n, unchecked))),
+      ).reason._tag,
+    ).toBe("InvalidExpression");
+  });
+
+  test("deep_assertion", () => {
+    expect.hasAssertions();
+    let value: Expression.Value.Any = 0n;
+    for (let depth = 0; depth < 2000; depth += 1) {
+      value = Expression.ifElse(true, { then: value, else: 0n });
+    }
+    expect(compile(Expression.as(value, numberType))).toBe(
+      `["::kernel::special_form::as",${compile(value)},"::kernel::type::Number"]`,
     );
   });
 

@@ -359,6 +359,16 @@ describe("construction", () => {
     });
   });
 
+  test("type_assertion", () => {
+    Draft.program({ count: BigInt }, ($, { count }) => {
+      expectTypeOf($.as).toEqualTypeOf<typeof Expression.as>();
+      const { Number: NumberType } = $.prelude();
+      // @ts-expect-error an asserted value keeps reading an input the schema does not declare
+      $.let("escaped", $.as(outside, NumberType));
+      return $.if(true, { then: (branch) => branch.as(count, NumberType) });
+    });
+  });
+
   test("escaped_conditional", () => {
     Draft.program({ count: BigInt }, ($, { count }) => {
       const both = $.if(true, {

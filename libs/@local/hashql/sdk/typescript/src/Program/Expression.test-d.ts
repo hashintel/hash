@@ -9,6 +9,7 @@ import { describe, expectTypeOf, test } from "vitest";
 import { Relocate, relocate } from "../internal/relocation.js";
 import {
   adaptCallable,
+  as,
   fromJExpr,
   ifElse,
   input,
@@ -676,6 +677,19 @@ describe("primitive", () => {
       else: 2,
     });
     expectTypeOf(numeric).toEqualTypeOf<
+      Expression<Type.PrimitiveNumber, Inputs.Empty>
+    >();
+  });
+
+  test("type_assertion", () => {
+    type Asserted = Expression<
+      Type.PrimitiveNumber,
+      { readonly count: Type.PrimitiveInteger }
+    >;
+    const count = input("count", integerType);
+    expectTypeOf(as(count, numberType)).toEqualTypeOf<Asserted>();
+    expectTypeOf(count.pipe(as(numberType))).toEqualTypeOf<Asserted>();
+    expectTypeOf(as(2n, numberType)).toEqualTypeOf<
       Expression<Type.PrimitiveNumber, Inputs.Empty>
     >();
   });
