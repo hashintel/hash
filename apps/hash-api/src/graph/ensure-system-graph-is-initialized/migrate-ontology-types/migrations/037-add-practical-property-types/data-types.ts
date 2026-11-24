@@ -27,12 +27,13 @@ export const measurementDataTypes: MeasurementDataType[] = [
       description:
         "A unit of mass concentration equal to 10^-9 kilograms per cubic meter.",
       type: "number",
-      allOf: [{ $ref: systemDataTypes.massDensityMetric.dataTypeId }],
+      allOf: [{ $ref: systemDataTypes["massDensity(metric)"].dataTypeId }],
       label: { right: "μg/m³" },
     },
     conversions: {
-      [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
-        scaledConversion({ factor: 1e-9 }),
+      [systemDataTypes.kilogramPerCubicMeter.dataTypeBaseUrl]: scaledConversion(
+        { factor: 1e-9 },
+      ),
     },
   },
   {
@@ -43,12 +44,13 @@ export const measurementDataTypes: MeasurementDataType[] = [
       description:
         "A unit of mass concentration equal to 10^-6 kilograms per cubic meter.",
       type: "number",
-      allOf: [{ $ref: systemDataTypes.massDensityMetric.dataTypeId }],
+      allOf: [{ $ref: systemDataTypes["massDensity(metric)"].dataTypeId }],
       label: { right: "mg/m³" },
     },
     conversions: {
-      [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
-        scaledConversion({ factor: 0.000001 }),
+      [systemDataTypes.kilogramPerCubicMeter.dataTypeBaseUrl]: scaledConversion(
+        { factor: 0.000001 },
+      ),
     },
   },
   {
@@ -59,28 +61,28 @@ export const measurementDataTypes: MeasurementDataType[] = [
       description:
         "A unit of number concentration equal to one million reciprocal cubic meters.",
       type: "number",
-      allOf: [{ $ref: systemDataTypes.numberPerVolumeMetric.dataTypeId }],
+      allOf: [{ $ref: systemDataTypes["numberPerVolume(metric)"].dataTypeId }],
       label: { right: "cm⁻³" },
     },
     conversions: {
-      [systemDataTypes.reciprocalCubicMeters.dataTypeBaseUrl]: scaledConversion(
-        { factor: 1000000 },
-      ),
+      [systemDataTypes.reciprocalCubicMeter.dataTypeBaseUrl]: scaledConversion({
+        factor: 1000000,
+      }),
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.litrePerHour.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.literPerHour.dataTypeBaseUrl,
     definition: {
-      title: "Litre per Hour",
-      titlePlural: "Litres per Hour",
+      title: "Liter per Hour",
+      titlePlural: "Liters per Hour",
       description:
-        "A unit of volume flow rate equal to one litre per 3600 seconds at the stated measurement conditions.",
+        "A unit of volume flow rate equal to one liter per 3600 seconds at the stated measurement conditions.",
       type: "number",
-      allOf: [{ $ref: systemDataTypes.volumeFlowRateMetric.dataTypeId }],
+      allOf: [{ $ref: systemDataTypes["volumeFlowRate(metric)"].dataTypeId }],
       label: { right: "L/h" },
     },
     conversions: {
-      [systemDataTypes.cubicMetersPerSecond.dataTypeBaseUrl]: scaledConversion({
+      [systemDataTypes.cubicMeterPerSecond.dataTypeBaseUrl]: scaledConversion({
         factor: 0.001,
         divisor: 3600,
       }),
@@ -95,11 +97,11 @@ export const measurementDataTypes: MeasurementDataType[] = [
       description:
         "A unit of mass flux density equal to 10^-6 kilograms per square meter per second.",
       type: "number",
-      allOf: [{ $ref: systemDataTypes.massFluxDensityMetric.dataTypeId }],
+      allOf: [{ $ref: systemDataTypes["massFluxDensity(metric)"].dataTypeId }],
       label: { right: "mg/(m²·s)" },
     },
     conversions: {
-      [systemDataTypes.kilogramsPerSquareMeterSecond.dataTypeBaseUrl]:
+      [systemDataTypes.kilogramPerSquareMeterSecond.dataTypeBaseUrl]:
         scaledConversion({ factor: 0.000001 }),
     },
   },
@@ -132,7 +134,8 @@ export const measurementDataTypes: MeasurementDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.pressureChangeRateMetric.dataTypeBaseUrl,
+    dataTypeBaseUrl:
+      systemDataTypes["pressureChangeRate(metric)"].dataTypeBaseUrl,
     definition: {
       title: "Pressure Change Rate (Metric)",
       titlePlural: "Pressure Change Rates (Metric)",
@@ -151,7 +154,9 @@ export const measurementDataTypes: MeasurementDataType[] = [
       description:
         "A unit of pressure change rate equal to one pascal per second.",
       type: "number",
-      allOf: [{ $ref: systemDataTypes.pressureChangeRateMetric.dataTypeId }],
+      allOf: [
+        { $ref: systemDataTypes["pressureChangeRate(metric)"].dataTypeId },
+      ],
       label: { right: "Pa/s" },
     },
     conversions: {},
@@ -164,7 +169,9 @@ export const measurementDataTypes: MeasurementDataType[] = [
       description:
         "A unit of pressure change rate equal to 100 pascals per 3600 seconds.",
       type: "number",
-      allOf: [{ $ref: systemDataTypes.pressureChangeRateMetric.dataTypeId }],
+      allOf: [
+        { $ref: systemDataTypes["pressureChangeRate(metric)"].dataTypeId },
+      ],
       label: { right: "hPa/h" },
     },
     conversions: {

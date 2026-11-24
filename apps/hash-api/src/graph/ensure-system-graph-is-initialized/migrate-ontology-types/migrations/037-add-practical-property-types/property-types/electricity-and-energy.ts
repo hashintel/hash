@@ -39,7 +39,7 @@ export const electricityAndEnergyPropertyTypes: MeasurementPropertyType[] = [
       "The number of completed charge-discharge cycles under the stated cycle-counting convention; each counted cycle is a whole event.",
     possibleValues: [
       {
-        dataTypeId: systemDataTypes.nonNegativeInteger.dataTypeId,
+        dataTypeId: systemDataTypes["non-negativeInteger"].dataTypeId,
       },
     ],
   },

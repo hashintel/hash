@@ -39,7 +39,8 @@ export const lightSoundAndRadiationPropertyTypes: MeasurementPropertyType[] = [
       "The level of a constant sound having the same time-averaged squared A-weighted sound pressure as the measured sound over the stated interval, referenced to 20 micropascals.",
     possibleValues: [
       {
-        dataTypeId: systemDataTypes.decibelsAWeightedSoundPressure.dataTypeId,
+        dataTypeId:
+          systemDataTypes["decibel(a-weightedSoundPressure)"].dataTypeId,
       },
     ],
   },
@@ -49,7 +50,8 @@ export const lightSoundAndRadiationPropertyTypes: MeasurementPropertyType[] = [
       "The sound pressure level corresponding to the greatest absolute instantaneous C-weighted sound pressure in the stated observation interval, referenced to 20 micropascals.",
     possibleValues: [
       {
-        dataTypeId: systemDataTypes.decibelsCWeightedSoundPressure.dataTypeId,
+        dataTypeId:
+          systemDataTypes["decibel(c-weightedSoundPressure)"].dataTypeId,
       },
     ],
   },
