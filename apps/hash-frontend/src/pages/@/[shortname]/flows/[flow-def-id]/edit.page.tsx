@@ -510,6 +510,7 @@ const FlowEditor = ({
             {panelSubject && (
               <StepPanel
                 editor={editor}
+                flowDefinitionEntityId={flowDefinitionEntityId}
                 subject={panelSubject}
                 schedules={schedules}
                 onSelectStart={() =>
