@@ -2,13 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { validateCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
 
-import {
-  getConditionTargets,
-  readConditionForm,
-  toFilterCondition,
-} from "./condition-form";
+import { getConditionTargets } from "../shared/condition-targets";
+import { readConditionForm, toFilterCondition } from "./condition-form";
 
-import type { ConditionForm, ConditionTarget } from "./condition-form";
+import type { ConditionTarget } from "../shared/condition-targets";
+import type { ConditionForm } from "./condition-form";
 import type { BaseUrl } from "@blockprotocol/type-system";
 
 const statusUrl =
@@ -37,25 +35,6 @@ const entityTargets = byKey(
 const numberTargets = byKey(
   getConditionTargets({ kind: "Number", valueLabel: "Value", properties: [] }),
 );
-
-describe("getConditionTargets", () => {
-  it("checks a scalar value itself and an entity by its properties, never an entity ID as text", () => {
-    expect([...numberTargets.values()].map(({ label }) => label)).toEqual([
-      "Value",
-    ]);
-    expect([...entityTargets.values()].map(({ label }) => label)).toEqual([
-      "Status",
-      "Score",
-    ]);
-    expect(
-      getConditionTargets({
-        kind: "Duration",
-        valueLabel: "Value",
-        properties: [],
-      }),
-    ).toEqual([]);
-  });
-});
 
 describe("toFilterCondition", () => {
   it("builds a condition the engine accepts for the value's kind", () => {
