@@ -138,7 +138,9 @@ while (isRunning) {
   stepper that draws random numbers per span has to take the same spans
   whenever it is asked, so the last advance may carry the run past the demand.
 - A lower demand does not rewind: what is computed stays, and the worker
-  waits. The test in `event-simulation.worker.test.ts` holds both points.
+  waits. The test "computes no further than the latest demand, even a lower
+  one" in `event-simulation.worker.test.ts` holds this point. No test holds
+  the one before it.
 - One slice of advances lasts at most `COMPUTE_SLICE_MS`, 12 ms. The loop then
   yields, so a `pause` or a new `demand` is read within that time.
 
@@ -153,8 +155,10 @@ in [playback](layer:core.playback):
 | `computeBuffer` | 2                 | Sent again once the target has moved by a sixtieth of a unit.                            |
 | `computeMax`    | positive infinity | Sent with every change of the playback state: the worker computes to the end of the run. |
 
-A change of mode sends a demand afresh. That takes the worker's target back
-down when the mode leaves `computeMax`.
+A change to a compute mode sends a demand afresh. That takes the worker's
+target back down when the mode goes from `computeMax` to `computeBuffer`. A
+change to `viewOnly` sends none: the provider pauses the run, and the worker
+keeps its last target for the next `start`.
 
 ## When a batch leaves
 
