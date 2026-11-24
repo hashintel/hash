@@ -15,8 +15,8 @@ Rewritten on 2026-11-19, after the design and the spec were agreed. Earlier vers
 **Open:**
 
 - A crashed write leaves data files that no commit names. Nothing cleans them up yet.
-- Delta's checkpoints and log cleanup run with their defaults. With one commit per run that is cheap; a continuous sync would need them tuned.
-- `deltalake-core` is patched to the commit of delta-io/delta-rs#5017, which is not released. It moves to a release once one includes it. The release before, 1.1.4, brings `brotli-decompressor` and `quick-xml` versions with open advisories.
+- Delta's checkpoints and log cleanup run with their defaults: a checkpoint every 100 commits. With one commit per write that is cheap; a continuous sync would need them tuned.
+- `deltalake-core` is patched to the head of delta-io/delta-rs#5017, which is not merged. It moves to a release once one includes it. The release before, 1.1.4, brings `brotli-decompressor` and `quick-xml` versions with open advisories.
 
 ### Link changes in incremental runs
 

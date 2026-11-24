@@ -59,8 +59,8 @@ impl Storage {
         })
     }
 
-    /// The bucket's settings, with the namespace in its URI. The sync table opens its own
-    /// connection with them.
+    /// The bucket's settings, with the namespace in its URI, for code that opens its own
+    /// connection to the bucket. `None` for the in-memory store.
     pub(crate) const fn bucket(&self) -> Option<&S3Bucket> {
         self.bucket.as_ref()
     }

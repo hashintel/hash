@@ -10,8 +10,8 @@ use crate::{RunId, storage::Storage};
 ///
 /// # Errors
 ///
-/// Returns [`SyncTableError::Invalid`] if a row cannot be read or the storage has no bucket, and
-/// [`SyncTableError::Storage`] if the table cannot be read.
+/// Returns [`SyncTableError::Invalid`] if a row cannot be read, a data file is missing, or the
+/// storage has no bucket, and [`SyncTableError::Storage`] if the table cannot be read.
 pub(crate) async fn read(
     storage: &Storage,
     run: RunId,
@@ -23,10 +23,21 @@ pub(crate) async fn read(
     let store = table.object_store();
     let mut rows = Vec::new();
     for file in run_files(&table, run).await? {
+        let location = file.object_store_path();
         let bytes = store
-            .get(&file.object_store_path())
+            .get(&location)
             .await
-            .change_context(SyncTableError::Storage)?
+            .map_err(|error| {
+                // Nothing deletes a data file a commit names, so a missing one stays missing.
+                let context = if matches!(error, object_store::Error::NotFound { .. }) {
+                    SyncTableError::Invalid
+                } else {
+                    SyncTableError::Storage
+                };
+                Report::new(error)
+                    .change_context(context)
+                    .attach(format!("the data file `{location}`"))
+            })?
             .bytes()
             .await
             .change_context(SyncTableError::Storage)?;
@@ -41,8 +52,8 @@ pub(crate) async fn read(
             )?);
         }
     }
-    // A run's rows can be in more than one file, which are listed in no fixed order. Rows with
-    // the same `seq` are ordered by their entity.
+    // `write` keeps the caller's order, and a run's rows can be in several files, which are
+    // listed in no fixed order.
     rows.sort_by_key(|row| (row.seq, order_key(&row.entity_id)));
     Ok(rows)
 }

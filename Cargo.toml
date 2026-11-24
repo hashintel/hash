@@ -490,11 +490,10 @@ unneeded_field_pattern           = "allow" # Actually, the opposite would be a g
 oxc    = { git = "https://github.com/hashdeps/oxc", rev = "73c781b" }
 specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
 
-# `deltalake-core` 1.1.4, its latest release, uses `parquet` 59, whose `brotli` 8 pins
-# `brotli-decompressor` ~5.0, which has an open advisory (fixed in 6.2.0), and `object_store` 0.13,
-# whose `quick-xml` 0.39 has two (fixed in 0.41). The commit of delta-io/delta-rs#5017 moves it to
-# `arrow`/`parquet` 60 and `object_store` 0.14, the versions the workspace uses. Move back to a
-# release of `deltalake-core` once one includes it.
+# The head of delta-io/delta-rs#5017, which is not merged. It moves `deltalake-core` to
+# `arrow`/`parquet` 60 and `object_store` 0.14, like the rest of the workspace. The released
+# versions bring `brotli-decompressor` and `quick-xml` versions with open advisories. Replace it with
+# the first release that includes the pull request.
 deltalake-core = { git = "https://github.com/delta-io/delta-rs", rev = "364a3e2183ca1294b925eb111299501d5d1229e1" }
 
 libp2p                   = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }

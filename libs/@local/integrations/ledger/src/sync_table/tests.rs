@@ -1,7 +1,17 @@
 use alloc::collections::BTreeSet;
 use core::str::FromStr as _;
 
-use deltalake_core::writer::{DeltaWriter as _, RecordBatchWriter};
+use deltalake_core::{
+    kernel::{
+        Action, DataType, StructField,
+        transaction::{CommitBuilder, CommitProperties},
+    },
+    protocol::{DeltaOperation, SaveMode},
+    writer::{DeltaWriter as _, RecordBatchWriter},
+};
+use futures_util::TryStreamExt as _;
+use hash_crypto::Secret;
+use object_store::path::Path as Location;
 use pretty_assertions::assert_eq;
 use testcontainers::ContainerAsync;
 use testcontainers_modules::minio::MinIO;
@@ -15,10 +25,10 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use super::{Op, SyncRow, SyncTableError, open, read, row, write};
+use super::{Op, RUN, SyncRow, SyncTableError, open, order_key, read, row, write};
 use crate::{
-    RunId,
-    storage::Storage,
+    RunId, S3Bucket,
+    storage::{Storage, open_bucket},
     testing::{bucket, minio, namespace},
 };
 
@@ -161,6 +171,17 @@ async fn read_returns_only_its_run() {
         [],
         "a run that was never written should have no rows"
     );
+
+    write(&storage, second, Vec::new())
+        .await
+        .expect("should write the second run without rows");
+    assert_eq!(
+        read(&storage, first)
+            .await
+            .expect("should read the first run"),
+        rows(first),
+        "writing a run should leave the rows of another run"
+    );
 }
 
 #[tokio::test]
@@ -234,11 +255,28 @@ async fn write_repeats_uncommitted_write() {
 #[tokio::test]
 async fn rows_of_another_run_are_invalid() {
     let (_minio, storage) = storage().await;
-
-    let error = write(&storage, RunId::new(), rows(RunId::new()))
+    let run = RunId::new();
+    write(&storage, run, rows(run))
         .await
-        .expect_err("should refuse rows of another run");
-    assert_eq!(*error.current_context(), SyncTableError::Invalid);
+        .expect("should write the run");
+
+    let mut mixed = rows(run);
+    if let Some(last) = mixed.last_mut() {
+        last.run = RunId::new();
+    }
+    let error = write(&storage, run, mixed)
+        .await
+        .expect_err("should refuse a row of another run");
+    assert_eq!(
+        *error.current_context(),
+        SyncTableError::Invalid,
+        "a row of another run should be invalid"
+    );
+    assert_eq!(
+        read(&storage, run).await.expect("should read the run"),
+        rows(run),
+        "a refused write should leave the run's rows"
+    );
 }
 
 #[tokio::test]
@@ -246,7 +284,183 @@ async fn storage_without_bucket_is_invalid() {
     let error = read(&Storage::memory(), RunId::new())
         .await
         .expect_err("should refuse a storage without a bucket");
-    assert_eq!(*error.current_context(), SyncTableError::Invalid);
+    assert_eq!(
+        *error.current_context(),
+        SyncTableError::Invalid,
+        "a storage without a bucket should be invalid"
+    );
+}
+
+#[tokio::test]
+async fn table_is_below_the_bucket_prefix() {
+    let (_minio, port) = minio().await;
+    let storage = Storage::s3(
+        S3Bucket {
+            uri: "s3://captures/prefix/".into(),
+            ..bucket(port)
+        },
+        &namespace(),
+    )
+    .expect("should open the bucket");
+    let run = RunId::new();
+    write(&storage, run, rows(run))
+        .await
+        .expect("should write the run");
+
+    let root = storage
+        .bucket()
+        .and_then(|bucket| bucket.uri.strip_prefix("s3://captures/"))
+        .expect("should have a bucket with a prefix")
+        .to_owned();
+    let keys: Vec<String> = open_bucket(&bucket(port))
+        .expect("should open the bucket")
+        .list(Some(&Location::from(root.as_str())))
+        .map_ok(|object| object.location.to_string())
+        .try_collect()
+        .await
+        .expect("should list the bucket");
+    assert!(
+        keys.contains(&format!("{root}/sync/_delta_log/00000000000000000000.json")),
+        "the log should be under `{root}/sync`, found {keys:?}"
+    );
+    assert!(
+        keys.iter()
+            .any(|key| key.starts_with(&format!("{root}/sync/{RUN}={run}/"))),
+        "the run's files should be in its partition under `{root}/sync`, found {keys:?}"
+    );
+}
+
+#[tokio::test]
+async fn run_in_several_files() {
+    let (_minio, storage) = storage().await;
+    let (earlier, run) = (RunId::new(), RunId::new());
+    let expected = rows(run);
+    write(&storage, earlier, rows(earlier))
+        .await
+        .expect("should create the table");
+
+    // Two files whose rows interleave in the order of the run.
+    let table = open(&storage).await.expect("should open the table");
+    let mut adds = Vec::new();
+    for indices in [[0, 3].as_slice(), [1, 2, 4].as_slice()] {
+        let part = indices
+            .iter()
+            .map(|&index| expected.get(index).expect("should have the row").clone())
+            .collect::<Vec<_>>();
+        let mut writer = RecordBatchWriter::for_table(&table).expect("should open a writer");
+        let batch = row::to_batch(&part, &writer.arrow_schema()).expect("should build the batch");
+        writer.write(batch).await.expect("should write the batch");
+        adds.extend(
+            writer
+                .flush()
+                .await
+                .expect("should write the file")
+                .into_iter()
+                .map(Action::Add),
+        );
+    }
+    CommitBuilder::from(CommitProperties::default())
+        .with_actions(adds)
+        .build(
+            Some(table.snapshot().expect("should have a snapshot")),
+            table.log_store(),
+            DeltaOperation::Write {
+                mode: SaveMode::Append,
+                partition_by: Some(vec![RUN.to_owned()]),
+                predicate: None,
+            },
+        )
+        .await
+        .expect("should commit both files");
+
+    assert_eq!(
+        read(&storage, run).await.expect("should read the run"),
+        expected,
+        "should read the rows of both files in order"
+    );
+    let subset = expected.get(..2).expect("should have two rows").to_vec();
+    write(&storage, run, subset.clone())
+        .await
+        .expect("should write the run again");
+    assert_eq!(
+        read(&storage, run).await.expect("should read the run"),
+        subset,
+        "a write should replace the rows of every file of the run"
+    );
+}
+
+#[tokio::test]
+async fn wrong_credentials_are_storage_errors() {
+    let (_minio, port) = minio().await;
+    let storage = Storage::s3(
+        S3Bucket {
+            secret: Secret::from_vec(b"not the secret".to_vec()),
+            ..bucket(port)
+        },
+        &namespace(),
+    )
+    .expect("should open the bucket");
+    let run = RunId::new();
+
+    let error = read(&storage, run)
+        .await
+        .expect_err("should not read with wrong credentials");
+    assert_eq!(
+        *error.current_context(),
+        SyncTableError::Storage,
+        "a refused read should be a storage error, not an empty run"
+    );
+    let error = write(&storage, run, rows(run))
+        .await
+        .expect_err("should not write with wrong credentials");
+    assert_eq!(
+        *error.current_context(),
+        SyncTableError::Storage,
+        "a refused write should be a storage error"
+    );
+}
+
+#[tokio::test]
+async fn table_with_other_columns_is_invalid() {
+    let (_minio, storage) = storage().await;
+    let run = RunId::new();
+    open(&storage)
+        .await
+        .expect("should open the place of the table")
+        .create()
+        .with_columns([StructField::new("id", DataType::LONG, false)])
+        .await
+        .expect("should create another table");
+
+    let error = read(&storage, run)
+        .await
+        .expect_err("should refuse a table with other columns");
+    assert_eq!(
+        *error.current_context(),
+        SyncTableError::Invalid,
+        "a table with other columns should be invalid"
+    );
+    let error = write(&storage, run, rows(run))
+        .await
+        .expect_err("should refuse a table with other columns");
+    assert_eq!(
+        *error.current_context(),
+        SyncTableError::Invalid,
+        "a table with other columns should be invalid"
+    );
+}
+
+#[test]
+fn order_key_compares_web_ids_first() {
+    let id = |web: u128, entity: u128| EntityId {
+        web_id: WebId::new(Uuid::from_u128(web)),
+        entity_uuid: EntityUuid::new(Uuid::from_u128(entity)),
+        draft_id: None,
+    };
+    assert!(
+        order_key(&id(1, 2)) < order_key(&id(2, 1)),
+        "the web id should decide before the entity UUID"
+    );
 }
 
 #[test]

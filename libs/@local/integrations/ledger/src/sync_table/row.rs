@@ -108,7 +108,7 @@ mod json_text {
     }
 }
 
-/// The columns of the table, in the order of the fields of [`SyncRow`]. The table's format is
+/// The columns of the table: the fields of [`SyncRow`], with the run first. The table's format is
 /// stored, so it is written out here and not derived from the type.
 pub(super) fn columns() -> [StructField; 8] {
     [
