@@ -140,7 +140,7 @@ export type SimulationInput = {
 };
 
 /**
- * A running simulation instance with compiled functions and frame history.
+ * A running simulation instance with compiled functions and its frames.
  * Contains all state needed to execute and advance the simulation.
  */
 export type SimulationInstance = {
@@ -160,7 +160,7 @@ export type SimulationInstance = {
   dt: number;
   /** Maximum simulation time (immutable). Null means no limit. */
   maxTime: number | null;
-  /** Simulation time for the current frame, owned by the run controller. */
+  /** Simulation time of the current frame, advanced by `dt` with each step. */
   currentTime: number;
   /** Current state of the seeded random number generator */
   rngState: number;
@@ -172,7 +172,10 @@ export type SimulationInstance = {
   stringPool: StringPool;
   /** SDCPN-specialized binary frame layout for this simulation run. */
   frameLayout: EngineFrameLayout;
-  /** History of all computed frames */
+  /**
+   * The current frame, and the earlier ones until the caller that steps drops
+   * them: `computeNextFrame` appends a frame and removes none.
+   */
   frames: EngineFrame[];
   /** Index of the current frame in the frames array */
   currentFrameNumber: number;
