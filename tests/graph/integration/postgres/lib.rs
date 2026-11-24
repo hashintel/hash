@@ -7,6 +7,7 @@
 
 extern crate alloc;
 
+mod agent_conversation;
 mod clustering;
 mod data_type;
 mod drafts;
