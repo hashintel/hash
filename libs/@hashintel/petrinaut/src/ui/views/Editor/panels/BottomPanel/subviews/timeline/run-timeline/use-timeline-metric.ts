@@ -14,7 +14,7 @@ import { LanguageClientContext } from "../../../../../../../../react/lsp/context
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
 import { useKeptState } from "../../../../../../../shared/use-kept-state";
 
-import type { TimelineMetricEvaluator } from "../shared/series-config/metric";
+import type { TimelineMetricEvaluator } from "../shared/series-config";
 
 type TimelineMetricState = {
   /** Identity of the compiled metric (id + code), null when none. */

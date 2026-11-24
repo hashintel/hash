@@ -9,7 +9,7 @@ import {
   useEditorState,
   type TimelineView,
 } from "../../../../../../../../react/state/editor-context";
-import { placesWithDynamics } from "./series-config/solver-error";
+import { placesWithDynamics } from "./series-config";
 
 /** The view a timeline draws when the picked one has nothing to show. */
 export const PER_PLACE_VIEW: TimelineView = { kind: "per-place" };

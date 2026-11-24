@@ -17,6 +17,13 @@ import { buildSolverErrorSeriesConfig } from "./series-config/solver-error";
 import type { TimelineView } from "../../../../../../../../react/state/editor-context";
 import type { TimelineSeriesConfig } from "./types";
 
+// What a timeline reads from one builder without picking a view: the shape of
+// a metric's evaluator, the per-place series a stochastic run is drawn with,
+// and the places a solver integrates.
+export type { TimelineMetricEvaluator } from "./series-config/metric";
+export { buildPerPlaceSeriesConfig } from "./series-config/per-place";
+export { placesWithDynamics } from "./series-config/solver-error";
+
 /**
  * Selects the timeline series builder for the active timeline view.
  *
