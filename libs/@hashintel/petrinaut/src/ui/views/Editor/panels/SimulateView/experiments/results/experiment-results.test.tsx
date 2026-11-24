@@ -30,7 +30,7 @@ import type { ComputeBatch } from "./drawer-frame";
 
 // uPlot reads `matchMedia` as it loads, which jsdom lacks; the model builds
 // the tiles but never renders a timeline.
-vi.mock("../experiment-metric-timeline", () => ({
+vi.mock("./metric-timeline/experiment-metric-timeline", () => ({
   ExperimentMetricTimeline: () => null,
 }));
 

@@ -15,8 +15,8 @@ import { useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useElementSize } from "../../../../../../../shared/use-element-size";
-import { formatFixed } from "../../results/format-value";
+import { useElementSize } from "../../../../../../../../shared/use-element-size";
+import { formatFixed } from "../../format-value";
 import {
   columnDensity,
   formatAxisTick,

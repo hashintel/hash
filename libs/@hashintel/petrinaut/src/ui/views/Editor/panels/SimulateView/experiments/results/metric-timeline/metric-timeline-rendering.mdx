@@ -1,6 +1,6 @@
 ---
 title: Metric timeline rendering
-description: How streamed distribution frames become a heatmap that stays honest and calm while batches keep arriving, and how the frame inspector draws a whole distribution in one small box.
+description: How streamed distribution frames become a heatmap that stays true to its data and calm while batches keep arriving, and how the frame inspector draws a whole distribution in one small box.
 sidebar_order: 50
 ---
 
@@ -10,6 +10,27 @@ a streaming batch can tick the store faster than the screen refreshes and
 every `setData` redraws the chart, heatmap raster included. Axes mount as soon
 as the time domain is known, before any data, so the drawer's layout is
 complete when the first frames land.
+
+## Entry point
+
+`ExperimentMetricTimeline` in `experiment-metric-timeline.tsx` draws one metric. It composes three parts, in this order:
+
+1. `deriveMetricViewState` in `view-state.ts` turns the frames and the view settings into what is shown: a chart, a distribution or one number, with the data uPlot takes. It is pure.
+2. `MetricPlot` is the element uPlot draws into. It calls `useMetricPlot`.
+3. `FramePopover` is the frame inspector for the time step the user clicked.
+
+The component is exactly `plotHeight` tall. The waiting note and the legend lie over the plot, so no view setting adds a row.
+
+## Interface
+
+| Name                                                 | File                             | Use it to                                                                                                               |
+| ---------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `ExperimentMetricTimeline`                           | `experiment-metric-timeline.tsx` | Chart one metric from its `frames`, its `settings`, a fixed `timeDomain` and a `contentEpoch` that names what is shown. |
+| `MetricViewSettings`, `DEFAULT_METRIC_VIEW_SETTINGS` | `view-state.ts`                  | Hold, in the card that shows the chart, how the runs and the time axis collapse.                                        |
+| `MetricViewMenu`                                     | `metric-view-menu.tsx`           | Offer the settings in the card header.                                                                                  |
+| `describeMetricView`                                 | `describe-metric-view.ts`        | Word the settings as the subtitle of the card.                                                                          |
+
+`useMetricPlot` in `use-metric-plot.ts` is the chart's own hook and no caller's: it owns the uPlot instance, and the sections below describe what it does.
 
 ## Content changes crossfade
 
@@ -40,7 +61,7 @@ A distribution metric draws as a density image, one column per frame:
 4. **Ease and settle.** Within one selection each new grid blends with the one
    on screen (half new, half shown; resampled by value when the lattice
    moved) and then settles over three 100 ms redraws to the exact target, so
-   a GPU tile or a pipelined rung folding in mixes in instead of snapping and
+   a GPU tile or a pipelined rung that arrives mixes in instead of snapping and
    the stream's last delivery ends exact. The baseline is keyed on the content
    epoch: a new selection starts from its own data.
 5. **Raster.** The grid goes through a 256-entry magma table (zero density

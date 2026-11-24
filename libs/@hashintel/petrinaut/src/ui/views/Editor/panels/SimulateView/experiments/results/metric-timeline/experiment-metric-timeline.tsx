@@ -1,28 +1,25 @@
 /**
- * Charts one experiment metric over time — line, percentile bands, density
- * heatmap, or aggregates — as frames stream in. Its private pieces in
- * `experiment-metric-timeline/` form the metric-timeline layer.
+ * @layerRoot ui.views.editor.simulate.experiments.results.metric-timeline
+ * @role Charts one metric of an experiment over time, as a line, percentile bands, a density heatmap or one number, while its frames stream in
+ *
+ * `ExperimentMetricTimeline` is the entry. The card that shows a chart holds
+ * its view settings (`view-state.ts`) and offers `MetricViewMenu` to change
+ * them; the other files of this folder are the chart's own parts.
  */
 import { useRef, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import "uplot/dist/uPlot.min.css";
 
-import { useElementSize } from "../../../../../shared/use-element-size";
-import { FramePopover } from "./experiment-metric-timeline/frame-popover";
-import { MetricPlot } from "./experiment-metric-timeline/metric-plot";
-import { distributionBandLegend } from "./experiment-metric-timeline/shared/distribution-bands";
-import {
-  deriveMetricViewState,
-  selectedFrameFrom,
-} from "./experiment-metric-timeline/view-state";
-import { formatFixed } from "./results/format-value";
+import { useElementSize } from "../../../../../../../shared/use-element-size";
+import { formatFixed } from "../format-value";
+import { FramePopover } from "./frame-popover";
+import { MetricPlot } from "./metric-plot";
+import { distributionBandLegend } from "./shared/distribution-bands";
+import { deriveMetricViewState, selectedFrameFrom } from "./view-state";
 
-import type { MetricFrame } from "./experiment-metric-timeline/shared/metric-frames";
-import type {
-  FrameSelection,
-  MetricViewSettings,
-} from "./experiment-metric-timeline/view-state";
+import type { MetricFrame } from "./shared/metric-frames";
+import type { FrameSelection, MetricViewSettings } from "./view-state";
 
 // The component is exactly the plot's height: the waiting note and the
 // legend sit on the frame as overlays, so no view setting adds a row.

@@ -119,7 +119,7 @@ vi.mock("./sweep-objective-strip/objective-history-chart", () => ({
 
 // uPlot cannot mount in jsdom, so the timeline prints what it was handed. The
 // card's menu and subtitle come from their own files and stay real.
-vi.mock("../experiment-metric-timeline", () => ({
+vi.mock("./metric-timeline/experiment-metric-timeline", () => ({
   ExperimentMetricTimeline: ({
     frames,
     contentEpoch,

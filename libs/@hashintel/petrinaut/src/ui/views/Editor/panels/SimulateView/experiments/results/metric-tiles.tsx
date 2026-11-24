@@ -13,10 +13,6 @@ import { type ReactNode, useState } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { ExperimentMetricTimeline } from "../experiment-metric-timeline";
-import { describeMetricView } from "../experiment-metric-timeline/describe-metric-view";
-import { MetricViewMenu } from "../experiment-metric-timeline/metric-view-menu";
-import { DEFAULT_METRIC_VIEW_SETTINGS } from "../experiment-metric-timeline/view-state";
 import { ChartCard, ChartCardGrid, type ChartCardTone } from "./chart-card";
 import {
   CHART_CARD_GRID_GAP,
@@ -25,6 +21,10 @@ import {
   chartCardBodyHeight,
   chartCardHeight,
 } from "./chart-card-layout";
+import { describeMetricView } from "./metric-timeline/describe-metric-view";
+import { ExperimentMetricTimeline } from "./metric-timeline/experiment-metric-timeline";
+import { MetricViewMenu } from "./metric-timeline/metric-view-menu";
+import { DEFAULT_METRIC_VIEW_SETTINGS } from "./metric-timeline/view-state";
 
 import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
 

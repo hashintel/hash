@@ -1,5 +1,5 @@
 /** The frame types the timeline's modules share. */
-import type { ExperimentRecord } from "../../../../../../../../react/experiments/context";
+import type { ExperimentRecord } from "../../../../../../../../../react/experiments/context";
 
 export type MetricFrame = ExperimentRecord["metricFrames"][number];
 export type ScalarMetricFrame = Extract<MetricFrame, { outputType: "scalar" }>;

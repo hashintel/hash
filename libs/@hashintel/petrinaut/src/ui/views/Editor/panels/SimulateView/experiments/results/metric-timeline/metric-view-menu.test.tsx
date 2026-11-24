@@ -23,7 +23,7 @@ import type { MetricFrame } from "./shared/metric-frames";
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const [actual, stubs] = await Promise.all([
     importOriginal<typeof import("@hashintel/ds-components")>(),
-    import("../../shared/ds-control-stubs"),
+    import("../../../shared/ds-control-stubs"),
   ]);
   return { ...actual, ...stubs };
 });
