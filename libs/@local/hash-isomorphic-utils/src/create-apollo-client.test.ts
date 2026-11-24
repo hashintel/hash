@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+import * as Sentry from "@sentry/browser";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { createApolloClient } from "./create-apollo-client.js";
@@ -38,6 +39,7 @@ const graphQLFailure = () =>
 
 beforeEach(() => {
   vi.useFakeTimers();
+  vi.mocked(Sentry.captureException).mockClear();
   sent.length = 0;
   vi.stubGlobal(
     "fetch",
@@ -73,9 +75,9 @@ test("an operation that opts in is retried after each of its delays, then fails"
   expect(sent).toEqual([0, 1_000, 3_000, 7_000]);
 });
 
-test("an operation that opts in is retried for an answer with errors and preserves graphQLErrors", async () => {
+test("an operation that opts in is retried for a transient GraphQL error, preserves graphQLErrors, and reports to Sentry once", async () => {
   respond = graphQLFailure;
-  const outcome = await run({ retryDelaysMs: [500] });
+  const outcome = await run({ retryDelaysMs: [500, 1_000] });
   expect(outcome).toBeInstanceOf(Error);
   expect(outcome).toMatchObject({
     networkError: null,
@@ -86,6 +88,84 @@ test("an operation that opts in is retried for an answer with errors and preserv
       }),
     ],
   });
+  expect(sent).toEqual([0, 500, 1_500]);
+  expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+});
+
+test("an operation that opts in does not report to Sentry when a retry succeeds", async () => {
+  let failures = 1;
+  respond = () =>
+    failures-- > 0
+      ? graphQLFailure()
+      : Promise.resolve(Response.json({ data: { probe: "ok" } }));
+  expect(await run({ retryDelaysMs: [500] })).toBe("answered");
+  expect(sent).toEqual([0, 500]);
+  expect(Sentry.captureException).not.toHaveBeenCalled();
+});
+
+test("an operation that opts in does not retry permanent GraphQL or 4xx HTTP errors", async () => {
+  respond = () =>
+    Promise.resolve(
+      Response.json({
+        errors: [
+          {
+            message: "Forbidden",
+            path: ["probe"],
+            extensions: { code: "FORBIDDEN" },
+          },
+        ],
+      }),
+    );
+  const forbiddenOutcome = await run({ retryDelaysMs: [500, 1_000] });
+  expect(forbiddenOutcome).toBeInstanceOf(Error);
+  expect(sent).toEqual([0]);
+
+  sent.length = 0;
+  respond = () =>
+    Promise.resolve(
+      Response.json({
+        errors: [
+          {
+            message: "Bad input",
+            path: ["probe"],
+            extensions: { code: "BAD_USER_INPUT" },
+          },
+        ],
+      }),
+    );
+  const validationOutcome = await run({ retryDelaysMs: [500, 1_000] });
+  expect(validationOutcome).toBeInstanceOf(Error);
+  expect(sent).toEqual([0]);
+
+  sent.length = 0;
+  respond = () =>
+    Promise.resolve(
+      new Response(JSON.stringify({ message: "Bad request" }), { status: 400 }),
+    );
+  const badRequestOutcome = await run({ retryDelaysMs: [500, 1_000] });
+  expect(badRequestOutcome).toBeInstanceOf(Error);
+  expect(sent).toEqual([0]);
+});
+
+test("an operation that opts in retries 5xx and 429 HTTP errors", async () => {
+  respond = () =>
+    Promise.resolve(
+      new Response(JSON.stringify({ message: "Service unavailable" }), {
+        status: 503,
+      }),
+    );
+  expect(await run({ retryDelaysMs: [500] })).toBeInstanceOf(Error);
+  expect(sent).toEqual([0, 500]);
+
+  sent.length = 0;
+  start = Date.now();
+  respond = () =>
+    Promise.resolve(
+      new Response(JSON.stringify({ message: "Too many requests" }), {
+        status: 429,
+      }),
+    );
+  expect(await run({ retryDelaysMs: [500] })).toBeInstanceOf(Error);
   expect(sent).toEqual([0, 500]);
 });
 
@@ -98,7 +178,7 @@ test("an operation that opts in preserves partial data with errorPolicy: 'all' a
           {
             message: "Partial failure",
             path: ["probe"],
-            extensions: { code: "PARTIAL" },
+            extensions: { code: "INTERNAL_SERVER_ERROR" },
           },
         ],
       }),
@@ -116,7 +196,7 @@ test("an operation that opts in preserves partial data with errorPolicy: 'all' a
   expect(outcome.errors).toEqual([
     expect.objectContaining({
       message: "Partial failure",
-      extensions: { code: "PARTIAL" },
+      extensions: { code: "INTERNAL_SERVER_ERROR" },
     }),
   ]);
   expect(sent).toEqual([0, 250]);
