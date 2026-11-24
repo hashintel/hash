@@ -13,7 +13,7 @@ complete when the first frames land.
 
 ## Entry point
 
-`ExperimentMetricTimeline` in `experiment-metric-timeline.tsx` draws one metric. It composes three parts, in this order:
+`ExperimentMetricTimeline` in `experiment-metric-timeline.tsx` draws one metric. It composes these parts, in this order:
 
 1. `deriveMetricViewState` in `view-state.ts` turns the frames and the view settings into what is shown: a chart, a distribution or one number, with the data uPlot takes. It is pure.
 2. `MetricPlot` is the element uPlot draws into. It calls `useMetricPlot`.

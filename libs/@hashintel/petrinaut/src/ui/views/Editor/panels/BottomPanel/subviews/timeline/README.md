@@ -7,7 +7,7 @@ The timeline is the chart of the Timeline tab. It draws the series of the view t
 
 ## Interface
 
-Other blocks import the three entry files:
+Other blocks import the entry files:
 
 | File                          | Export                       | What it is                                                                                                                          |
 | ----------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -15,15 +15,15 @@ Other blocks import the three entry files:
 | `actual-timeline.tsx`         | `ActualTimeline`             | The timeline of the frames a host streams in Actual mode. The tab `actual-timeline`.                                                |
 | `timeline-header-actions.tsx` | `EventTimelineHeaderActions` | The view picker and the chart type selector that the tab of a run adds to the header of the panel.                                  |
 
-The [preview](layer:ui.preview) mounts the first two. The id of a tab is stored with the user's settings, so both ids keep their names whatever the files are called.
+The [preview](layer:ui.preview) mounts `EventTimeline` and `ActualTimeline`. The id of a tab is stored with the user's settings, so the ids keep their names whatever the files are called.
 
 Each entry has a folder of its name with its own parts, and `shared/` holds what the entries share: the legend, the styles, the tooltip and the view to draw.
 
-## Protocols
+## Protocol
 
-**The series extractor.** A view is a `TimelineSeriesConfig`: the series to plot and one `TimelineSeriesExtractor`, which returns the value of one series in one frame, or `NaN` for a gap. `shared/types.ts` states the contract and `shared/series-config.ts` picks the config of the view. Both timelines read through it, so a new view is one builder in `shared/series-config/` and one case in `shared/series-config.ts`.
+**The series extractor.** A view is a `TimelineSeriesConfig`: the series to plot and one `TimelineSeriesExtractor`, which returns the value of one series in one frame, or `NaN` for a gap. `shared/types.ts` states the contract and `shared/series-config.ts` picks the config of the view. Both timelines read through it, so a new view is one builder in `shared/series-config/` and one case in `shared/series-config.ts`. The builders are private to that file: a timeline that needs a name of one reads it from `shared/series-config.ts`.
 
-**The series store of a run.** `run-timeline/series-store.ts` keeps the columns of a run and appends to them as events arrive. Its header states what is read once and which cells are read again. The header of `run-timeline/series.ts` states the three shapes the columns take.
+**The series store of a run.** `run-timeline/series-store.ts` keeps the columns of a run and appends to them as events arrive. Its header states what is read once and which cells are read again. The header of `run-timeline/series.ts` states the shapes the columns take.
 
 ## Rules
 
