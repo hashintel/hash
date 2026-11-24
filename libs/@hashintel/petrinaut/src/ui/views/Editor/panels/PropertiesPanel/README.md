@@ -1,6 +1,11 @@
+---
+layer: ui.views.editor.properties
+role: Shows and edits the properties of the selected item, or of a selection of several, in the right panel
+---
+
 # The properties panel
 
-The panel on the right of the editor shows and edits the properties of what is selected. `panel.tsx` declares its layer, `ui.views.editor.properties`.
+The panel on the right of the editor shows and edits the properties of what is selected.
 
 ## Interface
 

@@ -1,10 +1,3 @@
-/**
- * @layerRoot ui.views.editor.properties
- * @role Shows and edits the properties of the selected item, or of a selection of several, in the right panel
- *
- * Also imported by the preview: `selected-item-properties.tsx`.
- */
-
 import { use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
