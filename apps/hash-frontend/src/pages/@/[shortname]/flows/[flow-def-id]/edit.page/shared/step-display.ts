@@ -32,13 +32,14 @@ export type StepTone =
   | "purple"
   | "neutral";
 
-/** In the order the Add tab and the add menu list them, each in the hue its steps' tiles take. */
+/** In the order the Add tab and the add menu list them, each in the hue its steps' tiles take by default. */
 const actionGroups = {
   people: { label: "People", icon: "user", tone: "yellow" },
   messages: { label: "Messages", icon: "at", tone: "blue" },
-  ai: { label: "AI", icon: "sparkles", tone: "pink" },
   documents: { label: "Documents", icon: "download", tone: "orange" },
   entities: { label: "Entities", icon: "cube", tone: "green" },
+  /* The palette has no hue left for these, so they keep the one they had under Flow control. */
+  lists: { label: "Lists", icon: "list", tone: "purple" },
   flowControl: { label: "Flow control", icon: "rotate", tone: "purple" },
 } as const satisfies Record<
   string,
@@ -47,26 +48,67 @@ const actionGroups = {
 
 type ActionGroupId = keyof typeof actionGroups;
 
-export type AddableAction = {
-  actionDefinitionId: FlowActionDefinitionId;
+type ActionListing = {
   /** What people call the action, which can differ from its definition's name. */
   label: string;
   description: string;
   groupId: ActionGroupId;
   icon: IconName;
+  /** Set when the tile's hue isn't its group's: AI steps are pink in any group. */
+  tone?: StepTone;
 };
 
+export type AddableAction = ActionListing & {
+  actionDefinitionId: FlowActionDefinitionId;
+};
+
+/** In the designs but without a definition yet, so it is listed but can't be added. */
+type UpcomingAction = ActionListing & { upcomingId: string };
+
+export type ListedAction = AddableAction | UpcomingAction;
+
+/** Shown on an upcoming action's row while it is hovered. */
+export const upcomingNote = "Soon";
+
+export const isAddableAction = (
+  action: ListedAction,
+): action is AddableAction => "actionDefinitionId" in action;
+
+/** Also how a for-each step in a flow is shown. */
+const forEachListing = {
+  upcomingId: "forEach",
+  label: "For each",
+  description: "Run steps for every item",
+  groupId: "flowControl",
+  icon: "refresh",
+} as const satisfies UpcomingAction;
+
 /**
- * In the order each group lists them. Only actions with a definition can be offered: Ask a person (FE-1987), Send
- * email (FE-1832), For each (FE-1915) and Wait (FE-2012) join once they have one.
+ * In the order each group lists them. Ask a person (FE-1987), Send email (FE-1832) and For each (FE-1915) can be added
+ * once they have a definition. Wait (FE-2012) and the definitions kept from before the editor aren't listed.
  */
-const addableActions: AddableAction[] = [
+const listedActions: ListedAction[] = [
+  {
+    upcomingId: "askPerson",
+    label: "Ask a person",
+    description: "Ask someone to approve or reject",
+    groupId: "people",
+    icon: "user",
+  },
+  {
+    upcomingId: "sendEmail",
+    label: "Send email",
+    description: "Send an email to people",
+    groupId: "messages",
+    icon: "at",
+  },
   {
     actionDefinitionId: "draftMessage",
     label: "Draft email",
     description: "Write an email's subject and body",
-    groupId: "ai",
+    groupId: "messages",
     icon: "feather",
+    tone: "pink",
   },
   {
     actionDefinitionId: "getFileFromUrl",
@@ -97,38 +139,31 @@ const addableActions: AddableAction[] = [
     icon: "edit",
   },
   {
-    actionDefinitionId: "if",
-    label: "If",
-    description: "Send a value to Yes or No by a condition",
-    groupId: "flowControl",
-    icon: "diagramNodes",
-  },
-  {
     actionDefinitionId: "filterList",
     label: "Filter list",
     description: "Split a list into matching and other items",
-    groupId: "flowControl",
+    groupId: "lists",
     icon: "filter",
   },
   {
     actionDefinitionId: "find",
     label: "Find",
     description: "Pick the first item of a list that matches a condition",
-    groupId: "flowControl",
+    groupId: "lists",
     icon: "bullseye",
   },
   {
     actionDefinitionId: "orderBy",
     label: "Order by",
     description: "Sort a list by its items, one of their fields or a property",
-    groupId: "flowControl",
+    groupId: "lists",
     icon: "sortDown",
   },
   {
     actionDefinitionId: "takeFirst",
     label: "Take first",
     description: "Keep the first items of a list, up to a count",
-    groupId: "flowControl",
+    groupId: "lists",
     icon: "circleOne",
   },
   {
@@ -136,14 +171,27 @@ const addableActions: AddableAction[] = [
     label: "Aggregate",
     description:
       "Count a list's items, or take their sum, average, minimum or maximum",
-    groupId: "flowControl",
+    groupId: "lists",
     icon: "function",
   },
+  {
+    actionDefinitionId: "if",
+    label: "If",
+    description: "Send a value to Yes or No by a condition",
+    groupId: "flowControl",
+    icon: "diagramNodes",
+  },
+  forEachListing,
 ];
 
-/** The hue of an action's tile, which is its group's. */
-export const getActionTone = ({ groupId }: Pick<AddableAction, "groupId">) =>
-  actionGroups[groupId].tone;
+const addableActions = listedActions.filter(isAddableAction);
+
+/** The hue of an action's tile: its own if it names one, otherwise its group's. */
+export const getActionTone = ({
+  groupId,
+  tone,
+}: Pick<ActionListing, "groupId" | "tone">) =>
+  tone ?? actionGroups[groupId].tone;
 
 /** `undefined` for an action that can't be added. */
 export const findAddableAction = (actionDefinitionId: string) =>
@@ -164,24 +212,24 @@ export type ActionGroup = {
   groupId: ActionGroupId;
   label: string;
   icon: IconName;
-  actions: AddableAction[];
+  actions: ListedAction[];
 };
 
-/** The groups of actions in the Add tab and the add menu, leaving out any with nothing that can be added yet. */
-export const addableActionGroups: ActionGroup[] = typedKeys(
-  actionGroups,
-).flatMap((groupId) => {
-  const { label, icon } = actionGroups[groupId];
-  const actions = addableActions.filter((action) => action.groupId === groupId);
+/** The groups of actions in the Add tab and the add menu, upcoming actions included. */
+export const listedActionGroups: ActionGroup[] = typedKeys(actionGroups).map(
+  (groupId) => ({
+    groupId,
+    label: actionGroups[groupId].label,
+    icon: actionGroups[groupId].icon,
+    actions: listedActions.filter((action) => action.groupId === groupId),
+  }),
+);
 
-  return actions.length > 0 ? [{ groupId, label, icon, actions }] : [];
-});
-
-/** The actions whose name contains `query`, ignoring case, in the order their groups list them. */
-export const searchAddableActions = (query: string): AddableAction[] => {
+/** The listed actions whose name contains `query`, ignoring case, in the order their groups list them. */
+export const searchListedActions = (query: string): ListedAction[] => {
   const needle = query.trim().toLowerCase();
 
-  return addableActionGroups
+  return listedActionGroups
     .flatMap(({ actions }) => actions)
     .filter(({ label }) => label.toLowerCase().includes(needle));
 };
@@ -203,7 +251,7 @@ export const triggerDisplays = {
   schedule: { title: "Schedule", icon: "calendar" },
 } as const satisfies Record<TriggerKind, { title: string; icon: IconName }>;
 
-/** `group` is `undefined` for an action that can't be added, which belongs to no group. */
+/** `group` is `undefined` for an action that isn't listed, which belongs to no group. */
 export const getStepDisplay = (
   step: StepDefinition<string>,
 ): {
@@ -215,11 +263,11 @@ export const getStepDisplay = (
 } => {
   if (step.kind === "for-each") {
     return {
-      title: "For each",
+      title: forEachListing.label,
       description: step.description,
-      icon: "refresh",
-      tone: actionGroups.flowControl.tone,
-      group: actionGroups.flowControl.label,
+      icon: forEachListing.icon,
+      tone: getActionTone(forEachListing),
+      group: actionGroups[forEachListing.groupId].label,
     };
   }
 

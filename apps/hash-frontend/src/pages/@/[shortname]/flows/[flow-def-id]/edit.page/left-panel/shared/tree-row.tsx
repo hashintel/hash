@@ -43,12 +43,15 @@ const staticRowLabel = css({
   fontWeight: "medium",
   color: "neutral.s120",
 });
+/* As the design system dims a disabled menu item. */
+const unavailableRowLabel = css({ opacity: "[0.5]" });
 const staticRowText = css({ truncate: true });
-const stepCountLabel = css({
+const rowEndLabel = css({
   flexShrink: "0",
   textStyle: "xs",
   color: "fg.subtle",
 });
+const shownOnRowHover = css({ opacity: "0", _groupHover: { opacity: "1" } });
 
 /** A row of the left panel's lists: a step in the Steps tab, or a group or action in the Add tab. */
 export const TreeRow = ({
@@ -58,6 +61,7 @@ export const TreeRow = ({
   label,
   selected = false,
   emphasized = false,
+  unavailableNote,
   expander,
   stepCount,
   status,
@@ -69,6 +73,8 @@ export const TreeRow = ({
   label: string;
   selected?: boolean;
   emphasized?: boolean;
+  /** Dims a row with no `onClick`, and shows at its end while the row is hovered. */
+  unavailableNote?: string;
   expander?: ReactNode;
   /** Shown at the end of a group's row. */
   stepCount?: number;
@@ -91,18 +97,31 @@ export const TreeRow = ({
       {label}
     </Button>
   ) : (
-    <span className={staticRowLabel}>
+    <span
+      className={cx(
+        staticRowLabel,
+        unavailableNote === undefined ? undefined : unavailableRowLabel,
+      )}
+    >
       {iconTile}
       <span className={staticRowText}>{label}</span>
     </span>
   );
 
   return (
-    <div className={row} style={{ paddingLeft: depth * indentPerDepth }}>
+    <div
+      className={cx("group", row)}
+      style={{ paddingLeft: depth * indentPerDepth }}
+    >
       <span className={expanderSlot}>{expander}</span>
       {labelElement}
       {stepCount !== undefined && (
-        <span className={stepCountLabel}>{countSteps(stepCount)}</span>
+        <span className={rowEndLabel}>{countSteps(stepCount)}</span>
+      )}
+      {unavailableNote !== undefined && (
+        <span className={cx(rowEndLabel, shownOnRowHover)}>
+          {unavailableNote}
+        </span>
       )}
       {status}
     </div>

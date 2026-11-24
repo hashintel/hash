@@ -6,14 +6,16 @@ import { css } from "@hashintel/ds-helpers/css";
 import { CollapseButton } from "../shared/collapse-button";
 import { useRecentActions } from "../shared/recent-actions";
 import {
-  addableActionGroups,
   getActionTone,
-  searchAddableActions,
+  isAddableAction,
+  listedActionGroups,
+  searchListedActions,
   stepNoun,
+  upcomingNote,
 } from "../shared/step-display";
 import { TreeRow } from "./shared/tree-row";
 
-import type { AddableAction } from "../shared/step-display";
+import type { ListedAction } from "../shared/step-display";
 
 const section = css({
   display: "flex",
@@ -29,7 +31,7 @@ const noMatches = css({
   py: "2",
 });
 
-/** The actions that can be added, in collapsible groups, or the ones whose name matches the search. */
+/** The listed actions, in collapsible groups, or the ones whose name matches the search. */
 export const AddTab = ({
   onAddStep,
 }: {
@@ -52,21 +54,30 @@ export const AddTab = ({
       return next;
     });
 
-  const actionRow = (action: AddableAction, depth: number) => (
-    <TreeRow
-      key={action.actionDefinitionId}
-      depth={depth}
-      icon={action.icon}
-      tone={getActionTone(action)}
-      label={action.label}
-      onClick={() => {
-        recordAddedAction(action.actionDefinitionId);
-        onAddStep(action.actionDefinitionId);
-      }}
-    />
-  );
+  const actionRow = (action: ListedAction, depth: number) => {
+    const addable = isAddableAction(action);
 
-  const matches = query.trim() === "" ? null : searchAddableActions(query);
+    return (
+      <TreeRow
+        key={addable ? action.actionDefinitionId : action.upcomingId}
+        depth={depth}
+        icon={action.icon}
+        tone={getActionTone(action)}
+        label={action.label}
+        unavailableNote={addable ? undefined : upcomingNote}
+        onClick={
+          addable
+            ? () => {
+                recordAddedAction(action.actionDefinitionId);
+                onAddStep(action.actionDefinitionId);
+              }
+            : undefined
+        }
+      />
+    );
+  };
+
+  const matches = query.trim() === "" ? null : searchListedActions(query);
 
   return (
     <div className={section}>
@@ -81,7 +92,7 @@ export const AddTab = ({
       />
       <div>
         {matches === null ? (
-          addableActionGroups.map(({ groupId, label, actions }) => {
+          listedActionGroups.map(({ groupId, label, actions }) => {
             const expanded = expandedGroupIds.has(groupId);
 
             return (
