@@ -302,14 +302,14 @@ const namedNetItemsOf = (net: NetItems): NamedItem[] => [
   ...(net.fusions ?? []),
 ];
 
-/** The document's named items, subnets included. Ids are UUIDs, so names describe removals. */
+/** The document's named items, components included. Ids are UUIDs, so names describe removals. */
 const namedItemsOf = (definition: SDCPN): NamedItem[] => [
   ...namedNetItemsOf(definition),
   ...(definition.scenarios ?? []),
   ...(definition.metrics ?? []),
-  ...(definition.subnets ?? []).flatMap((subnet) => [
-    subnet,
-    ...namedNetItemsOf(subnet),
+  ...(definition.components ?? []).flatMap((component) => [
+    component,
+    ...namedNetItemsOf(component),
   ]),
 ];
 
@@ -417,9 +417,9 @@ const canonicalRemovalDescriptions = (
       return [
         `Remove metric — ${nameOf(mutationActionInputSchemas.removeMetric.parse(input).metricId)}`,
       ];
-    case "removeSubnet":
+    case "removeComponent":
       return [
-        `Remove subnet — ${nameOf(mutationActionInputSchemas.removeSubnet.parse(input).subnetId)}`,
+        `Remove component — ${nameOf(mutationActionInputSchemas.removeComponent.parse(input).componentId)}`,
       ];
     case "removeComponentInstance":
       return [
@@ -434,6 +434,13 @@ const canonicalRemovalDescriptions = (
         mutationActionInputSchemas.removeFusionMember.parse(input);
       return [
         `Remove fusion member — ${nameOf(fusionId)} / ${endpointName(member, nameOf)}`,
+      ];
+    }
+    case "replaceFusionMember": {
+      const { fusionId, member, replacement } =
+        mutationActionInputSchemas.replaceFusionMember.parse(input);
+      return [
+        `Replace fusion member — ${nameOf(fusionId)} / ${endpointName(member, nameOf)} with ${endpointName(replacement, nameOf)}`,
       ];
     }
     case "deleteItemsByIds":

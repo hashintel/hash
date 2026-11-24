@@ -1,26 +1,25 @@
-import { useEffect, useEffectEvent, type ReactNode } from "react";
+import { useEffect, useEffectEvent } from "react";
 
 import { useCommand } from "../../../../react/commands/command-registry";
-import { usePetrinautNavigation } from "../../../../react/navigation";
+import {
+  usePetrinautNavigate,
+  usePetrinautNavigationState,
+} from "../../../../react/navigation/navigation";
 import { UserSettingsDialog } from "./user-settings/user-settings-dialog";
 
-export const UserSettings = ({
-  settingsLabs,
-}: {
-  settingsLabs?: ReactNode;
-}) => {
-  const navigation = usePetrinautNavigation();
-  const overlay = navigation.state.overlay;
-  const section =
+export const UserSettings = () => {
+  const navigate = usePetrinautNavigate();
+  const section = usePetrinautNavigationState(({ overlay }) =>
     overlay?.type === "user-settings"
       ? (overlay.section ?? "general")
       : overlay?.type === "viewport-settings"
         ? "viewport"
-        : null;
+        : null,
+  );
 
   const openSettings = () => {
     if (section === null) {
-      navigation.navigate(
+      navigate(
         { overlay: { type: "user-settings", section: "general" } },
         { cause: "user", action: "overlay" },
       );
@@ -65,18 +64,14 @@ export const UserSettings = ({
   return section === null ? null : (
     <UserSettingsDialog
       section={section}
-      settingsLabs={settingsLabs}
       onSectionChange={(nextSection) =>
-        navigation.navigate(
+        navigate(
           { overlay: { type: "user-settings", section: nextSection } },
           { cause: "user", action: "overlay", phase: "continue" },
         )
       }
       onClose={() =>
-        navigation.navigate(
-          { overlay: null },
-          { cause: "user", action: "overlay" },
-        )
+        navigate({ overlay: null }, { cause: "user", action: "overlay" })
       }
     />
   );

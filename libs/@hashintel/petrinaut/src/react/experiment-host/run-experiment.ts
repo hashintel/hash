@@ -1,5 +1,9 @@
 import { axisValueAt, sweepPointFor } from "../experiments/parameter-grid";
 import { sweepCellObjective } from "../experiments/sweep-cell-objective";
+import {
+  currentTrialNumber,
+  finishedTrialCount,
+} from "../optimizations/context";
 import { prepareExperiment } from "./prepare-experiment";
 
 import type {
@@ -31,7 +35,7 @@ export type ExperimentHostDependencies = {
   ) => Promise<void>;
   experiments: ReadableStore<readonly ExperimentRecord[]>;
   optimizations: ReadableStore<readonly OptimizationRecord[]>;
-  optimizationUnavailableReason?: string | null;
+  optimizationUnavailableReason: string | null;
   actions: Pick<
     ExperimentsActionsValue,
     "createExperiment" | "navigateSweep" | "cancelExperiment"
@@ -41,6 +45,9 @@ export type ExperimentHostDependencies = {
       "createOptimization" | "cancelOptimization"
     >;
 };
+
+const runsCompletedOf = (experiment: ExperimentRecord): number =>
+  experiment.sweep?.runsCompleted ?? experiment.progress?.completedRuns ?? 0;
 
 const abortable = <Value>(
   operation: Promise<Value>,
@@ -134,20 +141,11 @@ export const runExperiment = async (
         experimentId: experiment.id,
         name: experiment.name,
         phase,
-        runsCompleted:
-          experiment.sweep?.runsCompleted ??
-          experiment.progress?.completedRuns ??
-          0,
+        runsCompleted: runsCompletedOf(experiment),
         runsTarget: phase === "optimizing" ? searchRuns : experiment.runCount,
         ...(study
           ? {
-              step: Math.min(
-                study.requestedTrials,
-                study.completedTrials +
-                  study.prunedTrials +
-                  study.failedTrials +
-                  1,
-              ),
+              step: currentTrialNumber(study),
               steps: study.requestedTrials,
             }
           : {}),
@@ -189,14 +187,8 @@ export const runExperiment = async (
       definition,
       dependencies.title,
     );
-    const optimizationUnavailableReason =
-      dependencies.optimizationUnavailableReason;
-    if (
-      optimization &&
-      optimizationUnavailableReason !== null &&
-      optimizationUnavailableReason !== undefined
-    ) {
-      throw new Error(optimizationUnavailableReason);
+    if (optimization && dependencies.optimizationUnavailableReason !== null) {
+      throw new Error(dependencies.optimizationUnavailableReason);
     }
     searchRuns =
       request.execution.mode === "optimize"
@@ -315,8 +307,7 @@ export const runExperiment = async (
           parameters,
           objectiveValue:
             cell.means[request.execution.objectiveMetricId] ?? null,
-          stepsCompleted:
-            study.completedTrials + study.prunedTrials + study.failedTrials,
+          stepsCompleted: finishedTrialCount(study),
         },
       };
     }
@@ -366,8 +357,7 @@ export const runExperiment = async (
         : error instanceof Error
           ? error.message
           : String(error),
-      runsCompleted:
-        record?.sweep?.runsCompleted ?? record?.progress?.completedRuns ?? 0,
+      runsCompleted: record ? runsCompletedOf(record) : 0,
       metrics: [],
     };
   } finally {

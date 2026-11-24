@@ -88,7 +88,7 @@ export {
   type ConstraintSource,
   type LowerConstraintContext,
   type LowerConstraintResult,
-} from "./constraint/lower";
+} from "./constraints/lower";
 export {
   hirExprSchema,
   hirFunctionSchema,

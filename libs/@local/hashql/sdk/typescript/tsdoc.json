@@ -16,12 +16,27 @@
     {
       "tagName": "@module",
       "syntaxKind": "modifier"
+    },
+    {
+      "tagName": "@trait",
+      "syntaxKind": "modifier"
     }
   ],
   "supportForTags": {
     "@category": true,
     "@stability": true,
     "@since": true,
-    "@module": true
-  }
+    "@module": true,
+    "@trait": true,
+    "@link": true,
+    "@param": true,
+    "@returns": true,
+    "@throws": true,
+    "@example": true,
+    "@see": true,
+    "@deprecated": true,
+    "@internal": true
+  },
+  "supportedHtmlElements": ["caption", "code"],
+  "reportUnsupportedHtmlElements": true
 }

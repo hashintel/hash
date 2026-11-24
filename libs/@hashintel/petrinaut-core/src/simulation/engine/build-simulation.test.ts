@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { compileHirArtifacts } from "../../hir";
 import { compileSimulationFrameReader } from "../frames/frame-reader";
 import { materializeEngineFrame } from "../frames/internal-frame";
+import { decodePlaceTokens } from "../frames/internal-frame.test-helpers";
 import { buildSimulation as buildSimulationRaw } from "./build-simulation";
-import { decodePlaceTokens } from "./token-layout.test-helpers";
 
 import type { HirCompiledBufferLambda } from "../../hir-runtime";
 import type { SimulationInput } from "./types";
@@ -145,7 +145,7 @@ describe("buildSimulation", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
-        subnets: true,
+        components: true,
       },
       initialMarking: { p1: 1 },
       parameterValues: {},
@@ -236,7 +236,7 @@ describe("buildSimulation", () => {
         stochasticity: true,
         dynamics: false,
         parameters: true,
-        subnets: true,
+        components: true,
       },
       initialMarking: { p1: 1 },
       parameterValues: {},
@@ -294,7 +294,7 @@ describe("buildSimulation", () => {
           stochasticity: false,
           dynamics: true,
           parameters: true,
-          subnets: true,
+          components: true,
         },
         initialMarking: {},
         parameterValues: {},
@@ -350,7 +350,7 @@ describe("buildSimulation", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
-        subnets: true,
+        components: true,
       },
       initialMarking: {},
       parameterValues: {},
@@ -399,7 +399,7 @@ describe("buildSimulation", () => {
         stochasticity: true,
         dynamics: true,
         parameters: false,
-        subnets: true,
+        components: true,
       },
       initialMarking: {},
       parameterValues: { rate: "5" },
@@ -411,7 +411,7 @@ describe("buildSimulation", () => {
     expect(simulation.parameterValues).toEqual({});
   });
 
-  it("flattens component-port arcs to the instantiated subnet port places", () => {
+  it("flattens component-port arcs to the port places of the instance's component", () => {
     const simulation = buildSimulation({
       sdcpn: {
         types: [],
@@ -474,15 +474,15 @@ describe("buildSimulation", () => {
           {
             id: "processor-1",
             name: "Processor 1",
-            subnetId: "processor-subnet",
+            component: { id: "processor-component" },
             parameterValues: {},
             x: 100,
             y: 0,
           },
         ],
-        subnets: [
+        components: [
           {
-            id: "processor-subnet",
+            id: "processor-component",
             name: "Processor",
             places: [
               {

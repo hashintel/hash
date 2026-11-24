@@ -1,15 +1,16 @@
 /**
  * @layerRoot core.file-format
- * @role Reads and writes the on-disk SDCPN document format, plus export converters
+ * @role Reads a document of any age from file text or from a host object, writes the file format, and converts a document for export
  */
 
-import { migrateLegacyDynamics } from "../migrate-legacy-dynamics";
-import { canonicalizePetrinautIds } from "../petrinaut-id";
+import { canonicalizePetrinautIds } from "../document/petrinaut-id";
 import {
   describeDangerousSdcpnKeys,
   findDangerousSdcpnKeys,
 } from "../validation/record-keys";
 import { parseDocumentText } from "./document-text";
+import { migrateLegacyComponentKeys } from "./legacy/migrate-legacy-component-keys";
+import { migrateLegacyDynamics } from "./legacy/migrate-legacy-dynamics";
 import {
   legacySdcpnFileSchema,
   SDCPN_FILE_FORMAT_VERSION,
@@ -34,7 +35,7 @@ const hasMissingPositions = (sdcpn: {
   places: { x?: number; y?: number }[];
   transitions: { x?: number; y?: number }[];
   componentInstances?: { x?: number; y?: number }[];
-  subnets?: {
+  components?: {
     places: { x?: number; y?: number }[];
     transitions: { x?: number; y?: number }[];
     componentInstances?: { x?: number; y?: number }[];
@@ -49,8 +50,8 @@ const hasMissingPositions = (sdcpn: {
       return true;
     }
   }
-  for (const subnet of sdcpn.subnets ?? []) {
-    if (hasMissingPositions(subnet)) {
+  for (const component of sdcpn.components ?? []) {
+    if (hasMissingPositions(component)) {
       return true;
     }
   }
@@ -68,7 +69,7 @@ const fillMissingVisualInfo = (sdcpn: {
   transitions: Array<{ x?: number; y?: number }>;
   types: Array<{ iconSlug?: string; displayColor?: string }>;
   componentInstances?: Array<{ x?: number; y?: number }>;
-  subnets?: Array<{
+  components?: Array<{
     places: Array<{ x?: number; y?: number }>;
     transitions: Array<{ x?: number; y?: number }>;
     types: Array<{ iconSlug?: string; displayColor?: string }>;
@@ -97,28 +98,30 @@ const fillMissingVisualInfo = (sdcpn: {
       x: instance.x ?? 0,
       y: instance.y ?? 0,
     })),
-    subnets: (sdcpn.subnets ?? []).map((subnet) => ({
-      ...subnet,
-      places: subnet.places.map((place) => ({
+    components: (sdcpn.components ?? []).map((component) => ({
+      ...component,
+      places: component.places.map((place) => ({
         ...place,
         x: place.x ?? 0,
         y: place.y ?? 0,
       })),
-      transitions: subnet.transitions.map((transition) => ({
+      transitions: component.transitions.map((transition) => ({
         ...transition,
         x: transition.x ?? 0,
         y: transition.y ?? 0,
       })),
-      types: subnet.types.map((type) => ({
+      types: component.types.map((type) => ({
         ...type,
         iconSlug: type.iconSlug ?? "circle",
         displayColor: type.displayColor ?? "#808080",
       })),
-      componentInstances: (subnet.componentInstances ?? []).map((instance) => ({
-        ...instance,
-        x: instance.x ?? 0,
-        y: instance.y ?? 0,
-      })),
+      componentInstances: (component.componentInstances ?? []).map(
+        (instance) => ({
+          ...instance,
+          x: instance.x ?? 0,
+          y: instance.y ?? 0,
+        }),
+      ),
     })),
   }) as SDCPNWithTitle;
 
@@ -161,7 +164,10 @@ const toImportResult = (
  * pre-2025-11-28 formats. Pure — no DOM, no I/O. Callers (e.g. the `/ui`
  * file-picker wrapper) are responsible for sourcing the data.
  */
-export const parseSDCPNFile = (data: unknown): ImportResult => {
+export const parseSDCPNFile = (rawData: unknown): ImportResult => {
+  // Before the schemas, which drop the keys they do not know.
+  const data = migrateLegacyComponentKeys(rawData);
+
   // Try the versioned format first
   const versioned = sdcpnFileSchema.safeParse(data);
   if (versioned.success) {

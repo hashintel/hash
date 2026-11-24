@@ -2,7 +2,7 @@ import { serializeDocument } from "./document-text";
 import { removeVisualInformation } from "./remove-visual-info";
 import { SDCPN_FILE_FORMAT_VERSION } from "./types";
 
-import type { SDCPN, Subnet } from "../types/sdcpn";
+import type { Component, SDCPN } from "../types/sdcpn";
 import type { DocumentFormat } from "./document-text";
 
 type SDCPNDocumentKey = keyof SDCPN | "version" | "meta" | "title";
@@ -22,7 +22,8 @@ const DOCUMENT_KEY_ORDER = [
   "parameters",
   "types",
   "differentialEquations",
-  "subnets",
+  "imports",
+  "components",
   "implementations",
   "places",
   "componentInstances",
@@ -32,7 +33,7 @@ const DOCUMENT_KEY_ORDER = [
   "scenarios",
 ] as const satisfies readonly SDCPNDocumentKey[];
 
-const SUBNET_KEY_ORDER = [
+const COMPONENT_KEY_ORDER = [
   "id",
   "name",
   "description",
@@ -46,20 +47,22 @@ const SUBNET_KEY_ORDER = [
   "componentInstances",
   "fusions",
   "transitions",
-] as const satisfies readonly (keyof Subnet)[];
+  "displayColor",
+  "iconSvg",
+] as const satisfies readonly (keyof Component)[];
 
 /** Compiles only when `T` is `never` — see the checks below. */
 type AssertNever<T extends never> = T;
 /**
- * These fail to compile when `SDCPN` or `Subnet` gains a field without a
+ * These fail to compile when `SDCPN` or `Component` gains a field without a
  * position in the export orders above, so a new field cannot be silently
  * dropped from exports.
  */
 type _EverySdcpnKeyOrdered = AssertNever<
   Exclude<SDCPNDocumentKey, (typeof DOCUMENT_KEY_ORDER)[number]>
 >;
-type _EverySubnetKeyOrdered = AssertNever<
-  Exclude<keyof Subnet, (typeof SUBNET_KEY_ORDER)[number]>
+type _EveryComponentKeyOrdered = AssertNever<
+  Exclude<keyof Component, (typeof COMPONENT_KEY_ORDER)[number]>
 >;
 
 const pickInOrder = (
@@ -82,7 +85,8 @@ const pickInOrder = (
  *
  * The output includes format metadata (`version`, `meta.generator`) and the
  * editor-supplied `title`. When `removeVisualInfo` is true, places/transitions
- * lose their `x`/`y` and types lose their `displayColor`/`iconSlug` — useful
+ * lose their `x`/`y`, types lose their `displayColor`/`iconSlug` and components
+ * their `displayColor`/`iconSvg` — useful
  * when sharing the structural definition without baking in a particular
  * layout / palette.
  *
@@ -112,8 +116,8 @@ export function serializeSDCPN({
         generator: "Petrinaut",
       },
       title,
-      subnets: sdcpnToExport.subnets?.map((subnet) =>
-        pickInOrder(subnet, SUBNET_KEY_ORDER),
+      components: sdcpnToExport.components?.map((component) =>
+        pickInOrder(component, COMPONENT_KEY_ORDER),
       ),
     },
     DOCUMENT_KEY_ORDER,

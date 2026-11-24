@@ -11,7 +11,7 @@ import { buildKernelContext } from "../../hir/surface-context";
 import { WgslBailError, WgslEmitter } from "../emit-wgsl";
 import { encodeTokenWrites, tokenSlotsValue } from "./token-layout";
 
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { HirFunction } from "../../hir/hir";
 import type { SDCPN } from "../../types/sdcpn";
 import type { GpuNetProfile, GpuPlaceProfile } from "../eligibility";

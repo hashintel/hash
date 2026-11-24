@@ -1,13 +1,13 @@
 import { expect, it } from "vitest";
 
-import { computePlaceNextState } from "./compute-place-next-state";
-import { computeTokenSlotLayout } from "./token-layout";
+import { computeTokenSlotLayout } from "../../tokens/token-layout";
 import {
   buildTokenBytes,
   decodeTokenBlock,
   realElements,
   type ColorElement,
-} from "./token-layout.test-helpers";
+} from "../frames/internal-frame.test-helpers";
+import { computePlaceNextState } from "./compute-place-next-state";
 
 import type { TokenRecord } from "../../types/sdcpn";
 import type { PlaceDifferentialEquation } from "./compute-place-next-state";

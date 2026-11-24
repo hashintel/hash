@@ -1,4 +1,5 @@
 use core::{
+    assert_matches,
     convert::Infallible,
     future::{Future, ready},
 };
@@ -161,8 +162,9 @@ async fn oversized_submission_preserves_recovery() {
             .kind,
         AppendFailureKind::DefinitelyNotCommitted
     );
-    assert!(
-        matches!(error.downcast_ref::<CompatError>(), Some(CompatError::TooLarge { actual_bytes, max_bytes, .. }) if *actual_bytes == MAX_RECORD_BYTES + 1 && *max_bytes == MAX_RECORD_BYTES),
+    assert_matches!(
+        error.downcast_ref::<CompatError>(),
+        Some(CompatError::TooLarge { actual_bytes, max_bytes, .. }) if *actual_bytes == MAX_RECORD_BYTES + 1 && *max_bytes == MAX_RECORD_BYTES,
         "submission failure should retain the codec error"
     );
     assert_eq!(
@@ -179,13 +181,13 @@ async fn oversized_submission_preserves_recovery() {
             .expect("state should be readable"),
         0
     );
-    assert!(matches!(
+    assert_matches!(
         running
             .submit(payload)
             .await
             .expect("record at the limit should be accepted"),
         Submitted::Applied
-    ));
+    );
     running.shutdown().await.expect("kernel should shut down");
 
     let recovered = kernel

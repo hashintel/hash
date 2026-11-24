@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { fusionLinks, fusionStatuses, planFusion } from "./fusion-links";
+import { countReads } from "./count-reads.test-helpers";
+import {
+  fusionLinks,
+  fusionSeverities,
+  planFusion,
+  planRewire,
+} from "./fusion-links";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type { Fusion, FusionMember, SDCPN } from "@hashintel/petrinaut-core";
 
 const place = (placeId: string): FusionMember => ({ kind: "place", placeId });
@@ -45,7 +51,7 @@ describe("fusionLinks", () => {
   });
 });
 
-describe("fusionStatuses", () => {
+describe("fusionSeverities", () => {
   const sdcpn: SDCPN = {
     places: [
       {
@@ -61,7 +67,7 @@ describe("fusionStatuses", () => {
     types: [],
     differentialEquations: [],
     parameters: [],
-    subnets: [
+    components: [
       {
         id: "stage",
         name: "Stage",
@@ -94,7 +100,7 @@ describe("fusionStatuses", () => {
       {
         id: "m1",
         name: "M1",
-        subnetId: "stage",
+        component: { id: "stage" },
         parameterValues: {},
         x: 0,
         y: 0,
@@ -102,7 +108,7 @@ describe("fusionStatuses", () => {
       {
         id: "m2",
         name: "M2",
-        subnetId: "stage",
+        component: { id: "stage" },
         parameterValues: {},
         x: 0,
         y: 0,
@@ -110,7 +116,7 @@ describe("fusionStatuses", () => {
       {
         id: "m3",
         name: "M3",
-        subnetId: "stage",
+        component: { id: "stage" },
         parameterValues: {},
         x: 0,
         y: 0,
@@ -128,33 +134,36 @@ describe("fusionStatuses", () => {
   };
 
   it("gives each fusion the worst of its problems", () => {
-    const statuses = fusionStatuses(sdcpn, net, null);
+    const severities = fusionSeverities(sdcpn, net, null);
 
-    expect(statuses.get("mismatch")).toEqual({ severity: "error" });
+    expect(severities.get("mismatch")).toBe("error");
     // Two ports no transition touches: nothing to report.
-    expect(statuses.get("ports")).toEqual({ severity: null });
+    expect(severities.get("ports")).toBeNull();
   });
 
-  it("reads a subnet's arcs once for its fused ports that declare no direction, however many", () => {
-    // A thousand ports that declare no direction, under 20,000 arcs that
-    // consume from them.
-    const portIds = Array.from({ length: 1000 }, (_, index) => `port-${index}`);
-    const [stage] = sdcpn.subnets ?? [];
+  it("reads a component's arcs once for its fused ports that declare no direction, however many", () => {
+    const arcs = countReads();
+    // Forty ports that declare no direction, each consumed from by four
+    // transitions.
+    const portIds = Array.from({ length: 40 }, (_, index) => `port-${index}`);
+    const [stage] = sdcpn.components ?? [];
     const [stagePort] = stage?.places ?? [];
     const wide: SDCPN = {
       ...sdcpn,
-      subnets: [
+      components: [
         {
           ...stage!,
           places: portIds.map((id) => ({ ...stagePort!, id, name: id })),
-          transitions: Array.from({ length: 20 }, (_, index) => ({
+          transitions: Array.from({ length: 4 }, (_, index) => ({
             id: `take-${index}`,
             name: `take-${index}`,
-            inputArcs: portIds.map((placeId) => ({
-              placeId,
-              weight: 1,
-              type: "standard" as const,
-            })),
+            inputArcs: arcs.of(
+              portIds.map((placeId) => ({
+                placeId,
+                weight: 1,
+                type: "standard" as const,
+              })),
+            ),
             outputArcs: [],
             lambdaType: "predicate" as const,
             lambdaCode: "",
@@ -167,19 +176,16 @@ describe("fusionStatuses", () => {
       fusions: portIds.map((id) => fusion(id, port("m1", id), port("m2", id))),
     };
 
-    const started = Date.now();
-    const statuses = fusionStatuses(
+    const severities = fusionSeverities(
       wide,
       { ...net, ...wide, fusions: wide.fusions ?? [] },
       null,
     );
-    const elapsed = Date.now() - started;
 
     // Each fused place is consumed from on both sides, and never filled.
-    expect([...statuses.values()]).toEqual(
-      portIds.map(() => ({ severity: "warning" })),
-    );
-    expect(elapsed).toBeLessThan(1000);
+    expect([...severities.values()]).toEqual(portIds.map(() => "warning"));
+    // A read per fused port makes forty passes.
+    expect(arcs.reads()).toBeLessThanOrEqual(3 * 160);
   });
 });
 
@@ -238,5 +244,58 @@ describe("planFusion", () => {
       kind: "join",
       fusionId: "f",
     });
+  });
+});
+
+describe("planRewire", () => {
+  const belt = fusion("belt", place("buffer"), port("m1"));
+  const net = (...others: Fusion[]) => ({ fusions: [belt, ...others] });
+
+  it("moves the fusion from the member to a free port or place", () => {
+    expect(planRewire(net(), belt, port("m1"), port("m2"))).toEqual({
+      kind: "replace",
+      fusionId: "belt",
+      member: port("m1"),
+      replacement: port("m2"),
+    });
+    // The anchor itself gives way to another place.
+    expect(planRewire(net(), belt, place("buffer"), place("store"))).toEqual({
+      kind: "replace",
+      fusionId: "belt",
+      member: place("buffer"),
+      replacement: place("store"),
+    });
+  });
+
+  it("takes the member out when its end is dropped on the empty canvas", () => {
+    expect(planRewire(net(), belt, port("m1"), null)).toEqual({
+      kind: "detach",
+      fusionId: "belt",
+      member: port("m1"),
+    });
+  });
+
+  it("does nothing when the end lands on the fusion itself", () => {
+    expect(planRewire(net(), belt, port("m1"), place("buffer"))).toEqual({
+      kind: "none",
+    });
+    expect(planRewire(net(), belt, port("m1"), port("m1"))).toEqual({
+      kind: "none",
+    });
+  });
+
+  it("refuses a second place of the net, its own or another fusion's", () => {
+    const stock = fusion("stock", place("store"), port("m2"));
+
+    expect(planRewire(net(), belt, port("m1"), place("store"))).toEqual({
+      kind: "refused",
+    });
+    expect(planRewire(net(stock), belt, port("m1"), port("m2"))).toEqual({
+      kind: "refused",
+    });
+    // With the anchor the end that moves, the other fusion's place takes over.
+    expect(
+      planRewire(net(stock), belt, place("buffer"), port("m2")),
+    ).toMatchObject({ kind: "replace", replacement: port("m2") });
   });
 });

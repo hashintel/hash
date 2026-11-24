@@ -3,6 +3,7 @@
  *
  * Decode `module<T>::Item<U: Bound>` with {@link parse} for structured parser failures or {@link decodeResult} for schema issues. {@link compile} writes the supported syntax back, preserving identifier spelling and argument order. This module handles SDK syntax, not the complete HashQL language. Normalization, name resolution and language validation belong to the HashQL compiler.
  *
+ * @since 0.1.0
  * @module
  */
 
@@ -27,63 +28,117 @@ import type {
 } from "effect";
 import type { ParseOptions } from "effect/SchemaAST";
 
-/** A positional type argument, such as `T` in `List<T>`. */
+/**
+ * A positional type argument, such as `T` in `List<T>`.
+ *
+ * @category Models
+ * @since 0.1.0
+ */
 export interface GenericArgument extends Equal.Equal, Pipeable.Pipeable {
   readonly _tag: "GenericArgument";
   readonly bound: Type.Type;
 }
 
-/** A named constraint with its bound, such as `U: Bound` in `Item<U: Bound>`. */
+/**
+ * A named constraint with its bound, such as `U: Bound` in `Item<U: Bound>`.
+ *
+ * @category Models
+ * @since 0.1.0
+ */
 export interface GenericConstraint extends Equal.Equal, Pipeable.Pipeable {
   readonly _tag: "GenericConstraint";
   readonly name: Ident.Ident;
   readonly bound: Type.Type;
 }
 
-/** A positional type argument or a named constraint with a required bound. */
+/**
+ * A positional type argument or a named constraint with a required bound.
+ *
+ * @category Models
+ * @since 0.1.0
+ */
 export type SegmentArgument = GenericArgument | GenericConstraint;
 
-/** One path name and the generic entries attached to that name. */
+/**
+ * One path name and the generic entries attached to that name.
+ *
+ * @category Models
+ * @since 0.1.0
+ */
 export interface Segment extends Equal.Equal, Pipeable.Pipeable {
   readonly name: Ident.Ident;
   readonly arguments: readonly SegmentArgument[];
 }
 
 /**
- * A nonempty sequence of segments. `rooted` records a leading `::`.
+ * A nonempty sequence of segments. {@link Path.rooted | `rooted`} records a leading `::`.
  *
  * Equality and hashing use rootedness and ordered segments, including names, argument kinds and nested type syntax. Equality compares structure rather than compiled text, and it does not resolve names. A single-member union compiles like its member but compares unequal to it, so `Equal.equals(path, parse(compile(path)))` can be false.
  *
  * Construction validates and copies ordinary field records. It reuses an existing class instance instead of copying it, and it does not freeze the result. Do not mutate a path or its nested syntax after comparing or hashing it, because Effect caches those results.
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export interface Path extends Equal.Equal, Pipeable.Pipeable {
   readonly rooted: boolean;
   readonly segments: readonly [Segment, ...Segment[]];
 }
 
-/** Constructs a positional path argument from decoded type syntax. */
+/**
+ * Constructs a positional path argument from decoded type syntax.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 export const GenericArgument = Type.PathGenericArgument;
-/** Constructs a named path constraint from a decoded name and type. */
+/**
+ * Constructs a named path constraint from a decoded name and type.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 export const GenericConstraint = Type.PathGenericConstraint;
 
-/** Decodes a field record into a {@link GenericArgument} or {@link GenericConstraint} instance, and encodes the instance back into a field record. */
+/**
+ * Decodes a field record into a {@link GenericArgument} or {@link GenericConstraint} instance, and encodes the instance back into a field record.
+ *
+ * @category Schemas
+ * @since 0.1.0
+ */
 export const SegmentArgument: typeof Type.PathArgument = Type.PathArgument;
-/** Decodes a field record into a {@link Segment} instance, and encodes the instance back into a field record. An empty argument array omits angle brackets. */
+/**
+ * Decodes a field record into a {@link Segment} instance, and encodes the instance back into a field record. An empty argument array omits angle brackets.
+ *
+ * @category Schemas
+ * @since 0.1.0
+ */
 export const Segment: typeof Type.PathSegment = Type.PathSegment;
 /**
  * Decodes field records into a {@link Path} and its segment and argument instances, validating every name and nested type.
  *
  * Encoding returns plain field records, which do not compare equal to the path they came from.
+ *
+ * @category Schemas
+ * @since 0.1.0
  */
 export const SchemaFromSelf: typeof Type.PathFromSelf = Type.PathFromSelf;
 
-/** Writes canonical path text without validating the supplied object. */
+/**
+ * Writes canonical path text without validating the supplied object.
+ *
+ * @category Compiling
+ * @since 0.1.0
+ */
 export const compile: (path: Path) => string = compilePath;
 
 /**
  * Codec between source text and a decoded {@link Path}.
  *
  * A syntax failure decodes to an `Encoding` issue. Its inner `InvalidValue` issue keeps the parser error in `annotations.parserError`, beside a message naming the UTF-16 offset. Use {@link parse} to inspect the typed reason union. Argument types encode as text, so a single-member union or intersection decodes as its member.
+ *
+ * @category Schemas
+ * @since 0.1.0
  */
 export const Schema: typeof Type.PathSchema = Type.PathSchema;
 export declare namespace Path {
@@ -98,20 +153,33 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  *
  * A path needs at least one segment. The constructor accepts ordinary field records, and an existing instance keeps its identity. The schema construction options apply to nested values too.
  *
- * @throws {Error} If a name, argument type or path structure fails validation. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If a name, argument type or path structure fails validation. The error's `cause` is a {@link SchemaIssue.Issue}.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- schema constructor
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Path =
   Overflow.make(Schema);
 
-/** Validates a decoded path with the {@link SchemaIssue.Issue} in the effect's failure channel. */
+/**
+ * Validates a decoded path with the {@link SchemaIssue.Issue} in the effect's failure channel.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- schema constructor
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Path, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
-/** Validates a decoded path, returning `None` if validation fails. */
+/**
+ * Validates a decoded path, returning `None` if validation fails.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- schema constructor
 export const makeOption: (
   input: MakeIn,
@@ -133,21 +201,37 @@ export const makeOption: (
  * assert.equal(JExpr.Path.compile(path), "::module<T>::Item<U: A | B>");
  * assert.equal(path.segments[0].arguments.length, 1);
  * ```
+ *
+ * @category Parsing
+ * @since 0.1.0
  */
 export const parse: (
   input: string,
 ) => Result.Result<Path, ParserError.ParserError<ParserError.TypeReason>> =
   Type.pathGrammar.parsePath;
 
-/** Source text accepted by the path grammar, paired with the path it parses to. */
+/**
+ * Source text accepted by the path grammar, paired with the path it parses to.
+ *
+ * @category Testing
+ * @since 0.1.0
+ */
 export type Sample = Parser.Sample<Path>;
 
-/** Generates supported path source and its parsed value. Depth bounds generation, not the parser's call stack. */
+/**
+ * Generates supported path source and its parsed value. Depth bounds generation, not the parser's call stack.
+ *
+ * @category Testing
+ * @since 0.1.0
+ */
 export const arbitrary: () => Arbitrary.Arbitrary<Sample> =
   Type.pathGrammar.completePath.arbitrary;
 
 /**
  * Decodes path source through the schema, retaining syntax details in the returned issue.
+ *
+ * @category Parsing
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- schema decoder
 export const decodeResult: (

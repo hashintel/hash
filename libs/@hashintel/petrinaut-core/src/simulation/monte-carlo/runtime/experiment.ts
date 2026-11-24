@@ -1,6 +1,6 @@
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../../extensions";
-import { resolveNetParameterValues } from "../../../parameter-values";
-import { createWorkerTransport } from "../../runtime/transport";
+import { resolveNetParameterValues } from "../../../document/parameter-values";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../../extensions/extensions";
+import { createWorkerTransport } from "../../worker-transport";
 import {
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
@@ -15,11 +15,10 @@ import {
 } from "./experiment-stores";
 import { planMonteCarloShards } from "./shard-plan";
 
-import type { AbortSignalLike } from "../../../environment";
-import type { PetrinautExtensionSettings } from "../../../extensions";
+import type { AbortSignalLike } from "../../../environment/environment";
+import type { PetrinautExtensionSettings } from "../../../extensions/extensions";
 import type { HirArtifacts } from "../../../hir-runtime";
-import type { EventStream } from "../../../instance";
-import type { ReadableStore } from "../../../store";
+import type { EventStream, ReadableStore } from "../../../store";
 import type { SDCPN } from "../../../types/sdcpn";
 import type {
   InitialMarking,

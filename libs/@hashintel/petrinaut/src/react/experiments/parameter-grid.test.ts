@@ -11,6 +11,7 @@ import {
   normalizeSweepSelection,
   pointSweepSelection,
   SWEEP_AXIS_STEPS,
+  sweepPointFor,
   sweepRunFraction,
 } from "./parameter-grid";
 
@@ -104,31 +105,14 @@ describe("buildParameterAxis", () => {
     expect(outcome.ok && outcome.axis.stepCount).toBe(SWEEP_AXIS_STEPS);
   });
 
-  it("rejects boolean parameters", () => {
-    expect(
-      buildParameterAxis(
-        { identifier: "flag", type: "boolean" },
-        { min: 0, max: 1 },
-      ).ok,
-    ).toBe(false);
-  });
-
-  it("rejects ratio intervals outside [0, 1]", () => {
-    expect(
-      buildParameterAxis(
-        { identifier: "share", type: "ratio" },
-        { min: -0.1, max: 0.5 },
-      ).ok,
-    ).toBe(false);
-  });
-
-  it("rejects max <= min", () => {
-    expect(
-      buildParameterAxis(
-        { identifier: "beta", type: "real" },
-        { min: 1, max: 1 },
-      ).ok,
-    ).toBe(false);
+  it.each([
+    ["boolean parameters", "boolean", { min: 0, max: 1 }],
+    ["ratio intervals outside [0, 1]", "ratio", { min: -0.1, max: 0.5 }],
+    ["max <= min", "real", { min: 1, max: 1 }],
+  ] as const)("rejects %s", (_case, type, interval) => {
+    expect(buildParameterAxis({ identifier: "x", type }, interval).ok).toBe(
+      false,
+    );
   });
 });
 
@@ -217,6 +201,25 @@ describe("selections and regions", () => {
   });
 });
 
+describe("sweepPointFor", () => {
+  const axes: ExperimentParameterAxis[] = [
+    { identifier: "rate", min: 0, max: 1, stepCount: 50, integer: false },
+    { identifier: "days", min: 2, max: 20, stepCount: 18, integer: true },
+  ];
+
+  it("quantizes a suggestion onto the sweep's positions", () => {
+    expect(sweepPointFor(axes, { rate: 0.503, days: 7.4 })).toEqual({
+      rate: { from: 25, to: 25 },
+      days: { from: 5, to: 5 },
+    });
+  });
+
+  it("refuses a suggestion missing an axis or with a boolean", () => {
+    expect(sweepPointFor(axes, { rate: 0.5 })).toBeNull();
+    expect(sweepPointFor(axes, { rate: 0.5, days: true })).toBeNull();
+  });
+});
+
 describe("sweepRunFraction", () => {
   it("is prefix-stable: a run's draw never depends on how many runs exist", () => {
     const first = Array.from({ length: 8 }, (_, index) =>
@@ -250,16 +253,6 @@ describe("sweepRunFraction", () => {
       sweepRunFraction(7, index, 1),
     );
     expect(xDraws).not.toEqual(yDraws);
-  });
-
-  it("reproduces exactly for the same seed", () => {
-    const first = Array.from({ length: 12 }, (_, index) =>
-      sweepRunFraction(42, index, 0),
-    );
-    const again = Array.from({ length: 12 }, (_, index) =>
-      sweepRunFraction(42, index, 0),
-    );
-    expect(again).toEqual(first);
   });
 
   it("draws a different value sequence per experiment seed", () => {

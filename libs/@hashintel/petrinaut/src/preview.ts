@@ -9,4 +9,4 @@ export type { PetrinautPreviewNavigationState } from "./ui/preview/navigation-ad
 export { PetrinautPreview } from "./ui/preview/petrinaut-preview";
 export type { PetrinautPreviewProps } from "./ui/preview/petrinaut-preview";
 export type { PetrinautPreviewQuickSimulation } from "./ui/preview/quick-simulation";
-export type { PetrinautNavigationController } from "./react/navigation";
+export type { PetrinautNavigationController } from "./react/navigation/navigation";

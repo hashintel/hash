@@ -7930,7 +7930,7 @@
       "code": "return state.places[\"DemandOutlook\"].tokens.reduce((ratio, d) => state.places[\"FulfilledOrders\"].tokens.reduce((s, t) => s + t.qty, 0) / ratio, state.places[\"FulfilledOrders\"].tokens.reduce((a, t) => a + t.qty, state.places[\"LostSales\"].tokens.reduce((b, t) => b + t.value, state.places[\"Backlog\"].tokens.reduce((c, t) => c + t.qty, 0.001))));"
     }
   ],
-  "subnets": [],
+  "components": [],
   "componentInstances": [],
   "version": 1,
   "meta": {

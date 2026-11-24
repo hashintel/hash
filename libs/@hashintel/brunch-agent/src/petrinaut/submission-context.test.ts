@@ -21,19 +21,31 @@ const submitted = (
     }),
   );
 
-test("round trips an allowance and words, and sends nothing without either", () => {
+test("round trips an allowance, words and a selection, and sends nothing without any", () => {
   const budget = interviewBudget("quick", 3, 1);
+  const selection = [
+    { type: "place", id: "queue" },
+    { type: "transition", id: "serve" },
+  ] as const;
   expect(
     readPetrinautSubmissionContext(
       submitted(
         petrinautSubmissionContext({
           interviewBudget: budget,
           words: ["RelayDesk"],
+          selection,
         }),
       ),
     ),
-  ).toEqual({ interviewBudget: budget, words: ["RelayDesk"] });
-  expect(petrinautSubmissionContext({ words: [] })).toBeUndefined();
+  ).toEqual({ interviewBudget: budget, words: ["RelayDesk"], selection });
+  expect(
+    readPetrinautSubmissionContext(
+      submitted(petrinautSubmissionContext({ selection: [selection[0]] })),
+    ),
+  ).toEqual({ words: [], selection: [selection[0]] });
+  expect(
+    petrinautSubmissionContext({ words: [], selection: [] }),
+  ).toBeUndefined();
   expect(petrinautSubmissionContext({})).toBeUndefined();
 });
 
@@ -46,13 +58,13 @@ test("round trips a version load on its own, and reads an invalid one as none", 
     readPetrinautSubmissionContext(
       submitted(petrinautSubmissionContext({ versionLoad })),
     ),
-  ).toEqual({ versionLoad, words: [] });
+  ).toEqual({ versionLoad, words: [], selection: [] });
   const longLoad = { ...versionLoad, id: "load-".repeat(40) };
   expect(
     readPetrinautSubmissionContext(
       submitted(petrinautSubmissionContext({ versionLoad: longLoad })),
     ),
-  ).toEqual({ versionLoad: longLoad, words: [] });
+  ).toEqual({ versionLoad: longLoad, words: [], selection: [] });
   expect(
     readPetrinautSubmissionContext(
       parsePetrinautUserMessageBody(
@@ -65,13 +77,13 @@ test("round trips a version load on its own, and reads an invalid one as none", 
         }),
       ),
     ),
-  ).toEqual({ words: [] });
+  ).toEqual({ words: [], selection: [] });
 });
 
-test("reads an ordinary message, an invalid allowance and invalid words as Off and empty", () => {
+test("reads an ordinary message, an invalid allowance, invalid words and an invalid selection as Off and empty", () => {
   expect(
     readPetrinautSubmissionContext(parsePetrinautUserMessageBody("Hi")),
-  ).toEqual({ words: [] });
+  ).toEqual({ words: [], selection: [] });
   expect(
     readPetrinautSubmissionContext(
       parsePetrinautUserMessageBody(
@@ -81,9 +93,10 @@ test("reads an ordinary message, an invalid allowance and invalid words as Off a
           submissionContext: {
             interviewBudget: { level: "quick", asked: -1 },
             words: ["<system>"],
+            selection: [{ type: "net", id: "everything" }],
           },
         }),
       ),
     ),
-  ).toEqual({ words: [] });
+  ).toEqual({ words: [], selection: [] });
 });

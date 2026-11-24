@@ -7,14 +7,14 @@ import {
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { problemStrokeColor } from "../../../../../constants/problem-severity";
+import { problemStrokeColor } from "../../../../../shared/problem-severity";
 import { arcHaloColor } from "../../../styles/focus";
+import { ARC_STROKE_WIDTH } from "./arc-head";
 import { fusionLoopPath } from "./fusion-loop-path";
-import { EdgeUnderlay } from "./shared/edge-underlay";
+import { LineUnderlay } from "./shared/line-underlay";
 
 import type { FusionEdgeType } from "./react-flow-types";
 
-const strokeWidth = 2;
 /** Long dashes with wide gaps: a join, not an arc that carries tokens. */
 const dashPattern = "7 5";
 const fusionColor = "#7c3aed";
@@ -78,28 +78,32 @@ export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
 
   return (
     <>
-      <g className="arc-strokes">
-        <EdgeUnderlay
-          id={id}
-          path={path}
-          selected={selected}
-          haloColor={arcHaloColor(data?.focus ?? "none")}
-          strokeWidth={strokeWidth}
-          strokeDasharray={dashPattern}
-          strokeLinecap="round"
-        />
-        <BaseEdge
-          id={id}
-          path={path}
-          style={{
-            stroke: strokeColor,
-            strokeWidth,
-            strokeDasharray: dashPattern,
-            strokeLinecap: "round",
-          }}
-        />
-      </g>
-      {/* Among the strokes, so that the knot fades with its line. */}
+      <LineUnderlay
+        path={path}
+        selected={selected}
+        haloColor={arcHaloColor(data?.focus ?? "none")}
+        strokeDasharray={dashPattern}
+        strokeLinecap="round"
+      />
+      {/*
+        A line the pane fades by its stroke, as it does an arc's. Its class
+        is its own: the rules for an arc's line also end it short of a head.
+      */}
+      <BaseEdge
+        id={id}
+        className="fusion-line"
+        path={path}
+        style={{
+          stroke: strokeColor,
+          strokeWidth: ARC_STROKE_WIDTH,
+          strokeDasharray: dashPattern,
+          strokeLinecap: "round",
+        }}
+      />
+      {/*
+        A group the pane fades whole, so that the knot fades with its line:
+        its ring lies on its white fill.
+      */}
       <g
         className="arc-strokes"
         transform={`translate(${labelX}, ${labelY})`}
@@ -128,7 +132,7 @@ export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
             r={knotRadius}
             fill="white"
             stroke={strokeColor}
-            strokeWidth={strokeWidth}
+            strokeWidth={ARC_STROKE_WIDTH}
           />
         )}
       </g>

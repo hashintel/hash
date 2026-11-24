@@ -1,15 +1,14 @@
 import { MiniMap as ReactFlowMiniMap, useStore } from "@xyflow/react";
-import { use } from "react";
 
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { useCanvasInsets } from "../../../../../hooks/use-canvas-insets";
-import { miniMapFocusColor } from "../../../styles/focus";
+import { bindStyle } from "../../../../../shared/readings";
+import { useCanvasInsetsReader } from "../../../../../shared/use-canvas-insets";
+import { focusRoleClass, miniMapFocusColor } from "../../../styles/focus";
 import { miniMapPlaceFillColor } from "../../../styles/type-colors";
 
 import type { NodeType } from "./react-flow-types";
-import type { MiniMapNodeProps, MiniMapProps } from "@xyflow/react";
+import type { MiniMapNodeProps } from "@xyflow/react";
 
 const miniMapClassName = css({
   backgroundColor: "white.a95",
@@ -62,10 +61,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({
   const ringColor = miniMapFocusColor(focus);
   // The pane fades the shapes outside the neighbourhood, keyed off these
   // classes, so a hover leaves every other shape's props untouched.
-  const shapeClass =
-    ringColor === undefined
-      ? "minimap-shape"
-      : "minimap-shape canvas-focus-role";
+  const shapeClass = cx("minimap-shape", ringColor && focusRoleClass);
   const shapeStyle = {
     fill,
     stroke: ringColor ?? "none",
@@ -106,32 +102,46 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({
  * Renders place nodes as circles and transition nodes as rectangles.
  * Positions at the top right, clear of panels over the canvas.
  */
-export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
-  const { isPanelAnimating } = use(EditorContext);
-  const canvasInsets = useCanvasInsets();
+export const MiniMap = () => {
+  const readInsets = useCanvasInsetsReader();
   // True inset from the canvas edges (react-flow's default 15px panel margin
   // is zeroed below) — matches the viewport controls' offset.
   const minimapOffset = 12;
 
   return (
-    <ReactFlowMiniMap
-      {...props}
-      ariaLabel=""
-      className={miniMapClassName}
-      style={{
-        margin: 0,
-        top: minimapOffset,
-        right: minimapOffset + canvasInsets.right,
-        bottom: "auto",
-        left: "auto",
-        width: 116,
-        height: 65,
-        transition: isPanelAnimating ? "right 150ms ease-in-out" : undefined,
+    // React Flow's minimap takes no ref, so this box, which lays nothing out,
+    // finds it. The offset is written on the minimap's own element: as a
+    // custom property on this box it would restyle every shape in the map on
+    // each frame of a panel's slide.
+    <div
+      style={{ display: "contents" }}
+      ref={(box) => {
+        const miniMap = box?.firstElementChild;
+        return miniMap instanceof HTMLElement
+          ? bindStyle(miniMap, {
+              right: () => minimapOffset + readInsets().right,
+            })
+          : undefined;
       }}
-      maskColor="rgba(0, 0, 0, 0.15)"
-      maskStrokeWidth={0}
-      nodeComponent={MiniMapNode}
-      offsetScale={2}
-    />
+    >
+      <ReactFlowMiniMap
+        pannable
+        zoomable
+        ariaLabel=""
+        className={miniMapClassName}
+        style={{
+          margin: 0,
+          top: minimapOffset,
+          bottom: "auto",
+          left: "auto",
+          width: 116,
+          height: 65,
+        }}
+        maskColor="rgba(0, 0, 0, 0.15)"
+        maskStrokeWidth={0}
+        nodeComponent={MiniMapNode}
+        offsetScale={2}
+      />
+    </div>
   );
 };

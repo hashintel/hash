@@ -96,6 +96,14 @@
   font-display: swap;
   src: url("/fonts/OpenSauceTwo-BoldItalic.ttf") format("truetype");
 }
+/* Latin subset, for run IDs (`shortRunIdFont`). */
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("/fonts/JetBrainsMono-Variable.woff2") format("woff2");
+}
 
 * {
   margin: 0;

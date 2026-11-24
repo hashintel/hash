@@ -95,6 +95,7 @@ describe("data types in the Types listing", () => {
         latestDataTypes: null,
         loading: true,
         error: null,
+        ensureFetched: vi.fn(),
         refetch: vi.fn().mockResolvedValue(undefined),
         onDataTypeSaved: vi.fn(),
       };

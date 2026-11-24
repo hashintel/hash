@@ -31,7 +31,7 @@ import type { HirExpr } from "@hashintel/petrinaut-core/hir";
  * returns on marketing_spend, and a penalty for batch sizes away from 400.
  * Parameters the study fixes contribute their fixed values.
  */
-export function syntheticObjective(
+function syntheticObjective(
   values: Readonly<Record<string, number | boolean>>,
 ): number {
   const number = (identifier: string, fallback: number): number => {
@@ -349,9 +349,9 @@ const hirField = (id: number, target: HirExpr, field: string): HirExpr => ({
 });
 
 /** The rate cap the stories' parameter constraint imposes on `production_rate`. */
-export const FAKE_RATE_CAP = 320;
+const FAKE_RATE_CAP = 320;
 /** The runs each step of the constrained study runs; the state rates are fractions of it. */
-export const FAKE_CONSTRAINED_RUNS = 60;
+const FAKE_CONSTRAINED_RUNS = 60;
 
 /**
  * The stories' two constraints, hand-lowered so the fixtures need no
@@ -359,7 +359,7 @@ export const FAKE_CONSTRAINED_RUNS = 60;
  * space, and `return state.places.FinishedGoods.count <= 500;` over the
  * state.
  */
-export const fakeStudyConstraints: Constraint[] = [
+const fakeStudyConstraints: Constraint[] = [
   {
     space: "parameters",
     id: "rate-cap",

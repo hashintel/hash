@@ -19,6 +19,8 @@ import type { PropsWithChildren } from "react";
 
 export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
   const client = useApolloClient();
+  const [enabled, setEnabled] = useState(false);
+  const ensureFetched = useCallback(() => setEnabled(true), []);
   const { triggerSnackbar, closeSnackbar } = useSnackbar();
   const [dataTypes, setDataTypes] = useState<Record<
     VersionedUrl,
@@ -61,12 +63,14 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
 
   useEffect(() => {
     mounted.current = true;
-    void refetch();
+    if (enabled) {
+      void refetch();
+    }
     return () => {
       mounted.current = false;
       activeRequest.current?.abort();
     };
-  }, [refetch]);
+  }, [enabled, refetch]);
 
   const onDataTypeSaved = useCallback(
     (dataType: DataTypeWithMetadata) => {
@@ -129,11 +133,20 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
       dataTypes,
       latestDataTypes,
       loading,
+      ensureFetched,
       error,
       refetch,
       onDataTypeSaved,
     }),
-    [dataTypes, latestDataTypes, loading, error, refetch, onDataTypeSaved],
+    [
+      dataTypes,
+      latestDataTypes,
+      loading,
+      ensureFetched,
+      error,
+      refetch,
+      onDataTypeSaved,
+    ],
   );
 
   return (

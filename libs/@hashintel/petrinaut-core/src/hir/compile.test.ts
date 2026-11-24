@@ -20,7 +20,7 @@ import {
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   getTransitionLogicAvailability,
-} from "../extensions";
+} from "../extensions/extensions";
 import { buildSimulation } from "../simulation/engine/build-simulation";
 import { compileHirArtifacts } from "./compile";
 
@@ -64,20 +64,25 @@ describe("compileHirArtifacts on example models", () => {
       const colorById = new Map(
         [
           ...sdcpn.types,
-          ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+          ...(sdcpn.components ?? []).flatMap((component) => component.types),
         ].map((color) => [color.id, color]),
       );
 
       const missing: string[] = [];
       const nets = [
-        { net: sdcpn, subnet: null },
-        ...(sdcpn.subnets ?? []).map((subnet) => ({ net: subnet, subnet })),
+        { net: sdcpn, component: null },
+        ...(sdcpn.components ?? []).map((component) => ({
+          net: component,
+          component,
+        })),
       ];
-      for (const { net, subnet } of nets) {
-        const differentialEquations = subnet
-          ? subnet.differentialEquations
+      for (const { net, component } of nets) {
+        const differentialEquations = component
+          ? component.differentialEquations
           : sdcpn.differentialEquations;
-        const transitions = subnet ? subnet.transitions : sdcpn.transitions;
+        const transitions = component
+          ? component.transitions
+          : sdcpn.transitions;
 
         for (const de of differentialEquations) {
           const color = de.colorId ? colorById.get(de.colorId) : undefined;

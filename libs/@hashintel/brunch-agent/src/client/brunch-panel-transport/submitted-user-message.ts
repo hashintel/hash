@@ -2,11 +2,14 @@ import {
   ledgerCommentsMessage,
   parseLedgerComments,
   petrinautContextualUserMessageBody,
+  petrinautSubmissionContext,
 } from "@hashintel/brunch-agent";
 import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
 import { finalUserMessage } from "@local/flue-aisdk-transport";
 
-import type { SubmissionContext } from "@hashintel/brunch-agent";
+import { isLedgerCommentsMessage } from "../../shared/ledger-comments-turn";
+
+import type { PetrinautSubmissionContext } from "@hashintel/brunch-agent";
 import type { SubmittedUserMessage } from "@local/flue-aisdk-transport";
 import type { UIMessage } from "ai";
 
@@ -15,24 +18,34 @@ import type { UIMessage } from "ai";
  * context into its body so the server can separate human evidence from host
  * data. Petrinaut's assistant appends a reserved diagnostics message after
  * client tool results; Brunch reads diagnostics through its own tools, so the
- * turn never carries it. A turn whose text is a body of Ledger comments goes
- * to Brunch as the comment signal.
+ * turn never carries it. A turn marked as Ledger comments goes to Brunch as
+ * the comment signal, carrying the host's version load.
  */
 export const brunchSubmittedUserMessage = (
   messages: readonly UIMessage[],
-  submissionContext?: SubmissionContext,
+  context: PetrinautSubmissionContext = {},
 ): SubmittedUserMessage => {
-  const submitted = finalUserMessage(
-    messages.filter(({ id }) => id !== petrinautDiagnosticsContextMessageId),
+  const turn = messages.filter(
+    ({ id }) => id !== petrinautDiagnosticsContextMessageId,
   );
+  const submitted = finalUserMessage(turn);
   if (submitted.message.kind !== "user") return submitted;
-  const comments = parseLedgerComments(submitted.message.body);
-  if (comments !== undefined) {
+  const userMessage = turn.find(({ id }) => id === submitted.messageId);
+  if (userMessage !== undefined && isLedgerCommentsMessage(userMessage)) {
+    const comments = parseLedgerComments(submitted.message.body);
+    if (comments === undefined)
+      throw new Error("The Ledger comments turn holds no comments.");
     return {
       messageId: submitted.messageId,
-      message: ledgerCommentsMessage(comments),
+      message: ledgerCommentsMessage(
+        comments,
+        context.versionLoad === undefined
+          ? {}
+          : { versionLoad: context.versionLoad },
+      ),
     };
   }
+  const submissionContext = petrinautSubmissionContext(context);
   if (submissionContext === undefined) return submitted;
   return {
     messageId: submitted.messageId,

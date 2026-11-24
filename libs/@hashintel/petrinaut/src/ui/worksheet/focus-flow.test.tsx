@@ -17,21 +17,29 @@ import { useFocusGrid } from "./use-focus-grid";
 import { useFocusHeader } from "./use-focus-member";
 import { useFocusStops } from "./use-focus-stops";
 
+import type { FocusTabStop } from "./use-focus-memory";
 import type { FocusStop, FocusStopTarget } from "./use-focus-stops";
 
 afterEach(cleanup);
 
+/** What the harnesses share: the tab stop under test, and a report of each render. */
+interface HarnessOptions {
+  /** "native" leaves each button its own tab stop and never asks `tabIndexFor`. */
+  tabStop?: FocusTabStop;
+  onRender?: () => void;
+}
+
 /** A uniform grid of buttons wired through `useFocusGrid`. */
-const GridHarness: React.FC<{
-  label: string;
-  rows: number;
-  columns: number;
-}> = ({ label, rows, columns }) => {
+const GridHarness: React.FC<
+  { label: string; rows: number; columns: number } & HarnessOptions
+> = ({ label, rows, columns, tabStop = "roving", onRender }) => {
   // Destructured, not held as one object: the React Compiler rejects
   // `ref={grid.register(...)}` (member access into a hook result in ref
   // position reads as a ref access during render).
-  const { register, onKeyDown, onFocusCell, tabIndexFor, attach } =
-    useFocusGrid();
+  const { register, onKeyDown, tabIndexFor, attach } = useFocusGrid({
+    tabStop,
+  });
+  onRender?.();
   return (
     <div role="grid" aria-label={label} ref={attach}>
       {Array.from({ length: rows }, (_row, row) => (
@@ -41,9 +49,10 @@ const GridHarness: React.FC<{
               key={column}
               type="button"
               ref={register(row, column)}
-              tabIndex={tabIndexFor(row, column)}
+              tabIndex={
+                tabStop === "roving" ? tabIndexFor(row, column) : undefined
+              }
               onKeyDown={onKeyDown(row, column)}
-              onFocus={() => onFocusCell(row, column)}
             >
               {`${label} ${row},${column}`}
             </button>
@@ -58,17 +67,17 @@ const targetKey = (target: FocusStopTarget) =>
   `${target.stopId}:${target.column}`;
 
 /** A stops table of buttons wired through `useFocusStops`. */
-const StopsHarness: React.FC<{
-  label: string;
-  stops: FocusStop[];
-  columnCount: number;
-}> = ({ label, stops, columnCount }) => {
+const StopsHarness: React.FC<
+  { label: string; stops: FocusStop[]; columnCount: number } & HarnessOptions
+> = ({ label, stops, columnCount, tabStop = "roving", onRender }) => {
   const parts = useRef(new Map<string, HTMLButtonElement>());
   const { onKeyDown, onFocusTarget, tabIndexFor, attach } = useFocusStops({
     stops,
     columnCount,
     focusTarget: (target) => focusLands(parts.current.get(targetKey(target))),
+    tabStop,
   });
+  onRender?.();
 
   const partButton = (target: FocusStopTarget, text: string) => (
     <button
@@ -81,7 +90,7 @@ const StopsHarness: React.FC<{
           parts.current.delete(targetKey(target));
         }
       }}
-      tabIndex={tabIndexFor(target)}
+      tabIndex={tabStop === "roving" ? tabIndexFor(target) : undefined}
       onKeyDown={onKeyDown(target)}
       onFocus={() => onFocusTarget(target)}
     >
@@ -382,6 +391,85 @@ describe("worksheet focus flow", () => {
 
     expect(view.container.querySelectorAll("[tabindex='0']")).toHaveLength(1);
     expect(screen.getByText("T a c0")).toHaveProperty("tabIndex", 0);
+  });
+
+  it('remembers the last-focused cell of a grid without a render under tabStop "native"', () => {
+    const rendered = vi.fn();
+    render(
+      <FocusRoot>
+        <FocusStack axis="horizontal">
+          <FocusStack axis="vertical">
+            <GridHarness label="A" rows={2} columns={1} />
+          </FocusStack>
+          <FocusStack axis="vertical">
+            <GridHarness
+              label="B"
+              rows={2}
+              columns={2}
+              tabStop="native"
+              onRender={rendered}
+            />
+          </FocusStack>
+        </FocusStack>
+      </FocusRoot>,
+    );
+    rendered.mockClear();
+
+    focusPart("B 1,1");
+    focusPart("A 0,0");
+    arrow("ArrowRight");
+
+    expectFocused("B 1,1");
+    expect(rendered).not.toHaveBeenCalled();
+  });
+
+  it('remembers the last-focused stop of a table without a render under tabStop "native"', () => {
+    const rendered = vi.fn();
+    const stops: FocusStop[] = [
+      { id: "a", kind: "row" },
+      { id: "b", kind: "row" },
+    ];
+    render(
+      <FocusRoot>
+        <FocusStack axis="horizontal">
+          <FocusStack axis="vertical">
+            <GridHarness label="A" rows={1} columns={1} />
+          </FocusStack>
+          <FocusStack axis="vertical">
+            <StopsHarness
+              label="T"
+              stops={stops}
+              columnCount={2}
+              tabStop="native"
+              onRender={rendered}
+            />
+          </FocusStack>
+        </FocusStack>
+      </FocusRoot>,
+    );
+    rendered.mockClear();
+
+    focusPart("T b c1");
+    focusPart("A 0,0");
+    arrow("ArrowRight");
+
+    expectFocused("T b c1");
+    expect(rendered).not.toHaveBeenCalled();
+  });
+
+  it("renders a grid with the roving tab stop once per move of the focus", () => {
+    const rendered = vi.fn();
+    render(
+      <FocusRoot>
+        <GridHarness label="A" rows={2} columns={2} onRender={rendered} />
+      </FocusRoot>,
+    );
+    rendered.mockClear();
+
+    focusPart("A 1,1");
+    expect(rendered).toHaveBeenCalledTimes(1);
+    arrow("ArrowLeft");
+    expect(rendered).toHaveBeenCalledTimes(2);
   });
 
   it("walks stops vertically with column memory, nearest sparse column, and a gutter lane", () => {

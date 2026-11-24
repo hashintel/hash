@@ -67,6 +67,9 @@ export interface AuthoredContentResult {
 const authoredExtensions = new Set([".md", ".mdx"]);
 const componentExtensions = new Set([".tsx", ".ts", ".css"]);
 
+/** A test beside a component runs where it is authored and stays out of the bundle. */
+const isTest = (name: string): boolean => /\.test\.tsx?$/u.test(name);
+
 /** Directory under `content/` holding importable diagram components. */
 const componentDirectory = "components";
 
@@ -176,7 +179,10 @@ export const collectAuthoredContent = async (options: {
     );
 
     if (componentPath.startsWith(`${componentDirectory}/`)) {
-      if (componentExtensions.has(extensionOf(entry.name))) {
+      if (
+        componentExtensions.has(extensionOf(entry.name)) &&
+        !isTest(entry.name)
+      ) {
         components.push({
           path: componentPath,
           name: componentPath

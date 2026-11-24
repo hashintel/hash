@@ -1,14 +1,16 @@
 import { z } from "zod";
 
-import { getParameterValueError } from "../parameter-values";
+import { getParameterValueError } from "../document/parameter-values";
 import {
   colorElementSchema as currentColorElementSchema,
   colorSchema as currentColorSchema,
   componentInstanceSchema as currentComponentInstanceSchema,
   componentReferenceSchema,
+  componentSchema as currentComponentSchema,
   descriptionSchema,
   differentialEquationSchema as currentDifferentialEquationSchema,
   fusionSchema as currentFusionSchema,
+  importSchema,
   inputArcSchema as currentInputArcSchema,
   metadataSchema,
   outputArcSchema as currentOutputArcSchema,
@@ -172,7 +174,7 @@ const fusionSchema = z.object({
   members: z.array(currentFusionSchema.shape.members.element),
 });
 
-const subnetSchema = z
+const componentSchema = z
   .object({
     id: z.string(),
     name: z.string(),
@@ -180,6 +182,8 @@ const subnetSchema = z
     metadata: metadataSchema,
     interface: z.boolean().optional(),
     implements: z.array(z.string()).optional(),
+    iconSvg: currentComponentSchema.shape.iconSvg,
+    displayColor: currentComponentSchema.shape.displayColor,
     places: z.array(placeSchema),
     transitions: z.array(transitionSchema),
     types: z.array(colorSchema).default([]),
@@ -189,8 +193,8 @@ const subnetSchema = z
     fusions: z.array(fusionSchema).optional(),
   })
   // The flag is `true` or absent in a document: `false` reads as absent.
-  .transform(({ interface: isInterface, ...subnet }) =>
-    isInterface ? { ...subnet, interface: true as const } : subnet,
+  .transform(({ interface: isInterface, ...component }) =>
+    isInterface ? { ...component, interface: true as const } : component,
   );
 
 export const sdcpnSchema = z.object({
@@ -203,7 +207,9 @@ export const sdcpnSchema = z.object({
   parameters: z.array(parameterSchema).default([]),
   scenarios: z.array(scenarioSchema).default([]),
   metrics: z.array(metricSchema).default([]),
-  subnets: z.array(subnetSchema).default([]),
+  // Absent in a net that imports nothing, as `fusions` is.
+  imports: z.array(importSchema).optional(),
+  components: z.array(componentSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
   // A net without fusions carries no `fusions` key, here as in the editor, so
   // a file that never had one exports as it was read.

@@ -1,5 +1,6 @@
 import * as v from "valibot";
 
+import { readRecordedNetElementKind } from "../petrinaut/petrinaut-tool-effects";
 import { obligationSchema } from "./construction/obligations";
 import { reflectionSchema } from "./construction/reflections";
 import { claimSchemaWith } from "./elicitation/claims";
@@ -150,3 +151,42 @@ export const ledgerAppendSchema = ledgerAppendSchemaWith({
 });
 
 export type LedgerAppend = v.InferOutput<typeof ledgerAppendSchema>;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isList = (value: unknown): value is unknown[] => Array.isArray(value);
+
+const readRecordedAddress = (address: unknown): unknown =>
+  isRecord(address)
+    ? { ...address, kind: readRecordedNetElementKind(address.kind) }
+    : address;
+
+const readRecordedEntry = (entry: unknown): unknown => {
+  if (!isList(entry)) {
+    return entry;
+  }
+  const [route, payload, ...rest] = entry;
+  return route === "reflection/create" &&
+    isRecord(payload) &&
+    isList(payload.netElements)
+    ? [
+        route,
+        {
+          ...payload,
+          netElements: payload.netElements.map(readRecordedAddress),
+        },
+        ...rest,
+      ]
+    : entry;
+};
+
+/**
+ * A batch as a conversation recorded it, with the net elements its
+ * reflections name under the kinds of today. Takes whatever was recorded, so
+ * it reads no more of the shape than those addresses.
+ */
+export const readRecordedLedgerAppend = (input: unknown): unknown =>
+  isRecord(input) && isList(input.entries)
+    ? { ...input, entries: input.entries.map(readRecordedEntry) }
+    : input;

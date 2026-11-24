@@ -1,0 +1,13 @@
+# @scope/pkg/Other
+
+[Source](other.d.ts#L1)
+
+```ts
+import * as Other from "@scope/pkg/Other";
+```
+
+## <a id="page-index"></a>Index
+
+**Functions**
+
+* [`alias`](./index.html#choose) First call.

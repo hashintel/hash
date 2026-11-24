@@ -67,7 +67,7 @@ describe("calculateGraphLayout", () => {
           {
             id: "m1",
             name: "M1",
-            subnetId: "stage",
+            component: { id: "stage" },
             parameterValues: {},
             x: 0,
             y: 0,

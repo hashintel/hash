@@ -7,23 +7,30 @@ import {
 import { lazy, Suspense, use, useEffect, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
+import { getDocumentUri } from "@hashintel/petrinaut-core";
 
-import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
-import { useCodeNavigation } from "../../../../../monaco/code-navigation";
-import { getDocumentUri } from "../../../../../monaco/editor-paths";
-import { usePetrinautPresentation } from "../../../../shared/presentation-context";
-import { VisualizerLoading } from "../../../../shared/visualizer-loading";
+import { ActiveNetContext } from "../../../../../../react/document/active-net-context";
+import { useStoreSelector } from "../../../../../../react/shared/use-store";
+import {
+  useEditorActions,
+  useEditorState,
+} from "../../../../../../react/state/editor-context";
+import { useUserSettings } from "../../../../../../react/state/user-settings-context";
+import { useCodeNavigation } from "../../../../../monaco/code-navigation-context";
+import { usePetrinautPresentation } from "../../../../../presentation/presentation-context";
+import { VisualizerLoading } from "../../../../../visualizer/visualizer-loading";
+import { CanvasPointerContext, useIsHovered } from "../../../canvas-pointer";
 import { VisualizerWindow } from "./place-state-tooltip/visualizer-window";
 
 import type { PointerEvent } from "react";
 
 const PlaceStateVisualization = lazy(() =>
-  import("../../../../shared/place-state-visualization").then((module) => ({
-    default: module.PlaceStateVisualization,
-  })),
+  import("../../../../../visualizer/place-state-visualization").then(
+    (module) => ({
+      default: module.PlaceStateVisualization,
+    }),
+  ),
 );
 
 const triggerStyle = css({
@@ -56,26 +63,41 @@ const triggerStyle = css({
 export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
   const presentation = usePetrinautPresentation();
   const { activeNet } = use(ActiveNetContext);
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
+  // Each answer for this place alone: a place renders when its own changes.
+  const keptOpen = useEditorState((editor) =>
+    editor.keptOpenVisualizerPlaceIds.has(nodeId),
+  );
+  const opened = useEditorState(
+    (editor) => editor.openVisualizerPlaceId === nodeId,
+  );
+  const editing = useEditorState(
+    (editor) => editor.focusedVisualizerPlaceId === nodeId,
+  );
+  const anotherEditing = useEditorState(
+    (editor) =>
+      editor.focusedVisualizerPlaceId !== null &&
+      editor.focusedVisualizerPlaceId !== nodeId,
+  );
+  const stackIndex = useEditorState(
+    (editor) => editor.visualizerStack.indexOf(nodeId) + 1,
+  );
   const {
-    keptOpenVisualizerPlaceIds,
-    visualizerStack,
     bringVisualizerToFront,
-    openVisualizerPlaceId,
-    focusedVisualizerPlaceId,
     keepPlaceVisualizerOpen,
     closePlaceVisualizer,
     openPlaceVisualizer,
-    hoveredItem,
-    setHoveredItem,
-    clearHoveredItem,
-  } = use(EditorContext);
+  } = useEditorActions();
+  const { hoveredId, hoverOnReleaseId } = use(CanvasPointerContext);
+  const hovered = useIsHovered(nodeId);
+  // While the preview is open, what the pointer is on: each node or line it
+  // crosses on its way to the preview starts the grace period again.
+  const hoveredWhileOpen = useStoreSelector(hoveredId, (id) =>
+    opened ? id : null,
+  );
   const codeNavigation = useCodeNavigation();
   const node = useInternalNode(nodeId);
   const viewport = useViewport();
-  const keptOpen = keptOpenVisualizerPlaceIds.has(nodeId);
-  const editing = focusedVisualizerPlaceId === nodeId;
-  const opened = openVisualizerPlaceId === nodeId;
   const [eyeHovered, setEyeHovered] = useState(false);
   const [eyeFocused, setEyeFocused] = useState(false);
   const openingEditor =
@@ -95,7 +117,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
       eyeFocused ||
       editing ||
       openingEditor ||
-      hoveredItem?.id === nodeId
+      hoveredWhileOpen === nodeId
     )
       return;
     // Give the pointer time to cross the gap between the place and its preview.
@@ -107,7 +129,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
     eyeFocused,
     editing,
     openingEditor,
-    hoveredItem?.id,
+    hoveredWhileOpen,
     nodeId,
     openPlaceVisualizer,
   ]);
@@ -123,21 +145,43 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
     return null;
 
   const keepHovered = {
-    onPointerEnter: () => setHoveredItem({ type: "place", id: nodeId }),
+    onPointerEnter: (event: PointerEvent) => {
+      // A window kept open stays through a pan, which carries it under the
+      // pressed pointer as it does a node: its place is hovered at the
+      // release. A preview would close under a pointer that does not hover
+      // its place, and the place of an eye is lit already, so both hover it
+      // whatever the buttons.
+      const waitsForRelease = keptOpen && event.buttons !== 0;
+      (waitsForRelease ? hoverOnReleaseId : hoveredId).set(nodeId);
+    },
     onPointerLeave: (event: PointerEvent) => {
       if (
         event.relatedTarget instanceof Element &&
         event.relatedTarget.closest(".react-flow__node")
       )
         return;
-      clearHoveredItem();
+      hoveredId.set(null);
+      hoverOnReleaseId.set(null);
     },
+  };
+
+  // The window closes under the pointer, which then never leaves it.
+  const close = () => {
+    setEyeHovered(false);
+    setEyeFocused(false);
+    closePlaceVisualizer(nodeId);
+    if (hoveredId.get() === nodeId) {
+      hoveredId.set(null);
+    }
+    if (hoverOnReleaseId.get() === nodeId) {
+      hoverOnReleaseId.set(null);
+    }
   };
 
   const showTrigger =
     !keptOpen &&
     !!place.visualizerCode &&
-    (hoveredItem?.id === nodeId || node.selected) &&
+    (hovered || node.selected) &&
     !node.dragging;
   const below =
     node.internals.positionAbsolute.y * viewport.zoom + viewport.y < 94;
@@ -149,20 +193,16 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
           nodeId={nodeId}
           name={place.name}
           editing={editing}
-          muted={focusedVisualizerPlaceId !== null && !editing}
+          muted={anotherEditing}
           animated={showAnimations}
-          stackIndex={visualizerStack.indexOf(nodeId) + 1}
+          stackIndex={stackIndex}
           onActivate={() => bringVisualizerToFront(nodeId)}
           onKeepOpen={() => {
             setEyeFocused(false);
             setEyeHovered(false);
             keepPlaceVisualizerOpen(nodeId);
           }}
-          onClose={() => {
-            setEyeHovered(false);
-            setEyeFocused(false);
-            closePlaceVisualizer(nodeId);
-          }}
+          onClose={close}
           onEdit={
             codeNavigation.enabled
               ? () =>
@@ -173,8 +213,8 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
               : undefined
           }
           {...keepHovered}
-          onPointerEnter={() => {
-            keepHovered.onPointerEnter();
+          onPointerEnter={(event) => {
+            keepHovered.onPointerEnter(event);
             openPlaceVisualizer(nodeId);
           }}
         >
@@ -197,12 +237,13 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
           offset={-11}
         >
           <div
-            className={triggerStyle}
+            // nokey: a press here draws no selection box, as on the window.
+            className={cx(triggerStyle, "nokey")}
             title="Click to keep open"
             data-animated={showAnimations}
             {...keepHovered}
-            onPointerEnter={() => {
-              keepHovered.onPointerEnter();
+            onPointerEnter={(event) => {
+              keepHovered.onPointerEnter(event);
               setEyeHovered(true);
             }}
             onPointerLeave={(event) => {
@@ -228,9 +269,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
                 event.stopPropagation();
                 if (event.key === "Escape") {
                   event.preventDefault();
-                  setEyeHovered(false);
-                  setEyeFocused(false);
-                  closePlaceVisualizer(nodeId);
+                  close();
                 }
               }}
               onMouseDown={(event) => event.stopPropagation()}

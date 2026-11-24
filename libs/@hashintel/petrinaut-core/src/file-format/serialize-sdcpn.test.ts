@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { toPetrinautId } from "../petrinaut-id";
+import { toPetrinautId } from "../document/petrinaut-id";
 import { parseSDCPNDocument, parseSDCPNFile } from "./parse-sdcpn-file";
 import { serializeSDCPN } from "./serialize-sdcpn";
 
@@ -33,11 +33,11 @@ const sourceDocument = {
       y: 200,
     },
   ],
-  subnets: [
+  components: [
     {
-      id: "subnet1",
-      name: "Subnet 1",
-      description: "A subnet",
+      id: "component1",
+      name: "Component 1",
+      description: "A component",
       metadata: { origin: "test" },
       places: [
         {
@@ -53,8 +53,8 @@ const sourceDocument = {
       transitions: [],
     },
     {
-      id: "subnet2",
-      name: "Subnet 2",
+      id: "component2",
+      name: "Component 2",
       places: [
         {
           id: "inner1",
@@ -67,7 +67,13 @@ const sourceDocument = {
       ],
       transitions: [],
       componentInstances: [
-        { id: "nested1", name: "Nested 1", subnetId: "subnet1", x: 0, y: 0 },
+        {
+          id: "nested1",
+          name: "Nested 1",
+          component: { id: "component1" },
+          x: 0,
+          y: 0,
+        },
       ],
       fusions: [
         {
@@ -86,7 +92,13 @@ const sourceDocument = {
     },
   ],
   componentInstances: [
-    { id: "instance1", name: "Instance 1", subnetId: "subnet1", x: 0, y: 0 },
+    {
+      id: "instance1",
+      name: "Instance 1",
+      component: { id: "component1" },
+      x: 0,
+      y: 0,
+    },
   ],
   fusions: [
     {
@@ -194,7 +206,7 @@ describe("serializeSDCPN", () => {
       "parameters",
       "types",
       "differentialEquations",
-      "subnets",
+      "components",
       "places",
       "componentInstances",
       "fusions",
@@ -202,7 +214,7 @@ describe("serializeSDCPN", () => {
       "metrics",
       "scenarios",
     ]);
-    expect(Object.keys(document.subnets![0]!)).toEqual([
+    expect(Object.keys(document.components![0]!)).toEqual([
       "id",
       "name",
       "description",
@@ -214,7 +226,7 @@ describe("serializeSDCPN", () => {
       "componentInstances",
       "transitions",
     ]);
-    expect(Object.keys(document.subnets![1]!)).toEqual([
+    expect(Object.keys(document.components![1]!)).toEqual([
       "id",
       "name",
       "parameters",
@@ -283,28 +295,28 @@ describe("serializeSDCPN", () => {
     expect(parsed.sdcpn.fusions?.[0]?.members).toHaveLength(1);
   });
 
-  it("reads `interface: false` as a subnet that is no interface", () => {
+  it("reads `interface: false` as a component that is no interface", () => {
     const parsed = parseSDCPNFile({
       ...sourceDocument,
-      subnets: sourceDocument.subnets.map((subnet) => ({
-        ...subnet,
+      components: sourceDocument.components.map((component) => ({
+        ...component,
         interface: false,
       })),
     });
 
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
-    expect(parsed.sdcpn.subnets?.[0]).not.toHaveProperty("interface");
+    expect(parsed.sdcpn.components?.[0]).not.toHaveProperty("interface");
   });
 
   it("writes an interface flag, an implements list and the document's bindings in their places", () => {
     const sdcpn = parseFixture();
-    const iface = sdcpn.subnets![0]!;
+    const iface = sdcpn.components![0]!;
 
     const text = serializeSDCPN({
       petriNetDefinition: {
         ...sdcpn,
-        subnets: [
+        components: [
           { ...iface, interface: true },
           { ...iface, id: "fast", name: "Fast", implements: [iface.id] },
         ],
@@ -317,22 +329,24 @@ describe("serializeSDCPN", () => {
     });
     const document = JSON.parse(text) as {
       implementations: unknown;
-      subnets: Record<string, unknown>[];
+      components: Record<string, unknown>[];
     };
 
     const keys = Object.keys(document);
-    expect(keys.indexOf("implementations")).toBe(keys.indexOf("subnets") + 1);
+    expect(keys.indexOf("implementations")).toBe(
+      keys.indexOf("components") + 1,
+    );
     expect(document.implementations).toEqual([
       { interface: { id: iface.id }, component: { id: "fast" } },
     ]);
-    expect(Object.keys(document.subnets[0]!).slice(0, 5)).toEqual([
+    expect(Object.keys(document.components[0]!).slice(0, 5)).toEqual([
       "id",
       "name",
       "description",
       "metadata",
       "interface",
     ]);
-    expect(Object.keys(document.subnets[1]!).slice(0, 5)).toEqual([
+    expect(Object.keys(document.components[1]!).slice(0, 5)).toEqual([
       "id",
       "name",
       "description",
@@ -351,7 +365,7 @@ describe("serializeSDCPN", () => {
         {
           id: "drill",
           name: "Drill",
-          subnetId: "stage",
+          component: { id: "stage" },
           implementation: { id: "slow-stage" },
         },
       ],
@@ -386,7 +400,7 @@ describe("serializeSDCPN", () => {
         {
           id: "drill",
           name: "Drill",
-          subnetId: "stage",
+          component: { id: "stage" },
           implementation: "slow-stage",
         },
       ],
@@ -401,7 +415,12 @@ describe("serializeSDCPN", () => {
     const parsed = parseSDCPNFile({
       ...sourceDocument,
       componentInstances: [
-        { id: "drill", name: "Drill", subnetId: "stage", implementation: null },
+        {
+          id: "drill",
+          name: "Drill",
+          component: { id: "stage" },
+          implementation: null,
+        },
       ],
     });
 
@@ -409,6 +428,150 @@ describe("serializeSDCPN", () => {
     if (!parsed.ok) {
       expect(parsed.error).toContain("implementation");
     }
+  });
+
+  it("writes imports before the components, and reads them back with what names their components as written", () => {
+    const sdcpn = parseFixture();
+    const scale = { from: "@hashintel/logistics", id: "scale" };
+    const importing = {
+      ...sdcpn,
+      imports: [{ id: "@hashintel/logistics" }],
+      componentInstances: [
+        {
+          id: toPetrinautId("scale-1"),
+          name: "ScaleA",
+          component: scale,
+          parameterValues: {},
+          implementation: { from: "@hashintel/logistics", id: "belt" },
+          x: 0,
+          y: 0,
+        },
+      ],
+      implementations: [{ interface: scale, component: scale }],
+    };
+
+    const text = serializeSDCPN({
+      petriNetDefinition: importing,
+      title: "Test Net",
+      format: "json",
+    });
+    const keys = Object.keys(JSON.parse(text) as object);
+    const parsed = parseSDCPNDocument(text);
+
+    expect(keys.indexOf("imports")).toBe(keys.indexOf("components") - 1);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.sdcpn.imports).toEqual(importing.imports);
+    expect(parsed.sdcpn.componentInstances).toEqual(
+      importing.componentInstances,
+    );
+    expect(parsed.sdcpn.implementations).toEqual(importing.implementations);
+  });
+
+  it("reads a port of a component of an import as a document reads any id", () => {
+    const parsed = parseSDCPNFile({
+      ...sourceDocument,
+      imports: [{ id: "@hashintel/logistics" }],
+      componentInstances: [
+        {
+          id: "scale-1",
+          name: "ScaleA",
+          component: { from: "@hashintel/logistics", id: "scale" },
+        },
+      ],
+      fusions: [
+        {
+          id: "feed",
+          name: "Feed",
+          members: [
+            { kind: "place", placeId: "p1" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "scale-1",
+              portPlaceId: "in",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.sdcpn.fusions?.[0]?.members[1]).toMatchObject({
+      portPlaceId: toPetrinautId("in"),
+    });
+  });
+
+  it("refuses an instance that names no component", () => {
+    const parsed = parseSDCPNFile({
+      ...sourceDocument,
+      componentInstances: [{ id: "drill", name: "Drill" }],
+    });
+
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) {
+      expect(parsed.error).toContain("componentInstances.0.component");
+    }
+  });
+
+  it("writes a component's colour and icon last, and leaves them out without visual info", () => {
+    const sdcpn = parseFixture();
+    const iconSvg = '<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>';
+    const styled = {
+      ...sdcpn,
+      components: [
+        { ...sdcpn.components![0]!, iconSvg, displayColor: "#3b82f6" },
+      ],
+    };
+
+    const text = serializeSDCPN({
+      petriNetDefinition: styled,
+      title: "Test Net",
+      format: "json",
+    });
+    const document = JSON.parse(text) as {
+      components: Record<string, unknown>[];
+    };
+    expect(Object.keys(document.components[0]!).slice(-2)).toEqual([
+      "displayColor",
+      "iconSvg",
+    ]);
+
+    const reimported = parseSDCPNDocument(text);
+    expect(reimported.ok).toBe(true);
+    if (!reimported.ok) return;
+    expect(reimported.sdcpn.components?.[0]).toMatchObject({
+      iconSvg,
+      displayColor: "#3b82f6",
+    });
+
+    const bare = serializeSDCPN({
+      petriNetDefinition: styled,
+      title: "Test Net",
+      removeVisualInfo: true,
+    });
+    expect(bare).not.toContain("iconSvg");
+    expect(bare).not.toContain("displayColor");
+  });
+
+  it("refuses a file whose component icon holds anything but shapes, naming the element", () => {
+    const [component] = sourceDocument.components;
+    const withIcon = (iconSvg: string) =>
+      parseSDCPNFile({
+        ...sourceDocument,
+        components: [{ ...component, iconSvg }],
+      });
+
+    expect(withIcon('<svg viewBox="0 0 8 8"><rect/></svg>').ok).toBe(true);
+
+    const refused = withIcon(
+      '<svg viewBox="0 0 8 8"><g id="a"/><use href="#a"/></svg>',
+    );
+    expect(refused.ok).toBe(false);
+    if (!refused.ok) {
+      expect(refused.error).toContain("`use`");
+    }
+    expect(withIcon("<svg><title>Stage</title><rect/></svg>").ok).toBe(false);
   });
 
   it("rejects text that is neither YAML nor JSON via parseSDCPNDocument", () => {

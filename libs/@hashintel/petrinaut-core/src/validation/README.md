@@ -16,6 +16,8 @@ Currently used by the property-panel UI components to validate on blur.
 record construction (`createUserKeyedRecord`, `cloneUserKeyedRecord`),
 own-property reads (`getOwn`), and `findDangerousSdcpnKeys`, the walk that the
 file-import and simulation boundaries use to reject hostile identifiers.
+[Untrusted names](doc:core.validation/untrusted-names) says what a hostile
+name does to a plain object and where each guard sits.
 
 **@todo FE-521:** These validators should also be enforced in `MutationProvider`
 (as a safety net) and surfaced in the Diagnostics tab (so that files

@@ -7,6 +7,7 @@
     "rootDir": "src",
     "outDir": "dist",
     "sourceMap": true,
+    "declarationMap": true,
     "inlineSources": true
   },
   "files": ["src/main.ts", "src/Draft/index.ts"],

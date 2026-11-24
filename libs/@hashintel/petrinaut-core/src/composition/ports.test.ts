@@ -30,25 +30,25 @@ const transition = (
 });
 
 describe("port directions", () => {
-  const subnet = {
+  const component = {
     transitions: [
       transition("work", ["in"], ["out"]),
       transition("loop", ["pool"], ["pool"]),
     ],
   };
 
-  it("infers in, out and inout from the subnet's arcs", () => {
-    expect(inferPortDirection(subnet, "in")).toBe("in");
-    expect(inferPortDirection(subnet, "out")).toBe("out");
-    expect(inferPortDirection(subnet, "pool")).toBe("inout");
-    expect(inferPortDirection(subnet, "untouched")).toBe("inout");
+  it("infers in, out and inout from the component's arcs", () => {
+    expect(inferPortDirection(component, "in")).toBe("in");
+    expect(inferPortDirection(component, "out")).toBe("out");
+    expect(inferPortDirection(component, "pool")).toBe("inout");
+    expect(inferPortDirection(component, "untouched")).toBe("inout");
   });
 
   it("prefers a declared direction", () => {
     expect(
-      effectivePortDirection(subnet, { id: "in", portDirection: "inout" }),
+      effectivePortDirection(component, { id: "in", portDirection: "inout" }),
     ).toBe("inout");
-    expect(effectivePortDirection(subnet, { id: "in" })).toBe("in");
+    expect(effectivePortDirection(component, { id: "in" })).toBe("in");
   });
 
   it("answers every port of a net at once, declared or inferred, and no other place", () => {
@@ -69,16 +69,16 @@ describe("port directions", () => {
       place("inside"),
     ];
 
-    expect([...effectivePortDirections({ ...subnet, places })]).toEqual([
+    expect([...effectivePortDirections({ ...component, places })]).toEqual([
       ["in", "in"],
       ["out", "out"],
       ["pool", "out"],
       ["untouched", "inout"],
     ]);
     for (const port of places.filter(({ isPort }) => isPort)) {
-      expect(effectivePortDirections({ ...subnet, places }).get(port.id)).toBe(
-        effectivePortDirection(subnet, port),
-      );
+      expect(
+        effectivePortDirections({ ...component, places }).get(port.id),
+      ).toBe(effectivePortDirection(component, port));
     }
   });
 

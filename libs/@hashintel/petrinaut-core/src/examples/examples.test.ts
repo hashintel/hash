@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { compileHirArtifacts } from "../hir";
-import { checkSDCPN } from "../lsp/lib/checker";
+import { checkSDCPN } from "../lsp/language-service/checker";
 import {
   createLanguageServers,
   syncLanguageServers,
-} from "../lsp/lib/language-servers";
+} from "../lsp/language-service/language-servers";
 import {
   bicycleAssembly,
   cafeQueue,

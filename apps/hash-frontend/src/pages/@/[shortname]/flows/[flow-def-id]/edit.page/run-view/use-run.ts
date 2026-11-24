@@ -5,9 +5,9 @@ import { getOpenInputRequests } from "@local/hash-isomorphic-utils/flows/run-eve
 import { getStepRunsFromEvents } from "@local/hash-isomorphic-utils/flows/step-runs";
 import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
-import { FlowRunStatus } from "../../../../../../../graphql/api-types.gen";
 import { useFlowDefinitionAtTime } from "../../../../../../shared/use-flow-definitions";
 import { useFlowRunEvents } from "../../../../../../shared/use-flow-run-events";
+import { isRunGoing } from "../shared/run-state";
 import { getStepRunMarks } from "../shared/step-states";
 
 import type {
@@ -16,7 +16,11 @@ import type {
 } from "../../../../../../../graphql/api-types.gen";
 import type { StepRunMark } from "../shared/step-states";
 import type { ApolloError } from "@apollo/client";
-import type { EntityId, Timestamp } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  EntityUuid,
+  Timestamp,
+} from "@blockprotocol/type-system";
 import type { FlowRunStepRunState } from "@local/hash-isomorphic-utils/flows/step-runs";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -41,12 +45,14 @@ export type Run =
       marks: Map<string, StepRunMark>;
       /** The runs of its steps by step run id: a step's id, or for a step inside a for-each step, one per item. */
       stepRuns: Map<string, FlowRunStepRunState>;
-      /** The ids of the step runs waiting on a person to answer their questions. */
-      waitingOnPerson: Set<string>;
+      /** When each step run waiting on a person to answer its questions asked them, by step run id. */
+      waitingOnPerson: Map<string, string>;
       /** Whether it's still going, so more of its steps will run. */
       live: boolean;
       /** Why the last check for the run's new events failed, while it keeps checking. */
       checkFailure: string | null;
+      /** The schedule that started it, or `null` for a run started by hand. */
+      flowScheduleId: EntityUuid | null;
     };
 
 const isNotFound = (error: ApolloError) =>
@@ -75,7 +81,7 @@ export const useRun = ({
   });
 
   const run = data?.getFlowRunById;
-  const live = run?.status === FlowRunStatus.Running;
+  const live = !!run && isRunGoing(run.status);
 
   const [lookedLongEnough, setLookedLongEnough] = useState(false);
   const [lookCount, setLookCount] = useState(0);
@@ -147,9 +153,10 @@ export const useRun = ({
         }),
         stepRuns: new Map(stepRuns.map((stepRun) => [stepRun.stepId, stepRun])),
         /* Requests for web pages are answered by the browser plugin, not a person. */
-        waitingOnPerson: new Set(
-          getOpenInputRequests(events.events).flatMap(({ stepId, type }) =>
-            type === "human-input" ? [stepId] : [],
+        waitingOnPerson: new Map(
+          getOpenInputRequests(events.events).flatMap(
+            ({ stepId, type, raisedAt }) =>
+              type === "human-input" ? [[stepId, raisedAt] as const] : [],
           ),
         ),
       };
@@ -206,5 +213,6 @@ export const useRun = ({
     waitingOnPerson: steps.waitingOnPerson,
     live,
     checkFailure: events.checkFailure ?? null,
+    flowScheduleId: run.flowScheduleId ?? null,
   };
 };

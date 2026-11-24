@@ -12529,7 +12529,7 @@
       "code": "return state.places.BatchQueue.count;"
     }
   ],
-  "subnets": [],
+  "components": [],
   "componentInstances": [],
   "version": 1,
   "meta": {

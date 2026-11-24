@@ -1,10 +1,9 @@
 import { z } from "zod";
 
-import { mutationActionInputSchemas } from "./action-schemas";
-import { aiCommandActionInputSchemas } from "./command-schemas";
+import { mutationActionInputSchemas } from "./actions/action-schemas";
+import { aiCommandActionInputSchemas } from "./actions/command-schemas";
 import { probabilisticSatellitesSDCPN } from "./examples";
 import { petrinautExperimentRequestSchema } from "./experiments/host";
-import { typedKeys } from "./lib/typed-entries";
 
 export {
   petrinautExperimentRequestSchema,
@@ -26,18 +25,18 @@ export {
   placeSchema,
   pruningUpdateActions,
   scenarioSchema,
-  subnetSchema,
+  componentSchema,
   transitionSchema,
-} from "./action-schemas";
+} from "./actions/action-schemas";
 export type {
   MutationActionInput as PetrinautAiMutationToolInput,
   MutationActionName as PetrinautAiMutationToolName,
-} from "./action-schemas";
-export { aiCommandActionInputSchemas } from "./command-schemas";
+} from "./actions/action-schemas";
+export { aiCommandActionInputSchemas } from "./actions/command-schemas";
 export type {
   AiCommandActionInput as PetrinautAiCommandToolInput,
   AiCommandActionName as PetrinautAiCommandToolName,
-} from "./command-schemas";
+} from "./actions/command-schemas";
 
 export type PetrinautAiTool<InputSchema extends z.ZodType> = {
   description: string;
@@ -76,7 +75,8 @@ function createToolBundle<const InputSchemas extends Record<string, z.ZodType>>(
     };
   };
 
-  for (const name of typedKeys(schemas)) {
+  // `Object.keys` returns `string[]`: the keys of `schemas` are its tool names.
+  for (const name of Object.keys(schemas) as (keyof InputSchemas)[]) {
     setTool(name, schemas[name]);
   }
 
@@ -125,7 +125,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "useful-patterns":
     "Duration modelling (exponential / non-exponential), resource pools, mutual exclusion, source / sink transitions, competing/routing transitions, multi-token arcs.",
   composition:
-    "Components (subnets) and instances, marking ports and their direction (input, output, both), fusing a place with instance ports by dragging, what fused places must agree on, interfaces (port-only subnets) and the components that implement them, choosing an implementation per document or per instance, fusion, port and interface checks in Diagnostics.",
+    "Components and instances, marking ports and their direction (input, output, both), fusing a place with instance ports by dragging, what fused places must agree on, interfaces (port-only components) and the components that implement them, choosing an implementation per document or per instance, fusion, port and interface checks in Diagnostics, moving or detaching a fusion by dragging an end of its link, components from the libraries an embedding application offers, the Components panel, imports, what shows while a library resolves or when one fails, exporting with imports inlined, an editor set up to compose those components only.",
   simulation:
     "Simulating the open net: initial state, simulation settings (scenario picker, parameters, mode, simulator and its parameters), the class of a net (timed or untimed, its colouring, stochastic or deterministic), Quick Simulation of one run, Stochastic mode across many runs, deadlock, playback controls, timeline, locked editing.",
   scenarios:
@@ -139,13 +139,13 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "actual-mode":
     "Actual mode: host-provided live execution view, read-only net, timeline scrubbing, Events tab with recording and net exports.",
   preview:
-    "Compact read-only PetrinautPreview for host-controlled embeds: shared SDCPN canvas, pan/zoom/fit/minimap, selection and responsive inspector, root/subnet navigation, URL-state ownership, omitted editing and management UI, and host-owned iframe security.",
+    "Compact read-only PetrinautPreview for host-controlled embeds: shared SDCPN canvas, pan/zoom/fit/minimap, selection and responsive inspector, root/component navigation, URL-state ownership, omitted editing and management UI, and host-owned iframe security.",
   "ai-assistant":
     "In-app AI assistant: opening the panel, one text and Voice mode transcript/composer, waveform start, inline Voice state and provenance, typed handoff, consent/recovery, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
   "code-editor":
     "Code editing in the Properties Panel: expand a section to fill the panel, return to the item’s other properties, direct function navigation, automatic edits and read-only behavior.",
   "visual-settings":
-    "General, Viewport, Plugins and Labs preferences: animations, keep-panels-mounted, minimap, snap-to-grid, compact nodes, partial selection, switching plugins on or off, plugin settings, net components, and compilation output.",
+    "General, Viewport, Plugins and Labs preferences: animations, minimap, snap-to-grid, compact nodes, partial selection, switching plugins on or off, plugin settings, net components, and compilation output.",
   "compilation-output":
     "The Compilation bottom-panel tab: enabling it, the GPU verdict line, structural blockers, shader emission failures, per-item GPU/CPU/untested/no-HIR/unused status, and HIR node counts.",
   examples:
@@ -155,7 +155,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
 const getLatestNetDefinitionToolInputSchema = z
   .strictObject({})
   .describe(
-    "Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.",
+    "Get the current Petrinaut net state. Returns `{ title, definition, extensions, imports }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, `extensions` lists the currently enabled Petrinaut extension capabilities, and `imports` lists the libraries the net imports and those the application offers: each with its `status` (`resolving`, `resolved` or `failed` with a `message`) and, once resolved, its `name` and `components`. A component gives its `id`, whether it is an `interface`, its `ports` and its `parameters`. Place an instance of one with `addComponentInstance` and `component: { from: <library id>, id: <component id> }`; name its ports by their `id` as `portPlaceId`, and key `parameterValues` by its parameters' `id`s.",
   );
 
 const getNetCompilationErrorsToolInputSchema = z
@@ -240,7 +240,7 @@ const petrinautDocIndex = petrinautDocNames
   .join("\n");
 
 const petrinautAiCapabilityIntroduction = `Use the provided tools to directly modify the current net. The tools use Petrinaut's raw mutation interfaces, so include stable IDs, full entity objects where required, and canvas positions for places and transitions.
-You can check the current net state at any point using the ${getLatestNetDefinitionToolName} tool, which returns \`{ title, definition, extensions }\` — the user-visible net title, the complete SDCPN, and the active extension capabilities for this document. Use it before making changes that depend on existing places, transitions, arcs, scenarios, metrics, parameters, or types; consult \`extensions\` before authoring extension-specific content; and consult the \`title\` when deciding whether the net could use a more descriptive name.
+You can check the current net state at any point using the ${getLatestNetDefinitionToolName} tool, which returns \`{ title, definition, extensions, imports }\` — the user-visible net title, the complete SDCPN, the active extension capabilities for this document, and the libraries it imports or is offered, with their components. Use it before making changes that depend on existing places, transitions, arcs, scenarios, metrics, parameters, or types; consult \`extensions\` before authoring extension-specific content; and consult the \`title\` when deciding whether the net could use a more descriptive name.
 You can check current TypeScript compilation diagnostics at any point using the ${getNetCompilationErrorsToolName} tool.
 You can rename the net at any point using the ${setNetTitleToolName} tool.
 You can read pages of the Petrinaut user guide at any point using the ${readPetrinautDocToolName} tool. Reach for it when the user asks how a UI workflow works (panels, simulation controls, visual settings, the built-in examples), or when you need to confirm a UI detail before instructing them. The available pages and what they cover:

@@ -30,7 +30,7 @@ export type ColorElementType =
  * JSON) they are stored as canonical lowercase 36-character strings.
  * `string` elements are plain JS strings everywhere; frame buffers store
  * them as 64-bit references into a per-run string pool (see
- * `simulation/engine/string-pool.ts`).
+ * `tokens/string-pool.ts`).
  */
 export type TokenAttributeValue = number | boolean | bigint | string;
 
@@ -47,7 +47,7 @@ export type ComponentPortArcEndpoint = {
   kind: "componentPort";
   /** ID of the component instance in the net containing the transition. */
   componentInstanceId: ID;
-  /** ID of a port place inside the component instance's referenced subnet. */
+  /** ID of a port place inside the component the instance instantiates. */
   portPlaceId: ID;
 };
 
@@ -59,7 +59,7 @@ export type PortDirection = "in" | "out" | "inout";
 /**
  * One member of a fusion: a place of the net the fusion belongs to, or a port
  * of one of that net's component instances. The same shape an arc uses to
- * name the place it touches, so the helpers in `arc-endpoints.ts` apply.
+ * name the place it touches, so the helpers in `document/arc-endpoints.ts` apply.
  */
 export type FusionMember = ArcEndpoint;
 
@@ -150,14 +150,14 @@ export type Place = {
    * `null` or absent means unbounded.
    */
   capacity?: number | null;
-  /** When true, this place is exposed as a component port for subnet instances. */
+  /** When true, this place is a port on the instances of its component. */
   isPort?: boolean;
   /**
    * The direction a port promises, seen from the component: `in` is only
    * consumed by the component's transitions, `out` only produced into, and
    * `inout` both, as a shared resource pool is. Absent, the direction is read
-   * off the subnet's arcs. The checks report a port used against its promise,
-   * and a fusion that leaves a flow without a producer or a consumer.
+   * off the component's arcs. The checks report a port used against its
+   * promise, and a fusion that leaves a flow without a producer or a consumer.
    */
   portDirection?: PortDirection;
   visualizerCode?: string;
@@ -210,7 +210,7 @@ export type DifferentialEquation = {
 // The editing state of the ad-hoc scenario form. A persisted scenario may
 // carry one of these as its initial state, which makes the shapes document
 // types; the behaviour around them (transitions, actions, synthesis) lives
-// in `simulation/authoring/scenario/ad-hoc/`.
+// in `scenario/ad-hoc/`.
 
 /** Optimization settings for one Optimize toggle, kept while toggled off. */
 export type AdHocOptimizeSettings = {
@@ -400,8 +400,19 @@ export type Metric = {
   code: string;
 };
 
-/** A reference to a component: a subnet of the document, by its id. */
-export type ComponentReference = { id: ID };
+/**
+ * A library the document takes components from, under the id its publisher
+ * gives it. The id is kept as written. What the library holds is resolved
+ * when the document is opened: nothing of it is stored here.
+ */
+export type Import = { id: string };
+
+/**
+ * A reference to a component. Without `from` it names a component of the
+ * document by its id. With `from` it names a component of the import of that
+ * id, by the id the component has in its library, kept as written.
+ */
+export type ComponentReference = { from?: string; id: ID };
 
 /**
  * The component the document runs for the instances of an interface that
@@ -412,9 +423,7 @@ export type DefaultImplementation = {
   component: ComponentReference;
 };
 
-/**
- * An instance of a subnet placed inside another net.
- */
+/** An instance of a component placed inside a net. */
 export type ComponentInstance = {
   id: ID;
   /** Display name for this instance. */
@@ -422,11 +431,11 @@ export type ComponentInstance = {
   description?: string;
   /** Host-defined data, opaque to Petrinaut. */
   metadata?: Record<string, JsonValue>;
-  /** ID of the subnet this instance instantiates, a lowercase UUID. */
-  subnetId: ID;
+  /** The component this instance instantiates: one of the document or of an import. */
+  component: ComponentReference;
   /**
-   * Concrete values for the subnet's parameters.
-   * Keys are parameter IDs from the referenced subnet; values are expressions.
+   * Concrete values for the component's parameters.
+   * Keys are parameter IDs from the referenced component; values are expressions.
    */
   parameterValues: Record<ID, string>;
   /**
@@ -439,13 +448,21 @@ export type ComponentInstance = {
   y: number;
 };
 
-export type Subnet = {
-  /** Subnet id, a lowercase UUID (see `isPetrinautId`). */
+export type Component = {
+  /** Component id, a lowercase UUID (see `isPetrinautId`). */
   id: ID;
   name: string;
   description?: string;
   /** Host-defined data, opaque to Petrinaut. */
   metadata?: Record<string, JsonValue>;
+  /**
+   * The component's icon, as SVG markup. Its shape is drawn in one colour on
+   * the cards of the component's instances, in place of the default glyph.
+   * The markup is untrusted: draw it as an image, never as page markup.
+   */
+  iconSvg?: string;
+  /** CSS colour of the component's icon and its tile, as a token type has. */
+  displayColor?: string;
   /**
    * A signature: ports, types and parameters with no transition or instance.
    * An instance of it runs the implementation bound to it, the instance's
@@ -453,7 +470,7 @@ export type Subnet = {
    */
   interface?: true;
   /**
-   * The interfaces this subnet implements. For each, it has a port of the
+   * The interfaces this component implements. For each, it has a port of the
    * same name and token type and a parameter of each variable name.
    */
   implements?: ID[];
@@ -463,7 +480,7 @@ export type Subnet = {
   differentialEquations: DifferentialEquation[];
   parameters: Parameter[];
   componentInstances?: ComponentInstance[];
-  /** Fusions among this subnet's places and its instances' ports. */
+  /** Fusions among this component's places and its instances' ports. */
   fusions?: Fusion[];
 };
 
@@ -478,7 +495,9 @@ export type SDCPN = {
   parameters: Parameter[];
   scenarios?: Scenario[];
   metrics?: Metric[];
-  subnets?: Subnet[];
+  /** The libraries the document's instances and bindings take components from. */
+  imports?: Import[];
+  components?: Component[];
   componentInstances?: ComponentInstance[];
   /** Fusions among the root net's places and its instances' ports. */
   fusions?: Fusion[];

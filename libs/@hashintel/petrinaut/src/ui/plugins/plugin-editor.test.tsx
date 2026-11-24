@@ -9,17 +9,18 @@ import { LanguageClientContext } from "../../react/lsp/context";
 import {
   defaultPetrinautNavigationState,
   type PetrinautNavigationIntent,
-} from "../../react/navigation";
+} from "../../react/navigation/navigation";
+import { useStore } from "../../react/shared/use-store";
 import { EditorContext } from "../../react/state/editor-context";
-import { useStore } from "../../react/use-store";
 import {
   definePetrinautPlugin,
   pluginService,
   type PluginHook,
 } from "./define-petrinaut-plugin";
+import { describeRefusal } from "./plugin-access";
 import { useCanvasRegistration } from "./plugin-editor";
-import { usePluginService } from "./plugins-provider";
 import { renderPlugins } from "./plugins-test-harness";
+import { usePluginService } from "./running-plugins";
 
 import type { CanvasController } from "../views/SDCPN/canvas-renderer";
 import type { PluginDocument, PluginEditor } from "./plugin-access";
@@ -135,6 +136,31 @@ describe("plugin editor", () => {
     ).toEqual({ applied: true, value: undefined });
     expect(instance.definition.get().places).toHaveLength(0);
     expect(instance.definition.get().scenarios).toHaveLength(1);
+  });
+
+  it("refuses an edit beyond composing, in an editor that only composes", () => {
+    const { instance } = renderPlugins([documentPlugin], <Probe />, {
+      rules: { edit: "compose" },
+    });
+
+    const refused = documentOf().edit.addPlace(place);
+
+    expect(refused).toEqual({
+      applied: false,
+      reason: {
+        kind: "host-restriction",
+        message:
+          "This editor only places and connects the components it is given.",
+      },
+    });
+    expect(refused.applied ? "" : describeRefusal(refused.reason)).toContain(
+      "only places and connects",
+    );
+    expect(documentOf().edit.commitNodePositions({ commits: [] })).toEqual({
+      applied: true,
+      value: undefined,
+    });
+    expect(instance.definition.get().places).toHaveLength(0);
   });
 
   it("refuses a title without a host setter, or while the editor is read-only", () => {

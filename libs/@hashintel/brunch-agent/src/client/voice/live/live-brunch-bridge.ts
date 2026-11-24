@@ -1,5 +1,9 @@
 import { getToolName, isToolUIPart } from "ai";
 
+import { newestNonEmptySelection } from "@hashintel/brunch-agent";
+
+import { offerIn } from "../../../conversation/offer-answers";
+import { liveQuestionBlockHeading } from "../../../shared/live-question-block";
 import {
   maxUtteranceTextLength,
   shouldWithholdUtterance,
@@ -78,6 +82,7 @@ interface CarriedInput {
   readonly inputId: string;
   readonly text: string;
   readonly history: VoiceMediationHistory;
+  readonly selection: FinalizedInput["selection"];
 }
 
 type Submit = ConstructorParameters<
@@ -160,6 +165,23 @@ const notSentNotice =
   "Speech that was waiting for Brunch was not sent. Use the composer to send it.";
 
 const mergeSeparator = "\n\n";
+
+/**
+ * A snapshot message as canonical speech reads it: text, and the offer whose
+ * questions are said. Other parts keep their index but expose nothing.
+ */
+const speakableSnapshotMessage = ({
+  id,
+  parts,
+}: FlueConversationState["messages"][number]): PetrinautAiMessage => ({
+  id,
+  role: "assistant",
+  parts: parts.map((part) =>
+    part.type === "text" || offerIn([part])
+      ? (part as PetrinautAiMessage["parts"][number])
+      : { type: "step-start" as const },
+  ),
+});
 
 const joinedLength = (texts: readonly string[]): number =>
   texts.reduce((total, text) => total + text.length, 0) +
@@ -368,6 +390,7 @@ export class LiveBrunchBridge {
             inputId: turn.inputId,
             text: turn.inputText,
             history,
+            selection: turn.input.selection,
           });
         withdrew = true;
       }
@@ -686,7 +709,19 @@ export class LiveBrunchBridge {
       mergedInputIds: carried.map((entry) => entry.inputId).join(","),
       reason: "speech-started",
     });
-    return { input: { ...input, text: texts.join(mergeSeparator) }, carried };
+    // The newest utterance that selected something says what "this" means.
+    const selection = newestNonEmptySelection([
+      ...carried.map((entry) => entry.selection),
+      input.selection,
+    ]);
+    return {
+      input: {
+        ...input,
+        text: texts.join(mergeSeparator),
+        selection,
+      },
+      carried,
+    };
   }
 
   /**
@@ -718,9 +753,15 @@ export class LiveBrunchBridge {
           queued.delegationId,
         );
     }
+    // The newest utterance that selected something says what "this" means: a
+    // later selection corrects an earlier one, and nothing selected keeps it.
+    const selection = newestNonEmptySelection(
+      batch.map((queued) => queued.input.selection),
+    );
     const input: FinalizedInput = {
       ...newest.input,
       text: batch.map((queued) => queued.input.text).join(mergeSeparator),
+      selection,
     };
     if (batch.length > 1)
       logLiveDiagnostic("input.merged", {
@@ -736,6 +777,7 @@ export class LiveBrunchBridge {
         inputId: queued.inputId,
         text: queued.input.text,
         history: queued.history,
+        selection: queued.input.selection,
       })),
     ).run();
   }
@@ -873,6 +915,7 @@ export class LiveBrunchBridge {
         const result = await this.#dependencies.submit({
           id: input.id,
           text,
+          selection: input.selection,
           admissionTarget: { kind: "user", messageId: input.id },
           signal: this.#abort.signal,
           onAdmission: (submissionId) => {
@@ -1259,14 +1302,7 @@ export class LiveBrunchBridge {
         )
           continue;
         const recovered = selectCanonicalSpeech(
-          snapshotMessages.map(({ id, parts }) => ({
-            id,
-            role: "assistant",
-            // Preserve canonical part indices without exposing tools/reasoning.
-            parts: parts.map((part) =>
-              part.type === "text" ? part : { type: "step-start" as const },
-            ),
-          })),
+          snapshotMessages.map(speakableSnapshotMessage),
         ).segments;
         // The canonical snapshot supplies identity; rendering only confirms
         // that the same finalized prose is visible (continuations may fold IDs).
@@ -1321,13 +1357,7 @@ export class LiveBrunchBridge {
         )
           continue;
         const recovered = selectCanonicalSpeech(
-          snapshotMessages.map(({ id, parts }) => ({
-            id,
-            role: "assistant",
-            parts: parts.map((part) =>
-              part.type === "text" ? part : { type: "step-start" as const },
-            ),
-          })),
+          snapshotMessages.map(speakableSnapshotMessage),
         ).segments.filter(
           (segment) =>
             !turn.baselineMessages.has(segment.messageId) &&
@@ -1384,12 +1414,20 @@ export class LiveBrunchBridge {
       turn.progress.settled();
       this.#turns.delete(turn);
       // Freeze complete prose once. Sending is neither exact relay nor playback proof.
-      const source = segments.map((segment) => segment.text).join("\n\n");
+      // Offered questions skip the recap and follow it whole, in order.
+      const source = segments
+        .filter((segment) => segment.source !== "assistant-offer")
+        .map((segment) => segment.text)
+        .join("\n\n");
+      const questions = segments
+        .filter((segment) => segment.source === "assistant-offer")
+        .map((segment) => segment.text);
       logLiveDiagnostic("brunch.offer", {
         inputId: turn.inputId,
         submissionId: turn.submissionId,
         delegationId: turn.delegationId,
         segmentCount: segments.length,
+        questionCount: questions.length,
         characters: source.length,
       });
       const mediation = this.#dependencies.mediation;
@@ -1405,20 +1443,27 @@ export class LiveBrunchBridge {
           .map((visible) => visible.messageId),
       ]);
       this.#summarizing.add(turn);
-      void this.#summarize(turn, source, mediation);
+      void this.#summarize(turn, source, questions, mediation);
     }
   }
 
   async #summarize(
     turn: Turn,
     source: string,
+    questions: readonly string[],
     mediation: Dependencies["mediation"],
   ): Promise<void> {
     try {
-      const summary = await mediation.summarize(
-        source,
-        turn.preparation.signal,
-      );
+      const recap = source
+        ? await mediation.summarize(source, turn.preparation.signal)
+        : "";
+      // One append: a commentary append answers its delegation. The heading
+      // the session instructions name marks where the questions begin.
+      const asked = questions.filter((text) => text.trim());
+      const summary = [
+        ...(recap.trim() ? [recap] : []),
+        ...(asked.length ? [liveQuestionBlockHeading, ...asked] : []),
+      ].join("\n\n");
       while (
         turn.progressOffered &&
         this.#liveAudioMayBePlaying(Date.now()) &&

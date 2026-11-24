@@ -1,53 +1,42 @@
 import { use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
+import { resolveComponent } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../react";
-import { ActiveNetContext } from "../../../../../react/state/active-net-context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
-import { usePanelTarget } from "../../../../../react/state/use-selection";
+import { ActiveNetContext } from "../../../../../react/document/active-net-context";
+import { CompositionContext } from "../../../../../react/document/composition-context";
+import { SDCPNContext } from "../../../../../react/document/sdcpn-context";
 import { ArcProperties } from "./arc-properties/main";
 import { ComponentInstanceProperties } from "./component-instance-properties/main";
 import { DifferentialEquationProperties } from "./differential-equation-properties/main";
 import { FusionProperties } from "./fusion-properties/main";
-import { MultiSelectionPanel } from "./multi-selection-panel";
+import { MultiSelectionPanel } from "./multi-selection-properties/main";
 import { ParameterProperties } from "./parameter-properties/main";
 import { PlaceProperties } from "./place-properties/main";
 import { TransitionProperties } from "./transition-properties/main";
 import { TypeProperties } from "./type-properties/main";
 
+import type { PanelTarget } from "@hashintel/petrinaut-core";
+
 const propertiesStyle = css({
-  display: "contents",
+  display: "flex",
+  flexDirection: "column",
+  height: "full",
+  minHeight: "0",
   "--petrinaut-panel-divider-color": "var(--colors-neutral-a40)",
   "--petrinaut-panel-toggle-opacity": "1",
 });
 
 /**
- * Resolves the editor selection to the existing entity-specific property
- * content. Layout shells (such as the resizable editor panel)
- * intentionally share this component so their entity rendering cannot drift.
+ * The properties of what is selected. The editor's panel and the preview's
+ * panel both render this, so the two cannot drift.
  */
-const SelectedItemPropertiesContent: React.FC = () => {
+const SelectedItemPropertiesContent: React.FC<{
+  panelTarget: PanelTarget;
+}> = ({ panelTarget }) => {
   const { activeNet: petriNetDefinition } = use(ActiveNetContext);
   const { extensions, petriNetDefinition: fullSdcpn } = use(SDCPNContext);
-  const {
-    updatePlace,
-    updateTransition,
-    updateArcWeight,
-    updateArcType,
-    updateArcPlace,
-    removeArc,
-    updateType,
-    addTypeElement,
-    updateTypeElement,
-    removeTypeElement,
-    moveTypeElement,
-    updateDifferentialEquation,
-    updateParameter,
-    updateComponentInstance,
-    deleteItemsByIds,
-  } = usePetrinautMutations();
-  const panelTarget = usePanelTarget();
+  const { libraries } = use(CompositionContext);
 
   if (panelTarget.kind === "single") {
     const { item } = panelTarget;
@@ -61,7 +50,6 @@ const SelectedItemPropertiesContent: React.FC = () => {
           <PlaceProperties
             place={place}
             types={extensions.colors ? petriNetDefinition.types : []}
-            updatePlace={updatePlace}
           />
         ) : null;
       }
@@ -73,13 +61,7 @@ const SelectedItemPropertiesContent: React.FC = () => {
         return transition ? (
           <TransitionProperties
             transition={transition}
-            net={petriNetDefinition}
-            places={petriNetDefinition.places}
             types={extensions.colors ? petriNetDefinition.types : []}
-            onArcWeightUpdate={updateArcWeight}
-            updateTransition={updateTransition}
-            updateArcPlace={updateArcPlace}
-            removeArc={removeArc}
           />
         ) : null;
       }
@@ -90,9 +72,6 @@ const SelectedItemPropertiesContent: React.FC = () => {
             arcId={item.id}
             petriNetDefinition={petriNetDefinition}
             fullSdcpn={fullSdcpn}
-            updateArcWeight={updateArcWeight}
-            updateArcType={updateArcType}
-            removeArc={removeArc}
           />
         );
 
@@ -103,16 +82,7 @@ const SelectedItemPropertiesContent: React.FC = () => {
         const type = petriNetDefinition.types.find(
           (candidate) => candidate.id === item.id,
         );
-        return type ? (
-          <TypeProperties
-            type={type}
-            updateType={updateType}
-            addTypeElement={addTypeElement}
-            updateTypeElement={updateTypeElement}
-            removeTypeElement={removeTypeElement}
-            moveTypeElement={moveTypeElement}
-          />
-        ) : null;
+        return type ? <TypeProperties type={type} /> : null;
       }
 
       case "differentialEquation": {
@@ -128,7 +98,6 @@ const SelectedItemPropertiesContent: React.FC = () => {
             differentialEquation={differentialEquation}
             types={petriNetDefinition.types}
             places={petriNetDefinition.places}
-            updateDifferentialEquation={updateDifferentialEquation}
           />
         ) : null;
       }
@@ -140,12 +109,7 @@ const SelectedItemPropertiesContent: React.FC = () => {
         const parameter = petriNetDefinition.parameters.find(
           (candidate) => candidate.id === item.id,
         );
-        return parameter ? (
-          <ParameterProperties
-            parameter={parameter}
-            updateParameter={updateParameter}
-          />
-        ) : null;
+        return parameter ? <ParameterProperties parameter={parameter} /> : null;
       }
 
       case "componentInstance": {
@@ -155,15 +119,12 @@ const SelectedItemPropertiesContent: React.FC = () => {
         if (!instance) {
           return null;
         }
-        const subnet =
-          (fullSdcpn.subnets ?? []).find(
-            (candidate) => candidate.id === instance.subnetId,
-          ) ?? null;
+        const component =
+          resolveComponent(fullSdcpn, instance.component, libraries) ?? null;
         return (
           <ComponentInstanceProperties
             instance={instance}
-            subnet={subnet}
-            updateComponentInstance={updateComponentInstance}
+            component={component}
           />
         );
       }
@@ -178,19 +139,19 @@ const SelectedItemPropertiesContent: React.FC = () => {
   }
 
   if (panelTarget.kind === "multi") {
-    return (
-      <MultiSelectionPanel
-        items={panelTarget.items}
-        deleteItemsByIds={deleteItemsByIds}
-      />
-    );
+    return <MultiSelectionPanel items={panelTarget.items} />;
   }
 
   return null;
 };
 
-export const SelectedItemProperties: React.FC = () => (
-  <div className={propertiesStyle}>
-    <SelectedItemPropertiesContent />
+export const SelectedItemProperties: React.FC<{
+  /** What to show the properties of. */
+  panelTarget: PanelTarget;
+  /** Shown and not usable: what a panel shows while it slides out. */
+  inert?: boolean;
+}> = ({ panelTarget, inert = false }) => (
+  <div className={propertiesStyle} inert={inert}>
+    <SelectedItemPropertiesContent panelTarget={panelTarget} />
   </div>
 );

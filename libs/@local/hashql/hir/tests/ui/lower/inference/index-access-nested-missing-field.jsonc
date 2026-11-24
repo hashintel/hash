@@ -1,0 +1,14 @@
+//@ run: fail
+//@ description: A missing field beside nested index accesses on which type inference reaches its iteration limit
+[
+  "let",
+  "foo",
+  { "#list": [{ "#literal": 42 }] },
+  [
+    "let",
+    "bar",
+    { "#struct": { "a": { "#literal": 1 } } },
+    { "#tuple": ["bar.b", "foo[foo[foo[0]]]"] }
+    //~^ ERROR type inference did not settle on a type here
+  ]
+]

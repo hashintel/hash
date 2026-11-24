@@ -141,10 +141,10 @@ const resolvingUpdate = [
   { ...crew, kind: "resource", resolves: ["n1"] },
 ];
 
-test("a comment turn counts as an exchange on the receipt", () => {
+test("a comment turn anchors the commit but is not an exchange, as it spends no question", () => {
   expect(receiptFor(commented, [["entity/update/e1", crew]])).toMatchObject({
     status: "recorded",
-    exchanges: 2,
+    exchanges: 1,
   });
 });
 

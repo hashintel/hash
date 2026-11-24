@@ -8,16 +8,17 @@
  */
 import { use } from "react";
 
+import { useExecutableDefinition } from "../../../../../../react/document/use-executable-definition";
 import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/parameter-grid";
 import { buildSweepOptimizationInput } from "../../../../../../react/experiments/sweep-optimization";
-import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
+import { NetManagementContext } from "../../../../../../react/host/net-management-context";
+import { PetrinautOptimizationContext } from "../../../../../../react/optimizations/connected-optimizer-context";
 import {
   currentTrialNumber,
   isOptimizationActive,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { directionWord } from "../shared/study-labels";
+import { directionWord } from "./study-labels";
 
 import type {
   ExperimentMetricSpecInput,
@@ -133,7 +134,8 @@ export const useStartSweepStudy = (): ((
   experiment: ExperimentRecord,
   objective: SweepObjective,
 ) => Promise<void>) => {
-  const { petriNetDefinition, title } = use(SDCPNContext);
+  const { title } = use(NetManagementContext);
+  const petriNetDefinition = useExecutableDefinition();
   const { createOptimization } = use(OptimizationsContext);
   return (experiment, objective) =>
     startSweepStudy(

@@ -1,4 +1,4 @@
-import type { AbortSignalLike } from "../../environment";
+import type { AbortSignalLike } from "../../environment/environment";
 import type { PetrinautOptimizationEvent } from "../index";
 
 type WithoutSeq<TEvent> = TEvent extends unknown ? Omit<TEvent, "seq"> : never;

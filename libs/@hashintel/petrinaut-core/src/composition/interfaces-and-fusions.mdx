@@ -1,6 +1,6 @@
 ---
 title: Interfaces, injection and the three fusions
-description: "The design for the composition layers after place fusion: interfaces as port-only subnets, how the implementation an instance runs is bound and could be provided, what deriving from an interface means, and what transition and arc fusion would add."
+description: "The design for the composition layers after place fusion: interfaces as port-only components, how the implementation an instance runs is bound and could be provided, what deriving from an interface means, and what transition and arc fusion would add."
 sidebar_order: 20
 ---
 
@@ -16,30 +16,31 @@ design, in the order the dependencies allow.
 
 ### What an interface is
 
-An interface is a component's signature without its body: the ports, their
-token types and directions, and the parameters an implementation must accept.
-Everything in that list is something a subnet already carries. A subnet whose
-places are all ports and that holds no transition is exactly "a component with
-ports, without an implementation". So an interface is a **subnet flagged
-`interface`**, not a new entity kind:
+An interface is a component's signature without its body: the ports, their token
+types and directions, and the parameters an implementation must accept.
+Everything in that list is something a component already carries. A component
+whose places are all ports and that holds no transition is exactly "a component
+with ports, without an implementation". So an interface is a
+**component flagged `interface`**, not a new entity kind:
 
 ```ts
-type Subnet = {
+type Component = {
   // …as today: places (the ports), types, parameters, differentialEquations
   /** A signature: ports and parameters only, no transitions or instances. */
   interface?: true;
-  /** The interfaces this subnet is an implementation of. */
+  /** The interfaces this component is an implementation of. */
   implements?: ID[];
 };
 ```
 
 What this buys, for free:
 
-- **Instances point at it as they point at any subnet.** `ComponentInstance.subnetId`
-  keeps its meaning, so the canvas, port arcs, fusions and the Brunch tools
-  work unchanged on an instance of an interface. Unbound, the instance still
-  draws with the interface's ports, so a net can be wired before any
-  implementation exists; running it is an error until one is bound.
+- **Instances point at it as they point at any component.**
+  `ComponentInstance.component` keeps its meaning, so the canvas, port arcs,
+  fusions and the Brunch tools work unchanged on an instance of an interface.
+  Unbound, the instance still draws with the interface's ports, so a net can be
+  wired before any implementation exists; running it is an error until one is
+  bound.
 - **Fusions and port arcs attach to the interface's ports**, so the wiring of a
   composition is written once against the signature and survives swapping the
   implementation.
@@ -53,7 +54,7 @@ The checks an interface adds, in `composition/check-interfaces.ts`:
 | ---------------------------------------------------------------------- | -------- |
 | An interface holds a transition or an instance                         | error    |
 | An interface implements an interface                                   | error    |
-| A subnet implements something that is not an interface                 | error    |
+| A component implements something that is not an interface              | error    |
 | An implementation lacks a port the interface declares, matched by name | error    |
 | Matching ports differ structurally in token type                       | error    |
 | Matching ports disagree on direction, declared or read off the arcs    | warning  |
@@ -69,7 +70,7 @@ unreachable, which is what width subtyping means here.
 
 ### How implementations come later
 
-An implementation is a subnet with `implements: [interfaceId]`. It can be
+An implementation is a component with `implements: [interfaceId]`. It can be
 drawn in the document, copied in from a library, or provided at run time by a
 host or a plugin. Nothing about the interface changes when an implementation
 appears; what changes is the **binding**, the choice of which implementation
@@ -96,7 +97,7 @@ Three things people mean by inheritance, and what each should be:
    Parameter specialisation covers most of what overriding is wanted for.
 3. **Generics**: an interface whose port types are type variables, so `Stage`
    works over any token type. The Flows compiler already does the cheap
-   version: one subnet per combination of resolved kinds, named by the kinds.
+   version: one component per combination of resolved kinds, named by the kinds.
    That is monomorphisation, and it is the route to take later: a generic
    implementation is cloned with its type variables substituted at flatten
    time. Research item, after extension and the bindings.
@@ -108,14 +109,27 @@ Three things people mean by inheritance, and what each should be:
 | Source                     | Lives in the document? | Exists today                                 |
 | -------------------------- | ---------------------- | -------------------------------------------- |
 | Drawn in the document      | yes                    | yes                                          |
-| Copied from a library      | yes, with its source   | no                                           |
+| Imported from a library    | by reference           | yes                                          |
+| Inlined from a library     | yes                    | yes, as an export                            |
 | Provided at run time       | no                     | no; the Flows executor is the first consumer |
 | Referenced, pinned version | by reference           | no                                           |
 
-A copy keeps the document complete without the provider. A run-time provision
-does not, which is right when the provider is the thing that runs the net
-anyway: a host providing the real implementation of an action, or a mock of it
-for a dry run. That is a choice at simulation time, "execute the real calls, or
+A document **imports** a library by its id and names its components as
+`{ from, id }`; the host resolves the library each time the document is opened
+(see [Host integration](doc:core.handle/host-integration)). A component of a
+library is read in the shape the document's own components have, so
+`resolveComponent` answers a reference from the document or from the resolved
+libraries and every reader goes through it. A component with a body runs it, and
+one without is an interface.
+
+An inlined copy keeps the document complete without its host:
+`inlineImports` makes each component the document uses one of its own. The
+simulator, the compiler and the language server are given that net, under
+ids that do not change from one call to the next, since they take one net
+and no libraries. A run-time provision keeps nothing in the document either,
+which is right when the provider is the thing that runs the net anyway: a
+host providing the real implementation of an action, or a mock of it for a
+dry run. That is a choice at simulation time, "execute the real calls, or
 simulate their responses", and it is a choice of implementation, not of net.
 
 ### Binding
@@ -123,7 +137,7 @@ simulate their responses", and it is a choice of implementation, not of net.
 A binding says which implementation stands behind an interface, and where:
 
 ```ts
-/** A reference to a component: a subnet of the document. */
+/** A reference to a component of the document. */
 type ComponentReference = { id: ID };
 /** Document-level defaults, one entry per interface. In the model. */
 SDCPN.implementations?: {
@@ -139,7 +153,7 @@ Scenario.implementations?: Record<ID, ID>;
 A binding names its two sides with a reference, an object, so that a
 reference can later say where a component comes from without the file
 changing form. `resolveComponent` in `composition/interfaces.ts` is the one
-place that turns a reference into a subnet. In a file:
+place that turns a reference into a component. In a file:
 
 ```yaml
 implementations:
@@ -147,7 +161,7 @@ implementations:
     component: { id: fast-stage }
 componentInstances:
   - id: drill
-    subnetId: stage
+    component: { id: stage }
     implementation: { id: slow-stage }
 ```
 
@@ -165,9 +179,9 @@ Today the chain has its two document ends: the instance's own choice, then the
 document's default. The scenario's and the provider's slots come with their
 layers and sit between those ends without changing them.
 
-The flattener resolves each instance to the subnet that runs for it and maps
+The flattener resolves each instance to the component that runs for it and maps
 the interface's ports and parameters onto the implementation's by name; the
-rest of it is untouched: the chosen subnet is scoped under the instance's id
+rest of it is untouched: the chosen component is scoped under the instance's id
 exactly as a concrete one is, so port arcs and fusions written against the
 interface's ports land on the implementation's. Bindings keyed by interface
 apply to nested instances too, down the path, unless a path-keyed entry says
@@ -177,12 +191,22 @@ instance path is the key the flattener already uses.
 An unbound instance is an error, not a silent run of the stub: a stub that
 never moves tokens is a deadlock a user would spend an hour finding.
 
+A component of the document lists what it implements by the ids of interfaces of
+that document, and a binding between two components of the document is held to
+that list. Across a library nothing can list the other side: a component of a
+library has no `implements`, and one of the document cannot name an interface of
+an import there. Such a binding stands on the interface's ports and parameters
+alone. `checkInterfaces` reports what is missing on the instance that is bound,
+`implementationsOf` lists only the components that have them, and
+`inlineImports` writes the binding into `implements` once both sides are
+components of one document.
+
 ### Providers
 
 A plugin or host contribution, `implementations`, maps interface ids to
-subnets it supplies at run time, shown in the instance's properties as
-"provided by X". A library copies instead. The two differ only in whether the
-document keeps the subnet.
+components it supplies at run time, shown in the instance's properties as
+"provided by X". A library is imported instead: the document names the
+implementation, and the host resolves it. The two differ in who chooses.
 
 ### Experiments over implementations
 
@@ -194,11 +218,12 @@ have; it is the first feature to add once bindings exist.
 ### Flows
 
 The Flows compiler maps onto this directly. An action definition is an
-interface: a port per input and output plus the lifecycle ports. The subnet
+interface: a port per input and output plus the lifecycle ports. The component
 the compiler generates per resolved kinds is an implementation. The executor is
 a provider, and a dry-run mock is a second implementation of the same
 interface. A constrained editing mode, "pick from a fixed list of actions", is
-a Nets panel that lists interfaces a host provides.
+an editor kept to composing the components of the libraries a host offers:
+`libraries` with `rules: { edit: "compose" }`.
 
 ## The three fusions
 
@@ -301,6 +326,6 @@ Next, in the order the dependencies allow:
 4. **Transition fusion**, once the engine fires composed kernels.
 5. **Interface extension**, then generics by monomorphisation.
 
-Fusions declared inside an instance's subnet already flatten through the chain
-rule; what remains there is the editing surface, a fusion drawn from inside a
-component against the net that holds it.
+Fusions declared inside an instance's component already flatten through the
+chain rule; what remains there is the editing surface, a fusion drawn from
+inside a component against the net that holds it.

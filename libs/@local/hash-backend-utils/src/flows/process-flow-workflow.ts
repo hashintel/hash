@@ -70,8 +70,8 @@ const log = (message: string) => {
 };
 
 /**
- * Whether a step can run now, must wait for more of its inputs, or is skipped because a value it needs is
- * missing: either from a step that was itself skipped, or from a connection marked `whenMissing: "skip"`.
+ * Whether a step can run now, must wait, or is skipped: because the run followed none of the lines into it (see
+ * `runAfter`), or because a value it needs is missing, from a skipped step or a connection marked `whenMissing: "skip"`.
  */
 type StepReadiness = "ready" | "waiting" | "skip";
 
@@ -217,19 +217,42 @@ export const getStepReadiness = (
     flowDefinition,
   });
 
-  const waitsForStepItRunsAfter = runAfter.some(
-    ({ stepId }) =>
-      !isDone(
-        getProducerRunStepId({
-          stepsById,
-          consumerStepId: step.stepId,
-          producerStepId: stepId,
-        }),
-      ),
-  );
+  /*
+   * The run follows a line once its step is done, unless that step was skipped or the line is a path (an output) the
+   * step finished without giving.
+   */
+  const lineStates = runAfter.map(({ stepId, outputName }) => {
+    const runStepId = getProducerRunStepId({
+      stepsById,
+      consumerStepId: step.stepId,
+      producerStepId: stepId,
+    });
 
-  if (waitsForStepItRunsAfter) {
+    if (skippedStepIds.has(runStepId)) {
+      return "notFollowed";
+    }
+
+    if (!isDone(runStepId)) {
+      return "pending";
+    }
+
+    const runStep = stepsById.get(runStepId);
+
+    /* A finished for-each step has always given its one output. */
+    return outputName === undefined ||
+      runStep?.kind !== "action" ||
+      runStep.outputs?.some((output) => output.outputName === outputName)
+      ? "followed"
+      : "notFollowed";
+  });
+
+  if (lineStates.includes("pending")) {
     return "waiting";
+  }
+
+  /* At least one line followed: so a path not taken skips what's further down it, and paths that rejoin run on. */
+  if (lineStates.length > 0 && !lineStates.includes("followed")) {
+    return "skip";
   }
 
   if (step.kind === "for-each") {
@@ -567,7 +590,7 @@ const processFlow = async (
   /** Every step in the run, by id, including a for-each step's items once it starts them. */
   const stepsById = getStepsInFlowById(flow);
   const processedStepIds = new Set<string>();
-  /** Steps skipped because a value they need is missing (see `getStepReadiness`); also in `processedStepIds`. */
+  /** Steps skipped (see `getStepReadiness`); also in `processedStepIds`. */
   const skippedStepIds = new Set<string>();
   const skippedSteps: SkippedStep[] = [];
   const startedForEachSteps: StartedForEachStep[] = [];
@@ -779,8 +802,8 @@ const processFlow = async (
   };
 
   /**
-   * Skips every step that can never run because a value it needs is missing, repeating until no more are
-   * skipped, since skipping a step can skip the steps that depend on it.
+   * Skips every step that can never run (see `getStepReadiness`), repeating until no more are skipped, since skipping
+   * a step can skip the steps that depend on it or run after it.
    */
   let skippedStepCountInMemo = 0;
 
@@ -810,7 +833,7 @@ const processFlow = async (
           getStepReadiness(step, context) === "skip"
         ) {
           log(
-            `Step ${step.stepId}: skipped, because a value it needs is missing`,
+            `Step ${step.stepId}: skipped, as no line into it was followed or a value it needs is missing`,
           );
 
           processedStepIds.add(step.stepId);

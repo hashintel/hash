@@ -4,7 +4,11 @@ import {
   runStates,
   runStatesByUrgency,
 } from "../shared/run-state";
-import { compareNewestFirst, getRunDuration } from "../shared/run-times";
+import {
+  compareNewestFirst,
+  formatRunTime,
+  getRunDuration,
+} from "../shared/run-times";
 
 import type { RunState, RunTab } from "../shared/run-state";
 import type { RunSummary } from "../shared/use-flow-runs";
@@ -12,6 +16,11 @@ import type { EntityId } from "@blockprotocol/type-system";
 import type { SortDirection } from "@hashintel/ds-components";
 
 export type RunTrigger = "manual" | "scheduled";
+
+export const runTriggerLabels: Record<RunTrigger, string> = {
+  manual: "Manual",
+  scheduled: "Schedule",
+};
 
 /** A run as the table shows it. */
 export type RunRow = {
@@ -48,6 +57,21 @@ export const filterRuns = (rows: RunRow[], { states, trigger }: RunFilters) =>
       (states.length === 0 || states.includes(row.state)) &&
       (trigger === null || row.trigger === trigger),
   );
+
+/**
+ * Whether the run matches what's typed in Search, ignoring case: its ID, when it started, its trigger or its web, as
+ * the table and its filters name them. An empty search matches every run.
+ */
+export const matchesSearch = (row: RunRow, search: string, now: Date) =>
+  [
+    row.shortId,
+    formatRunTime(row.startedAt, now),
+    runTriggerLabels[row.trigger],
+    row.webShortname ? `@${row.webShortname}` : "",
+  ]
+    .join(" ")
+    .toLowerCase()
+    .includes(search.trim().toLowerCase());
 
 export const isInTab = (row: RunRow, tab: RunTab) =>
   tab === "all" || runStates[row.state].tab === tab;

@@ -1,0 +1,208 @@
+/*
+ * The token encoding playground. Plain CSS on the custom properties of
+ * `diagram.css`, which the figure around the playground loads.
+ */
+
+.pnd-playground {
+  --pnd-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  display: grid;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--pnd-line);
+  border-radius: 0.5rem;
+  background: var(--pnd-surface);
+}
+
+.pnd-playground .pnd-lane-title {
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.pnd-playground :is(input:not([type="radio"]), select, textarea, button) {
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--pnd-line);
+  border-radius: 0.3rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.pnd-playground :is(input:not([type="radio"]), select, textarea) {
+  font-family: var(--pnd-mono);
+}
+
+.pnd-playground button {
+  cursor: pointer;
+  color: var(--pnd-muted);
+}
+
+.pnd-playground button:hover {
+  color: inherit;
+}
+
+/* Dimensions beside the token, or above it where the page is narrow. */
+.pnd-playground-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+}
+
+.pnd-playground textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  resize: vertical;
+}
+
+.pnd-dimensions {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: start;
+}
+
+.pnd-dimension {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.pnd-dimension input {
+  min-width: 0;
+}
+
+.pnd-dimension input[aria-invalid="true"] {
+  border-color: var(--sl-color-red, #c44);
+}
+
+.pnd-playground-order {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
+
+.pnd-playground-order label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.pnd-playground-error {
+  margin: 0;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--sl-color-red, #c44);
+  border-radius: 0.3rem;
+  font-family: var(--pnd-mono);
+  white-space: pre-wrap;
+}
+
+/* Memory ---------------------------------------------------------------- */
+
+.pnd-memory {
+  --pnd-bit: 0.95rem;
+
+  display: grid;
+  gap: 0.3rem;
+}
+
+.pnd-memory-group {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  font-family: var(--pnd-mono);
+}
+
+.pnd-memory-group[data-hue="0"] {
+  --pnd-hue: 217;
+}
+
+.pnd-memory-group[data-hue="1"] {
+  --pnd-hue: 27;
+}
+
+.pnd-memory-group[data-hue="2"] {
+  --pnd-hue: 271;
+}
+
+.pnd-memory-group[data-hue="3"] {
+  --pnd-hue: 162;
+}
+
+.pnd-memory-group[data-hue="4"] {
+  --pnd-hue: 336;
+}
+
+.pnd-memory-group[data-hue="5"] {
+  --pnd-hue: 195;
+}
+
+.pnd-memory-byte {
+  display: flex;
+  align-items: center;
+}
+
+.pnd-memory-label {
+  width: 3.6rem;
+  padding-right: 0.5rem;
+  text-align: right;
+  font-size: 0.65rem;
+  color: var(--pnd-muted);
+  white-space: nowrap;
+}
+
+/*
+ * A bit keeps its own light background and dark digit in both themes: the
+ * lightness says which part of an f64 it belongs to.
+ */
+.pnd-memory-bit {
+  box-sizing: border-box;
+  width: var(--pnd-bit);
+  height: var(--pnd-bit);
+  border: 0.5px solid rgb(0 0 0 / 15%);
+  background: hsl(var(--pnd-hue) 75% 78%);
+  color: rgb(0 0 0 / 72%);
+  font-size: 0.6rem;
+  line-height: var(--pnd-bit);
+  text-align: center;
+}
+
+.pnd-memory-bit[data-part="sign"] {
+  background: hsl(var(--pnd-hue) 75% 52%);
+}
+
+.pnd-memory-bit[data-part="exponent"] {
+  background: hsl(var(--pnd-hue) 75% 68%);
+}
+
+.pnd-memory-bit[data-part="mantissa"] {
+  background: hsl(var(--pnd-hue) 75% 86%);
+}
+
+.pnd-memory-padding {
+  width: calc(8 * var(--pnd-bit));
+  height: var(--pnd-bit);
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    var(--pnd-line) 2px,
+    var(--pnd-line) 4px
+  );
+}
+
+.pnd-memory-note {
+  font-size: 0.75rem;
+  color: var(--pnd-muted);
+  overflow-wrap: anywhere;
+}
+
+.pnd-memory-group[data-hue] .pnd-memory-note strong {
+  color: hsl(var(--pnd-hue) 75% 60%);
+}
+
+.pnd-memory-note code {
+  font-size: inherit;
+}

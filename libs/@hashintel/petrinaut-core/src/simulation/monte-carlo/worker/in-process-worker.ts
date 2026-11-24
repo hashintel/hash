@@ -12,7 +12,7 @@ import {
   type AttachMonteCarloWorkerOptions,
 } from "./attach";
 
-import type { WorkerLike } from "../../../environment";
+import type { WorkerLike } from "../../../environment/environment";
 import type {
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,

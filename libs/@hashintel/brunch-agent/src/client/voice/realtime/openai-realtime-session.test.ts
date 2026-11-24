@@ -343,7 +343,7 @@ describe("OpenAIRealtimeSession", () => {
 
   test.each([
     [
-      "SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet, scenario, and metric.",
+      "SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, component, scenario, and metric.",
       "prompt-regurgitation",
     ],
     [
@@ -370,6 +370,7 @@ describe("OpenAIRealtimeSession", () => {
       >(async (input) => ({ kind: "message", messageId: input.id }));
       const reportDiagnostic = vi.fn();
       const bridge = new RealtimeBrunchBridge({
+        readSelection: () => [],
         session: harness.session,
         submitInterviewAnswer,
         reportDiagnostic,
@@ -496,6 +497,7 @@ describe("OpenAIRealtimeSession", () => {
         >[0]["submitInterviewAnswer"]
       >(async (input) => ({ kind: "message", messageId: input.id }));
       const bridge = new RealtimeBrunchBridge({
+        readSelection: () => [],
         session: harness.session,
         submitInterviewAnswer,
       });
@@ -657,6 +659,7 @@ describe("OpenAIRealtimeSession", () => {
       };
     });
     const bridge = new RealtimeBrunchBridge({
+      readSelection: () => [],
       session: harness.session,
       submitInterviewAnswer,
     });
@@ -2517,6 +2520,7 @@ describe("OpenAIRealtimeSession", () => {
         >[0]["submitInterviewAnswer"]
       >(async (input) => ({ kind: "message", messageId: input.id }));
       const bridge = new RealtimeBrunchBridge({
+        readSelection: () => [],
         session: harness.session,
         submitInterviewAnswer,
       });

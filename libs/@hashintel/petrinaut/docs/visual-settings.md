@@ -12,12 +12,12 @@ Drag the heading or empty space across the top of the settings window to move it
 
 Changes apply immediately and are saved as your preferences across nets. On hosts with app navigation enabled, opening or closing the dialog is part of Browser Back / Forward history. Switching settings sections updates the current history entry. Browser navigation leaves saved preferences in place.
 
-| Section      | Settings                                                                                                |
-| ------------ | ------------------------------------------------------------------------------------------------------- |
-| **General**  | Animations, panel loading, the code editor theme, the AI assistant, browser FPS, and the document view. |
-| **Viewport** | Minimap, Petricon, compact nodes, hover highlight, grid snapping, and selection.                        |
-| **Plugins**  | The host's plugins: switch each on or off and see what it adds.                                         |
-| **Labs**     | Experimental modeling views, code layouts, and developer tools.                                         |
+| Section      | Settings                                                                                 |
+| ------------ | ---------------------------------------------------------------------------------------- |
+| **General**  | Animations, the code editor theme, the AI assistant, browser FPS, and the document view. |
+| **Viewport** | Minimap, compact nodes, hover highlight, grid snapping, and selection.                   |
+| **Plugins**  | The host's plugins: switch each on or off and see what it adds.                          |
+| **Labs**     | Experimental modeling views, code layouts, and developer tools.                          |
 
 Plugins can add their own settings to **General**, **Viewport** and **Labs**,
 in a group under the plugin's name after the built-in groups.
@@ -31,10 +31,6 @@ Toggle panel transition and UI interaction animations. Disable for a snappier fe
 Settings titles fade into focus with a small vertical movement as you change sections. Titles and the Experimental badge rise slightly from below while subtitles stay still. The animation is disabled when Animations is off or your system requests reduced motion.
 
 Canvas hover rings and the fading of nodes, arcs, and minimap shapes also follow this setting and your system's reduced-motion preference.
-
-### Keep panels mounted
-
-When enabled, hidden panels remain loaded in the background. Switching between panels is faster, but uses more memory. When disabled, panels are unmounted when hidden and re-created when opened.
 
 ### Code editor theme
 
@@ -118,20 +114,18 @@ are switched off. **Plugins → Document view** removes the tab and the setting.
 
 Show or hide the **overview minimap** in the top-right corner of the canvas. The minimap provides a zoomed-out view of the entire net for orientation in large models.
 
-### Petricon
+### Icons
 
-In the **Viewport** section, **Petricon** is on by default and provides Petrinaut's
-custom icons for entities, playback, zoom, and navigation. Saved preferences are preserved. The pack includes the
-sidebar toggle, main menu, pan hand and compact selection arrow, add-place and add-transition
-buttons, settings gears, editing actions, diagnostics, simulation and data views,
-and assistant and voice controls, including icons inside shared menus and forms.
-Checkbox marks and loading indicators keep their default appearance.
-The change applies immediately, and turning it off
-restores the default icons.
+The editor draws one set of icons: the sidebar toggle, main menu, pan hand and
+compact selection arrow, add-place and add-transition buttons, settings gears,
+editing actions, diagnostics, simulation and data views, and assistant and voice
+controls, including icons inside shared menus and forms. Checkbox marks and
+loading indicators keep the design system's appearance. The icons have no
+setting of their own; their motion follows **Animations**.
 
 **Add Place** and **Add Transition** show a plain circle and square. Hover over
 either button to reveal a plus at the bottom-right of its shape; the plus disappears
-when you move away. Selecting either tool fills its icon and plays a short bounce. Turning off **Animations** below keeps the selection feedback and removes
+when you move away. Selecting either tool fills its icon and plays a short bounce. Turning off **Animations** keeps the selection feedback and removes
 the motion. Icons also respect your device's reduced-motion preference.
 The sidebar toggle keeps a thin line near the left edge of its frame when the
 sidebar is collapsed. Hovering makes it thicker and moves it slightly right.
@@ -155,7 +149,7 @@ along their tracks. These movements settle back without changing the control's
 meaning. Controls with a persistent state keep their existing state animation.
 
 **Recent changes** uses a clock with a return arrow. Hovering or opening its menu
-briefly rewinds the hands. The subnet cube turns in depth on hover and makes a
+briefly rewinds the hands. The component cube turns in depth on hover and makes a
 quarter-turn when clicked. The click turn finishes even if you move the pointer
 or keyboard focus away; rear edges stay hidden throughout the turn.
 
@@ -262,7 +256,7 @@ preferences are saved.
 
 ### Net Components (experimental)
 
-Enable subnet definitions and component instances for hierarchical nets. This option appears when the net supports subnets. Off by default.
+Shows the tools that build a net from [components](composition.md): the Nets panel, the component tool in the bottom toolbar and, where the application offers libraries, the Components panel. A net that already holds components draws and runs with the setting off. This option appears when the net supports components. Off by default.
 
 ### Compilation output (experimental)
 

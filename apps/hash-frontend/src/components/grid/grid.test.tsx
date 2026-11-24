@@ -1,4 +1,9 @@
 // @vitest-environment jsdom
+
+import { createRequire } from "node:module";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+
 import {
   CompactSelection,
   getDefaultTheme,
@@ -131,6 +136,9 @@ describe("tree cell selection", () => {
         copyData: "Meters",
         data: {
           kind: "data-type-tree-cell",
+          hierarchical: true,
+          leftPadding: 4,
+          showLabelExample: vi.fn(),
           title: "Meters",
           depth: 2,
           continuationDepths: [],
@@ -171,5 +179,44 @@ describe("tree cell selection", () => {
       cell: { ...args.cell, data: { ...args.cell.data, hasChildren: false } },
     });
     expect(preventDefault).not.toHaveBeenCalled();
+  });
+});
+
+describe("Glide clipboard output", () => {
+  it("copies labels as literal text while preserving spaces in HTML", async () => {
+    const require = createRequire(import.meta.url);
+    const dist = path.dirname(
+      path.dirname(require.resolve("@glideapps/glide-data-grid")),
+    );
+    const { getCopyBufferContents } = (await import(
+      pathToFileURL(path.join(dist, "esm/data-editor/copy-paste.js")).href
+    )) as {
+      getCopyBufferContents: (
+        cells: readonly (readonly DataGridModule.GridCell[])[],
+        columns: readonly number[],
+      ) => { textPlain: string; textHtml: string };
+    };
+    const label =
+      "Length value <a href=https://example.invalid>m</a>  <img src=x onerror=alert(1)> &amp; 'units'";
+    const { textPlain, textHtml } = getCopyBufferContents(
+      [
+        [
+          {
+            kind: GridCellKind.Custom,
+            allowOverlay: false,
+            copyData: label,
+            data: { kind: "data-type-tree-cell" },
+          },
+        ],
+      ],
+      [0],
+    );
+    expect(textPlain).toBe(label);
+    const document = new DOMParser().parseFromString(textHtml, "text/html");
+    const cell = document.querySelector("td");
+    expect(cell?.querySelectorAll("a, img")).toHaveLength(0);
+    expect(cell?.textContent).toBe(label);
+    expect(cell?.getAttribute("gdg-raw-value")).toBe(label);
+    expect(cell?.querySelectorAll("span")).toHaveLength(2);
   });
 });

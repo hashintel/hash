@@ -2,7 +2,11 @@ import * as v from "valibot";
 
 import { brunchSignals, brunchTools } from "../constants";
 import { petrinautUserMessageText } from "../petrinaut/contextual-user-message";
-import { ledgerAppendSchema, type LedgerAppend } from "./append";
+import {
+  ledgerAppendSchema,
+  readRecordedLedgerAppend,
+  type LedgerAppend,
+} from "./append";
 import { parseLedgerComments, type LedgerComment } from "./comments";
 import {
   openComments,
@@ -186,7 +190,7 @@ export const ledgerAppendOutputSchema = v.variant("status", [
     revision: v.number(),
     /** System-assigned record IDs, aligned with the submitted entries queue. */
     ids: v.array(v.string()),
-    /** USER turns so far, comment turns included, through the one this commit follows. */
+    /** USER turns of their own words so far, through the turn this commit follows; comment turns are not counted. */
     exchanges: v.optional(v.number()),
     /** Current open and conflicted claims after this commit. */
     openQuestions: v.optional(v.number()),
@@ -560,7 +564,10 @@ const foldWithReservations = (
       recorded.commitId !== call.part.toolCallId
     )
       continue;
-    const input = v.safeParse(ledgerAppendSchema, call.part.input);
+    const input = v.safeParse(
+      ledgerAppendSchema,
+      readRecordedLedgerAppend(call.part.input),
+    );
     const derived = input.success
       ? deriveBatch(state, input.output.entries, call.turn, reserved)
       : undefined;
@@ -696,9 +703,11 @@ const exchangesThrough = (
 ): number => {
   if (messageId === undefined) return 0;
   const end = history.messages.findIndex(({ id }) => id === messageId);
+  // Comment turns sit outside the interview, as the website's allowance
+  // count treats them, so only the user's own words are exchanges.
   return history.messages
     .slice(0, end + 1)
-    .filter((message) => turnOpening(message) !== undefined).length;
+    .filter((message) => turnOpening(message)?.comments.length === 0).length;
 };
 
 const accountOrigins: ReadonlySet<Origin> = new Set(["stated", "evidenced"]);

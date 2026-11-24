@@ -1,7 +1,6 @@
 import { use } from "react";
 
 import {
-  Button,
   Form,
   Icon,
   Select,
@@ -10,6 +9,7 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
+  componentKey,
   defaultImplementation,
   describeUnboundInstance,
   isInterface,
@@ -18,30 +18,20 @@ import {
   validateEntityName,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../../react";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
-import { DescriptionField } from "../../../../../../components/description-field";
-import { PropertyValue } from "../../../../../../components/property-value";
-import { Section, SectionList } from "../../../../../../components/section";
-import { hintTextStyle } from "../../../../../../constants/hint-text";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { useDraftField } from "../../../../../../hooks/use-draft-field";
-import { implementationItems } from "../../../implementation-items";
+import { CompositionContext } from "../../../../../../../react/document/composition-context";
+import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context";
+import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
+import { useMutationRefusal } from "../../../../../../../react/editing/use-mutation-refusal";
+import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
+import { Section, SectionList } from "../../../../../../shared/section";
+import { hintTextStyle } from "../../../../shared/hint-text";
+import { UI_MESSAGES } from "../../../../shared/ui-messages";
+import { implementationItems } from "../../../shared/implementation-items";
+import { DeleteItemButton } from "../../delete-item-button";
+import { DescriptionField } from "../../description-field";
+import { DraftFieldInput } from "../../draft-field-input";
+import { fieldsSectionStyle, itemTitleStyle } from "../../styles";
 import { useComponentInstancePropertiesContext } from "../context";
-
-import type { SubView } from "../../../../../../components/sub-view/types";
-import type { Subnet } from "@hashintel/petrinaut-core";
-
-const fieldsSectionStyle = css({
-  paddingY: "3",
-});
-
-const titleStyle = css({
-  fontSize: "lg",
-  fontWeight: "semibold",
-  lineHeight: "[1.2]",
-});
 
 const paramVarNameStyle = css({
   fontSize: "xs",
@@ -49,7 +39,6 @@ const paramVarNameStyle = css({
   fontFamily: "mono",
 });
 
-// the compact pre-migration label treatment for the parameter rows
 const paramFieldLabelStyle = css({
   "& :is(label, legend)": {
     fontSize: "xs",
@@ -62,13 +51,19 @@ const paramFieldLabelStyle = css({
  * Which implementation runs for an instance of an interface: the instance's
  * own choice, or the document's default.
  */
-const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
-  const { instance, updateComponentInstance } =
-    useComponentInstancePropertiesContext();
+const ImplementationField: React.FC = () => {
+  const { instance } = useComponentInstancePropertiesContext();
+  const { updateComponentInstance } = usePetrinautMutations();
   const { petriNetDefinition } = use(SDCPNContext);
+  const { libraries } = use(CompositionContext);
+  const mutationRefusal = useMutationRefusal();
   const isDisabled = useIsReadOnly();
 
-  const binding = resolveImplementation(petriNetDefinition, instance);
+  const binding = resolveImplementation(
+    petriNetDefinition,
+    instance,
+    libraries,
+  );
   const description =
     binding?.kind === "bound"
       ? binding.chosenBy === "instance"
@@ -77,10 +72,25 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
       : binding?.kind === "unbound"
         ? describeUnboundInstance(binding, instance.name)
         : undefined;
-  const documentDefault = defaultImplementation(petriNetDefinition, iface.id);
+  const documentDefault = defaultImplementation(
+    petriNetDefinition,
+    instance.component,
+  );
   const defaultName =
     documentDefault &&
-    resolveComponent(petriNetDefinition, documentDefault)?.name;
+    resolveComponent(petriNetDefinition, documentDefault, libraries)?.name;
+  const implementations = implementationItems(
+    petriNetDefinition,
+    instance.component,
+    instance.implementation,
+    libraries,
+    // The host's rules refuse some components as an instance's choice.
+    (implementation) =>
+      mutationRefusal("updateComponentInstance", {
+        instanceId: instance.id,
+        update: { implementation },
+      }) === null,
+  );
   return (
     <Form.Field
       label="Implementation"
@@ -98,13 +108,19 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
         <Select
           required
           size="sm"
-          value={instance.implementation?.id ?? "default"}
+          value={
+            instance.implementation
+              ? componentKey(instance.implementation)
+              : "default"
+          }
           disabled={isDisabled}
           onChange={(value) =>
             updateComponentInstance({
               instanceId: instance.id,
               update: {
-                implementation: value === "default" ? undefined : { id: value },
+                implementation: implementations.find(
+                  (item) => item.value === value,
+                )?.reference,
               },
             })
           }
@@ -116,11 +132,7 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
                   ? "Document default (none)"
                   : `Document default (${defaultName})`,
             },
-            ...implementationItems(
-              petriNetDefinition,
-              iface.id,
-              instance.implementation,
-            ),
+            ...implementations,
           ]}
         />
       </Tooltip>
@@ -128,60 +140,61 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
   );
 };
 
-const ComponentInstanceMainContent: React.FC = () => {
-  const { instance, subnet, subnetParameters, updateComponentInstance } =
-    useComponentInstancePropertiesContext();
+/** What the instance is an instance of, or why that cannot be read. */
+const ComponentField: React.FC = () => {
+  const { instance, component } = useComponentInstancePropertiesContext();
+  const { imports } = use(CompositionContext);
+  const { from, id } = instance.component;
+
+  if (from === undefined) {
+    return (
+      <Form.Field label="Component" size="sm">
+        <div className={hintTextStyle}>
+          {component?.name ?? "The referenced component no longer exists."}
+        </div>
+      </Form.Field>
+    );
+  }
+
+  const state = imports.get(from);
+  const library = state?.status === "resolved" ? state.library.name : from;
+  let text = `The import ${from} did not resolve.`;
+  if (component) {
+    text = `${component.name}, from ${library}`;
+  } else if (state?.status === "resolved") {
+    text = `${library} has no component ${id}.`;
+  } else if (state?.status === "failed") {
+    text = `${text} ${state.message}`;
+  }
+  return (
+    <Form.Field label="Component" size="sm">
+      <div className={hintTextStyle}>{text}</div>
+    </Form.Field>
+  );
+};
+
+export const ComponentInstanceMainContent: React.FC = () => {
+  const { instance, component } = useComponentInstancePropertiesContext();
+  const { updateComponentInstance } = usePetrinautMutations();
+  const componentParameters = component?.parameters ?? [];
   const isDisabled = useIsReadOnly();
   const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
-  const nameField = useDraftField({
-    sourceId: instance.id,
-    sourceValue: instance.name,
-  });
-
-  const handleNameBlur = () => {
-    const result = validateEntityName(nameField.value);
-    if (!result.valid) {
-      nameField.setError(result.error);
-      return;
-    }
-    nameField.setError(null);
-    if (result.name !== instance.name) {
-      updateComponentInstance({
-        instanceId: instance.id,
-        update: { name: result.name },
-      });
-    }
-  };
 
   return (
     <SectionList>
       <Form.Section className={fieldsSectionStyle}>
-        <Form.Field
+        <DraftFieldInput
           label="Name"
-          size="sm"
-          errors={
-            !isDisabled && nameField.error ? [nameField.error] : undefined
+          sourceId={instance.id}
+          sourceValue={instance.name}
+          validate={validateEntityName}
+          onCommit={(name) =>
+            updateComponentInstance({
+              instanceId: instance.id,
+              update: { name },
+            })
           }
-        >
-          <PropertyValue text={instance.name}>
-            <Tooltip
-              content={readOnlyTooltip ?? ""}
-              disableTooltip={!isDisabled}
-            >
-              <TextInput
-                value={nameField.value}
-                size="sm"
-                onChange={(name) => {
-                  nameField.setValue(name);
-                  if (nameField.error) nameField.setError(null);
-                }}
-                onBlur={handleNameBlur}
-                disabled={isDisabled}
-                invalid={!!nameField.error}
-              />
-            </Tooltip>
-          </PropertyValue>
-        </Form.Field>
+        />
 
         <DescriptionField
           sourceId={instance.id}
@@ -192,25 +205,17 @@ const ComponentInstanceMainContent: React.FC = () => {
               update: { description },
             })
           }
-          disabled={isDisabled}
-          tooltip={readOnlyTooltip}
         />
 
-        <Form.Field label="Subnet" size="sm">
-          <div className={hintTextStyle}>
-            {subnet?.name ?? "The referenced subnet no longer exists."}
-          </div>
-        </Form.Field>
+        <ComponentField />
 
-        {subnet && isInterface(subnet) && (
-          <ImplementationField iface={subnet} />
-        )}
+        {component && isInterface(component) && <ImplementationField />}
       </Form.Section>
 
-      {subnetParameters.length > 0 && (
+      {componentParameters.length > 0 && (
         <Section title="Parameters">
           <Form.Section>
-            {subnetParameters.map((param) => (
+            {componentParameters.map((param) => (
               <Form.Field
                 key={param.id}
                 label={param.name}
@@ -256,42 +261,27 @@ const ComponentInstanceMainContent: React.FC = () => {
   );
 };
 
-const ComponentInstanceTitle: React.FC = () => {
-  const { subnet } = useComponentInstancePropertiesContext();
+export const ComponentInstanceIcon: React.FC<{ size: number }> = ({ size }) => (
+  <Icon name="cube" size={size === 12 ? "xs" : "sm"} />
+);
+
+export const ComponentInstanceTitle: React.FC = () => {
+  const { component } = useComponentInstancePropertiesContext();
   return (
-    <span className={titleStyle}>{subnet?.name ?? "Component"} instance</span>
+    <span className={itemTitleStyle}>
+      {component?.name ?? "Component"} instance
+    </span>
   );
 };
 
-const DeleteComponentInstanceAction: React.FC = () => {
+export const DeleteComponentInstanceAction: React.FC = () => {
   const { instance } = useComponentInstancePropertiesContext();
   const { removeComponentInstance } = usePetrinautMutations();
-  const isReadOnly = useIsReadOnly();
 
   return (
-    <Button
-      aria-label="Delete component instance"
-      size="sm"
-      variant="ghost"
-      tone="error"
-      iconName="trash"
-      onClick={() => removeComponentInstance({ instanceId: instance.id })}
-      disabled={isReadOnly}
-      tooltip={
-        isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete component instance"
-      }
+    <DeleteItemButton
+      label="Delete component instance"
+      onDelete={() => removeComponentInstance({ instanceId: instance.id })}
     />
   );
-};
-
-export const componentInstanceMainContentSubView: SubView = {
-  id: "component-instance-main-content",
-  title: "Component Instance",
-  icon: ({ size }) => <Icon name="cube" size={size === 12 ? "xs" : "sm"} />,
-  main: true,
-  renderTitle: () => <ComponentInstanceTitle />,
-  component: ComponentInstanceMainContent,
-  renderHeaderAction: () => <DeleteComponentInstanceAction />,
-  headerActionMutates: true,
-  alwaysShowHeaderAction: true,
 };

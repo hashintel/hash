@@ -10,16 +10,16 @@ import {
   getArcEndpoint,
   getArcEndpointKey,
   placeArcEndpoint,
-} from "../arc-endpoints";
+} from "../document/arc-endpoints";
 
 import type {
   ArcEndpoint,
+  Component,
   ID,
   InputArc,
   OutputArc,
   Place,
   PortDirection,
-  Subnet,
   Transition,
 } from "../types/sdcpn";
 
@@ -63,7 +63,7 @@ export const endpointUsage = (
 };
 
 /** The part of a net a port's usage is read from. */
-export type PortNet = Pick<Subnet, "transitions" | "fusions">;
+export type PortNet = Pick<Component, "transitions" | "fusions">;
 
 const untouched: PortUsage = {
   consumed: false,
@@ -164,7 +164,7 @@ export const effectivePortDirection = (
  * not at all when every port declares its direction.
  */
 export const effectivePortDirections = (
-  net: PortNet & Pick<Subnet, "places">,
+  net: PortNet & Pick<Component, "places">,
 ): Map<ID, PortDirection> => {
   let usageOf: ((placeId: ID) => PortUsage) | undefined;
   const directions = new Map<ID, PortDirection>();
@@ -182,7 +182,7 @@ export const effectivePortDirections = (
   return directions;
 };
 
-/** Whether the subnet's arcs keep the port's declared direction. */
+/** Whether the component's arcs keep the port's declared direction. */
 export const portUsageMatchesDirection = (
   usage: Pick<PortUsage, "consumed" | "produced">,
   direction: PortDirection,

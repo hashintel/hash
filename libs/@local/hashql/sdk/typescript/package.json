@@ -14,7 +14,7 @@
       "types": "./dist/main.d.ts",
       "default": "./dist/main.js"
     },
-    "./draft": {
+    "./Draft": {
       "types": "./dist/Draft/index.d.ts",
       "default": "./dist/Draft/index.js"
     }
@@ -29,11 +29,11 @@
     "test:unit": "vitest run --project unit --typecheck"
   },
   "dependencies": {
-    "effect": "4.0.3"
+    "effect": "catalog:"
   },
   "devDependencies": {
-    "@effect/platform-node": "4.0.3",
-    "@effect/vitest": "4.0.3",
+    "@effect/platform-node": "catalog:",
+    "@effect/vitest": "catalog:",
     "@local/oxlint": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",

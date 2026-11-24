@@ -792,6 +792,26 @@ describe("validateFlowDefinition", () => {
       },
     );
 
+    it("accepts a step on each of an if's paths", () => {
+      expect(
+        diagnosticsOf(
+          definition(
+            conditionStep("if", constantCondition(scoreAbove(8))),
+            {
+              ...conditionStep("filterList", constantCondition(scoreAbove(8))),
+              stepId: "onYes",
+              runAfter: [{ stepId: "if", outputName: "true" }],
+            },
+            {
+              ...conditionStep("filterList", constantCondition(scoreAbove(8))),
+              stepId: "onNo",
+              runAfter: [{ stepId: "if", outputName: "false" }],
+            },
+          ),
+        ).filter(({ severity }) => severity === "error"),
+      ).toEqual([]);
+    });
+
     it.each(["filterList", "find", "if"] as const)(
       "rejects a %s condition that doesn't fit the kind it's given",
       (actionDefinitionId) => {

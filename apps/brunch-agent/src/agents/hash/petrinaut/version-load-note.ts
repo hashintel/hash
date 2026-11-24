@@ -1,4 +1,6 @@
 import {
+  brunchSignals,
+  ledgerCommentsVersionLoad,
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
   type VersionLoad,
@@ -20,10 +22,18 @@ const textsOf = (entry: ContextProjectionEntry): string[] => {
       );
 };
 
-/** The version load a user turn's host context carries, if any. */
+/**
+ * The version load a user turn carries, if any: in a typed turn's host
+ * context, or in a comment turn's attributes.
+ */
 const versionLoadOf = (
   entry: ContextProjectionEntry,
 ): VersionLoad | undefined => {
+  const { message } = entry;
+  if (message.role === "signal")
+    return message.type === brunchSignals.ledgerComments
+      ? ledgerCommentsVersionLoad(message.attributes)
+      : undefined;
   for (const text of textsOf(entry)) {
     const { versionLoad } = readPetrinautSubmissionContext(
       parsePetrinautUserMessageBody(text),
@@ -38,6 +48,11 @@ const withNote = (
   note: string,
 ): ContextProjectionEntry => {
   const { message } = entry;
+  if (message.role === "signal")
+    return {
+      ...entry,
+      message: { ...message, content: `${note}\n\n${message.content}` },
+    };
   if (message.role !== "user") return entry;
   if (typeof message.content === "string")
     return {
@@ -64,10 +79,10 @@ const withNote = (
 /**
  * Wrap a projection so the first user turn carrying each new version load
  * tells the model which version the user loaded. Every turn after a load
- * carries the same load; only the first in history gains the note, so it
- * stays where the load happened and later turns gain none. Derived from the
- * entries alone: a Save never sets a load, and a host that sends none gets
- * the wrapped projection unchanged.
+ * carries the same load, a turn of Ledger comments included; only the first
+ * in history gains the note, so it stays where the load happened and later
+ * turns gain none. Derived from the entries alone: a Save never sets a load,
+ * and a host that sends none gets the wrapped projection unchanged.
  */
 export const withPetrinautVersionLoadNotes =
   (projection: ContextProjection): ContextProjection =>
@@ -76,8 +91,7 @@ export const withPetrinautVersionLoadNotes =
     let announced: string | undefined;
     return projected.map((entry, index) => {
       const source = entries[index];
-      const versionLoad =
-        source?.message.role === "user" ? versionLoadOf(source) : undefined;
+      const versionLoad = source ? versionLoadOf(source) : undefined;
       if (versionLoad === undefined || versionLoad.id === announced)
         return entry;
       announced = versionLoad.id;

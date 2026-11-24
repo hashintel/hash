@@ -4,7 +4,7 @@ import type {
 } from "../canvas-viewport-context";
 
 /** How many documents keep a saved viewport before the oldest is dropped. */
-export const rememberedViewportLimit = 50;
+const rememberedViewportLimit = 50;
 
 const savedAtOf = (entry: SavedCanvasViewport) => entry.savedAt ?? 0;
 

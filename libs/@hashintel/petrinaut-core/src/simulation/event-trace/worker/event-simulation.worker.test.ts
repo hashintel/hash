@@ -13,8 +13,10 @@ const host = vi.hoisted(() => ({
   listener: null as ((message: unknown) => void) | null,
 }));
 
-vi.mock("../../../environment", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../../environment")>()),
+vi.mock("../../../environment/environment", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("../../../environment/environment")
+  >()),
   createWorkerThreadRuntime: () => ({
     postMessage: (message: unknown) => {
       host.posted.push(message);

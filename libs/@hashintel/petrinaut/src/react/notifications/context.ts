@@ -15,10 +15,8 @@ export type AddNotificationInput = {
 
 export type NotificationsContextValue = {
   addNotification: (notification: AddNotificationInput) => string;
-  dismissNotification: (id: string) => void;
 };
 
 export const NotificationsContext = createContext<NotificationsContextValue>({
   addNotification: () => "",
-  dismissNotification: () => {},
 });

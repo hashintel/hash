@@ -1,8 +1,8 @@
-import { use, useId } from "react";
+import { useId } from "react";
 
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../react/state/user-settings-context";
 import { useNetGraphTransition } from "./net-graph-animation";
 import {
   edgePath,
@@ -142,7 +142,7 @@ const truncate = (name: string, maxChars: number): string =>
 const cornerRadius = (node: NetGraphNode): number =>
   node.kind === "place" ? NET_NODE_HEIGHT / 2 : 3;
 
-export interface NetGraphViewProps {
+interface NetGraphViewProps {
   graph: NetGraph;
   /** The selected place or transition, or null when nothing relevant is selected. */
   selectedId: string | null;
@@ -177,7 +177,7 @@ export const NetGraphView: React.FC<NetGraphViewProps> = ({
 }) => {
   const instanceId = useId();
   const layout = layoutNetGraph(graph, { focusId });
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const { nodeRef, edgeRef } = useNetGraphTransition(layout, {
     enabled: showAnimations,
   });

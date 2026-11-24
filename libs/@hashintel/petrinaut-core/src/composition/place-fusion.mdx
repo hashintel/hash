@@ -4,7 +4,7 @@ description: How components join a net through fused places, what a port's direc
 sidebar_order: 10
 ---
 
-A net composes components, subnets drawn once and instantiated many times,
+A net composes components, nets drawn once and instantiated many times,
 by fusing places: a place of the net and ports of its instances become one
 place when the net runs. This page is the proposal behind the code in
 `petrinaut-core/src/composition/`, written as that code stands. The user
@@ -14,7 +14,7 @@ guide's Composition page says how the editor exposes it.
 
 ## Why fusion, and why keep port arcs
 
-The first version of subnets connects a component to its surroundings with
+The first version of components connects a component to its surroundings with
 arcs only: a transition of the containing net reads from or writes to a port,
 a place inside the instance, through a `componentPort` arc endpoint. That
 works for a component used by one net, but it makes every connection pass
@@ -41,12 +41,14 @@ place. Petrinaut's version keeps it small on purpose.
   of its net uses. A file whose fusion has no name does not load, and
   `updateFusion` renames a fusion but does not take its name away.
 - Fusions are sets: a member belongs to one fusion, and a connection that
-  joins two fusions merges them. `addFusion` and `addFusionMember` absorb a
-  fusion that already holds one of the members; a member removed from a
-  fusion of two members removes the fusion. A document from elsewhere can
-  still list a member in two fusions, which the checks report and flattening
-  refuses: the two would chain into one place.
-- Removing a place, an instance, a subnet, or a port's `isPort` mark takes
+  joins two fusions merges them. `addFusion`, `addFusionMember` and
+  `replaceFusionMember` absorb a fusion that already holds one of the
+  members; a member removed from a fusion of two members removes the fusion.
+  `replaceFusionMember` moves a fusion from one member to another as one
+  change, which is what dragging the end of a fusion link does. A document
+  from elsewhere can still list a member in two fusions, which the checks
+  report and flattening refuses: the two would chain into one place.
+- Removing a place, an instance, a component, or a port's `isPort` mark takes
   it out of every fusion that named it, the way arcs on it go away.
 
 Port arcs stay. A transition's arc to `Instance.Port` means the same thing
@@ -105,7 +107,7 @@ What two ports can and cannot be joined:
   containing component declares a port of its own and fuses it with the
   nested port inside; the flattener follows the chain. The test in
   `flatten-component-instances.test.ts` named "applies fusions declared
-  inside a subnet to the nested instances" shows the forwarding.
+  inside a component to the nested instances" shows the forwarding.
 
 ## What members must agree on
 
@@ -122,7 +124,7 @@ fused place twice, and the three disagreements:
 - **Capacity**: two declared capacities that differ. A declared capacity
   beside unbounded members bounds the fused place.
 - **Dynamics**: two members whose dynamics compose different equations. One
-  member's dynamics drive the fused place; two instances of one subnet share
+  member's dynamics drive the fused place; two instances of one component share
   their equations and agree. An equation is the one its own net defines, so
   two nets that each define an equation under one id disagree. The fused
   place runs them once, with the parameter values of the first member that
@@ -168,11 +170,19 @@ shows the fused place under the name the canvas gives the fusion. Where a
 port is fused inside its component and again in the net above, the leader
 takes the name of the outer fusion.
 
+A component of an import is flattened as a component of the document is: the
+net the flattener is given has each one inlined by `inlineImports`, under ids
+that are the same on every call, so its body is scoped under the instance's
+id like any other.
+
 ## Where the model stops today
 
-- **Component libraries**: ready-made components a host or a plugin offers,
-  copied into the document with a record of where they came from, and a
-  root net marked as composed from components alone.
+- **Component libraries** are imported by reference, with no version: a
+  document names a library and its components by id, and the host resolves
+  them (see [Host integration](doc:core.handle/host-integration)). A body of
+  a library's component holds places and transitions, not instances of
+  other components. A root net marked as composed from components alone is
+  not there yet.
 - **Initial markings** address root places. A component with internal
   state, a pool of workers say, has no marking of its own. A per-instance
   marking, or markings written into the component, is the next step.

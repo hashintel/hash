@@ -1,4 +1,5 @@
 import { Tabs } from "@ark-ui/react/tabs";
+import { motionValue } from "motion";
 import {
   use,
   useId,
@@ -11,7 +12,7 @@ import {
 import { Chip, Dialog, Icon, Select, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../react/document/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import {
   codeEditorThemes,
@@ -19,6 +20,7 @@ import {
 } from "../../../../monaco/code-editor-themes";
 import { useAssistantChoice } from "../../../../plugins/plugin-assistant";
 import { PluginSettingsRows } from "../../../../plugins/plugin-settings-rows";
+import { PetrinautSlotsContext } from "../../../../slots-context";
 import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
@@ -30,7 +32,7 @@ import { PluginsSection } from "./user-settings-dialog/plugins-section";
 import { SettingsHeading } from "./user-settings-dialog/settings-heading";
 import { SettingsPanel } from "./user-settings-dialog/settings-panel";
 
-import type { PetrinautSettingsSection } from "../../../../../react/navigation";
+import type { PetrinautSettingsSection } from "../../../../../react/navigation/navigation";
 import type { IconName } from "@hashintel/ds-components";
 
 const settingsDialogStyles = {
@@ -209,6 +211,8 @@ const SettingsGroup = ({
   </section>
 );
 
+const experimentalChipStyle = css({ display: "flex", flexShrink: "0" });
+
 const SettingRow = ({
   label,
   description,
@@ -281,10 +285,7 @@ const SettingRow = ({
         <div className={labelStyle}>
           <span id={`${id}-label`}>{label}</span>
           {experimental && (
-            <div
-              id={`${id}-experimental`}
-              className={css({ display: "flex", flexShrink: "0" })}
-            >
+            <div id={`${id}-experimental`} className={experimentalChipStyle}>
               <Chip size="xs" color="orange" variant="outline" shape="round">
                 Experimental
               </Chip>
@@ -308,32 +309,16 @@ const SettingRow = ({
 const SettingToggle = ({
   label,
   description,
-  experimental,
   value,
   onChange,
-  disabled,
 }: {
   label: string;
   description: string;
-  experimental?: boolean;
   value: boolean;
   onChange: (value: boolean) => void;
-  disabled?: boolean;
 }) => (
-  <SettingRow
-    label={label}
-    description={description}
-    experimental={experimental}
-  >
-    {(aria) => (
-      <Toggle
-        {...aria}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        size="sm"
-      />
-    )}
+  <SettingRow label={label} description={description}>
+    {(aria) => <Toggle {...aria} value={value} onChange={onChange} size="sm" />}
   </SettingRow>
 );
 
@@ -412,27 +397,58 @@ const SettingsTabs = () => {
   );
 };
 
+/**
+ * What the host adds to the Labs section. The slot is read here, where it
+ * shows: a host may pass a new node on every render, and nothing else should
+ * render for it.
+ */
+const HostLabsSettings = () => {
+  const { settingsLabs } = use(PetrinautSlotsContext);
+
+  return settingsLabs === undefined || settingsLabs === null ? null : (
+    <FocusControls>{settingsLabs}</FocusControls>
+  );
+};
+
+const dialogHeaderStyle = css({
+  position: "absolute",
+  top: "3",
+  right: "3",
+  "&": {
+    padding: "0",
+    border: "[0]",
+    background: "[transparent]",
+  },
+  zIndex: "[1]",
+  "& button": { margin: "0" },
+});
+
+const dialogBodyStyle = css({
+  "&": {
+    overflow: "visible",
+    border: "[0]",
+    borderRadius: "[inherit]",
+  },
+});
+
 export const UserSettingsDialog = ({
   section,
-  settingsLabs,
   onSectionChange,
   onClose,
 }: {
   section: PetrinautSettingsSection;
-  settingsLabs?: ReactNode;
   onSectionChange: (section: PetrinautSettingsSection) => void;
   onClose: () => void;
 }) => {
   const settings = use(UserSettingsContext);
-  const { extensions } = use(SDCPNContext);
+  const extensions = useSDCPNState((document) => document.extensions);
   const item =
     sections.find((candidate) => candidate.id === section) ?? sections[0];
   const headingRef = useRef<HTMLElement>(null);
-  const [width, setWidth] = useState(760);
-  const { panelRef, handleProps, getResizeHandleProps, style } =
+  const [width] = useState(() => motionValue(760));
+  const { bindPanel, handleProps, getResizeHandleProps, box } =
     useFloatingPanel<HTMLDivElement>({
       width,
-      onWidthChange: setWidth,
       initialHeight: 480,
       initialPosition: "center",
       limits: { minWidth: 520, maxWidth: Infinity, gap: 20 },
@@ -440,38 +456,16 @@ export const UserSettingsDialog = ({
 
   return (
     <Dialog
-      ref={panelRef}
-      style={style}
+      ref={bindPanel()}
+      style={box}
       size="lg"
       aria-label="User settings"
       className={settingsDialogStyle}
       onClose={onClose}
       onKeyDown={(event) => event.stopPropagation()}
     >
-      <Dialog.Header
-        className={css({
-          position: "absolute",
-          top: "3",
-          right: "3",
-          "&": {
-            padding: "0",
-            border: "[0]",
-            background: "[transparent]",
-          },
-          zIndex: "[1]",
-          "& button": { margin: "0" },
-        })}
-      />
-      <Dialog.Body
-        withPadding={false}
-        className={css({
-          "&": {
-            overflow: "visible",
-            border: "[0]",
-            borderRadius: "[inherit]",
-          },
-        })}
-      >
+      <Dialog.Header className={dialogHeaderStyle} />
+      <Dialog.Body withPadding={false} className={dialogBodyStyle}>
         <FloatingResizeHandles
           label="User settings"
           getHandleProps={getResizeHandleProps}
@@ -527,12 +521,6 @@ export const UserSettingsDialog = ({
                           value={settings.showAnimations}
                           onChange={settings.setShowAnimations}
                         />
-                        <SettingToggle
-                          label="Keep panels mounted"
-                          description="Keep hidden panels ready for faster switching. Uses more memory."
-                          value={settings.keepPanelsMounted}
-                          onChange={settings.setKeepPanelsMounted}
-                        />
                       </SettingsGroup>
                       <SettingsGroup title="Code editor">
                         <SettingRow
@@ -574,12 +562,6 @@ export const UserSettingsDialog = ({
                           value={settings.compactNodes}
                           onChange={settings.setCompactNodes}
                         />
-                        <SettingToggle
-                          label="Petricon"
-                          description="Use Petrinaut's custom icon pack across the editor."
-                          value={settings.enableExperimentalIconPack}
-                          onChange={settings.setEnableExperimentalIconPack}
-                        />
                       </SettingsGroup>
                       <SettingsGroup title="Interaction">
                         <SettingToggle
@@ -610,11 +592,11 @@ export const UserSettingsDialog = ({
                   {item.id === "plugins" && <PluginsSection />}
                   {item.id === "labs" && (
                     <>
-                      {extensions.subnets && (
+                      {extensions.components && (
                         <SettingsGroup title="Modeling">
                           <SettingToggle
                             label="Net Components"
-                            description="Build hierarchical nets with subnet definitions and component instances."
+                            description="Build hierarchical nets from components and their instances."
                             value={settings.enableNetComponents}
                             onChange={settings.setEnableNetComponents}
                           />
@@ -632,9 +614,7 @@ export const UserSettingsDialog = ({
                         section="labs"
                         components={pluginRowComponents}
                       />
-                      {settingsLabs !== undefined && settingsLabs !== null && (
-                        <FocusControls>{settingsLabs}</FocusControls>
-                      )}
+                      <HostLabsSettings />
                     </>
                   )}
                 </FocusStack>

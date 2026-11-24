@@ -77,7 +77,16 @@ describe("resolveNavigatedItems", () => {
   it("keeps an item that resolves as written by identity", () => {
     const item = { type: "place", id: placeId } as const;
 
-    expect(resolve({ selection: [item] }).selection[0]).toBe(item);
+    expect(
+      resolve({ selection: [item, { type: "place", id: "missing" }] })
+        .selection[0],
+    ).toBe(item);
+  });
+
+  it("keeps a selection whose items all resolve as written by identity", () => {
+    const selection = [{ type: "place", id: placeId } as const];
+
+    expect(resolve({ selection }).selection).toBe(selection);
   });
 
   it("resolves the scenario resource and drops a missing metric", () => {

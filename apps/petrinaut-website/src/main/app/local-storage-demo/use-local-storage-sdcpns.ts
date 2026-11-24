@@ -1,6 +1,7 @@
 import {
   canonicalizePetrinautIds,
   generatePetrinautId,
+  migrateLegacyComponentKeys,
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
 
@@ -127,7 +128,9 @@ const recognizeStoredDocument = (
   }
   try {
     const id = toPetrinautId(documentId);
-    const sdcpn = canonicalizePetrinautIds(value.sdcpn);
+    const sdcpn = canonicalizePetrinautIds(
+      migrateLegacyComponentKeys(value.sdcpn),
+    );
     const revisionId =
       typeof value.revisionId === "string" ? value.revisionId : undefined;
     return {

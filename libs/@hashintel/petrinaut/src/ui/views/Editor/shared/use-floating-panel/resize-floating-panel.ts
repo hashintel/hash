@@ -1,7 +1,5 @@
 import type { FloatingResizeDirection } from "../../../shared/floating-resize-handles";
 
-export type { FloatingResizeDirection } from "../../../shared/floating-resize-handles";
-
 export type FloatingPanelBounds = {
   right: number;
   top: number;

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
+import { petrinautIdSchema } from "../document/petrinaut-id";
 import { sdcpnSchema } from "../file-format/types";
-import { petrinautIdSchema } from "../petrinaut-id";
 import { ACTUAL_MODE_RECORDING_VERSION } from "./constants";
 
 import type { SDCPN } from "../types/sdcpn";

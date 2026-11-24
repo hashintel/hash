@@ -6,12 +6,22 @@ import * as Type from "./Type/index.js";
 
 import type * as Defs from "./schema.js";
 
-/** The `_` placeholder, which asks the HashQL compiler to infer a type in a {@link fn} signature. */
+/**
+ * The `_` placeholder, which asks the HashQL compiler to infer a type in a {@link fn} signature.
+ *
+ * @category Closures
+ * @since 0.1.0
+ */
 const inferred = "_" as const;
 
 export { inferred as infer };
 
-/** An explicit type or {@link inferred | infer}, accepted by {@link fn} for parameter and return types. */
+/**
+ * An explicit type or {@link inferred | infer}, accepted by {@link fn} for parameter and return types.
+ *
+ * @category Closures
+ * @since 0.1.0
+ */
 export type TypeArgument = Type.Type | typeof inferred;
 
 const compileType = (type: TypeArgument): Defs.ExpressionType => {
@@ -22,7 +32,12 @@ const compileType = (type: TypeArgument): Defs.ExpressionType => {
   return Type.toExpression(type);
 };
 
-/** A closure's signature and body, accepted by {@link fn}. */
+/**
+ * A closure's signature and body, accepted by {@link fn}.
+ *
+ * @category Closures
+ * @since 0.1.0
+ */
 export interface FnOptions {
   /**
    * Type parameter names, or a record mapping each name to its bound.
@@ -61,7 +76,7 @@ const compileGenerics = (
 /**
  * Defines a closure with named parameters.
  *
- * The result is the call `["::kernel::special_form::fn", generics, params, returns, body]`. Parameter names are in scope in the body, and their record order determines the argument order. The return type defaults to {@link inferred | infer}. Types use constructor syntax, as in `JExpr.as`. The builder checks neither the body nor its use of the parameters. Call the closure with `JExpr.call` or bind it with `JExpr.let`.
+ * The result is the call `["::kernel::special_form::fn", generics, params, returns, body]`. Parameter names are in scope in the body, and their record order determines the argument order. The return type defaults to {@link inferred | infer}. Types use constructor syntax, as in {@link JExpr.as}. The builder checks neither the body nor its use of the parameters. Call the closure with {@link JExpr.call} or bind it with {@link JExpr.let}.
  *
  * @example <caption>Define a predicate with an inferred parameter type.</caption>
  * ```ts
@@ -77,6 +92,9 @@ const compileGenerics = (
  *   '["::kernel::special_form::fn",{"#tuple":[]},{"#struct":{"entity":"_"}},"_",["==","entity.draft_id",{"#literal":null}]]',
  * );
  * ```
+ *
+ * @category Closures
+ * @since 0.1.0
  */
 export const fn = (options: FnOptions): Defs.CallType => [
   "::kernel::special_form::fn",

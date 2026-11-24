@@ -3,7 +3,10 @@ import { expect, test } from "vitest";
 import { parseBrunchLog } from "./parse-log-text.ts";
 
 import type { ModelCallScope } from "../model-call-scope.ts";
-import type { ModelStreamIdleTimeout } from "../provider-admission.ts";
+import type {
+  ModelOutputLimit,
+  ModelStreamIdleTimeout,
+} from "../provider-admission.ts";
 import type { LoggedSubmissionChronology } from "./shared/records.ts";
 
 test("chronology entries are read from coloured server-log lines and keyed by submission, counting the lines that don't parse", () => {
@@ -171,4 +174,36 @@ test("idle timeouts are read from production lines with the logger's timestamp",
     },
   ]);
   expect(skipped.idleTimeoutLines).toBe(1);
+});
+
+test("output-limit stops are read from production lines with the logger's timestamp", () => {
+  const fields = {
+    stage: "provider.output-limit",
+    submissionId: "sub-1",
+    turnId: "turn-1",
+    provider: "anthropic",
+    model: "claude-sonnet-4-6",
+    outputTokens: 8_192,
+    timestamp: "2026-11-03T10:00:00.000Z",
+  } satisfies ModelOutputLimit &
+    ModelCallScope & { stage: string; timestamp: string };
+
+  const { outputLimits, skipped } = parseBrunchLog(
+    [
+      `warn: [brunch] provider.output-limit ${JSON.stringify(fields)}`,
+      "warn: [brunch] provider.output-limit not json",
+    ].join("\n"),
+  );
+
+  expect(outputLimits).toEqual([
+    {
+      timestamp: "2026-11-03T10:00:00.000Z",
+      submissionId: "sub-1",
+      turnId: "turn-1",
+      provider: "anthropic",
+      model: "claude-sonnet-4-6",
+      outputTokens: 8_192,
+    },
+  ]);
+  expect(skipped.outputLimitLines).toBe(1);
 });

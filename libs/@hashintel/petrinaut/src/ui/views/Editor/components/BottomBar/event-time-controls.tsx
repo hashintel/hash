@@ -6,7 +6,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { EventPlaybackContext } from "../../../../../react/event-playback/context";
 import { useEventPlaybackFrame } from "../../../../../react/event-playback/use-event-playback-frame";
 import { SimulationContext } from "../../../../../react/simulation/context";
-import { usePetrinautPresentation } from "../../../shared/presentation-context";
+import { usePetrinautPresentation } from "../../../../presentation/presentation-context";
 import { formatRunPosition, stepAt } from "../../shared/run-position";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";

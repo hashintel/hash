@@ -1,4 +1,4 @@
-import { readTokenRecord } from "../engine/token-layout";
+import { readTokenRecord } from "../../tokens/token-layout";
 
 import type { TokenRecord } from "../../types/sdcpn";
 import type { SimulationFrameReader, SimulationFrameState } from "../api";

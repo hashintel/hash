@@ -1,14 +1,14 @@
 import {
-  createUserKeyedRecord,
-  isDangerousRecordKey,
-} from "../../validation/record-keys";
-import { createPlaceCapacities, hasAnyPlaceCapacity } from "../engine/capacity";
-import {
   computeTokenSlotLayout,
   createTokenRegionViews,
   type TokenRegionViews,
   type TokenSlotLayout,
-} from "../engine/token-layout";
+} from "../../tokens/token-layout";
+import {
+  createUserKeyedRecord,
+  isDangerousRecordKey,
+} from "../../validation/record-keys";
+import { createPlaceCapacities, hasAnyPlaceCapacity } from "../engine/capacity";
 
 import type { ID, SDCPN } from "../../types/sdcpn";
 import type { SimulationTransitionState } from "./transition-state";

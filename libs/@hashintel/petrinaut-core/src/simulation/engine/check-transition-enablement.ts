@@ -1,4 +1,4 @@
-import { getArcEndpointPlaceId } from "../../arc-endpoints";
+import { getArcEndpointPlaceId } from "../../document/arc-endpoints";
 import { materializeEngineFrame } from "../frames/internal-frame";
 import { computeTransitionCapacityConstraints } from "./capacity";
 

@@ -1,20 +1,15 @@
-import {
-  Suspense,
-  use,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../react/state/user-settings-context";
-import { CODE_FONT_FAMILY } from "../constants/ui";
+import { CODE_FONT_FAMILY } from "../shared/ui-constants";
 import { resolveCodeEditorThemeId } from "./code-editor-themes";
 import { MonacoContext } from "./context";
+import { releaseReplacedModels } from "./release-replaced-models";
 
+import type { MonacoContextValue } from "./context";
 import type { EditorProps, Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 
@@ -41,9 +36,11 @@ const multiLineContainerStyle = cva({
       marginInline: "[calc(-1 * var(--subview-content-inline-padding, 0px))]",
       boxShadow: "[none]",
     },
+    // The inline margin changes at once: a transition on it would resize the
+    // editor on every frame of a section's animation.
     "[data-subview-animate] &": {
       transition:
-        "[border-color 240ms cubic-bezier(0.22, 1, 0.36, 1), border-radius 240ms cubic-bezier(0.22, 1, 0.36, 1), margin-inline 240ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1)]",
+        "[border-color 240ms cubic-bezier(0.22, 1, 0.36, 1), border-radius 240ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1)]",
       "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
     },
     _focusWithin: {
@@ -122,8 +119,7 @@ const singleLineContainerStyle = cva({
   },
 });
 
-// The wait for Monaco, shown twice: as the Suspense fallback while the
-// module loads and as Monaco's own `loading` while the editor mounts.
+// Shown while the module loads and while the native editor mounts.
 // Dimmed, so it reads as a wait and not as content; it fills its box
 // because Monaco centres whatever it is given.
 const loadingStyle = css({
@@ -167,7 +163,10 @@ const placeholderStyle = css({
 
 // -- Props --------------------------------------------------------------------
 
-export type CodeEditorProps = Omit<EditorProps, "theme"> & {
+export type CodeEditorProps = Omit<
+  EditorProps,
+  "theme" | "keepCurrentModel"
+> & {
   tooltip?: string;
   /** Render as a single-line expression input */
   singleLine?: boolean;
@@ -192,14 +191,17 @@ export type CodeEditorProps = Omit<EditorProps, "theme"> & {
    * Where the caret lands on mount: "end" puts it after the content (typing
    * continues), "all" selects the whole content (typing replaces). Omitted,
    * the caret is only positioned when the reused per-path model needed a
-   * value sync (the pre-existing behaviour).
+   * value sync.
    */
   mountSelection?: "all" | "end";
 };
 
 // -- Inner component ----------------------------------------------------------
 
-const CodeEditorInner: React.FC<CodeEditorProps> = ({
+const CodeEditorInner: React.FC<
+  CodeEditorProps & { environment: MonacoContextValue }
+> = ({
+  environment,
   options,
   onEditorFocus,
   onEditorBlur,
@@ -213,7 +215,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
   mountSelection,
   ...props
 }) => {
-  const { Editor } = use(use(MonacoContext));
+  const { Editor } = environment;
   const { codeEditorTheme } = use(UserSettingsContext);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   // While the editor has focus its model is the source of truth: the wrapper
@@ -264,6 +266,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
     monacoInstance: Monaco,
   ) => {
     editorRef.current = editorInstance;
+    releaseReplacedModels(editorInstance);
     setEditorFocused(false);
     setEditorMounted(true);
 
@@ -401,6 +404,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
       )}
       <Editor
         theme={resolveCodeEditorThemeId(codeEditorTheme)}
+        saveViewState={false}
         height={singleLine ? SINGLE_LINE_TOTAL_HEIGHT : "100%"}
         options={editorOptions}
         onMount={(editorInstance, monacoInstance) =>
@@ -425,6 +429,30 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   frameless = false,
   ...props
 }) => {
+  const promise = use(MonacoContext);
+  const [loaded, setLoaded] = useState<{
+    promise: Promise<MonacoContextValue>;
+    environment?: MonacoContextValue;
+    error?: unknown;
+  } | null>(null);
+  useEffect(() => {
+    let active = true;
+    void promise.then(
+      (environment) => {
+        if (active) setLoaded({ promise, environment });
+      },
+      (error: unknown) => {
+        if (active) setLoaded({ promise, error });
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [promise]);
+  const environment =
+    loaded?.promise === promise ? loaded.environment : undefined;
+  if (loaded?.promise === promise && "error" in loaded) throw loaded.error;
+
   const isReadOnly = options?.readOnly === true;
 
   const containerClass = singleLine
@@ -439,15 +467,18 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 
   const editorElement = (
     <div className={containerClass} style={singleLine ? undefined : { height }}>
-      <Suspense fallback={fallback}>
+      {environment ? (
         <CodeEditorInner
+          environment={environment}
           options={options}
           height={height}
           singleLine={singleLine}
           loading={fallback}
           {...props}
         />
-      </Suspense>
+      ) : (
+        fallback
+      )}
     </div>
   );
 

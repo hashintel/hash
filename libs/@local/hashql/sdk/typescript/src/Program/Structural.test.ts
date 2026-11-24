@@ -246,7 +246,7 @@ describe("structural_values", () => {
 
   test("dictionary_key_forms", () => {
     expect.hasAssertions();
-    const key = Structural.input("key", BigInt);
+    const key = Expression.input("key", BigInt);
     const keyed = Structural.dict(BigInt, String, [[key, "value"]]);
     expect(emit(keyed)).toBe(
       '{"#dict":[[["::kernel::special_form::input","key","::kernel::type::Integer"],{"#literal":"value"}]],"#type":"::kernel::type::Dict<::kernel::type::Integer, ::kernel::type::String>"}',
@@ -271,7 +271,6 @@ describe("structural_values", () => {
       Structural.list(Number, [bad]),
       Structural.dict(Number, String, [[bad, "x"]]),
       Structural.dict(String, Number, { bad }),
-      Structural.input("number", Number, bad),
     ]) {
       expect(
         Result.getOrThrow(Result.flip(Expression.toJExpr(expression))),
@@ -287,7 +286,6 @@ describe("structural_values", () => {
       Structural.list(invalid, []),
       Structural.dict(invalid, String, []),
       Structural.dict(String, invalid, []),
-      Structural.input("invalid", invalid),
     ]) {
       expect(
         Result.getOrThrow(Result.flip(Expression.toJExpr(expression))),
@@ -383,22 +381,6 @@ describe("structural_values", () => {
           ._tag,
       ).toBe("InvalidExpression");
     }
-  });
-
-  test("structural_input_defaults", () => {
-    expect.hasAssertions();
-    const count = Structural.input("count", BigInt);
-    const row = Structural.input("row", { count: BigInt }, { count });
-    expect(emit(row)).toBe(
-      '["::kernel::special_form::input","row",{"#struct":{"count":"::kernel::type::Integer"}},{"#struct":{"count":["::kernel::special_form::input","count","::kernel::type::Integer"]}}]',
-    );
-    expect(emit(Structural.input("pair", [BigInt, String], [1n, "x"]))).toBe(
-      '["::kernel::special_form::input","pair",{"#tuple":["::kernel::type::Integer","::kernel::type::String"]},{"#tuple":[{"#literal":1},{"#literal":"x"}]}]',
-    );
-    // oxlint-disable-next-line unicorn/no-useless-undefined -- explicitly absent defaults must behave like omitted defaults
-    expect(emit(Structural.input("count", BigInt, undefined))).toBe(
-      emit(count),
-    );
   });
 });
 

@@ -2,8 +2,8 @@ import {
   computeTokenSlotLayout,
   createTokenRegionViews,
   encodeTokenToBytes,
-} from "../simulation/engine/token-layout";
-import { defaultTokenAttributeValue } from "../simulation/engine/token-values";
+} from "../tokens/token-layout";
+import { defaultTokenAttributeValue } from "../tokens/token-values";
 import { ACTUAL_MODE_TIMELINE_TICK_MS } from "./constants";
 import {
   getActualModeMarkingAtTransitionFiringIndex,

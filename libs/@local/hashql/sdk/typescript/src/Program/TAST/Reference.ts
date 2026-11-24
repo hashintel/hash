@@ -1,10 +1,7 @@
-import { Array, Pipeable, Result, pipe } from "effect";
+import { Array, Pipeable } from "effect";
 
-import * as Overflow from "../../internal/overflow.js";
 import * as Referential from "../../internal/referential.js";
 import * as JExpr from "../../JExpr/index.js";
-import * as ProgramError from "../ProgramError.js";
-import { compile } from "./TypeNode.js";
 
 import type { TypeNode } from "./TypeNode.js";
 
@@ -61,35 +58,12 @@ export class Reference
       return { _tag: "Reference", path: this.path };
     }
 
-    // `apply` checked this path when it made the node, so `make` does not throw here.
+    // The builders check a path and an argument's syntax where each enters the tree. `disableChecks` skips checking them again and still builds the segment and argument instances.
     return {
       _tag: "Reference",
-      path: JExpr.Path.make(applied(this.path, arguments_)),
+      path: JExpr.Path.make(applied(this.path, arguments_), {
+        disableChecks: true,
+      }),
     };
   }
 }
-
-// Arguments can hold syntax that nothing has checked, such as a type expression made from host syntax. Checking the applied path here turns an invalid argument into a construction failure instead of a throw.
-const makePath = Overflow.makeResult(JExpr.Path.Schema);
-
-/**
- * Applies generic arguments to a named type, after checking the path they make.
- *
- * `reference` is the binding the path's first segment resolves to, when the program binds it.
- *
- * An argument whose syntax the path schema refuses returns a {@link ProgramError.Construction} with the `InvalidExpression` reason.
- */
-// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- applies arguments to the path that names the type
-export const apply = (
-  path: JExpr.Path.Path,
-  arguments_: readonly TypeNode.Any[],
-  reference?: Referential.ReferenceId,
-): Result.Result<Reference, ProgramError.Construction> =>
-  pipe(
-    applied(path, Array.map(arguments_, compile)),
-    makePath,
-    Result.mapBoth({
-      onFailure: (cause) => ProgramError.Construction.invalidExpression(cause),
-      onSuccess: () => new Reference(path, arguments_, reference),
-    }),
-  );

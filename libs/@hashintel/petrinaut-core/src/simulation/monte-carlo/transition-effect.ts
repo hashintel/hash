@@ -1,4 +1,3 @@
-import { SDCPNItemError } from "../../errors";
 import {
   executeBufferKernel,
   fillInputCounts,
@@ -11,6 +10,7 @@ import {
   firstWeightedMarkingIndices,
 } from "../engine/enumerate-weighted-markings";
 import { nextRandom } from "../engine/seeded-rng";
+import { SDCPNItemError } from "../sdcpn-item-error";
 import { getPlaceIndex } from "./layout";
 
 import type { CompiledTransition } from "../engine/types";

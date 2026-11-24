@@ -27,6 +27,8 @@ const {
 const integer = Result.getOrThrow(Structural.type(BigInt));
 const string = Result.getOrThrow(Structural.type(String));
 const outside = Expression.input("outside", integer);
+/** An array whose length TypeScript does not know, which no shorthand site accepts. */
+const labels: readonly string[] = ["a"];
 
 /** A struct with one integer field, `foo`. */
 type Box = Type.Struct<{ readonly foo: Type.PrimitiveInteger }>;
@@ -85,6 +87,46 @@ const unrestricted = (
     >
   >();
   return $.literal(true);
+};
+
+/** A callback over the unrestricted context that binds and branches on structural shorthand. */
+const unrestrictedShorthand = (
+  $: Context.Context<Program.Scope.Scope.Empty>,
+): void => {
+  expectTypeOf($.let("row", { outside, pair: [1n, "x"] })).toEqualTypeOf<
+    Program.Expression.Expression<
+      Type.Struct<{
+        readonly outside: Type.PrimitiveInteger;
+        readonly pair: Type.Tuple<
+          readonly [Type.PrimitiveInteger, Type.PrimitiveString]
+        >;
+      }>,
+      { readonly outside: Type.PrimitiveInteger }
+    >
+  >();
+  const choice = $.if(true, {
+    then: () => ({ total: outside }),
+    else: () => ({ total: 1n }),
+  });
+  expectTypeOf<Program.Expression.Value.Type<typeof choice>>().toEqualTypeOf<
+    Type.Struct<{ readonly total: Type.PrimitiveInteger }>
+  >();
+  // @ts-expect-error an array of unknown length has no tuple descriptor
+  $.let("labels", labels);
+  // @ts-expect-error an annotation does not give an array of unknown length a descriptor
+  $.let("labels", labels, [String]);
+  $.if(true, {
+    // @ts-expect-error a branch cannot return an array of unknown length
+    then: () => labels,
+    else: () => ["a"],
+  });
+  $.if(true, {
+    then: () => ["a"],
+    // @ts-expect-error an else branch cannot return an array of unknown length
+    else: () => labels,
+  });
+  // @ts-expect-error a then-only branch cannot return an array of unknown length
+  $.if(true, { then: () => ({ labels }) });
 };
 
 /** A prelude whose `types` record is optional. */
@@ -218,6 +260,74 @@ describe("program", () => {
     Draft.withPrelude({ values: { [key]: Expression.integer(1) } });
   });
 
+  test("structural_values", () => {
+    const result = Draft.program({ count: BigInt }, ($, { count }) => {
+      const row = $.let("row", { count, pair: [1n, "x"] });
+      expectTypeOf(row).toEqualTypeOf<
+        Program.Expression.Expression<
+          Type.Struct<{
+            readonly count: Type.PrimitiveInteger;
+            readonly pair: Type.Tuple<
+              readonly [Type.PrimitiveInteger, Type.PrimitiveString]
+            >;
+          }>,
+          { readonly count: Type.PrimitiveInteger }
+        >
+      >();
+      // @ts-expect-error a record field reads an input the schema does not declare
+      $.let("escaped", { outside });
+      $.if(true, {
+        // @ts-expect-error a branch's record reads an input the schema does not declare
+        then: () => ({ outside }),
+        else: () => ({ outside: 1n }),
+      });
+      return { total: row.count, ready: true };
+    });
+    expectTypeOf(Result.getOrThrow(result)).toEqualTypeOf<
+      Program.Expression.Expression<
+        Type.Struct<{
+          readonly total: Type.PrimitiveInteger;
+          readonly ready: Type.PrimitiveBoolean;
+        }>,
+        { readonly count: Type.PrimitiveInteger }
+      >
+    >();
+    expectTypeOf(Result.getOrThrow(Draft.program({}, () => 1n))).toEqualTypeOf<
+      Program.Expression.Expression<Type.PrimitiveInteger, Program.Inputs.Empty>
+    >();
+    // @ts-expect-error a record root reads an input the schema does not declare
+    Draft.program({}, () => ({ outside }));
+  });
+
+  test("variable_length_arrays", () => {
+    const result = Draft.program({}, ($) => {
+      // @ts-expect-error an array of unknown length has no tuple descriptor
+      $.let("labels", labels);
+      // @ts-expect-error an annotation does not give an array of unknown length a descriptor
+      $.let("labels", labels, [String]);
+      // @ts-expect-error a nested array of unknown length has no tuple descriptor
+      $.let("row", { pair: [1n, labels] });
+      $.if(true, {
+        then: () => ["a"],
+        // @ts-expect-error a branch cannot return an array of unknown length
+        else: () => labels,
+      });
+      // @ts-expect-error a then-only branch cannot return an array of unknown length
+      $.if(true, { then: () => ({ labels }) });
+      return $.let("pair", [1n, "x"]);
+    });
+    expectTypeOf(Result.getOrThrow(result)).toEqualTypeOf<
+      Program.Expression.Expression<
+        Type.Tuple<readonly [Type.PrimitiveInteger, Type.PrimitiveString]>,
+        Program.Inputs.Empty
+      >
+    >();
+    // @ts-expect-error the root cannot be an array of unknown length
+    Draft.program({}, () => labels);
+    // @ts-expect-error the root cannot hold an array of unknown length
+    Draft.program({}, () => ({ labels }));
+  });
+
   test("nominal_identity", () => {
     Draft.program({ count: integer }, ($, inputs) => {
       const Foo = $.newtype("Foo", { foo: BigInt });
@@ -332,6 +442,45 @@ describe("construction", () => {
     expectTypeOf(
       Draft.program(schema, ($, inputs) => next($, inputs)),
     ).toEqualTypeOf<Result.Result<Next, Program.ProgramError.Construction>>();
+  });
+
+  test("unrestricted_shorthand", () => {
+    expectTypeOf(unrestrictedShorthand);
+  });
+
+  test("structural_constructors", () => {
+    Draft.program({ count: BigInt }, ($, { count }) => {
+      expectTypeOf($.struct).toEqualTypeOf<typeof Structural.struct>();
+      expectTypeOf($.tuple).toEqualTypeOf<typeof Structural.tuple>();
+      expectTypeOf($.list).toEqualTypeOf<typeof Structural.list>();
+      expectTypeOf($.dict).toEqualTypeOf<typeof Structural.dict>();
+      const point = $.struct({ count });
+      expectTypeOf(point).toEqualTypeOf<
+        Program.Expression.Expression<
+          Type.Struct<{ readonly count: Type.PrimitiveInteger }>,
+          { readonly count: Type.PrimitiveInteger }
+        >
+      >();
+      // @ts-expect-error a struct field reads an input the schema does not declare
+      $.let("escaped", $.struct({ outside }));
+      return $.if(true, {
+        then: (branch) => {
+          // @ts-expect-error a list member reads an input the schema does not declare
+          branch.let("escaped", branch.list(BigInt, [outside]));
+          return branch.tuple([point, 1n]);
+        },
+      });
+    });
+  });
+
+  test("type_assertion", () => {
+    Draft.program({ count: BigInt }, ($, { count }) => {
+      expectTypeOf($.as).toEqualTypeOf<typeof Expression.as>();
+      const { Number: NumberType } = $.prelude();
+      // @ts-expect-error an asserted value keeps reading an input the schema does not declare
+      $.let("escaped", $.as(outside, NumberType));
+      return $.if(true, { then: (branch) => branch.as(count, NumberType) });
+    });
   });
 
   test("escaped_conditional", () => {
@@ -815,6 +964,37 @@ describe("requirements", () => {
       });
       return $.literal(true);
     });
+  });
+
+  test("structural_erasure", () => {
+    const wide: Program.Structural.Value.Any = outside;
+    const wideRecord: Readonly<Record<string, Program.Structural.Value.Any>> = {
+      outside,
+    };
+    expectTypeOf<
+      Program.Structural.Value.Requirements<Program.Structural.Value.Any>
+    >().toEqualTypeOf<Program.Inputs.Erased>();
+    expectTypeOf<
+      Program.Structural.Value.Requirements<{
+        readonly field: Program.Structural.Value.Any;
+      }>
+    >().toEqualTypeOf<Program.Inputs.Erased>();
+    expectTypeOf<
+      Program.Structural.Value.Requirements<
+        readonly [Program.Structural.Value.Any, bigint]
+      >
+    >().toEqualTypeOf<Program.Inputs.Erased>();
+    Draft.program({ outside: integer }, ($) => {
+      // @ts-expect-error a wide value cannot show which inputs it needs
+      $.let("wide", wide);
+      // @ts-expect-error a wide record cannot either
+      $.let("record", wideRecord);
+      // @ts-expect-error a record holding a wide value cannot either
+      $.let("nested", { field: wide });
+      return true;
+    });
+    // @ts-expect-error a root holding a wide value cannot prove the schema contract
+    Draft.program({ outside: integer }, () => ({ field: wide }));
   });
 
   test("schema_alternatives", () => {

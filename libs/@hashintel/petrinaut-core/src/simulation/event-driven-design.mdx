@@ -4,6 +4,12 @@ description: Analysis of the fixed-step engines and the design for an event-driv
 sidebar_order: 30
 ---
 
+This note is the design as it was proposed, and "today" in it means the code
+of that time. The event trace has been built since:
+[Event worker protocol and demand](doc:core.simulation.event-trace.worker/protocol)
+describes it as the code is. The frame runtime the note starts from,
+`createSimulation` with its worker, has been removed.
+
 Quick Simulation today produces one frame per fixed time step `dt`. This
 document proposes that it produces a **trace of events** instead: one record
 per transition firing, carrying the firing time, the tokens it consumed and
@@ -118,7 +124,7 @@ item below is a defect of the approximation, with the evidence.
    estimates 10 to 100 times fewer steps for nets whose firings are sparse
    relative to `dt`.
 7. **Every frame is a full snapshot**, retained three times on the interactive
-   path ([Memory model](doc:core.simulation/memory-model)).
+   path.
 
 [FE-1499](https://linear.app/hash/issue/FE-1499/stochastic-transitions-fire-at-inflated-non-exponential-rates)
 fixed the earlier inflated firing test; items 1 to 3 are what the per-step
@@ -205,7 +211,7 @@ the net and never stored:
   stochasticity extension is on, or when a place runs dynamics: colours and
   dynamics are on, the place has a colour with a `real` attribute, its
   switch is on and it lists an equation.
-- Every other net is **untimed**. A subnet counts whether or not an instance
+- Every other net is **untimed**. A component counts whether or not an instance
   uses it.
 
 `netTimeOf` in `net-class.ts` reads the structure alone and compiles no
@@ -223,7 +229,7 @@ step produces arrive together at its end. This is the step of
 fixed-step engine gives it, and it is a step in the sense of a Petri net's
 step semantics: a set of transitions fired together.
 
-The step stepper (`event-trace/worker/step-stepper.ts`) is a third
+The step stepper (`steppers/step-stepper.ts`) is a third
 `RunStepper`. It records one event per step, and the event's `time` is the
 number of the step. The trace, its store and playback are unchanged, because
 a position is a number either way. `EventSimulation.clock` says what the
@@ -363,7 +369,7 @@ The eighth is an untimed uncoloured net with a predicate that calls
 
 Other properties of a net decide who can compute a run, and how fast, and
 change nothing in how it reads: whether its places are bounded, whether it
-has subnets, the class of each place's dynamics (`classifyDynamics`), and
+has components, the class of each place's dynamics (`classifyDynamics`), and
 whether the shader takes it (`assessGpuEligibility`). They stay with the
 simulator that asks.
 
@@ -557,7 +563,7 @@ interactive trace.
 ### Prototype: the adaptive solver
 
 The adaptive stepper
-(`event-trace/worker/adaptive-stepper.ts`, the **JS adaptive** simulator in
+(`steppers/adaptive-stepper.ts`, the **JS adaptive** simulator in
 Simulation Settings) is the first cut of the flow regime, built to measure before the
 hazard integration above lands. One step spans at most the reference
 interval and ends at a firing or at the span's end:
@@ -571,14 +577,14 @@ interval and ends at a firing or at the span's end:
   inside the span fires at the instant it does, located by bisection that
   re-integrates from the span start rather than by dense output.
 - **Each place integrates by the class of its equation**, read off the
-  dynamics HIR (`solver/classify-dynamics.ts`): a callback that reads only
+  dynamics HIR (`steppers/solver/classify-dynamics.ts`): a callback that reads only
   its own token is _independent_ and every token takes the steps its own
   dynamics need; one whose derivatives are affine in the token's real
   attributes with run-constant coefficients is _affine_ and advances exactly
   through the propagator `exp([[A, b], [0, 0]] h)`; anything else, the token
   index included, is _coupled_ and the place integrates as one system.
   Without the HIR every place is coupled.
-- **Dormand-Prince 5(4)** with proportional step control (`solver/rk45.ts`)
+- **Dormand-Prince 5(4)** with proportional step control (`steppers/solver/rk45.ts`)
   does the integrating, the user's **Max error** serving as both the
   relative and the absolute tolerance. Steps forced through at the smallest
   step the control allows, a discontinuous derivative's signature, are
@@ -621,8 +627,9 @@ advances `H_T` by `Λ_T · dt` per step and counts the thresholds crossed sees
 the same Poisson path, so the two engines produce the same trajectory up to
 discretisation error, which is what makes a parity test between them sharp.
 The GPU keeps independent Poisson draws (next section) and agrees in
-distribution only, which the `Dev / GpuParity` harness already measures
-between CPU and GPU.
+distribution only, which the GPU parity harness already measures between CPU
+and GPU ([Simulation performance](doc:core.simulation/performance) says how to
+run it).
 
 ### Cost
 
@@ -727,7 +734,7 @@ the trace keeps events and makes the grid a view.
 ### As built: simulators
 
 The contract that exists in code is the
-[simulators layer](layer:core.simulation.simulators). It replaces the
+[simulators layer](layer:core.simulators). It replaces the
 simulation backend contract proposed in the next section, which is kept for
 the reasoning behind it.
 
@@ -885,9 +892,11 @@ type SimulationHandle = {
 engine takes its step from a backend option at construction, the same way
 the GPU backend takes its ODE method. `demand` replaces `ack`: the consumer
 names the time it wants computed, the backend runs until its trace covers it
-and then waits, which is the backpressure contract of
-[Worker protocol and backpressure](doc:core.simulation.worker/protocol) with time in
-place of frame counts.
+and then waits. That is the contract of the frame worker this note started
+from, which waited for an `ack` of the frames it had sent, with time in place
+of frame counts.
+[Event worker protocol and demand](doc:core.simulation.event-trace.worker/protocol)
+states the demand as it is built.
 
 The worker protocol gains `events` batches in place of `frames`, a
 `getState` request and response, and `sampleStates`. The transport, the

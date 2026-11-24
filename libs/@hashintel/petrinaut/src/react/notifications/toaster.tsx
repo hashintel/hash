@@ -1,21 +1,11 @@
 import { Portal } from "@ark-ui/react/portal";
-import {
-  Toast,
-  Toaster as ArkToaster,
-  createToaster,
-} from "@ark-ui/react/toast";
+import { Toast, Toaster as ArkToaster } from "@ark-ui/react/toast";
 
 import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { notificationsToaster } from "./notifications-toaster";
 import { CopyDetailsButton } from "./toaster/copy-details-button";
-
-export const notificationsToaster = createToaster({
-  gap: 8,
-  offsets: "16px",
-  placement: "bottom-end",
-  removeDelay: 200,
-});
 
 const toastRootStyle = css({
   translate: "[var(--x, 0) var(--y, 0)]",

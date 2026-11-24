@@ -1,6 +1,7 @@
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
+import type { TriggerKind } from "./flow-triggers";
 import type { IconName } from "@hashintel/ds-components";
 import type {
   ActionDefinition,
@@ -196,6 +197,11 @@ export const startDisplay = {
   icon: IconName;
   tone: StepTone;
 };
+
+export const triggerDisplays = {
+  manual: { title: "Manual", icon: "user" },
+  schedule: { title: "Schedule", icon: "calendar" },
+} as const satisfies Record<TriggerKind, { title: string; icon: IconName }>;
 
 /** `group` is `undefined` for an action that can't be added, which belongs to no group. */
 export const getStepDisplay = (

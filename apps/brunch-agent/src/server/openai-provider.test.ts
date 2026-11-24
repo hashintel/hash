@@ -23,8 +23,9 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-test("the default model is the dated snapshot this provider adds", () => {
-  expect(DEFAULT_CHAT_MODEL).toBe(`openai/${snapshotId}`);
+test("the default model is Pi's own entry, and the dated snapshot is this provider's addition", () => {
+  expect(DEFAULT_CHAT_MODEL).toBe("openai/gpt-6.1-sol");
+  expect(occurrences(openaiProvider().getModels(), "gpt-6.1-sol")).toBe(1);
   expect(occurrences(openaiProvider().getModels(), snapshotId)).toBe(0);
 });
 
@@ -81,6 +82,11 @@ describe("every catalogue read Pi and Flue expose resolves the snapshot exactly 
   test("Flue model resolution", () => {
     setProvider(openaiProviderWithAddedModels());
     expect(resolveModel(DEFAULT_CHAT_MODEL)).toMatchObject({
+      provider: "openai",
+      id: "gpt-6.1-sol",
+      api: "openai-responses",
+    });
+    expect(resolveModel(`openai/${snapshotId}`)).toMatchObject({
       provider: "openai",
       id: snapshotId,
       api: "openai-responses",

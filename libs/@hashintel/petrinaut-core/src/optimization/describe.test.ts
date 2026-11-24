@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { createOptimizationManifest } from "../shared/optimization-manifest.fixtures";
 import {
   deriveOptimizationTrialSeeds,
   describeOptimization,
   resolveTrialScenarioBindings,
   resolveTrialScenarioParameterValues,
 } from "./describe";
+import { createOptimizationManifest } from "./optimization-manifest.fixtures";
 
 describe("describeOptimization", () => {
   it("reports the direction, the seeded study and only the optimized parameters", () => {

@@ -504,6 +504,12 @@ export type AcceptedKinds<ActionInputs, Input> = Input extends {
     : never;
 
 /**
+ * How much room a value typed for an input takes in the flow editor: `short` fits beside its label, `medium` is a few
+ * lines beside it, and `long` takes a line of its own.
+ */
+export type InputSize = "short" | "medium" | "long";
+
+/**
  * An action's input: the kinds it accepts, or the kind connected to another input (see `KindFrom`).
  */
 export type InputDefinition = {
@@ -512,6 +518,11 @@ export type InputDefinition = {
   array: boolean;
   required: boolean;
   default?: Payload;
+  /**
+   * How much room a value typed for it takes in the editor, where its kind doesn't settle that (see `getInputSize`).
+   * Only the editor reads it.
+   */
+  size?: InputSize;
 } & ({ oneOfPayloadKinds: readonly PayloadKind[] } | KindFrom);
 
 /**
@@ -626,10 +637,13 @@ type StepDefinitionBase = {
   /** Where an editor shows the step. Nothing that runs or compiles a flow reads it. */
   position?: { x: number; y: number };
   /**
-   * Steps this step starts after, a line drawn in the editor. Only sets order: the step's values still come from its
-   * inputs. A skipped step counts as finished.
+   * Steps this step starts after, each a line drawn in the editor. The step's values still come from its inputs.
+   *
+   * With `outputName`, the line is that output's path, such as an If's `true`. A run follows a line once its step
+   * has finished, unless that step was skipped or didn't give the path's output. The step waits until every step it
+   * runs after is finished or skipped, then runs if at least one line was followed, and is skipped otherwise.
    */
-  runAfter?: { stepId: string }[];
+  runAfter?: { stepId: string; outputName?: string }[];
 };
 
 export type ActionStepDefinition<
@@ -645,6 +659,8 @@ export type ActionStepDefinition<
   /** The source of each of the action's inputs that is connected, by input name. */
   inputs: Record<string, StepInputSource>;
   retryCount?: number;
+  /** Names given to the step's paths, by output name, e.g. `{ true: "Over budget" }`. Only an editor reads them. */
+  pathNames?: Record<string, string>;
 };
 
 /**

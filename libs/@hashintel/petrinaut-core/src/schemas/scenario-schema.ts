@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { petrinautIdSchema } from "../petrinaut-id";
-import { adHocScenarioStateSchema } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-state-schema";
+import { petrinautIdSchema } from "../document/petrinaut-id";
+import { adHocScenarioStateSchema } from "../scenario/ad-hoc/ad-hoc-state-schema";
 import { displayNameSchema } from "../validation/display-name";
 import { isDangerousRecordKey } from "../validation/record-keys";
 import { idSchema } from "./entity-schemas";

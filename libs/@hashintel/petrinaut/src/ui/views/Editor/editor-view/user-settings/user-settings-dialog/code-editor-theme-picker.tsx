@@ -1,6 +1,6 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { CODE_FONT_FAMILY } from "../../../../../constants/ui";
+import { CODE_FONT_FAMILY } from "../../../../../shared/ui-constants";
 import { themePreview } from "./code-editor-theme-picker/theme-preview";
 
 import type { RegisteredCodeEditorTheme } from "../../../../../monaco/code-editor-themes";

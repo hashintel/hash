@@ -1,6 +1,6 @@
 /**
  * The check on a net's ports: a port that declares a direction is used that
- * way by its own subnet.
+ * way by its own component.
  */
 
 import {
@@ -11,20 +11,20 @@ import {
 
 import type { ID, SDCPN } from "../types/sdcpn";
 
-/** A port whose subnet uses it against the direction it declares. */
+/** A port whose component uses it against the direction it declares. */
 export type PortProblem = {
   kind: "port";
-  subnetId: ID;
+  componentId: ID;
   placeId: ID;
   severity: "warning";
   message: string;
 };
 
-/** The ports whose declared direction their subnet's arcs contradict. */
+/** The ports whose declared direction their component's arcs contradict. */
 export const checkPorts = (sdcpn: SDCPN): PortProblem[] =>
-  (sdcpn.subnets ?? []).flatMap((subnet) => {
-    const usageOf = portUsages(subnet);
-    return subnet.places.flatMap((place) => {
+  (sdcpn.components ?? []).flatMap((component) => {
+    const usageOf = portUsages(component);
+    return component.places.flatMap((place) => {
       if (!place.isPort || place.portDirection === undefined) {
         return [];
       }
@@ -37,10 +37,10 @@ export const checkPorts = (sdcpn: SDCPN): PortProblem[] =>
       return [
         {
           kind: "port" as const,
-          subnetId: subnet.id,
+          componentId: component.id,
           placeId: place.id,
           severity: "warning" as const,
-          message: `Port ${place.name} of ${subnet.name} is declared ${describePortDirection(place.portDirection)}, but a transition of ${subnet.name} ${against} it.`,
+          message: `Port ${place.name} of ${component.name} is declared ${describePortDirection(place.portDirection)}, but a transition of ${component.name} ${against} it.`,
         },
       ];
     });

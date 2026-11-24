@@ -45,13 +45,13 @@ vi.mock("../views/SDCPN/sdcpn-view", async () => {
 
 /* The timelines' chart needs a browser's canvas. */
 vi.mock(
-  "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/chart",
+  "../views/Editor/panels/BottomPanel/subviews/timeline/actual-timeline/chart",
   () => ({ UPlotChart: () => <div>Chart</div> }),
 );
 
 // uPlot reads the device pixel ratio as it loads, which jsdom cannot answer.
 vi.mock(
-  "../views/Editor/panels/BottomPanel/subviews/event-timeline/chart",
+  "../views/Editor/panels/BottomPanel/subviews/timeline/run-timeline/chart",
   () => ({ EventTimelineChart: () => <div>Event chart</div> }),
 );
 
@@ -124,6 +124,21 @@ describe("PetrinautPreview", () => {
     expect(
       screen.queryByRole("region", { name: "Execution timeline" }),
     ).toBeNull();
+  });
+
+  it("draws its icons from the set the editor uses", () => {
+    render(
+      <PetrinautPreview
+        definition={definition}
+        fullViewUrl="https://example.com/model"
+      />,
+    );
+
+    const fullViewIcon = screen
+      .getByRole("link", { name: "Open full view" })
+      .querySelector("svg");
+
+    expect(fullViewIcon?.getAttribute("data-icon")).toBe("externalLink");
   });
 
   it("opens an execution in Actual mode on its latest frame, with its timeline", async () => {

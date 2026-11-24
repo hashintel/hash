@@ -139,11 +139,11 @@ test("puts only resumable view parameters in the query, with the document in the
     snapshotUrl("https://demo.petrinaut.org", hash, {
       mode: "simulate",
       view: "scenarios",
-      subnet: "subnet / α",
+      component: "component / α",
     }),
   );
   expect(url.pathname).toBe("/share");
   expect(url.hash).toBe(`#${hash}`);
-  expect(url.searchParams.get("subnet")).toBe("subnet / α");
+  expect(url.searchParams.get("component")).toBe("component / α");
   expect(new URL(snapshotUrl(url.origin, hash)).search).toBe("");
 });

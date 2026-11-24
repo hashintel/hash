@@ -20,6 +20,7 @@ import { RunGlyph } from "../@/[shortname]/flows/[flow-def-id]/edit.page/shared/
 import {
   getRunState,
   runStates,
+  runStateMarks,
 } from "../@/[shortname]/flows/[flow-def-id]/edit.page/shared/run-state";
 import { formatRunTime } from "../@/[shortname]/flows/[flow-def-id]/edit.page/shared/run-times";
 import { flowDefinitionsQuery } from "../shared/use-flow-definitions";
@@ -30,8 +31,6 @@ import type {
   GetFlowDefinitionRunsQuery,
   GetFlowDefinitionRunsQueryVariables,
 } from "../../graphql/api-types.gen";
-import type { RunState } from "../@/[shortname]/flows/[flow-def-id]/edit.page/shared/run-state";
-import type { StepState } from "../@/[shortname]/flows/[flow-def-id]/edit.page/shared/step-states";
 import type { EntityId } from "@blockprotocol/type-system";
 
 /** A flow as the table shows it. */
@@ -55,17 +54,6 @@ const runsPageSize = 10;
 
 /** As the Logs tab polls a flow's runs. */
 const refreshInterval = 10_000;
-
-/* A run is marked with the glyph of the step state it looks like, as on the canvas. */
-const runGlyphStates: Record<RunState, StepState> = {
-  running: "running",
-  needsReview: "needsReview",
-  completed: "done",
-  failed: "failed",
-  timedOut: "failed",
-  cancelled: "skipped",
-  unknown: "notReached",
-};
 
 const box = css({
   borderWidth: "1px",
@@ -206,7 +194,7 @@ const LastRun = ({
     <span className={lastRun}>
       <Tooltip content={label}>
         <span className={runMark}>
-          <RunGlyph state={runGlyphStates[state]} label={label} />
+          <RunGlyph state={runStateMarks[state]} label={label} />
         </span>
       </Tooltip>
       <span>

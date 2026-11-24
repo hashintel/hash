@@ -2,29 +2,42 @@
  * The checks on interfaces and their implementations: an interface has no
  * body and implements no interface, an implementation has every port and
  * parameter its interfaces declare with the same token type and a compatible
- * direction, the document has one default per interface, every instance of
- * an interface has an implementation to run, and no component runs inside
- * itself.
+ * direction, the document has one default per interface, every instance
+ * names a component its library has, every instance of an interface has an
+ * implementation to run, and no component runs inside itself.
  */
 
 import { colorsStructurallyEqual } from "./fusions";
 import {
+  bindingKey,
+  bindsWithinDocument,
+  componentKey,
+  defaultImplementation,
   describeUnboundInstance,
   hasBody,
+  implementsInterface,
   indexDocument,
-  indexSubnet,
+  indexComponent,
   isInterface,
   mapInterfaceParameters,
   mapInterfacePorts,
   once,
+  resolveComponent,
   resolveImplementation,
   type DocumentIndex,
   type ImplementationBinding,
-  type SubnetIndex,
+  type ComponentIndex,
 } from "./interfaces";
 import { describePortDirection, effectivePortDirections } from "./ports";
 
-import type { ID, PortDirection, SDCPN, Subnet } from "../types/sdcpn";
+import type {
+  Component,
+  ComponentReference,
+  ID,
+  PortDirection,
+  SDCPN,
+} from "../types/sdcpn";
+import type { ResolvedLibraries } from "./libraries";
 
 export type InterfaceProblemCode =
   | "interface-has-body"
@@ -36,18 +49,19 @@ export type InterfaceProblemCode =
   | "missing-parameter"
   | "parameter-type-mismatch"
   | "duplicate-default"
+  | "missing-component"
   | "unbound-instance"
   | "component-cycle";
 
 export type InterfaceProblem = {
   kind: "interface";
   /**
-   * The subnet the problem is on: the interface or the implementation, or
+   * The component the problem is on: the interface or the implementation, or
    * for an instance the net that holds it, `null` for the root net. `null`
    * too for a default of the document whose interface does not exist.
    */
-  subnetId: ID | null;
-  /** The instance, for a problem with an instance's binding. */
+  componentId: ID | null;
+  /** The instance, for a problem with an instance's component or binding. */
   instanceId?: ID;
   code: InterfaceProblemCode;
   severity: "error" | "warning";
@@ -55,13 +69,13 @@ export type InterfaceProblem = {
 };
 
 /**
- * A function that adds a problem to `problems`, on a subnet or on an instance
- * and the net that holds it: an error unless it is told otherwise.
+ * A function that adds a problem to `problems`, on a component or on an
+ * instance and the net that holds it: an error unless it is told otherwise.
  */
 const reporter =
   (
     problems: InterfaceProblem[],
-    on: Pick<InterfaceProblem, "subnetId" | "instanceId">,
+    on: Pick<InterfaceProblem, "componentId" | "instanceId">,
   ) =>
   (
     code: InterfaceProblemCode,
@@ -75,14 +89,14 @@ const reporter =
  * What the check reads of an implementation: its index, and the directions
  * of its ports, read off its arcs once, when first asked for.
  */
-type ImplementationIndex = SubnetIndex & {
+type ImplementationIndex = ComponentIndex & {
   directions: () => ReadonlyMap<ID, PortDirection>;
 };
 
 /** A caller that holds the implementation's index already hands it over as `index`. */
 export const indexImplementation = (
-  implementation: Subnet,
-  index: SubnetIndex = indexSubnet(implementation),
+  implementation: Component,
+  index: ComponentIndex = indexComponent(implementation),
 ): ImplementationIndex => ({
   ...index,
   directions: once(() => effectivePortDirections(implementation)),
@@ -90,17 +104,17 @@ export const indexImplementation = (
 
 /**
  * Where `implementation` falls short of what `iface` declares. A caller that
- * checks one subnet in many pairs hands each call that subnet's index, so its
+ * checks one component in many pairs hands each call that component's index, so its
  * lists and arcs are read once.
  */
 export const checkImplementation = (
-  implementation: Subnet,
-  iface: Subnet,
+  implementation: Component,
+  iface: Component,
   index: ImplementationIndex = indexImplementation(implementation),
-  interfaceIndex: SubnetIndex = indexSubnet(iface),
+  interfaceIndex: ComponentIndex = indexComponent(iface),
 ): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
-  const report = reporter(problems, { subnetId: implementation.id });
+  const report = reporter(problems, { componentId: implementation.id });
 
   // The pairs the flattener wires, so the check and the run cannot differ.
   const ports = mapInterfacePorts(interfaceIndex, index);
@@ -163,15 +177,15 @@ export const checkImplementation = (
 };
 
 /**
- * Numbers the groups of subnets that run each other: two share a number when
- * each is reached from the other along `runs`, the subnets each one's
- * instances run. Tarjan's algorithm, which visits every subnet once.
+ * Numbers the groups of components that run each other: two share a number when
+ * each is reached from the other along `runs`, the components each one's
+ * instances run. Tarjan's algorithm, which visits every component once.
  */
 const cycleGroups = (runs: ReadonlyMap<ID, readonly ID[]>): Map<ID, number> => {
   const visited = new Map<ID, number>();
   const groups = new Map<ID, number>();
   const stack: ID[] = [];
-  /** The earliest visit among the subnets `id` reaches that are in no group yet. */
+  /** The earliest visit among the components `id` reaches that are in no group yet. */
   const visit = (id: ID): number => {
     const order = visited.size;
     visited.set(id, order);
@@ -202,53 +216,58 @@ const cycleGroups = (runs: ReadonlyMap<ID, readonly ID[]>): Map<ID, number> => {
   return groups;
 };
 
-/** The subnet that runs for `binding`, without the id maps `runningSubnet` builds. */
+/** The component that runs for `binding`, without the id maps `runningComponent` builds. */
 const runningOf = (
   binding: Exclude<ImplementationBinding, { kind: "unbound" }>,
-): Subnet =>
-  binding.kind === "component" ? binding.subnet : binding.implementation;
+): Component =>
+  binding.kind === "component" ? binding.component : binding.implementation;
 
 /**
- * What `subnet` declares: an interface has no body and implements nothing,
+ * What `component` declares: an interface has no body and implements nothing,
  * and what a component implements is an interface it lives up to.
  */
 const checkDeclarations = (
-  subnet: Subnet,
+  component: Component,
   index: DocumentIndex,
 ): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
-  const report = reporter(problems, { subnetId: subnet.id });
+  const report = reporter(problems, { componentId: component.id });
   // A list may name an interface twice: its shortfall is reported once.
-  const implemented = new Set(subnet.implements);
-  if (isInterface(subnet)) {
-    if (hasBody(subnet)) {
+  const implemented = new Set(component.implements);
+  if (isInterface(component)) {
+    if (hasBody(component)) {
       report(
         "interface-has-body",
-        `${subnet.name} is an interface but holds transitions or instances; an interface is ports and parameters alone.`,
+        `${component.name} is an interface but holds transitions or instances; an interface is ports and parameters alone.`,
       );
     }
     if (implemented.size > 0) {
       report(
         "interface-implements",
-        `${subnet.name} is an interface but says it implements one; an interface cannot implement an interface.`,
+        `${component.name} is an interface but says it implements one; an interface cannot implement an interface.`,
       );
     }
     // With no body to run, it is not held to what it says it implements.
     return problems;
   }
-  const own = indexImplementation(subnet, index.subnetIndex(subnet));
+  const own = indexImplementation(component, index.componentIndex(component));
   for (const interfaceId of implemented) {
-    const iface = index.subnetsById.get(interfaceId);
+    const iface = index.componentsById.get(interfaceId);
     if (iface && isInterface(iface)) {
       problems.push(
-        ...checkImplementation(subnet, iface, own, index.subnetIndex(iface)),
+        ...checkImplementation(
+          component,
+          iface,
+          own,
+          index.componentIndex(iface),
+        ),
       );
     } else {
       report(
         "unknown-interface",
         iface
-          ? `${subnet.name} implements ${iface.name}, which is not an interface.`
-          : `${subnet.name} implements an interface that does not exist.`,
+          ? `${component.name} implements ${iface.name}, which is not an interface.`
+          : `${component.name} implements an interface that does not exist.`,
       );
     }
   }
@@ -258,17 +277,35 @@ const checkDeclarations = (
 /** The document's defaults: an interface has one entry at most. */
 const checkDefaults = (
   sdcpn: SDCPN,
-  subnetsById: ReadonlyMap<ID, Subnet>,
+  componentsById: ReadonlyMap<ID, Component>,
+  libraries: ResolvedLibraries | undefined,
 ): InterfaceProblem[] => {
-  const entryCounts = new Map<ID, number>();
-  for (const { interface: iface } of sdcpn.implementations ?? []) {
-    entryCounts.set(iface.id, (entryCounts.get(iface.id) ?? 0) + 1);
+  // In the order of the first entry for each interface, where it is reported.
+  const entries = new Map<
+    string,
+    { reference: ComponentReference; count: number }
+  >();
+  for (const { interface: reference } of sdcpn.implementations ?? []) {
+    const key = componentKey(reference);
+    const counted = entries.get(key);
+    if (counted) {
+      counted.count += 1;
+    } else {
+      entries.set(key, { reference, count: 1 });
+    }
   }
   const problems: InterfaceProblem[] = [];
-  for (const [interfaceId, count] of entryCounts) {
+  for (const { reference, count } of entries.values()) {
     if (count > 1) {
-      const iface = subnetsById.get(interfaceId);
-      reporter(problems, { subnetId: iface ? interfaceId : null })(
+      const iface = resolveComponent(
+        sdcpn,
+        reference,
+        libraries,
+        componentsById,
+      );
+      // Only a component of the document can be opened to show the problem.
+      const onDocument = iface !== undefined && reference.from === undefined;
+      reporter(problems, { componentId: onDocument ? reference.id : null })(
         "duplicate-default",
         `The document names ${count} default implementations for ${iface?.name ?? "an interface that does not exist"}: an interface has one, and the first applies.`,
       );
@@ -278,30 +315,54 @@ const checkDefaults = (
 };
 
 /**
- * What each instance is bound to: an instance of an interface has an
- * implementation to run, and no component runs inside itself.
+ * What each instance is bound to: its library has the component it names, an
+ * instance of an interface has an implementation to run, and no component
+ * runs inside itself.
  */
 const checkBindings = (
   sdcpn: SDCPN,
   index: DocumentIndex,
+  libraries: ResolvedLibraries | undefined,
 ): InterfaceProblem[] => {
-  // An instance of a subnet that does not exist is for other checks to report.
+  const problems: InterfaceProblem[] = [];
   const held = [
     { netId: null, instances: sdcpn.componentInstances },
-    ...(sdcpn.subnets ?? []).map((subnet) => ({
-      netId: subnet.id,
-      instances: subnet.componentInstances,
+    ...(sdcpn.components ?? []).map((component) => ({
+      netId: component.id,
+      instances: component.componentInstances,
     })),
   ].flatMap(({ netId, instances = [] }) =>
     instances.flatMap((instance) => {
-      const binding = resolveImplementation(sdcpn, instance, index);
-      return binding === null ? [] : [{ netId, instance, binding }];
+      const binding = resolveImplementation(sdcpn, instance, libraries, index);
+      if (binding !== null) {
+        return [{ netId, instance, binding }];
+      }
+      // An instance whose component does not resolve has no binding to
+      // check. A library that resolved does not have the component. One that
+      // failed is one problem already, of the imports, and one that is still
+      // resolving is none.
+      const { from, id } = instance.component;
+      if (from !== undefined && libraries?.has(from)) {
+        reporter(problems, { componentId: netId, instanceId: instance.id })(
+          "missing-component",
+          `${instance.name} names the component \`${id}\`, which the library \`${from}\` does not have.`,
+        );
+      }
+      return [];
     }),
   );
 
+  // A component of an import holds no instance, so no loop runs through one:
+  // only the document's own components are joined.
+  const inDocument = (component: Component) =>
+    index.componentsById.get(component.id) === component;
   const runs = new Map<ID, ID[]>();
   for (const { netId, binding } of held) {
-    if (netId !== null && binding.kind !== "unbound") {
+    if (
+      netId !== null &&
+      binding.kind !== "unbound" &&
+      inDocument(runningOf(binding))
+    ) {
       const ran = runs.get(netId) ?? [];
       ran.push(runningOf(binding).id);
       runs.set(netId, ran);
@@ -309,10 +370,13 @@ const checkBindings = (
   }
   const groups = cycleGroups(runs);
 
-  const problems: InterfaceProblem[] = [];
+  // What a binding across a library falls short of, checked once for the
+  // instances bound alike.
+  const shortfallsByBinding = new Map<string, InterfaceProblem[]>();
+
   for (const { netId, instance, binding } of held) {
     const report = reporter(problems, {
-      subnetId: netId,
+      componentId: netId,
       instanceId: instance.id,
     });
     if (binding.kind === "unbound") {
@@ -323,8 +387,32 @@ const checkBindings = (
       continue;
     }
     const running = runningOf(binding);
+    // A component that implements an interface of its document is held to it
+    // where it says so. Across a library the binding is all that says it.
+    const reference =
+      instance.implementation ??
+      defaultImplementation(sdcpn, instance.component, index.defaults);
+    if (
+      binding.kind === "bound" &&
+      reference &&
+      !bindsWithinDocument(instance.component, reference)
+    ) {
+      const key = bindingKey(instance);
+      let shortfalls = shortfallsByBinding.get(key);
+      if (!shortfalls) {
+        shortfalls = checkImplementation(running, binding.interface);
+        shortfallsByBinding.set(key, shortfalls);
+      }
+      for (const shortfall of shortfalls) {
+        report(shortfall.code, shortfall.message, shortfall.severity);
+      }
+    }
     // An instance closes a loop when what it runs leads back to its holder.
-    if (netId !== null && groups.get(netId) === groups.get(running.id)) {
+    if (
+      netId !== null &&
+      inDocument(running) &&
+      groups.get(netId) === groups.get(running.id)
+    ) {
       report(
         "component-cycle",
         running.id === netId
@@ -336,14 +424,64 @@ const checkBindings = (
   return problems;
 };
 
-/** The problems with the document's interfaces, their implementations and the instances bound to them. */
-export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
+/**
+ * The problems with the document's interfaces, their implementations and the
+ * instances bound to them. `libraries` are the ones the document's imports
+ * resolved to: an instance of a component of any other import is left alone.
+ */
+export const checkInterfaces = (
+  sdcpn: SDCPN,
+  libraries?: ResolvedLibraries,
+): InterfaceProblem[] => {
   const index = indexDocument(sdcpn);
   return [
-    ...(sdcpn.subnets ?? []).flatMap((subnet) =>
-      checkDeclarations(subnet, index),
+    ...(sdcpn.components ?? []).flatMap((component) =>
+      checkDeclarations(component, index),
     ),
-    ...checkDefaults(sdcpn, index.subnetsById),
-    ...checkBindings(sdcpn, index),
+    ...checkDefaults(sdcpn, index.componentsById, libraries),
+    ...checkBindings(sdcpn, index, libraries),
   ];
+};
+
+/**
+ * The components that can run for the interface `iface` names, each with the
+ * reference a binding names it by: the document's components that say they
+ * implement it, then the components with a body of every library that have
+ * its ports and parameters. For an interface of an import, a component of the
+ * document is listed on its ports and parameters too, since it cannot say
+ * what it implements there.
+ */
+export const implementationsOf = (
+  sdcpn: Pick<SDCPN, "components">,
+  iface: ComponentReference,
+  libraries?: ResolvedLibraries,
+): { reference: ComponentReference; component: Component }[] => {
+  const declared = resolveComponent(sdcpn, iface, libraries);
+  if (!declared) {
+    return [];
+  }
+  const conforms = (component: Component) =>
+    !checkImplementation(component, declared).some(
+      ({ severity }) => severity === "error",
+    );
+  const candidates: { reference: ComponentReference; component: Component }[] =
+    [
+      ...(sdcpn.components ?? []).map((component) => ({
+        reference: { id: component.id },
+        component,
+      })),
+      ...[...(libraries?.values() ?? [])].flatMap((library) =>
+        library.components.map((component) => ({
+          reference: { from: library.id, id: component.id },
+          component,
+        })),
+      ),
+    ];
+  return candidates.filter(
+    ({ reference, component }) =>
+      !isInterface(component) &&
+      (bindsWithinDocument(iface, reference)
+        ? implementsInterface(component, iface.id)
+        : conforms(component)),
+  );
 };

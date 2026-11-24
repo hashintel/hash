@@ -22,10 +22,26 @@ A guide about a layer is an `.mdx` file beside that layer's code, rendered
 beneath the layer's generated page. Anything under `content/` is copied into
 the bundle and merged into the same manifest, for the pages about the docs
 themselves. Links between pages use `[text](layer:core.simulation)` and
-`[text](doc:core.simulation/memory-model)`; a D2 diagram sits beside its page,
+`[text](doc:core.simulation.engine/stepping)`; a D2 diagram sits beside its page,
 or under `content/diagrams/` as `@diagrams/<name>.svg` when pages share it;
 formulas go between `$` signs and KaTeX renders them when the site builds.
 The archinaut README holds the full contract.
+
+## Components
+
+A page imports a React component from `content/components/` as
+`@diagrams/<file name>`. The folder is copied into the site, so a component
+imports only what the site can resolve: React, its own files, plain CSS and
+the built `@hashintel/petrinaut-core`. `lint:tsc` checks the components
+without Node types, since they run in a browser, and `test:unit` runs the
+tests beside them.
+
+Most components are static diagrams. An interactive one keeps the file a page
+imports small and loads the rest when the figure comes near the viewport, as
+`token-encoding-playground.tsx` does, so the page pays for it only when a
+reader reaches it. The loader catches a failed request and shows a note in the
+figure: the site has no error boundary below the page, so a load that rejects
+would replace the whole guide.
 
 ## Deployment
 
