@@ -83,6 +83,14 @@ const sameWeekdays = (left: Weekday[], right: Weekday[]) =>
 const getWeekday = ({ year, month, day }: CalendarDate) =>
   new Date(Date.UTC(year, month - 1, day)).getUTCDay() as Weekday;
 
+/** The browser's time zone, which a new trigger starts in. */
+export const getBrowserTimeZone = () =>
+  Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+/** A time zone by its city, e.g. "New York" for "America/New_York", or "UTC". */
+export const getTimeZoneCity = (timeZone: string) =>
+  (timeZone.split("/").at(-1) ?? timeZone).replaceAll("_", " ");
+
 /** e.g. "09:05". */
 export const formatScheduleTime = ({ hour, minute }: ScheduleTime) =>
   `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;

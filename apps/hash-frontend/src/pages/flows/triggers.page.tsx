@@ -316,14 +316,20 @@ const TriggersPage: NextPageWithLayout = () => {
     on: filtered.filter((row) => row.on).length,
     paused: filtered.filter((row) => !row.on).length,
   };
-  const shown = useMemo(
-    () =>
-      sortFlowTriggerRows(
-        filtered.filter((row) => tab === "all" || (tab === "on") === row.on),
-        sort,
-      ),
-    [filtered, tab, sort],
-  );
+  /*
+   * The trigger being edited stays while its form is open, even once it no longer matches the tab, search or filters,
+   * e.g. after pausing it on the On tab, so its unsaved edits aren't lost. It goes once the form is closed.
+   */
+  const shown = useMemo(() => {
+    const matching = filtered.filter(
+      (row) => tab === "all" || (tab === "on") === row.on,
+    );
+    const edited = matching.some((row) => row.entityId === editingEntityId)
+      ? undefined
+      : rows.find((row) => row.entityId === editingEntityId);
+
+    return sortFlowTriggerRows(edited ? [...matching, edited] : matching, sort);
+  }, [rows, filtered, tab, sort, editingEntityId]);
 
   const flowWithoutTriggers =
     flowEntityId !== null &&

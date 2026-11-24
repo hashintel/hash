@@ -10,7 +10,7 @@ import {
 
 import type { RunFormValues } from "../../@/[shortname]/flows/[flow-def-id]/edit.page/top-bar/run-flow/run-form";
 import type { RepeatRule, ScheduleTime } from "../../shared/schedule-repeat";
-import type { EntityId } from "@blockprotocol/type-system";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
 import type { FlowInputDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -28,6 +28,8 @@ export type ScheduleFormValues = {
 
 export type NewTriggerFormValues = ScheduleFormValues & {
   flowEntityId: EntityId | null;
+  /** The web the flow runs in, or `null` until one is chosen. */
+  webId: WebId | null;
   name: string;
   /** Whether the flow runs once when the trigger is added, as well as on its schedule. */
   runNow: boolean;

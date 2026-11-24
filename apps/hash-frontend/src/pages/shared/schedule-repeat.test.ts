@@ -169,10 +169,32 @@ describe("parseCronExpression", () => {
 describe("formatScheduleSpec", () => {
   it("describes a cron expression the form makes, and shows any other as it is", () => {
     expect(
-      formatScheduleSpec({ type: "cron", cronExpression: "0 8 * * 1" }),
+      formatScheduleSpec({ type: "cron", cronExpression: "0 8 * * 1" }, "UTC"),
     ).toBe("Every Monday at 08:00");
     expect(
-      formatScheduleSpec({ type: "cron", cronExpression: "0 */2 * * *" }),
+      formatScheduleSpec(
+        { type: "cron", cronExpression: "0 */2 * * *" },
+        "UTC",
+      ),
     ).toBe("Cron: 0 */2 * * *");
+  });
+
+  it("names a cron's time zone, UTC unless it has one, when it isn't the viewer's", () => {
+    const monday = { type: "cron", cronExpression: "0 8 * * 1" } as const;
+    const newYork = { ...monday, timezone: "America/New_York" };
+
+    expect(formatScheduleSpec(newYork, "America/New_York")).toBe(
+      "Every Monday at 08:00",
+    );
+    expect(formatScheduleSpec(newYork, "Europe/London")).toBe(
+      "Every Monday at 08:00 (New York)",
+    );
+    expect(formatScheduleSpec(monday, "Europe/London")).toBe(
+      "Every Monday at 08:00 (UTC)",
+    );
+    expect(formatScheduleSpec(newYork, null)).toBe("Every Monday at 08:00");
+    expect(
+      formatScheduleSpec({ type: "interval", intervalMs: 3_600_000 }, "UTC"),
+    ).toBe("Every 1 hour");
   });
 });

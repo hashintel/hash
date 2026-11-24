@@ -1,4 +1,4 @@
-import { parseCronFields } from "../../shared/schedule-repeat";
+import { getTimeZoneCity, parseCronFields } from "../../shared/schedule-repeat";
 
 import type { CalendarDate } from "../../shared/schedule-repeat";
 import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
@@ -227,14 +227,9 @@ export const getTimeZoneLabel = (timeZone: string, at: Date) => {
       .formatToParts(at)
       .find(({ type }) => type === "timeZoneName")?.value ?? ""
   ).replace(/^GMT\+0$/, "GMT");
-  const city = (timeZone.split("/").at(-1) ?? timeZone).replaceAll("_", " ");
 
-  return `${city} · ${offset}`;
+  return `${getTimeZoneCity(timeZone)} · ${offset}`;
 };
-
-/** The browser's time zone, which a new trigger starts in. */
-export const getBrowserTimeZone = () =>
-  Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /** The time zones the form offers: UTC, then every one the browser knows. */
 export const getTimeZones = () => [

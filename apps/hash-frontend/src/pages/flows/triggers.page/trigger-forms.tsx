@@ -25,9 +25,10 @@ import {
   withGivenValues,
 } from "../../@/[shortname]/flows/[flow-def-id]/edit.page/top-bar/run-flow/run-form";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
+import { getBrowserTimeZone } from "../../shared/schedule-repeat";
 import { useFlowDefinitions } from "../../shared/use-flow-definitions";
 import { ScheduleFields } from "./schedule-fields";
-import { getBrowserTimeZone, getNextRuns } from "./schedule-times";
+import { getNextRuns } from "./schedule-times";
 import {
   defaultScheduleTime,
   getNewTriggerBlocker,
@@ -115,7 +116,7 @@ const ErrorBanner = ({
 const getPreviewedRuns = (values: ScheduleFormValues) =>
   getNextRuns(toScheduleSpec(values), new Date(), previewedRuns);
 
-/** The form for adding a schedule. It's added in its flow's web, so only flows in the user's webs are offered. */
+/** The form for adding a schedule, of any flow the user can view, to run in one of their webs. */
 export const NewTriggerForm = ({
   initialFlowEntityId,
   onAdded,
@@ -130,6 +131,7 @@ export const NewTriggerForm = ({
   const { flowDefinitions, loading } = useFlowDefinitions();
   const [values, setValues] = useState<NewTriggerFormValues>(() => ({
     flowEntityId: initialFlowEntityId,
+    webId: null,
     name: "",
     repeat: {
       kind: "rule",
@@ -148,41 +150,44 @@ export const NewTriggerForm = ({
     CreateFlowScheduleMutationVariables
   >(createFlowScheduleMutation);
 
-  /* The user's web and their orgs', by their shortnames. */
-  const webNames = useMemo(
-    () =>
-      new Map<WebId, string>([
-        [authenticatedUser.accountId, authenticatedUser.shortname ?? ""],
-        ...authenticatedUser.memberOf.map(
-          ({ org }) => [org.webId, org.shortname] as const,
-        ),
-      ]),
-    [authenticatedUser],
+  /* The webs a flow can run in: the user's own, then their orgs'. */
+  const userWebId: WebId = authenticatedUser.accountId;
+  const webs = useMemo(
+    () => [
+      { value: userWebId, text: `@${authenticatedUser.shortname ?? ""}` },
+      ...authenticatedUser.memberOf.map(({ org }) => ({
+        value: org.webId,
+        text: `@${org.shortname}`,
+      })),
+    ],
+    [authenticatedUser, userWebId],
   );
 
-  /* Only a valid flow can be scheduled, and only in a web the user is in. */
+  /* Only a valid flow can be scheduled. */
   const flows = useMemo(
     () =>
       flowDefinitions
         .flatMap(({ flowDefinitionEntityId, flowDefinition }) =>
-          flowDefinition &&
-          webNames.has(extractWebIdFromEntityId(flowDefinitionEntityId))
-            ? [{ flowDefinitionEntityId, flowDefinition }]
-            : [],
+          flowDefinition ? [{ flowDefinitionEntityId, flowDefinition }] : [],
         )
         .sort((left, right) =>
           left.flowDefinition.name.localeCompare(right.flowDefinition.name),
         ),
-    [flowDefinitions, webNames],
+    [flowDefinitions],
   );
   const flow = flows.find(
     ({ flowDefinitionEntityId }) =>
       flowDefinitionEntityId === values.flowEntityId,
   );
   const inputs = flow?.flowDefinition.inputs ?? null;
-  const webId = flow
+  const flowWebId = flow
     ? extractWebIdFromEntityId(flow.flowDefinitionEntityId)
     : null;
+  /* Until a web is chosen, the flow's own if the user is in it, where the editor runs it too, else the user's. */
+  const webId =
+    values.webId ??
+    webs.find(({ value }) => value === flowWebId)?.value ??
+    userWebId;
 
   /* The values given so far, each where the flow chosen still has an input that takes it. */
   const inputValues = withGivenValues(
@@ -197,7 +202,7 @@ export const NewTriggerForm = ({
   );
 
   const add = async () => {
-    if (!flow || !webId || !inputs) {
+    if (!flow || !inputs) {
       return;
     }
 
@@ -231,10 +236,16 @@ export const NewTriggerForm = ({
         <ErrorBanner title="The trigger wasn't added" message={error} />
       )}
       <Form.Section className={fields}>
-        <Form.Field layout="inline" label="Web" as="legend">
-          <span className={fieldText}>
-            {webId ? `@${webNames.get(webId) ?? ""}` : "The flow's web"}
-          </span>
+        <Form.Field layout="inline" label="Web">
+          <Select<WebId>
+            required
+            readonly={webs.length === 1}
+            items={webs}
+            value={webId}
+            onChange={(chosenWebId) =>
+              setValues((current) => ({ ...current, webId: chosenWebId }))
+            }
+          />
         </Form.Field>
         <Form.Field layout="inline" label="Flow">
           <Select<string>
@@ -268,23 +279,21 @@ export const NewTriggerForm = ({
             setValues((current) => ({ ...current, ...schedule }))
           }
         />
-        {flow &&
-          webId &&
-          flow.flowDefinition.inputs.map((input) => (
-            <InputField
-              key={input.name}
-              inline
-              webId={webId}
-              input={input}
-              value={inputValues[input.name]}
-              onChange={(value) =>
-                setValues((current) => ({
-                  ...current,
-                  inputValues: { ...current.inputValues, [input.name]: value },
-                }))
-              }
-            />
-          ))}
+        {flow?.flowDefinition.inputs.map((input) => (
+          <InputField
+            key={input.name}
+            inline
+            webId={webId}
+            input={input}
+            value={inputValues[input.name]}
+            onChange={(value) =>
+              setValues((current) => ({
+                ...current,
+                inputValues: { ...current.inputValues, [input.name]: value },
+              }))
+            }
+          />
+        ))}
         <div className={runNowField}>
           <Checkbox
             label="Run once now"

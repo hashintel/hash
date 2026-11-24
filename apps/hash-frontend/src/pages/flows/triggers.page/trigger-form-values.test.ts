@@ -29,6 +29,7 @@ const newTrigger = (
   fields: Partial<NewTriggerFormValues> = {},
 ): NewTriggerFormValues => ({
   flowEntityId,
+  webId: null,
   name: "Weekly supplier check",
   repeat: { kind: "rule", rule: { kind: "weekly", weekdays: [1] } },
   time: { hour: 8, minute: 30 },

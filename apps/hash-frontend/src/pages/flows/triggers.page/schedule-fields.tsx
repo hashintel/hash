@@ -167,7 +167,13 @@ export const ScheduleFields = ({
       text: describeRepeatRule(rule),
     })),
     ...(repeat.kind === "kept"
-      ? [{ value: keptKey, text: formatScheduleSpec(repeat.scheduleSpec) }]
+      ? [
+          /* Without its time zone, which the Time zone field beside it shows and changes. */
+          {
+            value: keptKey,
+            text: formatScheduleSpec(repeat.scheduleSpec, null),
+          },
+        ]
       : []),
     { value: customKey, text: "Custom…" },
   ];
