@@ -10,6 +10,7 @@ import {
   buildKernelContext,
   buildLambdaContext,
   buildMetricContext,
+  buildNetVisualizerContext,
   buildVisualizerContext,
 } from "../../hir";
 import { classifyNet } from "../../hir/classify-net";
@@ -20,7 +21,7 @@ import {
   sourcePredicateDiagnostic,
   TS_CATEGORY_ERROR,
 } from "./check-net-timing";
-import { getItemFilePath } from "./file-paths";
+import { getItemFilePath, netVisualizerId } from "./file-paths";
 
 import type { NetClass } from "../../extensions/net-class";
 import type { HirSurfaceContext } from "../../hir";
@@ -34,10 +35,20 @@ export type ItemType =
   | "transition-lambda"
   | "transition-kernel"
   | "differential-equation"
-  | "place-visualizer";
+  | "place-visualizer"
+  | "net-visualizer";
+
+/** The item types of code that draws and never runs in a simulation. */
+const VISUALIZER_ITEM_TYPES: ReadonlySet<ItemType> = new Set([
+  "place-visualizer",
+  "net-visualizer",
+]);
 
 export type SDCPNDiagnostic = {
-  /** The ID of the SDCPN item (transition, differential equation or place) */
+  /**
+   * The ID of the SDCPN item: a transition, a differential equation or a
+   * place, or for a net's visualizer the `netVisualizerId` of the net.
+   */
   itemId: string;
   /** The type of the item */
   itemType: ItemType;
@@ -50,8 +61,8 @@ export type SDCPNDiagnostic = {
 export type SDCPNCheckResult = {
   /**
    * Whether the net can run: no error-severity diagnostic in any item other
-   * than a `place-visualizer`. A visualizer that does not type-check draws
-   * nothing; it never stops a simulation.
+   * than a visualizer, a place's or a net's. A visualizer that does not
+   * type-check draws nothing; it never stops a simulation.
    */
   isValid: boolean;
   /** All diagnostics grouped by item */
@@ -222,6 +233,40 @@ export function checkSDCPN(
     }
   }
 
+  // A net's visualizer, the root net's and each component's, reads the
+  // places of its own net.
+  const visualizedNets = extensions.colors
+    ? [
+        { netId: netVisualizerId(null), net: sdcpn },
+        ...(extensions.components ? (sdcpn.components ?? []) : []).map(
+          (component) => ({
+            netId: netVisualizerId(component.id),
+            net: component,
+          }),
+        ),
+      ]
+    : [];
+  for (const { netId, net } of visualizedNets) {
+    if (net.visualizerCode === undefined) {
+      continue;
+    }
+    const filePath = getItemFilePath("net-visualizer-code", { netId });
+    const visualizerDiagnostics = collectItemDiagnostics(
+      servers.visualizer,
+      filePath,
+      buildNetVisualizerContext(sdcpn, net, extensions),
+    );
+
+    if (visualizerDiagnostics.length > 0) {
+      itemDiagnostics.push({
+        itemId: netId,
+        itemType: "net-visualizer",
+        filePath,
+        diagnostics: visualizerDiagnostics,
+      });
+    }
+  }
+
   const sanitized = sanitizeSDCPNForExtensions(sdcpn, extensions);
   const metricContext = buildMetricContext(sanitized, extensions);
   const metricShapes: Record<string, MetricShape> = {};
@@ -244,7 +289,7 @@ export function checkSDCPN(
     netClass: classifyNet(sdcpn, extensions),
     isValid: !itemDiagnostics.some(
       (item) =>
-        item.itemType !== "place-visualizer" &&
+        !VISUALIZER_ITEM_TYPES.has(item.itemType) &&
         item.diagnostics.some(
           (diagnostic) => diagnostic.category === TS_CATEGORY_ERROR,
         ),

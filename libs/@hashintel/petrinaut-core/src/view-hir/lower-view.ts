@@ -18,6 +18,7 @@ import {
   lowerWithExpressions,
   parseErrorDiagnostics,
 } from "../hir/lower-typescript";
+import { visualizerAmbientNames } from "../hir/surface-context";
 import { detectUserCodeForm } from "../hir/user-code-form";
 import { rejectTypeScriptSyntax } from "./reject-typescript-syntax";
 import { VIEW_ELEMENT_ATTRIBUTES, VIEW_ELEMENT_TAGS } from "./view-elements";
@@ -107,12 +108,13 @@ class ViewLowering {
   constructor(
     private readonly sourceFile: ts.SourceFile,
     private readonly expressions: HirExpressionLowering,
+    private readonly ambientNames: readonly string[],
   ) {}
 
   lowerBody(): ViewHir {
     const scope = this.expressions.newScope();
     scope.locals.add(PROPS_PARAMETER_NAME);
-    for (const name of ["tokens", "parameters", "width", "height"]) {
+    for (const name of this.ambientNames) {
       scope.destructuredFields.set(name, PROPS_PARAMETER_NAME);
     }
     return {
@@ -467,13 +469,22 @@ class ViewLowering {
   }
 }
 
+/** What a place's visualizer reads without declaring it. */
+const PLACE_AMBIENT_NAMES = visualizerAmbientNames({ subject: "place" });
+
 /**
  * Lowers visualizer code to the view HIR. The source is parsed as TSX
  * for the JSX grammar, and every TypeScript-only construct is rejected
  * before lowering: a visualizer is JavaScript. Returns the first diagnostic
  * that stops the lowering, positioned in the source.
+ *
+ * `ambientNames` are the props a bare body reads without declaring them:
+ * those of a place's visualizer unless given (see `visualizerAmbientNames`).
  */
-export function lowerViewHir(code: string): LowerViewResult {
+export function lowerViewHir(
+  code: string,
+  ambientNames: readonly string[] = PLACE_AMBIENT_NAMES,
+): LowerViewResult {
   const sourceFile = ts.createSourceFile(
     "visualizer.jsx",
     code,
@@ -489,7 +500,7 @@ export function lowerViewHir(code: string): LowerViewResult {
     rejectTypeScriptSyntax(sourceFile, (node, diagnosticCode, message) =>
       lowering.fail(node, diagnosticCode, message),
     );
-    const view = new ViewLowering(sourceFile, lowering);
+    const view = new ViewLowering(sourceFile, lowering, ambientNames);
     return detectUserCodeForm(sourceFile) === "module"
       ? view.lowerModule()
       : view.lowerBody();

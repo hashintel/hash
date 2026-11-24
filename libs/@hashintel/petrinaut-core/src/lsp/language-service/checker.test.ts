@@ -7,7 +7,7 @@ import { createSDCPN } from "./create-sdcpn.test-helpers";
 import { createLanguageServers, syncLanguageServers } from "./language-servers";
 
 import type { PetrinautExtensionSettings } from "../../extensions/extensions";
-import type { SDCPN } from "../../types/sdcpn";
+import type { Component, SDCPN } from "../../types/sdcpn";
 
 /** Check semantics; legacy-user-code.test.ts covers the independent migration hints. */
 function check(sdcpn: SDCPN, extensions?: PetrinautExtensionSettings) {
@@ -1896,6 +1896,148 @@ return true;`;
 
       expect(result.isValid).toBe(true);
       expect(result.itemDiagnostics).toHaveLength(0);
+    });
+  });
+
+  describe("Net visualizers", () => {
+    const station = (visualizerCode: string): Component => ({
+      id: "station",
+      name: "Station",
+      visualizerCode,
+      places: [
+        {
+          id: "jobs",
+          name: "Jobs",
+          colorId: "job",
+          dynamicsEnabled: false,
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [],
+      types: [
+        {
+          id: "job",
+          name: "Job",
+          iconSlug: "circle",
+          displayColor: "#000000",
+          elements: [{ elementId: "size", name: "size", type: "real" }],
+        },
+      ],
+      differentialEquations: [],
+      parameters: [
+        {
+          id: "limit",
+          name: "Limit",
+          variableName: "limit",
+          type: "integer",
+          defaultValue: "4",
+        },
+      ],
+    });
+    const withNetVisualizers = ({
+      root,
+      component,
+    }: {
+      root?: string;
+      component?: string;
+    }): SDCPN => ({
+      ...createSDCPN({
+        types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
+        places: [
+          { id: "place1", name: "Space", colorId: "color1" },
+          { id: "place2", name: "Spare parts" },
+        ],
+        parameters: [{ id: "p1", variableName: "radius", type: "real" }],
+      }),
+      ...(root === undefined ? {} : { visualizerCode: root }),
+      ...(component === undefined ? {} : { components: [station(component)] }),
+    });
+
+    it("passes a root visualizer that reads the net's places by name", () => {
+      const result = check(
+        withNetVisualizers({
+          root: `return (
+            <Visualizer.Svg>
+              <text>{places["Spare parts"].count}</text>
+              {places.Space.tokens.map((token, index) => (
+                <circle key={index} cx={token.x} r={parameters.radius} />
+              ))}
+            </Visualizer.Svg>
+          );`,
+        }),
+      );
+
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("reports a root visualizer's errors under the root net without invalidating the net", () => {
+      const result = check(
+        withNetVisualizers({
+          root: `return <Visualizer.Svg><text>{places.Nowhere.count}</text></Visualizer.Svg>;`,
+        }),
+      );
+
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(1);
+      expect(result.itemDiagnostics[0]).toMatchObject({
+        itemId: "root",
+        itemType: "net-visualizer",
+        filePath: "/nets/root/visualizer/code.jsx",
+      });
+      expect(
+        result.itemDiagnostics[0]?.diagnostics.map(
+          (diagnostic) => diagnostic.code,
+        ),
+      ).toEqual([2339]);
+    });
+
+    it("types a component's visualizer over the component's own places and parameters", () => {
+      const passing = check(
+        withNetVisualizers({
+          component: `return (
+            <Visualizer.Svg>
+              {places.Jobs.tokens.slice(0, parameters.limit).map((job, index) => (
+                <circle key={index} r={job.size} />
+              ))}
+            </Visualizer.Svg>
+          );`,
+        }),
+      );
+      expect(passing.itemDiagnostics).toHaveLength(0);
+
+      // Neither the root net's places nor its parameters are in scope.
+      const failing = check(
+        withNetVisualizers({
+          component: `return <Visualizer.Svg><text>{places.Space.count + parameters.radius}</text></Visualizer.Svg>;`,
+        }),
+      );
+      expect(failing.isValid).toBe(true);
+      expect(failing.itemDiagnostics).toHaveLength(1);
+      expect(failing.itemDiagnostics[0]).toMatchObject({
+        itemId: "station",
+        itemType: "net-visualizer",
+        filePath: "/nets/station/visualizer/code.jsx",
+      });
+      expect(
+        failing.itemDiagnostics[0]?.diagnostics.map(
+          (diagnostic) => diagnostic.code,
+        ),
+      ).toEqual([2339, 2339]);
+    });
+
+    it("does not let a net's visualizer read `tokens`", () => {
+      const result = check(
+        withNetVisualizers({
+          root: `return <Visualizer.Svg><text>{tokens.length}</text></Visualizer.Svg>;`,
+        }),
+      );
+
+      expect(
+        result.itemDiagnostics[0]?.diagnostics.map(
+          (diagnostic) => diagnostic.code,
+        ),
+      ).toEqual([2304]);
     });
   });
 });

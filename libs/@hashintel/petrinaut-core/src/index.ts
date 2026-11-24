@@ -230,6 +230,7 @@ export {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultDifferentialEquationCode,
   generateDefaultLambdaCode,
+  generateDefaultNetVisualizerCode,
   generateDefaultTransitionKernelCode,
   generateDefaultVisualizerCode,
 } from "./actions/default-codes";
@@ -296,6 +297,13 @@ export {
   resolvedLibraries,
 } from "./composition/imports";
 export { inlineImports } from "./composition/inline-imports";
+export {
+  firstInstancePathOf,
+  indexCompositionState,
+  netAtInstancePath,
+  runningComponentOf,
+  type CompositionStateIndex,
+} from "./composition/instance-state";
 export type {
   ImportState,
   ImportStates,
@@ -433,7 +441,10 @@ export {
   type HirValue,
 } from "./hir/interpret";
 export {
+  buildNetVisualizerContext,
   buildVisualizerContext,
+  type HirNetVisualizerContext,
+  type HirPlaceVisualizerContext,
   type HirVisualizerContext,
 } from "./hir/surface-context";
 export { hirFunctionSchema } from "./hir/hir-schema";
@@ -484,7 +495,9 @@ export { VIEW_FRAGMENT_TAG } from "./view-hir/view-hir";
 export {
   interpretViewHir,
   ViewElementValue,
+  type ViewPlaces,
   type ViewProps,
+  type ViewTokens,
   type ViewValue,
 } from "./view-hir/interpret-view";
 export {
@@ -539,6 +552,7 @@ export {
   parseConstraintDocumentUri,
   parseDocumentUri,
 } from "./lsp/document-uris";
+export { netVisualizerId } from "./lsp/language-service/file-paths";
 
 // --- Simulation: core.simulation ---
 // simulation/index.ts carries the contract and Monte Carlo together: one

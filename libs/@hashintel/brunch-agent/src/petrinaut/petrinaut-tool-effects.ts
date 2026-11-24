@@ -107,6 +107,8 @@ export const petrinautToolEffects = {
   // The member it replaces leaves the fusion, as `removeFusionMember` takes one out.
   replaceFusionMember: removal("fusion"),
   setImplementation: mutation("component"),
+  // A component's visualizer is part of the component; the root net's is of no element.
+  setNetVisualizer: mutation("component"),
   deleteItemsByIds: removal(...selectionItemTypes),
   commitNodePositions: layout,
   setNetTitle: mutation(),

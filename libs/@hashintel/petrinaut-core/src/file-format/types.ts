@@ -191,6 +191,7 @@ const componentSchema = z
     parameters: z.array(parameterSchema).default([]),
     componentInstances: z.array(componentInstanceSchema).default([]),
     fusions: z.array(fusionSchema).optional(),
+    visualizerCode: z.string().optional(),
   })
   // The flag is `true` or absent in a document: `false` reads as absent.
   .transform(({ interface: isInterface, ...component }) =>
@@ -222,6 +223,8 @@ export const sdcpnSchema = z.object({
       }),
     )
     .optional(),
+  // Absent in a net without a visualizer of its own.
+  visualizerCode: z.string().optional(),
 });
 
 const fileMetaSchema = z.object({

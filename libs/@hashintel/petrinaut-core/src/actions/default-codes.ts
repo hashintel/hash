@@ -26,6 +26,56 @@ return <Visualizer.Svg origin="center">
   <circle r={Math.min(width, height) * 0.4} stroke="black" strokeWidth="3" fill="red" />
 </Visualizer.Svg>;`;
 
+/** `places.Name`, or `places["A name"]` for a name that is no identifier. */
+const placeStateSource = (placeName: string): string =>
+  /^[A-Za-z_$][\w$]*$/u.test(placeName)
+    ? `places.${placeName}`
+    : `places[${JSON.stringify(placeName)}]`;
+
+/**
+ * The starting code of a net's visualizer: one bar per place of the net,
+ * as long as the place's share of the fullest place's tokens.
+ */
+export function generateDefaultNetVisualizerCode(
+  placeNames: readonly string[],
+): string {
+  const header = `// This function draws the state of the whole net.
+// \`places\` holds every place by name, each with its \`count\` and its \`tokens\`.
+// \`parameters\` holds the net's parameters. \`width\` and \`height\` track the viewport.`;
+  // A place is read by its name, so the names are written out: one row each.
+  const names = [...new Set(placeNames)];
+  if (names.length === 0) {
+    return `${header}
+return <Visualizer.Svg>
+  <text x={width / 2} y={height / 2} textAnchor="middle" dominantBaseline="middle" fontSize="11" fill="#6b7280">
+    No places yet
+  </text>
+</Visualizer.Svg>;`;
+  }
+  const counts = names.map((name) => `${placeStateSource(name)}.count`);
+  return `${header}
+const rows = [
+${names
+  .map(
+    (name, index) =>
+      `  { name: ${JSON.stringify(name)}, count: ${counts[index]} },`,
+  )
+  .join("\n")}
+];
+const most = Math.max(1, ${counts.join(", ")});
+const rowHeight = Math.min(22, (height - 8) / rows.length);
+return <Visualizer.Svg>
+  {rows.map((row, index) => (
+    <g key={row.name} transform={\`translate(8 \${4 + index * rowHeight})\`}>
+      <rect width={((width - 16) * row.count) / most} height={rowHeight - 4} rx="3" fill="#bfdbfe" />
+      <text x="6" y={rowHeight / 2 - 2} dominantBaseline="middle" fontSize="11" fill="#1e3a8a">
+        {row.name}: {row.count}
+      </text>
+    </g>
+  ))}
+</Visualizer.Svg>;`;
+}
+
 /** `a`, `b`, … `z`, then `t26`, `t27`, … for the tokens of a coupled equation. */
 const tokenParameterName = (position: number): string =>
   position < 26 ? String.fromCharCode(97 + position) : `t${position}`;

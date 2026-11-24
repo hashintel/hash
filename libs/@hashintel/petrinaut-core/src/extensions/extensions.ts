@@ -427,6 +427,7 @@ type SanitizableNet = Pick<
 > & {
   componentInstances?: SDCPN["componentInstances"];
   fusions?: SDCPN["fusions"];
+  visualizerCode?: SDCPN["visualizerCode"];
 };
 
 const stripDisabledExtensionDataFromNet = (
@@ -436,6 +437,11 @@ const stripDisabledExtensionDataFromNet = (
 ): void => {
   if (!extensions.colors) {
     net.types.splice(0);
+    // Visualizers belong to the colours extension, a net's as a place's.
+    if (net.visualizerCode !== undefined) {
+      const targetNet = net;
+      delete targetNet.visualizerCode;
+    }
   }
 
   if (!canUseDynamics(extensions)) {
@@ -604,6 +610,10 @@ const cloneComponent = (
     next.fusions = cloneFusions(component.fusions);
   }
 
+  if (component.visualizerCode !== undefined) {
+    next.visualizerCode = component.visualizerCode;
+  }
+
   return next;
 };
 
@@ -700,6 +710,10 @@ export const sanitizeSDCPNForExtensions = (
       interface: { ...entry.interface },
       component: { ...entry.component },
     }));
+  }
+
+  if (sdcpn.visualizerCode !== undefined) {
+    next.visualizerCode = sdcpn.visualizerCode;
   }
 
   stripDisabledExtensionData(next, extensions);

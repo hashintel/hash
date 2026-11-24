@@ -12,7 +12,9 @@ export { checkViewHir } from "./view-hir/check-view";
 export {
   interpretViewHir,
   ViewElementValue,
+  type ViewPlaces,
   type ViewProps,
+  type ViewTokens,
   type ViewValue,
 } from "./view-hir/interpret-view";
 export { lowerViewHir, type LowerViewResult } from "./view-hir/lower-view";

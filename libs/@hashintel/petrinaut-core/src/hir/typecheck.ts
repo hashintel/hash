@@ -116,6 +116,40 @@ export function hirTokenRecordType(elements: HirTokenElementInfo[]): HirType {
 }
 
 /**
+ * The state of the places of a net, by display name: each place's token
+ * `count` and its `tokens`. A place given `null` for its attributes is
+ * uncoloured: its tokens can be counted, and what one holds stays unknown.
+ */
+export function hirPlacesStateType(
+  places: readonly {
+    name: string;
+    elements: HirTokenElementInfo[] | null;
+  }[],
+): HirType {
+  return {
+    kind: "record",
+    fields: places.map((place) => ({
+      name: place.name,
+      type: {
+        kind: "record",
+        fields: [
+          { name: "count", type: HIR_TYPE_INT },
+          {
+            name: "tokens",
+            type: {
+              kind: "array",
+              element: place.elements
+                ? hirTokenRecordType(place.elements)
+                : HIR_TYPE_UNKNOWN,
+            },
+          },
+        ],
+      },
+    })),
+  };
+}
+
+/**
  * The type of a lambda's or kernel's `input`: one field per input-arc place.
  * A place that delivers tokens is a tuple of the arc's weight that also
  * exposes `.count`; any other (uncoloured, or joined by an inhibitor arc)
@@ -309,28 +343,7 @@ class Typechecker {
         return {
           kind: "record",
           fields: [
-            {
-              name: "places",
-              type: {
-                kind: "record",
-                fields: context.places.map((place) => ({
-                  name: place.name,
-                  type: {
-                    kind: "record",
-                    fields: [
-                      { name: "count", type: HIR_TYPE_INT },
-                      {
-                        name: "tokens",
-                        type: {
-                          kind: "array",
-                          element: hirTokenRecordType(place.elements),
-                        } satisfies HirType,
-                      },
-                    ],
-                  } satisfies HirType,
-                })),
-              },
-            },
+            { name: "places", type: hirPlacesStateType(context.places) },
           ],
         };
     }

@@ -9,6 +9,8 @@ export type SDCPNFileType =
   | "color-defs"
   | "place-visualizer-defs"
   | "place-visualizer-code"
+  | "net-visualizer-defs"
+  | "net-visualizer-code"
   | "differential-equation-defs"
   | "differential-equation-code"
   | "transition-lambda-defs"
@@ -32,6 +34,8 @@ type FilePathParams = {
   "color-defs": { colorId: string };
   "place-visualizer-defs": { placeId: string };
   "place-visualizer-code": { placeId: string };
+  "net-visualizer-defs": { netId: string };
+  "net-visualizer-code": { netId: string };
   "differential-equation-defs": { id: string };
   "differential-equation-code": { id: string };
   "transition-lambda-defs": { transitionId: string };
@@ -85,6 +89,16 @@ export const getItemFilePath = <T extends SDCPNFileType>(
     case "place-visualizer-code": {
       const { placeId } = params as FilePathParams["place-visualizer-code"];
       return `/places/${placeId}/visualizer/code.jsx`;
+    }
+
+    case "net-visualizer-defs": {
+      const { netId } = params as FilePathParams["net-visualizer-defs"];
+      return `/nets/${netId}/visualizer/defs.d.ts`;
+    }
+
+    case "net-visualizer-code": {
+      const { netId } = params as FilePathParams["net-visualizer-code"];
+      return `/nets/${netId}/visualizer/code.jsx`;
     }
 
     case "differential-equation-defs": {
@@ -201,6 +215,34 @@ export const parsePlaceVisualizerCodeFilePath = (
   const match = PLACE_VISUALIZER_CODE_PATH_RE.exec(filePath);
   return match ? { placeId: match[1]! } : null;
 };
+
+/**
+ * The id a net goes by in the paths and URIs of its visualizer: this one for
+ * the root net, its component id for a component. No entity id equals it.
+ */
+export const ROOT_NET_ID = "root";
+
+/** The id of the net a visualizer belongs to: `null` for the root net. */
+export const netVisualizerId = (componentId: string | null): string =>
+  componentId ?? ROOT_NET_ID;
+
+const NET_VISUALIZER_CODE_PATH_RE = /^\/nets\/([^/]+)\/visualizer\/code\.jsx$/;
+
+/**
+ * Inverse of `getItemFilePath("net-visualizer-code", ...)`: the net a
+ * visualizer code file belongs to, or null for every other path.
+ */
+export const parseNetVisualizerCodeFilePath = (
+  filePath: string,
+): { netId: string } | null => {
+  const match = NET_VISUALIZER_CODE_PATH_RE.exec(filePath);
+  return match ? { netId: match[1]! } : null;
+};
+
+/** Whether a file holds visualizer code, a place's or a net's. */
+export const isVisualizerCodeFilePath = (filePath: string): boolean =>
+  parsePlaceVisualizerCodeFilePath(filePath) !== null ||
+  parseNetVisualizerCodeFilePath(filePath) !== null;
 
 /** A scenario session code file, identified back from its path. */
 export type ScenarioCodeFilePath =
