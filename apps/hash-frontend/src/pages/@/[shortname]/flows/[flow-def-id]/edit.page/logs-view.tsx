@@ -5,6 +5,7 @@ import { useAuthenticatedUser } from "../../../../../shared/auth-info-context";
 import { toRunRow } from "./logs-view/run-list";
 import { RunsTable } from "./logs-view/runs-table";
 
+import type { FlowRunner } from "./shared/run-flow";
 import type { FlowRuns } from "./shared/use-flow-runs";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 
@@ -39,12 +40,15 @@ export const LogsView = ({
   flowRuns,
   onRetry,
   getRunPath,
+  runner,
 }: {
   flowRuns: FlowRuns;
   /** Reads the runs again after they couldn't be loaded. */
   onRetry: () => void;
   /** Where a run opens. */
   getRunPath: (flowRunEntityId: EntityId) => string;
+  /** What a run's Re-run runs the flow with. */
+  runner: FlowRunner;
 }) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
@@ -112,6 +116,7 @@ export const LogsView = ({
         )}
         now={flowRuns.loadedAt}
         getRunPath={getRunPath}
+        runner={runner}
       />
     </div>
   );

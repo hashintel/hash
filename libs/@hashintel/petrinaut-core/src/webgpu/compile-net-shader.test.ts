@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { resolveNetParameterValues } from "../document/parameter-values";
 import { bicycleAssembly } from "../examples/bicycle-assembly";
 import { dronePatrol } from "../examples/drone-patrol";
 import { probabilisticSatellitesSDCPN } from "../examples/satellites-launcher";
@@ -7,7 +8,6 @@ import { sirModel } from "../examples/sir-model";
 import { vaccinationCampaign } from "../examples/vaccination-campaign";
 import { compileHirArtifacts } from "../hir";
 import { lowerTypeScriptToHir } from "../hir/lower-typescript";
-import { resolveNetParameterValues } from "../parameter-values";
 import {
   compileNetShader,
   GPU_HISTOGRAM_MAX_BINS,

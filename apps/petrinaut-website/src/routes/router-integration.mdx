@@ -7,6 +7,8 @@ sidebar_order: 10
 Petrinaut imports no router. It exposes a `navigation` prop taking a
 router-neutral controller, and the host decides what a URL means. This page is
 how the website implements that contract with TanStack Router.
+[Navigation](doc:react.navigation/navigation) states the contract from the
+editor's side, with the rules a host can rely on.
 
 ## The three pieces
 
@@ -15,8 +17,8 @@ every route that reads query params declares `validateSearch`, which is the
 only place raw query input enters the app.
 
 `website.examples` owns the contract. `example-search.ts` defines the four
-params a shareable location carries — `scenario`, `component`, `itemType`,
-`itemId` — validates them with zod, and encodes them back. The module imports
+params a shareable location carries (`scenario`, `component`, `itemType`,
+`itemId`), validates them with zod, and encodes them back. The module imports
 neither React nor the editor, so the oEmbed function can speak the same
 contract without bundling either.
 
@@ -29,8 +31,8 @@ state, and only the shared projection reaches the URL.
 ## Why the location splits in two
 
 Deriving the whole controller state from the URL does not work. A control
-driving a field the URL cannot represent — the mode switcher, the
-viewport-settings overlay — would write, read back a state without that field,
+driving a field the URL cannot represent, such as the mode switcher or the
+viewport-settings overlay, would write, read back a state without that field,
 and snap to its previous value. The control appears not to respond.
 
 So the hook keeps the full `PetrinautNavigationState` in component state,

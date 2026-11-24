@@ -3,8 +3,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { use, type ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { CompositionContext } from "../../../../../react/state/composition-context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { CompositionContext } from "../../../../../react/document/composition-context";
+import { SDCPNContext } from "../../../../../react/document/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { EditionTools } from "./edition-tools";
 
@@ -30,9 +30,7 @@ const renderTools = ({
       </UserSettingsContext>
     </SDCPNContext>
   );
-  render(<EditionTools editionMode="cursor" onEditionModeChange={() => {}} />, {
-    wrapper: Wrapper,
-  });
+  render(<EditionTools />, { wrapper: Wrapper });
   return screen.queryAllByRole("button").map((button) => button.ariaLabel);
 };
 

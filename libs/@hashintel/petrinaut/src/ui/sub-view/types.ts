@@ -1,0 +1,78 @@
+/**
+ * @layerRoot ui.sub-view
+ * @role The descriptor a panel lists for each view it shows, and the container that renders one as a collapsible section
+ */
+
+import type { ComponentType } from "react";
+
+/**
+ * SubView represents a single view that can be displayed in either:
+ * - A vertical collapsible section (LeftSideBar)
+ * - A horizontal tab (BottomPanel)
+ *
+ * This abstraction allows views to be easily moved between panels.
+ */
+export interface SubView {
+  /** Unique identifier for the subview */
+  id: string;
+  /** Title displayed in the section header or tab */
+  title: string;
+  /** Optional tooltip shown when hovering over the title/tab */
+  tooltip?: string;
+  /** Optional icon component displayed before the title in the header. Size is controlled by the container. */
+  icon?: ComponentType<{ size: number }>;
+  /** The component to render for this subview */
+  component: ComponentType;
+  /**
+   * What the right side of the header shows, such as an add button. A
+   * component, so the descriptor holds no function of its own and can live in
+   * a `.ts` file beside the components it points at.
+   */
+  headerAction?: ComponentType;
+  /**
+   * Whether the header action creates, deletes or clears something. A
+   * presentation that hides mutation actions hides only these.
+   *
+   * Defaults to false, because the slot also carries close buttons, view
+   * toggles and status labels, and losing those costs a reader more than a
+   * disabled Add button does. An action that is a mutation only some of the
+   * time reads the presentation itself instead of setting this.
+   */
+  headerActionMutates?: boolean;
+  /**
+   * Whether this is the main (primary) subview.
+   * When true, shows a non-collapsible header with a larger title style.
+   * The title and the header action are displayed in the fixed header,
+   * and the content should not include its own title/actions.
+   */
+  main?: boolean;
+  /**
+   * What a main subview's header shows in place of the static title text.
+   * Only used when `main` is true.
+   */
+  titleComponent?: ComponentType;
+  /**
+   * Whether the section should start collapsed before the user has interacted.
+   * Defaults to false (expanded). Ignored when `main` is true.
+   */
+  defaultCollapsed?: boolean;
+  /** Keep visited content mounted until its panel is removed. */
+  retainOnCollapse?: boolean;
+  /**
+   * When true, the header action is always visible instead of only on
+   * hover/focus. A main subview's action is always visible.
+   */
+  alwaysShowHeaderAction?: boolean;
+  canMaximize?: boolean;
+  /** Use the expanded code-editor layout even when this subview is not maximized. */
+  fullWidthCodeEditor?: boolean;
+  /** The least height of the expanded section, in pixels. Vertical layout only. */
+  minHeight?: number;
+  /**
+   * When true, the horizontal tab content wrapper renders with no padding,
+   * letting the subview occupy the full width/height of the panel area.
+   * Useful for visualizations like charts that manage their own bounds.
+   * Defaults to false.
+   */
+  noPadding?: boolean;
+}

@@ -57,27 +57,23 @@ export const fitViewportToBounds = (
 
 /**
  * The viewport centred on the given net bounds, respecting the same zoom
- * limits as the rest of the canvas. Top-left origin at zoom 1 when there is
- * nothing to fit.
+ * limits as the rest of the canvas. Null when there is nothing to fit.
  */
-export const getInitialViewport = (
+export const fitSceneViewport = (
   bounds: Rect | null,
   container: Size,
   insets: CanvasViewportInsets = {},
-): CanvasViewport => {
-  if (!bounds || bounds.width === 0 || bounds.height === 0) {
-    return { x: 0, y: 0, zoom: 1 };
-  }
-
-  return fitViewportToBounds(
-    bounds,
-    container,
-    getMinZoomForBounds(bounds, container),
-    MAX_FIT_ZOOM,
-    ZOOM_PADDING,
-    insets,
-  );
-};
+): CanvasViewport | null =>
+  !bounds || bounds.width === 0 || bounds.height === 0
+    ? null
+    : fitViewportToBounds(
+        bounds,
+        container,
+        getMinZoomForBounds(bounds, container),
+        MAX_FIT_ZOOM,
+        ZOOM_PADDING,
+        insets,
+      );
 
 /** The screen rectangle of the container that `insets` leave uncovered. */
 const uncoveredArea = (container: Size, insets: CanvasViewportInsets) => ({

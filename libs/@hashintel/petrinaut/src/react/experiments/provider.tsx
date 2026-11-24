@@ -16,19 +16,21 @@ import {
   type ExperimentBackend,
 } from "@hashintel/petrinaut-core/experiments";
 
-import { useBlockWindowClose } from "../hooks/use-block-window-close";
-import { useLatest } from "../hooks/use-latest";
-import { useStableCallback } from "../hooks/use-stable-callback";
+import { SDCPNContext } from "../document/sdcpn-context";
+import { useExecutableDefinition } from "../document/use-executable-definition";
 import { LanguageClientContext } from "../lsp/context";
 import {
   openPetrinautSimulationResource,
   usePetrinautNavigation,
-} from "../navigation";
+} from "../navigation/navigation";
 import { NotificationsContext } from "../notifications/context";
+import { errorMessage } from "../shared/error-message";
+import { useBlockWindowClose } from "../shared/use-block-window-close";
+import { useLatest } from "../shared/use-latest";
+import { useStableCallback } from "../shared/use-stable-callback";
 import { findSimulator, SimulatorsContext } from "../simulators/context";
-import { SDCPNContext } from "../state/sdcpn-context";
-import { useExecutableDefinition } from "../state/use-executable-definition";
 import {
+  computeBackendOf,
   type CreateExperimentOptions,
   type ExperimentRecord,
   ExperimentsActionsContext,
@@ -43,7 +45,6 @@ import {
   assertExperimentInput,
   buildSweepAxes,
   compileExperimentScenario,
-  computeBackendOf,
   createExperimentRequestBuilder,
   experimentSimulatorBackends,
   newExperimentRecord,
@@ -54,7 +55,6 @@ import {
   patchExperimentRecords,
 } from "./provider/experiment-records";
 import { createSweepBatchInstantiator } from "./provider/sweep-batch-instantiation";
-import { errorMessage } from "./shared/error-message";
 import { createSweepSession, type SweepSession } from "./sweep-session";
 
 import type { ExperimentParameterAxis } from "./parameter-grid";
@@ -62,8 +62,6 @@ import type {
   BuildExperimentRequest,
   SweptScenarioCompiler,
 } from "./provider/shared/experiment-request";
-
-export { buildSweepAxes } from "./provider/create-experiment";
 
 type ExperimentHandleRegistration = {
   handle: MonteCarloExperiment;
@@ -189,6 +187,17 @@ export const ExperimentsProvider: React.FC<React.PropsWithChildren> = ({
     );
   };
 
+  /** Marks an experiment failed, and says so unless a host owns it. */
+  const failExperiment = (
+    { id, name }: Pick<ExperimentRecord, "id" | "name">,
+    message: string,
+  ) => {
+    patchExperiment(id, { error: message, status: "error" });
+    if (!ownershipRef.current.has(id)) {
+      addNotification({ message: `${name} failed: ${message}`, tone: "error" });
+    }
+  };
+
   /**
    * What the record says about the backend that ran, and the notice when it
    * is not the one asked for.
@@ -286,16 +295,7 @@ export const ExperimentsProvider: React.FC<React.PropsWithChildren> = ({
     const unsubscribeMetrics = handle.metrics.subscribe(sync);
     const unsubscribeEvents = handle.events.subscribe((event) => {
       if (event.type === "error") {
-        patchExperiment(experimentId, {
-          error: event.message,
-          status: "error",
-        });
-        if (!ownershipRef.current.has(experimentId)) {
-          addNotification({
-            message: `${experimentName} failed: ${event.message}`,
-            tone: "error",
-          });
-        }
+        failExperiment(experiment, event.message);
       } else {
         sync();
       }
@@ -400,16 +400,7 @@ export const ExperimentsProvider: React.FC<React.PropsWithChildren> = ({
         });
       },
       onError: (message) => {
-        patchExperiment(experimentId, {
-          error: message,
-          status: "error",
-        });
-        if (!ownershipRef.current.has(experimentId)) {
-          addNotification({
-            message: `${experiment.name} failed: ${message}`,
-            tone: "error",
-          });
-        }
+        failExperiment(experiment, message);
       },
     });
     sweepSessionsRef.current.set(experimentId, session);
@@ -599,14 +590,7 @@ export const ExperimentsProvider: React.FC<React.PropsWithChildren> = ({
           return;
         }
 
-        const message = errorMessage(error);
-        patchExperiment(experimentId, { error: message, status: "error" });
-        if (!ownershipRef.current.has(experimentId)) {
-          addNotification({
-            message: `${experiment.name} failed: ${message}`,
-            tone: "error",
-          });
-        }
+        failExperiment(experiment, errorMessage(error));
       }
     };
 

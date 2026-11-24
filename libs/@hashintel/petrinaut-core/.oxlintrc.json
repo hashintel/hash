@@ -55,15 +55,15 @@
       { "name": "isNaN", "message": "Use Number.isNaN instead" },
       {
         "name": "AbortSignal",
-        "message": "Use AbortSignalLike from ./src/environment instead."
+        "message": "Use AbortSignalLike from ./src/environment/environment.ts instead."
       },
       {
         "name": "MessageEvent",
-        "message": "Use MessageEventLike from ./src/environment instead."
+        "message": "Use MessageEventLike from ./src/environment/environment.ts instead."
       },
       {
         "name": "Worker",
-        "message": "Use WorkerLike from ./src/environment instead."
+        "message": "Use WorkerLike from ./src/environment/environment.ts instead."
       },
       {
         "name": "document",

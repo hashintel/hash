@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
+import { toPetrinautId } from "../document/petrinaut-id";
 import {
   petrinautExperimentRequestSchema,
   petrinautExperimentResultSchema,
 } from "../experiments";
-import { toPetrinautId } from "../petrinaut-id";
 
 const simulation = {
   name: "Baseline",

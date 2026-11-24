@@ -10,7 +10,12 @@ import { ftseInvestorsFlow } from "@local/hash-isomorphic-utils/flows/definition
 import * as goalFlows from "@local/hash-isomorphic-utils/flows/definitions/goal-flow-definitions";
 import * as integrationFlows from "@local/hash-isomorphic-utils/flows/definitions/integration-flow-definitions";
 
-import type { FlowDefinitionWithId } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  ActionStepDefinition,
+  FlowDefinition,
+  FlowDefinitionWithId,
+  StepDefinition,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 const isFlow = (value: unknown): value is FlowDefinitionWithId =>
   typeof value === "object" &&
@@ -70,3 +75,99 @@ export const forEachFlowDefinition = defineFlow(
     return { outputs: { files } };
   },
 ).flowDefinition;
+
+const getFileStep = (
+  stepId: string,
+  runAfter: StepDefinition["runAfter"],
+  url: ActionStepDefinition["inputs"][string] = {
+    kind: "flow-input",
+    inputName: "url",
+  },
+): ActionStepDefinition => ({
+  kind: "action",
+  stepId,
+  actionDefinitionId: "getFileFromUrl",
+  description: "",
+  inputs: { url },
+  runAfter,
+});
+
+const ifStep = (
+  stepId: string,
+  value: ActionStepDefinition["inputs"][string],
+) =>
+  ({
+    kind: "action",
+    stepId,
+    actionDefinitionId: "if",
+    description: "",
+    inputs: {
+      value,
+      condition: {
+        kind: "constant",
+        payload: {
+          kind: "FilterCondition",
+          value: {
+            kind: "all",
+            conditions: [
+              {
+                kind: "condition",
+                subject: { kind: "input", payloadKind: "Text" },
+                operator: "startsWith",
+                value: { kind: "Text", value: "https://" },
+              },
+            ],
+          },
+        },
+      },
+    },
+  }) satisfies ActionStepDefinition;
+
+/**
+ * An If, `check`, on the flow's `url`, with a step on each path, and the same inside a for-each step `each`:
+ *
+ *   check ─Yes─▶ yes ─▶ afterYes ─┐
+ *         └─No──▶ no ─────────────┴─▶ rejoin
+ *
+ * `yes` gets the file from the URL the If passes on, so it also takes a value from its path. Every other step gets it
+ * from `url`, or its item. `each` collects `innerGet`, which isn't on a path.
+ */
+export const ifPathsFlowDefinition: FlowDefinition = {
+  name: "Get files on paths",
+  description: "Get a file on whichever path an If takes",
+  inputs: [
+    { name: "url", payloadKind: "Text", array: false, required: true },
+    { name: "urls", payloadKind: "Text", array: true, required: true },
+  ],
+  steps: [
+    ifStep("check", { kind: "flow-input", inputName: "url" }),
+    getFileStep("yes", [{ stepId: "check", outputName: "true" }], {
+      kind: "step-output",
+      stepId: "check",
+      outputName: "true",
+      whenMissing: "skip",
+    }),
+    getFileStep("no", [{ stepId: "check", outputName: "false" }]),
+    getFileStep("afterYes", [{ stepId: "yes" }]),
+    getFileStep("rejoin", [{ stepId: "afterYes" }, { stepId: "no" }]),
+    {
+      kind: "for-each",
+      stepId: "each",
+      description: "",
+      over: { kind: "flow-input", inputName: "urls" },
+      steps: [
+        ifStep("innerCheck", { kind: "item" }),
+        getFileStep(
+          "innerYes",
+          [{ stepId: "innerCheck", outputName: "true" }],
+          {
+            kind: "item",
+          },
+        ),
+        getFileStep("innerGet", undefined, { kind: "item" }),
+      ],
+      collect: { stepId: "innerGet", outputName: "fileEntity", as: "files" },
+    },
+  ],
+  outputs: [],
+};

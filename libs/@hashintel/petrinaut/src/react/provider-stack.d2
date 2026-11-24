@@ -1,0 +1,32 @@
+# Hand-written; rendered by the arch-docs build. React providers use the
+# purple palette, the Core instance the blue one.
+direction: down
+
+classes: {
+  react: {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+  core: {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+}
+
+host: "Host application\nhandle, plugins, navigation"
+petrinaut: "Petrinaut\none Core instance per handle, readonly,\nresolveImport, libraries and rules"
+core: "Core instance\nstores, mutations, commands" {class: core}
+provider: "PetrinautProvider" {
+  class: react
+  doc: "PetrinautDocumentProvider\ninstance, host values, undo history,\nuser settings, imports, document" {class: react}
+  navigation: "PetrinautNavigationProvider\nthe location, keyed by the handle's id" {class: react}
+  runtime: "PetrinautRuntimeProvider\nlanguage client, notifications,\nsimulators, simulation, experiments,\noptimizations, experiment host" {class: react}
+  canvas: "PetrinautCanvasProvider\nviewport, playback, active net,\npanel sizes, editor state, read-only reason,\npanel presence, frame source" {class: react}
+}
+hooks: "Hooks\nuseStore, useEditorState,\nusePetrinautMutations" {class: react}
+ui: "Editor view and plugin hosts"
+
+host -> petrinaut: "passes props to"
+petrinaut -> core: "creates"
+petrinaut -> provider: "mounts"
+core -> provider.doc: "is published by"
+provider.doc -> provider.navigation: "wraps"
+provider.navigation -> provider.runtime: "wraps"
+provider.runtime -> provider.canvas: "wraps"
+provider.canvas -> ui: "wraps, with the\nUI providers between"
+core -> hooks: "notifies"
+hooks -> ui: "render the reader in"

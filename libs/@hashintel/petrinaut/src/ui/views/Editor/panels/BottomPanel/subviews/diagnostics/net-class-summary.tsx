@@ -3,7 +3,7 @@ import { use } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
-import { useStoreSelector } from "../../../../../../../react/use-store";
+import { useStoreSelector } from "../../../../../../../react/shared/use-store";
 
 import type { NetClass } from "@hashintel/petrinaut-core";
 

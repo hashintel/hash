@@ -4,8 +4,7 @@ import { useRef } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
-import { useTransitionFrame } from "../../../canvas-frame-store";
+import { useTransitionFrame } from "../../../canvas-frame-store-context";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import {
   classicNodeBoxStyle,
@@ -16,7 +15,8 @@ import {
   nodeSurfaceStyle,
   transitionSurfaceStyle,
 } from "../../../styles/node-surface";
-import { iconBadgeStyle } from "./node-card";
+import { withLabelWrapPoints } from "./label-wrap-points";
+import { iconBadgeStyle } from "./node-card-styles";
 import { NodeHandles } from "./shared/node-handles";
 import { useTransitionFiringAnimation } from "./use-transition-firing-animation";
 
@@ -61,7 +61,8 @@ const transitionLabelStyle = css({
 const transitionTypeStyle = css({
   fontSize: "[11px]",
   lineHeight: "[1.2]",
-  color: "neutral.a90",
+  "--node-text": "var(--colors-neutral-a90)",
+  color: "[var(--node-text)]",
 });
 
 const stochasticIconStyle = css({
@@ -102,7 +103,7 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   const firingDelta = useFiringDelta(frame?.firingCount ?? null);
 
   // Animate when firing occurs
-  useTransitionFiringAnimation(boxRef, boltRef, firingDelta, {
+  useTransitionFiringAnimation(id, boxRef, boltRef, firingDelta, {
     x: positionAbsoluteX,
     y: positionAbsoluteY,
   });
@@ -127,13 +128,18 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
           <div className={`${classicNodeLabelStyle} ${transitionLabelStyle}`}>
             {label}
           </div>
-          <div className={transitionTypeStyle}>{subtitle}</div>
+          <div className={`node-text ${transitionTypeStyle}`}>{subtitle}</div>
         </div>
-        <div ref={boltRef} className={firingIndicatorStyle}>
+        <div ref={boltRef} className={`node-bolt ${firingIndicatorStyle}`}>
           <Icon name="lightning" size="sm" />
         </div>
       </div>
-      <NodeHandles isConnectable={isConnectable} />
+      <NodeHandles
+        kind="transition"
+        width={data.width}
+        height={data.height}
+        isConnectable={isConnectable}
+      />
     </div>
   );
 };

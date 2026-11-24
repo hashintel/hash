@@ -1,40 +1,31 @@
-import { use } from "react";
-
 import { useCommand } from "../../../../react/commands/command-registry";
-import { EditorContext } from "../../../../react/state/editor-context";
+import { useDocumentId } from "../../../../react/document/use-document";
 import {
-  PluginAssistantContent,
+  useEditorActions,
+  useEditorState,
+} from "../../../../react/state/editor-context";
+import {
   useAssistantChoice,
   usePluginAssistant,
 } from "../../../plugins/plugin-assistant";
-import { PluginAssistantPanel } from "../panels/assistant-panel-shell";
+import { PluginBoundary } from "../../../plugins/plugin-boundary";
+import { PluginAssistantPanel } from "./editor-assistant/assistant-panel-shell";
 
 /**
- * The editor's AI assistant: the chosen running plugin's, else the first
- * running one's.
+ * The assistant panel beside the editor, around the content of the plugin
+ * whose assistant the editor shows. Nothing while no plugin provides one.
  */
-export const useEditorAssistant = () => {
+export const EditorAssistantPanel = () => {
   const plugin = usePluginAssistant();
+  const petriNetId = useDocumentId();
+  const isAiAssistantOpen = useEditorState(
+    (editor) => editor.isAiAssistantOpen,
+  );
+  const { setAiAssistantOpen } = useEditorActions();
 
-  return {
-    plugin,
-    hasAssistant: plugin !== undefined,
-    /** Takes the empty-net prompt's message for the plugin's assistant. */
-    onPrompt: plugin?.contributions.assistant?.onPrompt,
-  };
-};
-
-/** The assistant panel beside the editor, around the plugin's content. */
-export const EditorAssistantPanel = ({
-  plugin,
-  petriNetId,
-  focusRequest,
-}: {
-  plugin: NonNullable<ReturnType<typeof usePluginAssistant>>;
-  petriNetId: string | null;
-  focusRequest: number;
-}) => {
-  const { isAiAssistantOpen, setAiAssistantOpen } = use(EditorContext);
+  if (plugin === undefined) {
+    return null;
+  }
 
   return (
     <PluginAssistantPanel
@@ -42,15 +33,15 @@ export const EditorAssistantPanel = ({
         isOpen: isAiAssistantOpen,
         close: () => setAiAssistantOpen(false),
       }}
-      focusRequest={focusRequest}
     >
-      <PluginAssistantContent
+      <PluginBoundary
         /** A new net or a remounted plugin starts the content afresh. */
         key={`${plugin.instanceKey}:${petriNetId ?? "no-net"}`}
         pluginId={plugin.manifest.id}
+        place="assistant"
       >
         {plugin.contributions.assistant?.content}
-      </PluginAssistantContent>
+      </PluginBoundary>
     </PluginAssistantPanel>
   );
 };

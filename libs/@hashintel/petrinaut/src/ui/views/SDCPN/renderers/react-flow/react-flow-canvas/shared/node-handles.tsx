@@ -4,9 +4,12 @@ import { use } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { LinkRewiringContext } from "../link-rewiring-context";
+import { receivesDrag } from "./receives-drag";
 
 import type { CSSProperties, KeyboardEvent } from "react";
 
+// The dot is the pointer's own feedback, so it is drawn at full strength on
+// a node outside the focused neighbourhood too.
 const launchHandleStyle = css({
   opacity: "[0]",
   ".react-flow__node:hover &, .react-flow__node:focus-within &": {
@@ -30,8 +33,10 @@ const launchHandleStyle = css({
 });
 
 // Pseudo-elements expand hit areas without moving the anchors of component
-// arcs.
+// arcs. The handle names the colour of its outline: the pane of the canvas
+// reads it to draw the outline of a node outside the focused neighbourhood.
 const targetHandleStyle = css({
+  "--node-outline": "var(--colors-blue-s80)",
   _after: {
     content: '""',
     position: "absolute",
@@ -42,7 +47,7 @@ const targetHandleStyle = css({
     borderRadius: "[var(--arc-target-radius)]",
     outline: "[var(--arc-target-outline)]",
   },
-  _focusVisible: { _after: { outline: "[3px solid var(--colors-blue-s80)]" } },
+  _focusVisible: { _after: { outline: "[3px solid var(--node-outline)]" } },
 });
 
 const activateHandle = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -54,46 +59,22 @@ const activateHandle = (event: KeyboardEvent<HTMLDivElement>) => {
 };
 
 /**
- * Whether a connection drawn from a node of one kind may end on a place or a
- * transition: an arc between a place and a transition, or from an instance's
- * port to a transition, and a fusion of an instance's port with a place.
- */
-const acceptsConnection = (
-  sourceKind: string | undefined,
-  targetKind: string | undefined,
-): boolean =>
-  (sourceKind === "place" && targetKind === "transition") ||
-  (sourceKind === "transition" && targetKind === "place") ||
-  // A component instance only starts a connection from one of its ports.
-  sourceKind === "componentInstance";
-
-/**
- * Whether a place or a transition offers itself to what is being dragged. The
- * moved end of a fusion link lands on places, whatever its other end is:
- * what the drop does, or why it is refused, is for the rewiring to say.
- */
-export const receivesDrag = ({
-  rewiring,
-  sourceKind,
-  nodeKind,
-}: {
-  rewiring: boolean;
-  sourceKind: string | undefined;
-  nodeKind: string | undefined;
-}): boolean =>
-  rewiring ? nodeKind === "place" : acceptsConnection(sourceKind, nodeKind);
-
-/**
  * A place's or transition's two handles. Hovering the node reveals the
  * outgoing one; while an arc is being drawn, the whole node of a kind that
  * can receive it becomes its target.
  */
-export const NodeHandles = ({ isConnectable }: { isConnectable: boolean }) => {
+export const NodeHandles = ({
+  kind,
+  width,
+  height,
+  isConnectable,
+}: {
+  kind: "place" | "transition";
+  width: number;
+  height: number;
+  isConnectable: boolean;
+}) => {
   const nodeId = useNodeId();
-  const node = useStore((state) =>
-    nodeId ? state.nodeLookup.get(nodeId) : undefined,
-  );
-  const nodeKind = node?.type;
   const sourceKind = useStore((state) =>
     state.connection.inProgress
       ? state.connection.fromNode.type
@@ -109,7 +90,7 @@ export const NodeHandles = ({ isConnectable }: { isConnectable: boolean }) => {
 
   const rewiring = use(LinkRewiringContext);
   const canReceive =
-    isConnectable && receivesDrag({ rewiring, sourceKind, nodeKind });
+    isConnectable && receivesDrag({ rewiring, sourceKind, nodeKind: kind });
 
   return (
     <>
@@ -125,13 +106,16 @@ export const NodeHandles = ({ isConnectable }: { isConnectable: boolean }) => {
         aria-label="Connect arc to this node"
         onKeyDown={activateHandle}
         className={targetHandleStyle}
+        // Says that the outline of a target is drawn, for the pane to fade
+        // it with a faded node.
+        data-arc-target={isActiveTarget ? "" : undefined}
         style={
           {
-            "--arc-target-width": `${node?.measured.width ?? 0}px`,
-            "--arc-target-height": `${node?.measured.height ?? 0}px`,
-            "--arc-target-radius": nodeKind === "place" ? "999px" : "0",
+            "--arc-target-width": `${width}px`,
+            "--arc-target-height": `${height}px`,
+            "--arc-target-radius": kind === "place" ? "999px" : "0",
             "--arc-target-outline": isActiveTarget
-              ? "3px solid var(--colors-blue-s80)"
+              ? "3px solid var(--node-outline)"
               : "none",
             width: 9,
             height: 9,

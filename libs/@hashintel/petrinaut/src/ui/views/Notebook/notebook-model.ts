@@ -6,7 +6,7 @@
 
 import { getPlaceDynamicsEquationIds } from "@hashintel/petrinaut-core";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type {
   Color,
   DifferentialEquation,
@@ -26,6 +26,9 @@ export type NotebookCell =
   | { kind: "parameter"; id: string; parameter: Parameter };
 
 export type NotebookCellKind = NotebookCell["kind"];
+
+/** What identifies a cell, without its entity. */
+export type CellRef = Pick<NotebookCell, "id" | "kind">;
 
 /**
  * Cells in document order — the order entities are stored in the net
@@ -61,7 +64,7 @@ export function buildNotebookCells(net: ActiveNetDefinition): NotebookCell[] {
   ];
 }
 
-export function cellToSelectionItem(cell: NotebookCell): SelectionItem {
+export function cellToSelectionItem(cell: CellRef): SelectionItem {
   return { type: cell.kind, id: cell.id };
 }
 
@@ -390,7 +393,7 @@ export function buildConnectionIndex(
  * output of the same transition, for instance — is a cycle through the centre
  * and lands in `bidirectional` rather than being drawn twice.
  */
-export type NodeNeighbourhood = {
+type NodeNeighbourhood = {
   dependencies: NodeRef[];
   dependents: NodeRef[];
   bidirectional: NodeRef[];
@@ -426,7 +429,7 @@ export function buildNodeNeighbourhood(
   };
 }
 
-export type NetGraphNodeKind = "place" | "transition";
+type NetGraphNodeKind = "place" | "transition";
 
 export type NetGraphNode = {
   id: string;

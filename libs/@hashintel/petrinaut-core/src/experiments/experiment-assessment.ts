@@ -9,7 +9,7 @@
  * A `reason: string` contract would collapse that at the abstraction boundary,
  * and it cannot be widened later without changing every backend.
  */
-import type { AbortSignalLike } from "../environment";
+import type { AbortSignalLike } from "../environment/environment";
 import type { MonteCarloExperiment } from "../simulation/monte-carlo/runtime/experiment";
 
 /**

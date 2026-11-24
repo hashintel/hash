@@ -1,0 +1,136 @@
+---
+title: The React layer
+description: The contexts, hooks and providers that mirror Core state into React, the order the providers nest in, and which hook to call for what.
+sidebar_order: 5
+---
+
+The React layer is the contexts, hooks and providers that mirror the state of
+a Core instance into React. It renders no editor UI: the
+[UI layer](layer:ui) builds the editor on these hooks. The one thing it
+renders is the toaster of `NotificationsProvider`, because a host may mount
+that provider on its own and must see its notices.
+
+![One provider nests the document, the location, the runtime providers and the canvas providers in a fixed order around the editor, and the hooks read what they publish.](./provider-stack.d2)
+
+## Entry point
+
+`PetrinautProvider` in `petrinaut-provider.tsx` takes a Core instance and
+nests four parts, outermost first. `petrinaut-provider-layers.tsx` defines
+the three groups among them, and so lists every provider of the layer in the
+order it nests.
+
+1. `PetrinautDocumentProvider` publishes the instance, the host's values
+   (the title, the list of nets and the callbacks), the undo history, the
+   user settings, the imports and the document. It starts no worker.
+2. `PetrinautNavigationProvider` publishes the location. It is keyed by the
+   handle's id, so a switch of net resets the location and every worker
+   below it.
+3. `PetrinautRuntimeProvider` nests the providers that start a worker or keep
+   a run: the language client, notifications, the simulators, the
+   simulation, experiments, optimizations and the experiment host.
+4. `PetrinautCanvasProvider` publishes what the canvas and the panels need:
+   the saved viewport, playback, the active net, the panel sizes, the editor
+   state, the read-only reason, how far each panel is in view and the frame
+   source.
+
+Each part reads the parts above it. The simulation reads the document and
+the location, the editor state reads the location and the settings, and the
+read-only reason reads the document, the mode and the run.
+
+Two providers of the layer are mounted elsewhere. `Petrinaut` in the UI
+layer mounts `CommandRegistryProvider`, and the Preview provides
+`ActualModeContext`.
+
+The Preview is `PetrinautPreview` in the UI layer, which shows a net without
+the editor. It mounts the document and the canvas providers itself, with
+navigation between them. When it plays a run it adds `NotificationsProvider`,
+`SimulatorsProvider` and `SimulationProvider`.
+
+The layer also holds the orchestration of experiments. The sweep session, the
+creation of an experiment, the trial evaluator and the experiment host are
+code without React in [experiments](layer:react.experiments),
+[optimizations](layer:react.optimizations) and
+[the experiment host](layer:react.experiment-host). They sit beside the
+providers that are their only callers, and Core publishes the runtimes they
+drive and not the way the editor drives them.
+
+## How state reaches a component
+
+| The state                                       | Is read with                                                                                         | Renders the reader                                              |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| A context value that changes rarely             | `use` of the context                                                                                 | When any field of the value changes                             |
+| A store of Core, or a store a context hands out | `useStore`, `useStoreSelector`                                                                       | When the store's value changes                                  |
+| A part of a value that changes often            | `useEditorState`, `useUserSettings`, `usePetrinautDefinitionSelector`, `usePetrinautNavigationState` | When that part changes, as `select-from-context.test.tsx` holds |
+| The size or the position of a panel             | A Motion value written to the element, as [Panel geometry](doc:react.state/panel-sizes) describes    | Never                                                           |
+
+The editor state, the user settings, the document and the location change on
+most interactions, so each has a hook that takes a selector. The viewed time
+of a run is a store that changes on every animation frame of playback, and
+`useEventPlaybackFrame` renders its reader on each one.
+
+[Editor state](doc:react.state/editor-state) says which state has which
+owner.
+
+## How a provider publishes
+
+| What the provider holds                    | It publishes                                                                                 | As in                                                                    |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| A value that changes rarely                | A context with an inert default                                                              | `CompositionContext`, `SimulatorsContext`                                |
+| A value that changes on most interactions  | Its context, and the store of `usePublished` in a second context for the readers by selector | `SDCPNProvider`, `EditorProvider`, the navigation and settings providers |
+| A value that changes per edit or per frame | A store inside the context value, so reading the context renders nothing                     | `UndoRedoContext`, the viewed time of `EventPlaybackContext`             |
+| Actions                                    | A context of their own that holds one object for the provider's life                         | `EditorActionsContext`, `ExperimentsActionsContext`                      |
+
+[The shared helpers](layer:react.shared) hold `usePublished`, `useSelected`
+and the store hooks these rows are built from.
+
+## Which hook to call
+
+| To                                 | Call                                                    | From                                       |
+| ---------------------------------- | ------------------------------------------------------- | ------------------------------------------ |
+| Read part of the document          | `usePetrinautDefinitionSelector`                        | [The document](layer:react.document)       |
+| Read a Core store                  | `usePetrinautInstance`, then `useStore`                 | [The document](layer:react.document)       |
+| Edit the document                  | `usePetrinautMutations`, `usePetrinautCommands`         | [The edit guard](layer:react.editing)      |
+| Ask whether editing is allowed     | `useIsReadOnly`, `useReadOnlyReason`                    | [The edit guard](layer:react.editing)      |
+| Read or change the editor's state  | `useEditorState`, `useEditorFields`, `useEditorActions` | [The editor state](layer:react.state)      |
+| Ask whether one item is selected   | `useIsSelected`                                         | [The editor state](layer:react.state)      |
+| Select an item and open its panel  | `useRevealInEditor`                                     | [The editor state](layer:react.state)      |
+| Read or save a setting             | `useUserSettings`, `useUserSettingsFields`              | [The editor state](layer:react.state)      |
+| Read or change the location        | `usePetrinautNavigationState`, `usePetrinautNavigate`   | [Navigation](layer:react.navigation)       |
+| Register a command                 | `useCommand`                                            | [Commands](layer:react.commands)           |
+| Show a notice                      | `addNotification` of `NotificationsContext`             | [Notifications](layer:react.notifications) |
+| Read the latest value in a handler | `useLatest`, `useStableCallback`                        | [The shared helpers](layer:react.shared)   |
+
+## Rules
+
+- **No file of the React layer imports from the UI layer.** The providers
+  are then tested without mounting the editor. Held by the rule from `react`
+  to `ui` in `apps/petrinaut-docs/archinaut.config.ts`, which that package's
+  script `lint:arch-docs` checks.
+- **A file of the package imports the file that defines a name, and never
+  `react/index.ts`.** That file is the published entry. An import of it
+  from inside the package would pull every provider into the importer, and
+  a mock of it in a test would replace the whole layer. Held by the pattern
+  on `no-restricted-imports` in the package's `.oxlintrc.json`.
+- **An edit goes through `usePetrinautMutations` or `usePetrinautCommands`.**
+  Both ask the read-only reason and the host's rules first, and show a notice
+  where the edit is refused. `usePetrinautInstance` returns the instance
+  without `mutations` and `commands`, so the type checker holds the rule.
+- **The host's values are not in the document context.** A host may pass a
+  new title, list of nets or callback on every edit, and almost every
+  component reads `SDCPNContext`. Held by `petrinaut-provider-layers.test.tsx`.
+
+## Pitfalls
+
+- The React Compiler does not memoize a value that is built in several
+  statements with a hook call between them. Build each value in one
+  expression, as `SimulationProvider` builds `playbackSource`.
+- The compiler's `infer` mode skips a function that calls no hook but `use`.
+  Such a hook gives a new function, object or array on every render. Start
+  it with the directive `"use memo"`, as `useHostRulesFeedback` does.
+- A selector that builds an object or an array returns a new value on every
+  change, and renders its reader each time. Select a field or a primitive.
+- `Petrinaut` creates a Core instance for each new `handle`, `readonly`,
+  `resolveImport`, `libraries` or `rules`. It holds `rules` while they say
+  the same, so an object written inline is safe. A `resolveImport` or
+  `libraries` that is new on every render creates an instance on every
+  render, so a host keeps both stable.

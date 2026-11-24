@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isPetrinautId } from "../petrinaut-id";
+import { isPetrinautId } from "../document/petrinaut-id";
 import { pastePayloadIntoSDCPN } from "./paste";
 
 import type { SDCPN } from "../types/sdcpn";

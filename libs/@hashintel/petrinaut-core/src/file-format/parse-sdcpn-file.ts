@@ -1,16 +1,16 @@
 /**
  * @layerRoot core.file-format
- * @role Reads and writes the on-disk SDCPN document format, plus export converters
+ * @role Reads a document of any age from file text or from a host object, writes the file format, and converts a document for export
  */
 
-import { migrateLegacyComponentKeys } from "../migrate-legacy-component-keys";
-import { migrateLegacyDynamics } from "../migrate-legacy-dynamics";
-import { canonicalizePetrinautIds } from "../petrinaut-id";
+import { canonicalizePetrinautIds } from "../document/petrinaut-id";
 import {
   describeDangerousSdcpnKeys,
   findDangerousSdcpnKeys,
 } from "../validation/record-keys";
 import { parseDocumentText } from "./document-text";
+import { migrateLegacyComponentKeys } from "./legacy/migrate-legacy-component-keys";
+import { migrateLegacyDynamics } from "./legacy/migrate-legacy-dynamics";
 import {
   legacySdcpnFileSchema,
   SDCPN_FILE_FORMAT_VERSION,

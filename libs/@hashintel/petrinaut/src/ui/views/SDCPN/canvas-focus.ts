@@ -18,7 +18,7 @@ import {
 
 import { fusionLinks } from "./fusion-links";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 
 /**
  * Where a node sits relative to the focused item. An unrelated node has no
@@ -73,7 +73,7 @@ type NodeAdjacency = {
  * the size of the neighbourhood rather than a walk over every transition and
  * arc in the net.
  */
-export type NetAdjacency = {
+type NetAdjacency = {
   /** Every id the canvas can focus: nodes, arcs and fusions. */
   canvasIds: ReadonlySet<string>;
   byNode: ReadonlyMap<string, NodeAdjacency>;

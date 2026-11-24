@@ -4,19 +4,18 @@ import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { generatePetrinautId, isInterface } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../react";
-import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
-import { ComponentGlyph } from "../../../../../components/component-glyph";
-import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import { ActiveNetContext } from "../../../../../../react/document/active-net-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../react/document/use-document";
+import { useIsReadOnly } from "../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../react/editing/use-petrinaut-mutations";
+import { usePetrinautPresentation } from "../../../../../presentation/presentation-context";
+import { ComponentGlyph } from "../../../../../shared/component-glyph";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
-import { usePetrinautPresentation } from "../../../../shared/presentation-context";
+import { UI_MESSAGES } from "../../../shared/ui-messages";
 import { ComponentOptionsPopover } from "./component-options-popover";
 import { RowActionCell } from "./row-action-cell";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import type {
   FocusStop,
   FocusStopTarget,
@@ -109,10 +108,10 @@ const renameInputStyle = css({
   width: "full",
 });
 
-const NetsHeaderAction: React.FC = () => {
-  const {
-    petriNetDefinition: { components },
-  } = use(SDCPNContext);
+export const NetsHeaderAction: React.FC = () => {
+  const componentCount = usePetrinautDefinitionSelector(
+    (definition) => definition.components?.length ?? 0,
+  );
   const { addComponent } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
@@ -125,10 +124,9 @@ const NetsHeaderAction: React.FC = () => {
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add component"}
       onClick={() => {
-        const count = (components ?? []).length;
         addComponent({
           id: generatePetrinautId(),
-          name: `Component ${count + 1}`,
+          name: `Component ${componentCount + 1}`,
           places: [],
           transitions: [],
           types: [],
@@ -151,9 +149,9 @@ export const NetNavigationList: React.FC<{
   onSelect?: () => void;
 }> = ({ onSelect }) => {
   const presentation = usePetrinautPresentation();
-  const {
-    petriNetDefinition: { components },
-  } = use(SDCPNContext);
+  const components = usePetrinautDefinitionSelector(
+    (definition) => definition.components,
+  );
   const { activeComponentId, setActiveComponentId } = use(ActiveNetContext);
   const { updateComponent, removeComponent } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
@@ -433,15 +431,4 @@ export const NetNavigationList: React.FC<{
       )}
     </div>
   );
-};
-
-export const netsListSubView: SubView = {
-  id: "nets-list",
-  title: "Nets",
-  tooltip:
-    "View the root net and the document's components. Mark a component's places as ports, then place instances of it in the root net.",
-  component: NetNavigationList,
-  renderHeaderAction: () => <NetsHeaderAction />,
-  headerActionMutates: true,
-  defaultCollapsed: false,
 };

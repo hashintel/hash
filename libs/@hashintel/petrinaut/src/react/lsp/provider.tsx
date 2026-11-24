@@ -1,33 +1,23 @@
-/**
- * @layerRoot react.lsp
- * @role Exposes the core language client to the editor as React context
- */
-
-import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import {
   createLanguageClient,
-  type ReadableStore,
-  type DiagnosticsSnapshot,
+  createReadableStore,
   type LanguageClient,
   type LspWorkerFactory,
 } from "@hashintel/petrinaut-core";
 import { createLanguageServerWorker } from "@hashintel/petrinaut-core/workers/lsp";
 
-import { createValueStore } from "../create-value-store";
-import { SDCPNContext } from "../state/sdcpn-context";
-import { useExecutableDefinition } from "../state/use-executable-definition";
-import { useStore } from "../use-store";
+import { SDCPNContext } from "../document/sdcpn-context";
+import { useExecutableDefinition } from "../document/use-executable-definition";
+import { constantStore, useStore } from "../shared/use-store";
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   EMPTY_DIAGNOSTICS_SNAPSHOT,
   LanguageClientContext,
 } from "./context";
 
-const EMPTY_DIAGNOSTICS_STORE: ReadableStore<DiagnosticsSnapshot> = {
-  get: () => EMPTY_DIAGNOSTICS_SNAPSHOT,
-  subscribe: () => () => {},
-};
+const EMPTY_DIAGNOSTICS_STORE = constantStore(EMPTY_DIAGNOSTICS_SNAPSHOT);
 
 export const LanguageClientProvider: React.FC<{
   children: React.ReactNode;
@@ -52,13 +42,9 @@ export const LanguageClientProvider: React.FC<{
    * StrictMode's simulated remount cycle.
    */
   const [clientStore] = useState(() =>
-    createValueStore<LanguageClient | null>(null),
+    createReadableStore<LanguageClient | null>(null),
   );
-  const client = useSyncExternalStore(
-    (listener) => clientStore.subscribe(listener),
-    () => clientStore.getSnapshot(),
-    () => clientStore.getSnapshot(),
-  );
+  const client = useStore(clientStore);
 
   useEffect(() => {
     const c = createLanguageClient({
@@ -67,7 +53,7 @@ export const LanguageClientProvider: React.FC<{
     clientStore.set(c);
     return () => {
       c.dispose();
-      if (clientStore.getSnapshot() === c) {
+      if (clientStore.get() === c) {
         clientStore.set(null);
       }
     };

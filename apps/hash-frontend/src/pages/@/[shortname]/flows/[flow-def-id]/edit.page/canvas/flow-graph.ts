@@ -66,7 +66,12 @@ export type TriggerNode = Node<TriggerCard, "trigger">;
 export type CardPath = StepPath & { connected: boolean };
 
 export type ActionStepNode = Node<
-  StepNodeDataBase & { step: ActionStepDefinition<string>; paths: CardPath[] },
+  StepNodeDataBase & {
+    step: ActionStepDefinition<string>;
+    paths: CardPath[];
+    /** Whether a line leaves the step itself, not one of its paths: the step after it runs on either path. */
+    lineFromStep?: boolean;
+  },
   "step"
 >;
 
@@ -316,6 +321,7 @@ export const getFlowGraph = ({
         ...path,
         connected: linesFrom.has(JSON.stringify([node.id, path.outputName])),
       }));
+      node.data.lineFromStep = linesFrom.has(JSON.stringify([node.id, null]));
     }
   }
 

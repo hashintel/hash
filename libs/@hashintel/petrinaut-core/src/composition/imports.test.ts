@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { toPetrinautId } from "../petrinaut-id";
+import { toPetrinautId } from "../document/petrinaut-id";
 import { createReadableStore } from "../store";
 import {
   createImportStore,

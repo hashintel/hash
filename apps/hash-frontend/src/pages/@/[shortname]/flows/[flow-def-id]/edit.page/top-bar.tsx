@@ -11,8 +11,8 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { ArchiveFlowDialog } from "./shared/archive-flow-dialog";
 import { RenameInput } from "./shared/rename-input";
+import { RunFlow } from "./shared/run-flow";
 import { RunActions } from "./top-bar/run-actions";
-import { RunFlow } from "./top-bar/run-flow";
 import { RunSwitcher } from "./top-bar/run-switcher";
 import { RunTime } from "./top-bar/run-time";
 

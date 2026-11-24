@@ -1,0 +1,25 @@
+cohort,sample,mode,mounted_ms,paint_ms,cycles,models,editors,heap_bytes,dom_nodes
+baseline-cold,0,cold,515.2,534,,,,,
+baseline-cold,1,cold,527.7,544.2,,,,,
+baseline-cold,2,cold,529.9,546.5,,,,,
+baseline-cold,3,cold,526.7,544.9,,,,,
+final-cold,0,cold,269.1,286.2,,,,,
+final-cold,1,cold,273.8,290,,,,,
+final-cold,2,cold,267.3,279.8,,,,,
+final-cold,3,cold,267.9,286,,,,,
+baseline-memory,0,memory,531.5,544.8,0,,,,"{'documents': 2, 'nodes': 101, 'jsEventListeners': 214}"
+baseline-memory,0,memory,531.5,544.8,10,,,,"{'documents': 2, 'nodes': 123, 'jsEventListeners': 217}"
+baseline-memory,0,memory,531.5,544.8,20,,,,"{'documents': 2, 'nodes': 143, 'jsEventListeners': 217}"
+baseline-memory,0,memory,531.5,544.8,30,,,,"{'documents': 2, 'nodes': 163, 'jsEventListeners': 217}"
+baseline-memory,1,memory,525.5,541.6,0,,,,"{'documents': 2, 'nodes': 101, 'jsEventListeners': 214}"
+baseline-memory,1,memory,525.5,541.6,10,,,,"{'documents': 2, 'nodes': 123, 'jsEventListeners': 217}"
+baseline-memory,1,memory,525.5,541.6,20,,,,"{'documents': 2, 'nodes': 143, 'jsEventListeners': 217}"
+baseline-memory,1,memory,525.5,541.6,30,,,,"{'documents': 2, 'nodes': 163, 'jsEventListeners': 217}"
+final-memory,0,memory,271.7,289.8,0,,,,"{'documents': 2, 'nodes': 102, 'jsEventListeners': 214}"
+final-memory,0,memory,271.7,289.8,10,,,,"{'documents': 2, 'nodes': 124, 'jsEventListeners': 214}"
+final-memory,0,memory,271.7,289.8,20,,,,"{'documents': 2, 'nodes': 144, 'jsEventListeners': 214}"
+final-memory,0,memory,271.7,289.8,30,,,,"{'documents': 2, 'nodes': 164, 'jsEventListeners': 214}"
+final-memory,1,memory,273.4,291.1,0,,,,"{'documents': 2, 'nodes': 102, 'jsEventListeners': 214}"
+final-memory,1,memory,273.4,291.1,10,,,,"{'documents': 2, 'nodes': 124, 'jsEventListeners': 214}"
+final-memory,1,memory,273.4,291.1,20,,,,"{'documents': 2, 'nodes': 144, 'jsEventListeners': 214}"
+final-memory,1,memory,273.4,291.1,30,,,,"{'documents': 2, 'nodes': 164, 'jsEventListeners': 214}"

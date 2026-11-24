@@ -6,13 +6,17 @@ import {
   binaryFilterOperatorsByPrimitive,
   unaryFilterOperators,
 } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
-import { payloadKindTraits } from "@local/hash-isomorphic-utils/flows/types";
 
-import type {
-  EntityProperty,
-  PropertyValueKind,
-} from "../shared/condition-properties";
-import type { BaseUrl } from "@blockprotocol/type-system";
+import {
+  getSavedSubjectKind,
+  hasOnlyKeys,
+  isRecord,
+  readTarget,
+  toSubject,
+} from "../shared/condition-targets";
+
+import type { PropertyValueKind } from "../shared/condition-properties";
+import type { ConditionTarget } from "../shared/condition-targets";
 import type {
   BinaryFilterOperator,
   UnaryFilterOperator,
@@ -22,17 +26,6 @@ import type {
   FilterLeaf,
 } from "@local/hash-isomorphic-utils/flows/filter-condition";
 import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
-
-/** What a row checks: the value itself, or a property of the entity the value is or names. */
-export type ConditionTarget = {
-  /** Identifies the target among a step's by its subject: "input", or "property:" and the property's base URL. */
-  key: string;
-  label: string;
-  subject:
-    | { kind: "input" }
-    | { kind: "entityProperty"; propertyTypeBaseUrl: BaseUrl };
-  valueKind: PropertyValueKind;
-};
 
 export type RowOperator = BinaryFilterOperator | UnaryFilterOperator;
 
@@ -48,20 +41,13 @@ export type ConditionForm = { join: "all" | "any"; rows: ConditionRow[] };
 
 export const emptyConditionForm: ConditionForm = { join: "all", rows: [] };
 
-const rowKinds = ["Text", "Number", "Date", "DateTime", "Boolean"] as const;
-
-type RowKind = (typeof rowKinds)[number];
-
-const isRowKind = (kind: PayloadKind): kind is RowKind =>
-  (rowKinds as readonly PayloadKind[]).includes(kind);
-
 const primitives = {
   Text: "text",
   Number: "number",
   Date: "date",
   DateTime: "datetime",
   Boolean: "boolean",
-} as const satisfies Record<RowKind, string>;
+} as const satisfies Record<PropertyValueKind["kind"], string>;
 
 /**
  * The operators the engine has for a kind of value, the first being picked for a new row. A status only matches its
@@ -107,57 +93,6 @@ export const getOperatorLabel = (
     ? dateOperatorLabels[operator]
     : undefined) ?? operatorLabels[operator];
 
-const subjectKeyOf = (subject: ConditionTarget["subject"]) =>
-  subject.kind === "input"
-    ? "input"
-    : `property:${subject.propertyTypeBaseUrl}`;
-
-/**
- * What a condition can check on a value of `kind`: the value itself when it's text, a number, a date, a date and time or true/false,
- * or the given properties when it's an entity. Nothing for any other kind, or nothing connected.
- */
-export const getConditionTargets = ({
-  kind,
-  valueLabel,
-  properties,
-}: {
-  kind: PayloadKind | null;
-  /** What the value itself is called, e.g. "Value" or "Item". */
-  valueLabel: string;
-  properties: EntityProperty[];
-}): ConditionTarget[] => {
-  if (!kind) {
-    return [];
-  }
-
-  if (isRowKind(kind)) {
-    const subject = { kind: "input" } as const;
-
-    return [
-      {
-        key: subjectKeyOf(subject),
-        label: valueLabel,
-        subject,
-        valueKind: { kind },
-      },
-    ];
-  }
-
-  return "entity" in payloadKindTraits[kind]
-    ? properties.map(({ baseUrl, title, valueKind }) => {
-        const subject = {
-          kind: "entityProperty",
-          propertyTypeBaseUrl: baseUrl,
-        } as const;
-
-        return { key: subjectKeyOf(subject), label: title, subject, valueKind };
-      })
-    : [];
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
 /**
  * The kind a saved condition was built for, read from its first row: the value's own kind, or an entity's. Lets its
  * rows show while nothing is connected to the value.
@@ -169,25 +104,9 @@ export const getSavedConditionKind = (
     isRecord(condition) && Array.isArray(condition.conditions)
       ? (condition.conditions as unknown[])[0]
       : undefined;
-  const subject = isRecord(first) ? first.subject : undefined;
 
-  if (!isRecord(subject)) {
-    return null;
-  }
-
-  if (subject.kind === "entityProperty") {
-    return "EntityId";
-  }
-
-  return subject.kind === "input" &&
-    typeof subject.payloadKind === "string" &&
-    isRowKind(subject.payloadKind as PayloadKind)
-    ? (subject.payloadKind as PayloadKind)
-    : null;
+  return getSavedSubjectKind(first);
 };
-
-const hasOnlyKeys = (value: Record<string, unknown>, keys: string[]) =>
-  Object.keys(value).every((key) => keys.includes(key));
 
 /** Whether a typed value is one of a kind's: a number, true or false, a date, an instant, a status's option, or any text. */
 const isRowValue = (valueKind: PropertyValueKind, value: unknown) => {
@@ -206,34 +125,6 @@ const isRowValue = (valueKind: PropertyValueKind, value: unknown) => {
         (!valueKind.options || valueKind.options.includes(value))
       );
   }
-};
-
-/** The target a saved subject names, if it's one of `targets` and of the kind the target's value is. */
-const readTarget = (
-  subject: unknown,
-  targets: ReadonlyMap<string, ConditionTarget>,
-) => {
-  if (!isRecord(subject)) {
-    return undefined;
-  }
-
-  const key =
-    subject.kind === "input" && hasOnlyKeys(subject, ["kind", "payloadKind"])
-      ? "input"
-      : subject.kind === "entityProperty" &&
-          hasOnlyKeys(subject, [
-            "kind",
-            "payloadKind",
-            "propertyTypeBaseUrl",
-          ]) &&
-          typeof subject.propertyTypeBaseUrl === "string"
-        ? `property:${subject.propertyTypeBaseUrl}`
-        : undefined;
-  const target = key === undefined ? undefined : targets.get(key);
-
-  return target && subject.payloadKind === target.valueKind.kind
-    ? target
-    : undefined;
 };
 
 const readRow = (
@@ -314,8 +205,7 @@ export const toFilterCondition = (
       return [];
     }
 
-    const payloadKind = target.valueKind.kind;
-    const subject = { ...target.subject, payloadKind };
+    const subject = toSubject(target);
 
     /* The leaf types correlate a subject's kind with its operator and value, which the row's union can't express. */
     return [
@@ -324,7 +214,7 @@ export const toFilterCondition = (
             kind: "condition",
             subject,
             operator: row.operator,
-            value: { kind: payloadKind, value: row.value },
+            value: { kind: subject.payloadKind, value: row.value },
           }
         : { kind: "condition", subject, operator: row.operator }) as FilterLeaf,
     ];

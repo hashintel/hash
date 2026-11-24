@@ -8,13 +8,14 @@ role: Runs many independent simulations with bounded frame memory, reporting met
 ## Goal
 
 `MonteCarloSimulator` runs many independent SDCPN simulations with bounded
-frame memory. It is separate from the interactive simulator: it does not retain
-frame history, does not expose engine frame storage, and is designed for batch
-statistics work.
+frame memory. It keeps two frame buffers per run and no frame history, hands
+its caller summaries and token counts and never a buffer, and is designed for
+batch statistics work.
 
-Each run uses the same extension-aware SDCPN sanitization as the interactive
-simulator, so disabled lambda, kernel, colour, dynamics, or parameter surfaces
-are not compiled for Monte Carlo runs either.
+Each run is built by `buildSimulation` of
+[the engine](layer:core.simulation.engine), which works from an SDCPN sanitized
+for the enabled extensions. A disabled lambda, kernel, colour, dynamics or
+parameter surface therefore reaches no run.
 
 ## Concepts
 
@@ -65,7 +66,7 @@ analysis could adjust the growth ratio per run based on observed growth rate.
 Within one shard, `advanceAll()` is deterministic round-robin: all runs move
 together and one long run cannot starve the others. An experiment shards its
 runs across several workers, each running its own simulator over a contiguous
-slice — the fan-out lives in `runtime/`, the worker protocol in `worker/`, and
+slice. The fan-out lives in `runtime/`, the worker protocol in `worker/`, and
 the mergeable metric states in `metrics/`.
 
 ## User code

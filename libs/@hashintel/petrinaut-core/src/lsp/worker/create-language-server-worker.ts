@@ -1,4 +1,4 @@
-import type { WorkerLike } from "../../environment";
+import type { WorkerLike } from "../../environment/environment";
 import type { ClientMessage, ServerMessage } from "./protocol";
 
 /** Dynamically import and instantiate the language server worker. */

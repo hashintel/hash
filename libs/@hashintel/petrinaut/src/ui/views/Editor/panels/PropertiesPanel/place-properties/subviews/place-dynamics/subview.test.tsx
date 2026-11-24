@@ -3,33 +3,23 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ActiveNetContext } from "../../../../../../../../react/state/active-net-context";
+import { ActiveNetContext } from "../../../../../../../../react/document/active-net-context";
+import { PetrinautInstanceContext } from "../../../../../../../../react/document/instance-context";
+import { ReadOnlyReasonContext } from "../../../../../../../../react/editing/use-read-only-reason";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
-import { selectedRowCellStyle } from "../../../../../../../components/spreadsheet-kit/form-table";
-import { PlacePropertiesProvider } from "../../context";
-import { placeDynamicsSubView } from "./subview";
+import { selectedRowCellStyle } from "../../../../../../../spreadsheet-kit/form-table";
+import { PlacePropertiesContext } from "../../context";
+import { PlaceDynamicsContent, PlaceDynamicsHeaderActions } from "./subview";
 
 import type {
   Color,
   DifferentialEquation,
+  Petrinaut,
   Place,
   SelectionItem,
 } from "@hashintel/petrinaut-core";
 
 afterEach(cleanup);
-
-// The menu's positioner observes its anchor; jsdom has no observer.
-if (typeof window.ResizeObserver === "undefined") {
-  class ResizeObserverStub {
-    observe(): void {}
-    unobserve(): void {}
-    disconnect(): void {}
-  }
-  Object.defineProperty(window, "ResizeObserver", {
-    value: ResizeObserverStub,
-    configurable: true,
-  });
-}
 
 const satellite: Color = {
   id: "satellite",
@@ -58,8 +48,6 @@ const initialPlace: Place = {
   x: 0,
   y: 0,
 };
-
-const Content = placeDynamicsSubView.component;
 
 const Harness = ({
   place: startingPlace = initialPlace,
@@ -91,18 +79,28 @@ const Harness = ({
           },
         }}
       >
-        <PlacePropertiesProvider
-          place={place}
-          placeType={satellite}
-          types={[satellite]}
-          isReadOnly={readOnly}
-          updatePlace={({ update }) =>
-            setPlace((currentPlace) => ({ ...currentPlace, ...update }))
+        <PetrinautInstanceContext
+          value={
+            {
+              mutations: {
+                updatePlace: ({ update }: { update: Partial<Place> }) =>
+                  setPlace((currentPlace) => ({ ...currentPlace, ...update })),
+              },
+              mutationRefusal: () => null,
+            } as unknown as Petrinaut
           }
         >
-          {placeDynamicsSubView.renderHeaderAction?.()}
-          <Content />
-        </PlacePropertiesProvider>
+          <ReadOnlyReasonContext
+            value={readOnly ? { kind: "host-readonly" } : null}
+          >
+            <PlacePropertiesContext
+              value={{ place, placeType: satellite, types: [satellite] }}
+            >
+              <PlaceDynamicsHeaderActions />
+              <PlaceDynamicsContent />
+            </PlacePropertiesContext>
+          </ReadOnlyReasonContext>
+        </PetrinautInstanceContext>
       </ActiveNetContext>
     </EditorContext>
   );

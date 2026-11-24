@@ -28,11 +28,9 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { ActualModeContext } from "../../react/actual-mode-context";
-import {
-  PetrinautNavigationProvider,
-  type PetrinautNavigationController,
-} from "../../react/navigation";
+import { ActualModeContext } from "../../react/host/actual-mode-context";
+import { type PetrinautNavigationController } from "../../react/navigation/navigation";
+import { PetrinautNavigationProvider } from "../../react/navigation/navigation-provider";
 import { NotificationsProvider } from "../../react/notifications/provider";
 import {
   PetrinautCanvasProvider,
@@ -40,8 +38,10 @@ import {
 } from "../../react/petrinaut-provider-layers";
 import { SimulationProvider } from "../../react/simulation/provider";
 import { SimulatorsProvider } from "../../react/simulators/provider";
+import { PetrinautPresentationProvider } from "../presentation/presentation-provider";
+import { OverlayHost } from "../shared/overlay-host";
 import { SDCPNView } from "../views/SDCPN/sdcpn-view";
-import { PetrinautPresentationProvider } from "../views/shared/presentation-context";
+import { PetrinautIconProvider } from "../views/shared/icon-provider";
 import {
   createPreviewNavigationAdapter,
   type PetrinautPreviewNavigationState,
@@ -60,7 +60,7 @@ import {
   validatePreviewQuickSimulation,
 } from "./quick-simulation";
 
-import type { NetManagement } from "../../react/net-management-context";
+import type { NetManagement } from "../../react/host/net-management-context";
 
 const noop = () => {};
 
@@ -205,6 +205,8 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
     );
   }
   const mode = actualMode ? "actual" : hasQuickSimulation ? "simulate" : "edit";
+  // `useMemo` for the handle and the instance: one per model is a
+  // requirement, not an optimisation left to the compiler.
   const handle = useMemo(
     () =>
       createJsonDocHandle({
@@ -224,43 +226,16 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
     () => createPetrinaut({ document: handle, readonly: true }),
     [handle],
   );
-  const navigationAdapter = useMemo(
-    () =>
-      navigation ? createPreviewNavigationAdapter(navigation, mode) : undefined,
-    [mode, navigation],
-  );
   const hirArtifacts = quickSimulation?.hirArtifacts;
   const scenarioHirById = quickSimulation?.scenarioHirById;
-  // SimulationProvider's lowering effect keys on compiler function identity,
-  // so retain the adapter while the host's immutable artifacts are unchanged.
+  // `useMemo`: SimulationProvider's lowering effect keys on the compiler's
+  // functions, so one compiler per set of artifacts is a requirement.
   const simulationCompiler = useMemo(
     () =>
       hirArtifacts && scenarioHirById
         ? createPreviewSimulationCompiler({ hirArtifacts, scenarioHirById })
         : undefined,
     [hirArtifacts, scenarioHirById],
-  );
-  const allowedPlaybackSpeeds = quickSimulation?.allowedPlaybackSpeeds;
-  const defaultPlaybackSpeed = quickSimulation?.defaultPlaybackSpeed;
-  const playbackOptions = useMemo(
-    () =>
-      hasQuickSimulation
-        ? resolvePreviewPlaybackOptions({
-            allowedPlaybackSpeeds,
-            defaultPlaybackSpeed,
-          })
-        : undefined,
-    [allowedPlaybackSpeeds, defaultPlaybackSpeed, hasQuickSimulation],
-  );
-  const netManagement = useMemo<NetManagement>(
-    () => ({
-      title,
-      setTitle: noop,
-      existingNets: [],
-      createNewNet: noop,
-      loadPetriNet: noop,
-    }),
-    [title],
   );
 
   useEffect(() => () => instance.dispose(), [instance]);
@@ -278,6 +253,25 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
     setHandleAtLastSwap(handle);
     setModelGeneration((generation) => generation + 1);
   }
+
+  const navigationAdapter = navigation
+    ? createPreviewNavigationAdapter(navigation, mode)
+    : undefined;
+  const allowedPlaybackSpeeds = quickSimulation?.allowedPlaybackSpeeds;
+  const defaultPlaybackSpeed = quickSimulation?.defaultPlaybackSpeed;
+  const playbackOptions = hasQuickSimulation
+    ? resolvePreviewPlaybackOptions({
+        allowedPlaybackSpeeds,
+        defaultPlaybackSpeed,
+      })
+    : undefined;
+  const netManagement: NetManagement = {
+    title,
+    setTitle: noop,
+    existingNets: [],
+    createNewNet: noop,
+    loadPetriNet: noop,
+  };
   const documentKey = `${handle.id}:${modelGeneration}`;
 
   /**
@@ -299,10 +293,7 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
       key={runSettingsKey}
       initialPlaybackSpeed={playbackOptions?.defaultPlaybackSpeed}
     >
-      <div
-        ref={portalContainerRef}
-        className={cx(previewRootStyle, "petrinaut-root")}
-      >
+      <div className={cx(previewRootStyle, "petrinaut-root")}>
         <header className={previewHeaderStyle}>
           <PreviewNetNavigation />
           <span className={previewTitleStyle} title={title}>
@@ -339,6 +330,7 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
           </div>
           <PreviewPropertiesPanel />
         </main>
+        <OverlayHost ref={portalContainerRef} />
       </div>
     </PetrinautCanvasProvider>
   );
@@ -350,45 +342,47 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
         instance={instance}
         netManagement={netManagement}
       >
-        <PetrinautNavigationProvider
-          controller={navigationAdapter}
-          initialState={{
-            mode,
-            simulateView: "scenarios",
-          }}
-          key={handle.id}
-        >
-          <PetrinautPresentationProvider profile="preview">
-            {quickSimulation && simulationCompiler ? (
-              <NotificationsProvider>
-                <SimulatorsProvider
-                  key={runSettingsKey}
-                  runWorkerFactory={quickSimulation.workerFactory}
-                  defaultSelections={{
-                    quick: {
-                      simulatorId: FIXED_STEP_SIMULATOR_ID,
-                      ...(quickSimulation.dt === undefined
-                        ? {}
-                        : { parameters: { dt: quickSimulation.dt } }),
-                    },
-                  }}
-                >
-                  <SimulationProvider
-                    compiler={simulationCompiler}
-                    initialConfiguration={{
-                      maxTime: quickSimulation.maxTime,
+        <PetrinautIconProvider>
+          <PetrinautNavigationProvider
+            controller={navigationAdapter}
+            initialState={{
+              mode,
+              simulateView: "scenarios",
+            }}
+            key={handle.id}
+          >
+            <PetrinautPresentationProvider profile="preview">
+              {quickSimulation && simulationCompiler ? (
+                <NotificationsProvider>
+                  <SimulatorsProvider
+                    key={runSettingsKey}
+                    runWorkerFactory={quickSimulation.workerFactory}
+                    defaultSelections={{
+                      quick: {
+                        simulatorId: FIXED_STEP_SIMULATOR_ID,
+                        ...(quickSimulation.dt === undefined
+                          ? {}
+                          : { parameters: { dt: quickSimulation.dt } }),
+                      },
                     }}
-                    requireScenario
                   >
-                    {canvas}
-                  </SimulationProvider>
-                </SimulatorsProvider>
-              </NotificationsProvider>
-            ) : (
-              canvas
-            )}
-          </PetrinautPresentationProvider>
-        </PetrinautNavigationProvider>
+                    <SimulationProvider
+                      compiler={simulationCompiler}
+                      initialConfiguration={{
+                        maxTime: quickSimulation.maxTime,
+                      }}
+                      requireScenario
+                    >
+                      {canvas}
+                    </SimulationProvider>
+                  </SimulatorsProvider>
+                </NotificationsProvider>
+              ) : (
+                canvas
+              )}
+            </PetrinautPresentationProvider>
+          </PetrinautNavigationProvider>
+        </PetrinautIconProvider>
       </PetrinautDocumentProvider>
     </PortalContainerContext>
   );

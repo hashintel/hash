@@ -1,8 +1,8 @@
-import type { ConstraintSpace } from "../../constraint/constraint";
+import type { ConstraintSpace } from "../../constraints/constraint";
 import type {
   ConstraintSource,
   LowerConstraintContext,
-} from "../../constraint/lower";
+} from "../../constraints/lower";
 /**
  * LSP-inspired protocol types for the language server WebWorker.
  *
@@ -17,15 +17,15 @@ import type {
  * public Petrinaut APIs, so downstream packages do not need to depend on this
  * upstream package directly.
  */
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
+import type { NetClass } from "../../extensions/net-class";
 import type { CompileHirArtifactsOptions } from "../../hir/compile";
 import type { MetricShape } from "../../hir/metric-shape";
 import type { HirVisualizerContext } from "../../hir/surface-context";
-import type { NetClass } from "../../net-class";
 import type {
   AdHocScenarioState,
   AdHocSynthesisContext,
-} from "../../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
+} from "../../scenario/ad-hoc/ad-hoc-scenario";
 import type { Scenario, ScenarioParameter, SDCPN } from "../../types/sdcpn";
 import type {
   Diagnostic,

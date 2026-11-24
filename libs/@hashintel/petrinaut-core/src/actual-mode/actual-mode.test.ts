@@ -6,8 +6,11 @@ import {
   parseActualModeRecording,
   retimeActualModeRecordingForReplay,
 } from ".";
+import {
+  canonicalizePetrinautIds,
+  toPetrinautId,
+} from "../document/petrinaut-id";
 import { compileHirArtifacts } from "../hir/compile";
-import { canonicalizePetrinautIds, toPetrinautId } from "../petrinaut-id";
 import { createHirMetricEvaluator } from "../simulation/frames/hir-metric";
 
 import type { SDCPN } from "../types/sdcpn";

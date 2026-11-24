@@ -1,6 +1,6 @@
 import { createHirMetricEvaluator } from "../../frames/hir-metric";
 
-import type { DefaultParameterValues } from "../../../parameter-values";
+import type { DefaultParameterValues } from "../../../document/parameter-values";
 import type { SDCPN } from "../../../types/sdcpn";
 import type {
   MonteCarloMetricSpec,

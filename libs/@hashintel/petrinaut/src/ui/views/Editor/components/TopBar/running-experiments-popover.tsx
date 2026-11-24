@@ -1,13 +1,14 @@
 import { use, useRef, useState } from "react";
 
 import { Button, Chip, Icon, Popover } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import {
   ExperimentsContext,
   isExperimentActive,
   type ExperimentRecord,
 } from "../../../../../react/experiments/context";
+import { useEditorActions } from "../../../../../react/state/editor-context";
 import { experimentProgressPercent } from "../../shared/experiment-progress";
 
 const contentWidthStyle = css({
@@ -45,16 +46,13 @@ const rowStyle = css({
   borderRadius: "[inherit]",
   textAlign: "left",
   width: "full",
+  cursor: "pointer",
   _hover: {
     backgroundColor: "neutral.s10",
   },
   _last: {
     borderBottomWidth: "[0]",
   },
-});
-
-const clickableRowStyle = css({
-  cursor: "pointer",
 });
 
 const rowMainStyle = css({
@@ -122,16 +120,12 @@ const ExperimentStatusBadge = ({
   </Chip>
 );
 
-type RunningExperimentsPopoverProps = {
-  onExperimentClick?: (experiment: ExperimentRecord) => void;
-};
-
-export const RunningExperimentsPopover = ({
-  onExperimentClick,
-}: RunningExperimentsPopoverProps) => {
+/** The experiments that are running. A row opens its experiment in Simulate mode. */
+export const RunningExperimentsPopover = () => {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const { experiments } = use(ExperimentsContext);
+  const { navigateTo } = useEditorActions();
   const activeExperiments = experiments.filter(isExperimentActive);
 
   if (activeExperiments.length === 0) {
@@ -163,52 +157,43 @@ export const RunningExperimentsPopover = ({
             <Popover.Header title="Active Experiments" />
             <Popover.Body withPadding={false}>
               <div className={listStyle}>
-                {activeExperiments.map((experiment) => {
-                  const rowContent = (
-                    <>
-                      <div className={rowMainStyle}>
-                        <span className={experimentNameStyle}>
-                          {experiment.name}
-                        </span>
-                        <span className={experimentMetaStyle}>
-                          {experiment.scenarioName ?? "Default"} -{" "}
-                          {formatProgress(experiment)}
-                        </span>
-                      </div>
-                      <ExperimentStatusBadge status={experiment.status} />
-                      <div className={progressBarStyle}>
-                        <div
-                          className={progressFillStyle}
-                          style={{
-                            width: `${experimentProgressPercent(experiment)}%`,
-                          }}
-                        />
-                      </div>
-                    </>
-                  );
-
-                  if (onExperimentClick) {
-                    return (
-                      <button
-                        key={experiment.id}
-                        type="button"
-                        className={cx(rowStyle, clickableRowStyle)}
-                        onClick={() => {
-                          setOpen(false);
-                          onExperimentClick(experiment);
-                        }}
-                      >
-                        {rowContent}
-                      </button>
-                    );
-                  }
-
-                  return (
-                    <div key={experiment.id} className={rowStyle}>
-                      {rowContent}
+                {activeExperiments.map((experiment) => (
+                  <button
+                    key={experiment.id}
+                    type="button"
+                    className={rowStyle}
+                    onClick={() => {
+                      setOpen(false);
+                      navigateTo({
+                        globalMode: "simulate",
+                        simulateViewMode: "experiments",
+                        simulateDrawer: {
+                          type: "view-experiment",
+                          experimentId: experiment.id,
+                        },
+                      });
+                    }}
+                  >
+                    <div className={rowMainStyle}>
+                      <span className={experimentNameStyle}>
+                        {experiment.name}
+                      </span>
+                      <span className={experimentMetaStyle}>
+                        {experiment.scenarioName ?? "Default"} -{" "}
+                        {formatProgress(experiment)}
+                      </span>
                     </div>
-                  );
-                })}
+                    <ExperimentStatusBadge status={experiment.status} />
+                    <div className={progressBarStyle}>
+                      <div
+                        className={progressFillStyle}
+                        style={{
+                          width: `${experimentProgressPercent(experiment)}%`,
+                        }}
+                      />
+                    </div>
+                  </button>
+                ))}
               </div>
             </Popover.Body>
           </Popover.Container>

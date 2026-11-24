@@ -2,7 +2,7 @@ import type { SelectItem } from "@hashintel/ds-components";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 export const MODEL_METRIC_VALUE_PREFIX = "model:";
-export const CUSTOM_METRIC_VALUE = "expression";
+const CUSTOM_METRIC_VALUE = "expression";
 
 export type MetricKindGroup = {
   id: string;
@@ -10,22 +10,17 @@ export type MetricKindGroup = {
   items: SelectItem<string>[];
 };
 
-export function createMetricKindGroups(
-  sdcpn: SDCPN,
-  { includeBuiltIn = true }: { includeBuiltIn?: boolean } = {},
-): MetricKindGroup[] {
-  const groups: MetricKindGroup[] = includeBuiltIn
-    ? [
-        {
-          id: "built-in",
-          label: "Built-in",
-          items: [
-            { value: "placeTokenCountMean", text: "Place tokens" },
-            { value: "transitionFiringCount", text: "Transition firing" },
-          ],
-        },
-      ]
-    : [];
+export const createMetricKindGroups = (sdcpn: SDCPN): MetricKindGroup[] => {
+  const groups: MetricKindGroup[] = [
+    {
+      id: "built-in",
+      label: "Built-in",
+      items: [
+        { value: "placeTokenCountMean", text: "Place tokens" },
+        { value: "transitionFiringCount", text: "Transition firing" },
+      ],
+    },
+  ];
 
   const modelMetrics = sdcpn.metrics ?? [];
   if (modelMetrics.length > 0) {
@@ -46,7 +41,7 @@ export function createMetricKindGroups(
   });
 
   return groups;
-}
+};
 
 const METRIC_KIND_ICONS: Record<string, "circle" | "lightning" | "code"> = {
   placeTokenCountMean: "circle",
@@ -54,10 +49,10 @@ const METRIC_KIND_ICONS: Record<string, "circle" | "lightning" | "code"> = {
   [CUSTOM_METRIC_VALUE]: "code",
 };
 
-export function getMetricKindIcon(
+export const getMetricKindIcon = (
   value: string,
-): "circle" | "lightning" | "code" | "function" | undefined {
+): "circle" | "lightning" | "code" | "function" | undefined => {
   return value.startsWith(MODEL_METRIC_VALUE_PREFIX)
     ? "function"
     : METRIC_KIND_ICONS[value];
-}
+};

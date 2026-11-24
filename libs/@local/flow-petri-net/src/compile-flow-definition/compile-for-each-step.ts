@@ -51,7 +51,11 @@ export const compileForEachStep = ({
   });
 
   const arrayArc = values.forEachArrayArc(step.stepId);
-  const runAfterArcs = values.runAfterArcs(step, arrayArc ? [arrayArc] : []);
+  const {
+    arcs: runAfterArcs,
+    runAfter,
+    paths,
+  } = values.runAfterArcs(step, arrayArc ? [arrayArc] : []);
 
   net.addTransitions(
     createTransition({
@@ -64,13 +68,10 @@ export const compileForEachStep = ({
         ...(step.over.kind === "constant"
           ? { constant: step.over.payload as JsonValue }
           : {}),
-        ...(runAfterArcs.length > 0
-          ? {
-              runAfter: runAfterArcs.map(({ endpoint }) =>
-                toPetrinautEndpoint(endpoint),
-              ),
-            }
+        ...(runAfter.length > 0
+          ? { runAfter: runAfter.map(toPetrinautEndpoint) }
           : {}),
+        ...(paths.length > 0 ? { paths: paths.map(toPetrinautEndpoint) } : {}),
       },
       inputArcs: [
         inputArc(placeEndpoint(generatePendingPlaceKey(step.stepId))),

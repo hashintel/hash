@@ -34,7 +34,7 @@ Every table in the form is a keyboard grid: arrow keys move between cells, phant
 
 The walk does not stop at a table's edge: moving down from a table's last row continues to the next part of the form -- a section header, a place header, the next table -- and moving up continues backwards the same way. Collapsed sections are skipped.
 
-The whole form has one undo history: Cmd/Ctrl+Z undoes and Shift+Cmd/Ctrl+Z (or Ctrl+Y) redoes any edit -- a changed value, an added or deleted row, a shared column, an interval toggle. Typing in one value counts as a single step, however long the pause; editing another value starts the next step. Redo restores exactly the state you undid from. An open text editor keeps its own text-level undo until you close it.
+The whole form has one undo history: Cmd/Ctrl+Z undoes and Shift+Cmd/Ctrl+Z (or Ctrl+Y) redoes any edit -- a changed value, an added or deleted row, a shared column, an interval toggle. Typing in one value counts as a single step, however long the pause; editing another value starts the next step. Redo restores exactly the state you undid from. An open text editor keeps its own text-level undo until you close it. The history belongs to the form on screen: in the bottom panel it starts again when you close the panel or pick another tab, and the values you entered stay.
 
 ### Connections around the focused value
 

@@ -30,7 +30,7 @@ export type ColorElementType =
  * JSON) they are stored as canonical lowercase 36-character strings.
  * `string` elements are plain JS strings everywhere; frame buffers store
  * them as 64-bit references into a per-run string pool (see
- * `simulation/engine/string-pool.ts`).
+ * `tokens/string-pool.ts`).
  */
 export type TokenAttributeValue = number | boolean | bigint | string;
 
@@ -59,7 +59,7 @@ export type PortDirection = "in" | "out" | "inout";
 /**
  * One member of a fusion: a place of the net the fusion belongs to, or a port
  * of one of that net's component instances. The same shape an arc uses to
- * name the place it touches, so the helpers in `arc-endpoints.ts` apply.
+ * name the place it touches, so the helpers in `document/arc-endpoints.ts` apply.
  */
 export type FusionMember = ArcEndpoint;
 
@@ -210,7 +210,7 @@ export type DifferentialEquation = {
 // The editing state of the ad-hoc scenario form. A persisted scenario may
 // carry one of these as its initial state, which makes the shapes document
 // types; the behaviour around them (transitions, actions, synthesis) lives
-// in `simulation/authoring/scenario/ad-hoc/`.
+// in `scenario/ad-hoc/`.
 
 /** Optimization settings for one Optimize toggle, kept while toggled off. */
 export type AdHocOptimizeSettings = {

@@ -33,7 +33,14 @@ import type { EdgeChange, NodeChange } from "@xyflow/react";
  *
  * @see https://github.com/xyflow/xyflow/blob/04055c9625cbd92cf83a2f4c340d6fae5199bfa3/packages/react/src/utils/changes.ts#L107
  */
-export const useApplyNodeChanges = (interactions: CanvasInteractions) => {
+export const useApplyNodeChanges = ({
+  applySelectionChanges,
+  moveNodes,
+  dropNodes,
+}: Pick<
+  CanvasInteractions,
+  "applySelectionChanges" | "moveNodes" | "dropNodes"
+>) => {
   const flowStore = useStoreApi<NodeType>();
   const keptSelection = useRef<ReadonlySet<string> | null>(null);
 
@@ -91,13 +98,13 @@ export const useApplyNodeChanges = (interactions: CanvasInteractions) => {
     }
 
     if (selections.length > 0) {
-      interactions.applySelectionChanges(selections);
+      applySelectionChanges(selections);
     }
     if (moves.length > 0) {
-      interactions.moveNodes(moves);
+      moveNodes(moves);
     }
     if (drops.length > 0) {
-      interactions.dropNodes(drops);
+      dropNodes(drops);
     }
   };
 };

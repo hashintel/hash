@@ -13,13 +13,15 @@ import {
   simulatorRefusal,
   SimulatorsContext,
 } from "../../../../../../../react/simulators/context";
-import { PointerHelpTooltip } from "../../../../../../components/pointer-help-tooltip";
+import { PointerHelpTooltip } from "../../../../../../shared/pointer-help-tooltip";
 import {
-  acceptsSimulatorParameter,
   SimulatorParameterInput,
   SimulatorParameterLabel,
+} from "../../../../shared/simulator-parameter-input";
+import {
+  acceptsSimulatorParameter,
   visibleSimulatorParameters,
-} from "../../../../../../components/simulator-parameter-input";
+} from "../../../../shared/simulator-parameters";
 
 const containerStyle = css({
   width: "[320px]",

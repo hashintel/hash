@@ -3,7 +3,7 @@
  */
 import { act, render } from "@testing-library/react";
 import { use, useState } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -13,22 +13,31 @@ import {
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
 
+import { ActiveNetContext } from "../document/active-net-context";
+import { CompositionContext } from "../document/composition-context";
+import {
+  SDCPNContext,
+  type SDCPNContextValue,
+} from "../document/sdcpn-context";
+import { ReadOnlyReasonProvider } from "../editing/read-only-reason-provider";
+import { useIsReadOnly } from "../editing/use-is-read-only";
 import {
   defaultPetrinautNavigationState,
-  PetrinautNavigationProvider,
   type PetrinautNavigationController,
   type PetrinautNavigationState,
-} from "../navigation";
-import { ActiveNetContext } from "./active-net-context";
-import { CompositionContext } from "./composition-context";
-import { EditorContext, type EditorContextValue } from "./editor-context";
-import { EditorProvider } from "./editor-provider";
-import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
-import { useSelectionCleanup } from "./use-selection-cleanup";
+} from "../navigation/navigation";
+import { PetrinautNavigationProvider } from "../navigation/navigation-provider";
 import {
-  defaultUserSettingsContextValue,
-  UserSettingsContext,
-} from "./user-settings-context";
+  EditorContext,
+  useEditorActions,
+  useEditorFields,
+  useEditorState,
+  type EditorActions,
+  type EditorContextValue,
+} from "./editor-context";
+import { EditorProvider } from "./editor-provider";
+import { PanelPresenceProvider } from "./panel-presence-provider";
+import { useSelectionCleanup } from "./use-selection-cleanup";
 
 const emptySdcpn: SDCPN = {
   places: [],
@@ -45,15 +54,10 @@ const makeSdcpnContextValue = (
   getItemType: SDCPNContextValue["getItemType"],
   petriNetDefinition: SDCPN = emptySdcpn,
 ): SDCPNContextValue => ({
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
   petriNetId: "test-net",
   petriNetDefinition,
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "Test",
   getItemType,
 });
 
@@ -110,72 +114,168 @@ const SelectionCleanup = () => {
 const selectionOf = (...ids: string[]): SelectionMap =>
   new Map(ids.map((id) => [id, { type: "place" as const, id }]));
 
-describe("EditorProvider assistant animation", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
-
-  it.each([true, false])(
-    "coordinates assistant layout changes with animations enabled: %s",
-    (showAnimations) => {
-      let editor: EditorContextValue;
-      const { unmount } = render(
-        <UserSettingsContext
-          value={{ ...defaultUserSettingsContextValue, showAnimations }}
-        >
-          <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
-            <TestHost recorded={[]}>
-              <EditorProvider>
+describe("EditorProvider readers of one part", () => {
+  it("renders them when their part changes, and not when a panel opens or the assistant docks", () => {
+    // Counted from inside each reader: a `Profiler` around one misses a
+    // render that a context or a published value starts.
+    const onRender = {
+      mode: vi.fn(),
+      fields: vi.fn(),
+      readOnly: vi.fn(),
+      whole: vi.fn(),
+    };
+    const renders = () => ({
+      mode: onRender.mode.mock.calls.length,
+      fields: onRender.fields.mock.calls.length,
+      readOnly: onRender.readOnly.mock.calls.length,
+      whole: onRender.whole.mock.calls.length,
+    });
+    const ModeReader = () => {
+      "use no memo"; // The count below has to run on every render.
+      onRender.mode();
+      return (
+        <output aria-label="mode">{useEditorState((e) => e.globalMode)}</output>
+      );
+    };
+    const FieldsReader = () => {
+      "use no memo";
+      onRender.fields();
+      const { cursorMode, globalMode } = useEditorFields(
+        "cursorMode",
+        "globalMode",
+      );
+      return (
+        <output aria-label="fields">
+          {cursorMode} {globalMode}
+        </output>
+      );
+    };
+    const ReadOnlyReader = () => {
+      "use no memo";
+      onRender.readOnly();
+      return (
+        <output aria-label="read-only">{useIsReadOnly() ? "yes" : "no"}</output>
+      );
+    };
+    const WholeReader = () => {
+      "use no memo";
+      onRender.whole();
+      use(EditorContext);
+      return null;
+    };
+    let editor: EditorContextValue;
+    const view = render(
+      <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
+        <TestHost recorded={[]}>
+          <EditorProvider>
+            {/* As `PetrinautCanvasProvider` mounts them below the editor state. */}
+            <ReadOnlyReasonProvider>
+              <PanelPresenceProvider>
+                <ModeReader />
+                <FieldsReader />
+                <ReadOnlyReader />
+                <WholeReader />
                 <EditorContextGrabber
                   onContextValue={(value) => {
                     editor = value;
                   }}
                 />
-              </EditorProvider>
-            </TestHost>
-          </SDCPNContext>
-        </UserSettingsContext>,
-      );
+              </PanelPresenceProvider>
+            </ReadOnlyReasonProvider>
+          </EditorProvider>
+        </TestHost>
+      </SDCPNContext>,
+    );
 
-      const transitions = [
-        {
-          run: () => editor.setAiAssistantOpen(true),
-          state: { isAiAssistantOpen: true },
-        },
-        {
-          run: () => editor.setAiAssistantPlacement("floating"),
-          state: { aiAssistantPlacement: "floating" },
-        },
-        {
-          run: () => editor.setAiAssistantPlacement("docked"),
-          state: { aiAssistantPlacement: "docked" },
-        },
-        {
-          run: () => editor.setAiAssistantOpen(false),
-          state: { isAiAssistantOpen: false },
-        },
-        {
-          run: () => editor.toggleAiAssistant(),
-          state: { isAiAssistantOpen: true },
-        },
-        {
-          run: () => editor.toggleAiAssistant(),
-          state: { isAiAssistantOpen: false },
-        },
-      ];
-      for (const transition of transitions) {
-        act(transition.run);
-        expect(editor!).toMatchObject({
-          ...transition.state,
-          isPanelAnimating: showAnimations,
-        });
-        act(() => {
-          vi.advanceTimersByTime(500);
-        });
-        expect(editor!.isPanelAnimating).toBe(false);
-      }
-      unmount();
-    },
-  );
+    vi.clearAllMocks();
+    act(() => editor!.setBottomPanelOpen(!editor!.isBottomPanelOpen));
+    expect(renders()).toEqual({ mode: 0, fields: 0, readOnly: 0, whole: 1 });
+
+    vi.clearAllMocks();
+    act(() => editor!.setAssistantPlacement("floating"));
+    expect(editor!.assistantPlacement).toBe("floating");
+    expect(renders()).toEqual({ mode: 0, fields: 0, readOnly: 0, whole: 1 });
+
+    vi.clearAllMocks();
+    act(() => editor!.setGlobalMode("simulate"));
+    expect(view.getByLabelText("mode").textContent).toBe("simulate");
+    expect(view.getByLabelText("fields").textContent).toContain("simulate");
+    expect(view.getByLabelText("read-only").textContent).toBe("yes");
+    expect(renders()).toMatchObject({ mode: 1, fields: 1, readOnly: 1 });
+    view.unmount();
+  });
+
+  it("keeps the selection through a document edit that leaves it alone", () => {
+    let editor: EditorContextValue;
+    const editorProvider = (
+      <EditorProvider>
+        <EditorContextGrabber
+          onContextValue={(value) => {
+            editor = value;
+          }}
+        />
+      </EditorProvider>
+    );
+    // As `SDCPNProvider` gives it: a new `getItemType` with each definition.
+    const document = () => (
+      <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
+        {editorProvider}
+      </SDCPNContext>
+    );
+    const view = render(document(), {
+      wrapper: ({ children }) => (
+        <TestHost
+          recorded={[]}
+          initialState={{ selection: [{ type: "place", id: "place-1" }] }}
+        >
+          {children}
+        </TestHost>
+      ),
+    });
+    const { selection } = editor!;
+    expect(selection.has("place-1")).toBe(true);
+
+    view.rerender(document());
+
+    expect(editor!.selection).toBe(selection);
+    view.unmount();
+  });
+});
+
+describe("EditorProvider actions", () => {
+  it("gives out one object for the editor's life", () => {
+    const seen: EditorActions[] = [];
+    const ActionsGrabber = ({
+      onActions,
+    }: {
+      onActions: (actions: EditorActions) => void;
+    }) => {
+      onActions(useEditorActions());
+      return null;
+    };
+    render(
+      <SDCPNContext.Provider value={makeSdcpnContextValue(() => "place")}>
+        <TestHost recorded={[]}>
+          <EditorProvider>
+            <ActionsGrabber
+              onActions={(actions) => {
+                if (!seen.includes(actions)) {
+                  seen.push(actions);
+                }
+              }}
+            />
+          </EditorProvider>
+        </TestHost>
+      </SDCPNContext.Provider>,
+    );
+    const actions = seen[0]!;
+
+    act(() => actions.selectItem({ type: "place", id: "place-a" }));
+    act(() => actions.toggleBottomPanel());
+    act(() => actions.setSimulateDrawer({ type: "create-scenario" }));
+
+    expect(seen).toHaveLength(1);
+  });
 });
 
 describe("EditorProvider selection gestures", () => {
@@ -207,8 +307,6 @@ describe("EditorProvider selection gestures", () => {
     act(() => editor.setVisualizerEditorFocus("place-c", true));
     act(() => editor.setVisualizerEditorFocus("place-b", false));
     expect(editor.focusedVisualizerPlaceId).toBe("place-c");
-    act(() => editor.clearHoveredItem());
-    expect(editor.focusedVisualizerPlaceId).toBe("place-c");
     act(() => editor.setVisualizerEditorFocus("place-c", false));
     expect(editor.focusedVisualizerPlaceId).toBeNull();
     expect([...editor.keptOpenVisualizerPlaceIds]).toEqual(["place-a"]);
@@ -236,12 +334,6 @@ describe("EditorProvider selection gestures", () => {
     expect([...editor.unfoldedComponentInstanceIds]).toEqual(["m1", "m2"]);
     act(() => editor.toggleComponentInstanceFold("m1"));
     expect([...editor.unfoldedComponentInstanceIds]).toEqual(["m2"]);
-  });
-
-  it("leaves hover preview dismissal to its grace period when crossing another place", () => {
-    act(() => editor.openPlaceVisualizer("place-a"));
-    act(() => editor.setHoveredItem({ type: "place", id: "place-b" }));
-    expect(editor.openVisualizerPlaceId).toBe("place-a");
   });
 
   it("keeps the most recently activated visualizer in front after blur and restores the previous order on close", () => {

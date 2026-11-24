@@ -1,13 +1,13 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { defaultPetrinautNavigationState } from "../../react/navigation";
+import { defaultPetrinautNavigationState } from "../../react/navigation/navigation";
 import {
   createPreviewNavigationAdapter,
   toPreviewNavigationState,
   type PetrinautPreviewNavigationState,
 } from "./navigation-adapter";
 
-import type { PetrinautNavigationController } from "../../react/navigation";
+import type { PetrinautNavigationController } from "../../react/navigation/navigation";
 
 describe("Preview navigation adapter", () => {
   test("pins editor-only state while preserving Preview state", () => {
@@ -21,7 +21,7 @@ describe("Preview navigation adapter", () => {
         onNavigate: vi.fn(),
       };
 
-    expect(createPreviewNavigationAdapter(controller).state).toEqual({
+    expect(createPreviewNavigationAdapter(controller, "edit").state).toEqual({
       ...defaultPetrinautNavigationState,
       mode: "edit",
       simulateView: "scenarios",
@@ -83,7 +83,7 @@ describe("Preview navigation adapter", () => {
         },
         onNavigate,
       };
-    const adapter = createPreviewNavigationAdapter(controller);
+    const adapter = createPreviewNavigationAdapter(controller, "edit");
     const options = {
       history: "replace" as const,
       intent: { cause: "user", action: "selection" } as const,

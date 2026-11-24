@@ -70,7 +70,7 @@ Per member, on the current code:
 
 | Member         | Consumption                                                                                                                                                                |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `doc()`        | Read by the definition store in `petrinaut-core/src/instance.ts`, sanitized per extensions, cached by object identity. `undefined` falls back to an empty net.             |
+| `doc()`        | Read by the definition store in `petrinaut-core/src/instance/instance.ts`, sanitized per extensions, cached by object identity. `undefined` falls back to an empty net.    |
 | `subscribe`    | Two internal subscribers: the definition store (re-render pipeline) and the patch stream (`instance.patches`). Events without `patches` are dropped from the patch stream. |
 | `change(fn)`   | The single write path. Every mutation and command in the editor funnels through it; commands capture return values inside `fn`.                                            |
 | `capabilities` | Resolved once at instance creation and merged with the `readonly` prop. Drives extension sanitization and the readonly check.                                              |
@@ -685,13 +685,58 @@ on handles whose persisted document should also be restricted; for a read-only
 view of a richer document, prefer `readonly: true` with all extensions
 enabled.
 
+The pass after a change also runs when no extension is disabled. It is what
+blanks a kernel on a transition with no coloured output place, and a lambda
+of a kind the transition cannot have, so `createJsonDocHandle` cannot leave
+it out. The test "drops the kernel a direct change writes on a transition
+with no coloured output place, with every extension enabled" in
+`create-json-doc-handle.test.ts` holds that.
+
+### What the pass after a change costs
+
+The pass runs inside every `change()`, so every edit pays for it. Its cost
+must follow the size of the net, and never the number of places times the
+number of transitions.
+
+Which code a transition can have depends on the places its arcs reach, and
+finding a place by its id takes an index of the places of the net. The rule:
+a pass over the transitions of a net builds that index once and asks about
+every transition through it. `createTransitionLogicAvailabilityReader` in
+`extensions.ts` is that one index for one net. It builds no index when
+colours are disabled. `getTransitionLogicAvailability` builds the index on
+every call. It answers for one transition: a loop over the transitions of a
+net asks through a reader.
+
+A reader keeps the places as they were when it was made. Each pass makes a
+reader of its own once the change has run, so a place that joined or left the
+net in that change counts, and no reader outlives its pass.
+
+Two passes run on the main thread for a change and follow the rule:
+
+- `stripDisabledExtensionData`, the pass after a change, which also makes the
+  sanitized copy the definition store hands out.
+- `sanitizeAllTransitions` in `actions.ts`, which settles every transition
+  after a place changes or is removed, a type is removed, or a selection is
+  deleted.
+
+The tests that hold it count how often the places are read:
+"reads each place of a net once, however many transitions the net has" in
+`extensions.test.ts`, and "a change of a place reads the places of the net
+as often for 250 transitions as for 2" in `actions.test.ts`.
+
+The language service does not follow the rule yet: it indexes the places
+once per transition when it builds the context of that transition's code, in
+`hir/surface-context.ts`. [Editor performance on a large net](doc:editor-performance)
+gives what an edit costs, and the two loops of the editor that do not follow
+it either.
+
 ## Reference implementations in this repo
 
 | Pattern                                                                                                                   | Where                                                                                                                     |
 | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | In-memory handle, explicit save button, dirty flag via `isSDCPNEqual`                                                     | `apps/hash-frontend/src/pages/processes/[uuid].page/process-editor/petrinaut-editor.tsx`                                  |
 | Persist on every change event to localStorage                                                                             | `apps/petrinaut-website/src/main/app/local-storage-demo/documents/use-active-handle.ts`                                   |
-| One live handle per net, history survives switching                                                                       | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                                                           |
+| One live handle per net, history survives switching                                                                       | `petrinaut/src/ui/stories/petrinaut-story-provider.tsx`                                                                   |
 | Host plugin: top-bar items reading page state from a host context above `<Petrinaut>`, so the plugin is a module constant | `apps/hash-frontend/src/pages/processes/[uuid].page/process-editor/petrinaut-editor/process-petrinaut/top-bar-plugin.tsx` |
 
 The handles among them all wrap `createJsonDocHandle`; no adapter over an

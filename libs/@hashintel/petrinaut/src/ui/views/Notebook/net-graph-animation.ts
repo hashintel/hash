@@ -19,10 +19,9 @@ import type { NetGraphLayout, Point } from "./net-graph-layout";
 const DURATION_MS = 340;
 
 /** Decelerating ease: fast off the mark, settles gently. */
-export const easeOutCubic = (progress: number): number =>
-  1 - (1 - progress) ** 3;
+const easeOutCubic = (progress: number): number => 1 - (1 - progress) ** 3;
 
-export const interpolate = (from: number, to: number, eased: number): number =>
+const interpolate = (from: number, to: number, eased: number): number =>
   from + (to - from) * eased;
 
 /**
@@ -36,7 +35,7 @@ const prefersReducedMotion = (): boolean =>
   typeof window !== "undefined" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export interface NetGraphTransition {
+interface NetGraphTransition {
   /** Ref callback for a node's outer group, which carries the animation offset. */
   nodeRef: (id: string) => (element: SVGGElement | null) => void;
   /** Ref callback for an edge path, whose `d` is rewritten while animating. */

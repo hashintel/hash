@@ -8,17 +8,19 @@ import { Pipeline } from "@diagrams/pipeline";
 
 `buildSimulation(input)` turns an SDCPN into a runnable instance;
 `computeNextFrame(simulation)` advances it by one frame. Each frame it returns is
-immutable, and neither function emits events: the worker is what turns their
-return values into protocol messages.
+immutable, and neither function emits events: the caller turns their return
+values into messages or results.
 
-Neither is pure. Stepping mutates the instance it is given, and the transition
-path reuses kernel staging buffers between calls, so a `SimulationInstance` must
-not be stepped concurrently or reused across runs.
+Stepping is not pure. `computeNextFrame` returns a new instance and leaves the
+fields of the one it was given as they were, but the two share the scratch and
+kernel staging buffers of the transitions and the string pool, and a step writes
+to them. A `SimulationInstance` must therefore not be stepped concurrently or
+reused across runs.
 
-Building an instance flattens component instances, compiles user code, and packs
-the initial marking into frame 0. Compilation is selective: lambdas only where
-available, kernels only for coloured outputs, dynamics only for colours with at
-least one real element.
+Building an instance flattens component instances, instantiates the compiled
+user code, and packs the initial marking into frame 0. Instantiation is
+selective: lambdas only where available, kernels only for coloured outputs,
+dynamics only for colours with at least one real element.
 
 ## One step, in order
 
@@ -31,7 +33,7 @@ The order is fixed, and several surprising behaviours follow from it.
     { label: "Max time", note: "Reached? Return without computing." },
     {
       label: "Dynamics",
-      note: "Call each place's derivative over its packed tokens, apply Euler `x += dx·dt` to real slots.",
+      note: "Call each place's derivative over its packed tokens, apply Euler `x += dx·dt` to real fields.",
     },
     {
       label: "Transitions",
@@ -63,13 +65,14 @@ fired, so they measure idle time rather than wall time.
 ## Immutability, and what it costs
 
 Every stage that changes state allocates a new buffer: dynamics, token removal,
-and token insertion each rebuild the frame. That makes history trivially correct
-— previous frames are never mutated — at the cost of allocation churn per step.
+and token insertion each rebuild the frame. A frame is never mutated once it is
+returned, and each step pays for that in allocations. `computeNextFrame`
+appends the frame to `frames` of the instance, and a caller that needs no
+history drops the earlier ones, as `../compiled-model.ts` does.
 
-This is the single clearest optimisation opportunity in the engine. Monte Carlo already
-demonstrates the alternative: two buffers swapped per step, no history. Bringing
-that to the interactive path means moving history retention wholly onto the main
-thread, which the frame store already isolates.
+`advanceRun` in `../monte-carlo/advance-run.ts` is the alternative: two buffers
+swapped per step, and no history. The editor's runs and experiments advance
+in those two buffers.
 
 ## Determinism
 
@@ -79,5 +82,5 @@ the instance.
 
 The guarantee: the same `(SDCPN, marking, parameters, seed, dt)` always
 reproduces the same frame sequence. This is what makes experiments comparable
-across runs, and it is why the RNG state is threaded rather than global — a
+across runs, and it is why the RNG state is threaded rather than global: a
 global would couple runs sharing a worker.

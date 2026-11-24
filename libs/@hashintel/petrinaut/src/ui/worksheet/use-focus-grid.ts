@@ -14,25 +14,29 @@
  * The grid is one tab stop: `tabIndexFor` roves the tabbable cell — the
  * last-focused one, falling back to (0, 0) — and entering the grid restores
  * that remembered cell (or the aligned/edge position of the arriving move).
- * The memory drops when the remembered cell unregisters.
+ * When the remembered cell is gone, entering focuses the registered cell
+ * nearest the grid's start, or its end for a move up or left. A grid whose
+ * cells keep their own tab stops passes `tabStop: "native"`.
  */
 
-import { use, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
-import {
-  FocusGroupContext,
-  focusLands,
-  type FocusDirection,
-  type FocusEntry,
-} from "./focus-flow";
+import { arrowDirection, focusLands, type FocusEntry } from "./focus-flow";
+import { useFocusMember } from "./use-focus-member";
+import { useFocusMemory, type FocusTabStop } from "./use-focus-memory";
 
 export interface FocusGrid {
   register: (
     row: number,
     column: number,
   ) => (element: HTMLElement | null) => void;
+  /** Focuses the cell at a position; false when none took focus. */
+  focus: (row: number, column: number) => boolean;
   onKeyDown: (row: number, column: number) => React.KeyboardEventHandler;
-  /** Reports the cell that gained focus; wire to every cell's onFocus. */
+  /**
+   * Remembers a position the focused cell moved to with no focus event, or
+   * a focused cell rendered outside the attached root (a portal).
+   */
   onFocusCell: (row: number, column: number) => void;
   /** 0 for the grid's one tabbable cell, -1 for the rest. */
   tabIndexFor: (row: number, column: number) => 0 | -1;
@@ -40,20 +44,29 @@ export interface FocusGrid {
   attach: (element: HTMLElement | null) => void;
 }
 
+interface Cell {
+  row: number;
+  column: number;
+}
+
 const cellKey = (row: number, column: number) => `${row}-${column}`;
 
-export function useFocusGrid(): FocusGrid {
-  const group = use(FocusGroupContext);
-  const id = useId();
+const sameCell = (a: Cell, b: Cell) => a.row === b.row && a.column === b.column;
+
+/** The remembered cell until one takes focus. */
+const firstCell: Cell = { row: 0, column: 0 };
+
+interface FocusGridOptions {
+  /** Defaults to "roving". */
+  tabStop?: FocusTabStop;
+}
+
+export function useFocusGrid({
+  tabStop = "roving",
+}: FocusGridOptions = {}): FocusGrid {
   const cells = useRef(new Map<string, HTMLElement>());
   const bounds = useRef({ rows: 0, columns: 0 });
-  // The roving tab stop: last-focused cell, in state because it renders as
-  // tabIndex. Falls back to (0, 0) until something focuses.
-  const [tabbable, setTabbable] = useState<{ row: number; column: number }>({
-    row: 0,
-    column: 0,
-  });
-  const [element, setElement] = useState<HTMLElement | null>(null);
+  const { remember, recall, tabbable } = useFocusMemory(tabStop, sameCell);
 
   const register =
     (row: number, column: number) => (target: HTMLElement | null) => {
@@ -145,8 +158,9 @@ export function useFocusGrid(): FocusGrid {
         : entry.from.column;
       return focusNearest(row, column);
     }
-    // Remembered entry: the roving cell, wherever it is.
-    if (focusLands(cells.current.get(cellKey(tabbable.row, tabbable.column)))) {
+    // Remembered entry: the last-focused cell, wherever it is.
+    const last = recall() ?? firstCell;
+    if (focusLands(cells.current.get(cellKey(last.row, last.column)))) {
       return true;
     }
     const fromEnd = entry.direction === "up" || entry.direction === "left";
@@ -155,14 +169,13 @@ export function useFocusGrid(): FocusGrid {
       fromEnd ? bounds.current.columns - 1 : 0,
     );
   };
-  const enterRef = useRef(enter);
-  useEffect(() => {
-    enterRef.current = enter;
-  });
+
+  const { attach, element, moveFrom } = useFocusMember(enter);
 
   // Memory needs no consumer wiring: any focus landing inside the grid —
-  // arrows, Tab, pointer clicks — updates the roving cell via focusin on
-  // the grid's root. `onFocusCell` stays for cells rendered outside it.
+  // arrows, Tab, pointer clicks — is remembered via focusin on the grid's
+  // root. A portalled cell's focusin never reaches it: such a cell calls
+  // `onFocusCell`.
   useEffect(() => {
     if (!element) {
       return undefined;
@@ -174,45 +187,19 @@ export function useFocusGrid(): FocusGrid {
       for (const [key, cell] of cells.current) {
         if (cell === event.target || cell.contains(event.target)) {
           const [row, column] = key.split("-").map(Number);
-          setTabbable((current) =>
-            current.row === row && current.column === column
-              ? current
-              : { row: row!, column: column! },
-          );
+          remember({ row: row!, column: column! });
           return;
         }
       }
     };
     element.addEventListener("focusin", onFocusIn);
     return () => element.removeEventListener("focusin", onFocusIn);
-  }, [element]);
-
-  useEffect(() => {
-    if (element) {
-      group.register(id, {
-        element,
-        enter: (entry) => enterRef.current(entry),
-      });
-    }
-  });
-  useEffect(() => () => group.unregister(id), [group, id]);
+  }, [element, remember]);
 
   const onKeyDown =
     (row: number, column: number): React.KeyboardEventHandler =>
     (event) => {
-      const target = event.target as HTMLElement;
-      const inTextField =
-        target.tagName === "INPUT" || target.tagName === "TEXTAREA";
-      const direction: FocusDirection | null =
-        event.key === "ArrowDown"
-          ? "down"
-          : event.key === "ArrowUp"
-            ? "up"
-            : event.key === "ArrowRight" && !inTextField
-              ? "right"
-              : event.key === "ArrowLeft" && !inTextField
-                ? "left"
-                : null;
+      const direction = arrowDirection(event);
       if (direction === null) {
         return;
       }
@@ -227,22 +214,17 @@ export function useFocusGrid(): FocusGrid {
               ? move(row, column, 0, 1)
               : move(row, column, 0, -1);
       if (!moved) {
-        group.moveFrom(id, direction, { row, column });
+        moveFrom(direction, { row, column });
       }
     };
 
   return {
     register,
+    focus: (row, column) => focusLands(cells.current.get(cellKey(row, column))),
     onKeyDown,
-    onFocusCell: (row, column) => {
-      setTabbable((current) =>
-        current.row === row && current.column === column
-          ? current
-          : { row, column },
-      );
-    },
+    onFocusCell: (row, column) => remember({ row, column }),
     tabIndexFor: (row, column) =>
-      tabbable.row === row && tabbable.column === column ? 0 : -1,
-    attach: setElement,
+      sameCell(tabbable ?? firstCell, { row, column }) ? 0 : -1,
+    attach,
   };
 }

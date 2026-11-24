@@ -14,11 +14,11 @@ import {
 } from "../../../react/execution-frame/context";
 import { SimulationContext } from "../../../react/simulation/context";
 import { EditorContext } from "../../../react/state/editor-context";
+import { CanvasFrameStoreProvider } from "./canvas-frame-store";
 import {
-  CanvasFrameStoreProvider,
   usePlaceTokenLabel,
   useTransitionFrame,
-} from "./canvas-frame-store";
+} from "./canvas-frame-store-context";
 
 import type { ExecutionFrameSource } from "../../../react/execution-frame/context";
 import type {

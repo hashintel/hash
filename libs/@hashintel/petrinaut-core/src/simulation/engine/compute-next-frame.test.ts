@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { compileHirArtifacts } from "../../hir";
+import { parseUuid } from "../../tokens/uuid";
 import { materializeEngineFrame } from "../frames/internal-frame";
+import { decodePlaceTokens } from "../frames/internal-frame.test-helpers";
 import { buildSimulation as buildSimulationRaw } from "./build-simulation";
 import { computeNextFrame } from "./compute-next-frame";
-import { decodePlaceTokens } from "./token-layout.test-helpers";
-import { parseUuid } from "./uuid";
 
 import type { SDCPN } from "../../types/sdcpn";
 import type { SimulationInput as SimulationInputForArtifacts } from "./types";

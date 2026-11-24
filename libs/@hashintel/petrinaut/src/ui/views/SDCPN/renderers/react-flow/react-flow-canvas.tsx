@@ -15,48 +15,53 @@ import {
 } from "@xyflow/react";
 import { use, useEffect, useState } from "react";
 
-import { css } from "@hashintel/ds-helpers/css";
 import {
   getBoundsOfCenteredBoxes,
   getMinZoomForBounds,
 } from "@hashintel/petrinaut-core";
 
 import { CanvasViewportContext } from "../../../../../react/state/canvas-viewport-context";
-import { EditorContext } from "../../../../../react/state/editor-context";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
-import { SNAP_GRID_SIZE } from "../../../../constants/ui";
-import { useCanvasInsets } from "../../../../hooks/use-canvas-insets";
+import { useEditorState } from "../../../../../react/state/editor-context";
+import { useUserSettings } from "../../../../../react/state/user-settings-context";
+import { usePetrinautPresentation } from "../../../../presentation/presentation-context";
+import { SNAP_GRID_SIZE } from "../../../../shared/ui-constants";
+import { useCanvasInsetsReader } from "../../../../shared/use-canvas-insets";
 import {
   readDraggedComponent,
   readDraggedNodeKind,
 } from "../../../shared/canvas-node-drag";
-import { usePetrinautPresentation } from "../../../shared/presentation-context";
 import {
   CanvasControllerContext,
   type CanvasRenderer,
 } from "../../canvas-renderer";
-import { getInitialViewport } from "../../canvas-viewport";
+import { fitSceneViewport } from "../../canvas-viewport";
 import { ViewportControls } from "../../components/viewport-controls";
 import { useKeepSelectionInView } from "../../hooks/use-keep-selection-in-view";
 import { useDebouncedValue } from "../../hooks/util/use-debounced-value";
+import { focusFadeMs } from "../../styles/focus";
 import { useCanvasInteractions } from "../../use-canvas-interactions";
-import { Arc } from "./react-flow-canvas/arc";
-import { ClassicPlaceNode } from "./react-flow-canvas/classic-place-node";
-import { ClassicTransitionNode } from "./react-flow-canvas/classic-transition-node";
-import { ComponentInstanceNode } from "./react-flow-canvas/component-instance-node";
+import { ArcLayer } from "./react-flow-canvas/arc-layer";
+import { ArcLayerContext } from "./react-flow-canvas/arc-layer-context";
+import {
+  ArcPulsesContext,
+  createArcPulses,
+} from "./react-flow-canvas/arc-pulses";
 import { FusionEdge } from "./react-flow-canvas/fusion-edge";
 import { LinkRewiringContext } from "./react-flow-canvas/link-rewiring-context";
 import { MiniMap } from "./react-flow-canvas/mini-map";
+import {
+  classicNodeTypes,
+  compactNodeTypes,
+} from "./react-flow-canvas/node-types";
 import { OutlineConnectionLine } from "./react-flow-canvas/outline-connection-line";
-import { PlaceNode } from "./react-flow-canvas/place-node";
+import { paneStyle } from "./react-flow-canvas/pane-style";
 import { toCanvasConnection } from "./react-flow-canvas/port-handles";
-import { linkItemOf } from "./react-flow-canvas/react-flow-types";
+import { fusionItemOf } from "./react-flow-canvas/react-flow-types";
 import {
   isMac,
   selectionKeyCode,
-  useMultiSelectionModifier,
+  useSelectionKeys,
 } from "./react-flow-canvas/selection-keys";
-import { TransitionNode } from "./react-flow-canvas/transition-node";
 import { useApplyNodeChanges } from "./react-flow-canvas/use-apply-node-changes";
 import { useEscapeCancelsConnection } from "./react-flow-canvas/use-escape-cancels-connection";
 import { useLinkRewiring } from "./react-flow-canvas/use-link-rewiring";
@@ -65,77 +70,14 @@ import { useReactFlowController } from "./react-flow-canvas/use-react-flow-contr
 import { useReactFlowElements } from "./react-flow-canvas/use-react-flow-elements";
 import { useReadOnlyNodeDrag } from "./react-flow-canvas/use-read-only-node-drag";
 
-import type { CanvasNodeKind } from "../../canvas-scene";
 import type { Connection } from "@xyflow/react";
 
-const COMPACT_NODE_TYPES = {
-  place: PlaceNode,
-  transition: TransitionNode,
-  componentInstance: ComponentInstanceNode,
-};
-
-const CLASSIC_NODE_TYPES = {
-  place: ClassicPlaceNode,
-  transition: ClassicTransitionNode,
-  componentInstance: ComponentInstanceNode,
-};
-
 const REACTFLOW_EDGE_TYPES = {
-  default: Arc,
+  arcs: ArcLayer,
   fusion: FusionEdge,
 };
 
 const MIN_ZOOM_DEBOUNCE_MS = 100;
-
-const paneStyle = css({
-  width: "[100%]",
-  height: "[100%]",
-  "--canvas-fold-easing": "cubic-bezier(0.22, 1, 0.36, 1)",
-  "&[data-animated=false]": {
-    "--canvas-focus-duration": "0ms",
-    "--canvas-fold-duration": "0ms",
-  },
-  "@media (prefers-reduced-motion: reduce)": {
-    "--canvas-fold-duration": "0ms",
-  },
-  "& .react-flow__pane": {
-    cursor: `var(--pane-cursor) !important`,
-  },
-  "& .react-flow__node, & .arc-strokes, & .minimap-shape": {
-    transition: "[opacity var(--canvas-focus-duration, 200ms) ease]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  },
-  // A component instance's height animates between folded and unfolded, so
-  // the card grows and shrinks rather than jumping. React Flow reads the pins
-  // again on every frame the node resizes, which keeps the links on them.
-  "& .react-flow__node.react-flow__node-componentInstance": {
-    transition:
-      "[opacity var(--canvas-focus-duration, 200ms) ease, height var(--canvas-fold-duration, 180ms) var(--canvas-fold-easing)]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  },
-  // A node outside the neighbourhood recedes from here, whole: card, label,
-  // token count and handles together, so nothing of it stays at full strength
-  // while the neighbourhood carries the colour. A node React Flow has marked
-  // selected is kept out of the fade as well: a drag-selection marks nodes
-  // before the change reaches the editor's selection, and until it does they
-  // wear the focus ring, so they must not be faded under it.
-  "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected)":
-    {
-      opacity: "[0.4]",
-    },
-  // An arc outside the neighbourhood recedes from here, so a hover leaves
-  // every arc it did not touch alone. Only the strokes fade: an arc's weight
-  // is worth reading whether or not the arc carrying it is in focus.
-  "&[data-focus-active] .react-flow__edge:not(.canvas-focus-role) .arc-strokes":
-    {
-      opacity: "[0.45]",
-    },
-  // A minimap shape outside the neighbourhood drops right back: the map is
-  // small enough that anything short of that competes with the neighbourhood.
-  "&[data-focus-active] .minimap-shape:not(.canvas-focus-role)": {
-    opacity: "[0.12]",
-  },
-});
 
 const ReactFlowCanvasInner: CanvasRenderer = ({
   scene,
@@ -143,33 +85,52 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   registerController,
 }) => {
   const presentation = usePetrinautPresentation();
-  const { compactNodes, showMinimap, showAnimations, partialSelection } =
-    use(UserSettingsContext);
-  const { globalMode } = use(EditorContext);
+  // Each by selector: a panel that opens or a selection changes both
+  // contexts, and every node and arc of the net renders with this component.
+  const compactNodes = useUserSettings((settings) => settings.compactNodes);
+  const showMinimap = useUserSettings((settings) => settings.showMinimap);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
+  const partialSelection = useUserSettings(
+    (settings) => settings.partialSelection,
+  );
+  const globalMode = useEditorState((editor) => editor.globalMode);
   const { savedViewport, rememberViewport } = use(CanvasViewportContext);
   const isActualMode = globalMode === "actual";
-  const nodeTypes = compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES;
+  const nodeTypes = compactNodes ? compactNodeTypes : classicNodeTypes;
 
-  const interactions = useCanvasInteractions(scene);
+  // Each action apart: a closure over `interactions` would be new whenever a
+  // mode changes, and React Flow renders every node and arc for a new handler.
+  const interactions = useCanvasInteractions();
+  const {
+    readonly,
+    isAddMode,
+    isPanMode,
+    connect,
+    selectLink,
+    hover,
+    enter,
+    clearHover,
+    clickPane,
+    dropNode,
+    dropComponent,
+  } = interactions;
   const flowStore = useStoreApi();
-  const readOnlyDragHandlers = useReadOnlyNodeDrag({
-    readonly: interactions.readonly,
-    isPanMode: interactions.isPanMode,
-  });
-  const { nodes, edges } = useReactFlowElements(scene);
+  const readOnlyDragHandlers = useReadOnlyNodeDrag({ readonly, isPanMode });
+  const { nodes, edges, focusDrawn } = useReactFlowElements(scene);
+  const [arcPulses] = useState(createArcPulses);
   const applyChanges = useApplyNodeChanges(interactions);
-  const insets = useCanvasInsets();
+  const insets = useCanvasInsetsReader();
 
   const { isValidConnection, reconnectProps, isRewiring } = useLinkRewiring(
     interactions,
     () => flowStore.getState().connection.inProgress,
   );
 
-  const connect = (connection: Connection) => {
+  const onConnect = (connection: Connection) => {
     const { connection: gesture, connectionClickStartHandle } =
       flowStore.getState();
     if (gesture.inProgress || connectionClickStartHandle) {
-      interactions.connect(toCanvasConnection(connection));
+      connect(toCanvasConnection(connection));
     }
   };
 
@@ -188,13 +149,20 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
 
   useEscapeCancelsConnection();
   useMonacoKeyboardIsolation();
-  useMultiSelectionModifier(isMac);
+  useSelectionKeys(isMac);
 
   // The viewport at mount: where this net was last left, or centered on the
-  // net. Bounds and container changes must not recompute it. The saved
-  // viewport also restores the camera when the canvas resumes from Activity.
+  // net, or the origin for an empty one. Bounds and container changes must
+  // not recompute it. The saved viewport also restores the camera when the
+  // canvas resumes from Activity.
   const [initialViewport] = useState(
-    () => savedViewport ?? getInitialViewport(bounds, containerSize, insets),
+    () =>
+      savedViewport ??
+      fitSceneViewport(bounds, containerSize, insets()) ?? {
+        x: 0,
+        y: 0,
+        zoom: 1,
+      },
   );
 
   // The min zoom (ie the max you can zoom out to) keeps the net at a readable
@@ -235,14 +203,23 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     event.dataTransfer.dropEffect = "move";
   };
 
+  // A move of the camera carries items under a pointer at rest, as a pan
+  // carries them under a pressed one, so what comes under it meanwhile waits
+  // the same way: for the camera to stop.
+  const enterItem = (event: React.MouseEvent, id: string) =>
+    enter(id, {
+      pressed: event.buttons !== 0 || camera.isAnimating(),
+      connecting: flowStore.getState().connection.inProgress,
+    });
+
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
     const kind = readDraggedNodeKind(event.dataTransfer);
     const component = readDraggedComponent(event.dataTransfer);
     if (kind) {
-      interactions.dropNode(kind, scenePositionOf(event));
+      dropNode(kind, scenePositionOf(event));
     } else if (component) {
-      interactions.dropComponent(component, scenePositionOf(event));
+      dropComponent(component, scenePositionOf(event));
     }
   };
 
@@ -250,104 +227,110 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     <CanvasControllerContext value={controller}>
       <div
         {...readOnlyDragHandlers}
+        onPointerUp={interactions.releasePointer}
         className={paneStyle}
         data-animated={showAnimations}
-        data-focus-active={scene.focusActive ? "" : undefined}
+        data-focus-active={focusDrawn ? "" : undefined}
         style={{
           // @ts-expect-error CSS variables work at runtime, but are not in the type system
           "--pane-cursor": interactions.paneCursor,
+          "--canvas-focus-duration": `${showAnimations ? focusFadeMs : 0}ms`,
         }}
       >
         <LinkRewiringContext value={isRewiring}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            edgeTypes={REACTFLOW_EDGE_TYPES}
-            onNodesChange={applyChanges}
-            onEdgesChange={applyChanges}
-            // A port can be joined from either of its pins to either pin of
-            // another, so a connection may run between two handles of one kind.
-            connectionMode={ConnectionMode.Loose}
-            connectionLineComponent={OutlineConnectionLine}
-            isValidConnection={isValidConnection}
-            onConnect={interactions.readonly ? undefined : connect}
-            // Only a fusion link offers its ends to drag: each says so itself.
-            edgesReconnectable={false}
-            {...reconnectProps}
-            onEdgeClick={(_event, edge) =>
-              interactions.selectLink(linkItemOf(edge))
-            }
-            // Node click selection is handled by ReactFlow's internal
-            // handleNodeClick, which fires select changes through
-            // onNodesChange; an onNodeClick handler would conflict with it.
-            onNodeMouseEnter={(_event, node) =>
-              interactions.hoverNode({
-                id: node.id,
-                kind: node.type as CanvasNodeKind,
-              })
-            }
-            onNodeMouseLeave={interactions.clearHover}
-            onNodeDragStart={(_event, node) =>
-              interactions.hoverNode({
-                id: node.id,
-                kind: node.type as CanvasNodeKind,
-              })
-            }
-            onEdgeMouseEnter={(_event, edge) =>
-              interactions.hoverLink(linkItemOf(edge))
-            }
-            onEdgeMouseLeave={interactions.clearHover}
-            onSelectionStart={interactions.beginSelectionGesture}
-            onSelectionEnd={interactions.endSelectionGesture}
-            onPaneClick={(event) =>
-              interactions.clickPane(scenePositionOf(event))
-            }
-            // A gesture takes the camera back from any move under way. Frames
-            // of the camera's own moves are not remembered, only where it stops.
-            onMoveStart={(event) => {
-              if (event) {
-                camera.cancel();
-              }
-            }}
-            onMoveEnd={(_event, viewport) => {
-              if (!camera.isAnimating()) {
-                rememberViewport(viewport);
-              }
-            }}
-            onDrop={interactions.readonly ? undefined : onDrop}
-            onDragOver={interactions.readonly ? undefined : onDragOver}
-            defaultViewport={savedViewport ?? initialViewport}
-            proOptions={{ hideAttribution: true }}
-            panOnDrag={
-              interactions.isPanMode
-                ? true
-                : interactions.isAddMode
-                  ? false
-                  : [1, 2]
-            }
-            selectionOnDrag={interactions.isSelectMode}
-            nodesDraggable={!interactions.readonly}
-            nodesConnectable={!interactions.readonly}
-            elementsSelectable={!interactions.isAddMode}
-            selectionMode={
-              partialSelection ? SelectionMode.Partial : SelectionMode.Full
-            }
-            selectionKeyCode={selectionKeyCode}
-            multiSelectionKeyCode={null}
-            selectNodesOnDrag={false}
-            nodeOrigin={[0.5, 0.5]}
-            deleteKeyCode={null}
-            panOnScroll={false}
-            zoomOnScroll
-            minZoom={minZoom}
-          >
-            <Background gap={SNAP_GRID_SIZE} size={1} />
-            {showMinimap && presentation.showMinimap && (
-              <MiniMap pannable zoomable />
-            )}
-            {!isActualMode && <ViewportControls />}
-          </ReactFlow>
+          <ArcPulsesContext value={arcPulses}>
+            <ArcLayerContext
+              value={{
+                scene,
+                gestures: { selectLink, enterItem, clearHover, isAddMode },
+              }}
+            >
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                edgeTypes={REACTFLOW_EDGE_TYPES}
+                onNodesChange={applyChanges}
+                onEdgesChange={applyChanges}
+                // A port can be joined from either of its pins to either pin of
+                // another, so a connection may run between two handles of one kind.
+                connectionMode={ConnectionMode.Loose}
+                connectionLineComponent={OutlineConnectionLine}
+                isValidConnection={isValidConnection}
+                onConnect={readonly ? undefined : onConnect}
+                // Only a fusion link offers its ends to drag: each says so itself.
+                edgesReconnectable={false}
+                {...reconnectProps}
+                // The arcs answer for themselves inside their layer: these three
+                // are for the fusion links. With no click handler React Flow
+                // would take the pointer off the layer's edge.
+                onEdgeClick={(_event, edge) => {
+                  const fusion = fusionItemOf(edge);
+                  if (fusion) {
+                    selectLink(fusion);
+                  }
+                }}
+                // Node click selection is handled by ReactFlow's internal
+                // handleNodeClick, which fires select changes through
+                // onNodesChange; an onNodeClick handler would conflict with it.
+                onNodeMouseEnter={(event, node) => enterItem(event, node.id)}
+                onNodeMouseLeave={clearHover}
+                onNodeDragStart={(_event, node) => hover(node.id)}
+                onEdgeMouseEnter={(event, edge) => {
+                  const fusion = fusionItemOf(edge);
+                  if (fusion) {
+                    enterItem(event, fusion.id);
+                  }
+                }}
+                onEdgeMouseLeave={(_event, edge) => {
+                  if (fusionItemOf(edge)) {
+                    clearHover();
+                  }
+                }}
+                onSelectionStart={interactions.beginSelectionGesture}
+                onSelectionEnd={interactions.endSelectionGesture}
+                onPaneClick={(event) => clickPane(scenePositionOf(event))}
+                // A gesture takes the camera back from any move under way. Frames
+                // of the camera's own moves are not remembered, only where it stops,
+                // and there the item that waited under the pointer is hovered.
+                onMoveStart={(event) => {
+                  if (event) {
+                    camera.cancel();
+                  }
+                }}
+                onMoveEnd={(_event, viewport) => {
+                  if (!camera.isAnimating()) {
+                    rememberViewport(viewport);
+                    interactions.releasePointer();
+                  }
+                }}
+                onDrop={readonly ? undefined : onDrop}
+                onDragOver={readonly ? undefined : onDragOver}
+                defaultViewport={savedViewport ?? initialViewport}
+                proOptions={{ hideAttribution: true }}
+                panOnDrag={isPanMode ? true : isAddMode ? false : [1, 2]}
+                selectionOnDrag={interactions.isSelectMode}
+                nodesDraggable={!readonly}
+                nodesConnectable={!readonly}
+                elementsSelectable={!isAddMode}
+                selectionMode={
+                  partialSelection ? SelectionMode.Partial : SelectionMode.Full
+                }
+                selectionKeyCode={selectionKeyCode}
+                multiSelectionKeyCode={null}
+                selectNodesOnDrag={false}
+                nodeOrigin={[0.5, 0.5]}
+                deleteKeyCode={null}
+                panOnScroll={false}
+                zoomOnScroll
+                minZoom={minZoom}
+              >
+                <Background gap={SNAP_GRID_SIZE} size={1} />
+                {showMinimap && presentation.showMinimap && <MiniMap />}
+                {!isActualMode && <ViewportControls />}
+              </ReactFlow>
+            </ArcLayerContext>
+          </ArcPulsesContext>
         </LinkRewiringContext>
       </div>
     </CanvasControllerContext>
