@@ -1,6 +1,8 @@
 import { expect, layer } from "@effect/vitest";
 import { Array, Effect, HashMap, Option, pipe } from "effect";
 
+import * as Anchor from "../src/Anchor.js";
+import * as Destinations from "../src/Destinations.js";
 import * as Tree from "../src/Tree/index.js";
 import * as Reference from "./fixtures/reference.js";
 
@@ -48,8 +50,8 @@ const exportOf = (
   const id = Reference.id(reference, [name]);
 
   return pipe(
-    reference.document.pages,
-    Array.flatMap((tree) => {
+    reference.pages,
+    Array.flatMap(({ tree }) => {
       if (tree.type !== "module") {
         return [];
       }
@@ -65,8 +67,8 @@ const traitsOf = (
   reference: Reference.Reference,
 ): readonly Tree.Trait.Trait[] =>
   pipe(
-    reference.document.pages,
-    Array.flatMap((tree) => {
+    reference.pages,
+    Array.flatMap(({ tree }) => {
       if (tree.type !== "traits") {
         return [];
       }
@@ -243,6 +245,16 @@ layer(Reference.layer({ source }), { excludeTestServices: true })(
           Array.map(comment.see, ({ children }) => Tree.Prose.plain(children)),
         ).toStrictEqual([Option.some("Private details.")]);
         expect(comment.examples).toHaveLength(1);
+        const { destinations } = Reference.page(
+          reference,
+          "traits.html",
+        ).output;
+        expect(Destinations.trait(destinations, trait.origin)).toStrictEqual(
+          Option.some({
+            file: Anchor.File("traits.html"),
+            id: Option.some(Anchor.AnchorId("PrivateTrait")),
+          }),
+        );
       }),
     );
 
@@ -280,6 +292,17 @@ layer(Reference.layer({ source }), { excludeTestServices: true })(
           traitsOf(reference),
           ({ name }) => name === "Shared",
         );
+        const { destinations } = Reference.page(
+          reference,
+          "traits.html",
+        ).output;
+        expect(
+          Array.map(shared, ({ origin }) =>
+            Destinations.trait(destinations, origin).pipe(
+              Option.flatMap(({ id }) => id),
+            ),
+          ),
+        ).toStrictEqual([Option.some("Shared"), Option.some("Shared-2")]);
         expect(
           Array.map(shared, ({ description }) => summaryOf(description)),
         ).toStrictEqual(
