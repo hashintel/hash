@@ -40,9 +40,10 @@ blames, which a runtime passes on as `itemId`.
 Each runtime talks to the worker that computes through messages. The
 protocols are on pages of their own:
 [event worker](doc:core.simulation.event-trace.worker/protocol),
-[Monte Carlo worker](layer:core.simulation.monte-carlo.worker) with
-[worker sharding](doc:core.simulation.monte-carlo/worker-sharding), and
+[Monte Carlo worker](doc:core.simulation.monte-carlo.worker/protocol) and
 [frame worker](doc:core.simulation.worker/protocol).
+[Worker sharding](doc:core.simulation.monte-carlo/worker-sharding) says how
+an experiment splits its runs over several Monte Carlo workers.
 
 `compilePetrinautModel` in `compiled-model.ts`, published as
 `@hashintel/petrinaut-core/compiled-model`, runs a net in the calling thread
