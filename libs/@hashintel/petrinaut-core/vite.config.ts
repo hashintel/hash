@@ -69,7 +69,6 @@ export default defineConfig(({ command }) => ({
           packageRoot,
           "src/workers/monte-carlo.ts",
         ),
-        "workers/simulation": resolve(packageRoot, "src/workers/simulation.ts"),
       },
       fileName: (_format, entryName) => `${entryName}.js`,
       formats: ["es"],

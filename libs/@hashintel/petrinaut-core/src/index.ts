@@ -553,23 +553,14 @@ export {
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
   getDefaultMonteCarloShardCount,
-  createSimulation,
   createWorkerTransport,
   deriveRunSeed,
 } from "./simulation";
 export type {
-  BackpressureConfig,
   CreateMonteCarloExperimentConfig,
-  CreateSimulationConfig,
-  Simulation,
-  SimulationCompleteEvent,
-  SimulationConfig,
-  SimulationErrorEvent,
-  SimulationEvent,
   SimulationFrameRawView,
   SimulationFrameReader,
   SimulationFrameState,
-  SimulationFrameSummary,
   SimulationState,
   SimulationTransport,
   WorkerFactory,
@@ -753,7 +744,6 @@ export {
   createPlayback,
   EVENT_PLAY_MODE_LEAD,
   formatPlaybackSpeed,
-  getPlayModeBackpressure,
   PLAYBACK_SPEEDS,
 } from "./playback";
 export type {
@@ -767,7 +757,6 @@ export type {
   PlaybackSpeed,
   PlaybackState,
   PlayMode,
-  PlayModeBackpressure,
   TickInput,
   TickResult,
 } from "./playback";

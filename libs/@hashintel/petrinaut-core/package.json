@@ -82,10 +82,6 @@
       "types": "./dist/workers/monte-carlo.d.ts",
       "import": "./dist/workers/monte-carlo.js"
     },
-    "./workers/simulation": {
-      "types": "./dist/workers/simulation.d.ts",
-      "import": "./dist/workers/simulation.js"
-    },
     "./webgpu": {
       "types": "./dist/webgpu.d.ts",
       "import": "./dist/webgpu.js"

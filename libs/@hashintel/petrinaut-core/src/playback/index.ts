@@ -14,7 +14,6 @@ export {
 export {
   createPlayback,
   formatPlaybackSpeed,
-  getPlayModeBackpressure,
   PLAYBACK_SPEEDS,
   type ComputePlayMode,
   type Playback,
@@ -22,7 +21,6 @@ export {
   type PlaybackSpeed,
   type PlaybackState,
   type PlayMode,
-  type PlayModeBackpressure,
   type TickInput,
   type TickResult,
 } from "./playback";

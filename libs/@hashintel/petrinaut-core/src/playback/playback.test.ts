@@ -1,19 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlayback, getPlayModeBackpressure } from "./playback";
-
-describe("getPlayModeBackpressure", () => {
-  it("returns a small buffer for computeBuffer", () => {
-    const cfg = getPlayModeBackpressure("computeBuffer");
-    expect(cfg.maxFramesAhead).toBeGreaterThan(0);
-    expect(cfg.batchSize).toBeGreaterThan(0);
-  });
-
-  it("returns a large buffer for computeMax", () => {
-    const cfg = getPlayModeBackpressure("computeMax");
-    expect(cfg.maxFramesAhead).toBeGreaterThanOrEqual(1000);
-  });
-});
+import { createPlayback } from "./playback";
 
 describe("createPlayback", () => {
   it("starts Stopped at frame 0 with default mode/speed", () => {

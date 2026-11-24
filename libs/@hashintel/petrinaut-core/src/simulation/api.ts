@@ -1,11 +1,6 @@
-import type {
-  AbortSignalLike,
-  WorkerFactoryLike,
-} from "../environment/environment";
-import type { PetrinautExtensionSettings } from "../extensions/extensions";
-import type { HirArtifacts, HirParameterValues } from "../hir-runtime";
-import type { EventStream, ReadableStore } from "../store";
-import type { Color, Place, SDCPN, TokenRecord } from "../types/sdcpn";
+import type { WorkerFactoryLike } from "../environment/environment";
+import type { HirParameterValues } from "../hir-runtime";
+import type { Color, Place, TokenRecord } from "../types/sdcpn";
 
 export type SimulationState =
   | "Initializing"
@@ -21,13 +16,6 @@ export type SimulationState =
  * same model, scenario parameter values, dt, and max time.
  */
 export const PETRINAUT_DEFAULT_SEED = 1234;
-
-export type BackpressureConfig = {
-  /** Maximum frames the worker can compute ahead before waiting for ack. */
-  maxFramesAhead?: number;
-  /** Number of frames to compute in each batch before checking for messages. */
-  batchSize?: number;
-};
 
 export interface SimulationTransport {
   /** Send a message to the engine. May queue if the transport is not yet ready. */
@@ -62,45 +50,6 @@ export type InitialPlaceMarking =
   | number
   | Record<string, InitialTokenAttributeValue>[];
 export type InitialMarking = Record<string, InitialPlaceMarking>;
-
-/**
- * Common per-run config shared by both transport modes. The simulation runs
- * against the {@link sdcpn} snapshot and never reads it again, so subsequent
- * mutations to the source document don't affect a running simulation.
- */
-export type SimulationConfig = {
-  sdcpn: SDCPN;
-  extensions?: PetrinautExtensionSettings;
-  initialMarking: InitialMarking;
-  parameterValues: Record<string, string>;
-  seed: number;
-  dt: number;
-  /** Maximum simulation time. Null = no limit. */
-  maxTime: number | null;
-  /**
-   * Precompiled HIR artifacts for the net's user code, produced by
-   * `compileHirArtifacts` (or `LanguageClient.requestHirArtifacts`). The
-   * engine has no compiler of its own: items with user code and no artifact
-   * fail to build.
-   */
-  hirArtifacts?: HirArtifacts;
-  backpressure?: BackpressureConfig;
-  /** Optional cancellation. Aborting tears down the simulation. */
-  signal?: AbortSignalLike;
-};
-
-/**
- * Top-level config for `createSimulation`. Provide exactly one of:
- *
- * - `createWorker`: a worker-like factory; the function builds a transport for you.
- * - `transport`: a pre-built {@link SimulationTransport}; ownership transfers
- *   to the simulation (it will be terminated on `simulation.dispose()`).
- */
-export type CreateSimulationConfig = SimulationConfig &
-  (
-    | { createWorker: WorkerFactory; transport?: never }
-    | { transport: SimulationTransport; createWorker?: never }
-  );
 
 /**
  * Simplified view of a simulation frame for higher-level consumers.
@@ -180,38 +129,4 @@ export interface SimulationFrameReader {
     firingCount: number;
   } | null;
   toFrameState(): SimulationFrameState;
-}
-
-export type SimulationCompleteEvent = {
-  type: "complete";
-  reason: "deadlock" | "maxTime";
-  frameNumber: number;
-};
-
-export type SimulationErrorEvent = {
-  type: "error";
-  message: string;
-  itemId: string | null;
-};
-
-export type SimulationEvent = SimulationCompleteEvent | SimulationErrorEvent;
-
-export type SimulationFrameSummary = {
-  count: number;
-  latest: SimulationFrameReader | null;
-};
-
-export interface Simulation {
-  readonly status: ReadableStore<SimulationState>;
-  readonly frames: ReadableStore<SimulationFrameSummary>;
-  readonly events: EventStream<SimulationEvent>;
-
-  run(this: void): void;
-  pause(this: void): void;
-  reset(this: void): void;
-  ack(this: void, frameNumber: number): void;
-  setBackpressure(this: void, cfg: BackpressureConfig): void;
-  getFrame(this: void, index: number): SimulationFrameReader | null;
-
-  dispose(this: void): void;
 }
