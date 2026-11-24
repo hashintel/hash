@@ -1,6 +1,6 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { simulationHeaderStyle } from "./shared/simulation-header";
+import { simulationHeaderStyle } from "./simulation-header";
 
 import type { ReactNode } from "react";
 

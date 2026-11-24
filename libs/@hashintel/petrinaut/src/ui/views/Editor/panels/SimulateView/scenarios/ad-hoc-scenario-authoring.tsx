@@ -18,7 +18,7 @@ import {
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { OverlayScrollArea } from "../../../../../shared/overlay-scroll-area";
 import { Section, SectionList } from "../../../../../shared/section";
-import { DrawerErrorDisplay } from "../drawer-error-display";
+import { DrawerErrorDisplay } from "../shared/drawer-error-display";
 import {
   overlayScrollDrawerBodyStyle,
   overlayScrollDrawerViewportStyle,

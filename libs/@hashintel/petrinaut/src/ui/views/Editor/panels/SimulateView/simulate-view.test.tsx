@@ -4,7 +4,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { FakeEditorProvider } from "./experiments/experiments-story-providers";
+import { FakeEditorProvider } from "./experiments/experiments-story-provider";
 import { SimulateView } from "./simulate-view";
 
 vi.mock("./experiments/experiments-view", () => ({

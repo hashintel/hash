@@ -39,8 +39,8 @@ import {
   SimulateView,
   SimulateViewTabs,
 } from "./panels/SimulateView/simulate-view";
+import { SimulationCreationDrawer } from "./panels/SimulateView/simulation-creation-drawer";
 import { SimulationWorkspace } from "./shared/simulation-workspace";
-import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { EditorCommands } from "./use-editor-commands";
 
 // The remaining space under the TopBar, never 100% of the root: a full-height

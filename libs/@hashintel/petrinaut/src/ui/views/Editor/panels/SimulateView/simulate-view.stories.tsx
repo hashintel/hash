@@ -10,7 +10,7 @@ import {
 import {
   FakeEditorProvider,
   FakeExperimentsProvider,
-} from "./experiments/experiments-story-providers";
+} from "./experiments/experiments-story-provider";
 import { SimulateViewStoryStage } from "./simulate-view-story-harness";
 
 import type { ExperimentRecord } from "../../../../../react/experiments/context";

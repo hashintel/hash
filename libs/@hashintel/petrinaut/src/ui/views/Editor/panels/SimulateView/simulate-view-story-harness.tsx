@@ -34,10 +34,10 @@ import { SimulatorsProvider } from "../../../../../react/simulators/provider";
 import { UserSettingsProvider } from "../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../monaco/provider";
 import { SimulationWorkspace } from "../../shared/simulation-workspace";
-import { SimulationCreationDrawer } from "../../simulation-creation-drawer";
 import { useCreateOptimizedExperiment } from "./experiments/create/create-optimized-experiment";
-import { FakeEditorProvider } from "./experiments/experiments-story-providers";
+import { FakeEditorProvider } from "./experiments/experiments-story-provider";
 import { SimulateView, SimulateViewTabs } from "./simulate-view";
+import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 
 import type {
   CreateExperimentInput,

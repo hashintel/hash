@@ -20,7 +20,7 @@ import {
 import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import { usePetrinautMutations } from "../../../../../../react/editing/use-petrinaut-mutations";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { DrawerErrorDisplay } from "../drawer-error-display";
+import { DrawerErrorDisplay } from "../shared/drawer-error-display";
 import { MetricFormBody } from "./metric-form";
 import { summarizeMetricLspErrors, validateMetricCompiles } from "./metric-lsp";
 import {

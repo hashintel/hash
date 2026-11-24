@@ -15,7 +15,7 @@ import {
   useEditorState,
 } from "../../../../../../react/state/editor-context";
 import { Table, type TableColumn } from "../../../../../spreadsheet-kit/table";
-import { SimulateSubviewFrame } from "../simulate-subview-frame";
+import { SimulateSubviewFrame } from "../shared/simulate-subview-frame";
 import { ViewScenarioDrawer } from "./view-scenario-drawer";
 
 import type { Scenario } from "@hashintel/petrinaut-core";

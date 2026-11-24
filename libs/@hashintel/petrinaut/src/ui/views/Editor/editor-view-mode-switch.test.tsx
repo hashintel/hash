@@ -25,7 +25,7 @@ vi.mock("./panels/PropertiesPanel/panel", () => ({
   PropertiesPanel: () => null,
 }));
 vi.mock("./panels/BottomPanel/panel", () => ({ BottomPanel: () => null }));
-vi.mock("./simulation-creation-drawer", () => ({
+vi.mock("./panels/SimulateView/simulation-creation-drawer", () => ({
   SimulationCreationDrawer: () => null,
 }));
 

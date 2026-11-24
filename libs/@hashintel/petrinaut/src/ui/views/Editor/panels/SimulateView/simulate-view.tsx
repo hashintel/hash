@@ -1,6 +1,13 @@
 /**
  * @layerRoot ui.views.editor.simulate
  * @role Lists the scenarios and experiments of a net, with the drawers that create one and show its results
+ *
+ * The editor shell mounts two files: this one for the lists, and
+ * `simulation-creation-drawer.tsx` for the one create drawer the editor
+ * state names. Scenarios, metrics and experiments each have a folder and a
+ * layer. `shared/` holds what they share: the drawer every block opens
+ * (`simulation-panel.tsx`), the frame of a list and the error line of a
+ * drawer footer.
  */
 
 import { SegmentedControl } from "@hashintel/ds-components";

@@ -22,7 +22,7 @@ vi.mock("./panels/PropertiesPanel/panel", () => ({
 }));
 vi.mock("./panels/BottomPanel/panel", () => ({ BottomPanel: () => null }));
 vi.mock("./components/TopBar/top-bar", () => ({ TopBar: () => null }));
-vi.mock("./simulation-creation-drawer", () => ({
+vi.mock("./panels/SimulateView/simulation-creation-drawer", () => ({
   SimulationCreationDrawer: () => null,
 }));
 vi.mock("./use-editor-commands", () => ({

@@ -6,32 +6,29 @@ import { describe, expect, it, vi } from "vitest";
 import {
   EditorContext,
   initialEditorState,
-} from "../../../react/state/editor-context";
+} from "../../../../../react/state/editor-context";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 
 import type {
   EditorContextValue,
   SimulateDrawerState,
-} from "../../../react/state/editor-context";
+} from "../../../../../react/state/editor-context";
 
-vi.mock(
-  "./panels/SimulateView/experiments/create/create-experiment-drawer",
-  () => ({
-    CreateExperimentDrawer: ({ onClose }: { onClose: () => void }) => (
-      <button type="button" onClick={onClose}>
-        experiment
-      </button>
-    ),
-  }),
-);
-vi.mock("./panels/SimulateView/metrics/metric-drawer", () => ({
+vi.mock("./experiments/create/create-experiment-drawer", () => ({
+  CreateExperimentDrawer: ({ onClose }: { onClose: () => void }) => (
+    <button type="button" onClick={onClose}>
+      experiment
+    </button>
+  ),
+}));
+vi.mock("./metrics/metric-drawer", () => ({
   MetricDrawer: ({ onClose }: { onClose: () => void }) => (
     <button type="button" onClick={onClose}>
       metric
     </button>
   ),
 }));
-vi.mock("./panels/SimulateView/scenarios/create-scenario-drawer", () => ({
+vi.mock("./scenarios/create-scenario-drawer", () => ({
   CreateScenarioDrawer: ({ onClose }: { onClose: () => void }) => (
     <button type="button" onClick={onClose}>
       scenario

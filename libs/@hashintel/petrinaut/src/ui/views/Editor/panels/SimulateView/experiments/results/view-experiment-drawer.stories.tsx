@@ -23,7 +23,7 @@ import {
   sweepFixtureScenario,
   syntheticSweepObjective,
 } from "../experiments-story-fixtures";
-import { FakeExperimentsProvider } from "../experiments-story-providers";
+import { FakeExperimentsProvider } from "../experiments-story-provider";
 import {
   fakeConstrainedStudyInput,
   fakeLongStudyInput,

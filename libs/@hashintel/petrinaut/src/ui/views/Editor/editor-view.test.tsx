@@ -72,7 +72,7 @@ vi.mock("./editor-view/empty-net-prompt/ai-cta-modal", () => ({
     </button>
   ),
 }));
-vi.mock("./simulation-creation-drawer", () => ({
+vi.mock("./panels/SimulateView/simulation-creation-drawer", () => ({
   SimulationCreationDrawer: () => null,
 }));
 vi.mock("./use-editor-commands", () => ({
