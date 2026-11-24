@@ -11,8 +11,17 @@ Core simulation logic for SDCPN Petri net execution.
 
 The engine builds an SDCPN definition into a runnable `SimulationInstance` and
 computes frames by evaluating transitions and differential equations. It
-instantiates compiled user code through `src/hir-runtime.ts` and owns the
-runtime stepping state and frame layout.
+compiles nothing: `buildSimulation` takes the HIR artifacts the language
+worker produced and instantiates them through `src/hir-runtime.ts`. It owns
+the stepping state of the frame runtime. The frame layout is in
+[`frames/`](layer:core.simulation.frames) and the token layout in
+[`tokens/`](layer:core.tokens).
+
+Every runtime builds with `buildSimulation`. `computeNextFrame` steps the
+frame runtime and the compiled model. The editor's runs step through
+[the steppers](layer:core.simulation.steppers) and `advanceRun` in
+`../monte-carlo/advance-run.ts`, as
+[Two execution paths](doc:two-execution-paths) describes.
 
 ## Core Functions
 
@@ -65,8 +74,9 @@ writers.
 
 Token values are stored as a byte region of packed structs inside the frame
 buffer (`FRAME_VERSION = 2`). Each colour has a `TokenSlotLayout` computed by
-`tokens/token-layout.ts` — the single source of truth for the physical
-mapping:
+`tokens/token-layout.ts`, the one place that maps an element type to bytes.
+The table shows the numeric and boolean types, and
+[Memory model](doc:core.simulation.frames/memory-model) lists every type:
 
 | Element type | Physical type                       | Size | Alignment |
 | ------------ | ----------------------------------- | ---- | --------- |
@@ -80,7 +90,7 @@ the stride (`sizeof(token)`) is rounded up to 8 bytes. Because the token
 region starts at an 8-aligned offset and every stride is a multiple of 8, all
 f64 fields are addressable through a shared `Float64Array` view
 (`index = (placeByteOffset + token * strideBytes + fieldByteOffset) / 8`) and
-u8 fields through a `Uint8Array` view — no `DataView` in hot paths.
+u8 fields through a `Uint8Array` view, with no `DataView` in hot paths.
 
 Place counts and per-place byte offsets are stored in separate `Uint32Array`
 sections, so a place can be accessed in $O(1)$ when the SDCPN layout is known.

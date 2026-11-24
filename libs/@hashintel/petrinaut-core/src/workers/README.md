@@ -5,16 +5,23 @@ role: The module entry points hosts instantiate as Web Workers
 
 # Worker entry points
 
-One file per worker the host can spawn. Each is a thin entry point wiring a
-message port to the runtime that does the work, holding no logic of its own, so
-the runtimes stay testable on the main thread.
+One file per worker a host can start. Each re-exports the factory that
+creates the worker and the types of its messages, and holds no logic of its
+own, so the runtimes stay testable on the main thread.
 
-| Entry point      | Runtime it hosts                    |
-| ---------------- | ----------------------------------- |
-| `lsp.ts`         | the language server                 |
-| `simulation.ts`  | frame computation for a single run  |
-| `monte-carlo.ts` | batched runs reporting only metrics |
+| Entry point           | Worker it creates                                | Protocol                                                                                                                            |
+| --------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `lsp.ts`              | The language server                              | [Language worker protocol](doc:core.lsp.worker/protocol)                                                                            |
+| `event-simulation.ts` | One run recorded as events, for Quick Simulation | [Event worker protocol and demand](doc:core.simulation.event-trace.worker/protocol)                                                 |
+| `monte-carlo.ts`      | A shard of an experiment, reporting metrics only | [The worker's README](layer:core.simulation.monte-carlo.worker), [Worker sharding](doc:core.simulation.monte-carlo/worker-sharding) |
+| `simulation.ts`       | The frames of one run, for `createSimulation`    | [Worker protocol and backpressure](doc:core.simulation.worker/protocol)                                                             |
 
-Separate export subpaths rather than one worker, so a host pays only for the
-threads it uses — an editor with no experiments open never loads the Monte
-Carlo runtime.
+The package publishes each file as an entry of its own,
+`@hashintel/petrinaut-core/workers/<name>`. A host then loads only the workers
+it starts: an editor with no experiment open never loads the Monte Carlo
+runtime.
+
+The optimizer has a fifth worker, which this folder does not export.
+`createBrowserOptimization` of `@hashintel/petrinaut-core/browser-optimization`
+creates it, as [The browser runtime](doc:core.optimization.browser/browser-runtime)
+describes.

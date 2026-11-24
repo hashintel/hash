@@ -88,15 +88,15 @@ the package compiles it: the CLI reads it, resolves its links, and ships it in
 the bundle.
 
 ```text
-libs/@hashintel/petrinaut-core/src/simulation/
-  README.md          # declares core.simulation
-  memory-model.mdx   # a guide, rendered beneath core.simulation
+libs/@hashintel/petrinaut-core/src/simulation/engine/
+  README.md      # declares core.simulation.engine
+  stepping.mdx   # a guide, rendered beneath core.simulation.engine
 ```
 
 Frontmatter carries `title`, `description` and `sidebar_order`; the layer
 comes from the location, so an `attachTo` key is an error. Link to other
 pages by name rather than by path: `[text](layer:core.simulation.engine)` for
-a generated page, `[text](doc:core.simulation/memory-model)` for a guide,
+a generated page, `[text](doc:core.simulation.engine/stepping)` for a guide,
 named by its layer and file stem. A target that does not resolve fails the
 check. [Writing a layer guide](doc:maintaining/writing-a-guide) has the
 template a guide follows.

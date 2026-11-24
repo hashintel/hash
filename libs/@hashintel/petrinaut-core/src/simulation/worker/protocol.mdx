@@ -6,9 +6,12 @@ sidebar_order: 10
 
 import { Sequence } from "@diagrams/sequence";
 
-Both simulation workers speak a small typed message protocol over `postMessage`,
+The simulation workers speak small typed message protocols over `postMessage`,
 wrapped in a transport that queues messages until the worker boots. This page
-covers the quick-simulation worker; the experiment worker is on
+covers the worker of the frame runtime, `createSimulation`, which the editor
+does not start. The worker of the editor's Quick Simulation is on
+[Event worker protocol and demand](doc:core.simulation.event-trace.worker/protocol),
+and the experiment worker on
 [Monte Carlo](doc:core.simulation.monte-carlo/experiments).
 
 ## Messages
@@ -18,9 +21,9 @@ covers the quick-simulation worker; the experiment worker is on
 | Type              | Payload                                                                | Effect                                                                                        |
 | ----------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `init`            | net, marking, parameters, seed, `dt`, `maxTime`, backpressure settings | Builds the simulation, packs frame 0, replies `frame(0)` then `ready`. Resets the ack cursor. |
-| `start`           | —                                                                      | Starts the compute loop. No-op if running; refused after completion or error.                 |
-| `pause`           | —                                                                      | Stops the loop, keeps all state, replies `paused`.                                            |
-| `stop`            | —                                                                      | Discards the simulation entirely.                                                             |
+| `start`           | none                                                                   | Starts the compute loop. No-op if running; refused after completion or error.                 |
+| `pause`           | none                                                                   | Stops the loop, keeps all state, replies `paused`.                                            |
+| `stop`            | none                                                                   | Discards the simulation entirely.                                                             |
 | `setBackpressure` | `maxFramesAhead`, `batchSize`                                          | Live-updates loop tuning.                                                                     |
 | `ack`             | `frameNumber`                                                          | Raises the ack cursor, unblocking computation.                                                |
 
@@ -61,11 +64,11 @@ highlight the transition whose lambda threw rather than showing a bare message.
     {
       direction: "right",
       label: "`start`",
-      note: "Starts the loop — but nothing computes yet",
+      note: "Starts the loop, but nothing computes yet",
     },
     {
       phase:
-        "Loop blocked — the ack cursor is below zero, so no frame is computed until the first ack.",
+        "Loop blocked: the ack cursor is below zero, so no frame is computed until the first ack.",
     },
     {
       direction: "right",
@@ -122,9 +125,9 @@ The per-mode profiles the core exposes:
 
 | Play mode       | `maxFramesAhead` | `batchSize` | Behaviour                                                                                 |
 | --------------- | ---------------- | ----------- | ----------------------------------------------------------------------------------------- |
-| view only       | —                | —           | No profile: the React layer pauses the worker and never acks, so nothing new is computed. |
+| view only       | none             | none        | No profile: the React layer pauses the worker and never acks, so nothing new is computed. |
 | compute buffer  | 40               | 10          | Acks when playback is within ~0.5 s of the last computed frame.                           |
-| compute max     | 10000            | 500         | Acks on every arrival — compute as fast as possible.                                      |
+| compute max     | 10000            | 500         | Acks on every arrival, to compute as fast as possible.                                    |
 | worker defaults | 1000             | 1000        | Used when `init` omits the settings.                                                      |
 
 ## Lifecycle
@@ -149,19 +152,19 @@ Treat reset as "throw this away", not "rewind".
 
 The host-side runtime does four things worth knowing about:
 
-- **Snapshot preparation** — sanitizes the net for enabled extensions and
+- **Snapshot preparation**: sanitizes the net for enabled extensions and
   flattens component instances, so the main-thread layout matches what the worker
   produces. A place-count mismatch throws on read rather than decoding garbage.
-- **Transport** — queues outbound messages until the worker resolves; tests can
+- **Transport**: queues outbound messages until the worker resolves; tests can
   inject a pre-built transport instead of a real worker.
-- **Retention** — the in-memory store keeps every frame so playback can scrub.
+- **Retention**: the in-memory store keeps every frame so playback can scrub.
   Alternative stores (latest-only, sliding window, persisted) can be swapped in
   without changing consumers.
-- **Publication** — status and frames as readable stores, plus an event stream.
+- **Publication**: status and frames as readable stores, plus an event stream.
 
 ## Known costs
 
 The 10 ms poll while waiting for acks is a busy-wait; a promise per ack would be
 exact. And frames could be posted with a transfer list to halve copying, but only
-once stepping no longer re-reads the latest stored frame — see
-[Memory model](doc:core.simulation/memory-model).
+once stepping no longer re-reads the latest stored frame. See
+[Memory model](doc:core.simulation.frames/memory-model).

@@ -102,7 +102,7 @@ containers, scripts, imports, hooks and event handlers are not available.
 Authored code is interpreted as HIR, never evaluated as JavaScript.
 
 Identity strings (ids, parameter variable names, element names) are the other
-untrusted input: [Untrusted names](doc:core.simulation.engine/untrusted-names) covers how
+untrusted input: [Untrusted names](doc:core.validation/untrusted-names) covers how
 they are rejected at the import and simulation boundaries and why records
 keyed by them have no prototype.
 
@@ -120,5 +120,5 @@ values are required.
 
 HIR artifacts carry a version and a fingerprint of their sanitized compilation
 input. Any schema, code, or extension change requires recompilation before the
-engine will run them — a stale artifact is refused rather than silently
+engine will run them: a stale artifact is refused rather than silently
 mismatched against a changed net.

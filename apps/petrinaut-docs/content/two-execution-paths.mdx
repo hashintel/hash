@@ -31,15 +31,22 @@ concurrency.
 
 ## What this means when changing code
 
-The two paths share no step loop. `computeNextFrame` in
-[the engine](layer:core.simulation.engine) steps the frame runtime and the
-compiled model. The Monte Carlo runtime has a loop of its own in
-`advance-run.ts`, built on `frame-operations.ts` and `transition-effect.ts`. A
-change to the order of a step is made in both places.
+The two paths share the step. A fixed step of a run is `advanceRun` in
+`monte-carlo/advance-run.ts`, built on `frame-operations.ts` and
+`transition-effect.ts` beside it. The Monte Carlo simulator calls it for each
+run of an experiment, and the fixed-step and untimed
+[steppers](layer:core.simulation.steppers) call it for Quick Simulation. The
+adaptive stepper has an advance of its own in `steppers/adaptive-stepper.ts`,
+on the same run buffers, and serves both paths as well.
 
-The runtimes are separate too, so a change to how a run starts or ends is made
-once in the event simulation and once in
-[the Monte Carlo runtime](layer:core.simulation.monte-carlo).
+`computeNextFrame` in [the engine](layer:core.simulation.engine) is a second
+implementation of the step. It serves `createSimulation` and the
+`compiled-model` entry, and neither path of the editor. A change to the order
+of a step is made in both `advance-run.ts` and `compute-next-frame.ts`.
+
+The runtimes around the step are separate, so a change to how a run starts or
+ends is made once in [the event trace](layer:core.simulation.event-trace) and
+once in [the Monte Carlo runtime](layer:core.simulation.monte-carlo).
 
 ## Actual mode is a third source of frames
 

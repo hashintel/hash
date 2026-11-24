@@ -22,7 +22,7 @@ A guide about a layer is an `.mdx` file beside that layer's code, rendered
 beneath the layer's generated page. Anything under `content/` is copied into
 the bundle and merged into the same manifest, for the pages about the docs
 themselves. Links between pages use `[text](layer:core.simulation)` and
-`[text](doc:core.simulation/memory-model)`; a D2 diagram sits beside its page,
+`[text](doc:core.simulation.engine/stepping)`; a D2 diagram sits beside its page,
 or under `content/diagrams/` as `@diagrams/<name>.svg` when pages share it;
 formulas go between `$` signs and KaTeX renders them when the site builds.
 The archinaut README holds the full contract.
