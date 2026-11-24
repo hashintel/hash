@@ -1,11 +1,15 @@
 /**
- * @layerRoot ui.views.editor.simulate.scenarios
+ * @layerRoot ui.views.editor.simulate.saved-scenarios
  * @role Lists the saved scenarios of a net, with the drawers that create one and edit one
  *
  * Other blocks import this file for the list, `create-scenario-drawer.tsx`
  * and `view-scenario-drawer.tsx` for the drawers, and
  * `use-ad-hoc-scenario-authoring.ts` for the context a scenario form is read
  * against.
+ *
+ * The id does not end in `scenarios`, the name of the folder: the generated
+ * diagram of the parent layer names a sub-layer by the last part of its id,
+ * and `scenarios` is a keyword of the diagram language.
  */
 import { Button, Icon } from "@hashintel/ds-components";
 
