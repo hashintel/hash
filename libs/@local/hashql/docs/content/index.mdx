@@ -293,7 +293,7 @@ In this example we project the `value` field from the `foo` struct:
 import * as Draft from "@local/hashql/Draft";
 
 Draft.program({}, ($) => {
-  const foo = $.let("foo", $.struct({ value: 2n, label: "two" }));
+  const foo = $.let("foo", { value: 2n, label: "two" });
 
   return foo.value;
 });
@@ -311,7 +311,7 @@ foo.value
 
 The result is `2`. The `access` special form takes the value in its first slot and projects a reference to the selected field. You can then use that value directly, much like `foo.bar` in JavaScript, Rust, or Python. But unlike dynamic languages, HashQL checks that the field exists at compile time. If you ask for a field that does not exist, you will get a type error.
 
-In our little example, the Draft API uses [`$.struct`][draft-context-struct] to construct the struct expression, with `foo.value` constructing its HashQL field access.
+In our little example, the record `{ value: 2n, label: "two" }` constructs the struct expression, and `foo.value` constructs its HashQL field access.
 
 Notice that `value` is an integer and `label` is a string. Structs and tuples are heterogeneous: each field or position has its own type.
 
@@ -421,8 +421,7 @@ Strong typing doesn't mean you have to write every type yourself. The compiler c
 import * as Draft from "@local/hashql/Draft";
 
 Draft.program({}, ($) => {
-  const { Number: NumberType } = $.prelude();
-  const foo = $.let("foo", $.as(2n, NumberType));
+  const foo = $.let("foo", $.as(2n, Number));
 
   return foo;
 });
@@ -571,7 +570,6 @@ The same reasoning applies if we add valid time, which records when a fact is tr
 [draft-context-if]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.if
 [program-structural-definition]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural#Definition
 [draft-context-input]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.input
-[draft-context-struct]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.struct
 [draft-context-list]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.list
 [BE-1015]: https://linear.app/hash/issue/BE-1015
 [BE-645]: https://linear.app/hash/issue/BE-645

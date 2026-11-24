@@ -355,6 +355,42 @@ describe("program", () => {
     );
   });
 
+  test("structural_values", () => {
+    expect.hasAssertions();
+    const result = Draft.program({ count: BigInt }, ($, { count }) => {
+      const row = $.let("row", { count, pair: [1n, "x"] });
+      return $.if($.eq(row, { count: 1n, pair: [1n, "x"] }), {
+        then: () => ({ total: row.count }),
+        else: () => ({ total: $.as(2n, BigInt) }),
+      });
+    });
+    expect(text(result)).toBe(
+      '["::kernel::special_form::let","row",{"#struct":{"count":["::kernel::special_form::input","count","::kernel::type::Integer"],"pair":{"#tuple":[{"#literal":1},{"#literal":"x"}]}}},["::kernel::special_form::if",["::core::cmp::eq","row",{"#struct":{"count":{"#literal":1},"pair":{"#tuple":[{"#literal":1},{"#literal":"x"}]}}}],{"#struct":{"total":["::kernel::special_form::access","row","count"]}},{"#struct":{"total":["::kernel::special_form::as",{"#literal":2},"::kernel::type::Integer"]}}]]',
+    );
+  });
+
+  test("structural_root", () => {
+    expect.hasAssertions();
+    expect(text(Draft.program({}, () => 1n))).toBe('{"#literal":1}');
+    expect(text(Draft.program({}, () => ({ ready: true })))).toBe(
+      '{"#struct":{"ready":{"#literal":true}}}',
+    );
+    // @ts-expect-error exercise an unchecked JavaScript caller
+    const map = Draft.program({}, () => new Map());
+    expect(reason(map)).toStrictEqual(
+      Program.ProgramError.Reason.make({ _tag: "InvalidBodyResult" }),
+    );
+  });
+
+  test("host_objects", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) =>
+      // @ts-expect-error exercise an unchecked JavaScript caller
+      $.let("row", { at: new Map() }),
+    );
+    expect(reason(result)._tag).toBe("InvalidExpression");
+  });
+
   test("type_assertion", () => {
     expect.hasAssertions();
     const result = Draft.program({}, ($) => {

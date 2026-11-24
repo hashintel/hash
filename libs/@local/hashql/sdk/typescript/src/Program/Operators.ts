@@ -10,6 +10,7 @@
 import { Array, Function, Pipeable, Result, flow, pipe } from "effect";
 
 import * as Relocation from "../internal/relocation.js";
+import * as StructuralSyntax from "../internal/structural.js";
 import * as AST from "./AST/index.js";
 import * as Expression from "./Expression.js";
 
@@ -17,6 +18,7 @@ import type * as Type from "../Type.js";
 import type * as ExpressionType from "./ExpressionType.js";
 import type * as Inputs from "./Inputs.js";
 import type * as ProgramError from "./ProgramError.js";
+import type * as Structural from "./Structural.js";
 
 type BooleanValue = Expression.Value<Type.PrimitiveBoolean>;
 type Requirements<L, R> = Inputs.Merge<
@@ -58,11 +60,11 @@ export interface Predicate<I> extends Expression.Expression<
 
 const call = <I>(
   path: string,
-  operands: readonly Expression.Value.Any[],
+  operands: readonly Structural.Value.Any[],
 ): Predicate<I> =>
   pipe(
     operands,
-    Array.map(Expression.toNode),
+    Array.map(StructuralSyntax.valueNode),
     Result.all,
     Result.map((arguments_) => new AST.Call(new AST.Expr(path), arguments_)),
     // oxlint-disable-next-line eslint/no-use-before-define -- syntax construction and predicate decoration are mutually recursive
@@ -98,46 +100,52 @@ const predicate = <I>(
   };
 };
 
+/** The input requirements of two compared operands, either of which may be structural shorthand. */
+type ComparisonRequirements<
+  L extends Structural.Value.Any,
+  R extends Structural.Value.Any,
+> = Inputs.Merge<
+  Structural.Value.Requirements<L>,
+  Structural.Value.Requirements<R>
+>;
+
 /** Direct and data-last comparison forms, checking the second supplied operand against the first operand's semantic descriptor. */
 interface Comparison {
-  <const R extends Expression.Value.Any>(
-    right: R,
-  ): <
-    const L extends Expression.Value<
-      ExpressionType.Normalize<Expression.Value.Type<R>>
-    >,
-  >(
-    left: L,
-  ) => Predicate<Requirements<L, R>>;
-  <
-    const L extends Expression.Value.Any,
-    const R extends Expression.Value<
-      ExpressionType.Normalize<Expression.Value.Type<L>>
-    >,
-  >(
-    left: L,
-    right: R,
-  ): Predicate<Requirements<L, R>>;
+  <const R extends Structural.Value.Any>(
+    right: R & Structural.Value.FixedLength<R>,
+  ): <const L extends Structural.Value.Any>(
+    left: L &
+      Structural.Value.Exact<
+        ExpressionType.Normalize<Structural.Value.Type<R>>,
+        L
+      >,
+  ) => Predicate<ComparisonRequirements<L, R>>;
+  <const L extends Structural.Value.Any, const R extends Structural.Value.Any>(
+    left: L & Structural.Value.FixedLength<L>,
+    right: R &
+      Structural.Value.Exact<
+        ExpressionType.Normalize<Structural.Value.Type<L>>,
+        R
+      >,
+  ): Predicate<ComparisonRequirements<L, R>>;
 }
 
 const comparison = (path: string): Comparison =>
   Function.dual(
     2,
     <
-      const L extends Expression.Value.Any,
-      const R extends Expression.Value<
-        ExpressionType.Normalize<Expression.Value.Type<L>>
-      >,
+      const L extends Structural.Value.Any,
+      const R extends Structural.Value.Any,
     >(
       left: L,
       right: R,
-    ): Predicate<Requirements<L, R>> => call(path, [left, right]),
+    ): Predicate<ComparisonRequirements<L, R>> => call(path, [left, right]),
   );
 
 /**
  * Constructs equality between operands with matching semantic descriptors.
  *
- * `eq(left, right)` checks the right descriptor against the left. `eq(right)(left)` fixes the right descriptor first. Host primitives use their SDK descriptors: use bigint with an Integer expression and number with a Number expression. The operands' descriptors must be identical, with no subtyping. To compare a nullable index result with `null`, give `null` the same union descriptor through {@link Expression.assume}. The result retains both operands' inputs and construction failures.
+ * `eq(left, right)` checks the right descriptor against the left. `eq(right)(left)` fixes the right descriptor first. Either operand may be structural shorthand, such as a record of values for a struct. Host primitives use their SDK descriptors: use bigint with an Integer expression and number with a Number expression. The operands' descriptors must be identical, with no subtyping. To compare a nullable index result with `null`, give `null` the same union descriptor through {@link Expression.assume}. The result retains both operands' inputs and construction failures.
  *
  * @example <caption>Compose the same predicate with chaining or a pipe.</caption>
  * ```ts
@@ -145,8 +153,8 @@ const comparison = (path: string): Comparison =>
  * import { Program } from "@local/hashql";
  * import { Result, pipe } from "effect";
  *
- * const { Expression, Operators, Structural } = Program;
- * const count = Structural.input("count", BigInt);
+ * const { Expression, Operators } = Program;
+ * const count = Expression.input("count", BigInt);
  * const chained = Operators.eq(count, 1n).and(true).not();
  * const piped = pipe(count, Operators.eq(1n), Operators.and(true), Operators.not);
  * assert.deepEqual(
