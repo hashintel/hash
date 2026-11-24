@@ -101,7 +101,7 @@ async fn write(
     let bytes =
         serde_json::to_vec_pretty(current).expect("`current.json` should serialize to JSON");
     storage
-        .replace_if(CURRENT_FILE, version, bytes)
+        .replace_if(CURRENT_FILE, version, bytes.into())
         .await
         .change_context(RunError::Storage)
 }

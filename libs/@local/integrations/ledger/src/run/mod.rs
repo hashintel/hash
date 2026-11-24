@@ -95,7 +95,7 @@ pub(crate) async fn save(
 ) -> Result<(), Report<RunError>> {
     let bytes = serde_json::to_vec_pretty(record).expect("a run record should serialize to JSON");
     let written = storage
-        .replace_if(&run_file(record.input.run), expected, bytes)
+        .replace_if(&run_file(record.input.run), expected, bytes.into())
         .await
         .change_context(RunError::Storage)?;
     if written {

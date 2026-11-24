@@ -192,7 +192,7 @@ async fn load_unknown_field() {
         .expect("a run record should be an object")
         .insert("failures".to_owned(), serde_json::Value::Null);
     storage
-        .replace_if(&run_file(run), None, json.to_string().into_bytes())
+        .replace_if(&run_file(run), None, json.to_string().into())
         .await
         .expect("should write run.json");
 
@@ -336,7 +336,7 @@ async fn start_current_unknown_field() {
     let storage = Storage::memory();
     let edited = br#"{ "activ": null, "last_completed": null }"#;
     storage
-        .replace_if("current.json", None, edited.to_vec())
+        .replace_if("current.json", None, edited.as_slice().into())
         .await
         .expect("should write current.json");
 
