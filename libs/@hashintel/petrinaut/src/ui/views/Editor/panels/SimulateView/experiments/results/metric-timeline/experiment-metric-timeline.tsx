@@ -3,8 +3,9 @@
  * @role Charts one metric of an experiment over time, as a line, percentile bands, a density heatmap or one number, while its frames stream in
  *
  * `ExperimentMetricTimeline` is the entry. The card that shows a chart holds
- * its view settings (`view-state.ts`) and offers `MetricViewMenu` to change
- * them; the other files of this folder are the chart's own parts.
+ * its view settings (`view-state.ts`), offers `MetricViewMenu` to change
+ * them and words them as its subtitle (`describe-metric-view.ts`); the other
+ * files of this folder are the chart's own parts.
  */
 import { useRef, useState } from "react";
 
