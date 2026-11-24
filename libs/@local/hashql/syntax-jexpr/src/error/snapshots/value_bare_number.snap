@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "42"
+---
+error[jexpr::lexer::unexpected-token]: Unexpected token
+  ╭▸ 
+1 │ 42
+  │ ━━ expected a value, found number
+  │
+  ╰ note: primitive values in J-Expr must be wrapped in `{"#literal": ...}`
+help: wrap the value in a `#literal` object
+  ╭╴
+1 - 42
+1 + {"#literal": 42}
+  ╰╴

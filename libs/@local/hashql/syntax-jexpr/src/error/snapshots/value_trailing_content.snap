@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": 1} {\"#literal\": 2}"
+---
+error[jexpr::parser::expected-eof]: Unexpected trailing content
+  ╭▸ 
+1 │ {"#literal": 1} {"#literal": 2}
+  │                 ━━━━━━━━━━━━━━━ unexpected trailing content after value
+  │
+  ├ help: remove the trailing content, or check for an extra closing delimiter in the preceding value
+  ╰ note: a J-Expr value document must contain a single top-level value

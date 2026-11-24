@@ -104,6 +104,7 @@ impl<'heap> Compilation<'heap> {
                 HashQlDiagnosticCategory::Ast(AstDiagnosticCategory::Lowering(category))
             })
             .with_diagnostics(advisories)?;
+        scratch.reset();
 
         let interner = hashql_hir::intern::Interner::new(heap);
         let mut hir_context = hashql_hir::context::HirContext::new(&interner, &modules);
@@ -112,11 +113,12 @@ impl<'heap> Compilation<'heap> {
         let Success {
             value: hir,
             advisories,
-        } = hashql_hir::node::NodeData::from_ast_in(ast, &mut hir_context, &types)
+        } = hashql_hir::node::NodeData::from_ast_in(ast, &mut hir_context, &types, &*scratch)
             .map_category(|category| {
                 HashQlDiagnosticCategory::Hir(HirDiagnosticCategory::Reification(category))
             })
             .with_diagnostics(advisories)?;
+        scratch.reset();
 
         // Lower the HIR
         let Success {

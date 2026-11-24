@@ -161,6 +161,7 @@ impl<'heap> Pipeline<'heap> {
             &registry,
             &mut self.scratch
         ));
+        self.scratch.reset();
 
         let hir_interner = hashql_hir::intern::Interner::new(self.heap);
         let mut hir_context = HirContext::new(&hir_interner, &registry);
@@ -168,8 +169,10 @@ impl<'heap> Pipeline<'heap> {
         let node = tri!(hashql_hir::node::NodeData::from_ast_in(
             expr,
             &mut hir_context,
-            &types
+            &types,
+            &self.scratch
         ));
+        self.scratch.reset();
 
         let node = tri!(hashql_hir::lower::lower(
             node,

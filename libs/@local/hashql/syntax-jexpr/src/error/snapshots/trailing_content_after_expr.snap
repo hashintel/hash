@@ -2,7 +2,7 @@
 source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
 expression: "[\"a\"] \"extra\""
 ---
-error[jexpr::parser::expected-eof]: Unexpected token after expression
+error[jexpr::parser::expected-eof]: Unexpected trailing content
   ╭▸ 
 1 │ ["a"] "extra"
   │       ━━━━━━━ unexpected trailing content after expression

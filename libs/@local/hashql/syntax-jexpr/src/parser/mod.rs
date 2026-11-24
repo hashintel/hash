@@ -7,7 +7,7 @@ use text_size::{TextRange, TextSize};
 use crate::{
     ParserOptions, cst,
     error::{
-        DelimiterKind, EofContext, LexerErrorKind, StringErrorContext, SyntaxError,
+        DelimiterKind, EofContext, GrammarKind, LexerErrorKind, StringErrorContext, SyntaxError,
         SyntaxErrorKind, UnclosedDelimiters,
     },
     lexer::{LexError, LexedStr, Lexer, StringError, Token, string::EscapeError},
@@ -66,6 +66,9 @@ fn single_quoted_to_double_quoted(raw: &str) -> Option<String> {
 pub(crate) trait Grammar {
     /// Marker that selects the item type of [`Document::tree`].
     type Root: cst::TreeRoot;
+
+    /// Grammar flavor used when rendering diagnostics.
+    const KIND: GrammarKind;
 
     /// Whether a constructor object may carry a `#type` field.
     const ALLOW_TYPE_ANNOTATIONS: bool;

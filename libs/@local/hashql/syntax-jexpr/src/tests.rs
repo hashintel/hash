@@ -23,11 +23,11 @@ use crate::{
     JExprDiagnosticCategory, Parser, ParserOptions,
     cst::{self, Node, Token as _, TreeRoot},
     error::{
-        ArrayDiagnosticCategory, LexerDiagnosticCategory, ObjectDiagnosticCategory,
+        ArrayDiagnosticCategory, GrammarKind, LexerDiagnosticCategory, ObjectDiagnosticCategory,
         ParserDiagnosticCategory, StringDiagnosticCategory,
     },
     lower,
-    parser::{self, Document, Grammar, expr::ExprGrammar},
+    parser::{self, Document, Grammar, expr::ExprGrammar, value::ValueGrammar},
     span::Span,
     syntax_kind::{SyntaxKind, T},
     syntax_kind_set::SyntaxKindSet,
@@ -1115,13 +1115,14 @@ fn value_grammar_type_annotation() {
         type Item<'tree> = ValueNode<'tree>;
     }
 
-    struct ValueGrammar;
+    struct CustomValueGrammar;
 
-    impl Grammar for ValueGrammar {
+    impl Grammar for CustomValueGrammar {
         type Root = ValueRoot;
 
         const ALLOW_TYPE_ANNOTATIONS: bool = false;
         const ITEM_FIRST: SyntaxKindSet = SyntaxKindSet::from_kind(T!['{']);
+        const KIND: GrammarKind = GrammarKind::Value;
 
         fn parse_item<A>(parser: &mut parser::Parser<'_, Self, A>)
         where
@@ -1137,7 +1138,7 @@ fn value_grammar_type_annotation() {
         }
     }
 
-    let ok = parser::Parser::<ValueGrammar, Global>::parse_cst_in(
+    let ok = parser::Parser::<CustomValueGrammar, Global>::parse_cst_in(
         r##"{"#struct": {"x": {"#literal": 7}}}"##,
         ParserOptions::default(),
         Global,
@@ -1145,7 +1146,7 @@ fn value_grammar_type_annotation() {
     assert!(ok.is_valid(), "errors: {:?}", ok.errors());
     assert!(matches!(ok.tree().item(), Some(ValueNode::Struct(_))));
 
-    let rejected = parser::Parser::<ValueGrammar, Global>::parse_cst_in(
+    let rejected = parser::Parser::<CustomValueGrammar, Global>::parse_cst_in(
         r##"{"#struct": {}, "#type": "Point"}"##,
         ParserOptions::default(),
         Global,
@@ -1157,11 +1158,119 @@ fn value_grammar_type_annotation() {
     let heap = Heap::new();
     let mut spans = SpanTable::new(SourceId::new_unchecked(0));
     assert_eq!(
-        error.to_diagnostic_in(&heap, &mut spans).category,
+        error
+            .to_diagnostic_in(&heap, &mut spans, GrammarKind::Value)
+            .category,
         JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::Object(
             ObjectDiagnosticCategory::UnknownKey
         ))
     );
+}
+
+#[test]
+fn parse_value_constructors() {
+    let source = r##"{
+        "#struct": {
+            "num": {"#literal": 42},
+            "flag": {"#literal": true},
+            "text": {"#literal": "hi"},
+            "nothing": {"#literal": null},
+            "pair": {"#tuple": [{"#literal": 1}, {"#literal": 2.5}]},
+            "items": {"#list": [{"#literal": "a"}, {"#literal": "b"}]},
+            "map_obj": {"#dict": {"k": {"#literal": 1}}},
+            "map_arr": {"#dict": [[{"#literal": 1}, {"#literal": "one"}]]}
+        }
+    }"##;
+
+    let heap = Heap::new();
+    let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+    let mut parser = Parser::new(&heap, &mut spans, ParserOptions::default());
+
+    let (status, pointers) = parser.parse_value_with_pointers_in(source, Global);
+    let value = status
+        .expect("all value constructors should parse")
+        .value
+        .into_expr();
+
+    let ExprKind::Struct(root) = &value.kind else {
+        panic!("expected root struct, got {:?}", value.kind);
+    };
+    assert_eq!(root.entries.len(), 8);
+    assert!(root.r#type.is_none());
+
+    let num_span = spans
+        .absolute(root.entries[0].value.span)
+        .expect("value span should exist")
+        .range();
+    assert_eq!(pointers.resolve(num_span).as_deref(), Some("/#struct/num"));
+}
+
+#[test]
+fn parse_value_rejects_non_values() {
+    let cases = [
+        (
+            r#""ident""#,
+            ParserDiagnosticCategory::Lexer(LexerDiagnosticCategory::UnexpectedToken),
+        ),
+        (
+            r##"["add", {"#literal": 1}]"##,
+            ParserDiagnosticCategory::Lexer(LexerDiagnosticCategory::UnexpectedToken),
+        ),
+        (
+            "42",
+            ParserDiagnosticCategory::Lexer(LexerDiagnosticCategory::UnexpectedToken),
+        ),
+        (
+            r##"{"#literal": 1, "#type": "Int"}"##,
+            ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::UnknownKey),
+        ),
+        (
+            r##"{"#type": "Int"}"##,
+            ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::UnknownKey),
+        ),
+        (
+            "{}",
+            ParserDiagnosticCategory::Object(ObjectDiagnosticCategory::Empty),
+        ),
+        (
+            "",
+            ParserDiagnosticCategory::Lexer(LexerDiagnosticCategory::UnexpectedEof),
+        ),
+    ];
+
+    for (source, expected) in cases {
+        let heap = Heap::new();
+        let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+        let mut parser = Parser::new(&heap, &mut spans, ParserOptions::default());
+        let failure = parser
+            .parse_value_in(source, Global)
+            .expect_err(&format!("expected failure for `{source}`"));
+        assert_eq!(
+            failure.primary.category,
+            JExprDiagnosticCategory::Parser(expected),
+            "unexpected category for `{source}`"
+        );
+    }
+}
+
+#[property_test]
+fn lossless_value_generated_tokens(
+    #[strategy = r#"(\{|\}|\[|\]|:|,|"(#literal|#struct|#tuple|#list|#dict|#type|:a|foo|\\z|)"|42|3\.14|42\.|true|false|null|/\*.*\*/|//[^\n]*\n|[ \t\n]){0,40}"#]
+    input: String,
+) {
+    let parse = parser::Parser::<ValueGrammar, Global>::parse_cst_in(
+        &input,
+        ParserOptions::default(),
+        Global,
+    );
+    prop_assert_eq!(parse.green().to_string(), input.as_str());
+
+    let heap = Heap::new();
+    let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+    let status = lower::lower_value_in(&heap, &mut spans, ParserOptions::default(), &parse, Global);
+    if !parse.is_valid() {
+        prop_assert!(status.is_err());
+    }
 }
 
 #[property_test]

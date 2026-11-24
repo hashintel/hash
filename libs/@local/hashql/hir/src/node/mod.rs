@@ -104,10 +104,18 @@ impl HasId for NodeData<'_> {
     }
 }
 
+/// An HIR [`Node`] restricted to data values.
+///
+/// Every node in a `Value` tree has kind [`NodeKind::Data`], covering primitive literals, structs,
+/// dictionaries, tuples, and lists without variables, bindings, operations, control flow, or graph
+/// reads.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Value<'heap>(Node<'heap>);
 
 impl<'heap> Value<'heap> {
+    /// Constructs a [`Value`] from a [`Node`] known to contain only [`NodeKind::Data`] nodes.
+    ///
+    /// Every node reachable from `node` must have kind [`NodeKind::Data`].
     pub(crate) fn new_unchecked(node: Node<'heap>) -> Self {
         #[cfg(debug_assertions)]
         Self::debug_assert_integrity(node);
@@ -115,6 +123,7 @@ impl<'heap> Value<'heap> {
         Self(node)
     }
 
+    /// Returns the interned [`Node`] representing this value.
     #[must_use]
     pub const fn node(self) -> Node<'heap> {
         self.0

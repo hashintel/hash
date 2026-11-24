@@ -42,7 +42,7 @@ pub(crate) use crate::lexer::string::StringError;
 
 const EXPECTED_EOF: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "expected-eof",
-    name: "Unexpected token after expression",
+    name: "Unexpected trailing content",
 };
 
 const NESTING_LIMIT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -441,6 +441,7 @@ pub(crate) fn nesting_limit(span: SpanId, limit: u16, grammar: GrammarKind) -> J
             )));
         }
     }
+
     diagnostic
 }
 

@@ -6,7 +6,7 @@ pub(crate) use self::json::parse_json_value;
 use super::{Grammar, Parser, PeekToken, json};
 use crate::{
     error::{
-        ArrayErrorKind, DelimiterKind, EofContext, LexerErrorKind, ObjectErrorKind,
+        ArrayErrorKind, DelimiterKind, EofContext, GrammarKind, LexerErrorKind, ObjectErrorKind,
         SyntaxErrorKind, UnexpectedTokenContext,
     },
     syntax_kind::{SyntaxKind, T},
@@ -679,8 +679,22 @@ where
         }
     }
 
+    if kind == T!['['] && G::KIND == GrammarKind::Value {
+        let start = range.start();
+        json::parse_json_value(parser);
+        let array_range = TextRange::new(start, parser.last_token_end());
+        report_unexpected(
+            parser,
+            array_range,
+            kind,
+            G::ITEM_FIRST,
+            UnexpectedTokenContext::ArrayInValue,
+        );
+        return;
+    }
+
     let context = if SyntaxKindSet::VALUE.contains(kind) && G::ITEM_FIRST.contains(T!['{']) {
-        UnexpectedTokenContext::BarePrimitiveInExpr {
+        UnexpectedTokenContext::BarePrimitive {
             text: parser.slice(range).to_owned(),
         }
     } else {

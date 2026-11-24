@@ -14,8 +14,6 @@ impl<'heap> Value<'heap> {
     /// placeholder, and none may carry a type annotation.
     #[must_use]
     pub fn new_unchecked(expr: Expr<'heap>) -> Self {
-        // Unchecked to avoid re-walking trees produced by value-only parsers; violating the subset
-        // breaks downstream value invariants rather than memory safety.
         #[cfg(debug_assertions)]
         Self::debug_assert_integrity(&expr);
 
@@ -24,7 +22,7 @@ impl<'heap> Value<'heap> {
 
     /// Consumes this value and returns its underlying [`Expr`].
     #[must_use]
-    pub const fn into_expr(self) -> Expr<'heap> {
+    pub fn into_expr(self) -> Expr<'heap> {
         self.0
     }
 

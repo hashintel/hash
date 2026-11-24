@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
     cst,
-    error::{ArrayErrorKind, EofContext, SyntaxErrorKind},
+    error::{ArrayErrorKind, EofContext, GrammarKind, SyntaxErrorKind},
     syntax_kind::{SyntaxKind, T},
     syntax_kind_set::SyntaxKindSet,
 };
@@ -21,6 +21,7 @@ impl Grammar for ExprGrammar {
 
     const ALLOW_TYPE_ANNOTATIONS: bool = true;
     const ITEM_FIRST: SyntaxKindSet = SyntaxKindSet::from_slice(&[T![string], T!['['], T!['{']]);
+    const KIND: GrammarKind = GrammarKind::Expr;
 
     fn parse_item<A>(parser: &mut Parser<'_, Self, A>)
     where

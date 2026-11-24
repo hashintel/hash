@@ -14,7 +14,7 @@ use hashql_diagnostics::{
 use text_size::TextRange;
 
 use super::{
-    ConstructorKind, DelimiterKind, EofContext, FieldKind, UnclosedDelimiters,
+    ConstructorKind, DelimiterKind, EofContext, FieldKind, GrammarKind, UnclosedDelimiters,
     UnexpectedTokenContext, insert_range, suggest_similar,
 };
 use crate::{
@@ -126,7 +126,12 @@ pub(crate) fn from_unrecognized_character_error(span: SpanId, text: &str) -> Lex
 
 const JSON_KEYWORDS: &[&str] = &["true", "false", "null"];
 
-pub(crate) fn invalid_token(span: SpanId, text: &str, heap: &Heap) -> LexerDiagnostic {
+pub(crate) fn invalid_token(
+    span: SpanId,
+    text: &str,
+    heap: &Heap,
+    grammar: GrammarKind,
+) -> LexerDiagnostic {
     if matches!(text, "NaN" | "Infinity" | "-Infinity" | "-NaN") {
         let mut diagnostic =
             Diagnostic::new(LexerDiagnosticCategory::InvalidToken, Critical::ERROR).primary(
@@ -161,16 +166,27 @@ pub(crate) fn invalid_token(span: SpanId, text: &str, heap: &Heap) -> LexerDiagn
         diagnostic.add_message(
             Message::help("a similar JSON keyword exists").with_suggestions(suggestions),
         );
-    } else {
+    } else if grammar == GrammarKind::Expr {
         let suggestion = Suggestions::patch(Patch::new(span, format!("\"{text}\"")));
         diagnostic.add_message(
             Message::help("wrap the identifier in double quotes").with_suggestions(suggestion),
         );
+    } else {
+        diagnostic.add_message(Message::help(format!(
+            "write a string value as `{{\"#literal\": \"{text}\"}}`, or wrap object keys in \
+             double quotes"
+        )));
     }
 
-    diagnostic.add_message(Message::note(
-        "J-Expr uses JSON syntax, where identifiers and paths must be double-quoted strings",
-    ));
+    let note = match grammar {
+        GrammarKind::Expr => {
+            "J-Expr uses JSON syntax, where identifiers and paths must be double-quoted strings"
+        }
+        GrammarKind::Value => {
+            "J-Expr uses JSON syntax, where strings and object keys must be double-quoted"
+        }
+    };
+    diagnostic.add_message(Message::note(note));
     diagnostic
 }
 
@@ -232,6 +248,9 @@ const fn field_value_eof_help(field: Option<FieldKind>) -> &'static str {
 const EXPRESSION_HELP: &str =
     r##"provide a J-Expr expression such as `"x"`, `["f", "x"]`, or `{"#literal": 42}`"##;
 
+const VALUE_HELP: &str =
+    r##"provide a J-Expr value such as `{"#literal": 42}`, `{"#struct": {}}`, or `{"#list": []}`"##;
+
 const MAX_UNCLOSED_LABELS: usize = 3;
 
 pub(crate) fn unexpected_eof<A: Allocator>(
@@ -239,6 +258,7 @@ pub(crate) fn unexpected_eof<A: Allocator>(
     expected: SyntaxKindSet,
     context: &EofContext<A>,
     spans: &mut SpanTable<Span>,
+    grammar: GrammarKind,
 ) -> LexerDiagnostic {
     match context {
         EofContext::Document => {
@@ -253,7 +273,11 @@ pub(crate) fn unexpected_eof<A: Allocator>(
             let mut diagnostic =
                 Diagnostic::new(LexerDiagnosticCategory::UnexpectedEof, Critical::ERROR)
                     .primary(Label::new(span, label));
-            diagnostic.add_message(Message::help(EXPRESSION_HELP));
+            let help = match grammar {
+                GrammarKind::Expr => EXPRESSION_HELP,
+                GrammarKind::Value => VALUE_HELP,
+            };
+            diagnostic.add_message(Message::help(help));
             diagnostic
         }
         EofContext::FieldColon { key } => {
@@ -332,6 +356,7 @@ fn unexpected_token_general(
     span: SpanId,
     found: SyntaxKind,
     expected: SyntaxKindSet,
+    grammar: GrammarKind,
 ) -> LexerDiagnostic {
     let label = if expected.is_empty() || expected.is_complete() {
         format!("unexpected {found}")
@@ -362,6 +387,10 @@ fn unexpected_token_general(
     } else if expected.contains(SyntaxKind::String) && !expected.contains(SyntaxKind::Number) {
         // A string is the only primitive that is an expression by itself.
         diagnostic.add_message(Message::help(EXPRESSION_HELP));
+    } else if grammar == GrammarKind::Value
+        && expected == SyntaxKindSet::from_kind(SyntaxKind::LBrace)
+    {
+        diagnostic.add_message(Message::help(VALUE_HELP));
     } else if expected.contains_value() {
         diagnostic.add_message(Message::help(
             "provide a valid JSON value such as a string, number, boolean, `null`, object, or \
@@ -399,12 +428,47 @@ fn missing_field_value(
     diagnostic
 }
 
+fn unexpected_bare_primitive(
+    span: SpanId,
+    found: SyntaxKind,
+    text: &str,
+    grammar: GrammarKind,
+) -> LexerDiagnostic {
+    let expected_item = match grammar {
+        GrammarKind::Expr => "an expression",
+        GrammarKind::Value => "a value",
+    };
+
+    let mut diagnostic =
+        Diagnostic::new(LexerDiagnosticCategory::UnexpectedToken, Critical::ERROR).primary(
+            Label::new(span, format!("expected {expected_item}, found {found}")),
+        );
+    let suggestion = Suggestions::patch(Patch::new(span, format!("{{\"#literal\": {text}}}")));
+    let (help, note) = if grammar == GrammarKind::Value && found == SyntaxKind::String {
+        (
+            "wrap the string in a `#literal` object",
+            "strings in J-Expr values must be wrapped in `{\"#literal\": ...}`; variable and path \
+             expressions are not allowed in values",
+        )
+    } else {
+        (
+            "wrap the value in a `#literal` object",
+            "primitive values in J-Expr must be wrapped in `{\"#literal\": ...}`",
+        )
+    };
+
+    diagnostic.add_message(Message::help(help).with_suggestions(suggestion));
+    diagnostic.add_message(Message::note(note));
+    diagnostic
+}
+
 pub(crate) fn unexpected_token(
     span: SpanId,
     found: SyntaxKind,
     expected: SyntaxKindSet,
     context: &UnexpectedTokenContext,
     spans: &mut SpanTable<Span>,
+    grammar: GrammarKind,
 ) -> LexerDiagnostic {
     match context {
         UnexpectedTokenContext::MismatchedDelimiter {
@@ -475,18 +539,20 @@ pub(crate) fn unexpected_token(
         UnexpectedTokenContext::MissingFieldValue { key } => {
             missing_field_value(span, found, expected, *key, spans)
         }
-        UnexpectedTokenContext::BarePrimitiveInExpr { text } => {
+        UnexpectedTokenContext::BarePrimitive { text } => {
+            unexpected_bare_primitive(span, found, text, grammar)
+        }
+        UnexpectedTokenContext::ArrayInValue => {
             let mut diagnostic =
-                Diagnostic::new(LexerDiagnosticCategory::UnexpectedToken, Critical::ERROR).primary(
-                    Label::new(span, format!("expected an expression, found {found}")),
-                );
-            let suggestion =
-                Suggestions::patch(Patch::new(span, format!("{{\"#literal\": {text}}}")));
-            diagnostic.add_message(
-                Message::help("wrap the value in a `#literal` object").with_suggestions(suggestion),
-            );
+                Diagnostic::new(LexerDiagnosticCategory::UnexpectedToken, Critical::ERROR)
+                    .primary(Label::new(span, "expected a value object, found an array"));
+
+            diagnostic.add_message(Message::help(
+                r##"use `{"#list": [...]}` for a list or `{"#tuple": [...]}` for a tuple"##,
+            ));
             diagnostic.add_message(Message::note(
-                "primitive values in J-Expr must be wrapped in `{\"#literal\": ...}`",
+                "function calls are not allowed in values; collections must use a `#list` or \
+                 `#tuple` constructor",
             ));
             diagnostic
         }
@@ -501,6 +567,6 @@ pub(crate) fn unexpected_token(
             diagnostic.add_message(Message::help("use a double-quoted string for object keys"));
             diagnostic
         }
-        UnexpectedTokenContext::General => unexpected_token_general(span, found, expected),
+        UnexpectedTokenContext::General => unexpected_token_general(span, found, expected, grammar),
     }
 }

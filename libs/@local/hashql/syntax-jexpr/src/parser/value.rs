@@ -1,15 +1,21 @@
 use core::alloc::Allocator;
 
 use super::{Grammar, Parser, object, recovery};
-use crate::{cst, error::EofContext, syntax_kind::T, syntax_kind_set::SyntaxKindSet};
+use crate::{
+    cst,
+    error::{EofContext, GrammarKind},
+    syntax_kind::T,
+    syntax_kind_set::SyntaxKindSet,
+};
 
 pub(crate) struct ValueGrammar;
 
 impl Grammar for ValueGrammar {
-    type Root = cst::ExprRoot;
+    type Root = cst::ValueRoot;
 
     const ALLOW_TYPE_ANNOTATIONS: bool = false;
-    const ITEM_FIRST: SyntaxKindSet = SyntaxKindSet::from_slice(&[T!['['], T!['{']]);
+    const ITEM_FIRST: SyntaxKindSet = SyntaxKindSet::from_kind(T!['{']);
+    const KIND: GrammarKind = GrammarKind::Value;
 
     fn parse_item<A>(parser: &mut Parser<'_, Self, A>)
     where

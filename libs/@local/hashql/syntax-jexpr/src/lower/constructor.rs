@@ -9,7 +9,7 @@ use hashql_ast::node::{
 };
 use hashql_core::value::{self, Primitive};
 
-use super::Lowerer;
+use super::{LowerItem, Lowerer};
 use crate::{
     JExprDiagnosticCategory,
     cst::{self, Node as _, Token as _},
@@ -53,9 +53,10 @@ fn lower_literal_value<'heap, A: Allocator>(
 pub(crate) fn lower_literal<'heap, A: Allocator>(
     lowerer: &mut Lowerer<'heap, '_, A>,
     node: cst::Literal<'_>,
+    type_field: Option<cst::TypeField<'_>>,
 ) -> Option<Expr<'heap>> {
     let (mut literal, r#type) =
-        lowerer.lower_typed_pair(node.type_field(), node.field(), |lowerer, field| {
+        lowerer.lower_typed_pair(type_field, node.field(), |lowerer, field| {
             let value = field.value()?;
             lower_literal_value(lowerer, value)
         })?;
@@ -69,10 +70,13 @@ pub(crate) fn lower_literal<'heap, A: Allocator>(
     })
 }
 
-fn lower_struct_body<'heap, A: Allocator>(
+fn lower_struct_body<'tree, 'heap, T, A: Allocator>(
     lowerer: &mut Lowerer<'heap, '_, A>,
-    body: cst::StructBody<'_, cst::Expr<'_>>,
-) -> Option<StructExpr<'heap>> {
+    body: cst::StructBody<'tree, T>,
+) -> Option<StructExpr<'heap>>
+where
+    T: LowerItem<'tree> + 'tree,
+{
     let heap = lowerer.heap();
     let mut entries = Vec::new_in(heap);
     let mut ok = true;
@@ -116,7 +120,7 @@ fn lower_struct_body<'heap, A: Allocator>(
             }
         });
 
-        let value = entry.value().and_then(|expr| lowerer.lower_expr(expr));
+        let value = entry.value().and_then(|item| item.lower(lowerer));
         match (ident, value) {
             (Some(key), Some(value)) => {
                 let span = lowerer.insert_range(entry.text_range());
@@ -144,12 +148,16 @@ fn lower_struct_body<'heap, A: Allocator>(
     })
 }
 
-pub(crate) fn lower_struct<'heap, A: Allocator>(
+pub(crate) fn lower_struct<'tree, 'heap, T, A: Allocator>(
     lowerer: &mut Lowerer<'heap, '_, A>,
-    node: cst::Struct<'_, cst::Expr<'_>>,
-) -> Option<Expr<'heap>> {
+    node: cst::Struct<'tree, T>,
+    type_field: Option<cst::TypeField<'tree>>,
+) -> Option<Expr<'heap>>
+where
+    T: LowerItem<'tree> + 'tree,
+{
     let (mut struct_expr, r#type) =
-        lowerer.lower_typed_pair(node.type_field(), node.field(), |lowerer, field| {
+        lowerer.lower_typed_pair(type_field, node.field(), |lowerer, field| {
             let body = field.body()?;
             lower_struct_body(lowerer, body)
         })?;
@@ -163,15 +171,18 @@ pub(crate) fn lower_struct<'heap, A: Allocator>(
     })
 }
 
-fn lower_tuple_body<'heap, A: Allocator>(
+fn lower_tuple_body<'tree, 'heap, T, A: Allocator>(
     lowerer: &mut Lowerer<'heap, '_, A>,
-    body: cst::TupleBody<'_, cst::Expr<'_>>,
-) -> Option<TupleExpr<'heap>> {
+    body: cst::TupleBody<'tree, T>,
+) -> Option<TupleExpr<'heap>>
+where
+    T: LowerItem<'tree> + 'tree,
+{
     let mut elements = Vec::new_in(lowerer.heap());
     let mut ok = true;
 
     for element in body.elements() {
-        if let Some(expr) = element.value().and_then(|expr| lowerer.lower_expr(expr)) {
+        if let Some(expr) = element.value().and_then(|item| item.lower(lowerer)) {
             elements.push(TupleElement {
                 id: NodeId::PLACEHOLDER,
                 span: expr.span,
@@ -195,12 +206,16 @@ fn lower_tuple_body<'heap, A: Allocator>(
     })
 }
 
-pub(crate) fn lower_tuple<'heap, A: Allocator>(
+pub(crate) fn lower_tuple<'tree, 'heap, T, A: Allocator>(
     lowerer: &mut Lowerer<'heap, '_, A>,
-    node: cst::Tuple<'_, cst::Expr<'_>>,
-) -> Option<Expr<'heap>> {
+    node: cst::Tuple<'tree, T>,
+    type_field: Option<cst::TypeField<'tree>>,
+) -> Option<Expr<'heap>>
+where
+    T: LowerItem<'tree> + 'tree,
+{
     let (mut tuple_expr, r#type) =
-        lowerer.lower_typed_pair(node.type_field(), node.field(), |lowerer, field| {
+        lowerer.lower_typed_pair(type_field, node.field(), |lowerer, field| {
             let body = field.body()?;
             lower_tuple_body(lowerer, body)
         })?;
@@ -214,16 +229,19 @@ pub(crate) fn lower_tuple<'heap, A: Allocator>(
     })
 }
 
-fn lower_list_body<'heap, A: Allocator>(
+fn lower_list_body<'tree, 'heap, T, A: Allocator>(
     lowerer: &mut Lowerer<'heap, '_, A>,
-    body: cst::ListBody<'_, cst::Expr<'_>>,
-) -> Option<ListExpr<'heap>> {
+    body: cst::ListBody<'tree, T>,
+) -> Option<ListExpr<'heap>>
+where
+    T: LowerItem<'tree> + 'tree,
+{
     let heap = lowerer.heap();
     let mut elements = Vec::new_in(heap);
     let mut ok = true;
 
     for element in body.elements() {
-        if let Some(expr) = element.value().and_then(|expr| lowerer.lower_expr(expr)) {
+        if let Some(expr) = element.value().and_then(|item| item.lower(lowerer)) {
             elements.push(ListElement {
                 id: NodeId::PLACEHOLDER,
                 span: expr.span,
@@ -247,12 +265,16 @@ fn lower_list_body<'heap, A: Allocator>(
     })
 }
 
-pub(crate) fn lower_list<'heap, A: Allocator>(
+pub(crate) fn lower_list<'tree, 'heap, T, A: Allocator>(
     lowerer: &mut Lowerer<'heap, '_, A>,
-    node: cst::List<'_, cst::Expr<'_>>,
-) -> Option<Expr<'heap>> {
+    node: cst::List<'tree, T>,
+    type_field: Option<cst::TypeField<'tree>>,
+) -> Option<Expr<'heap>>
+where
+    T: LowerItem<'tree> + 'tree,
+{
     let (mut list_expr, r#type) =
-        lowerer.lower_typed_pair(node.type_field(), node.field(), |lowerer, field| {
+        lowerer.lower_typed_pair(type_field, node.field(), |lowerer, field| {
             let body = field.body()?;
             lower_list_body(lowerer, body)
         })?;
@@ -266,10 +288,13 @@ pub(crate) fn lower_list<'heap, A: Allocator>(
     })
 }
 
-fn lower_dict_object_body<'heap, A: Allocator>(
+fn lower_dict_object_body<'tree, 'heap, T, A: Allocator>(
     lowerer: &mut Lowerer<'heap, '_, A>,
-    body: cst::DictObjectBody<'_, cst::Expr<'_>>,
-) -> Option<DictExpr<'heap>> {
+    body: cst::DictObjectBody<'tree, T>,
+) -> Option<DictExpr<'heap>>
+where
+    T: LowerItem<'tree> + 'tree,
+{
     let heap = lowerer.heap();
     let mut entries = Vec::new_in(heap);
     let mut ok = true;
@@ -292,7 +317,7 @@ fn lower_dict_object_body<'heap, A: Allocator>(
             })
         });
 
-        let value = entry.value().and_then(|expr| lowerer.lower_expr(expr));
+        let value = entry.value().and_then(|item| item.lower(lowerer));
         match (key_expr, value) {
             (Some(key), Some(value)) => {
                 let span = lowerer.insert_range(entry.text_range());
@@ -320,10 +345,13 @@ fn lower_dict_object_body<'heap, A: Allocator>(
     })
 }
 
-fn lower_dict_array_body<'heap, A: Allocator>(
+fn lower_dict_array_body<'tree, 'heap, T, A: Allocator>(
     lowerer: &mut Lowerer<'heap, '_, A>,
-    body: cst::DictArrayBody<'_, cst::Expr<'_>>,
-) -> Option<DictExpr<'heap>> {
+    body: cst::DictArrayBody<'tree, T>,
+) -> Option<DictExpr<'heap>>
+where
+    T: LowerItem<'tree> + 'tree,
+{
     let heap = lowerer.heap();
     let mut entries = Vec::new_in(heap);
     let mut ok = true;
@@ -334,7 +362,7 @@ fn lower_dict_array_body<'heap, A: Allocator>(
         let mut count = 0_usize;
 
         for item in entry.items() {
-            let expr = lowerer.lower_expr(item);
+            let expr = item.lower(lowerer);
             match count {
                 0 => key = expr,
                 1 => value = expr,
@@ -371,22 +399,29 @@ fn lower_dict_array_body<'heap, A: Allocator>(
     })
 }
 
-fn lower_dict_body<'heap, A: Allocator>(
+fn lower_dict_body<'tree, 'heap, T, A: Allocator>(
     lowerer: &mut Lowerer<'heap, '_, A>,
-    body: cst::DictBody<'_, cst::Expr<'_>>,
-) -> Option<DictExpr<'heap>> {
+    body: cst::DictBody<'tree, T>,
+) -> Option<DictExpr<'heap>>
+where
+    T: LowerItem<'tree> + 'tree,
+{
     match body {
         cst::DictBody::Object(object) => lower_dict_object_body(lowerer, object),
         cst::DictBody::Array(array) => lower_dict_array_body(lowerer, array),
     }
 }
 
-pub(crate) fn lower_dict<'heap, A: Allocator>(
+pub(crate) fn lower_dict<'tree, 'heap, T, A: Allocator>(
     lowerer: &mut Lowerer<'heap, '_, A>,
-    node: cst::Dict<'_, cst::Expr<'_>>,
-) -> Option<Expr<'heap>> {
+    node: cst::Dict<'tree, T>,
+    type_field: Option<cst::TypeField<'tree>>,
+) -> Option<Expr<'heap>>
+where
+    T: LowerItem<'tree> + 'tree,
+{
     let (mut dict_expr, r#type) =
-        lowerer.lower_typed_pair(node.type_field(), node.field(), |lowerer, field| {
+        lowerer.lower_typed_pair(type_field, node.field(), |lowerer, field| {
             let body = field.body()?;
             lower_dict_body(lowerer, body)
         })?;
