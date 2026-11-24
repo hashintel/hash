@@ -41,7 +41,7 @@ import { Table } from "./ds-parts/table";
 import { Tabs } from "./ds-parts/tabs";
 import { Toast } from "./ds-parts/toast";
 import { rowButtonActiveStyle, rowButtonStyle } from "./all-runs";
-import { getFlow } from "./app-store";
+import { getFlow, useAppState } from "./app-store";
 import { Select } from "./fill-select";
 import {
   clearPendingTriggerAdd,
@@ -55,8 +55,8 @@ import {
   scaleResponsive,
   scaleSchedules,
   scheduleNameOf,
-  manualRunsFlip,
   setManualRuns,
+  useManualRunsFlips,
 } from "./flow-triggers";
 import { ShowAllRow } from "./show-all-row";
 import { formatCount } from "./trigger-flags";
@@ -211,8 +211,8 @@ type PageFlow = {
   hidden: number;
 };
 
-const onboardId = "onboard-new-supplier";
-const digestId = "weekly-digest";
+const onboardId = "new-shipment-intake";
+const digestId = "weekly-stock-summary";
 
 const mockSchedule: ScheduleValues = {
   startIso: "2026-11-09",
@@ -342,7 +342,6 @@ const sampleResponsive = (index: number): { label: string; web: string; on: bool
 };
 
 const supplierReview = (): {
-  flow: PageFlow;
   triggers: PageTrigger[];
   on: Record<string, boolean>;
 } => {
@@ -410,39 +409,11 @@ const supplierReview = (): {
       version: "v5",
     };
   });
-  const triggers = [...schedules, ...responsive];
-  return {
-    flow: {
-      id: monthlyReviewId,
-      name: "Monthly supplier review",
-      latest: "v5",
-      manual: source.manual,
-      hidden: source.hidden,
-    },
-    triggers,
-    on,
-  };
+  return { triggers: [...schedules, ...responsive], on };
 };
 
 const seed = () => {
   const review = supplierReview();
-  const flows: PageFlow[] = [
-    review.flow,
-    {
-      id: onboardId,
-      name: "Onboard new supplier",
-      latest: "v2",
-      manual: true,
-      hidden: 0,
-    },
-    {
-      id: digestId,
-      name: "Weekly digest",
-      latest: "v3",
-      manual: true,
-      hidden: 0,
-    },
-  ];
   const triggers: PageTrigger[] = [
     ...review.triggers,
     {
@@ -491,10 +462,7 @@ const seed = () => {
     .items) {
     on[item.id] = item.on;
   }
-  for (const flow of flows) {
-    on[`manual:${flow.id}`] = manualRunsFlip(flow.id) ?? flow.manual;
-  }
-  return { flows, triggers, on };
+  return { triggers, on };
 };
 
 const iconFor: Record<Kind, IconName> = {
@@ -1599,6 +1567,19 @@ type Draft = { kind: Kind; flowId: string };
 
 const usePage = (routeFlowId: string | null) => {
   const add = triggerAddStep();
+  const { flows: storedFlows } = useAppState();
+  const manualFlips = useManualRunsFlips();
+  const flows: PageFlow[] = storedFlows.map((flow) => {
+    const { manual, hidden } = flowTriggersOf(flow.document, undefined, flow.id);
+    const { current, published } = flow.meta.version;
+    return {
+      id: flow.id,
+      name: flow.document.name,
+      latest: `v${published[0]?.n ?? current}`,
+      manual: manualFlips.get(flow.id) ?? manual,
+      hidden,
+    };
+  });
   const [data, setData] = useState(() => {
     const seeded = seed();
     // `?triggeradd=g1|g2&schedshow=saved`: Custom's preset, saved as the newest schedule of the Monthly supplier review.
@@ -1621,7 +1602,7 @@ const usePage = (routeFlowId: string | null) => {
           id,
           kind: "schedule" as const,
           label,
-          version: seeded.flows.find((flow) => flow.id === monthlyReviewId)?.latest ?? "v1",
+          version: flows.find((flow) => flow.id === monthlyReviewId)?.latest ?? "v1",
         },
       ],
       on: { ...seeded.on, [id]: true },
@@ -1633,10 +1614,11 @@ const usePage = (routeFlowId: string | null) => {
   const [confirming, setConfirming] = useState<string | null>(
     add === 3 ? "monday" : null,
   );
-  const known = data.flows.some((flow) => flow.id === routeFlowId);
-  const [flowId, setFlowId] = useState(
-    known && routeFlowId ? routeFlowId : monthlyReviewId,
-  );
+  const [selectedFlowId, setFlowId] = useState(routeFlowId ?? monthlyReviewId);
+  const flowId =
+    flows.find((flow) => flow.id === selectedFlowId)?.id ??
+    flows[0]?.id ??
+    monthlyReviewId;
   const [draft, setDraft] = useState<Draft | null>(
     pendingTriggerAdd() ??
       (add === 2 && scheduleShow() !== "saved"
@@ -1648,11 +1630,9 @@ const usePage = (routeFlowId: string | null) => {
     clearPendingTriggerOpen();
   }, []);
   const flip = (id: string, on: boolean) => {
-    const manualFlow = id.startsWith("manual:")
-      ? data.flows.find((flow) => `manual:${flow.id}` === id)
-      : undefined;
-    if (manualFlow) {
-      setManualRuns(manualFlow.id, on);
+    if (id.startsWith("manual:")) {
+      setManualRuns(id.slice("manual:".length), on);
+      return;
     }
     setData((current) => ({ ...current, on: { ...current.on, [id]: on } }));
   };
@@ -1699,7 +1679,7 @@ const usePage = (routeFlowId: string | null) => {
       return;
     }
     const id = `new-${data.triggers.length}`;
-    const flow = data.flows.find((candidate) => candidate.id === values.flowId);
+    const flow = flows.find((candidate) => candidate.id === values.flowId);
     setData((current) => ({
       ...current,
       triggers: [
@@ -1745,7 +1725,12 @@ const usePage = (routeFlowId: string | null) => {
     }
   };
   return {
-    ...data,
+    flows,
+    triggers: data.triggers,
+    on: {
+      ...data.on,
+      ...Object.fromEntries(flows.map((flow) => [`manual:${flow.id}`, flow.manual])),
+    },
     add,
     opened,
     open,
@@ -2282,6 +2267,8 @@ type Row =
   | { kind: "manual"; id: string; flow: PageFlow }
   | { kind: "trigger"; id: string; flow: PageFlow; trigger: PageTrigger };
 
+let savedChips: RunFilterChip[] = [];
+
 const Take2 = ({
   page,
   routeFlowId,
@@ -2294,6 +2281,9 @@ const Take2 = ({
   // the page from the sidebar sets none; the editor's "Show all" links and a flow's own page set Flow (and Kind).
   const [chips, setChips] = useState<RunFilterChip[]>(() => {
     const pending = pendingTriggerFilter();
+    if (!pending && !routeFlowId) {
+      return savedChips;
+    }
     const flowId = pending?.flowId ?? routeFlowId;
     const known = page.flows.some((flow) => flow.id === flowId);
     const made: RunFilterChip[] = [
@@ -2537,6 +2527,7 @@ const Take2 = ({
                   variant="subtle"
                   tone="neutral"
                   iconName="plus"
+                    disabled={page.flows.length === 0}
                   data-trigger-add
                 >
                   Add trigger
@@ -2553,7 +2544,10 @@ const Take2 = ({
             now={0}
             groups={["Trigger"]}
             operatorsFor={operatorsFor}
-            onSave={() => setSavedToast(true)}
+            onSave={() => {
+              savedChips = chips;
+              setSavedToast(true);
+            }}
           />
         ) : null}
         {savedToast ? (
@@ -2767,9 +2761,14 @@ const Take3 = ({ page }: { page: Page }) => {
     const timer = setTimeout(() => press("[data-trigger-add]"), 400);
     return () => clearTimeout(timer);
   }, [page.add]);
-  const flow =
-    page.flows.find((candidate) => candidate.id === page.flowId) ??
-    page.flows[0]!;
+  const flow = page.flows.find((candidate) => candidate.id === page.flowId);
+  if (!flow) {
+    return (
+      <main className={mainStyle} data-triggers-content>
+        <PageHeader />
+      </main>
+    );
+  }
   const own = page.triggers.filter((trigger) => trigger.flowId === flow.id);
   const shown = own.filter((trigger) =>
     trigger.label.toLowerCase().includes(search.trim().toLowerCase()),
@@ -3192,6 +3191,7 @@ const Take4 = ({ page }: { page: Page }) => {
                 variant="ghost"
                 tone="neutral"
                 iconName="plus"
+                disabled={page.flows.length === 0}
                 data-trigger-add
               >
                 Add trigger

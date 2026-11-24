@@ -32,6 +32,7 @@ import { TextLink } from "./text-link";
 import { type EditorDocument } from "./document";
 import { useEditor } from "./editor-context";
 import { headerIconStyle } from "./menu-rows";
+import { monthlyReviewId } from "./seed-flows";
 import { iconStroke } from "./thin-icons";
 import {
   formatCount,
@@ -145,14 +146,13 @@ const takeTriggers = (triggers: FlowTriggers): FlowTriggers => {
   }
 };
 
-const manualFlips = new Map<string, boolean>();
+let manualFlips: ReadonlyMap<string, boolean> = new Map();
 const manualListeners = new Set<() => void>();
 
-export const manualRunsFlip = (flowKey: string): boolean | undefined =>
-  manualFlips.get(flowKey);
-
 export const setManualRuns = (flowKey: string, on: boolean) => {
-  manualFlips.set(flowKey, on);
+  const next = new Map(manualFlips);
+  next.set(flowKey, on);
+  manualFlips = next;
   for (const listener of manualListeners) {
     listener();
   }
@@ -163,12 +163,16 @@ const subscribeToManualRuns = (listener: () => void) => {
   return () => manualListeners.delete(listener);
 };
 
+export const useManualRunsFlips = () =>
+  useSyncExternalStore(subscribeToManualRuns, () => manualFlips);
+
 export const flowTriggersOf = (
   document: EditorDocument,
   switches: Record<string, boolean> = {},
+  flowKey = document.name,
 ): FlowTriggers => {
   const base: FlowTriggers =
-    document.name === "Monthly supplier review"
+    flowKey === monthlyReviewId || flowKey === "Monthly supplier review"
       ? takeTriggers(supplierReviewTriggers)
       : { manual: true, items: [], hidden: 0 };
   return {
@@ -187,9 +191,9 @@ export const useFlowTriggersFor = (
   flowKey: string,
 ): FlowTriggers => {
   const manual = useSyncExternalStore(subscribeToManualRuns, () =>
-    manualRunsFlip(flowKey),
+    manualFlips.get(flowKey),
   );
-  const triggers = flowTriggersOf(document, switches);
+  const triggers = flowTriggersOf(document, switches, flowKey);
   return { ...triggers, manual: manual ?? triggers.manual };
 };
 
@@ -208,7 +212,7 @@ export const useFlowTriggers = (): FlowTriggers => {
 const countSplit = (on: number, paused: number) =>
   on + paused === 0
     ? "None"
-    : [on > 0 ? `${formatCount(on)} on` : "", paused > 0 ? `${formatCount(paused)} paused` : ""]
+    : [on > 0 ? `${formatCount(on)} on` : "", paused > 0 ? `${formatCount(paused)} off` : ""]
         .filter(Boolean)
         .join(", ");
 
@@ -245,7 +249,7 @@ export const ghostSummary = (
       line:
         items.length === 0
           ? "None"
-          : [on > 0 ? `${on} on` : "", paused > 0 ? `${paused} paused` : ""]
+          : [on > 0 ? `${on} on` : "", paused > 0 ? `${paused} off` : ""]
               .filter(Boolean)
               .join(", "),
       icon: "calendar",
@@ -257,7 +261,7 @@ export const ghostSummary = (
     line:
       items.length === 0
         ? "None"
-        : [on > 0 ? `${on} on` : "", paused > 0 ? `${paused} paused` : ""]
+        : [on > 0 ? `${on} on` : "", paused > 0 ? `${paused} off` : ""]
             .filter(Boolean)
             .join(", "),
     icon: "cube",
@@ -297,21 +301,20 @@ export const ghostTakeSummary = (
 } => {
   const icon = kindIcon[kind];
   if (triggerScaleTake) {
-    const counts = scaleCounts[triggerCount];
     if (kind === "manual") {
-      const state = counts.manual ? "On" : "Off";
+      const state = triggers.manual ? "On" : "Off";
       return triggerScaleTake === 2 || triggerScaleTake === 4
-        ? { title: "Manual", count: state, icon, on: counts.manual }
-        : { title: "Manual", line: state, icon, on: counts.manual };
+        ? { title: "Manual", count: state, icon, on: triggers.manual }
+        : { title: "Manual", line: state, icon, on: triggers.manual };
     }
-    const { on, paused } = counts[kind];
+    const { on, paused } = scaleCounts[triggerCount][kind];
     const total = on + paused;
     const word = kind === "schedule" ? "schedule" : "responsive";
     switch (triggerScaleTake) {
       case 1:
         return {
           title: `${formatCount(total)} ${word}${kind === "schedule" && total !== 1 ? "s" : ""}`,
-          line: paused > 0 ? `${formatCount(paused)} paused` : "All on",
+          line: paused > 0 ? `${formatCount(paused)} off` : "All on",
           icon,
           on: on > 0,
         };
@@ -333,7 +336,7 @@ export const ghostTakeSummary = (
           title: kindTitle[kind],
           line: [
             `${formatCount(on)} on`,
-            paused > 0 ? `${formatCount(paused)} paused` : "",
+            paused > 0 ? `${formatCount(paused)} off` : "",
           ]
             .filter(Boolean)
             .join(", "),
@@ -412,7 +415,7 @@ export const ghostTakeSummary = (
               ? "None"
               : [
                   onCount > 0 ? `${formatCount(onCount)} on` : "",
-                  pausedCount > 0 ? `${formatCount(pausedCount)} paused` : "",
+                  pausedCount > 0 ? `${formatCount(pausedCount)} off` : "",
                 ]
                   .filter(Boolean)
                   .join(", "),
