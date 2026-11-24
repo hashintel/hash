@@ -17,14 +17,18 @@ The folder has no entry file. Each file is one small library, and another
 block imports the file that holds the function it needs. A caller starts from
 one of these.
 
-| Function                                    | File                         | What it answers                                                                   |
-| ------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------- |
-| `toPetrinautId`, `canonicalizePetrinautIds` | `petrinaut-id.ts`            | The Petrinaut id of any id, and a net with every id and reference converted       |
-| `getArcEndpoint`                            | `arc-endpoints.ts`           | Which place or component port an arc touches                                      |
-| `resolveNetParameterValues`                 | `parameter-values.ts`        | The value of each parameter for a run, from its default and the inputs of the run |
-| `canonicalizeSelection`                     | `selection.ts`               | The one order of a selection, without duplicates                                  |
-| `isSDCPNEqual`                              | `deep-equal.ts`              | Whether two documents are equal                                                   |
-| `hashPetrinautDocument`                     | `hash-petrinaut-document.ts` | A hash of a document, or of the part of it that a simulation reads                |
+| Function                                                | File                         | What it answers                                                                   |
+| ------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------- |
+| `toPetrinautId`, `canonicalizePetrinautIds`             | `petrinaut-id.ts`            | The Petrinaut id of any id, and a net with every id and reference converted       |
+| `getArcEndpoint`                                        | `arc-endpoints.ts`           | Which place or component port an arc touches                                      |
+| `generateArcId`                                         | `arc-id.ts`                  | The id the editor gives an arc, made from the ids of its two ends                 |
+| `getRunningEquationIds`, `withoutDifferentialEquations` | `place-dynamics.ts`          | The differential equations a place runs, and a place without some of them         |
+| `isSupportedArity`                                      | `equation-arity.ts`          | Whether one differential equation may couple that many tokens                     |
+| `resolveNetParameterValues`                             | `parameter-values.ts`        | The value of each parameter for a run, from its default and the inputs of the run |
+| `canonicalizeSelection`                                 | `selection.ts`               | The one order of a selection, without duplicates                                  |
+| `GRID_SIZE`                                             | `grid-size.ts`               | The grid unit the node positions of the bundled examples are multiples of         |
+| `isSDCPNEqual`                                          | `deep-equal.ts`              | Whether two documents are equal                                                   |
+| `hashPetrinautDocument`                                 | `hash-petrinaut-document.ts` | A hash of a document, or of the part of it that a simulation reads                |
 
 ## Protocol: the id rule
 
