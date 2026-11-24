@@ -57,6 +57,44 @@
 /apps/hash-integrations/ @hashintel/integrations
 /libs/@local/integrations/ @hashintel/integrations
 
+# Frontend
+/apps/hash-frontend/ @hashintel/frontend
+/libs/@hashintel/block-design-system/ @hashintel/frontend
+/libs/@hashintel/design-system/ @hashintel/frontend
+/libs/@hashintel/query-editor/ @hashintel/frontend
+/libs/@hashintel/refractive/ @hashintel/frontend
+/libs/@hashintel/type-editor/ @hashintel/frontend
+/libs/@local/flow-petri-net/ @hashintel/frontend
+/libs/@local/flue-aisdk-transport/ @hashintel/frontend
+/libs/@local/pi-faux-providers/ @hashintel/frontend
+
+# Backend libraries and the browser plugin
+/apps/plugin-browser/ @hashintel/backend
+/libs/@local/advanced-types/ @hashintel/backend
+/libs/@local/codec/typescript/ @hashintel/backend
+/libs/@local/hash-backend-utils/ @hashintel/backend
+/libs/@local/hash-isomorphic-utils/ @hashintel/backend
+/libs/@local/internal-api-client/typescript/ @hashintel/backend
+/libs/@local/status/typescript/ @hashintel/backend
+
+# Block Protocol graph package
+/libs/@blockprotocol/graph/ @hashintel/graph
+
+# Petrinaut tooling outside the petrinaut packages
+/libs/@local/archinaut/ @hashintel/petrinaut
+
+# Lint, TypeScript and repository tooling
+/libs/@local/eslint/ @hashintel/infra
+/libs/@local/oxlint/ @hashintel/infra
+/libs/@local/repo-chores/node/ @hashintel/infra
+/libs/@local/tsconfig/ @hashintel/infra
+
+# Test suites
+/tests/hash-playwright/ @hashintel/frontend
+/tests/hash-backend-integration/ @hashintel/backend
+/tests/integrations/graph/ @hashintel/graph
+/tests/petrinaut-brunch-integration/ @hashintel/petrinaut
+
 # Code ownership
 /.github/CODEOWNERS @hashintel/infra-admins
 
