@@ -1,0 +1,28 @@
+# Hand-written; rendered by the arch-docs build. The React layer uses the
+# purple palette, the host the grey one.
+direction: down
+
+classes: {
+  react: {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+  other: {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+}
+
+handler: "Handler\nan editor action, a panel or a plugin"
+navigate: "navigate(update, intent)" {class: react}
+preview: "Preview\nthe location this event implies,\nkept with the state it was made from" {class: react}
+host: "Host controller\nonNavigate(updater, history and intent)" {class: other}
+own: "State of the provider\nwhere no controller is given" {class: react}
+provider: "PetrinautNavigationProvider\nrenders with the location" {class: react}
+commit: "CommitLocation\nfirst layout effect of the commit" {class: react}
+readers: "Readers\nusePetrinautNavigationState" {class: react}
+
+handler -> navigate: calls
+navigate -> preview: "resolves the update into"
+navigate -> host: "sends the updater to"
+navigate -> own: "sets"
+host -> provider: "passes its state to"
+own -> provider: "is the location of"
+provider -> commit: "renders before its children"
+commit -> navigate: "hands the committed location to"
+commit -> preview: "drops, once the location has left its base"
+provider -> readers: "publishes each part to"

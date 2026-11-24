@@ -1,0 +1,138 @@
+---
+title: Navigation
+description: Keeps Petrinaut's app location router-neutral and controlled by the host.
+sidebar_order: 10
+---
+
+Navigation keeps Petrinaut's app location router-neutral and controlled by the
+host. The location says what the editor shows: the mode, the view, the
+selection, the open component, the Simulate section and its record, and the
+overlay. Navigation owns that value and the one function that changes it. It
+imports no router, and what a URL means is the host's to decide.
+[Editor state](doc:react.state/editor-state) says which state the location
+owns and which hooks read it. This page is longer than a guide should be: the
+contract with the host has six rules, each held by a test.
+
+![A handler calls navigate, which resolves the update into a preview and sends the updater to the host or to the provider's own state. The provider renders with the new location, and its first layout effect hands that location back to navigate.](./navigation.d2)
+
+## Entry point
+
+`PetrinautNavigationProvider` in `navigation-provider.tsx` publishes the
+location and `navigate`. `PetrinautProvider` mounts it between the document
+providers and the runtime providers, keyed by the id of the document's
+handle. The preview mounts one of its own.
+
+`navigation.ts` declares the types, the contexts, the hooks and the pure
+function `resolveNavigationUpdate`. `resolve-navigated-ids.ts` matches the ids
+of a location against a document.
+
+## Interface
+
+| To                                         | Use                                                          |
+| ------------------------------------------ | ------------------------------------------------------------ |
+| Read one part of the location              | `usePetrinautNavigationState`, with a selector               |
+| Change the location                        | `usePetrinautNavigate`, which keeps one identity             |
+| Open a scenario, a metric or an experiment | `openPetrinautSimulationResource`, an updater for `navigate` |
+| Open a component, or the root net          | `openPetrinautComponent`, an updater for `navigate`          |
+| Control the location from a host           | `PetrinautNavigationController`, the `navigation` prop       |
+| Match a location's ids against a document  | `resolveNavigatedItems`, `resolveNavigatedId`                |
+
+Components of the editor change the mode and the selection through
+`useEditorActions` of [the editor state](layer:react.state), whose actions
+call `navigate`.
+
+## Protocol
+
+`PetrinautNavigationController` is the contract with a host. The package
+publishes it from `main.ts`, `react/index.ts`, `ui/index.ts` and `preview.ts`,
+so a change to it is a change for every host.
+
+| Member          | Who writes it | What it is                                                                                              |
+| --------------- | ------------- | ------------------------------------------------------------------------------------------------------- |
+| `state`         | The host      | The whole location. The provider shows it and holds none of its own.                                    |
+| `onNavigate`    | The editor    | Called with an updater and `{ history, intent }`. The host applies the updater to its own latest state. |
+| `historyPolicy` | The host      | Optional. Answers `push` or `replace` for an intent, in place of the default policy.                    |
+
+An intent names the cause, `user` or `normalization`, the action, and for a
+gesture its phase. The default policy answers `replace` for a normalization
+and for the `continue` phase of a gesture, and `push` otherwise.
+
+A host may apply an update at once, on a later tick, or never. It should
+ignore an update that gives the state it already holds, so that a decline and
+a repeated request stay apart. Without a controller the
+provider keeps the location in its own state, which starts from the defaults,
+from Actual mode where the host streams one, and from `initialState`.
+
+The website's [Router integration](doc:website.routes/router-integration) is a
+host's side of this contract.
+
+## Data flow
+
+Clicking a row of a list, with a host in control:
+
+1. The handler calls `selectItem` of `useEditorActions`. That action calls
+   `navigate` with an updater that sets the selection and with a `user`
+   intent.
+2. `navigate` resolves the update against the committed location, or against
+   the preview of an earlier call in the same event. `resolveNavigationUpdate`
+   puts the selection in its canonical order and closes an expanded sub-view
+   whose item is no longer the scope.
+3. A result equal to what it was resolved against ends here, and `navigate`
+   answers `false`.
+4. `navigate` keeps the result as the preview, marked fresh until the event
+   is over.
+5. `navigate` calls the host's `onNavigate` with the updater and the history
+   the policy answers, and returns `true`.
+6. The host applies the updater to its state and passes the new `state`.
+7. The provider renders with it. `CommitLocation`, the first layout effect of
+   the commit, records it as the committed location and drops the preview once
+   the location has left the state the preview was made from.
+
+## Rules
+
+- **A host may apply an update later.** The preview is kept with the state it
+  was made from, and dropped only when the host's state has left that state.
+  A render in between would otherwise make the next update compare equal and
+  never reach the host. Held by "controlled: a rerender before an async host
+  applies does not lose the next update" in `navigation-provider.test.tsx`.
+- **A repeat within one event is not sent, and a retry after a decline is.**
+  Several libraries call back more than once per event, so a second call that
+  implies the same location is dropped. A host that declines changes nothing
+  and never renders, so the preview stops counting as fresh after the event
+  and the user's next try is sent. Held by "suppresses a duplicate controlled
+  update before rerender" and "controlled: a declined navigation does not
+  swallow a later retry".
+- **`navigate` compares with the location of the commit it runs in.** The
+  committed location is written in the first layout effect of each commit, so
+  a layout effect further down that navigates is compared with the location
+  it was rendered with. Held by "compares a navigation made in the layout
+  phase with the state of that commit".
+- **A Simulate section reopens on the record it was left with.** The provider
+  remembers the record and the presentation of each section, and a user's
+  change of section restores them. Held by "a Simulate section reopens the
+  record it was left with", with and without a host in control.
+- **The provider is keyed by the id of the handle.** A switch of net then
+  starts from a new location, and remounts the workers below it. The key is
+  in `PetrinautProvider` in `../petrinaut-provider.tsx`. No test holds it.
+- **An id of the location is looked up as written, then converted.** A
+  custom handle may keep ids it never converted, and a link may carry an id
+  that the document holds in its converted form. `useResolvedLocation` of the
+  editor state writes the resolved ids back with a `normalization` intent.
+  Held by `resolve-navigated-ids.test.ts`.
+
+`navigate` is one function for the life of the provider, so a component that
+only navigates renders for no navigation. Held by "navigate is one function
+across navigations".
+
+## Pitfalls
+
+- A control that writes a field the host's state cannot hold snaps back: the
+  host reads its state again without that field. A host that puts part of the
+  location in a URL keeps the rest in memory, as
+  [Router integration](doc:website.routes/router-integration) describes.
+- `usePetrinautNavigation()` returns the whole context value and renders its
+  reader for every navigation, a selection included. Read a part with
+  `usePetrinautNavigationState`.
+- A host that passes a controller owns the initial location too. The Actual
+  mode default of the provider does not apply, so the host sets the mode in
+  its own state.
