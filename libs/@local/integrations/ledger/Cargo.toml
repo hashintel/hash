@@ -17,6 +17,7 @@ hash-integrations-definition = { workspace = true, public = true }
 uuid = { workspace = true, public = true }
 
 # Private third-party dependencies
+bytes          = { workspace = true }
 derive_more    = { workspace = true, features = ["display", "error"] }
 futures-util   = { workspace = true }
 hex            = { workspace = true, features = ["alloc"] }

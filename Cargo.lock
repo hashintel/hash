@@ -7132,6 +7132,7 @@ dependencies = [
 name = "hash-integrations-ledger"
 version = "0.0.0"
 dependencies = [
+ "bytes",
  "derive_more",
  "error-stack",
  "futures-util",

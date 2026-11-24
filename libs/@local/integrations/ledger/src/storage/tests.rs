@@ -1,5 +1,6 @@
 use std::{fs, path::PathBuf};
 
+use bytes::Bytes;
 use futures_util::TryStreamExt as _;
 use hash_crypto::Secret;
 use object_store::{ObjectStore as _, PutPayload, path::Path as Location};
@@ -74,7 +75,7 @@ async fn namespaces_keep_integrations_apart() {
     .expect("should open the bucket");
 
     aviation
-        .replace_if("current.json", None, b"aviation".to_vec())
+        .replace_if("current.json", None, Bytes::from_static(b"aviation"))
         .await
         .expect("should create the file");
     assert_eq!(
@@ -301,7 +302,7 @@ async fn s3_errors_are_not_missing_files() {
         "a failed download should be a read error"
     );
     let error = storage
-        .replace_if(KEY, None, b"bytes".to_vec())
+        .replace_if(KEY, None, Bytes::from_static(b"bytes"))
         .await
         .expect_err("should fail when the bucket cannot be written");
     assert!(
@@ -317,8 +318,8 @@ async fn s3_errors_are_not_missing_files() {
 async fn replace_if_conditional_put(#[case] s3: bool) {
     let (_minio, storage) = storage(s3).await;
     let key = "current.json";
-    let first = b"first".to_vec();
-    let second = b"second".to_vec();
+    let first = Bytes::from_static(b"first");
+    let second = Bytes::from_static(b"second");
 
     assert!(
         storage
@@ -373,7 +374,7 @@ async fn versioned_size_limit() {
 
     assert!(
         storage
-            .replace_if(key, None, vec![b' '; MAX_VERSIONED_BYTES])
+            .replace_if(key, None, Bytes::from(vec![b' '; MAX_VERSIONED_BYTES]))
             .await
             .expect("should write a file at the limit"),
         "a create under a fresh key should write"
@@ -388,7 +389,7 @@ async fn versioned_size_limit() {
     );
 
     let key = "run.json";
-    let bytes = vec![b' '; MAX_VERSIONED_BYTES + 1];
+    let bytes = Bytes::from(vec![b' '; MAX_VERSIONED_BYTES + 1]);
 
     let error = storage
         .replace_if(key, None, bytes.clone())

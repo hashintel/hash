@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use error_stack::{Report, ResultExt as _};
 use object_store::{ObjectMeta, PutMode, PutOptions, PutPayload, UpdateVersion};
 
@@ -61,7 +62,7 @@ impl Storage {
         &self,
         key: &str,
         expected: Option<&CasVersion>,
-        bytes: Vec<u8>,
+        bytes: Bytes,
     ) -> Result<bool, Report<StorageError>> {
         let location = location(key)?;
         if bytes.len() > MAX_VERSIONED_BYTES {
