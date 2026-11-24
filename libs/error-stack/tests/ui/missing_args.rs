@@ -14,17 +14,17 @@ impl fmt::Display for RootError {
 impl Error for RootError {}
 
 fn empty_bail_arg() -> Result<(), Report<RootError>> {
-    bail!()
+    bail!() //~ ERROR: unexpected end of macro invocation
 }
 
 fn empty_ensure_arg() -> Result<(), Report<RootError>> {
-    let _ = ensure!();
+    let _ = ensure!(); //~ ERROR: unexpected end of macro invocation
 
     Ok(())
 }
 
 fn missing_ensure_arg() -> Result<(), Report<RootError>> {
-    let _ = ensure!(true);
+    let _ = ensure!(true); //~ ERROR: unexpected end of macro invocation
 
     Ok(())
 }

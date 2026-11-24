@@ -356,8 +356,8 @@ tracing-flame                      = { version = "0.2.0", default-features = fal
 tracing-opentelemetry              = { version = "0.33.0", default-features = false }
 tracing-subscriber                 = { version = "0.3.20", default-features = false }
 trait-variant                      = { version = "0.1.2", default-features = false }
-trybuild                           = { version = "1.0.113", default-features = false }
 tsify                              = { version = "0.5.6", default-features = false }
+ui_test                            = { version = "0.30.7", default-features = false }
 unicase                            = { version = "2.8.1", default-features = false }
 unicode-ident                      = { version = "1.0.22", default-features = false }
 unicode-normalization              = { version = "0.1.25", default-features = false }

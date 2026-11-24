@@ -44,15 +44,17 @@
     "test:unit": {
       "command": ["mise", "run", "test:unit", "hash-crypto"]
     },
-    "test:unit:bless": {
+    "test:ui:bless": {
       "cache": false,
       "command": [
-        "env",
-        "TRYBUILD=overwrite",
-        "mise",
-        "run",
-        "test:unit",
-        "hash-crypto"
+        "cargo",
+        "test",
+        "-p",
+        "hash-crypto",
+        "--test",
+        "compiletest",
+        "--",
+        "--bless"
       ]
     }
   }

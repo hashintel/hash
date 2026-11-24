@@ -33,6 +33,10 @@
         "error-stack-macros"
       ]
     },
+    "test:ui:bless": {
+      "dependsOn": [],
+      "cache": false
+    },
     "test:unit": {
       "dependsOn": [],
       "env": [
@@ -41,10 +45,6 @@
       "affectedBy": [
         "error-stack-macros"
       ]
-    },
-    "test:unit:bless": {
-      "dependsOn": [],
-      "cache": false
     }
   }
 }

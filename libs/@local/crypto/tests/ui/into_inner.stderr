@@ -1,23 +1,24 @@
 error[E0277]: `PhantomPinned` cannot be unpinned
- --> tests/ui/into_inner.rs:7:37
-  |
-7 |     let _unpinned = Pin::into_inner(secret);
-  |                     --------------- ^^^^^^ within `Secret<[u8; 4]>`, the trait `Unpin` is not implemented for `PhantomPinned`
-  |                     |
-  |                     required by a bound introduced by this call
-  |
-  = note: consider using the `pin!` macro
-          consider using `Box::pin` if you need to access the pinned value outside of the current scope
+  --> tests/ui/into_inner.rs:7:37
+   |
+LL |     let _unpinned = Pin::into_inner(secret);
+   |                     --------------- ^^^^^^ within `Secret<[u8; 4]>`, the trait `Unpin` is not implemented for `PhantomPinned`
+   |                     |
+   |                     required by a bound introduced by this call
+   |
+   = note: consider using the `pin!` macro
+           consider using `Box::pin` if you need to access the pinned value outside of the current scope
 note: required because it appears within the type `Secret<[u8; 4]>`
- --> src/secret.rs
-  |
-  | pub struct Secret<T: ?Sized + SecretBuffer> {
-  |            ^^^^^^
+  --> libs/@local/crypto/src/secret.rs:61:11
 note: required by a bound in `Pin::<Ptr>::into_inner`
- --> $RUST/core/src/pin.rs
-  |
-  | impl<Ptr: Deref<Target: Unpin>> Pin<Ptr> {
-  |                         ^^^^^ required by this bound in `Pin::<Ptr>::into_inner`
+  --> $RUST/core/src/pin.rs:LL:COL
+   |
+LL | impl<Ptr: Deref<Target: Unpin>> Pin<Ptr> {
+   |                         ^^^^^ required by this bound in `Pin::<Ptr>::into_inner`
 ...
-  |     pub const fn into_inner(pin: Pin<Ptr>) -> Ptr {
-  |
+LL |     pub const fn into_inner(pin: Pin<Ptr>) -> Ptr {
+   |
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0277`.

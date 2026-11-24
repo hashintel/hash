@@ -21,11 +21,24 @@
         "--test-strategy=extremes"
       ]
     },
-    "test:unit:bless": {
+    "test:ui:bless": {
       "cache": false,
       "command": [
+        "cargo",
+        "test",
+        "-p",
+        "error-stack",
+        "--test",
+        "compiletest",
+        "--",
+        "--bless"
+      ]
+    },
+    "test:unit:bless": {
+      "cache": false,
+      "dependsOn": ["test:ui:bless"],
+      "command": [
         "env",
-        "TRYBUILD=overwrite",
         "INSTA_FORCE_PASS=1",
         "INSTA_UPDATE=new",
         "UPDATE_EXPECT=1",

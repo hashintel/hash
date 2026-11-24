@@ -44,7 +44,7 @@ supports-unicode   = { workspace = true }
 thiserror          = { workspace = true }
 tracing            = { workspace = true, features = ["attributes"] }
 tracing-subscriber = { workspace = true }
-trybuild           = { workspace = true }
+ui_test            = { workspace = true, features = ["rustc", "gha"] }
 
 [build-dependencies]
 rustc_version = { workspace = true }
@@ -98,3 +98,7 @@ required-features   = ['std']
 [[test]]
 name = "common"
 test = false
+
+[[test]]
+harness = false
+name    = "compiletest"
