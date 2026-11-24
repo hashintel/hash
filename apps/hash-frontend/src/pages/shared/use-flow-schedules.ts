@@ -22,6 +22,12 @@ import {
 } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import {
+  describeSchedule,
+  getBrowserTimeZone,
+  getTimeZoneCity,
+  parseCronExpression,
+} from "./schedule-repeat";
 
 import type {
   QueryEntitySubgraphQuery,
@@ -64,11 +70,29 @@ const formatIntervalMs = (ms: number): string => {
   return `Every ${days} day${days !== 1 ? "s" : ""}`;
 };
 
-/** When a schedule runs, in words, e.g. "Every 10 minutes". */
-export const formatScheduleSpec = (scheduleSpec: ScheduleSpec): string =>
-  scheduleSpec.type === "interval"
-    ? formatIntervalMs(scheduleSpec.intervalMs)
+/**
+ * When a schedule runs, in words, e.g. "Every 10 minutes" or "Every Monday at 08:00", or its cron expression if it's
+ * not one the trigger form makes. A cron's time zone, UTC unless it has one, follows it when it isn't the viewer's,
+ * e.g. "Every Monday at 08:00 (New York)". `null` for the viewer's time zone leaves it out.
+ */
+export const formatScheduleSpec = (
+  scheduleSpec: ScheduleSpec,
+  viewerTimeZone: string | null = getBrowserTimeZone(),
+): string => {
+  if (scheduleSpec.type === "interval") {
+    return formatIntervalMs(scheduleSpec.intervalMs);
+  }
+
+  const parsed = parseCronExpression(scheduleSpec.cronExpression);
+  const text = parsed
+    ? describeSchedule(parsed.rule, parsed.time)
     : `Cron: ${scheduleSpec.cronExpression}`;
+  const timeZone = scheduleSpec.timezone ?? "UTC";
+
+  return viewerTimeZone === null || timeZone === viewerTimeZone
+    ? text
+    : `${text} (${getTimeZoneCity(timeZone)})`;
+};
 
 /**
  * Hook to fetch the flow schedules visible to the current user: all of them, or only those of one flow.
