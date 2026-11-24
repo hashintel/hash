@@ -29,10 +29,10 @@ are the point.
 
 Two engines share `engine/` compilation but step differently:
 
-| Path                           | Used by                         | Frame storage                                |
-| ------------------------------ | ------------------------------- | -------------------------------------------- |
-| `engine/compute-next-frame.ts` | interactive single-run playback | immutable; appends every frame to `frames[]` |
-| `monte-carlo/advance-run.ts`   | **Experiments**                 | two reusable buffers, swapped per step       |
+| Path                           | Used by                              | Frame storage                                |
+| ------------------------------ | ------------------------------------ | -------------------------------------------- |
+| `engine/compute-next-frame.ts` | the compiled model                   | immutable; appends every frame to `frames[]` |
+| `monte-carlo/advance-run.ts`   | Quick Simulation and **Experiments** | two reusable buffers, swapped per step       |
 
 Experiments are the target, so everything below concerns the Monte Carlo path.
 An experiment fans out over several workers ([Worker
