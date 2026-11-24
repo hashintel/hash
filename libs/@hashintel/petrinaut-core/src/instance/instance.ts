@@ -67,9 +67,9 @@ export type PetrinautCommands = CommandHelperFunctions;
  *
  * **Simulation does not live here.** A simulation runs against a frozen SDCPN
  * snapshot and has no need for the live document. To run one, give a
- * simulator of `../simulators` a request whose `sdcpn` is
- * `instance.handle.doc()` (or any other SDCPN value) and start what it
- * offers. The host owns the simulation's lifecycle.
+ * simulator, such as the one `createJsFixedStepSimulator` builds, a request
+ * whose `sdcpn` is `instance.handle.doc()` (or any other SDCPN value) and
+ * start what it offers. The host owns the simulation's lifecycle.
  */
 export type Petrinaut = {
   readonly handle: PetrinautDocHandle;
