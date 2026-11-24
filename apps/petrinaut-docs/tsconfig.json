@@ -1,12 +1,18 @@
 {
-  "extends": ["@tsconfig/bases/node22", "@local/tsconfig/policy.json"],
+  // The components run in a browser: no Node types. What runs in Node is
+  // checked by `tsconfig.node.json`.
+  "extends": "@local/tsconfig/policy.json",
   "compilerOptions": {
     "isolatedModules": true,
     "jsx": "react-jsx",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "preserve",
     "moduleResolution": "bundler",
-    "noEmit": true
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "types": []
   },
-  "include": ["archinaut.config.ts", "content/components", "stylesheets.d.ts"]
+  "include": ["content/components", "stylesheets.d.ts"],
+  "exclude": ["content/components/**/*.test.ts"]
 }

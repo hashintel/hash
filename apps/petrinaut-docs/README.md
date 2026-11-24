@@ -32,8 +32,9 @@ The archinaut README holds the full contract.
 A page imports a React component from `content/components/` as
 `@diagrams/<file name>`. The folder is copied into the site, so a component
 imports only what the site can resolve: React, its own files, plain CSS and
-the built `@hashintel/petrinaut-core`. `lint:tsc` checks the components and
-`test:unit` runs the tests beside them.
+the built `@hashintel/petrinaut-core`. `lint:tsc` checks the components
+without Node types, since they run in a browser, and `test:unit` runs the
+tests beside them.
 
 Most components are static diagrams. An interactive one keeps the file a page
 imports small and loads the rest when the figure comes near the viewport, as
