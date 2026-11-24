@@ -2,13 +2,13 @@
 import { execFile, spawn } from "node:child_process";
 import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import * as v from "valibot";
 
 import { personaSocketVariable } from "../persona-cli.ts";
+import { createJsonlLineReader, nonblankTextSchema } from "../rpc-protocol.ts";
 import {
   personaScriptEventSchema,
   type PersonaScriptEvent,
@@ -30,27 +30,22 @@ export const personaAgentPresets = [
 ] as const;
 export type PersonaAgentPreset = (typeof personaAgentPresets)[number];
 
-const nonblank = v.pipe(
-  v.string(),
-  v.check((value) => value.trim().length > 0, "Expected nonblank text"),
-);
-
 export const personaDriverSchema = v.variant("kind", [
   v.object({
     kind: v.literal("agent"),
     agent: v.picklist(personaAgentPresets),
-    personaModel: v.optional(nonblank),
-    personaThinking: v.optional(nonblank),
+    personaModel: v.optional(nonblankTextSchema),
+    personaThinking: v.optional(nonblankTextSchema),
   }),
   v.object({
     kind: v.literal("command"),
     /** Shell command template; every `{prompt}` becomes the quoted launch prompt. */
-    agentCommand: nonblank,
+    agentCommand: nonblankTextSchema,
   }),
   v.object({
     kind: v.literal("scripted"),
-    scriptPath: nonblank,
-    scriptSha256: nonblank,
+    scriptPath: nonblankTextSchema,
+    scriptSha256: nonblankTextSchema,
   }),
   v.object({
     kind: v.literal("external"),
@@ -61,21 +56,30 @@ export type PersonaDriver = v.InferOutput<typeof personaDriverSchema>;
 const isPersonaAgentPreset = (value: string): value is PersonaAgentPreset =>
   personaAgentPresets.some((preset) => preset === value);
 
+/** Enforces that at most one driver mode flag (`--agent`, `--agent-command`, `--script`) is set. */
+export const assertExclusiveDriverModes = (input: {
+  readonly agent?: unknown;
+  readonly agentCommand?: unknown;
+  readonly script?: unknown;
+}): void => {
+  const selectedModes = [input.agent, input.agentCommand, input.script].filter(
+    (value) => value !== undefined,
+  ).length;
+  if (selectedModes > 1)
+    throw new Error("Use at most one of --agent, --agent-command, or --script");
+};
+
 export const resolvePersonaDriver = (
   input: {
     agent?: string;
     agentCommand?: string;
-    script?: LoadedPersonaScript;
+    script?: Pick<LoadedPersonaScript, "scriptPath" | "scriptSha256">;
     personaModel?: string;
     personaThinking?: string;
   } = {},
 ): PersonaDriver => {
   const { agent, agentCommand, script, personaModel, personaThinking } = input;
-  const selectedModes = [agent, agentCommand, script].filter(
-    (value) => value !== undefined,
-  ).length;
-  if (selectedModes > 1)
-    throw new Error("Use at most one of --agent, --agent-command, or --script");
+  assertExclusiveDriverModes({ agent, agentCommand, script });
   if (agent !== undefined && !isPersonaAgentPreset(agent))
     throw new Error(
       `Unsupported --agent ${agent}; expected ${personaAgentPresets.join(
@@ -178,7 +182,7 @@ const presetArguments = (
   agent: PersonaAgentPreset,
   model: string | undefined,
   thinking: string | undefined,
-): readonly string[] => {
+): readonly [string, ...string[]] => {
   switch (agent) {
     case "claude":
       return ["claude", ...(model ? ["--model", model] : [])];
@@ -200,8 +204,8 @@ const presetArguments = (
 };
 
 /**
- * Shell command for an interactive coding-agent driver (`agent` or `command`).
- * Undefined for `external` (operator starts one) and `scripted` (run directly).
+ * Shell command for an interactive coding-agent driver (`agent` or `command`),
+ * used when launching in a Herdr pane. Undefined for `external` and `scripted`.
  */
 export const personaAgentShellCommand = (
   driver: PersonaDriver,
@@ -224,6 +228,41 @@ export const personaAgentShellCommand = (
     case "scripted":
     case "external":
       return undefined;
+    default: {
+      const unhandled: never = driver;
+      throw new Error(`Unhandled persona driver ${JSON.stringify(unhandled)}`);
+    }
+  }
+};
+
+/**
+ * Direct executable + argv for foreground interactive drivers, avoiding shell
+ * interpolation of `prompt`: presets spawn directly, and `--agent-command`
+ * binds `{prompt}` via POSIX positional parameter `"$1"`.
+ */
+export const personaAgentForegroundSpawn = (
+  driver: Extract<PersonaDriver, { kind: "agent" | "command" }>,
+  prompt: string,
+): { readonly file: string; readonly args: readonly string[] } => {
+  switch (driver.kind) {
+    case "agent": {
+      const [file, ...args] = presetArguments(
+        driver.agent,
+        driver.personaModel,
+        driver.personaThinking,
+      );
+      return { file, args: [...args, prompt] };
+    }
+    case "command":
+      return {
+        file: "sh",
+        args: [
+          "-c",
+          driver.agentCommand.replaceAll("{prompt}", '"$1"'),
+          "persona-agent",
+          prompt,
+        ],
+      };
     default: {
       const unhandled: never = driver;
       throw new Error(`Unhandled persona driver ${JSON.stringify(unhandled)}`);
@@ -313,6 +352,7 @@ export const startPersonaScriptDriver = (input: {
   readonly run: string;
   readonly socketPath: string;
   readonly scriptPath: string;
+  readonly expectedSha256?: string;
   readonly onEvent?: (event: PersonaScriptEvent) => void;
 }): Extract<PersonaDriverProcess, { kind: "scripted" }> => {
   const child = spawn(
@@ -323,6 +363,9 @@ export const startPersonaScriptDriver = (input: {
       scriptRunner,
       "--script",
       input.scriptPath,
+      ...(input.expectedSha256 === undefined
+        ? []
+        : ["--expected-sha256", input.expectedSha256]),
       "--socket",
       input.socketPath,
     ],
@@ -339,11 +382,10 @@ export const startPersonaScriptDriver = (input: {
         readonly error: string;
       }
     | undefined;
+  const unparsedStdout: string[] = [];
   const stderrChunks: string[] = [];
-  const stdoutDone = (async () => {
-    const lines = createInterface({ input: child.stdout });
-    for await (const line of lines) {
-      if (!line.trim()) continue;
+  const stdoutDone = new Promise<void>((done, reject) => {
+    const reader = createJsonlLineReader((line) => {
       try {
         const event = v.parse(personaScriptEventSchema, JSON.parse(line));
         if (event.type === "step_failed") {
@@ -355,10 +397,16 @@ export const startPersonaScriptDriver = (input: {
         }
         input.onEvent?.(event);
       } catch {
-        // Ignore non-JSONL output; non-zero exit still reports failure.
+        unparsedStdout.push(line);
       }
-    }
-  })();
+    });
+    child.stdout.on("data", (chunk: Buffer) => reader.write(chunk));
+    child.stdout.on("end", () => {
+      reader.end();
+      done();
+    });
+    child.stdout.on("error", reject);
+  });
   const stderrDone = (async () => {
     child.stderr.setEncoding("utf8");
     for await (const chunk of child.stderr) {
@@ -379,19 +427,26 @@ export const startPersonaScriptDriver = (input: {
     );
   });
   const exited: Promise<PersonaScriptExit> = (async () => {
-    const [closed] = await Promise.all([closeResult, stdoutDone, stderrDone]);
+    const [closed] = await Promise.all([
+      closeResult,
+      stdoutDone.catch(() => undefined),
+      stderrDone.catch(() => undefined),
+    ]);
     if (closed.kind === "error") {
       return { ok: false, error: closed.error.message };
     }
     if (closed.code === 0) return { ok: true };
     const stderrText = stderrChunks.join("").trim();
+    const stdoutText = unparsedStdout.join("\n").trim();
     const error =
       lastFailure?.error ??
       (stderrText !== ""
         ? stderrText
-        : closed.signal !== null
-          ? `Persona script runner terminated by ${closed.signal}`
-          : `Persona script runner exited with code ${String(closed.code)}`);
+        : stdoutText !== ""
+          ? stdoutText
+          : closed.signal !== null
+            ? `Persona script runner terminated by ${closed.signal}`
+            : `Persona script runner exited with code ${String(closed.code)}`);
     return {
       ok: false,
       ...(lastFailure === undefined ? {} : { failure: lastFailure }),
@@ -428,11 +483,17 @@ export const startPersonaAgent = async (input: {
   /** Where the agent starts: outside the repository, unlike `run`. */
   readonly cwd: string;
   readonly socketPath: string;
-  readonly command: string;
+  readonly driver: Extract<PersonaDriver, { kind: "agent" | "command" }>;
+  readonly prompt: string;
 }): Promise<
   Extract<PersonaDriverProcess, { kind: "herdr" | "foreground" }>
 > => {
   if (process.env.HERDR_ENV === "1") {
+    const command = personaAgentShellCommand(input.driver, input.prompt);
+    if (command === undefined)
+      throw new Error(
+        `Driver ${input.driver.kind} has no interactive shell command`,
+      );
     const split = await execute("herdr", [
       "pane",
       "split",
@@ -452,7 +513,7 @@ export const startPersonaAgent = async (input: {
         [
           `export ${personaSocketVariable}=${shellQuote(input.socketPath)}`,
           `export PATH=${shellQuote(join(input.run, "bin"))}:"$PATH"`,
-          input.command,
+          command,
         ].join(" && "),
       ]);
     } catch (error) {
@@ -470,7 +531,8 @@ export const startPersonaAgent = async (input: {
     throw new Error(
       "Without Herdr the persona agent needs this interactive terminal; run from a terminal, from Herdr, or omit --agent and start the agent yourself",
     );
-  const child = spawn("sh", ["-c", input.command], {
+  const spec = personaAgentForegroundSpawn(input.driver, input.prompt);
+  const child = spawn(spec.file, [...spec.args], {
     cwd: input.cwd,
     stdio: "inherit",
     env: personaDriverEnvironment(input.run, input.socketPath),

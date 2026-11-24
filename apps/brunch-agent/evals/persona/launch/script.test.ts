@@ -24,6 +24,7 @@ import {
   parsePersonaScript,
   personaScriptHasOpenStep,
   readPersonaScript,
+  writePersonaScriptSnapshot,
 } from "./script.ts";
 
 const cleanup: (() => Promise<void>)[] = [];
@@ -83,8 +84,54 @@ test.each([
   [{ steps: [] }, /Invalid persona script/],
   [{ steps: [{ type: "say", message: "   " }] }, /Expected nonblank text/],
   [{ steps: [{ type: "net_edit" }] }, /Invalid persona script/],
+  [
+    {
+      steps: [{ type: "say", message: "First." }, { type: "open" }],
+    },
+    /`open` may appear only as the first step/,
+  ],
+  [
+    { steps: [{ type: "open" }, { type: "open" }] },
+    /`open` may appear only as the first step/,
+  ],
+  [
+    {
+      steps: [
+        { type: "say", message: "First." },
+        { type: "end" },
+        { type: "say", message: "After end." },
+      ],
+    },
+    /`end` may appear only as the final step/,
+  ],
+  [
+    { steps: [{ type: "end" }, { type: "end" }] },
+    /`end` may appear only as the final step/,
+  ],
 ])("rejects invalid script payload %o", (payload, pattern) => {
   expect(() => parsePersonaScript(payload)).toThrow(pattern);
+});
+
+test("readPersonaScript verifies expectedSha256 and snapshots exact preflight bytes", async () => {
+  const directory = await tempDirectory();
+  const sourcePath = join(directory, "source.json");
+  const raw = `${JSON.stringify({ steps: [{ type: "say", message: "Stable." }] }, null, 2)}\n`;
+  await writeFile(sourcePath, raw);
+
+  const loaded = await readPersonaScript(sourcePath);
+  const snapshotPath = await writePersonaScriptSnapshot(directory, loaded);
+  const snapshot = await readPersonaScript(snapshotPath, {
+    expectedSha256: loaded.scriptSha256,
+  });
+  expect(snapshot.scriptSha256).toBe(loaded.scriptSha256);
+
+  await writeFile(
+    sourcePath,
+    JSON.stringify({ steps: [{ type: "say", message: "Tampered." }] }),
+  );
+  await expect(
+    readPersonaScript(sourcePath, { expectedSha256: loaded.scriptSha256 }),
+  ).rejects.toThrow(/changed since preflight/);
 });
 
 test("runs open, say, and end sequentially without adapting to Brunch replies", async () => {
@@ -248,4 +295,51 @@ test("script runner CLI runs non-interactively over BRUNCH_PERSONA_SOCKET and ex
     error:
       "Start the conversation with `open`, which sends your opening message.",
   });
+}, 15_000);
+
+test("script runner CLI refuses to send any command when the script file changed since preflight", async () => {
+  const directory = await tempDirectory();
+  const scriptPath = join(directory, "steps.json");
+  await writeFile(
+    scriptPath,
+    JSON.stringify({ steps: [{ type: "say", message: "Original." }] }),
+  );
+  const loaded = await readPersonaScript(scriptPath);
+  await writeFile(
+    scriptPath,
+    JSON.stringify({ steps: [{ type: "say", message: "Mutated." }] }),
+  );
+  const prompt = vi.fn<PersonaBridgeHandlers["prompt"]>(async (_msg, turn) => {
+    turn.admitted();
+    return { text: "Reply.", submissionIds: ["sub_1"] };
+  });
+  const bridge = await openBridge({ opening: undefined, prompt });
+  const runnerPath = fileURLToPath(
+    new URL("./script-runner.ts", import.meta.url),
+  );
+
+  await expect(
+    promisify(execFile)(
+      process.execPath,
+      [
+        "--experimental-strip-types",
+        "--disable-warning=ExperimentalWarning",
+        runnerPath,
+        "--script",
+        scriptPath,
+        "--expected-sha256",
+        loaded.scriptSha256,
+      ],
+      {
+        env: {
+          ...process.env,
+          [personaSocketVariable]: bridge.socketPath,
+        },
+      },
+    ),
+  ).rejects.toMatchObject({
+    code: 1,
+    stderr: expect.stringContaining("changed since preflight") as unknown,
+  });
+  expect(prompt).not.toHaveBeenCalled();
 }, 15_000);

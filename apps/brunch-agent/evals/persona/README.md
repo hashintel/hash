@@ -50,7 +50,7 @@ Use at most one of `--agent`, `--agent-command`, or `--script`:
 }
 ```
 
-  Supported step types are `open` (sends the case's opening; requires `--case`), `say` (`message`, nonblank), and `end` (optional `reason`). `--case` may be omitted when the script has no `open` step; `--objective` is rejected with `--script`. The runner sends each step in order over the browser bridge without reading or adapting to Brunch's replies. If any step fails, the run stops immediately, logs `script-step-failed` in `bridge-log.jsonl`, writes the run packet, and exits non-zero.
+  Supported step types are `open` (sends the case's opening; requires `--case` and may appear only as the first step), `say` (`message`, nonblank), and `end` (optional `reason`; may appear only as the final step). `--case` may be omitted when the script has no `open` step (when supplied with a script that has no `open` step, the case metadata is recorded without requiring `open`); `--objective` is rejected with `--script`. The launcher snapshots the validated preflight script under `<run>/script-<hash>.json` and verifies its SHA-256 before step 1. The runner sends each step in order over the browser bridge without reading or adapting to Brunch's replies. If any step fails, the run stops immediately, logs `script-step-failed` in `bridge-log.jsonl`, writes the run packet, and exits non-zero.
 
 - With none of those options (`external` driver), the launcher prints the launch prompt and the helper path. Start any agent yourself, in any terminal, and give it that prompt.
 
@@ -164,6 +164,7 @@ Each launch prints its directory under `apps/brunch-agent/.data-wipe-me/persona-
 - `conversation.db`: this run's local Flue database, including conversation history, including the Ledger's commits, and provider usage records.
 - `session.json`: private native browser attachment, not a reusable template or public artifact.
 - `persona-brief.md`, `resume-brief.md` and `bin/persona`: the agent's private brief, latest resume notice and bridge helper (brief files are omitted on `--script` runs).
+- `script-<hash>.json` (`--script` runs only): immutable content-addressed copy of the exact preflight script bytes executed for that run (or resume).
 - `bridge-log.jsonl`: every utterance Brunch admitted, with `personaDriver` on each admitted utterance, used to reconcile resume; every destructive edit or save the launcher allowed, with what its approval panel showed; and any `script-step-failed` record if a scripted driver halted on an error.
 - `net-capture-failed.json` (HASH only): written when capturing the editor's net fails and removed by the next capture that succeeds; while it stands, `evidence/net.json` may be out of date and resume refuses.
 - `evidence/`: canonical snapshot and derived transcript, tool trace, compiled `ledger.md` with its `ledger.json` commits, and `net.json`; refreshed after completed turns and on shutdown. On the website `net.json` is the bound document as the browser stores it. In HASH it is the net the editor holds, saved or not, taken through the editor's own **Export → JSON** (a download, so nothing the agent sees changes), and `saved-net.json` beside it is the process's latest saved version. Both have the website's shape, which the run packet reads.

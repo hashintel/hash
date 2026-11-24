@@ -110,8 +110,9 @@ const personaDriverFromRun = (run: Record<string, unknown>): string | null => {
   try {
     const driver = driverFromRun(run);
     return driver.kind === "external" ? "external" : personaDriverLabel(driver);
-  } catch {
-    return null;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return `invalid (${message})`;
   }
 };
 

@@ -1,6 +1,8 @@
+import { execFile } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { promisify } from "node:util";
 
 import { afterEach, expect, test } from "vitest";
 
@@ -8,6 +10,7 @@ import { openPersonaBrowserBridge } from "../browser-bridge.ts";
 import {
   driverFromRun,
   paneIdFrom,
+  personaAgentForegroundSpawn,
   personaAgentShellCommand,
   personaDriverEnvironment,
   personaDriverLabel,
@@ -229,3 +232,78 @@ test("startPersonaScriptDriver runs non-interactively and streams step events", 
     "step_ok:1",
   ]);
 }, 15_000);
+
+test("startPersonaScriptDriver preserves step_failed across U+2028/U+2029 and enforces expectedSha256", async () => {
+  const run = await mkdtemp(join(tmpdir(), "TEST-persona-script-driver-"));
+  cleanup.push(() => rm(run, { recursive: true }));
+  const messageWithLineSep = "Line one\u2028Line two\u2029End.";
+  const scriptPath = join(run, "steps.json");
+  await writeFile(
+    scriptPath,
+    JSON.stringify({ steps: [{ type: "say", message: messageWithLineSep }] }),
+  );
+  const loaded = await readPersonaScript(scriptPath);
+  const bridge = await openPersonaBrowserBridge({
+    opening: undefined,
+    prompt: async () => {
+      throw new Error("Rejected\u2028detail");
+    },
+    getState: () => ({}),
+    getTranscript: async () => [],
+    end: () => undefined,
+  });
+  cleanup.push(() => bridge.close());
+
+  const child = startPersonaScriptDriver({
+    run,
+    socketPath: bridge.socketPath,
+    scriptPath,
+    expectedSha256: loaded.scriptSha256,
+  });
+  await expect(child.exited).resolves.toEqual({
+    ok: false,
+    failure: {
+      stepIndex: 0,
+      step: { type: "say", message: messageWithLineSep },
+      error: "Rejected\u2028detail",
+    },
+    error: "Rejected\u2028detail",
+  });
+
+  const mismatched = startPersonaScriptDriver({
+    run,
+    socketPath: bridge.socketPath,
+    scriptPath,
+    expectedSha256:
+      "0000000000000000000000000000000000000000000000000000000000000000",
+  });
+  await expect(mismatched.exited).resolves.toMatchObject({
+    ok: false,
+    error: expect.stringContaining("changed since preflight") as unknown,
+  });
+}, 15_000);
+
+test("personaAgentForegroundSpawn spawns presets directly and passes --agent-command prompt via $1 without shell expansion", async () => {
+  const preset = personaAgentForegroundSpawn(
+    {
+      kind: "agent",
+      agent: "pi",
+      personaModel: "sonnet",
+      personaThinking: "low",
+    },
+    prompt,
+  );
+  expect(preset).toEqual({
+    file: "pi",
+    args: ["--model", "sonnet", "--thinking", "low", prompt],
+  });
+
+  const hostilePrompt = "Read $(echo UNSAFE) and '$HOME' literally";
+  const custom = personaAgentForegroundSpawn(
+    { kind: "command", agentCommand: "printf '%s' {prompt}" },
+    hostilePrompt,
+  );
+  expect(custom.file).toBe("sh");
+  const { stdout } = await promisify(execFile)(custom.file, [...custom.args]);
+  expect(stdout).toBe(hostilePrompt);
+});

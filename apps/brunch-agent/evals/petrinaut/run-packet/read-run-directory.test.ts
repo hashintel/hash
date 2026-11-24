@@ -135,3 +135,14 @@ test.each([
     expect(markdown).toContain(`- Persona: ${expectedDriver ?? "–"}`);
   },
 );
+
+test("surfaces malformed personaDriver visibly instead of collapsing it to null", async () => {
+  const directory = await createMinimalRunDirectory({
+    brunchModel: "openai/gpt-6.1-sol",
+    personaDriver: { kind: "unknown-future-driver" },
+  });
+  const input = await readRunDirectory(directory);
+  expect(input.metadata?.personaDriver).toMatch(/^invalid \(/);
+  const markdown = renderRunPacket(buildRunPacket(input));
+  expect(markdown).toMatch(/- Persona: invalid \(/);
+});

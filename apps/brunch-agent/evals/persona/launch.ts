@@ -46,9 +46,8 @@ import {
 } from "./launch/bridge-log.ts";
 import { writePersonaBrief, writePersonaResumeBrief } from "./launch/brief.ts";
 import {
-  driverFromRun,
+  assertExclusiveDriverModes,
   personaAgentPresets,
-  personaAgentShellCommand,
   personaDriverLabel,
   personaLaunchPrompt,
   resolvePersonaDriver,
@@ -61,6 +60,12 @@ import {
 } from "./launch/driver.ts";
 import { initialNetFileData } from "./launch/initial-net.ts";
 import {
+  assertValidScriptedLaunch,
+  personaCaseSha256,
+  planPersonaLaunch,
+  verifyPersonaCaseResume,
+} from "./launch/plan.ts";
+import {
   personaSessionFileText,
   readPersonaResume,
   reconcilePersonaResume,
@@ -71,8 +76,8 @@ import {
   type PersonaRoleSettings,
 } from "./launch/role-settings.ts";
 import {
-  personaScriptHasOpenStep,
   readPersonaScript,
+  writePersonaScriptSnapshot,
   type LoadedPersonaScript,
 } from "./launch/script.ts";
 import { personaTranscriptFrom } from "./launch/transcript.ts";
@@ -285,48 +290,36 @@ const launchPersona = async ({
   maxMessages,
   hold = false,
 }: PersonaLaunchOptions) => {
-  const retainedDriver = resume ? driverFromRun(resume.config) : undefined;
-  if (resume && driver === undefined && retainedDriver?.kind === "scripted")
-    throw new Error(
-      "Cannot automatically resume a scripted run without a driver option; pass --script <continuation.json>, --agent <preset>, or --agent-command '<cmd>'",
-    );
-  const effectiveDriver: PersonaDriver = driver ??
-    retainedDriver ?? { kind: "external" };
-  if (effectiveDriver.kind === "scripted" && objective !== undefined)
-    throw new Error("--script cannot be combined with --objective");
-  if (effectiveDriver.kind === "scripted") {
-    if (script === undefined)
-      throw new Error("Scripted driver requires a loaded persona script");
-    if (resume && personaScriptHasOpenStep(script.script))
-      throw new Error(
-        "A --script passed with --resume cannot contain an `open` step",
-      );
-    if (
-      !resume &&
-      personaScriptHasOpenStep(script.script) &&
-      caseDirectory === undefined
-    )
-      throw new Error(
-        "Persona script contains an `open` step, which requires --case <name-or-directory>",
-      );
-  }
-  const needsFreshBriefOnResume =
-    resume !== undefined &&
-    effectiveDriver.kind !== "scripted" &&
-    !existsSync(join(resume.run, "persona-brief.md"));
-  if (needsFreshBriefOnResume && caseDirectory === undefined)
-    throw new Error(
-      "Cannot resume a case-less scripted run with a persona agent; pass --script <continuation.json>",
-    );
+  const plan = planPersonaLaunch({
+    resume: resume
+      ? {
+          config: resume.config,
+          hasBrief: existsSync(join(resume.run, "persona-brief.md")),
+        }
+      : undefined,
+    caseDirectory,
+    objective,
+    driver,
+    script,
+  });
+  const { effectiveDriver, needsFreshBriefOnResume } = plan;
   const manifest = resume
     ? await verifyGuidanceResume(resume.config.guidance, host.guidance)
     : await guidanceManifest(host.guidance);
   const { pack, opening } =
-    !resume && caseDirectory !== undefined
+    plan.shouldReadCase && caseDirectory !== undefined
       ? await readPersonaCase(caseDirectory)
-      : needsFreshBriefOnResume && caseDirectory !== undefined
-        ? await readPersonaCase(caseDirectory)
-        : { pack: "", opening: undefined };
+      : { pack: "", opening: undefined };
+  if (
+    needsFreshBriefOnResume &&
+    caseDirectory !== undefined &&
+    opening !== undefined
+  ) {
+    verifyPersonaCaseResume(resume?.config.caseSha256, caseDirectory, {
+      pack,
+      opening,
+    });
+  }
   const settings = resume ? roleSettingsFromRun(resume.config) : roles;
   if (
     (effectiveDriver.kind === "agent" || effectiveDriver.kind === "command") &&
@@ -374,11 +367,9 @@ const launchPersona = async ({
     host: host.name,
     ...(caseDirectory === undefined ? {} : { caseDirectory }),
     guidance: manifest,
-    ...(!resume && caseDirectory !== undefined
+    ...(!resume && caseDirectory !== undefined && opening !== undefined
       ? {
-          caseSha256: createHash("sha256")
-            .update(JSON.stringify({ pack, opening, objective }))
-            .digest("hex"),
+          caseSha256: personaCaseSha256({ pack, opening, objective }),
         }
       : {}),
     ...personaSettingsRecord(settings, effectiveDriver),
@@ -447,7 +438,7 @@ const launchPersona = async ({
   // Retained on resume; on a fresh run, captured on the first admitted turn.
   let session: PersonaBrowserSession | undefined;
   let driverProcess: PersonaDriverProcess | undefined;
-  let scriptFailure: Error | undefined;
+  let driverFailure: Error | undefined;
   // Set from bridge and child-process callbacks. Once `held`, the operator owns
   // the browser: the persona can send nothing, and its exit ends nothing.
   const lifecycle = {
@@ -664,7 +655,7 @@ const launchPersona = async ({
     }
     let repliedMessages = 0;
     bridge = await openPersonaBrowserBridge({
-      opening: resume ? undefined : opening,
+      opening: plan.expectsBridgeOpening ? opening : undefined,
       prompt: async (utterance, turn) => {
         if (lifecycle.held)
           throw new Error(
@@ -767,13 +758,17 @@ const launchPersona = async ({
       startedPids: started.map((child) => child.pid),
     });
     if (effectiveDriver.kind === "scripted") {
+      if (script === undefined)
+        throw new Error("Scripted driver requires a loaded persona script");
+      const scriptSnapshotPath = await writePersonaScriptSnapshot(run, script);
       report(
         `Persona script: ${effectiveDriver.scriptPath} (${effectiveDriver.scriptSha256.slice(0, 12)}).`,
       );
       driverProcess = startPersonaScriptDriver({
         run,
         socketPath: bridge.socketPath,
-        scriptPath: effectiveDriver.scriptPath,
+        scriptPath: scriptSnapshotPath,
+        expectedSha256: script.scriptSha256,
         onEvent: (event) => {
           if (event.type === "step_start") {
             report(`Script step ${event.stepIndex + 1}: ${event.step.type}`);
@@ -782,12 +777,7 @@ const launchPersona = async ({
       });
       const onScriptExit = async (outcome: PersonaScriptExit) => {
         lifecycle.agentExited = true;
-        if (
-          !outcome.ok &&
-          !lifecycle.stoppedByLimit &&
-          !lifecycle.endedByPersona &&
-          !stop.signal.aborted
-        ) {
+        if (!outcome.ok && !lifecycle.stoppedByLimit && !stop.signal.aborted) {
           if (outcome.failure !== undefined) {
             await appendScriptStepFailed(run, {
               stepIndex: outcome.failure.stepIndex,
@@ -799,11 +789,11 @@ const launchPersona = async ({
                 `Could not log script step failure: ${error instanceof Error ? error.message : String(error)}\n`,
               );
             });
-            scriptFailure = new Error(
+            driverFailure = new Error(
               `Persona script failed at step ${outcome.failure.stepIndex + 1} (${outcome.failure.step.type}): ${outcome.failure.error}`,
             );
           } else {
-            scriptFailure = new Error(
+            driverFailure = new Error(
               `Persona script failed: ${outcome.error}`,
             );
           }
@@ -843,11 +833,7 @@ const launchPersona = async ({
         join(tmpdir(), "brunch-persona-agent-"),
       );
       const launchPrompt = personaLaunchPrompt(brief);
-      const agentCommand = personaAgentShellCommand(
-        effectiveDriver,
-        launchPrompt,
-      );
-      if (agentCommand === undefined) {
+      if (effectiveDriver.kind === "external") {
         report(
           `Browser bridge ready. Start any coding agent in ${agentDirectory} with this prompt:\n\n  ${launchPrompt}\n\nPersona command: ${helper}\nCtrl-C stops this launcher and its owned resources; run data is retained.`,
         );
@@ -856,7 +842,8 @@ const launchPersona = async ({
           run,
           cwd: agentDirectory,
           socketPath: bridge.socketPath,
-          command: agentCommand,
+          driver: effectiveDriver,
+          prompt: launchPrompt,
         });
         if (driverProcess.kind === "herdr") {
           await save(join(run, "run.json"), {
@@ -873,7 +860,19 @@ const launchPersona = async ({
             lifecycle.agentExited = true;
             personaStopped();
           };
-          void driverProcess.exited.then(onAgentExit, onAgentExit);
+          const onAgentError = (error: unknown) => {
+            lifecycle.agentExited = true;
+            if (!stop.signal.aborted) {
+              driverFailure =
+                error instanceof Error
+                  ? error
+                  : new Error(`Persona agent failed: ${String(error)}`);
+              interrupt();
+              return;
+            }
+            personaStopped();
+          };
+          void driverProcess.exited.then(onAgentExit, onAgentError);
         }
       }
     }
@@ -881,7 +880,7 @@ const launchPersona = async ({
       await new Promise<void>((done) =>
         stop.signal.addEventListener("abort", () => done(), { once: true }),
       );
-    if (scriptFailure !== undefined) throw scriptFailure;
+    if (driverFailure !== undefined) throw driverFailure;
   } finally {
     try {
       if (stop.signal.aborted) {
@@ -1014,15 +1013,11 @@ if (
       { driver: PersonaDriver; script?: LoadedPersonaScript } | undefined
     > => {
       if (!driverOptions.some((value) => value !== undefined)) return undefined;
-      const selectedModes = [
-        values.agent,
-        values["agent-command"],
-        values.script,
-      ].filter((value) => value !== undefined).length;
-      if (selectedModes > 1)
-        throw new Error(
-          "Use at most one of --agent, --agent-command, or --script",
-        );
+      assertExclusiveDriverModes({
+        agent: values.agent,
+        agentCommand: values["agent-command"],
+        script: values.script,
+      });
       const loadedScript =
         values.script === undefined
           ? undefined
@@ -1064,13 +1059,11 @@ if (
       )
         throw new Error("--resume cannot be combined with fresh-run options");
       const selectedDriver = await resolveSelectedDriver();
-      if (
-        selectedDriver?.script !== undefined &&
-        personaScriptHasOpenStep(selectedDriver.script.script)
-      )
-        throw new Error(
-          "A --script passed with --resume cannot contain an `open` step",
-        );
+      if (selectedDriver?.script !== undefined)
+        assertValidScriptedLaunch({
+          resume: true,
+          script: selectedDriver.script,
+        });
       const retained = await readPersonaResume(
         resolve(process.env.INIT_CWD ?? process.cwd(), resumeDirectory),
       );
@@ -1097,17 +1090,14 @@ if (
         throw new Error(
           "--route and --interview-length are website options; the HASH app has neither",
         );
-      if (values.script !== undefined && values.objective !== undefined)
-        throw new Error("--script cannot be combined with --objective");
       const selectedDriver = await resolveSelectedDriver();
-      if (
-        selectedDriver?.script !== undefined &&
-        personaScriptHasOpenStep(selectedDriver.script.script) &&
-        caseDirectory === undefined
-      )
-        throw new Error(
-          "Persona script contains an `open` step, which requires --case <name-or-directory>",
-        );
+      if (selectedDriver?.script !== undefined)
+        assertValidScriptedLaunch({
+          resume: false,
+          caseDirectory,
+          objective: values.objective,
+          script: selectedDriver.script,
+        });
       return launchPersona({
         host:
           hostName === "hash"

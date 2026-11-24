@@ -20,6 +20,7 @@ const text = v.pipe(v.string(), v.minLength(1));
 const runSchema = v.pipe(
   v.looseObject({
     caseDirectory: v.optional(text),
+    caseSha256: v.optional(text),
     databasePath: text,
     browserProfile: text,
     /** Runs from before HASH runs name no host; they ran on the website. */

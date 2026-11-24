@@ -127,6 +127,7 @@ if (
       options: {
         script: { type: "string" },
         socket: { type: "string" },
+        "expected-sha256": { type: "string" },
       },
     });
     if (!values.script) throw new Error("Supply --script <path>");
@@ -135,7 +136,9 @@ if (
       throw new Error(
         `No persona bridge socket; pass --socket or set ${personaSocketVariable}`,
       );
-    const loaded = await readPersonaScript(values.script);
+    const loaded = await readPersonaScript(values.script, {
+      expectedSha256: values["expected-sha256"],
+    });
     const result = await runPersonaScript({
       script: loaded.script,
       socketPath,
