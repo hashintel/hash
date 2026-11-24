@@ -108,7 +108,10 @@ does, so a form can open its session before the provider has sent the net.
 
 A session that is never killed stays in every publish. In the editor,
 `useLspSession` of [the React language client](layer:react.lsp) ties the three
-messages to the life of a component.
+messages to the life of a component. The editor opens no scenario session:
+the context of that block carries the calls for the ad-hoc, metric and
+constraint sessions, and the `temp/scenario/*` messages are for a host that
+uses the client directly.
 
 ## Request correlation
 
@@ -205,16 +208,33 @@ worker holds.
   ]}
 />
 
+## Flow control
+
+The channel has none. The client sends a message for every change and never
+waits for the worker, and a request has no timeout. The worker reads its
+messages in order and runs one full publish for each notification before it
+reads the next, so a request waits behind the notifications sent before it.
+
+What keeps a publish short is a cache in the worker. It keeps the net's own
+diagnostics for as long as the net and its extension settings are the
+objects of the last message and no document of the net has changed. A
+message of a session then checks the files of the sessions and reuses the
+rest.
+
 ## Lifecycle
 
 `createLanguageClient` takes a worker factory or a transport.
 `createWorkerLspTransport` in `../transport.ts` queues the messages sent
 before the worker has booted, so a client is usable as soon as it is created.
 
-The worker checks nothing before `initialize`. Until then it answers a
-completion with an empty list and a hover or signature help with `null`, and
-it keeps the session messages. A second `initialize` creates the language
-services anew.
+Before the first net the worker holds no language service. It answers a
+completion with an empty list and a hover or signature help with `null`,
+drops a `textDocument/didChange`, and keeps the session messages. A
+`sdcpn/didChange` that comes first is treated as the first net, except that
+the session messages kept so far still wait for an `initialize`. The
+requests that carry their own input are answered at any time:
+`sdcpn/diagnostics`, `sdcpn/compileHirArtifacts` and the lowering requests.
+A second `initialize` creates the language services anew.
 
 `dispose()` rejects every pending request and terminates the transport. It is
 safe to call twice. A notification sent after it is dropped.
